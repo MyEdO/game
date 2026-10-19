@@ -1,7 +1,7 @@
 /**
  * Édition DEV d'une entrée du Compendium — édite la VRAIE donnée (`src/data/*.json`, app-owned).
- * Réutilise le navigateur du Compendium (cet éditeur ne vit QUE dans le panneau détail) + le motif
- * `<datalist>` d'autocomplétion (cf. SpellsField) pour les champs-références (traits/talents/sorts…
+ * Réutilise le navigateur du Compendium (cet éditeur ne vit QUE dans le panneau détail) + la saisie
+ * à suggestions `SaisieSuggeree` (`RefField`) pour les champs-références (traits/talents/sorts…
  * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Sauvegarde via File
  * System Access (`fsPersist`) + preview mémoire (`setDataset`).
  */
@@ -24,7 +24,7 @@ import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
 import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
-import { RefField, cfgDeLaFeuille, refFieldCfg, libelleDeDataset } from '../../compendium/RefField';
+import { RefField, SaisieSuggeree, cfgDeLaFeuille, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
 import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
 import { Icon } from '../../Icon';
@@ -94,7 +94,7 @@ export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetK
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
 
-/** Champ-réf → son dataset. Double usage : autocomplétion `<datalist>` des champs-listes ET
+/** Champ-réf → son dataset. Double usage : suggestions (`SaisieSuggeree`) des champs-listes ET
  *  validation des refs (`validateEntry` : chaque `{id}` du champ doit résoudre dans ce dataset). */
 const REF_LIST_DATASET: Record<string, DatasetKey> = {
   traits: 'traits', optionals: 'traits', skills: 'skills', talents: 'talents',
@@ -1801,7 +1801,7 @@ export function DetailsTextsField({ value, onChange }: { value: DetailsTexts | u
   );
 }
 
-/** Rendu d'un champ, avec autocomplétion `<datalist>` pour les listes de références. `sujet` = sa
+/** Rendu d'un champ, avec suggestions (`SaisieSuggeree`) des libellés du dataset pour les listes de références. `sujet` = sa
  *  POSITION dans un conteneur (« de la rangée 2 de windModifiers »), qui complète ses noms accessibles :
  *  deux champs de même libellé, dans deux rangées, ne se confondent pas. */
 function Field({ chemin, sujet, field, value, onChange }: { chemin: string; sujet?: string; field: FieldDesc; value: unknown; onChange: (v: unknown) => void }) {
@@ -1810,6 +1810,8 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
   const refDs = REF_LIST_DATASET[key];
   const nom = sujet ? `${label} ${sujet}` : label;
   const nomPositionne = sujet ? nom : undefined;
+  const libelles = useValeursDistinctes(kind === 'stringList' ? refDs : undefined, 'label');
+  const { partagees, datalist } = useSuggestionsPartagees(libelles);
 
   const cfgDId = kind === 'text' ? cfgDeLaFeuille(field.noeud) : undefined;
   if (cfgDId) return <RefField cfg={cfgDId} label={label} ariaLabel={nomPositionne} nullable={field.nullable} noeud={field.noeud} value={value} onChange={onChange} />;
@@ -1821,13 +1823,13 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
         <span>{label}{refDs && libelleDeDataset(refDs) && <em className="ed-hint"> (suggestions : {libelleDeDataset(refDs)})</em>}</span>
         {list.map((item, i) => (
           <div key={i} className="fieldrow">
-            <input aria-label={`${nom} — valeur ${i + 1}`} value={item} list={refDs ? `dl-${refDs}` : undefined}
-              onChange={(e) => set(list.map((x, j) => (j === i ? e.target.value : x)))} />
+            <SaisieSuggeree ariaLabel={`${nom} — valeur ${i + 1}`} value={item} suggestions={partagees}
+              onChange={(v) => set(list.map((x, j) => (j === i ? v : x)))} />
             <button className="btn small danger" aria-label={`Retirer ${nom} — valeur ${i + 1}`} title={`Retirer ${nom} — valeur ${i + 1}`} onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
+        {datalist}
         <button className="btn small" aria-label={`Ajouter à ${nom}`} onClick={() => set([...list, ''])}>+ Ajouter</button>
-        {refDs && <RefDatalist ds={refDs} />}
       </div>
     );
   }
@@ -2094,9 +2096,4 @@ function GenericArrayField({ chemin, sujet, label, value, noeud, onChange, colum
   );
 }
 
-/** `<datalist>` des libellés d'un dataset (dé-dupliqués) — réutilise le motif SpellsField. */
-function RefDatalist({ ds }: { ds: DatasetKey }) {
-  const labels = useMemo(() => [...new Set((datasetArray(ds) as { label?: string }[]).map((e) => e.label).filter(Boolean))] as string[], [ds]);
-  return <datalist id={`dl-${ds}`}>{labels.map((l) => <option key={l} value={l} />)}</datalist>;
-}
 

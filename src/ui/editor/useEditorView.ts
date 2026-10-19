@@ -175,7 +175,7 @@ export function useEditorView() {
   const bottomOverlayRef = useRef<HTMLElement | null>(null);
 
   // Rotation et panoramique au clavier : publiés au PONT de l'éditeur, le registre de raccourcis
-  // (`state/keybindings`, section `editeur`) porte les touches et leur remap.
+  // (`state/clavier/keybindings`, section `editeur`) porte les touches et leur remap.
   useEffect(
     () =>
       publierEditeur({

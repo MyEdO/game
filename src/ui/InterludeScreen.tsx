@@ -52,7 +52,7 @@ import { ActivityPane, idBlocage } from './ActivityPane';
 import type { Porteur } from './liage';
 import { SearchFilterField, useFilteredList } from './SearchFilterField';
 import { MasterDetail } from './MasterDetail';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { t } from '../i18n';
 import { GatedAction, lieeA, type PropsDeRaison } from './GatedAction';
 

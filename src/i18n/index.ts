@@ -38,7 +38,7 @@ export const getLocale = (): Locale => locale;
  * des CLÉS (`MsgKey`), résolues à l'appel — c'est la forme à reprendre pour éteindre les précédentes.
  * V8c₅ n'AJOUTE aucun site à cette liste : ses cartes de module portent des CLÉS résolues à l'appel
  * (`SPEC_SOURCE_KEY` de `engine/traits/dispatch.ts`, `QUALITY_CLASS_KEY` de `qualities/craftEconomy.ts`,
- * `KEY_SECTION_KEY`/`labelKey`/`NAMED_KEY_KEY` de `state/keybindings.ts`) — la forme à reprendre.
+ * `KEY_SECTION_KEY`/`labelKey`/`NAMED_KEY_KEY` de `state/clavier/keybindings.ts`) — la forme à reprendre.
  * Appeler `setLocale` après le chargement les laisse donc en FR, SANS erreur ni avertissement.
  *
  * Ce n'est pas un bug tant que la v1 fige la locale au lancement (plan i18n évacué vers #320, Non-objectifs :

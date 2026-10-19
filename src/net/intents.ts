@@ -280,7 +280,7 @@ export const CLASSE_DES_ACTIONS = {
   setPendingCampaign: 'hôte', netHostStart: 'local', netJoin: 'local', netLeave: 'local',
   netAssign: 'hôte', netAssignSlot: 'hôte', setGmSeat: 'hôte',
   // ═══ interne : aucun écran ne l'émet ═══
-  // ── Vue et curseur clavier (registre `state/keybindings.ts`) ─────────────────────────────────
+  // ── Vue et curseur clavier (registre `state/clavier/keybindings.ts`) ─────────────────────────────────
   rotateCam: 'interne', toggleViewMode: 'interne', togglePov: 'interne', setReveler: 'interne', moveCursor: 'interne',
   snapCursorToTarget: 'interne', commitCursor: 'interne', battleArmIntent: 'interne',
   // ── Machinerie d'hôte : scène, temps, groupe, combat, IA, journal ─────────────────────────────

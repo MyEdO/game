@@ -9,12 +9,12 @@ import { describe, it, expect } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { RefField, cfgDeLaFeuille, refusDuNoeud, type RefFieldCfg } from './RefField';
-import { inferFields } from './editFields';
-import { declarationDeFeuilleDId, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
-import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../data/schemas/exposition-derivee';
-import { datasetArray, type DatasetKey } from '../../data/overrides';
-import { metaPourFichier, noeudObjet, schemaForFile } from '../../data/schemas/validate';
-import { ouverts } from '../../data/schemas/grammaire/descente';
+import { inferFields } from '../editFields';
+import { declarationDeFeuilleDId, idsDeLaSousListe } from '../../../data/schemas/grammaire/ref';
+import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../../data/schemas/exposition-derivee';
+import { datasetArray, type DatasetKey } from '../../../data/overrides';
+import { metaPourFichier, noeudObjet, schemaForFile } from '../../../data/schemas/validate';
+import { ouverts } from '../../../data/schemas/grammaire/descente';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

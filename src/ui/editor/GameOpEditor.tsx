@@ -30,7 +30,7 @@ import { SizeCategory, SIZE_LABEL } from '../../engine/size';
 import { etats, refLabel, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../state/terrain';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 import { parseTraitInstance, formatTrait } from '../../engine/traits/dispatch';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';

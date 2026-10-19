@@ -1351,13 +1351,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/editor/no-datalist.test.ts",
-    motif: "désormais",
-    ancre: "PÉRIMÈTRE ÉTENDU #410 (2026-07-13) : la garde balaie désormais TOUT `src/ui` (walk récursif) au",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/forcedDieRow.pre-roll.test.tsx",
     motif: "désormais",
     ancre: "porte désormais SA ligne ; le libellé VISIBLE reste l'état du champ (offre / marque).",

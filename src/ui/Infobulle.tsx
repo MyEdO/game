@@ -24,12 +24,11 @@
  * FOCUS : tant que la boîte est épinglée ou tient le focus, elle l'EMPRUNTE (`useFocusEmprunte`), et
  * son origine est le contrôle de l'ancrage (`controleDe`) — jamais le nœud focalisé au hasard.
  *
- * @clavier-hors-registre ↓ appartient à l'ancrage épinglable (`aria-keyshortcuts`) : la délégation le
- * prend à la CAPTURE du document et en arrête la propagation (`PHASES`, `keydown` du routage) avant
- * l'écouteur du registre, posé en bulle sur la fenêtre (`useGameKeyboard.ts`). Échap passe par la pile
- * (`useDismissLayer`).
+ * CLAVIER : ↓ appartient à l'ancrage épinglable (`aria-keyshortcuts`) : l'ancrage l'écoute lui-même, à
+ * sa CAPTURE (`onKeyDownCapture` étalé avec `ancrage`), avant les `onKeyDown` de son contrôle, le piège
+ * du dialogue et le registre. Échap passe par la pile (`useDismissLayer`).
  */
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { BoiteAncree, usePlacementAncre } from './BoiteAncree';
 import { useDismissLayer } from './useDismissLayer';
 import { focusSansIntention, useFocusEmprunte } from './focus';
@@ -61,14 +60,9 @@ interface EvenementsDelegues {
   focusin: FocusEvent;
   focusout: FocusEvent;
   click: MouseEvent;
-  keydown: KeyboardEvent;
   mousedown: MouseEvent;
 }
 type TypeDelegue = keyof EvenementsDelegues;
-/** Les types délégués, et leur phase : `keydown` à la CAPTURE (↓ épingle avant tout écouteur local). */
-const PHASES: Record<TypeDelegue, boolean> = {
-  mouseover: false, mouseout: false, focusin: false, focusout: false, click: false, keydown: true, mousedown: false,
-};
 
 /** Ce qu'une instance reçoit de la délégation : `ici`, un événement dont l'ancrage résolu est le sien ;
  *  `ailleurs`, tout autre événement. */
@@ -79,20 +73,36 @@ interface Routage {
 
 const inscrites = new Map<string, Routage>();
 
+/** L'instance qui possède l'ancrage résolu de `cible`, et cet ancrage. */
+const proprioDe = (cible: EventTarget | null): { a: HTMLElement | null; proprio: Routage | undefined } => {
+  const a = ancrageDe(cible);
+  return { a, proprio: a ? inscrites.get(a.getAttribute(ANCRE)!) : undefined };
+};
+
 function deleguer(e: Event): void {
   const type = e.type as TypeDelegue;
-  const a = ancrageDe(e.target);
-  const proprio = a ? inscrites.get(a.getAttribute(ANCRE)!) : undefined;
+  const { a, proprio } = proprioDe(e.target);
   for (const routage of inscrites.values()) {
     if (routage === proprio) (routage.ici[type] as ((e: Event, a: HTMLElement) => void) | undefined)?.(e, a!);
     else (routage.ailleurs[type] as ((e: Event) => void) | undefined)?.(e);
   }
 }
 
-const DELEGATION = posePartagee(
-  () => { for (const [type, capture] of Object.entries(PHASES)) document.addEventListener(type, deleguer, capture); },
-  () => { for (const [type, capture] of Object.entries(PHASES)) document.removeEventListener(type, deleguer, capture); },
-);
+/** La pose de chaque type délégué, défaite par le `signal` de la délégation, en bulle sur le document. */
+const POSES: { readonly [T in TypeDelegue]: (signal: AbortSignal) => void } = {
+  mouseover: (signal) => document.addEventListener('mouseover', deleguer, { signal }),
+  mouseout: (signal) => document.addEventListener('mouseout', deleguer, { signal }),
+  focusin: (signal) => document.addEventListener('focusin', deleguer, { signal }),
+  focusout: (signal) => document.addEventListener('focusout', deleguer, { signal }),
+  click: (signal) => document.addEventListener('click', deleguer, { signal }),
+  mousedown: (signal) => document.addEventListener('mousedown', deleguer, { signal }),
+};
+
+const DELEGATION = posePartagee(() => {
+  const fin = new AbortController();
+  for (const poser of Object.values(POSES)) poser(fin.signal);
+  return () => fin.abort();
+});
 
 function inscrire(id: string, routage: Routage): () => void {
   const rendre = DELEGATION.prendre();
@@ -205,12 +215,6 @@ export function useInfobulle(options: OptionsInfobulle) {
         click: (_e, a) => {
           if (vivant.current.options.auToucher) bascule(a);
         },
-        keydown: (e, a) => {
-          if (e.key !== 'ArrowDown' || !vivant.current.options.epinglable) return;
-          e.preventDefault();
-          e.stopPropagation();
-          epingler(a);
-        },
       },
       ailleurs: {
         mouseover: (e) => { if (!dansLaBoite(e.target)) vivant.current.pointeur = false; },
@@ -218,7 +222,7 @@ export function useInfobulle(options: OptionsInfobulle) {
         mousedown: (e) => { if (vivant.current.ouverte && !dansLaBoite(e.target)) fermer(); },
       },
     });
-  }, [id, entre, quitte, epingler, bascule, fermer]);
+  }, [id, entre, quitte, bascule, fermer]);
 
   const placement = usePlacementAncre(ancre, LARGEUR);
   const ouverte = !!placement;
@@ -232,10 +236,18 @@ export function useInfobulle(options: OptionsInfobulle) {
     (box.contains(document.activeElement) ? document.activeElement as HTMLElement : box.querySelector<HTMLElement>(CONTROLE)), []);
   useFocusEmprunte(boxRef, ouverte && (epinglee || focusDedans), cible, undefined, origine);
 
+  /** ↓ depuis l'ancrage ou son contrôle — jamais depuis un ancrage imbriqué, qui a le sien. */
+  const epinglerAuClavier = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key !== 'ArrowDown' || ancrageDe(e.target) !== e.currentTarget) return;
+    e.preventDefault();
+    e.stopPropagation();
+    epingler(e.currentTarget);
+  };
+
   const ancrage = {
     [ANCRE]: id,
     ...(ouverte ? { 'aria-describedby': id } : null),
-    ...(options.epinglable && !options.sourdine ? { 'aria-keyshortcuts': 'ArrowDown' } : null),
+    ...(options.epinglable && !options.sourdine ? { 'aria-keyshortcuts': 'ArrowDown', onKeyDownCapture: epinglerAuClavier } : null),
   };
 
   const boite = (contenu: ReactNode): ReactNode => placement && (

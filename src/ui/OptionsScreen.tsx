@@ -1,7 +1,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { useModalA11y } from './Modal';
 import { MenuSubScreen } from './MenuCard';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { KeyBindingsPanel } from './KeyBindingsPanel';
 import { AudioControls } from './AudioControls';
 import { PreferencesPanel } from './PreferencesPanel';

@@ -13,7 +13,9 @@
 import { tableTotale } from '../../lib/tableTotale';
 import { type ComponentType, type Dispatch, type SetStateAction, useRef, useState } from 'react';
 import { ScreenMeta } from '../ScreenMeta';
-import { Tabs, type TabItem } from '../Tabs';
+import { Tabs, type TabItem } from '../composites/Tabs';
+import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
+import { Menu } from '../composites/Menu';
 import { ChoiceButtons, OptionChooser } from '../OptionChooser';
 import { EmbeddedShell } from '../RollShell';
 import { Modal } from '../Modal';
@@ -110,7 +112,7 @@ import { LogDrawer } from '../LogDrawer';
 import { InspectPanel } from '../InspectPanel';
 import { EquipmentPanel } from '../EquipmentPanel';
 import { MediaSelect } from '../MediaSelect';
-import { RefField, refFieldCfg } from '../compendium/RefField';
+import { RefField, refFieldCfg } from '../compendium/refField/RefField';
 import { itemFromTrappingById } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 
@@ -212,6 +214,50 @@ function TabsDemo() {
   return (
     <Stack>
       <Tabs tabs={tabs} active={active} onChange={setActive} label="Onglets" />
+    </Stack>
+  );
+}
+
+/** `Listbox` et `RadioGroup` : l'appelant pose ses items (`option`, `radio`) et leur roving tabindex. */
+function GroupesDeChoixDemo() {
+  const choix = ['Auberge', 'Temple', 'Marché'];
+  const [service, setService] = useState(0);
+  const [rang, setRang] = useState(0);
+  return (
+    <Stack>
+      <Listbox label="Services" count={choix.length} activeIndex={service} onActivate={setService}>
+        {choix.map((c, i) => (
+          <button key={c} type="button" className="btn small" role="option" aria-selected={i === service} tabIndex={i === service ? 0 : -1} onClick={() => setService(i)}>
+            {c}
+          </button>
+        ))}
+      </Listbox>
+      <RadioGroup label="Rang" count={3} activeIndex={rang} onActivate={setRang} orientation="horizontal">
+        {[1, 2, 3].map((n, i) => (
+          <button key={n} type="button" className="btn small" role="radio" aria-checked={i === rang} tabIndex={i === rang ? 0 : -1} onClick={() => setRang(i)}>
+            Rang {n}
+          </button>
+        ))}
+      </RadioGroup>
+    </Stack>
+  );
+}
+
+function MenuDemo() {
+  const [dernier, setDernier] = useState('—');
+  return (
+    <Stack>
+      <Menu
+        label="Fichier"
+        className="panel"
+        entrees={[
+          { cle: 'nouveau', label: 'Nouveau projet', onSelect: () => setDernier('Nouveau projet') },
+          { cle: 'ouvrir', label: 'Ouvrir…', onSelect: () => setDernier('Ouvrir…') },
+          { cle: 'sep', separateur: true },
+          { cle: 'exporter', label: 'Exporter JSON', onSelect: () => setDernier('Exporter JSON') },
+        ]}
+      />
+      <p className="hint">Dernière entrée : {dernier}</p>
     </Stack>
   );
 }
@@ -1763,7 +1809,9 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'planche', label: 'Planche', file: 'src/ui/Planche.tsx', category: 'Écrans & layout', render: PlancheDemo },
   { id: 'screenmeta', label: 'ScreenMeta', file: 'src/ui/ScreenMeta.tsx', category: 'Écrans & layout', render: ScreenMetaDemo },
   { id: 'masterdetail', label: 'MasterDetail', file: 'src/ui/MasterDetail.tsx', category: 'Écrans & layout', render: MasterDetailDemo },
-  { id: 'tabs', label: 'Tabs', file: 'src/ui/Tabs.tsx', category: 'Écrans & layout', render: TabsDemo },
+  { id: 'tabs', label: 'Tabs', file: 'src/ui/composites/Tabs.tsx', category: 'Écrans & layout', render: TabsDemo },
+  { id: 'groupesdechoix', label: 'Listbox / RadioGroup', file: 'src/ui/composites/GroupesDeChoix.tsx', category: 'Écrans & layout', render: GroupesDeChoixDemo },
+  { id: 'menu', label: 'Menu', file: 'src/ui/composites/Menu.tsx', category: 'Écrans & layout', render: MenuDemo },
   { id: 'menucard', label: 'MenuCard', file: 'src/ui/MenuCard.tsx', category: 'Écrans & layout', render: MenuCardDemo },
   { id: 'band', label: 'Band', file: 'src/ui/Band.tsx', category: 'Écrans & layout', render: BandDemo },
   { id: 'searchfilterfield', label: 'SearchFilterField', file: 'src/ui/SearchFilterField.tsx', category: 'Écrans & layout', render: SearchFilterFieldDemo },
@@ -1843,7 +1891,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'errorboundary', label: 'SceneErrorBoundary', file: 'src/ui/SceneErrorBoundary.tsx', category: 'Écrans & layout', render: SceneErrorBoundaryDemo },
   { id: 'itemicon', label: 'ItemIcon', file: 'src/ui/ItemIcon.tsx', category: 'Négoce & activités', render: ItemIconDemo },
   { id: 'mediaselect', label: 'MediaSelect', file: 'src/ui/MediaSelect.tsx', category: 'Négoce & activités', render: MediaSelectDemo },
-  { id: 'reffield', label: 'RefField', file: 'src/ui/compendium/RefField.tsx', category: 'Éditeur', render: RefFieldDemo },
+  { id: 'reffield', label: 'RefField', file: 'src/ui/compendium/refField/RefField.tsx', category: 'Éditeur', render: RefFieldDemo },
   { id: 'stack-row-grid-split', label: 'Stack / Row / Grid / Split', file: 'src/ui/Layout.tsx', category: 'Écrans & layout', render: LayoutDemo },
   { id: 'ornements', label: 'Ornements', file: 'src/ui/Ornaments.tsx', category: 'Atelier du scribe', render: OrnamentsDemo },
   { id: 'notchgauge', label: 'NotchGauge', file: 'src/ui/NotchGauge.tsx', category: 'Personnages', render: NotchGaugeDemo },

@@ -414,7 +414,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   REFUSÉ (`GatedAction`) ; la raison nomme les lieux qui la désignent (« Encore désigné par : scène
   « Le relais », indice « La lettre » — … »).
 - **Choisir une référence narrative.** Un seul sélecteur, `RefNarrativeField`
-  (`src/ui/compendium/RefField.tsx`, mode `single` de `RefField` sur des entrées fournies) : il lit à
+  (`src/ui/compendium/refField/RefField.tsx`, mode `single` de `RefField` sur des entrées fournies) : il lit à
   `REFERENCES_NARRATIVES` le registre que désigne la clé, affiche le libellé de l'entrée (`titre` ; pour
   un preset, le nom de son profil ou de sa créature de base) et écrit l'id. Il sert `document.documentId`,
   `revealClue.indiceId` (puis son `stade`, parmi les stades de l'indice choisi), `discreditClue.indiceId`,

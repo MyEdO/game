@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 
 /** Un onglet d'une fiche d'entité. `content` est rendu paresseusement (seul l'onglet actif s'affiche). */
 export interface EntryTab {

@@ -10,7 +10,7 @@ import { testScene } from '../scenes/test-fixture';
 import { makePregens } from '../data/pregens';
 import { CampaignView } from './CampaignView';
 import { t } from '../i18n';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, getStageYaw, resetStageYaw } from '../state/stageYaw';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';

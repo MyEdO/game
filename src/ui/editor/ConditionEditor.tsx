@@ -14,7 +14,7 @@ import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { actorFieldSchema, actorRefSchema, hasWhatSchema, partyWhoSchema, relationOrCampSchema, startleCauseSchema } from '../../data/schemas/grammaire/mecanique';
 import type { Camp, Relation } from '../../engine/relations';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
 import { ATTACK_KIND_LABELS } from './interne/resumeDeCondition';
 

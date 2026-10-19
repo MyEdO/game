@@ -26,7 +26,7 @@ import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { GameOpEditor } from './GameOpEditor';
 import { opSummary } from './interne/resumeDOp';
 import { ScheduleSpecFields } from './ScheduleSpecFields';
-import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/RefField';
+import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/refField/RefField';
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/libellesNarratifs';
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';

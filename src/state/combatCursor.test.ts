@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent } from './combatCursor';
 import { useGame } from './store';
-import { runBindingById } from './keybindings';
+import { runBindingById } from './clavier/keybindings';
 import { t } from '../i18n';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './spawn';

@@ -10,8 +10,7 @@
  * destins de L'Étoile du Sorcier partagent une position — cf. `STAR_POSITIONS`). Elle ne connaît ni
  * `stars.json` ni les libellés de destin : `signs` + `selectedKey` + `onSelect`, rien d'autre.
  *
- * SVG en tokens (`--atelier-*`), aucune palette littérale. Radiogroup a11y : roving tabindex +
- * flèches/Home/End (selection-follows-focus, `rovingKeyDown` — MÊME primitive que `<Tabs>`/`GroupedPickGrid`).
+ * SVG en tokens (`--atelier-*`), aucune palette littérale. Les signes composent `RadioGroup` (`svg`).
  *
  * ANTI-TÉLESCOPAGE (acquis du juge vision P3, tenu ICI par la GÉOMÉTRIE de la planche plutôt que par
  * l'escamotage) : les libellés s'ancrent PAR QUADRANT — `start` à droite du cercle (le texte s'étend
@@ -22,8 +21,7 @@
  * besoin — et l'escamotage mentait au repos (sans élu, `activeIdx` retombait à 0 et empilait trois
  * noms au pôle nord, cf. capture `ossature-04-avant`).
  */
-import { useRef } from 'react';
-import { rovingKeyDown } from '../rovingFocus';
+import { RadioGroup } from '../composites/GroupesDeChoix';
 
 export interface WheelSign {
   /** Clé de POSITION (l'appelant la choisit stable — jamais un libellé). */
@@ -78,20 +76,10 @@ export function CelestialWheel({ signs, selectedKey, onSelect, hub, placeholder 
   placeholder?: string;
 }) {
   const n = signs.length;
-  const svgRef = useRef<SVGSVGElement>(null);
   const selIdx = signs.findIndex((s) => s.key === selectedKey);
   // Le roving tabindex a besoin d'UNE entrée focusable même sans élu — mais `activeIdx` ne DÉSIGNE
   // alors personne (aucun rendu ne s'y accroche : `sel` compare la CLÉ, jamais l'index).
   const activeIdx = selIdx >= 0 ? selIdx : 0;
-
-  const onKeyDown = rovingKeyDown<SVGSVGElement>({
-    containerRef: svgRef,
-    selector: '[role="radio"]',
-    count: n,
-    activeIndex: activeIdx,
-    onActivate: (idx) => onSelect(signs[idx].key),
-    orientation: 'grid',
-  });
 
   const hubTitle = hub ? wrapWords(hub.title, 12, 2) : [];
   const hubSub = hub?.sub ? wrapWords(hub.sub.toUpperCase(), 20, 3) : [];
@@ -102,7 +90,7 @@ export function CelestialWheel({ signs, selectedKey, onSelect, hub, placeholder 
 
   return (
     <div className="celestial-wheel">
-      <svg ref={svgRef} viewBox="0 0 840 560" role="radiogroup" aria-label="Roue céleste — signe astral" onKeyDown={onKeyDown}>
+      <svg viewBox="0 0 840 560">
         <defs>
           {/* Pastille de l'élu : la gemme allumée de la planche (`radialGradient #wheelSel`). Les
               teintes sont posées en ATTRIBUT (`stop-color` accepte `var()`) — deux classes de plus
@@ -116,48 +104,50 @@ export function CelestialWheel({ signs, selectedKey, onSelect, hub, placeholder 
         <circle className="cw-ring-fine" cx={CX} cy={CY} r={R_RING_IN} />
         <circle className="cw-ring-fine" cx={CX} cy={CY} r={R_DASH} strokeDasharray="3 5" />
 
-        {signs.map((s, i) => {
-          const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
-          const dx = Math.cos(a);
-          const dy = Math.sin(a);
-          const at = (r: number) => ({ x: CX + r * dx, y: CY + r * dy });
-          const dot = at(R_DOT);
-          const sel = s.key === selectedKey;
-          // Ancrage par QUADRANT (cf. en-tête) : `middle` aux SEULS pôles (dx≈0), sinon le libellé
-          // s'étend vers l'extérieur du cercle. Le seuil est serré à dessein — une bande « middle »
-          // large recentrerait les libellés sur leur pastille et les ferait se chevaucher.
-          const anchor: 'start' | 'middle' | 'end' = Math.abs(dx) < 0.02 ? 'middle' : dx > 0 ? 'start' : 'end';
-          // Le libellé fuit sa pastille de quelques unités le long du rayon (planche : ~+2).
-          const lab = at(R_LABEL + (anchor === 'middle' ? 0 : 2));
-          const num = at(R_NUM);
-          const sa = at(R_SPOKE_A);
-          const sb = at(R_SPOKE_B);
-          return (
-            <g
-              key={s.key}
-              className={sel ? 'cw-node sel' : 'cw-node'}
-              role="radio"
-              aria-checked={sel}
-              aria-label={s.label}
-              tabIndex={i === activeIdx ? 0 : -1}
-              onClick={() => onSelect(s.key)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onSelect(s.key);
-                }
-              }}
-            >
-              {/* L'aiguille : du moyeu au signe posé (planche — seul l'élu la porte). */}
-              {sel && <line className="cw-needle" x1={CX} y1={CY} x2={dot.x} y2={dot.y} />}
-              <line className="cw-spoke" x1={sa.x} y1={sa.y} x2={sb.x} y2={sb.y} />
-              <circle className="cw-dot" cx={dot.x} cy={dot.y} r={sel ? 8 : 4.5} fill={sel ? 'url(#cw-sel)' : undefined} />
-              <text className="cw-tick" x={num.x} y={num.y} textAnchor="middle" dominantBaseline="middle">{s.roll}</text>
-              <text className="cw-label" x={lab.x} y={lab.y} textAnchor={anchor} dominantBaseline="middle">{s.label}</text>
-              <title>{s.label}</title>
-            </g>
-          );
-        })}
+        <RadioGroup svg label="Roue céleste — signe astral" count={n} activeIndex={activeIdx} onActivate={(idx) => onSelect(signs[idx].key)}>
+          {signs.map((s, i) => {
+            const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
+            const dx = Math.cos(a);
+            const dy = Math.sin(a);
+            const at = (r: number) => ({ x: CX + r * dx, y: CY + r * dy });
+            const dot = at(R_DOT);
+            const sel = s.key === selectedKey;
+            // Ancrage par QUADRANT (cf. en-tête) : `middle` aux SEULS pôles (dx≈0), sinon le libellé
+            // s'étend vers l'extérieur du cercle. Le seuil est serré à dessein — une bande « middle »
+            // large recentrerait les libellés sur leur pastille et les ferait se chevaucher.
+            const anchor: 'start' | 'middle' | 'end' = Math.abs(dx) < 0.02 ? 'middle' : dx > 0 ? 'start' : 'end';
+            // Le libellé fuit sa pastille de quelques unités le long du rayon (planche : ~+2).
+            const lab = at(R_LABEL + (anchor === 'middle' ? 0 : 2));
+            const num = at(R_NUM);
+            const sa = at(R_SPOKE_A);
+            const sb = at(R_SPOKE_B);
+            return (
+              <g
+                key={s.key}
+                className={sel ? 'cw-node sel' : 'cw-node'}
+                role="radio"
+                aria-checked={sel}
+                aria-label={s.label}
+                tabIndex={i === activeIdx ? 0 : -1}
+                onClick={() => onSelect(s.key)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(s.key);
+                  }
+                }}
+              >
+                {/* L'aiguille : du moyeu au signe posé (planche — seul l'élu la porte). */}
+                {sel && <line className="cw-needle" x1={CX} y1={CY} x2={dot.x} y2={dot.y} />}
+                <line className="cw-spoke" x1={sa.x} y1={sa.y} x2={sb.x} y2={sb.y} />
+                <circle className="cw-dot" cx={dot.x} cy={dot.y} r={sel ? 8 : 4.5} fill={sel ? 'url(#cw-sel)' : undefined} />
+                <text className="cw-tick" x={num.x} y={num.y} textAnchor="middle" dominantBaseline="middle">{s.roll}</text>
+                <text className="cw-label" x={lab.x} y={lab.y} textAnchor={anchor} dominantBaseline="middle">{s.label}</text>
+                <title>{s.label}</title>
+              </g>
+            );
+          })}
+        </RadioGroup>
 
         <circle className="cw-hub" cx={CX} cy={CY} r={R_HUB} />
         <circle className="cw-ring-fine" cx={CX} cy={CY} r={R_HUB_IN} />

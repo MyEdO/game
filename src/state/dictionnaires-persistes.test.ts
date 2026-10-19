@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { loadPreferences } from './preferences';
 import { loadKeyOverrides } from './keybindingsPrefs';
-import { KEYBINDINGS, effectiveCodes, effectiveMods, surchargeDe } from './keybindings';
+import { KEYBINDINGS, effectiveCodes, effectiveMods, surchargeDe } from './clavier/keybindings';
 import { loadAudioPrefs } from '../audio/engine';
 import { cadence, setCadence, CADENCE_DEFAULT } from '../engine/cadence';
 import { desFixes, setDesFixes, DES_FIXES_DEFAULT } from '../engine/fixedDie';

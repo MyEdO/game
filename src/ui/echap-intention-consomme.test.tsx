@@ -15,7 +15,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 function Harness() {
   useGameKeyboard();

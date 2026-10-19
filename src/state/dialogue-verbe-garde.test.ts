@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { KEYBINDINGS } from './keybindings';
+import { KEYBINDINGS } from './clavier/keybindings';
 import { conversationRepond } from './dialogue';
 import { partyMoneyTotal } from './bourseFlow';
 import { createHero } from '../engine/character';

@@ -13,7 +13,7 @@ const RACINE_REPO = fileURLToPath(new URL('../../', import.meta.url));
 /**
  * Garde structurelle #1318 P8/D10 — les MARQUEURS STRUCTURELS (classes racines distinctives des
  * primitives de `docs/primitives.md`) sont la PROPRIÉTÉ du fichier de leur
- * primitive. Même patron qu'`aria-primitive-guard` (rôle → fichier propriétaire), appliqué au markup :
+ * primitive. Même patron que le mur `murs/roles-composites` (rôle → dossier propriétaire), appliqué au markup :
  * `gallery-exhaustive` garantit le SPÉCIMEN (la primitive existe et est montée), jamais l'USAGE — rien
  * ne rougissait quand un écran RECOPIAIT le markup au lieu de composer la primitive.
  *

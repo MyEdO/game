@@ -5,7 +5,7 @@
  * `confirmRoundStart` en solo, et n'est actif QUE pendant la pause.
  */
 import { describe, it, expect } from 'vitest';
-import { KEYBINDINGS, runBindingById } from './keybindings';
+import { KEYBINDINGS, runBindingById } from './clavier/keybindings';
 import type { GameState } from './store';
 
 const binding = () => KEYBINDINGS.find((k) => k.id === 'round-start')!;

@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { ACTIONS, findConditionById } from '../data/index';
 import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from './targetingModes';
-import { KEYBINDINGS } from './keybindings';
+import { KEYBINDINGS } from './clavier/keybindings';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
 import type { Combatant } from '../engine/types';
 import { useGame, type BattleState } from './store';

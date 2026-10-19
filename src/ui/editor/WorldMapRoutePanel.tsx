@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';

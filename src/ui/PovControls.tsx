@@ -1,6 +1,6 @@
 import type { CSSProperties, PointerEvent, ReactNode } from 'react';
 import { useGame } from '../state/store';
-import { runBindingById } from '../state/keybindings';
+import { runBindingById } from '../state/clavier/keybindings';
 
 /**
  * Croix directionnelle TACTILE de la vue subjective (POV). Ne crée AUCUN chemin d'entrée parallèle :

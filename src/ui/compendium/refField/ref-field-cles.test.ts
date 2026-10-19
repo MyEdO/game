@@ -1,5 +1,5 @@
 /**
- * Garde des CLÉS de `REF_FIELD` (`ui/compendium/RefField.tsx`) — une clé qui ne désigne AUCUN champ
+ * Garde des CLÉS de `REF_FIELD` (`ui/compendium/refField/RefField.tsx`) — une clé qui ne désigne AUCUN champ
  * réel ne casse rien : `refFieldCfg` retombe simplement sur `undefined` et le picker Codex DISPARAÎT
  * en silence (le champ retombe sur la saisie générique). Un renommage de champ en donnée
  * (`qualities.type` → `qualities.polarite`, #1467 L1b V-P5) laissait donc une config ORPHELINE
@@ -16,11 +16,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { CODEX } from './registry';
-import { inferFields } from './editFields';
+import { CODEX } from '../registry';
+import { inferFields } from '../editFields';
 import { REF_FIELD } from './RefField';
-import { isEditableCategory, editableEntries } from '../editor/codex/CodexEdit';
-import { schemaForFile } from '../../data/schemas/validate';
+import { isEditableCategory, editableEntries } from '../../editor/codex/CodexEdit';
+import { schemaForFile } from '../../../data/schemas/validate';
 
 /** Valeur qu'aucun schéma de champ de la base n'accepte — sert d'appât au parse. */
 const SONDE = Symbol('sonde-ref-field');

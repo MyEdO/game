@@ -34,7 +34,7 @@ const monter = (node: React.ReactElement) => {
   act(() => { root.render(node); });
 };
 
-const echap = () => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); });
+const echap = () => act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true })); });
 const boites = () => document.querySelectorAll('.infobulle[role="tooltip"]').length;
 const porte = () => document.querySelector<HTMLButtonElement>('.infobulle button');
 const actif = () => {
@@ -92,7 +92,7 @@ describe('X2 — congédiée par Échap, la boîte ne se rouvre pas sur ce qui o
   it('épinglée puis congédiée : un focus redonné sans départ ne la rouvre pas ; une entrée neuve, si', () => {
     monter(banc);
     act(() => { ancre().focus(); });
-    act(() => { ancre().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })); });
+    act(() => { ancre().dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true, cancelable: true })); });
     expect(actif(), 'épinglée : le focus est sur la porte').toBe('BUTTON«Ouvrir la fiche»');
     echap();
     expect(actif(), 'Échap : le focus revient à l’ancrage').toBe('BUTTON«Affable ×2»');
@@ -144,19 +144,23 @@ describe('Q2DIAL — une origine sortie du document cède la place à celle de l
 });
 
 describe('DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche, quel que soit le nombre d’ancrages', () => {
+  /** Écouteurs du document vivants : posés, ni retirés ni défaits par leur `signal`. */
+  let vivants = 0;
   /** Écouteurs nets posés sur le document pendant `geste`. */
   const ecouteursDocument = (geste: () => void): number => {
-    let net = 0;
+    const avant = vivants;
     const pose = vi.spyOn(document, 'addEventListener').mockImplementation(function (this: Document, ...args) {
-      net++;
+      vivants++;
+      const options = args[2];
+      if (typeof options === 'object') options.signal?.addEventListener('abort', () => { vivants--; });
       return EventTarget.prototype.addEventListener.apply(this, args);
     });
     const retire = vi.spyOn(document, 'removeEventListener').mockImplementation(function (this: Document, ...args) {
-      net--;
+      vivants--;
       return EventTarget.prototype.removeEventListener.apply(this, args);
     });
     try { geste(); } finally { pose.mockRestore(); retire.mockRestore(); }
-    return net;
+    return vivants - avant;
   };
   const ancrages = (n: number) => (
     <>{Array.from({ length: n }, (_, i) => (
@@ -179,7 +183,7 @@ describe('DÉLÉGATION — un seul jeu d’écouteurs du document pour la couche
   });
 });
 
-describe('↓ — pris à la capture du document, sa propagation arrêtée avant le registre écouté à la fenêtre en bulle', () => {
+describe('↓ — pris à la capture de l’ancrage, sa propagation arrêtée avant le registre écouté à la fenêtre en bulle', () => {
   /** Appuis `keydown` parvenus à un écouteur de la fenêtre en BULLE (la phase de `useGameKeyboard`). */
   const appui = (cible: HTMLElement, code: string): { parvenus: number; empeche: boolean } => {
     let parvenus = 0;

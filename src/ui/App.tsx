@@ -9,7 +9,7 @@ import { GlobalSvgDefs } from './GlobalSvgDefs';
 import { CoopBanner, liaisonASignaler } from './CoopPanels';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
 import { PossessionsScreen } from './PossessionsScreen';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 // Le rendu de jeu (iso SVG + sprites du bestiaire) et l'éditeur d'authoring ne
 // sont pas nécessaires à l'écran menu : chunks async séparés (React.lazy) pour
@@ -44,7 +44,7 @@ function BandeauLiaison() {
 }
 
 export function App() {
-  // Raccourcis clavier de TOUTE l'application (registre unique `state/keybindings`) : UN SEUL
+  // Raccourcis clavier de TOUTE l'application (registre unique `state/clavier/keybindings`) : UN SEUL
   // montage, au-dessus de tous les écrans — le `when` de chaque raccourci dit où il vit (l'éditeur y
   // a sa section, atteinte par le pont `editeurBridge`).
   useGameKeyboard();

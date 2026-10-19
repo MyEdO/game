@@ -12,7 +12,7 @@ import { poserScenario } from '../../state/scenarioFlow';
 import { scenario } from '../../scenes/test-scenarios/96-presets-edo';
 import { DELAI_APPUI_LONG } from '../../ui/useLongPress';
 import { padButton } from '../../ui/useGamepad';
-import { runBindingById } from '../../state/keybindings';
+import { runBindingById } from '../../state/clavier/keybindings';
 import { props } from '../../data';
 import { setSpritePicker } from './spritePicker';
 import { VH, VW } from './useStageCamera';

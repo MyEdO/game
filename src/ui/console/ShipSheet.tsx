@@ -17,7 +17,7 @@ import type { Combatant, NavalTraitRef } from '../../engine/types';
 import type { Dir8 } from '../../state/dir8';
 import { Icon } from '../Icon';
 import { Prose } from '../Prose';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { rigSchema, posteSideSchema } from '../../data/schemas/defs/vehicles';
 import { rigDuNavire } from '../../engine/shipBuild';

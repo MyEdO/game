@@ -1,7 +1,7 @@
 /**
  * COMPOSITION DES DEUX PLAQUES D'OUTILS (spec `docs/plans/2026-08-16-spec-hud-combat.md`, zones 6 et
  * 11, §1c-ter « une plaque unique, jamais des éléments épars ») : la caméra se pilote au GESTE
- * (glisser, molette, pincer) et au CLAVIER (registre `state/keybindings`) sur l'écran de jeu ;
+ * (glisser, molette, pincer) et au CLAVIER (registre `state/clavier/keybindings`) sur l'écran de jeu ;
  * l'ÉDITEUR garde sa plaque `ViewControls` (outil d'authoring à la souris).
  *
  * Contrats POSITIFS et EXHAUSTIFS sur la composition (le fichier source, pas un rendu : c'est le

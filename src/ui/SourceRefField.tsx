@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useId, useState, type ReactNode } from 'react';
 import { NumberField } from './NumberField';
-import { RefField, type RefFieldCfgUnique } from './compendium/RefField';
+import { RefField, type RefFieldCfgUnique } from './compendium/refField/RefField';
 import { sourceRefLabel } from '../data';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 

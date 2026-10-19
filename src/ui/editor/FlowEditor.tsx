@@ -21,7 +21,7 @@ import { Icon } from '../Icon';
 import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
-import { RefField } from '../compendium/RefField';
+import { RefField } from '../compendium/refField/RefField';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { refLabel } from '../../data';

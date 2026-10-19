@@ -14,8 +14,8 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vite
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { elireBinding } from '../state/keybindings';
-import { useGameKeyboard } from './useGameKeyboard';
+import { elireBinding } from '../state/clavier/keybindings';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { ResilienceButton } from './ResilienceButton';
 
 /** L'élection du clavier (`elireBinding`), la même que `useGameKeyboard.ts::onKey`. */
@@ -99,9 +99,10 @@ describe('(B) GESTE — ↓ sur le bouton de pool ouvre la PORTE, le curseur ne 
 });
 
 /** Hôte du clavier d'application, avec un bouton posé DANS une surface (`role`) ou hors d'elle. */
-function Surface({ role }: { role?: 'tooltip' | 'dialog' }) {
+function Surface({ surface }: { surface?: 'tooltip' | 'dialog' }) {
   useGameKeyboard();
-  return <div role={role}><button type="button">Ouvrir la fiche</button></div>;
+  const bouton = <button type="button">Ouvrir la fiche</button>;
+  return surface === 'dialog' ? <div role="dialog">{bouton}</div> : surface === 'tooltip' ? <div role="tooltip">{bouton}</div> : <div>{bouton}</div>;
 }
 
 describe('(C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle possède Entrée', () => {
@@ -131,7 +132,7 @@ describe('(C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle 
 
   for (const role of ['tooltip', 'dialog'] as const) {
     it(`role="${role}" : Entrée active le bouton, le curseur tactique ne commet rien`, () => {
-      act(() => root.render(<Surface role={role} />));
+      act(() => root.render(<Surface surface={role} />));
       act(() => { useGame.setState(etat()); });
       entree();
       expect(commis, `Entrée sur un bouton d’une surface ${role} a commis le curseur derrière`).toBe(0);

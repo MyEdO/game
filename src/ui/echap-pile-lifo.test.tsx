@@ -17,9 +17,10 @@ import { dismissStackKinds } from '../state/dismissStack';
 import { useDismissLayer, resetDismissLayers } from './useDismissLayer';
 import { Modal } from './Modal';
 import { PanneauParametre } from './PanneauParametre';
+import { MediaSelect } from './MediaSelect';
 import { CodexRef } from './compendium/CodexRef';
 import { padButton } from './useGamepad';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 
@@ -86,6 +87,28 @@ describe('Échap — pile de couches LIFO', () => {
     expect(fermeModale, 'la dernière ouverte se ferme la PREMIÈRE').toHaveBeenCalledTimes(1);
     expect(fermePanneau, 'un appui = AU PLUS une fermeture').not.toHaveBeenCalled();
     expect(menuOuvert(), 'la touche ne traverse pas la pile').toBe(false);
+  });
+
+  it('LISTE DÉROULANTE (`MediaSelect`) dans une modale : Échap referme la liste, la modale au suivant', () => {
+    const fermeModale = vi.fn();
+    act(() => root.render(
+      <Modal title="Équipement" onClose={fermeModale}>
+        <MediaSelect options={[{ key: 'epee', label: 'Épée' }]} onSelect={() => {}} placeholder="Arme" />
+      </Modal>,
+    ));
+    const declencheur = document.querySelector('.ms-trigger') as HTMLButtonElement;
+    act(() => declencheur.click());
+    expect(declencheur.getAttribute('aria-expanded'), 'la liste est ouverte').toBe('true');
+    act(() => (document.querySelector('[role="option"]') as HTMLElement).focus());
+
+    echap();
+    expect(declencheur.getAttribute('aria-expanded'), 'Échap referme la liste').toBe('false');
+    expect(fermeModale, 'un appui = AU PLUS une fermeture').not.toHaveBeenCalled();
+    expect(document.activeElement, 'le focus quitte l’option masquée pour le déclencheur').toBe(declencheur);
+
+    echap();
+    expect(fermeModale, 'l’appui suivant congédie la modale').toHaveBeenCalledTimes(1);
+    expect(menuOuvert()).toBe(false);
   });
 
   it('INFOBULLE ÉPINGLÉE : Échap la referme et n’ouvre PAS le menu système (bug d’origine du ticket)', () => {

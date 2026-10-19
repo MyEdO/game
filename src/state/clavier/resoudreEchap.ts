@@ -16,9 +16,9 @@
  * ici, et non chez l'appelant, parce que la pile peut se vider EN COURS d'appui (la couche fermée
  * rend la main au registre) : sans mémoire partagée, la répétition suivante ouvrirait le menu.
  */
-import type { GameState } from './store';
+import type { GameState } from '../store';
 import { elireBinding, CODE_ECHAP, type KeyMod } from './keybindings';
-import { dismissStackSize, dismissTop } from './dismissStack';
+import { dismissStackSize, dismissTop } from '../dismissStack';
 
 /** Jeton de prise quand c'est la PILE qui a répondu (aucun id de raccourci ne peut le valoir). */
 export const PRISE_COUCHE = 'couche';

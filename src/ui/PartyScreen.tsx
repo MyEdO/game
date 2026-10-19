@@ -25,7 +25,7 @@ import { DetailFrame } from './DetailFrame';
 import { HeroSheet } from './HeroSheet';
 import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
-import { Tabs } from './Tabs';
+import { Tabs } from './composites/Tabs';
 import { coreAxisIds } from '../data';
 import { resolveActiveAxes } from '../state/worldMap';
 import { t } from '../i18n';

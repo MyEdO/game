@@ -19,8 +19,9 @@ import { useGame } from '../state/store';
 import { emptyScene } from '../state/scene';
 import { resetStageWalk } from '../state/stageWalk';
 import { publierEditeur } from '../state/editeurBridge';
-import { useGameKeyboard } from './useGameKeyboard';
-import { KEYBINDINGS, modsMatch, type KeyBinding, type KeyMod } from '../state/keybindings';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
+import { Listbox } from './composites/GroupesDeChoix';
+import { KEYBINDINGS, modsMatch, type KeyBinding, type KeyMod } from '../state/clavier/keybindings';
 
 /** Raccourci FABRIQUÉ, posé EN TÊTE du registre : ce qui est éprouvé ici est la LOI du hook (prise,
  *  relâchement), jamais le stock de raccourcis du jeu. En tête = il gagne l'élection sur un code déjà
@@ -153,16 +154,17 @@ describe('raccourcis — les modificateurs font partie de la touche', () => {
       expect(document.activeElement).toBe(bouton);
       frapper('keydown', 'ArrowRight');
       expect(deplacer, 'un bouton de palette encore focalisé mange la flèche de l’éditeur').toHaveBeenCalledWith(1, 0);
-      // Le MÊME bouton, item d'une liste à roving tabindex : la flèche est à la liste, pas à l'éditeur.
-      const liste = document.createElement('div');
-      liste.setAttribute('role', 'listbox');
-      document.body.appendChild(liste);
-      liste.appendChild(bouton);
-      bouton.focus();
+      // Un bouton DANS une liste à roving tabindex (`Listbox`) : la flèche est à la liste, pas à l'éditeur.
+      const hote = document.createElement('div');
+      document.body.appendChild(hote);
+      const liste = createRoot(hote);
+      act(() => liste.render(<Listbox suivi="focus" label="Liste"><button type="button">item</button></Listbox>));
+      hote.querySelector('button')!.focus();
       frapper('keyup', 'ArrowRight');
       frapper('keydown', 'ArrowRight');
       expect(deplacer, 'la flèche d’une liste à roving tabindex a AUSSI déplacé la sélection').toHaveBeenCalledOnce();
-      liste.remove();
+      act(() => liste.unmount());
+      hote.remove();
     } finally {
       bouton.remove();
       retirer();

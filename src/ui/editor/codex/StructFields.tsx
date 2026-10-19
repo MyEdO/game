@@ -7,7 +7,7 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { RefField, type RefFieldCfg } from '../../compendium/RefField';
+import { RefField, SaisieSuggeree, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg } from '../../compendium/refField/RefField';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../engine/disease';
@@ -702,27 +702,24 @@ export function DomainEffectsField(
  *    L'auteur complète l'Indice/la Cible dans la chaîne (« Arme (Épée) +7 », « Peur 3 »).
  * ──────────────────────────────────────────────────────────────────────────── */
 
-/** Suggestions d'autocomplétion : libellés du dataset `traits` (le param libre reste saisi à la main). */
-const traitDatalistOptions = (): string[] => (datasetArray('traits') as { label: string }[]).map((t) => t.label);
-
 export function TraitListField(
   { label, hint, value, onChange, suggestions }:
   { label: string; hint?: string; value: TraitInstance[] | undefined; onChange: (v: TraitInstance[]) => void; suggestions?: string[] },
 ) {
   const list = value ?? [];
   const set = (next: TraitInstance[]) => onChange(next);
-  const dlId = `dl-traitlist-${label.replace(/\s+/g, '-')}`;
-  const opts = suggestions ?? traitDatalistOptions();
+  const libelles = useValeursDistinctes(suggestions ? undefined : 'traits', 'label') ?? suggestions;
+  const { partagees, datalist } = useSuggestionsPartagees(libelles);
   return (
     <div className="ed-field">
       <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
         <div key={i} className="trait-row">
-          <input list={dlId} value={formatTrait(t)} onChange={(e) => set(list.map((x, j) => (j === i ? parseTraitInstance(e.target.value) : x)))} />
+          <SaisieSuggeree suggestions={partagees} value={formatTrait(t)} onChange={(v) => set(list.map((x, j) => (j === i ? parseTraitInstance(v) : x)))} />
           <button className="btn small danger" title="Retirer ce trait" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <datalist id={dlId}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
+      {datalist}
       <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Ajouter un trait</button>
     </div>
   );
@@ -737,8 +734,8 @@ export function OptionalsListField(
   { label: string; hint?: string; value: OptionalEntry[] | undefined; onChange: (v: OptionalEntry[]) => void },
 ) {
   const list = value ?? [];
-  const dlId = `dl-optlist-${label.replace(/\s+/g, '-')}`;
-  const opts = traitDatalistOptions();
+  const libelles = useValeursDistinctes('traits', 'label');
+  const { partagees, datalist } = useSuggestionsPartagees(libelles);
   return (
     <div className="ed-field">
       <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
@@ -747,12 +744,12 @@ export function OptionalsListField(
           {isOptionalNote(t) ? (
             <span className="chip">{optionalLabel(t)}</span>
           ) : (
-            <input list={dlId} value={formatTrait(t)} onChange={(e) => onChange(list.map((x, j) => (j === i ? parseTraitInstance(e.target.value) : x)))} />
+            <SaisieSuggeree suggestions={partagees} value={formatTrait(t)} onChange={(v) => onChange(list.map((x, j) => (j === i ? parseTraitInstance(v) : x)))} />
           )}
           <button className="btn small danger" title="Retirer cet optionnel" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
-      <datalist id={dlId}>{opts.map((o) => <option key={o} value={o} />)}</datalist>
+      {datalist}
       <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Ajouter un trait optionnel</button>
     </div>
   );

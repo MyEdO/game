@@ -100,7 +100,7 @@ export const OWNERS = {
   'master-detail-list': ['MasterDetail.tsx'],
 
   // Tabs — le bouton d'onglet (roving tabindex + aria-selected vivent dans la primitive).
-  'tab-btn': ['Tabs.tsx'],
+  'tab-btn': ['composites/Tabs.tsx'],
 
   // LifeBar — barre de remplissage LISSE (piste + remplissage + libellé/valeur).
   'life-bar': ['LifeBar.tsx'],

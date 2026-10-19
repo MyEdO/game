@@ -32,7 +32,7 @@ import { structureCollapseLog } from '../engine/structureCritical';
 import { traitArgSkeleton } from '../engine/traits/dispatch';
 import { validateCareerChange } from '../engine/advancement';
 import { talentMaxLabel } from '../engine/careerSlots';
-import { KEYBINDINGS, bindingLabel, keySectionLabel, keyLabel } from './keybindings';
+import { KEYBINDINGS, bindingLabel, keySectionLabel, keyLabel } from './clavier/keybindings';
 import type { Combatant } from '../engine/types';
 
 /** Un site migré : ce que le flux écrivait AVANT, ce que le catalogue rend APRÈS. */

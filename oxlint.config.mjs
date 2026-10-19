@@ -93,6 +93,41 @@ const VERROU_CONSOLE = [{
   message: `Propriété \`title\` de littéral dans la console : elle finit en attribut \`title\` au rendu ; une case nomme son geste et pointe sa règle (\`rule\`, \`gate\`) ; ${REMEDE_CONSOLE}.`,
 }];
 
+const PROPRIETAIRE_DATALIST = 'src/ui/compendium/refField/**';
+const MSG_DATALIST = 'Datalist (#286, #2724) : le motif `<input list>`/`<datalist>` appartient à `RefField` (`src/ui/compendium/refField/`) — composer `RefField` (modes `freeText`, `vocab`) ou sa saisie libre à suggestions `SaisieSuggeree`.';
+const VERROU_DATALIST = [
+  'JSXOpeningElement > JSXIdentifier.name[name="datalist"]',
+  'JSXOpeningElement[name.name="input"] > JSXAttribute > JSXIdentifier.name[name="list"]',
+  'Literal[value=/<datalist\\b/]',
+  'Literal[regex.pattern=/<datalist\\b/]',
+  'TemplateElement[value.raw=/<datalist\\b/]',
+  'CallExpression > Literal.arguments:first-child[value=/^datalist$/i]',
+].map((selector) => ({ selector, message: MSG_DATALIST }));
+
+const ROLES_COMPOSITES = '(listbox|radiogroup|tablist|menu|menubar|grid|treegrid|tree)';
+const REMEDE_ROLES = 'ne se posent que dans une primitive de `src/ui/composites/` (`Listbox`, `RadioGroup`, `Menu`, `Tabs`) ; composer la primitive';
+const ROLE_EN_ATTRIBUT = {
+  selector: `:matches(JSXAttribute[name.name="role"], Property[key.name="role"], Property[key.value="role"]) :matches(Literal[value=/^${ROLES_COMPOSITES}$/], TemplateElement[value.cooked=/^${ROLES_COMPOSITES}$/])`,
+  message: `Rôle ARIA composite (#414) : \`listbox\`, \`radiogroup\`, \`tablist\`, \`menu\`, \`menubar\`, \`grid\`, \`treegrid\` et \`tree\` portent un clavier à roving tabindex et ${REMEDE_ROLES}.`,
+};
+const LITTERAL_DE_ROLE = 'Literal, TemplateLiteral[expressions.length=0], Identifier[name="undefined"]';
+const SET_ATTRIBUTE_ROLE = 'CallExpression:matches([callee.property.name="setAttribute"], [callee.property.value="setAttribute"])[arguments.0.value="role"]';
+const MSG_ROLE_CALCULE = `Rôle ARIA calculé (#414, #2724) : hors \`src/ui/composites\`, un \`role\` s’écrit en littéral au JSX (une conditionnelle de littéraux passe) et ne se pose ni par \`setAttribute\` à valeur calculée ni par affectation \`.role =\` — un rôle calculé ne se juge pas ; les rôles composites à roving tabindex ${REMEDE_ROLES}.`;
+const ROLES_CALCULES = [
+  `JSXAttribute[name.name="role"] > JSXExpressionContainer > :not(${LITTERAL_DE_ROLE}, ConditionalExpression)`,
+  `JSXAttribute[name.name="role"] > JSXExpressionContainer > ConditionalExpression > :matches(.consequent, .alternate):not(${LITTERAL_DE_ROLE})`,
+  `${SET_ATTRIBUTE_ROLE}:not([arguments.1.type="Literal"])`,
+  `${SET_ATTRIBUTE_ROLE}[arguments.1.value=/^${ROLES_COMPOSITES}$/]`,
+  'AssignmentExpression > MemberExpression.left:matches([computed=false][property.name="role"], [property.value="role"])',
+].map((selector) => ({ selector, message: MSG_ROLE_CALCULE }));
+const roleEnHtml = (roles) => {
+  const motif = `/role=["']${roles}["']/`;
+  return {
+    selector: `:matches(Literal[value=${motif}], TemplateElement[value.cooked=${motif}], JSXText[value=${motif}])`,
+    message: `Rôle ARIA composite écrit en HTML (#414) : un \`role\` à roving tabindex ${REMEDE_ROLES}.`,
+  };
+};
+
 const NOMS_LOCALE = '/^(localeCompare|toLocale[A-Za-z]*)$/';
 const VERROU_LOCALE_COMPARE = [
   ...cles('property', NOMS_LOCALE).map((c) => `MemberExpression${c}`),
@@ -127,6 +162,39 @@ const HOTES = ['window', 'globalThis', 'self', 'global'];
 const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node:timers/promises'];
 const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
 const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/state et src/lib, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`), que \`clearTrackedTimers\` annule au teardown de test.`;
+
+const TYPES_CLAVIER = '/^key(down|up|press)$/';
+const GESTIONNAIRES_CLAVIER = '/^onkey(down|up|press)$/';
+const NOM_DE_POSE = '/^addEventListener$/';
+const POSE = `CallExpression:matches([callee.property.name=${NOM_DE_POSE}], [callee.property.value=${NOM_DE_POSE}], [callee.type="Identifier"][callee.name=${NOM_DE_POSE}])`;
+const MSG_CLAVIER_GLOBAL = 'Clavier (#1687, #2724) : hors `src/ui/clavier`, un écouteur `keydown`/`keyup`/`keypress` ne se pose sur AUCUN receveur (fenêtre, document, alias, élément) et son type ne s’écrit nulle part : une couche passe par un hook de `src/ui/clavier/couches/` qui nomme son geste sans prendre de gestionnaire (porte d’Échap, piège du dialogue), le remap d’un raccourci par `useRemapDeTouche` (`src/ui/clavier/remapDeTouche.ts`), un élément par son `onKeyDown` JSX, un raccourci d’application par le registre (`src/state/clavier/keybindings.ts`).';
+const MSG_TYPE_CALCULE = `${MSG_CLAVIER_GLOBAL} Le type d’un écouteur s’écrit en littéral : un type calculé ne se juge pas.`;
+const MSG_POSE_DETOURNEE = `${MSG_CLAVIER_GLOBAL} \`addEventListener\` s’appelle directement : une référence détournée (alias, \`.call\`, \`.bind\`, déstructuration) ne se juge pas.`;
+const VERROU_CLAVIER_GLOBAL = [
+  { selector: `:matches(Literal[value=${TYPES_CLAVIER}], TemplateElement[value.cooked=${TYPES_CLAVIER}])`, message: MSG_CLAVIER_GLOBAL },
+  { selector: `${POSE}:not([arguments.0.type="Literal"]):not([arguments.0.type="TemplateLiteral"][arguments.0.expressions.length=0])`, message: MSG_TYPE_CALCULE },
+  { selector: `MemberExpression:matches([property.name=${NOM_DE_POSE}], [property.value=${NOM_DE_POSE}]):not(CallExpression > MemberExpression.callee)`, message: MSG_POSE_DETOURNEE },
+  { selector: `Property:matches([key.name=${NOM_DE_POSE}], [key.value=${NOM_DE_POSE}])`, message: MSG_POSE_DETOURNEE },
+  { selector: `:matches(Identifier[name=${GESTIONNAIRES_CLAVIER}], Literal[value=${GESTIONNAIRES_CLAVIER}], TemplateElement[value.cooked=${GESTIONNAIRES_CLAVIER}])`, message: MSG_CLAVIER_GLOBAL },
+];
+const MSG_ECHAP = 'Échap (#1476, #2724) : le code de la touche est `CODE_ECHAP` (`src/state/clavier/keybindings.ts`) ; une surface qui se ferme à Échap s’empile (`useDismissLayer`/`useModalA11y`) et `resoudreEchap` la congédie.';
+const MSG_ECHAP_ALIAS = `${MSG_ECHAP} Ni l’ancien nom \`Esc\` ni le code numérique \`keyCode\` (obsolète) ne désignent une touche.`;
+const ECHAP_ALIAS = [
+  'Literal[value="Esc"]',
+  'TemplateElement[value.cooked="Esc"]',
+  'MemberExpression:matches([computed=false][property.name="keyCode"], [property.value="keyCode"])',
+].map((selector) => ({ selector, message: MSG_ECHAP_ALIAS }));
+const DEFINITION_ECHAP = 'Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator[id.name="CODE_ECHAP"]';
+const ECHAP_GABARIT = { selector: 'TemplateElement[value.cooked="Escape"]', message: MSG_ECHAP };
+const MSG_ECHAP_IMPORT = 'Échap (#1476, #2724) : `CODE_ECHAP` ne s’importe que sous `src/state/clavier` et `src/ui/clavier` — une surface qui se ferme à Échap s’empile (`useDismissLayer`/`useModalA11y`) et la porte de la pile la congédie ; le remap d’un raccourci passe par `useRemapDeTouche`.';
+const MSG_POSITIONS = 'Positions de touche (#1687, #2724) : le registre clavier, son lecteur et son remap lisent `e.code` (la POSITION physique), jamais `e.key` (le caractère, qui ment sur un clavier AZERTY). Les touches NOMMÉES des couches (`src/ui/clavier/couches/`) se lisent par `e.key`.';
+const VERROU_POSITIONS = [
+  'MemberExpression[computed=false][property.name="key"]',
+  'MemberExpression[computed=true][property.value="key"]',
+  'ObjectPattern > Property:matches([key.name="key"], [key.value="key"])',
+  'Literal[value=/\\be\\.key\\b/]',
+  'TemplateElement[value.cooked=/\\be\\.key\\b/]',
+].map((selector) => ({ selector, message: MSG_POSITIONS }));
 
 const msgPurete = (amont, aval, suite, types) =>
   `Pureté de couche (#1709, AGENTS.md règle 3) : src/${amont} n’importe rien de src/${aval} ${types ? 'ni à l’EXÉCUTION ni pour un TYPE' : 'à l’EXÉCUTION'} — ${suite}`;
@@ -501,6 +569,38 @@ export const BLOCS_LINT = [
     },
   },
   {
+    // #286, #2724
+    files: ['src/**'],
+    excludeFiles: [PROPRIETAIRE_DATALIST, 'src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: {
+      'murs/datalist': ['error', ...VERROU_DATALIST],
+    },
+  },
+  {
+    // #414, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/ui/composites/**'],
+    rules: {
+      'murs/roles-composites': ['error', ROLE_EN_ATTRIBUT, ...ROLES_CALCULES],
+    },
+  },
+  {
+    // #414, #2724
+    files: ['src/**/*.tsx'],
+    excludeFiles: ['src/ui/composites/**', 'src/**/*.test.tsx'],
+    rules: {
+      'murs/roles-composites': ['error', ROLE_EN_ATTRIBUT, ...ROLES_CALCULES, roleEnHtml(ROLES_COMPOSITES)],
+    },
+  },
+  {
+    // #288, #314, #2724
+    files: ['src/**/*.test.tsx'],
+    excludeFiles: ['src/ui/composites/**'],
+    rules: {
+      'murs/roles-composites': ['error', ROLE_EN_ATTRIBUT, ...ROLES_CALCULES, roleEnHtml('tablist')],
+    },
+  },
+  {
 
     files: ['src/state/**/*.ts', 'src/state/**/*.tsx'],
     excludeFiles: [
@@ -616,6 +716,36 @@ export const BLOCS_LINT = [
         message: 'Aléa du serveur (CWE-338) : `server/src` émet les secrets de partie (token hôte, token de siège, code de room) ; tirer par `secureRandom` (`server/src/rand.ts`).',
       }))],
     },
+  },
+  {
+    // #1687, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/ui/clavier/**', 'src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: { 'murs/clavier-global': ['error', ...VERROU_CLAVIER_GLOBAL] },
+  },
+  {
+    // #1476, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/state/clavier/**', 'src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: { 'murs/echap': ['error', { selector: 'Literal[value="Escape"]', message: MSG_ECHAP }, ECHAP_GABARIT, ...ECHAP_ALIAS] },
+  },
+  {
+    // #1476, #2724
+    files: ['src/state/clavier/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: { 'murs/echap': ['error', { selector: `:not(${DEFINITION_ECHAP}) > Literal[value="Escape"]`, message: MSG_ECHAP }, ECHAP_GABARIT, ...ECHAP_ALIAS] },
+  },
+  {
+    // #1476, #2724
+    files: ['src/**'],
+    excludeFiles: ['src/state/clavier/**', 'src/ui/clavier/**'],
+    rules: { 'murs/echap-import': ['error', { patterns: [{ regex: '(^|/)clavier(/|$)', importNames: ['CODE_ECHAP'], message: MSG_ECHAP_IMPORT }] }] },
+  },
+  {
+    // #1687, #2724
+    files: ['src/state/clavier/**', 'src/ui/clavier/**'],
+    excludeFiles: ['src/ui/clavier/couches/**', 'src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: { 'murs/clavier-positions': ['error', ...VERROU_POSITIONS] },
   },
   {
     files: GLOBS_DE_MOD,

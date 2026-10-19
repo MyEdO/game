@@ -19,7 +19,7 @@ import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
 import { SourceBadge } from '../SourceBadge';
 import { ListRow } from '../ListRow';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { Row } from '../Layout';
 
 /** Clé de navigation d'un `CodexFocus` (identité qualifiée `category+id`) — le focus PORTE l'id. */

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { elireBinding } from './keybindings';
+import { elireBinding } from './clavier/keybindings';
 
 /** L'élection du clavier (`elireBinding`), la même que `useGameKeyboard.ts::onKey`. */
 const dispatch = (code: string, s: ReturnType<typeof useGame.getState>, controlFocused: boolean) =>

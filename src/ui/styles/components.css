@@ -17,6 +17,7 @@
      .clamp              texte tronqué à N lignes (`--clamp`, défaut 3)
      .cart-step/.btn-step  stepper de quantité [−][centre][+] — primitive QtyStepper.tsx
      .trade-table        table de négoce (colonnes+prix+action+groupes) — primitive TradeTable.tsx
+     .menu-list/.menu-item  liste d'entrées role=menu — primitive composites/Menu.tsx
      .menu-card          carte de menu (en-tête + sections de boutons pleine largeur) — primitive MenuCard.tsx
                          (.menu-card-large = plafond écran-catalogue, prop `large`)
                          (.game-menu-overlay = menu système plein écran en jeu ; .menu-btn/.menu-toggle)
@@ -537,7 +538,37 @@ button.chip:hover {
   margin-top: 6px;
 }
 
-/* ── Tabs — primitive UNIQUE de navigation par onglets (#314) : `src/ui/Tabs.tsx`.
+/* ── Menu — primitive composite `role="menu"` (#414) : `src/ui/composites/Menu.tsx`. La colonne
+   d'entrées et ses filets ; la pose du conteneur (déroulant, ancrage) reste à l'écran hôte. */
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menu-list hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 3px 0;
+  width: 100%;
+}
+.menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text);
+  padding: 7px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--bg2);
+}
+
+/* ── Tabs — primitive UNIQUE de navigation par onglets (#314) : `src/ui/composites/Tabs.tsx`.
    Présentation UNIQUE chartée « Atelier du scribe » [entériné 2026-07-14, #414] — pilules gravées
    (langage `.substep`/`.cc-pill` du kit), plus de variantes. */
 .tabs {

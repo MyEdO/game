@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { z } from 'zod';
 import { libelleDuChamp, inferFields } from './editFields';
-import { RefField, refFieldCfg } from './RefField';
+import { RefField, refFieldCfg } from './refField/RefField';
 import { editableEntries, isEditableCategory } from '../editor/codex/CodexEdit';
 import { CODEX } from './registry';
 import { CLES_ENVELOPPE, LIBELLES_ENVELOPPE, document } from '../../data/schemas/grammaire/document';

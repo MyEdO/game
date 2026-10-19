@@ -14,7 +14,7 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useGame } from '../../state/store';
-import { rovingKeyDown } from '../rovingFocus';
+import { Listbox, RadioGroup } from '../composites/GroupesDeChoix';
 import { NumberField } from '../NumberField';
 import { rosterAdd, rosterLoad } from '../../state/roster';
 import {
@@ -78,7 +78,7 @@ import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
 import { ItemIcon } from '../ItemIcon';
-import { Tabs } from '../Tabs';
+import { Tabs } from '../composites/Tabs';
 import { AppearancePanel } from '../AppearancePanel';
 import { BackgroundFields } from '../BackgroundFields';
 import { CodexRef } from '../compendium/CodexRef';
@@ -461,8 +461,6 @@ function LoreText({ md, porteur }: { md: string | null | undefined; porteur?: Po
 export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   const [search, setSearch] = useState('');
   const sp = draftSpecies(d);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const lineageRef = useRef<HTMLDivElement>(null);
 
   // Groupes par race (`SpeciesData.family` — donnée, jamais une regex sur le libellé),
   // les races du Livre de base d'abord — l'ordre des familles suit les données ; au sein d'une
@@ -499,26 +497,10 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   const visibleFamilies = filterByLabel(families, (f) => `${f.family} ${f.list.map((s) => s.variant ?? s.label).join(' ')}`, search);
   const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.family === sp?.family));
   const selectFamily = (list: SpeciesData[]) => setD(withSpecies(d, sp && list.some((s) => s.id === sp.id) ? sp.id : list[0].id));
-  const onGridKeyDown = rovingKeyDown<HTMLDivElement>({
-    containerRef: gridRef,
-    selector: '[role="option"]',
-    count: visibleFamilies.length,
-    activeIndex: activeFamilyIdx,
-    onActivate: (idx) => selectFamily(visibleFamilies[idx].list),
-    orientation: 'grid',
-  });
 
   // Lignées de la famille COURANTE (chips en tête du panneau détail) — masquées si la famille n'a
   // qu'une lignée (Gnomes/Hauts elfes/Elfes sylvains/Ogres du LDB) : rien à trancher.
   const famList = sp ? families.find((f) => f.family === sp.family)?.list ?? [] : [];
-  const onLineageKeyDown = rovingKeyDown<HTMLDivElement>({
-    containerRef: lineageRef,
-    selector: '[role="radio"]',
-    count: famList.length,
-    activeIndex: Math.max(0, famList.findIndex((s) => s.id === sp?.id)),
-    onActivate: (idx) => setD(withSpecies(d, famList[idx].id)),
-    orientation: 'grid',
-  });
 
   // Encrier de tirage RACE (#393 P3, correction structurelle du verdict utilisateur 2026-07-14) :
   // rangée UNIQUE avec la recherche (recherche à gauche, encrier remplit le reste — pas de section
@@ -575,7 +557,13 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
           famille, une LIGNÉE est une race. Le compte dit la vérité de la grille RENDUE : sans la
           règle optionnelle « Gnome jouable » (NADJ), le Gnome n'est ni compté ni affiché. */}
       <p className="creator-pick-count">{families.length} familles — {totalRaces} races</p>
-      <div ref={gridRef} role="listbox" aria-label="Choix de la race" className="creator-race-grid" onKeyDown={onGridKeyDown}>
+      <Listbox
+        label="Choix de la race"
+        className="creator-race-grid"
+        count={visibleFamilies.length}
+        activeIndex={activeFamilyIdx}
+        onActivate={(idx) => selectFamily(visibleFamilies[idx].list)}
+      >
         {visibleFamilies.map((f, idx) => {
           const rep = f.list[0];
           const selected = sp?.family === f.family;
@@ -605,7 +593,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
             />
           );
         })}
-      </div>
+      </Listbox>
     </>
   );
 
@@ -618,7 +606,13 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
     <DetailFrame
       topper={
         famList.length > 1 ? (
-          <div ref={lineageRef} role="radiogroup" aria-label="Lignée" className="creator-race-lineages" onKeyDown={onLineageKeyDown}>
+          <RadioGroup
+            label="Lignée"
+            className="creator-race-lineages"
+            count={famList.length}
+            activeIndex={Math.max(0, famList.findIndex((s) => s.id === sp.id))}
+            onActivate={(idx) => setD(withSpecies(d, famList[idx].id))}
+          >
             {famList.map((s) => (
               <button
                 key={s.id}
@@ -632,7 +626,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
                 {s.variant ?? s.label}
               </button>
             ))}
-          </div>
+          </RadioGroup>
         ) : undefined
       }
       label={<CodexRef category="races" id={sp.id} label={sp.label}>{sp.label}</CodexRef>}
@@ -1791,17 +1785,8 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                   const selected = selectedIdx < 0 ? null : selectedIdx;
                   const activeOptIdx = selected ?? 0;
                   const choisir = (idx: number) => setD(withSpeciesTalentChoice(d, adresse, options[idx]));
-                  const groupRef: { current: HTMLDivElement | null } = { current: null };
-                  const onOptKeyDown = rovingKeyDown<HTMLDivElement>({
-                    containerRef: groupRef,
-                    selector: '[role="radio"]',
-                    count: options.length,
-                    activeIndex: activeOptIdx,
-                    onActivate: choisir,
-                    orientation: 'grid',
-                  });
                   return (
-                    <div key={adresse} ref={groupRef} role="radiogroup" aria-label={advancementLabel('talents', ref)} onKeyDown={onOptKeyDown}>
+                    <RadioGroup key={adresse} label={advancementLabel('talents', ref)} count={options.length} activeIndex={activeOptIdx} onActivate={choisir}>
                       {options.map((opt, i) => {
                         const isSel = selected === i;
                         return (
@@ -1822,7 +1807,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                           </span>
                         );
                       })}
-                    </div>
+                    </RadioGroup>
                   );
                 })}
               </div>
@@ -1845,17 +1830,14 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
               // le focus (`.focus()` y est un no-op), le cursor roving doit donc les ignorer.
               const enabledChoices = careerChoices.filter((c) => c.selected && !c.maxed);
               const activeCareerIdx = Math.max(0, enabledChoices.findIndex((c) => memeRef(c.selected, d.careerTalent)));
-              const careerRef: { current: HTMLDivElement | null } = { current: null };
-              const onCareerKeyDown = rovingKeyDown<HTMLDivElement>({
-                containerRef: careerRef,
-                selector: '[role="radio"]:not(:disabled)',
-                count: enabledChoices.length,
-                activeIndex: activeCareerIdx,
-                onActivate: (idx) => setD({ ...d, careerTalent: enabledChoices[idx].selected ?? undefined }),
-                orientation: 'grid',
-              });
               return (
-                <div ref={careerRef} className="talent-options-grid" role="radiogroup" aria-label="Talent de carrière" onKeyDown={onCareerKeyDown}>
+                <RadioGroup
+                  label="Talent de carrière"
+                  className="talent-options-grid"
+                  count={enabledChoices.length}
+                  activeIndex={activeCareerIdx}
+                  onActivate={(idx) => setD({ ...d, careerTalent: enabledChoices[idx].selected ?? undefined })}
+                >
                 {careerChoices.map(({ ref, choices, selected, maxed }, n) => {
                   const isSel = memeRef(selected, d.careerTalent);
                   const enabled = !!selected && !maxed;
@@ -1894,7 +1876,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                   </div>
                   );
                 })}
-                </div>
+                </RadioGroup>
               );
             })()}
           </Band>

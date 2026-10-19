@@ -21,7 +21,7 @@ import type { GameState } from '../state/store';
 import { hotbar } from '../state/hotbarBridge';
 import { campaignStart } from '../engine/clock';
 import type { Dialogue, DialogueNode } from '../state/scene';
-import { useGameKeyboard } from './useGameKeyboard';
+import { useGameKeyboard } from './clavier/useGameKeyboard';
 
 function Harness() {
   useGameKeyboard();

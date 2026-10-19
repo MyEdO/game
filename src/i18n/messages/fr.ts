@@ -2431,7 +2431,7 @@ export const fr = {
   'wreck.noSurvivor': 'Nul rescapé ne touche terre.',
   'wreck.title': 'Naufrage',
 
-  // ── #1318 V8c₅ — RACCOURCIS CLAVIER (`state/keybindings.ts`, `key.*`) : sections et libellés de
+  // ── #1318 V8c₅ — RACCOURCIS CLAVIER (`state/clavier/keybindings.ts`, `key.*`) : sections et libellés de
   // l'écran Options (remap), plus les noms de touches lisibles. Le registre porte des CLÉS
   // (`labelKey`), résolues à l'AFFICHAGE — le tableau est construit au chargement du module.
   'key.section.pov': 'Vue subjective (POV)',
