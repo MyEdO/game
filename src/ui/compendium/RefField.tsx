@@ -9,14 +9,16 @@ import type { JSX } from 'react';
  *  - `freeText` : `single` + `<input list>`/`<datalist>` (au lieu d'un `<select>` strict) — pioche par
  *                 LIBELLÉ ou id (id stocké) OU saisie libre hors catalogue, émise telle quelle ;
  *  - `vocab`    : `<input list>` + `<datalist>` des valeurs DISTINCTES d'un champ (refChar/refCareer/subType…)
- *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset).
+ *                 → pioche OU saisie libre (mais la LISTE elle-même vient d'un champ, pas d'ids de dataset) ;
+ *  - `polymorphe` : référence typée `{ id, type }` (`refTypee`) — le `<select>` du type, puis le mode
+ *                 `single` sur le dataset de l'espace de ce type (`cfgDuType`).
  * On stocke partout l'`id` — multilangue-safe (cf.
  * `AGENTS.md` § Pour TOUT agent). Le composant est « bête » : il reçoit sa `cfg`.
  */
 import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
-import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, type FeuilleDId } from '../../data/schemas/grammaire/ref';
+import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../data/schemas/grammaire/ref';
 import { slugId } from '../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from './libellesNarratifs';
@@ -43,8 +45,11 @@ export type RefFieldCfgUnique =
   | EntreesCfg
   | (RefDatasetCfg & { freeText: true; single?: boolean })
   | { vocabFrom: string };
+/** Mode `polymorphe` : chaque type admis, son nom d'auteur et la config `single` de son espace. Deux
+ *  contrôles, aucun contrôle unique. */
+export type PolymorpheCfg = { polymorphe: readonly { type: TypeEntite; label: string; cfg: RefDatasetCfg & { single: true } }[] };
 /** Config d'un champ-réf, par (catégorie, champ). Dataset réel (liste/single) OU vocabulaire d'un champ. */
-export type RefFieldCfg = ListeRefCfg | SpecRefCfg | RefFieldCfgUnique;
+export type RefFieldCfg = ListeRefCfg | SpecRefCfg | PolymorpheCfg | RefFieldCfgUnique;
 
 /**
  * REF_FIELD — clés par `'<catégorie>.<champ>'` (priorité) ou par `'<champ>'` (repli global).
@@ -84,17 +89,38 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
   return REF_FIELD[`${categoryKey}.${fieldKey}`] ?? REF_FIELD[fieldKey];
 }
 
-/** Config `single` d'un champ dont le NŒUD est une feuille `idDe` FERMÉE : le dataset de racine de
- *  l'espace de son type (`DATASET_FICHIER_DERIVE`), `undefined` sinon. */
-export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true }) | undefined {
-  const feuille = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
-  if (!feuille || feuille.ouverte) return undefined;
-  const espace = espaceDe(feuille.type);
+/** Config `single` d'une référence de `type` : le dataset de racine de l'espace du type
+ *  (`DATASET_FICHIER_DERIVE`), `undefined` s'il n'en a pas. */
+function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) | undefined {
+  const espace = espaceDe(type);
   const ds = Object.keys(DATASET_FICHIER_DERIVE).find((d) => DATASET_FICHIER_DERIVE[d] === espace && DATASET_SUITE_DERIVE[d] === '');
   return ds === undefined ? undefined : { ds: ds as DatasetKey, single: true };
 }
 
+/** Config `single` d'un champ dont le NŒUD est une feuille `idDe` FERMÉE (`cfgDuType` de son type),
+ *  `undefined` sinon. */
+export function cfgDeLaFeuille(noeud: unknown): (RefDatasetCfg & { single: true }) | undefined {
+  const feuille = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeFeuilleDId).find((d) => d !== undefined);
+  return !feuille || feuille.ouverte ? undefined : cfgDuType(feuille.type);
+}
+
+/** Config `polymorphe` d'un champ dont le NŒUD est une référence typée (`refTypee`) : chaque type admis
+ *  avec la config `single` de son espace, `undefined` sinon. Un type sans dataset éditable LÈVE : le
+ *  sélecteur ne saurait pas l'offrir. */
+export function cfgDuNoeudType(noeud: unknown): PolymorpheCfg | undefined {
+  const decl = noeud === undefined ? undefined : ouverts([noeud]).map(declarationDeRefTypee).find((d) => d !== undefined);
+  if (!decl) return undefined;
+  return {
+    polymorphe: decl.types.map((type) => {
+      const cfg = cfgDuType(type);
+      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(type)}) n'a aucun dataset de racine à offrir au sélecteur.`);
+      return { type, label: decl.libelles[type] ?? type, cfg };
+    }),
+  };
+}
+
 const isVocab = (cfg: RefFieldCfg): cfg is { vocabFrom: string } => 'vocabFrom' in cfg;
+const estPolymorphe = (cfg: RefFieldCfg): cfg is PolymorpheCfg => 'polymorphe' in cfg;
 const fournies = (cfg: RefFieldCfg): cfg is EntreesCfg => 'entrees' in cfg;
 
 /** Libellé d'affichage d'une entrée. */
@@ -138,6 +164,8 @@ type Accessibilite = { ariaLabel?: string; invalide?: boolean; describedBy?: str
 /** Un contrôle UNIQUE (`single` sans `spec`, `freeText`, `vocab`) porte `Accessibilite` ; la `liste` et le
  *  `single` à `spec` n'en rendent aucun à qui la poser, et l'appel qui la passerait ne compile pas. */
 export function RefField(props: RefFieldCommun & Accessibilite & { cfg: RefFieldCfgUnique }): JSX.Element;
+/** Le mode `polymorphe` rend deux contrôles, nommés depuis le même nom accessible (`— type`, `— fiche`). */
+export function RefField(props: RefFieldCommun & Accessibilite & { cfg: PolymorpheCfg }): JSX.Element;
 export function RefField(props: RefFieldCommun & { cfg: RefFieldCfg; ariaLabel?: never; invalide?: never; describedBy?: never }): JSX.Element;
 export function RefField(
   { cfg, fieldKey, label, title, ariaLabel, value, onChange, nullable, aucunIneligible, invalide, describedBy, noeud, entreesEnTete = SANS_ENTREE }:
@@ -149,6 +177,7 @@ export function RefField(
   const champ = { noeud, entreesEnTete, title };
   const a11y = { ariaLabel, invalide, describedBy };
   if (isVocab(cfg)) return <VocabField label={affiche} title={title} vocabFrom={cfg.vocabFrom} value={value} onChange={onChange} nullable={nullable} noeud={noeud} {...a11y} />;
+  if (estPolymorphe(cfg)) return <PolymorpheRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} nullable={nullable} {...a11y} />;
   const single = (c: SingleCfg) => <SingleRefField label={affiche} cfg={c} champ={champ} value={value} onChange={onChange} nullable={nullable} aucunIneligible={aucunIneligible} {...a11y} />;
   if (fournies(cfg)) return single(cfg);
   if (cfg.freeText) return <FreeRefField label={affiche} cfg={cfg} champ={champ} value={value} onChange={onChange} {...a11y} />;
@@ -218,8 +247,11 @@ const SANS_FILTRE: { filter?: undefined } = {};
 /** Mode `single` : UN `<select>` (+ option « — (aucun) — » si nullable, option « (inconnu) » si hors liste).
  *  `spec` → un `<input>` texte à côté, on stocke `{ id, spec? }` (spec omis si vide) ; sinon la chaîne brute. */
 function SingleRefField(
-  { label, ariaLabel, cfg, champ, value, onChange, nullable, aucunIneligible, invalide, describedBy }:
-  Accessibilite & { label?: string; cfg: SingleCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean },
+  { label, ariaLabel, cfg, champ, value, onChange, nullable, aucunIneligible, invalide, describedBy, nu }:
+  Accessibilite & { label?: string; cfg: SingleCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean; aucunIneligible?: boolean;
+    /** Contrôle NU : le seul `<select>` (et sa spécialisation), sans enveloppe ni étiquette — posé dans
+     *  la rangée d'un champ qui le nomme déjà (mode `polymorphe`). */
+    nu?: boolean },
 ) {
   const deDataset = 'entrees' in cfg ? undefined : cfg;
   const univers = useUnivers('entrees' in cfg ? cfg.entrees : cfg.ds, champ.entreesEnTete);
@@ -236,24 +268,61 @@ function SingleRefField(
     if (avecSpec) { const v: SpecRef = { id: nextId }; if (nextSpec) v.spec = nextSpec; onChange(v); }
     else onChange(nextId);
   };
+  const controles = (
+    <>
+      <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
+        {nullable && <option value="" disabled={aucunIneligible}>— (aucun) —</option>}
+        {!nullable && id === '' && <option value="">{nom ? `— (choisir dans ${nom}) —` : '— (choisir) —'}</option>}
+        {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
+        {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+      </select>
+      {avecSpec && (
+        <input placeholder="spec" style={{ width: 120 }} value={cur.spec ?? ''}
+          onChange={(e) => emit(id, e.target.value || undefined)} />
+      )}
+    </>
+  );
+  if (nu) return controles;
   // UN contrôle : le libellé visible le NOMME (`<label>`). Avec `spec`, deux contrôles : un `<div>`.
   const Enveloppe = avecSpec ? 'div' : 'label';
   return (
     <Enveloppe className="ed-field" title={champ.title}>
       <span>{label}{indiceDe(nomDistinct(label, nom))}</span>
+      <div className="fieldrow">{controles}</div>
+    </Enveloppe>
+  );
+}
+
+/** Mode `polymorphe` : le `<select>` du TYPE (+ « — (aucun) — » si nullable), puis, dans la même rangée,
+ *  le `<select>` NU du mode `single` sur l'espace du type choisi. On stocke `{ id, type }` ; changer de
+ *  type vide l'id, qui se choisit alors dans le nouvel espace. */
+function PolymorpheRefField(
+  { label, ariaLabel, invalide, describedBy, cfg, champ, value, onChange, nullable }:
+  Accessibilite & { label?: string; cfg: PolymorpheCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
+) {
+  const cur = value && typeof value === 'object' ? (value as { id?: unknown; type?: unknown }) : {};
+  const choisi = cfg.polymorphe.find((p) => p.type === cur.type);
+  const id = typeof cur.id === 'string' ? cur.id : '';
+  const nom = ariaLabel ?? label;
+  return (
+    <div className="ed-field" title={champ.title}>
+      <span>{label}</span>
       <div className="fieldrow">
-        <select aria-label={ariaLabel} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={id} onChange={(e) => emit(e.target.value, cur.spec)}>
-          {nullable && <option value="" disabled={aucunIneligible}>— (aucun) —</option>}
-          {!nullable && id === '' && <option value="">{nom ? `— (choisir dans ${nom}) —` : '— (choisir) —'}</option>}
-          {id !== '' && !known && <option value={id}>{id} (inconnu)</option>}
-          {options.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+        <select aria-label={`${nom} — type`} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={choisi?.type ?? ''}
+          onChange={(e) => {
+            const type = e.target.value;
+            onChange(type === '' ? videDuNoeud(champ.noeud) : { id: '', type });
+          }}>
+          {nullable && <option value="">— (aucun) —</option>}
+          {!nullable && !choisi && <option value="">— (choisir) —</option>}
+          {cfg.polymorphe.map((p) => <option key={p.type} value={p.type}>{p.label}</option>)}
         </select>
-        {avecSpec && (
-          <input placeholder="spec" style={{ width: 120 }} value={cur.spec ?? ''}
-            onChange={(e) => emit(id, e.target.value || undefined)} />
+        {choisi && (
+          <SingleRefField nu ariaLabel={`${nom} — fiche`} invalide={invalide} describedBy={describedBy} cfg={choisi.cfg} champ={{ noeud: undefined, entreesEnTete: SANS_ENTREE }}
+            value={id} onChange={(v) => onChange({ id: typeof v === 'string' ? v : '', type: choisi.type })} />
         )}
       </div>
-    </Enveloppe>
+    </div>
   );
 }
 

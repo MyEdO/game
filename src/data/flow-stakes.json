@@ -5,8 +5,10 @@
     "label": "Chute volontaire — le choix",
     "template": "Sauter : chute pleine de {metres} m. Tenter : Test d’Athlétisme Accessible (+20), 1 m de chute en moins par DR.",
     "form": "descripteur",
-    "rule": "chute",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "chute",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 166,
@@ -19,8 +21,10 @@
     "label": "Chute volontaire — le Test",
     "template": "Chute de {metres} m, réduite d’1 m par DR — 3 Dégâts par mètre restant +1d10, réduits par le Bonus d’Endurance et non par les PA ; plus de PB perdus que le Bonus d’Endurance ⇒ État À Terre.",
     "form": "descripteur",
-    "rule": "chute",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "chute",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 166,
@@ -33,8 +37,10 @@
     "label": "Course",
     "template": "Distance de Course = Mouvement de Course + DR en mètres, en plus du Mouvement du Round (un DR négatif la raccourcit).",
     "form": "descripteur",
-    "rule": "course",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "course",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -47,8 +53,10 @@
     "label": "Désengagement — le menu",
     "template": "Sans désengagement, tu restes Engagé.",
     "form": "descripteur",
-    "rule": "desengagement",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "desengagement",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -61,8 +69,10 @@
     "label": "Désengagement — sacrifier l’Avantage",
     "template": "Avantage ramené à 0 : tu t’éloignes de ton adversaire sans pénalité.",
     "form": "descripteur",
-    "rule": "desengagement",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "desengagement",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -75,8 +85,10 @@
     "label": "Désengagement — Retraite stratégique",
     "template": "{cout} Avantage(s) de la réserve du camp : tu t’éloignes de tes adversaires sans pénalité.",
     "form": "descripteur",
-    "rule": "desengagement",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "desengagement",
+      "type": "regle"
+    },
     "source": {
       "book": "aux-armes",
       "page": 134,
@@ -89,8 +101,10 @@
     "label": "Désengagement — Esquive",
     "template": "Test opposé d’Esquive contre le Corps à corps de l’adversaire — gagné : tu quittes le corps à corps ; perdu : tu restes Engagé. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
-    "rule": "esquive",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "esquive",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -103,8 +117,10 @@
     "label": "Désengagement — Fuite",
     "template": "L’adversaire gagne +1 Avantage et une attaque gratuite de Corps à corps non opposée, +20 (dos tourné). Touché : +1 Avantage de plus, et Test de Calme — échec = État Brisé, +1 par DR sous 0. Puis Course dans la direction opposée.",
     "form": "descripteur",
-    "rule": "fuite",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "fuite",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 165,
@@ -117,8 +133,10 @@
     "label": "Au contact — le Test",
     "template": "Test opposé de Corps à corps : le vainqueur choisit si le combat continue normalement ou « au contact ».",
     "form": "descripteur",
-    "rule": "au-contact",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "au-contact",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -131,8 +149,10 @@
     "label": "Au contact — le choix du vainqueur",
     "template": "Au contact : toute arme plus longue que Courte est traitée comme une Arme improvisée, pour les deux camps.",
     "form": "descripteur",
-    "rule": "au-contact",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "au-contact",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 297,
@@ -145,8 +165,10 @@
     "label": "Influence corruptrice mineure",
     "template": "Échec : 1 Point de Corruption. Réussite : aucun.",
     "form": "descripteur",
-    "rule": "influences-corruptrices",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "influences-corruptrices",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 182,
@@ -159,8 +181,10 @@
     "label": "Influence corruptrice modérée",
     "template": "Échec : 2 Points de Corruption. Réussite de 0-1 DR : 1. Réussite de 2 DR ou plus : aucun.",
     "form": "descripteur",
-    "rule": "influences-corruptrices",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "influences-corruptrices",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -173,8 +197,10 @@
     "label": "Influence corruptrice majeure",
     "template": "Échec : 3 Points de Corruption. Réussite de 0-1 DR : 2. De 2-3 DR : 1. De 4 DR ou plus : aucun.",
     "form": "descripteur",
-    "rule": "influences-corruptrices",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "influences-corruptrices",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -187,8 +213,10 @@
     "label": "Seuil de Corruption",
     "template": "Réussi : la Corruption est contenue, pour cette fois. Raté : une mutation est tirée — la Résilience « Je te renie ! » peut encore l’éviter.",
     "form": "descripteur",
-    "rule": "influences-corruptrices",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "influences-corruptrices",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 183,
@@ -201,8 +229,10 @@
     "label": "Dissipation permanente",
     "template": "Test étendu de Langue (Magick) : le DR cumule d’un Round à l’autre ; à {ni} DR cumulés, le Sort est dissipé.",
     "form": "descripteur",
-    "rule": "dissipation",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "dissipation",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 237,
@@ -215,8 +245,10 @@
     "label": "Bénédiction de Protection",
     "template": "Réussi : l’attaque sur la cible bénie a lieu. Raté : elle n’a pas lieu — il faut choisir une autre cible ou une autre Action.",
     "form": "descripteur",
-    "rule": "benediction-de-protection",
-    "ruleCategory": "spells",
+    "rule": {
+      "id": "benediction-de-protection",
+      "type": "spell"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 221,
@@ -229,8 +261,10 @@
     "label": "Fuite de vapeur — sauvegarde d’Initiative",
     "template": "Raté : ébouillanté — 1d10−5 Dégâts (1 minimum), qui ignorent l’Armure.",
     "form": "descripteur",
-    "rule": "fuite-de-vapeur",
-    "ruleCategory": "steamBreakdowns",
+    "rule": {
+      "id": "fuite-de-vapeur",
+      "type": "steamBreakdown"
+    },
     "source": {
       "book": "mer-des-griffes",
       "page": 99,
@@ -243,8 +277,10 @@
     "label": "Entrée en Frénésie",
     "template": "Réussi : tu entres en Frénésie — immunisé aux autres Traits Psychologiques, aucune fuite ni retraite, déplacement maximal vers l’ennemi le plus proche pour l’attaquer.",
     "form": "descripteur",
-    "rule": "frenesie",
-    "ruleCategory": "psychologies",
+    "rule": {
+      "id": "frenesie",
+      "type": "psychology"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 190,
@@ -257,8 +293,10 @@
     "label": "Rechargement",
     "template": "Test étendu de Projectiles : le DR cumule vers l’Indice {indice} de Recharge ; atteint, l’arme est chargée. Interrompu, le cumul repart de zéro.",
     "form": "descripteur",
-    "rule": "recharge",
-    "ruleCategory": "qualities",
+    "rule": {
+      "id": "recharge",
+      "type": "quality"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 299,
@@ -271,8 +309,10 @@
     "label": "Battement",
     "template": "Test de Corps à corps NON opposé — réussi : l’adversaire perd 1 Avantage, et 1 de plus par DR.",
     "form": "descripteur",
-    "rule": "battement",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "battement",
+      "type": "talent"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 133,
@@ -285,8 +325,10 @@
     "label": "Distraire",
     "template": "Test opposé Athlétisme contre Calme — réussi : l’adversaire ne gagne pas d’Avantage jusqu’à la fin du prochain Round.",
     "form": "descripteur",
-    "rule": "distraire",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "distraire",
+      "type": "talent"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 136,
@@ -299,8 +341,10 @@
     "label": "Chirurgie — une passe",
     "template": "Test étendu de Guérison : le DR cumule vers {targetDR}. Chaque passe coûte au patient 1d10 Blessures et 1 État Hémorragique.",
     "form": "descripteur",
-    "rule": "chirurgie",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "chirurgie",
+      "type": "talent"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 134,
@@ -313,8 +357,10 @@
     "label": "Évaluation",
     "template": "Réussi : la valeur de l’objet est estimée à ±10 % et ses qualités cachées sont révélées.",
     "form": "descripteur",
-    "rule": "evaluation",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "evaluation",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 289,
@@ -327,8 +373,10 @@
     "label": "Détection d’artefact",
     "template": "Réussi : l’objet est senti magique, et chaque DR en apprend une règle. Une seule tentative par artefact.",
     "form": "descripteur",
-    "rule": "intuition",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "intuition",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 128,
@@ -341,8 +389,10 @@
     "label": "Détection",
     "template": "Réussi : un détail dissimulé des lieux est remarqué. Une seule tentative.",
     "form": "descripteur",
-    "rule": "perception",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "perception",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 127,
@@ -355,8 +405,10 @@
     "label": "Soin de Blessures",
     "template": "Réussi : le patient regagne Bonus d’Intelligence + DR Points de Blessure ; il ne bénéficie que d’un jet de Guérison par rencontre. Échec Stupéfiant : Infection Mineure.",
     "form": "descripteur",
-    "rule": "guerison",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 123,
@@ -369,8 +421,10 @@
     "label": "Arrêt d’Hémorragie",
     "template": "Réussi : 1 État Hémorragique retiré, et 1 de plus par DR.",
     "form": "descripteur",
-    "rule": "guerison",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 123,
@@ -383,8 +437,10 @@
     "label": "Soin d’une déchirure",
     "template": "Le jet est consommé, réussi ou non — une seule fois par séquelle. Réussi sur une déchirure mineure : convalescence raccourcie d’1 jour + 1 par DR ; sur une déchirure majeure, la Guérison ne fait que diagnostiquer le délai restant.",
     "form": "descripteur",
-    "rule": "guerison",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 179,
@@ -397,8 +453,10 @@
     "label": "Retrait d’une munition logée",
     "template": "Réussi : 1 munition logée retirée. Raté : elle reste.",
     "form": "descripteur",
-    "rule": "guerison",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 291,
@@ -411,8 +469,10 @@
     "label": "Chanson de marin",
     "template": "Test de Divertissement (Chant) — réussi : l’effet de la chanson porte sur tout l’équipage trois minutes, plus une minute par DR.",
     "form": "descripteur",
-    "rule": "chanson-de-marin",
-    "ruleCategory": "talents",
+    "rule": {
+      "id": "chanson-de-marin",
+      "type": "talent"
+    },
     "entryCategory": "seaShanties",
     "source": {
       "book": "mer-des-griffes",
@@ -426,8 +486,10 @@
     "label": "Sauvetage par le Destin — refus",
     "template": "Sans sacrifice, le héros meurt.",
     "form": "descripteur",
-    "rule": "destin",
-    "ruleCategory": "characteristics",
+    "rule": {
+      "id": "destin",
+      "type": "characteristic"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 170,
@@ -440,8 +502,10 @@
     "label": "Sauvetage par le Destin — Meurs un autre jour",
     "template": "Le héros survit, mais ne prend plus part à la rencontre.",
     "form": "descripteur",
-    "rule": "destin",
-    "ruleCategory": "characteristics",
+    "rule": {
+      "id": "destin",
+      "type": "characteristic"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 170,
@@ -454,8 +518,10 @@
     "label": "Sauvetage par le Destin — Comment ça a pu rater ?",
     "template": "Les Dégâts sont évités : le héros poursuit ce qu’il faisait sans subir aucune pénalité, sans certitude de survie.",
     "form": "descripteur",
-    "rule": "destin",
-    "ruleCategory": "characteristics",
+    "rule": {
+      "id": "destin",
+      "type": "characteristic"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 170,
@@ -481,8 +547,10 @@
     "label": "Rééducation d’un membre — une passe",
     "template": "Test étendu de Guérison Accessible (+20) : le DR cumule vers {targetDR}, sans aucun dégât pour le patient. Cible atteinte : l’usage du membre est rendu, au prix d’une pénalité de −10 aux Tests qui l’impliquent pendant 1d10 jours (Mouvement de moitié pour une jambe). Arrêter : le cumul est perdu.",
     "form": "descripteur",
-    "rule": "guerison",
-    "ruleCategory": "skills",
+    "rule": {
+      "id": "guerison",
+      "type": "skill"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 176,
@@ -495,8 +563,10 @@
     "label": "Test étendu — un Round",
     "template": "Le DR de chaque Round s’ajoute au total jusqu’à la cible ; un total passé sous 0 repart de zéro. Cible atteinte : la tâche aboutit et ce qu’elle gardait fermé s’ouvre. Renoncer reste possible à chaque Round — le cumul est alors perdu.",
     "form": "descripteur",
-    "rule": "tests-etendus",
-    "ruleCategory": "regles",
+    "rule": {
+      "id": "tests-etendus",
+      "type": "regle"
+    },
     "source": {
       "book": "livre-de-base",
       "page": 154,
@@ -514,7 +584,9 @@
       "page": 71,
       "note": "MSRC 13 l.22-26 (disponibilité en deux temps)"
     },
-    "rule": "disponibilite-des-biens",
-    "ruleCategory": "regles"
+    "rule": {
+      "id": "disponibilite-des-biens",
+      "type": "regle"
+    }
   }
 ]

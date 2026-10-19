@@ -6,18 +6,13 @@
  * index construit une fois à l'import sert l'ancien monde jusqu'au rechargement de la page. Ce module
  * porte le compteur qu'un lecteur indexé consulte pour savoir si son index est encore juste.
  *
- * Il est une FEUILLE : son seul import exécutable est la liste GÉNÉRÉE des clés
- * (`_cles-de-dataset.generated.ts`, qui n'importe rien). C'est ce qui le rend consommable par `src/data/index.ts`, que le seam ne peut pas
+ * Il est une FEUILLE : aucun import exécutable (le type des clés, `CleDeDataset`, s'efface à la
+ * compilation). C'est ce qui le rend consommable par `src/data/index.ts`, que le seam ne peut pas
  * atteindre (`overrides.ts` importe `./index` : y poser le compteur fermerait le cycle et le lirait
  * en TDZ). Même patron que `schemas/grammaire/idsVivants.ts`, l'autre module feuille posé par la
  * couche donnée.
  */
-import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
-
-/** Clés du témoin : les datasets du seam, plus `regles`, les surcharges de règles optionnelles
- *  (`engine/policy`, `setRule`/`resetRule`) — une donnée éditable elle aussi. */
-export type CleVersionnee = CleDeDataset | 'regles';
-export const CLES_VERSIONNEES: readonly CleVersionnee[] = [...CLES_DE_DATASET, 'regles'];
+import type { CleDeDataset } from './schemas/_cles-de-dataset.generated';
 
 /** Le compteur d'UN dataset, dans une CELLULE que le mémo capture UNE fois : une lecture chaude n'est
  *  plus une recherche par chaîne dans une `Map` mais une lecture de champ. */
@@ -25,14 +20,14 @@ type Cellule = { v: number };
 
 const VERSIONS = new Map<string, Cellule>();
 
-function cellule(cle: CleVersionnee): Cellule {
+function cellule(cle: CleDeDataset): Cellule {
   let c = VERSIONS.get(cle);
   if (!c) VERSIONS.set(cle, (c = { v: 0 }));
   return c;
 }
 
 /** Version courante d'un dataset — 0 tant qu'aucune édition n'a eu lieu, +1 par écriture au seam. */
-export function versionDuDataset(cle: CleVersionnee): number {
+export function versionDuDataset(cle: CleDeDataset): number {
   return VERSIONS.get(cle)?.v ?? 0;
 }
 
@@ -49,7 +44,7 @@ export function versionDesDatasets(): number {
 /** Marque un dataset comme ÉDITÉ — appelée par le seam d'écriture (`setDataset`/`setObjectDataset`/
  *  `resetData`), jamais par un lecteur. Tout index mémoïsé sur cette clé se reconstruira à sa
  *  prochaine lecture. */
-export function bumperDataset(cle: CleVersionnee): void {
+export function bumperDataset(cle: CleDeDataset): void {
   cellule(cle).v += 1;
   for (const abonne of ABONNES) abonne();
 }
@@ -72,7 +67,7 @@ export function abonnerAuxDatasets(abonne: () => void): () => void {
  * `siegeEngines`, `indexDesTerrains`, `defsGlobaux`). Le calcul est PARESSEUX : rien ne se construit à
  * l'import, la première lecture paie.
  */
-export function memoParVersion<T>(cle: CleVersionnee | readonly CleVersionnee[], calcul: () => T): () => T {
+export function memoParVersion<T>(cle: CleDeDataset | readonly CleDeDataset[], calcul: () => T): () => T {
   const cellules = (typeof cle === 'string' ? [cle] : cle).map(cellule);
   // Le témoin est un NOMBRE, jamais une chaîne fabriquée à la lecture : `bumperDataset` n'INCRÉMENTE
   // (jamais de remise à zéro), donc la SOMME des versions croît strictement à chaque écriture sur
@@ -117,10 +112,18 @@ export function indexParChamp<T, K>(
   return (k) => (k == null ? undefined : index().get(k));
 }
 
-/** INDEX VIVANT par `id` STABLE — la forme de très loin la plus fréquente d'`indexParChamp`. */
+/** Index par `id` de chaque binding de dataset : UN par tableau, quel que soit le lecteur. */
+const INDEX_PAR_ID = new WeakMap<readonly unknown[], { cle: CleDeDataset; index: (id: string | null | undefined) => unknown }>();
+
+/** INDEX VIVANT par `id` STABLE — la forme de très loin la plus fréquente d'`indexParChamp`. Partagé
+ *  par binding : deux lecteurs du même dataset (finder `findXById`, porte `entreeDeCategorie`) lisent
+ *  le MÊME index. */
 export function indexParId<T extends { id: string }>(
   cle: CleDeDataset,
   entrees: readonly T[],
 ): (id: string | null | undefined) => T | undefined {
-  return indexParChamp(cle, entrees, (e) => e.id);
+  let lu = INDEX_PAR_ID.get(entrees);
+  if (!lu) INDEX_PAR_ID.set(entrees, (lu = { cle, index: indexParChamp(cle, entrees, (e) => e.id) }));
+  else if (lu.cle !== cle) throw new Error(`indexParId : le binding de « ${lu.cle} » est relu sous la clé « ${cle} »`);
+  return lu.index as (id: string | null | undefined) => T | undefined;
 }

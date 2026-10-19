@@ -225,10 +225,11 @@ export const ECRIT_LU = {
     lit: ['src/', 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'la porte des collections à compte (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
-      '`merge-base origin/main..HEAD`, et les images de `src/` et `Source/` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
-      'et pose chacune sous un `mkdtempSync` d’os.tmpdir(), effacé en finally, deux fois : avec une COPIE de `scripts/`, `package.json` ' +
-      'et `tsconfig.json` de l’arbre (le détecteur de la tête), puis avec ceux du commit de base lus par git (`detecteurDuCommit`), `node_modules` lié (`lierDependances`) et les cibles de code produites et certifiées ' +
-      'DANS l’image (`genererCode`, cwd = l’image) ; chaque image se mesure dans un processus tsx fils ; ' +
+      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+      'et pose chacune sous un `mkdtempSync` d’os.tmpdir(), effacé en finally, ' +
+      '`node_modules` lié (`lierDependances`) et ses cibles de code produites par SON `genererCode` dans un processus fils (cwd = l’image), ' +
+      'puis, son `scripts/` retiré, deux fois : avec une COPIE de `scripts/`, `package.json` et `tsconfig.json` de l’arbre (le détecteur de la tête), ' +
+      'puis avec ceux du commit de base lus par git (`detecteurDuCommit`) ; chaque image se mesure dans un processus tsx fils ; ' +
       'aucune écriture dans l’arbre',
   },
   'test:corpus': {
