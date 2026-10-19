@@ -345,34 +345,23 @@ test('cwd URL et exception originale de spawn sont conservés, les relais sont n
 }))
 
 
-test('profils : la projection porte l’interception, sans projection aucun profil utilisable, clé sans nonce', () => avecDepot((racine) => {
+test('profils : historique complet utilisable, clé sans nonce ni destination de reporter', () => avecDepot((racine) => {
   const execArgv = [...process.execArgv]
   const p = { racine, fichiers: ['propre.test.mjs'], argv: ['--test'], env: {}, mesures: { lire: (_nom, valider) => valider({}) } }
-  const projections = []
-  const superviser = Object.assign(() => assert.fail('profil sans lancement'), { optionsEffectives: (...valeurs) => {
-    const projection = LANCEMENTS_NODE_TEST.projeter(...valeurs)
-    projections.push(projection)
-    return projection
-  } })
-  const projete = profilsDuLancement({ ...p, superviser })
-  assert.equal(projete.configurationConnue, true)
-  assert.equal(projections.length, 1)
-  assert.match(projections[0].options.env.NODE_OPTIONS, /intercepterEcritures\.mjs/)
-  const opaque = () => assert.fail('profil sans lancement')
-  const sans = profilsDuLancement({ ...p, superviser: opaque })
-  assert.equal(sans.configurationConnue, false)
-  assert.notEqual(sans.toolchain, projete.toolchain)
+  const vierge = profilsDuLancement(p)
+  assert.equal(vierge.entrees[0].utilisable, false)
   const historiques = (profils) => ({ lire: (_nom, valider) => valider(Object.fromEntries(profils.entrees.map((e) => [e.cle,
     { blob: e.blob, picOctets: 1, parentOctets: 1, descendantsInclus: true, metrique: 'temoin' }]))) })
-  assert.equal(profilsDuLancement({ ...p, superviser, mesures: historiques(projete) }).entrees[0].utilisable, true)
-  assert.equal(profilsDuLancement({ ...p, superviser: opaque, mesures: historiques(sans) }).entrees[0].utilisable, false)
+  assert.equal(profilsDuLancement({ ...p, mesures: historiques(vierge) }).entrees[0].utilisable, true)
   assert.deepEqual(process.execArgv, execArgv)
-  const premier = profilsDuLancement({ ...p, superviser, argv: ['--test', '--test-reporter=spec', '--test-reporter-destination=un'], env: { WFRP_TESTS_REFUS: 'nonce-un' } })
-  const suivant = profilsDuLancement({ ...p, fichiers: [...p.fichiers, 'rouge.test.mjs'], superviser,
+  const premier = profilsDuLancement({ ...p, argv: ['--test', '--test-reporter=spec', '--test-reporter-destination=un'], env: { WFRP_TESTS_REFUS: 'nonce-un' } })
+  const suivant = profilsDuLancement({ ...p, fichiers: [...p.fichiers, 'rouge.test.mjs'],
     argv: ['--test', '--test-reporter=spec', '--test-reporter-destination=deux'], env: { WFRP_TESTS_REFUS: 'nonce-deux' } })
   assert.equal(premier.entrees[0].cle, suivant.entrees[0].cle)
 }))
 
+/** Les profils de `propre.test.mjs` dans le dépôt `racine`, calculés dans un processus node lancé avec ou sans la
+ *  `precharge` : la toolchain, l'interception de la projection supervisée et la stabilité de `execArgv`. */
 function profilsSupervises(racine, precharge) {
   const env = { ...process.env }
   delete env.NODE_TEST_CONTEXT
@@ -381,30 +370,24 @@ function profilsSupervises(racine, precharge) {
     const avant = JSON.stringify(process.execArgv);
     const { profilsDuLancement } = await import(${JSON.stringify(new URL('../../test/memoire.mjs', import.meta.url).href)});
     const p = { racine: process.cwd(), fichiers: ['propre.test.mjs'], argv: ['--test'], env: {}, mesures: { lire: (_nom, valider) => valider({}) } };
-    const vues = [];
-    const superviser = Object.assign(() => {}, { optionsEffectives: (commande, args, options) => {
-      const projection = LANCEMENTS_SUPERVISES.projeter(commande, args, options);
-      vues.push({ identite: projection.options === options, intercepte: projection.options.env.NODE_OPTIONS.includes('intercepterEcritures.mjs') });
-      return projection;
-    } });
-    const natif = profilsDuLancement({ ...p, superviser: () => {} });
-    const courant = profilsDuLancement({ ...p, superviser });
-    console.log(JSON.stringify({ natif: natif.configurationConnue, natifUtilisable: natif.entrees.some((e) => e.utilisable),
-      courant: courant.configurationConnue, ...vues[0], distincts: natif.toolchain !== courant.toolchain, stable: avant === JSON.stringify(process.execArgv) }));
+    const options = { env: {} };
+    const projection = LANCEMENTS_SUPERVISES.projeter(process.execPath, ['--test', 'propre.test.mjs'], options);
+    const profils = profilsDuLancement(p);
+    console.log(JSON.stringify({ toolchain: profils.toolchain, utilisable: profils.entrees.some((e) => e.utilisable),
+      identite: projection.options === options, intercepte: (projection.options.env.NODE_OPTIONS ?? '').includes('intercepterEcritures.mjs'),
+      stable: avant === JSON.stringify(process.execArgv) }));
   `
   const r = spawnSync(process.execPath, [...(precharge ? ['--import', PRELOAD] : []), '--input-type=module', '--eval', code], { cwd: racine, env, encoding: 'utf8' })
   assert.equal(r.status, 0, r.stderr)
   return JSON.parse(r.stdout)
 }
 
-test('précharge réelle : la projection supervisée porte l’interception, le natif reste sans configuration', () => avecDepot((racine) => {
-  assert.deepEqual(profilsSupervises(racine, true),
-    { natif: false, natifUtilisable: false, courant: true, identite: false, intercepte: true, distincts: true, stable: true })
-}))
-
-test('processus nu : la projection supervisée est l’identité, configuration connue', () => avecDepot((racine) => {
-  assert.deepEqual(profilsSupervises(racine, false),
-    { natif: false, natifUtilisable: false, courant: true, identite: true, intercepte: false, distincts: true, stable: true })
+test('précharge réelle : la projection supervisée porte l’interception jusqu’à la toolchain des profils ; processus nu, identité', () => avecDepot((racine) => {
+  const { toolchain: precharge, ...supervise } = profilsSupervises(racine, true)
+  const { toolchain: nu, ...natif } = profilsSupervises(racine, false)
+  assert.deepEqual(supervise, { utilisable: false, identite: false, intercepte: true, stable: true })
+  assert.deepEqual(natif, { utilisable: false, identite: true, intercepte: false, stable: true })
+  assert.notEqual(precharge, nu)
 }))
 
 test('paire de lancements : la préparation consomme la projection, identité hors sélection', () => avecDepot((racine) => {

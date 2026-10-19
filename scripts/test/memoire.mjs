@@ -81,13 +81,12 @@ export function environnementDeLaMesure(env, argv = [], cwd = process.cwd()) {
   return { ...env, NODE_OPTIONS: ['--require', PRECHARGE, ...gardees].map(citer).join(' ') }
 }
 
-export function profilsDuLancement({ racine, fichiers, argv = [], env = {}, superviser = lancerProcessusSupervise, mesures = mesuresDe(dossierDesMesures(racine)) }) {
+export function profilsDuLancement({ racine, fichiers, argv = [], env = {}, mesures = mesuresDe(dossierDesMesures(racine)) }) {
   const argumentsDuLancement = [...(argv.includes('--test') ? argv : ['--test', ...argv]), ...fichiers.filter((f) => !argv.includes(f))]
-  const optionsDuLancement = { cwd: racine, env: environnementDeLaMesure(env, argumentsDuLancement, racine) }
-  const effectives = superviser.optionsEffectives?.(process.execPath, argumentsDuLancement, optionsDuLancement) ?? null
-  const configurationConnue = effectives !== null
-  argv = effectives?.args ?? argumentsDuLancement
-  env = effectives?.options.env ?? optionsDuLancement.env
+  const effectives = lancerProcessusSupervise.optionsEffectives(process.execPath, argumentsDuLancement,
+    { cwd: racine, env: environnementDeLaMesure(env, argumentsDuLancement, racine) })
+  argv = effectives.args
+  env = effectives.options.env
   const configuration = []
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i], nom = nomOption(a)
@@ -98,15 +97,15 @@ export function profilsDuLancement({ racine, fichiers, argv = [], env = {}, supe
   const backend = ['../guards/lib/processusJob.cs', '../guards/lib/hoteSupervision.py', '../guards/lib/hoteSupervision.ps1', './memoire-precharge.cjs']
     .map((f) => empreinte(lire(new URL(f, import.meta.url))))
   const toolchain = empreinte(JSON.stringify({ contrat: CONTRAT, backend, node: process.versions.node, executable: process.execPath,
-    verrou: empreinte(lire(join(racine, 'package-lock.json'))), configuration, precharges: env.NODE_OPTIONS ?? '', configurationConnue }))
+    verrou: empreinte(lire(join(racine, 'package-lock.json'))), configuration, precharges: env.NODE_OPTIONS ?? '' }))
   const historiques = mesures.lire(PROFILS, (v) => v && typeof v === 'object' ? v : {})
   const entrees = fichiers.map((fichier) => {
     const cle = empreinte(JSON.stringify({ fichier, toolchain })), blob = empreinte(lire(resolve(racine, fichier))), historique = historiques[cle]
-    return { fichier, cle, blob, historique, utilisable: configurationConnue && historique?.blob === blob &&
+    return { fichier, cle, blob, historique, utilisable: historique?.blob === blob &&
       Number.isSafeInteger(historique?.picOctets) && historique.picOctets > 0 && Number.isSafeInteger(historique?.parentOctets) && historique.parentOctets > 0 &&
       historique?.descendantsInclus === true && typeof historique.metrique === 'string' }
   })
-  return { entrees, mesures, toolchain, configurationConnue }
+  return { entrees, mesures, toolchain }
 }
 
 export function admettreLancementNode({ fichiers, profils, parentOctets, disponibleOctets, cpus, argv = [], objectifOctets }) {
@@ -129,8 +128,7 @@ export function admettreLancementNode({ fichiers, profils, parentOctets, disponi
     argv: [...reste.filter((a) => a !== '--test'), '--test', '--test-concurrency=' + max] }
 }
 
-export function collecterMemoire({ controle, pid = controle?.pid, fichiers, racine, dossier, generation, mesurer = mesurerProcessusWorktrees,
-  platform = process.platform, maintenant = Date.now }) {
+export function collecterMemoire({ controle, pid, fichiers, racine, dossier, generation }) {
   const pics = new Map(), emissions = new Map(), entrees = new Map(fichiers.map((f) => [empreinte(f), f]))
   const engagements = new Map(), enSuspens = new Map()
   let parentOctets = 0, metrique, defaut, cloturee = false, valides = 0, rejets = 0, premiereCause, resultatQualite = 'en-cours'
@@ -145,12 +143,9 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
     return e
   }
   const faute = (code) => Object.assign(erreur(code), { code })
-  const chemins = platform === 'win32' ? path.win32 : path.posix
   const canonique = (fichier, cwd) => {
-    if (/^file:\/\//i.test(fichier)) fichier = fileURLToPath(fichier, { windows: platform === 'win32' })
-    const absolu = chemins.resolve(cwd, fichier)
-    const reel = platform === process.platform ? canoniser(absolu, { strict: true }) : absolu
-    return platform === 'win32' ? reel.toLowerCase() : reel
+    if (/^file:\/\//i.test(fichier)) fichier = fileURLToPath(fichier, { windows: true })
+    return canoniser(path.win32.resolve(cwd, fichier), { strict: true }).toLowerCase()
   }
   const candidats = fichiers.map((fichier) => ({ fichier, id: empreinte(fichier), chemin: canonique(fichier, racine) }))
   const lireJson = (fichier, facultatif = false) => {
@@ -158,9 +153,9 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
     catch (e) { if (facultatif && e.code === 'ENOENT') return null; throw e }
   }
   const observer = () => {
-    const echeance = maintenant() + 2000, nouvelles = new Map()
+    const echeance = Date.now() + 2000, nouvelles = new Map()
     const restant = () => {
-      const ms = echeance - maintenant()
+      const ms = echeance - Date.now()
       if (ms <= 0) throw faute(enSuspens.size ? 'MEMBRE_NON_ATTRIBUE' : 'CHALLENGE_MEMOIRE_EXPIRE')
       return ms
     }
@@ -243,13 +238,13 @@ export function collecterMemoire({ controle, pid = controle?.pid, fichiers, raci
           if (!entrees.has(p.entreeId)) throw erreur('entrée native inconnue')
         } else if (p.role !== null) throw erreur('émission infrastructure inattendue')
         else {
-          const inspection = mesurer({ pids: [p.pid], pidsAInspecter: [p.pid], memoireSeulement: true, timeout: restant() })
+          const inspection = mesurerProcessusWorktrees({ pids: [p.pid], pidsAInspecter: [p.pid], memoireSeulement: true, timeout: restant() })
           if (inspection?.code === 'MESURE_PROCESSUS_EXPIREE' && Object.hasOwn(inspection, 'indeterminee')) throw expiration(inspection.indeterminee)
           if (!inspection || Object.hasOwn(inspection, 'indeterminee') || inspection.expiree || !Array.isArray(inspection.processus)) throw erreur('inspection initiale indéterminée')
-          const correspondants = inspection.processus.filter((m) => m.pid === p.pid && creationExacte(platform === 'win32' ? m.creationNative : m.creation) === creationExacte(p.creation))
+          const correspondants = inspection.processus.filter((m) => m.pid === p.pid && creationExacte(m.creationNative) === creationExacte(p.creation))
           const m = correspondants[0]
           if (correspondants.length !== 1 || !m.cwd || !m.commande || m.erreurs?.length) throw erreur('inspection initiale sans identité exacte')
-          const argv = m.argv ?? argumentsProcessus(m.commande, platform)
+          const argv = m.argv ?? argumentsProcessus(m.commande, 'win32')
           const cheminsLus = new Set(argv.filter((a) => a && !a.startsWith('-')).map((a) => canonique(a, m.cwd)))
           const trouves = candidats.filter((c) => cheminsLus.has(c.chemin))
           if (trouves.length !== 1) throw erreur('association initiale non unique : ' + trouves.length + ' candidats')
@@ -335,11 +330,11 @@ const aConcurrenceSansProfil = (argv, fichiers) => {
 }
 
 /** Le lancement `node --test` des `fichiers` (#2586). Sous win32, mesuré : profils (`profilsDuLancement`), admission
- *  ou acquisition, collecte (`collecterMemoire`). Sous toute autre `platform`, l'hôte ne sert aucune vue : lancement
+ *  ou acquisition, collecte (`collecterMemoire`). Sous toute autre plateforme, l'hôte ne sert aucune vue : lancement
  *  à `CONCURRENCE_SANS_PROFIL`, rien d'appris, raison au journal ; `forcer` y échoue fermé en `ENONSUPPORTE`
  *  (#2586 c.6245552712). */
 export async function lancerNodeMesure({ racine, fichiers, argv = [], env = process.env, signal, mesures, forcer = false,
-  journal = console.log, platform = process.platform }) {
+  journal = console.log }) {
   const limiteMs = 30 * 60_000
   const diffuser = async (...argumentsSupervision) => {
     const lancement = await lancerProcessusSupervise(...argumentsSupervision)
@@ -347,13 +342,13 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     lancement.hote.stderr?.on('data', (d) => process.stderr.write(d))
     return lancement
   }
-  if (platform !== 'win32') {
+  if (process.platform !== 'win32') {
     if (forcer) {
-      const error = Object.assign(new Error('--reacquerir-memoire : mesure mémoire indisponible sous ' + platform), { code: 'ENONSUPPORTE' })
+      const error = Object.assign(new Error('--reacquerir-memoire : mesure mémoire indisponible sous ' + process.platform), { code: 'ENONSUPPORTE' })
       journal('[memoire] ENONSUPPORTE : ' + error.message)
       return { code: 2, error, refus: error.code, arret: { etat: 'mort', erreurs: [] } }
     }
-    journal('[memoire] mesure indisponible sous ' + platform + ', concurrence fixe ' + CONCURRENCE_SANS_PROFIL + ' : ' + fichiers.join(', '))
+    journal('[memoire] mesure indisponible sous ' + process.platform + ', concurrence fixe ' + CONCURRENCE_SANS_PROFIL + ' : ' + fichiers.join(', '))
     const dossier = mkdtempSync(join(env.WFRP_MEMOIRE_DOSSIER ?? tmpdir(), 'wfrp-node-'))
     let resultat
     try {
@@ -440,7 +435,7 @@ export async function lancerNodeMesure({ racine, fichiers, argv = [], env = proc
     const entrees = Object.fromEntries(profils.entrees.map((e) => [e.cle, { fichier: e.fichier, blob: e.blob,
       contrat: CONTRAT, toolchain: profils.toolchain, picOctets: observe.pics[e.fichier], parentOctets: observe.parentOctets,
       date, metrique: observe.metrique, descendantsInclus: true, qualite: observe.qualite, portee: 'maximum résident historique échantillonné du domaine natif attribué par entrée ; échantillons rejetés=' + observe.qualite.rejets }]))
-    if (profils.configurationConnue) profils.mesures.ecrire(PROFILS, entrees, (anciens, nouveaux) => {
+    profils.mesures.ecrire(PROFILS, entrees, (anciens, nouveaux) => {
       const fusion = { ...anciens }
       for (const [cle, profil] of Object.entries(nouveaux)) fusion[cle] = { ...profil,
         picOctets: forcer ? profil.picOctets : Math.max(profil.picOctets, anciens[cle]?.picOctets ?? 0),

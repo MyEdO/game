@@ -1,4 +1,4 @@
-import { test } from 'node:test'
+import { after, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { Worker } from 'node:worker_threads'
@@ -27,7 +27,10 @@ const attendre = async (condition) => {
   const fin = Date.now() + 5000
   while (!condition()) { if (Date.now() >= fin) throw new Error('attente physique expirée'); await new Promise((r) => setTimeout(r, 5)) }
 }
-const projection = Object.assign(() => assert.fail('projection sans lancement'), { optionsEffectives: (_c, args, options) => ({ args, options }) })
+/** Un lancement mesuré, sa collecte comprise, n'est servi que par l'hôte natif win32 (`lancerNodeMesure`) ; ailleurs, sa
+ *  branche sans mesure. */
+const MESURE_NATIVE = Object.freeze({ skip: process.platform !== 'win32' && 'mesure mémoire servie par le seul hôte natif win32' })
+const SANS_MESURE = Object.freeze({ skip: process.platform === 'win32' && 'branche sans mesure servie hors win32 seulement' })
 
 test('admission : concurrence explicite, pic au-delà de l’objectif servi à 1, profil absent', () => {
   const admission = (disponibleOctets, argv = [], profils = ['a', 'b', 'c'].map((fichier) => ({ fichier, picOctets: 100 }))) =>
@@ -41,7 +44,7 @@ test('admission : concurrence explicite, pic au-delà de l’objectif servi à 1
   assert.equal(admettreLancementNode({ fichiers: ['a'], profils: [], parentOctets: 20, disponibleOctets: 1000, cpus: 8 }).refus, 'PROFIL_MEMOIRE_ABSENT')
 })
 
-test('acquisition : un historique au-delà du disponible refuse avant tout lancement, profil périmé ou forcé', async (t) => {
+test('acquisition : un historique au-delà du disponible refuse avant tout lancement, profil périmé ou forcé', MESURE_NATIVE, async (t) => {
   const racine = temporaire(t, 'memoire-acquisition-refus-'), fichier = 'lourd.test.mjs', mesures = mesuresEnMemoire()
   writeFileSync(join(racine, fichier), 'export {}')
   const p = { racine, fichiers: [fichier], argv: ['--test'], env: { WFRP_TEST_MEMOIRE_MO: '2048', WFRP_TEST_COEURS: '4' }, mesures,
@@ -50,7 +53,7 @@ test('acquisition : un historique au-delà du disponible refuse avant tout lance
   const historique = { fichier, blob: entree.blob, picOctets: 3 * 2 ** 30, parentOctets: 2 ** 28, descendantsInclus: true, metrique: 'working-set' }
   for (const [cas, profil, forcer] of [['périmé', { ...historique, blob: 'perime' }, false], ['forcé', historique, true]]) {
     mesures.memos['memoire-node.json'] = { [entree.cle]: profil }
-    const r = await lancerNodeMesure({ ...p, forcer, platform: 'win32' })
+    const r = await lancerNodeMesure({ ...p, forcer })
     assert.deepEqual([r.code, r.refus, r.admission?.minimumOctets, r.message], [CODE_DIFFERE, 'MEMOIRE_INSUFFISANTE', 3 * 2 ** 30 + 2 ** 28, '[memoire] MEMOIRE_INSUFFISANTE : minimum 3328 Mo, disponible 2048 Mo'], cas)
   }
 })
@@ -58,7 +61,7 @@ test('acquisition : un historique au-delà du disponible refuse avant tout lance
 test('lecture des sources : ENOENT signe le vide, toute autre erreur lève telle quelle', (t) => {
   const racine = temporaire(t, 'memoire-lecture-')
   mkdirSync(join(racine, 'repertoire.test.mjs'))
-  const p = { racine, argv: ['--test'], env: {}, mesures: mesuresEnMemoire(), superviser: projection }
+  const p = { racine, argv: ['--test'], env: {}, mesures: mesuresEnMemoire() }
   assert.equal(profilsDuLancement({ ...p, fichiers: ['absent.test.mjs'] }).entrees[0].blob, hacher(''))
   assert.throws(() => profilsDuLancement({ ...p, fichiers: ['repertoire.test.mjs'] }), { code: 'EISDIR' })
 })
@@ -73,10 +76,10 @@ test('options Node : gate CJS première, précharges homonymes conservées et ga
   assert.throws(() => decomposerOptionsNode('"incomplet'), /guillemet/)
 })
 
-test('options incompatibles : alias snapshots et isolation none refusés avant toute factory', async (t) => {
+test('options incompatibles : alias snapshots et isolation none refusés avant toute factory', MESURE_NATIVE, async (t) => {
   const racine = temporaire(t, 'memoire-refus-options-')
   for (const argv of [['--snapshot-blob=x'], ['--snapshot_blob', 'x'], ['--build_snapshot'], ['--test-isolation=none'], ['--experimental_test_isolation', 'none']]) {
-    const r = await lancerNodeMesure({ racine, fichiers: [], argv, env: {}, journal() {}, platform: 'win32' })
+    const r = await lancerNodeMesure({ racine, fichiers: [], argv, env: {}, journal() {} })
     assert.equal(r.code, 2)
     assert.equal(r.arret.etat, 'mort')
     assert.match(r.error.message, /snapshot|isolation/)
@@ -84,10 +87,10 @@ test('options incompatibles : alias snapshots et isolation none refusés avant t
   assert.throws(() => environnementDeLaMesure({ NODE_OPTIONS: '--snapshot_blob=x' }), /snapshot/)
 })
 
-test('profils : projection factory pure, corpus et destinations indépendants, contrat antérieur invalidé', (t) => {
+test('profils : corpus et destinations indépendants, reporter et contenu distingués, contrat antérieur invalidé', (t) => {
   const racine = temporaire(t, 'memoire-profils-'), mesures = mesuresEnMemoire()
   writeFileSync(join(racine, 'a.mjs'), 'export {}')
-  const p = { racine, fichiers: ['a.mjs'], argv: ['--test'], env: {}, mesures, superviser: projection }
+  const p = { racine, fichiers: ['a.mjs'], argv: ['--test'], env: {}, mesures }
   const lire = (patch = {}) => profilsDuLancement({ ...p, ...patch })
   const a = lire().entrees[0]
   assert.equal(a.cle, lire({ fichiers: ['a.mjs', 'b.mjs'], argv: ['--test', '--test-reporter-destination=x'] }).entrees[0].cle)
@@ -97,22 +100,52 @@ test('profils : projection factory pure, corpus et destinations indépendants, c
   assert.notEqual(a.blob, lire().entrees[0].blob)
   mesures.memos['memoire-node.json'] = { [hacher('ancien-contrat-' + a.cle)]: { blob: lire().entrees[0].blob, picOctets: 100, parentOctets: 20, descendantsInclus: true, metrique: 'rss' } }
   assert.equal(lire().entrees[0].utilisable, false)
-  const opaque = lire({ superviser: () => assert.fail('aucun lancement') })
-  assert.equal(opaque.configurationConnue, false)
-  assert.notEqual(opaque.toolchain, lire().toolchain)
-  const projete = Object.assign(() => assert.fail('aucun lancement'), { optionsEffectives: (c, args, options) => projection.optionsEffectives(c, [...args, '--test-name-pattern=x'], options) })
-  assert.equal(lire({ superviser: projete }).toolchain, lire({ argv: ['--test', '--test-name-pattern=x'] }).toolchain)
 })
+
+/** Le dossier commun des terrains : les entrées `a.mjs`, `b.mjs`, `c.mjs` et le corps `enfant.cjs` des processus
+ *  d'entrée réels, qui sortent d'eux-mêmes à la mort du test. */
+let racineCommune
+const racineDesEntrees = () => {
+  if (racineCommune) return racineCommune
+  racineCommune = mkdtempSync(join(tmpdir(), 'memoire-entrees-'))
+  for (const nom of ['a.mjs', 'b.mjs', 'c.mjs']) writeFileSync(join(racineCommune, nom), '')
+  writeFileSync(join(racineCommune, 'enfant.cjs'), 'const parent = Number(process.env.WFRP_PARENT_TEST); setInterval(() => { try { process.kill(parent, 0) } catch { process.exit(0) } }, 200)')
+  return racineCommune
+}
+const enfants = []
+after(async () => {
+  for (const enfant of enfants) if (enfant.exitCode === null && enfant.signalCode === null) enfant.kill()
+  await Promise.all(enfants.map((enfant) => enfant.fin))
+  if (racineCommune) rmSync(racineCommune, { recursive: true, force: true, maxRetries: 3, retryDelay: 25 })
+})
+
+/** Un processus d'entrée réel `node enfant.cjs ...args` de cwd `racineDesEntrees()` : son PID et sa création native, lus
+ *  par `mesurerProcessusWorktrees`. */
+async function entreeReelle(args) {
+  const racine = racineDesEntrees()
+  const enfant = spawn(process.execPath, [join(racine, 'enfant.cjs'), ...args], { cwd: racine, stdio: 'ignore', env: { ...process.env, WFRP_PARENT_TEST: String(process.pid) } })
+  enfant.fin = new Promise((r) => enfant.once('close', r))
+  enfants.push(enfant)
+  await new Promise((r, j) => { enfant.once('spawn', r); enfant.once('error', j) })
+  const vue = mesurerProcessusWorktrees({ pids: [enfant.pid], pidsAInspecter: [enfant.pid], memoireSeulement: true, timeout: 5000 })
+  const p = vue.processus.find((m) => m.pid === enfant.pid)
+  assert.ok(p?.creationNative, JSON.stringify(vue))
+  return { pid: enfant.pid, creation: p.creationNative }
+}
+let entreeCommune
+const ENTREE = () => entreeCommune ??= entreeReelle(['a.mjs'])
+/** Le PID du descendant de l'entrée : jamais un PID Windows, toute inspection de son identité échoue. */
+const DESCENDANT = 14
 
 async function terrain(t, fichier, options = {}) {
   const dossier = mkdtempSync(join(tmpdir(), 'memoire-natif-')), generation = randomUUID()
   mkdirSync(join(dossier, 'emissions'))
   mkdirSync(join(dossier, 'acquittements'))
-  writeFileSync(join(dossier, fichier), '')
-  const creer = (pid, role, residentOctets) => ({ identifiant: 'instance-' + pid, pid, ppid: 999, creation: '2026-10-01T00:00:00.1234567Z',
+  const entree = await (options.entree ?? ENTREE())
+  const creer = (pid, role, residentOctets, creation = '2026-10-01T00:00:00.1234567Z') => ({ identifiant: 'instance-' + pid, pid, ppid: 999, creation,
     residentOctets, metriqueMemoire: 'working-set', etat: 'vivant', erreurs: [], role, entreeId: null })
-  const processus = [creer(2, 'hote', 3), creer(3, 'worker', 7), creer(10, null, 20), creer(11, null, 100), creer(12, null, 300)]
-  const identites = [], inspections = [], fermetures = new WeakSet()
+  const processus = [creer(2, 'hote', 3), creer(3, 'worker', 7), creer(10, null, 20), creer(entree.pid, null, 100, entree.creation), creer(DESCENDANT, null, 300)]
+  const identites = [], fermetures = new WeakSet()
   let captures = 0
   const controle = {
     pid: 10,
@@ -125,12 +158,9 @@ async function terrain(t, fichier, options = {}) {
       assert.ok(m)
       assert.ok(o.timeout > 0)
       if (p.destination.type === 'parent') m.role = 'cible'
-      else for (const n of processus.filter((n) => n.pid === 11 || n.pid === 12)) n.entreeId = p.destination.id
+      else for (const n of processus.filter((n) => n.pid === entree.pid || n.pid === DESCENDANT)) n.entreeId = p.destination.id
     },
   }
-  const inspecte = { pid: 11, creation: '2026-10-01T00:00:00.1234560Z', creationNative: processus[3].creation,
-    cwd: dossier, commande: 'node --test ' + fichier, argv: ['node', '--test', fichier], erreurs: [] }
-  const mesurer = (p) => { inspections.push(p); return { processus: [{ ...inspecte }] } }
   const shared = new SharedArrayBuffer(12), compteurs = new Int32Array(shared)
   const repondeur = new Worker(`const {parentPort,workerData}=require('node:worker_threads');const fs=require('node:fs'),path=require('node:path');const {dossier,shared}=workerData,compteurs=new Int32Array(shared);
     const vus=new Set();setInterval(()=>{Atomics.add(compteurs,0,1);
@@ -154,24 +184,22 @@ async function terrain(t, fichier, options = {}) {
     writeFileSync(join(dossier, 'emissions', id + '.json'), JSON.stringify({ version: 1, generation, id, pid }))
     return id
   }
-  const collecte = collecterMemoire({ controle, pid: 10, fichiers: [fichier], racine: dossier, dossier, generation, mesurer, platform: 'win32', ...options })
+  const collecte = collecterMemoire({ controle, pid: 10, fichiers: options.fichiers ?? [fichier], racine: racineDesEntrees(), dossier, generation })
   const ack = () => {
     const fichiers = readdirSync(join(dossier, 'acquittements')).filter((n) => n.endsWith('.json'))
     if (!fichiers.length) return null
     return { version: 1, generation, emissions: Object.assign({}, ...fichiers.map((n) => JSON.parse(readFileSync(join(dossier, 'acquittements', n), 'utf8')).emissions)) }
   }
-  return { dossier, generation, processus, controle, inspecte, identites, inspections, fermetures, emission, collecte, ack, captures: () => captures, erreurRepondeur: () => erreurRepondeur, compteurs }
+  return { dossier, generation, processus, controle, entree: entree.pid, identites, fermetures, emission, collecte, ack, captures: () => captures, erreurRepondeur: () => erreurRepondeur, compteurs }
 }
 
-test('domaine natif : attribution tenue, descendant sans parent visible, P explicite, nouvelle vue avant ACK', async (t) => {
+test('domaine natif : attribution tenue, descendant sans parent visible, P explicite, nouvelle vue avant ACK', MESURE_NATIVE, async (t) => {
   const f = await terrain(t, 'a.mjs')
-  const entree = f.emission(11), parent = f.emission(10)
+  const entree = f.emission(f.entree), parent = f.emission(10)
   f.collecte.echantillonner()
   assert.equal(f.collecte.defaut, undefined)
   assert.deepEqual(f.identites.map((p) => p.destination).sort((a, b) => a.type.localeCompare(b.type)), [{ type: 'entree', id: hacher('a.mjs') }, { type: 'parent' }])
   assert.equal(f.captures(), 2)
-  assert.deepEqual(f.inspections[0].pids, [11])
-  assert.deepEqual(f.inspections[0].pidsAInspecter, [11])
   assert.equal(f.ack().generation, f.generation)
   assert.deepEqual(Object.keys(f.ack().emissions).sort(), [entree, parent].sort())
   const observe = f.collecte.terminer()
@@ -184,10 +212,10 @@ test('domaine natif : attribution tenue, descendant sans parent visible, P expli
   assert.equal(f.collecte.terminer().pics['a.mjs'], 600)
 })
 
-test('#2586 domaine natif : la cible sortie ou absente de la vue clôt la collecte, sans défaut ni rejet', async (t) => {
+test('#2586 domaine natif : la cible sortie ou absente de la vue clôt la collecte, sans défaut ni rejet', MESURE_NATIVE, async (t) => {
   for (const sortir of [(processus) => { processus[2].etat = 'sortie' }, (processus) => { processus.splice(2, 1) }]) {
     const f = await terrain(t, 'a.mjs')
-    f.emission(11); f.emission(10)
+    f.emission(f.entree); f.emission(10)
     f.collecte.echantillonner()
     assert.equal(f.collecte.defaut, undefined)
     sortir(f.processus)
@@ -199,24 +227,23 @@ test('#2586 domaine natif : la cible sortie ou absente de la vue clôt la collec
   }
 })
 
-test('domaine natif : émission descendant déjà attribué sans inspection argv ni contexte ENTRY', async (t) => {
+test('domaine natif : émission descendant déjà attribué sans inspection argv ni contexte ENTRY', MESURE_NATIVE, async (t) => {
   const f = await terrain(t, 'a.mjs')
-  f.emission(10); f.emission(11)
+  f.emission(10); f.emission(f.entree)
   f.collecte.echantillonner()
-  const id = f.emission(12)
-  f.inspecte.cwd = null
+  const id = f.emission(DESCENDANT)
   f.collecte.echantillonner()
+  assert.equal(f.collecte.defaut, undefined, f.collecte.defaut?.message)
   assert.ok(f.ack().emissions[id])
-  assert.equal(f.inspections.length, 1)
   assert.equal(f.identites.length, 2)
 })
 
-test('acquisition : capture avant challenge, émission tardive dans la même borne et aucun ACK intermédiaire', async (t) => {
+test('acquisition : capture avant challenge, émission tardive dans la même borne et aucun ACK intermédiaire', MESURE_NATIVE, async (t) => {
   const f = await terrain(t, 'a.mjs', { avantVue: (numero) => {
     if (numero === 1) assert.equal(readdirSync(join(f.dossier, 'emissions'), { recursive: true }).some((n) => /challenges[\\/].*\.json$/.test(n)), false)
     if (numero === 3) {
       assert.equal(f.ack(), null)
-      f.emission(11)
+      f.emission(f.entree)
     }
   } })
   f.emission(10)
@@ -226,7 +253,7 @@ test('acquisition : capture avant challenge, émission tardive dans la même bor
   assert.deepEqual(f.collecte.terminer().pics, { 'a.mjs': 400 })
 })
 
-test('acquisition : identité non attribuée conservée après expiration puis disparition fatale', async (t) => {
+test('acquisition : identité non attribuée conservée après expiration puis disparition fatale', MESURE_NATIVE, async (t) => {
   const f = await terrain(t, 'a.mjs', { avantVue: (numero) => {
     if (numero === 2) throw Object.assign(new Error('expiration contrôlée'), { code: 'EXPIRATION', origine: 'controle-natif', operation: 'vue', expiree: true })
   } })
@@ -240,57 +267,53 @@ test('acquisition : identité non attribuée conservée après expiration puis d
   assert.equal(f.ack(), null)
 })
 
-test('inspection complète : création native exacte, même milliseconde différente refusée sans ACK', async (t) => {
-  const f = await terrain(t, 'a.mjs')
-  f.emission(10); f.emission(11)
-  f.inspecte.creationNative = '2026-10-01T00:00:00.1234568Z'
+test('inspection complète : création native exacte, même milliseconde différente refusée sans ACK', MESURE_NATIVE, async (t) => {
+  const reelle = await ENTREE()
+  const chiffre = reelle.creation.at(-2)
+  const f = await terrain(t, 'a.mjs', { entree: { pid: reelle.pid, creation: reelle.creation.slice(0, -2) + (chiffre === '9' ? '8' : String(Number(chiffre) + 1)) + 'Z' } })
+  f.emission(10); f.emission(f.entree)
   f.collecte.echantillonner()
   assert.match(f.collecte.defaut.message, /identité exacte/)
   assert.equal(f.ack(), null)
   assert.equal(f.collecte.qualite.echantillonsValides, 0)
 })
 
-test('inspection complète : chemins uniques, erreurs et cwd exigés, argv complet sans heuristique argv1', async (t) => {
-  for (const cas of ['cwd', 'erreur', 'zero', 'plusieurs']) {
-    const f = await terrain(t, 'a.mjs')
-    f.emission(10); f.emission(11)
-    if (cas === 'cwd') f.inspecte.cwd = null
-    if (cas === 'erreur') f.inspecte.erreurs = ['paramètres illisibles']
-    if (cas === 'zero') f.inspecte.argv = ['node', '--test', 'absent.mjs']
-    if (cas === 'plusieurs') { f.inspecte.argv.push('b.mjs'); writeFileSync(join(f.dossier, 'b.mjs'), '') }
-    const collecte = cas === 'plusieurs' ? collecterMemoire({ controle: f.controle, pid: 10, fichiers: ['a.mjs', 'b.mjs'], racine: f.dossier,
-      dossier: f.dossier, generation: f.generation, platform: 'win32', mesurer: () => ({ processus: [f.inspecte] }) }) : f.collecte
-    collecte.echantillonner()
-    assert.ok(collecte.defaut, cas)
+test('inspection complète : un seul chemin candidat dans l’argv complet, sans heuristique argv1', MESURE_NATIVE, async (t) => {
+  for (const [cas, args, fichiers] of [['zero', ['c.mjs'], ['a.mjs']], ['plusieurs', ['a.mjs', 'b.mjs'], ['a.mjs', 'b.mjs']]]) {
+    const f = await terrain(t, 'a.mjs', { entree: entreeReelle(args), fichiers })
+    f.emission(10); f.emission(f.entree)
+    f.collecte.echantillonner()
+    assert.match(f.collecte.defaut?.message ?? '', /association initiale non unique/, cas)
     assert.equal(f.ack(), null, cas)
   }
 })
 
-test('transaction working-set : membre commun inconnu, working-set invalide et somme non sûre empêchent tout ACK', async (t) => {
-  for (const cas of ['inconnu', 'rss', 'erreurs', 'overflow', 'role', 'duplique']) {
-    let instant = 0
-    const f = await terrain(t, 'a.mjs', { maintenant: () => instant, avantVue: (numero, ps) => {
+test('transaction working-set : membre commun inconnu, working-set invalide et somme non sûre empêchent tout ACK', MESURE_NATIVE, async (t) => {
+  const causes = { inconnu: 'MEMBRE_NON_ATTRIBUE', rss: 'working-set natif incomplet', erreurs: 'working-set natif incomplet',
+    overflow: 'somme working-set entrée invalide', role: 'infrastructure native contradictoire', duplique: 'identité native invalide ou dupliquée' }
+  for (const cas of Object.keys(causes)) {
+    const f = await terrain(t, 'a.mjs', { avantVue: (numero, ps) => {
       if (numero !== 2) return
-      if (cas === 'inconnu') { ps[4].entreeId = null; instant = 2000 }
+      if (cas === 'inconnu') ps[4].entreeId = null
       if (cas === 'rss') ps[4].residentOctets = NaN
       if (cas === 'erreurs') ps[4].erreurs = ['resident illisible']
       if (cas === 'overflow') ps[4].residentOctets = Number.MAX_SAFE_INTEGER
       if (cas === 'role') ps[4].role = 'worker'
       if (cas === 'duplique') ps.push({ ...ps[4] })
     } })
-    f.emission(10); f.emission(11)
+    f.emission(10); f.emission(f.entree)
     f.collecte.echantillonner()
-    assert.ok(f.collecte.defaut, cas)
+    assert.equal(f.collecte.defaut?.message, 'collecte impossible : ' + causes[cas], cas)
     assert.equal(f.ack(), null, cas)
     assert.throws(() => f.collecte.terminer(), { code: 'MESURE_MEMOIRE_INCOMPLETE' }, cas)
   }
 })
 
-test('transaction working-set : expiration structurée après affectation conserve propriété, aucun ACK ni pic partiel', async (t) => {
+test('transaction working-set : expiration structurée après affectation conserve propriété, aucun ACK ni pic partiel', MESURE_NATIVE, async (t) => {
   const f = await terrain(t, 'a.mjs', { avantVue: (numero) => {
     if (numero === 2) throw Object.assign(new Error('expiration structurée'), { code: 'EXPIRATION', origine: 'controle-natif', operation: 'vue', expiree: true })
   } })
-  const e = f.emission(11); f.emission(10)
+  const e = f.emission(f.entree); f.emission(10)
   f.collecte.echantillonner()
   assert.equal(f.collecte.defaut, undefined)
   assert.equal(f.collecte.qualite.echantillonsValides, 0)
@@ -305,7 +328,7 @@ test('transaction working-set : expiration structurée après affectation conser
   assert.equal(f.collecte.terminer().qualite.rejets, 1)
 })
 
-test('transaction working-set : exception étiquetée, infrastructure absente et changement identité restent fatals', async (t) => {
+test('transaction working-set : exception étiquetée, infrastructure absente et changement identité restent fatals', MESURE_NATIVE, async (t) => {
   for (const cas of ['fausse-expiration', 'parent-absent', 'identite']) {
     const f = await terrain(t, 'a.mjs', { avantVue: (numero, ps) => {
       if (numero !== 2) return
@@ -313,17 +336,17 @@ test('transaction working-set : exception étiquetée, infrastructure absente et
       if (cas === 'parent-absent') ps.splice(2, 1)
       if (cas === 'identite') ps[3].creation = '2026-10-01T00:00:00.1234568Z'
     } })
-    f.emission(10); f.emission(11)
+    f.emission(10); f.emission(f.entree)
     f.collecte.echantillonner()
     assert.ok(f.collecte.defaut, cas)
     assert.equal(f.ack(), null, cas)
   }
 })
 
-test('clôture : seule fermeture marquée par ce contrôle en phase canonique cesse les samples', async (t) => {
+test('clôture : seule fermeture marquée par ce contrôle en phase canonique cesse les samples', MESURE_NATIVE, async (t) => {
   for (const cas of ['canonique', 'non-marquee', 'mauvaise-phase']) {
     const f = await terrain(t, 'a.mjs')
-    f.emission(10); f.emission(11)
+    f.emission(10); f.emission(f.entree)
     f.collecte.echantillonner()
     const cause = Object.assign(new Error('fin native'), { code: 'FERMETURE', origine: 'controle-natif', operation: 'vue', terminale: true })
     if (cas !== 'non-marquee') f.fermetures.add(cause)
@@ -376,7 +399,7 @@ test('gate physique : require/import/loader attendent challenge et ACK ; threads
   assert.equal(readdirSync(join(dossier, 'emissions')).filter((f) => f.endsWith('.json')).length, 1)
 })
 
-test('Windows physique : inspection sélectionnée expose création native complète, commande et cwd', { skip: process.platform !== 'win32' }, () => {
+test('Windows physique : inspection sélectionnée expose création native complète, commande et cwd', MESURE_NATIVE, () => {
   const vue = mesurerProcessusWorktrees({ pids: [process.pid], pidsAInspecter: [process.pid], memoireSeulement: true, timeout: 5000 })
   const p = vue.processus.find((p) => p.pid === process.pid)
   assert.ok(p)
@@ -394,21 +417,21 @@ function bancMesurePhysique(t) {
   return { fichier, executions, mesures, journaux, p: { racine, fichiers: [fichier], argv: ['--test'], env, mesures, journal: (s) => journaux.push(s) } }
 }
 
-test('#2586 lancement node sous Linux : aucune collecte, verdict utile en concurrence fixe, aucun profil ; forcé, échoue fermé ENONSUPPORTE sans lancement', async (t) => {
+test('#2586 lancement node hors win32 : aucune collecte, verdict utile en concurrence fixe, aucun profil ; forcé, échoue fermé ENONSUPPORTE sans lancement', SANS_MESURE, async (t) => {
   const { executions, mesures, journaux, p } = bancMesurePhysique(t)
-  const r = await lancerNodeMesure({ ...p, platform: 'linux' })
+  const r = await lancerNodeMesure(p)
   assert.deepEqual([r.code, r.arret.etat, r.concurrence, r.memoire], [1, 'mort', 1, undefined], journaux.join('\n'))
   assert.equal(readFileSync(executions, 'utf8'), 'x')
   assert.equal(mesures.memos['memoire-node.json'], undefined)
-  assert.ok(journaux.includes('[memoire] mesure indisponible sous linux, concurrence fixe 1 : court.test.mjs'), journaux.join('\n'))
+  assert.ok(journaux.includes('[memoire] mesure indisponible sous ' + process.platform + ', concurrence fixe 1 : court.test.mjs'), journaux.join('\n'))
   journaux.length = 0
-  const force = await lancerNodeMesure({ ...p, platform: 'linux', forcer: true })
+  const force = await lancerNodeMesure({ ...p, forcer: true })
   assert.deepEqual([force.code, force.error?.code, force.arret.etat], [2, 'ENONSUPPORTE', 'mort'], journaux.join('\n'))
   assert.equal(readFileSync(executions, 'utf8'), 'x')
-  assert.deepEqual(journaux, ['[memoire] ENONSUPPORTE : --reacquerir-memoire : mesure mémoire indisponible sous linux'])
+  assert.deepEqual(journaux, ['[memoire] ENONSUPPORTE : --reacquerir-memoire : mesure mémoire indisponible sous ' + process.platform])
 })
 
-test('mesure physique Windows : verdict utile unique, profil complet puis admission, aucune exécution préalable', { skip: process.platform !== 'win32' }, async (t) => {
+test('mesure physique Windows : verdict utile unique, profil complet puis admission, aucune exécution préalable', MESURE_NATIVE, async (t) => {
   const { fichier, executions, mesures, journaux, p } = bancMesurePhysique(t)
   for (const acquisition of [true, false]) {
     const r = await lancerNodeMesure(p)
