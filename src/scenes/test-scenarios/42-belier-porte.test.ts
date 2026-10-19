@@ -66,7 +66,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(belier.weaponGroup).toBe('machine-de-guerre');
     expect(belier.qualities.map((q) => q.id).sort()).toEqual(['belier', 'devastatrice', 'equipe', 'percutante', 'siege'].sort());
     const w = firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants);
-    expect(w.crewTeamPenalty).toBeUndefined(); // Équipe au complet → arme nette
+    expect(w.crewTeamIncomplete).toBeUndefined(); // Équipe au complet → arme nette
   });
 
   it("le jet d'attaque du Bélier se résout sur la Force du Soldat — PAS sa CC (ADE II 8 l.233)", () => {
@@ -108,7 +108,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     for (const c of crew.filter((x) => x.id !== soldat.id).slice(0, 3)) c.wounds = { current: 0, max: c.wounds.max };
     const belier = soldat.weapons.find((w) => w.label === 'Bélier')!;
     const w = firedWeapon(soldat, porte, belier.uid, useGame.getState().battle!.combatants);
-    expect(w.crewTeamPenalty).toBe(-20);
+    expect(w.crewTeamIncomplete).toBe(true);
     expect(firedAttackBlock(() => useGame.getState(), soldat, porte, belier.uid)).toBeNull(); // toujours utilisable
   });
 

@@ -126,6 +126,7 @@ import { parUnitesDeCode } from './lister.mjs'
 import { analyserCorpus, ast, typescript } from './dialecte.mjs'
 import { contexteImports, estAppelDeclare, liaisonImportee } from './canonUnique.mjs'
 import { enteteDeHunk } from './hunks.mjs'
+import { PORTEURS_SOUS_LA_PORTE } from './porteursDesComptes.mjs'
 
 /** Fichiers susceptibles de porter un stock nominatif. Une BASELINE de COMPTE
  *  (`scripts/raw/*-baseline.json`, `scripts/guards/*.json`) n'y entre que pour ses CLÉS — limite
@@ -1035,11 +1036,21 @@ export function croissancesNonCouvertes({ diff, message }, images) {
   return nonCouvertesDuBilan(bilanDesStocks(diff, images), message);
 }
 
-/** `croissancesNonCouvertes` sur un bilan DÉJÀ lu (`bilanDesStocks`) : la plage le lit une fois. */
+/**
+ * `croissancesNonCouvertes` sur un bilan DÉJÀ lu (`bilanDesStocks`) : la plage le lit une fois. Un porteur de la porte
+ * des comptes (`PORTEURS_SOUS_LA_PORTE`, `porteursDesComptes.mjs`) n’est couvert par AUCUNE ligne : sa croissance est
+ * rendue `sousLaPorte`.
+ */
 export function nonCouvertesDuBilan(bilan, message) {
   const mesures = croissancesDuBilan(bilan).map((c) => ({ ...c, n: c.net }));
-  return mesuresNonCouvertes(mesures, cliquetsDuMessage(message)).map(({ n: _n, ...c }) => c);
+  const admissibles = cliquetsDuMessage(message).filter((l) => !PORTEURS_SOUS_LA_PORTE.includes(l.fichier));
+  return mesuresNonCouvertes(mesures, admissibles).map(({ n: _n, ...c }) => ({ ...c, sousLaPorte: PORTEURS_SOUS_LA_PORTE.includes(c.fichier) }));
 }
+
+/** Le refus des croissances `sousLaPorte` dont `lignes` disent chacune le fichier : aucune ligne de message ne les admet. */
+export const refusSousLaPorte = (lignes) =>
+  `⛔ STOCK SOUS LA PORTE \`comptes:plage\` qui NAÎT ou GRANDIT : ${lignes.join(' || ')}. Migrer vers la forme cible ; ` +
+  "la porte comptes:plage refuse toute hausse, aucun `CLIQUET:` ne l'admet (`SOUS_LA_PORTE`, scripts/guards/lib/occurrencesStock.mjs).";
 
 /**
  * Le geste qui porte une ligne (`CLIQUET:`, `RECLASSEMENT:`) au message des commits d'une PLAGE à qui
@@ -1057,13 +1068,24 @@ export function gesteSurLesCommitsFautifs(refus) {
   return gestes.join(' ; ');
 }
 
-/** Refus lisible d'une croissance : ce qui a grossi, de combien, trois exemples, et le geste. */
+/** Refus lisible d'une croissance : ce qui a grossi, de combien, trois exemples, et le geste — `refusSousLaPorte`
+ *  pour un porteur de la porte des comptes. */
 export function raisonDeRefus(croissances) {
-  const lignes = croissances.map((c) => {
+  const ligne = (c) => {
     const compte = `+${c.net} entrée(s) nette(s) (${c.ajoutees} ajoutée(s), ${c.retirees} retirée(s))`;
     const declare = c.declare === null ? '' : ` — ${declarationLue({ ...c, n: c.net })}`;
     return `${c.fichier} : ${compte}${declare} — ex. ${c.exemples.join(' · ')}`;
-  });
+  };
+  const gardees = croissances.filter((c) => c.sousLaPorte);
+  const admissibles = croissances.filter((c) => !c.sousLaPorte);
+  return [
+    ...(admissibles.length ? [raisonAdmissible(admissibles.map(ligne))] : []),
+    ...(gardees.length ? [refusSousLaPorte(gardees.map(ligne))] : []),
+  ].join('\n');
+}
+
+/** Le refus des croissances qu'un `CLIQUET:` au compte exact admettrait. */
+function raisonAdmissible(lignes) {
   return (
     `⛔ STOCK NOMINATIF qui NAÎT ou GRANDIT : ${lignes.join(' || ')}. Un stock nominatif est une ` +
     "DETTE vers zéro, jamais un registre : retirer l'entrée, ou porter la règle dans le socle pour " +

@@ -48,7 +48,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   money: 'Bourse personnelle (sous de cuivre, ±)',
   statusMod: 'Standing temporaire (prochaine aventure)',
   grantReverseToken: 'Jeton d’inversion (prochaine aventure)',
-  castWard: 'Aura anti-Sort (−20 Langue)',
+  castWard: 'Aura anti-Sort (Langue)',
   arrowWard: 'Bouclier anti-projectiles',
   domeWard: 'Dôme protecteur',
   attackWardFM: 'Attaquer exige un Test de FM',

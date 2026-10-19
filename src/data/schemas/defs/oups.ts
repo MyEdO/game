@@ -4,9 +4,10 @@
  * table. Ces deux sections du livre partagent ICI un seul dataset ; le découpage côté produit est la
  * question #1544.
  *
- * UNE SEULE FORME D'ENTRÉE, la disjonction portée par un REFINE ⟺ (`affinerEntree`) : `min`/`max` sont
- * déclarés optionnels, et le refine exige les deux sens — un `misfire` ne porte NI l'un NI l'autre, une
- * bande d100 porte les DEUX. Une union de deux `strictObject` dirait la même chose au parse, mais elle
+ * UNE SEULE FORME D'ENTRÉE, la disjonction portée par un REFINE ⟺ (`affinerEntree`) sur la charge par
+ * `kind` (`chargeParDiscriminant`) : `min`/`max`/`mod` sont déclarés optionnels, et le refine exige les
+ * deux sens — un `misfire` ne porte rien, une bande d100 ses DEUX bornes, le Malus d'Action en plus son
+ * `mod`. Une union de deux `strictObject` dirait la même chose au parse, mais elle
  * n'a ni `.shape` ni enveloppe : `document()` ne saurait y poser ni sa provenance, ni son `type`, ni
  * ses métas d'édition. La contrainte reste au schéma, elle change seulement de porteur.
  *
@@ -18,6 +19,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme } from '../grammaire/valeurs';
+import { tableTotale } from '../../../lib/tableTotale';
 
 export const file = 'oups.json';
 export const famille = 'entite';
@@ -35,6 +37,14 @@ const KINDS = {
   misfire: 'Incident de Tir',
 } as const;
 
+/** CHARGE par `kind`, telle que la lit l'atelier (`espace.chargeParDiscriminant`, `chargeDiscriminee`) :
+ *  la bande d100 porte ses bornes, le Malus d'Action son modificateur, l'Incident de Tir rien. Le refine
+ *  ci-dessous lit la MÊME table. */
+const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(
+  Object.keys(KINDS) as (keyof typeof KINDS)[],
+  (kind) => (kind === 'misfire' ? [] : kind === 'actionPenalty' ? ['min', 'max', 'mod'] : ['min', 'max']),
+);
+
 const doc = document(
   'oups',
   famille,
@@ -42,6 +52,7 @@ const doc = document(
     min: z.number().optional(),
     max: z.number().optional(),
     kind: enumNomme(KINDS),
+    mod: z.number().optional(),
   },
   {
     min: { label: 'Borne basse du d100' },
@@ -50,6 +61,7 @@ const doc = document(
       label: 'Effet mécanique',
       hint: 'misfire = Incident de Tir, HORS table (LDB 14 folio 160)',
     },
+    mod: { label: 'Modificateur de l’Action suivante', hint: 'Malus d’Action seulement' },
   },
   {
     codex: { keys: ['oups'] },
@@ -57,24 +69,21 @@ const doc = document(
   },
   {
     exiges: ['source'],
+    espace: { discriminant: 'kind', chargeParDiscriminant },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { kind?: string; min?: number; max?: number };
-        const borne = e.min !== undefined || e.max !== undefined;
-        if (e.kind === 'misfire' && borne) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['min'],
-            message: "oups : l'Incident de Tir est HORS table (LDB 14 folio 160) — il ne porte NI min NI max.",
-          });
-        }
-        if (e.kind !== 'misfire' && (e.min === undefined || e.max === undefined)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: ['min'],
-            message: `oups : une ligne du Tableau des Oups ! est une BANDE d100 — min ET max sont exigés (kind « ${e.kind} »).`,
-          });
-        }
+        const e = v as { kind: string } & Record<string, unknown>;
+        const charge = chargeParDiscriminant[e.kind] ?? [];
+        const absentes = charge.filter((cle) => e[cle] === undefined);
+        const etrangeres = ['min', 'max', 'mod'].filter((cle) => !charge.includes(cle) && e[cle] !== undefined);
+        if (absentes.some((cle) => cle === 'min' || cle === 'max'))
+          ctx.addIssue({ code: 'custom', path: ['min'], message: `oups : une ligne du Tableau des Oups ! est une BANDE d100 — min ET max sont exigés (kind « ${e.kind} »).` });
+        if (absentes.includes('mod'))
+          ctx.addIssue({ code: 'custom', path: ['mod'], message: `oups : le Malus d’Action porte son modificateur (kind « ${e.kind} »).` });
+        if (e.kind === 'misfire' && etrangeres.length)
+          ctx.addIssue({ code: 'custom', path: [etrangeres[0]], message: "oups : l'Incident de Tir est HORS table (LDB 14 folio 160) — il ne porte NI min NI max." });
+        else if (etrangeres.length)
+          ctx.addIssue({ code: 'custom', path: [etrangeres[0]], message: `oups : le modificateur est porté par le seul Malus d’Action (kind « ${e.kind} »).` });
       }),
   },
 );

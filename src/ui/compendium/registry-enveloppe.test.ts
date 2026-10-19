@@ -233,7 +233,7 @@ const CLES: Record<string, string> = {
   "crewMoraleBands": '817ce48b209e1729',
   "steamBreakdowns": '0241598713ede3cd',
   // #1595 (2026-10-12) : +2 items `degagement-debris-marins` (MDG 13 l.487-491) et `salissures-navire` (MDG 13 l.148-159), les règles des enjeux `sea-degagement-debris` et `sea-salissures`.
-  "regles": '95449cb5fbd86bfd',
+  "regles": '79d9382f8ab4c7bb',
 };
 
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que
@@ -369,7 +369,7 @@ const FORME: Record<string, string> = {
   "crewMoraleFactors": 'desc id label source',
   "crewMoraleBands": 'desc id label meta source sub',
   "steamBreakdowns": 'desc id label meta source sub',
-  "regles": 'desc id label source',
+  "regles": 'desc id label sections source',
 };
 
 /** #1472 T3 — LISTE NOMINATIVE DES DELTAS, gelée au compte. Chaque catégorie ci-dessous a adopté

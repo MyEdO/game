@@ -149,10 +149,24 @@ function ecrire(racine, rel, texte) {
 }
 
 /**
- * Gabarit partagé pour un contenu donné : construit au premier appel, rendu tel quel ensuite.
- * L'identité de l'auteur, `commit.gpgsign` à faux et un `core.hooksPath` RELATIF pointant hors de
- * tout hook (résolu dans le dépôt jugé, jamais dans le gabarit) rendent la fixture indépendante de
- * la machine hôte. Une construction qui échoue ne laisse aucun dossier derrière elle.
+ * Le dépôt NEUF `racine` sur `branche`, sous l'environnement d'un dépôt forgé (`envDeDepotForge`) : l'identité de
+ * l'auteur, `commit.gpgsign` à faux et un `core.hooksPath` RELATIF pointant hors de tout hook le rendent indépendant
+ * de la machine hôte. Une étape qui échoue lève, nommée.
+ * @param {string} racine @param {{ branche?: string }} [p] @returns {import('./gitPorte.mjs').Depot}
+ */
+export function forgerDepot(racine, { branche = 'main' } = {}) {
+  const depot = depotDe(racine, { env: envDeDepotForge() })
+  exiger(initialiserDepot(depot, { branche }), `git init -b ${branche}`, racine)
+  // RELATIF : git résout `core.hooksPath` contre le dépôt qui l'exécute, donc dans l'INSTANCE.
+  // Un chemin absolu y ferait pointer chaque instance vers le gabarit — effacé à la sortie.
+  const reglages = { 'user.email': 'mesure@example.invalid', 'user.name': 'mesure', 'commit.gpgsign': 'false', 'core.hooksPath': 'hooks-absents' }
+  for (const [cle, valeur] of Object.entries(reglages)) exiger(reglerDepot(depot, cle, valeur), `git config ${cle}`, racine)
+  return depot
+}
+
+/**
+ * Gabarit partagé pour un contenu donné : construit au premier appel sur un dépôt neuf (`forgerDepot`),
+ * rendu tel quel ensuite. Une construction qui échoue ne laisse aucun dossier derrière elle.
  * @param {ParamsDepot} params `fichiers` = `{ 'chemin/relatif': 'contenu' }` ; `refs` = `{ 'refs/…': 'HEAD' }` ;
  *   `commit: false` = un dépôt initialisé dont les fichiers restent HORS index et sans HEAD (`sha` = `null`).
  * @returns {DepotForge} racine du gabarit (à NE PAS muter — prendre une `instanceDeDepot`) et sha de son commit.
@@ -168,12 +182,7 @@ export function gabaritDeDepot({ fichiers = {}, branche = 'main', origin = null,
   const racine = mkdtempSync(join(tmpdir(), 'gabarit-'))
   let sha = null
   try {
-    const depot = depotDe(racine, { env: envDeDepotForge() })
-    exiger(initialiserDepot(depot, { branche }), `git init -b ${branche}`, racine)
-    // RELATIF : git résout `core.hooksPath` contre le dépôt qui l'exécute, donc dans l'INSTANCE.
-    // Un chemin absolu y ferait pointer chaque instance vers le gabarit — effacé à la sortie.
-    const reglages = { 'user.email': 'mesure@example.invalid', 'user.name': 'mesure', 'commit.gpgsign': 'false', 'core.hooksPath': 'hooks-absents' }
-    for (const [cle, valeur] of Object.entries(reglages)) exiger(reglerDepot(depot, cle, valeur), `git config ${cle}`, racine)
+    const depot = forgerDepot(racine, { branche })
     for (const [rel, texte] of Object.entries(fichiers)) ecrire(racine, rel, texte)
     if (commit) {
       exiger(commitDe(depot, { message, chemins: Object.keys(fichiers), vide: true }), 'git commit', racine)

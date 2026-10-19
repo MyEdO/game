@@ -46,6 +46,15 @@ export type CollectionACompte<N extends NomDeCollectionACompte = NomDeCollection
   readonly mesure: (corpus: CorpusDesComptes) => readonly (MesureDe[N] & EntreeDeCompte)[];
 };
 export const COLLECTIONS_A_COMPTE: readonly CollectionACompte[];
+/** Un volet SOUS LA PORTE des comptes : son porteur, son nom, l'identité d'un site, la cible qui solde sa hausse, son compte. */
+export type VoletSousLaPorte = {
+  readonly porteur: string;
+  readonly nom: string;
+  readonly site: (e: EntreeDeCompte) => string;
+  readonly cible: (cle: string, e: EntreeDeCompte) => string;
+  readonly nombre: (e: EntreeDeCompte) => number;
+};
+export const SOUS_LA_PORTE: readonly VoletSousLaPorte[];
 export const COLLECTIONS_A_COMPTE_PAR_NOM: { readonly [N in NomDeCollectionACompte]: CollectionACompte<N> };
 
 export function ecartsDeCollection<O extends { occurrences: number }, S extends { occurrences: number }>(p: {

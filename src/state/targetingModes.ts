@@ -229,8 +229,8 @@ export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { re
   const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos!, target.pos!);
   const postes = bearingPostes(ship, side); // sur ce bord ET chargées (pas en cours de recharge, ch.12)
   if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side }) };
-  // PORTÉE : les BANDES du socle (`rangeBandModifier` → `RANGE_BANDS`, LDB 62 l.198-206 — Extrême =
-  // Portée ×3). En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
+  // PORTÉE : les BANDES du socle (`rangeBandModifier`, rangées de `portee-d-une-arme`, LDB 62 l.198-206).
+  // En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
   // un seuil écrit ici : la pièce la plus longue du bord donne la Portée moyenne, le socle fait le reste.
   const mpt = sceneMetresPerTile(get().scene);
   const gbf = () => bonus(effectiveChar(ship, 'force')); // paresseux : la portée navale est fixe (number) → BF jamais évalué

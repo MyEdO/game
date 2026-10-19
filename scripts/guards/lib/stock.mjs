@@ -113,7 +113,7 @@ export function ecartsDeStock({ observe, stock, cle, nombre, cible, remede = {} 
   return { neuves, perimees, accrues, baisses, taille: tenues.size };
 }
 
-/** Le remède d'un site NEUF sous la porte des comptes (`SOUS_LA_PORTE`, `corpusDesComptes.mts`), de la
+/** Le remède d'un site NEUF sous la porte des comptes (`SOUS_LA_PORTE`, `occurrencesStock.mjs`), de la
  *  `cible` qui le solde. PURE.
  *  @template E @param {(cle: string, entree: E) => string} cible @returns {(cle: string, entree: E) => string} */
 export const remedeDeNaissance = (cible) => (k, e) =>

@@ -106,6 +106,7 @@ export function executableNatif(agent, explicite, executer = spawnSync, { arch =
 export function verifierContratAgent(agent, executable, { executer = spawnSync, env = process.env } = {}) {
   const aide = (args) => {
     const vu = executer(executable, args, { encoding: 'utf8', windowsHide: true, shell: false, timeout: 10_000, env: envAgent(env) })
+    if (vu.error?.code === 'ETIMEDOUT') refuser(`CONTRAT CLI NON MESURÉ : ${agent} ${args.join(' ')} — ${vu.error.message}`, 'transitoire')
     if (vu.error || vu.status !== 0) refuser(`CONTRAT CLI INCOMPATIBLE : ${agent} ${args.join(' ')} — ${vu.error?.message ?? vu.stderr ?? vu.status}`)
     return `${vu.stdout ?? ''}\n${vu.stderr ?? ''}`
   }

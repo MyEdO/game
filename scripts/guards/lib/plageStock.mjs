@@ -50,7 +50,7 @@
 // échoue). Elle reste PURE dans son cœur (`refusDeLaPlage`, `reclassementsDeLaPlage`) : les lectures
 // git passent par les questions du dépôt de `cwd` (`depotDe`, `gitPorte.mjs`).
 import { GitIndisponible, TRONC, arbreVide, baseCommune, ceQueFaitLeCommit, ceQuiChange, depotDe, grapheDe, journalDe, lireEnLot, refusDeGit } from './gitPorte.mjs'
-import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan } from './stocksNominatifs.mjs'
+import { bilanDeFusion, bilanDesStocks, croissanceDesCles, gesteSurLesCommitsFautifs, nonCouvertesDuBilan, refusSousLaPorte } from './stocksNominatifs.mjs'
 import { deplaceLaFrontiere, ecartsDeReclassement, franchisDuCommit, lignesDeReclassement } from './reclassementCss.mjs'
 import { coteCss, sourceGit } from './cssImages.mjs'
 import { memosDAnalyse } from './memosDAnalyse.mjs'
@@ -97,7 +97,7 @@ export const bilanDuCommit = ({ diff, images, fusion = null }) => (fusion ? bila
  * `cumul` = le bilan cumulé SIGNÉ de la plage (`bilanDesStocks`, `bilanSoustrait`).
  * Chaque `images` porte un `lirePostImage` : `bilanDesStocks` refuse nommément sinon.
  * @param {{ commits?: object[], cumul: { fichier: string, parCle: Map<string, number> }[] }} p
- * @returns {{ sha: string, fusion: boolean, fichier: string, net: number, declare: number | null, exemples: string[] }[]}
+ * @returns {{ sha: string, fusion: boolean, fichier: string, net: number, declare: number | null, exemples: string[], sousLaPorte: boolean }[]}
  * @throws {TypeError} sans `cumul` : un filtre absent rendrait zéro refus, un verdict qui ment.
  * @throws {Error} propagé de `bilanDesStocks` : sans lecteur d'image post, le compte ment.
  */
@@ -107,7 +107,7 @@ export function refusDeLaPlage({ commits = [], cumul } = {}) {
   const refus = []
   for (const { sha, message, ...lu } of commits) {
     for (const c of nonCouvertesDuBilan(bilanDuCommit(lu), message)) {
-      if (enCroissance.has(c.fichier)) refus.push({ sha, fusion: Boolean(lu.fusion), fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples })
+      if (enCroissance.has(c.fichier)) refus.push({ sha, fusion: Boolean(lu.fusion), fichier: c.fichier, net: c.net, declare: c.declare, exemples: c.exemples, sousLaPorte: c.sousLaPorte })
     }
   }
   return refus
@@ -139,19 +139,25 @@ export function reclassementsDeLaPlage({ commits = [] } = {}) {
   return refus
 }
 
-/** Refus lisible : quel commit, quel fichier, de combien, trois exemples, et les deux gestes. */
+/** Refus lisible : quel commit, quel fichier, de combien, trois exemples, et les deux gestes — `refusSousLaPorte`
+ *  pour un porteur de la porte des comptes. */
 export function raisonDeRefusDePlage(refus) {
-  const lignes = refus.map((r) => {
+  const ligne = (r) => {
     const declare = r.declare === null ? '' : ` (le message annonce \`+${r.declare}\`)`;
     const ere = r.ere ? ` jugé par la porte de son ère ${r.ere.slice(0, 9)},` : ''
     return `${r.sha.slice(0, 9)}${r.fusion ? ' (fusion)' : ''}${ere} ${r.fichier} +${r.net} entrée(s)${declare} — ex. ${r.exemples.join(' · ')}`
-  })
-  return (
-    `⛔ STOCK NOMINATIF qui GRANDIT dans la plage poussée : ${lignes.join(' || ')}. Geste : porter ` +
-    `\`CLIQUET: <fichier> +N — <motif>\` au message du commit fautif — ${gesteSurLesCommitsFautifs(refus)} —, ` +
-    "ou retirer l'entrée (un stock nominatif est une DETTE vers zéro, jamais un registre). `+N` " +
-    "compte les ENTRÉES du stock — ses éléments —, jamais ce qu'elles dénombrent."
-  )
+  }
+  const admissibles = refus.filter((r) => !r.sousLaPorte)
+  const gardes = refus.filter((r) => r.sousLaPorte)
+  return [
+    ...(admissibles.length ? [
+      `⛔ STOCK NOMINATIF qui GRANDIT dans la plage poussée : ${admissibles.map(ligne).join(' || ')}. Geste : porter ` +
+      `\`CLIQUET: <fichier> +N — <motif>\` au message du commit fautif — ${gesteSurLesCommitsFautifs(admissibles)} —, ` +
+      "ou retirer l'entrée (un stock nominatif est une DETTE vers zéro, jamais un registre). `+N` " +
+      "compte les ENTRÉES du stock — ses éléments —, jamais ce qu'elles dénombrent.",
+    ] : []),
+    ...(gardes.length ? [refusSousLaPorte(gardes.map(ligne))] : []),
+  ].join('\n')
 }
 
 /**

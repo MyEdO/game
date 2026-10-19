@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { skillDRBonus, incomingAttackMod, attackHasKeyword, incomingDamageNullified } from './ops';
+import { skillDRBonus, incomingAttackLines, attackHasKeyword, incomingDamageNullified } from './ops';
 import { bonus, effectiveChar } from './characteristics';
 import type { Combatant } from './types';
 
@@ -48,13 +48,19 @@ describe('skillDRBonus — Pisteur (LDB 85) : +Bonus d’Initiative au DR de Pis
   });
 });
 
-describe('incomingAttackMod — Parasité (LDB 85) : −10 au toucher en mêlée de l’attaquant', () => {
-  it('un combattant Parasité impose −10 en mêlée', () => {
-    expect(incomingAttackMod(mk({ traits: [{ id: 'parasite' }] }), 'melee')).toBe(-10);
+describe('incomingAttackLines — le modificateur imposé à l’attaquant, à la fiche du trait (LDB 85)', () => {
+  it('Parasité : −10 en mêlée (l.257), une ligne liée au trait', () => {
+    expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'melee'))
+      .toEqual([{ label: 'Parasité', value: -10, famille: 'circonstance', ref: { category: 'traits', id: 'parasite' } }]);
   });
-  it('aucun effet à distance ni sans le trait', () => {
-    expect(incomingAttackMod(mk({ traits: [{ id: 'parasite' }] }), 'ranged')).toBe(0);
-    expect(incomingAttackMod(mk(), 'melee')).toBe(0);
+  it('Nuée : +40 au tir (l.253), rien en mêlée', () => {
+    expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'ranged'))
+      .toEqual([{ label: 'Nuée', value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }]);
+    expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'melee')).toEqual([]);
+  });
+  it('aucun effet à distance pour Parasité, ni sans trait', () => {
+    expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'ranged')).toEqual([]);
+    expect(incomingAttackLines(mk(), 'melee')).toEqual([]);
   });
 });
 

@@ -3346,7 +3346,8 @@
     "combat": {
       "attackModes": [
         "dual-wield"
-      ]
+      ],
+      "dualStrikeDefense": -10
     }
   },
   {

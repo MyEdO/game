@@ -10,7 +10,7 @@ import { join } from 'node:path'
 import { envDeDepotForge, instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { GitIndisponible, classer, depotDe, retirerWorktree, worktreesDe } from '../guards/lib/gitPorte.mjs'
 import {
-  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, indetermineesDe, inventaire as inventaireReel, ligneDInventaire, raisonDe, purger as purgerReel,
+  CLASSES, GESTES_DE_L_INVENTAIRE, GESTES_DE_LA_PURGE, arbresTenus, classerWorktree, comptesParClasse, dossiersNonInscrits, indetermineesDe, inventaire as inventaireReel, ligneDeGeste, ligneDInventaire, main, pertesDeLElagage, raisonDe, purger as purgerReel,
 } from './worktrees.mjs'
 import { mesurerProtectionWorktree } from '../guards/lib/protectionWorktree.mjs'
 import { DELAI_MESURE_PROCESSUS_MS } from '../guards/lib/processusWorktrees.mjs'
@@ -38,11 +38,49 @@ test('#2795 inventaire : borne transmise et collecteur absent cité une fois dan
   assert.match(ligneDInventaire(vu.worktrees[1]), /diagnostics cités à part/)
 })
 
-const purger = (options) => purgerReel({ gestes: { ...GESTES_DE_LA_PURGE, retirerWorktree: (d, c) => retirerWorktree(d, c, { mesurer: (p) => mesurerProtectionWorktree(p, { snapshot: { processus: [], portee: 'banc' } }) }) }, ...options })
+const purger = (options) => purgerReel({ gestes: { ...GESTES_DE_LA_PURGE, retirerWorktree: (d, c) => retirerWorktree(d, c, { mesurer: (p, o) => mesurerProtectionWorktree(p, { ...o, snapshot: { processus: [], portee: 'banc' } }) }) }, ...options })
+
+test('#2795 purger : chaque geste se signale à son DÉBUT, puis joué avec sa durée, avant le suivant', () => {
+  const signales = []
+  const joues = purger({
+    principal: '/dep',
+    worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-a', branche: 'chantier/a' }],
+    gestes: gestesFactices(),
+    nature: () => 'absent',
+    signaler: (g) => signales.push(ligneDeGeste(g)),
+  })
+  assert.deepEqual(signales.map((l) => l.trimEnd().split('\t').slice(0, 2).join(' ')), [
+    'en cours git worktree remove /dep/.wt-a', 'ok git worktree remove /dep/.wt-a',
+    'en cours git branch -d chantier/a', 'ok git branch -d chantier/a',
+  ])
+  assert.ok(joues.every((g) => Number.isInteger(g.dureeMs) && g.dureeMs >= 0))
+  assert.match(signales[1], /^ok\tgit worktree remove \/dep\/\.wt-a\t\d+ ms\tcode 0\n$/)
+})
+
+test('#2795 main --purger : le geste en cours est DÉJÀ écrit quand il se joue, le code de sortie suit les échecs', () => {
+  const dits = []
+  let ecritAvantLeGeste
+  const code = main({
+    argv: ['--purger'],
+    inventorier: () => ({ ok: true, fusionLue: true, principal: '/dep', worktrees: [], nonInscrits: [] }),
+    purge: ({ signaler }) => {
+      signaler({ chemin: '/dep/.wt-a', geste: 'git worktree remove /dep/.wt-a', ok: null })
+      ecritAvantLeGeste = dits.at(-1)
+      const joue = { chemin: '/dep/.wt-a', geste: 'git worktree remove /dep/.wt-a', ok: false, detail: 'refus', dureeMs: 3 }
+      signaler(joue)
+      return [joue]
+    },
+    dire: (t) => dits.push(t),
+    crier: (t) => dits.push(t),
+  })
+  assert.equal(ecritAvantLeGeste, 'en cours\tgit worktree remove /dep/.wt-a\n')
+  assert.equal(dits.at(-1), 'ÉCHEC\tgit worktree remove /dep/.wt-a\t3 ms\trefus\n')
+  assert.equal(code, 1)
+})
 
 /** Les ÉCRIVAINS de la purge, factices : `vus` journalise chaque geste, `code(geste)` rend son code
- *  de sortie. */
-function gestesFactices(vus = [], code = () => 0) {
+ *  de sortie ; `inscrits`, ce que relit `pertesDeLElagage` (fusion : tout est dans main). */
+function gestesFactices(vus = [], code = () => 0, inscrits = []) {
   const union = (geste) => {
     vus.push(geste)
     const status = code(geste)
@@ -52,8 +90,42 @@ function gestesFactices(vus = [], code = () => 0) {
     retirerWorktree: (_depot, chemin) => union(`worktree remove ${chemin}`),
     supprimerBranche: (_depot, branche) => union(`branch -d ${branche}`),
     elaguerWorktrees: () => union('worktree prune'),
+    worktreesDe: () => [{ chemin: '/dep', principal: true }, ...inscrits],
+    estAncetre: () => ({ disponible: true, valeur: true }),
   }
 }
+
+test('#2795 pertesDeLElagage : prune ne se joue que si aucun inscrit `prunable` non verrouillé n’y perd quelque chose', () => {
+  const inscrits = [
+    { chemin: '/dep/.wt-branche', branche: 'chantier/b', head: 'b'.repeat(40), prunable: 'gitdir' },
+    { chemin: '/dep/.wt-fusionne', branche: null, head: 'f'.repeat(40), prunable: 'gitdir' },
+    { chemin: '/dep/.wt-hors-main', branche: null, head: 'c'.repeat(40), prunable: 'gitdir' },
+    { chemin: '/dep/.wt-sans-verdict', branche: null, head: 'd'.repeat(40), prunable: 'gitdir' },
+    { chemin: '/dep/.wt-demi', branche: 'chantier/demi', head: 'e'.repeat(40), prunable: 'gitdir' },
+    { chemin: '/dep/.wt-verrou', branche: null, head: 'c'.repeat(40), prunable: 'gitdir', verrouille: true },
+    { chemin: '/dep/.wt-inscrit', branche: null, head: 'c'.repeat(40), prunable: null },
+  ]
+  const gestes = {
+    worktreesDe: () => [{ chemin: '/dep', principal: true }, ...inscrits],
+    estAncetre: (_d, head) => ({ [`${'f'.repeat(40)}`]: { disponible: true, valeur: true }, [`${'c'.repeat(40)}`]: { disponible: true, valeur: false } })[head] ?? { disponible: false },
+  }
+  const nature = (chemin) => (chemin === '/dep/.wt-demi' ? 'repertoire' : 'absent')
+  assert.deepEqual(pertesDeLElagage({}, { gestes, nature }), [
+    '/dep/.wt-hors-main : détaché@ccccccc que origin/main n’a pas',
+    '/dep/.wt-sans-verdict : détaché@ddddddd que origin/main n’a pas',
+    '/dep/.wt-demi : dossier présent',
+  ])
+  assert.deepEqual(pertesDeLElagage({}, { gestes: { ...gestes, worktreesDe: () => null }, nature }), ['git worktree list illisible'])
+
+  const vus = []
+  const horsMain = { classe: 'absent', chemin: '/dep/.wt-hors-main', branche: null, fusionne: false }
+  assert.deepEqual(purger({ principal: '/dep', worktrees: [horsMain], gestes: { ...gestesFactices(vus), ...gestes }, nature }), [],
+    'un absent que la taille perdrait ne la déclenche pas')
+  const joues = purger({ principal: '/dep', worktrees: [horsMain, { classe: 'absent', chemin: '/dep/.wt-branche', branche: 'chantier/b' }], gestes: { ...gestesFactices(vus), ...gestes }, nature })
+  assert.deepEqual(vus, [], 'prune non joué')
+  assert.deepEqual(joues.map((g) => [g.geste, g.ok]), [['git worktree prune', false]])
+  assert.match(joues[0].detail, /^non joué, il désinscrirait en perdant : \/dep\/\.wt-hors-main : détaché@ccccccc/)
+})
 
 // `tenus` est l'ensemble NORMALISÉ des arbres que le processus courant tient : il est INJECTÉ ici
 // (fixture locale), jamais lu du disque — le classement reste pur.
@@ -78,11 +150,17 @@ test('classerWorktree : l’ordre du RISQUE est total, une combinaison ne rend q
     [{ inscrit: false, vide: true, sale: true }, 'sale'],
     [{ inscrit: false, vide: true, fusionne: true }, 'non-inscrit+vide'],
     [{ chemin: '/dep/.wt-tenu', inscrit: false, vide: true }, 'tenu'],
+    [{ demiRetire: true, absent: true }, 'absent'],
+    [{ demiRetire: true, verrouille: true }, 'verrouillé'],
+    [{ demiRetire: true, sale: true, fusionne: true }, 'sale'],
+    [{ demiRetire: true, fusionne: true, protection: { ok: false, refus: ['PID vivant'] } }, 'protégé'],
+    [{ demiRetire: true, fusionne: true }, 'à-demi-retiré'],
+    [{ demiRetire: true, fusionne: false }, 'à-demi-retiré'],
   ]
   for (const [etat, attendu] of cas) {
     assert.equal(classerWorktree(etat, { tenus: TENUS }), attendu, `${JSON.stringify(etat)} → ${attendu}`)
   }
-  assert.equal(CLASSES.length, 10, 'classes de risque, et le verdict vit à UN endroit')
+  assert.equal(CLASSES.length, 11, 'classes de risque, et le verdict vit à UN endroit')
   assert.deepEqual([...new Set(cas.map(([, c]) => c))].sort(), [...CLASSES].sort())
 })
 
@@ -146,7 +224,9 @@ test('ligneDInventaire : quatre colonnes tabulées, et LA raison de toucher ou n
   assert.match(verrou.split('\t')[3], /verrouillé : recette/)
 
   const perdu = ligneDInventaire({ classe: 'absent', chemin: '/p', branche: 'b', prunable: 'gitdir absent' })
-  assert.match(perdu.split('\t')[3], /gitdir absent/)
+  assert.match(perdu.split('\t')[3], /gitdir absent\) — git worktree prune$/)
+  const perduHorsMain = ligneDInventaire({ classe: 'absent', chemin: '/p', branche: null, head: 'c'.repeat(40), prunable: 'gitdir absent', fusionne: false })
+  assert.match(perduHorsMain.split('\t')[3], /commit détaché que origin\/main n’a pas \(hors main\) — jamais élagué : prune le perdrait$/)
 
   const sansVerdict = ligneDInventaire({ classe: 'propre+hors-main', chemin: '/h', branche: 'b', fusionne: null })
   assert.match(sansVerdict.split('\t')[3], /verdict de fusion indisponible/)
@@ -195,7 +275,7 @@ for (const nom of ['retirerWorktree', 'supprimerBranche', 'elaguerWorktrees']) {
       }
       const joues = purger({
         principal: '/dep',
-        worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-propre', branche: 'chantier/propre' }],
+        worktrees: [{ classe: 'propre+fusionné', chemin: '/dep/.wt-propre', branche: 'chantier/propre' }, { classe: 'absent', chemin: '/dep/.wt-perdu', branche: 'chantier/perdu' }],
         gestes,
         nature: () => 'absent',
       })
@@ -301,7 +381,7 @@ test('inventaire RÉEL puis --purger : le fusionné PROPRE part, le SALE reste e
     const gestes = purger({ principal: racine, worktrees: vu.worktrees })
     assert.deepEqual(gestes.filter((g) => !g.ok), [], JSON.stringify(gestes))
     assert.deepEqual(gestes.map((g) => g.geste.split(' ').slice(0, 3).join(' ')),
-      ['git worktree remove', 'git branch -d', 'git worktree prune'])
+      ['git worktree remove', 'git branch -d'])
     assert.equal(existsSync(join(racine, '.wt-propre')), false, 'le fusionné propre est retiré')
     assert.equal(existsSync(join(racine, '.wt-sale')), true, 'le sale est intact')
     assert.equal(existsSync(join(racine, '.wt-sale', 'a.txt')), true)
@@ -330,6 +410,58 @@ test('un worktree dont le RÉPERTOIRE a disparu se classe absent, et la purge le
     // Ni retrait ni suppression de branche : seule l'INSCRIPTION du worktree disparu est taillée.
     assert.equal(parNom(inventaire({ racine }).worktrees, '.wt-perdu'), undefined)
     assert.match(git('branch', '--list', 'chantier/perdu'), /chantier\/perdu/, 'sa branche survit à la taille')
+  } finally { jeter() }
+})
+
+test('#2795 inventaire RÉEL puis --purger : l’arbre À DEMI RETIRÉ se lit par SON dossier d’administration ; propre et fusionné il part, l’intrus et l’hors-main restent inscrits', () => {
+  const { racine, git, jeter } = depotAvecOrigin()
+  try {
+    git('worktree', 'add', '-q', '--detach', join(racine, '.wt-demi'), 'origin/main')
+    git('worktree', 'add', '-q', '--detach', join(racine, '.wt-intrus'), 'origin/main')
+    git('worktree', 'add', '-q', '--detach', join(racine, '.wt-ignore'), 'origin/main')
+    git('worktree', 'add', '-q', '--detach', join(racine, '.wt-hm'), 'origin/main')
+    git('worktree', 'add', '-q', '-b', 'chantier/parti', join(racine, '.wt-parti'), 'origin/main')
+    git('-C', join(racine, '.wt-hm'), 'commit', '-q', '--allow-empty', '-m', 'travail hors main')
+    const travail = git('-C', join(racine, '.wt-hm'), 'rev-parse', 'HEAD')
+    rmSync(join(racine, '.wt-parti'), { recursive: true, force: true })
+    writeFileSync(join(racine, 'non-suivi-du-principal.txt'), 'au principal')
+    for (const nom of ['.wt-demi', '.wt-intrus', '.wt-ignore', '.wt-hm']) rmSync(join(racine, nom, '.git'))
+    rmSync(join(racine, '.wt-demi', 'a.txt'))
+    writeFileSync(join(racine, '.wt-intrus', 'intrus.txt'), 'authoré')
+    writeFileSync(join(racine, '.git', 'info', 'exclude'), 'build/\n')
+    mkdirSync(join(racine, '.wt-ignore', 'build'))
+    writeFileSync(join(racine, '.wt-ignore', 'build', 'notes.md'), 'authoré, ignoré')
+
+    const vu = inventaire({ racine })
+    const ligne = (nom) => ligneDInventaire(parNom(vu.worktrees, nom))
+    const demi = parNom(vu.worktrees, '.wt-demi')
+    assert.deepEqual([demi.classe, demi.fusionne], ['à-demi-retiré', true], ligne('.wt-demi'))
+    assert.match(raisonDe(demi), /^à demi retiré \(gitdir file points to non-existent location\) — purgeable/)
+    assert.equal(parNom(vu.worktrees, '.wt-intrus').classe, 'sale', ligne('.wt-intrus'))
+    assert.match(raisonDe(parNom(vu.worktrees, '.wt-intrus')), /^à demi retiré \(.*\) — \[métier · non retentable\] modifications non commitées \(1\) : intrus\.txt$/)
+    assert.equal(parNom(vu.worktrees, '.wt-ignore').classe, 'protégé', ligne('.wt-ignore'))
+    assert.match(raisonDe(parNom(vu.worktrees, '.wt-ignore')), /ignoré authoré \(1\) : build\/notes\.md/)
+    assert.equal(parNom(vu.worktrees, '.wt-hm').classe, 'à-demi-retiré', ligne('.wt-hm'))
+    assert.match(ligne('.wt-hm'), /des commits que origin\/main n’a pas — pas encore purgeable/)
+    for (const nom of ['.wt-demi', '.wt-intrus', '.wt-hm']) assert.doesNotMatch(ligne(nom), /non-suivi-du-principal/)
+    assert.match(ligne('.wt-parti'), /^absent\t.*— git worktree prune$/, 'l’absent élagable déclenche la taille')
+
+    const gestes = purger({ principal: racine, worktrees: vu.worktrees })
+    const enSlash = (texte) => texte.replace(/\\/g, '/')
+    assert.deepEqual(gestes.map((g) => `${g.ok ? 'ok' : 'ÉCHEC'} ${enSlash(g.geste).replace(enSlash(racine), '<r>')}`), [
+      'ok relier .git, checkout-index, git worktree remove <r>/.wt-demi',
+      'ÉCHEC git worktree prune',
+    ])
+    assert.match(enSlash(gestes[1].detail), /^non joué, il désinscrirait en perdant : .*\/\.wt-hm : dossier présent/)
+    assert.equal(existsSync(join(racine, '.wt-demi')), false)
+    for (const nom of ['.wt-intrus', '.wt-ignore', '.wt-hm']) assert.equal(existsSync(join(racine, nom, '.git')), false, `${nom} : rien n’y est écrit`)
+    assert.ok(existsSync(join(racine, '.wt-intrus', 'intrus.txt')))
+    assert.ok(existsSync(join(racine, 'non-suivi-du-principal.txt')))
+    const apres = inventaire({ racine })
+    assert.equal(parNom(apres.worktrees, '.wt-demi'), undefined)
+    assert.deepEqual(['.wt-intrus', '.wt-ignore', '.wt-hm'].map((nom) => parNom(apres.worktrees, nom)?.demiRetire), [true, true, true], 'toujours inscrits')
+    assert.equal(parNom(apres.worktrees, '.wt-parti')?.classe, 'absent', 'la taille refusée ne l’a pas désinscrit non plus')
+    assert.ok(git('worktree', 'list', '--porcelain').includes(`HEAD ${travail}`), 'le commit hors main reste tenu par son inscription')
   } finally { jeter() }
 })
 
@@ -365,10 +497,13 @@ test('worktreesDe lit les cinq formes de worktree sur git RÉEL, et le PREMIER e
 test('un arbre ILLISIBLE (git en panne sur son dossier) est SALE : il ne se purge pas', () => {
   const { racine, jeter } = depotAvecOrigin()
   const illisible = mkdtempSync(join(tmpdir(), 'wt-illisible-'))
+  const sansGit = mkdtempSync(join(tmpdir(), 'wt-sans-git-'))
+  writeFileSync(join(illisible, '.git'), `gitdir: ${join(illisible, 'nulle-part')}\n`)
   try {
     const bruts = [
       { chemin: racine, head: null, branche: 'main', principal: true, nu: false, verrouille: false, verrouillePour: null, prunable: null },
       { chemin: illisible, head: 'a'.repeat(40), branche: 'chantier/illisible', principal: false, nu: false, verrouille: false, verrouillePour: null, prunable: null },
+      { chemin: sansGit, head: 'a'.repeat(40), branche: 'chantier/sans-git', principal: false, nu: false, verrouille: false, verrouillePour: null, prunable: null },
     ]
     const vu = inventaire({ racine, gestes: {
       ...GESTES_DE_L_INVENTAIRE,
@@ -378,9 +513,14 @@ test('un arbre ILLISIBLE (git en panne sur son dossier) est SALE : il ne se purg
     } })
     const w = vu.worktrees.find((x) => x.chemin === illisible)
     assert.deepEqual([w.sale, w.fusionne, w.classe], [true, true, 'sale'])
+    assert.equal(w.illisible, 'git en panne sur son dossier')
+    // #2795 : sans `.git` ni `prunable` de git, l'arbre n'est ni à demi retiré ni interrogé.
+    const s = vu.worktrees.find((x) => x.chemin === sansGit)
+    assert.deepEqual([s.sale, s.demiRetire, s.classe, s.illisible], [true, false, 'sale', 'fichier .git absent, que git ne dit pas prunable'])
+    assert.match(raisonDe(s), /fichier \.git absent de .* : git y lirait le dépôt parent, et aucun dossier unique de /)
   } finally {
     jeter()
-    rmSync(illisible, { recursive: true, force: true })
+    for (const d of [illisible, sansGit]) rmSync(d, { recursive: true, force: true })
   }
 })
 
@@ -496,7 +636,8 @@ test('inventaire RÉEL puis --purger : le `.wt-*` non inscrit VIDE part ; le cac
     assert.deepEqual(gestes.filter((g) => g.geste.startsWith('rmdir')).map((g) => [g.geste.replace(/\\/g, '/').split('/').pop(), g.ok]),
       [['.wt-vide', true]], JSON.stringify(gestes))
     assert.equal(existsSync(join(racine, '.wt-vide')), false, 'le vide est retiré')
-    assert.equal(existsSync(join(racine, '.wt-vide-inscrit')), true, 'l’inscrit vidé reste')
+    assert.ok(gestes.some((g) => g.ok && g.geste.replace(/\\/g, '/').endsWith('checkout-index, git worktree remove ' + join(racine, '.wt-vide-inscrit').replace(/\\/g, '/'))), JSON.stringify(gestes))
+    assert.equal(existsSync(join(racine, '.wt-vide-inscrit')), false, '#2795 : l’inscrit vidé, à demi retiré et fusionné, part par `worktree remove`')
     assert.equal(existsSync(join(racine, '.wt-cache', '.gitkeep')), true, 'le caché est intact')
     assert.equal(existsSync(join(racine, '.wt-peuple', 'travail.txt')), true, 'le peuplé est intact')
     assert.equal(existsSync(join(racine, '.wt-sale', 'a.txt')), true, 'le sale est intact')

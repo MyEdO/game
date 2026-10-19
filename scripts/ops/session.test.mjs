@@ -987,6 +987,43 @@ test('correction 7 : existence exe insuffisante, contrat CLI injecté requis ava
   assert.throws(() => verifierContratAgent('codex', b.fichiers.codex, { executer: (exe, args) => ({ status: 0, stdout: args[0] === '--version' ? 'codex-cli 0.163.0' : args[0] === '--help' ? `Commands: review\n${requis.join('\n')}` : requis.join('\n') }), env: {} }), /CONTRAT CLI INCOMPATIBLE : app-server/)
 })
 
+test('contrat CLI : timeout de mesure retentable, incompatibilité et exécutable absent non retentables', () => {
+  const reponses = {
+    '--version': 'codex-cli 0.163.0',
+    '--help': 'app-server --dangerously-bypass-hook-trust --config',
+    'app-server --help': '--listen',
+  }
+  for (const commande of ['--version', 'app-server --help']) {
+    const message = `spawnSync codex.exe ETIMEDOUT (${commande})`
+    assert.throws(() => verifierContratAgent('codex', 'codex.exe', {
+      env: {},
+      executer: (executable, args, options) => {
+        assert.equal(executable, 'codex.exe')
+        assert.equal(options.timeout, 10_000)
+        const cle = args.join(' ')
+        return cle === commande ? { error: Object.assign(new Error(message), { code: 'ETIMEDOUT' }), status: null } : { status: 0, stdout: reponses[cle] }
+      },
+    }), (e) => {
+      assert.deepEqual(refusSession(e), { prefixe: '[transitoire · retentable]', categorie: 'transitoire', retentable: true, raison: `CONTRAT CLI NON MESURÉ : codex ${commande} — ${message}` })
+      return true
+    })
+  }
+  for (const vu of [
+    { error: Object.assign(new Error('spawnSync codex.exe ENOENT'), { code: 'ENOENT' }), status: null },
+    { status: 1, stderr: 'option refusée' },
+    { status: 0, stdout: 'version inconnue' },
+  ]) {
+    assert.throws(() => verifierContratAgent('codex', 'codex.exe', { env: {}, executer: () => vu }), (e) => {
+      const refus = refusSession(e)
+      assert.equal(refus.categorie, 'validation')
+      assert.equal(refus.retentable, false)
+      assert.match(refus.raison, /^CONTRAT CLI INCOMPATIBLE : /)
+      assert.ok(refus.raison.includes(vu.error?.message ?? vu.stderr ?? 'version codex non reconnue'))
+      return true
+    })
+  }
+})
+
 test('snapshot OS unique par passe pour plusieurs dizaines de cartes historiques', (t) => {
   const b = banc(t)
   for (let i = 0; i < 30; i++) { const r = b.reserver({ ticket: i + 1, nom: `s${i}` }); b.revendiquer(r); b.sessions.sortie(r.carte.sessionId, { codeAgent: 0 }); b.vivants.clear(); b.sessions.lister(); b.vivants.set(10, identite(10)); b.vivants.set(30, identite(30)) }
