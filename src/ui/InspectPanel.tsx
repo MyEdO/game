@@ -14,7 +14,7 @@ import { EffectChips } from './EffectChips';
 import { isFrenzied } from '../engine/psychology';
 import { isVehicle } from '../engine/coque';
 import { isEngin } from '../engine/structures';
-import { ShipInspectBody } from './ShipSheet';
+import { ShipInspectBody } from './console/ShipSheet';
 import { Icon } from './Icon';
 import { WoundsBadge } from './WoundsBadge';
 

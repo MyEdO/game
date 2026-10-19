@@ -117,7 +117,7 @@
       "src/ui/ShipBatteryModal.tsx",
       "src/ui/ShipManeuverModal.tsx",
       "src/ui/ShipDossier.tsx",
-      "src/ui/ShipSheet.tsx"
+      "src/ui/console/ShipSheet.tsx"
     ],
     "etat": "partiel",
     "ticket": "#250, #267, #268 (Phase 8, gelé)",

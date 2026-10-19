@@ -582,7 +582,7 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
 | Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `geste(session, { surface: SURFACE_CARTE, x, y }, {}, clic())` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
-| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/CombatConsole.tsx` |
+| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
 
 ### Gabarit — Journal adressé dans un projet à copie adressée
 
@@ -833,7 +833,7 @@ vues : canevas remonté, rechargement). Réarmer `echantillonner` avant la desce
 | `aiLog(n=50)` | diagnostic IA : action choisie + classement des candidats par tour | `(forcé)` = garde psychologie/RAW hors scoring |
 | `auto()` | diagnostic auto-cadence (mode, modale active, `willAutoResolve`, `pending*` ouverts) | pour investiguer un soft-lock, pas pour agir |
 
-**La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/CombatConsole.tsx`), sans
+**La grille de capacités est PLAFONNÉE** à `RIGHT_CELLS = 12` (`src/ui/console/CombatConsole.tsx`), sans
 défilement : un gros grimoire déborde et ses derniers sorts n'ont aucune alvéole. Pour recetter un
 sort précis, réordonner `combatants[].spells` au SETUP ou utiliser le scénario court existant
 `__wfrp.scenario('dome', 11)` : quatre combattants, une sorcière, sorts `dome`,
@@ -1930,7 +1930,7 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
   `ciblageEntiteArme`, `src/state/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
   d'abord (piège « Roster du HUD » ci-dessus).
 - **Finir le tour** : la plaque porte le crochet STABLE `data-action="end-turn"`
-  (`src/ui/CombatConsole.tsx:1395`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
+  (`src/ui/console/CombatConsole.tsx:1395`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
   dépensée », « Tour fini », « ESPACE »), puis, ARMÉE (`battle().endTurnArmed`), « Finir quand même » et
   sa note « Finir quand même ? » (`:1107`, `:1404`). Son texte change : jamais un
   `clickButtonByText('Fin du tour')`. `finDuTour` clique la plaque et confirme l'armement au second

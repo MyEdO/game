@@ -310,7 +310,7 @@ describe('G5 — le prédicat de posture n’est recodé nulle part', () => {
     // Périmètre = les SURFACES de la posture (fenêtre de jet, console, registre) : c'est là qu'un
     // second prédicat naît. `combatSlice` porte le même motif pour l'économie du Mouvement elle-même
     // (Maladresse, annulation de segment), qui n'a rien d'une posture.
-    for (const rel of ['../ui/jetProps/useAttackJetProps.tsx', '../ui/CombatConsole.tsx', './actionRegistry.ts']) {
+    for (const rel of ['../ui/jetProps/useAttackJetProps.tsx', '../ui/console/CombatConsole.tsx', './actionRegistry.ts']) {
       expect(lire(rel), `${rel} recode le prédicat de posture`).not.toMatch(/movementUsed\s*===\s*0/);
     }
     // … et le prédicat, lui, l'exprime bien (une garde qui ne mesure rien serait verte pour rien).

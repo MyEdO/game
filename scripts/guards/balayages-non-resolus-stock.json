@@ -123,373 +123,373 @@
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "borderColorOf : cycle d'appels parseColor",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "borderColorOf : cycle d'appels parseColor",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "borderColorOf : cycle d'appels parseColor",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 4
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 5
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 6
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 7
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "colorsIn : cycle d'appels parseColor",
       "occurrence": 8
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 4
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 5
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 6
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 7
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 8
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 9
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 10
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 11
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 12
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 13
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 14
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 15
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 16
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 17
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "evalLen : cycle d'appels evalLen",
       "occurrence": 18
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 1
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 2
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 3
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 4
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 5
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 6
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 7
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 8
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 9
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 10
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 11
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 12
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 13
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 14
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 15
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 16
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 17
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 18
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 19
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 20
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 21
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 22
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 23
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 24
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 25
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 26
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 27
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 28
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 29
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 30
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 31
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 32
     },
     {
       "famille": "cycle d'appels",
-      "fichier": "src/ui/CombatConsole.test.tsx",
+      "fichier": "src/ui/console/CombatConsole.test.tsx",
       "ref": "parseColor : cycle d'appels parseColor",
       "occurrence": 33
     },

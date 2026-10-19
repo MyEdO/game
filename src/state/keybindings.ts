@@ -11,7 +11,7 @@
  *  • le roving tabindex des listes/onglets/radiogroupes (`ui/rovingFocus.ts`) ;
  *  • le focus-trap des modales (`ui/Modal.tsx`) et la pile d'annulation des couches (`ui/useDismissLayer.ts`) ;
  *  • l'Entrée qui valide un champ de renommage (`ui/editor/Inspector.tsx`) ;
- *  • le geste secondaire de l'alvéole FOCALISÉE (`ui/CombatConsole.tsx`, `ContextMenu`/Shift+F10),
+ *  • le geste secondaire de l'alvéole FOCALISÉE (`ui/console/CombatConsole.tsx`, `ContextMenu`/Shift+F10),
  *    jumelé au clic droit et à l'appui long ;
  *  • le geste secondaire du PORTRAIT focalisé — inspecter (`ui/PortraitTile.tsx`, `ContextMenu`/Shift+F10),
  *    jumelé au clic droit et à l'appui long ;

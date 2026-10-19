@@ -172,7 +172,7 @@
     "css": "src/ui/styles/option-chooser.css",
     "poseurs": [
       "src/ui/CastModal.tsx",
-      "src/ui/PortraitPicker.tsx",
+      "src/ui/console/PortraitPicker.tsx",
       "src/ui/jetProps/useAttackJetProps.tsx",
       "src/ui/jetProps/useDefenseJetProps.tsx"
     ],
@@ -1132,12 +1132,12 @@
     "id": "combatConsole",
     "type": "primitives.manifest",
     "label": "CombatConsole",
-    "fichier": "src/ui/CombatConsole.tsx",
+    "fichier": "src/ui/console/CombatConsole.tsx",
     "css": "src/ui/styles/combat-console.css",
     "nature": "organisme",
     "concept": "LE PONT de combat, en FLUX dans la rangée basse du plateau : deux travées d’alvéoles à compte FIXE autour de l’arche du combattant actif, conduit d’Avantage, coin de fin de tour — et, hors du tour de ce siège, la forme SPECTATRICE, l’arche seule sur une bande éteinte",
     "perimetre": "HUD de combat plein-champ, dimensionné sur la FENÊTRE — la galerie en montre les deux formes de bureau, les formes étroites s’observent en recette",
-    "verrou": "src/ui/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
+    "verrou": "src/ui/console/CombatConsole.test.tsx — comptes de cases et budget de hauteur du pont"
   },
   {
     "id": "combatStartSplash",

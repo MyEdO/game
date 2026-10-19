@@ -7,7 +7,7 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * pour l'option OFFERTE — un choix posé peint en primaire y vole le focus initial (verdict du juge
  * B11, D1, #1920).
  *
- * FORME : structurelle (parseur TypeScript), patron de `console-no-title-only.test.ts`, sur le corpus
+ * FORME : structurelle (parseur TypeScript), sur le corpus
  * de `readCorpus(['src/ui'])` (tous les `.tsx`/`.ts` hors tests). Trois formes rougissent :
  *   - l'attribut JSX `className` dont un conditionnel écrit `btn-primary` sous une AUTRE condition
  *     que le ton transmis (`primary`, `x.primary`) — booléen ou égalité, l'attribut ne l'excuse pas ;

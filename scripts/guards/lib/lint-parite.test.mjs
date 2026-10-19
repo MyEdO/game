@@ -250,6 +250,22 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['server/src/parite-alea.test.ts','export const a=Math.random();','no-restricted-properties',0],
     ['server/src/parite-alea.test.tsx','export const a=Math.random();','no-restricted-properties',0],
     ['src/parite-alea.ts','export const a=Math.random();','no-restricted-properties',0],
+    ['src/ui/console/CombatConsole.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-jsx-multiligne.tsx','export const A=()=><b title={raison}\n>x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-litteral.ts',"export const c={id:'x',title:'raison'};",'murs/console-sans-title',1],
+    ['src/ui/console/sous/parite-imbrique.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation.tsx',"({title:t}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation-profonde.tsx',"({a:{title:t}}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-affectation-tableau.tsx',"[{title:t}]=x;",'murs/console-sans-title',1],
+    ['src/ui/console/parite-for-of.tsx',"for ({title:t} of xs){}",'murs/console-sans-title',1],
+    ['src/ui/console/parite-for-in.tsx',"for ({title:t} in xs){}",'murs/console-sans-title',1],
+    ['src/ui/console/parite-objet-tableau.tsx',"({a:[{title:t}]}=x);",'murs/console-sans-title',1],
+    ['src/ui/console/parite-tableau-tableau.tsx',"[[{title:t}]]=x;",'murs/console-sans-title',1],
+    ['src/ui/parite-hors-console.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-console.test.tsx','export const A=()=><b title="raison">x</b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-attributs-voisins.tsx','export const A=()=><b aria-label="nom" data-title="x"><use xlink:title="x"/></b>;','murs/console-sans-title',0],
+    ['src/ui/console/parite-proprietes-neutres.tsx',"const {title:t}=x; const o={title, 'title':1, ['title']:2, get title(){return 1}}; type T={title:string};",'murs/console-sans-title',0],
+    ['src/ui/console/parite-liaisons.tsx',"function f({title:t}){} for (const {title:u} of xs){} try{}catch({title:v}){}",'murs/console-sans-title',0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {

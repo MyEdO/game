@@ -128,7 +128,7 @@ export const SITES_PROSE: SiteProse[] = [
   // ── Mer & navire ──────────────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/PortView.tsx#Prose.md#1', origine: 'S', porteur: 'navalPorts.desc' },
   { cle: 'src/ui/PortView.tsx#Prose.md#2', origine: 'S', porteur: 'navalTraits.desc' },
-  { cle: 'src/ui/ShipSheet.tsx#Prose.md#1', origine: 'S', porteur: 'navalTraits.desc' },
+  { cle: 'src/ui/console/ShipSheet.tsx#Prose.md#1', origine: 'S', porteur: 'navalTraits.desc' },
   { cle: 'src/ui/SeaActivitiesModal.tsx#Prose.md#1', origine: 'S', porteur: 'regles.desc' },
   { cle: 'src/ui/SeaActivitiesModal.tsx#Prose.md#2', origine: 'S', porteur: 'activities.desc' },
   { cle: 'src/ui/editor/WorldMapPlacePanel.tsx#Prose.md#1', origine: 'S', porteur: 'navalPorts.desc' },

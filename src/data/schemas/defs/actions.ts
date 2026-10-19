@@ -8,7 +8,7 @@ export const famille = 'entite';
 
 /** RENDEUR d'accueil PAR DÉFAUT (spec §1a / §1c-bis / zone 4). Le placement joueur reste libre :
  *  ce champ dit d'où l'action NAÎT quand rien n'a été posé — et il nomme un rendeur RÉEL, mesuré au
- *  DOM par le contrat « surface ⇄ rendeur » (`src/ui/CombatConsole.test.tsx`). Correspondances :
+ *  DOM par le contrat « surface ⇄ rendeur » (`src/ui/console/CombatConsole.test.tsx`). Correspondances :
  *   • `deduite-du-set` / `geste-d-etat` → la travée GAUCHE (`.cc-bay-left` : cases déduites du set,
  *     rubrique ACCÈS RAPIDE) ; `geste-d-etat` = la case G6bis (spec §1a) : ce que l'ÉTAT du porteur
  *     ouvre, pas ce que son arme offre ;

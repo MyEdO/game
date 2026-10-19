@@ -84,6 +84,15 @@ const VERROU_LISTAGE = [
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
 const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/lib/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
 
+const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
+const VERROU_CONSOLE = [{
+  selector: 'JSXAttribute > JSXIdentifier.name[name="title"]',
+  message: `Infobulle native dans la console (\`title\`) : invisible au tactile, au clavier et à l’arbre d’accessibilité ; ${REMEDE_CONSOLE}.`,
+}, {
+  selector: ':matches(ObjectExpression, :matches(AssignmentExpression, ForOfStatement, ForInStatement) > ObjectPattern.left, :matches(AssignmentExpression, ForOfStatement, ForInStatement) > :matches(ObjectPattern, ArrayPattern).left ObjectPattern) > Property[key.type="Identifier"][key.name="title"][computed=false][shorthand=false][method=false][kind="init"]',
+  message: `Propriété \`title\` de littéral dans la console : elle finit en attribut \`title\` au rendu ; une case nomme son geste et pointe sa règle (\`rule\`, \`gate\`) ; ${REMEDE_CONSOLE}.`,
+}];
+
 const NOMS_LOCALE = '/^(localeCompare|toLocale[A-Za-z]*)$/';
 const VERROU_LOCALE_COMPARE = [
   ...cles('property', NOMS_LOCALE).map((c) => `MemberExpression${c}`),
@@ -481,6 +490,14 @@ export const BLOCS_LINT = [
     excludeFiles: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     rules: {
       'murs/conteneur': ['error', ...VERROU_CONTENEUR],
+    },
+  },
+  {
+    // #2724
+    files: ['src/ui/console/**'],
+    excludeFiles: ['src/ui/console/**/*.test.ts', 'src/ui/console/**/*.test.tsx'],
+    rules: {
+      'murs/console-sans-title': ['error', ...VERROU_CONSOLE],
     },
   },
   {
