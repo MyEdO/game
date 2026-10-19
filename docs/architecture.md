@@ -78,10 +78,19 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 
 ## Arborescence
 
+Zones de `src/` (#2882, plan `docs/plans/2026-10-19-restructuration.md`) : un dossier de premier niveau
+de `src/` est une zone, et les fichiers posés à même `src/` forment la zone `racine`. La table `COUCHES`
+(`scripts/guards/lib/couches.mjs`) est la seule source des zones et de leurs sens d'import : par zone,
+ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), et ses arêtes transitoires,
+chacune avec la sous-issue qui la retire. Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
+`murs/zone` refuse un fichier de `src/` dont la zone n'a pas de ligne, et `murs/purete-imports` refuse,
+hors tests, un arc d'import qu'elle n'ouvre pas, sur toutes les formes d'arc de
+`scripts/guards/lib/arcsDImport.mjs`. Banc : `src/eslint-ordre-total-et-purete.test.ts`.
+
 Convention `X/interne/` (#2724) : un fichier sous `X/interne/` n'est importable que depuis `X/`, et ne
 se réexporte jamais hors de `X/interne/` : la porte de `X/` expose des fonctions qu'elle écrit
 elle-même. Le mur `murs/interne` la tient (`scripts/guards/lib/interneLint.mjs`, câblé dans
-`oxlint.config.mjs`), par la place du fichier dans l'arbre, sans liste, sur les formes que son en-tête
+`oxlint.config.mjs`), par la place du fichier dans l'arbre, sans liste, sur les formes de `scripts/guards/lib/arcsDImport.mjs` et les limites que son en-tête
 énumère. Hors de sa portée : le spécificateur calculé, le motif de glob joker sans segment `interne`,
 la liaison réexportée en valeur (`export const p = b`), le requireur renommé ou réaffecté
 (`createRequire as cr`, `var req = require`) et l'accès calculé (`module['require']`).
@@ -214,7 +223,7 @@ src/lib/                     Couche NEUTRE, en amont de `engine`, `data`, `state
                             sûr (`fileSlug`).
                             `garanti.ts` : une valeur que son producteur garantit, absente, lève un
                             défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
-src/geometry/                Géométrie/simulation PURE partagée `state` ⇄ `gameIso` (#161 : `state` en a
+src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
                             besoin pour SA PROPRE logique — curseur de combat, IA, cadence des beats —
                             pas seulement le rendu ; zéro dépendance framework). `iso.ts` : projection
                             isométrique (Dims, tileCenter, rotTile…) — `gameIso/iso.ts` la ré-importe pour
@@ -518,6 +527,8 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             une édition à l'éditeur est écrasée au prochain `generate`, ou refusée par cette garde.
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
+src/state/intents.ts        Allowlist coop du store : la classe de chaque action (invité, hôte, local,
+                            interne), lue par `netFlow.ts` pour enrober les intents de l'invité.
 src/state/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
                             paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
                             plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
@@ -529,8 +540,8 @@ src/state/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TES
                             puis scanner leurs positions.
 src/net/                    Coop en ligne (relay WebSocket) : relay.ts (RelayClient heartbeat/backoff,
                             RoomHost = un Transport virtuel par siège, RoomGuest), session.ts (hôte-
-                            autoritaire : intents allowlist + snapshots), protocol.ts, compress.ts,
-                            intents.ts — codes de room 6 chars, reconnexion auto par token (grace 2 min)
+                            autoritaire : intents allowlist + snapshots), protocol.ts, compress.ts
+                            — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
                             relance le handshake, puis reçoit campagne et snapshot autoritaire frais.
 server/                     Worker Cloudflare du relay coop (Durable Object « Room », hibernation WS,

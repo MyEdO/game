@@ -3,7 +3,7 @@
  *
  * Le voile d'entrée en scène vit dans le rendu volumique (`gameIso/stage/GameStage3D.tsx`), mais la
  * recette navigateur (`__wfrp.ready`) et le store doivent pouvoir l'attendre sans jamais importer
- * `src/gameIso` (mur `murs/purete-imports`, `oxlint.config.mjs`). Ce module est le point de
+ * `src/gameIso` (mur `murs/purete-imports`, `scripts/guards/lib/couches.mjs`). Ce module est le point de
  * rendez-vous : le stage SIGNALE, l'appelant ATTEND. Aucun polling — les attentes sont réveillées
  * par `signalerEntreeEnScene`, plus un minuteur de garde.
  *

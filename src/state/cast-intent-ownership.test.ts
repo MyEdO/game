@@ -28,7 +28,7 @@
 import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, flowActionName, type JetOwnerRef } from './flowVerbs';
 import { intentAllowedFor, modalOwnerOf, seatInfluences } from './netOwnership';
-import { GUEST_INTENTS } from '../net/intents';
+import { GUEST_INTENTS } from './intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascadeTestKit';
 import { PENDING_BY_JET, type HostJet } from './stateFields';

@@ -5,9 +5,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { useGame } from '../state/store';
-import type { GameState } from '../state/store';
-import type { FLOW_VERBS } from '../state/flowVerbs';
+import { useGame } from './store';
+import type { GameState } from './store';
+import type { FLOW_VERBS } from './flowVerbs';
 import {
   CLASSE_DES_ACTIONS, GUEST_INTENTS, PARTY_INTENTS, INTERLUDE_INTENTS, sanitizeIntentArgs,
   type ActionManuscrite, type ClasseCoop, type Ouverture, type TableDesClasses,
@@ -137,7 +137,7 @@ describe('#1050 (a) — une action émise par un écran n’est jamais `interne`
   });
 });
 
-describe('allowlist coop (net/intents)', () => {
+describe('allowlist coop (state/intents)', () => {
   it('chaque intent correspond à une action existante du store', () => {
     const state = useGame.getState() as unknown as Record<string, unknown>;
     const missing = [...GUEST_INTENTS].filter((name) => typeof state[name] !== 'function');

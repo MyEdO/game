@@ -227,7 +227,7 @@ test('LIGNE DE PROD : un fichier réel de l’index est jugé sous la config du 
 })
 
 test('LIGNE DE PROD au-delà de 32 767 caractères de chemins : le lot est JUGÉ, jamais refusé sans rapport', () => {
-  const fichiers = Array.from({ length: 2000 }, (_, i) => `src/lint-index-lot/fichier-${String(i).padStart(4, '0')}.ts`)
+  const fichiers = Array.from({ length: 2000 }, (_, i) => `src/lib/lint-index-lot/fichier-${String(i).padStart(4, '0')}.ts`)
   assert.ok(fichiers.join(' ').length > 32767, 'le lot dépasse la ligne de commande que Windows sait créer')
   const dernier = fichiers.at(-1)
   const vu = lintForge({ index: { ...tableTotale(fichiers, () => PROPRE), [dernier]: CASSE } }, fichiers)

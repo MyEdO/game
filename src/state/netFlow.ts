@@ -22,7 +22,7 @@ import { useGame, registerScene, reposerPaquetDeCampagne } from './store';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { HostSession, GuestSession } from '../net/session';
-import { GUEST_INTENTS, sanitizeIntentArgs } from '../net/intents';
+import { GUEST_INTENTS, sanitizeIntentArgs } from './intents';
 import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { argsAvecVerdictLocal } from './localIntent';
 import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
