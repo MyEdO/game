@@ -5,8 +5,9 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
-import { flowFromEffects, EMPTY_FLOW } from '../noyau/monde/flow';
+import { applyEffects } from '../noyau/combatEffects';
+import { flowFromEffects } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { makePregens } from '../data/pregens';
 import { hasTalent } from '../engine/magic';
 import { setRule, resetRule } from '../engine/policy';

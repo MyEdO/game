@@ -9,7 +9,7 @@
  */
 import { hauteurDe, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { isOutOfAction } from '../../engine/conditions';
-import { isRider } from '../../state/mount';
+import { isRider } from '../../noyau/mount';
 import { footprintN } from '../../noyau/monde/footprint';
 import { rangeBandModifier } from '../../engine/combat';
 import type { BattleState } from '../../state/store';
@@ -52,7 +52,7 @@ export interface HighlightsView {
   crowdIds: ReadonlySet<string> | null;
   /** Candidats du mode de ciblage courant + teinte amie (soin) + déjà cochés (surincantation). */
   candidates: { ids: readonly string[]; friendly: boolean; checkedIds: ReadonlySet<string> | null } | null;
-  /** Portée de l'INTENTION ARMÉE depuis l'interface (Charge, Course, Mouvement — `state/localIntent`) :
+  /** Portée de l'INTENTION ARMÉE depuis l'interface (Charge, Course, Mouvement — `noyau/localIntent`) :
    *  la bande de cases que le joueur a demandé à VOIR avant de cliquer (spec HUD zone 4). Vide quand
    *  aucune intention n'est armée. */
   intentReach: ReadonlyMap<string, number>;

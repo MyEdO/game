@@ -4,7 +4,7 @@ import { Vector3 } from 'three';
 import { CursorOverlay } from './MoveOverlays';
 import { AreteOverlay } from './AreteOverlay';
 import { projeterAretes } from './aretesProjetees';
-import { aretesUtilisables } from '../../state/aretes';
+import { aretesUtilisables } from '../../noyau/aretes';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { cloisons, piece } from '../../state/pieces.fixture';
 import { poseFromDims, screenToTileAtLift, worldToScreen } from './projection';

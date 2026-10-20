@@ -54,8 +54,8 @@ describe('#1346 — intégrité FK du tag `menace` (Résistance (Menace), LDB 10
     const tags = tagsLitteraux();
     // Les producteurs connus posent leur tag en littéral : le scan les voit tous les trois.
     const vus = new Set(tags.map((t) => `${t.site.split(':')[0]}=${t.valeur}`));
-    expect(vus).toContain('src/state/corruptionFlow.ts=mutation');
-    expect(vus).toContain('src/state/combatFlow.ts=magie');
-    expect(vus).toContain('src/state/combatFlow.ts=maladie');
+    expect(vus).toContain('src/noyau/corruptionFlow.ts=mutation');
+    expect(vus).toContain('src/noyau/combatFlow.ts=magie');
+    expect(vus).toContain('src/noyau/combatFlow.ts=maladie');
   });
 });

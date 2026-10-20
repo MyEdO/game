@@ -23,7 +23,7 @@ function lineNumberAt(text: string, charIndex: number): number {
 /** Retire l'ARTEFACT de gabarit — la ligne vide immédiatement après le backtick d'ouverture et celle
  *  qui précède le backtick de fermeture, UNE de chaque côté et pas une de plus : dans une grille
  *  box-drawing `walled`, une rangée vide INTERNE (ou de tête/queue) est une rangée d'ARÊTES sans aucun
- *  mur, parfaitement significative. Même découpe que `walledRowsOf` (`src/state/asciiMap.ts`), qui la
+ *  mur, parfaitement significative. Même découpe que `walledRowsOf` (`src/noyau/monde/asciiMap.ts`), qui la
  *  fait sur la chaîne compilée — ici c'est sur le littéral du fichier, pour en compter les LIGNES. */
 function stripArtifact(rows: string[]): { rows: string[]; lead: number } {
   let start = 0;

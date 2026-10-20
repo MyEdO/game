@@ -15,7 +15,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
-import { mapLights } from '../../state/vision';
+import { mapLights } from '../../noyau/monde/vision';
 import { props, findPropById, type PropVolumeRecipe } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';

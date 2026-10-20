@@ -1,8 +1,7 @@
 /**
  * Géométrie de combat : placement, empreintes/déplacement des combattants (LDB 15/85), flanc-dos et
  * vision dans l'obscurité. Fonctions PURES de l'état lu (engine + path/footprint/zones/scene) ;
- * les gestes qui écrivent la bataille vivent dans `combatPlacement.ts`. `combatFlow.ts` ré-exporte
- * les deux (baril).
+ * les gestes qui écrivent la bataille vivent dans `combatPlacement.ts`.
  */
 import type { BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
@@ -171,7 +170,7 @@ export function inRect(p: Pt, r: { x: number; y: number; w: number; h: number })
  * 2 cases de 10 m en combat naval (#1507).
  * Arrondi au SUPÉRIEUR et plancher à UNE case : une aura chiffrée en mètres couvre au moins la case
  * de son porteur, quelle que soit la finesse de la grille. Le champ de LUMIÈRE, lui, ne passe pas
- * par ici — son rayon reste RÉEL (`rayonEnCases`, `state/vision.ts`) parce que son dégradé le lit
+ * par ici — son rayon reste RÉEL (`rayonEnCases`, `noyau/monde/vision.ts`) parce que son dégradé le lit
  * comme une longueur, pas comme un nombre de cases à parcourir. PURE.
  */
 export const porteeEnCases = (metres: number, mpt: number): number => Math.max(1, Math.ceil(metres / mpt));

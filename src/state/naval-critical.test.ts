@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { applyCriticalToTarget } from './combatFlow';
+import { applyCriticalToTarget } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';

@@ -431,7 +431,7 @@ function rendu() {
     "- `validateDataset(file, value)` — porte par **FICHIER**, pour qui connaît le nom du document. Un",
     "  fichier NON registré est une **erreur nommée**, jamais un laissez-passer.",
     "- `validateDocument(schema, value)` — porte par **SCHÉMA**, pour un seam SANS nom de fichier :",
-    "  `parseProject` (`src/state/worldMap.ts`) sert du JSON committé, du localStorage ET de l'import",
+    "  `parseProject` (`src/noyau/worldMap.ts`) sert du JSON committé, du localStorage ET de l'import",
     "  utilisateur. C'est là que le projet est validé — forme ET sémantiques (FK `activeAxes`, invariants",
     "  du bloc narratif, FK intra-document `entity.presetId`, forme de `meta`).",
     "",

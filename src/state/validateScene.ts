@@ -1,14 +1,15 @@
 import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from '../noyau/monde/scene';
 import { unreachableDescriptiveZones } from './mapQC';
-import { isRoomZone } from './rooms';
+import { isRoomZone } from '../noyau/monde/rooms';
 import { footprintTiles, sizeFootprint } from '../noyau/monde/footprint';
-import { entitySize } from './spawn';
+import { entitySize } from '../noyau/monde/spawn';
 import { METRES_PER_LEVEL } from '../noyau/monde/relief';
-import { realFloorAt } from './sceneEdit';
+import { realFloorAt } from '../noyau/sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
-import { type Flow, type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from '../noyau/monde/flow';
+import { type Flow } from '../noyau/monde/flow';
+import { type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from '../engine/flowCore';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
 import { versionDesDatasets } from '../data/versionDataset';
@@ -19,15 +20,15 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 // ré-exporte combatEffects), comme le store : entrer le cycle d'effets/combat par le MÊME nœud
 // canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
 // liaison vive `fireScheduledEffects` que le store lit du baril sous le bundler).
-import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatFlow';
-import { nomDEntite, sceneNpc } from './sceneNpc';
-import { presetDuNarratif } from './resolveursDuNarratif';
-import { placeServices, type WorldMap } from './worldMap';
+import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from '../noyau/combatEffects';
+import { nomDEntite, sceneNpc } from '../noyau/monde/sceneNpc';
+import { presetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
+import { placeServices, type WorldMap } from '../noyau/worldMap';
 import { allMusicDefs } from '../audio/music';
-import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
+import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from '../noyau/planDefects';
 import { seatAssignmentDefects } from '../noyau/monde/seating';
 import { memoByRefDeps } from '../noyau/monde/sceneMemo';
-import type { NarratifBlock } from './campaignNarratif';
+import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -147,7 +148,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const placeIds = new Set(worldMap.places.map((p) => p.id));
     for (const p of worldMap.places) {
       if (!sceneIds.has(p.scene)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene} »`);
-      // Cible RÉSOLUE via `placeServices` (source unique, `state/worldMap.ts`) — pas le seul catalogue
+      // Cible RÉSOLUE via `placeServices` (source unique, `noyau/worldMap.ts`) — pas le seul catalogue
       // `lieux-services.json` : un POI peut aussi cibler le port/marché AUTOMATIQUES du lieu (`id`
       // `'port'`/`'marche'`), exactement ce que `CityHubScreen` résout à l'affichage (#360).
       const resolvedServiceIds = new Set(placeServices(p).map((s) => s.id));
@@ -199,7 +200,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       message: string,
       architectureRef?: ArchitectureWarningRef,
     ) => out.push({ level, sceneId: s.id, scope, refId, message, architectureRef });
-    // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (state/combatEffects) le lisent
+    // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
     // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
     const refCtx: EffectRefCtx = {
       sceneIds, dialogueIds: dlgIds, encounterIds: encIds,
@@ -455,7 +456,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     for (const d of s.dialogues)
       if (!dialoguesOuverts.has(d.id))
         add('warn', 'dialogue', d.id, avisDialogueJamaisOuvert(d.id));
-    // Défauts de PLAN (`state/planDefects`, la MÊME détection que `npm run map:check`) : l'auteur les
+    // Défauts de PLAN (`noyau/planDefects`, la MÊME détection que `npm run map:check`) : l'auteur les
     // corrige dans l'éditeur, pas en ligne de commande — chaque défaut porte sa famille et l'endroit.
     for (const d of scenePlanDefects(s))
       out.push({

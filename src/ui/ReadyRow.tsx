@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { nomDuSiege } from '../state/netFlow';
-import { siegesRequis } from '../state/netOwnership';
+import { siegesRequis } from '../noyau/netOwnership';
 import { TeamPortrait } from './TeamPortrait';
 import { Icon } from './Icon';
 

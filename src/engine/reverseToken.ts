@@ -2,7 +2,7 @@
  * Jeton d'INVERSION de Test CONSOMMABLE « pour votre prochaine aventure » (LDB 23 l.209 « Entraînement
  * au Combat » / l.218 « Observer une cible ») : posé par l'op `grantReverseToken` (`ActiveEffect.reverseToken`,
  * `duration:{scale:'adventure'}`) — MÊME canal que `statusMod` (Réputation, l.228-234), purgé s'il n'est
- * jamais consommé à l'ouverture de l'interlude suivant (`state/upkeep.purgeAdventureEffects`).
+ * jamais consommé à l'ouverture de l'interlude suivant (`noyau/upkeep.purgeAdventureEffects`).
  *
  * « Inverser un Test » (LDB 12 l.42) = intervertir le chiffre des unités et des dizaines du d100
  * (`reverseRoll`, engine/combat.ts) — PAS une relance. Deux VOIES, deux gates RAW DISTINCTES (#508

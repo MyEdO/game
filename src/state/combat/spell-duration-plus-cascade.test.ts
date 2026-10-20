@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { openRoundEndCascade } from '../combatFlow';
+import { openRoundEndCascade } from '../../noyau/combatFlow';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { endOfRound, pendingPlusExtensions, addCondition, COND } from '../../engine/conditions';

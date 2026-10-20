@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hasMeaningfulOption, canActFirst } from './turnEconomy';
+import { hasMeaningfulOption, canActFirst } from '../noyau/turnEconomy';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';
 

@@ -507,7 +507,7 @@ Ajustements : régions plus au nord → +10 à +30 ; plus au sud → −10 à �
 > journée de voyage — le tir encaisse la pénalité de temps (Pluie −10 / Pluie diluvienne −20), la poudre
 > exposée meurt, le Blizzard rend le tir impossible, et le Corps à corps (Test de CC) encaisse le −10
 > « Tests physiques » de la pluie diluvienne, ligne LIBELLÉE « Météo : … » dans le détail du jet
-> (`attackEnv`, `src/state/combatFlow.ts`). « Tests physiques » = liste MAISON éditable
+> (`attackEnv`, `src/noyau/combatFlow.ts`). « Tests physiques » = liste MAISON éditable
 > (`weather.json` `physicalTestChars` : CC/CT/F/E/Ag/Dex). **Différé (STOP-and-report, seams identifiés) :**
 > (a) mod « Tests physiques » sur les Tests d'ACTIVITÉ non-combat (les rangées BATCH d'Activité n'exposent
 > pas de breakdown de mods — surface UI à créer) ; (b) Tests de Résistance Neige/Blizzard « ou Exténué »
@@ -691,7 +691,7 @@ saison), [Voyage à pied](#voyage-à-pied) (durée en jours), [`catalogue-divers
 | `src/engine/weatherTestMod.ts` | Canal unique des Tests physiques sous la météo (`weatherTestMods`, EDOC 8 l.82) ; le calcul brut y est privé (#2724). |
 | `src/engine/provisions.ts` | Faim (LDB 18 l.337-343) : consommation/jour, Test Résistance, malus, Brouet. |
 | `src/engine/encumbrance.ts` | `effectiveMovement(c)` (M après pénalités Enc), `encumbrancePenalties()` (tiers + travelFatigue). |
-| `src/state/travelFlow.ts` | Voyage jour par jour, `TravelPlan` + reprise, `TravelRecap`, cascade influençable de marche forcée, sous-système Étapes optionnel ; journée en selle (`resolveMountedTravelDay`) et attelage forcé au pas de course (`forcedPaceDay` : Test de Conduite d'attelage par km, Échec Stupéfiant → `applyVehicleProblem` + Dégâts occupants `occupantOps` en GameOp). |
+| `src/noyau/travelFlow.ts` | Voyage jour par jour, `TravelPlan` + reprise, `TravelRecap`, cascade influençable de marche forcée, sous-système Étapes optionnel ; journée en selle (`resolveMountedTravelDay`) et attelage forcé au pas de course (`forcedPaceDay` : Test de Conduite d'attelage par km, Échec Stupéfiant → `applyVehicleProblem` + Dégâts occupants `occupantOps` en GameOp). |
 | `src/data/vehicles.json` | Table des transports payants RAW (Diligence/Barge/Fiacre/Ferry), éditable au Compendium. |
 | `src/data/montures.json` | Table « Mouvement pour les montures » + Endurance des profils (verbatim EDOC 07), liée aux trappings `animaux-et-vehicules`. |
 | `src/data/peripeties.ts` | Table des péripéties de voyage (1d10, verbatim LDB 51 l.212-222). |
@@ -1165,7 +1165,7 @@ Deux actes : **acheter** une cargaison, la **vendre** ailleurs. Chaque port a un
 
 **Distances** entre ports (milles, ≥10 milles de la côte) et **Index des ports** (Taille, Richesse, Production, Surplus, Demande) figurent dans le chapitre. `MDG 15 l.40-47, l.439-507`
 
-**Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Activités en mer (MDG)](#activités-en-mer-mdg) (Commerce d'opportunité), [`merchantFlow.ts`](../../../src/state/merchantFlow.ts) (Marchandage).
+**Voir aussi :** [Longs voyages : résolution et vitesse (MDG)](#longs-voyages--résolution-et-vitesse-mdg), [Activités en mer (MDG)](#activités-en-mer-mdg) (Commerce d'opportunité), [`merchantFlow.ts`](../../../src/noyau/merchantFlow.ts) (Marchandage).
 
 **Implémente :** [État calculé](../implemente.generated.md#4edeplacementcommerce-maritime-mdg)
 

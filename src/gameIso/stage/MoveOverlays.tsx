@@ -6,9 +6,9 @@
  */
 import { Dims, diamondPath } from '../../geometry/iso';
 import { footprintN, footprintTiles } from '../../noyau/monde/footprint';
-import { mountOf, movementRemaining } from '../../state/mount';
+import { mountOf, movementRemaining } from '../../noyau/mount';
 import { inBattleId } from '../../noyau/monde/combatants';
-import { previewResourceDelta } from '../../state/combatFlow';
+import { previewResourceDelta } from '../../noyau/combatFlow';
 import { movePreviewEls } from './movePreview';
 import { GOLD_TINT } from '../highlightTints';
 import type { Combatant } from '../../engine/types';

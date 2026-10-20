@@ -3,7 +3,7 @@
  * chroniques (récap de voyage, note de cascade). Module LEAF (zéro dépendance) pour éviter tout
  * cycle : `pendings.ts` et `rollSeam.ts` l'importent tous deux.
  *
- * `RecapTone` reprend EXACTEMENT `NightEntry.tone` (state/restFlow.ts, PV de nuit/jour de mer) —
+ * `RecapTone` reprend EXACTEMENT `NightEntry.tone` (noyau/restFlow.ts, PV de nuit/jour de mer) —
  * pas un second vocabulaire : même trio 'ok'/'bad'/'info', mêmes classes CSS (`.recap-line.ok`
  * partage `--ok-bright`/`--danger-soft` avec `.mrl-row.ok`, styles/hud.css).
  */
@@ -58,7 +58,7 @@ export interface RecapEvent {
 /** Une PHASE reconnue d'une journée de voyage TERRESTRE (agenda du jour EN COURS, #333 vague 2) —
  *  catalogue GÉNÉRIQUE par PRÉFIXE de `CascadeStep.kind` (aucun id de mode nommé) : ajouter une
  *  phase = une entrée ici, jamais un branchement par mode. Source UNIQUE, partagée par l'agenda du
- *  jour EN COURS (`ui/VoyageScreen.dayAgenda`) ET le sectionnement des jours CLOS (`state/travelFlow`,
+ *  jour EN COURS (`ui/VoyageScreen.dayAgenda`) ET le sectionnement des jours CLOS (`noyau/travelFlow`,
  *  via `RecapLine.phase`) — le même catalogue groupe les deux (#349, dette 3).
  */
 export interface DayPhaseDef {

@@ -112,7 +112,7 @@ export interface DiseaseDef {
    *  la contraction (`activeDiseaseTestMod`), puis DÉCROÎT de 1/jour après la fin (résidu). Éditable au Codex. */
   infectionPassive?: GameOp[];
   /** Un porteur ACTIF qui boit à un tonneau d'eau risque de le rendre contagieux pour quiconque y boit
-   *  ensuite (MDG 14 l.209). Drapeau DÉCLARATIF lu par `buildBarrelSteps` (`state/seaVoyageFlow`). */
+   *  ensuite (MDG 14 l.209). Drapeau DÉCLARATIF lu par `buildBarrelSteps` (`noyau/seaVoyageFlow`). */
   contaminatesWaterBarrel?: boolean;
   /** Test de cycle quotidien porté par la MALADIE elle-même (≠ par un de ses symptômes) — EDOC 08
    *  l.104-108. `test` est le nœud `test` du Flow : il porte le jet ET sa conséquence (branche `fail`),
@@ -385,7 +385,7 @@ function idsDuNoeud(node: FlowTestNode): TestIds {
 }
 
 /** Ops de la branche `fail` d'un nœud `test` de maladie — le canal différé `diseaseTick` n'applique QUE
- *  l'échec (`state/restFlow.ts`), la branche `success` est du bruit authoré vide (contrat vérifié). */
+ *  l'échec (`noyau/restFlow.ts`), la branche `success` est du bruit authoré vide (contrat vérifié). */
 function opsDeLEchec(node: FlowTestNode): GameOp[] {
   return spellOps(node.fail, 'target');
 }

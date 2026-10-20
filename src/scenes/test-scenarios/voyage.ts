@@ -5,8 +5,8 @@ import { contractDisease } from '../../engine/disease';
 import { itemFromTrappingById } from '../../engine/items';
 import { Combatant } from '../../engine/types';
 import { rigSpeciesId } from '../../data';
-import { WorldMap } from '../../state/worldMap';
-import { buildScene } from '../../state/mapSpec';
+import { WorldMap } from '../../noyau/worldMap';
+import { buildScene } from '../../noyau/mapSpec';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 

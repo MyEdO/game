@@ -2,7 +2,7 @@
  * Attaques d'une créature DÉRIVÉES DE SES TRAITS (data, RAW — Livre de base, « Traits » p.338+).
  * Un trait d'attaque OCTROIE une/des MANŒUVRE(S) de 1ʳᵉ classe (`TraitData.grantsManeuvers` → dataset
  * `maneuvers`). `creatureAttacks` résout ces octrois par id (`findManeuverById`) et porte sur chaque
- * `CreatureAttack` la `ManeuverDef` ENTIÈRE (résolue ENSUITE par `state/combatManeuvers.resolveManeuver`)
+ * `CreatureAttack` la `ManeuverDef` ENTIÈRE (résolue ENSUITE par `noyau/combatManeuvers.resolveManeuver`)
  * + l'`indice` (le `+N` de l'instance de trait). On ne modélise QUE ce que la donnée écrit ; rien d'inventé.
  *
  * Le trait `Souffle` octroie les 6 souffles élémentaires ; la DÉSAMBIGUÏSATION est GÉNÉRIQUE : on choisit

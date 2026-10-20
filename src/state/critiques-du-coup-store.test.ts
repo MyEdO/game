@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
-import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from './combatFlow';
-import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascadeTestKit';
+import { applyAttackResult, applyCast, applyOpposedCritical, resolveAttack, type CastCritChoice } from '../noyau/combatFlow';
+import { avanceEtapeCascade, draineCascade, type ChoisitCle } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';
@@ -14,7 +14,7 @@ import { critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/
 import { findTableEntry } from '../engine/tables';
 import { recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 

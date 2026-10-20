@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 
 /**
  * Verrou STRUCTUREL (#345, correction juge ronde 3) : `dispatchCascadeDone` (combatSlice.ts) re-vérifie

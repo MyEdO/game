@@ -2,7 +2,7 @@
 /**
  * Axe HAUTEUR de la chute volontaire (EDO 01 l.231) dans la rangée de `FallModal` : offert seulement
  * quand l'étape porte `suspendu`, déclaré avec le Test par `fallChoose`, éteint quand le Mouvement ne le
- * couvre pas (`refusDeLaSuspension`, `state/gesteDArete.ts`). Afficher = agir.
+ * couvre pas (`refusDeLaSuspension`, `noyau/gesteDArete.ts`). Afficher = agir.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';

@@ -18,7 +18,7 @@ import { datasetArray } from '../../data/overrides';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

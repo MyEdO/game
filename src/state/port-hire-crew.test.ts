@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { portHireCrew, portDismissCrew } from './portFlow';
+import { portHireCrew, portDismissCrew } from '../noyau/portFlow';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import { fromBrass, toBrass } from '../engine/money';
-import { ensureBourse, bourseInstanceOf, partyMoneyTotal } from './bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { ensureBourse, bourseInstanceOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import type { CampaignVessel } from './store';
-import type { Get, Set } from './flowTypes';
+import type { Get, Set } from '../noyau/flowTypes';
 
 /**
  * RECRUTEMENT à quai (#228, escale-hub) — embauche/débarquement salariés (MDG 14 l.293-302).

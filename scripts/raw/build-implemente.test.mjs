@@ -229,9 +229,9 @@ const FICHE_IMPL = ['## Initiative', '', '**Sources RAW :** `LDB 13 l.21-38`, `L
 function implCtx() {
   const index = makeIndex([
     { rel: 'src/engine/combat.ts', content: ['/**', ' * ordre (LDB 13 l.30)', ' */', 'export function initiativeOrder() {}', 'export function rollInitiative() {} // LDB 13 l.47'].join('\n') },
-    { rel: 'src/state/combatSetup.ts', content: ["import { initiativeOrder, rollInitiative } from './combat'", '// setup (LDB 13 l.25)', 'export function setup() { initiativeOrder(); rollInitiative() }'].join('\n') },
+    { rel: 'src/noyau/combatSetup.ts', content: ["import { initiativeOrder, rollInitiative } from './combat'", '// setup (LDB 13 l.25)', 'export function setup() { initiativeOrder(); rollInitiative() }'].join('\n') },
   ])
-  return ctxOf(index, { closure: new Set(['src/engine/combat.ts', 'src/state/combatSetup.ts']) })
+  return ctxOf(index, { closure: new Set(['src/engine/combat.ts', 'src/noyau/combatSetup.ts']) })
 }
 
 test('renderBlock : topic implémenté → puce par livre+chapitre, symboles avant fichiers, sans-code des réfs non matchées', () => {
@@ -278,7 +278,7 @@ test('isDeadExport : exporté MAIS appelé localement (hors commentaire, hors d�
 test('isDeadExport : exporté avec appelant dans un AUTRE fichier (hors commentaire) → pas mort (cas capriciousMod)', () => {
   const index = makeIndex([
     { rel: 'src/engine/social.ts', content: ['export function capriciousMod() {}'].join('\n') },
-    { rel: 'src/state/combatEffects.ts', content: ['import { capriciousMod } from "../engine/social"', 'const m = capriciousMod()'].join('\n') },
+    { rel: 'src/noyau/combatEffects.ts', content: ['import { capriciousMod } from "../engine/social"', 'const m = capriciousMod()'].join('\n') },
   ])
   assert.equal(isDeadExport('capriciousMod', 'src/engine/social.ts', index), false)
 })

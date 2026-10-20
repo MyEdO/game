@@ -15,7 +15,7 @@ import { contractDisease, severiteEffective, diseasePassiveOps, attenuationEchel
 import { findSymptomById } from '../data';
 import { applyOps } from '../engine/ops';
 import { stacks, syncDerivedConditions } from '../engine/conditions';
-import { purgeClockEffects } from './upkeep';
+import { purgeClockEffects } from '../noyau/upkeep';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';

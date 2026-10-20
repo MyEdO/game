@@ -7,12 +7,12 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { finishCombatEnd } from './combatFlow';
+import { finishCombatEnd } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 import { seedBattleRng } from '../noyau/battleRng';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 

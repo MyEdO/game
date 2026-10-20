@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, areteOcculte, wallBetween, wallIsOpen, setDoorOpen, setStructureDown, type Scene, type WallSeg } from '../noyau/monde/scene';
 import { wallOnSight, couvertDArete } from '../noyau/monde/lineOfSight';
-import { buildOpaque } from './vision';
+import { buildOpaque } from '../noyau/monde/vision';
 import { structures, findStructureById } from '../data';
 import diligenceCampaign from '../scenes/diligence/diligence-projet.json';
 import { schema as schemaStructures } from '../data/schemas/defs/structures';

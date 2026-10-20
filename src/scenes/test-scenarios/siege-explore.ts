@@ -1,5 +1,5 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { spec } from './siege-enceinte';
 import type { TestScenario } from './_shared';
 

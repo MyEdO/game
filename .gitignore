@@ -131,3 +131,6 @@ __pycache__/
 /docs/raw/**/catalogue-*.md
 /src/**/*.generated.ts
 # fin des cibles pures
+
+# Cache incrémental de tsc (artefact de build)
+*.tsbuildinfo

@@ -35,7 +35,7 @@
 import { describe, it, expect } from 'vitest';
 import { traits, creatures, mutations, spells, etats, maladies, SPEC_SOURCES, type SpecsSource, type TraitData } from './index';
 import { testScenarios } from '../scenes/test-scenarios';
-import { parseProject } from '../state/worldMap';
+import { parseProject } from '../noyau/worldMap';
 import areneProjetJson from '../scenes/arene/arene-projet.json';
 import type { Scene } from '../noyau/monde/scene';
 import { fileURLToPath } from 'node:url';

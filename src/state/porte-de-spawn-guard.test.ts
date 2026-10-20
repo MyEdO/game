@@ -1,6 +1,6 @@
 /**
  * Garde de la PORTE DE SPAWN (#2097) : un `Combatant` né d'une fiche de créature ou d'un statbloc sort
- * de `spawnEnemy` (`src/state/spawn.ts`, le foyer), qui le copie en profondeur. Hors du foyer, dans le
+ * de `spawnEnemy` (`src/noyau/monde/spawn.ts`, le foyer), qui le copie en profondeur. Hors du foyer, dans le
  * code de PRODUCTION de `src/` et `scripts/`, aucun appel à `creatureToCombatant` ni à
  * `statblockToCombatant` importés de ce foyer (`appelReserve`). Aucune exception.
  *
@@ -13,7 +13,7 @@ import { appelReserve, constructionsReserveesDuCorpus, scanConstructionsReservee
 import { corpusDesGardes } from '../../scripts/guards/lib/commentPoison.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
-const FOYER = 'src/state/spawn.ts';
+const FOYER = 'src/noyau/monde/spawn.ts';
 
 const PORTE_DE_SPAWN = [{
   ...appelReserve({ nom: 'constructeur hors de la porte de spawn', fonctions: { [FOYER]: ['creatureToCombatant', 'statblockToCombatant'] } }),
@@ -23,8 +23,8 @@ const PORTE_DE_SPAWN = [{
 
 const IMPORTE = "import { creatureToCombatant, statblockToCombatant } from './spawn';\n";
 
-/** Les constructions reconnues dans un texte, par défaut un module de `src/state/`. */
-const fixture = (text: string, rel = 'src/state/fixture.ts') =>
+/** Les constructions reconnues dans un texte, par défaut un module voisin du foyer (`src/noyau/monde/`). */
+const fixture = (text: string, rel = 'src/noyau/monde/fixture.ts') =>
   scanConstructionsReservees({ rel, text }, PORTE_DE_SPAWN).map((t) => t.construction);
 const VUE = ['constructeur hors de la porte de spawn'];
 
@@ -44,6 +44,6 @@ describe('porte de spawn (#2097)', () => {
     expect(fixture("import { spawnEnemy } from './spawn';\nconst c = spawnEnemy({ ref: 'gobelin' }, id, pos);")).toEqual([]);
     expect(fixture('const creatureToCombatant = (x) => x;\nconst c = creatureToCombatant(cr);'), 'homonyme local').toEqual([]);
     expect(fixture(`${IMPORTE}const c = creatureToCombatant(cr, id, pos);`, FOYER)).toEqual([]);
-    expect(fixture(`${IMPORTE}const c = creatureToCombatant(cr, id, pos);`, 'src/state/fixture.test.ts')).toEqual([]);
+    expect(fixture(`${IMPORTE}const c = creatureToCombatant(cr, id, pos);`, 'src/noyau/monde/fixture.test.ts')).toEqual([]);
   });
 });

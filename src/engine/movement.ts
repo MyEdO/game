@@ -20,7 +20,7 @@ export function slowestMovement(membres: readonly Combatant[]): number {
 
 /** Le Test de fiche que jette un cavalier (LDB 14 l.179), posé UNE fois par l'ouvreur de la Course (héros :
  *  `battleRun` ; IA : `aiApproachPlan`). Le saut et la chute volontaire ne se jouent pas montés : refus
- *  `geste.refus.monte` (`state/gesteDArete.ts:89`), saut du groupe hors combat (`state/jumpMove.ts`). */
+ *  `geste.refus.monte` (`noyau/gesteDArete.ts:89`), saut du groupe hors combat (`noyau/monde/jumpMove.ts`). */
 export function testDuCavalier<T extends { readonly skill: RefDesignee }>(actor: Pick<Combatant, 'mountId'>, test: T): T {
   return actor.mountId ? { ...test, skill: { id: 'chevaucher' } } : test;
 }
@@ -113,7 +113,7 @@ export function resolveLadderClimb(
 
 /**
  * Surface d'escalade trop difficile pour qui ne possède pas le Talent Grimpeur (LDB 15 l.57) : gate PUR,
- * partagé par `resolveSurfaceClimb` (moteur) et la résolution de scène (`state/climbMove`).
+ * partagé par `resolveSurfaceClimb` (moteur) et la résolution de scène (`noyau/monde/climbMove`).
  */
 export function surfaceClimbImpossible(requiresGrimpeur: boolean, hasGrimpeur: boolean): boolean {
   return requiresGrimpeur && !hasGrimpeur;

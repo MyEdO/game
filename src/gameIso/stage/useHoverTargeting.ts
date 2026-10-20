@@ -11,19 +11,20 @@ import { useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene } from '../../noyau/monde/scene';
 import type { Pt } from '../../noyau/monde/path';
-import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../state/exploreNav';
+import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../noyau/monde/exploreNav';
 import { isOutOfAction, canTakeAction, hasCondition } from '../../engine/conditions';
 import { isFrenzied } from '../../engine/psychology';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
-import { controlsCombatant } from '../../state/netOwnership';
-import { activeCombatant, outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement, frenzyTarget, hasFreeWeaponAttack } from '../../state/combatFlow';
-import { hoverTargeting, tilePreviewAt } from '../../state/targeting';
+import { controlsCombatant } from '../../noyau/netOwnership';
+import { activeCombatant, outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement, frenzyTarget } from '../../noyau/combatFlow';
+import { hasFreeWeaponAttack } from '../../noyau/combatManeuvers';
+import { hoverTargeting, tilePreviewAt } from '../../noyau/targeting';
 import type { DifficultyShown } from '../../engine/combat';
-import { courseArmee } from '../../state/localIntent';
+import { courseArmee } from '../../noyau/localIntent';
 import { modalBlocksMapHover } from '../../state/mapHover';
-import { detenteurDuCiblage, mapTargetingActive } from '../../state/targetingHolder';
-import type { RoomPortal } from '../../state/roomPortals';
-import { CAST_MODE } from '../../state/targetingModes';
+import { detenteurDuCiblage, mapTargetingActive } from '../../noyau/targetingHolder';
+import type { RoomPortal } from '../../noyau/monde/roomPortals';
+import { CAST_MODE } from '../../noyau/targetingModes';
 
 export interface HoverAim {
   fromId: string | null; // départ de la ligne (résolu en pixels au rendu — suit le glissement)

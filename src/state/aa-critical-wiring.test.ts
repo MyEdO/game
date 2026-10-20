@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { applyCriticalToTarget } from './combatFlow';
+import { applyCriticalToTarget } from '../noyau/combatFlow';
 import { resolveCritique } from '../engine/critical';
 import { inDeathCondition } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';

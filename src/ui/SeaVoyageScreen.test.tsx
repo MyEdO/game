@@ -6,8 +6,8 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SeaVoyageBody } from './SeaVoyageScreen';
-import type { TravelRecapDay } from '../state/travelFlow';
-import type { SeaRecapChrome } from '../state/seaVoyageFlow';
+import type { TravelRecapDay } from '../noyau/travelFlow';
+import type { SeaRecapChrome } from '../noyau/seaVoyageFlow';
 import { t } from '../i18n';
 
 const chrome: SeaRecapChrome = {

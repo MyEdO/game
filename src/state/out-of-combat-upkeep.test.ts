@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { outOfCombatUpkeep } from './outOfCombatUpkeep';
+import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
 import { hasCondition } from '../engine/conditions';
 import { applyStopBleed } from '../engine/healing';
 import type { Combatant } from '../engine/types';

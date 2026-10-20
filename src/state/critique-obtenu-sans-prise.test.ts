@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { applyAttackResult } from './combatFlow';
-import { draineCascade } from './cascadeTestKit';
+import { applyAttackResult } from '../noyau/combatFlow';
+import { draineCascade } from './cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bus, EVT } from '../noyau/bus';
 import { emptyScene } from '../noyau/monde/scene';

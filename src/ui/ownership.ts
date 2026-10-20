@@ -1,6 +1,6 @@
 /**
  * POSSESSION LOCALE VUE DE L'UI (#1262 L1) — les VUES de fenêtre (hooks, puce de spectateur, état
- * réseau en prop) du prédicat `state/netOwnership.ownsLocal`, couture unique du routage
+ * réseau en prop) du prédicat `noyau/netOwnership.ownsLocal`, couture unique du routage
  * siège→combattant (même table de vérité que la validation d'intent chez l'hôte — afficher et agir
  * ne peuvent pas répondre différemment). Aucune ne DÉCIDE : chacune DÉLÈGUE à la couture.
  *
@@ -9,9 +9,9 @@
  */
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
-import { ownsLocal, ownsGroupDecision } from '../state/netOwnership';
-import { modalOwnerOf, pickActiveModalKey, voyageHubActive } from '../state/modalArbiter';
-import { willAutoResolve } from '../state/combatAuto';
+import { ownsLocal, ownsGroupDecision } from '../noyau/netOwnership';
+import { modalOwnerOf, pickActiveModalKey, voyageHubActive } from '../noyau/modalArbiter';
+import { willAutoResolve } from '../noyau/combatAuto';
 
 /**
  * SIÈGE que l'ARBITRE DE MODALES nomme par une puce de spectateur (`SpectatorChip`) — `null` = il
@@ -44,7 +44,7 @@ export function useOwns(): (combatantId: string | undefined) => boolean {
   return (id) => ownsLocal(useGame.getState(), id);
 }
 
-/** Vue LIVE de `state/netOwnership.ownsGroupDecision` pour une fenêtre (même abonnement que `useOwns`). */
+/** Vue LIVE de `noyau/netOwnership.ownsGroupDecision` pour une fenêtre (même abonnement que `useOwns`). */
 export function useOwnsGroupDecision(): boolean {
   useGame((s) => s.net);
   return ownsGroupDecision(useGame.getState());

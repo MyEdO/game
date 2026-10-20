@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { valeursDe } from '../data/schemas/grammaire/meta';
 import { effectTriggerSchema } from '../data/schemas/grammaire/mecanique';
-import type { EffectTrigger } from '../noyau/monde/flow';
+import type { EffectTrigger } from '../engine/flowCore';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
@@ -20,7 +20,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * Test — combat OU scène OU entretien, MSRC 16), sa PORTE DÉDIÉE `fireTriggers(…, '<trigger>'` dans le
  * module ÉMETTEUR whitelisté (`triggeredEffects.ts` porte `fireOwnTestFailed`, l'unique point d'émission).
  */
-const BUS_OWNED = ['src/state/combat/roundHooks.ts', 'src/state/combat/turnHooks.ts', 'src/state/clockHooks.ts'];
+const BUS_OWNED = ['src/noyau/combat/roundHooks.ts', 'src/noyau/combat/turnHooks.ts', 'src/noyau/clockHooks.ts'];
 // Portes DÉDIÉES hors cycle de combat : un émetteur nommé fié à un seam qui n'est pas le bus de combat
 // (pas d'`emitCombatEvent`, ils tirent aussi hors combat), mais un point d'émission RÉEL et unique.
 //  - `fireOwnTestFailed` (triggeredEffects) : seams de résolution de Test (modale joueur, cascade
@@ -28,7 +28,7 @@ const BUS_OWNED = ['src/state/combat/roundHooks.ts', 'src/state/combat/turnHooks
 //  - `fireClockTriggers` (clockHooks, bus-owned) : sa boucle par porteur EST la machinerie du cycle
 //    CALENDAIRE, mais elle reçoit son déclencheur en PARAMÈTRE — le site qui le NOMME est sa cadence
 //    unique `runDailyUpkeep` (upkeep.ts), anti-double-comptage des franchissements de jour.
-const DEDICATED_EMITTERS = ['src/noyau/triggeredEffects.ts', 'src/state/upkeep.ts'];
+const DEDICATED_EMITTERS = ['src/noyau/triggeredEffects.ts', 'src/noyau/upkeep.ts'];
 
 
 function tsFiles(): { rel: string; src: string }[] {

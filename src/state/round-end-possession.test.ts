@@ -18,9 +18,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { openRoundEndCascade } from './combatFlow';
-import { runCombatHooks } from './combatHooks';
-import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
+import { openRoundEndCascade } from '../noyau/combatFlow';
+import { runCombatHooks } from '../noyau/combatHooks';
+import { collectHeroRoundEndUpkeep } from '../noyau/combat/roundHooks';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -28,12 +28,12 @@ import { addCondition, stacks, hasCondition, COND } from '../engine/conditions';
 import { testValue } from '../engine/skills';
 import { setRule, resetRule } from '../engine/policy';
 import { surfaceOf, rollSansPilote } from '../noyau/rollSeam';
-import { modalOwnerOf } from './modalArbiter';
-import { ownsLocal, humanControlled } from './netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
+import { ownsLocal, humanControlled } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import './combat/roundHooks';
+import '../noyau/combat/roundHooks';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;

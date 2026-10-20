@@ -24,8 +24,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
 import { emptyScene, heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
-import { sceneLightSources } from '../../state/visionState';
-import { ambientScalar, buildOpaque, computeLightField, mapLights, type LightSource } from '../../state/vision';
+import { sceneLightSources } from '../../noyau/visionState';
+import { ambientScalar, buildOpaque, computeLightField, mapLights, type LightSource } from '../../noyau/monde/vision';
 import { AUCUN_CHROME, TEINTE_PLEINE, poseBoards, type Board } from './boardPose';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { lightLevels } from '../../data';
@@ -203,7 +203,7 @@ describe('Ce que three fait de `decay = 0` et de `distance` — mesuré sur ses 
 
   it('sans décroissance, la contribution est CONSTANTE… et coupée exactement à la portée', () => {
     // `1 / max(pow(d, 0), 0.01)` = 1 partout : aucune atténuation physique (la mécanique du jeu dégrade
-    // linéairement, pas en 1/d² — `state/vision.ts`).
+    // linéairement, pas en 1/d² — `noyau/monde/vision.ts`).
     expect(chunk).toContain('float distanceFalloff = 1.0 / max( pow( lightDistance, decayExponent ), 0.01 );');
     // …puis la fenêtre de coupure, qui vaut 0 dès `d = cutoffDistance` : rien au-delà du rayon RAW.
     expect(chunk).toContain('distanceFalloff *= pow2( saturate( 1.0 - pow4( lightDistance / cutoffDistance ) ) );');

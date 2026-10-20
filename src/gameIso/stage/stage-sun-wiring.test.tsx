@@ -19,7 +19,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { useGame } from '../../state/store';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { setNorthDeg } from '../../state/sceneEdit';
+import { setNorthDeg } from '../../noyau/sceneEdit';
 import { sunJeu } from '../backends/webgl/sunJeu';
 import { AMBIENT_INTENSITY, SUN_INTENSITY } from '../backends/webgl/sceneMeshes';
 import { ambianceLuminance, nightVeilAlpha } from '../catalog/ambiance';

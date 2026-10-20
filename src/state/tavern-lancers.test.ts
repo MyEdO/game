@@ -27,15 +27,15 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import {
-  resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, sequenceScoreOf,
-  registerSequenceTieBreak, closeSequenceRound, sequenceBoardOf, SEQUENCE_HARD_MAX_ROUNDS,
-  type EtatDeFamille, type SequenceThrowTurn, type SequenceVolleyRules, type MancheClose,
-} from './sequenceCore';
+  resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, sequenceScoreOf, registerSequenceTieBreak, closeSequenceRound, sequenceBoardOf,
+} from '../noyau/sequenceCore';
+import { SEQUENCE_HARD_MAX_ROUNDS, type EtatDeFamille, type MancheClose } from '../noyau/sequenceContract';
+import { type SequenceThrowTurn, type SequenceVolleyRules } from '../engine/sequenceVocab';
 import { resolveTavernRound } from '../engine/tavernGame';
-import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from './tavernFlow';
+import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
-import { pnjAuProfil } from './sceneNpc';
+import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;

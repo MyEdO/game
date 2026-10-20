@@ -4,7 +4,7 @@
  * chaque champ éditable AVANT la restructuration l'est encore APRÈS — un onglet par tab de `Tabs`,
  * un champ par picker/checkbox/input. Wrapper contrôlé (comme `NarratifEditor.test.tsx`).
  *
- * Couverture (confrontée aux types `MapPlace`/`MapRoute`/`WorldMapParams`, `src/state/worldMap.ts`) :
+ * Couverture (confrontée aux types `MapPlace`/`MapRoute`/`WorldMapParams`, `src/noyau/worldMap.ts`) :
  * lieu (nom, icône, fond, scène, entrée, services), lieu/commerce (marché : taille/richesse/produits ;
  * port : catalogue/taille/richesse/cosmopolite/phare), lieu/plan (POI : ajout, libellé, icône,
  * position, cible scène OU service), route/trajet (distance, sens, modes, billet, vitesse, seuil de
@@ -23,9 +23,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapEditor } from './WorldMapEditor';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 import { EFFECT_LABEL } from './EffectList';
-import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../state/worldMap';
+import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
 import { lieuxServices, navalPorts } from '../../data';
 import { TRAVEL_DEFAULTS } from '../../engine/travel';
 

@@ -77,7 +77,7 @@ export type SiteProse = {
   | { porteur: `projet.${CheminProseDeScene}`; paquet: readonly [CheminProseDeScene] }
   /** Tout autre site DÉCLARE les proses de PAQUET (`PROSES_NOMMEES`) qu'il rend au JOUEUR, liste vide
    *  comprise : il passe `paquet` à `<Prose>`, ou `nommer(…)` à `mdToText`, pour que le texte suive les
-   *  identités en vigueur (`src/state/identites.ts`). Une surface d'atelier rend la prose STOCKÉE : `[]`. */
+   *  identités en vigueur (`src/noyau/monde/identites.ts`). Une surface d'atelier rend la prose STOCKÉE : `[]`. */
   | { porteur?: never; paquet: readonly CheminProseDeScene[] }
 );
 
@@ -135,7 +135,7 @@ export const SITES_PROSE: SiteProse[] = [
 
   // ── Divers écrans ─────────────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/TavernGameModal.tsx#Prose.md#1', origine: 'S', porteur: 'tavernGames.desc' },
-  { cle: 'src/ui/MassBattleView.tsx#Prose.md#2', origine: 'S', porteur: 'activities.desc', note: 'une Scène de Round EST une Activité (`battleSceneById` → `activityById`, `state/massBattleFlow.ts:197`)' },
+  { cle: 'src/ui/MassBattleView.tsx#Prose.md#2', origine: 'S', porteur: 'activities.desc', note: 'une Scène de Round EST une Activité (`battleSceneById` → `activityById`, `noyau/massBattleFlow.ts:197`)' },
 
   // ── Nus par nature ────────────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/StakeNote.tsx#Prose.md#1', origine: 'Y', paquet: ['stake.authored'], note: 'les 3 formes de `resolveStake` (`src/data/index.ts`) : synthèse, texte authoré de scène, gabarit substitué — aucune n’est un champ rendu verbatim ; `paquet` vaut pour la seule forme authorée' },
@@ -146,12 +146,12 @@ export const SITES_PROSE: SiteProse[] = [
   // ── Prose de PROJET : portée par le document de la partie (`porteurDeProjet.ts`), nue en scénario ──
   { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.ouverture.sousTitre.texte', paquet: ['narratif.ouverture.sousTitre.texte'] },
   { cle: 'src/ui/CampaignOpeningScreen.tsx#Prose.md#2', origine: 'S', porteur: 'projet.narratif.ouverture.pitch', paquet: ['narratif.ouverture.pitch'] },
-  { cle: 'src/ui/ChapterRecapScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.cloture.sousTitre.texte', paquet: ['narratif.cloture.sousTitre.texte'], note: '`pendingChapterRecap.sousTitre`, projeté de `narratif.cloture` (`src/state/chapitreRecap.ts`)' },
+  { cle: 'src/ui/ChapterRecapScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.cloture.sousTitre.texte', paquet: ['narratif.cloture.sousTitre.texte'], note: '`pendingChapterRecap.sousTitre`, projeté de `narratif.cloture` (`src/noyau/chapitreRecap.ts`)' },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.indices[].stades[].prose', paquet: ['narratif.indices[].stades[].prose'] },
   { cle: 'src/ui/CarnetScreen.tsx#Prose.md#2', origine: 'S', porteur: 'projet.narratif.documents[].prose', paquet: ['narratif.documents[].prose'], note: 'document CROISÉ par le stade (`IndiceStade.documentId`, #679)' },
-  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.documents[].prose', paquet: ['narratif.documents[].prose'], note: '`store.document.documentId`, posé par l’effet `document` (`src/state/combatEffects.ts`) ; la même surface rend le rapport de naufrage, texte RUNTIME sans `documentId` (`src/state/shipwreck.ts`) : nu, et `paquet` ne vaut que pour le document à `documentId`' },
+  { cle: 'src/ui/DocumentModal.tsx#Prose.md#1', origine: 'S', porteur: 'projet.narratif.documents[].prose', paquet: ['narratif.documents[].prose'], note: '`store.document.documentId`, posé par l’effet `document` (`src/noyau/combatEffects.ts`) ; la même surface rend le rapport de naufrage, texte RUNTIME sans `documentId` (`src/noyau/shipwreck.ts`) : nu, et `paquet` ne vaut que pour le document à `documentId`' },
   { cle: 'src/ui/DialogueBox.tsx#Prose.md#1', origine: 'S', paquet: ['dialogues[].nodes[].desc'], note: 'réplique du nœud courant de la scène : `dialogues[].nodes[].desc` est un sélecteur de charge, pas une adresse enracinée dans le document (#2684)' },
-  { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', paquet: ['massBattle.terrain'], note: '`massBattle.terrain` : `startMassBattle` recopie le texte de la spec dans l’état sans sa provenance (`src/state/massBattleFlow.ts`, `terrain: spec.terrain`) — l’effet qui le portait n’a pas d’adresse connaissable à l’écran. Un porteur à l’id faux serait pire que pas de porteur.' },
+  { cle: 'src/ui/MassBattleView.tsx#Prose.md#1', origine: 'S', paquet: ['massBattle.terrain'], note: '`massBattle.terrain` : `startMassBattle` recopie le texte de la spec dans l’état sans sa provenance (`src/noyau/massBattleFlow.ts`, `terrain: spec.terrain`) — l’effet qui le portait n’a pas d’adresse connaissable à l’écran. Un porteur à l’id faux serait pire que pas de porteur.' },
   { cle: 'src/ui/editor/DialogueDetail.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'réplique d’un nœud de dialogue lue tant qu’elle adresse un passage (`descRef`) : `dialogues[].nodes[].desc` est un sélecteur de charge, pas une adresse enracinée dans le document (#2684)' },
   { cle: 'src/ui/editor/EffectList.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'ligne de l’effet `journal` lue tant qu’elle adresse un passage (`descRef`) : `journal.desc` est un sélecteur de charge, pas une adresse enracinée dans le document (#2684)' },
   { cle: 'src/ui/editor/NarratifEditor.tsx#ProseField.lecture#1', origine: 'S', paquet: [], note: 'description du profil d’un preset lue tant qu’elle adresse un passage (`profil.descRef`) : `ProjetEdite` ne porte pas l’id du document édité et `ProseField` ne prend pas de `porteur` (#2684)' },
@@ -166,7 +166,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/creator/CharacterCreator.tsx#mdToText#2', origine: 'S', paquet: [], note: 'infobulle de la description d’une demeure du catalogue' },
   { cle: 'src/ui/CascadeModal.tsx#mdToText#1', origine: 'S', paquet: ['flow.choice.prompt'], note: 'titre de la fenêtre : `CascadeStep.label`, ou le titre de séquence' },
   { cle: 'src/ui/CascadeModal.tsx#mdToText#2', origine: 'S', paquet: ['flow.choice.prompt'], note: 'nom accessible du groupe d’options : `CascadeStep.label`' },
-  { cle: 'src/ui/CascadeModal.tsx#mdToText#3', origine: 'S', paquet: ['flow.choice.prompt'], note: 'libellé d’option : l’option « oui » d’un `choice` reprend son `prompt` (`src/state/combat/triggeredTest.ts`)' },
+  { cle: 'src/ui/CascadeModal.tsx#mdToText#3', origine: 'S', paquet: ['flow.choice.prompt'], note: 'libellé d’option : l’option « oui » d’un `choice` reprend son `prompt` (`src/noyau/combat/triggeredTest.ts`)' },
   { cle: 'src/ui/CascadeModal.tsx#mdToText#4', origine: 'Y', paquet: [], note: 'détail d’option composé par le flux qui ouvre l’étape' },
   { cle: 'src/ui/InterludeScreen.tsx#mdToText#1', origine: 'S', paquet: [], note: 'infobulle de la description d’une qualité d’artisanat du catalogue' },
   { cle: 'src/ui/InterludeScreen.tsx#mdToText#2', origine: 'S', paquet: [], note: 'infobulle de la description d’une qualité d’artisanat du catalogue' },

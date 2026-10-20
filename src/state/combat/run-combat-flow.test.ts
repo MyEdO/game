@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { runCombatFlow } from './triggeredTest';
-import { openCastCascade } from '../combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur + le hook onGainCondition
+import { runCombatFlow } from '../../noyau/combat/triggeredTest';
+import { openCastCascade } from '../../noyau/combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur + le hook onGainCondition
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 

@@ -8,8 +8,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
-import { aiAvailableFreeAttack } from './combatFlow';
-import { hasFreeWeaponAttack } from './combatManeuvers';
+import { aiAvailableFreeAttack } from '../noyau/combatFlow';
+import { hasFreeWeaponAttack } from '../noyau/combatManeuvers';
 import { setCadence } from '../engine/cadence';
 const embuscadeConstruit = embuscade.construire();
 

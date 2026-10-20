@@ -21,10 +21,10 @@ import { rollMiscast, miscastRowAt, MISCAST_TABLES, type MiscastTableRow } from 
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
 import { tableStepDef, tableStepIds } from '../noyau/cascade';
-import { stageWeatherRows } from '../state/travelFlow';
+import { stageWeatherRows } from '../noyau/travelFlow';
 // La FAMILLE des Tableaux de Corruption s'enregistre au chargement de son module : on l'importe par
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
-import { mutationTableIdFor } from '../state/corruptionFlow';
+import { mutationTableIdFor } from '../noyau/corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from './overrides';
 import { cargoes, findCargoById, type CargoDef } from '../engine/seaVoyage';
 import { landCargoes, findLandCargoById, type LandCargoDef } from '../engine/landCargo';
@@ -38,7 +38,7 @@ import { tickWindForce, tickWindForceDay, type SeaWindForceId } from '../engine/
 import { rollAvailability, barterRatio } from '../engine/disponibilite';
 import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine/clock';
 import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
-import { SEA_BOARD_EVENT_TABLE } from '../state/seaVoyageFlow';
+import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
 import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
 import type { RNG } from '../engine/dice';
 import { knownTraitId, traitLabelById } from '../engine/traits/dispatch';

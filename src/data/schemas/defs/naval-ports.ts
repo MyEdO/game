@@ -1,7 +1,7 @@
 /**
  * Schéma de `naval-ports.json` — Index des ports de la Mer des Griffes (#217, MDG 15 l.439-506) :
  * catalogue par id STABLE, consommé par référence (`MapPlace.port.ref`) depuis la carte du monde
- * (`src/state/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
+ * (`src/noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
  * (+ marqueurs `commerce`/`minimum-vital`, cf. `PortProfile`, `src/engine/seaVoyage.ts`).
  */
 import { z } from 'zod';

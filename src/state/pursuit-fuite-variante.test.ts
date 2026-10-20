@@ -8,8 +8,9 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { pursuedMovement, pursuitOf, PURSUIT_POLICY_DEFAUT } from './pursuitFlow';
-import { closeSequenceRound, type MancheClose } from './sequenceCore';
+import { pursuedMovement, pursuitOf, PURSUIT_POLICY_DEFAUT } from '../noyau/pursuitFlow';
+import { closeSequenceRound } from '../noyau/sequenceCore';
+import { type MancheClose } from '../noyau/sequenceContract';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';

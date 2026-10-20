@@ -2,13 +2,13 @@
  * Grants de POSSESSION portés par des dotations (Classe/Carrière) — #617/#618 SOCLE POSSESSIONS Lot 1.
  * `buildInventory` (engine/items.ts) ignore les refs `{creatureId}`/`{vehicleId}` d'un `TrappingRef`
  * (pas des objets de sac) : ce module les MATÉRIALISE en `PossessionInput[]`, même shape que l'Effet
- * `givePossession` (state/combatEffects.ts) — bête/véhicule `avec-le-groupe`, `count` respecté.
+ * `givePossession` (noyau/combatEffects.ts) — bête/véhicule `avec-le-groupe`, `count` respecté.
  */
 import type { TrappingRef } from '../data';
 import type { PossessionInput } from './possession';
 import { rollDice, type RNG } from './dice';
 
-/** PUR — n'écrit rien, l'appelant (state/possessionsFlow.ts) matérialise via `addPossession`. Ignore
+/** PUR — n'écrit rien, l'appelant (noyau/possessionsFlow.ts) matérialise via `addPossession`. Ignore
  *  `{id}` (objet de sac, buildInventory) et `{text}` (flavor hors catalogue). `count.fixed` spawn N
  *  possessions ; `count.roll` (dé, ex. « Bateaux de patrouille » 1d10) TIRE N via le rouleur canonique
  *  (`rollDice`, `engine/dice.ts`) sur le `RNG` seedable injecté (#663) ; sans `count`, 1 possession. */

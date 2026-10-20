@@ -1,14 +1,14 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
 import { combatValue } from '../engine/combat';
-import { battementFoes } from '../state/combatFlow';
+import { battementFoes } from '../noyau/combatManeuvers';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { OptionChooser } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeBattement } from '../state/flowOutcomes';
+import { describeBattement } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { VsHeader } from './VsHeader';
 

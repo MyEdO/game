@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * LE DIALOGUE EST UNE DÉCISION DE GROUPE (#1262) — l'intent `chooseDialogue` est routé au siège MJ
- * quand il existe, à l'hôte sinon (`ROUTES`, `state/netOwnership`), et il est HORS `GUEST_INTENTS` :
+ * quand il existe, à l'hôte sinon (`ROUTES`, `noyau/netOwnership`), et il est HORS `GUEST_INTENTS` :
  * le clic d'un siège non meneur mute son store local puis est écrasé au snapshot suivant. Ce test
  * mesure que la FENÊTRE dit la même chose que le routage : le meneur a des réponses armées, les
  * autres les ont désactivées et voient QUI répond.

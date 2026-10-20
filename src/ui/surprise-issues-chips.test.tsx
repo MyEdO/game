@@ -15,11 +15,12 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { applySurprise } from '../state/combatFlow';
+import { applySurprise } from '../noyau/combatFlow';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { runCombatFlow } from '../state/combat/triggeredTest';
-import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
+import { runCombatFlow } from '../noyau/combat/triggeredTest';
+import { testFlow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { testValue } from '../engine/skills';
 import { jete } from '../engine/tests.testkit';
 import { CascadeBody } from './CascadeModal';
@@ -162,7 +163,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     runCombatFlow(
       { mode: 'combat', get: useGame.getState, set: useGame.setState, target: guetteur, caster: embusqueur, label: 'Surprise' },
       testFlow(
-        // MÊME DÉCLARATION que le producteur réel (`applySurprise`, `state/combatFlow`) : un jet de
+        // MÊME DÉCLARATION que le producteur réel (`applySurprise`, `noyau/combatFlow`) : un jet de
         // Surprise dit ce qu'il met en jeu (`ambushSurprise`). SEULE divergence, celle que ce test
         // mesure : la Difficulté DIFFICILE (le site réel oppose à l'Intermédiaire, où un défaut
         // d'affichage de la Difficulté passerait inaperçu).

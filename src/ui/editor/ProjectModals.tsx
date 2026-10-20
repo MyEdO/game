@@ -9,7 +9,7 @@ import { projectsLoad, projectRemove, nomDeProjet, estRefusee, type EntreeListee
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { allBuiltinCampaigns, BuiltinCampaign } from '../../scenes/campaign';
 import { Row, Stack } from '../Layout';
-import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus } from '../../state/worldMap';
+import { exigerUnRefus, PROJET_AUTRE_FORMAT, SCENE_AUTRE_FORMAT, type CauseDeRefus } from '../../noyau/worldMap';
 import { cheminLisible, type Faute, type SegmentDeLieu } from '../../data/schemas/validate';
 
 /**

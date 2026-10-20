@@ -10,14 +10,14 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { toBrass, fromBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { hasCondition } from '../engine/conditions';
 import { spells } from '../data';
 import { testScene } from '../scenes/test-fixture';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 const ALTDORF_MAP: WorldMap = {
   id: 'w', label: 'Monde de test',

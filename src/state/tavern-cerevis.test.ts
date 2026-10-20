@@ -26,11 +26,12 @@ import { setDataset } from '../data/overrides';
 import { effectiveTarget } from '../noyau/rollSeam';
 import { testValue } from '../engine/skills';
 import { addCondition, COND } from '../engine/conditions';
-import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
-import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernCombinedState, HABITUE } from './tavernFlow';
+import { closeSequenceRound } from '../noyau/sequenceCore';
+import { type EtatDeFamille, type MancheClose } from '../noyau/sequenceContract';
+import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernCombinedState, HABITUE } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
-import { pnjAuProfil } from './sceneNpc';
+import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { avanceEtapeCascade } from './cascadeTestKit';
-import { applyCriticalToTarget, openCombatEndCascade } from './combatFlow';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { applyCriticalToTarget, openCombatEndCascade } from '../noyau/combatFlow';
 import { resolveCritique } from '../engine/critical';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { testValue } from '../engine/skills';

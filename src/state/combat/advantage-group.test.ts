@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { campGain, campSpend, spendableAdvantage, reversalStealOne, reconcileAdvantageToPool, creditOpposingAdvantage, roundEndAdvantageTransfer, startAdvantagePools } from '../../noyau/combat/advantagePool';
-import { fireTurnStartTriggers } from './turnHooks';
+import { fireTurnStartTriggers } from '../../noyau/combat/turnHooks';
 import { setRule, resetRule } from '../../engine/policy';
 import { baseTestMods } from '../../engine/combat';
 import type { Combatant } from '../../engine/types';

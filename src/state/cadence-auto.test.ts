@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { aiDriven } from './netOwnership';
+import { aiDriven } from '../noyau/netOwnership';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';

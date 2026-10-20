@@ -400,7 +400,7 @@ export function incomingDamageNullified(defender: Combatant, attacker: Combatant
 export type PairedSense = 'vue' | 'ouie';
 
 /** Mot RÉSERVÉ de `scheduleRespawn.ref` : la créature DÉFUNTE elle-même, lue par son `creatureId` à la
- *  programmation (`state/combatFlow › scheduleRespawnFromOp`). */
+ *  programmation (`noyau/combatFlow › scheduleRespawnFromOp`). */
 export const SELF_REF = 'self';
 export type SelfRef = typeof SELF_REF;
 
@@ -917,7 +917,7 @@ export type GameOp =
   | { op: 'charDamage'; char: CharKey; amount: Formula }
   /** INVOCATION de créature(s) (Nécromancie « Réanimation/Relever les morts », Ulric « Hurlement du
    *  loup », Démonologie « Manifestation », Taal « Roi de la Nature »…). Effet IMPUR (grille +
-   *  initiative) RÉSOLU par la couche state (`state/summonFlow.applySummon`) ; `applyOps` (moteur pur)
+   *  initiative) RÉSOLU par la couche state (`noyau/summonFlow.applySummon`) ; `applyOps` (moteur pur)
    *  le laisse INERTE. `ref` = créature du bestiaire (forme libre) ; `count` (+`countPerSL`) = nombre ;
    *  `addTraits`/`size` surchargent le statbloc (loup blanc = Loup + Frénésie + Grand) ; `allyOfCaster`
    *  = camp du lanceur (défaut) sinon hostile (démons « hors de votre contrôle ») ; `despawnIfCasterDown`
@@ -933,7 +933,7 @@ export type GameOp =
    *  `applyOps` (moteur pur), comme `summon`. */
   | { op: 'scheduleRespawn'; ref: string; delayDays: Formula; count?: Formula; allyOfCaster?: boolean; cancelFlag?: string }
   /** ZONE PERSISTANTE posée par le sort (Mur de feu, Grands feux d'U'Zhul, Vol du Destin). Effet IMPUR
-   *  (pose une zone dans la scène/bataille) RÉSOLU par la couche state (`state/combatEffects`) ; INERTE
+   *  (pose une zone dans la scène/bataille) RÉSOLU par la couche state (`noyau/combatEffects`) ; INERTE
    *  dans `applyOps`. `shape` disc/wall ; `radiusMeters` (disque) ou `lengthMeters` (mur, +`lengthPerSL`
    *  « +N m par +2 DR ») ; `blocksLoS` ; `onCross`/`perRound` = effets de zone (traversée / fin de Round). */
   | { op: 'zone'; shape: 'disc' | 'wall'; radiusMeters?: Formula; lengthMeters?: Formula;
@@ -1155,7 +1155,7 @@ export type GameOp =
   | { op: 'spendAdvantage'; amount?: number }
   /** Émission de LUMIÈRE — `radiusM` = le rayon éclairé en MÈTRES, la valeur RAW telle qu'elle est
    *  écrite (Bougie 10 m `LDB 74 l.43`, Lanterne 20 m `LDB 74 l.58`) ; c'est `rayonEnCases`
-   *  (`state/vision.ts`) qui la ramène aux cases du brouillard de guerre. Côté OBJET (`passive`) :
+   *  (`noyau/monde/vision.ts`) qui la ramène aux cases du brouillard de guerre. Côté OBJET (`passive`) :
    *  INERTE dans applyOps — lu par `combatantLights` (vision) pour les objets PORTÉS/TENUS. Côté SORT :
    *  pousse un `ActiveEffect.light` temporisé (durée), lu au MÊME point.
    *  `tone` : id d'un `lightTones` — APPARENCE seule (couleur/intensité/vacillement), résolue au bord
@@ -1508,7 +1508,7 @@ interface DeDeclare<C extends string = string> {
 
 /** Le 1d10 de DÉGÂTS de toute chute (LDB 15 l.80) — une seule écriture, lue par la déclaration de l'op
  *  `fall`, par le repli headless de son `case`, et par la porte des chutes à hauteur CONNUE
- *  (`state/combatEffects.ouvrirChute`). */
+ *  (`noyau/combatEffects.ouvrirChute`). */
 export const D10_CHUTE: DiceSpec = Object.freeze({ n: 1, sides: 10 }); // #2097
 
 /**
@@ -1617,7 +1617,7 @@ export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
  *  cible, et les dés eux-mêmes (relus sur les étapes sœurs — jamais recopiés). */
 export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'onGainAdvantage', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE sur une feuille qui veut différer
- *  est un fail-fast NOMMÉ (`state/combatEffects`), jamais une perte muette — mesuré : aucune donnée du
+ *  est un fail-fast NOMMÉ (`noyau/combatEffects`), jamais une perte muette — mesuré : aucune donnée du
  *  dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de l'interlude, du bus de
  *  triggers et du site du Critique — `surLigne` —, qui n'appellent pas `applyLeafOps`). */
 export const OPS_CTX_HORS_CANAL = ['onCorruptionExposure', 'onCondition', 'onOpposingAdvantage', 'surLigne'] as const;
@@ -2890,7 +2890,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {
         break;
       case 'teamCommander':
         // Commandant d'équipe (AA) : pose le lien chef→commandant. La substitution effective du score est
-        // re-dérivée à chaque tir (vivant + à portée de voix), pas figée ici — cf. `state/commandTeam`.
+        // re-dérivée à chaque tir (vivant + à portée de voix), pas figée ici — cf. `noyau/monde/commandTeam`.
         target.teamCommanderId = o.commanderId;
         break;
       case 'weaponRollMod':

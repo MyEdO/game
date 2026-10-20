@@ -19,7 +19,7 @@ import { TUFT_FAN } from '../../detail/expand';
 import { projGP } from '../../authoring/project';
 import { worldFaces, type KeepEl, type TintAt } from './sceneMeshes';
 import { facePoly, coplanarRanks, COPLANAR_BIAS_M } from './worldTris';
-import { buildScene } from '../../../state/mapSpec';
+import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { testScenarios } from '../../../scenes/test-scenarios';
 import { sceneMetresPerTile } from '../../../noyau/monde/scene';

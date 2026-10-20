@@ -8,9 +8,9 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from './combatFlow';
+import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from '../noyau/combatFlow';
 import { pregen, PREGEN, makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { findSpell } from '../data';
 import type { Combatant } from '../engine/types';
 

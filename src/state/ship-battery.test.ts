@@ -1,18 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { resolveBattery } from './shipBattery';
+import { resolveBattery } from '../noyau/monde/shipBattery';
 import type { Combatant, ShipPoste, SkillInstance } from '../engine/types';
 import type { FireArc } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { rollCrewRole } from './shipManeuver';
+import { rollCrewRole } from '../noyau/shipManeuver';
 import { makeRNG } from '../engine/dice';
 import { jete } from '../engine/tests.testkit';
 import { rangeBandName, toucheAuJetPose } from '../engine/combat';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { resolveVolley } from '../engine/volley';
-import { jouerLesTirsDeBordee } from './combatFlow';
-import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
+import { jouerLesTirsDeBordee } from '../noyau/combatFlow';
+import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { t } from '../i18n';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */

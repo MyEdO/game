@@ -16,7 +16,7 @@ function mk(activeEffects: { char: CharKey; bonus: number; label?: string; sourc
   } as Combatant;
 }
 
-/** Source frappée par tout lancement, Prières comprises (`runCastFlow`, `src/state/combatFlow.ts`) :
+/** Source frappée par tout lancement, Prières comprises (`runCastFlow`, `src/noyau/combatFlow.ts`) :
  *  le pool se lit à l'id du catalogue, jamais au `kind`. */
 const SORT = (id: string): EffectSource => ({ kind: 'spell', id });
 

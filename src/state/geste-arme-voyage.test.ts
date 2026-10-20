@@ -18,12 +18,12 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { argsAvecVerdictLocal } from './localIntent';
-import { withActingSeat } from './netOwnership';
-import { refuserGeste, eteindreRefus } from './refusVisible';
+import { argsAvecVerdictLocal } from '../noyau/localIntent';
+import { withActingSeat } from '../noyau/netOwnership';
+import { refuserGeste, eteindreRefus } from '../noyau/refusVisible';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
 import { snapshotSave } from './saves';
-import { runAction } from './actionRegistry';
+import { runAction } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { chebyshev } from '../engine/grid';

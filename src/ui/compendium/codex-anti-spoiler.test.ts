@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
 import { useGame } from '../../state/store';
-import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
 
 /**
  * Anti-spoiler STRUCTUREL de la couche de campagne (#767). Le Compendium ne lit QUE les arrays GLOBAUX

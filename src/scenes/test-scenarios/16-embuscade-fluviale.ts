@@ -1,6 +1,6 @@
 import { makeShowcaseParty, PREGEN } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 

@@ -1,5 +1,5 @@
 /**
- * `castCommitZone` (src/state/combatFlow.ts:3499) — `affects` (SpellTarget kind:'area',
+ * `castCommitZone` (src/noyau/combatFlow.ts:3499) — `affects` (SpellTarget kind:'area',
  * src/engine/spellRange.ts:31) : la Zone d'Effet déclare EN DONNÉE, par une `Condition` du
  * vocabulaire existant (src/engine/flowCore.ts:116), quels candidats elle retient.
  *  - champ absent = LDB 47 l.28 ;
@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castCommitZone } from './combatFlow';
+import { castCommitZone } from '../noyau/combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpellById, spells } from '../data/index';
 import { setDataset } from '../data/overrides';

@@ -6,7 +6,7 @@ import { Coins } from './Coins';
 import { Icon } from './Icon';
 import { moraleBand, findMoraleFactor, payChoices, payChoiceCostBrass } from '../engine/crewMorale';
 import { fromBrass, toBrass } from '../engine/money';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { moraleTone } from './shipStatus';
 
 /**

@@ -11,7 +11,7 @@ import { Scene, sceneMetresPerTile, isDescriptiveZone, type SceneEffectZone } fr
 import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { Dims, diamondPath, tileCenter, tileEdge, type EdgeSide, screenToTileAtZ, screenToTileF, stageSize, depth, TH } from '../../geometry/iso';
 import { buildProps } from '../../gameIso/builders/props';
-import { entiteFootTiles } from '../../state/spawn';
+import { entiteFootTiles } from '../../noyau/monde/spawn';
 import { buildFloors } from '../../gameIso/builders/floors';
 import { floorSvg } from '../../gameIso/authoring/floorsSvg';
 import { buildRoofs } from '../../gameIso/builders/roofs';
@@ -30,12 +30,12 @@ import {
   placeEntity, placeEmplacement, placeEntry, addTrigger, addRestZone, addEffectZone, EFFECT_ZONE_SEEDS, addEnemyMember, eraseAt, entityAt, sameSel,
   toggleEdgeWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintEffectZone, nearestEdge, canonEdge, pickWallEdge, pickArchitectureEdge, addFacadeSection,
 } from './editorState';
-import { planFocusTiles, type PlanDefectAt } from '../../state/planDefects';
+import { planFocusTiles, type PlanDefectAt } from '../../noyau/planDefects';
 import { GameStage3D } from '../../gameIso/stage/GameStage3D';
 import { buildTokens } from '../../gameIso/builders/tokens';
 import type { ActorPose, KeepEl, TintAt } from '../../gameIso/backends/webgl/sceneMeshes';
 import { calageActif } from '../../gameIso/backends/webgl/calageProps';
-import { mapLights, type LightSource } from '../../state/vision';
+import { mapLights, type LightSource } from '../../noyau/monde/vision';
 
 /** Jaune d'ACCENT de SÉLECTION de l'éditeur (arêtes/zones/toits/entités sélectionnés) — même teinte que
  *  l'anneau d'unité active en combat, mais concept distinct (édition, pas tour de jeu). */
@@ -305,7 +305,7 @@ export function EditorCanvas({
   // d'avant le geste (cf. `gelDuMonde`). Vidées au relâché, comme le reste de l'état de geste.
   const [traitCases, setTraitCases] = useState<readonly Pt[]>([]);
   const marquerTrait = (p: Pt, taille: number) => {
-    const r = Math.floor((taille - 1) / 2); // MÊME emprise que `paintTiles` (`state/sceneEdit.ts`)
+    const r = Math.floor((taille - 1) / 2); // MÊME emprise que `paintTiles` (`noyau/sceneEdit.ts`)
     const { w, h } = scene.dimensions;
     setTraitCases((prev) => {
       const vues = new Set(prev.map((c) => `${c.x},${c.y}`));
@@ -369,7 +369,7 @@ export function EditorCanvas({
         setSceneNoHistory(paintEffectZone(scene, tool.zoneId, p, tool.paint));
         return;
       case 'erase':
-        // La GOMME retire une ENTITÉ (`state/sceneEdit.ts` `eraseAt`), jamais du terrain : son billboard
+        // La GOMME retire une ENTITÉ (`noyau/sceneEdit.ts` `eraseAt`), jamais du terrain : son billboard
         // disparaît au tick suivant, sans gel ni recuisson — rien à prévisualiser, donc rien à marquer.
         setScene(eraseAt(scene, p, currentLayer));
         return;

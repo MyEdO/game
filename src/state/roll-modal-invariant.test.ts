@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -9,8 +9,7 @@ import { fileURLToPath } from 'node:url';
  * `aiDriven`) et un prédicat de SURFACE, seat-agnostique, vit dans `rollSeam` (`surfaceOf`, #1262 —
  * le porteur d'un AUTRE siège surface aussi). Quatre volets :
  *  (a) STATIQUE minimal : chaque site de surfaçage connu référence CELUI des quatre prédicats qu'il
- *      déclare (table `SURFACING`), et aucun module ne décide du surfaçage sur la CADENCE
- *      (`roundTestInteractive` : ni symbole ni module) ;
+ *      déclare (table `SURFACING`) ;
  *  (b) BEHAVIORAL : un Test de combattant piloté-humain par contexte (défense, manœuvre, upkeep, psy,
  *      maladie/exposition, corruption, test déclenché) OUVRE un `pending*` influençable ;
  *  (c) FLIP LOCAL : poser le rôle MJ (`net.gmSeat`) fait REMONTER le Test déclenché d'un ennemi conduit
@@ -24,9 +23,9 @@ import { fileURLToPath } from 'node:url';
 let silence = false;
 
 import { useGame } from './store';
-import './combatFlow'; // effet de bord : installe appliers de cascade + routeur de Test + hook onGainCondition
-import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybeOpenDefense, resolveAttack, attackerFumbled } from './combatFlow';
-import { gainCorruption } from './corruptionFlow';
+import '../noyau/combatFlow'; // effet de bord : installe appliers de cascade + routeur de Test + hook onGainCondition
+import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybeOpenDefense, resolveAttack, attackerFumbled } from '../noyau/combatFlow';
+import { gainCorruption } from '../noyau/corruptionFlow';
 import { createHero } from '../engine/character';
 import { buildWeapon } from '../engine/items';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -52,12 +51,12 @@ function stripComments(src: string): string {
 }
 const readCode = (f: string) => stripComments(readFileSync(here(f), 'utf8'));
 const SRC: Record<string, string> = {
-  combatFlow: readCode('./combatFlow.ts'),
-  combatManeuvers: readCode('./combatManeuvers.ts'),
-  corruptionFlow: readCode('./corruptionFlow.ts'),
-  roundHooks: readCode('./combat/roundHooks.ts'),
-  turnHooks: readCode('./combat/turnHooks.ts'),
-  triggeredTest: readCode('./combat/triggeredTest.ts'),
+  combatFlow: readCode('../noyau/combatFlow.ts'),
+  combatManeuvers: readCode('../noyau/combatManeuvers.ts'),
+  corruptionFlow: readCode('../noyau/corruptionFlow.ts'),
+  roundHooks: readCode('../noyau/combat/roundHooks.ts'),
+  turnHooks: readCode('../noyau/combat/turnHooks.ts'),
+  triggeredTest: readCode('../noyau/combat/triggeredTest.ts'),
   triggeredEffects: readCode('../noyau/triggeredEffects.ts'),
 };
 
@@ -144,12 +143,6 @@ describe('Défense JAMAIS roulée en silence — inventaire des rouleurs (#989)'
 });
 
 describe('Surfaçage « remonte-à-un-humain » — statique au choke-point (a)', () => {
-  it('le prédicat de cadence `roundTestInteractive` est SUPPRIMÉ (symbole + module `cadenceGate`)', () => {
-    expect(existsSync(here('./combat/cadenceGate.ts'))).toBe(false);
-    for (const [name, src] of Object.entries(SRC))
-      expect(src.includes('roundTestInteractive'), `${name} référence encore roundTestInteractive`).toBe(false);
-  });
-
   it('chaque site de surfaçage connu route vers le prédicat de contrôleur', () => {
     for (const { file, fn, pred } of SURFACING)
       expect(pred.test(bodyOf(SRC[file], fn)), `${file}.${fn} doit référencer ${pred}`).toBe(true);

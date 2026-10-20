@@ -442,11 +442,11 @@ Les chapitres `LDB 77-83`, `ZI`, `frenchy.bzh`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`
 ### Refs code confirmées
 
 - `src/engine/size.ts` — `LDB 85 l.343-406` (7 catégories, Blessures, mods combat).
-- `src/state/spawn.ts` — `LDB 76 l.45` (Facultatifs), `LDB 77 l.108` (carac. aléatoires).
+- `src/noyau/monde/spawn.ts` — `LDB 76 l.45` (Facultatifs), `LDB 77 l.108` (carac. aléatoires).
 - `src/engine/creatureAttacks.ts` — `LDB 85 traits` (grantsManeuvers par id).
 - `src/engine/creatureEquip.ts` — `LDB 85 l.405` (Tentacules, compte/attaques gratuites).
 - `src/engine/combat.ts` — `LDB 85 l.253` (Nuée : ignore les règles de Taille), `l.360-362` (Atouts, multiplicateur de Dégâts, Frappe Mortelle par Taille), `l.366` (+10 au plus petit), `l.370` (pénalité de Parade), `l.387` (Piétinement).
-- `src/state/combatFlow.ts` l.674, 1770 — `LDB 85 l.373-374` (désengagement gratuit), `LDB 85 l.386-387` (Piétinement).
+- `src/noyau/combatFlow.ts` l.674, 1770 — `LDB 85 l.373-374` (désengagement gratuit), `LDB 85 l.386-387` (Piétinement).
 - `src/engine/psychology.ts` l.119-130 — `LDB 85 l.382-383` (Peur/Terreur par Taille).
 - `src/state/aim-bigger.test.ts` — `LDB 76 l.40` (localisation gratuite ≥ 2 cat).
 

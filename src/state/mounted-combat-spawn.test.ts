@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { checkBattleOver } from './combatFlow';
+import { checkBattleOver } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { buildEncounter } from './encounterAuthoring';
+import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import { validateScene } from './validateScene';
 import type { Scene } from '../noyau/monde/scene';
 import type { Possession } from '../engine/possession';

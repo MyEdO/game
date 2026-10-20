@@ -6,8 +6,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { initialFields } from './stateFields';
-import { openAttackCascade, doAttack, runPreemptShots } from './combatFlow';
+import { initialFields } from '../noyau/stateFields';
+import { openAttackCascade, doAttack, runPreemptShots } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';

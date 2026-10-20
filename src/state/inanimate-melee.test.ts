@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult } from './combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
 import { resolveMelee } from '../engine/combat';
 import { vehicleCombatant } from '../engine/vehicle';
 import { isInanimate } from '../engine/structures';

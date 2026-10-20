@@ -14,7 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { parseProject } from '../state/worldMap';
+import { parseProject } from '../noyau/worldMap';
 import { flagTerms } from '../engine/flowCore';
 import { noeudsDeCondition, sitesDuPaquet, type PaquetASites } from '../data/schemas/defs-scenes/sites-de-paquet';
 

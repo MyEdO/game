@@ -5,12 +5,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { buildStageSteps } from './travelPostes';
-import { buildSeaGenericStep, seaActivityRefus } from './seaActivities';
-import { bourseOf, creditBourse } from './bourseFlow';
+import { buildStageSteps } from '../noyau/travelPostes';
+import { buildSeaGenericStep, seaActivityRefus } from '../noyau/seaActivities';
+import { creditBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { toBrass } from '../engine/money';
 import { cascadeAppliers, startCascade, setOwnTestFailedEmitter } from '../noyau/cascade';
-import { spyApplier } from './cascadeTestKit';
+import { spyApplier } from './cascade.testkit';
 import { fireOwnTestFailed } from '../noyau/triggeredEffects';
 import { battleRng } from '../noyau/battleRng';
 import { ECHEC_SANS_JET } from '../engine/tests';

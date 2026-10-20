@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { openCombatEndCascade, applyEffects } from './combatFlow';
-import { gainCorruption } from './corruptionFlow';
+import { openCombatEndCascade } from '../noyau/combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
+import { gainCorruption } from '../noyau/corruptionFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';

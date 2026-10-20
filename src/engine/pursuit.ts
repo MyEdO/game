@@ -16,7 +16,7 @@
  *
  * La résolution d'issue (`pursuitOutcome`) est la PRIMITIVE PARTAGÉE terrestre/navale (la poursuite navale
  * MDG 13 calcule son « gain » de Distance différemment — en mètres — mais franchit les MÊMES seuils).
- * PUR : ne mute rien, ne roule rien — les jets se tiennent chez l'appelant (`state/pursuitFlow`), qui les
+ * PUR : ne mute rien, ne roule rien — les jets se tiennent chez l'appelant (`noyau/pursuitFlow`), qui les
  * surface. Ce module est LA source des jugements de poursuite.
  */
 
@@ -65,7 +65,7 @@ export function pursuitLaggard(runners: readonly PursuitRunner[]): PursuitRunner
 /**
  * POLITIQUE DE CAMP PNJ (valeur MAISON, éditable à l'Effet `startPursuit`) — le RAW l.94 laisse ces
  * trois décisions AUX CAMPS ; un camp tenu par le jeu doit donc trancher sans MJ (règle 7). Les valeurs
- * par défaut sont dans `PURSUIT_POLICY_DEFAUT` (`state/pursuitFlow`), et chaque scène peut les changer.
+ * par défaut sont dans `PURSUIT_POLICY_DEFAUT` (`noyau/pursuitFlow`), et chaque scène peut les changer.
  */
 export interface PursuitPolicy {
   /** Les poursuivis PNJ sacrifient leur plus lent : `toujours` (DÉFAUT — la voie de l'exemple

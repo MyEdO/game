@@ -3,11 +3,11 @@ import { useGame } from '../../state/store';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { partyMoneyTotal } from '../../state/bourseFlow';
+import { partyMoneyTotal } from '../../noyau/bourseFlow';
 import { findSpell } from '../../data';
 import { knowsCastingSkill, isArcaneSpell, isMagicMissile } from '../../engine/magic';
 import { spellEffectOps } from '../../engine/flowCore';
-import { avanceEtapeCascade, draineCascade } from '../../state/cascadeTestKit';
+import { avanceEtapeCascade, draineCascade } from '../../state/cascade.testkit';
 
 const scen = testScenarios.find((s) => s.id === 'voyage-maritime')!;
 const scenConstruit = scen.construire();

@@ -14,7 +14,7 @@ import { traumaCharPenalties } from '../trauma';
 import { effectiveChar } from '../characteristics';
 import { effectiveMovement } from '../encumbrance';
 import type { Combatant } from '../../engine/types';
-import { statblockToCombatant, creatureToCombatant } from '../../state/spawn';
+import { statblockToCombatant, creatureToCombatant } from '../../noyau/monde/spawn';
 import { findCreatureById } from '../../data';
 
 /** Lot C — Traits de créature (LDB 85). Tests PURS des helpers + dérivation de profil au spawn. */

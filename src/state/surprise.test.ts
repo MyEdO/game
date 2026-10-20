@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { applySurprise, computeMoveReach } from './combatFlow';
-import { chooseEnemyAction } from './ai';
+import { applySurprise, computeMoveReach } from '../noyau/combatFlow';
+import { chooseEnemyAction } from '../noyau/monde/ai';
 import { effectiveMovement } from '../engine/encumbrance';
 import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';

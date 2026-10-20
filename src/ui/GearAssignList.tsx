@@ -1,6 +1,7 @@
-import { useGame, type LootGear } from '../state/store';
+import { useGame } from '../state/store';
+import { type LootGear } from '../noyau/pendings';
 import { giveTrappingQualities } from '../engine/items';
-import { appraiseRefus } from '../state/merchantFlow';
+import { appraiseRefus } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { PortraitPicker } from './console/PortraitPicker';
 import { QualityChips } from './EntityChip';

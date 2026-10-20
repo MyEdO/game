@@ -9,7 +9,7 @@
  *  3. le LECTEUR (`symptomOnTick`, `tickDisease`) ne tire sa Difficulté et ses ops QUE du nœud —
  *     vérifié étape par étape sur chaque maladie porteuse (chemin DIFFÉRÉ), la COUVERTURE des
  *     porteurs et des sévérités étant elle-même assertée depuis la donnée ;
- *  4. la branche `success` est VIDE partout : le canal `diseaseTick` (`state/restFlow.ts`) n'applique
+ *  4. la branche `success` est VIDE partout : le canal `diseaseTick` (`noyau/restFlow.ts`) n'applique
  *     que l'échec, une branche de réussite peuplée serait ignorée en silence.
  */
 import { describe, it, expect } from 'vitest';
@@ -128,7 +128,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
 
   it('MORSURE : le porteur REFUSE une branche `success` peuplée et une branche `fail` à embranchement', () => {
     // AFFORDANCE MORTE, verrouillée PAR CONSTRUCTION (`noeudTest`, option `echecSeulServi`) : le canal
-    // différé (`registerNightBandApplier('diseaseTick')`, `state/restFlow.ts`) rend une liste VIDE sur
+    // différé (`registerNightBandApplier('diseaseTick')`, `noyau/restFlow.ts`) rend une liste VIDE sur
     // une réussite, et `spellOps` extrait les ops À PLAT — un `if` sous `fail` promettrait les ops des
     // deux côtés. Les deux formes seraient authorables sans effet, donc menteuses.
     const base = lire('symptoms.json');

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { shipUndercrew } from './shipCrew';
+import { shipUndercrew } from '../noyau/shipCrew';
 import type { Combatant } from '../engine/types';
-import type { Get } from './flowTypes';
+import type { Get } from '../noyau/flowTypes';
 
 // Cogue : équipage NOMINAL 15 (vehicles.json). Un marin « présent » = crewId vivant (exposedCrew : !dead && PB>0).
 const crewman = (id: string): Combatant =>

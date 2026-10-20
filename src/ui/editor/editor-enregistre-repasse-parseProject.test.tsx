@@ -12,9 +12,9 @@ import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
 import { __setFabriqueIdbForTest } from '../../web/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee } from '../../web/indexedDb.testkit';
-import { parseProject } from '../../state/worldMap';
+import { parseProject } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { Editor } from './Editor';
 import { allBuiltinCampaigns, paquetDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 

@@ -6,17 +6,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene, Scene } from '../noyau/monde/scene';
-import { buildEncounter } from './encounterAuthoring';
-import type { MapRouteTrace, WorldMap } from './worldMap';
-import { campaignStart } from '../engine/clock';
+import { buildEncounter } from '../noyau/monde/encounterAuthoring';
+import type { MapRouteTrace, WorldMap } from '../noyau/worldMap';
+import { campaignStart, dayIndex } from '../engine/clock';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { rationCount } from '../engine/provisions';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Possession } from '../engine/possession';
-import { draineCascade } from './cascadeTestKit';
-import { dayIndex } from './upkeep';
+import { draineCascade } from './cascade.testkit';
 
 const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
 

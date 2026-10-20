@@ -18,9 +18,9 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  *  le canal `OpsCtx.onCondition` (#1330 lot A) soit relayé jusqu'à eux par un canal de journal APPARIÉ
  *  — tant que les fabricants rendent des `string[]` nus, l'id ne peut pas les rejoindre. */
 const REMAINING: Record<string, number> = {
-  'src/state/combatFlow.ts': 8, // dont DEUX sur la même ligne (lutte : dégâts de filet + issue)
-  'src/state/combatEffects.ts': 1,
-  'src/state/combatPlacement.ts': 1,
+  'src/noyau/combatFlow.ts': 8, // dont DEUX sur la même ligne (lutte : dégâts de filet + issue)
+  'src/noyau/combatEffects.ts': 1,
+  'src/noyau/combatPlacement.ts': 1,
   'src/ui/StateRecoveryModal.tsx': 1,
   // Tests qui FABRIQUENT un événement `condition` — ils tomberont avec leurs sites de production.
   'src/state/combat/aa-bleed-unconscious.test.ts': 1,

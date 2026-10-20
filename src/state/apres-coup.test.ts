@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { maybeOpenDefense, openAttackCascade, applyAttackResult, jouerLApresCoup, aiCreatureFreeAttacks } from './combatFlow';
+import { maybeOpenDefense, openAttackCascade, applyAttackResult, jouerLApresCoup, aiCreatureFreeAttacks } from '../noyau/combatFlow';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { resetCadence } from '../engine/cadence';
@@ -20,7 +20,7 @@ import { resolveMelee, freeAttackWeapon, type AttackResult } from '../engine/com
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 
 const g = useGame.getState;
 const CH = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };

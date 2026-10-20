@@ -5,8 +5,8 @@ import { createHero } from '../engine/character';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { deElide } from '../i18n';
 import { startCascade, runCascadeImmediate } from '../noyau/cascade';
-import { spyApplier } from './cascadeTestKit';
-import { FLOWS } from './rollFlowSpecs';
+import { spyApplier } from './cascade.testkit';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import type { CascadeStep, PendingReload, PendingTest } from '../noyau/pendings';
 
 /**

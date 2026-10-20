@@ -11,7 +11,7 @@
  * LDB 17 l.61 : « Retirez un État : si vous retirez l'État à Terre, regagnez 1 Point de Blessure
  * lorsque vous vous mettez debout. » — UN État, jamais la source entière.
  *
- * CHEMIN RÉEL de bout en bout : le Sort du catalogue est lancé par `applyCast` (`state/combatFlow`,
+ * CHEMIN RÉEL de bout en bout : le Sort du catalogue est lancé par `applyCast` (`noyau/combatFlow`,
  * l'appel même que la confirmation d'incantation fait, `combatFlow.ts:4980-4988`), la Surincantation de
  * Durée passe par ses pas (`overcast.duration` → `overcastDurationParts`), la Détermination par le
  * store (`spendResolveCondition`) et la fin de Round par ses hooks (`runCombatHooks('onRoundEnd')`,
@@ -19,9 +19,9 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from '../state/store';
-import { applyCast } from '../state/combatFlow';
-import { runCombatHooks } from '../state/combatHooks';
-import '../state/combat/roundHooks'; // effet de bord : enregistre le hook `tick-durations` (order 15.5)
+import { applyCast } from '../noyau/combatFlow';
+import { runCombatHooks } from '../noyau/combatHooks';
+import '../noyau/combat/roundHooks'; // effet de bord : enregistre le hook `tick-durations` (order 15.5)
 import { effectSourcesOf } from '../noyau/triggeredEffects';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';

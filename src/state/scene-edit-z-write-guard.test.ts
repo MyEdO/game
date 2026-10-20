@@ -13,7 +13,7 @@ import { scanSceneEditZWrites } from '../../scripts/guards/lib/sceneEditZWrite.m
  * DOIT déclarer un paramètre `z`.
  */
 
-const SCENE_EDIT_PATH = fileURLToPath(new URL('./sceneEdit.ts', import.meta.url));
+const SCENE_EDIT_PATH = fileURLToPath(new URL('../noyau/sceneEdit.ts', import.meta.url));
 
 describe('garde-fou « écriture du z sur sceneEdit.ts » (AST, tolérance zéro)', () => {
   it('aucune primitive exportée de sceneEdit.ts ne pousse dans une collection z-portante sans paramètre `z`', () => {

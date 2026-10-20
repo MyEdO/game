@@ -22,12 +22,12 @@ const SCAN_DIRS = ['src'];
 
 /** Importeurs AUTORISÉS de `fireTriggers`/`runCombatHooks` (chemins POSIX relatifs à la racine). */
 const WHITELIST = new Set<string>([
-  'src/state/combatEvents.ts', // l'unique porte
+  'src/noyau/combatEvents.ts', // l'unique porte
   'src/noyau/triggeredEffects.ts', // définit fireTriggers
-  'src/state/combatHooks.ts', // définit runCombatHooks
-  'src/state/combat/roundHooks.ts', // bus-owned : boucles de cycle onRoundEnd/onRoundStart
-  'src/state/combat/turnHooks.ts', // bus-owned : boucles de cycle onTurnStart/onTurnEnd
-  'src/state/clockHooks.ts', // bus-owned : boucle de cycle d'HORLOGE onDayStart/onWake (jumeau hors-combat de roundHooks)
+  'src/noyau/combatHooks.ts', // définit runCombatHooks
+  'src/noyau/combat/roundHooks.ts', // bus-owned : boucles de cycle onRoundEnd/onRoundStart
+  'src/noyau/combat/turnHooks.ts', // bus-owned : boucles de cycle onTurnStart/onTurnEnd
+  'src/noyau/clockHooks.ts', // bus-owned : boucle de cycle d'HORLOGE onDayStart/onWake (jumeau hors-combat de roundHooks)
 ]);
 
 
@@ -42,7 +42,7 @@ describe('quarantaine d’import — bus d’événements de combat unique (#316
     }
     expect(
       offenders,
-      'Dispatch DIRECT ré-ouvert — passer par emitCombatEvent (src/state/combatEvents.ts) ; ' +
+      'Dispatch DIRECT ré-ouvert — passer par emitCombatEvent (src/noyau/combatEvents.ts) ; ' +
         `si module bus-owned légitime, l’ajouter à WHITELIST :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });

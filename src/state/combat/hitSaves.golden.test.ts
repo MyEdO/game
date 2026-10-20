@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
-import { applyAttackResult } from '../combatFlow';
+import { applyAttackResult } from '../../noyau/combatFlow';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
-import { draineEtLit } from '../cascadeTestKit';
+import { draineEtLit } from '../cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { emptyScene } from '../../noyau/monde/scene';
-import { OPS_DIFFEREES } from '../combatEffects';
+import { OPS_DIFFEREES } from '../../noyau/combatEffects';
 
 /**
  * GOLDEN des SAUVEGARDES POST-TOUCHE (filet anti-régression Phase 2) : `applyAttackResult` applique,

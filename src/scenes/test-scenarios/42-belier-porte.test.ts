@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from './42-belier-porte';
-import { resolveAttack, firedWeapon, firedAttackBlock, attackPlan } from '../../state/combatFlow';
-import { placeCombatant } from '../../state/spawn';
+import { resolveAttack, firedWeapon, firedAttackBlock, attackPlan } from '../../noyau/combatFlow';
+import { placeCombatant } from '../../noyau/monde/spawn';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { combatValue } from '../../engine/combat';
 import { effectiveChar } from '../../engine/characteristics';
 import { rule } from '../../engine/policy';
-import { pushSlot } from '../../state/siegePush';
-import { hoverTargeting } from '../../state/targeting';
+import { pushSlot } from '../../noyau/siegePush';
+import { hoverTargeting } from '../../noyau/targeting';
 import type { Combatant } from '../../engine/types';
 import { chebyshev } from '../../engine/grid';
 const scenarioConstruit = scenario.construire();

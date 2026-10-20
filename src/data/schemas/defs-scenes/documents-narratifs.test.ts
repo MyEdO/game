@@ -13,7 +13,7 @@ import { projetSchema } from './projet';
 import { narratifSchema } from './narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from './registres-narratifs';
 import { cheminLisible, validateDocument } from '../validate';
-import { emptyNarratif } from '../../../state/campaignNarratif';
+import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 
 type Jouet = Record<string, unknown>;
 

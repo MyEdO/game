@@ -4,7 +4,7 @@ import { evalCondition, spellFlowFor } from '../engine/flowCore';
 import type { ConditionCtx } from '../engine/flowCore';
 import { chaosDomainOf } from '../engine/combatFeatures/dispatch';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
-import { buildActorView } from '../noyau/combat/flowEval';
+import { buildActorView } from '../engine/actorView';
 import { findSpellById } from '../data';
 
 /**

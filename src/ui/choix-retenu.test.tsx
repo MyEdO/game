@@ -10,7 +10,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import type { PendingSeaActivities, SeaActivityPick } from '../state/seaActivities';
+import type { PendingSeaActivities, SeaActivityPick } from '../noyau/seaActivities';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';

@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
  *
  * Le nœud `test` (`FlowTestNode`, `src/engine/flowCore.ts`) est la forme UNIQUE du jet en donnée. Un
  * moteur qui LIT ce nœud le REND (`mkTest` → `MiscastResult.testFlow` → `runCombatFlow`,
- * `state/combatFlow.ts:4143`) ou le DIFFÈRE (`UpkeepDeferTest`, `src/engine/types.ts`) ; s'il le
+ * `noyau/combatFlow.ts:4143`) ou le DIFFÈRE (`UpkeepDeferTest`, `src/engine/types.ts`) ; s'il le
  * ROULE, l'issue est décidée hors de toute fenêtre de joueur — ni Chance, ni Pacte, ni Résilience —
  * c'est-à-dire la « classe spéciale » de Test que la doctrine des jets interdit.
  *

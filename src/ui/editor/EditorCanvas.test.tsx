@@ -8,7 +8,7 @@ import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { diamondPath, tileCenter } from '../../geometry/iso';
 import { DEFAULT_LAYERS } from './editorState';
 import type { LowerLayerMode } from './lowerLayerGabarit';
-import type { PlanDefectAt } from '../../state/planDefects';
+import type { PlanDefectAt } from '../../noyau/planDefects';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

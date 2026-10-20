@@ -9,8 +9,8 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { datasetArray, setDataset } from '../data/overrides';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
-import type { TavernPayload } from './tavernFlow';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import type { TavernPayload } from '../noyau/tavernFlow';
+import { avanceEtapeCascade } from './cascade.testkit';
 
 const get = useGame.getState.bind(useGame);
 

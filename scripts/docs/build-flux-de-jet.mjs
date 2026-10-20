@@ -3,10 +3,10 @@
  * (« une situation = une modale »).
  *
  * Part FACTUELLE, DÉRIVÉE à chaque génération :
- *  - le CYCLE : les membres de `RollVerb` (`src/state/flowVerbs.ts`) ;
+ *  - le CYCLE : les membres de `RollVerb` (`src/noyau/flowVerbs.ts`) ;
  *  - le REGISTRE : chaque entrée de `FLOW_VERBS` (kind, verbes, porteur du jet ou `pidIsActor`/
- *    `coop`, actions de résolution), confrontée à `FLOWS` (`src/state/rollFlowSpecs.ts`) et au
- *    registre des modales (`src/state/modalArbiter.ts`) ;
+ *    `coop`, actions de résolution), confrontée à `FLOWS` (`src/noyau/rollFlowSpecs.ts`) et au
+ *    registre des modales (`src/noyau/modalArbiter.ts`) ;
  *  - les FABRIQUES et LENTILLES partagées à réutiliser, avec leur site réel ;
  *  - les ATOMES obligatoires, lus dans la garde anti-dérive elle-même ;
  *  - les GARDES : chemin ancré + intitulé de leur `describe(...)`.
@@ -24,10 +24,10 @@ import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-flux-de-jet'
-  const VERBS = 'src/state/flowVerbs.ts'
-  const SPECS = 'src/state/rollFlowSpecs.ts'
-  const FACTORY = 'src/state/rollFlowFactory.ts'
-  const ARBITER = 'src/state/modalArbiter.ts'
+  const VERBS = 'src/noyau/flowVerbs.ts'
+  const SPECS = 'src/noyau/rollFlowSpecs.ts'
+  const FACTORY = 'src/noyau/rollFlowFactory.ts'
+  const ARBITER = 'src/noyau/modalArbiter.ts'
   const DRIFT = 'src/state/rollflow-no-drift.test.ts'
 
   function abandon(msg) {
@@ -325,7 +325,7 @@ registre et les handlers divergent.
     out,
     path: 'docs/ajouter-un-flux-de-jet.md',
     staleMsg:
-      'docs:flux-de-jet — docs/ajouter-un-flux-de-jet.md est PÉRIMÉ (diverge de src/state/flowVerbs.ts, rollFlowSpecs.ts, rollFlowFactory.ts, modalArbiter.ts, de la garde anti-dérive, ou du script).',
+      'docs:flux-de-jet — docs/ajouter-un-flux-de-jet.md est PÉRIMÉ (diverge de src/noyau/flowVerbs.ts, rollFlowSpecs.ts, rollFlowFactory.ts, modalArbiter.ts, de la garde anti-dérive, ou du script).',
     rerunMsg: '  → relancer `npm run docs:flux-de-jet` (dérivé jamais commité, #2203).',
     okMsg: 'docs:flux-de-jet — OK (docs/ajouter-un-flux-de-jet.md à jour)',
     writeMsg: `docs/ajouter-un-flux-de-jet.md — ${FLUX.length} flux (${MONO.length} mono, ${MULTI.length} multi), ${PARTAGES.length} primitives partagées, ${ATOMES.length} atomes, ${GARDES_MESUREES.length} gardes.`,

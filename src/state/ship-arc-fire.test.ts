@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { firedAttackBlock } from './combatFlow';
+import { firedAttackBlock } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 

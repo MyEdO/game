@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { previewResourceDelta } from './combatFlow';
+import { previewResourceDelta } from '../noyau/combatFlow';
 
 /**
  * `previewResourceDelta` (retour « clignotant » des gouttières de l'arche) lit le coût/gain de

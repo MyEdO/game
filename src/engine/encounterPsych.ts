@@ -9,7 +9,7 @@
  * `targetCauses` (Phobie) par le régime qu'ils CAUSENT (LDB 21 l.87) : la porte est portée par
  * l'OBSERVATEUR, pas par le statbloc croisé, donc l'arbitrage 2026-06-10 reste entier. RAW LDB 21,
  * dont l'exemple canonique (l.11) se passe DANS UNE TAVERNE. Le combat, lui, garde Peur/Terreur de
- * créature (cf. `collectHeroRoundStartPsych` / `collectHeroRoundEndPsych` dans state/combatFlow).
+ * créature (cf. `collectHeroRoundStartPsych` / `collectHeroRoundEndPsych` dans noyau/combatFlow).
  *
  * Pur et découplé : prend les PNJ déjà décrits en `Combatant` (groups). Immunité (Psychologie) et
  * Frénésie court-circuitent. Le branchement (entrée de scène / dialogue → modale) vit dans la couche state.

@@ -12,7 +12,7 @@
  *   1=(-1,-1) 2=(0,-1) 3=(+1,-1) | 4=(-1,0) T 5=(+1,0) | 6=(-1,+1) 7=(0,+1) 8=(+1,+1)
  *
  * PRIMITIVE PURE et réutilisable (« peut être utilisée à chaque fois qu'une direction aléatoire est
- * requise ») : RNG injecté, aucun effet de bord. Le câblage (FX/journal) vit dans `state/combatFlow`.
+ * requise ») : RNG injecté, aucun effet de bord. Le câblage (FX/journal) vit dans `noyau/combatFlow`.
  */
 import { RNG, d10 } from './dice';
 import { chebyshev } from './grid';

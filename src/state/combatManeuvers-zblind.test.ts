@@ -7,7 +7,7 @@
  * `t.z ?? 0` à `p.z ?? 0`). Ce test verrouille la propagation.
  */
 import { describe, it, expect } from 'vitest';
-import { resolveManeuver } from './combatManeuvers';
+import { resolveManeuver } from '../noyau/combatManeuvers';
 import { zoneCovers } from '../noyau/monde/zones';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';

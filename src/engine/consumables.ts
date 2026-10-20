@@ -3,7 +3,7 @@
  * **Flow** (`ItemInstance.consumable`, copié du catalogue `TrappingData.consumable`) : MÊME structure
  * authorée que les sorts/triggers — feuilles `do` d'EffectOp, branches `if`, et nœuds `test` pour les
  * Tests « au boire » (Brise-cœur « Combattu avec un Test de Résistance Complexe (-10) », Belladone…),
- * résolus CADENCE-AWARE par le runner state (`state/consumableFlow.runConsumable`) — jamais un jet
+ * résolus CADENCE-AWARE par le runner state (`noyau/consumableFlow.runConsumable`) — jamais un jet
  * silencieux de héros. Ce module ne porte que le PUR : prédicat, durée, bake.
  */
 import { Combatant, ItemInstance } from './types';

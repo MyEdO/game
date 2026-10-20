@@ -21,10 +21,10 @@
  * `attack-intent-ownership.test.ts`) qui couvre ce plan-là.
  */
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, type JetOwnerRef } from './flowVerbs';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOW_VERBS, type JetOwnerRef } from '../noyau/flowVerbs';
+import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
 import type { GameState } from './store';
-import type { Get } from './flowTypes';
+import type { Get } from '../noyau/flowTypes';
 
 const MONO = (Object.entries(FLOW_VERBS) as [string, { kind: string; jetOwner?: JetOwnerRef }][])
   .filter(([, w]) => w.kind === 'mono');

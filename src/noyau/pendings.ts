@@ -21,9 +21,9 @@ import type { StakeRef, SpellData } from '../data';
 import type { CastResult, MissileResult, FocusResult, CounterspellOutcome } from '../engine/magic';
 import type { HealMode } from '../engine/healing';
 import type { PsychType } from '../engine/psychology';
-import type { RecoverOpposition } from '../state/combat/recover';
+import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
-import type { RollParticipant, MultiPending, PendingBase } from '../state/rollFlowFactory';
+import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
@@ -34,7 +34,6 @@ import type { TestNomme } from '../engine/reglesChiffrees';
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
 export type CrewRoleRoll = { roll: number; target: number; sl: number; sansJet?: undefined } | EchecSansJet;
 
-export type { Money };
 /** Une ligne de butin d'équipement (giveTrapping) ATTRIBUABLE par portrait — partagée entre
  *  l'écran de victoire et la fenêtre de loot (fouille/Test/dialogue). `magic` = qualités cachées
  *  ou ajoutées, révélables par Évaluation. L'Effet d'origine est conservé tel quel. */
@@ -90,7 +89,7 @@ export interface PendingVictory {
 }
 /** CONVERSATION EN COURS : le dialogue ouvert, le nœud courant, l'interlocuteur de session, et la
  *  `session` — id MONOTONE posé à l'ouverture par l'unique fabrique `ouvrirDialogue`
- *  (`state/dialogue.ts`). La session REGROUPE les tours d'une même conversation à la relecture : deux
+ *  (`noyau/dialogue.ts`). La session REGROUPE les tours d'une même conversation à la relecture : deux
  *  visites au même PNJ portent deux ids, là où `dialogueId` seul les confondait. */
 export interface EtatDialogue {
   dialogue: Dialogue;
@@ -583,10 +582,10 @@ export interface PendingRun {
   rerolled?: boolean;
 }
 /** Chute VOLONTAIRE en attente (LDB 15 l.82 ; EDO 01 l.231) : posée par `fallAcross` (case de départ en
- *  bordure d'une falaise, `state/fallMove.planFranchissement`) vers `to` (case d'atterrissage, couche
+ *  bordure d'une falaise, `noyau/fallMove.planFranchissement`) vers `to` (case d'atterrissage, couche
  *  comprise), hauteur RÉELLE `metres` (relief). Étape À PARTICIPANTS, patron Contre-sort
  *  (`CounterParticipant.declared`) : UNE rangée par TOMBANT, chacune déclare son choix pré-jet. La PHASE
- *  (`'choice' | 'roll'`) se DÉRIVE de l'état par `phaseDeChute` (`state/fallMove.ts`), jamais stockée
+ *  (`'choice' | 'roll'`) se DÉRIVE de l'état par `phaseDeChute` (`noyau/fallMove.ts`), jamais stockée
  *  ni déduite au site UI (#1117). `initiateurId` = qui a ouvert le geste (le meneur en exploration,
  *  l'actif en combat) : propriétaire de la fenêtre (Confirmer / Annuler). */
 export interface PendingFall extends MultiPending<TombantParticipant> {
@@ -1450,7 +1449,7 @@ export interface CounterParticipant extends RollParticipant {
  *  jet d'incantation FIGÉ vit dans `pendingCast` ; ce pending porte les contre-lanceurs recensés par
  *  `routeCounterspell` — rangée INTERACTIVE pour ceux qu'un siège possède (héros, ennemi sous siège
  *  MJ), rangée TÉMOIN pour les autres. PLUSIEURS peuvent chanter contre la même incantation (#1040,
- *  cf. `counterspellConfirm` dans `src/state/combatSlice.ts`), qui agrège les issues à l'application.
+ *  cf. `counterspellConfirm` dans `src/noyau/combatSlice.ts`), qui agrège les issues à l'application.
  *  « Laisser passer » = personne n'a chanté → repli sur le meilleur candidat IA s'il en reste un,
  *  sinon le Sort se résout tel quel. */
 export type PendingCounterspell = MultiPending<CounterParticipant>;
@@ -1740,7 +1739,7 @@ export interface CascadeStepMeta {
   /** Branche d'échec d'une étape `triggeredTest`. */
   onFail?: Flow;
   /** Ops d'échec d'un Test de cycle de maladie (`diseaseTick`, `engine/disease.ts`), appliquées à plat
-   *  par `applyOps` (`state/restFlow.ts`). */
+   *  par `applyOps` (`noyau/restFlow.ts`). */
   opsEchec?: GameOp[];
   /** Branche OUI d'une étape `triggeredChoice` (décision opt-in acceptée — Frappe réactive « tenter »). */
   choiceYes?: Flow;
@@ -2323,7 +2322,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  arrivée via le handler du domaine), 'test' (autonome), 'combat' (conséquences d'un jet de combat —
    *  fermeture simple, pas de reprise), 'sequence' (manche d'une SÉQUENCE — poursuite terrestre, jeu de
    *  taverne opposé… : à la clôture le store passe la manche au réducteur du socle, qui rouvre ou dénoue,
-   *  cf. state/sequenceCore) ; 'seaScorbut'/
+   *  cf. noyau/sequenceCore) ; 'seaScorbut'/
    *  'seaExhaustion' : les BANDES de l'entretien-survie maritime (Scorbut MDG 14 l.230, Épuisement
    *  MDG 13 l.109-111) — une rangée par héros appelé, surfacée dès qu'un siège humain tient l'un d'eux
    *  (`rollSeam.surfaceDesEtapes`, #1479) ; à la clôture, le store enchaîne la phase suivante de la
@@ -2369,19 +2368,19 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  `finalizePortArrival` — `resolvePortArrival` peut ouvrir SA propre cascade (`openEmbrigadementRecovery`)
    *  sans garde de synchro puisque `pendingCascade` est DÉJÀ null post-`advanceCascade` (#387, patron #383). */
   portArrival?: { toPlaceId: string; allow: boolean };
-  /** Repos MULTI-JOURS authoré (#347, `state/restFlow.ts`) : nuits ENCORE à enchaîner après CETTE
+  /** Repos MULTI-JOURS authoré (#347, `noyau/restFlow.ts`) : nuits ENCORE à enchaîner après CETTE
    *  cascade + le contexte de repos (couchage/pitance par héros) nécessaire pour reconstruire la nuit
    *  suivante. La clôture ('night' purpose) enchaîne `continueRestNights` tant que `nightsLeft > 0` —
    *  CHAQUE nuit reste sa PROPRE cascade influençable (patron #253, jamais un jet pré-résolu) ; la nuit
    *  N+1 ne peut PAS être pré-construite avant que la nuit N soit validée (l'entretien du jour N+1 lit
    *  l'état MUTÉ par la nuit N — compteurs de faim/soif, jours de maladie…). */
-  restNights?: { p: import('../state/restFlow').PendingRest; nightsLeft: number };
+  restNights?: { p: import('./restFlow').PendingRest; nightsLeft: number };
 }
 
 /** Soin de Guérison en attente (LDB 09-Compétences) : flux modale — « Lancer » (healRoll) → Chance
  *  (relance / +1 DR) → Résilience → « Appliquer » (healConfirm). Soigneur/cible résolus par `actorIn`
  *  (combat ⇄ groupe, cf. combatOrParty). `intBonus` figé à l'ouverture. La CHIRURGIE n'est PLUS un
- *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (state/medicFlow). */
+ *  mode de pendingHeal : c'est une opération « armée » sur l'infirmerie (noyau/medicFlow). */
 export interface PendingHeal {
   healerId: string;
   healerName: string;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, tileAt, heightAt, surfaceLink, layerTiles, normalizeAmbiance, isIndoor } from './scene';
-import { evalCondition } from './flow';
+import { evalCondition } from '../../engine/flowCore';
 import type { Scene, Terrain } from './scene';
 
 describe('evalCondition flag — conditions de flag (triggers + dialogues, source unique)', () => {

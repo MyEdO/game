@@ -15,7 +15,7 @@ import { useGame } from '../state/store';
 import { dismissStackKinds, subscribeDismissStack } from '../state/dismissStack';
 import { KEYBINDINGS, runBindingById } from '../state/clavier/keybindings';
 import { seedBattleRng } from '../noyau/battleRng';
-import { validTargets } from '../state/targeting';
+import { validTargets } from '../noyau/targeting';
 import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import { dialogueDuDessus, resetDismissLayers } from './useDismissLayer';
@@ -31,7 +31,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { PovControls } from './PovControls';
 import { campaignStart } from '../engine/clock';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 import { tacheSuivante } from './focus.testkit';
 
 beforeAll(() => {

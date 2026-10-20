@@ -1,7 +1,7 @@
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
 

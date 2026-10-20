@@ -29,7 +29,7 @@ export function RecapLineList({ lines }: { lines: RecapLine[] }) {
 }
 
 /** Rendu SECTIONNÉ par phase (dette 3, #349) — jour CLOS de la chronique de voyage : les lignes
- *  émises par la cascade `travelDay` portent déjà `phase` (`state/travelFlow.stepRecapLines`), le
+ *  émises par la cascade `travelDay` portent déjà `phase` (`noyau/travelFlow.stepRecapLines`), le
  *  groupage tombe GRATUITEMENT (`groupRecapLinesByPhase`, MÊME catalogue que l'agenda du jour EN
  *  COURS). Un jour SANS ligne phasée (mer/fleuve) rend un seul groupe SANS titre — comportement
  *  identique à `RecapLineList`. */

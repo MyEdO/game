@@ -16,8 +16,8 @@ import { DrBar } from './DrBar';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
-import type { FLOW_VERBS } from '../state/rollFlowSpecs';
-import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../state/rollFlowFactory';
+import type { FLOW_VERBS } from '../noyau/flowVerbs';
+import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
 
 /** Libellé par défaut du bouton « Lancer » (rangée seule ET coquille `RollShell` hissée). */
 export const DEFAULT_ROLL_LABEL = <><Icon id="nav/dice" size="sm" /> Lancer</>;
@@ -32,7 +32,7 @@ export const DEFAULT_ROLL_LABEL = <><Icon id="nav/dice" size="sm" /> Lancer</>;
  * permettent une rangée sans objet `Combatant` (vues pures testables).
  *
  * Les FENÊTRES des verbes d'influence ne sont pas des props : elles se dérivent ICI, une fois, des
- * prédicats du seam (`state/rollFlowFactory.ts`) appliqués aux FAITS de la rangée — l'acteur, le jet
+ * prédicats du seam (`noyau/rollFlowFactory.ts`) appliqués aux FAITS de la rangée — l'acteur, le jet
  * posé (`row.d`), la relance déjà consommée (`rerolled`). Un flux n'OFFRE un verbe qu'en passant son
  * handler.
  */

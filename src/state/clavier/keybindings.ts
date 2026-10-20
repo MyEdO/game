@@ -19,24 +19,24 @@
  */
 import type { GameState } from '../store';
 import { useGame } from '../store';
-import { activeCombatant } from '../combatFlow';
-import { controlsActive } from '../netOwnership';
-import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../dialogue';
+import { activeCombatant } from '../../noyau/combatFlow';
+import { controlsActive } from '../../noyau/netOwnership';
+import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../../noyau/dialogue';
 import { modaleDuDessus } from '../dismissStack';
-import { modalHolds } from '../modalArbiter';
+import { modalHolds } from '../../noyau/modalArbiter';
 import { modalBlocksMapHover } from '../mapHover';
 import { hotbar } from '../hotbarBridge';
 import { editeur } from '../editeurBridge';
 import { TOUCHES_IMPRIMEES } from '../dispositionConsole';
-import { runAction, currentInterludeAction, actionGate } from '../actionRegistry';
-import { validTargets, preemptShooterIds } from '../targeting';
+import { runAction, currentInterludeAction, actionGate } from '../../noyau/actionRegistry';
+import { validTargets, preemptShooterIds } from '../../noyau/targeting';
 import type { ScreenDir } from '../combatCursor';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stageYaw';
 import { arreterMarche, demarrerMarche } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
-import { roomFocusAt } from '../rooms';
+import { roomFocusAt } from '../../noyau/monde/rooms';
 
 /** Code physique de la touche d'ANNULATION — le registre en est la source, `resoudreEchap` et la
  *  pile de couches s'y réfèrent ; seule écriture du littéral sous `src/` (mur `murs/echap`). */

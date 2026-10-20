@@ -14,13 +14,13 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { initialFields } from './stateFields';
-import { intentAllowedFor, withActingSeat, seatInfluences } from './netOwnership';
+import { initialFields } from '../noyau/stateFields';
+import { intentAllowedFor, withActingSeat, seatInfluences } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from './intents';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant, Weapon } from '../engine/types';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 
 const NET0 = useGame.getState().net;

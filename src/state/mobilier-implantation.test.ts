@@ -25,7 +25,7 @@ import { chebyshev } from '../engine/grid';
  *
  * Ce qui relève d'un DÉFAUT DE CONTENU d'une carte (un meuble hors de toute pièce, un meuble sur un
  * seuil de porte, une place dont l'abord est hors de la composante jouable) n'est PAS ici : ce sont
- * des familles de `state/planDefects.ts` (`PLAN_DEFECT_FAMILIES`) à poser, montrées à l'auteur dans
+ * des familles de `noyau/planDefects.ts` (`PLAN_DEFECT_FAMILIES`) à poser, montrées à l'auteur dans
  * l'éditeur — jamais un test qui photographie une carte livrée.
  */
 

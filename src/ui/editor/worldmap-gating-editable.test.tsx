@@ -13,9 +13,9 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapEditor } from './WorldMapEditor';
-import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../state/worldMap';
+import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
 import { tacheSuivante } from '../focus.testkit';
 

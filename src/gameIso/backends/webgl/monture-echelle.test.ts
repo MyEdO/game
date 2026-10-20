@@ -7,7 +7,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { creatures, trappings, vehicles } from '../../../data';
-import { spawnEnemy } from '../../../state/spawn';
+import { spawnEnemy } from '../../../noyau/monde/spawn';
 import { actorDrawInputs } from './sceneMeshes';
 import { combatantRender, footprintTokenScale, sizeTokenScale } from '../../sizeScale';
 

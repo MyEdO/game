@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { collapseStructure } from './combatFlow';
+import { collapseStructure } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';
 import { isWalkable, tileCollapsed, structureIsDown, type Scene, type Terrain } from '../noyau/monde/scene';
 import { testScene } from '../scenes/test-fixture';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 
 /**
  * Effondrement de PASSERELLE (Lot B) : abattre une STRUCTURE de sol (herse) fait s'effondrer la passerelle

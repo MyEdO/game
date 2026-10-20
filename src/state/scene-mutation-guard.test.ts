@@ -5,7 +5,7 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { detenteur } from '../detenteur.testkit';
 
 /**
- * Garde-fou « immutabilité de la scène du store » — `src/state/vision.ts` et
+ * Garde-fou « immutabilité de la scène du store » — `src/noyau/monde/vision.ts` et
  * `src/noyau/monde/sceneMemo.ts` (`memoByRef`) reposent sur l'invariant qu'aucun code de `src/**` ne
  * réassigne un champ/tableau d'un porteur de `Scene` EN PLACE (`scene.<champ> = …`, alias,
  * `get().scene`, `.push(`/`.splice(` mutants…) : toute mise à jour produit une NOUVELLE scène par

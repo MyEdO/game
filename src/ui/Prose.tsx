@@ -25,7 +25,7 @@ import { ParchmentCard } from './ParchmentCard';
 import { tokenizeLinks } from './compendium/relations';
 import type { Porteur } from './liage';
 import { useIdentites } from './useIdentites';
-import { nommer } from '../state/identites';
+import { nommer } from '../noyau/monde/identites';
 import { decodeString } from 'micromark-util-decode-string';
 
 /** Nœud HAST minimal (sous-ensemble manipulé par le plugin d'auto-liage). */
@@ -232,7 +232,7 @@ function RenduProse({ md, porteur, exergues: avecExergues, annotations, compact 
 }
 
 /** Les props de `Prose`. `paquet` : le texte est une prose de PAQUET (`SITES_PROSE`), rendue nommée par les
- *  identités en vigueur (`nommer`, `src/state/identites.ts`) ; ses annotations, posées sur le texte stocké, en sont exclues. */
+ *  identités en vigueur (`nommer`, `src/noyau/monde/identites.ts`) ; ses annotations, posées sur le texte stocké, en sont exclues. */
 type ProseProps = { md: string; porteur?: Porteur; exergues?: boolean; compact?: boolean } & (
   | { paquet?: false; annotations?: readonly AnnotationProse[] }
   | { paquet: boolean; annotations?: never }

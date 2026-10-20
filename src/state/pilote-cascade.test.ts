@@ -2,7 +2,7 @@
  * PILOTE DE CASCADE RECOPIÉ — garde de cliquet (#1765).
  *
  * Une itération de test qui lit `pendingCascade` et joue un verbe `cascade*` PILOTE la cascade à la main,
- * à côté du kit (`cascadeTestKit.ts`) : elle dérive quand un flux est refondu. La MESURE vit dans
+ * à côté du kit (`cascade.testkit.ts`) : elle dérive quand un flux est refondu. La MESURE vit dans
  * `scripts/guards/lib/piloteCascadeAudit.ts`, partagée avec la régénération (`regenerations`) ; le stock
  * `scripts/guards/lib/piloteCascadeStock.mjs` porte les copies restantes et ne fait que décroître.
  */
@@ -12,7 +12,7 @@ import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeSt
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import { detenteur } from '../detenteur.testkit';
-import { avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
+import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from './store';
 
@@ -51,7 +51,7 @@ describe('pilote de cascade : aucune itération de test neuve ne pilote la casca
 describe('morsure : une itération de pilotage ajoutée à une suite rougit la garde', () => {
   const cible = detenteur(() => {
     const stockes = new Set(PILOTE_CASCADE_RATCHET.map((e) => e.fichier));
-    return mesure().corpus.find((f) => f.rel.startsWith('src/state/') && !stockes.has(f.rel) && !f.text.includes('cascadeTestKit'))!;
+    return mesure().corpus.find((f) => f.rel.startsWith('src/state/') && !stockes.has(f.rel) && !f.text.includes('cascade.testkit'))!;
   });
   /** Les sites du corpus, la suite `cible` remesurée sur `texte`. */
   const avec = (texte: string): Site[] => [
@@ -64,7 +64,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
   /** Les `ref` des sites de `texte` — `cible` n'en porte aucun : ce sont ceux de l'ajout. */
   const refs = (texte: string, exemptions?: readonly ExemptionPilote[]) => sitesPiloteCascade([{ rel: cible().rel, text: texte }], exemptions).map((s) => s.ref);
   const cle = (ref: string) => cleDeSite({ fichier: cible().rel, ref, occurrence: 1 });
-  const KIT = "import { avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';";
+  const KIT = "import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';";
   const PAR_HELPER = `${KIT}\nconst avanceMorsure = () => avanceEtapeCascade(g);`;
   const CHOIX_A_LA_MAIN = 'const p = g().pendingCascade; if (!p) break; const cur = p.participants[p.cursor]; if (cur?.options && !cur.chosen) { g().cascadeChoose(cur.id, cur.options[0].key); g().cascadeNext(); continue; }';
   /** Une lecture et un verbe en ligne droite : piloter, dès qu'une itération les exécute. */
@@ -233,7 +233,7 @@ describe('morsure : une itération de pilotage ajoutée à une suite rougit la g
 
   it('un nom importé du kit n’est pas un verbe, importé nommé ou par ESPACE DE NOMS', () => {
     expect(neuves(ajoute('for (const n of [1, 2]) { const p = g().pendingCascade; useGame.setState({ pendingCascade: cascadeDeTest([], { cursor: n }) }); }', KIT))).toEqual([]);
-    const espace = "import * as kit from './cascadeTestKit';";
+    const espace = "import * as kit from './cascade.testkit';";
     expect(neuves(ajoute('for (const n of [1, 2]) { const p = g().pendingCascade; useGame.setState({ pendingCascade: kit.cascadeDeTest([], { cursor: n }) }); }', espace))).toEqual([]);
     expect(neuves(ajoute("for (const n of [1, 2]) { const p = g().pendingCascade; useGame.setState({ pendingCascade: kit['cascadeDeTest']([], { cursor: n }) }); }", espace))).toEqual([]);
   });

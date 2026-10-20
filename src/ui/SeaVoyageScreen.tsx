@@ -10,7 +10,7 @@ import { type SeaWindForceId, windAspect } from '../engine/seaWeather';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { windDirectionSchema } from '../data/schemas/defs-scenes/worldmap';
 import { windAspectSchema } from '../data/schemas/defs/sea-weather';
-import type { TravelRecapDay } from '../state/travelFlow';
+import type { TravelRecapDay } from '../noyau/travelFlow';
 import { vesselHullGauge } from './VoyageScreen';
 import { Row } from './Layout';
 import { t } from '../i18n';

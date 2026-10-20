@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { applyShipPostes } from './shipPostes';
-import { firedWeapon, firedAttackBlock } from './combatFlow';
+import { applyShipPostes } from '../noyau/monde/shipPostes';
+import { firedWeapon, firedAttackBlock } from '../noyau/combatFlow';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';

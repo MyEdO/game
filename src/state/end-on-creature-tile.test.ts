@@ -5,7 +5,7 @@ import { occupied, cannotStopOn } from '../noyau/monde/combatGeometry';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { attackPlan, computeMoveReach, computeRunReach } from './combatFlow';
+import { attackPlan, computeMoveReach, computeRunReach } from '../noyau/combatFlow';
 import { sizeFootprint } from '../noyau/monde/footprint';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';

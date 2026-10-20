@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { shipCrewAssignments, shipMoraleScore, shipDefaultRoles, crewTestContributors } from './shipCrew';
+import { shipCrewAssignments, shipMoraleScore, shipDefaultRoles, crewTestContributors } from '../noyau/shipCrew';
 import { traumaById } from '../engine/trauma';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { Get } from './flowTypes';
+import type { Get } from '../noyau/flowTypes';
 import { propulsionDuNavire } from '../engine/shipBuild';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */

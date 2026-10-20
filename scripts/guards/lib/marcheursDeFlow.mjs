@@ -1,5 +1,5 @@
 import { analyserCorpus } from './dialecte.mjs';
-// Mécanique de scan du CLIQUET des marcheurs de Flow sous `src/state` (#1874, ticket § Lot B : posé
+// Mécanique de scan du CLIQUET des marcheurs de Flow sous `src/state` et `src/noyau` (#1874, ticket § Lot B : posé
 // avec C0 à 4, cible 1). Le verdict et le PLAFOND vivent dans le test (`src/marcheurs-de-flow-guard.test.ts`).
 //
 // EMPREINTE d'un MARCHEUR : un `switch (<x>.kind)` dont la clause `case 'seq'` DESCEND la séquence
@@ -41,7 +41,7 @@ function declarationDeModule(node, sf) {
 /**
  * Les MARCHEURS de Flow d'un corpus : un site par déclaration de module qui porte au moins un
  * `switch (<x>.kind)` à clause `seq` descendante. Rendu TRIÉ (fichier, nom).
- * @param {{ rel: string, text: string }[]} files corpus `src/state/**` (hors tests)
+ * @param {{ rel: string, text: string }[]} files corpus `src/state/**` et `src/noyau/**` (hors tests)
  * @returns {{ file: string, line: number, fn: string }[]}
  */
 export function scanMarcheursDeFlow(files) {

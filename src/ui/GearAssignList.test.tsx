@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { GearAssignList } from './GearAssignList';
-import type { LootGear } from '../state/store';
+import type { LootGear } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { useGame } from '../state/store';
 

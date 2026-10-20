@@ -7,8 +7,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { gainCorruption } from './corruptionFlow';
-import { pilotedByHuman } from './netOwnership';
+import { gainCorruption } from '../noyau/corruptionFlow';
+import { pilotedByHuman } from '../noyau/netOwnership';
 import { tenuParUnHumain } from '../noyau/sieges';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';

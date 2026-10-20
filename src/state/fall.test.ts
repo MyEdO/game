@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
+import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { hasCondition } from '../engine/conditions';
 import { emptyScene, isWalkable, type Effect, type Scene, type Terrain } from '../noyau/monde/scene';
 import { validateScene } from './validateScene';
 import { flowFromEffects } from '../noyau/monde/flow';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';
 
 /**

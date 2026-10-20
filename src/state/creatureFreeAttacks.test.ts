@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { aiCreatureFreeAttacks, applyGaze, applyChillGrasp, applyWail, resolveRoundBoundary } from './combatFlow';
+import { aiCreatureFreeAttacks, applyGaze, applyChillGrasp, applyWail, resolveRoundBoundary } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 import { areGrappling, setGrapple } from '../engine/grapple';
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 
 // Attaques GRATUITES de créature (Taille & traits) : Morsure / Attaque caudale / Piétinement,
 // chacune 1 Avantage, OPPOSÉE (cible Surprise ici → résolution instantanée), gratuite (LDB 85).

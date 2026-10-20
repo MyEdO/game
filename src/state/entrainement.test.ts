@@ -4,11 +4,12 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { makeRNG, roll as rollDice } from '../engine/dice';
 import { toBrass, fromBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse, debitBourse, bourseOf } from './bourseFlow';
+import { partyMoneyTotal, creditBourse, debitBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { advanceCost } from '../engine/advancement';
 import { entrainementOptions, type EntrainementOption } from '../engine/activities';
 import { testScene } from '../scenes/test-fixture';

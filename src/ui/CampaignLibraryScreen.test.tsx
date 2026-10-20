@@ -9,7 +9,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CampaignLibraryScreen, buildImportedProject, importDecision, playerImportError, PlayerFacingImportError } from './CampaignLibraryScreen';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
-import { ProjetRefuse } from '../state/worldMap';
+import { ProjetRefuse } from '../noyau/worldMap';
 import {
   projectSave,
   projectsLoad,

@@ -4,13 +4,13 @@
  * le reçu, à ses trois sites : `parseProject`, `parseSceneDeProjet` et `validateScene`.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from './worldMap';
+import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from '../noyau/worldMap';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { lireBlocsAvances } from '../ui/editor/Editor';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { emptyNarratif } from './campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import type { DescRef } from '../data/schemas/grammaire/valeurs';
 
 const DESC_REF = {

@@ -11,7 +11,7 @@ import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { type SavedProject } from '../../state/projectLibrary';
 import { __setFabriqueIdbForTest } from '../../web/indexedDb';
 import { brancherBasesSimulees } from '../../web/indexedDb.testkit';
-import { parseProject } from '../../state/worldMap';
+import { parseProject } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { Editor } from './Editor';
 

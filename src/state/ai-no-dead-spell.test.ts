@@ -10,8 +10,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { spells } from '../data';
-import { spellActionValue, spellIsOffensive, type SpellPlacement } from './aiSpellValue';
-import { spellOps } from '../noyau/monde/flow';
+import { spellActionValue, spellIsOffensive, type SpellPlacement } from '../noyau/monde/aiSpellValue';
+import { spellOps } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 
 const chars = (v: number) => ({ 'capacite-de-combat': v, 'capacite-de-tir': v, force: v, endurance: v, initiative: v, agilite: v, dexterite: v, intelligence: v, 'force-mentale': v, sociabilite: v });

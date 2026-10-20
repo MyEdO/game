@@ -22,7 +22,7 @@ export function stripComments(src) {
 
 /**
  * Marqueurs réactifs par-nom, famille TRAIT/TALENT — recensés aux Lots 4bis/6 sur
- * state/combat/roundHooks.ts et state/combatFlow.ts, généralisés à tout src/engine + src/state
+ * noyau/combat/roundHooks.ts et noyau/combatFlow.ts, généralisés à tout src/engine + src/state
  * (Lot 8) : une réaction de combat codée PAR-NOM (trait/talent) plutôt que par donnée.
  * Les appels `hasTraitKey(`/`hasTalent(` NE sont PAS ici : leur nocivité dépend de l'ARGUMENT-entité
  * (littéral en dur vs donnée), tranchée par `nameCallHasLiteralArg` (#385) — un `hasTalent(c, X)` dont

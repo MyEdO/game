@@ -42,7 +42,7 @@ import {
 import { buildFloors } from '../../builders/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs } from '../../builders/roofs';
-import { buildScene } from '../../../state/mapSpec';
+import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';

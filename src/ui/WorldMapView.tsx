@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react';
-import { nomDuNavire } from '../state/carriers';
+import { nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../state/worldMap';
-import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../state/travelFlow';
+import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
+import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
-import { descenteJouee } from '../state/riverVoyageFlow';
-import { forcePaceRefus } from '../state/seaVoyageFlow';
+import { descenteJouee } from '../noyau/riverVoyageFlow';
+import { forcePaceRefus } from '../noyau/seaVoyageFlow';
 import {
   TravelMode, travelModeLabels, travelModeIcon, travelSpeed, travelPlanCalc, transportCost,
   routeDistanceLabel, vehicleTravel, classeRetenue, prixParPassager, placesPayees,
 } from '../engine/travel';
-import { offreDePassage } from '../state/billetFlow';
+import { offreDePassage } from '../noyau/billetFlow';
 import {
   type Allure, allureLabel, availableAllures, partyFullyMounted, partyMounts,
 } from '../engine/mountTravel';
@@ -20,12 +20,12 @@ import { rationCount, provisioningManifest } from '../engine/provisions';
 import { cargoOverload, cargoTotalEnc } from '../engine/seaVoyage';
 import { findVehicleById, skillInstanceLabel } from '../data';
 import { formatMoney, canAfford, fromBrass } from '../engine/money';
-import { partyMoneyTotal, condCtx } from '../state/bourseFlow';
+import { partyMoneyTotal, condCtx } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
 import { GatedAction, raisonSi } from './GatedAction';
 import { mdToText } from './Prose';
 import { useIdentites } from './useIdentites';
-import { nommer } from '../state/identites';
+import { nommer } from '../noyau/monde/identites';
 import { rule } from '../engine/policy';
 import { forcePaceDifficulty } from '../engine/seaNavigation';
 import { vesselNavalTraits, navalTraitsDe } from '../engine/navalTraits';

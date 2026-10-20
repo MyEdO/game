@@ -15,16 +15,16 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult } from './combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
 import { tenuParUnHumain } from '../noyau/sieges';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { resetDesFixes } from '../engine/fixedDie';
 import type { Weapon, Combatant, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] };
 const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };

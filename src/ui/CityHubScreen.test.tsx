@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { cityHubServices, cityHubHasPlan, cityHubCanEnterPort } from './CityHubScreen';
-import { restServicePrice } from '../state/restFlow';
-import { atLocationPlace, poiIcon, type MapPlace, type WorldMap } from '../state/worldMap';
+import { restServicePrice } from '../noyau/restFlow';
+import { atLocationPlace, poiIcon, type MapPlace, type WorldMap } from '../noyau/worldMap';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
 import type { LandMarketProfile } from '../engine/landCargo';

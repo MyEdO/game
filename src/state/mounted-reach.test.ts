@@ -8,9 +8,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
-import { mountUp } from './mount';
-import { attackPlan, previewAttack, resolveAttack } from './combatFlow';
+import { spawnEnemy } from '../noyau/monde/spawn';
+import { mountUp } from '../noyau/mount';
+import { attackPlan, previewAttack, resolveAttack } from '../noyau/combatFlow';
 import { combatDistance } from '../noyau/monde/footprint';
 import { testScene } from '../scenes/test-fixture';
 

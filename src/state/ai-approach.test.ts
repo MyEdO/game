@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { aiApproachPlan, runEnemyAI } from './combatFlow';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
+import { aiApproachPlan, runEnemyAI } from '../noyau/combatFlow';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';

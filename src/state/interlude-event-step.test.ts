@@ -11,18 +11,18 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { INTERLUDE_EVENT_TABLE } from './interludeFlow';
+import { INTERLUDE_EVENT_TABLE } from '../noyau/interludeFlow';
 import { INTERLUDE_EVENTS, interludeEventFor } from '../data/interludeEvents';
 import { rollTableStep, stepInteraction, tableStepDef } from '../noyau/cascade';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
-import { canFixDie } from './netOwnership';
-import { draineCascade } from './cascadeTestKit';
+import { canFixDie } from '../noyau/netOwnership';
+import { draineCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */

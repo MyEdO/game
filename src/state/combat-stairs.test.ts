@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { displayedReach, movePreviewAt } from './combatFlow';
+import { displayedReach, movePreviewAt } from '../noyau/combatFlow';
 
 /**
  * Combat multi-couche z-aware (relief unifié — plus d'escaliers) : la traversée verticale s'auto-dérive

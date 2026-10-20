@@ -3,8 +3,8 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal } from './bourseFlow';
-import type { MerchantState } from './merchantFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
+import type { MerchantState } from '../noyau/merchantFlow';
 
 // Panier de VENTE (#22b) : parité avec l'achat, sans dupliquer la logique (prix via `sellGain`).
 describe('Panier de vente (#22b)', () => {

@@ -46,10 +46,10 @@ function dupCounts(src: string): { journalArrays: number; jetDup: number; verdic
 const BASELINE: Record<string, { journalArrays: number; jetDup: number; verdict: number }> = {};
 
 const SCOPE = [
-  'src/state/travelFlow.ts', 'src/state/travelPostes.ts', 'src/state/seaVoyageFlow.ts', 'src/state/shipwreck.ts',
-  'src/state/pursuitFlow.ts', 'src/state/combatFlow.ts', 'src/state/combat/roundHooks.ts', 'src/state/combat/turnHooks.ts',
-  'src/state/combat/triggeredTest.ts', 'src/state/restFlow.ts', 'src/state/embrigadementFlow.ts', 'src/state/riverVoyageFlow.ts',
-  'src/state/combatEffects.ts', 'src/state/combatManeuvers.ts', 'src/state/encounterPsychFlow.ts',
+  'src/noyau/travelFlow.ts', 'src/noyau/travelPostes.ts', 'src/noyau/seaVoyageFlow.ts', 'src/noyau/shipwreck.ts',
+  'src/noyau/pursuitFlow.ts', 'src/noyau/combatFlow.ts', 'src/noyau/combat/roundHooks.ts', 'src/noyau/combat/turnHooks.ts',
+  'src/noyau/combat/triggeredTest.ts', 'src/noyau/restFlow.ts', 'src/noyau/embrigadementFlow.ts', 'src/noyau/riverVoyageFlow.ts',
+  'src/noyau/combatEffects.ts', 'src/noyau/combatManeuvers.ts', 'src/noyau/encounterPsychFlow.ts',
 ];
 
 describe('cliquet composeur — canal journal: déprécié des CascadeApplier (#295, verrou 2, mort du canal)', () => {
@@ -245,8 +245,8 @@ describe('cliquet composeur — CONTENU des conséquences : re-print roll/target
  * plutôt que couverte à tort.
  */
 const ISSUE_GOULOTS = [
-  'src/state/rollFlowSpecs.ts', // DÉCLARATION `spec.issue` des flux à fenêtre → verbe `apply`
-  'src/state/encounterPsychFlow.ts', // conséquence d'étape (freeCons → commitStep)
+  'src/noyau/rollFlowSpecs.ts', // DÉCLARATION `spec.issue` des flux à fenêtre → verbe `apply`
+  'src/noyau/encounterPsychFlow.ts', // conséquence d'étape (freeCons → commitStep)
 ];
 
 /** Fichier de sonde SOUS le périmètre de la règle (aucun goulot, hors test). */
@@ -286,7 +286,7 @@ describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULO
     expect(await violationsCanal('import { describeReload } from "./flowOutcomes";'), 'guillemets DOUBLES').toBe(1);
     expect(await violationsCanal("import * as FO from './flowOutcomes';\nexport const x = FO;"), 'namespace').toBe(1);
     expect(await violationsCanal("import { describeReload } from '../flowOutcomes';"), 'chemin remontant').toBe(1);
-    expect(await violationsCanal("import { describeReload } from '@/state/flowOutcomes';"), 'alias').toBe(1);
+    expect(await violationsCanal("import { describeReload } from '@/noyau/flowOutcomes';"), 'alias').toBe(1);
     expect(await violationsCanal("export { describeReload } from './flowOutcomes';"), 're-export').toBe(1);
     expect(await violationsCanal("import { ev } from '../noyau/combatLog';\nexport const w = ev;"), 'un autre import ne mord pas').toBe(0);
   });

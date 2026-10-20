@@ -8,19 +8,19 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade, resolveShoreLeave } from './seaVoyageFlow';
+import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade, resolveShoreLeave } from '../noyau/seaVoyageFlow';
 import { runCascadeImmediate, registerCascadeApplier } from '../noyau/cascade';
 import { checkPartyWiped } from '../noyau/partyWipe';
 import { setCadence, resetCadence } from '../engine/cadence';
-import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
-import { creditBourse } from './bourseFlow';
+import { buildRiverPlan, runRiverDays } from '../noyau/riverVoyageFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
-import { buildScene } from './mapSpec';
+import { buildScene } from '../noyau/mapSpec';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 

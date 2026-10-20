@@ -39,23 +39,23 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   // ── LES COUTURES du décor volumique (#1507) : une par CONCEPT, jamais deux pour le même
   { fichier: 'gameIso/builders/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
   { fichier: 'data/props.types.ts', texte: 'const [ax, ay] = rotatePropLocal(slot.anchor.xM / mpt, slot.anchor.yM / mpt, cap);', role: 'ANCRE d’une place assise → case du corps assis' },
-  { fichier: 'state/vision.ts', texte: 'const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);', role: 'FOYER d’une lampe (centre de la primitive émettrice) → offset en cases' },
-  { fichier: 'state/vision.ts', texte: 'export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;', role: 'RAYON d’une source de lumière → cases (RÉEL : le dégradé le lit comme une longueur)' },
+  { fichier: 'noyau/monde/vision.ts', texte: 'const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);', role: 'FOYER d’une lampe (centre de la primitive émettrice) → offset en cases' },
+  { fichier: 'noyau/monde/vision.ts', texte: 'export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;', role: 'RAYON d’une source de lumière → cases (RÉEL : le dégradé le lit comme une longueur)' },
   { fichier: 'data/props.types.ts', texte: 'const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));', role: 'EMPRISE du corps tourné d’un décor → cases de son empreinte (#1509, arrondi haut, plancher 1)' },
 
   // ── LES PORTÉES de règle chiffrées en mètres
   { fichier: 'noyau/monde/combatGeometry.ts', texte: 'export const porteeEnCases = (metres: number, mpt: number): number => Math.max(1, Math.ceil(metres / mpt));', role: 'PORTÉE d’une aura/d’un effet d’aire → cases (arrondi haut, plancher 1)' },
-  { fichier: 'state/combatFlow.ts', texte: "Math.max(0, Math.floor((r0m * zoneDiameterMultiplier('arcane', alloc)) / mpt));", role: 'GABARIT d’un sort de zone → cases (arrondi bas, plancher 0)' },
-  { fichier: 'state/combatFlow.ts', texte: 'const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene)));', role: 'recul de 2 m d’une règle RAW → cases' },
+  { fichier: 'noyau/combatFlow.ts', texte: "Math.max(0, Math.floor((r0m * zoneDiameterMultiplier('arcane', alloc)) / mpt));", role: 'GABARIT d’un sort de zone → cases (arrondi bas, plancher 0)' },
+  { fichier: 'noyau/combatFlow.ts', texte: 'const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene)));', role: 'recul de 2 m d’une règle RAW → cases' },
   { fichier: 'engine/movement.ts', texte: 'return Math.ceil((2 * Math.max(0, metres)) / metresPerTile);', role: 'coût d’ESCALADE (mètres de dénivelé) → budget de Marche en cases' },
   { fichier: 'engine/scatter.ts', texte: 'const distTiles = Math.max(0, Math.round(distM / metresPerTile));', role: 'DISPERSION d’un tir (mètres) → cases' },
   { fichier: 'noyau/monde/relief.ts', texte: 'return Math.abs(hA - hB) / metresPerTile;', role: 'PENTE : dénivelé métrique rapporté au pas de grille' },
 
   // ── LE MONDE NAVAL (portées de coque, en mètres au RAW)
-  { fichier: 'state/combatSlice.ts', texte: 'const gap = Math.max(1, Math.round(75 / mpt));', role: 'ÉCART de départ d’un combat naval (75 m, MDG 12 l.401) → cases' },
+  { fichier: 'noyau/combatSlice.ts', texte: 'const gap = Math.max(1, Math.round(75 / mpt));', role: 'ÉCART de départ d’un combat naval (75 m, MDG 12 l.401) → cases' },
 
   // ── L'ARCHITECTURE et le RENDU
-  { fichier: 'state/sceneEdit.ts', texte: 'return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));', role: 'PORTÉE maximale d’un pignon (m) → cases' },
+  { fichier: 'noyau/sceneEdit.ts', texte: 'return Math.max(1, Math.floor(ROOF_GABLE_SPAN_MAX_M / sceneMetresPerTile(scene)));', role: 'PORTÉE maximale d’un pignon (m) → cases' },
   { fichier: 'gameIso/builders/highlights.ts', texte: 'const maxTiles = Math.ceil((rangeM * 3) / mpt);', role: 'BANDES de portée au sol (Portée ×3, m) → cases peintes' },
   { fichier: 'gameIso/backends/webgl/cameras.ts', texte: 'const s = CELL / mpt;', role: 'CADENCE de la caméra du dessus (px/m)' },
   { fichier: 'gameIso/backends/webgl/worldTris.ts', texte: 'return (TW * Math.SQRT1_2) / mpt;', role: 'CADENCE de la projection (px/m) — `pxPerM`' },

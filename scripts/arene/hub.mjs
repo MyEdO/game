@@ -416,7 +416,7 @@ function perimeterWalls(foot, door) {
   }));
 }
 
-// `validateBuildingMasses` (state/mapSpec.ts) exige qu'à un étage donné, TOUT le plancher intérieur de
+// `validateBuildingMasses` (noyau/mapSpec.ts) exige qu'à un étage donné, TOUT le plancher intérieur de
 // la SCÈNE appartienne aux masses d'UN SEUL corps — quatre corps séparés (un par bâtiment) échoueraient
 // chacun à couvrir le plancher des trois autres. Le Bourg est donc UN corps portant quatre masses
 // disjointes (une par bâtiment), storeys/facades restant listés PAR bâtiment à l'intérieur de ce corps.

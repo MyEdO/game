@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { applyOps } from '../engine/ops';
 import { evaluateTest } from '../engine/tests';
 import { reverseRoll } from '../engine/combat';

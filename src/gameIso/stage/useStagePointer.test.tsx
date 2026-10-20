@@ -16,14 +16,14 @@ import { placesJouables, seatPoseOf, seatSlotsOf } from '../../noyau/monde/seati
 import { cleActionJouee, estUtilisable } from '../../noyau/monde/usable';
 import { interactionHalos } from '../builders/interactHalos';
 import type { BillboardPropEl } from '../builders/types';
-import { exploreMovePlan, exploreSeatPlan } from '../../state/exploreNav';
+import { exploreMovePlan, exploreSeatPlan } from '../../noyau/monde/exploreNav';
 import { offresUtilisables } from '../../state/offresUtilisables';
 import { useGame } from '../../state/store';
 import { props } from '../../data';
 import { bus, EVT } from '../../noyau/bus';
 import { STEP_MS } from '../../geometry/walk';
 import type { Combatant } from '../../engine/types';
-import { aretesUtilisables, type AreteUtilisable } from '../../state/aretes';
+import { aretesUtilisables, type AreteUtilisable } from '../../noyau/aretes';
 import { projeterAretes } from './aretesProjetees';
 import { VH, VW } from './useStageCamera';
 import { useStagePointer, type StagePointer } from './useStagePointer';
@@ -67,7 +67,7 @@ function scèneÀSeuil(yB: number): Scene {
   return scene;
 }
 
-/** L'ARÊTE d'un accès de `scene`, dérivée comme l'hôte la dérive (`state/aretes.ts`) depuis le
+/** L'ARÊTE d'un accès de `scene`, dérivée comme l'hôte la dérive (`noyau/aretes.ts`) depuis le
  *  contrôleur : le verdict de pixel et la touche Entrée du peintre passent tous deux par elle. */
 function areteDe(scene: Scene, controleur: Pt, cle: string): AreteUtilisable {
   const visible = new Set<string>();
@@ -1361,7 +1361,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   });
 
   /**
-   * PORTÉE = ÉTAGE COMPRIS (`state/exploreNav.aPorteeDe`, source unique des quatre sites). Le
+   * PORTÉE = ÉTAGE COMPRIS (`noyau/monde/exploreNav.aPorteeDe`, source unique des quatre sites). Le
    * rayon nomme un décor d'un AUTRE étage — ce qu'il fait dès qu'on regarde une loge d'en bas — et il
    * est 8-adjacent DANS LE PLAN : lu au plan seul, le clic jouait le geste à travers le plancher.
    */

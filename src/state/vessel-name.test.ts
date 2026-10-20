@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { buildSeaPlan } from './seaVoyageFlow';
+import { buildSeaPlan } from '../noyau/seaVoyageFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findVehicleById } from '../data';

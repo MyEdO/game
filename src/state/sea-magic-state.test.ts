@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { draineEtLit } from './cascadeTestKit';
+import { draineEtLit } from './cascade.testkit';
 import { pregen, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 

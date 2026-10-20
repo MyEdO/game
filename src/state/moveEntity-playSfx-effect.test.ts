@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects, CIBLES_D_EFFET_DE_SCENE } from './combatEffects';
+import { applyEffects, CIBLES_D_EFFET_DE_SCENE } from '../noyau/combatEffects';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Effect } from '../noyau/monde/scene';
 import { effectSummary } from '../ui/editor/EffectList';

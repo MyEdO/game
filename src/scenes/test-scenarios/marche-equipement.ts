@@ -3,7 +3,7 @@ import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import { t } from '../../i18n';
 import type { Scene } from '../../noyau/monde/scene';

@@ -31,7 +31,7 @@ import { NumberField } from '../NumberField';
 import { SourceRefField } from '../SourceRefField';
 import { ProvenanceDuTexte } from '../editor/ProvenanceDuTexte';
 import { ProvenanceDeValeur } from '../editor/ProvenanceDeValeur';
-import type { ProvenanceDeValeur as Provenance } from '../../state/worldMap';
+import type { ProvenanceDeValeur as Provenance } from '../../noyau/worldMap';
 import { SourceBadge } from '../SourceBadge';
 import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';

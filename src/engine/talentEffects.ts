@@ -95,7 +95,7 @@ export function applyTalentAcquisition(hero: Combatant, talentId: string, spec?:
 }
 
 /** `applyTalentAcquisition` de chaque Talent du porteur, une fois par acquisition (`times`) : création
- *  d'un héros (`createHero`) comme spawn d'une créature ou d'un statbloc (`state/spawn.ts`). */
+ *  d'un héros (`createHero`) comme spawn d'une créature ou d'un statbloc (`noyau/monde/spawn.ts`). */
 export function appliquerAcquisitions(porteur: Combatant): void {
   for (const t of porteur.talents ?? []) for (let i = 0; i < (t.times ?? 1); i++) applyTalentAcquisition(porteur, t.talentId, t.spec);
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castSpell } from './combatFlow';
+import { castSpell } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -11,7 +11,7 @@ import type { GameState } from './store';
  * figé dans `pendingCast`, chaque contre-lanceur éligible a SA rangée
  * (`pendingCounterspell.participants`) avec son propre cycle d'influence. PLUSIEURS peuvent tenter
  * contre la MÊME incantation (`VDM 02 l.184`, `LDB 46 l.162` ; #1040, cf. `counterspellConfirm`,
- * src/state/combatSlice.ts) : chacun
+ * src/noyau/combatSlice.ts) : chacun
  * consomme SON essai du Round (l.156, par personnage), un succès quelconque dissipe, et l'échec
  * collectif laisse le Sort se résoudre au MEILLEUR DR opposé.
  */

@@ -516,11 +516,11 @@ export const DETTES_DE_LIBELLE = {
   'src/engine/social.ts#label-literal': 2,
   'src/ui/creator/CharacterCreator.tsx#label-literal': 2,
   // #2104 — Statut d'un indice de campagne (révélé/réfuté) — porté par la donnée de scène et les sauvegardes.
-  'src/state/clues.ts#label-literal': 2,
-  'src/state/combatEffects.ts#label-literal': 1,
+  'src/noyau/monde/clues.ts#label-literal': 2,
+  'src/noyau/combatEffects.ts#label-literal': 1,
   'src/ui/CarnetScreen.tsx#label-literal': 3,
   // #1957 — `worstCorruptionExposure` : Degré de Corruption lu au texte authoré de l'argument du trait.
-  'src/state/combatFlow.ts#label-call-literal': 1,
+  'src/noyau/combatFlow.ts#label-call-literal': 1,
   // #1924 — résolveurs libellé→id (`qualityIdByLabel`, `traitIdByLabel`) appelés depuis le moteur.
   'src/engine/qualities/normalize.ts#label-entity-resolver-call': 1,
   'src/engine/traits/dispatch.ts#label-entity-resolver-call': 1,

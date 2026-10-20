@@ -14,7 +14,7 @@ import { matieresDe } from '../../../data';
 import { buildFloors } from '../../builders/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs } from '../../builders/roofs';
-import { buildScene } from '../../../state/mapSpec';
+import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import type { Face } from '../../builders/types';
 

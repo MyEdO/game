@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { ACTION_GATES, actionGate, type ActionCtx } from './actionRegistry';
+import { ACTION_GATES, actionGate, type ActionCtx } from '../noyau/actionRegistry';
 import { ACTE_DE_DEVERROUILLAGE, hasCondition } from '../engine/conditions';
 import { findConditionById, type ActionDef } from '../data/index';
 import { t } from '../i18n';

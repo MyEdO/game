@@ -48,7 +48,7 @@
 //   — `talents:sang-neuf` : bloqué par #744 — lignage éonir toriour absent de `species.json`.
 //   — `qualities:filet-barbele`, `qualities:deroutante` : qualités d'ARME (`subType: 'arme'`) ;
 //     aucun trapping ne les porte, cf. `assommante`/`defensive` sur les armes de base.
-//     `state/interludeFlow.ts` (`falseQualities()`) les sélectionne par champ mais ne les exploite
+//     `noyau/interludeFlow.ts` (`falseQualities()`) les sélectionne par champ mais ne les exploite
 //     que par LABEL (rumeurs de Particularité fausses, ADE II) — MODE 2 les rejette.
 //   — `creatures` HORS bestiaires de livre : 7 PNJ `named` (`pol-dankels`, `isrogdal-lempresse`,
 //     `ugrik-legaree`, `nazzaalta-affabule`, `artur-piedmarteau`, `p-tarix-celui-qui-ecrit`,

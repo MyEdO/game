@@ -11,7 +11,7 @@ import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
 import { rotateDir8 } from '../noyau/monde/dir8';
 import { seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
 import { CAP_GROUPE, capDuGroupe, meneurDuMonde, poserCapDuGroupe } from '../noyau/monde/combatants';
-import { sceneLightSources } from './visionState';
+import { sceneLightSources } from '../noyau/visionState';
 import { partyTokenOf } from '../gameIso/builders/tokens';
 import { tokenChromes } from '../gameIso/builders/tokenChrome';
 import { actorPoseKey, partyActorPose } from '../gameIso/backends/webgl/sceneMeshes';

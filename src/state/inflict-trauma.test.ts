@@ -1,7 +1,7 @@
 /** Lot F — Effet d'éditeur `inflictTrauma` (LDB 18) : poser rétroactivement une Blessure Critique. */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { makePregens } from '../data/pregens';
 
 beforeEach(() => {

@@ -2,7 +2,7 @@ import { useGame, type GameState } from '../state/store';
 import { useShallow } from 'zustand/react/shallow';
 import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import type { TombantParticipant } from '../noyau/pendings';
-import { metresRetenus, phaseDeChute } from '../state/fallMove';
+import { metresRetenus, phaseDeChute } from '../noyau/fallMove';
 import { valeurDecomposee } from '../engine/skills';
 import { cibleMesuree } from '../engine/tests';
 import { RollShell, type RollAction } from './RollShell';
@@ -11,7 +11,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { useOwns } from './ownership';
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
-import { refusDuTestDeChute, refusDeLaSuspension, type RefusGeste } from '../state/gesteDArete';
+import { refusDuTestDeChute, refusDeLaSuspension, type RefusGeste } from '../noyau/gesteDArete';
 import type { RollSegOption } from './OptionChooser';
 import { t } from '../i18n';
 

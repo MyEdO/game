@@ -16,7 +16,7 @@
  * lit `ov?.armurePortee ?? cd?.armurePortee` (symétrique d'`entityRigProfile`).
  */
 import { describe, it, expect } from 'vitest';
-import { spawnEnemy } from '../../../state/spawn';
+import { spawnEnemy } from '../../../noyau/monde/spawn';
 import { enemyRigProfile, entityRigProfileFor, rendersFromOwnInventory } from '../enemyProfile';
 import type { EnemyRigProfile } from '../enemyProfile';
 import { armourPart } from '../parts/equipment';

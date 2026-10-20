@@ -23,9 +23,9 @@ import { findCargoById } from '../engine/seaVoyage';
 import {
   mountProfileForCreature, ALLURES, allureLabel, ALLURE_KMH_PER_M, allureEnduranceHours,
 } from '../engine/mountTravel';
-import { partyMoneyTotal } from '../state/bourseFlow';
-import { placeOfScene } from '../state/worldMap';
-import { bulkCarriers, type CarrierStateSlice } from '../state/carriers';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { placeOfScene } from '../noyau/worldMap';
+import { bulkCarriers, type CarrierStateSlice } from '../noyau/carriers';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { Tabs, type TabItem } from './composites/Tabs';

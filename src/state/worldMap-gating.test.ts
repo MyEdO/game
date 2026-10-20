@@ -5,8 +5,8 @@
  * `ConditionCtx` fabriqué par l'appelant ; sans `ctx`, la carte est intégralement ouverte.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, routesFrom, routesEtat, visiblePlaces, type WorldMap } from './worldMap';
-import { emptyNarratif } from './campaignNarratif';
+import { parseProject, routesFrom, routesEtat, visiblePlaces, type WorldMap } from '../noyau/worldMap';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { emptyScene } from '../noyau/monde/scene';
 import type { ConditionCtx } from '../engine/flowCore';
 import areneProjet from '../scenes/arene/arene-projet.json';

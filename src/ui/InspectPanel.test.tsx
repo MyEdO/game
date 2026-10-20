@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { InspectPanel } from './InspectPanel';
 import { createHero } from '../engine/character';
-import { creatureToCombatant } from '../state/spawn';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 
 /** L'inspection rend le statbloc COMPLET via le composant partagé du Codex (CodexSections) +

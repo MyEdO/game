@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { cascadeAppliers } from '../noyau/cascade';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import { makePregens } from '../data/pregens';
 import { emptyScene } from '../noyau/monde/scene';
-import { bandeTriggeredTest } from './combat/triggeredTest';
+import { bandeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { rollShipCritical } from '../engine/shipCritical';
 import { SHIP_CRIT_SET } from '../data/shipCriticals';
 import { hullShipSize } from '../engine/shipBuild';

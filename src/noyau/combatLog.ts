@@ -9,7 +9,7 @@ import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { fixedJetOpen, markFixedDie } from './fixedDieMark';
 // Alias LOCAL du `set` de Zustand : ce fichier déclare déjà un `Set<CombatEventKind>` (le Set global),
 // que le nom importé masquerait.
-import type { Get, Set as SetFn } from '../state/flowTypes';
+import type { Get, Set as SetFn } from './flowTypes';
 
 export type CombatEventKind =
   | 'charge' | 'attack' | 'shoot' | 'cast' | 'item' | 'heal' | 'move' | 'flee'
@@ -65,12 +65,12 @@ export function evLines(
  * `state.journal` « finit en rien » (le journal d'exploration n'est pas ouvrable en combat).
  *
  * Consommateurs : `cascade.ts` `commitStep`, `corruptionFlow.ts` `resolveRenounce`, et les deux
- * sorties de `state/combatFlow.ts` — `finishPlayerAction` (qui garde `markActed` / `action:null` au
+ * sorties de `noyau/combatFlow.ts` — `finishPlayerAction` (qui garde `markActed` / `action:null` au
  * site et passe le drain de `pendingLogQueue` en `extra`) et `castRefused`.
  *
  * MARQUE « dé fixé » sur les DEUX branches : `store.log` la pose pour le journal, `markFixedDie` la
  * pose ici pour le `battle.log` — une conséquence de dé POSÉ garde sa provenance, combat ouvert ou
- * non. Le DRAIN de `pendingLogQueue` n'est PAS fait ici (il vit dans `state/combatEffects.ts`,
+ * non. Le DRAIN de `pendingLogQueue` n'est PAS fait ici (il vit dans `noyau/combatEffects.ts`,
  * module lourd) : le site qui en a besoin le passe en `extra`.
  */
 export function journaliser(
@@ -92,7 +92,7 @@ export function journaliser(
 }
 
 /**
- * Intensité d'un évènement → CADENCE (le Réalisateur `state/combatDirector` allonge les temps forts)
+ * Intensité d'un évènement → CADENCE (le Réalisateur `noyau/combatDirector` allonge les temps forts)
  * ET emphase visuelle de la bannière (`gameIso/combatNarration`). `grave` = un critique / une mise à
  * mort ; `strong` = une Peur. (#161 : vit ici parce que la cadence du combat en a
  * besoin, ce n'est pas QUE de l'affichage ; le rendu la reprend pour sa propre emphase, sens normal.)

@@ -17,7 +17,7 @@ test('sitesFautifs : une réf `fichier.ext:NN` vers un AUTRE fichier est vue, en
     ['out += `  du registre (\\`src/engine/policy.ts:88\\`)`', 'src/engine/policy.ts:88'],
     ['// GITIGNORÉ (.gitignore:41)', '.gitignore:41'],
     ['// voir `compat.test.mjs:160,161`', 'compat.test.mjs:160'],
-    ['// plage `state/merchantFlow.ts:194-201`', 'state/merchantFlow.ts:194'],
+    ['// plage `noyau/merchantFlow.ts:194-201`', 'noyau/merchantFlow.ts:194'],
   ]
   for (const [ligne, ref] of cas) {
     assert.deepEqual(sitesFautifs(`a\n${ligne}\nb`, 'scripts/docs/build-x.mjs'), [{ ligne: 2, ref }], ligne)

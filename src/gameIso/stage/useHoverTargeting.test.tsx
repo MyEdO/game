@@ -11,10 +11,10 @@ import { useHoverTargeting, type HoverAim } from './useHoverTargeting';
 import { AimOverlay } from './AimOverlay';
 import type { Dims } from '../../geometry/iso';
 import type { Combatant } from '../../engine/types';
-import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../state/localIntent';
+import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../noyau/localIntent';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
-import { cascadeDeTest } from '../../state/cascadeTestKit';
+import { cascadeDeTest } from '../../state/cascade.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -164,7 +164,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
   });
 
   /**
-   * Le « ciblage carte en cours » se lit au REGISTRE (`mapTargetingActive`, `state/targetingHolder.ts`),
+   * Le « ciblage carte en cours » se lit au REGISTRE (`mapTargetingActive`, `noyau/targetingHolder.ts`),
    * plus dans une liste littérale recopiée par consommateur : `pendingSiegeAim` (pilonnage indirect,
    * placeur de case) y est déclaré, mais manquait aux deux listes locales — sur une case HORS PORTÉE
    * du placeur (aucun aperçu de mode-case), la carte reproposait une piste de déplacement pendant
@@ -297,10 +297,10 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
 });
 
 /**
- * SURVOL STRICT — contrat d'affichage déclaré en tête de `src/state/targetingModes.ts` : le survol
+ * SURVOL STRICT — contrat d'affichage déclaré en tête de `src/noyau/targetingModes.ts` : le survol
  * n'affiche QUE le faisable (ennemi à portée = carte de jet au pion, sans verbe de manœuvre ; ennemi
  * hors d'atteinte = rien du tout), et l'infaisable se dit AU CLIC par la porte unique `refuserGeste`
- * (`src/state/refusVisible.ts`).
+ * (`src/noyau/refusVisible.ts`).
  */
 describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus se dit au clic', () => {
   beforeEach(() => useGame.setState({ battle: null, localIntent: null, refus: null }));

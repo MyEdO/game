@@ -7,12 +7,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
-import { draineCascade } from '../state/cascadeTestKit';
+import { draineCascade } from '../state/cascade.testkit';
 import { createHero } from '../engine/character';
 import { fromBrass } from '../engine/money';
-import { partyMoneyTotal, distributeCredit } from '../state/bourseFlow';
+import { partyMoneyTotal, distributeCredit } from '../noyau/bourseFlow';
 import { testScene } from '../scenes/test-fixture';
-import { interludeCatalog, bestActivitySkill } from '../state/interludeFlow';
+import { interludeCatalog, bestActivitySkill } from '../noyau/interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
@@ -148,7 +148,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
   /**
    * Recette 2026-09-06, trouvaille n°3 — MENSONGE D'AFFORDANCE : le pré-jet du catalogue annonçait la
    * cible NUE, sans les `testMods` de situation que le flux applique ensuite (`openCatalogActivity`,
-   * `state/interludeFlow.ts`) — le joueur engageait son Activité sur un chiffre faux. Les DEUX surfaces
+   * `noyau/interludeFlow.ts`) — le joueur engageait son Activité sur un chiffre faux. Les DEUX surfaces
    * composent désormais les mêmes sources : `activityTestMod` → `activityModLines`.
    *
    * MUTATION : retirer `modsSituation` du `testPending` d'`InterludeScreen.tsx` — le libellé

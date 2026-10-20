@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { defenseDodgeMods } from '../state/combatFlow';
+import { defenseDodgeMods } from '../noyau/combatFlow';
 import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { defenseValue, defenseBaseValue, defenseValueModParts, combatValue, defenseModifiers, baseTestModLines, weaponSkillId } from '../engine/combat';
@@ -13,7 +13,7 @@ import { buildParticipantRows, type ParticipantRow } from './buildParticipantRow
 import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeDisengage, describeDisengageFlee } from '../state/flowOutcomes';
+import { describeDisengage, describeDisengageFlee } from '../noyau/flowOutcomes';
 import { fleeBackstab, fleeTouche, fleeToucheDu, type PendingDisengage } from '../noyau/pendings';
 import { Modal } from './Modal';
 import { Stack } from './Layout';

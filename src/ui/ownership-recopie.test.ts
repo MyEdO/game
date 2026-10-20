@@ -1,5 +1,5 @@
 /**
- * La possession ne se recopie pas (#1262 L1) : elle se demande à `state/netOwnership.ownsLocal`.
+ * La possession ne se recopie pas (#1262 L1) : elle se demande à `noyau/netOwnership.ownsLocal`.
  *
  * Forme refusée — la décision « est-ce à moi ? » écrite à la main : un siège tiré de `ownership[…]`
  * comparé à `mySeat`, dans la même expression.
@@ -26,7 +26,7 @@ describe('#1262 L1 — la garde de FORME : aucune recopie du prédicat sous `src
         if (RECOPIE.test(l)) sites.push(`${rel.slice('src/ui/'.length)}:${i + 1} — ${l.trim()}`);
       });
     }
-    expect(sites, `Possession RECOPIÉE (#1262) — passer par \`state/netOwnership.ownsLocal\` (vues \`useOwns\`/\`ownsLocalNet\` de \`ui/ownership.ts\`) :\n${sites.join('\n')}`).toEqual([]);
+    expect(sites, `Possession RECOPIÉE (#1262) — passer par \`noyau/netOwnership.ownsLocal\` (vues \`useOwns\`/\`ownsLocalNet\` de \`ui/ownership.ts\`) :\n${sites.join('\n')}`).toEqual([]);
   });
 
   it('le détecteur MORD sur la forme fondatrice, et se tait sur les lectures de siège', () => {

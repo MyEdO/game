@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { combatValue } from '../engine/combat';
 import { creatureAttacks } from '../engine/creatureAttacks';
-import { MANEUVER_ICON, maneuverDefensePending } from '../state/combatFlow';
+import { MANEUVER_ICON, maneuverDefensePending } from '../noyau/combatManeuvers';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';

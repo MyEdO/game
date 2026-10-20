@@ -14,7 +14,7 @@ import { toolLabel } from './StatusBar';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { creatureLabel, profilsStandard } from '../../data';
 import type { Tool } from './editorState';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

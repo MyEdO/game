@@ -1,8 +1,8 @@
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
-import { buildScene } from '../../state/mapSpec';
-import type { WorldMap } from '../../state/worldMap';
+import { buildScene } from '../../noyau/mapSpec';
+import type { WorldMap } from '../../noyau/worldMap';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 import { rigSpeciesId } from '../../data';

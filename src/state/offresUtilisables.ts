@@ -18,9 +18,9 @@
  *
  * COÛT : `null`. L'économie du tour est celle du combat ; hors combat, un geste ne prend pas d'Action.
  */
-import { aPorteeDe } from './exploreNav';
+import { aPorteeDe } from '../noyau/monde/exploreNav';
 import { actionsDe } from '../noyau/monde/usable';
-import { nomDEntite } from './sceneNpc';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from './campaignData';
 import { placesJouables } from '../noyau/monde/seating';
 import { t } from '../i18n';

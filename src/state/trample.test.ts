@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { cibleDEcartDeTaille, aiCreatureFreeAttacks, runEnemyAI, availableAttacks } from './combatFlow';
-import { mountMovement } from './mount';
-import { ACTION_GATES } from './actionRegistry';
+import { aiCreatureFreeAttacks, runEnemyAI } from '../noyau/combatFlow';
+import { cibleDEcartDeTaille, availableAttacks } from '../noyau/combatManeuvers';
+import { mountMovement } from '../noyau/mount';
+import { ACTION_GATES } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';

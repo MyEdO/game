@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyShipCollision } from './shipCollision';
+import { applyShipCollision } from '../noyau/monde/shipCollision';
 import type { Combatant } from '../engine/types';
 
 /**

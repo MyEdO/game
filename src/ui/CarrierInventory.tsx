@@ -15,7 +15,7 @@ import { HitLocation, ItemInstance, Combatant } from '../engine/types';
 import { isCapeItem, isWearable, containerFillEnc, canStow, armourLayer, itemLabel } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, carriersCoLocated, type Carrier } from '../state/carrier';
+import { resolveCarrier, carriersCoLocated, type Carrier } from '../noyau/monde/carrier';
 import { weaponStatParts } from './weaponStats';
 import { PlaqueRow } from './PlaqueRow';
 import { ItemIcon } from './ItemIcon';

@@ -9,7 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { Dims } from '../../geometry/iso';
 import { HoverMovePreview, TapPreview, mouvementLigne } from './MoveOverlays';
 import { composeAttack, type ModLine } from '../../engine/combat';
-import { difficultyOf, type AttackPreview } from '../../state/combatFlow';
+import { difficultyOf, type AttackPreview } from '../../noyau/combatFlow';
 import { difficultyShownText } from '../../ui/difficultyText';
 import { DIFFICULTY_LABELS, type Combatant, type Weapon } from '../../engine/types';
 import type { BattleState } from '../../state/store';

@@ -3,7 +3,7 @@ import { sizeFootprint, footprintN, footprintTiles, occupiesTile, footprintCheby
 import { datasetObject, setObjectDataset } from '../../data/overrides';
 import { entityBlockedAt } from './sceneRules';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
-import { chebyshev } from './path';
+import { chebyshev } from '../../engine/grid';
 import type { Combatant } from '../../engine/types';
 import type { SizeCategory } from '../../engine/size';
 

@@ -17,7 +17,7 @@ import { testBreakdown, testPending } from './breakdown';
  * données) + son bundle d'actions de flux.
  *
  * Aucune éligibilité d'influence n'est montée ici : les fenêtres de la Chance, du Sombre Pacte et de
- * la Résilience sont des prédicats purs du seam (`state/rollFlowFactory.ts`), appliqués au rendu à
+ * la Résilience sont des prédicats purs du seam (`noyau/rollFlowFactory.ts`), appliqués au rendu à
  * partir de la ligne posée et de `rerolled`.
  */
 export interface ParticipantRow {

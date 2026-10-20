@@ -20,7 +20,7 @@ import { join } from 'node:path';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame, type BattleState } from '../state/store';
-import { openAttackCascade, surfacedDefensePending, attackWeaponOf, firedWeapon } from '../state/combatFlow';
+import { openAttackCascade, surfacedDefensePending, attackWeaponOf, firedWeapon } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { addCondition, COND } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';

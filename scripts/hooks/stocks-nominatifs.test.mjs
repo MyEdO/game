@@ -70,7 +70,7 @@ const diffDe = (fichier, ajoutees = [], retirees = []) =>
  *  lui, est REFUSÉ (`croissanceDesStocks`, un compte sans image ment). */
 const REPLI = { lirePostImage: () => null }
 
-const ENTREE_A = "  'src/state/combatSlice.ts',"
+const ENTREE_A = "  'src/noyau/combatSlice.ts',"
 const ENTREE_B = "  'src/ui/CampaignView.test.tsx // div',"
 const ENTREE_CLE = "  'scripts/guards/lib/labelLogic.mjs': 'raison mesurée',"
 
@@ -85,7 +85,7 @@ test('périmètre — les porteurs de stock, et eux seuls', () => {
   assert.equal(estPorteurDeStock('scripts/guards/raw-blind-refs-stock.json'), true, 'stock nominatif tenu hors du dossier `raw/` par `rawRefIntegrity.mjs`')
   assert.equal(estPorteurDeStock('scripts/guards/lib/decisions-baseline.json'), true, 'stock NOMINATIF de sites du détecteur de commentaires')
   assert.equal(estPorteurDeStock('knip-exports-baseline.json'), true, 'gel d\'exports à clés-chemins, à la RACINE')
-  assert.equal(estPorteurDeStock('src/state/combatFlow.ts'), false, 'un module de prod n\'est pas un stock')
+  assert.equal(estPorteurDeStock('src/noyau/combatFlow.ts'), false, 'un module de prod n\'est pas un stock')
   assert.equal(estPorteurDeStock('docs/architecture.md'), false)
 })
 
@@ -461,13 +461,13 @@ test('entrée — le cas FONDATEUR : une clé de registre en NOM DE FICHIER nu',
 })
 
 test('entrée — tuple dont le fichier est la CLÉ ou la QUEUE', () => {
-  assert.equal(estEntreeNominative("  ['src/state/combatFlow.ts', { n: 32, kind: 'mixte' }],"), true)
+  assert.equal(estEntreeNominative("  ['src/noyau/combatFlow.ts', { n: 32, kind: 'mixte' }],"), true)
   assert.equal(estEntreeNominative("  ['CritEscalation', 'onRepeat', 'src/engine/critical.ts:325'],"), true)
 })
 
 test('entrée — un chemin cité en PROSE ou en commentaire n en est pas une', () => {
-  assert.equal(estEntreeNominative("      `⛔ src/state/combatSlice.ts a grossi`,"), false)
-  assert.equal(estEntreeNominative('  // src/state/combatSlice.ts reste à traiter'), false)
+  assert.equal(estEntreeNominative("      `⛔ src/noyau/combatSlice.ts a grossi`,"), false)
+  assert.equal(estEntreeNominative('  // src/noyau/combatSlice.ts reste à traiter'), false)
   assert.equal(estEntreeNominative("    'src/x.ts est absent de l index',"), false)
   assert.equal(estEntreeNominative("  const stock = ['src/a.ts', 'src/b.ts']"), false)
   assert.equal(estEntreeNominative("import { scanTombstones } from '../guards/lib/commentPoison.mjs'"), false)
@@ -488,7 +488,7 @@ test('croissance — un stock qui décroît ou échange ses entrées ne dit rien
     [],
     'B sort, A entre : net nul',
   )
-  const renommages = new Map([['src/ui/CampaignView.test.tsx', 'src/state/combatSlice.ts']])
+  const renommages = new Map([['src/ui/CampaignView.test.tsx', 'src/noyau/combatSlice.ts']])
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A], [ENTREE_B]), { ...REPLI, renommages }), [],
     'le fichier nommé a été RENOMMÉ par le commit : la clé du parent se reporte, le renommage pur coûte 0')
   assert.deepEqual(croissanceDesStocks(diffDe(porteur, [ENTREE_A, ENTREE_B], [ENTREE_B, ENTREE_A]), REPLI), [],
@@ -535,7 +535,7 @@ test('croissance — un diff qui n’est PAS une chaîne LÈVE, et un « 0 » ne
 })
 
 test('croissance — hors fichier PORTEUR, la règle se tait', () => {
-  assert.deepEqual(croissanceDesStocks(diffDe('src/state/combatFlow.ts', [ENTREE_A, ENTREE_B]), REPLI), [])
+  assert.deepEqual(croissanceDesStocks(diffDe('src/noyau/combatFlow.ts', [ENTREE_A, ENTREE_B]), REPLI), [])
 })
 
 test('CLIQUET — le message couvre le fichier s il annonce le BON compte et un motif', () => {
@@ -696,7 +696,7 @@ test('portée — le RETRAIT se juge sur le PRÉ-image : retirer une fixture ne 
 // ARGUMENT d'un appel est local — le corps d'un `test`/`it`/`describe`, pas une déclaration.
 test('portée — aucune ENVELOPPE ne cache un stock de module', () => {
   const f = 'scripts/guards/lib/xStock.mjs'
-  const E = ["  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
+  const E = ["  'src/noyau/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
   const diff = [
     `diff --git a/${f} b/${f}`, `--- a/${f}`, `+++ b/${f}`, `@@ -2,0 +2,${E.length} @@`, ...E.map((e) => `+${e}`),
   ].join('\n')
@@ -726,7 +726,7 @@ test('portée — aucune ENVELOPPE ne cache un stock de module', () => {
 /** Les quatre formes de stock du dépôt, et les lignes (1-based) où vivent leurs entrées. */
 const FORMES = {
   'tableau de chaînes': {
-    corps: ['const STOCK = [', "  'src/state/combatFlow.ts',", "  'src/ui/Tabs.tsx',", ']'],
+    corps: ['const STOCK = [', "  'src/noyau/combatFlow.ts',", "  'src/ui/Tabs.tsx',", ']'],
     entrees: [2, 3],
   },
   'tableau d’objets': {
@@ -883,7 +883,7 @@ test('lecteur — un appel SANS lecteur d’image est REFUSÉ nommément, jamais
   const diff = diffNaissance(f, stockJson([
     ['ADE I 2', ['src/data/talents.json']],
     ['EDO 10', ['src/data/skills.json']],
-    ['MDG 3', ['src/state/seaActivities.ts', 'src/state/travelFlow.ts']],
+    ['MDG 3', ['src/noyau/seaActivities.ts', 'src/noyau/travelFlow.ts']],
   ]))
   const attendu = /aucun lecteur d'image post — un compte sans image ment/
   assert.throws(() => croissanceDesStocks(diff), attendu)
@@ -897,7 +897,7 @@ test('naissance — un `*-stock.json` qui naît compte ses entrées sur l’imag
   const source = stockJson([
     ['ADE I 2', ['src/data/talents.json']],
     ['EDO 10', ['src/data/skills.json']],
-    ['MDG 3', ['src/state/seaActivities.ts', 'src/state/travelFlow.ts']],
+    ['MDG 3', ['src/noyau/seaActivities.ts', 'src/noyau/travelFlow.ts']],
   ])
   assert.deepEqual(
     source.split('\n').filter((l) => estEntreeNominative(l)), [],

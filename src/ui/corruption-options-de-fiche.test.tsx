@@ -10,7 +10,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { CorruptionModal } from './CorruptionModal';
-import { expositionPending } from '../state/corruptionFlow';
+import { expositionPending } from '../noyau/corruptionFlow';
 import { testValue } from '../engine/skills';
 import { refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';

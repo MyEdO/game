@@ -30,7 +30,7 @@ import { testValue, skillBaseValue } from '../engine/skills';
 import { addCondition, stacks, syncDerivedConditions } from '../engine/conditions';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant } from '../engine/types';
-import { creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 import type { CascadeRoll, CascadeStep } from '../noyau/pendings';
 import { fixtureText } from '../i18n/fixtureText';
 

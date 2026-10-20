@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { placementPenalty, servingCrewPresent, leaveChef, serveChef } from './shipPostes';
+import { placementPenalty, servingCrewPresent, leaveChef, serveChef } from '../noyau/monde/shipPostes';
 import { hydratePoste, isUnarmed } from '../engine/items';
 import type { Combatant } from '../engine/types';
 

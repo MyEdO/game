@@ -11,7 +11,7 @@ import {
   type WallSeg,
 } from '../noyau/monde/scene';
 import { reachable } from '../noyau/monde/path';
-import { computeVisible, computeLightField } from './vision';
+import { computeVisible, computeLightField } from '../noyau/monde/vision';
 import { findStructureById } from '../data';
 
 /** Id RÉEL du catalogue `structures.json` (porte de ville : BE 10 / B 30, Atout Impénétrable). */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statblockToCombatant } from './spawn';
+import { statblockToCombatant } from '../noyau/monde/spawn';
 import { attackModifiers } from '../engine/combat';
 import type { Weapon } from '../engine/types';
 

@@ -7,11 +7,12 @@ import { Prose } from './Prose';
 import {
   seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus,
   type SeaActivityPick,
-} from '../state/seaActivities';
+} from '../noyau/seaActivities';
 import { findVehicleById, findRegleById } from '../data';
 import { cargoTotalEnc } from '../engine/seaVoyage';
 import { toBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, bourseOf } from '../state/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Icon } from './Icon';

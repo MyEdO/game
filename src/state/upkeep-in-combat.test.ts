@@ -2,7 +2,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { cascadeAppliers } from '../noyau/cascade';
-import { checkBattleOver } from './combatFlow';
+import { checkBattleOver } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';

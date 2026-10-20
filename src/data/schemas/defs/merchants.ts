@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `merchants.json` — archétypes de marchand (#2, migré du CODE en donnée éditable,
  * doctrine « aucun archétype en dur »). Reflet FIDÈLE de `MerchantArchetypeDef`
- * (`src/state/merchants/types.ts`).
+ * (`src/noyau/monde/merchants/types.ts`).
  */
 import { z } from 'zod';
 import { refs } from '../grammaire/ref';

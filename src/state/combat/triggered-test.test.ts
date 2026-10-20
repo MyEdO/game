@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import '../combatFlow'; // effet de bord : installe l'applier `triggeredTest`, le routeur + le hook onGainCondition
+import '../../noyau/combatFlow'; // effet de bord : installe l'applier `triggeredTest`, le routeur + le hook onGainCondition
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { addCondition, stacks, hasCondition, combatTestPenalty, COND } from '../../engine/conditions';
 import { rawCombatTestBase, skillBaseValue } from '../../engine/skills';
-import { inexplique } from '../cascadeTestKit';
+import { inexplique } from '../cascade.testkit';
 import { DIFFICULTY_MODIFIERS } from '../../engine/types';
 
 import { testScene } from '../../scenes/test-fixture';

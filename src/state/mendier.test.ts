@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { basename, join } from 'node:path';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { adresseDeCreation } from '../engine/adresseDeCreation';
 import { makeRNG } from '../engine/dice';
@@ -30,13 +30,13 @@ import { statusOf, statusMeets } from '../engine/social';
 import { aPassifVisible } from '../engine/trauma';
 import { buildActorView } from '../engine/actorView';
 import { careers } from '../data';
-import { buildActivityWorldRollSteps } from './activityWorldRolls';
-import { interludeCatalog } from './interludeFlow';
+import { buildActivityWorldRollSteps } from '../noyau/activityWorldRolls';
+import { interludeCatalog } from '../noyau/interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
 const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
@@ -386,7 +386,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
    * autres, et seul un dépôt bancaire y échappe. C'est ce que le `stake` de l'Activité annonce au
    * joueur AVANT qu'il n'engage son Activité.
    *
-   * MUTATION : neutraliser la purge de bourse d'`interludeEnd` (`state/interludeFlow.ts`) — la bourse
+   * MUTATION : neutraliser la purge de bourse d'`interludeEnd` (`noyau/interludeFlow.ts`) — la bourse
    * garde ses 48 sous et le premier `expect` tombe ; retirer le dépôt du filet de survie fait tomber le
    * second.
    */

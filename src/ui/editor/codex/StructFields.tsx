@@ -658,7 +658,7 @@ export function DomainEffectsField(
           <div className="tf-row">
             <label className="dr">par État
               {/* #173 : `perCondition` est l'id de l'État (résolu par `stacks(c, cb.perCondition)`,
-                  state/combatFlow.ts — cf. ConditionInstance.name), pas son libellé → sélecteur id→label,
+                  noyau/combatFlow.ts — cf. ConditionInstance.name), pas son libellé → sélecteur id→label,
                   pas de datalist par label. */}
               <select value={castBonus.perCondition} onChange={(e) => onCastBonus({ ...castBonus, perCondition: e.target.value })}>
                 <option value="">— (choisir un État) —</option>

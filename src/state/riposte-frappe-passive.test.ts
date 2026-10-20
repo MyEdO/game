@@ -6,14 +6,14 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { applyAttackResult } from './combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';
 import { resolveMeleePassive, type AttackResult } from '../engine/combat';
 import { isOutOfAction } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import { avanceEtapeCascade, poseSurDeNonTombe } from './cascadeTestKit';
+import { avanceEtapeCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { unarmedWeapon } from '../engine/items';
 import { weaponsFromTraits } from '../engine/creatureEquip';
 import { findCritEntrySuffered } from '../engine/critical';

@@ -3,8 +3,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import * as ts from 'typescript/unstable/ast';
 import { useGame } from './store';
-import { CLOTURE_VERBES, jouerLesClotures } from './combatEffects';
-import './combatFlow'; // charge les clôtures que le combat enregistre (`ouvrirEcranDeVictoire`)
+import { CLOTURE_VERBES, jouerLesClotures } from '../noyau/combatEffects';
+import '../noyau/combatFlow'; // charge les clôtures que le combat enregistre (`ouvrirEcranDeVictoire`)
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -506,8 +506,8 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
  * de plus, ou une entrée devenue vide sont rouges.
  */
 const SEAM_CORE = new Set([
-  'src/noyau/rollSeam.ts', 'src/state/rollFlowFactory.ts', 'src/noyau/cascade.ts',
-  'src/state/rollFlowSpecs.ts', 'src/state/combat/triggeredTest.ts',
+  'src/noyau/rollSeam.ts', 'src/noyau/rollFlowFactory.ts', 'src/noyau/cascade.ts',
+  'src/noyau/rollFlowSpecs.ts', 'src/noyau/combat/triggeredTest.ts',
 ]);
 
 /** Fichiers de PRODUCTION scannables (hors tests), en chemin relatif POSIX — vue du `corpus()`. */
@@ -679,12 +679,12 @@ describe('REGISTRE des chemins de jet (#1066) — (D) roulage délégué à un e
 
   it('le call-site massBattle est VISIBLE au garde (plus aucun Test résolu hors de tout registre)', () => {
     const sites = scanEngineDelegatedRoll(
-      'src/state/massBattleFlow.ts',
-      readFileSync(join(ROOT, 'src/state/massBattleFlow.ts'), 'utf8'),
+      'src/noyau/massBattleFlow.ts',
+      readFileSync(join(ROOT, 'src/noyau/massBattleFlow.ts'), 'utf8'),
       delegues(),
     );
     expect(sites.map((s: { name: string }) => s.name)).toContain('resolveClash');
-    expect(ENGINE_DELEGATED_ROLL_STOCK.has('src/state/massBattleFlow.ts')).toBe(true);
+    expect(ENGINE_DELEGATED_ROLL_STOCK.has('src/noyau/massBattleFlow.ts')).toBe(true);
   });
 
   it('le compte par fichier est EXACT et fail-closed (site en plus, entrée périmée, fichier hors registre)', () => {
@@ -749,12 +749,12 @@ describe('REGISTRE des chemins de jet (#1066) — les angles morts DÉCLARÉS so
   });
 
   it('angle mort : un dé qui n’est ni `rollTest` ni `d100` (ex. `d10`) n’est vu par AUCUN des trois scanners', () => {
-    const src = readFileSync(join(ROOT, 'src/state/massBattleFlow.ts'), 'utf8');
+    const src = readFileSync(join(ROOT, 'src/noyau/massBattleFlow.ts'), 'utf8');
     const hazard = /export function massBattleSetHazard[\s\S]*?\n}/.exec(src)?.[0] ?? '';
     expect(hazard, 'massBattleSetHazard a bougé — l’exemple d’angle mort cité par la doc doit rester mesurable').toContain('d10(battleRng())');
-    expect(scanRollSeamExclusivity('src/state/massBattleFlow.ts', hazard)).toEqual([]);
-    expect(scanPendingJetFabrication('src/state/massBattleFlow.ts', hazard)).toEqual([]);
-    expect(scanEngineDelegatedRoll('src/state/massBattleFlow.ts', hazard, delegues())).toEqual([]);
+    expect(scanRollSeamExclusivity('src/noyau/massBattleFlow.ts', hazard)).toEqual([]);
+    expect(scanPendingJetFabrication('src/noyau/massBattleFlow.ts', hazard)).toEqual([]);
+    expect(scanEngineDelegatedRoll('src/noyau/massBattleFlow.ts', hazard, delegues())).toEqual([]);
   });
 });
 
@@ -778,7 +778,7 @@ describe('REGISTRE des chemins de jet (#1066) — familles CANONIQUES énuméré
   });
 
   it('la 3ᵉ famille navale `openCrewTestPending` est bien MODULE-LOCALE (le fait qui l’a tenue hors registre)', () => {
-    const src = readFileSync(join(ROOT, 'src/state/combatSlice.ts'), 'utf8');
+    const src = readFileSync(join(ROOT, 'src/noyau/combatSlice.ts'), 'utf8');
     expect(/^export\s+function\s+openCrewTestPending\b/m.test(src)).toBe(false);
     expect(/^function\s+openCrewTestPending\b/m.test(src)).toBe(true);
   });
@@ -804,8 +804,8 @@ const LIGNE_A_LA_MAIN_STOCK: Record<string, number> = {
   // COMBAT : SOLDÉ — toute cible de Test se forme par `cibleDuTest` (`engine/tests.ts`), y compris la
   // rangée batch du Test de Peur (`encounterPsychFlow`) et le dé d'une manœuvre (`rollFlowSpecs`).
   // HORS COMBAT — les sites de jet sont routés par `rollLine`/`rollStep` ; ce qui reste n'est pas une cible.
-  'src/state/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
-  'src/state/cascadeTestKit.ts': 1, // le cliquet lui-même (`inexplique`)
+  'src/noyau/seaVoyageFlow.ts': 1, // reste : conversion Difficulté→DR d'une infestation (pas une cible)
+  'src/state/cascade.testkit.ts': 1, // le cliquet lui-même (`inexplique`)
 };
 
 /** Dette TOTALE MESURÉE sur `HEAD` + ce lot : 2 occurrences / 2 fichiers, aucune en combat — verrou
@@ -876,20 +876,20 @@ describe('CLIQUET — l’arithmétique de ligne vit dans le monteur, pas dans l
  * (`const st = {...}; st.target = …`) échappe au scanner.
  */
 const HORS_PERIMETRE_COMBAT = [
-  'src/state/combat/', 'src/noyau/combat/', 'src/state/combatFlow.ts', 'src/state/combatSlice.ts', 'src/state/combatEffects.ts',
-  'src/state/combatManeuvers.ts', 'src/state/encounterPsychFlow.ts', 'src/state/shipManeuver.ts',
-  'src/state/targetingModes.ts', 'src/state/rollFlowSpecs.ts', 'src/state/rollFlowFactory.ts',
+  'src/state/combat/', 'src/noyau/combat/', 'src/noyau/combatFlow.ts', 'src/noyau/combatSlice.ts', 'src/noyau/combatEffects.ts',
+  'src/noyau/combatManeuvers.ts', 'src/noyau/encounterPsychFlow.ts', 'src/noyau/shipManeuver.ts',
+  'src/noyau/targetingModes.ts', 'src/noyau/rollFlowSpecs.ts', 'src/noyau/rollFlowFactory.ts',
 ];
 const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   // TYPES (aucun montage) — `kind` + `target` en position de DÉCLARATION
   'src/data/schemas/defs/spells.ts': 1,
   'src/data/schemas/defs-scenes/effets.ts': 2, // schémas `inflictPsychology` et `exposureNight`
   'src/noyau/pendings.ts': 1, // PendingExtendedTest
-  'src/state/upkeep.ts': 1, // DeferredUpkeepTest
-  'src/state/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
+  'src/noyau/upkeep.ts': 1, // DeferredUpkeepTest
+  'src/noyau/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
   'src/state/store.ts': 1, // signature de `startExtendedTest`
   // RELAIS d'une ligne DÉJÀ montée par le monteur (rien à recalculer ici) — EXEMPTION AU SITE
-  'src/state/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
+  'src/noyau/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
   // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:178). Le scanner est TEXTUEL : il ne voit pas
   // cette provenance, il compte le littéral — la raison la dit.
   // MONTAGES à la main — dette RÉELLE restante hors combat, à router par `rollStep`
@@ -902,7 +902,7 @@ const TOTAL_ETAPES = Object.values(ETAPE_A_LA_MAIN_STOCK).reduce((s, n) => s + n
  *  PROFONDEUR MESURÉE, pas choisie : passer à DEUX niveaux apparie des CORPS DE FONCTION entiers et
  *  compte un `kind:` et un `target:` appartenant à deux objets DIFFÉRENTS (mesuré : `data/index.ts`
  *  (interface), `scenes/test-scenarios/18-effets-scriptes.ts` (deux effets d'un même tableau),
- *  `state/jumpMove.ts` et `state/corruptionFlow.ts` (corps de fonction) faussement comptés, et
+ *  `noyau/monde/jumpMove.ts` et `noyau/corruptionFlow.ts` (corps de fonction) faussement comptés, et
  *  `engine/rest.ts` retombant de 3 à 2 parce qu'un englobant avale deux vrais sites). Le compte
  *  deviendrait faux dans les DEUX sens. */
 const LITTERAL_RX = /\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/gs;
@@ -1116,8 +1116,8 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
   /**
    * CRITÈRE DU `.int(` — un dé porte SA PLAGE (`RNG.int(min, max)`, `src/engine/dice.ts:7`), un
    * `.int()` de schéma zod ne porte rien et ne tire rien. Les deux formes réelles du dépôt sont
-   * reprises à l'octet : `src/state/combatSetup.ts:31` (`rng.int(1, 10)` d'Initiative) et
-   * `src/state/etalLot.ts:60` (`base.int(min, max)` de peuplement d'étal) restent VUS ; la forme zod de
+   * reprises à l'octet : `src/noyau/combatSetup.ts:31` (`rng.int(1, 10)` d'Initiative) et
+   * `src/noyau/monde/etalLot.ts:60` (`base.int(min, max)` de peuplement d'étal) restent VUS ; la forme zod de
    * `src/data/schemas/grammaire/valeurs.ts:85` ne compte pas.
    */
   it('CRITÈRE : un `.int()` de schéma zod n’est pas un dé, un `.int(min, max)` de RNG en est un', () => {
@@ -1169,8 +1169,8 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 /** Les points d'application d'un COUP (#1765) : `applyAttackResult` et ses enveloppes, qui rendent
  *  `Applique` — leur suspension porte la suite du coup (`SuiteDeCoup`, `pendings.ts`). */
 const POINTS_DU_COUP = ['applyAttackResult', 'doAttack', 'applyFreeAttack', 'applyTalentFreeAttack'];
-/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`state/combatEffects` ; et
- *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `state/combatFlow`
+/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`noyau/combatEffects` ; et
+ *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `noyau/combatFlow`
  *  `applyOups`/`applyBladeTrap`, #1508 T3b-4), plus les points d'application d'un coup. */
 const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap', ...POINTS_DU_COUP];
 /** Les CONSOMMATEURS nommés — recevoir le retour en argument de l'un d'eux EST le consommer. */
@@ -1431,7 +1431,7 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
       perdus,
       'Un appel dont le retour se perd applique sa suite par-dessus un dé en vol (#1508).\n'
         + 'Trois issues : lire le retour (confier la suite, `confierLaSuite`), ou le passer à\n'
-        + '`cloturer(…)` / `jouerFlowEntier(…)` / `nePeutPasDifferer(…)` (cf. state/combatEffects.ts) :\n'
+        + '`cloturer(…)` / `jouerFlowEntier(…)` / `nePeutPasDifferer(…)` (cf. noyau/combatEffects.ts) :\n'
         + `${perdus.join('\n')}`,
     ).toEqual([]);
   });
@@ -1502,19 +1502,19 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     // Une seule représentation jusqu'au dispatcher : #2639.
     expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan par NOM voit le point, pas le relais').toBe(1);
     expect(relaisDuCoup().sites, 'un relais NEUF d’un point du coup : son appelant doit consommer son retour').toEqual([
-      'src/state/combatFlow.ts aiAvailableFreeAttack',
-      'src/state/combatFlow.ts aiCreatureFreeAttacks',
-      'src/state/combatFlow.ts autoCleave',
-      'src/state/combatFlow.ts drainerLesGratuites',
-      'src/state/combatFlow.ts freeAttackHookImpl',
-      'src/state/combatFlow.ts jouerLApresCoup',
-      'src/state/combatFlow.ts jouerLaFrappePassive',
-      'src/state/combatFlow.ts jouerLaSuiteDuCoup',
-      'src/state/combatFlow.ts jouerLesTirsDeBordee',
-      'src/state/combatFlow.ts resumeCleaveChain',
-      'src/state/combatFlow.ts runCleaveChain',
-      'src/state/combatFlow.ts runPreemptShots',
-      'src/state/combatSlice.ts applyBatteryVolley',
+      'src/noyau/combatFlow.ts aiAvailableFreeAttack',
+      'src/noyau/combatFlow.ts aiCreatureFreeAttacks',
+      'src/noyau/combatFlow.ts autoCleave',
+      'src/noyau/combatFlow.ts drainerLesGratuites',
+      'src/noyau/combatFlow.ts freeAttackHookImpl',
+      'src/noyau/combatFlow.ts jouerLApresCoup',
+      'src/noyau/combatFlow.ts jouerLaFrappePassive',
+      'src/noyau/combatFlow.ts jouerLaSuiteDuCoup',
+      'src/noyau/combatFlow.ts jouerLesTirsDeBordee',
+      'src/noyau/combatFlow.ts resumeCleaveChain',
+      'src/noyau/combatFlow.ts runCleaveChain',
+      'src/noyau/combatFlow.ts runPreemptShots',
+      'src/noyau/combatSlice.ts applyBatteryVolley',
     ]);
   });
 

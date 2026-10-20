@@ -23,7 +23,7 @@ import type { PendingRoll } from './RollLine';
 import { codexLookupById } from './compendium/registry';
 import { conditionModLines, attackModifiers } from '../engine/combat';
 import { addCondition, COND } from '../engine/conditions';
-import { castWardLine } from '../state/combatFlow';
+import { castWardLine } from '../noyau/combatFlow';
 import { useGame, type GameState } from '../state/store';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Disease } from '../engine/disease';

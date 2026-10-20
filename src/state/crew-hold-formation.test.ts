@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { crewPosteOf } from './shipPostes';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
+import { crewPosteOf } from '../noyau/monde/shipPostes';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { itemFromTrappingById } from '../engine/items';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ShipPoste } from '../engine/types';

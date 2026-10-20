@@ -5,7 +5,7 @@ import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { structureAppearance } from '../catalog/structures';
 import { emptyScene, setDoorRevealed, setStructureDown, type BuildingMass, type Scene, type SceneEffectZone, type WallSeg } from '../../noyau/monde/scene';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 
 /**
  * Builder de MURS du pivot : on teste la sortie MONDE (camera-free) — l'aiguillage d'arête unique

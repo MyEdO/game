@@ -104,7 +104,7 @@ export type Possession = PossessionCommon &
 type Distribute<U> = U extends unknown ? Omit<U, 'uid'> : never;
 /** `Omit` DISTRIBUTIF sur l'union discriminée `Possession` — `Omit<Possession,'uid'>` nu perdrait les
  *  champs propres à chaque `nature` (keyof d'une union = intersection des clés communes seulement).
- *  SOURCE UNIQUE (#617/#618 Lot 1) — `state/possessionsFlow.ts` la ré-exporte pour ses appelants. */
+ *  SOURCE UNIQUE (#617/#618 Lot 1) — `noyau/possessionsFlow.ts` la ré-exporte pour ses appelants. */
 export type PossessionInput = Distribute<Possession>;
 
 /** Capacité de PORT (Contenu bête / chargement véhicule / Contenance navire, EDOC 07/LDB 70/MDG 12) —
@@ -196,14 +196,14 @@ const EMBARK_HOST_NATURES: ReadonlySet<Possession['nature']> = new Set(['navire'
 const EMBARK_CHILD_NATURES: ReadonlySet<Possession['nature']> = new Set(['bete', 'serviteur', 'vehicule']);
 
 /** Une possession peut-elle embarquer sur cet hôte ? Borne de chaîne par NATURE (§5) — la capacité
- *  libre se vérifie séparément, à l'appel (`state/possessionsFlow.ts` `embark`). PUR. */
+ *  libre se vérifie séparément, à l'appel (`noyau/possessionsFlow.ts` `embark`). PUR. */
 export function canEmbark(child: Possession, host: Possession): boolean {
   if (child.uid === host.uid) return false;
   return EMBARK_HOST_NATURES.has(host.nature) && EMBARK_CHILD_NATURES.has(child.nature);
 }
 
 /** Enc DÉJÀ embarqué sur un hôte (Σ `possessionTotalEnc` des possessions `embarquee` sur lui) —
- *  brique commune de `embark()` (state/possessionsFlow.ts) ET de la gate d'écran (PossessionsScreen,
+ *  brique commune de `embark()` (noyau/possessionsFlow.ts) ET de la gate d'écran (PossessionsScreen,
  *  #620 Lot 2) : SOURCE UNIQUE de ce calcul, jamais une 2e sommation parallèle. PUR. */
 export function embarkedEnc(hostUid: string, all: Possession[]): number {
   return all

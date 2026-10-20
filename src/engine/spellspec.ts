@@ -34,7 +34,7 @@ export function spellSupport(
   missile: boolean,
 ): 'mecanique' | 'partiel' | 'narratif' {
   // Hors op, seules comptent les métadonnées qui PRODUISENT un effet : la touche du Projectile
-  // (`appliquerTouchePourCible`, `src/state/combatFlow.ts`) et l'attaque de zone du Souffle
+  // (`appliquerTouchePourCible`, `src/noyau/combatFlow.ts`) et l'attaque de zone du Souffle
   // (`applyAreaAttack`, même fichier). Une ZdE (`target.kind === 'area'`) ne fait que CHOISIR les
   // cibles (`castCommitZone`, même fichier) des effets portés par les ops.
   const mech = ops.filter((o) => o.op !== 'narrative').length > 0 || missile || spell.breathAttack != null;

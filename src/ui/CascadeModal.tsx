@@ -34,7 +34,7 @@ import { formatWardSave } from '../engine/traits/dispatch';
 import { t } from '../i18n';
 import { opposedAttackerLabel } from '../noyau/rollSeam';
 import { useOwns } from './ownership';
-import { sequenceAbandonEtatOf } from '../state/sequenceCore';
+import { sequenceAbandonEtatOf } from '../noyau/sequenceCore';
 import { SequencePanel } from './SequencePanel';
 import { stepForcedDie } from './forcedDieRow';
 import { opposedResponded } from './opposedFrozen';
@@ -44,7 +44,7 @@ import type { Combatant } from '../engine/types';
 import { buildParticipantRows, rollAllUnrolledRows, rangeeSansJet } from './buildParticipantRows';
 import { Prose, mdToText } from './Prose';
 import { useIdentites } from './useIdentites';
-import { nommer } from '../state/identites';
+import { nommer } from '../noyau/monde/identites';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
@@ -375,7 +375,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     </>
   );
   // ENCADRÉ « Réussite / Échec » en régime CALCULÉ (#1117) : les deux fabriques d'étape
-  // `triggeredTest` (`state/combat/triggeredTest.ts`) SÉRIALISENT déjà les Flows de branche dans le
+  // `triggeredTest` (`noyau/combat/triggeredTest.ts`) SÉRIALISENT déjà les Flows de branche dans le
   // `meta` — l'encadré se DÉRIVE donc de leurs ops effectives (`branchCertainOps` → `GameOpChips`),
   // règles optionnelles comprises, au lieu d'être une phrase stockée qui mentirait dès qu'une option
   // change le comportement. Rendu SEULEMENT quand au moins une branche est certaine.

@@ -17,7 +17,7 @@ import { validateDataset } from '../data/schemas/validate';
 import { tableStepDef } from '../noyau/cascade';
 // La FAMILLE des tables de météo s'enregistre au chargement du module de voyage : on l'importe par ce
 // qu'on en LIT (le gabarit des rangées d'une saison), jamais par un import d'effet de bord.
-import { stageWeatherRows } from './travelFlow';
+import { stageWeatherRows } from '../noyau/travelFlow';
 
 type Range = { min: number; max: number; weather: string };
 type Saison = (typeof weather)[number];

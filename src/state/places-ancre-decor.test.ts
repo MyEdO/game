@@ -14,7 +14,7 @@ import type { Dir4 } from '../noyau/monde/dir8';
  *
  * Une place assise se pose sur `decorAncre` (`noyau/monde/footprint.ts`) — le centre de l'empreinte
  * effective du meuble — exactement comme la géométrie de sa recette (`gameIso/builders/props.ts`) et
- * comme le foyer de la lampe qu'il porte (`state/vision.ts`). Ce fichier tient les deux faces de
+ * comme le foyer de la lampe qu'il porte (`noyau/monde/vision.ts`). Ce fichier tient les deux faces de
  * cette affirmation, sur des scènes CONSTRUITES pour ce contrat (#1709 — aucune carte de campagne
  * n'entre ici : une case déplacée sur un plan livré ne doit rougir aucun test) :
  *  1. la POPULATION posée, place par place, sur les deux décors à places du catalogue et aux quatre

@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { chooseEnemyAction, EnemyTurnInput } from './ai';
+import { chooseEnemyAction, EnemyTurnInput } from '../noyau/monde/ai';
 import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
-import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
-import { spawnEnemy } from './spawn';
+import { runEnemyAI, aiTurnLog, clearAiTurnLog } from '../noyau/combatFlow';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { areGrappling } from '../engine/grapple';
 import { stacks } from '../engine/conditions';

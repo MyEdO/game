@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { notifySlain } from './combatFlow';
+import { notifySlain } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 

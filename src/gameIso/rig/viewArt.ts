@@ -80,7 +80,7 @@ export function nearestView<A extends unknown[]>(art: ViewArt<A>, want: View): (
 /**
  * REPLI VISIBLE (#223) — silhouette d'ERREUR ASSUMÉE d'un objet inerte du système de plans (navire /
  * terrestre / engin de siège) dont l'`id` n'a PAS d'art dédié. Doctrine du patron « mannequin »
- * (`state/spawn.ts`) : jamais un joli générique silencieux — une caisse d'alarme barrée d'un « ? » que
+ * (`noyau/monde/spawn.ts`) : jamais un joli générique silencieux — une caisse d'alarme barrée d'un « ? » que
  * l'œil repère immédiatement en jeu, doublée d'un `console.warn` en DEV nommant l'`id` fautif (donnée à
  * corriger). Coords LOCALES : origine = contact sol au centre, l'objet monte en y NÉGATIF (cf.
  * `groundedBody`). Mono-vue (`profile`) → face/dos REPLIENT dessus. Couleurs LITTÉRALES (magenta d'alarme)

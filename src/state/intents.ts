@@ -24,8 +24,8 @@
  * écran (`src/ui`, `src/gameIso`) n'émet (garde `intents.test.ts`, #1050). Chez l'invité, une action
  * hors allowlist s'exécute dans son store (`netFlow` n'enrobe que l'allowlist).
  */
-import { coopFlowIntents, type FLOW_VERBS } from './flowVerbs';
-import type { HORS_MODAL } from './modalArbiter';
+import { coopFlowIntents, type FLOW_VERBS } from '../noyau/flowVerbs';
+import type { HORS_MODAL } from '../noyau/modalArbiter';
 import type { GameState } from './store';
 
 export type ClasseCoop = 'invité' | 'hôte' | 'local' | 'interne';

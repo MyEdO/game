@@ -13,7 +13,7 @@ import {
 } from './cameras';
 import { LEVEL_H, TH, TW, tileCenter, type Dims, type ProjKind, type Rot } from '../../../geometry/iso';
 import { METRES_PER_LEVEL, metricToLift } from '../../../noyau/monde/relief';
-import { buildScene } from '../../../state/mapSpec';
+import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { DIR8_ORDER } from '../../../noyau/monde/dir8';

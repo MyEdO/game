@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { initialFields } from './stateFields';
+import { initialFields } from '../noyau/stateFields';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
-import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
+import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 
 /**
  * TIR RAPIDE, BOUCLE REPRENABLE (#997, #1765) — `LDB 11 l.97-103`. Chaque tir d'interruption passe par la

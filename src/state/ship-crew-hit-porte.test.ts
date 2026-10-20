@@ -3,13 +3,14 @@ import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
 import { cascadeAppliers } from '../noyau/cascade';
 import { seedBattleRng } from '../noyau/battleRng';
-import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
-import { applyCriticalToTarget } from './combatFlow';
+import { runSeaDay, buildSeaPlan } from '../noyau/seaVoyageFlow';
+import { applyCriticalToTarget } from '../noyau/combatFlow';
 import { makePregens } from '../data/pregens';
 import { emptyScene } from '../noyau/monde/scene';
 import { resolveStake, voyageStakeRef } from '../data';
-import { monoStep, type BuiltCascadeStep } from '../noyau/rollSeam';
-import { bandeTriggeredTest } from './combat/triggeredTest';
+import { monoStep } from '../noyau/rollSeam';
+import { type BuiltCascadeStep } from '../noyau/stepBrand';
+import { bandeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { rollShipCritical, applyCrewHit } from '../engine/shipCritical';
 import { RIVER_CRIT_SET, SHIP_CRIT_SET } from '../data/shipCriticals';
 import { makeRNG } from '../engine/dice';
@@ -18,7 +19,7 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 /**
  * #1657 B3-2 — LE COUP À L'ÉQUIPAGE D'UN CRITIQUE DE COQUE PASSE PAR LA PORTE.

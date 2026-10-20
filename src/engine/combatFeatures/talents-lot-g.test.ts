@@ -115,7 +115,7 @@ describe('défense / récupération (LDB 10)', () => {
     expect(bleedIgnoreLevel(c)).toBe(1); // 1 pion ignoré — lu par fireConditionEffects (stacksReducedBy)
   });
   // (Mâchoires d'acier n'est plus une CombatFeature `stunSave` : c'est un effet `onGainCondition`
-  //  data-driven — couvert par les tests de la brique `state/combat/triggeredTest`.)
+  //  data-driven — couvert par les tests de la brique `noyau/combat/triggeredTest`.)
   it('Cœur vaillant / Résistance à la Magie (talent) / Effrayant', () => {
     expect(hasBraveheart(mk([{ name: 'Cœur vaillant', times: 1 }]))).toBe(true);
     expect(talentSpellDRMod(mk([{ name: 'Résistance à la Magie', times: 2 }]))).toBe(-4); // −2 par point (LDB 10 l.1026)

@@ -20,7 +20,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
-import { parseProject } from '../../state/worldMap';
+import { parseProject } from '../../noyau/worldMap';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import { refEstVolumique, props as catalogueDeDecor } from '../../data';
 import * as texturesStatiques from './texturesStatiques';

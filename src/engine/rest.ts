@@ -19,7 +19,7 @@
  *
  * #T3 (cascade d'horloge) : la PROGRESSION des maladies (LDB 20 — incubation/durée en jours
  * CALENDAIRES) et la CONVALESCENCE des traumas (LDB 18 l.222 — « un nombre de jours égal à 30 – votre Bonus d'Endurance »)
- * ne dépendent PAS du sommeil : elles sont décomptées par l'entretien quotidien (`state/upkeep.ts`,
+ * ne dépendent PAS du sommeil : elles sont décomptées par l'entretien quotidien (`noyau/upkeep.ts`,
  * sur franchissement de jour, quel que soit le chemin — advanceTime, repos, voyage). `restRecovery`
  * ne garde que ce qui dépend du SOMMEIL. `dailyDiseaseUpkeep` (ci-dessous) reste dans ce module
  * (pur) car il réconcilie les États DÉRIVÉS des passifs de maladie (`syncDerivedConditions`), ce qui
@@ -71,7 +71,7 @@ export function dailyDiseaseUpkeep(c: Combatant, rng: RNG, defer: UpkeepDeferTes
  * FIN d'une infection persistante (`LDB 20 l.200`) : la résolution du Test de fin (`applyDiseasePersist`)
  * ET la réconciliation des États PORTÉS par les passifs de ses symptômes qu'elle entraîne (l.188 :
  * maladie guérie → l'Exténué du Malaise part). SOURCE UNIQUE des deux gestes — l'applier de nuit
- * (`state/restFlow.ts`) comme tout autre appelant passent par ici, jamais par la moitié.
+ * (`noyau/restFlow.ts`) comme tout autre appelant passent par ici, jamais par la moitié.
  *
  * Le foyer est CE module et non `disease.ts` : la réconciliation lit `conditions`, que `disease.ts` ne
  * peut pas importer (cycle mesuré `conditions` → `trauma` → `disease`).

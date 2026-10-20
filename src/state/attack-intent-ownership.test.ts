@@ -14,10 +14,10 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { openAttackCascade, maybeOpenDefense } from './combatFlow';
-import { intentAllowedFor } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
-import { jetOwnedIntents } from './flowVerbs';
+import { openAttackCascade, maybeOpenDefense } from '../noyau/combatFlow';
+import { intentAllowedFor } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
+import { jetOwnedIntents } from '../noyau/flowVerbs';
 import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';

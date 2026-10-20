@@ -151,9 +151,9 @@ function rendu() {
 
   // Les TROIS routeurs qui résolvent un nœud `test` de Flow — mesurés, pas supposés.
   const ROUTEURS_AUTHORES = [
-    ['resolveFlowTest', 'src/state/combat/triggeredTest.ts', 'voie CADENCE-AWARE : ouvre `openSkillTest` (modale influençable) quand l\'acteur est piloté.'],
+    ['resolveFlowTest', 'src/noyau/combat/triggeredTest.ts', 'voie CADENCE-AWARE : ouvre `openSkillTest` (modale influençable) quand l\'acteur est piloté.'],
     ['resolveInlineFlowTest', 'src/noyau/triggeredEffects.ts', 'jumeau store-free de la branche NON-interactive du précédent (jet résolu inline, journalisé).'],
-    ['bandeTriggeredTest', 'src/state/combat/triggeredTest.ts', 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.'],
+    ['bandeTriggeredTest', 'src/noyau/combat/triggeredTest.ts', 'MÊME porte, N TESTEURS (#1657) : une BANDE de N rangées pour les porteurs surfacés, la voie inline pour les autres.'],
   ]
   const routeursManquants = ROUTEURS_AUTHORES.filter(([name, file]) =>
     !new RegExp(`function\\s+${name}\\b`).test(readFileSync(join(ROOT, file), 'utf8')))

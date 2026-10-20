@@ -1,5 +1,5 @@
 import type { GameState } from '../state/store';
-import { rolledLocally } from '../state/netOwnership';
+import { rolledLocally } from '../noyau/netOwnership';
 import type { RollRowData } from './RollShell';
 
 /**

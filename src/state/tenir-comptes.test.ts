@@ -10,7 +10,7 @@ import { careers, levelsForCareer } from '../data';
 import { actorStatus } from '../engine/social';
 import { statusBudgetBrass, type StatusTier } from '../engine/money';
 import { toBrass } from '../engine/money';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 

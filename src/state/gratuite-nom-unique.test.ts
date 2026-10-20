@@ -6,9 +6,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { hoverTargeting } from './targeting';
-import { availableAttacks } from './combatManeuvers';
-import { attackWeaponOf, maybeOpenDefense } from './combatFlow';
+import { hoverTargeting } from '../noyau/targeting';
+import { availableAttacks } from '../noyau/combatManeuvers';
+import { attackWeaponOf, maybeOpenDefense } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { testScene } from '../scenes/test-fixture';

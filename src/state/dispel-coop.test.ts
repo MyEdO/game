@@ -18,9 +18,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { emettreIntentInvite, interceptGuestActions, restoreGuestActions, netSnapshot, initialNet } from './netFlow';
-import { intentEluLocalement } from './targetingModes';
+import { intentEluLocalement } from '../noyau/targetingModes';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import type { ActiveEffect } from '../engine/types';
 
 const get = () => useGame.getState();

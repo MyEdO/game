@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { openRoundStartPsych, openRoundEndCascade } from './combatFlow';
-import { FLOWS } from './rollFlowSpecs';
+import { openRoundStartPsych, openRoundEndCascade } from '../noyau/combatFlow';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { jete } from '../engine/tests.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import { addCondition, COND } from '../engine/conditions';
-import { modalOwnerOf } from './modalArbiter';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 
 /**
  * Psychologie de COMBAT — régime CASCADE de Round (LDB 21). Les Traits ciblés et les NOUVELLES

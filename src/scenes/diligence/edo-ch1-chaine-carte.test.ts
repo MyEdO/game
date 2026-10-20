@@ -5,9 +5,9 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { routesEtat, routesFrom, visiblePlaces } from '../../state/worldMap';
+import { routesEtat, routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import { reachableCells } from '../../state/mapQC';
-import { aPorteeDe } from '../../state/exploreNav';
+import { aPorteeDe } from '../../noyau/monde/exploreNav';
 import { startOf } from '../../noyau/monde/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';

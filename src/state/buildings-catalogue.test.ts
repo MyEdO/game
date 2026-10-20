@@ -1,6 +1,6 @@
 /**
  * CONTRAT du catalogue des BÂTIMENTS (#1715) — le dataset `src/data/buildings.json` et la façade
- * `state/buildings` qui le lit.
+ * `noyau/monde/buildings` qui le lit.
  *
  * Un bâtiment n'est pas un volume : ce sont des `WallSeg` (murs d'arête) sur un sol de terrain, sa
  * nappe de toit venant du pivot (`builders/roofs` + `authoring/roofsSvg`). L'entrée porte donc la
@@ -17,7 +17,7 @@ import { resetData, setDataset } from '../data/overrides';
 import { IDS_PAR_ESPACE } from '../data/schemas/_ids.generated';
 import { schema } from '../data/schemas/defs/buildings';
 import type { BuildingDef } from '../data/buildings.types';
-import { buildingsMeta, buildingFeatures } from './buildings';
+import { buildingsMeta, buildingFeatures } from '../noyau/monde/buildings';
 
 const charger = (): BuildingDef[] =>
   JSON.parse(readFileSync(fileURLToPath(new URL('../data/buildings.json', import.meta.url)), 'utf8'));

@@ -2,23 +2,23 @@ import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES } from './combatEffects';
+import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES } from '../noyau/combatEffects';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { openSequence } from '../noyau/rollSeam';
-import { buildAuthorPerilSteps } from './authorPerils';
-import { SEA_PERIL_INTERRUPT } from './seaVoyageFlow';
-import type { MapRoute } from './worldMap';
+import { buildAuthorPerilSteps } from '../noyau/authorPerils';
+import { SEA_PERIL_INTERRUPT } from '../noyau/seaVoyageFlow';
+import type { MapRoute } from '../noyau/worldMap';
 import type { PendingCascade, Suite } from '../noyau/pendings';
 import { emptyScene, type Dialogue, type Effect } from '../noyau/monde/scene';
 import { cleActionJouee } from '../noyau/monde/usable';
-import { ouvrirDialogue } from './dialogue';
-import { runCombatFlow, bandeTriggeredTest } from './combat/triggeredTest';
+import { ouvrirDialogue } from '../noyau/dialogue';
+import { runCombatFlow, bandeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { seedBattleRng } from '../noyau/battleRng';
-import './combatFlow'; // enregistre la clôture `reprendreFlowDeCombat`
-import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
+import '../noyau/combatFlow'; // enregistre la clôture `reprendreFlowDeCombat`
+import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade, registerCascadeApplier } from '../noyau/cascade';
 import { checkPartyWiped } from '../noyau/partyWipe';
-import { canFixDie } from './netOwnership';
+import { canFixDie } from '../noyau/netOwnership';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { demandesDeDes, applyOps, cleDeDe, gelerOpsCtx,
   OPS_CTX_GELES, OPS_CTX_PAR_REFERENCE, OPS_CTX_REBATIS, OPS_CTX_HORS_CANAL,
@@ -29,7 +29,8 @@ import { SHIP_CRIT_SET } from '../data/shipCriticals';
 import { makeRNG, roll as rollDes } from '../engine/dice';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import type { EffectOp, Flow } from '../noyau/monde/flow';
+import type { Flow } from '../noyau/monde/flow';
+import type { EffectOp } from '../engine/flowCore';
 
 /**
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,

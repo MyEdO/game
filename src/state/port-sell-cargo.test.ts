@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
 import { cascadeAppliers } from '../noyau/cascade';
 import { resultLine } from '../noyau/rollSeam';
@@ -13,7 +13,7 @@ import type { Combatant, SkillInstance } from '../engine/types';
 /**
  * VENTE au port (`portSellCargo`, dernier reliquat #275/#274) — la chaîne Ragot → acheteur →
  * Marchandage est désormais une CASCADE (`openRoll` par étape, enchaînée via `chainStep`,
- * `state/portFlow.ts`). Chaque test isole une branche via un `PortProfile`/parti CONTRÔLÉ (jamais un
+ * `noyau/portFlow.ts`). Chaque test isole une branche via un `PortProfile`/parti CONTRÔLÉ (jamais un
  * `openPort` aléatoire) pour un déterminisme lisible.
  */
 const get = useGame.getState.bind(useGame);

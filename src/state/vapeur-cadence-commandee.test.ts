@@ -8,9 +8,9 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { emptyScene } from '../noyau/monde/scene';
 import { seedBattleRng } from '../noyau/battleRng';
-import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
+import { buildSeaPlan, runSeaDay } from '../noyau/seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 
 const get = useGame.getState.bind(useGame);

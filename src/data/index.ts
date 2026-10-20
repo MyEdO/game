@@ -17,7 +17,7 @@ import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
-import type { MerchantArchetypeDef } from '../state/merchants/types';
+import type { MerchantArchetypeDef } from '../noyau/monde/merchants/types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
 // EXACTEMENT les types des champs qu'elles alimentent — les redéclarer ici en ferait une seconde vérité.
 import type { Scene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../noyau/monde/scene';
@@ -211,7 +211,7 @@ export interface WaterExposureData {
 }
 export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
 
-/** Enjeu VERBATIM (règle 5, #331) d'un `kind` d'étape de la cascade de nuit (`src/state/restFlow.ts`,
+/** Enjeu VERBATIM (règle 5, #331) d'un `kind` d'étape de la cascade de nuit (`src/noyau/restFlow.ts`,
  *  via `nightStakeRef`) — un `kind` absent du catalogue n'affiche rien (surfaçage progressif). */
 export interface NightStakeEntry {
   /** Identité STABLE + libellé FR (#422, exposition Codex) — distincts de `kind` (vocabulaire lu par
@@ -305,7 +305,7 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
 
 /** REGISTRE DES ACTIONS de combat (`actions.json`, spec HUD « Zone 12 ») : une entrée = un acte
  *  offert au joueur, avec son identité STABLE, son affichage, sa règle Codex, son coût et les IDS
- *  de code qui l'exécutent. Le CODE derrière ces ids vit dans `src/state/actionRegistry.ts` —
+ *  de code qui l'exécutent. Le CODE derrière ces ids vit dans `src/noyau/actionRegistry.ts` —
  *  `src/data` ne dépend jamais de `src/state` ni de `src/engine`. */
 export interface ActionDef {
   id: string;
@@ -1036,7 +1036,7 @@ export interface TestMatch {
   /** EXCLUT une spécialisation (matche toute spec SAUF celle-ci) — Linguistique « Langue (toutes) » qui
    *  « ne fonctionne pas avec Langue (Magick) » : `{ skill:{id:'langue'}, exceptSpec:'magick' }`. */
   exceptSpec?: string;
-  when?: import('../noyau/monde/flow').Condition;
+  when?: import('../engine/flowCore').Condition;
   manual?: boolean;
 }
 /** Champ « Tests » d'un Talent (LDB 10 : +1 DR/niveau sur un Test lié RÉUSSI). `raw` = la ligne du livre
@@ -1154,7 +1154,7 @@ export interface ItemCapabilities {
   disarmImmune?: boolean;
   /** Arme à corde séparable (Lance-harpon, ADE II 02 l.677 : « Si la corde est séparée de la flèche, la
    *  portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante ») — active le mode de tir
-   *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `state/combatFlow.ts` `weaponContextOf`), choisi
+   *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `noyau/combatFlow.ts` `weaponContextOf`), choisi
    *  par le joueur avant le jet (`PendingAttack.harpoonRopeCut`). Lue par-objet (`itemCapability`). */
   ropeMode?: boolean;
   /** Contenant d'eau (Outre à eau, LDB 64 l.18 / Seau, LDB 67 l.59) : consommé par l'action de combat « Asperger
@@ -1641,7 +1641,7 @@ export interface SemencesDeSceneData {
   roofDefaults: SceneRoofDefaults;
 }
 /**
- * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`state/mapSpec.ts`) pose
+ * DÉFAUTS DE COMPILATION (#1716/#1789) — ce que le compilateur de scène (`noyau/mapSpec.ts`) pose
  * quand une section d'un `MapSpec` laisse le terrain implicite. Distinct des SEMENCES : celles-ci
  * fondent une scène neuve, ceux-là remplissent une déclaration déjà écrite.
  */
@@ -1653,7 +1653,7 @@ export interface DefautsDeCompilationData {
 /** MANŒUVRE de combat (attaque naturelle activée — LDB 85) — ENTITÉ ÉDITABLE de PREMIÈRE CLASSE (au
  *  même titre qu'un Sort) : son propre dataset `maneuvers.json`, sa catégorie Codex, ses effets
  *  AUTHORÉS en GameOp (`effects`). Un trait l'OCTROIE (`TraitData.grantsManeuvers`) ; le résolveur
- *  générique (`state/combatManeuvers.resolveManeuver`) la joue ENTIÈREMENT depuis cette donnée — jamais
+ *  générique (`noyau/combatManeuvers.resolveManeuver`) la joue ENTIÈREMENT depuis cette donnée — jamais
  *  une table en dur ni un applier par type. `kind` ne sert QU'À l'anim/pose/icône (jamais à résoudre).
  *  La géométrie/portée/opposition restent moteur (règle 3) ; Dégâts (`wounds`) + États = data. */
 /** Mesure de géométrie de manœuvre en MÈTRES (Portée/Souffle) : `bonus(ref)` de la carac `bonusOf` (référent
@@ -1786,7 +1786,7 @@ export interface TraitCapabilities {
   /** Blessures calculées avec le Bonus de FORCE au lieu du Bonus de Force Mentale (Fabriqué, LDB 85
    *  l.142 : « au lieu d'utiliser son bonus de Force Mentale, utilisez son bonus de Force »). Lu par
    *  `maxWounds`/`effectiveMaxWounds` — capacité DISTINCTE de `mindless` (immunité psychologique,
-   *  `engine/psych/registry.ts` ; profil IA « horde », `state/ai.ts` — LDB 85 l.142), un autre trait
+   *  `engine/psych/registry.ts` ; profil IA « horde », `noyau/monde/ai.ts` — LDB 85 l.142), un autre trait
    *  pourrait un jour substituer la même formule sans être Fabriqué. */
   woundsUseForce?: boolean;
   bestial?: boolean;
@@ -1807,7 +1807,7 @@ export interface TraitCapabilities {
   stride?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « réussit automatiquement tous ses Tests d'Escalade » — le geste
    *  d'escalade (échelle/arête `WallSeg.climb`) se résout SANS jet (pas un jet silencieux : aucun jet).
-   *  Lu par `state/climbMove` (`planClimb`) et `noyau/monde/path` (pathing/IA, `MoveEnv.traverse`). */
+   *  Lu par `noyau/monde/climbMove` (`planClimb`) et `noyau/monde/path` (pathing/IA, `MoveEnv.traverse`). */
   autoClimb?: boolean;
   /** Grimpant (LDB 85 l.160-162) : « avance à sa vitesse maximale de Mouvement sur toutes les surfaces
    *  appropriées » — coût de Mouvement NORMAL (1 case) au lieu de la ½ vitesse du Talent Grimpeur
@@ -2497,7 +2497,7 @@ const vehiculeParId = indexParId('vehicles', vehicles);
 export const findVehicleById: (id: string) => VehicleData | undefined = vehiculeParId;
 
 /** Archétypes de marchand (#2, donnée éditable — aucun archétype en dur dans le code) — FOYER UNIQUE
- *  app-owned. `MERCHANTS`/`MERCHANT_ARCHETYPES` (`state/merchants/index.ts`) réexportent ce registre :
+ *  app-owned. `MERCHANTS` (`noyau/monde/merchants/archetypes.ts`) indexe ce registre :
  *  ajouter un 7e archétype = une entrée JSON ici, rien d'autre. */
 export const MERCHANT_ARCHETYPES = merchantsJson as MerchantArchetypeDef[];
 export const merchantArchetypeById: Map<string, MerchantArchetypeDef> = new Map(MERCHANT_ARCHETYPES.map((m) => [m.id, m]));
@@ -2534,7 +2534,7 @@ export const terrains = terrainsJson as unknown as TerrainDef[];
 
 /** LES types de bâtiment (#1715) — empreinte et couverture par défaut à la pose, ornements d'identité
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
- *  `src/state/buildings` le lit VIVANT. */
+ *  `src/noyau/monde/buildings` le lit VIVANT. */
 export const buildings = buildingsJson as unknown as BuildingDef[];
 
 /**
@@ -2643,7 +2643,7 @@ export function findNavalTrait(id: string): NavalTraitData | undefined {
 }
 /** Index des ports de la Mer des Griffes (#217, MDG 15 l.439-506) — catalogue app-owned éditable au
  *  Codex, consommé PAR RÉFÉRENCE depuis un lieu de la carte du monde (`MapPlace.port.ref`,
- *  `state/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
+ *  `noyau/worldMap.ts`). `production`/`surplus`/`demande` sont keyés par id de `sea-cargo.json`
  *  (+ marqueurs `commerce`/`minimum-vital`), même vocabulaire que `PortProfile` (`engine/seaVoyage.ts`). */
 export interface NavalPortData {
   id: string;
@@ -2686,7 +2686,7 @@ export const shipConstruction = shipConstructionJson as ShipConstructionData;
 export const riverNavigation = riverNavigationJson as RiverNavigationData;
 
 /** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE consommé par
- *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/state/worldMap.ts`).
+ *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/noyau/worldMap.ts`).
  *  `port`/`marché` gardent leur propre schéma riche ; ce catalogue couvre le RESTE (auberge/temple/
  *  forgeron/guilde…) — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export interface LieuServiceData {
@@ -2720,7 +2720,7 @@ export function findLieuServiceById(id: string): LieuServiceData | undefined {
 /** Chanson de marins (MDG 09 l.218-248, payload du Talent Chanson de marin) — catalogue app-owned.
  *  `crewOps` = effet exprimé dans la langue UNIQUE `GameOp[]`, appliqué à CHAQUE membre d'équipage pendant
  *  l'effet (3 min + DR du Test de Divertissement (Chant) en minutes, 1 chanson par quart — activation
- *  `battleSingShanty`, state/combatSlice). `captainOps` = ops appliquées au seul CAPITAINE (titulaire du
+ *  `battleSingShanty`, noyau/combatSlice). `captainOps` = ops appliquées au seul CAPITAINE (titulaire du
  *  rôle — « Suivez le capitaine », l.246-248). `note` = clause RAW laissée à l'arbitrage MJ (intention/
  *  conséquence de Test non suivies par le moteur) — affichée, jamais un effet inventé. */
 export interface SeaShantyData {
@@ -3192,7 +3192,7 @@ export function byId<T extends TypeResolu>(type: T, id: string): EntiteDe<T> | u
  * Référence STRUCTURÉE à une Compétence — la réf de la grammaire (`refOuSpec('skill')`, régimes
  * `spec` DÉSIGNÉE XOR `choix` à faire) + `value`, le nombre IMPRIMÉ au statbloc.
  *
- * `choix` ne survit PAS au spawn : `skillsFromBook` (`state/spawn.ts`) DÉSIGNE une spécialisation, et
+ * `choix` ne survit PAS au spawn : `skillsFromBook` (`noyau/monde/spawn.ts`) DÉSIGNE une spécialisation, et
  * la `SkillInstance` runtime est toujours concrète.
  */
 export type SkillRef = RefASpecialisation & { value: number };
@@ -3320,7 +3320,7 @@ export function findTrappingById(id: string): TrappingData | undefined {
 }
 /** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
  *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`objetDuNarratif`,
- *  `state/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
+ *  `noyau/monde/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }

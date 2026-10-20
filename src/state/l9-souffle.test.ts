@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyCast, castSpell } from './combatFlow';
+import { applyCast, castSpell } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { testScene } from '../scenes/test-fixture';

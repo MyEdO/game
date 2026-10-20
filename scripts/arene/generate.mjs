@@ -4,13 +4,13 @@
  * Propriétaire EXCLUSIF de l'artefact : le JSON commité est l'octet de `build()`
  * (`src/scenes/generateurs-byte-stables.test.ts`) ; #1601. Usage : `tsx scripts/arene/generate.mjs` (tsx car `scripts/campagne/lib.mjs` importe
  * `buildScene` du moteur — l'ASCII, l'architecture, les murs, les couches et les rencontres sont compilés par le compilateur
- * headless-editor `src/state/mapSpec.ts`, zéro fabrique de scène dupliquée).
+ * headless-editor `src/noyau/mapSpec.ts`, zéro fabrique de scène dupliquée).
  */
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { projectDoc } from '../campagne/lib.mjs';
-import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
+import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { makeHub, DOC_TITRE_DE_CHAMPION } from './hub.mjs';
 import { makeZone1, makeZone2, makeZone3, makeZone4, makeZone5, makeZone6, makeZone7, DOC_STELE_DES_RUINES } from './zones1-7.mjs';
 import { makeZone8, makeZone9, makeZone10, makeZone11, makeZone12, makeZone13 } from './zones8-13.mjs';

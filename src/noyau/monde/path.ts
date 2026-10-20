@@ -456,6 +456,3 @@ export function manhattan(a: Pt, b: Pt): number {
   return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 }
 
-/** Distance de combat sur la grille — canon `engine/grid`, réexporté ici pour ses ~30 appelants
- *  du store (`Pt` est structurellement un `GridPt`). */
-export { chebyshev };

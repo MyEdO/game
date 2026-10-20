@@ -94,19 +94,19 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     // Un littéral rendu par un callback de `map` perd sa freshness : `getContextualType` ne le
     // rattache à rien, et `tsc` lui-même ne signale pas la suppression du champ écrit. Un champ
     // vivant y était donc rapporté « écrivains : AUCUN » — un faux négatif qui invite à supprimer du
-    // code vivant. `src/state/mapSpec.ts:902` (`const namedZones: SceneEffectZone[] = […].map(…)`)
+    // code vivant. `src/noyau/mapSpec.ts:902` (`const namedZones: SceneEffectZone[] = […].map(…)`)
     // est la sonde : l'annotation de la collection porte le type, la garde doit la lire.
     const rows = auditSceneFieldEditability(ROOT, perimetre());
     const zone = (field: string) => rows.find((r) => r.id === `SceneEffectZone.${field}`);
     for (const field of ['tiles', 'area', 'id', 'label', 'z']) {
       expect(zone(field)?.pipeline, `SceneEffectZone.${field} sans écrivain de pipeline`).toContain(
-        'src/state/mapSpec.ts'
+        'src/noyau/mapSpec.ts'
       );
     }
     // Le littéral IMBRIQUÉ dans ce même retour de callback est crédité aussi — mais seulement sur le
     // membre d'union réellement écrit (`kind: 'rect'`), jamais sur `disc`.
-    expect(zone('area.w')?.pipeline).toContain('src/state/mapSpec.ts');
-    expect(zone('area.radius')?.pipeline).not.toContain('src/state/mapSpec.ts');
+    expect(zone('area.w')?.pipeline).toContain('src/noyau/mapSpec.ts');
+    expect(zone('area.radius')?.pipeline).not.toContain('src/noyau/mapSpec.ts');
   });
 
   it('NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme', () => {
@@ -431,14 +431,14 @@ export const poserMur = (s: Scene, x: number): Scene => ({ ...s, walls: [...s.wa
   // distingue ce cas d'un vrai chemin d'édition.
   const PONT = {
     'src/noyau/monde/scene.ts': `export interface Scene { id: string; flags: Record<string, boolean>; notes: string }\n`,
-    'src/state/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
+    'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: { ...s.flags, ...patch } };
 }
 export function setNotes(s: Scene, v: string): Scene {
   return { ...s, notes: v };
 }\n`,
-    'src/ui/editor/editorState.ts': `export { setSceneFlags, setNotes } from '../../state/sceneEdit';\n`,
+    'src/ui/editor/editorState.ts': `export { setSceneFlags, setNotes } from '../../noyau/sceneEdit';\n`,
   };
 
   it('NON VACANTE (d) : une primitive hors interface RÉ-EXPORTÉE mais jamais APPELÉE ne crédite rien', () => {
@@ -456,7 +456,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
       const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
       expect(ids(orphanFields(rows))).toEqual(['Scene.flags']);
       // Témoins positifs : la primitive APPELÉE crédite, et l'écriture directe de l'interface aussi.
-      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/state/sceneEdit.ts']);
+      expect(rows.find((r) => r.id === 'Scene.notes')?.authors).toEqual(['src/noyau/sceneEdit.ts']);
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/editor/Inspecteur.ts']);
 
     } finally { program.dispose(); }
@@ -489,7 +489,7 @@ export const renommer = (s: Scene, v: string): Scene => ({ ...s, id: v });\n`,
     const program = virtualProgram({
       ...PONT,
       // Chaîne `Inspecteur → setNotes → setSceneFlags` : l'atteignabilité est TRANSITIVE.
-      'src/state/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
+      'src/noyau/sceneEdit.ts': `import type { Scene } from '../noyau/monde/scene';
 export function setSceneFlags(s: Scene, patch: Record<string, boolean>): Scene {
   return { ...s, flags: { ...s.flags, ...patch } };
 }

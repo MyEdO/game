@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { runEnemyAI, aiTurnLog, clearAiTurnLog } from '../combatFlow';
+import { runEnemyAI, aiTurnLog, clearAiTurnLog } from '../../noyau/combatFlow';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
-import { resolveRecoverTest } from './recover';
+import { resolveRecoverTest } from '../../noyau/combat/recover';
 import { makeRNG } from '../../engine/dice';
 import { opposedTest, REPLIS_DEUX_CIBLES } from '../../engine/tests';
 import { etats } from '../../data';

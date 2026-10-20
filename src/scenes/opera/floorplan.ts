@@ -10,9 +10,9 @@
  * si l'élévation change).
  */
 import type { Scene, Terrain, WallOverlay } from '../../noyau/monde/scene';
-import { buildScene, type MapSpec } from '../../state/mapSpec';
+import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
-import { parseWalledAscii, walledRowsOf, zonesFromSeeds, type ZoneSeed } from '../../state/asciiMap';
+import { parseWalledAscii, walledRowsOf, zonesFromSeeds, type ZoneSeed } from '../../noyau/monde/asciiMap';
 import { terrainWalkable } from '../../noyau/monde/terrain';
 import { REZ_ASCII, ETAGE_ASCII } from './floorplan.ascii';
 
@@ -52,7 +52,7 @@ export const OPERA_BASE: Terrain = 'vide';
  *  (NADJ 08 folio 39 — plan (image) : aucun matériau n'y figure ; le bois est un choix d'authoring MAISON,
  *  révisable, comme les frontières `clip` de `ZONES_ETAGE`). UNE table pour TOUS les lecteurs de ces deux
  *  grilles, y compris `puitsRim`, dont le flood ne la lit pas : aucun lecteur sans table — cf.
- *  `zonesFromSeeds`, `state/asciiMap.ts`. */
+ *  `zonesFromSeeds`, `noyau/monde/asciiMap.ts`. */
 export const OPERA_WALL_LEGEND = { w: { appearance: 'mur-en-bois' } } satisfies Record<string, WallOverlay>;
 
 /** Colonnes des 2 PUITS de rampe (angles du foyer, anciens escaliers du plan NADJ) : la couche 0 y monte

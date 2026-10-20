@@ -5,19 +5,13 @@
  * la FEUILLE générique `Flow<E>` / `TriggeredEffect<E>` avec l'union `Effect` complète (transition,
  * startCombat, startDialogue… — irréductiblement du monde) : c'est le Flow de SCÈNE/campagne.
  *
- * Tous les consommateurs state/ui/scenes/data importent depuis `./flow` (ou `../noyau/monde/flow`) SANS
- * changement — `export *` ré-expose Condition/FlowTest/EffectOp/evalCondition/conditionCtx/les walkers,
- * et les deux alias ci-dessous spécialisent `Flow`/`TriggeredEffect` sur `Effect`.
+ * Condition/FlowTest/EffectOp/evalCondition/conditionCtx/les walkers s'importent de `engine/flowCore` ;
+ * ce module ne déclare que les deux alias qui spécialisent `Flow`/`TriggeredEffect` sur `Effect` et
+ * les deux builders fixés sur `Effect`.
  */
 import type { Effect } from './scene';
 import { flowFromEffects as coreFlowFromEffects, testFlow as coreTestFlow, type FlowTest } from '../../engine/flowCore';
 
-// Modèle + évaluation purs (Condition, FlowTest, EffectOp, EffectTrigger, EffectTargeting, evalCondition,
-// conditionCtx, resolveTestDifficulty, flowTestGateOpen, flattenFlow, flowEffects,
-// spellOps/spellEffectOps/spellFlowFor, walkConditionTimes, flowHasTest/ImpureOp/FreeAttack,
-// walkFlow, EMPTY_FLOW, TemporalCondition…). Les exports nommés ci-dessous PRÉVALENT sur le `export *`
-// (les deux alias de type + les deux BUILDERS fixés sur `Effect`).
-export * from '../../engine/flowCore';
 
 /** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE (transition/startCombat/
  *  startDialogue/journal… — state). Spécialise le `Flow<E>` générique du noyau engine. */
@@ -27,7 +21,7 @@ export type Flow = import('../../engine/flowCore').Flow<Effect>;
  *  noyau). Spécialise le `TriggeredEffect<E>` générique du noyau engine. */
 export type TriggeredEffect = import('../../engine/flowCore').TriggeredEffect<Effect>;
 
-/** Builder FIXÉ sur `Effect` (≠ version générique `<E>` du noyau, ré-exportée pour l'engine). Côté state,
+/** Builder FIXÉ sur `Effect` (≠ version générique `<E>` de `engine/flowCore`). Côté state,
  *  les littéraux d'effets de SCÈNE (giveXp/journal/startDialogue…) sont vérifiés CONTEXTUELLEMENT contre
  *  l'union `Effect` (et non élargis en `{type:string;…}`), et le Flow produit est un `Flow<Effect>` —
  *  pas d'inférence de feuille trop étroite/élargie depuis les littéraux. */

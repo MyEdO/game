@@ -4,11 +4,11 @@
  * (console.warn + citadins). Le tirage individuel des teintes : `gameIso/rig/tirage-individuel.test.tsx`.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { RefIrresoluble, spawnEnemy } from './spawn';
-import { ficheDEntite, FicheAbsente } from './sceneNpc';
+import { RefIrresoluble, spawnEnemy } from '../noyau/monde/spawn';
+import { ficheDEntite, FicheAbsente } from '../noyau/monde/sceneNpc';
 import type { SceneEntity } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
-import { inFiringBand } from './combatFlow';
+import { inFiringBand } from '../noyau/combatFlow';
 import { tenueFor, tenueForClass } from '../gameIso/rig/parts/career';
 import { presetPnjById } from './campaignData';
 

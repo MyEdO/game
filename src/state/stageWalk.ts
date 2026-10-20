@@ -18,7 +18,7 @@
  */
 import type { GameState } from './store';
 import type { ScreenDir } from './combatCursor';
-import { surfaceTientLaMain, type ArbiterState } from './modalArbiter';
+import { surfaceTientLaMain, type ArbiterState } from '../noyau/modalArbiter';
 import { modaleDuDessus } from './dismissStack';
 import { walkMs } from '../geometry/walk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../web/minuteries';

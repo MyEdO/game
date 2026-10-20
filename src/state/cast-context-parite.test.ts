@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { castingValue } from '../engine/magic';
-import { castContextMods } from './combatFlow';
+import { castContextMods } from '../noyau/combatFlow';
 import { domainEnvironmentBonus } from '../engine/domainAttributes';
 import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';

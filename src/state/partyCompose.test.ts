@@ -8,7 +8,8 @@ import { initialNet } from './netFlow';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal, bourseOf } from './bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 
 function hero(id: string): Combatant {
   const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));

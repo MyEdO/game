@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { Scene } from '../../noyau/monde/scene';
-import type { NarratifBlock } from '../../state/campaignNarratif';
+import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
 import { effectCtxOf } from './EffectList';
-import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTrace, type Praticabilite } from '../../state/worldMap';
+import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTrace, type Praticabilite } from '../../noyau/worldMap';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';
 import { allAxes, coreAxisIds } from '../../data';
 import { Icon, IconG } from '../Icon';

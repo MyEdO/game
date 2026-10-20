@@ -3,15 +3,15 @@ import type { Combatant, Weapon } from '../engine/types';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { toucheAuJetPose } from '../engine/combat';
 import { useGame } from './store';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { seedBattleRng } from '../noyau/battleRng';
-import { applyHullCriticalToTarget } from './combatFlow';
+import { applyHullCriticalToTarget } from '../noyau/combatFlow';
 import type { CoupDeTouche } from '../noyau/pendings';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { makeRNG } from '../engine/dice';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { porteEnJeu, porteMasquee, porteTentee, type Scene, type WallSeg } from '../noyau/monde/scene';
-import { buildScene, type WallSpec } from './mapSpec';
+import { buildScene, type WallSpec } from '../noyau/mapSpec';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { rule, setRule, resetRule } from '../engine/policy';

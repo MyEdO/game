@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { useGame } from '../../state/store';
 import { poserCapDuGroupe } from '../../noyau/monde/combatants';
 import { emptyScene, isIndoor, sceneMetresPerTile, type BuildingMass, type Scene } from '../../noyau/monde/scene';
-import { setRevealAll } from '../../state/visionState';
+import { setRevealAll } from '../../noyau/visionState';
 import { bus, EVT } from '../../noyau/bus';
 import { meneurDuMonde } from '../../noyau/monde/combatants';
 import { STEP_MAX_M } from '../../noyau/monde/relief';

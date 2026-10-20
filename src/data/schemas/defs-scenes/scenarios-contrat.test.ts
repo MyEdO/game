@@ -22,7 +22,7 @@ import { describe, it, expect } from 'vitest';
 import { SCENARIOS } from '../../../scenes/test-scenarios/_registry.generated';
 import { sceneSchema } from './scene';
 import { refsNarrativesPendantes } from './refs-narratives';
-import { emptyNarratif } from '../../../state/campaignNarratif';
+import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { worldMapSchema } from './worldmap';
 
 /** Toutes les scènes qu'un scénario apporte au projet : la scène d'entrée + ses destinations. */

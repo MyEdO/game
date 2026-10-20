@@ -78,7 +78,7 @@ export interface CombatFeature {
   /** Fuite ! : Mouvement +1 quand on Fuit. */
   fleeBonus?: boolean;
   /** Fuite ! — variante « Nouveaux talents et talents mis à jour » (AA 13 l.68) : Mouvement +1 quand on
-   *  est la Cible d'une Poursuite. Lu par la manche de poursuite terrestre (`state/pursuitFlow.ts`,
+   *  est la Cible d'une Poursuite. Lu par la manche de poursuite terrestre (`noyau/pursuitFlow.ts`,
    *  `pursuedMovement`) au calcul du DR de vitesse (LDB 15 l.104-108). */
   pursuitTargetBonus?: boolean;
   // ── Défense / Avantage ─────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ export interface CombatFeature {
   /** Maîtrise du combat : compte pour 1+niveau personnes au calcul du surnombre. */
   outnumberCount?: boolean;
   // (Mâchoires d'acier n'est PLUS une CombatFeature : c'est un effet `onGainCondition` data-driven —
-  //  talents.json `effects` + brique `state/combat/triggeredTest` — résolu cadence-aware.)
+  //  talents.json `effects` + brique `noyau/combat/triggeredTest` — résolu cadence-aware.)
   /** Cœur vaillant : tente de retirer le Brisé même Engagé (Calme en fin de Round). */
   braveheart?: boolean;
   /** Sans peur (LDB 10 l.1051) : PAS une immunité — détecte que le porteur a le Talent contre
@@ -173,7 +173,7 @@ export interface CombatFeature {
   castingKind?: CastingKind;
   /** Commandant d'équipe (AA 13 l.29-35) : peut DIRIGER une équipe servant une Arme d'équipe « à portée
    *  de voix » (Test de Commandement Intermédiaire) — sur réussite, l'équipe tire au score de Projectiles
-   *  du Personnage. Lu par `hasCommandTeam` (affordance + substitution `state/commandTeam`). */
+   *  du Personnage. Lu par `hasCommandTeam` (affordance + substitution `noyau/monde/commandTeam`). */
   commandTeam?: boolean;
   /** Chanson de marin (MDG 09 l.32-40) : peut ENTONNER une chanson de marin connue (une spec du Talent =
    *  une chanson apprise, l.36) — Test de Divertissement (Chant), effet 3 min + DR sur tout l'équipage,

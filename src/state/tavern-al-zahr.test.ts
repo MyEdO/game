@@ -11,13 +11,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
-import { creditBourse, bourseOf } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
-import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, sequenceBoardOf } from './sequenceCore';
-import { tavernParams, potProchain } from './tavernFlow';
+import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, sequenceBoardOf } from '../noyau/sequenceCore';
+import { tavernParams, potProchain } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 
 const get = useGame.getState.bind(useGame);
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));

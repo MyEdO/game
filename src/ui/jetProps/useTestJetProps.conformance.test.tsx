@@ -4,9 +4,10 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { Combatant } from '../../engine/types';
 import { useGame } from '../../state/store';
-import { runFlow } from '../../state/combatFlow';
-import { testFlow, EMPTY_FLOW } from '../../noyau/monde/flow';
-import type { TravelPlan } from '../../state/travelFlow';
+import { runFlow } from '../../noyau/combatEffects';
+import { testFlow } from '../../noyau/monde/flow';
+import { EMPTY_FLOW } from '../../engine/flowCore';
+import type { TravelPlan } from '../../noyau/travelFlow';
 import { RollShell } from '../RollShell';
 import { useTestJetProps } from './useTestJetProps';
 

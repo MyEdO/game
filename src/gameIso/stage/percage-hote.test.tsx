@@ -8,7 +8,7 @@ import type { Combatant } from '../../engine/types';
 import { occludesActor, type Dims } from '../../geometry/iso';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { buildRoofs, massFootprintCells } from '../builders/roofs';
-import { effectiveArchitecture } from '../../state/sceneEdit';
+import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { chebyshev } from '../../engine/grid';
 import type { RoofEl, SceneEl } from '../builders/types';
 import { elOccluder } from './occluders';

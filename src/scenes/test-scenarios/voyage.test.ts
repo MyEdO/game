@@ -2,9 +2,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { distributeCredit } from '../../state/bourseFlow';
-import { currentPlaceId, interludeCatalog } from '../../state/interludeFlow';
-import { draineCascade } from '../../state/cascadeTestKit';
+import { distributeCredit } from '../../noyau/bourseFlow';
+import { currentPlaceId, interludeCatalog } from '../../noyau/interludeFlow';
+import { draineCascade } from '../../state/cascade.testkit';
 import { scenario } from './voyage';
 const scenarioConstruit = scenario.construire();
 

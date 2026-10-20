@@ -7,7 +7,7 @@ import { HeroSelector, PartyScreen, PartyScreenView, slotKeyNav } from './PartyS
 import { projectSave, type SavedProject } from '../state/projectLibrary';
 import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { datasetArray, setDataset } from '../data/overrides';
-import { resolveActiveAxes } from '../state/worldMap';
+import { resolveActiveAxes } from '../noyau/worldMap';
 import { emptyScene } from '../noyau/monde/scene';
 import { allAxes } from '../data';
 import { useGame } from '../state/store';
@@ -18,7 +18,7 @@ import { initialNet, type NetState } from '../state/netFlow';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
-import { emptyNarratif } from '../state/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 
 /** Storage isolé pour chaque fixture. */
 function fakeStorage(): Storage {

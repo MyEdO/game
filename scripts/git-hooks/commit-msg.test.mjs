@@ -744,7 +744,7 @@ test('commit-msg, dépôt réel : un stock nominatif qui GRANDIT dans l\'index e
     const git = gitDe(repo)
     const stock = join(repo, 'src', 'state', 'exemptions.test.ts')
 
-    writeFileSync(stock, ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
+    writeFileSync(stock, ["export const STOCK = [", "  'src/noyau/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
     git('add', 'src/state/exemptions.test.ts')
 
     const refus = decisionOf('feat: deux exemptions de plus (refs #1806)', repo)
@@ -768,7 +768,7 @@ test('commit-msg, dépôt réel : un stock SOUS LA PORTE `comptes:plage` qui GRA
   const porteur = 'scripts/guards/lib/structuresStock.mjs'
   const { racine: repo, depot } = depotDeChantier({ fichiers: { [porteur]: 'export const STOCK = [\n]\n' }, message: 'socle' })
   try {
-    writeFileSync(join(repo, porteur), ["export const STOCK = [", "  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
+    writeFileSync(join(repo, porteur), ["export const STOCK = [", "  'src/noyau/combatFlow.ts',", "  'src/ui/RollShell.tsx',", ']', ''].join('\n'), 'utf8')
     gitDe(repo)('add', porteur)
     const refus = decisionOf(`feat: deux sites (refs #1806)\n\nCLIQUET: ${porteur} +2 — deux sites mesurés ce jour, compte exact au message`, repo)
     assert.equal(refus?.decision, 'deny', 'un CLIQUET n’admet aucune croissance sous la porte des comptes')
@@ -818,7 +818,7 @@ test('commit-msg, dépôt réel : 12 commits de substance depuis la dernière ar
 // mesurent ici d'un coup : la lecture des porteurs par les DEUX bouts du renommage, et
 // l'appariement des entrées parties d'un porteur disparu.
 test('commit-msg, dépôt réel : un `git mv` de porteur ne grandit pas ; renommé PLUS une entrée vaut +1', () => {
-  const entrees = ["  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
+  const entrees = ["  'src/noyau/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
   const source = (lignes) => `export const STOCK = [\n${lignes.join('\n')}\n]\n`
   const ancien = 'scripts/guards/lib/ancienStock.mjs'
   const nouveau = 'scripts/guards/lib/nouveauStock.mjs'
@@ -847,7 +847,7 @@ test('commit-msg, dépôt réel : un `git mv` de porteur ne grandit pas ; renomm
 })
 
 test('commit-msg, dépôt réel : un porteur SCINDÉ en deux ne grandit pas ; renommé MOINS une entrée non plus', () => {
-  const entrees = ["  'src/state/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
+  const entrees = ["  'src/noyau/combatFlow.ts',", "  'src/ui/RollShell.tsx',", "  'src/ui/Tabs.tsx',"]
   const source = (lignes) => `export const STOCK = [\n${lignes.join('\n')}\n]\n`
   const ancien = 'scripts/guards/lib/ancienStock.mjs'
   const cas = {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { parseProject, exigerUnRefus, refusDeForme, ProjetRefuse, PROJET_AUTRE_FORMAT, type ProjectDoc } from './worldMap';
+import { parseProject, exigerUnRefus, refusDeForme, ProjetRefuse, PROJET_AUTRE_FORMAT, type ProjectDoc } from '../noyau/worldMap';
 import { validateDocument, rapportDeFautes } from '../data/schemas/validate';
 import type { GameState } from './store';
 import { accesBase, idbDisponible } from '../web/indexedDb';

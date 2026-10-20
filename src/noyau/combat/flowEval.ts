@@ -13,13 +13,9 @@ import { buildActorView } from '../../engine/actorView';
 import { immunityTypes } from '../../engine/traits/dispatch';
 import { groupMatch } from '../../engine/groups';
 import { applyOps, type GameOp, type OpsCtx } from '../../engine/ops';
-import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx } from '../../engine/flowCore';
-import { type Condition, type ConditionCtx, type Flow, type FlowTest, flowTestGateOpen, flowHasTest } from '../monde/flow';
+import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition, type ConditionCtx, type FlowTest, flowTestGateOpen, flowHasTest } from '../../engine/flowCore';
+import { type Flow } from '../monde/flow';
 
-/** Vue d'un combattant pour les Conditions d'acteur — SOURCE UNIQUE côté MOTEUR
- *  (`engine/actorView.ts`), partagée avec les VERROUS d'État (`isConditionLocked`). Ré-exportée ici :
- *  les consommateurs de combat continuent de la prendre à leur porte, sans deuxième implémentation. */
-export { buildActorView };
 
 /** `ConditionCtx` de combat construit d'un combattant + de l'`OpsCtx` de la touche/du Round (géométrie
  *  d'arène, sl/location/woundsDealt…). Pour les résolveurs INLINE sans `ExecCtx` (resolveInlineFlowTest /

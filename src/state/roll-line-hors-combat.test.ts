@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { beginShipwreck } from './shipwreck';
-import { buildNightCascade, deferredUpkeepSteps, type PendingRest } from './restFlow';
-import { runDailyUpkeep, dayIndex, type DeferredUpkeepTest } from './upkeep';
-import { bestActivitySkill } from './interludeFlow';
-import { inexplique, soutienDe, jetDe } from './cascadeTestKit';
+import { beginShipwreck } from '../noyau/shipwreck';
+import { buildNightCascade, deferredUpkeepSteps, type PendingRest } from '../noyau/restFlow';
+import { runDailyUpkeep, type DeferredUpkeepTest } from '../noyau/upkeep';
+import { dayIndex } from '../engine/clock';
+import { bestActivitySkill } from '../noyau/interludeFlow';
+import { inexplique, soutienDe, jetDe } from './cascade.testkit';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { cascadeAppliers } from '../noyau/cascade';
 import { clampTarget } from '../engine/tests';

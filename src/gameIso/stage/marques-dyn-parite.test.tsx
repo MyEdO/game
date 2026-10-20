@@ -332,7 +332,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
   });
 
   it('un MENEUR non-héros ne teinte pas le jeton de groupe en ennemi', () => {
-    // Le code de groupe s'en garde ailleurs (`state/partyFlow`), mais la DÉCORATION ne doit pas dépendre
+    // Le code de groupe s'en garde ailleurs (`noyau/partyFlow`), mais la DÉCORATION ne doit pas dépendre
     // de cette hypothèse : le jeton de groupe dit « le groupe est ici », pas « à quelle équipe ».
     const escorte = [{ ...hero('h1', { x: 6, y: 6 }), kind: 'npc' } as unknown as Combatant];
     monter('exploration', { party: escorte });

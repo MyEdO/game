@@ -12,7 +12,7 @@ import { useGame } from './store';
 import { runBindingById } from './clavier/keybindings';
 import { t } from '../i18n';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import type { Dims } from '../geometry/iso';
 
 /** Arène d'herbe minimale (cursorCommitIntent dérive l'affordance d'attaque → besoin d'une scène). */
@@ -240,7 +240,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
     useGame.setState({ battle: battle as never, scene: arena(), party: [hero], journal: [], refus: null });
     useGame.setState({ combatCursor: { tile: { x: 7, y: 10 } } });
     useGame.getState().commitCursor();
-    // Le refus se dit AU POINT DU GESTE (`state/refusVisible`) : en combat, le journal n'est pas
+    // Le refus se dit AU POINT DU GESTE (`noyau/refusVisible`) : en combat, le journal n'est pas
     // affiché — un feedback qui n'y va QUE serait muet pour le joueur.
     expect(useGame.getState().refus?.texte).toBe(t('cs.cursorInvalidTile'));
   });

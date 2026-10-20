@@ -15,7 +15,7 @@ import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
-import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../state/actionRegistry';
+import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
 

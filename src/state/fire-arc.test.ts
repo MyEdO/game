@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { targetArc, inFireArc } from './fireArc';
+import { targetArc, inFireArc } from '../noyau/monde/fireArc';
 
 /**
  * ARCS DE TIR / BORDÉES (MDG 12-13). Le RAW nomme le CÔTÉ relatif au cap (bâbord=gauche, tribord=droite,

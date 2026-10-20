@@ -18,8 +18,8 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { findTavernGameById, fastTavernGame, TAVERN_GAMES, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
 import { toBrass } from '../engine/money';
-import { bourseOf } from './bourseFlow';
-import { tavernParams } from './tavernFlow';
+import { bourseOf } from '../engine/bourse';
+import { tavernParams } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
 
 const get = useGame.getState.bind(useGame);

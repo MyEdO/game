@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { narratifSchema } from './narratif';
-import { emptyNarratif, type NarratifBlock } from '../../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../../noyau/monde/campaignNarratif';
 
 const P27 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.114-125' };
 const L127 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.127' };

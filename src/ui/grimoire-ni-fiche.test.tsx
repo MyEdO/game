@@ -19,7 +19,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CharacterSheet } from './CharacterSheet';
 import { useGame } from '../state/store';
 import { setRule, resetRule } from '../engine/policy';
-import { effectiveSpellOf } from '../state/combatFlow';
+import { effectiveSpellOf } from '../noyau/combatFlow';
 import { findSpellById, spells } from '../data';
 import type { Combatant } from '../engine/types';
 

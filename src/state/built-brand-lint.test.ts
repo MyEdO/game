@@ -109,7 +109,7 @@ describe('#1262 — le lint mure les ROUTES DE FORGE de la marque', () => {
   /** Les MINTEURS sont SOUS la règle : chaque cast légitime porte son exemption AU SITE, aucune au fichier. */
   it.each([
     ['src/noyau/rollSeam.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
-    ['src/state/revealStep.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
+    ['src/noyau/revealStep.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltCascadeStep;'],
     ['src/ui/rollRowBuild.ts', 'declare const sonde: unknown;\nexport const forge = sonde as BuiltRollRow;'],
     ['src/i18n/index.ts', "export const forge = 'sonde' as PlayerText;"],
   ])('le minteur `%s` lint propre, et un SECOND cast y rougit', async (fichier, second) => {

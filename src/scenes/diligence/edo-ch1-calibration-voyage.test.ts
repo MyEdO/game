@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { Characteristics, Combatant } from '../../engine/types';
 import { travelSpeed, travelPlanCalc } from '../../engine/travel';
-import { baseHoursPerDay } from '../../state/travelFlow';
-import { parseProject, ProjetRefuse, type ProjectDoc } from '../../state/worldMap';
+import { baseHoursPerDay } from '../../noyau/travelFlow';
+import { parseProject, ProjetRefuse, type ProjectDoc } from '../../noyau/worldMap';
 
 /**
  * CALIBRATION DE DONNÉE de la route du chapitre 1 de jeu : le paquet de campagne RÉEL est chargé, et la

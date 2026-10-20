@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { firedWeapon, attackerFumbled, defenderFumbled } from './combatFlow';
+import { firedWeapon, attackerFumbled, defenderFumbled } from '../noyau/combatFlow';
 import { hasQuality } from '../engine/qualities/dispatch';
 import type { Combatant, Weapon, Trauma } from '../engine/types';
 import type { AttackResult } from '../engine/combat';

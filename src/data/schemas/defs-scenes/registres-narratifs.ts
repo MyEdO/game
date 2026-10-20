@@ -1,8 +1,8 @@
 /**
- * Les REGISTRES du bloc narratif (`NarratifBlock`, `src/state/campaignNarratif.ts`) — déclarés UNE fois.
+ * Les REGISTRES du bloc narratif (`NarratifBlock`, `src/noyau/monde/campaignNarratif.ts`) — déclarés UNE fois.
  * Chaque liste d'entrées à `id` du narratif y a sa ligne ; la lisent le schéma (`raffineNarratif`,
  * `./narratif.ts` : unicité inter-registres et anti-collision globale), le résolveur de campagne
- * (`src/state/resolveursDuNarratif.ts`), le narratif vide (`emptyNarratif`), l'éditeur (`porteurDeLId`,
+ * (`src/noyau/monde/resolveursDuNarratif.ts`), le narratif vide (`emptyNarratif`), l'éditeur (`porteurDeLId`,
  * `src/ui/editor/NarratifEditor.tsx`) et le compteur de la barre d'outils (`src/ui/editor/Editor.tsx`).
  * Un registre de plus = une ligne ici.
  *
@@ -13,7 +13,7 @@
  * FEUILLE sans dépendance de valeur (le seul import est un TYPE) : le schéma, l'état et l'UI la lisent
  * sans tirer le parseur.
  */
-import type { NarratifBlock } from '../../../state/campaignNarratif';
+import type { NarratifBlock } from '../../../noyau/monde/campaignNarratif';
 
 /** Clés de `NarratifBlock` dont la valeur est une liste d'entrées à `id` (`ecartes` se clé par `entree`). */
 type ClesDeListeAId<T> = { [K in keyof T]-?: NonNullable<T[K]> extends readonly { id: string }[] ? K : never }[keyof T];

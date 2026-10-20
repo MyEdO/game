@@ -13,12 +13,12 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { CascadeBody } from './CascadeModal';
-import { openSkillTest } from '../state/combatEffects';
-import { EMPTY_FLOW } from '../noyau/monde/flow';
-import { sequenceAbandonOf } from '../state/sequenceCore';
+import { openSkillTest } from '../noyau/combatEffects';
+import { EMPTY_FLOW } from '../engine/flowCore';
+import { sequenceAbandonOf } from '../noyau/sequenceCore';
 import { snapshotSave } from '../state/saves';
-import { creditBourse } from '../state/bourseFlow';
-import { avanceEtapeCascade } from '../state/cascadeTestKit';
+import { creditBourse } from '../noyau/bourseFlow';
+import { avanceEtapeCascade } from '../state/cascade.testkit';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

@@ -1,5 +1,5 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { findSkill } from '../../data';
 import { slugId } from '../../data/slug';
 import type { TestScenario } from './_shared';

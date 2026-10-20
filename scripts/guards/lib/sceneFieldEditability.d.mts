@@ -19,7 +19,7 @@ export interface FieldEditability {
   field: string;
   /** `fichier:ligne` de la DÉCLARATION du champ. */
   at: string;
-  /** Fichiers du chemin de l'AUTEUR qui l'écrivent : `src/ui/**` (interface), et `src/state/sceneEdit.ts`
+  /** Fichiers du chemin de l'AUTEUR qui l'écrivent : `src/ui/**` (interface), et `src/noyau/sceneEdit.ts`
    *  pour les seules écritures dont la fonction porteuse est APPELÉE depuis l'interface. */
   authors: string[];
   /** Fichiers du PIPELINE d'authoring (compilateur MapSpec, scènes en dur) qui l'écrivent. */

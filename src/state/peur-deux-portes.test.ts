@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fearSourceFor, agressifEnvers } from '../engine/psychology';
 import { psychDRAdjust } from '../engine/combat';
-import { collectHeroRoundStartPsych, collectHeroRoundEndPsych } from './combatFlow';
+import { collectHeroRoundStartPsych, collectHeroRoundEndPsych } from '../noyau/combatFlow';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 

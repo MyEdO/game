@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
-import { useGame, type RevealEntry } from '../state/store';
+import { useGame } from '../state/store';
+import { type RevealEntry } from '../noyau/pendings';
 import { ParchmentCard } from './ParchmentCard';
 import { TableRollLine } from './RollLine';
 import { VsHeader } from './VsHeader';

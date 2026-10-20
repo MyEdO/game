@@ -52,7 +52,7 @@ authoré avec `effects:[{trigger:'onHit'|'onKill'|'onTurnStart'|'onWoundLoss'|'o
 rappeler. **Maladies/Mutations** réagissent par **composition** (elles octroient un Trait/État, déjà
 couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouveau chemin de dispatch.
 
-**Le bus** : `emitCombatEvent(event, ctx)` (`src/state/combatEvents.ts`) — à chaque moment canonique,
+**Le bus** : `emitCombatEvent(event, ctx)` (`src/noyau/combatEvents.ts`) — à chaque moment canonique,
 (a) joue les abonnés MACHINERIE (registre `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le
 même `sink`.
@@ -106,23 +106,23 @@ Modèle de mort (RAW LDB 18, `engine/conditions.ts`) :
 - Passage Inconscient seulement quand `roundsAtZero > BE`, compteur avancé **1×/round** dans `tickDeath`,
   dans les deux modes de `combat-aa-blessures` (#1595 c.6219559935) ; jamais pour un objet inanimé (`isInanimate`).
 - Mort finalisée seulement si **Inconscient + 0 PB + `criticalWounds > BE`** (`inDeathCondition`),
-  vérifiée au franchissement de round (`resolveRoundBoundary`, `state/combatFlow.ts`).
+  vérifiée au franchissement de round (`resolveRoundBoundary`, `noyau/combatFlow.ts`).
 
-Côté IA (`state/ai.ts`, `state/combatFlow.ts`) :
+Côté IA (`noyau/monde/ai.ts`, `noyau/combatFlow.ts`) :
 - Le filtre `heroes` (plusieurs sites de `combatFlow.ts`) n'exclut que `!isOutOfAction` → un héros à
   0 PB **conscient y reste** une cible valide.
-- L'IA cible par **menace composite** (`targetThreat`, `state/ai.ts` : atteignabilité × fragilité ×
+- L'IA cible par **menace composite** (`targetThreat`, `noyau/monde/ai.ts` : atteignabilité × fragilité ×
   danger — PAS un tri simple par PB). La fragilité (`1 + (PBmax−PBcourant)/PBmax`) double le score
   d'un héros déjà entamé, ce qui le remet en tête de cible **sans mécanisme de répartition explicite**
   entre ennemis.
 
 ⇒ Un héros tombé à 0 reste conscient ~**BE rounds** (3-4), focalisé par **tous** les ennemis, chacun
-incrémentant `target.criticalWounds` (`state/combatFlow.ts`), **sans mourir** tant que la porte
+incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** tant que la porte
 (Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
 ### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent (#2661)
 - La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
-  sites de `state/combatFlow.ts`).
+  sites de `noyau/combatFlow.ts`).
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.
 - Or Inconscient ⇒ `isOutOfAction` ⇒ devrait être filtré du ciblage. **S'ils continuent**, un invariant
   casse (gate IA vs `pendingFateSave` vs désync d'objet combattant).

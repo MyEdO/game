@@ -39,7 +39,7 @@
  */
 import * as THREE from 'three';
 import type { Scene } from '../../noyau/monde/scene';
-import { ambientScalar } from '../../state/vision';
+import { ambientScalar } from '../../noyau/monde/vision';
 import { ambianceLuminance, weatherLightScalars, type WeatherLight } from '../catalog/ambiance';
 import {
   AMBIENT_INTENSITY,

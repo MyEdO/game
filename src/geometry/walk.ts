@@ -1,6 +1,6 @@
 /**
  * Interpolation temporelle d'un déplacement le long d'un chemin de tuiles — géométrie/simulation PURE
- * (#161 : hors du foyer `gameIso` car `state/combatDirector` en a besoin pour
+ * (#161 : hors du foyer `gameIso` car `noyau/combatDirector` en a besoin pour
  * CADENCER la résolution du combat, pas seulement pour l'afficher — cf. `docs/architecture.md`).
  */
 export interface Pt { x: number; y: number }

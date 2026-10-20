@@ -4,7 +4,7 @@
  *
  * La DONNÉE vit dans `peripeties.json` (éditable, comme `creatures.json`) ; ce module = type +
  * chargement. Ajouter/régler une péripétie = éditer le JSON, jamais ce fichier. Le tirage est une
- * étape de MONDE à table (`landPerilTable`, `state/travelFlow.ts`).
+ * étape de MONDE à table (`landPerilTable`, `noyau/travelFlow.ts`).
  *
  * `kind` = ce que le MOTEUR sait jouer :
  *  - 'reposant'  : `LDB 51 l.212` ;

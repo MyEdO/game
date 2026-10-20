@@ -27,7 +27,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * par variable. Le filet BEHAVIORAL exhaustif (piloter chaque `*ForceSuccess` sous Fast DR et exiger le
  * DR MAX) reste le complément à ajouter.
  */
-const STATE_DIR = fileURLToPath(new URL('.', import.meta.url)); // src/state
+const NOYAU_DIR = fileURLToPath(new URL('../noyau/', import.meta.url));
 
 /** Toutes les occurrences `chemin:ligne` d'un motif dans le code de résolution (hors tests). */
 function scan(re: RegExp): string[] {
@@ -82,7 +82,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     // `isDouble` dans engine/tests.ts. Tout `isDoubleRoll(` ICI = un littéral recopié, TOUTE variante comprise
     // (source imbriquée `st.result.roll`, champs coercés `!!p.success`/`?? 0`) — que le scan par-signature ratait.
     // (Lire `result.isDouble` déjà posé reste OK : c'est un accès de champ, pas un appel à `isDoubleRoll`.)
-    const specs = readFileSync(join(STATE_DIR, 'rollFlowSpecs.ts'), 'utf8');
+    const specs = readFileSync(join(NOYAU_DIR, 'rollFlowSpecs.ts'), 'utf8');
     const hits = specs.split('\n').flatMap((l, i) => (/isDoubleRoll\(/.test(l) ? [`rollFlowSpecs.ts:${i + 1}`] : []));
     expect(hits, `isDoubleRoll( dans le registre des flux (${hits.join(', ')}) — utilise hydrateTR(detail) ou forcedTR(roll,target,sl).`).toEqual([]);
   });
@@ -93,7 +93,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     // `forcedTR` a REJOINT la liste depuis le balayage « zéro copie » : les littéraux TestResult de réussite
     // forcée des flux opposés (attack/defense/counterspell/castOpposition/maneuver) passent par l'atome.
     // `hydrateTR` a REJOINT la liste depuis la fermeture de la ré-hydratation (`{ …, isDouble: isDoubleRoll(X.roll) }`).
-    const specs = readFileSync(join(STATE_DIR, 'rollFlowSpecs.ts'), 'utf8');
+    const specs = readFileSync(join(NOYAU_DIR, 'rollFlowSpecs.ts'), 'utf8');
     for (const atom of ['bumpSL', 'bestForcedRoll', 'forcedTR', 'hydrateTR']) {
       expect(specs.includes(atom), `atome partagé « ${atom} » absent de rollFlowSpecs.ts — le système de jet a-t-il été contourné ?`).toBe(true);
     }

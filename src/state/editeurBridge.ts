@@ -42,7 +42,7 @@ export interface CommandesEditeur {
   ouvrir: (id: string) => string;
   /**
    * Pose un patch PARTIEL sur une entité de la scène ouverte — SETUP de recette (#877) : une clé à
-   * `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`state/sceneEdit.ts:editEntity`) :
+   * `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`noyau/sceneEdit.ts:editEntity`) :
    * retirer le TYPE d'une entité (`PORTEURS_DU_TYPE`) y est refusé (#1882) ; l'état que le schéma
    * refuse se fabrique par un type INCONNU du catalogue (`ref` absent de `props.json`). Rend `✓ …` ou
    * `✗ …` (entité introuvable avec les ids de la scène, clé d'identité, type retiré). Même régime

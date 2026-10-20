@@ -10,7 +10,7 @@
  *
  * Le cycle d'une MALADIE (`onTick.test` d'un symptôme, `dailyTest.test` d'une maladie) est lui aussi un
  * Test SUBI, mais sa porte est l'ENTRETIEN de la nuit (étape `diseaseTick`, `engine/disease.ts`
- * `opsDeLEchec` → applier de `state/restFlow.ts`) : T7/T7b le jouent par ce chemin (`nuitDuMalade`).
+ * `opsDeLEchec` → applier de `noyau/restFlow.ts`) : T7/T7b le jouent par ce chemin (`nuitDuMalade`).
  *
  * Tout passe par le STORE, sur la donnée RÉELLE de `src/data`, avec QUATRE héros dont le sujet n'est
  * jamais `party[0]` : une conséquence qui atteint `h3` y est arrivée par routage, pas par défaut.
@@ -22,9 +22,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { routeTriggeredTest } from './combat/triggeredTest';
-import { runFlow, openSkillTest, messageCibleHorsScene } from './combatEffects';
-import { EMPTY_FLOW, flowFromEffects, type Flow } from '../noyau/monde/flow';
+import { routeTriggeredTest } from '../noyau/combat/triggeredTest';
+import { runFlow, openSkillTest, messageCibleHorsScene } from '../noyau/combatEffects';
+import { flowFromEffects, type Flow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { decorHorsCombat, noeudsDeTest, rendreMalade, nuitDuMalade, type NoeudTest } from './noeudsDeTest.testkit';
 import { validateScene } from './validateScene';
 import { emptyScene, type Effect, type Scene } from '../noyau/monde/scene';

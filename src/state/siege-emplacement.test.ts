@@ -1,14 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { applyShipPostes } from './shipPostes';
-import { firedWeapon, firedAttackBlock, resolveAttack } from './combatFlow';
-import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
+import { applyShipPostes } from '../noyau/monde/shipPostes';
+import { firedWeapon, firedAttackBlock, resolveAttack } from '../noyau/combatFlow';
+import { resolveWeaponArea, areaTargets, type AreaHit } from '../noyau/combatArea';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';
-import type { Combatant, ShipPoste, Weapon } from '../engine/types';
-import type { FireArc } from './fireArc';
+import type { Combatant, ShipPoste, Weapon, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte

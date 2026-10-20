@@ -36,8 +36,8 @@ import { RACINE_DU_SEAM, ROLL_SEAM_FILE_WHITELIST } from './rollSeamWhitelist.mj
 /** @type {Set<string>} */
 export const BATTLE_RNG_ENGINE_LEAK_WHITELIST = new Set([
   ...ROLL_SEAM_FILE_WHITELIST,
-  'src/state/combatSlice.ts',
-  'src/state/combat/turnHooks.ts',
+  'src/noyau/combatSlice.ts',
+  'src/noyau/combat/turnHooks.ts',
 ]);
 
 /** @param {string} rel @returns {boolean} */

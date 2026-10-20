@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from '../../noyau/monde/scene';
 import { useGame, type GameState, type BattleState } from '../../state/store';
 import { makePregens } from '../../data/pregens';
-import { spawnEnemy } from '../../state/spawn';
+import { spawnEnemy } from '../../noyau/monde/spawn';
 import { Combatant } from '../../engine/types';
 import { combatHighlightsView } from './highlightLayer';
 
@@ -27,7 +27,7 @@ describe('combatHighlightsView — survol d’une entité SANS arme (#203 régre
 
 /**
  * ANNEAUX DE CANDIDATS — la TEINTE vient du MODE, pas d'un id lu au vol. Un mode de ciblage déclare
- * `anneauCandidats` (`state/targetingModes`) : le Soin cible un allié → anneau AMI (vert) ; les flux
+ * `anneauCandidats` (`noyau/targetingModes`) : le Soin cible un allié → anneau AMI (vert) ; les flux
  * différés ciblent un adversaire → anneau hostile. Un mode qui ne le déclare pas ne peint AUCUN
  * anneau de candidat (mode neutre : ses anneaux sont ceux des cibles éligibles ; Dissiper : aucun).
  */

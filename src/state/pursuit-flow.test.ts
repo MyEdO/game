@@ -7,26 +7,27 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
-import { EFFECT_HANDLERS } from './combatEffects';
+import { EFFECT_HANDLERS, applyEffects } from '../noyau/combatEffects';
 import { findCreatureById } from '../data';
 import {
   startGroundPursuit, pursuitBands, pursuitOf, PURSUIT_POLICY_DEFAUT,
   type PursuitPayload,
-} from './pursuitFlow';
+} from '../noyau/pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, sequenceAbandonOf, type EtatDeFamille, type MancheClose } from './sequenceCore';
+import { closeSequenceRound, sequenceAbandonOf } from '../noyau/sequenceCore';
+import { type EtatDeFamille, type MancheClose } from '../noyau/sequenceContract';
 import { startCascade } from '../noyau/cascade';
-import { monoStep, displayStep, type BuiltCascadeStep } from '../noyau/rollSeam';
+import { monoStep, displayStep } from '../noyau/rollSeam';
+import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { combatStakeRef } from '../data';
 import { createHero } from '../engine/character';
 import { skillBaseValue, testValue } from '../engine/skills';
-import { intentAllowedFor } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
+import { intentAllowedFor } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { CascadeStep } from '../noyau/pendings';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { setCadence, resetCadence } from '../engine/cadence';
 
 function heroes() {

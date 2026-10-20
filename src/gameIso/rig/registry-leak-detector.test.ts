@@ -12,7 +12,7 @@
 import { VIEWS } from './facing';
 import { describe, it, expect } from 'vitest';
 import { creatures } from '../../data';
-import { creatureToCombatant } from '../../state/spawn';
+import { creatureToCombatant } from '../../noyau/monde/spawn';
 import { enemyRigProfile } from './enemyProfile';
 import { combatantAppearance, combatantOverlays } from './parts/combatantVisuals';
 import { resolveRig } from './composeRig';

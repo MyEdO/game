@@ -11,7 +11,7 @@
  * SANS cible (score nu) n'a pas de jauge : sa valeur seule est montrée.
  */
 import { useGame } from '../state/store';
-import { sequenceBoardOf } from '../state/sequenceCore';
+import { sequenceBoardOf } from '../noyau/sequenceCore';
 import { Band } from './Band';
 import { LifeBar } from './LifeBar';
 import { t } from '../i18n';

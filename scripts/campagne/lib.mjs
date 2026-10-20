@@ -1,6 +1,6 @@
 /**
  * Outillage d'AUTHORING de CAMPAGNE — helpers purs pour composer un projet (`ProjectDoc`, construit par
- * `documentDeProjet`, `src/state/worldMap.ts`, via `projectDoc()` ci-dessous)
+ * `documentDeProjet`, `src/noyau/worldMap.ts`, via `projectDoc()` ci-dessous)
  * partagé par les générateurs `scripts/<dossier>/generate.mjs` (Arène, « Le Loup et la Saumure »,
  * « La Barge du sel »). Chaque générateur est le PROPRIÉTAIRE EXCLUSIF de son paquet
  * `src/scenes/<campagne>/<campagne>-projet.json` : l'artefact commité est l'octet de son `build()`
@@ -8,13 +8,13 @@
  * cette garde. Migration de ces campagnes vers un paquet MANUSCRIT : #1601.
  *
  * Lancé via tsx : `scene()` construit un `MapSpec` (format déclaratif) puis appelle `buildScene`
- * (`src/state/mapSpec.ts`) — MÊME compilateur headless-editor que les scénarios `src/scenes/…`. L'ASCII,
+ * (`src/noyau/mapSpec.ts`) — MÊME compilateur headless-editor que les scénarios `src/scenes/…`. L'ASCII,
  * l'architecture, les murs, les couches et les rencontres passent par ce contrat. L'auteur écrit des IDS ; ce fichier ne fait
  * que les VALIDER exactement (fail-fast, doctrine « labels interdits »).
  */
-import { buildScene } from '../../src/state/mapSpec.ts';
-import { documentDeProjet } from '../../src/state/worldMap.ts';
-import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
+import { buildScene } from '../../src/noyau/mapSpec.ts';
+import { documentDeProjet } from '../../src/noyau/worldMap.ts';
+import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, species as SPECIES_CATALOG } from '../../src/data/index.ts';
 import { fauteDEspece } from '../../src/data/schemas/grammaire/art.ts';
 import { wardrobeKeyResolves } from '../../src/gameIso/rig/parts/career.ts';
@@ -182,7 +182,7 @@ export function scene({ id, label, desc, ambiance = 'exterieur', weather, music,
 }
 
 /** Le document de projet d'un générateur : DÉLÈGUE au constructeur `documentDeProjet`
- *  (`src/state/worldMap.ts`), qui décide la forme et l'ordre des clés. Le `type` est POSÉ ICI : un
+ *  (`src/noyau/worldMap.ts`), qui décide la forme et l'ordre des clés. Le `type` est POSÉ ICI : un
  *  document s'annonce, et son schéma l'exige — aucun générateur ne le retape. L'IDENTITÉ et la
  *  PROVENANCE (`source` ∨ `maison`) restent à l'appelant : elles nomment SA campagne et ne se devinent
  *  pas. `narratif` par défaut = bloc vide (`emptyNarratif()`, mêmes clés que `NarratifBlock`). */

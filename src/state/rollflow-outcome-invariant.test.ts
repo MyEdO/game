@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { FLOW_VERBS, FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
+import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';
 

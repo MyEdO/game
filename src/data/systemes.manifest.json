@@ -4,10 +4,10 @@
     "type": "systemes.manifest",
     "label": "Combat (arène tactique)",
     "modules": [
-      "src/state/combatFlow.ts",
-      "src/state/combatHooks.ts",
-      "src/state/combatSlice.ts",
-      "src/state/combatSetup.ts",
+      "src/noyau/combatFlow.ts",
+      "src/noyau/combatHooks.ts",
+      "src/noyau/combatSlice.ts",
+      "src/noyau/combatSetup.ts",
       "src/engine/combat.ts"
     ],
     "etat": "complet",
@@ -36,7 +36,7 @@
     "label": "Corruption & mutation",
     "modules": [
       "src/engine/corruption.ts",
-      "src/state/corruptionFlow.ts",
+      "src/noyau/corruptionFlow.ts",
       "src/ui/CorruptionModal.tsx"
     ],
     "etat": "complet",
@@ -49,7 +49,7 @@
     "label": "Psychologie (P1-P4)",
     "modules": [
       "src/engine/psychology.ts",
-      "src/state/encounterPsychFlow.ts"
+      "src/noyau/encounterPsychFlow.ts"
     ],
     "etat": "complet",
     "ticket": null,
@@ -60,7 +60,7 @@
     "type": "systemes.manifest",
     "label": "Voyage terrestre",
     "modules": [
-      "src/state/travelFlow.ts",
+      "src/noyau/travelFlow.ts",
       "src/engine/travel.ts",
       "src/engine/travelStages.ts",
       "src/engine/travelTables.ts",
@@ -77,7 +77,7 @@
     "type": "systemes.manifest",
     "label": "Voyage fluvial",
     "modules": [
-      "src/state/riverVoyageFlow.ts",
+      "src/noyau/riverVoyageFlow.ts",
       "src/engine/riverNavigation.ts"
     ],
     "etat": "partiel",
@@ -89,7 +89,7 @@
     "type": "systemes.manifest",
     "label": "Voyage maritime",
     "modules": [
-      "src/state/seaVoyageFlow.ts",
+      "src/noyau/seaVoyageFlow.ts",
       "src/engine/seaVoyage.ts",
       "src/engine/seaNavigation.ts",
       "src/engine/seaWeather.ts",
@@ -109,11 +109,11 @@
       "src/engine/shipBuild.ts",
       "src/engine/shipCritical.ts",
       "src/engine/shipMelee.ts",
-      "src/state/shipManeuver.ts",
-      "src/state/shipBattery.ts",
-      "src/state/shipCollision.ts",
-      "src/state/shipDamage.ts",
-      "src/state/shipPostes.ts",
+      "src/noyau/shipManeuver.ts",
+      "src/noyau/monde/shipBattery.ts",
+      "src/noyau/monde/shipCollision.ts",
+      "src/noyau/monde/shipDamage.ts",
+      "src/noyau/monde/shipPostes.ts",
       "src/ui/ShipBatteryModal.tsx",
       "src/ui/ShipManeuverModal.tsx",
       "src/ui/ShipDossier.tsx",
@@ -129,7 +129,7 @@
     "label": "Bataille de masse / siège",
     "modules": [
       "src/engine/massBattle.ts",
-      "src/state/massBattleFlow.ts",
+      "src/noyau/massBattleFlow.ts",
       "src/engine/activities.ts",
       "src/ui/MassBattleView.tsx"
     ],
@@ -142,7 +142,7 @@
     "type": "systemes.manifest",
     "label": "Interlude / entre-deux",
     "modules": [
-      "src/state/interludeFlow.ts",
+      "src/noyau/interludeFlow.ts",
       "src/engine/activities.ts",
       "src/ui/InterludeScreen.tsx"
     ],
@@ -155,9 +155,9 @@
     "type": "systemes.manifest",
     "label": "Marchand / négoce / cargaison",
     "modules": [
-      "src/state/merchantFlow.ts",
-      "src/state/portFlow.ts",
-      "src/state/landMarketFlow.ts",
+      "src/noyau/merchantFlow.ts",
+      "src/noyau/portFlow.ts",
+      "src/noyau/landMarketFlow.ts",
       "src/engine/bargain.ts",
       "src/engine/cargo.ts",
       "src/engine/landCargo.ts",
@@ -174,7 +174,7 @@
     "type": "systemes.manifest",
     "label": "Équipage / paie / postes",
     "modules": [
-      "src/state/shipCrew.ts",
+      "src/noyau/shipCrew.ts",
       "src/engine/crewMorale.ts",
       "src/engine/warMachineCrew.ts",
       "src/state/stations.ts",
@@ -190,7 +190,7 @@
     "type": "systemes.manifest",
     "label": "Repos / survie",
     "modules": [
-      "src/state/restFlow.ts",
+      "src/noyau/restFlow.ts",
       "src/engine/rest.ts",
       "src/engine/provisions.ts",
       "src/engine/suffocation.ts",
@@ -208,7 +208,7 @@
     "label": "Coop en ligne (relay)",
     "modules": [
       "src/state/netFlow.ts",
-      "src/state/netOwnership.ts",
+      "src/noyau/netOwnership.ts",
       "src/net/relay.ts",
       "src/net/session.ts",
       "src/state/intents.ts",
@@ -224,9 +224,9 @@
     "type": "systemes.manifest",
     "label": "Éditeur de scène / campagne",
     "modules": [
-      "src/state/sceneEdit.ts",
+      "src/noyau/sceneEdit.ts",
       "src/state/validateScene.ts",
-      "src/state/mapSpec.ts",
+      "src/noyau/mapSpec.ts",
       "src/ui/editor/Editor.tsx"
     ],
     "etat": "complet",

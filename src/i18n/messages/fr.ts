@@ -461,7 +461,7 @@ export const fr = {
   'op.castPenalty.blocked': 'Tests de {skill} interdits',
   'op.castPenalty.maxZeroDR': 'Tests de Prière plafonnés à 0 DR',
   'op.castPenalty.mod': '{mod} aux Tests de {skill}',
-  // ── Phase C : narration moteur de tour (psychologie/Frénésie de l'IA, state/combat/turnHooks). ──
+  // ── Phase C : narration moteur de tour (psychologie/Frénésie de l'IA, noyau/combat/turnHooks). ──
   'turn.actGate': 'Garder ses moyens ({label})',
   'turn.actGateOk': '{name} garde ses moyens — Action et Mouvement disponibles.',
   'turn.actGateFail': '{name} lutte contre la torpeur : une Action OU un Mouvement, au choix (LDB 71).',
@@ -469,10 +469,10 @@ export const fr = {
   'turn.actGateOptAction': 'L’Action (perdre le Mouvement)',
   'turn.actGateOptMove': 'Le Mouvement (perdre l’Action)',
   'turn.actGateKeepAction': '{name} garde son Action — le Mouvement est perdu.',
-  // #1318 V8c₅ — « Se fatiguer » (règle optionnelle, LDB 16 l.97), `state/combat/roundHooks.ts`.
+  // #1318 V8c₅ — « Se fatiguer » (règle optionnelle, LDB 16 l.97), `noyau/combat/roundHooks.ts`.
   'turn.exhausted': "{name} s'épuise (effort soutenu) : Exténué.",
   'turn.effortHeld': '{name} tient bon malgré l’effort.',
-  // Surnombre (LDB 14 l.110, Maîtrise du combat LDB 10) — `state/combat/roundHooks.ts`.
+  // Surnombre (LDB 14 l.110, Maîtrise du combat LDB 10) — `noyau/combat/roundHooks.ts`.
   'turn.outnumbered': '{name} est surpassé en nombre ({foes} c.1) : −1 Avantage.',
   'turn.frenzyEnd': '{name} sort de Frénésie (Exténué).',
   'turn.frenzyEnter': '{name} entre en Frénésie !',
@@ -486,7 +486,7 @@ export const fr = {
   'turn.rageEnter': '{name} entre dans une rage dévorante (Frénésie) !',
   'turn.rageHate': '{name} enrage : son Avantage devient Haine ({cible}).',
   'turn.redoutableOpposingFeed': '{name} (Redoutable) génère {n} Avantage(s) pour la réserve adverse.',
-  // ── Phase C : narration de manœuvres de créature (state/combatManeuvers). ──
+  // ── Phase C : narration de manœuvres de créature (noyau/combatManeuvers). ──
   'manv.trigger': '{name} déclenche {label} !',
   'manv.resists': '{name} résiste.',
   'manv.smoke': 'La zone se remplit de fumée — Lignes de vue bloquées {dur} Round(s).',
@@ -497,7 +497,7 @@ export const fr = {
   'manv.distraireFail': '{name} ne parvient pas à distraire {foe}.',
   'fx.resists': 'Résiste',
   'fx.dodge': 'Esquive',
-  // ── Phase C : narration des effets de scène/campagne au journal (state/combatEffects). ──
+  // ── Phase C : narration des effets de scène/campagne au journal (noyau/combatEffects). ──
   'eff.party': 'Le groupe',
   'eff.recover': '{name} récupère : {item}.',
   'eff.recoverSansHeros': 'Personne ne récupère {item} : aucun héros dans le groupe.',
@@ -544,7 +544,7 @@ export const fr = {
   'eff.ambitionTrauma': '{name} voit une Ambition anéantie (Calme {roll} vs {target}, échec) : il développe un Trauma.',
   'eff.ambitionResisted': '{name} encaisse l’anéantissement d’une Ambition (Calme {roll} vs {target}, réussite) sans sombrer.',
   'eff.meal': 'Le groupe prend un vrai repas — chacun mange à sa faim.',
-  // ── Phase C : narration d'issue des jets (state/flowOutcomes — source unique popin ↔ journal). ──
+  // ── Phase C : narration d'issue des jets (noyau/flowOutcomes — source unique popin ↔ journal). ──
   'out.testForced': '{name} ne faillit pas (Résilience) : réussite garantie.',
   'out.testSuccess': '{name} réussit.',
   'out.testFail': '{name} échoue.',
@@ -641,7 +641,7 @@ export const fr = {
   'out.fleeDodge': 'Coup esquivé. ',
   'psy.determinationImmune': "{name} : immunisé à la Psychologie jusqu'à la fin du prochain Round (Détermination).",
   'psy.determinationSocial': '{name} puise dans sa Détermination : insensible à la Psychologie — malus social ignoré.',
-  // ── Phase C : narration des actions de combat (state/combatSlice). ──
+  // ── Phase C : narration des actions de combat (noyau/combatSlice). ──
   'cs.mount': '{name} enfourche {mount}.',
   'cs.dismount': '{name} descend de {mount}.',
   'cs.bordeeSansNavire': '{ship} n’est pas un navire : il ne lâche pas de bordée.',
@@ -789,7 +789,7 @@ export const fr = {
   'cs.focusBlocked': '{name} ne peut pas focaliser : {reason}.',
   'cs.magicMissileNeedsTarget': '{spell} est un Projectile magique — il faut une cible ennemie (en combat).',
   'cs.oppositionAwaitingRolls': 'Opposition : le Test de {names} reste à lancer.',
-  // ── Phase C : narration du flux de combat (state/combatFlow). ──
+  // ── Phase C : narration du flux de combat (noyau/combatFlow). ──
   'cf.coverLabel': 'Couvert ({cover})',
   'cf.castLabel': 'Incantation / NI {ni}',
   'cf.prayerLabel': 'Prière',
@@ -962,7 +962,7 @@ export const fr = {
   'if.rituelAlreadyStarted': '{name} a déjà un Rituel en cours ({label}).',
   'if.rituelNoFocusSkill': '{name} ne maîtrise pas la Focalisation requise pour {label}.',
   'if.rituelNoFormula': '{label} : Niveau d\'Incantation indéterminé — sa formule ({cnFrom}) dépend de la cible.',
-  // INTERLUDE (`state/interludeFlow.ts`, LDB 22-23) — narration de journal, étapes et Activités.
+  // INTERLUDE (`noyau/interludeFlow.ts`, LDB 22-23) — narration de journal, étapes et Activités.
   'if.inCombat': "Impossible d'ouvrir un interlude en plein combat.",
   'if.openBanner': '— Entre deux aventures : {n} semaine{s} —',
   'if.eventTableLabel': 'Événements de la période',
@@ -1067,7 +1067,7 @@ export const fr = {
   'trade.craftRefused': 'Fabrication impossible : {reason}',
   'trade.orderRefused': 'Commande impossible : {reason}',
 
-  // BATAILLE DE MASSE (`state/massBattleFlow.ts`, ADE II 8) — narration de journal et libellés d'aperçu.
+  // BATAILLE DE MASSE (`noyau/massBattleFlow.ts`, ADE II 8) — narration de journal et libellés d'aperçu.
   'mbf.inCombat': "Impossible d'ouvrir une bataille de masse en plein combat tactique.",
   'mbf.endTestEnCours': 'Le Test « {test} » est en cours : terminez-le avant de clore la bataille.',
   'mbf.allyDefault': 'Armée des Personnages',
@@ -1135,7 +1135,7 @@ export const fr = {
   'mbf.threatEffect': 'Menace : {penalty} aux autres Scènes',
   'mbf.noDirectEffect': 'Sans effet direct',
 
-  // MARCHAND (`state/merchantFlow.ts`, LDB 59/60) — narration de journal et libellés d'étape.
+  // MARCHAND (`noyau/merchantFlow.ts`, LDB 59/60) — narration de journal et libellés d'étape.
   'mf.marketRoll': 'Marché ({settlement}) : {lignes}.',
   'mf.stockLine': '{label} ✔×{qty}',
   'mf.dispoTrace': 'Disponibilité',
@@ -1496,7 +1496,7 @@ export const fr = {
   'dz.remainHours': '{n} h',
   'dz.remainMinutes': '{n} min',
 
-  // ── #1318 V8c₂ — EFFETS DE SCÈNE (`state/combatEffects.ts`) : suite du namespace `eff.*` déjà en
+  // ── #1318 V8c₂ — EFFETS DE SCÈNE (`noyau/combatEffects.ts`) : suite du namespace `eff.*` déjà en
   // place. Les libellés de PALETTE de l'éditeur (`group`/`label`/`message` du registre) restent hors
   // catalogue — surface d'atelier, pas de jeu. ──
   'eff.flowTitle': 'Effet',
@@ -1580,7 +1580,7 @@ export const fr = {
   'usable.fouiller': 'Fouiller',
   'usable.sasseoir': 'S’asseoir',
 
-  // ── ARÊTES UTILISABLES (`state/aretes.ts`, `arete.*`) : les gestes qu'une ARÊTE offre au joueur. ──
+  // ── ARÊTES UTILISABLES (`noyau/aretes.ts`, `arete.*`) : les gestes qu'une ARÊTE offre au joueur. ──
   'arete.porteExterieureFermee': 'Porte extérieure fermée',
   'arete.porteFermee': 'Porte fermée',
   'arete.entreeInterieure': 'Entrée intérieure',
@@ -1608,7 +1608,7 @@ export const fr = {
   'store.doorHolds': '{label} : {n} dégât{s}, reste {left} Blessure{sB}.',
   'store.toolBroken': '{tool} (Bâclé) se brise sur la Maladresse de {name}.',
 
-  // ── #1318 V8c₂ — VOYAGE TERRESTRE (`state/travelFlow.ts`, `tf.*`). Les titres d'ÉTAPE de ce flux
+  // ── #1318 V8c₂ — VOYAGE TERRESTRE (`noyau/travelFlow.ts`, `tf.*`). Les titres d'ÉTAPE de ce flux
   // vivent déjà en `step.*` (V8a₁) : ici, les lignes de journal, les verdicts de rangée de récap et
   // les libellés de modificateur. ──
   'tf.noVessel': 'Aucun navire de campagne en état de prendre la mer — pas de traversée.',
@@ -1706,7 +1706,7 @@ export const fr = {
   'tf.detourExhausted': '{name} : +1 Exténué (détour épuisant).',
   'tf.detourDay': 'Le détour coûte une journée entière au groupe.',
 
-  // ── #1318 V8c₂ — NAVIGATION FLUVIALE (`state/riverVoyageFlow.ts`, `rv.*`, MSRC 7). Mêmes règles que
+  // ── #1318 V8c₂ — NAVIGATION FLUVIALE (`noyau/riverVoyageFlow.ts`, `rv.*`, MSRC 7). Mêmes règles que
   // ci-dessus : titres d'étape en `step.*`, journal et verdicts de conséquence ici. ──
   'rv.arrive': '— {to} : la barge accoste —',
   'rv.dayTitle': 'Journée de descente',
@@ -1862,7 +1862,7 @@ export const fr = {
   'tra.kindFaim': 'Faim/Soif',
   'tra.kindIvresse': 'Ivresse',
 
-  // ── #1318 V8c₃ — ÉQUIPAGE DE NAVIRE (`state/shipCrew.ts`, `crew.*`, MDG 09/13/14/15) : chansons de
+  // ── #1318 V8c₃ — ÉQUIPAGE DE NAVIRE (`noyau/shipCrew.ts`, `crew.*`, MDG 09/13/14/15) : chansons de
   // marin, résolution d'unité navale, Moral et solde hebdomadaire, désertion. ──
   'crew.shantyLabel': 'Chanson de marin — {label}',
   'crew.shantyStart': '{name} entonne « {shanty} » ({min} min).',
@@ -1881,7 +1881,7 @@ export const fr = {
   'crew.crewDelta': 'Équipage : {delta} membre(s) (reste {left}/{nominal}).',
   'crew.desertion': 'Relâche à terre : {n} marin(s) ne sont pas revenus à bord.',
 
-  // ── #1318 V8c₃ — NUIT DE REPOS (`state/restFlow.ts`, `rf.*`, LDB 16/18/20/21/66). Les titres d'ÉTAPE
+  // ── #1318 V8c₃ — NUIT DE REPOS (`noyau/restFlow.ts`, `rf.*`, LDB 16/18/20/21/66). Les titres d'ÉTAPE
   // vivent déjà en `step.*` (V8a₁) ; ici, le procès-verbal de nuit, les conséquences de bande et les
   // titres de journal. La MALADIE de la ligne de Contagion vient de la donnée (`diseaseLabel`) : le
   // procès-verbal affichait son id (« Contagion (peste-noire) »). ──
@@ -1917,7 +1917,7 @@ export const fr = {
   'rf.tenteAbrite': 'la tente abritera le camp',
   'rf.lieuRoute': '{from} → {to}',
 
-  // ── #1318 V8c₃ — VOYAGE MARITIME (`state/seaVoyageFlow.ts`, `sv.*`, MDG 12-15). Mêmes règles que les
+  // ── #1318 V8c₃ — VOYAGE MARITIME (`noyau/seaVoyageFlow.ts`, `sv.*`, MDG 12-15). Mêmes règles que les
   // flux de voyage déjà migrés : titres d'étape en `step.*`, journal / verdicts / libellés d'action ici.
   // Trois valeurs venaient d'un ID rendu à l'écran : l'ASPECT du vent (« vent arriere », « vent lateral »
   // — sans accent), le CÔTÉ de dérive et les Compétences lancées (Voile/Ramer/Résistance, désormais lues
@@ -2290,7 +2290,7 @@ export const fr = {
   'mt.collapse': "{mount} s'effondre d'épuisement (Sonné, À Terre).",
   'mt.wearyDay': '{mount} termine la journée fourbue (+{n} Exténué).',
 
-  // ── #1318 V8c₄ — ENTRETIEN QUOTIDIEN (`state/upkeep.ts`, `upkeep.*`). `upkeep.fades` sert les DEUX
+  // ── #1318 V8c₄ — ENTRETIEN QUOTIDIEN (`noyau/upkeep.ts`, `upkeep.*`). `upkeep.fades` sert les DEUX
   // purges d'horloge (pénalité d'incantation ET effet actif) : une seule phrase, deux sites.
   'upkeep.fades': '{name} : {what} se dissipe.',
   'upkeep.condFades': "{name} : l'État {cond} se dissipe.",
@@ -2299,7 +2299,7 @@ export const fr = {
   'upkeep.sleepDeprived': '{name} — privation de sommeil ({n} nuit{s} sans dormir) :',
   'upkeep.rationsUsed': 'Le groupe entame ses provisions ({n} ration{s}).',
 
-  // ── #1318 V8c₄ — SOINS & CHIRURGIE (`state/medicFlow.ts`, `medic.*`, LDB 10 l.184, LDB 18 l.120/179).
+  // ── #1318 V8c₄ — SOINS & CHIRURGIE (`noyau/medicFlow.ts`, `medic.*`, LDB 10 l.184, LDB 18 l.120/179).
   'medic.aidRequired': 'Aide Médicale requise avant de rééduquer le membre.',
   'medic.tooExpensive': 'Le groupe n’a pas assez d’argent pour cet acte.',
   'medic.verbRecovery': 'rééduque',
@@ -2322,7 +2322,7 @@ export const fr = {
   'coop.formatMismatch': "Format de partie différent de celui de l'hôte — l'hôte et l'invité doivent jouer la même version du jeu.",
   'coop.seatClosed': "Un joueur a quitté — ses héros reviennent à l'hôte.",
 
-  // ── #1318 V8c₄ — POSTES D'ÉTAPE DE VOYAGE (`state/travelPostes.ts`, `tp.*`, EDOC 08). La protection
+  // ── #1318 V8c₄ — POSTES D'ÉTAPE DE VOYAGE (`noyau/travelPostes.ts`, `tp.*`, EDOC 08). La protection
   // magique reprend `eff.weatherWarded`/`eff.wardFroid` (V8c₂ — MÊME phrase que l'Exposition du moteur),
   // et les deux libellés de Test viennent de `skills.json` (`refLabel`), plus d'un « Résistance » écrit ici.
   'tp.encounterPositive': 'Rencontre positive',
@@ -2343,7 +2343,7 @@ export const fr = {
   'tp.exposureLine': "{name} — Exposition de fin d'Étape ({weather}) : transi par le froid.",
   'tp.coldSeasonChill': '{name} grelotte et tousse — un rhume couve (saison froide).',
 
-  // ── #1318 V8c₄ — CORRUPTION (`state/corruptionFlow.ts`, `cor.*`, LDB 19 l.70-87 / LDB 17 l.67). La
+  // ── #1318 V8c₄ — CORRUPTION (`noyau/corruptionFlow.ts`, `cor.*`, LDB 19 l.70-87 / LDB 17 l.67). La
   // NATURE de la mutation était l'id interpolé (`physique`/`mentale`) : elle passe par ses deux clés.
   'cor.phaWard': '{name} : la lumière sacrée de Phâ écarte la Corruption (aucun gain).',
   'cor.gain': '{name} : +{n} Point{s} de Corruption (total {total}).',
@@ -2363,7 +2363,7 @@ export const fr = {
   'cor.renounced': '{name} — « Je te renie ! » : la mutation est REFUSÉE (1 Point de Résilience ; les Points de Corruption restent).',
   'cor.renounceTitle': 'Je te renie !',
 
-  // ── #1318 V8c₄ — ACTIVITÉS EN MER (`state/seaActivities.ts`, `sact.*`, MDG 15 l.288-292). Le nom
+  // ── #1318 V8c₄ — ACTIVITÉS EN MER (`noyau/seaActivities.ts`, `sact.*`, MDG 15 l.288-292). Le nom
   // d'Activité vient d'`activities.json` et la Compétence de `skills.json` : « Cartographie » et
   // « Marchandage » étaient écrits au call-site, jumeaux de la donnée (classe #1341).
   'sact.crewIsPlayers': 'L’équipage du navire de campagne est tenu par les PJ (MDG 14) — aucun équipage PNJ à entraîner.',
@@ -2375,7 +2375,7 @@ export const fr = {
   'sact.chartKo': '{name} — Cartographie : les relevés sont inutilisables.',
   'sact.stash': '{name} — Planque (MDG 15 l.292) : {money} cachés sur la carte — retrait libre, découverte sur ≤ 50.',
 
-  // ── #1318 V8c₄ — GROUPE : possessions, Avancement, sorts, prothèses (`state/partyFlow.ts`, `pf.*`,
+  // ── #1318 V8c₄ — GROUPE : possessions, Avancement, sorts, prothèses (`noyau/partyFlow.ts`, `pf.*`,
   // LDB 07/09/10/46/64/73). `pf.refused` et `pf.charNeedsMentor` servent les TROIS achats
   // (Caractéristique / Compétence / Talent) : une phrase, trois sites. La carrière d'arrivée était
   // rendue par son ID (« carrière → chasseur-de-primes ») : elle passe par `findCareerById`.
@@ -2427,7 +2427,7 @@ export const fr = {
   'pf.careerChanged': '{name} : carrière → {career} (niv. {level}, −{cost} PX).',
   'pf.startingWealth': 'Richesse initiale de {name} : +{money}.',
 
-  // ── #1318 V8c₄ — PORT : négoce de cargaison et recrutement à quai (`state/portFlow.ts`, `port.*`,
+  // ── #1318 V8c₄ — PORT : négoce de cargaison et recrutement à quai (`noyau/portFlow.ts`, `port.*`,
   // MDG 12 l.70-75 / MDG 15 l.319-399, MDG 14 l.293-302). `port.bargainLine` sert l'ACHAT et la VENTE
   // (le signe et l'issue sont portés par l'appelant) ; « Ragot » vient de `skills.json`.
   'port.holdFull': 'La cale a atteint le maximum absolu (surcharge de 150 %) ou la cargaison est épuisée — rien à embarquer.',
@@ -2464,7 +2464,7 @@ export const fr = {
 
   // ── #1318 V8c₅ (8ᵉ forme) — FRAGMENTS et REPLIS passés en PARAMÈTRE de `t()` : ils s'affichaient tels
   // quels (« pas compté » n'a jamais voulu dire « au catalogue »). Sites : `engine/ops.ts`,
-  // `state/combatFlow.ts`, `state/combatSlice.ts`.
+  // `noyau/combatFlow.ts`, `noyau/combatSlice.ts`.
   'op.condAll': "tout l'État",
   'op.condSome': '{n} État',
   'op.resFate': 'Destin',
@@ -2482,7 +2482,7 @@ export const fr = {
   'cf.talentInvocation': 'Invocation',
   'cs.fragTargetsFreed': ' ({n} cibles libérées)',
 
-  // ── #1318 V8c₅ — NAUFRAGE en mer (`state/shipwreck.ts`, `wreck.*`, MDG 13 l.674 / LDB 09 l.372 /
+  // ── #1318 V8c₅ — NAUFRAGE en mer (`noyau/shipwreck.ts`, `wreck.*`, MDG 13 l.674 / LDB 09 l.372 /
   // LDB 18 l.344). La Compétence (Natation) vient de `skills.json` : jamais bakée au gabarit.
   'wreck.sinks': '{ship} sombre corps et biens (MDG 13 l.674).',
   'wreck.cargoSinks': '{label} et sa cargaison embarquée sombrent avec elle.',
@@ -2572,24 +2572,24 @@ export const fr = {
   'key.named.numpad': 'Pavé {n}',
   'key.named.backspace': 'Retour arrière',
 
-  // ── #1318 V8c₅ — MONTURE hors de combat (`state/mount.ts`, LDB 14 l.182).
+  // ── #1318 V8c₅ — MONTURE hors de combat (`noyau/mount.ts`, LDB 14 l.182).
   'mount.unhorsed': '{rider} est désarçonné — sa monture ({mount}) est hors de combat.',
   // Modificateurs d'attaque du Combat monté (LDB 14 l.180/181) — composantes NOMMÉES de la modale d'attaque.
 
-  // ── #1318 V8c₅ — INVOCATIONS (`state/summonFlow.ts`) : placement, arrivée, dissipation.
+  // ── #1318 V8c₅ — INVOCATIONS (`noyau/summonFlow.ts`) : placement, arrivée, dissipation.
   'summon.noRoom': '{name} ne trouve aucune case libre pour invoquer {ref}.',
   'summon.summons': '{name} invoque {n} × {label}{tag}.',
   'summon.fragHostile': ' — hostile, hors de son contrôle !',
   'summon.fragAllies': ' (alliés)',
   'summon.dispels': '{name} se dissipe ({label}).',
 
-  // ── #1318 V8c₅ — SOCLE DU JET (`state/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.
+  // ── #1318 V8c₅ — SOCLE DU JET (`noyau/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.
   'roll.freeReroll': '{name} relance sans dépenser de Chance ({src}).',
   'roll.blessingFallback': 'Bénédiction de Chance',
   'roll.dieFixedBy': '{name} : dé fixé à {n}.',
   'roll.dieFixed': 'Dé fixé à {n}.',
 
-  // ── #1318 V8c₅ — MANŒUVRE DE NAVIRE ratée (`state/shipManeuver.ts`, MDG 13).
+  // ── #1318 V8c₅ — MANŒUVRE DE NAVIRE ratée (`noyau/shipManeuver.ts`, MDG 13).
   'shipManv.failLine': '{helmsman} rate la manœuvre de {ship} (DR {dr}) — le cap tient.',
   'shipManv.crewFallback': "L'équipage",
 
@@ -2711,7 +2711,7 @@ export const fr = {
   'slot.domainCap': 'plafond de Domaines magiques atteint ({cap})',
   'slot.prevDomain': 'Domaine précédent ({domain}) pas assez maîtrisé : {advances}/20 Améliorations Focalisation, {known}/8 Sorts',
 
-  // ── GATES D'ACTION : raisons d'indisponibilité du registre (`state/actionRegistry.ts`, `agate.*`).
+  // ── GATES D'ACTION : raisons d'indisponibilité du registre (`noyau/actionRegistry.ts`, `agate.*`).
   // Ces `reason` sont du texte JOUEUR : la console les grave sous la case fermée et `GatedAction` les
   // lie en `aria-describedby`. Elles vivaient en littéraux au call-site, invisibles au garde de
   // narration (posées en argument de `no(…)`, aucune des huit formes ne les voit).
@@ -2744,7 +2744,7 @@ export const fr = {
   // Focalisation est une Compétence AVANCÉE (`LDB 09 l.30`), spécialisée par Vent (`LDB 46`).
   'agate.noFocusSkill': '{name} ne maîtrise pas Focalisation',
   'agate.noFocusSkillWind': '{name} ne maîtrise pas Focalisation ({wind})',
-  // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `state/siegePush.pushCrewOk`).
+  // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `noyau/siegePush.pushCrewOk`).
   'agate.pushUndercrew': 'équipe trop réduite pour pousser l’engin',
   // ── PASTILLES D'ENTITÉ (spec HUD zone 4) : ce qu'une chose du champ offre, dit au joueur.
   'pastille.nGestes': '{n} gestes',
@@ -2778,7 +2778,7 @@ export const fr = {
   'consigne.battery': 'Cliquez un adversaire dans l’arc de la bordée.',
   'consigne.teleport': 'Cliquez la case où vous téléporter.',
 
-  // Postures de tir : le refus vient du prédicat partagé `STANCE_BLOCK` (`state/combatFlow.ts`), lu
+  // Postures de tir : le refus vient du prédicat partagé `STANCE_BLOCK` (`noyau/combatFlow.ts`), lu
   // par le gate du registre, le store et la fenêtre de jet. Même famille de texte JOUEUR que ci-dessus
   // — `agate.movementStarted` y est RÉUTILISÉ, la posture n'a pas sa propre formulation du Mouvement.
   'agate.stanceHeroOnlyHold': 'seul un héros décide de tenir sa position',

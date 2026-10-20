@@ -13,7 +13,7 @@ import {
   type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, type FaceDArete, type WallSecret, isDescriptiveZone, porteAuteur, sceneMetresPerTile,
   secretAuteur,
 } from '../../noyau/monde/scene';
-import { isRoomZone } from '../../state/rooms';
+import { isRoomZone } from '../../noyau/monde/rooms';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import { NumberField } from '../NumberField';
@@ -22,21 +22,21 @@ import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
-import type { WorldMap } from '../../state/worldMap';
-import type { NarratifBlock } from '../../state/campaignNarratif';
-import { nomDEntite } from '../../state/sceneNpc';
-import { presetDuNarratif } from '../../state/resolveursDuNarratif';
+import type { WorldMap } from '../../noyau/worldMap';
+import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
+import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
 import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
 import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
 import { PROPS } from '../../gameIso/catalog/decor';
-import { buildingsMeta } from '../../state/buildings';
+import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
-import { MERCHANTS } from '../../state/merchants/index';
+import { MERCHANTS } from '../../noyau/monde/merchants/archetypes';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
 import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines } from '../../data';
-import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../state/sceneEdit';
+import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../noyau/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
@@ -55,7 +55,7 @@ import { RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
 import { actionsDe, ACTION_FOUILLER } from '../../noyau/monde/usable';
-import { EMPTY_FLOW } from '../../noyau/monde/flow';
+import { EMPTY_FLOW } from '../../engine/flowCore';
 import { StatblockEditor, emptyStatblock } from './StatblockEditor';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
 import { SeatAssignmentsField } from './SeatAssignmentsField';
@@ -68,7 +68,7 @@ import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
 import type { IconIdInput } from '../icons';
-import { nextEntityId } from '../../state/entityId';
+import { nextEntityId } from '../../noyau/monde/entityId';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
@@ -1763,7 +1763,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
           {/* L'id n'est écrit au document qu'au COMMIT (blur/Entrée) — la primitive du fichier, déjà
               servie par les points d'entrée et les zones d'effet. Frappé lettre à lettre, il posait
               `f`, `fo`, `fou` dans la scène. L'unicité, elle, se garde AU GESTE
-              (`state/sceneEdit.renameActionAuthoree`) : le `refine` du schéma ne mord qu'au parse, et
+              (`noyau/sceneEdit.renameActionAuthoree`) : le `refine` du schéma ne mord qu'au parse, et
               une scène VIVANTE à deux actions homonymes se joue faux avant d'être relue. */}
           <EntryRename
             label={a.id}

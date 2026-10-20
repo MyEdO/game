@@ -7,7 +7,7 @@
  * les dialectes que ses prédicats reconnaissent (`EXTENSIONS_DE_SCRIPT`) — boucle
  * (`for`, `for…of`, `for…in`, `while`, `do`), callback d'un itérateur (`ITERATEURS` ; le receveur ne
  * s'itère pas) ou fonction nommée qui s'appelle elle-même — qui PILOTE la cascade À LA MAIN : elle LIT
- * `pendingCascade` et JOUE un verbe `cascade*` du store, à côté du kit (`cascadeTestKit.ts`). Quand un flux
+ * `pendingCascade` et JOUE un verbe `cascade*` du store, à côté du kit (`cascade.testkit.ts`). Quand un flux
  * est refondu, c'est elle qui dérive. Une fonction À UNE ÉTAPE (lire, poser, valider) n'est pas un pilote :
  * c'est le grain auquel un test exerce et observe une étape ; la boucle qui l'appelle en est un.
  *
@@ -15,7 +15,7 @@
  * (`s['pendingCascade']`) — hors la CLÉ d'une propriété `pendingCascade: …`, qui l'écrit ; JOUER, c'est
  * appeler un verbe `cascade*`, par son nom, par point ou par accès calculé à chaîne littérale
  * (`s['cascadeNext']()`). Un appel au KIT n'est ni un verbe ni une exemption : un nom importé de
- * `cascadeTestKit` — par `import { … }`, ou par `import * as kit` (`kit.x(…)`, `kit['x'](…)`) — ne joue rien.
+ * `cascade.testkit` — par `import { … }`, ou par `import * as kit` (`kit.x(…)`, `kit['x'](…)`) — ne joue rien.
  *
  * HELPER : une fonction locale NOMMÉE (déclaration, ou `const` flèche/fonction), non récursive, dont aucune
  * itération ne lit ni ne joue DIRECTEMENT — un callback de DONNÉES (`participants.findIndex(…)`, `.map(…)`)
@@ -105,9 +105,9 @@ import { readCorpus } from './sourceCorpus.mjs';
 import type { Site } from './stock.mjs';
 import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 
-/** Les fichiers mesurés : les suites et les kits de test (`fichierVitest.mjs`), tous dialectes — le kit de la cascade
- *  (`cascadeTestKit.ts`) n'en est pas un. */
-const estMesure = (rel: string): boolean => estSuiteVitest(rel) || estKitDeTest(rel);
+/** Les fichiers mesurés : les suites et les kits de test (`fichierVitest.mjs`), tous dialectes, hors le kit de la
+ *  cascade (`MODULE_DU_KIT`), qui EST le pilote partagé. */
+const estMesure = (rel: string): boolean => (estSuiteVitest(rel) || estKitDeTest(rel)) && !MODULE_DU_KIT.test(rel);
 
 /** Un verbe de la cascade du store (`cascadeNext`, `cascadeRoll`, `cascadeTableRoll`…). */
 const VERBE = /^cascade[A-Z]/;
@@ -116,7 +116,7 @@ const VERBE = /^cascade[A-Z]/;
 const ITERATEURS = new Set(['forEach', 'map', 'flatMap', 'filter', 'some', 'every', 'find', 'findIndex', 'reduce', 'from']);
 
 /** Le module du kit, tel qu'un `import` le nomme. */
-const MODULE_DU_KIT = /(^|\/)cascadeTestKit(\.ts)?$/;
+const MODULE_DU_KIT = /(^|\/)cascade\.testkit(\.ts)?$/;
 
 /** Les appels qui NOMMENT un contexte de test par leur premier argument. */
 const BLOCS_DE_TEST = new Set(['it', 'test', 'describe']);
@@ -289,7 +289,7 @@ const appelleVerbe = (ts: typeof TS, n: TS.Node, duKit: ReadonlySet<string>): bo
   return !!nom && VERBE.test(nom);
 };
 
-/** Les noms locaux qui désignent `cascadeTestKit` ou l'un de ses exports : liens nommés, défaut, espace de noms. */
+/** Les noms locaux qui désignent `cascade.testkit` ou l'un de ses exports : liens nommés, défaut, espace de noms. */
 function importesDuKit(ts: typeof TS, sourceFile: TS.SourceFile): ReadonlySet<string> {
   const duKit = new Set<string>();
   for (const st of sourceFile.statements) {

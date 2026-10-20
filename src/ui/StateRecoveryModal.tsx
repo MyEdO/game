@@ -1,4 +1,5 @@
-import { useGame, type PendingStateRecovery } from '../state/store';
+import { useGame } from '../state/store';
+import { type PendingStateRecovery } from '../noyau/pendings';
 import { stateRecoveryStakeRef } from '../data';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';
@@ -6,8 +7,8 @@ import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { opposedLines } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeStateRecovery } from '../state/flowOutcomes';
-import { remedeDeLEtat } from '../state/actionRegistry';
+import { describeStateRecovery } from '../noyau/flowOutcomes';
+import { remedeDeLEtat } from '../noyau/actionRegistry';
 import { conditionLabel } from '../data';
 
 /** Vue pure de la modale « se libérer » (Empêtré) / « se rouler » (En flammes). Testable sans store. */

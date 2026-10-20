@@ -5,8 +5,8 @@
  * que les DÉGÂTS → une ZdE de CONTRÔLE (qui « KO » par un État) n'avait aucune pénalité d'ami.
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
-import { spellTargetHarm } from './aiSpellValue';
+import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from '../noyau/monde/ai';
+import { spellTargetHarm } from '../noyau/monde/aiSpellValue';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import type { SpellData } from '../data';

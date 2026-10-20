@@ -6,8 +6,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { draineEtLit, avanceEtapeCascade } from './cascadeTestKit';
-import { applyCast, checkFocusInterruption, openCastCascade } from './combatFlow';
+import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
+import { applyCast, checkFocusInterruption, openCastCascade } from '../noyau/combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
 import { findSpell, findEffectTableById, refLabel } from '../data';

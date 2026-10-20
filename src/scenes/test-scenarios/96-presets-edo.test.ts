@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { resolvePresetCreature } from '../../state/resolveursDuNarratif';
+import { resolvePresetCreature } from '../../noyau/monde/resolveursDuNarratif';
 import { presetPnjById } from '../../state/campaignData';
-import { creatureToCombatant } from '../../state/spawn';
+import { creatureToCombatant } from '../../noyau/monde/spawn';
 import { testValue } from '../../engine/skills';
 import { savoirVoiesFluvialesBonus } from '../../engine/riverNavigation';
 import { scenario } from './96-presets-edo';

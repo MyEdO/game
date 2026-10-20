@@ -14,12 +14,12 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { draineCascade } from './cascadeTestKit';
-import { openAttackCascade } from './combatFlow';
-import { gainCorruption } from './corruptionFlow';
-import { openMedic, medicAct } from './medicFlow';
-import { intentAllowedFor } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
+import { draineCascade } from './cascade.testkit';
+import { openAttackCascade } from '../noyau/combatFlow';
+import { gainCorruption } from '../noyau/corruptionFlow';
+import { openMedic, medicAct } from '../noyau/medicFlow';
+import { intentAllowedFor } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import { testScene } from '../scenes/test-fixture';

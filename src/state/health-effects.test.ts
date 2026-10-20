@@ -5,14 +5,14 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { cascadeAppliers } from '../noyau/cascade';
 import { resultLine } from '../noyau/rollSeam';
 import { makePregens } from '../data/pregens';
 import { findVehicleById } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import { effectiveChar } from '../engine/characteristics';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 beforeEach(() => {
   useGame.setState({ battle: null, party: [], journal: [], tavernGames: null });

@@ -7,10 +7,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
-import { aiMaybeFrenzy, aiHandGate, attackWardGate, openAttackCascade, runEnemyAI } from './combatFlow';
+import { aiHandGate, attackWardGate, openAttackCascade, runEnemyAI } from '../noyau/combatFlow';
+import { aiMaybeFrenzy } from '../noyau/combat/turnHooks';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { isFrenzied } from '../engine/psychology';
-import { tavernGameValue } from './tavernFlow';
+import { tavernGameValue } from '../noyau/tavernFlow';
 import { findTavernGameById } from '../engine/tavernGame';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';

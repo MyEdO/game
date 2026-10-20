@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { scenario } from '../scenes/test-scenarios/entrainement';
-import { maybeOpenDefense } from './combatFlow';
-import { spawnEnemy } from './spawn';
-import { pickActiveModalKey } from './modalArbiter';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { maybeOpenDefense } from '../noyau/combatFlow';
+import { spawnEnemy } from '../noyau/monde/spawn';
+import { pickActiveModalKey } from '../noyau/modalArbiter';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import { parseQualityInstance } from '../engine/qualities/normalize';
-import { combatAdvanceBlocked } from './combatGate';
+import { combatAdvanceBlocked } from '../noyau/combatGate';
 import type { Weapon } from '../engine/types';
 
 /**

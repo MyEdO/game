@@ -6,7 +6,7 @@ import { poserLaPlateforme, retirerLaPlateforme, programmer } from '../noyau/pla
 import { setCadence, resetCadence } from '../engine/cadence';
 
 /** #2817 (D6) : la plateforme web du noyau, posée par `src/state/store.ts`, et l'auto-cadence qu'elle
- *  planifie (`planifierLeTickAuto`, `src/state/combatAuto.ts`). */
+ *  planifie (`planifierLeTickAuto`, `src/noyau/combatAuto.ts`). */
 describe('plateforme web du noyau', () => {
   afterEach(() => { vi.useRealTimers(); resetCadence(); });
 

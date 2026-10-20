@@ -2,7 +2,7 @@ import { EtalLotModal } from './EtalLotModal';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
 import { spectatorSeatOfModal } from './ownership';
-import { willAutoResolve } from '../state/combatAuto';
+import { willAutoResolve } from '../noyau/combatAuto';
 import type { JSX } from 'react';
 import { SpectatorChip } from './SpectatorChip';
 import { ReloadModal } from './ReloadModal';
@@ -34,15 +34,15 @@ import { MedicModal } from './MedicModal';
 import { RestModal } from './RestModal';
 import { CouncilModal } from './CouncilModal';
 // CastModal n'est plus monté ici : la situation d'incantation est une étape `jet:'cast'` de la
-// cascade (rendue par `CascadeModal`, qui hôte `CastModal`) — cf. state/modalArbiter (entrée `cast` retirée).
+// cascade (rendue par `CascadeModal`, qui hôte `CastModal`) — cf. noyau/modalArbiter (entrée `cast` retirée).
 import { CascadeModal } from './CascadeModal';
 import { CorruptionModal } from './CorruptionModal';
 import { ActivityModal } from './ActivityModal';
 
-// REGISTRE des modales : state/modalArbiter (une entrée = quand + concerné, ordre = priorité).
+// REGISTRE des modales : noyau/modalArbiter (une entrée = quand + concerné, ordre = priorité).
 // Ajouter une modale = 1 entrée au registre + son composant dans COMPONENT ci-dessous.
-export { pickActiveModalKey } from '../state/modalArbiter';
-import { pickActiveModalKey, voyageHubActive, type ModalKey } from '../state/modalArbiter';
+export { pickActiveModalKey } from '../noyau/modalArbiter';
+import { pickActiveModalKey, voyageHubActive, type ModalKey } from '../noyau/modalArbiter';
 
 const COMPONENT: Record<ModalKey, () => JSX.Element | null> = {
   etalLot: () => <EtalLotModal />,

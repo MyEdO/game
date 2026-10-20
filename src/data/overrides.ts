@@ -160,7 +160,7 @@ const ARRAYS = {
   terrains,
   // Types de bâtiment (#1715) : UN document, l'empreinte et la couverture offertes à la pose plus les
   // ornements d'identité. Ce binding EST le seam de mutation en place ; la façade
-  // `src/state/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
+  // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
   pregens, oups, interludeEvents, peripeties, names,

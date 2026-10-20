@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from './index';
-import { ficheDEntite } from '../../state/sceneNpc';
-import { applyCriticalToTarget } from '../../state/combatFlow';
+import { ficheDEntite } from '../../noyau/monde/sceneNpc';
+import { applyCriticalToTarget } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles } from '../../noyau/monde/scene';
 import { findVehicleById } from '../../data';

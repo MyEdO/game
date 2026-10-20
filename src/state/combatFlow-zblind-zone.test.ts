@@ -10,7 +10,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castCommitZone, applyCast } from './combatFlow';
+import { castCommitZone, applyCast } from '../noyau/combatFlow';
 import { zoneCovers } from '../noyau/monde/zones';
 import { emptyScene } from '../noyau/monde/scene';
 import { pregen, PREGEN } from '../data/pregens';

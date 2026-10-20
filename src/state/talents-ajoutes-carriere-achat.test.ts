@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
-import { buildAdvancementView } from './advancement';
+import { buildAdvancementView } from '../noyau/monde/advancement';
 import type { Combatant } from '../engine/types';
 
 function soldat(over: Partial<Combatant> = {}): Combatant {

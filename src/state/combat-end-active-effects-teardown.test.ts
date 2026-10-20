@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { finalizeBattle } from './combatFlow';
+import { finalizeBattle } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { rollMutation } from '../data/mutations';

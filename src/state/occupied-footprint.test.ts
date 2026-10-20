@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { occupied } from './combatFlow';
-import { displaceSmaller } from './combatPlacement';
+import { occupied } from '../noyau/monde/combatGeometry';
+import { displaceSmaller } from '../noyau/combatPlacement';
 import { occupiesTile, footprintN } from '../noyau/monde/footprint';
 import type { BattleState } from './store';
 import type { Scene } from '../noyau/monde/scene';

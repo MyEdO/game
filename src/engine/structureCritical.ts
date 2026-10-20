@@ -60,7 +60,7 @@ export function rollStructureCritical(rng: RNG = defaultRNG, forcedRoll?: number
 
 /** Ligne de journal de l'Effondrement d'une Structure (AA 10 l.127) → BRÈCHE franchissable. Construite dans la
  *  couche MOTEUR (comme les `log` de `shipCritical`) pour que la narration ne soit pas un littéral FR brut
- *  dans `state/combatFlow` (garde-fou i18n). */
+ *  dans `noyau/combatFlow` (garde-fou i18n). */
 export function structureCollapseLog(name: string): string {
   return t('structCrit.collapse', { name });
 }

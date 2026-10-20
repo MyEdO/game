@@ -4,7 +4,7 @@
 // et par la garde référentielle (`src/data/dossiers-couverture.test.ts`).
 //
 // Module PUR, sans import : chargé tel quel par Node nu (retrait de types natif) comme par vitest. Il lit
-// la FORME d'un projet (`ProjectDoc`, `src/state/worldMap.ts`) par un type structurel réduit aux porteurs.
+// la FORME d'un projet (`ProjectDoc`, `src/noyau/worldMap.ts`) par un type structurel réduit aux porteurs.
 
 /** Les porteurs de `couvre`, dans l'ordre de lecture. */
 export const KINDS_DE_PORTEUR = ['presetPnj', 'indice', 'scene', 'entite', 'zoneDEffet', 'declencheur', 'dialogue', 'rencontre', 'lieu', 'route'] as const;

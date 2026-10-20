@@ -13,7 +13,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { setNorthDeg } from './sceneEdit';
+import { setNorthDeg } from '../noyau/sceneEdit';
 import { exportSave, importSave, snapshotSave } from './saves';
 import { FORMAT_SAVE } from './formats.generated';
 

@@ -40,7 +40,7 @@ describe('rollStructureCritical (AA 10 l.112-127)', () => {
   });
 
   it("CONTRAT de la donnée : chaque entrée porte une `note` NON VIDE (effets verbatim sur les personnes)", () => {
-    // L'affichage de l'étape à table (#942 L2, `state/combatFlow` `STRUCTURE_CRIT_TABLE.lines`) rend
+    // L'affichage de l'étape à table (#942 L2, `noyau/combatFlow` `STRUCTURE_CRIT_TABLE.lines`) rend
     // `log` PUIS `note` : une entrée sans note perdrait sa 2ᵉ ligne — la table entière doit en porter.
     const sansNote = STRUCTURE_CRITICALS.filter((e) => !e.note || !e.note.trim()).map((e) => e.id);
     expect(sansNote).toEqual([]);

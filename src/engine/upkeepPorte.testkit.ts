@@ -4,7 +4,7 @@
  * (1) collecter la spec — c'est ce que la porte reçoit — puis (2) INJECTER l'issue qu'il veut juger.
  *
  * `applique` est le miroir STRICT des appliers de nuit (`registerNightBandApplier('diseaseTick' |
- * 'diseaseGangrene' | 'diseasePersist')`, `src/state/restFlow.ts`) : mêmes trois routes, même lecture du
+ * 'diseaseGangrene' | 'diseasePersist')`, `src/noyau/restFlow.ts`) : mêmes trois routes, même lecture du
  * `meta`, et surtout LES MÊMES FONCTIONS — chaque route appelle l'unique foyer de sa conséquence
  * (`applyOps` ancré à la maladie, `applyDiseaseGangrene`, `applyDiseaseEnd` qui porte la guérison ET la
  * réconciliation des États portés par un passif). Le kit ne peut donc pas dériver de l'applier réel : il n'y a

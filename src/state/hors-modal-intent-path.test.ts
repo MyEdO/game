@@ -20,11 +20,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame, type BattleState } from './store';
-import { initialFields } from './stateFields';
-import { intentAllowedFor, withActingSeat, ROUTES } from './netOwnership';
+import { initialFields } from '../noyau/stateFields';
+import { intentAllowedFor, withActingSeat, ROUTES } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
-import { jetOwnedIntents, participantOwnedIntents } from './flowVerbs';
-import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from './modalArbiter';
+import { jetOwnedIntents, participantOwnedIntents } from '../noyau/flowVerbs';
+import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from '../noyau/modalArbiter';
 import { GUEST_INTENTS } from './intents';
 import { ACTIONS } from '../data/index';
 import { KEYBINDINGS } from './clavier/keybindings';
@@ -288,13 +288,13 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // Pause de Round : le bandeau de la console et la touche passent tous deux par l'entrée
   // `round-start` du registre (#1411 P2-A) — c'est SON dispatcher qui arbitre solo (ouvrir) et coop
   // (marquer le siège prêt). Aucun écran ne nomme plus ces deux verbes : la porte est unique.
-  confirmRoundStart: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « commencer » (solo)', dans: 'src/state/actionRegistry.ts' },
-  roundStartReady: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « prêt » (coop)', dans: 'src/state/actionRegistry.ts' },
+  confirmRoundStart: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « commencer » (solo)', dans: 'src/noyau/actionRegistry.ts' },
+  roundStartReady: { interne: 'actionRegistry.ACTION_RUN.roundStart — porte unique du geste « prêt » (coop)', dans: 'src/noyau/actionRegistry.ts' },
   victoryReady: { parUI: true },
   // Demande de pause au prochain Round : l'interrupteur du pied de FRISE (`raise-hand`, relais du
   // registre). Les deux sens passent par le même dispatcher, d'où le retrait `interne`.
   raiseHand: { parUI: true },
-  lowerHand: { interne: 'actionRegistry.ACTION_RUN.raiseHand — le retrait est le `toggleOff` de la même entrée', dans: 'src/state/actionRegistry.ts' },
+  lowerHand: { interne: 'actionRegistry.ACTION_RUN.raiseHand — le retrait est le `toggleOff` de la même entrée', dans: 'src/noyau/actionRegistry.ts' },
   assignVictoryGear: { parUI: true },
   // Carnet d'enquête (#670) : l'épingle et la nouveauté vue, émises par `CarnetScreen`.
   toggleCluePin: { parUI: true },
@@ -318,13 +318,13 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // « Laisser passer » : action de la barre de la modale d'incantation — routée depuis #1042 pour
   // porter la frontière de phase (elle tombait sur le repli universel avant).
   counterspellCancel: { parUI: true },
-  counterspellDeclareAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/state/combatAuto.ts' },
-  preemptRangedShot: { interne: 'combatSlice.battleClickEntity — le clic voyage par battleClickEntity (visée armée)', dans: 'src/state/combatSlice.ts' },
+  counterspellDeclareAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
+  preemptRangedShot: { interne: 'combatSlice.battleClickEntity — le clic voyage par battleClickEntity (visée armée)', dans: 'src/noyau/combatSlice.ts' },
   // Verbes NULLAIRES du drive d'auto-cadence (#1030) : aucun bouton, le pilote local les enchaîne.
-  counterspellRollAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/state/combatAuto.ts' },
-  oppositionRollAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/state/combatAuto.ts' },
-  cleaveAttack: { interne: 'targetingModes.CLEAVE_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/state/targetingModes.ts' },
-  dualStrikeAttack: { interne: 'targetingModes.DUAL_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/state/targetingModes.ts' },
+  counterspellRollAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
+  oppositionRollAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
+  cleaveAttack: { interne: 'targetingModes.CLEAVE_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
+  dualStrikeAttack: { interne: 'targetingModes.DUAL_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
 };
 
 /** Sources d'ÉCRAN (hors fichiers de test) : `src/ui` + `src/gameIso`. */

@@ -27,7 +27,7 @@
  *    - la PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`, `resetDesFixes`) et le DRAPEAU de ré-entrance
  *      `onOwnTestFailed` (`noyau/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
  *      du `beforeEach` ci-dessous.
- *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `state/registreDesScenes`) : peuplé par `registerScene`/`loadProject`
+ *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `noyau/monde/registreDesScenes`) : peuplé par `registerScene`/`loadProject`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `state/scene-registry-isolation.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
@@ -94,7 +94,7 @@
  */
 import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
 import { useGame, type GameState } from './state/store';
-import { resetSceneRegistry, scenesDuRegistre } from './state/registreDesScenes';
+import { resetSceneRegistry, scenesDuRegistre } from './noyau/monde/registreDesScenes';
 import { partagesDeLEtat } from './state/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';

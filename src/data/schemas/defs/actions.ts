@@ -61,7 +61,7 @@ const doc = document(
   famille,
   {
     surface: surfaceSchema,
-    /** Id de PRÉDICAT enregistré dans `ACTION_GATES` (`src/state/actionRegistry.ts`), ou LISTE d'ids :
+    /** Id de PRÉDICAT enregistré dans `ACTION_GATES` (`src/noyau/actionRegistry.ts`), ou LISTE d'ids :
      *  ils se composent alors par l'ET séquentiel d'`actionGate` (toutes passent, sinon la première
      *  raison refusée est rendue). Une condition de plus sur une action = un id de plus ici. */
     gate: z.union([z.string(), z.array(z.string()).min(2)]),
@@ -69,9 +69,9 @@ const doc = document(
     candidates: z.string().optional(),
     /** Id de DISPATCHER enregistré dans `ACTION_RUN` (méthode `battle*` du store). Absent = `blocked`. */
     run: z.string().optional(),
-    /** Id de `TargetingMode` EXISTANT (`src/state/targetingModes.ts`) armé par cette action. */
+    /** Id de `TargetingMode` EXISTANT (`src/noyau/targetingModes.ts`) armé par cette action. */
     mode: z.string().optional(),
-    /** Id de PORTÉE d'INTENTION (`INTENT_REACH`, `src/state/localIntent.ts`) : la case ARME le mode
+    /** Id de PORTÉE d'INTENTION (`INTENT_REACH`, `src/noyau/localIntent.ts`) : la case ARME le mode
      *  local qui peint cette portée sur le champ. Le clic qui suit reste le geste par défaut du grid,
      *  et dissout l'intention (spec zone 4). */
     intent: z.string().optional(),

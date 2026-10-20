@@ -9,7 +9,8 @@ import { MISSING_GRADIENT, terrainGradientId, terrainStopsOrdonnes } from './cat
 import { MISSING_TONE, MISSING_TONE_DARK } from './catalog/missing';
 import type { Dir8 } from '../noyau/monde/dir8';
 import type { EntityKind } from '../noyau/monde/scene';
-import { tousLesTerrains, type TerrainDef } from '../noyau/monde/terrain';
+import { tousLesTerrains } from '../noyau/monde/terrain';
+import { type TerrainDef } from '../data/terrains.types';
 import { memoParVersion } from '../data/versionDataset';
 import { rigFxGradients } from './rig/fxGradients';
 

@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { selfManeuversOf, selfManeuverApplicable } from './combatFlow';
+import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveChar } from '../engine/characteristics';

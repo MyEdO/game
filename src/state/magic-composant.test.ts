@@ -10,12 +10,12 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { avanceEtapeCascade } from './cascadeTestKit';
-import { applyMiscast, useSpellComponent } from './combatFlow';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { applyMiscast, useSpellComponent } from '../noyau/combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { creatureToCombatant } from './spawn';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 
 const SPELL = 'mur-de-feu'; // un id de Sort de Domaine réel (Feu) — couvert par un composant

@@ -19,21 +19,21 @@
  */
 import type { GameState } from './store';
 import { useGame } from './store';
-import { registerScene, reposerPaquetDeCampagne } from './registreDesScenes';
+import { registerScene, reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { HostSession, GuestSession } from '../net/session';
 import { GUEST_INTENTS, sanitizeIntentArgs } from './intents';
-import { intentAllowedFor, withActingSeat } from './netOwnership';
-import { argsAvecVerdictLocal } from './localIntent';
+import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
+import { argsAvecVerdictLocal } from '../noyau/localIntent';
 import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
 import type { NetMessage } from '../net/protocol';
 import type { Scene } from '../noyau/monde/scene';
-import { intentEluLocalement } from './targetingModes';
+import { intentEluLocalement } from '../noyau/targetingModes';
 import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
-import type { Get, RemplacerLEtat, Set } from './flowTypes';
+import type { Get, RemplacerLEtat, Set } from '../noyau/flowTypes';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_SAVE } from './formats.generated';

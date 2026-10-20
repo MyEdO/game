@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, buildRollFlowActions } from './rollFlowSpecs';
+import { buildRollFlowActions } from '../noyau/rollFlowSpecs';
+import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
-import type { Get, Set as SetFn } from './flowTypes';
+import type { Get, Set as SetFn } from '../noyau/flowTypes';
 
 /**
  * Garde de la SOURCE UNIQUE `FLOW_VERBS` (axe B) : prouve que les 3 miroirs d'un flux de jet — le TYPE

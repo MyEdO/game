@@ -1,6 +1,6 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
-import { crewFormationSlots } from '../../state/shipPostes';
+import { buildScene } from '../../noyau/mapSpec';
+import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';

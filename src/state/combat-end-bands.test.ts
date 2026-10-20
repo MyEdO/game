@@ -15,15 +15,15 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { openCombatEndCascade } from './combatFlow';
-import { combatEndBands } from './combatEndBands';
-import { splitBandRows } from './nightBands';
+import { openCombatEndCascade } from '../noyau/combatFlow';
+import { combatEndBands } from '../noyau/combatEndBands';
+import { splitBandRows } from '../noyau/nightBands';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resetDesFixes } from '../engine/fixedDie';
 import { seatOwns } from '../noyau/sieges';
-import { modalOwnerOf } from './modalArbiter';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { corruptionThreshold } from '../engine/corruption';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';

@@ -192,7 +192,7 @@ import { stage3dFramingFor, stageScreen, viewBoxScreen, type Stage3dFraming } fr
 import { poserLampesDuCiel, stageLightScalars, type LampesDuCiel } from './stageLights';
 import { viewPolicy } from './viewPolicy';
 import { applyFlicker, applyPointLights, createPointLightPool, hasFlicker, pointLightWrites, POINT_LIGHT_BUDGET, type PointLightSlots } from './stagePointLights';
-import type { LightSource } from '../../state/vision';
+import type { LightSource } from '../../noyau/monde/vision';
 import { AMBIANCE, sceneBrume, scenePrecip } from '../catalog/ambiance';
 import { isSheltered, shelterField, shelterSectionAt } from '../builders/roofs';
 import { buildBrumeSheets, retainBrumeSheets, type BrumeSlot } from '../backends/webgl/weatherSheets';
@@ -378,7 +378,7 @@ export interface GameStage3DProps {
    *  exactement comme pour le palier authoré de la scène. */
   lightLevel: number | null | undefined;
   /** Sources de lumière PONCTUELLES de la scène (posées + portées) — la MÊME liste que le champ
-   *  mécanique de vision consomme (`state/visionState.ts` `sceneLightSources`) : cet écran ne les
+   *  mécanique de vision consomme (`noyau/visionState.ts` `sceneLightSources`) : cet écran ne les
    *  recollecte pas, il en monte les flaques (`stage/stagePointLights.ts`). */
   lights: readonly LightSource[];
   /** MARQUES DE CASES du combat (#1176) — la sortie du builder PUR `builders/highlights`. Cet

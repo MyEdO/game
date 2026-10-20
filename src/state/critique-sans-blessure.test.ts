@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { applyAttackResult, jouerLesTirsDeBordee } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
-import { draineCascade } from './cascadeTestKit';
+import { applyAttackResult, jouerLesTirsDeBordee } from '../noyau/combatFlow';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { draineCascade } from './cascade.testkit';
 import { resolveVolley } from '../engine/volley';
 import { rederivePassiveAttack } from '../engine/combat';
 import { createHero } from '../engine/character';

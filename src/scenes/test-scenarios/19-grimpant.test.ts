@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from './19-grimpant';
-import { runEnemyAI } from '../../state/combatFlow';
+import { runEnemyAI } from '../../noyau/combatFlow';
 const scenarioConstruit = scenario.construire();
 
 /**

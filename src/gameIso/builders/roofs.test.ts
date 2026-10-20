@@ -8,7 +8,7 @@ import { WALL_H_M } from '../iso';
 import { roofMaterial } from '../catalog/roofs';
 import { MISSING_ID, MISSING_TONE } from '../catalog/missing';
 import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
-import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../state/sceneEdit';
+import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses } from '../../noyau/sceneEdit';
 import { encloseRect, perimeterWallSegs } from '../../state/sceneEdit.testkit';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { buildings } from '../../data';
@@ -379,7 +379,7 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
   });
 
   it('une masse à ÉTAGE pose sa nappe AU-DESSUS des murs de son étage (jamais au plancher qu’elle coiffe)', () => {
-    // Le geste de l'éditeur : « ajouter une masse » à l'étage 1 pose `levels: 1` (`state/sceneEdit.addBuildingMass`).
+    // Le geste de l'éditeur : « ajouter une masse » à l'étage 1 pose `levels: 1` (`noyau/sceneEdit.addBuildingMass`).
     const scene = sceneWithMasses(mass({ z: 1, levels: 1 }));
     scene.layers.push({ z: 1, tiles: new Array(144).fill('sol') });
     const plancherEtage = WALL_H_M; // l'étage repose sur le sommet des murs du rez

@@ -12,7 +12,7 @@ import { testValue } from '../engine/skills';
 import { skillDRBonus } from '../engine/ops';
 import { traumaById } from '../engine/trauma';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { EMPTY_FLOW } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 
 /** Sociabilité 30 + 5 avances d'Intimidation = valeur de Test 35. */

@@ -27,7 +27,7 @@ import { coiffureRetombee } from './parts/cosmetic';
 import { sexeDeCoiffure } from '../../data/schemas/grammaire/art';
 import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { nomDEntite } from '../../state/sceneNpc';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
 
 export interface EnemyRigProfile {

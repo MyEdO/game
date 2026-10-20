@@ -12,15 +12,15 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { emitCombatEvent } from './combatEvents';
+import { emitCombatEvent } from '../noyau/combatEvents';
 import { createHero } from '../engine/character';
 import { battleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
-import { applyAttackResult } from './combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 
 /** L'arme du catalogue, telle que le combat la porte (Atouts résolus depuis `trappings.json`). */
 function armeDuCatalogue(id: string): Weapon {

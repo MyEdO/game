@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { evaluateMissile, type CastResult } from '../engine/magic';
-import { applyOpposedCritical } from './combatFlow';
+import { applyOpposedCritical } from '../noyau/combatFlow';
 import { useGame, type BattleState } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';

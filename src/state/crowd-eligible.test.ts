@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crowdEligible } from './combatFlow';
+import { crowdEligible } from '../noyau/combatFlow';
 
 /** « Tirer dans le tas » (LDB 14 l.106) : la touche au hasard porte sur TOUT le monde serré
  *  au contact de la cible — les DEUX camps (un allié peut être touché : tir fratricide), le tireur exclu. */

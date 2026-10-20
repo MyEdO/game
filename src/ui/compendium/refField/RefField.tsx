@@ -24,7 +24,7 @@ import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, decla
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from '../libellesNarratifs';
-import type { NarratifBlock } from '../../../state/campaignNarratif';
+import type { NarratifBlock } from '../../../noyau/monde/campaignNarratif';
 import { NumberField } from '../../NumberField';
 import { useVersionDesDatasets } from '../../useVersionDesDatasets';
 import { CATEGORY_DATASET_DERIVE, DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from '../../../data/schemas/exposition-derivee';

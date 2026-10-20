@@ -12,20 +12,20 @@ import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import { stageWeatherRows } from './travelFlow';
+import { stageWeatherRows } from '../noyau/travelFlow';
 import { PERIPETIES } from '../data/peripeties';
 import { emptyScene, Scene } from '../noyau/monde/scene';
-import { buildEncounter } from './encounterAuthoring';
-import type { MapRouteTrace, WorldMap } from './worldMap';
+import { buildEncounter } from '../noyau/monde/encounterAuthoring';
+import type { MapRouteTrace, WorldMap } from '../noyau/worldMap';
 import { campaignStart } from '../engine/clock';
 import { setRule, resetRule } from '../engine/policy';
-import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
+import { buildWeatherResistanceSteps, buildStageSteps } from '../noyau/travelPostes';
 import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
-import { creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
 import { cascadeAppliers, rollTableStep } from '../noyau/cascade';
-import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
+import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 
 const get = () => useGame.getState();
@@ -58,7 +58,7 @@ function setup(wm: WorldMap, party: Combatant[]) {
   useGame.setState({ gameTime: campaignStart() });
 }
 
-/** Déroule la cascade OUVERTE (jour ou nuit) — pilote PARTAGé `cascadeTestKit.draineCascade`. */
+/** Déroule la cascade OUVERTE (jour ou nuit) — pilote PARTAGé `cascade.testkit › draineCascade`. */
 function drainCascade(): void {
   draineCascade(get);
 }
@@ -83,7 +83,7 @@ describe('cascade du JOUR terrestre — les jets d’Étape sont influençables 
 /** Franchit la Météo d'Étape — étape à TABLE en tête du jour (#1426) dont l'applier INSÈRE les pas qui
  *  dépendent du temps qu'il fait (Résistance de traversée, postes). Sans elle, la séquence du jour n'a
  *  encore qu'une étape : c'est le dé de monde qui fait exister la suite. En cadence MANUELLE la table
- *  attend sa fenêtre : le pilote partagé (`cascadeTestKit.avanceEtapeCascade`) la LANCE puis valide,
+ *  attend sa fenêtre : le pilote partagé (`cascade.testkit › avanceEtapeCascade`) la LANCE puis valide,
  *  exactement comme le joueur qui voit la rangée et clique. */
 function passerLaMeteo(): void {
   if (get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind !== 'stageWeather') return;

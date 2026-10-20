@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { runFlow } from './combatFlow';
-import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
+import { runFlow } from '../noyau/combatEffects';
+import { testFlow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { rollStep } from '../noyau/rollSeam';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ModLine } from '../engine/types';
 import { clampTarget } from '../engine/tests';
@@ -11,7 +12,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { RULE_REF } from '../engine/ruleRefs';
 import { psychologies } from '../data';
 import { codexLookupById } from '../ui/compendium/registry';
-import type { TravelPlan } from './travelFlow';
+import type { TravelPlan } from '../noyau/travelFlow';
 
 /**
  * PARITÉ de la cible d'un Test de scène : le calcul HISTORIQUE d'`openSkillTest`

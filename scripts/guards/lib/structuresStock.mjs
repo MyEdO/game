@@ -283,7 +283,7 @@ export const STRUCTURES_FORMES = [
   // en référence divergente, la ligne entre donc au dénominateur du lot L3 comme les autres.
   { concept: "reference", dataset: "arene-projet.json", champ: "reliefDefaults", signature: "cliff,deck,pilier,ramp", statut: "divergente", strate: "Référence", occurrences: 18, lot: "L3 #1463", date: "2026-08-23" },
   // #1715 : `<scène> › roofDefaults` — la couverture, la pente de RÉFÉRENCE et la borne de comble que
-  // la dérivation des toitures lit (`toitureEffective`, `state/sceneEdit.ts`). MÊME forme et MÊME
+  // la dérivation des toitures lit (`toitureEffective`, `noyau/sceneEdit.ts`). MÊME forme et MÊME
   // solde que `reliefDefaults` ci-dessus : un record de champs NOMMÉS dont un seul (`material`) porte
   // une référence, vu par le scan comme UN nœud de référence à graphie divergente. La ligne meurt
   // avec le dériveur d'un niveau.

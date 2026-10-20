@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { inexplique } from './cascadeTestKit';
+import { inexplique } from './cascade.testkit';
 import { rollLine, assertSeparabilite, SEPARABILITE, type RollLineCombat } from '../noyau/rollSeam';
-import { openCombatEndCascade, openContractionCascade, openAttackCascade } from './combatFlow';
-import { resolveActGates } from './combat/turnHooks';
-import { forceCrewRole } from './shipManeuver';
+import { openCombatEndCascade, openContractionCascade, openAttackCascade } from '../noyau/combatFlow';
+import { resolveActGates } from '../noyau/combat/turnHooks';
+import { forceCrewRole } from '../noyau/shipManeuver';
 import { combatBaseValue, combatValue, combatValueMods, combineMods, type ModLine } from '../engine/combat';
 import { combatTestPenalty, testStatePenalty, testStatePenaltyParts } from '../engine/conditions';
 import { testValue, testValueParts, skillBaseValue, rawCombatTestBase } from '../engine/skills';

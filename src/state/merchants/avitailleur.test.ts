@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { makeRNG } from '../../engine/dice';
 import { rollStock, type CatalogItem } from '../../engine/disponibilite';
 import { trappings } from '../../data';
-import { MERCHANTS } from './index';
+import { MERCHANTS } from '../../noyau/monde/merchants/archetypes';
 import { useGame } from '../store';
 import { emptyScene } from '../../noyau/monde/scene';
 import { setRule, resetRule } from '../../engine/policy';

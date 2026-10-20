@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MultiRollList } from './MultiRollList';
-import type { NightEntry } from '../state/restFlow';
+import type { NightEntry } from '../noyau/restFlow';
 import { resolveStake, voyageStakeRef } from '../data';
 
 /**

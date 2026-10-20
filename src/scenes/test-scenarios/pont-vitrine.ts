@@ -1,5 +1,5 @@
 import { makeShowcaseParty } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';
 

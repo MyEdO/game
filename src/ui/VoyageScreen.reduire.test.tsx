@@ -11,7 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { VoyageScreen } from './VoyageScreen';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import type { TravelPlan } from '../state/travelFlow';
+import type { TravelPlan } from '../noyau/travelFlow';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

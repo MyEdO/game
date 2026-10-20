@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { aretesUtilisables } from '../../state/aretes';
+import { aretesUtilisables } from '../../noyau/aretes';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { useGame, type BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
@@ -23,14 +23,14 @@ import { AreteOverlay } from './AreteOverlay';
 /**
  * FORTIFICATION D'ARÊTE PAR L'ÉTAGE `arete` (#1687, lot 1b-4 ; AA 10 l.94-102) — la structure abattable
  * ne porte plus son overlay à handlers : elle est une capacité d'arête comme les trois autres, dérivée
- * (`state/aretes.ts`), projetée (`stage/aretesProjetees.ts`), résolue par le pixel
+ * (`noyau/aretes.ts`), projetée (`stage/aretesProjetees.ts`), résolue par le pixel
  * (`stage/pickResolve.ts`) et peinte par le peintre unique (`stage/AreteOverlay.tsx`).
  *
  * LE CONTRAT QUE CE BANC TIENT : le geste d'une structure EST le clic de son jeton (la Structure est
  * un Combattant, c44ea0d86) — `battleClickEntity(cid, { confirm: hoverClickCommits() })`, l'aperçu et
- * le commit étant ceux du flux de combat (`state/targetingModes.ts`, `samePreview`) —, et le clic est
+ * le commit étant ceux du flux de combat (`noyau/targetingModes.ts`, `samePreview`) —, et le clic est
  * CONSOMMÉ : rien ne redescend au clic-sol, qui réécrit `preview` à chaque sortie de déplacement
- * (`state/combatSlice.ts:battleClickTile`). L'étage d'arête n'apporte que la GÉOMÉTRIE de prise que le
+ * (`noyau/combatSlice.ts:battleClickTile`). L'étage d'arête n'apporte que la GÉOMÉTRIE de prise que le
  * rayon ne rend pas : l'ancrage est la case du MUR, donc la prise se projette à SON lift et le survol
  * tombe sur le jeton visé. Le FRAPPEUR (héros actif) n'ouvre que l'OFFRE : hors de mon tour, rien.
  */
@@ -51,7 +51,7 @@ const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
 const CID = 'structure-1-1-E-0';
 const VU = ['1,1,0', '2,1,0'];
 /** La case du MUR : ce que le geste vise, donc l'ancrage de l'arête (`Combatant.pos` de la Structure,
- *  `state/combatSlice.ts`). */
+ *  `noyau/combatSlice.ts`). */
 const MUR: Pt = { x: 1, y: 1, z: 0 };
 /** Le FRAPPEUR : le héros actif, LOIN du mur — on pilonne à distance, et sa case n'entre dans aucune
  *  géométrie du geste. */
@@ -64,10 +64,10 @@ function scèneFortifiée(): Scene {
   return s;
 }
 
-// Le mur EN COMBATTANT, à sa case (`state/combatSlice.ts` : `c.pos = { x: w.x, y: w.y }`) — c'est lui
+// Le mur EN COMBATTANT, à sa case (`noyau/combatSlice.ts` : `c.pos = { x: w.x, y: w.y }`) — c'est lui
 // que le réticule de visée trouve sous le survol de l'arête. MÊME fabrique que l'enrôlement réel
 // (`engine/structures.ts:structureCombatant`) : le geste passe par la porte partagée
-// (`state/combatOrParty.ts:combatantClickActs`), qui dérive l'affordance d'ATTAQUE — une coquille
+// (`noyau/combatOrParty.ts:combatantClickActs`), qui dérive l'affordance d'ATTAQUE — une coquille
 // sans Traits ni Blessures de la donnée mentirait sur ce que le clic fait.
 const mur = (() => {
   const c = structureCombatant(findStructureById('mur-a-ossature-en-bois')!, CID);
@@ -82,7 +82,7 @@ const heros = (() => {
   h.pos = { x: FRAPPEUR.x, y: FRAPPEUR.y };
   return h;
 })();
-/** La file de combat telle que le store la pose (`state/combatSlice.ts`) — la porte partagée dérive
+/** La file de combat telle que le store la pose (`noyau/combatSlice.ts`) — la porte partagée dérive
  *  l'affordance d'attaque du MODE courant, qui lit `action`/`acted`/`movementUsed`/`reachable`. */
 const bataille = (combatants: Combatant[], preview: unknown = null): BattleState =>
   ({
@@ -206,7 +206,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
     // COMMET, exactement comme sur un jeton ennemi sous le rayon (`useStagePointer.performClick`).
     expect(battleClickEntity).toHaveBeenCalledWith(CID, { confirm: true });
     expect(battleClickEntity).toHaveBeenCalledTimes(1);
-    // Rien ne redescend à la case : un clic-sol réécrirait `preview` (`state/combatSlice.ts`).
+    // Rien ne redescend à la case : un clic-sol réécrirait `preview` (`noyau/combatSlice.ts`).
     expect(battleClickTile).not.toHaveBeenCalled();
   });
 
@@ -251,7 +251,7 @@ describe('Frapper une enceinte, c’est cliquer son jeton — l’arête n’en 
 
   it('sans survol (tactile), le régime est celui de TOUT jeton : deux taps identiques, aperçu puis commit par `samePreview`', () => {
     // L'arête n'arme rien en propre (`armeParSurvol: false`, `stage/geste.ts`) : c'est le flux de combat
-    // qui distingue l'aperçu du commit (`state/targetingModes.ts`). Un armement d'arête empilé par
+    // qui distingue l'aperçu du commit (`noyau/targetingModes.ts`). Un armement d'arête empilé par
     // dessus aurait demandé un tap de plus qu'un ennemi.
     vi.mocked(window.matchMedia).mockReturnValue({ matches: false } as unknown as MediaQueryList);
     const battleClickEntity = vi.fn();

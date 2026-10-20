@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { checkTriggers } from './combatEffects';
+import { checkTriggers } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type Trigger } from '../noyau/monde/scene';
 

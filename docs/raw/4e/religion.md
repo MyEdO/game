@@ -314,8 +314,8 @@ Les commandements sont les préceptes spécifiques à chaque culte dont la viola
 | « Pensez à vos actes » (0 DR plafonné) | `src/engine/magic.ts` | `prayerMaxZeroDR(c)` |
 | Talent Prière (+1 DR / acquisition) | `src/engine/magic.ts` | `castTestTalentDR(c, 'Prière')` |
 | Table Colère des dieux (d100 + +10/Péché) | `src/engine/miscast.ts` | `rollMiscast('colere', rng, sinPoints)` |
-| Expiation Péché (−1 après jet Colère) | `src/state/combatFlow.ts` | `l.2134-2138` |
-| Déclenchement Colère (Maladresse + Péché) | `src/state/combatFlow.ts` | `l.2981-2984` |
+| Expiation Péché (−1 après jet Colère) | `src/noyau/combatFlow.ts` | `l.2134-2138` |
+| Déclenchement Colère (Maladresse + Péché) | `src/noyau/combatFlow.ts` | `l.2981-2984` |
 | sinPoints persisté | `src/data/types` → `Combatant.sinPoints` | — |
 | Dissipation (Miracles NON dissipables) | `src/engine/magic.ts` | `isDispellableSpell()` : `castInfoIsPrayer` → `false` |
 

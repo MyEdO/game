@@ -9,7 +9,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { refusNePeutTenter } from '../engine/skills';
-import type { PendingSeaActivities } from '../state/seaActivities';
+import type { PendingSeaActivities } from '../noyau/seaActivities';
 import type { Combatant } from '../engine/types';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';

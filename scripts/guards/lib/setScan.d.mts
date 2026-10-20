@@ -10,7 +10,7 @@ export interface SetScanResult {
   files: SetScanFileEntry[];
 }
 
-export function stateFieldKeys(stateDir: string): Set<string>;
+export function stateFieldKeys(dir: string): Set<string>;
 export function extractSetLiteral(text: string, callStart: number): string | null;
 export function topLevelKeys(lit: string): string[];
 export function scanFile(path: string): { line: number; keys: string[] }[];

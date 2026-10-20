@@ -2,7 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { findTrappingById, type SkillRef } from '../../data';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
-import { buildScene, type MapSpec } from '../../state/mapSpec';
+import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 
 /**

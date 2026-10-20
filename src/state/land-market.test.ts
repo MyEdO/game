@@ -3,12 +3,12 @@ import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
-import { draineCascadeDifferee } from './cascadeTestKit';
+import { draineCascadeDifferee } from './cascade.testkit';
 import { toBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { WINE_QUALITY } from '../engine/landCargo';
-import { carrierById, persistCarriersCargo } from './carriers';
-import type { WorldMap } from './worldMap';
+import { carrierById, persistCarriersCargo } from '../noyau/carriers';
+import type { WorldMap } from '../noyau/worldMap';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
 

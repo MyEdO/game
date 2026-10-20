@@ -28,7 +28,7 @@ import { screenToTileAtLift, type StagePose } from './projection';
 import { stagePointAt, viewBoxPointAt } from './stageCam';
 import type { Dims } from '../../geometry/iso';
 import type { EtatEtage } from '../../state/viewLevel';
-import type { AreteUtilisable } from '../../state/aretes';
+import type { AreteUtilisable } from '../../noyau/aretes';
 import type { PickResult } from '../backends/webgl/spriteRaycast';
 
 /** Ce que la résolution lit de l'état — la tranche EXACTE, jamais le store entier. Elle ÉTEND celle de
@@ -62,7 +62,7 @@ export type Verdict = {
   | { nature: 'combattant' }
   /** Entité de scène frappée PAR LE RAYON (décor volumique, PNJ…). */
   | { nature: 'entite'; entId: string }
-  /** ARÊTE utilisable sous le pixel (`state/aretes.ts`) : le geste qu'elle porte prime sur la case
+  /** ARÊTE utilisable sous le pixel (`noyau/aretes.ts`) : le geste qu'elle porte prime sur la case
    *  qu'elle borde. `tile` est son ANCRAGE — la case d'où le geste part. */
   | { nature: 'arete'; arete: AreteUtilisable }
 );
@@ -236,7 +236,7 @@ export function caseAuSol(scene: Scene, cadre: CadreDePick, g: PointStage): Pt |
 /**
  * ARÊTE sous le pixel : celle dont le SEGMENT projeté passe à moins de `largeurPrise / 2` du point —
  * la moitié du trait que l'overlay exposait au pointeur, donc la même prise qu'avant, capacité par
- * capacité (`state/aretes.ts:LARGEUR_PRISE_ARETE`). La PLUS PROCHE gagne ; à égalité stricte c'est
+ * capacité (`noyau/aretes.ts:LARGEUR_PRISE_ARETE`). La PLUS PROCHE gagne ; à égalité stricte c'est
  * l'ordre de la liste qui tranche, et cet ordre EST `PRIORITE_ARETES` (`aretesUtilisables` la rend
  * déjà triée) — une enceinte enrôlée se frappe, elle ne s'ouvre pas.
  */

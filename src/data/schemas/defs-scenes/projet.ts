@@ -1,5 +1,5 @@
 /**
- * Schéma zod d'un PROJET DE SCÈNE (`ProjectDoc`, `src/state/worldMap.ts`) — le paquet de campagne
+ * Schéma zod d'un PROJET DE SCÈNE (`ProjectDoc`, `src/noyau/worldMap.ts`) — le paquet de campagne
  * auto-suffisant `{ type: 'projet', id, label, versionContenu, narratif, scenes, worldMap?, activeAxes? }`.
  *
  * C'est la porte UNIQUE du seam `parseProject`. Le document ADOPTE la fabrique `document()`

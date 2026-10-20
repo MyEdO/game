@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { pregenParty, PREGEN } from '../data/pregens';
-import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
+import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from '../noyau/combatEffects';
 import type { Effect } from '../noyau/monde/scene';
-import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
+import { armyMight, armyStartMight, nomDArmee } from '../noyau/massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
 
 /** Effet `startMassBattle` authoré typique (armées + situations par Round + rencontres de combat). */

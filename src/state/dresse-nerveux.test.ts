@@ -3,7 +3,7 @@ import { fireTriggers } from '../noyau/triggeredEffects';
 import { hasCondition, stacks, COND } from '../engine/conditions';
 import { effectiveChar } from '../engine/characteristics';
 import { isBestial, isTerritorial } from '../engine/traits/dispatch';
-import { creatureToCombatant } from './spawn';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 import type { Combatant } from '../engine/types';
 

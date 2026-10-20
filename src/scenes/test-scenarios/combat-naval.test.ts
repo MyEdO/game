@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import { useGame } from '../../state/store';
-import { draineCascade } from '../../state/cascadeTestKit';
+import { draineCascade } from '../../state/cascade.testkit';
 import { lancerScenario } from '../../state/scenarioFlow';
 import { testScenarios } from './index';
-import { ficheDEntite } from '../../state/sceneNpc';
-import { applyCriticalToTarget, firedAttackBlock } from '../../state/combatFlow';
-import { applyShipPostes } from '../../state/shipPostes';
-import { availableAttacks } from '../../state/combatManeuvers';
+import { ficheDEntite } from '../../noyau/monde/sceneNpc';
+import { applyCriticalToTarget, firedAttackBlock } from '../../noyau/combatFlow';
+import { applyShipPostes } from '../../noyau/monde/shipPostes';
+import { availableAttacks } from '../../noyau/combatManeuvers';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { PREGEN } from '../../data/pregens';

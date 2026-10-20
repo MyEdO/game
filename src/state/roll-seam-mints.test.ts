@@ -12,20 +12,19 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { virtualProgram } from '../../scripts/guards/lib/tsProgram.mjs';
 import { useGame } from './store';
 import {
-  monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep,
-  pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand,
-  type BuiltCascadeStep, type HostSpec,
+  monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep, pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand, type HostSpec,
 } from '../noyau/rollSeam';
+import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold, cascadeTableFolds } from '../noyau/cascade';
-import { pushCombatStep } from './combatEffects';
-import { modalOwnerOf } from './modalArbiter';
-import { ownsLocal } from './netOwnership';
+import { pushCombatStep } from '../noyau/combatEffects';
+import { modalOwnerOf } from '../noyau/modalArbiter';
+import { ownsLocal } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
-import type { PendingKey } from './stateFields';
+import type { PendingKey } from '../noyau/stateFields';
 import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
 import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from './store';
-import { nightBands } from './nightBands';
+import { nightBands } from '../noyau/nightBands';
 import type { Combatant, Weapon } from '../engine/types';
 import { combatStakeRef, type StakeRef } from '../data';
 

@@ -54,7 +54,7 @@
  *     `CritEscalation.onRepeat`, `Amputation.timing`, `FlowTest.opposed`, `CountSpec.fixed`,
  *     `CountSpec.roll`, `TrappingRef.label`, `FlowTest.argDifficulty`
  *     (`withArg` de `src/noyau/triggeredEffects.ts`, `f.test.argDifficulty`), `TravelTableEntry.stageOutcome`
- *     (`buildWeatherResistanceSteps` de `src/state/travelPostes.ts`, `enc.stageOutcome` sur un retour
+ *     (`buildWeatherResistanceSteps` de `src/noyau/travelPostes.ts`, `enc.stageOutcome` sur un retour
  *     INFÉRÉ), `QualityRef.spec`
  *     (champ PROPRE : `qualityRefSchema` porte son propre shape) et `TraitInstance.hidden`, dont
  *     `hiddenGroupsOf` annote le porteur `TraitInstance[]` (`src/engine/groups.ts`). Les deux

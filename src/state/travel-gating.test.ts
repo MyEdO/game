@@ -11,12 +11,12 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { beginShipwreck } from './shipwreck';
+import { beginShipwreck } from '../noyau/shipwreck';
 import { makePregens } from '../data/pregens';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { campaignStart } from '../engine/clock';
-import type { TravelPlan } from './travelFlow';
-import type { WorldMap } from './worldMap';
+import type { TravelPlan } from '../noyau/travelFlow';
+import type { WorldMap } from '../noyau/worldMap';
 
 const get = () => useGame.getState();
 const set = useGame.setState;

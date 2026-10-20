@@ -7,7 +7,7 @@
  * RAW dans le catalogue reste répercutée partout (et casse la CI si un chemin la contournait).
  */
 import { describe, it, expect } from 'vitest';
-import { restCost, type PendingRest } from './restFlow';
+import { restCost, type PendingRest } from '../noyau/restFlow';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
 import type { Combatant } from '../engine/types';

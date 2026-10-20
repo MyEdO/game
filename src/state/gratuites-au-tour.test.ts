@@ -3,7 +3,7 @@ import { describe, it, beforeEach, afterEach, vi, expect } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { maybeOpenDefense } from './combatFlow';
+import { maybeOpenDefense } from '../noyau/combatFlow';
 import type { SuiteDeCoup } from '../noyau/pendings';
 
 const g = useGame.getState;

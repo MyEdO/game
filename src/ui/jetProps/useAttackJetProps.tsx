@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
-import { FLOWS } from '../../state/rollFlowSpecs';
+import { FLOWS } from '../../noyau/rollFlowSpecs';
 import { HitLocation, type Combatant, type Weapon } from '../../engine/types';
 import type { RollLabelRef } from '../RollLine';
 import { rule } from '../../engine/policy';
@@ -9,7 +9,7 @@ import { isUnarmed } from '../../engine/items';
 import { isInanimate } from '../../engine/structures';
 import { peutEtreEmpoigne } from '../../engine/grapple';
 import { combatDistance } from '../../noyau/monde/footprint';
-import { attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../state/combatFlow';
+import { attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, defenseDodgeMods, surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock } from '../../noyau/combatFlow';
 import { t } from '../../i18n';
 import { itemCapability } from '../../engine/capabilities';
 import { objetSourceDeLArme } from '../../engine/weaponLoad';

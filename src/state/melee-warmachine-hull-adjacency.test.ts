@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { attackPlan, firedWeapon } from './combatFlow';
-import { combatGeomOf, combatGeomOfList, pickAttackWeaponList } from './mount';
-import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
+import { attackPlan, firedWeapon } from '../noyau/combatFlow';
+import { combatGeomOf, combatGeomOfList, pickAttackWeaponList } from '../noyau/mount';
+import { meleeWarMachineHullOf, isMeleeWarMachine } from '../noyau/siegePush';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { GameState } from './store';
 import type { Scene } from '../noyau/monde/scene';

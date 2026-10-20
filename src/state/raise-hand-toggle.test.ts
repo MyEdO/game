@@ -7,8 +7,8 @@
  * sérialiseur réel.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { runAction, actionGate } from './actionRegistry';
-import { ROUTES, intentAllowedFor, withActingSeat } from './netOwnership';
+import { runAction, actionGate } from '../noyau/actionRegistry';
+import { ROUTES, intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from './intents';
 import { useGame, type BattleState } from './store';
 import { emptyScene } from '../noyau/monde/scene';

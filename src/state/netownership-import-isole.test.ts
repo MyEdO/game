@@ -1,8 +1,8 @@
 /**
  * #1054 — `netOwnership` s'importe SEUL, sans monter le store. La table de possession (`ROUTES`,
  * #1051) doit être énumérable hors environnement de test complet (script, garde CI légère). Le
- * graphe `combatOrParty → targetingModes → … → store.ts` EXISTE (sonde (c) ci-dessous) : tout import
- * runtime de `netOwnership` vers cette famille de modules monte le store à l'import — et le store
+ * graphe `offresUtilisables → campaignData → store.ts` EXISTE (sonde (c) ci-dessous) : tout import
+ * runtime de `netOwnership` vers un module qui monte le store le monte à l'import — et le store
  * s'évalue en `ReferenceError: Cannot access 'testRouter' before initialization`.
  *
  * DEUX mesures, complémentaires :
@@ -21,8 +21,8 @@ import { arcsDe, estModule, sourceALExecution } from '../../scripts/guards/lib/i
 import { canoniser } from '../../scripts/docs/lib/chemin-mesure.mjs';
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url));
-const ENTREE = join(RACINE, 'src', 'state', 'netOwnership.ts');
-const LOURD = join(RACINE, 'src', 'state', 'combatOrParty.ts');
+const ENTREE = join(RACINE, 'src', 'noyau', 'netOwnership.ts');
+const LOURD = join(RACINE, 'src', 'state', 'offresUtilisables.ts');
 const STORE = join(RACINE, 'src', 'state', 'store.ts');
 
 const cheminCanonique = (fichier: string) => canoniser(fichier).replace(/\\/g, '/');
@@ -82,7 +82,7 @@ describe('#1054 — `netOwnership` s’importe SEUL', () => {
   it('(a) chemin RÉEL : un process qui importe le module seul sort 0 et lit la table', () => {
     const r = spawnSync(
       process.execPath,
-      ['--import', 'tsx', '-e', "import('./src/state/netOwnership.ts').then((m) => { if (!(m.ROUTES.size > 200)) { throw new Error('table vide'); } })"],
+      ['--import', 'tsx', '-e', "import('./src/noyau/netOwnership.ts').then((m) => { if (!(m.ROUTES.size > 200)) { throw new Error('table vide'); } })"],
       { cwd: RACINE, encoding: 'utf8' },
     );
     expect(r.stderr + r.stdout, 'l’import isolé de netOwnership échoue — un import LOURD est revenu').toBe('');
@@ -96,11 +96,11 @@ describe('#1054 — `netOwnership` s’importe SEUL', () => {
     ).toBeNull();
   });
 
-  it('le détecteur de chaîne MORD : depuis `combatOrParty` (lourd), le chemin vers le store EXISTE', () => {
+  it('le détecteur de chaîne MORD : depuis `offresUtilisables` (lourd), le chemin vers le store EXISTE', () => {
     // Sans cette sonde, un résolveur cassé rendrait `null` partout et (b) serait vert à tort.
     const route = lisible(chemin(LOURD, STORE));
-    expect(route?.[0], 'le BFS ne part pas du module attendu').toBe('src/state/combatOrParty.ts');
+    expect(route?.[0], 'le BFS ne part pas du module attendu').toBe('src/state/offresUtilisables.ts');
     expect(route?.[(route?.length ?? 0) - 1]).toBe('src/state/store.ts');
-    expect(route!.length, 'chaîne du lourd vers le store').toBeGreaterThan(1);
+    expect(route!.length, 'chaîne TRANSITIVE du lourd vers le store').toBeGreaterThan(2);
   });
 });

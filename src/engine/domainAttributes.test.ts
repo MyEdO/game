@@ -12,7 +12,7 @@ import { evaluateMissile } from './magic';
 import { hasCondition, stacks, addCondition } from './conditions';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { applyTriggeredEffects } from '../noyau/triggeredEffects';
-import type { Get } from '../state/flowTypes';
+import type { Get } from '../noyau/flowTypes';
 
 /** Applique les riders onHit AUTHORÉS d'un Domaine à `target` (gating par les Conditions Flow, contre
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */

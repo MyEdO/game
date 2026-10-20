@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { PendingReload } from '../state/store';
+import type { PendingReload } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { emptyArmour } from '../engine/items';
 import { ReloadModalView } from './ReloadModal';

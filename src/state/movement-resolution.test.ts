@@ -3,7 +3,7 @@ import { createHero } from '../engine/character';
 import { effectiveMovement } from '../engine/encumbrance';
 import { testScene } from '../scenes/test-fixture';
 import { bus, EVT } from '../noyau/bus';
-import { resolveMovement } from './combatFlow';
+import { resolveMovement } from '../noyau/combatFlow';
 import { useGame } from './store';
 
 function setup() {

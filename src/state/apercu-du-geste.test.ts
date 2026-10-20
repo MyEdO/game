@@ -7,11 +7,11 @@
  * (`withAttackerAt`), sans quoi l'aperçu annonce un palier que le jet contredit.
  */
 import { describe, it, expect } from 'vitest';
-import { previewAttack, withAttackerAt, difficultyOf } from './combatFlow';
+import { previewAttack, withAttackerAt, difficultyOf } from '../noyau/combatFlow';
 import { difficultyShownText } from '../ui/difficultyText';
-import { apercuDuGeste, previewDifficultyOf } from './targetingModes';
-import { hoverTargeting } from './targeting';
-import { selectedAttackOption } from './combatManeuvers';
+import { apercuDuGeste, previewDifficultyOf } from '../noyau/targetingModes';
+import { hoverTargeting } from '../noyau/targeting';
+import { selectedAttackOption } from '../noyau/combatManeuvers';
 import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { GameState } from './store';

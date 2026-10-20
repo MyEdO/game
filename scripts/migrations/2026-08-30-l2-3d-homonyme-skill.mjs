@@ -18,7 +18,7 @@
  * ci-dessous et visité par un marcheur ; un porteur rencontré HORS de ces chemins est une anomalie
  * → rien n'est écrit, sortie 1.
  * RENAME PUR : aucune valeur ne change. Le seul apport d'information est l'id `guerison` du geste 2 :
- * la MÉCANIQUE du soigneur PNJ reste sa VALEUR (`state/medicFlow.ts` ne lit que `npc.skill.value` —
+ * la MÉCANIQUE du soigneur PNJ reste sa VALEUR (`noyau/medicFlow.ts` ne lit que `npc.skill.value` —
  * un PNJ payant n'a pas de fiche, sa cible EST le seuil fourni) ; l'id porte le LIBELLÉ affiché au
  * joueur (`ui/MedicModal.tsx` → `skillRefLabel(npc.skill)`, jusqu'ici la chaîne « Guérison » en dur).
  * PREUVE : les deux artefacts (avant, après) ramenés à la graphie D'ORIGINE sont deep-equal.

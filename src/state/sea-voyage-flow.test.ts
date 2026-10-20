@@ -6,37 +6,38 @@ import {
   buildSeaPlan, portRepairVessel, portInstallUpgrade, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, resolveManannPriest, resolveShoreLeave, damageVesselHull, healVesselHull,
   buildOverspeedSteps, engineerOf, type SeaVoyageState,
-} from './seaVoyageFlow';
+} from '../noyau/seaVoyageFlow';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { effectiveChar } from '../engine/characteristics';
 import { partyBest, skillBaseValue, testValue } from '../engine/skills';
 import { subtract, toBrass } from '../engine/money';
-import { partyMoneyTotal, bourseOf, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { itemFromTrappingById } from '../engine/items';
-import { bankWithdraw } from './interludeFlow';
+import { bankWithdraw } from '../noyau/interludeFlow';
 import { traumaById } from '../engine/trauma';
 import { byId, maladies, species } from '../data';
 import { setDataset, resetData } from '../data/overrides';
 import type { Combatant } from '../engine/types';
-import { buildEncounter } from './encounterAuthoring';
+import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 import type { RNG } from '../engine/dice';
 import type { CascadeStep } from '../noyau/pendings';
-import { resumeTravel } from './travelFlow';
-import { applyEffects, runFlow } from './combatEffects';
+import { resumeTravel } from '../noyau/travelFlow';
+import { applyEffects, runFlow } from '../noyau/combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { navigationDuNavire } from './shipCrew';
+import { navigationDuNavire } from '../noyau/shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from '../noyau/cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascadeTestKit';
+import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, resolveStake, testSkillLabel } from '../data';
 import { resultLine, buildBand, rollLine } from '../noyau/rollSeam';
 import { t } from '../i18n';
 import { voyageTiles, vesselHullGauge } from '../ui/VoyageScreen';
-import { checkBattleOver } from './combatFlow';
+import { checkBattleOver } from '../noyau/combatFlow';
 import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
 import type { RecapEvent } from '../noyau/recapLine';
 import { SEA_HAZARDS, findSeaHazard } from '../engine/seaPerils';
@@ -90,7 +91,7 @@ function freshState() {
   } as never);
 }
 
-/** Fait avancer LA cascade active d'UNE étape — pilote PARTAGÉ `cascadeTestKit.avanceEtapeCascade`. */
+/** Fait avancer LA cascade active d'UNE étape — pilote PARTAGÉ `cascade.testkit › avanceEtapeCascade`. */
 function stepCascade(): void {
   avanceEtapeCascade(get);
 }
@@ -1393,7 +1394,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     resolveShoreLeave(get, set, true);
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
-    const { modalOwnerOf } = await import('./modalArbiter');
+    const { modalOwnerOf } = await import('../noyau/modalArbiter');
     const { seatOwns } = await import('../noyau/sieges');
     const owner = modalOwnerOf(get());
     expect(seatOwns(get(), 1, owner ?? undefined)).toBe(true);
@@ -2403,7 +2404,7 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
     } as never);
   }
 
-  // Cliquet « zéro chip anonyme » et lecture du Soutien : SOURCE UNIQUE `cascadeTestKit`
+  // Cliquet « zéro chip anonyme » et lecture du Soutien : SOURCE UNIQUE `cascade.testkit`
   // (`inexplique`/`soutienDe`) — les quatre flux migrés jugent la MÊME grandeur.
 
   /** Toutes les étapes SOUTENUES posées par la cascade courante. */

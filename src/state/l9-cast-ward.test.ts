@@ -9,7 +9,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { castingValue } from '../engine/magic';
 import { findSpellById } from '../data';
-import { previewCast } from './combatFlow';
+import { previewCast } from '../noyau/combatFlow';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 

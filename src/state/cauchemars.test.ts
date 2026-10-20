@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { nightmareCheck, hasCondition } from '../engine/conditions';
 import { testValue } from '../engine/skills';
 import type { RNG } from '../engine/dice';

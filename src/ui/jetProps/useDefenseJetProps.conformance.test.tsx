@@ -11,7 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame, type BattleState } from '../../state/store';
-import { openAttackCascade, aiCreatureFreeAttacks } from '../../state/combatFlow';
+import { openAttackCascade, aiCreatureFreeAttacks } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
@@ -318,7 +318,7 @@ describe('Défense : une cible écrêtée nomme son plafond ou son plancher, jam
 
 /**
  * DÉ CHOISI sur une cible bornée : le dé FIXÉ comme le dé de RÉSILIENCE (LDB 17 l.68) se réévaluent à la
- * cible BRUTE du jet posé (`deDuJet`, `state/rollFlowFactory.ts`, par `cibleBrute`), que le constructeur
+ * cible BRUTE du jet posé (`deDuJet`, `noyau/rollFlowFactory.ts`, par `cibleBrute`), que le constructeur
  * re-borne et re-mesure (`evaluateTest`, `forcedTR`, `engine/tests.ts`), au plancher comme au plafond ;
  * aucun appelant ne relaie l'écrêtage.
  * MUTATION : retirer `clampTarget` d'`evaluateTest` → le dé fixé rend « autres » ; retirer `clampTarget`

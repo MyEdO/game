@@ -169,7 +169,7 @@ interface JsonRow {
  * SUBSTITUÉ par sa valeur, à toute profondeur de l'arbre ; le reste est rendu tel quel.
  *
  * La substitution se fait ICI, à l'EXPANSION de la rangée (`rollMiscast`), et non à l'application de
- * l'op : `state/combatFlow.ts` expie le Péché avant d'appeler `applyOps`, une résolution paresseuse
+ * l'op : `noyau/combatFlow.ts` expie le Péché avant d'appeler `applyOps`, une résolution paresseuse
  * lirait donc `sin − 1`.
  */
 function resolveJsonFormula(f: JsonFormula, sin: number): unknown {

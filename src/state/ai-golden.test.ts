@@ -8,9 +8,9 @@
  * Pur : aucun dé, aucun mock — `chooseEnemyAction` est déterministe.
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
+import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type CastableSpell } from '../noyau/monde/ai';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { chebyshev } from '../noyau/monde/path';
+import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 

@@ -7,13 +7,13 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
-import { deriveChapterRecap, snapshotChapitre } from './chapitreRecap';
+import { applyEffects } from '../noyau/combatEffects';
+import { deriveChapterRecap, snapshotChapitre } from '../noyau/chapitreRecap';
 import { snapshotSave } from './saves';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
 
 function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant {
   return {

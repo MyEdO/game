@@ -8,7 +8,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { DialogueHistoryScreen, groupConversations } from './DialogueHistoryScreen';
 import { useGame } from '../state/store';
-import type { DialogueTurn } from '../state/dialogueHistory';
+import type { DialogueTurn } from '../noyau/monde/dialogueHistory';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

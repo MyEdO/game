@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { initialFields } from './stateFields';
-import { resolveDualSecond, applyAttackResult } from './combatFlow';
+import { initialFields } from '../noyau/stateFields';
+import { resolveDualSecond, applyAttackResult } from '../noyau/combatFlow';
 import { reverseRoll, rollMeleeDefender, type AttackResult } from '../engine/combat';
 import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from '../noyau/battleRng';
-import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 

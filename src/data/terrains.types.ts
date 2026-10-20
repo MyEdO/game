@@ -43,7 +43,7 @@ export interface TerrainMeta {
    *  `terrainHorsGrille`, #1789) : ses propriétés (opacité, bâti, bloc plein) FONT la Ligne de Vue et
    *  le raccord d'arêtes au bord. Le schéma exige qu'EXACTEMENT une entrée le porte. */
   bordDuMonde?: boolean;
-  /** GLYPHE d'authoring : le caractère qui pose ce terrain dans une carte ASCII (`state/asciiMap.ts`,
+  /** GLYPHE d'authoring : le caractère qui pose ce terrain dans une carte ASCII (`noyau/monde/asciiMap.ts`,
    *  légende de base d'un plan ; `sceneToAscii` le réserve à l'export, #1789). Un seul char, UNIQUE dans
    *  le dataset et hors de la grammaire du plan (`schemas/grammaire/carte-ascii.ts`) : le schéma le
    *  refine. Absent = le terrain n'a pas de glyphe d'écriture, une scène le déclare dans sa `legend`. */

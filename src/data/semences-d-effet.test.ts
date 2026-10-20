@@ -1,6 +1,6 @@
 /**
  * #1882, #2404 — ce qu'un effet NEUF sème avant tout choix d'auteur (`creatureSemee`, `vehiculeSeme`,
- * `navireSeme`, lus par `state/combatEffects.ts` et `ui/editor/EffectList.tsx`) : la PREMIÈRE entrée
+ * `navireSeme`, lus par `noyau/combatEffects.ts` et `ui/editor/EffectList.tsx`) : la PREMIÈRE entrée
  * offerte par son catalogue, et une entrée qui y EXISTE.
  */
 import { describe, expect, it } from 'vitest';

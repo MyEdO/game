@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { FLOW_HANDLERS, FLOW_VERBS } from './rollFlowSpecs';
+import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
+import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { rowForcedDie } from '../ui/forcedDieRow';
-import type { FlowKey } from './flowVerbs';
+import type { FlowKey } from '../noyau/flowVerbs';
 import type { Combatant } from '../engine/types';
 import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { propulsionDuNavire } from '../engine/shipBuild';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 
 /**

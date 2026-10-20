@@ -12,8 +12,8 @@ import type { JSX } from 'react';
 import { tableTotale } from '../../lib/tableTotale';
 import { Effect, EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
 import { Icon } from '../Icon';
-import { EMPTY_FLOW } from '../../noyau/monde/flow';
-import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../state/combatEffects';
+import { EMPTY_FLOW } from '../../engine/flowCore';
+import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
@@ -30,9 +30,9 @@ import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/ref
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/libellesNarratifs';
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
-import type { NarratifBlock } from '../../state/campaignNarratif';
-import { nomDEntite } from '../../state/sceneNpc';
-import { presetDuNarratif } from '../../state/resolveursDuNarratif';
+import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
+import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
@@ -42,7 +42,7 @@ import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
 import { PURSUIT_ESCAPE_DISTANCE } from '../../engine/pursuit';
-import { battleSceneById, nomDArmee } from '../../state/massBattleFlow';
+import { battleSceneById, nomDArmee } from '../../noyau/massBattleFlow';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { sceneKindSchema } from '../../data/schemas/defs/activities';
 import { activitiesFor } from '../../engine/activities';
@@ -79,7 +79,7 @@ function CrewRosterFields({ e, upd }: { e: any; upd: (patch: any) => void }) {
 }
 
 /** Toutes les facettes d'AUTEUR (libellé/icône/groupe/fabrique) sont lues sur le REGISTRE unique
- *  `EFFECT_HANDLERS` (state/combatEffects) — fin des Records parallèles. Le `summary` (qui dépend
+ *  `EFFECT_HANDLERS` (noyau/combatEffects) — fin des Records parallèles. Le `summary` (qui dépend
  *  d'`opSummary`) et le RENDU des champs (`EffectFields`, JSX) restent ici, côté UI. */
 const EFFECT_TYPES = Object.keys(EFFECT_HANDLERS) as Effect['type'][];
 
@@ -129,7 +129,7 @@ export interface Ctx {
   places?: { id: string; label: string }[];
   /** Entités « personnage » de la scène (id + label) — lanceur/cible de `castSpell` (#98). Absent = input. */
   personas?: { id: string; label?: string }[];
-  /** Les cibles qu'offre la RACINE à ses Effets `ops` (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`) :
+  /** Les cibles qu'offre la RACINE à ses Effets `ops` (`CIBLES_PAR_RACINE`, `noyau/combatEffects.ts`) :
    *  sélecteur ET résumé la lisent. Sans défaut — chaque racine dit la sienne. */
   cibles: TableDeCibles;
   /** Narratif du projet, que désignent les références narratives (`REFERENCES_NARRATIVES`), et dont
@@ -183,7 +183,7 @@ const MENU_SANS_NARRATIF: TypeMenuGroup[] = EFFECT_MENU_GROUPS
 /** Les types d'Effet que propose une racine — lu par « + Effet », « + Bloc » et le changement de type. */
 export const menuDEffets = (ctx: Pick<Ctx, 'narratif'>): TypeMenuGroup[] => (ctx.narratif ? EFFECT_MENU_GROUPS : MENU_SANS_NARRATIF);
 
-/** Ce que révèle un `revealClue` sans stade (`revealClue`, `state/clues.ts`) : `title` du champ ; le résumé
+/** Ce que révèle un `revealClue` sans stade (`revealClue`, `noyau/monde/clues.ts`) : `title` du champ ; le résumé
  *  d'une rangée en porte la forme COURTE. */
 const STADE_OMIS = 'Sans stade : premier stade si l’indice est caché, sinon son stade atteint, remis en piste active';
 const STADE_OMIS_COURT = 'stade par défaut';

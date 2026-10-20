@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bestAdjacentReachable } from './combatFlow';
+import { bestAdjacentReachable } from '../noyau/combatFlow';
 
 // Bug signalé : « les grandes créatures prennent plusieurs cases mais une seule est attaquable ». Cause = la
 // recherche de case d'arrivée pour rejoindre la cible ne testait l'adjacence qu'à l'ANCRE (`chebyshev === 1`),

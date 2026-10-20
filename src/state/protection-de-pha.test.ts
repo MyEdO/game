@@ -4,7 +4,7 @@ import { isProfane } from '../engine/corruption';
 import { hasCondition, stacks, COND } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { useGame } from './store';
-import { applyCast } from './combatFlow';
+import { applyCast } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { testScene } from '../scenes/test-fixture';

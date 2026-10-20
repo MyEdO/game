@@ -32,7 +32,7 @@
  *     DÉJÀ CHIFFRÉS par le flux propriétaire via `meta` NEUTRE (`aggregateFlatDR`/`aggregateCapTo`/
  *     `aggregateOpposeSl`, `CascadeStepMeta`) ; par défaut 0/absent.
  */
-import type { Get, Set } from '../state/flowTypes';
+import type { Get, Set } from './flowTypes';
 import type { GameState } from '../state/store';
 import type { Combatant, CharKey, Difficulty, Weapon } from '../engine/types';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
@@ -420,9 +420,6 @@ export function surfaceRow(get: Get, porteurId: string | undefined, row: BatchPa
   return { ...row, interactive: false, result: row.result ?? rollBatchParticipant(row, battleRng()) };
 }
 
-/** La marque d'étape mintée vit dans un module FEUILLE (`stepBrand.ts`) : `revealStep.ts` minte lui
- *  aussi et ne peut pas tirer ce fichier. Ré-exportée ici, où vit la famille d'ouvertures. */
-export type { BuiltCascadeStep };
 
 /** DÉCLARATION d'une bande : ce que l'appelant sait de la SITUATION (l'entrée de règle mise en jeu).
  *  La POSSESSION (`groupOwner`) n'y est pas — c'est `bandStep` qui la pose. */
@@ -1789,7 +1786,7 @@ export function dieStep(spec: DieStepSpec): BuiltCascadeStep | undefined {
  *
  * Le COMPTEUR MONOTONE de la séquence (`PendingCascade.seq`) est versé dans l'id : c'est lui qui rend
  * l'étape UNIQUE, et c'est donc cet id qui sert d'identité à une grappe de dés
- * (`state/combatEffects.groupeDe`). Un compteur, jamais la longueur du tableau : celle-ci recule à
+ * (`noyau/combatEffects.groupeDe`). Un compteur, jamais la longueur du tableau : celle-ci recule à
  * chaque troncature, et re-servirait l'id d'une étape survivante.
  */
 export function pushDie(set: Set, spec: DieStepSpec, purpose: PendingCascade['purpose'] | ((s: GameState) => PendingCascade['purpose'])): void {

@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { runFlow } from './combatFlow';
-import { testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
+import { runFlow } from '../noyau/combatEffects';
+import { testFlow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { combatStakeRef, resolveStake, findSpellById } from '../data';
-import { routeTriggeredTest } from './combat/triggeredTest';
-import { planClimb } from './climbMove';
+import { routeTriggeredTest } from '../noyau/combat/triggeredTest';
+import { planClimb } from '../noyau/monde/climbMove';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 

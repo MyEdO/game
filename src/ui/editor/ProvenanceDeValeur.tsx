@@ -7,7 +7,7 @@ import { SourceRefField } from '../SourceRefField';
 import { ProseField } from '../ProseField';
 import { ChipDeRefus } from '../ChipDeRefus';
 import { Stack } from '../Layout';
-import type { ProvenanceDeValeur as Provenance } from '../../state/worldMap';
+import type { ProvenanceDeValeur as Provenance } from '../../noyau/worldMap';
 
 export function ProvenanceDeValeur({ identite, sujet, value, onChange, exigee = true }: {
   /** IDENTITÉ du porteur (contrat de `SourceRefField`) : la changer repart de `value`. */

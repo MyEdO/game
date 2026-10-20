@@ -6,7 +6,7 @@ import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { validateScene } from '../../state/validateScene';
-import { siegeEmplacementEntity } from '../../state/siegeEmplacement';
+import { siegeEmplacementEntity } from '../../noyau/monde/siegeEmplacement';
 import { changePropRef, deleteSel, moveSel, eraseAt, placeEntity } from './editorState';
 import {
   editEntity,
@@ -17,7 +17,7 @@ import {
   setPosteCrew,
   setPosteSide,
   setPosteEngine,
-} from '../../state/sceneEdit';
+} from '../../noyau/sceneEdit';
 
 /**
  * INVARIANT DE SOCLE #2 — UN SEUL SEAM D'ASSISE.
@@ -30,7 +30,7 @@ import {
  *     pas : la forme de l'écriture (variable intermédiaire, destructuration, clé entre guillemets,
  *     `splice` sur une copie, absence de `;`) ne change rien au FAIT qu'une propriété `entities`
  *     est posée.
- *  2. `src/state/sceneEdit.ts` : toute fonction EXPORTÉE (déclaration ou const fléchée) qui pose
+ *  2. `src/noyau/sceneEdit.ts` : toute fonction EXPORTÉE (déclaration ou const fléchée) qui pose
  *     `entities` dans un littéral — ou qui appelle une écriture mécanique — traverse
  *     `normaliseAssises`, directement ou par fermeture d'appels. Les écritures mécaniques
  *     (`MECANIQUES`) ne sont pas exportées : seul le seam les atteint (#2724).
@@ -46,7 +46,7 @@ import {
  * soit la route par laquelle il a été fabriqué.
  */
 const ROOT = path.resolve(__dirname, '..', '..', '..');
-const SCENE_EDIT = 'src/state/sceneEdit.ts';
+const SCENE_EDIT = 'src/noyau/sceneEdit.ts';
 const CLE = 'entities';
 const SEAM = 'normaliseAssises';
 

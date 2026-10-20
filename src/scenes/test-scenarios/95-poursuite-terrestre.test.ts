@@ -3,7 +3,7 @@
  * + ses réfs (compétence, créature du secours) résolvent contre les VRAIS enregistrements.
  */
 import { describe, it, expect } from 'vitest';
-import { flowEffects } from '../../noyau/monde/flow';
+import { flowEffects } from '../../engine/flowCore';
 import { byId, findCreatureById } from '../../data';
 import { scenario } from './95-poursuite-terrestre';
 const scenarioConstruit = scenario.construire();

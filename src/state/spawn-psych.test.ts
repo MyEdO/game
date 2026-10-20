@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { creatureToCombatant, statblockToCombatant } from './spawn';
+import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
 

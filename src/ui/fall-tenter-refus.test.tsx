@@ -2,14 +2,14 @@
 /**
  * « Tenter le Test » (chute volontaire, LDB 15 l.82) consomme l'Action (LDB 13 l.86-88) :
  * Action déjà prise → l'option porte le refus de `fallChoose` (`refusDuTestDeChute`,
- * `state/gesteDArete.ts`), éteinte ; Action libre → offerte. Afficher = agir.
+ * `noyau/gesteDArete.ts`), éteinte ; Action libre → offerte. Afficher = agir.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { FallModal } from './FallModal';
-import { phaseDeChute } from '../state/fallMove';
+import { phaseDeChute } from '../noyau/fallMove';
 import type { Combatant } from '../engine/types';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { difficultyText } from './difficultyText';

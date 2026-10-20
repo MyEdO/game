@@ -4,10 +4,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
-import { gainCorruption, corruptionTarget } from './corruptionFlow';
-import { draineCascade, avanceEtapeCascade } from './cascadeTestKit';
-import type { RevealEntry } from './store';
+import { applyEffects } from '../noyau/combatEffects';
+import { gainCorruption, corruptionTarget } from '../noyau/corruptionFlow';
+import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
+import type { RevealEntry } from '../noyau/pendings';
 import { makePregens, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';

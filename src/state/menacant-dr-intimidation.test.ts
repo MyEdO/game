@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { talentTestSLBonus } from '../engine/magic';
 import { skillDRBonus } from '../engine/ops';
-import { talentsFromBook } from './spawn';
+import { talentsFromBook } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data/index';
 import type { Combatant } from '../engine/types';
 

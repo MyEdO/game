@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { openScriptedPsych } from '../state/encounterPsychFlow';
+import { openScriptedPsych } from '../noyau/encounterPsychFlow';
 import { branchCertainOps } from '../noyau/combat/flowEval';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';

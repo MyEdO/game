@@ -2,17 +2,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { scenario } from './duel-naval';
-import { targetArc, headingToBear } from '../../state/fireArc';
-import { bearingPostes, mostArmedSide } from '../../state/shipBattery';
-import { maneuverShip, shipManeuverParams } from '../../state/shipManeuver';
+import { targetArc, headingToBear } from '../../noyau/monde/fireArc';
+import { bearingPostes, mostArmedSide } from '../../noyau/monde/shipBattery';
+import { maneuverShip, shipManeuverParams } from '../../noyau/shipManeuver';
 import { refusPersonneNePeutTenter } from '../../engine/skills';
 import { facingToward, DIR8_ORDER } from '../../noyau/monde/dir8';
 import { isMerScene, sceneMetresPerTile } from '../../noyau/monde/scene';
-import { chebyshev } from '../../noyau/monde/path';
-import { runEnemyAI, checkBattleOver } from '../../state/combatFlow';
+import { chebyshev } from '../../engine/grid';
+import { runEnemyAI, checkBattleOver } from '../../noyau/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { fr } from '../../i18n/messages/fr';
-import { draineCascade, poseSurDeNonTombe } from '../../state/cascadeTestKit';
+import { draineCascade, poseSurDeNonTombe } from '../../state/cascade.testkit';
 const scenarioConstruit = scenario.construire();
 
 /** Lance le scénario duel dans le store (comme `__wfrp.scenario`), Round 1 acquitté, RNG SEMÉE. */

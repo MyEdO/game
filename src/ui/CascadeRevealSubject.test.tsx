@@ -15,7 +15,7 @@ import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
 import type { RevealEntry } from '../noyau/pendings';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

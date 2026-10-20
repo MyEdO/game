@@ -5,7 +5,7 @@
  * Tentacules → Empêtré.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { applyFreeAttackEffects, applyWail } from './combatFlow';
+import { applyFreeAttackEffects, applyWail } from '../noyau/combatFlow';
 import { applyTriggeredEffects, maneuverEffectsOf } from '../noyau/triggeredEffects';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';

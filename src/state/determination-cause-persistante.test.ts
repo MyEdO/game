@@ -8,8 +8,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import './combatFlow'; // effet de bord : enregistre les hooks de fin de Round (dont `end-of-round`)
-import { runCombatHooks, type CombatHookCtx } from './combatHooks';
+import '../noyau/combatFlow'; // effet de bord : enregistre les hooks de fin de Round (dont `end-of-round`)
+import { runCombatHooks, type CombatHookCtx } from '../noyau/combatHooks';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { makeRNG, type RNG } from '../engine/dice';

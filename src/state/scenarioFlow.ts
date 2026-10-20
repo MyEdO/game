@@ -4,8 +4,8 @@
  */
 import { setRule } from '../engine/policy';
 import type { ScenarioConstruit, TestScenario } from '../scenes/test-scenarios/_shared';
-import { creditBourse } from './bourseFlow';
-import type { Get, Set } from './flowTypes';
+import { creditBourse } from '../noyau/bourseFlow';
+import type { Get, Set } from '../noyau/flowTypes';
 
 /** POSE du scénario : règles, `construire` sur les datasets vivants, groupe, projet ou scène. Rend le
  *  contenu construit. */

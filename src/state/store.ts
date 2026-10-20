@@ -11,8 +11,8 @@ import { extendedTestStep } from '../engine/tests';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
-import { coupleDIdentite } from './identites';
-import type { BattleActionMode } from './actionRegistry';
+import { coupleDIdentite } from '../noyau/monde/identites';
+import type { BattleActionMode } from '../noyau/actionRegistry';
 import { fixedJetOpen, markFixedDie } from '../noyau/fixedDieMark';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import { dissipateSpell } from '../engine/dispel';
@@ -21,55 +21,66 @@ import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { facingToward, DIR8_DELTA, rotateDir8, type Dir8 } from '../noyau/monde/dir8';
 import { footprintTiles, footprintN } from '../noyau/monde/footprint';
 import { creerActionsDuCurseur, curseurPerime, screenStepDot, type CombatCursor, type ScreenDir } from './combatCursor';
-import type { LocalIntent } from './localIntent';
-import type { RefusIHM } from './refusVisible';
-import type { BattleClickOpts, TileClickOpts } from './targetingModes';
-import type { EtatDeSequence } from './sequenceCore';
-import { applyShipCollision } from './shipCollision';
+import type { LocalIntent } from '../noyau/localIntent';
+import type { RefusIHM } from '../noyau/refusVisible';
+import type { BattleClickOpts, TileClickOpts } from '../noyau/targetingModes';
+import type { EtatDeSequence } from '../noyau/sequenceContract';
+import { applyShipCollision } from '../noyau/monde/shipCollision';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { estNavire } from '../engine/coque';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import { findFreeTile, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, reprendreTestSubi, assignGearAt, harvestVictoryCreature, pushReveal, releaseSeatsOfDowned } from './combatFlow';
-import { removeEntity } from './combatPlacement';
+import { releaseSeatsOfDowned } from '../noyau/combatFlow';
+// #2817 D2
+import '../noyau/seaVoyageFlow';
+import '../noyau/corruptionFlow';
+import '../noyau/shipwreck';
+import '../noyau/combatEffects';
+import '../noyau/combatManeuvers';
+import '../noyau/combat/roundHooks';
+import '../noyau/combat/turnHooks';
+import '../noyau/combat/triggeredTest';
+import '../noyau/combat/hitModifiers';
+import { reprendreTestSubi } from '../noyau/combat/triggeredTest';
+import { removeEntity } from '../noyau/combatPlacement';
 import { t } from '../i18n';
-import type { Get, RemplacerLEtat, Set } from './flowTypes';
-import { planClimb } from './climbMove';
-import { planFranchissement, metresRetenus, phaseDeChute, mouvementDeLaChute, mouvementDeLAllege } from './fallMove';
-import { gesteDepuis, porteurDExploration, refusDuTestDeChute, refusDeLaSuspension, REFUS_FRANCHISSEMENT } from './gesteDArete';
-import { refuserGeste } from './refusVisible';
-import { roomFocusAt } from './rooms';
-import { fouilleDeLaPiece } from './decouvertePorteSecrete';
+import type { Get, RemplacerLEtat, Set } from '../noyau/flowTypes';
+import { planClimb } from '../noyau/monde/climbMove';
+import { planFranchissement, metresRetenus, phaseDeChute, mouvementDeLaChute, mouvementDeLAllege } from '../noyau/fallMove';
+import { gesteDepuis, porteurDExploration, refusDuTestDeChute, refusDeLaSuspension, REFUS_FRANCHISSEMENT } from '../noyau/gesteDArete';
+import { refuserGeste } from '../noyau/refusVisible';
+import { roomFocusAt } from '../noyau/monde/rooms';
+import { fouilleDeLaPiece } from '../noyau/monde/decouvertePorteSecrete';
 import { climbMovementCost } from '../engine/movement';
 import { hasAutoClimb, hasClimbFullSpeed } from '../engine/traits/dispatch';
-import { quorumAtteint, decidingSeat } from './netOwnership';
+import { quorumAtteint, decidingSeat } from '../noyau/netOwnership';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
-import { markActed } from './combatFlow';
-import { EMPTY_FLOW, type Flow } from '../noyau/monde/flow';
-import { moveEnv, type MoveSnapshot } from '../noyau/monde/combatGeometry';
-import { movementRemaining } from './mount';
+import { markActed } from '../noyau/combatFlow';
+import { type Flow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
+import { moveEnv, type MoveSnapshot, findFreeTile } from '../noyau/monde/combatGeometry';
+import { movementRemaining } from '../noyau/mount';
 
 import { type BattleZone } from '../noyau/monde/zones';
-import * as interludeFlow from './interludeFlow';
-import * as favorFlow from './favorFlow';
+import * as interludeFlow from '../noyau/interludeFlow';
+import * as favorFlow from '../noyau/favorFlow';
 import * as netFlow from './netFlow';
 import type { NetState } from './netFlow';
-import type { InterludeState, BankDeposit, PendingActivity } from './interludeFlow';
+import type { InterludeState, BankDeposit, PendingActivity } from '../noyau/interludeFlow';
 import type { Favor } from '../engine/favor';
-export type { PendingActivity } from './interludeFlow';
-import * as massBattleFlow from './massBattleFlow';
-import type { MassBattleState } from './massBattleFlow';
+import * as massBattleFlow from '../noyau/massBattleFlow';
+import type { MassBattleState } from '../noyau/massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
 import { snapshotSave, saveToSlot, readSlot, importSave, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveGame } from './saves';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
-import { initialFields, resetFields } from './stateFields';
-import { captureMutation, applyMutation as applySceneMutation, type SceneMutation } from './sceneInstance';
+import { initialFields, resetFields } from '../noyau/stateFields';
+import { captureMutation, applyMutation as applySceneMutation, type SceneMutation } from '../noyau/monde/sceneInstance';
 import { assignSeat, memeCase, placesJouables, pruneSeatAssignments, RANG_MENEUR, releaseRecomposedRanks, releaseSeat, seatPoseOf, type SeatPose } from '../noyau/monde/seating';
 import { actionsDe, actionsAuthorees, cleActionJouee, estCapacite, type CapaciteId } from '../noyau/monde/usable';
-import type { ClueState, IndiceAffiché } from './clues';
-import { togglePin, marquerVus } from './clues';
+import type { ClueState, IndiceAffiché } from '../noyau/monde/clues';
+import { togglePin, marquerVus } from '../noyau/monde/clues';
 import type { CodexFocus } from './codexFocus';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
@@ -106,29 +117,28 @@ import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualitie
 import { type HealMode } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
 import { campGain } from '../noyau/combat/advantagePool';
-import { campaignStart } from '../engine/clock';
+import { campaignStart, dayIndex } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
-import { outOfCombatUpkeep } from './outOfCombatUpkeep';
+import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
 import { checkPartyWiped } from '../noyau/partyWipe';
-import { touchActors } from './combatOrParty';
+import { touchActors } from '../noyau/combatOrParty';
 import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from '../noyau/monde/combatants';
 import { fireOwnTestFailed } from '../noyau/triggeredEffects';
-import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
+import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from '../noyau/rollFlowSpecs';
 import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
 import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
 import { rosterUpdate } from './roster';
-import { planifierLeTickAuto } from './combatAuto';
-import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot, testDExposition } from './corruptionFlow';
+import { planifierLeTickAuto } from '../noyau/combatAuto';
+import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot, testDExposition } from '../noyau/corruptionFlow';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import * as partyFlow from './partyFlow';
-import * as possessionsFlow from './possessionsFlow';
-import type { Possession } from '../engine/possession';
-import type { PossessionInput } from './possessionsFlow';
-import { usePartyItem as usePartyConsumable } from './consumableFlow';
-import * as visionStateMod from './visionState';
-import * as merchantFlow from './merchantFlow';
-import type { MerchantState, MerchantStocks } from './merchantFlow';
-import * as tavernFlow from './tavernFlow';
+import * as partyFlow from '../noyau/partyFlow';
+import * as possessionsFlow from '../noyau/possessionsFlow';
+import type { Possession, PossessionInput } from '../engine/possession';
+import { usePartyItem as usePartyConsumable } from '../noyau/consumableFlow';
+import * as visionStateMod from '../noyau/visionState';
+import * as merchantFlow from '../noyau/merchantFlow';
+import type { MerchantState, MerchantStocks } from '../noyau/merchantFlow';
+import * as tavernFlow from '../noyau/tavernFlow';
 import type {
   PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain,
   PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingCrewTest, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel,
@@ -136,52 +146,51 @@ import type {
   PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption,
   PendingCastOpposition, PendingCascade, ScheduledEffect, DialogueTransition, EtatDialogue, CascadeStepMeta, Cloture, CounterDeclaration,
 } from '../noyau/pendings';
-import { openEncounterPsych } from './encounterPsychFlow';
+import { openEncounterPsych } from '../noyau/encounterPsychFlow';
 import { toMoney } from '../engine/money';
 import { postingTenu } from '../engine/activities';
-import { payFromGroup } from './bourseFlow';
-import * as medicFlow from './medicFlow';
-import type { MedicState, MedicNpc } from './medicFlow';
-export type { MedicState, MedicNpc } from './medicFlow';
-import * as restFlow from './restFlow';
-import type { PendingRest, RestLodging, RestFood } from './restFlow';
-export type { PendingRest } from './restFlow';
-import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from './shipCrew';
-import type { PendingCouncil } from './shipCrew';
-export type { PendingCouncil } from './shipCrew';
+import { payFromGroup } from '../noyau/bourseFlow';
+import * as medicFlow from '../noyau/medicFlow';
+import type { MedicState, MedicNpc } from '../noyau/medicFlow';
+import * as restFlow from '../noyau/restFlow';
+import type { PendingRest, RestLodging, RestFood } from '../noyau/restFlow';
+import { councilPay as councilPayFlow, councilClose as councilCloseFlow } from '../noyau/shipCrew';
+import type { PendingCouncil } from '../noyau/shipCrew';
 import { Scene, isWalkable, groupePosable, sceneMetresPerTile, heightAt, speakerEntity, startOf, type SceneEntity, type VictoryCondition } from '../noyau/monde/scene';
-import { recordTurn, type DialogueTurn } from './dialogueHistory';
-import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue';
-import { placeCombatant } from './spawn';
-import { chebyshev, Pt, tileKey } from '../noyau/monde/path';
-import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
+import { recordTurn, type DialogueTurn } from '../noyau/monde/dialogueHistory';
+import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from '../noyau/dialogue';
+import { placeCombatant } from '../noyau/monde/spawn';
+import { Pt, tileKey } from '../noyau/monde/path';
+import { chebyshev } from '../engine/grid';
+import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from '../noyau/monde/exploreNav';
 import { bus, EVT } from '../noyau/bus';
-import { emptyWorldMap } from './worldMap';
-import type { NarratifBlock, OuvertureBlock } from './campaignNarratif';
-import { emptyNarratif } from './campaignNarratif';
-import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
-import { snapshotChapitre } from './chapitreRecap';
-import { dayIndex, runDailyUpkeep, purgeSurAvanceDHorloge } from './upkeep';
-import type { DeferredUpkeepTest } from './upkeep';
-import * as travelFlow from './travelFlow';
-import * as billetFlow from './billetFlow';
+import { emptyWorldMap } from '../noyau/worldMap';
+import type { NarratifBlock, OuvertureBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { ChapitreDepuis, ChapterRecap } from '../noyau/chapitreRecap';
+import { snapshotChapitre } from '../noyau/chapitreRecap';
+import { runDailyUpkeep, purgeSurAvanceDHorloge } from '../noyau/upkeep';
+import type { DeferredUpkeepTest } from '../noyau/upkeep';
+import * as travelFlow from '../noyau/travelFlow';
+import * as billetFlow from '../noyau/billetFlow';
 import { DEFAULT_VOYAGE_ORDERS } from '../noyau/voyageCadence';
-import { appliquerLotEtal } from './etalLotFlow';
-import * as portFlow from './portFlow';
-import * as landMarketFlow from './landMarketFlow';
-import * as innFlow from './innFlow';
-import * as seaActivities from './seaActivities';
-import * as seaVoyageFlow from './seaVoyageFlow';
-import { applyLandCargoRaid } from './carriers';
+import { appliquerLotEtal } from '../noyau/etalLotFlow';
+import * as portFlow from '../noyau/portFlow';
+import * as landMarketFlow from '../noyau/landMarketFlow';
+import * as innFlow from '../noyau/innFlow';
+import * as seaActivities from '../noyau/seaActivities';
+import * as seaVoyageFlow from '../noyau/seaVoyageFlow';
+import { applyLandCargoRaid } from '../noyau/carriers';
 import { suspendActiveCascade, resumeSuspendedCascade, dropSceneEntrySteps, extendedTestOutcomeAppliers, curseurPose } from '../noyau/cascade';
-import { confierLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite } from './combatEffects';
+import { confierLaSuite, jouerFlowEntier, nePeutPasDifferer, cloturer, registerCloture, flowRestant, effectTargets, openSkillTest, ouvrirChute, reprendreLaSuite, checkTriggers, fireScheduledEffects, applyEffects, applyEffectsLoot, runFlow, assignGearAt, harvestVictoryCreature, pushReveal } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
-import { nightBands } from './nightBands';
-import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type BuiltCascadeStep } from '../noyau/rollSeam';
-import { createCombatSlice } from './combatSlice';
-import { nomDEntite } from './sceneNpc';
+import { nightBands } from '../noyau/nightBands';
+import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi } from '../noyau/rollSeam';
+import { type BuiltCascadeStep } from '../noyau/stepBrand';
+import { createCombatSlice } from '../noyau/combatSlice';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from './campaignData';
-import { registerScene, reposerPaquetDeCampagne, sceneDuRegistre } from './registreDesScenes';
+import { registerScene, reposerPaquetDeCampagne, sceneDuRegistre } from '../noyau/monde/registreDesScenes';
 
 /** Source unique des écrans valides — `Screen` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
@@ -189,9 +198,6 @@ import { registerScene, reposerPaquetDeCampagne, sceneDuRegistre } from './regis
 export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test', 'interlude', 'coop', 'compendium', 'massBattle', 'gallery', 'webglSpike'] as const;
 export type Screen = typeof SCREENS[number];
 
-// Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
-// pour la compat des imports existants (`from '../state/store'`).
-export * from '../noyau/pendings';
 
 
 /** Postures de tir PRÉ-ARMÉES d'un combattant (`BattleState.stances`) : les champs qu'elles
@@ -274,7 +280,7 @@ export interface BattleState {
    *  re-viser la même cible avec le même Vent donne +1 Avantage au lanceur. Purgé chaque Round. */
   domainCasts?: { targetId: string; domain: string }[];
   /** Option « Vents Tourbillonnants » (LDB 46 l.179-190) : force des Vents tirée pour LE combat (ou
-   *  re-tirée à chaque Round en grain `round`, `state/combat/roundHooks.ts`) — `mod` s'ajoute aux
+   *  re-tirée à chaque Round en grain `round`, `noyau/combat/roundHooks.ts`) — `mod` s'ajoute aux
    *  Tests d'Incantation ET de Focalisation (`windsMagicModOf`). `revealed` = un porteur de Seconde
    *  vue a réussi le Test de Perception Facile (+40, l.181) : le HUD peut afficher la force. Le `mod`
    *  reste appliqué (visible au breakdown du jet) même non révélé. Absent = règle inactive. */
@@ -335,7 +341,7 @@ export interface Objective {
  *  `startScene` seule). */
 export interface CampaignDoc {
   scenes: Scene[];
-  worldMap?: import('./worldMap').WorldMap | null;
+  worldMap?: import('../noyau/worldMap').WorldMap | null;
   narratif: NarratifBlock;
   startSceneId: string;
   /** Identité du document de projet chargé : l'`id` du `ProjectDoc` PARSÉ, jamais la clé d'une entrée
@@ -348,7 +354,7 @@ export interface CampaignDoc {
 export interface PaquetALancer {
   scenes: Scene[];
   entryId: string;
-  worldMap?: import('./worldMap').WorldMap | null;
+  worldMap?: import('../noyau/worldMap').WorldMap | null;
   narratif?: NarratifBlock;
   projet: CampaignDoc['projet'];
 }
@@ -553,7 +559,7 @@ export interface GameState extends RollFlowActionsMap {
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
   journal: string[];
   /** CONVERSATION en cours (`EtatDialogue`, porteuse de sa `session`) — ouverte par l'unique
-   *  fabrique `ouvrirDialogue` (`state/dialogue.ts`), jamais bâtie à la main. */
+   *  fabrique `ouvrirDialogue` (`noyau/dialogue.ts`), jamais bâtie à la main. */
   dialogue: EtatDialogue | null;
   /** Archive verbatim des tours de dialogue (#718) — CAMPAGNE-scopée : survit aux transitions de
    *  scène, vidée en nouvelle partie (`startScene`). Fenêtre bornée (`DIALOGUE_HISTORY_CAP`), séparée
@@ -645,8 +651,8 @@ export interface GameState extends RollFlowActionsMap {
    *  dessoûlage) ne peuvent pas s'ouvrir tout de suite. Ils sont DIFFÉRÉS ici puis CONSOMMÉS par
    *  `openCombatEndCascade` (fin de combat) — jamais roulés en silence. La garde `lastUpkeepDay` reste la
    *  référence anti-double-résolution (l'entretien lui-même n'est appliqué qu'une fois). */
-  deferredUpkeepQueue: import('../noyau/rollSeam').BuiltCascadeStep[];
-  /** SÉQUENCE EN COURS (socle `state/sequenceCore`, #1279) : la situation qui se joue en MANCHES
+  deferredUpkeepQueue: import('../noyau/stepBrand').BuiltCascadeStep[];
+  /** SÉQUENCE EN COURS (socle `noyau/sequenceCore`, #1279) : la situation qui se joue en MANCHES
    *  jusqu'à une issue — poursuite terrestre (LDB 15), jeu de taverne opposé (NADJ 16), demain les
    *  crises de mer. État GÉNÉRIQUE (id de définition, rang de manche, cumuls par camp, paramètres
    *  d'auteur) + la charge utile du domaine ; persisté entre les manches. `null` hors séquence. */
@@ -672,11 +678,11 @@ export interface GameState extends RollFlowActionsMap {
   pendingHeal: PendingHeal | null;
   /** Passe de Chirurgie en cours (jet INFLUENÇABLE du chirurgien, modale embarquée dans l'infirmerie). */
   pendingSurgery: PendingSurgery | null;
-  /** Infirmerie ouverte (modale de soins persistante, hors combat — state/medicFlow). */
+  /** Infirmerie ouverte (modale de soins persistante, hors combat — noyau/medicFlow). */
   medic: MedicState | null;
-  /** Modale de Repos (nuit à l'auberge / chez soi / campement — state/restFlow). */
+  /** Modale de Repos (nuit à l'auberge / chez soi / campement — noyau/restFlow). */
   pendingRest: PendingRest | null;
-  /** Conseil de bord hebdomadaire (choix de paie + recalcul de Moral joué — #229, state/shipCrew). */
+  /** Conseil de bord hebdomadaire (choix de paie + recalcul de Moral joué — #229, noyau/shipCrew). */
   pendingCouncil: PendingCouncil | null;
   /** Balayage (Frappe Mortelle) d'un héros en cours : enchaînements d'attaque restants. */
   pendingCleave: PendingCleave | null;
@@ -780,7 +786,7 @@ export interface GameState extends RollFlowActionsMap {
    *  null = « Nouvelle partie » standard (campagne par défaut). `id` (#608) : plombé à la sélection
    *  (builtin/publié) pour que `PartyScreen` surligne par id, jamais par `label`. `projet` : l'id du
    *  DOCUMENT lancé (`CampaignDoc.projet`), distinct de `id` pour une entrée de bibliothèque (#2206). */
-  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('./worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock; projet: { id: string } } | null;
+  pendingCampaign: { id: string; label: string; scenes: Scene[]; startSceneId: string; worldMap?: import('../noyau/worldMap').WorldMap | null; activeAxes?: string[]; narratif?: NarratifBlock; projet: { id: string } } | null;
   setPendingCampaign: (pc: GameState['pendingCampaign']) => void;
 
   setScreen: (s: Screen) => void;
@@ -921,7 +927,7 @@ export interface GameState extends RollFlowActionsMap {
   setHeroBackground: (heroId: string, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }) => void;
   /** Fin de séance (LDB 05 Ambitions + LDB 17 Détermination) : octroie les PX d'Ambition, regagne la
    *  Détermination selon la Motivation, puis restaure la Chance. Alimenté par l'écran de fin de séance. */
-  endSession: (rewards: import('./partyFlow').SessionRewards) => void;
+  endSession: (rewards: import('../noyau/partyFlow').SessionRewards) => void;
   /** Écran de fin de séance (`SessionEndModal`) ouvert par l'Effet `sessionEnd` (#83) — le menu de jeu
    *  le pilote encore par état local ; ce flag EN PLUS permet à un beat de campagne authoré de l'ouvrir. */
   sessionEndOpen: boolean;
@@ -1049,7 +1055,7 @@ export interface GameState extends RollFlowActionsMap {
   battleWater: (targetId?: string) => void;
   /** Pré-jet : bascule le mode de soin (Blessures ⇄ Hémorragie) dans la modale ouverte. */
   healSetMode: (mode: HealMode) => void;
-  /** INFIRMERIE (hors combat, state/medicFlow) : modale de soins persistante — patients, actes
+  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients, actes
    *  (Guérison/Hémorragie/Déchirure/Chirurgie), PNJ payant via l'effet `medicalAid`. */
   openMedic: (opts?: { patientId?: string; npc?: MedicNpc }) => void;
   medicSelectPatient: (id: string) => void;
@@ -1068,7 +1074,7 @@ export interface GameState extends RollFlowActionsMap {
   /** Annule la Chirurgie (cumul perdu ; jamais commencée → acte remboursé). */
   surgeryCancel: () => void;
   closeMedic: () => void;
-  /** REPOS (state/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
+  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
@@ -1504,7 +1510,7 @@ export interface GameState extends RollFlowActionsMap {
   restParty: (days?: number) => void;
   // ── Voyage & nourriture (#T2) ──
   /** Carte du monde du projet courant (graphe de lieux/routes, éditable) — null si le projet n'en a pas. */
-  worldMap: import('./worldMap').WorldMap | null;
+  worldMap: import('../noyau/worldMap').WorldMap | null;
   /** Overlay carte du monde ouvert (exploration). */
   worldMapOpen: boolean;
   openWorldMap: () => void;
@@ -1513,15 +1519,15 @@ export interface GameState extends RollFlowActionsMap {
   gameMenuOpen: boolean;
   setGameMenu: (open: boolean) => void;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
-  travelPlan: import('./travelFlow').TravelPlan | null;
+  travelPlan: import('../noyau/travelFlow').TravelPlan | null;
   /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
-  billetEnMain: import('./billetFlow').BilletEnMain | null;
+  billetEnMain: import('../noyau/billetFlow').BilletEnMain | null;
   /** Issue du Marchandage de chaque billet, par `cleDeBillet` — un Test par billet (EDO 01 l.142). */
   marchandagesDeBillet: Record<string, import('../engine/bargain').BargainOutcome>;
   /** « Marchander » le billet de `routeId` en `vehicule` depuis le lieu courant (`billetFlow`). */
   startBilletBargain: (routeId: string, vehicule: string) => void;
   /** Récapitulatif du dernier segment de voyage (audit M4) — modale à l'arrivée/interruption. */
-  travelRecap: import('./travelFlow').TravelRecap | null;
+  travelRecap: import('../noyau/travelFlow').TravelRecap | null;
   dismissTravelRecap: () => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */
   startTravel: (routeId: string, mode: import('../engine/travel').TravelMode, opts?: { classeId?: string; hoursPerDay?: number; allure?: import('../engine/mountTravel').Allure; seaPace?: number; fast?: boolean; cadence?: import('../noyau/voyageCadence').VoyageCadence }) => void;
@@ -1587,7 +1593,7 @@ export interface GameState extends RollFlowActionsMap {
   learnPossessionTrait: (uid: string, traitId: string) => void;
   /** Écran PORT ouvert (services au navire à quai — MDG 15) : réparation/carénage/Améliorations +
    *  commerce (offres d'achat générées à l'escale). `null` = fermé. */
-  port: import('./portFlow').PortState | null;
+  port: import('../noyau/portFlow').PortState | null;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */
   openPort: () => void;
   closePort: () => void;
@@ -1615,7 +1621,7 @@ export interface GameState extends RollFlowActionsMap {
   tradeRumours: import('../engine/landCargo').TradeRumour[];
   /** Écran MARCHÉ TERRESTRE ouvert (commerce de cargaison à un Lieu `market` de la carte — MSRC 13 l.3) :
    *  offres d'achat générées à l'arrivée. `null` = fermé. */
-  landMarket: import('./landMarketFlow').LandMarketState | null;
+  landMarket: import('../noyau/landMarketFlow').LandMarketState | null;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`). */
   openLandMarket: () => void;
   closeLandMarket: () => void;
@@ -1635,16 +1641,16 @@ export interface GameState extends RollFlowActionsMap {
    *  Exténué (EDOC 8 l.133). Avance l'horloge (`inn-gather-info-minutes`) quelle que soit l'issue. */
   gatherInnInfo: () => void;
   /** ACTIVITÉS EN MER en attente (semaine de 8 jours, MDG 15 l.266-306) — modale de choix par héros. */
-  pendingSeaActivities: import('./seaActivities').PendingSeaActivities | null;
+  pendingSeaActivities: import('../noyau/seaActivities').PendingSeaActivities | null;
   /** Résout les Activités choisies puis rend la main à la halte de nuit. */
-  seaActivitiesConfirm: (picks: Record<string, import('./seaActivities').SeaActivityPick | null>) => void;
+  seaActivitiesConfirm: (picks: Record<string, import('../noyau/seaActivities').SeaActivityPick | null>) => void;
   /** ÉVÉNEMENT DE PORT « Prêtre de Manann » en attente de CHOIX (MDG 15 l.246). */
-  pendingManannPriest: import('./seaVoyageFlow').PendingManannPriest | null;
+  pendingManannPriest: import('../noyau/seaVoyageFlow').PendingManannPriest | null;
   /** Résout le choix : `true` = payer la bénédiction, `false` = réduire l'Humeur de Manann de 4d10. */
   resolveManannPriest: (pay: boolean) => void;
   /** Permission de RELÂCHE À TERRE en attente de CHOIX, posée à l'accostage AVANT l'événement de
    *  port (MDG 15 l.245). */
-  pendingShoreLeave: import('./seaVoyageFlow').PendingShoreLeave | null;
+  pendingShoreLeave: import('../noyau/seaVoyageFlow').PendingShoreLeave | null;
   /** Résout le choix : `true` = relâche accordée, `false` = refusée (gate l'Embrigadement/Fête de Manann). */
   resolveShoreLeave: (allow: boolean) => void;
 }
@@ -2886,14 +2892,14 @@ export const useGame = create<GameState>((set, get) => ({
   surgeryCancel: () => medicFlow.surgeryCancel(get, set),
   closeMedic: () => medicFlow.closeMedic(get, set),
 
-  // ── Repos (modale de nuit) : cf. state/restFlow ──
+  // ── Repos (modale de nuit) : cf. noyau/restFlow ──
   openRest: (opts) => restFlow.openRest(get, set, opts),
   restSet: (heroId, patch) => restFlow.restSet(get, set, heroId, patch),
   restReady: (seat) => restFlow.restReady(get, set, seat),
   restSleep: () => restFlow.restSleep(get, set),
   restCancel: () => restFlow.restCancel(get, set),
 
-  // ── Conseil de bord (paie hebdomadaire + Moral) : cf. state/shipCrew ──
+  // ── Conseil de bord (paie hebdomadaire + Moral) : cf. noyau/shipCrew ──
   councilPay: (decision) => councilPayFlow(get, set, decision),
   councilClose: () => councilCloseFlow(get, set),
 
@@ -3197,9 +3203,9 @@ export const useGame = create<GameState>((set, get) => ({
   portBuyCargo: (cargoId, enc) => portFlow.portBuyCargo(get, set, cargoId, enc),
   portSellCargo: (cargoIndex) => portFlow.portSellCargo(get, set, cargoIndex),
   portDumpCargo: (cargoIndex) => portFlow.portDumpCargo(get, set, cargoIndex),
-  portRepair: () => portFlow.portRepairVessel(get, set).forEach((l) => get().log(l)),
-  portCareen: () => portFlow.portCareenVessel(get, set).forEach((l) => get().log(l)),
-  portInstallUpgrade: (traitId, units) => portFlow.portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
+  portRepair: () => seaVoyageFlow.portRepairVessel(get, set).forEach((l) => get().log(l)),
+  portCareen: () => seaVoyageFlow.portCareenVessel(get, set).forEach((l) => get().log(l)),
+  portInstallUpgrade: (traitId, units) => seaVoyageFlow.portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
   portHireCrew: (roleId, count) => portFlow.portHireCrew(get, set, roleId, count),
   portDismissCrew: (roleId, count) => portFlow.portDismissCrew(get, set, roleId, count),
   openLandMarket: () => landMarketFlow.openLandMarket(get, set),

@@ -39,7 +39,7 @@ export function heroHook(hero: Combatant): string | undefined {
 }
 
 /** Statut « Échelon Standing » AFFICHÉ (« Bronze 2 ») — MÊME lookup que `heroStatus`
- *  (`state/interludeFlow.ts`), la forme texte brute pour `MetalStatus` (#417). */
+ *  (`noyau/interludeFlow.ts`), la forme texte brute pour `MetalStatus` (#417). */
 export function heroStatusLabel(hero: Combatant): string {
   const levels = levelsForCareer(hero.career ?? '');
   const lvl = levels[Math.max(0, (hero.careerLevel ?? 1) - 1)];

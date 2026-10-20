@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { advanceTurn } from './combatFlow';
+import { advanceTurn } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { pregen, PREGEN } from '../data/pregens';

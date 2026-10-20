@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { nomDuNavire } from '../state/carriers';
+import { nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { findVehicleById, NAVAL_TRAITS, findNavalPortById, crewRoles, type NavalPortData } from '../data';
 import { findCargoById, findCargoEntryById, type PortProfile } from '../engine/seaVoyage';
 import { installCost } from '../engine/shipBuild';
@@ -10,7 +10,7 @@ import { foulingEffects } from '../engine/seaNavigation';
 import { canAfford, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../state/store';
-import type { PendingShoreLeave, PendingManannPriest } from '../state/seaVoyageFlow';
+import type { PendingShoreLeave, PendingManannPriest } from '../noyau/seaVoyageFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose } from './Prose';

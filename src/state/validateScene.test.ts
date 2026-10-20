@@ -1,10 +1,11 @@
-import { flowFromEffects, testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
+import { flowFromEffects, testFlow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { describe, it, expect } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
 import { resolveStake, matieresDe } from '../data';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { METRES_PER_LEVEL } from '../noyau/monde/relief';
-import type { WorldMap, MapPlace } from './worldMap';
+import type { WorldMap, MapPlace } from '../noyau/worldMap';
 
 function base() {
   const s = emptyScene(5, 5);

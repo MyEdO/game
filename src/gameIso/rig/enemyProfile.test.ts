@@ -11,7 +11,7 @@ import { resolveParts } from './parts/resolve';
 import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
 import { armeDeDessin, armourPart, pieceDeDessin, weaponFamily } from './parts/equipment';
-import { spawnEnemy } from '../../state/spawn';
+import { spawnEnemy } from '../../noyau/monde/spawn';
 import { isShieldTrapping } from '../../engine/items';
 import { hairstylesForSex } from './parts/hairstyles';
 import { COIFFURE_HORS_POOL } from './parts/cosmetic';

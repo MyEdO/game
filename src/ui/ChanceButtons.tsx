@@ -1,14 +1,14 @@
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
-import { rerollAvailable, darkPactAvailable, type RollActorView, type RollInfluenceView } from '../state/rollFlowFactory';
+import { rerollAvailable, darkPactAvailable, type RollActorView, type RollInfluenceView } from '../noyau/rollFlowFactory';
 
 /**
  * Boutons de dépense de Chance partagés par les modales de jet (LDB « Destin et Résistance »
  * ch.17 l.22-28) : « Relancer » et « +1 DR » (cumulable), plus le Sombre Pacte (LDB 19 l.17).
  *
  * Aucune FENÊTRE n'est calculée ici : elles vivent au seam, en prédicats purs
- * (`rerollAvailable`/`darkPactAvailable`, `state/rollFlowFactory.ts`), aux côtés des ops qui les
+ * (`rerollAvailable`/`darkPactAvailable`, `noyau/rollFlowFactory.ts`), aux côtés des ops qui les
  * exécutent. Ce composant reçoit les FAITS — ressources du jeteur (`actorView`), état du jet
  * (`roll`) — et rend l'affordance quand le prédicat l'ouvre ET que le verbe est OFFERT : l'offre se
  * lit à la PRÉSENCE du handler, jamais à un booléen fourni par l'appelant.

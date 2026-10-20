@@ -23,11 +23,11 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useGame } from '../../state/store';
 import { heightAt, isIndoor, liftDe, sceneMetresPerTile } from '../../noyau/monde/scene';
-import { computeStateVisibleAndLight, sceneLightSources } from '../../state/visionState';
+import { computeStateVisibleAndLight, sceneLightSources } from '../../noyau/visionState';
 import { capDuGroupe, meneurDuMonde } from '../../noyau/monde/combatants';
-import { detenteurDuCiblage } from '../../state/targetingHolder';
-import { controlsActive, controlsCombatant } from '../../state/netOwnership';
-import { GESTES_DEPLACANTS, gestesDeplacantsOuverts } from '../../state/gesteDArete';
+import { detenteurDuCiblage } from '../../noyau/targetingHolder';
+import { controlsActive, controlsCombatant } from '../../noyau/netOwnership';
+import { GESTES_DEPLACANTS, gestesDeplacantsOuverts } from '../../noyau/gesteDArete';
 import { Dims, capsuleCenter } from '../../geometry/iso';
 import { etageActif, getViewZ, subscribeViewZ } from '../../state/viewLevel';
 import { setStageFrame } from './spritePicker';
@@ -63,8 +63,8 @@ import { clePercage } from './percage';
 import { useStageCamera, cameraTargeting, stageFocus, computeViewBounds, adoucirFocal, DUREE_FOCALE_MS, VW, VH, type LissageFocal } from './useStageCamera';
 import { useStagePointer } from './useStagePointer';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
-import { aretesUtilisables } from '../../state/aretes';
-import { roomFocusAt } from '../../state/rooms';
+import { aretesUtilisables } from '../../noyau/aretes';
+import { roomFocusAt } from '../../noyau/monde/rooms';
 import type { Pt } from '../../noyau/monde/path';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { useHoverTargeting } from './useHoverTargeting';
@@ -114,7 +114,7 @@ function CorpsDuMonde() {
   const actorAim = useGame((s) => s.actorAim);
   // COOP : le tour du héros d'un AUTRE joueur s'affiche comme un tour ennemi — AUCUNE affordance.
   const myTurn = useGame(controlsActive);
-  // Gestes d'arête que le mobile peut accomplir MAINTENANT — le verdict même de l'action (`state/gesteDArete.ts`).
+  // Gestes d'arête que le mobile peut accomplir MAINTENANT — le verdict même de l'action (`noyau/gesteDArete.ts`).
   const gestesOuverts = useGame(gestesDeplacantsOuverts);
   const planView = useGame((s) => s.pendingRoundStart?.round === 1); // ouverture : cadrer tout le champ
   const pendingAttack = useGame((s) => s.pendingAttack);
@@ -210,7 +210,7 @@ function CorpsDuMonde() {
   // champ de lumière (`sceneLightSources`), passée telle quelle à la voie volumique, qui en pose les
   // flaques. Elle ne dépend NI de l'heure NI du palier — seulement de qui porte quoi, et où.
   // `party` fait partie des dépendances même en COMBAT, où les sources viennent de `battle` : la purge
-  // d'entretien mute `activeEffects` EN PLACE sur les combattants (`state/upkeep.ts:71`) sans changer la
+  // d'entretien mute `activeEffects` EN PLACE sur les combattants (`noyau/upkeep.ts:71`) sans changer la
   // réf `battle`, et ne repose que `party` (`upkeep.ts:90`). Un sort de Lumière qui se dissipe passerait
   // donc inaperçu d'un memo qui ne dépendrait que de `battle`.
   const lightSources = useMemo(
@@ -430,7 +430,7 @@ function CorpsDuMonde() {
   // au battement, comme tout le reste.
   useEffect(() => subscribeStagePan(battreStageFrames), []);
   // ESPACE DÉGAGÉ (#818, #907, #950) — UNE loi pour toute l'architecture. Une nappe n'est peinte que
-  // si le groupe la VOIT (`seenSections`, nourri des cases explorées de `state/vision.ts`), et ce
+  // si le groupe la VOIT (`seenSections`, nourri des cases explorées de `noyau/monde/vision.ts`), et ce
   // qui l'ABRITE est RETIRÉ, à l'échelle de la MASSE, jamais voilé ni découpé panneau par panneau :
   // sa pièce, l'emprise qui l'abrite, les niveaux au-dessus de lui (`clearedSpace`). Les façades
   // frontales de cet espace tombent du même geste (`frontFacadeCutaway`), et rien au niveau du groupe
@@ -562,7 +562,7 @@ function CorpsDuMonde() {
   // Les vérités de surbrillance sont assemblées par le monde volumique lui-même
   // (`combatHighlightsView`), à partir de ce contexte de tour. TOUT ce dont ces marques dépendent y
   // entre, y compris ce qui vit à la RACINE du store, hors `battle` : l'INTENTION ARMÉE
-  // (`state/localIntent`) et le SURVOL (`store.hovered`, qui allume les bandes de portée d'un tireur).
+  // (`noyau/localIntent`) et le SURVOL (`store.hovered`, qui allume les bandes de portée d'un tireur).
   // Sans elles ici, l'écran déjà monté ne réapprenait jamais leur changement — les marques ne se
   // peignaient qu'au MONTAGE (sonde `intention-peinture-vive`).
   // Le survol n'entre QUE s'il peint (`tireurSurvole`, verdict partagé avec la vue) : survoler un
@@ -601,10 +601,10 @@ function CorpsDuMonde() {
     [doorCtrlKey],
   );
   // Les ARÊTES que le picking consulte AVANT le rayon, et que le peintre unique rend : UNE population,
-  // dérivée ici (`state/aretes.ts`) et projetée là (`stage/aretesProjetees.ts`). Le CONTRÔLEUR est le
+  // dérivée ici (`noyau/aretes.ts`) et projetée là (`stage/aretesProjetees.ts`). Le CONTRÔLEUR est le
   // même pour les quatre capacités — celui qui borde les seuils et qui FRAPPE : le groupe hors combat,
   // l'actif que ce siège mène, personne sinon. Le COMBAT entre avec lui : une fortification
-  // d'arête n'est une cible que tant qu'un Combattant la tient (`state/combatSlice.ts` l'enrôle), et
+  // d'arête n'est une cible que tant qu'un Combattant la tient (`noyau/combatSlice.ts` l'enrôle), et
   // une arête qui porte un seuil ET une fortification sort en structure — `PRIORITE_ARETES` tranche, pas l'ordre
   // de peinture.
   // Un geste d'arête que l'action refuserait (`gesteDArete`) n'est pas offert : afficher = agir.

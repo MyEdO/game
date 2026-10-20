@@ -1,14 +1,14 @@
 /**
  * Éditeur de statbloc personnalisé (profil d'ennemi défini à la main, au lieu
  * d'une créature du bestiaire). Consommé par `spawnEnemy` → `statblockToCombatant`
- * (state/spawn.ts) : nom, 10 Caractéristiques + Mouvement (M) + Blessures (B),
+ * (noyau/monde/spawn.ts) : nom, 10 Caractéristiques + Mouvement (M) + Blessures (B),
  * Traits (l'armement des monstres y vit : « Arme (Épée) +7 », « Mutation (…) »),
  * dégâts d'arme et Points d'Armure.
  *
  * Modèle WFRP4 : on part d'une créature de BASE du bestiaire puis on la personnalise
  * (les créatures d'aventure ne sont PAS dans le bestiaire générique → custom).
  */
-import { CustomStatblock } from '../../noyau/monde/scene';
+import { CustomStatblock } from '../../engine/statblock';
 import { CHAR_KEYS, CHAR_LABELS, CharKey } from '../../engine/types';
 import { charAbr, creatures, findCreatureById, skillRefLabel, tailleDuProfil, talentRefLabel } from '../../data';
 import { woundsForSize, resizeBySteps, stepSize, SIZE_LABEL, SIZE_ORDER } from '../../engine/size';

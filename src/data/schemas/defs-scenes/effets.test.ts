@@ -31,7 +31,7 @@ import {
 } from './effets';
 import type { Effect, DelayedEffect, PetitePriere } from '../../../noyau/monde/scene';
 import type { Flow } from '../../../engine/flowCore';
-import type { PursuitFoeRef } from '../../../state/pursuitFlow';
+import type { PursuitFoeRef } from '../../../noyau/pursuitFlow';
 import type { MassBattleSpec } from '../../../engine/massBattle';
 import type { FavorLevel } from '../../../engine/favor';
 import type { CrewHire } from '../../../engine/crewMorale';

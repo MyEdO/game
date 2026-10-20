@@ -68,7 +68,7 @@ export const travelModeLabels = memoParVersion('vehicles', (): Record<string, st
 
 /** Unité affichée pour une distance de route : une route `sea` (mode `'mer'`) porte ses
  *  MILLES dans le même champ `km` — les tables RAW de traversée sont en milles (MDG 13/15
- *  l.57-78, cf. `src/state/seaVoyageFlow.ts:7`). Source UNIQUE de l'unité, pour ne jamais
+ *  l.57-78, cf. `src/noyau/seaVoyageFlow.ts:7`). Source UNIQUE de l'unité, pour ne jamais
  *  ré-écrire « km »/« milles » en dur à un site d'affichage. */
 export function distanceUnit(sea: boolean | undefined): 'milles' | 'km' {
   return sea ? 'milles' : 'km';

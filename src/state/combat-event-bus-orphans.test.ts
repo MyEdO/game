@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emitCombatEvent } from './combatEvents';
-import { applyOpposedCritical } from './combatFlow';
-import './combatFlow'; // effet de bord : routeur de Test + appliers
+import { emitCombatEvent } from '../noyau/combatEvents';
+import { applyOpposedCritical } from '../noyau/combatFlow';
+import '../noyau/combatFlow'; // effet de bord : routeur de Test + appliers
 import { traits } from '../data';
 import { setDataset } from '../data/overrides';
 import { useGame } from './store';
@@ -12,7 +12,8 @@ import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect, EffectTrigger } from '../noyau/monde/flow';
+import type { TriggeredEffect } from '../noyau/monde/flow';
+import type { EffectTrigger } from '../engine/flowCore';
 import { resetCadence } from '../engine/cadence';
 
 /**

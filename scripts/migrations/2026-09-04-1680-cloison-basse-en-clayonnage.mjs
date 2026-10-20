@@ -26,7 +26,7 @@
  *      folio : c'est la décision MAISON portée par `cloture-en-clayonnage.maison` (`structures.json`),
  *      déduite de la nature de la clôture que décrit AA 10 l.65.
  *   3. `char` BE 4 / B 20 → BE 2 / B 10 : au siège, ces six arêtes sont deux fois plus fragiles
- *      (la capacité `structure` de `src/state/aretes.ts` les cible) — une clôture tressée n'encaisse
+ *      (la capacité `structure` de `src/noyau/aretes.ts` les cible) — une clôture tressée n'encaisse
  *      pas comme un colombage.
  *   4. `encLimit` 30 → absent : plus de Limite d'Encombrement (AA ne la donne pas au clayonnage) ;
  *      on ne pose plus d'arme sur cette cloison, là où le rebord de fenêtre d'AA 10 l.76 l'autorisait.

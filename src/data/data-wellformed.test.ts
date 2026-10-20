@@ -200,7 +200,7 @@ describe('Intégrité des données src/data/*.json', () => {
  * L'Indice est le paramètre de l'effet authoré : `effectSourcesOf` passe `withArg(effects, undefined,
  * indice)`, et un `$indice` non substitué rend le nœud porteur inerte — le 2ᵉ Hémorragique de Taillade
  * n'est jamais offert (`AA 08 l.87`), en silence. Le silence RUNTIME reste la 2ᵉ ligne
- * (`state/combat/triggeredTest.ts::resolveFlowChoice`, coût resté template → branche `no`) ; ici, la
+ * (`noyau/combat/triggeredTest.ts::resolveFlowChoice`, coût resté template → branche `no`) ; ici, la
  * donnée est refusée AVANT.
  *
  * RÈGLE UNIFORME, sans exception par id : la porte est « la qualité déclare `indice` », pas « la qualité

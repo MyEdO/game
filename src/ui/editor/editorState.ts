@@ -2,14 +2,15 @@
 import { Scene, SceneEntity, SceneEffectZone, Terrain, WallSide, ZoneArea } from '../../noyau/monde/scene';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { Pt as ScenePt } from '../../noyau/monde/path';
-import { walkFlow, type Flow } from '../../noyau/monde/flow';
-import { nextEntityId } from '../../state/entityId';
+import { type Flow } from '../../noyau/monde/flow';
+import { walkFlow } from '../../engine/flowCore';
+import { nextEntityId } from '../../noyau/monde/entityId';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { findCreatureById } from '../../data';
 import { propRefPatch } from './propDefaults';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
-import { type Rect, type Pt, type EffectZoneSeed, canonEdge, edgeWallState, rectFrom, entityAt, addEntity, editEntity, moveEntityTo, removeEntity } from '../../state/sceneEdit';
+import { type Rect, type Pt, type EffectZoneSeed, canonEdge, edgeWallState, rectFrom, entityAt, addEntity, editEntity, moveEntityTo, removeEntity } from '../../noyau/sceneEdit';
 
 export {
   addArchitectureBody,
@@ -54,12 +55,12 @@ export {
   entityAt,
   editEntity,
   editEntityCombat,
-} from '../../state/sceneEdit';
-export type { Rect, Pt, EffectZoneSeed } from '../../state/sceneEdit';
+} from '../../noyau/sceneEdit';
+export type { Rect, Pt, EffectZoneSeed } from '../../noyau/sceneEdit';
 import type { CellSide } from '../../noyau/monde/scene';
 export type { CellSide } from '../../noyau/monde/scene';
-export { planStairFlight, applyStairFlight, minFlightCells } from '../../state/stairFlight';
-export type { StairCell, StairStep, StairFlightPlan } from '../../state/stairFlight';
+export { planStairFlight, applyStairFlight, minFlightCells } from '../../noyau/stairFlight';
+export type { StairCell, StairStep, StairFlightPlan } from '../../noyau/stairFlight';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -85,7 +86,7 @@ export type Tool =
   // MÈTRES ; la traversée verticale s'auto-dérive du delta de hauteur (`surfaceLink`), sans escalier.
   | { mode: 'height'; metres: number }
   // VOLÉE d'escalier : file de cases dont les cotes montent par crans franchissables jusqu'au plancher
-  // de l'étage `toZ` (invariant PARTAGÉ avec le compilateur ASCII — `state/stairFlight.ts`). L'outil ne
+  // de l'étage `toZ` (invariant PARTAGÉ avec le compilateur ASCII — `noyau/stairFlight.ts`). L'outil ne
   // pose AUCUN décor : une volée est du relief, la traversée s'en dérive comme pour toute surface.
   | { mode: 'stair'; toZ: number }
   // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`trappingId` = engin du

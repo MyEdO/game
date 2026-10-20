@@ -22,11 +22,11 @@ import { combatStakeRef } from '../data';
 import { monoStep } from '../noyau/rollSeam';
 import {
   registerSequence, startSequence, activeSequence, sequenceCumRound, sequenceScoreOf,
-  SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict,
-} from './sequenceCore';
+} from '../noyau/sequenceCore';
+import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from '../noyau/sequenceContract';
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
-const FICHIERS = ['./sequenceContract.ts', './sequenceCore.ts'];
+const FICHIERS = ['../noyau/sequenceContract.ts', '../noyau/sequenceCore.ts'];
 const SOURCES = FICHIERS.map((fichier) => ({ fichier, texte: readFileSync(new URL(fichier, import.meta.url), 'utf-8') }));
 const SOURCE = SOURCES.map(({ texte }) => texte).join('\n');
 
@@ -100,7 +100,7 @@ interface SeaCrisisPayload {
 
 const NAVAL = 'test-crise-navale';
 
-declare module './sequenceContract' {
+declare module '../noyau/sequenceContract' {
   interface SequenceFamilies {
     [NAVAL]: SeaCrisisPayload;
     'test-boucle-infinie': { n: number };

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
+import { applyEffects } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import type { Effect } from '../noyau/monde/scene';

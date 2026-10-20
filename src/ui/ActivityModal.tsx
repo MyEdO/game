@@ -5,7 +5,7 @@ import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, witnessRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending, testValueSplit, opposedLines } from './breakdown';
 import { activityById, activityModLines } from '../engine/activities';
-import { describeActivity } from '../state/flowOutcomes';
+import { describeActivity } from '../noyau/flowOutcomes';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
 

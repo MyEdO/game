@@ -1,6 +1,6 @@
 import { ast } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « immutabilité de la scène du store » — toute l'architecture
-// dérivée de la scène (`src/state/vision.ts`, `src/noyau/monde/sceneMemo.ts` `memoByRef`) repose sur
+// dérivée de la scène (`src/noyau/monde/vision.ts`, `src/noyau/monde/sceneMemo.ts` `memoByRef`) repose sur
 // l'invariant : un chemin qui tient un porteur de la `Scene` du store (identifiant `scene`, alias,
 // paramètre typé `Scene`, ou accès `.scene` sur un conteneur — `get().scene`, `s.scene`…) ne
 // réassigne JAMAIS l'un de ses champs/tableaux EN PLACE — toute mise à jour produit une NOUVELLE

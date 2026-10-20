@@ -3,8 +3,8 @@ import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta } from '../engine/crewMorale';
 import { makeRNG } from '../engine/dice';
-import { shipSaboteurDR } from './shipCrew';
-import { maneuverCrewTotal } from './shipManeuver';
+import { shipSaboteurDR } from '../noyau/shipCrew';
+import { maneuverCrewTotal } from '../noyau/shipManeuver';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { propulsionDuNavire } from '../engine/shipBuild';
 

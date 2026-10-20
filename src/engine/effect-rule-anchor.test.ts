@@ -140,24 +140,24 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | crit.ops | { rng, crew }', // ops d'un critique de navire (équipage)
   'engine/shipCritical.ts | set.shrapnelHit! | { rng }', // éclats d'un critique de navire (le `!` tient l'anomalie NOMMÉE juste au-dessus : un jeu sans `shrapnelHit` ne peut pas porter d'Éclats)
   'engine/shipCritical.ts | extra.ops | { rng }', // ops d'un critique de navire supplémentaire
-  'state/aiSpellValue.ts | [op] | { caster: c, rng: STATIC_RNG }', // simulation d'IA sur un CLONE — jamais affichée au joueur
-  'state/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
-  'state/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
-  'state/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
-  'state/interludeFlow.ts | ops | { rng: battleRng(), now: get().gameTime }', // issues DIFFÉRÉES à la clôture d'un interlude
-  'state/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
-  'state/seaVoyageFlow.ts | p.scaldOps | { rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine
-  "state/seaVoyageFlow.ts | [{ op: 'grantTalent', talent: { id: 'chanceux' } }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord
-  "state/seaVoyageFlow.ts | [ { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 }, ] | { label: event.label, rng, defaultUntilTime: until }", // bonus de DR octroyés par un événement de bord
-  'state/travelFlow.ts | r.entry.occupantOps | { rng: battleRng() }', // ops subies par l'occupant d'une rencontre de voyage
-  'state/travelPostes.ts | [op] | ', // Exténué du Test de résistance de traversée (État : ancré par son condId)
+  'noyau/monde/aiSpellValue.ts | [op] | { caster: c, rng: STATIC_RNG }', // simulation d'IA sur un CLONE — jamais affichée au joueur
+  'noyau/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
+  'noyau/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
+  'noyau/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
+  'noyau/interludeFlow.ts | ops | { rng: battleRng(), now: get().gameTime }', // issues DIFFÉRÉES à la clôture d'un interlude
+  'noyau/medicFlow.ts | penalty | { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }', // pénalité posée par un soin raté
+  'noyau/seaVoyageFlow.ts | p.scaldOps | { rng: battleRng(), now: get().gameTime }', // brûlure de vapeur (scaldOps) d'une pièce de machine
+  "noyau/seaVoyageFlow.ts | [{ op: 'grantTalent', talent: { id: 'chanceux' } }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord
+  "noyau/seaVoyageFlow.ts | [ { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 }, ] | { label: event.label, rng, defaultUntilTime: until }", // bonus de DR octroyés par un événement de bord
+  'noyau/travelFlow.ts | r.entry.occupantOps | { rng: battleRng() }', // ops subies par l'occupant d'une rencontre de voyage
+  'noyau/travelPostes.ts | [op] | ', // Exténué du Test de résistance de traversée (État : ancré par son condId)
   // #1279 S1 — EFFETS PAR MANCHE d'une séquence : les ops viennent de la DONNÉE de l'entrée qui joue
   // (`SequenceParams.rounds`), pas du socle, qui ne peut donc pas les ancrer lui-même. Aujourd'hui
   // seule la taverne en déclare (NADJ 16 l.34, LDB 14 l.219) : aucune ne pose d'`ActiveEffect`, et
   // l'État est ancré par son `condId`. L'ancrage propre est une DÉCLARATION à ajouter à l'entrée de données (les jeux de taverne n'ont pas d'entrée Codex
   // à viser à ce jour) — les deux lignes s'ôtent d'ici le jour où elle existe.
-  'state/sequenceCore.ts | [...ops] | { caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
-  'state/sequenceCore.ts | [...decl.attrition] | { caster: c }', // ops d'attrition d'intervalle
+  'noyau/sequenceCore.ts | [...ops] | { caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
+  'noyau/sequenceCore.ts | [...decl.attrition] | { caster: c }', // ops d'attrition d'intervalle
   'noyau/monde/zones.ts | z.onCross | { caster: resolveCaster(z.casterId), rng, label: z.label }', // ops de franchissement d'une zone d'effet
   'noyau/monde/zones.ts | z.perRound | { caster, rng, label: z.label }', // ops récurrentes d'une zone d'effet
 ];

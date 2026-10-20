@@ -19,8 +19,8 @@
  * Vit hors de `modalArbiter`, qui est un module FEUILLE (garde `netownership-import-isole`) : la
  * lecture du registre d'actions monterait le store dans sa chaîne d'imports.
  */
-import { modalHolds } from './modalArbiter';
-import { currentInterludeAction } from './actionRegistry';
+import { modalHolds } from '../noyau/modalArbiter';
+import { currentInterludeAction } from '../noyau/actionRegistry';
 import type { GameState } from './store';
 
 export function modalBlocksMapHover(s: GameState): boolean {

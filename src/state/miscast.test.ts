@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyMiscast } from './combatFlow';
+import { applyMiscast } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 
 // Colère des dieux / Incantation Imparfaite — D'ABORD une étape à TABLE (le dé du Tableau, poussé
 // inconditionnellement, #1426), PUIS la révélation en étape d'affichage de la MÊME séquence : c'est

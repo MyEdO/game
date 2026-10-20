@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { terrainDef, terrainGradient, terrainGradientId, terrainStopsOrdonnes, MISSING_GRADIENT } from './terrain';
-import { tousLesTerrains, type TerrainDef } from '../../noyau/monde/terrain';
+import { tousLesTerrains } from '../../noyau/monde/terrain';
+import { type TerrainDef } from '../../data/terrains.types';
 import { defsGlobaux, degradesDeTerrains } from '../sprites';
 import { MISSING_ID, MISSING_TONE } from './missing';
 

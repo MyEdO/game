@@ -261,7 +261,7 @@ function villagePerimeterWalls(foot, door) {
   }));
 }
 
-// `validateBuildingMasses` (state/mapSpec.ts) exige qu'à un étage donné, TOUT le plancher intérieur de
+// `validateBuildingMasses` (noyau/mapSpec.ts) exige qu'à un étage donné, TOUT le plancher intérieur de
 // la SCÈNE appartienne aux masses d'UN SEUL corps — cinq corps séparés (un par maison) échoueraient
 // chacun à couvrir le plancher des quatre autres. Felsbach est donc UN corps portant cinq masses
 // disjointes (une par maison), le détail par maison restant en donnée nommée (`VILLAGE_HOUSES`).

@@ -10,7 +10,7 @@
  * elle passe par `canonEdge`/`setEdgeWall`.
  */
 import type { Scene, WallSeg } from '../noyau/monde/scene';
-import { canonEdge, setEdgeWall } from './sceneEdit';
+import { canonEdge, setEdgeWall } from '../noyau/sceneEdit';
 import type { CellSide } from '../noyau/monde/scene';
 
 /** Rectangle de cases d'un plan de fixture (mêmes champs qu'un `ArchitectureRect`). */

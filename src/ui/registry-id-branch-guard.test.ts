@@ -97,7 +97,7 @@ const KNOWN: Record<string, number> = {
   // les DEUX textes `manv.smoke`/`manv.smokeZone` (`src/i18n/messages/fr.ts:426-427`) nomment la fumée,
   // et une branche générique les servirait à toute autre manœuvre — leur généralisation change le
   // libellé de zone et la ligne de journal à l'écran (recette navigateur + arbitrage de goût).
-  'src/state/combatManeuvers.ts': 1, // `def.id === 'souffle-fumee'` (zone `blocksLoS`, LDB 85 l.329)
+  'src/noyau/combatManeuvers.ts': 1, // `def.id === 'souffle-fumee'` (zone `blocksLoS`, LDB 85 l.329)
   // Sortie : l'Arène intégrée devient une ENTRÉE de `builtinCampaigns` (une seule boucle de rangées,
   // plus de rangée en dur) — refonte d'ÉCRAN, donc recette navigateur exigée au commit.
   'src/ui/PartyScreen.tsx': 2, // `currentId === 'arene'` ×2 (rangée de la campagne intégrée)
@@ -199,23 +199,23 @@ const RAW_KNOWN: Record<string, number> = {
   'src/gameIso/stage/Ambiance.tsx': 1,
   'src/gameIso/stage/CrewTooltip.tsx': 1,
   'src/gameIso/tokenBodyKind.tsx': 1,
-  'src/state/aiSpellValue.ts': 2,
-  'src/state/combatEffects.ts': 3,
-  'src/state/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
+  'src/noyau/monde/aiSpellValue.ts': 2,
+  'src/noyau/combatEffects.ts': 3,
+  'src/noyau/combatFlow.ts': 3, // `op.ref === 'self'` hors champ (mot du vocabulaire GameOp)
   'src/noyau/monde/combatGeometry.ts': 1,
-  'src/state/combatManeuvers.ts': 4,
-  'src/state/combatSlice.ts': 1,
+  'src/noyau/combatManeuvers.ts': 4,
+  'src/noyau/combatSlice.ts': 1,
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`
   // est un lookup par id stable d'une Qualité au registre — même patron que `healing`/`careerSlots`.
-  'src/state/commandTeam.ts': 1,
+  'src/noyau/monde/commandTeam.ts': 1,
   'src/state/devtools.ts': 1,
-  'src/state/interludeFlow.ts': 4,
-  'src/state/mount.ts': 1,
-  'src/state/seaVoyageFlow.ts': 3,
+  'src/noyau/interludeFlow.ts': 4,
+  'src/noyau/mount.ts': 1,
+  'src/noyau/seaVoyageFlow.ts': 3,
   'src/state/store.ts': 1,
-  'src/state/travelFlow.ts': 6,
-  'src/state/travelPostes.ts': 2,
-  'src/state/vision.ts': 1,
+  'src/noyau/travelFlow.ts': 6,
+  'src/noyau/travelPostes.ts': 2,
+  'src/noyau/monde/vision.ts': 1,
   // Le site de `ui/ownership.ts` est la comparaison au sentinel `'*'` de l'arbitre de modales (owner =
   //  tous les sièges) dans la porte de possession `spectatorSeatOfModal` : un mot du VOCABULAIRE du
   //  protocole de modales, jamais un id d'entité — c'est la décision « qui nomme le siège attendu »,

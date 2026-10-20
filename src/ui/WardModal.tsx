@@ -6,7 +6,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeWard } from '../state/flowOutcomes';
+import { describeWard } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 
 /**

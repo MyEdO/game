@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { draineEtLit } from './cascadeTestKit';
+import { draineEtLit } from './cascade.testkit';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
 import type { CastResult } from '../engine/magic';

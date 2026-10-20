@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyEffects, fireScheduledEffects } from './combatEffects';
+import { applyEffects, fireScheduledEffects } from '../noyau/combatEffects';
 import { flowFromEffects, type Flow } from '../noyau/monde/flow';
 import type { Effect } from '../noyau/monde/scene';
 

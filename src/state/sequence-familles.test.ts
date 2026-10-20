@@ -16,8 +16,8 @@ import { hasCondition, COND } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import {
   registerSequence, startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps,
-  type SequenceParams, type SequenceRound, type SequenceVerdict,
-} from './sequenceCore';
+} from '../noyau/sequenceCore';
+import { type SequenceParams, type SequenceRound, type SequenceVerdict } from '../noyau/sequenceContract';
 
 /* ── (2) TABLE DE SCORE PAR PLAGE DE DR ──────────────────────────────────────────────────────────*/
 
@@ -68,7 +68,7 @@ interface JoutePayload { lices: string[]; passes: number[] }
 
 const JOUTE = 'test-tournoi-joute';
 
-declare module './sequenceContract' {
+declare module '../noyau/sequenceContract' {
   interface SequenceFamilies {
     [JOUTE]: JoutePayload;
     'test-joute-borne-attrition': JoutePayload;

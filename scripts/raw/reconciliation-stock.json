@@ -14,7 +14,7 @@
       "quoi": "L'Ennemi dans l'Ombre, ch.10 (compétences) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "EDOC 9": {
-      "sites": ["src/engine/disease.ts", "src/state/travelFlow.ts", "src/state/travel.test.ts"],
+      "sites": ["src/engine/disease.ts", "src/noyau/travelFlow.ts", "src/state/travel.test.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "L'Ennemi dans l'Ombre — Compagnon, ch.9 (maladies, voyage) — aucune fiche de l'Atlas ne cite ce chapitre."
@@ -32,7 +32,7 @@
       "quoi": "Middenheim, la cité du Loup Blanc, ch.2 — aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "MDG 3": {
-      "sites": ["src/state/restFlow.ts", "src/state/riverVoyageFlow.ts", "src/state/seaActivities.ts"],
+      "sites": ["src/noyau/restFlow.ts", "src/noyau/riverVoyageFlow.ts", "src/noyau/seaActivities.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "La Mer des Griffes, ch.3 (repos, activités de bord) — aucune fiche de l'Atlas ne cite ce chapitre."

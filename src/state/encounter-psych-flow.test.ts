@@ -1,14 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { sceneFearSources, openScriptedPsych } from './encounterPsychFlow';
-import { modalOwnerOf } from './modalArbiter';
+import { sceneFearSources, openScriptedPsych } from '../noyau/encounterPsychFlow';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { seatOwns } from '../noyau/sieges';
 import { psychDRAdjust } from '../engine/combat';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity, type CustomStatblock } from '../noyau/monde/scene';
-import { emptyNarratif } from './campaignNarratif';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from '../noyau/monde/scene';
+import { type CustomStatblock } from '../engine/statblock';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from './campaignData';
 
 /**

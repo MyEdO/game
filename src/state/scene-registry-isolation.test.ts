@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { registerScene } from './registreDesScenes';
+import { registerScene } from '../noyau/monde/registreDesScenes';
 import { emptyScene } from '../noyau/monde/scene';
 
 /**
  * CONTRAT de la sentinelle `resetSceneRegistry()` de l'`afterEach` global (`src/test-setup.ts`) —
  * garde POSITIVE, à lire avant d'écrire un test qui enregistre une scène.
  *
- * Le `sceneRegistry` (`state/registreDesScenes`) est un singleton de module partagé par tous les fichiers d'un
+ * Le `sceneRegistry` (`noyau/monde/registreDesScenes`) est un singleton de module partagé par tous les fichiers d'un
  * worker (`isolate: false`). La sentinelle le VIDE APRÈS CHAQUE TEST : aucune scène enregistrée par un test ne fuit vers un autre fichier — mais un enregistrement
  * fait EN TÊTE DE FICHIER (module, `beforeAll`) ne survit qu'au PREMIER test du fichier. Un fichier
  * qui a besoin du registre sur PLUSIEURS tests (ré)enregistre en `beforeEach` (patron :

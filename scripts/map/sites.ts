@@ -3,7 +3,7 @@
  * (`Sites`) : carte CODÉE (grille ASCII source → `fichier:ligne:colonne` + extrait) et PROJET exporté
  * (aucune grille derrière : coordonnées de case). Le CLI (`check.mts`) n'est que la mise en page.
  */
-import { terrainAt, type PlanDefect, type PlanDefectAt } from '../../src/state/planDefects';
+import { terrainAt, type PlanDefect, type PlanDefectAt } from '../../src/noyau/planDefects';
 import { locateGrid, snippet, wallCellPos, wallEdgePos, type GridLocation } from './locate';
 import type { MapEntry, MapSource } from './registry';
 import type { Scene } from '../../src/noyau/monde/scene';

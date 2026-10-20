@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { brancherLesSons } from './wiring';
 import { useGame } from '../state/store';
-import { applyEffects } from '../state/combatEffects';
+import { applyEffects } from '../noyau/combatEffects';
 import type { Effect } from '../noyau/monde/scene';
 
 describe('brancherLesSons — Effet playSfx (#701)', () => {

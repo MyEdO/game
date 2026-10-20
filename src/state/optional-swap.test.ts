@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { findCreatureById } from '../data';
-import { creatureToCombatant } from './spawn';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { hasTraitKey, optionalLabels } from '../engine/traits/dispatch';
 import { isOptionalNote, type OptionalSwap } from '../engine/statEntry';
 import { testValue } from '../engine/skills';

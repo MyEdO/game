@@ -7,7 +7,7 @@
  */
 import type { Combatant } from '../../engine/types';
 import type { OpsCtx } from '../../engine/ops';
-import type { Get } from '../../state/flowTypes';
+import type { Get } from '../flowTypes';
 import { gainAdvantage, avantageApresPerte } from '../../engine/advantage';
 import { isOutOfAction } from '../../engine/conditions';
 import {

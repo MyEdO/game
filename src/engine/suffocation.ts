@@ -27,7 +27,7 @@
  * ne chiffre AUCUNE mécanique (pas de Test, pas de coût, pas de cadence en Rounds) : `c.wateredThisRound`
  * est un drapeau MAISON qui immunise le Round où il est posé, puis se consomme (« régulièrement » =
  * à reposer chaque Round pour rester immunisé). Posé par l'Action de combat « Asperger d'eau »
- * (#497, `battleWater`/`WATER_MODE`, `state/targetingModes.ts`) : une main PORTE un contenant d'eau
+ * (#497, `battleWater`/`WATER_MODE`, `noyau/targetingModes.ts`) : une main PORTE un contenant d'eau
  * (capacité `waterContainer`, `hasWaterContainer` ci-dessous) et cible une Créature marine adjacente
  * hors de l'eau (`offTerrainSuffocates`) — aucun jet, aucun décompte de doses (l'eau se repuise, le
  * RAW n'en chiffre aucune).

@@ -12,7 +12,7 @@ import {
   castingValue, castBlockedBy, prayerMaxZeroDR, evaluateCasting, castPenaltyMod,
 } from './magic';
 import { endOfRound, removeCondition, hasCondition, isMagicallyAsleep } from './conditions';
-import { outOfCombatUpkeep } from '../state/outOfCombatUpkeep';
+import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
 import type { Flow } from './flowCore';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
@@ -194,7 +194,7 @@ describe('tables migrées — sweep d\'application', () => {
   it('« Je trouve inquiétant votre manque de foi » (LDB 40 l.62) : les Points de Péché ENTRENT dans la durée', () => {
     // Contrat du terme `{sinPoints:true}` : la durée est `1d10 + (Points de Péché)`, donc la fenêtre
     // se DÉCALE avec le Péché — [1,10] à 0, [4,13] à 3. Le Péché est substitué à l'EXPANSION de la
-    // rangée (`rollMiscast`), pas à l'application : `state/combatFlow.ts` l'expie AVANT `applyOps`,
+    // rangée (`rollMiscast`), pas à l'application : `noyau/combatFlow.ts` l'expie AVANT `applyOps`,
     // et une résolution paresseuse rendrait `sin − 1`.
     //
     // Le dé NATUREL est injecté (`forcedRoll`) parce que le Péché décale AUSSI le jet lui-même
@@ -300,7 +300,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
 
   /** Pose le palier sur un héros à PB > 0, RNG SEMÉ (`battleRng` sème à l'horloge — `test-setup.ts`).
    *  `label` = celui que le dénouement passe en `OpsCtx` (`m.label` = libellé de la RANGÉE,
-   *  `state/combatFlow.ts` ligne `label: m.label` de `finishMiscast`). */
+   *  `noyau/combatFlow.ts` ligne `label: m.label` de `finishMiscast`). */
   function palier(seed: number) {
     const c = hero();
     const log = applyOps(c, opsDuPalier(), { rng: makeRNG(seed), label: 'Purifier la chair' });

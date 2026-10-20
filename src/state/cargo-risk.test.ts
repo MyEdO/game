@@ -5,8 +5,8 @@ import { createHero } from '../engine/character';
 import {
   cargoRaidLossPct, spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, type CargoLot,
 } from '../engine/cargo';
-import { applyLandCargoRaid } from './carriers';
-import { spoilVesselCargoOnLeak } from './seaVoyageFlow';
+import { applyLandCargoRaid } from '../noyau/carriers';
+import { spoilVesselCargoOnLeak } from '../noyau/seaVoyageFlow';
 import { startCascade } from '../noyau/cascade';
 import { seedBattleRng } from '../noyau/battleRng';
 import { rule, setRule, resetRule } from '../engine/policy';

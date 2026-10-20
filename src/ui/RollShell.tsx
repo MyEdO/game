@@ -8,7 +8,7 @@ import { RollRow, type RollRowProps, DEFAULT_ROLL_LABEL } from './RollRow';
 import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
-import { FLOW_VERBS } from '../state/rollFlowSpecs';
+import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
 import { RecapLineRow } from './RecapLine';

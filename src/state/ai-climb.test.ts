@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 

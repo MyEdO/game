@@ -1,6 +1,6 @@
 // Mécanique de scan de la QUARANTAINE d'import du bus d'événements de combat (#316). Le dispatcher de
 // DONNÉES `fireTriggers` (`src/noyau/triggeredEffects.ts`) et le dispatcher de MACHINERIE
-// `runCombatHooks` (`src/state/combatHooks.ts`) ne doivent être IMPORTÉS que par l'UNIQUE porte
+// `runCombatHooks` (`src/noyau/combatHooks.ts`) ne doivent être IMPORTÉS que par l'UNIQUE porte
 // `emitCombatEvent` (`combatEvents.ts`) et les modules bus-owned explicitement whitelistés (les boucles
 // internes de cycle roundHooks/turnHooks). Tout autre importeur ré-ouvre une porte de dispatch DIRECT —
 // exactement l'affordance que #316 ferme. Module ESM pur (node nu), même patron que `inBattleFind.mjs`.

@@ -18,7 +18,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scene, hero, P, flowOf, poste, resetIds, projectDoc, flagWhen } from '../campagne/lib.mjs';
 import { itemFromTrappingById } from '../../src/engine/items.ts';
-import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
+import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 
 /** Construction PURE du document de projet : la SOURCE possède 100 % de la donnée de l'artefact
  *  (`src/scenes/barge-du-sel/barge-du-sel-projet.json`), le CLI ci-dessous n'en est que la voie d'écriture.

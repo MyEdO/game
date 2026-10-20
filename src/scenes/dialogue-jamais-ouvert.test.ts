@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { parseProject } from '../state/worldMap';
+import { parseProject } from '../noyau/worldMap';
 import { avisDialogueJamaisOuvert, validateScene, type Warning } from '../state/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { flowFromEffects } from '../noyau/monde/flow';

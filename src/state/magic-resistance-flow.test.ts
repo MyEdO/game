@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { applyCast } from './combatFlow';
+import { applyCast } from '../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';

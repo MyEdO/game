@@ -1,7 +1,7 @@
 /**
  * FAVEURS — LDB 23 l.139-151, « FAITES-MOI UNE FAVEUR ! ». Noyau PUR : la forme d'une Faveur due et
  * le seuil d'Activités qui l'acquitte. Le flux (création, progression, rupture) vit dans
- * `state/favorFlow.ts` ; l'authoring de scène la pose par l'Effet `grantFavor`.
+ * `noyau/favorFlow.ts` ; l'authoring de scène la pose par l'Effet `grantFavor`.
  */
 
 export type FavorLevel = 'mineure' | 'majeure' | 'importante';
@@ -18,7 +18,7 @@ export interface Favor {
   desc: string;
   /** Activités CONSÉCUTIVES déjà consacrées à l'acquittement (Majeure : « deux Activités
    *  consécutives ou plus », l.149) — fenêtre retenue et remise à 0 par
-   *  `resetInterruptedFavorProgress` (`state/favorFlow.ts`). */
+   *  `resetInterruptedFavorProgress` (`noyau/favorFlow.ts`). */
   progress: number;
 }
 

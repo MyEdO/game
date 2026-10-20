@@ -9,11 +9,11 @@
  *      `pidIsActor:false` (`pid` = id d'étape/de Round) n'entre JAMAIS dans la dérivation.
  */
 import { describe, it, expect } from 'vitest';
-import { FLOW_VERBS, participantOwnedIntents, flowActionName } from './flowVerbs';
-import { intentAllowedFor, ROUTES } from './netOwnership';
+import { FLOW_VERBS, participantOwnedIntents, flowActionName } from '../noyau/flowVerbs';
+import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
 import { COMBAT_INTENTS } from './intents';
 import type { GameState } from './store';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; pidIsActor?: boolean };

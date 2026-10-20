@@ -1,16 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
-import { partyMoneyTotal } from '../state/bourseFlow';
-import { placeServices, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../state/worldMap';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { placeServices, placeServiceMerchantId, serviceIcon, poiIcon, type ResolvedPlaceService, type MapPlace } from '../noyau/worldMap';
 import type { Scene } from '../noyau/monde/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
-import { restServicePrice, type RestPlaces } from '../state/restFlow';
+import { restServicePrice, type RestPlaces } from '../noyau/restFlow';
 import { libelleOuAbsence } from '../data';
 import { findLandCargoById, findLandCargoEntryById } from '../engine/landCargo';
 import { findCargoEntryById, isEchangeable } from '../engine/seaVoyage';
 import { isTradeHubEntry } from '../engine/cargo';
-import { innGatherInfoMinutes } from '../state/innFlow';
+import { innGatherInfoMinutes } from '../noyau/innFlow';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
 import { Tabs, type TabItem } from './composites/Tabs';
@@ -135,7 +135,7 @@ export function CityHubScreen({
   const renderServiceDetail = (svc: ResolvedPlaceService | undefined): React.ReactNode => {
     if (!svc) return <p className="city-hub-empty">Ce lieu n’offre encore aucun service.</p>;
     // `svc.desc` vient TOUJOURS du catalogue `lieux-services.json` (`placeServices`,
-    // `state/worldMap.ts:317-348` : `desc: def?.desc`), où `svc.id` EST l'id de l'entrée.
+    // `noyau/worldMap.ts:317-348` : `desc: def?.desc`), où `svc.id` EST l'id de l'entrée.
     const porteurSvc = { type: 'lieux-services', id: svc.id, chemin: 'desc' };
     if (svc.category === 'auberge') {
       return (

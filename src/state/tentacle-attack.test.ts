@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { availableAttacks } from './combatFlow';
+import { availableAttacks } from '../noyau/combatManeuvers';
 import { createHero } from '../engine/character';
 import { recomputeLoadout, damageString } from '../engine/items';
 import { attachMutation } from '../engine/corruption';

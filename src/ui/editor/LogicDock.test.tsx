@@ -2,11 +2,11 @@ import { flowFromEffects } from '../../noyau/monde/flow';
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { emptyScene } from '../../noyau/monde/scene';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { LogicDock } from './LogicDock';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import { effectSummary } from './EffectList';
-import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 
 const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE };
 

@@ -11,7 +11,7 @@
  *                                                           (projet exporté par l'éditeur : COORDONNÉES de case,
  *                                                            aucune grille ASCII n'existant derrière)
  */
-import { auditStairwells, builtTerrains, floorPairs, PLAN_DEFECT_FAMILIES, scenePlanDefects, scenesZ, terrainAt, type PlanDefect, type PlanDefectFamily, type PlanDefectFamilyDef } from '../../src/state/planDefects';
+import { auditStairwells, builtTerrains, floorPairs, PLAN_DEFECT_FAMILIES, scenePlanDefects, scenesZ, terrainAt, type PlanDefect, type PlanDefectFamily, type PlanDefectFamilyDef } from '../../src/noyau/planDefects';
 import { estAbsent } from '../../src/noyau/monde/terrain';
 import { codedSites, coord, projectSites, type Site } from './sites';
 import { findMaps, MAP_REGISTRY, type MapEntry } from './registry';
@@ -27,7 +27,7 @@ if (!sceneArg) {
 }
 
 /** Numéro de rubrique = rang dans `PLAN_DEFECT_FAMILIES` (source unique des titres et des sujets,
- *  `state/planDefects`) — la numérotation est un fait d'AFFICHAGE, elle ne vit pas en donnée. */
+ *  `noyau/planDefects`) — la numérotation est un fait d'AFFICHAGE, elle ne vit pas en donnée. */
 const familyNo = (id: PlanDefectFamily) => PLAN_DEFECT_FAMILIES.findIndex((f) => f.id === id) + 1;
 
 function report(entry: MapEntry): void {

@@ -10,15 +10,15 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { resetSceneRegistry } from './registreDesScenes';
+import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { presetPnjById } from './campaignData';
-import { objetDuNarratif } from './resolveursDuNarratif';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
-import type { WorldMap } from './worldMap';
+import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { WorldMap } from '../noyau/worldMap';
 import { makePregens } from '../data/pregens';
 import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
 
 function fakeStorage(): Storage {

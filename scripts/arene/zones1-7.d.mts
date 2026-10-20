@@ -1,5 +1,5 @@
 import type { AreneSceneFactory } from './scenes.d.mts';
-import type { DocumentNarratif } from '../../src/state/campaignNarratif';
+import type { DocumentNarratif } from '../../src/noyau/monde/campaignNarratif';
 
 export const makeZone1: AreneSceneFactory;
 export const makeZone2: AreneSceneFactory;

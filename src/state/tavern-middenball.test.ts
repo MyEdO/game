@@ -8,7 +8,7 @@
  *
  * COMPOSITION DES CAMPS : chaque camp est complété à 11 par des figurants PNJ à valeur simple ; les
  * héros portent leurs jets, les figurants roulent en témoins auto. La décision et sa citation vivent
- * au code qu'elle règle (`state/tavernFlow.ts`, section « JEUX D'ÉQUIPE »). L'effectif (11) est RAW et
+ * au code qu'elle règle (`noyau/tavernFlow.ts`, section « JEUX D'ÉQUIPE »). L'effectif (11) est RAW et
  * vit en donnée ; seule la VALEUR des figurants est maison, et elle est éditable.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -16,8 +16,8 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
-import { tavernGameValue } from './tavernFlow';
-import { pnjAuProfil } from './sceneNpc';
+import { tavernGameValue } from '../noyau/tavernFlow';
+import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 

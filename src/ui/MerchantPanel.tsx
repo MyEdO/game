@@ -6,7 +6,7 @@ import { craftPriceFactor } from '../engine/qualities/craftEconomy';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { Row } from './Layout';
 import { bargainBuyFactor, bargainPct } from '../engine/bargain';
-import { verdictDeVente } from '../state/flowOutcomes';
+import { verdictDeVente } from '../noyau/flowOutcomes';
 import { compareEquip } from '../engine/equipCompare';
 import { itemFromTrappingById, isWeaponActive, damageString, isShieldTrapping } from '../engine/items';
 import { mountProfileForCreature } from '../engine/mountTravel';
@@ -14,13 +14,13 @@ import { rangeSpecLabel, ammoRangeModLabel } from './weaponStats';
 import type { WeaponDamageSpec, WeaponRangeSpec, AmmoRangeMod } from '../engine/types';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus } from '../state/merchantFlow';
+import { sellGain, barterQuote, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { SceneEntity } from '../noyau/monde/scene';
-import { MERCHANTS } from '../state/merchants';
+import { MERCHANTS } from '../noyau/monde/merchants/archetypes';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose, mdToText } from './Prose';
@@ -34,7 +34,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
 import { AVAILABILITIES } from '../engine/types';
-import { nomDEntite } from '../state/sceneNpc';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 
 type MerchantState = NonNullable<ReturnType<typeof useGame.getState>['merchant']>;
@@ -91,7 +91,7 @@ const SHIELD_FAMILY = merchantFamilies.find((f) => f.match.shield)?.id ?? 'diver
 const FALLBACK_FAMILY = merchantFamilies.find((f) => !f.match.categorie && !f.match.shield && !f.match.unit)?.id ?? 'divers';
 const FAMILY_BY_TRAPPING_CATEGORIE = new Map(merchantFamilies.filter((f) => f.match.categorie).map((f) => [f.match.categorie as string, f.id]));
 
-/** Famille d'une ligne de stock — `catalogEntryOf` (SOURCE UNIQUE, `state/merchantFlow.ts`) tranche
+/** Famille d'une ligne de stock — `catalogEntryOf` (SOURCE UNIQUE, `noyau/merchantFlow.ts`) tranche
  *  d'abord si c'est une UNITÉ (#619 Lot A) avant de retomber sur la classification trapping. Priorité
  *  de SPÉCIFICITÉ (dérivée de `merchantFamilies.json:match`) : unit → shield → categorie → fallback. */
 function familyOf(id: string): string {

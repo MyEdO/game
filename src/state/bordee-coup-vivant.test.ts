@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { jouerLesTirsDeBordee } from './combatFlow';
-import { draineCascade } from './cascadeTestKit';
+import { jouerLesTirsDeBordee } from '../noyau/combatFlow';
+import { draineCascade } from './cascade.testkit';
 import { resolveVolley } from '../engine/volley';
 import { setRule, resetRule } from '../engine/policy';
 import type { RNG } from '../engine/dice';

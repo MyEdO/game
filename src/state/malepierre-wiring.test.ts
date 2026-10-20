@@ -7,8 +7,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { castNearCorruption } from './combatFlow';
-import { FLOWS } from './rollFlowSpecs';
+import { castNearCorruption } from '../noyau/combatFlow';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { pregen, PREGEN } from '../data/pregens';
 import { itemFromTrappingById } from '../engine/items';
 import { setRule, resetRule } from '../engine/policy';

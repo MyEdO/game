@@ -16,11 +16,11 @@
  * et non par la cible. Une seule chaîne d'activation, donc, et le nom de l'arête lisible au survol, rendu
  * par ce `<title>` natif.
  *
- * Sa population EST celle du dériveur (`state/aretes.ts:aretesUtilisables`) : il ne refiltre ni la
+ * Sa population EST celle du dériveur (`noyau/aretes.ts:aretesUtilisables`) : il ne refiltre ni la
  * couche active ni le brouillard, sinon peintre et chaîne offriraient deux gestes différents.
  */
 import type { ReactNode } from 'react';
-import type { AreteUtilisable, CapaciteArete } from '../../state/aretes';
+import type { AreteUtilisable, CapaciteArete } from '../../noyau/aretes';
 import type { AreteProjetee, PointEcran } from './aretesProjetees';
 import { GOLD_TINT } from '../highlightTints';
 

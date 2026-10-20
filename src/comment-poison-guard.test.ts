@@ -64,7 +64,7 @@ const GARDE = {
       '(« une entrée portant déjà `id` et plus de `key` », « le nœud scellé n’expose plus de `.shape` ») — seule la ' +
       'NATURE révolue (« n’est plus du code ») y entre, à 1 site mesuré.',
     'Le SITE quitté n’est mesuré que devant l’adverbe de PROXIMITÉ : l’adverbe de DISTANCE reste HORS de la ' +
-      'famille tombale — 5 sites mesurés le 2026-09-05 (`src/state/partyFlow.ts:767`, `src/state/combat/triggeredTest.ts:375`, ' +
+      'famille tombale — 5 sites mesurés le 2026-09-05 (`src/noyau/partyFlow.ts:767`, `src/noyau/combat/triggeredTest.ts:375`, ' +
       '`src/state/poste-ammo.test.ts:159`, `src/gameIso/stage/entree-en-scene-demontage.test.tsx:12`, ' +
       '`src/gameIso/backends/webgl/cacheBorne.ts:149`), tous une absence À L’EXÉCUTION, aucun une tombale.',
     'Le DÉPART au passé composé n’est mesuré que collé à un artefact BACK-TICKÉ : sans lui, la forme reste HORS de la ' +
@@ -518,7 +518,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
   });
 
   it('dette laissée EN ATTENTE D’ARBITRAGE = excuse ; le POINTEUR vers le ticket reste admis', () => {
-    // Verbatim du site réel `src/state/combatFlow.ts` (reformulé dans le même geste) : la divergence
+    // Verbatim du site réel `src/noyau/combatFlow.ts` (reformulé dans le même geste) : la divergence
     // y était renvoyée à une décision que personne ne portait et qu'aucune date n'échéançait.
     expect(untaggedExcuseMatch('// divergence MESURÉE, en attente d\'arbitrage (#1265).')).not.toBeNull();
     expect(untaggedExcuseMatch('// en attente d’un arbitrage utilisateur')).not.toBeNull();

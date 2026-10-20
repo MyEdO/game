@@ -22,7 +22,7 @@ for(const f of files){let t;try{t=fs.readFileSync(f,'utf8');}catch{continue;}
   for(const s of specsOf(t)){const r=resolve1(f,s);if(r){edges++;if(!rev.has(r))rev.set(r,[]);rev.get(r).push(f);}}}
 console.log('fichiers',files.length,'aretes',edges);
 const reach=(t)=>{const seen=new Set([t]);const st=[t];while(st.length){const c=st.pop();for(const p of rev.get(c)||[])if(!seen.has(p)){seen.add(p);st.push(p);}}return [...seen].filter(isTest);};
-for(const t of ['/src/data/careers.json','/src/engine/combat.ts','/src/ui/RollShell.tsx','/scripts/guards/lib/structuresStock.mjs','/src/data/index.ts','/src/state/combatFlow.ts','/src/data/schemas/types.ts','/src/engine/ops.ts']){
+for(const t of ['/src/data/careers.json','/src/engine/combat.ts','/src/ui/RollShell.tsx','/scripts/guards/lib/structuresStock.mjs','/src/data/index.ts','/src/noyau/combatFlow.ts','/src/data/schemas/types.ts','/src/engine/ops.ts']){
   console.log(t,'-> tests reliés:',reach(REPO+t).length);
 }
 console.log('total tests:',files.filter(isTest).length);

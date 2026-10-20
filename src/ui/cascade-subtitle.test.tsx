@@ -18,7 +18,7 @@ import { CascadeBody } from './CascadeModal';
 import { dieStep } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import type { CascadeStep } from '../noyau/pendings';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

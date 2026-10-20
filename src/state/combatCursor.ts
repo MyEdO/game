@@ -6,17 +6,17 @@
  * `battleClickEntity`/`battleClickTile`. Zéro chemin parallèle.
  */
 import type { Pt } from '../noyau/monde/path';
-import type { Get, Set } from './flowTypes';
+import type { Get, Set } from '../noyau/flowTypes';
 import type { GameState } from './store';
 import type { Combatant } from '../engine/types';
 import { tileCenter, type Dims } from '../geometry/iso';
 import { isWalkable, liftDe, tileAt, type Scene } from '../noyau/monde/scene';
 import { estAbsent } from '../noyau/monde/terrain';
 import { combatantAtTile } from '../noyau/monde/combatGeometry';
-import { combatantClickActs } from './combatOrParty';
-import { currentTargetingMode, type TargetingMode } from './targetingModes';
-import { cycleTarget, cyclePrevTarget, cursorActor } from './targeting';
-import { refuserGeste } from './refusVisible';
+import { combatantClickActs } from '../noyau/combatOrParty';
+import { currentTargetingMode, type TargetingMode } from '../noyau/targetingModes';
+import { cycleTarget, cyclePrevTarget, cursorActor } from '../noyau/targeting';
+import { refuserGeste } from '../noyau/refusVisible';
 import { viewYawDeg } from './stageYaw';
 import { t } from '../i18n';
 

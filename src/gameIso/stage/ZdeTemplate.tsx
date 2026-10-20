@@ -5,13 +5,14 @@ import type { JSX } from 'react';
  * l'ouvre). Contour POINTILLÉ ROUGE ANIMÉ (fourmis) + remplissage ; gris quand la case est invalide
  * (hors portée OU hors Ligne de Vue). INTERACTION (suit le survol) → overlay du stage, hors builders.
  */
-import { useGame, type BattleState, type PendingCast, type PendingSiegeAim } from '../../state/store';
+import { useGame, type BattleState } from '../../state/store';
+import { type PendingCast, type PendingSiegeAim } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
 import { zdeRadiusTiles, spellRangeTiles } from '../../engine/magic';
 import { findSpellById } from '../../data';
-import { placingZoneOf, placedZoneValidAt, castSightBlocked } from '../../state/combatFlow';
+import { placingZoneOf, placedZoneValidAt, castSightBlocked } from '../../noyau/combatFlow';
 import { Dims, diamondPath, diamondCorners } from '../../geometry/iso';
-import { chebyshev } from '../../noyau/monde/path';
+import { chebyshev } from '../../engine/grid';
 import type { Pt } from '../../noyau/monde/path';
 import { ENEMY_CUE_TINT, INVALID_TINT } from '../highlightTints';
 

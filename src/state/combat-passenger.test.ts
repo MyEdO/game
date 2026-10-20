@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { combatOrder } from './combatSetup';
-import { isPassengerInBattle } from './shipPostes';
+import { combatOrder } from '../noyau/combatSetup';
+import { isPassengerInBattle } from '../noyau/monde/shipPostes';
 import type { Combatant } from '../engine/types';
 
 // PASSAGER = membre d'ÉQUIPAGE d'une coque, à l'échelle MER : le navire agit en UNITÉ (MDG 14 l.39) → pas de

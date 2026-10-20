@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from '../../noyau/monde/scene';
 import { propFootTiles } from '../../noyau/monde/footprint';
-import { entityAt } from '../../state/sceneEdit';
+import { entityAt } from '../../noyau/sceneEdit';
 import { validateScene } from '../../state/validateScene';
 import { buildProps } from '../../gameIso/builders/props';
 import { estPropVolumique } from '../../gameIso/builders/types';
@@ -49,10 +49,11 @@ import {
   clearEffectZoneCarve,
 } from './editorState';
 import type { Sel } from './editorState';
-import { EMPTY_FLOW, type Flow } from '../../noyau/monde/flow';
+import { type Flow } from '../../noyau/monde/flow';
+import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Effect } from '../../noyau/monde/scene';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
-import { nomDEntite } from '../../state/sceneNpc';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
 
 function sceneWith(): Scene {
   const s = emptyScene(10, 10);

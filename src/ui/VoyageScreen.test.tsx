@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import type { CampaignVessel } from '../state/store';
 import type { Combatant } from '../engine/types';
-import type { TravelPlan } from '../state/travelFlow';
+import type { TravelPlan } from '../noyau/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';
 import { voyageMode, voyageTiles, voyageDayCards, dayAgenda, etaLabel, etaJours, VoyageTileView } from './VoyageScreen';
-import type { TravelRecapDay } from '../state/travelFlow';
+import type { TravelRecapDay } from '../noyau/travelFlow';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { moraleBand } from '../engine/crewMorale';
-import { voyageStepPending } from '../state/modalArbiter';
+import { voyageStepPending } from '../noyau/modalArbiter';
 import type { PendingCascade, CascadeStep } from '../noyau/pendings';
-import type { PendingRest } from '../state/store';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import type { PendingRest } from '../noyau/restFlow';
+import { cascadeDeTest } from '../state/cascade.testkit';
 
 const cascadeStep = (kind: string): CascadeStep => ({ id: kind, kind, result: null } as CascadeStep);
 const cascade = (participants: CascadeStep[], cursor: number, purpose: PendingCascade['purpose'] = 'travelDay'): PendingCascade =>

@@ -1,7 +1,7 @@
 import { pregen, PREGEN } from '../../data/pregens';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { crewFormationSlots } from '../../state/shipPostes';
-import { buildScene } from '../../state/mapSpec';
+import { crewFormationSlots } from '../../noyau/monde/shipPostes';
+import { buildScene } from '../../noyau/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';

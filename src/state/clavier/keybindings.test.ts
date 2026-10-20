@@ -8,10 +8,10 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { KEYBINDINGS, bindingParId, formatCombo, modsDeLaTouche, modsMatch, type KeyBinding } from './keybindings';
-import { modalHolds, pickActiveModalKey } from '../modalArbiter';
+import { modalHolds, pickActiveModalKey } from '../../noyau/modalArbiter';
 import type { GameState } from '../store';
-import { spawnEnemy } from '../spawn';
-import { cascadeDeTest } from '../cascadeTestKit';
+import { spawnEnemy } from '../../noyau/monde/spawn';
+import { cascadeDeTest } from '../cascade.testkit';
 
 const binding = (id: string) => bindingParId(id)!;
 

@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import type { GameState } from './store';
-import type { FLOW_VERBS } from './flowVerbs';
+import type { FLOW_VERBS } from '../noyau/flowVerbs';
 import {
   CLASSE_DES_ACTIONS, GUEST_INTENTS, PARTY_INTENTS, INTERLUDE_INTENTS, sanitizeIntentArgs,
   type ActionManuscrite, type ClasseCoop, type Ouverture, type TableDesClasses,

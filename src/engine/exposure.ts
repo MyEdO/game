@@ -15,7 +15,7 @@
  * 3ᵉ+ → 1d10 Dégâts ignorant les PA (min 1). « Vous débarrasser d'une Possession lourde annule
  * 1 Test échoué » (LDB 18 l.332) : IMPLÉMENTÉ où l'architecture le permet (choix du joueur, cf.
  * `heaviestPossession`/`dropHeaviestPossession` — la CONSÉQUENCE vit dans l'applier de cascade
- * partagé `state/restFlow.ts`, seul point où l'Exposition se résout Test par Test).
+ * partagé `noyau/restFlow.ts`, seul point où l'Exposition se résout Test par Test).
  *
  * La cadence (2h/4h ci-dessus) est LE SEUL chiffre du RAW ; son application à une NUIT dehors (un
  * nombre de Tests), l'annulation par une Tente (LDB 74 — silence) et la dissipation des pénalités

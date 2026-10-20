@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { ouvrirDialogue, reponsesDuNoeud } from '../../state/dialogue';
+import { ouvrirDialogue, reponsesDuNoeud } from '../../noyau/dialogue';
 import { runBindingById } from '../../state/clavier/keybindings';
 import { scenario } from './dialogue-multi';
 const scenarioConstruit = scenario.construire();

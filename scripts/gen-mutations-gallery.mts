@@ -10,7 +10,7 @@ import React from 'react';
 import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
 import { combatantOverlays, combatantAppearance } from '../src/gameIso/rig/parts/combatantVisuals';
-import { spawnEnemy } from '../src/state/spawn';
+import { spawnEnemy } from '../src/noyau/monde/spawn';
 import { EYE_OPTIONS } from '../src/gameIso/rig/parts/eyes';
 import { idsPhysiques, mutationById } from '../src/data/mutations';
 import type { Mutation } from '../src/engine/corruption';

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';
 import { emptyScene, heightAt, type Scene, type Terrain } from '../noyau/monde/scene';
-import { aiApproachPlan } from './combatFlow';
+import { aiApproachPlan } from '../noyau/combatFlow';
 import { makeRNG } from '../engine/dice';
 import { tileKey, type Pt } from '../noyau/monde/path';
 

@@ -15,8 +15,8 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
  * (`type: 'scene'`) et le schéma l'EXIGE (#1552) — même régime que le statbloc embarqué
  * (`./communs.ts` `customStatblockSchema`, `type: 'statblock'`). Son identité est NOMINALE, jamais
  * positionnelle : mesuré sur les 2 racines de `src/scenes` (4 projets, 28 scènes), 28/28 portent
- * `id` ET `label`, et le jeu résout une scène PAR ID — `sceneRegistry` (`src/state/registreDesScenes.ts`,
- * `registerScene`), le delta d'instance persisté par `sceneId` (`src/state/sceneInstance.ts:9`),
+ * `id` ET `label`, et le jeu résout une scène PAR ID — `sceneRegistry` (`src/noyau/monde/registreDesScenes.ts`,
+ * `registerScene`), le delta d'instance persisté par `sceneId` (`src/noyau/monde/sceneInstance.ts:9`),
  * l'effet `transition: { scene }` et `worldMap.places[].scene`.
  */
 import { tableTotale } from '../../../lib/tableTotale';
@@ -332,7 +332,7 @@ export const ambianceSchema = z.enum(['interieur', 'exterieur']);
 export const PENTE_TOIT_DEG = { min: 5, max: 75 } as const;
 /**
  * TOITURE PAR DÉFAUT de la scène (#1715) — les trois valeurs que la dérivation des masses LIT quand
- * ni le corps ni le TYPE de bâtiment ne les surchargent (`toitureEffective`, `state/sceneEdit.ts`).
+ * ni le corps ni le TYPE de bâtiment ne les surchargent (`toitureEffective`, `noyau/sceneEdit.ts`).
  *
  * Le champ est EXIGÉ sur la scène : la dérivation n'a plus AUCUN choix de toiture à faire, donc aucun
  * repli à offrir — une scène qui n'en porte pas est refusée AU PARSE, nommément. Pas de `profile`
@@ -344,7 +344,7 @@ export const sceneRoofDefaultsSchema = nommerChamps(z.strictObject({
    *  bâtiment du corps (`buildings.json › roofMaterial`) et le corps lui-même passent avant. */
   material: couvertureSchema,
   /** Pente de RÉFÉRENCE en DEGRÉS : la plus RAIDE que la dérivation pose. `fittedPitchDeg`
-   *  (`state/sceneEdit.ts`) la rabat jusqu'à ce que le comble tienne dans `riseMaxStoreys`. Bornée à
+   *  (`noyau/sceneEdit.ts`) la rabat jusqu'à ce que le comble tienne dans `riseMaxStoreys`. Bornée à
    *  `PENTE_TOIT_DEG` — la MÊME plage que celle dont `validateScene.ts` signale la sortie sur une
    *  masse matérialisée : une toiture plate ou verticale n'est pas une toiture. */
   pitchDeg: z.number().min(PENTE_TOIT_DEG.min).max(PENTE_TOIT_DEG.max),
@@ -364,11 +364,11 @@ export const sceneRoofDefaultsSchema = nommerChamps(z.strictObject({
  *  en descendant : il désigne la PLAGE d'étages que la masse coiffe (`roomZoneIds`, couverture,
  *  chevauchement), jamais une hauteur. `footprint` doit être CONTIGU (4-connexe) et
  *  coïncider EXACTEMENT avec le plancher intérieur réel à l'étage `z` — fail-fast dans `buildScene`
- *  sinon (`validateBuildingMasses`, `state/mapSpec.ts`), pas une redevance silencieuse.
+ *  sinon (`validateBuildingMasses`, `noyau/mapSpec.ts`), pas une redevance silencieuse.
  *
  *  Note #829 : `ArchitectureBody.masses` déclarées ici sont des SURCHARGES, plus la règle. Par défaut,
  *  `buildScene` DÉRIVE les masses manquantes depuis le plancher réel (`deriveArchitectureMasses`,
- *  `state/sceneEdit.ts`) — éditer un mur/une pièce fait suivre la toiture sans redéclaration. Une masse
+ *  `noyau/sceneEdit.ts`) — éditer un mur/une pièce fait suivre la toiture sans redéclaration. Une masse
  *  authorée ici CORRIGE la dérivation là où elle se trompe (passage couvert, appentis,
  *  cour à ne pas coiffer via `ArchitectureBody.roofExclusions`, encorbellement voulu). */
 export const buildingMassSchema = nommerChamps(z.strictObject({
@@ -386,7 +386,7 @@ export const buildingMassSchema = nommerChamps(z.strictObject({
   ridge: z.enum(['x', 'y']).optional(),
   /** Côté d'égout bas — OBLIGATOIRE pour `shed` (aucun défaut deviné), ignoré sinon. */
   eaveSide: eaveSideSchema.optional(),
-  /** Masse POSÉE par la dérivation (`deriveArchitectureMasses`, `state/sceneEdit.ts`) et non par un
+  /** Masse POSÉE par la dérivation (`deriveArchitectureMasses`, `noyau/sceneEdit.ts`) et non par un
    *  auteur : re-calculable à volonté — toute re-dérivation jette ces masses et les refait depuis le
    *  plan et `ArchitectureBody.roofDefaults`. Une masse SANS ce drapeau est une SURCHARGE authorée,
    *  jamais écrasée. C'est ce qui rend la dérivation IDEMPOTENTE, donc rejouable dans l'éditeur
@@ -610,7 +610,7 @@ export const encounterDefSchema = nommerChamps(z.strictObject({
    *  `victoryCondition: destroyStructure` ne l'active pas d'elle-même). Résolu par `siegeActif`
    *  (SEUL point), consommé par `buildAiInput`. Le drapeau ne change ni les dégâts ni l'immunité
    *  (`structureImmune`), ni le ciblage JOUEUR. HOMONYMES sans rapport : `siegesRequis` (sièges de
-   *  coop, `state/netOwnership.ts`), le décor `siege` (fauteuil), l'Atout d'arme `siege`
+   *  coop, `noyau/netOwnership.ts`), le décor `siege` (fauteuil), l'Atout d'arme `siege`
    *  (`ADE II 08 l.292`). */
   siege: z.boolean().optional(),
   couvre: couvreSchema.optional(),
@@ -656,7 +656,7 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   z: z.number().optional(),
   couvre: couvreSchema.optional(),
 }).superRefine((zone, ctx) => {
-  // Une PIÈCE vit à l'étage `zone.z` (`state/rooms.ts`, `roomTiles`) : une case d'un autre étage est refusée.
+  // Une PIÈCE vit à l'étage `zone.z` (`noyau/monde/rooms.ts`, `roomTiles`) : une case d'un autre étage est refusée.
   if (zone.presentation !== 'interior') return;
   const etage = zone.z ?? 0;
   (zone.tiles ?? []).forEach((t, i) => {
@@ -718,13 +718,13 @@ export const wallSegSchema = nommerChamps(z.strictObject({
   /** Croisée aux VOLETS CLOS — arbitrage #1712 (2026-09-08). Exige `window`. */
   shuttered: z.boolean().optional(),
   /** Croisée FRANCHISSABLE — #700 ; `LDB 15 l.82`, `LDB 15 l.55` (maison). Exige `window`. Geste
-   *  explicite (`state/fallMove.ts`), jamais un pas de pathfinding (arbitrage #1712, 2026-09-08). */
+   *  explicite (`noyau/fallMove.ts`), jamais un pas de pathfinding (arbitrage #1712, 2026-09-08). */
   crossable: z.boolean().optional(),
   /** Hauteur d'ALLÈGE (m) de la croisée, enjambée à mi-vitesse sans Test — `LDB 15 l.55` ; arbitrage #700
-   *  (2026-10-04). Exigée par `crossable`, et l'exige. Lue par `state/fallMove.ts`. */
+   *  (2026-10-04). Exigée par `crossable`, et l'exige. Lue par `noyau/fallMove.ts`. */
   allege: z.number().min(0).optional(),
   /** Hauteur de chute (m) de qui SE SUSPEND d'abord à la croisée — `EDO 01 l.231`. Exige `crossable`.
-   *  Offerte par `state/fallMove.ts` seulement sous la hauteur géométrique du saut. */
+   *  Offerte par `noyau/fallMove.ts` seulement sous la hauteur géométrique du saut. */
   suspendu: z.number().positive().optional(),
   /** Porte SECRÈTE — `EDO 08 l.404`. Exige `door` ET `closed`. Masquée tant que non révélée
    *  (`porteEnJeu`, `setDoorRevealed`, `noyau/monde/scene.ts`). */
@@ -732,7 +732,7 @@ export const wallSegSchema = nommerChamps(z.strictObject({
   /** ESCALADABLE (`LDB 15 l.53-57`) : l'arête sépare deux surfaces de hauteurs différentes (une FALAISE au
    *  sens `surfaceLink` — infranchissable à pied) qu'un Personnage peut GRIMPER.
    *  Bloque toujours passage+vue comme un mur PLEIN (une falaise n'est pas une ouverture) : la grimpe est
-   *  un geste EXPLICITE, pas un franchissement de pathfinding. Résolu par `state/climbMove`. */
+   *  un geste EXPLICITE, pas un franchissement de pathfinding. Résolu par `noyau/monde/climbMove`. */
   climb: wallClimbSchema.optional(),
 }).superRefine((w, ctx) => {
   if (w.secret && !w.door) ctx.addIssue({ code: 'custom', path: ['secret'], message: 'porte secrète (`secret`) sans `door: true` — seule une porte peut être secrète' });
@@ -755,8 +755,8 @@ export const wallSegSchema = nommerChamps(z.strictObject({
  * seule lecture de « quels segments tiennent cette arête ? », et ses consommateurs prennent le
  * PREMIER (`aretesA(...)[0]`, composé par `gameIso/builders/roofs.ts`) : un second segment sur la
  * même clé `x,y,side,z` serait une donnée MUETTE, jamais rendue ni lue. `setEdgeWall`
- * (`state/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap` et les
- * documents relus par la porte (`parseProject`, `parseSceneDeProjet`, `state/worldMap.ts`) ne passent
+ * (`noyau/sceneEdit.ts`) dédoublonne à la pose, mais l'authoring littéral, `asciiMap` et les
+ * documents relus par la porte (`parseProject`, `parseSceneDeProjet`, `noyau/worldMap.ts`) ne passent
  * pas par lui : le verrou est ICI. La clé est la MÊME graphie que l'index d'arêtes.
  */
 const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): string => `${w.x},${w.y},${w.side},${w.z ?? 0}` };

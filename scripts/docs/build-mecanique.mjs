@@ -73,7 +73,7 @@ function rendu() {
   const CAPACITE = declaration(CAPS, 'hasCapability')
   const CAP_ITEM = declaration(CAPS, 'itemCapability')
   const CAP_TRAIT = declaration('src/engine/traits/dispatch.ts', 'traitCapability')
-  const HOOKS = declaration('src/state/combatHooks.ts', 'registerCombatHook')
+  const HOOKS = declaration('src/noyau/combatHooks.ts', 'registerCombatHook')
 
   // ── ANNULATION d'une capacité par un AUTRE trait porté (`suppressesCapabilities`) ─────────────────
   // Le site de lecture est cherché DANS le corps de `traitCapability` : si la clause disparaît, le
