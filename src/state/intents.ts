@@ -284,7 +284,7 @@ export const CLASSE_DES_ACTIONS = {
   rotateCam: 'interne', toggleViewMode: 'interne', togglePov: 'interne', setReveler: 'interne', moveCursor: 'interne',
   snapCursorToTarget: 'interne', commitCursor: 'interne', battleArmIntent: 'interne',
   // ── Machinerie d'hôte : scène, temps, groupe, combat, IA, journal ─────────────────────────────
-  startScene: 'interne', setParty: 'interne', seedRng: 'interne', log: 'interne', autoSave: 'interne', advanceTime: 'interne',
+  startScene: 'interne', setParty: 'interne', seedRng: 'interne', log: 'interne', autoSave: 'interne', avancerLHorloge: 'interne', advanceTime: 'interne',
   resumeCadence: 'interne', moveParty: 'interne', stepPartyDir: 'interne', stepPartyRelative: 'interne',
   sauter: 'interne', actionnerLaPorte: 'interne',
   pivotParty: 'interne', restParty: 'interne', setPendingInteract: 'interne', jouerAction: 'interne',

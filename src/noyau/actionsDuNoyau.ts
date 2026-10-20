@@ -751,7 +751,10 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre,
    *  et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
   log: (msg: string | string[]) => void;
-  /** Avance l'horloge in-game de `minutes` (no-op si ≤ 0) et émet TIME_ADVANCED (#T3 cascade). */
+  /** Écrivain UNIQUE de l'avance de `gameTime` : pose l'horloge, tire les effets programmés échus
+   *  (`fireScheduledEffects`, #668) puis dissipe les effets à durée d'horloge échus (`purgeSurAvanceDHorloge`, #1599). */
+  avancerLHorloge: (minutes: number) => void;
+  /** Avance l'horloge in-game de `minutes` (no-op si ≤ 0) par `avancerLHorloge`, puis ce qui la suit hors combat (#T3 cascade). */
   advanceTime: (minutes: number) => void;
   /** « Dormir / Se reposer N jours » (hors combat) : repos de `days` journée(s) — retire l'Exténué,
    *  soigne des Blessures (l.380 volet a Résistance +20 → DR+BE, ET volet b +BE/jour) et déclenche les
