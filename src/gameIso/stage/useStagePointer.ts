@@ -21,20 +21,16 @@
  */
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
-import { toggleDoorIn } from '../../noyau/monde/scene';
 import { entityBlockedAt } from '../../noyau/monde/sceneRules';
 import { ficheDEntite, sceneNpc } from '../../noyau/monde/sceneNpc';
 import { walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';
-import { aPorteeDe, exploreMovePlan, exploreSeatPlan, mouvementDuGroupe, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
+import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
 import { meneurDuMonde } from '../../noyau/monde/combatants';
 // `t` est déjà le nom local de la TUILE survolée dans ce module : la traduction s'y importe sous son
 // rôle, sans rebaptiser trente sites de pointeur.
 import { t as message } from '../../i18n';
-import { planJump } from '../../noyau/monde/jumpMove';
-import { refuserGeste } from '../../noyau/refusVisible';
-import { runFlow, jouerFlowEntier } from '../../noyau/combatEffects';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
@@ -229,25 +225,9 @@ export function useStagePointer({
       const cur = path[i];
       const dist = chebyshev(cur, prev);
       if (dist > 1) {
-        // SAUT par-dessus un gouffre. Élan = pas contigus en ligne droite menant au décollage.
-        const jdx = Math.sign(cur.x - prev.x), jdy = Math.sign(cur.y - prev.y);
-        let runUp = 0;
-        for (let k = i - 1; k > 0; k--) {
-          const a = path[k], b = path[k - 1];
-          if (Math.sign(a.x - b.x) === jdx && Math.sign(a.y - b.y) === jdy && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1) runUp++;
-          else break;
-        }
-        const jumpPlan = planJump(currentScene, prev, cur, mouvementDuGroupe(st.party), runUp);
-        if (jumpPlan.kind === 'none') {
-          refuserGeste(useGame.getState, useGame.setState, message('saut.aucuneSurface'));
+        // SAUT par-dessus un gouffre (`sauter`) : la marche ne reprend que si le saut la laisse continuer.
+        if (!st.sauter(path, i)) {
           movingRef.current = false;
-          return;
-        }
-        if (partyLeader) bus.emit(EVT.ANIM_MOVE, { id: partyLeader.id, path: [prev, cur] });
-        st.moveParty(cur);
-        if (jumpPlan.kind === 'test') {
-          jouerFlowEntier(runFlow(useGame.getState, useGame.setState, jumpPlan.flow));
-          movingRef.current = false; // on s'arrête au saut : le joueur reclique pour continuer
           return;
         }
         i++;
@@ -273,24 +253,12 @@ export function useStagePointer({
   const activatePortal = (portal: RoomPortal) => {
     const st = useGame.getState();
     if (st.dialogue || !st.scene) return;
-    if (st.mode === 'battle') {
-      if (portal.kind === 'passage') return;
-      useGame.setState({
-        scene: toggleDoorIn(st.scene, portal.edge.x, portal.edge.y, portal.edge.side, portal.z),
-      });
-      bus.emit(EVT.SCENE_DIRTY);
+    if (st.actionnerLaPorte(portal)) {
       setAreteSurvolee(null);
       return;
     }
     if (st.mode !== 'exploration') return;
     const currentScene = st.scene;
-    if (portal.kind === 'door-closed') {
-      const openedScene = toggleDoorIn(currentScene, portal.edge.x, portal.edge.y, portal.edge.side, portal.z);
-      useGame.setState({ scene: openedScene });
-      bus.emit(EVT.SCENE_DIRTY);
-      setAreteSurvolee(null);
-      return;
-    }
     const plan = exploreMovePlan(currentScene, st.partyPos, portal.to, pathOpts());
     if (!plan) return;
     setHover(null);

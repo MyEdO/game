@@ -11,10 +11,11 @@ import { resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
 import { t } from '../i18n';
 import { makeRNG, hashSeed } from '../engine/dice';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 
 /** Sème les Possessions de dotation (`{creatureId}`/`{vehicleId}` des dotations de Classe/Carrière,
- *  #617/#618 SOCLE POSSESSIONS Lot 1) pour CHAQUE héros du groupe courant — SEAM = `store.ts`
+ *  #617/#618 SOCLE POSSESSIONS Lot 1) pour CHAQUE héros du groupe courant — SEAM = `noyau/entreeEnScene.ts`
  *  `startScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
  *  vidé ; `loadGame`/`transitionTo` ne repassent JAMAIS ici, cf. §3 du brief Lot 1 — le registre
  *  chargé d'une save fait foi, aucun re-semis). Garde anti-double-semis : un héros qui a déjà UNE
@@ -132,4 +133,18 @@ export function possessionsByOwner(get: Get, ownerId: string): Possession[] {
  *  part », elle est filtrée partout, `engine/possession.ts` PossessionCommon.destroyed). */
 export function possessionsByLocation(get: Get, location: PossessionLocation['kind']): Possession[] {
   return get().possessions.filter((p) => !p.destroyed && p.location.kind === location);
+}
+
+export function creerActionsDesPossessions(get: Get, set: Set) {
+  return {
+    addPossession: (p) => addPossession(get, set, p),
+    renamePossession: (uid, label) => renamePossession(get, set, uid, label),
+    transferPossession: (uid, newOwnerId) => transferPossession(get, set, uid, newOwnerId),
+    stablePossession: (uid, placeId) => stablePossession(get, set, uid, placeId),
+    retrievePossession: (uid) => retrievePossession(get, set, uid),
+    embark: (uid, hostUid) => embark(get, set, uid, hostUid),
+    disembark: (uid) => disembark(get, set, uid),
+    abandonPossession: (uid) => abandonPossession(get, set, uid),
+    learnPossessionTrait: (uid, traitId) => learnPossessionTrait(get, set, uid, traitId),
+  } satisfies Partial<ActionsDuNoyau>;
 }

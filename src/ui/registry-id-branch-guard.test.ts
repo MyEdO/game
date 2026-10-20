@@ -205,6 +205,7 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/monde/combatGeometry.ts': 1,
   'src/noyau/combatManeuvers.ts': 4,
   'src/noyau/combatSlice.ts': 1,
+  'src/noyau/gesteDArete.ts': 1, // `talentId === 'grimpeur'` (LDB 15 l.57)
   // RÉVÉLÉ (jamais neuf) par la résolution des constantes de module, L2 #1548 : `q.id === ARME_D_EQUIPE`
   // est un lookup par id stable d'une Qualité au registre — même patron que `healing`/`careerSlots`.
   'src/noyau/monde/commandTeam.ts': 1,
@@ -212,7 +213,6 @@ const RAW_KNOWN: Record<string, number> = {
   'src/noyau/interludeFlow.ts': 4,
   'src/noyau/mount.ts': 1,
   'src/noyau/seaVoyageFlow.ts': 3,
-  'src/state/store.ts': 1,
   'src/noyau/travelFlow.ts': 6,
   'src/noyau/travelPostes.ts': 2,
   'src/noyau/monde/vision.ts': 1,

@@ -78,6 +78,36 @@ function areteDe(scene: Scene, controleur: Pt, cle: string): AreteUtilisable {
   return arete;
 }
 
+/** Un héros à 12 de Mouvement : le saut de deux cases du banc ne demande pas de Test. */
+function heroSauteur(): Combatant {
+  return {
+    id: 'hero',
+    label: 'Héros',
+    kind: 'hero',
+    characteristics: {
+      'capacite-de-combat': 30,
+      'capacite-de-tir': 30,
+      force: 30,
+      endurance: 30,
+      initiative: 30,
+      agilite: 30,
+      dexterite: 30,
+      intelligence: 30,
+      'force-mentale': 30,
+      sociabilite: 30,
+    },
+    wounds: { current: 10, max: 10 },
+    advantage: 0,
+    conditions: [],
+    weapons: [],
+    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
+    items: [],
+    skills: [],
+    talents: [],
+    movement: 12,
+  } as Combatant;
+}
+
 function pointerEvent(x: number, y: number) {
   return {
     button: 0,
@@ -599,32 +629,7 @@ describe('useStagePointer — picking exploration', () => {
     scene.layers[0].tiles.fill('vide');
     scene.layers[0].tiles[1 + 1 * 8] = 'herbe';
     scene.layers[0].tiles[3 + 1 * 8] = 'herbe';
-    const hero = {
-      id: 'hero',
-      label: 'Héros',
-      kind: 'hero',
-      characteristics: {
-        'capacite-de-combat': 30,
-        'capacite-de-tir': 30,
-        force: 30,
-        endurance: 30,
-        initiative: 30,
-        agilite: 30,
-        dexterite: 30,
-        intelligence: 30,
-        'force-mentale': 30,
-        sociabilite: 30,
-      },
-      wounds: { current: 10, max: 10 },
-      advantage: 0,
-      conditions: [],
-      weapons: [],
-      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      items: [],
-      skills: [],
-      talents: [],
-      movement: 12,
-    } as Combatant;
+    const hero = heroSauteur();
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => useGame.setState({ partyPos: pos }));
     useGame.setState({
       scene,
@@ -663,6 +668,75 @@ describe('useStagePointer — picking exploration', () => {
     expect(emitted).toEqual([{ id: 'hero', path: [{ x: 1, y: 1 }, { x: 3, y: 1 }] }]);
     expect(moveParty).toHaveBeenCalledOnce();
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 1 });
+  });
+});
+
+/**
+ * LE SAUT ET LA PORTE sont des actions du jeu (`sauter`, `actionnerLaPorte`, `noyau/marcheDuGroupe.ts`,
+ * #2817 D5) : le pointeur n'en garde que la cadence de la marche. Le banc joue les actions RÉELLES du
+ * store, sans sonde.
+ */
+describe('useStagePointer — le saut et la porte passent par les actions du jeu', () => {
+  afterEach(() => vi.useRealTimers());
+
+  const monterPointeur = (meneur: Combatant | undefined): StagePointer => {
+    let pointer: StagePointer | undefined;
+    const Probe = () => {
+      const svgRef = useRef(stageEl());
+      const camRef = useRef({ x: 0, y: 0 });
+      pointer = useStagePointer({ svgRef, dims, zoom: 1, camRef, hoverTracking: false, partyLeader: meneur, activeZ: 0, aretes: [] });
+      return null;
+    };
+    renderToStaticMarkup(<Probe />);
+    return pointer!;
+  };
+
+  it('un clic au-delà du gouffre fait sauter le groupe, qui atterrit sur la rive d’en face', () => {
+    vi.useFakeTimers();
+    const scene = emptyScene(8, 8);
+    scene.layers[0].tiles.fill('vide');
+    scene.layers[0].tiles[1 + 1 * 8] = 'herbe';
+    scene.layers[0].tiles[3 + 1 * 8] = 'herbe';
+    const hero = heroSauteur();
+    useGame.setState({ scene, mode: 'exploration', partyPos: { x: 1, y: 1 }, party: [hero], dialogue: null });
+    const pointer = monterPointeur(hero);
+
+    const center = tileCenter(3, 1, dims);
+    pointer.handlers.onPointerDown(pointerEvent(center.cx, center.cy));
+    pointer.handlers.onPointerUp(pointerEvent(center.cx, center.cy));
+    vi.runAllTimers();
+
+    expect(useGame.getState().partyPos).toEqual({ x: 3, y: 1 });
+  });
+
+  it('un clic sur une porte fermée l’ouvre, et le groupe reste sur sa case', () => {
+    const scene = emptyScene(4, 3);
+    scene.effectZones = [piece('room-a', 1, 1)];
+    scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: true }];
+    useGame.setState({ scene, mode: 'exploration', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
+    const pointer = monterPointeur(undefined);
+
+    const fermee = areteDe(scene, { x: 0, y: 1 }, '0,1,E,0');
+    expect(fermee.portail?.kind, 'témoin : la porte est fermée').toBe('door-closed');
+    pointer.activerArete(fermee);
+
+    expect(areteDe(useGame.getState().scene!, { x: 0, y: 1 }, '0,1,E,0').portail?.kind).toBe('door-open');
+    expect(useGame.getState().partyPos).toEqual({ x: 0, y: 1 });
+  });
+
+  it('en combat, un clic sur une porte ouverte la referme', () => {
+    const scene = emptyScene(4, 3);
+    scene.effectZones = [piece('room-a', 1, 1)];
+    scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: false }];
+    useGame.setState({ scene, mode: 'battle', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
+    const pointer = monterPointeur(undefined);
+
+    const ouverte = areteDe(scene, { x: 0, y: 1 }, '0,1,E,0');
+    expect(ouverte.portail?.kind, 'témoin : la porte est ouverte').toBe('door-open');
+    pointer.activerArete(ouverte);
+
+    expect(areteDe(useGame.getState().scene!, { x: 0, y: 1 }, '0,1,E,0').portail?.kind).toBe('door-closed');
+    useGame.setState({ mode: 'exploration' });
   });
 });
 

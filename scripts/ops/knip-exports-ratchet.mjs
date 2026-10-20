@@ -16,7 +16,7 @@
 //    (`state/player-text-ratchet.test.ts`:33) motivent leur forme (fonction plutôt que carte figée)
 //    par son existence. Sans consommateur tant que le catalogue est mono-FR.
 //  - `portFlow.PortState`, `landMarketFlow.LandMarketState` (`src/noyau/`) — ANGLE MORT de knip, pas
-//    des morts : `store.ts` les lit en import de type INLINE (`import('../noyau/portFlow').PortState`), forme
+//    des morts : `noyau/etat.ts` les lit en import de type INLINE (`import('./portFlow').PortState`), forme
 //    que knip ne compte pas comme consommation.
 //  - `src/ui/editor/**` (7) — hors périmètre de la passe E2 (chantier éditeur voisin).
 import { readFileSync, writeFileSync } from 'node:fs'

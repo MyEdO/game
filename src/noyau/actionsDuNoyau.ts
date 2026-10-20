@@ -21,6 +21,7 @@ import type * as restFlow from './restFlow';
 import type { RestLodging, RestFood } from './restFlow';
 import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
+import type { RoomPortal } from './monde/roomPortals';
 import type { NarratifBlock } from './monde/campaignNarratif';
 import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
 
@@ -195,6 +196,13 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   loadProject: (paquet: PaquetALancer) => void;
   transitionTo: (sceneId: string, entry?: string, pos?: Pt) => void;
   moveParty: (pt: Pt) => void;
+  /** SAUT par-dessus un gouffre au pas `indice` d'un chemin de marche (`chemin[indice]`, depuis la case du
+   *  groupe) : élan, `planJump`, refus nommé. Rend `true` si la marche continue (saut sans Test), `false`
+   *  si elle s'arrête (refus, ou Test de saut ouvert : le joueur reclique pour continuer). */
+  sauter: (chemin: readonly Pt[], indice: number) => boolean;
+  /** Ouvre ou ferme la porte d'un passage : en combat toute porte, en exploration une porte fermée.
+   *  Rend `true` si la porte a bougé. */
+  actionnerLaPorte: (portail: RoomPortal) => boolean;
   /** ESCALADE d'une arête `WallSeg.climb` (LDB 15 l.53-57) : `from` (case basse, adjacente) → `to` (case
    *  haute). Porteur = le mobile de `gesteDArete` (exploration : le meneur, le groupe suit ; combat : l'actif
    *  que ce siège mène, héros ou ennemi mené par le siège MJ) ; tout refus est NOMMÉ (`refuserGeste`),

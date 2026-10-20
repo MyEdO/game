@@ -150,6 +150,7 @@ import { placeById, type WorldMap } from './worldMap';
 import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -837,4 +838,16 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
 export function continueRestNights(get: Get, set: Set, ctx: { p: PendingRest; nightsLeft: number }): void {
   if (ctx.nightsLeft <= 0) return;
   openRestNight(get, set, ctx.p, ctx.nightsLeft, []);
+}
+
+export function creerActionsDuRepos(get: Get, set: Set) {
+  return {
+    openRest: (opts) => openRest(get, set, opts),
+    restSet: (heroId, patch) => restSet(get, set, heroId, patch),
+    restReady: (seat) => restReady(get, set, seat),
+    restSleep: () => restSleep(get, set),
+    restCancel: () => restCancel(get, set),
+    // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).
+    restParty: (days = 1) => { sleepParty(get, set, days); },
+  } satisfies Partial<ActionsDuNoyau>;
 }

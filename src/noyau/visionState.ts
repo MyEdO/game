@@ -13,6 +13,7 @@ import { smokeOf } from './monde/combatGeometry';
 import { isOutOfAction } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Tranche d'état nécessaire au calcul de visibilité (passée par IsoStage → deps de memo explicites). */
 export interface VisionInput {
@@ -157,4 +158,10 @@ export function recordExplored(get: Get, set: SetFn, keys: string[]): void {
   for (const k of keys) if (!merged.has(k)) { merged.add(k); changed = true; }
   if (!changed) return;
   set({ explored: { ...explored, [scene.id]: [...merged] } });
+}
+
+export function creerActionsDeVision(get: Get, set: SetFn) {
+  return {
+    markExplored: (keys) => recordExplored(get, set, keys),
+  } satisfies Partial<ActionsDuNoyau>;
 }

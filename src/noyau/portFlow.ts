@@ -51,6 +51,7 @@ import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traceLineOf } from '../engine/traceLine';
 import type { Get, Set } from './flowTypes';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Une offre d'achat générée à l'escale (l.319-331) — Enc disponible + prix de base NOTÉ (le Vin fige son 3d10). */
 export interface PortOffer {
@@ -477,3 +478,14 @@ export function portDismissCrew(get: Get, set: Set, roleId: string, count = 1): 
   return lines;
 }
 
+export function creerActionsDuPort(get: Get, set: Set) {
+  return {
+    openPort: () => openPort(get, set),
+    closePort: () => closePort(get, set),
+    portBuyCargo: (cargoId, enc) => portBuyCargo(get, set, cargoId, enc),
+    portSellCargo: (cargoIndex) => portSellCargo(get, set, cargoIndex),
+    portDumpCargo: (cargoIndex) => portDumpCargo(get, set, cargoIndex),
+    portHireCrew: (roleId, count) => portHireCrew(get, set, roleId, count),
+    portDismissCrew: (roleId, count) => portDismissCrew(get, set, roleId, count),
+  } satisfies Partial<ActionsDuNoyau>;
+}

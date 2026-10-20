@@ -58,4 +58,7 @@ export const EVT = {
   /** noyau → hôte : l'Effet `openCharacterCreator` demande la création d'un nouveau héros (sans charge) ;
    *  l'hôte web ouvre son assistant (`src/ui/creator`). */
   HEROS_A_CREER: 'heros_a_creer',
+  /** noyau → hôte : le groupe entre dans la scène {sceneId, neuve} — `neuve` pour une partie qui commence
+   *  (`startScene`), faux pour un changement de scène (`transitionTo`) (#2817 D5). */
+  ARRIVEE_EN_SCENE: 'arrivee_en_scene',
 } as const;

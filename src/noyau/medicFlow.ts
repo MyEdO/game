@@ -78,6 +78,7 @@ export interface MedicState {
 }
 
 import type { Get, Set } from './flowTypes';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
  *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
@@ -297,4 +298,18 @@ export function surgeryCancel(get: Get, set: Set): void {
   if (!sg.last && sg.paidCost && m.patientId) distributeCredit(get, set, toMoney(sg.paidCost)); // remboursé au groupe (payeur), symétrique du débit `payFromGroup`
   set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
   if (sg.last) get().log(t('medic.interrupted', { healer: sg.healerName }));
+}
+
+export function creerActionsDuMedecin(get: Get, set: Set) {
+  return {
+    openMedic: (opts) => openMedic(get, set, opts),
+    medicSelectPatient: (id) => medicSelectPatient(get, set, id),
+    medicAct: (act) => medicAct(get, set, act),
+    medicSetWound: (idx) => medicSetWound(get, set, idx),
+    openSurgeryPass: () => openSurgeryPass(get, set),
+    surgeryNext: () => surgeryNext(get, set),
+    surgeryPassCancel: () => surgeryPassCancel(get, set),
+    surgeryCancel: () => surgeryCancel(get, set),
+    closeMedic: () => closeMedic(get, set),
+  } satisfies Partial<ActionsDuNoyau>;
 }

@@ -663,8 +663,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // rouge au geste suivant. « Vide » se mesure sur la scène ACTIVE du store après chargement —
     // aucune scène (`scene` nul) ou aucune entité peuplée (`scene.entities`, la population que lisent
     // le rendu comme les sondes `__wfrp.entities`/`visibleCount`). Le groupe n'y change rien : `setParty`
-    // ne pose que `state.party` (`store.ts:2156`), et c'est `startScene` qui cherche son point de départ
-    // DANS `scene.entities` (`store.ts:2160`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
+    // ne pose que `state.party` (`partyFlow.ts`), et c'est `startScene` qui cherche son point de départ
+    // DANS `scene.entities` (`noyau/entreeEnScene.ts`, entité `heroStart`) — 0 entité = aucun sol sous le groupe.
     const chargee = g().scene;
     if (!chargee || chargee.entities.length === 0)
       throw new Error(
@@ -1359,7 +1359,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** DERNIER Test résolu (`resolveTest`, en/hors combat) — lecture SEULE de la trace posée par le
-     *  SEAM `EVT.TEST_RESOLVED` (`store.ts`), pour lire le DR sans parser `innerText` (recette #514).
+     *  SEAM `EVT.TEST_RESOLVED` (`noyau/testsDeScene.ts`), pour lire le DR sans parser `innerText` (recette #514).
      *  `null` si aucun Test résolu depuis le chargement de la page. */
     lastRoll: () => (lastRollTrace ? { ...lastRollTrace } : null),
 

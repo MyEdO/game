@@ -103,7 +103,7 @@ describe('les dispatchers de ready-check CONSOMMENT le quorum (aucune recopie)',
 
   it('STRUCTUREL — plus AUCUN site ne recopie la formule du quorum', () => {
     const recopie = /seatNames\[[^\]]+\]\s*!=\s*null/g;
-    for (const f of ['../noyau/combatSlice.ts', './store.ts', '../noyau/restFlow.ts', '../ui/RestModal.tsx', '../ui/VictoryScreen.tsx', '../ui/ReadyRow.tsx']) {
+    for (const f of ['../noyau/combatSlice.ts', '../noyau/issueDeCombat.ts', '../noyau/restFlow.ts', '../ui/RestModal.tsx', '../ui/VictoryScreen.tsx', '../ui/ReadyRow.tsx']) {
       expect(src(f).match(recopie) ?? [], `${f} recopie le quorum au lieu d’appeler siegesRequis`).toEqual([]);
     }
     // … et la source unique, elle, la porte bien (méta : sans ce témoin, la garde serait verte à vide).

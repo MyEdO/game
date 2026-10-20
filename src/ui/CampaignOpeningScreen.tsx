@@ -19,7 +19,7 @@ import { porteurDeProjet } from './porteurDeProjet';
  * la scène. L'ambiance vient de la DONNÉE, « veillée » à défaut.
  *
  * COOP : l'invité VOIT le rideau (la cérémonie se partage à la table) mais ne le lève pas — le geste
- * est un `GatedAction` qui porte sa raison, doublé de l'inertie de l'action de store (`store.ts`,
+ * est un `GatedAction` qui porte sa raison, doublé de l'inertie de l'action du jeu (`noyau/chapitreRecap.ts`,
  * `acquitterOuverture`) : rien ne mute en local pour mourir au snapshot suivant de l'hôte.
  */
 export function CampaignOpeningScreen() {

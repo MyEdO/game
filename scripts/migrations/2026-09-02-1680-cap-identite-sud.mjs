@@ -34,7 +34,7 @@
  * `propId → slotId`) n'a AUCUNE occurrence dans les documents committés (mesuré). Il reste UN porteur,
  * la SAUVEGARDE : `snapshotSave` (`src/state/saves.ts`) recopie le `state` entier, `state.scene`
  * comprise. Une save d'une autre forme est JETÉE avec un message (`FORMAT_SAVE`, #2404) plutôt
- * qu'élaguée en silence par `pruneSeatAssignments` (`src/state/store.ts`). Contrat :
+ * qu'élaguée en silence par `pruneSeatAssignments` (`src/noyau/monde/seating.ts`). Contrat :
  * `src/state/saves-flow.test.ts`.
  *
  * MARQUEURS D'IDEMPOTENCE — un par volet, chacun mesurable sur la FORME rendue : la clé d'ENVELOPPE

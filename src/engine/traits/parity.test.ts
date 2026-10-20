@@ -208,7 +208,7 @@ const DISPATCH = new Set<string>([
   'Pisteur',
   // Grimpant (LDB 85 l.160-162) : capabilities `autoClimb` + `climbFullSpeed` (donnée), lues par
   // `hasAutoClimb`/`hasClimbFullSpeed` (dispatch.ts:374/380) → traversée verticale du pathing
-  // (`path.climbTraverseFor`), coût de Mouvement plein (`store.ts:2006/2023`) et décision d'IA
+  // (`path.climbTraverseFor`), coût de Mouvement plein (`climbAcross`, `noyau/gesteDArete.ts`) et décision d'IA
   // (`ai-climb.test.ts`). Canal dispatch.
   'Grimpant',
   // Lanceur de Sorts : capability `spellcaster` (donnée), lue par `knowsCastingSkill` (magic.ts:278) —

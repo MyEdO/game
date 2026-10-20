@@ -52,6 +52,10 @@ import { transferPossession } from './possessionsFlow';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { gainCorruption } from './corruptionFlow';
+import { touchActors } from './combatOrParty';
+import { nePeutPasDifferer, applyEffects } from './combatEffects';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
  *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
@@ -755,5 +759,49 @@ export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combat
 }
 
 
-// (usePartyItem — consommable hors combat — vit dans `noyau/consumableFlow.ts` : le Flow du
-//  consommable peut porter un nœud `test` → modale restreinte au buveur, hors de portée de ce module.)
+export function creerActionsDuGroupe(get: Get, set: Set) {
+  return {
+    partyAddHero: (hero, wealth, seat) => partyAddHero(get, set, hero, wealth, seat),
+    partyRemoveHero: (heroId) => partyRemoveHero(get, set, heroId),
+    partyReplaceHero: (oldId, hero, seat) => partyReplaceHero(get, set, oldId, hero, seat),
+    toggleEquip: (heroId, uid) => toggleEquip(get, set, heroId, uid),
+    stowItem: (heroId, uid, containerUid) => stowItem(get, set, heroId, uid, containerUid),
+    createLoadout: (heroId) => createLoadout(get, set, heroId),
+    deleteLoadout: (heroId, id) => deleteLoadout(get, set, heroId, id),
+    setActiveLoadout: (heroId, id) => setActiveLoadout(get, set, heroId, id),
+    setLoadoutSlot: (heroId, id, slot, uid) => setLoadoutSlot(get, set, heroId, id, slot, uid),
+    transferItem: (uid, fromHeroId, toHeroId) => transferItem(get, set, uid, fromHeroId, toHeroId),
+    setItemSkin: (heroId, uid, patch) => setItemSkin(get, set, heroId, uid, patch),
+    choisirForme: (heroId, uid, forme) => choisirForme(get, set, heroId, uid, forme),
+    grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
+    buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),
+    buySkillAdvance: (heroId, skillId, spec) => buySkillAdvance(get, set, heroId, skillId, spec),
+    buyTalent: (heroId, talentId, spec) => buyTalent(get, set, heroId, talentId, spec),
+    designateCareerSlot: (heroId, slotKey, optionId, spec) => designateCareerSlot(get, set, heroId, slotKey, optionId, spec),
+    /** Mémorise un sort (PX selon le Talent, LDB 46/10) ; un sort du Chaos corrompt (+1, seuil → mutation). */
+    buySpell: (heroId, spellId) => {
+      const r = buySpell(get, set, heroId, spellId);
+      if (r.ok && r.chaos) {
+        const hero = actorIn(get(), heroId);
+        if (hero) {
+          for (const l of gainCorruption(get, set, hero, 1)) get().log(l);
+          set(touchActors(get()));
+        }
+      }
+    },
+    buySpellComponent: (heroId, spellId) => buySpellComponent(get, set, heroId, spellId),
+    removeSpellComponent: (heroId, spellId) => removeSpellComponent(get, set, heroId, spellId),
+    setHeroBackground: (heroId, patch) => setHeroBackground(get, set, heroId, patch),
+    endSession: (rewards) => endSession(get, set, rewards),
+    openSessionEnd: () => set({ sessionEndOpen: true }),
+    closeSessionEnd: () => set({ sessionEndOpen: false }),
+    trainProsthesis: (heroId, uid) => trainProsthesis(get, set, heroId, uid),
+    changeCareer: (heroId, newCareer, newLevel) => changeCareer(get, set, heroId, newCareer, newLevel),
+    setParty: (p) => set({ party: p }),
+    // Longues Séances de Jeu (LDB 17 l.47) : réutilise l'Effet `restoreFortune` (NE DUPLIQUE PAS la
+    // logique — même case que le début de session, qui appelle `engine/fortune.restoreFortune`).
+    // Corps de BLOC, retour CONSOMMÉ (#1508) : une flèche à corps expression typée `() => void` avale le
+    // signal en silence. `restoreFortune` est une donnée LITTÉRALE sans canal de dés — d'où le fail-fast.
+    restoreFortuneNow: () => { nePeutPasDifferer(applyEffects(get, set, [{ type: 'restoreFortune' }]), 'partyFlow.restoreFortuneNow'); },
+  } satisfies Partial<ActionsDuNoyau>;
+}

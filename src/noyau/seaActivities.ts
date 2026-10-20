@@ -54,6 +54,7 @@ import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -320,3 +321,9 @@ registerExtendedTestOutcome('sea-activity-opportunity', (get, set, p, total) => 
   continueSeaActivitiesAfterCascade(get, set);
   return { consequences: freeCons([line]) };
 });
+
+export function creerActionsDesActivitesEnMer(get: Get, set: Set) {
+  return {
+    seaActivitiesConfirm: (picks) => seaActivitiesConfirm(get, set, picks),
+  } satisfies Partial<ActionsDuNoyau>;
+}

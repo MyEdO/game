@@ -16,7 +16,7 @@ import type { RoomFocus } from './rooms';
  * (Recommandé) — Un échec est définitif pour cette porte », « Exploration seulement (Recommandé) ».
  * UNE définition par porte (`testDePorteSecrete`), jouée par ses déclencheurs : à l'APPROCHE, un Trigger
  * de zone DÉRIVÉ de l'arête (`triggersDePortesSecretes`), lu par `checkTriggers` via `triggersEnJeu` ; en
- * FOUILLANT la pièce (`fouilleDeLaPiece`), joué par le verbe `fouillerLaPiece` (`store.ts`).
+ * FOUILLANT la pièce (`fouilleDeLaPiece`), joué par le verbe `fouillerLaPiece` (`noyau/interactionsDExploration.ts`).
  */
 
 /** Porte secrète encore à DÉCOUVRIR : masquée ET jamais tentée. */

@@ -20,7 +20,7 @@ import { cleDeContenu } from '../guards/lib/stock.mjs'
  *  La borne de mot est en TÊTE seulement (« vedette » n'est pas une dette) : `\b` est ASCII et ne se
  *  pose pas après un « é », la borne de queue rejetait donc « non implémenté » lui-même.
  *  HORS de la liste, et c'est mesuré : « en attente » et « bloqué par » sont des mots d'ÉTAT DU
- *  DOMAINE avant d'être des mots de dette — `store.ts` `pendingOuverture` « Ouverture cérémonielle EN
+ *  DOMAINE avant d'être des mots de dette — `noyau/etat.ts` `pendingOuverture` « Ouverture cérémonielle EN
  *  ATTENTE » nomme un champ du jeu, `travelFlow.ts` `departureGated` « BLOQUÉ par la porte d'heure »
  *  énonce une règle. */
 export const MOTIF_DETTE_RE = /\b(?:dette|todo|non\s+impl[ée]ment[ée])/i

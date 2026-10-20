@@ -364,22 +364,22 @@ const V8C2: Site[] = [
     apres: stepDetail(t('eff.harvest'), dataLabel(BETE)),
   },
   {
-    site: 'store.ts:1674 — avance de coque (pluriel porté par la variable)',
+    site: 'shipManeuver.ts — avance de coque (pluriel porté par la variable)',
     avant: `${NAVIRE} avance de ${2} case${'s'} (cap ${'NE'}).`,
     apres: t('store.shipAdvance', { ship: NAVIRE, n: 2, s: 's', dir: 'NE' }),
   },
   {
-    site: 'store.ts:2266 — vol terrestre (issue + fragment « porteurs » optionnels)',
+    site: 'issueDeCombat.ts — vol terrestre (issue + fragment « porteurs » optionnels)',
     avant: `Vol terrestre — ${'le convoi fuit'} : ${12} Enc de cargaison pillée (${30} %${`, ${2} porteurs`}).`,
     apres: t('store.cargoRaid', { issue: t('store.cargoRaidFled'), enc: 12, pct: 30, porteurs: t('store.fragCargoPorters', { n: 2 }) }),
   },
   {
-    site: 'store.ts:2435 — la porte tient (DEUX pluriels dans la même phrase)',
+    site: 'testsDeScene.ts — la porte tient (DEUX pluriels dans la même phrase)',
     avant: `${'Porte de chêne'} : ${3} dégât${'s'}, reste ${1} Blessure${''}.`,
     apres: t('store.doorHolds', { label: 'Porte de chêne', n: 3, s: 's', left: 1, sB: '' }),
   },
   {
-    site: 'store.ts:2392 — dissipation (clé `cs.*` REPRISE, fragment optionnel)',
+    site: 'testsDeScene.ts — dissipation (clé `cs.*` REPRISE, fragment optionnel)',
     avant: `${'Dard de feu'} est dissipé${` (${3} cibles libérées)`}.`,
     apres: t('cs.dispelDone', { spell: 'Dard de feu', extra: t('cs.fragDispelFreed', { n: 3 }) }),
   },

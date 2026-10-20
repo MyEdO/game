@@ -88,7 +88,7 @@ export type SiteProse = {
 export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/TeamSegments.tsx#Prose.md#1', origine: 'Y', paquet: [], note: 'projection de segments narrés ; les tons annotent le Markdown complet sans en changer le texte.' },
   { cle: 'src/ui/RecapLine.tsx#Prose.md#1', origine: 'Y', paquet: ['setObjective.desc'], note: 'RecapLine.text matérialise une conséquence de résolution ; l’objectif soldé de la chronique de chapitre (`chapitreRecap.ts`) est un `setObjective.desc` : `paquet` vaut pour la seule ligne qui le porte (`RecapLine.paquet`).' },
-  { cle: 'src/ui/RevealBody.tsx#Prose.md#1', origine: 'S', porteur: 'projet.scenes[].startMessage.texte', paquet: ['scenes[].startMessage.texte'], note: '`RevealEntry.sceneId`, posé avec l’entrée de zone (`src/state/store.ts`)' },
+  { cle: 'src/ui/RevealBody.tsx#Prose.md#1', origine: 'S', porteur: 'projet.scenes[].startMessage.texte', paquet: ['scenes[].startMessage.texte'], note: '`RevealEntry.sceneId`, posé avec l’entrée de zone (`src/noyau/entreeEnScene.ts`)' },
   { cle: 'src/ui/LogDrawer.tsx#Prose.md#1', origine: 'S', paquet: ['journal.desc', 'narrative.text'], note: 'journal runtime matérialise journal.desc/narrative.text ; absence de l’id du document porteur.' },
   { cle: 'src/ui/CascadeModal.tsx#Prose.md#1', origine: 'S', paquet: ['flow.choice.prompt'], note: 'CascadeStep.label matérialise flow.choice.prompt ; absence de l’id du document porteur.' },
   { cle: 'src/ui/DesignationHerosModal.tsx#Prose.md#1', origine: 'S', paquet: ['designerHeros.invite'], note: 'PendingDesignationHeros.invite matérialise designerHeros.invite ; le pending ne porte pas l’id du document source.' },

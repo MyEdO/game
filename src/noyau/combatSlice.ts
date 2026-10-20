@@ -1,12 +1,7 @@
 /**
- * Tranche « combat » du store (Zustand) — `createCombatSlice(get, set)` renvoie les ACTIONS de
- * combat inline (battleClick*, attaque/défense/cascade, désengagement, monture, fin de tour, Destin,
- * magie de combat, etc.) qui vivaient dans l'objet du `create` de `store.ts`. Elles sont déplacées
- * VERBATIM (mêmes corps, mêmes `get()/set()`, mêmes imports d'origine) et spreadées EN TÊTE du store :
- *   `create<GameState>((set, get) => ({ ...createCombatSlice(get, set), ...reste, ...état }))`.
- * L'ÉTAT reste assemblé dans le `create` (forme à plat unique) ; cette tranche n'expose que des
- * ACTIONS. Surface IDENTIQUE : aucune clé ajoutée/retirée/renommée. Pas de value-import de `store.ts`
- * (les actions ne référencent jamais `useGame`) → import de TYPE seulement, aucun cycle d'exécution.
+ * Actions de COMBAT du jeu (#2817 D5) — `createCombatSlice(get, set)`, fabrique du noyau : clic de
+ * combat (battleClick*), attaque, défense et cascade, désengagement, monture, fin de tour, pause de
+ * Round, Destin, magie de combat. Le propriétaire de l'état l'étale parmi ses actions.
  */
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
@@ -109,7 +104,7 @@ import { seaMagicContext, touchActors, windsMagicModOf } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { aPorteeDe } from './monde/exploreNav';
-import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint } from './netOwnership';
+import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint, decidingSeat } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { resolveRenounce } from './corruptionFlow';
@@ -1758,6 +1753,27 @@ export function createCombatSlice(get: Get, set: Set) {
       if (s.net.mode === 'guest') return; // l'invité ne fait que marquer (l'intent porte son siège)
       if (quorumAtteint(s, readyBySeat)) get().confirmRoundStart();
     },
+    /** DEMANDE DE PAUSE au prochain Round, POSÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le
+     *  siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un
+     *  argument — la demande d'un joueur ne peut pas être signée d'un autre. */
+    raiseHand: () => {
+      const b = get().battle;
+      if (!b) return;
+      const seat = decidingSeat(get());
+      const deja = b.handRaisedBy ?? [];
+      if (deja.includes(seat)) return;
+      set({ battle: { ...b, handRaisedBy: [...deja, seat], log: [...b.log, ev('info', t('store.handRaised'))] } });
+    },
+    /** RETRAIT de la demande de pause (interrupteur de la frise) : symétrique de `raiseHand`, gratuit —
+     *  tant que le Round n'a pas tourné, un joueur qui s'est ravisé rend la table à son enchaînement. Il
+     *  ne retire QUE son siège : la pause tient tant qu'un autre siège la demande. */
+    lowerHand: () => {
+      const b = get().battle;
+      if (!b) return;
+      const seat = decidingSeat(get());
+      if (!(b.handRaisedBy ?? []).includes(seat)) return;
+      set({ battle: { ...b, handRaisedBy: (b.handRaisedBy ?? []).filter((s) => s !== seat), log: [...b.log, ev('info', t('store.handLowered'))] } });
+    },
     confirmRoundStart: () => {
       set({ pendingRoundStart: null, preemptAiming: null }); // la pause se ferme → toute visée Tir rapide armée retombe
       // LDB 11 l.97-103 : les tirs d'interruption, puis `ouvrirLeRound` au bout de leur boucle. Rien ne suit
@@ -2923,7 +2939,7 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // Chirurgie : jet INFLUENÇABLE d'une passe (le chirurgien peut être un héros) — surgeryNext applique
     // (medicFlow), surgeryPassCancel annule la passe, surgeryCancel l'opération. openSurgeryPass POSE la
-    // passe (cf. délégations medic, store.ts).
+    // passe (`creerActionsDuMedecin`, noyau/medicFlow.ts).
 
     /** « Appliquer » : applique le soin (le jet est déjà figé). Coûte l'Action en combat. L'infirmerie
      *  (`medic`) n'est PAS touchée : la modale persistante reste ouverte pour l'acte suivant. */
@@ -3550,7 +3566,7 @@ export function createCombatSlice(get: Get, set: Set) {
         const b = get().battle;
         // Les États PORTÉS par le Sort partent à ce geste (#1695) : leurs lignes rejoignent CELLES de
         // l'Action (`finishPlayerAction` ci-dessous). Pas de récepteur `ConditionEmit` ici : le canal
-        // déclaré du store (`pendingLogQueue.stateId`, `store.ts:677`) n'a encore AUCUN producteur.
+        // déclaré du store (`pendingLogQueue.stateId`, `noyau/etat.ts:496`) n'a encore AUCUN producteur.
         const n = dissipateSpell(b ? b.combatants : get().party, pd.spellId, pd.spellCasterId, undefined, logLines);
         set(touchActors(get()));
         logLines.push(t('cs.dispelDone', { spell: pd.label, extra: n > 1 ? t('cs.fragTargetsFreed', { n }) : '' }));

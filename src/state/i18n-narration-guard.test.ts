@@ -66,6 +66,11 @@ const MIGRATED = new Set([
   'src/engine/disease.ts', // #1318 V8c₂ : `dz.*` (le moteur pur résout par `t()`, comme `ops.ts`)
   'src/noyau/combatEffects.ts', // #1318 V8c₂ : `eff.*`
   'src/state/store.ts', // #1318 V8c₂ : `store.*`
+  'src/noyau/conversation.ts', // #1318 V8c₂ : `store.*` (#2817)
+  'src/noyau/entreeEnScene.ts', // #1318 V8c₂ : `store.*` (#2817)
+  'src/noyau/interactionsDExploration.ts', // #1318 V8c₂ : `store.*` (#2817)
+  'src/noyau/issueDeCombat.ts', // #1318 V8c₂ : `store.*` (#2817)
+  'src/noyau/testsDeScene.ts', // #1318 V8c₂ : `store.*` (#2817)
   'src/noyau/travelFlow.ts', // #1318 V8c₂ : `tf.*`
   'src/noyau/riverVoyageFlow.ts', // #1318 V8c₂ : `rv.*`
   'src/engine/healing.ts', // #1318 V8c₃ : `heal.*` (le moteur pur résout par `t()`, comme `ops.ts`)

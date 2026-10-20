@@ -1122,7 +1122,7 @@ describe('__wfrp.campaign — charge une campagne BUILT-IN sans le character cre
     expect(s.party.length).toBe(4);
     // `pendingCampaign` est le champ TRANSITOIRE du picker (avant lancement) — `loadProject` appelle
     // `startScene`, qui réinitialise l'état à l'INITIAL (hors le sous-ensemble préservé, cf.
-    // `store.ts:startScene`) : `pendingCampaign` n'y figure pas et redevient `null` après chargement,
+    // `noyau/entreeEnScene.ts:startScene`) : `pendingCampaign` n'y figure pas et redevient `null` après chargement,
     // EXACTEMENT comme le flux réel du picker (`PartyScreen.startCampaign`) — pas une régression d'ici.
     expect(s.pendingCampaign).toBeNull();
     expect(s.scene).toBeTruthy();

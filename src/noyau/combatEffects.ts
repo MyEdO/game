@@ -725,8 +725,8 @@ function indexDeLEtapeQuiAttend(p: PendingCascade): number {
 
 /**
  * REGISTRE des CLÔTURES (#1508) — patron `cascadeAppliers` : chaque verbe de l'union `Cloture` est
- * résolu par UNE fonction, enregistrée par le module qui la POSSÈDE (le store pose les siennes, ce
- * module pose la sienne). La donnée voyage (sauvegarde, réseau), le code reste ici.
+ * résolu par UNE fonction, enregistrée par le module qui la POSSÈDE. La donnée voyage (sauvegarde,
+ * réseau), le code reste ici.
  *
  * TOTALITÉ tenue au type (`_ClotureRegistreTotal` ci-dessous) : un verbe ajouté à l'union sans applier
  * ne compile pas — la clôture ne peut pas se perdre en silence, qui est exactement le défaut qu'elle

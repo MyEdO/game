@@ -52,11 +52,11 @@ describe('garde-fou RevealEntry — un kind déclaré = un kind émis (#942 L0)'
     expect(found("const r: RevealEntry = { kind: 'miscast', title: 'A', lines: [] };")).toEqual(['2:miscast']);
     expect(found("export function f(t: X): RevealEntry {\n  return { kind: 'critical', lines: [] };\n}")).toEqual(['3:critical']);
     // Le kind d'ENTRÉE DE ZONE passe lui aussi par l'émetteur unique, sous garde du message de scène.
-    // L'échantillon n'est pas RÉÉCRIT ICI : il est LU dans `store.ts`, donc un renommage de champ ou
-    // un déplacement de l'émission rougit ce cas au lieu de laisser vivre un littéral périmé.
-    const emissions = readFileSync(join(ROOT, 'src/state/store.ts'), 'utf8')
+    // L'échantillon n'est pas RÉÉCRIT ICI : il est LU dans `entreeEnScene.ts`, donc un renommage de champ
+    // ou un déplacement de l'émission rougit ce cas au lieu de laisser vivre un littéral périmé.
+    const emissions = readFileSync(join(ROOT, 'src/noyau/entreeEnScene.ts'), 'utf8')
       .split('\n').filter((l) => l.includes("kind: 'sceneEntry'")).map((l) => l.trim());
-    expect(emissions.length, 'store.ts doit porter les émissions d’entrée de zone').toBeGreaterThan(0);
+    expect(emissions.length, 'entreeEnScene.ts doit porter les émissions d’entrée de zone').toBeGreaterThan(0);
     for (const l of emissions) {
       expect(l, 'le titre de la carte d’entrée est le LIBELLÉ de la scène visée').toMatch(/title: \w+\.label,/);
       expect(found(l)).toEqual(['1:sceneEntry']);

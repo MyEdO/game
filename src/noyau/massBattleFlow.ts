@@ -43,6 +43,7 @@ import {
   type ClashResult, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -965,4 +966,20 @@ export function battleSceneEffectLabel(def: ActivityDef): string {
     }
   }
   return parts.join(' ; ') || t('mbf.noDirectEffect');
+}
+
+export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
+  return {
+    // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
+    startMassBattle: (spec) => startMassBattle(get, set, spec),
+    massBattleBegin: () => massBattleBegin(get, set),
+    massBattleActivity: (activityId) => openMassBattleActivity(get, set, activityId),
+    massBattleScene: (sceneId) => openMassBattleScene(get, set, sceneId),
+    setMassBattleHero: (actionId, heroIds) => setMassBattleHero(get, set, actionId, heroIds),
+    massBattleRally: () => openMassBattleRally(get, set),
+    massBattleHazard: (roll) => massBattleSetHazard(get, set, roll),
+    massBattleClash: () => massBattleClash(get, set),
+    massBattleAdvance: () => massBattleAdvance(get, set),
+    endMassBattle: () => endMassBattle(get, set),
+  } satisfies Partial<ActionsDuNoyau>;
 }

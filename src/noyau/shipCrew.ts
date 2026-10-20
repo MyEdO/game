@@ -25,11 +25,13 @@ import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
-import { equipageApte } from './monde/combatants';
+import { equipageApte, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { propulsionDuNavire, milieuDuVoyage } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
+import { unloadWeapon, setAmmoChoice } from '../engine/items';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -516,4 +518,34 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   for (let i = 0; i < present; i++) if (deMonde(rng) <= threshold) deserters++;
   if (!deserters) return [];
   return [t('crew.desertion', { n: deserters }), ...applyVesselCrewLoss(get, set, deserters)];
+}
+
+export function creerActionsDeLEquipage(get: Get, set: SetFn) {
+  return {
+    // Conseil de bord : paie hebdomadaire et Moral.
+    councilPay: (decision) => councilPay(get, set, decision),
+    councilClose: () => councilClose(get, set),
+    setShipRole: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+    setShipStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
+    setPosteAmmo: (shipId, posteUid, ammoUid) => {
+      const b = get().battle;
+      const ship = inBattleId(b, shipId);
+      const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
+      if (!b || !poste) return;
+      // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
+      // suffit ; le `set` re-render (pattern combat : mutation + refresh).
+      // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
+      // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
+      // d'action ». Changer celle d'une pièce CHARGÉE la DÉCHARGE — Test étendu de
+      // recharge à refaire (LDB 62 l.335) ; re-sélectionner la même est sans effet ; rien n'est détruit (décompte
+      // au tir). Le CHEF qui la sert perd aussi son gate de tir : la pièce n'a plus de coup.
+      if (poste.loaded !== false && (poste.loadedAmmoUid ?? poste.ammoUid) !== (ammoUid ?? undefined)) {
+        const chef = poste.crewIds?.[0] ? inBattleId(b, poste.crewIds[0]) : undefined;
+        const gun = chef?.mannedPoste === poste ? chef.weapons.find((w) => w.uid === poste.item.uid) : undefined;
+        unloadWeapon(gun ? chef : undefined, gun, poste); // couture UNIQUE : la pièce, et l'arme dérivée du chef
+      }
+      setAmmoChoice(undefined, undefined, ammoUid ?? undefined, poste); // écrivain UNIQUE de la sélection
+      set({ battle: { ...b } });
+    },
+  } satisfies Partial<ActionsDuNoyau>;
 }

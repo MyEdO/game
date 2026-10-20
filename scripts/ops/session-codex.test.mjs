@@ -40,7 +40,7 @@ if(q.method==='initialize')send({id:q.id,result:{userAgent:'fixture'}});
 if(q.method==='thread/start')setTimeout(()=>send({id:q.id,result:{thread:{id:tid}}}),Number(process.argv[2]));
 if(q.method==='turn/start'){active='turn-'+(++turn);initial=p.input[0].text;started=false;send({id:q.id,result:{turn:{id:active}}});const id=active;setTimeout(()=>{if(active!==id)return;started=true;notify('turn/started',{turn:{id:active,status:'inProgress',items:[]}});if(initial==='AUTO'||initial==='INVALID')complete(initial);if(initial==='ERROR_ACTIVE')notify('error',{turnId:active,error:{message:'temporary active error'}});if(initial==='EOF_LIVE'){process.on('SIGTERM',()=>{});setInterval(()=>{},1000);notify('fixture/perte-protocole',{});}},initial==='WAIT_START'?150:5);}
 if(q.method==='turn/steer'){if(active===null){send({id:q.id,error:{code:78,message:'no active turn to steer'}});return;}if(p.threadId!==tid||p.expectedTurnId!==active)throw Error('foreign turn');const text=p.input[0].text;if(text==='NATIVE_ERROR')send({id:q.id,error:{code:77,message:'native refusal'}});else{send({id:q.id,result:{turnId:active,steers:++steers}});if(text==='CRASH'){process.stderr.write('first native cause\\nsecond native cause\\n');process.exit(9);}else if(text==='FAIL'){notify('turn/completed',{turn:{id:active,status:'failed',items:[],error:{message:'server overloaded'}}});active=null;}else if(text==='APPROVAL'){notify('request/input',{});send({id:900,method:'item/tool/requestUserInput',params:{threadId:tid}});}else setTimeout(()=>complete(text),5);}}
-if(q.method==='turn/interrupt'){if(!started)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
+if(q.method==='turn/interrupt'){if(!started||active===null)send({id:q.id,error:{code:1,message:'no active turn'}});else {send({id:q.id,result:{}});notify('turn/completed',{turn:{id:active,status:'interrupted',items:[]}});active=null;}}
 }).on('close',()=>{if(initial!=='EOF_LIVE')process.exit(0)});
 `
 async function banc(t, { consigne = 'BUSY', validation = () => {}, echo, delaiDemarrageMs = 0, demarrageJusqua = Date.now() + 60_000, mesurerCreation = IDENTITE_MESUREE.lireCreation } = {}) {
@@ -701,6 +701,7 @@ test('envoi, fin et arrêt concurrents : chaque commande est acquittée ou refus
   await b.sortie
   const transitions = readFileSync(join(b.dossier, `${b.sessionId}.codex.jsonl`), 'utf8').split('\n').filter(Boolean).map(JSON.parse).flatMap((x) => x.transition ? [x.transition] : [])
   assert.equal(transitions.at(-1).type, 'fermeture', JSON.stringify(transitions))
+  assert.equal(transitions.some((x) => x.type === 'erreur'), false, JSON.stringify(transitions))
   assert.deepEqual(transitions.map((x) => x.seq), transitions.map((_, i) => i + 1))
 })
 test('IPC fermé : identité étrangère et thread libre refusés par le serveur', async (t) => {

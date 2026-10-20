@@ -1,7 +1,7 @@
 /**
  * GARDE ABSOLUE (#1869) — tout dialogue d'une scène a un OUVREUR dans cette scène.
  *
- * Un dialogue s'ouvre par la capacité « parler » d'une entité (`dialogueId`, `store.ts`) ou par un
+ * Un dialogue s'ouvre par la capacité « parler » d'une entité (`dialogueId`, `noyau/interactionsDExploration.ts`) ou par un
  * effet dont le handler déclare `ouvreDialogue` (`combatEffects.ts`) ; le runtime le cherche dans la
  * scène COURANTE. Un dialogue qu'aucun ouvreur ne cite est injouable : `validateScene` en avertit
  * l'éditeur, et aucun contenu livré n'en porte.

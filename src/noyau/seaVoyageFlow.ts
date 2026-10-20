@@ -121,6 +121,7 @@ import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `crew-test-zero-success` comprise) dans
@@ -2881,3 +2882,13 @@ registerCascadeApplier('sea-desertion', (get, set, step) => {
   const journal = resolveShoreLeaveDesertion(get, set, battleRng());
   return { consequences: freeCons(journal) };
 });
+
+export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
+  return {
+    portRepair: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
+    portCareen: () => portCareenVessel(get, set).forEach((l) => get().log(l)),
+    portInstallUpgrade: (traitId, units) => portInstallUpgrade(get, set, traitId, units).forEach((l) => get().log(l)),
+    resolveManannPriest: (pay) => resolveManannPriest(get, set, pay),
+    resolveShoreLeave: (allow) => resolveShoreLeave(get, set, allow),
+  } satisfies Partial<ActionsDuNoyau>;
+}
