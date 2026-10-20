@@ -13,7 +13,7 @@
  * Les lectures de store restent à ce BORD (`combatantAnimCtx`, injectable) : la sélection du geste,
  * elle, est pure et reçoit son contexte.
  */
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { useGame } from '../../state/store';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { combatantRender } from '../sizeScale';

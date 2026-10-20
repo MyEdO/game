@@ -57,7 +57,7 @@ import { areGrappling } from '../engine/grapple';
 import { rule } from '../engine/policy';
 import { campSpend } from '../noyau/combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { t } from '../i18n';
 
 // ---------------------------------------------------------------------------

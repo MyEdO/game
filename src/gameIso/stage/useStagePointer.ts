@@ -35,7 +35,7 @@ import { planJump } from '../../state/jumpMove';
 import { refuserGeste } from '../../state/refusVisible';
 import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
 import { Combatant } from '../../engine/types';
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsActive } from '../../state/netOwnership';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw } from '../../state/stageYaw';

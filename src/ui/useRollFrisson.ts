@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { bus, EVT } from '../state/bus';
+import { bus, EVT } from '../noyau/bus';
 
 /** Durée du tumble (arbitrage user 2026-07-13 « des dés qui roulent ») — geste COURT, pas un gadget. */
 const TUMBLE_MS = 750;

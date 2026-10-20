@@ -4,7 +4,7 @@ import { applyEffects, fireScheduledEffects } from './combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import type { Effect } from '../noyau/monde/scene';
 
 /**

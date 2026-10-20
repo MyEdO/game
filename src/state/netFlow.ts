@@ -29,7 +29,7 @@ import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
 import type { NetMessage } from '../net/protocol';
 import type { Scene } from '../noyau/monde/scene';
 import { intentEluLocalement } from './targetingModes';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, RemplacerLEtat, Set } from './flowTypes';

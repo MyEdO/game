@@ -122,7 +122,7 @@ import { reachable, moveReachFor, chebyshev, tileKey, Pt } from '../noyau/monde/
 import { combatDistance } from '../noyau/monde/footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from '../noyau/monde/scene';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, setClotureDeCascade, poserCurseurCascade } from '../noyau/cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from '../noyau/partyWipe';

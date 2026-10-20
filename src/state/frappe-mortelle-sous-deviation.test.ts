@@ -12,7 +12,7 @@ import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
 import { isOutOfAction } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { draineCascade, type ChoisitCle } from './cascadeTestKit';
 
 const LIEUX = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const;

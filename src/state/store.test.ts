@@ -9,7 +9,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene, type ActionAuthoree } from '../noyau/monde/scene';
 import { actionsDe, cleActionJouee } from '../noyau/monde/usable';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
 import { CAP_GROUPE, capDuGroupe } from '../noyau/monde/combatants';

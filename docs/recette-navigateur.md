@@ -1507,7 +1507,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   #1335) : les nombres/mentions flottants vivent 900 ms (1300 ms pour la mort) et sont retirés par un
   `setTimeout` (`src/gameIso/fx/useCombatFx.ts`) — entre le clic, le rendu et l'écriture du PNG, la
   fenêtre est déjà fermée, et une capture vide ne prouve RIEN (ni présence ni absence). Se valider
-  par la SOURCE de l'effet : l'événement de bus qui le pousse (`ANIM_FLOAT`/impact, `src/state/bus.ts`,
+  par la SOURCE de l'effet : l'événement de bus qui le pousse (`ANIM_FLOAT`/impact, `src/noyau/bus.ts`,
   souscrit par `useCombatFx.ts`) ou la ligne de journal correspondante (`__wfrp.log()`). Une capture
   ne sert qu'aux états PERSISTANTS (modale ouverte, HUD, écran).
 

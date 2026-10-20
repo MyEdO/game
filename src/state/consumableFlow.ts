@@ -26,7 +26,7 @@ import { touchActors } from './combatOrParty';
 import { battleRng } from '../noyau/battleRng';
 import { ev } from '../noyau/combatLog';
 import type { Get, Set as SetFn } from './flowTypes';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { t } from '../i18n';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions

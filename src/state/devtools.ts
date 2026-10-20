@@ -95,7 +95,7 @@ import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById,
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from '../noyau/pendings';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { ev } from '../noyau/combatLog';
 import { isOutOfAction, syncDerivedConditions, cannotDefend, etatConnu, etatIdsConnus } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';

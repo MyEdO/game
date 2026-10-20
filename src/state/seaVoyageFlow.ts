@@ -30,7 +30,7 @@
  */
 import { battleRng } from '../noyau/battleRng';
 import { nomDuNavire } from './carriers';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { openRest } from './restFlow';
 import { dayIndex } from './upkeep';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';

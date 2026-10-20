@@ -15,7 +15,7 @@ import { sceneLightSources } from './visionState';
 import { partyTokenOf } from '../gameIso/builders/tokens';
 import { tokenChromes } from '../gameIso/builders/tokenChrome';
 import { actorPoseKey, partyActorPose } from '../gameIso/backends/webgl/sceneMeshes';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 

@@ -20,7 +20,7 @@ import { exploreMovePlan, exploreSeatPlan } from '../../state/exploreNav';
 import { offresUtilisables } from '../../state/offresUtilisables';
 import { useGame } from '../../state/store';
 import { props } from '../../data';
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { STEP_MS } from '../../geometry/walk';
 import type { Combatant } from '../../engine/types';
 import { aretesUtilisables, type AreteUtilisable } from '../../state/aretes';

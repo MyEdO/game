@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createHero } from '../engine/character';
 import { effectiveMovement } from '../engine/encumbrance';
 import { testScene } from '../scenes/test-fixture';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { resolveMovement } from './combatFlow';
 import { useGame } from './store';
 

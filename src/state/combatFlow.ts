@@ -233,7 +233,7 @@ import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
 import { resolveRun, chargeReach, testDuCavalier } from '../engine/movement';
 import type { RNG } from '../engine/dice';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { emitCombatEvent } from './combatEvents';
 import { massBattleTrackHit } from './massBattleFlow';
 // Géométrie de combat (`combatGeometry`) et gestes de placement (`combatPlacement`) — importés pour

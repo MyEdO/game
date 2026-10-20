@@ -10,7 +10,7 @@
  * main sur la pose committée du store.
  */
 import { useEffect, useRef, useState } from 'react';
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { walkDuration, STEP_MS } from '../../geometry/walk';
 import { battreStageFrames } from '../stage/stageFrames';
 import type { WalkTrack } from './walkPose';

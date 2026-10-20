@@ -7,7 +7,7 @@
  *  - écran/mode/scène (store) → contexte musical (`music.ts`) → canal musique (`engine.ts`).
  * Ajouter un son = 1 def dans `defs/` + (si nouvel événement) une ligne ici.
  */
-import { bus, EVT } from '../state/bus';
+import { bus, EVT } from '../noyau/bus';
 import { useGame } from '../state/store';
 import { playSfx, playMusic } from './engine';
 import { musicSelectionOf } from './music';

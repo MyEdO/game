@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { bus, EVT } from '../state/bus';
+import { bus, EVT } from '../noyau/bus';
 import { useGame } from '../state/store';
 import { hasLeap } from '../engine/traits/dispatch';
 import { planById, type BodyPlanId, type BodyPlan, type WingState } from './rig/bodyPlan';

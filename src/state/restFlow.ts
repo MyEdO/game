@@ -53,7 +53,7 @@ import { minutesUntilNext, dawnMinute, MINUTES_PER_DAY } from '../engine/clock';
 import { runDailyUpkeep, dayIndex } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import type { GameState } from './store';
 
 export type RestKind = 'auberge' | 'maison' | 'camp';

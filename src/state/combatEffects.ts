@@ -59,7 +59,7 @@ import { refuserGeste } from './refusVisible';
 import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from '../noyau/monde/flow';
 import { inRect, combatantsWithinRadius } from '../noyau/monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { combatDistance } from '../noyau/monde/footprint';
 import { registerCascadeApplier, setSuiteApresCommit, pushStep, idDeLaDernierePoussee,
   etapesDeLaFenetre, annoterEtapeDeLaFenetre } from '../noyau/cascade';

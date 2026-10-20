@@ -30,7 +30,7 @@ import { passiveMods, poseDeterminationCanceller } from '../engine/trauma';
 import { purgeClockEffects } from './upkeep';
 import { determinationWindowId } from './combatSlice';
 import { rule, setRule, resetRule } from '../engine/policy';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 

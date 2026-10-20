@@ -11,7 +11,7 @@ import { applyEffects, CIBLES_D_EFFET_DE_SCENE } from './combatEffects';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Effect } from '../noyau/monde/scene';
 import { effectSummary } from '../ui/editor/EffectList';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 
 // Reset du store APRÈS CHAQUE test (isolate:false) : rend au singleton `useGame` son état initial,
 // pour qu'aucune scène/donnée posée ici ne survive au fichier suivant du worker partagé.

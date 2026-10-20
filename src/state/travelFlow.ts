@@ -22,7 +22,7 @@
  */
 import { battleRng } from '../noyau/battleRng';
 import { garanti } from '../lib/garanti';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 
 /** Id du protocole de reprise TERRESTRE (effets DIFFÉRÉS dans `travelPlan.land.interrupt`). */

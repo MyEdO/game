@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { PLAN_ATTACK_IMPACT_MS } from '../rig/anim/actorAnimSelect';
 import {
   animTracksInstalls,

@@ -51,7 +51,7 @@ import { refuserGeste } from './refusVisible';
 import { chargeArmee } from './localIntent';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import type { GameState } from './store';
 import { chebyshev } from '../engine/grid';
 import {

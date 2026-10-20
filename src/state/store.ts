@@ -163,7 +163,7 @@ import { ouvrirDialogue, conversationRepond, reponsesDuNoeud } from './dialogue'
 import { placeCombatant } from './spawn';
 import { chebyshev, Pt, tileKey } from '../noyau/monde/path';
 import { aPorteeDe, exploreStepDest, povStepDest, spawnFacing } from './exploreNav';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { emptyWorldMap } from './worldMap';
 import type { NarratifBlock, OuvertureBlock } from './campaignNarratif';
 import { emptyNarratif } from './campaignNarratif';
