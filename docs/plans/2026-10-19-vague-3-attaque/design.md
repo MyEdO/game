@@ -1,25 +1,39 @@
-# Vagues 3 et 4 (#2817, #2889) : l'orchestration au noyau — paragraphe de design v6 (2026-10-20)
+# Vagues 3 et 4 (#2817, #2889) : l'orchestration au noyau — paragraphe de design v7 (2026-10-20)
 
 Épique #2882 (« Restructuration : des couches à frontières tenues, un noyau de règles appelable par tout
 hôte »), plan `docs/plans/2026-10-19-restructuration.md`. Historique : v1 (`23e511c12`) REJETÉE
 (`verdict-du-juge.md`, 3 bloquants) ; v2 (`9036aa19b`) REJETÉE (`verdict-du-juge-v2.md`, 1 bloquant,
 6 majeurs, 7 mineurs) ; v3 (`662e46556`) REJETÉE (`verdict-du-juge-v3.md`, 1 bloquant, 4 majeurs,
 9 mineurs) ; v4 (`7a6a1e57b`) REJETÉE (`verdict-du-juge-v4.md`, 0 bloquant, 6 majeurs, 13 mineurs) ;
-v5 (`7e5d77832`) REJETÉE (`verdict-du-juge-v5.md`, 0 bloquant, 3 majeurs, 12 mineurs). Les cinq juges
-ont gardé la méthode, et le v5 a validé ses mécanismes neufs (péremption du curseur, verdict du siège
-qui agit, horloge, transition du jeu, tables posées, motif hors store). La v6 corrige les 15 points de
-la v5 (§5). Ses corrections tiennent en quatre principes, appliqués à toute la classe et non au site
-relevé :
-- la moitié d'ADAPTATEUR de l'état ne voyage jamais : ni dans le snapshot coop, ni dans la sauvegarde ;
-- ce qui est PAR CLIENT se déclare à une seule source, au niveau du champ : un champ mixte se scinde
-  (`net`), et un champ par client ne s'écrit que pour le client propriétaire ;
+v5 (`7e5d77832`) REJETÉE (`verdict-du-juge-v5.md`, 0 bloquant, 3 majeurs, 12 mineurs) ; v6
+(`590600539`) REJETÉE (`verdict-du-juge-v6.md`, 0 bloquant, 4 majeurs, 11 mineurs). Les six juges ont
+gardé la méthode ; les juges v5 et v6 ont validé ses mécanismes (péremption du curseur, verdict du siège
+qui agit, horloge, transition du jeu, tables posées, motif hors store, tables tirables en accesseurs).
+
+**La v7 retire de la vague ce qui n'est pas la restructuration.** Les quatre majeurs du v6, comme les
+trois du v5, naissaient tous d'un chantier que la v5 avait fait entrer dans la vague : changer ce qui
+voyage en coop (la moitié d'interface, la part par client de `net`, l'écran, le refus, l'entrée en
+scène). Ce chantier a ses tickets ouverts, avec leur invariant, leur arbitrage à instruire sur pièces
+(doctrine « la VUE reste partagée », arbitrage du 2026-07-19 cité à #1987) et leur DoD au harnais
+coop à deux sièges :
+- #1987 « Coop : l'état d'écran de l'hôte (fiche, menu, Codex, possessions, inspection) voyage dans le
+  snapshot — frontière local/partagé tenue par deux listes à la main » ;
+- #1502 « coop : le refus d'un geste d'invité s'affiche chez l'hôte, jamais au siège demandeur » ;
+- #2895 « Coop : la marche, le saut et la porte d'un invité en exploration se jouent dans sa seule
+  copie, que le snapshot de l'hôte efface » (ouvert le 2026-10-20 sur la mesure du juge v6).
+
+La vague 3 ne change donc pas ce qui voyage : le snapshot et la save restent ceux d'aujourd'hui, que
+l'adaptateur compose à partir de l'état ENTIER du store (`netFlow`, `saves`, dans A). Ce qu'elle
+change, c'est où vivent les règles et les types. Les mesures du v4 au v6 sur le snapshot (`snapshot-invite`,
+`invite-salon`, `save-net`, `net-leave`, `rang-entree`) sont collées à #1987, où elles servent. Les
+principes de la v7 :
 - une règle que le propriétaire de l'état déclenche (écouteur, abonnement, verbe de clôture) est une
   fonction du NOYAU que chaque propriétaire appelle, jamais une capture du store ;
+- le TYPE du noyau ne connaît pas la moitié d'adaptateur : un module du noyau ne lit ni n'écrit un champ
+  d'interface ;
 - un test pose un régime par un seam de PRODUCTION sur une fixture nommée, jamais par mutation d'un
   registre ni par `vi.mock` ;
-- la vue d'un client SUIT la table : ce qu'elle doit refaire quand la partie change (écran du client,
-  caméra, fenêtres) se dérive d'un fait de jeu partagé, observé par chaque client, jamais d'un événement
-  émis chez le seul propriétaire.
+- un défaut trouvé en chemin se corrige s'il est dans le périmètre, ou va à son ticket, cité ici.
 
 Arbre mesuré : `origin/main` `cf4f18bcf` (`git diff --stat cf4f18bcf HEAD -- src` vide). Le bus a déjà
 déménagé sur `chantier/2817` (`5168069cd`, premier geste de 3a, non fusionné) ; les mesures ci-dessous
@@ -34,7 +48,8 @@ Sondes rejouables, dans `sondes/` :
 - `acces-typés.cjs`, `etatclo.cjs`, `d11-matrice.mts`, `snapshot-probe.mts`, `snapshot-invite.mts`,
   `champs-init.mts`, `icon-probe.mjs` (juge v4) ;
 - `invite-salon.mts`, `lecteurs-ecran.sh`, `reexports.cjs`, `reexports-noyau.cjs`, `toplevel-refs.cjs`,
-  `init-calls.cjs` (juge v5) ;
+  `init-calls.cjs` (juge v5) ; `reexports-src.cjs`, `save-net.mts`, `net-leave.mts`, `rang-entree.mts`,
+  `chargement-entree.mts`, `peremption-ecran.mts` (juge v6) ;
 - `classes.mts`, `storeparts.cjs`, `premier-niveau.cjs` (inventaire de TOUT le premier niveau d'un
   module, M3 v4) ;
 - `inscriptions.tsv` (inscriptions de registre et poses de crochet dans les tests ; la commande
@@ -73,7 +88,7 @@ c'est 2882, la 2817 c'est juste un des sous tickets ». L'épique entière est d
   `mapQC`, `sceneToAscii` (export de l'éditeur).
 - A, l'état d'interface : `combatCursor` (avec la fabrique du curseur, D4), `clavier/keybindings`,
   `clavier/resoudreEchap`, `registreOffres`, `hotbarBridge`, `editeurBridge`, `mapHover`, `stagePan`,
-  `stageYaw`, `stageGestes`, `stageWalk`, `entreeEnScene`, `viewLevel`, `codexFocus`, `dismissStack`,
+  `stageYaw`, `stageGestes`, `stageWalk`, `viewLevel`, `codexFocus`, `dismissStack`,
   `dispositionConsole`, `stations` (« AUCUN effet de règle »), `visibility` (politique de rendu),
   `offreRendue` (« invariant d'AFFICHAGE »), `offresUtilisables` (« PROJECTION vers la pastille »),
   `poste` (« modèle-VUE », « jamais la mécanique de résolution »).
@@ -153,7 +168,7 @@ Les tests qui le portent (`movement-resolution.test.ts:113-133`, les assertions 
 | 78 | type `SheetTab` | A |
 | 84-88 | `reposerPaquetDeCampagne` (réinscrit les scènes du paquet, re-dérive le narratif) | N |
 | 93-114 | `applyLoadedSave` (chargement d'une save) | A, sur la reprise du noyau (D5) |
-| 196-197 | `SCREENS`, `Screen` | scindés (D5) |
+| 196-197 | `SCREENS`, `Screen` | N, `Ecran` (D5) |
 | 201-214 | `sceneRegistry`, `registerScene`, `resetSceneRegistry`, `scenesDuRegistre` | N |
 | 224-383 | types `ShootingStance(Key)`, `BattleState`, `Objective`, `CampaignDoc`, `PaquetALancer`, `PendingInteract` | N |
 | 385-1683 | interface `GameState` | scindée (D5) |
@@ -191,55 +206,31 @@ la plupart des délégations d'une ligne vers un flux de N.
   `debugLabels`, `debugRoofCut`, `reveler`, `inspectId`, `sheetId`, `sheetTab`, `sheetScroll`,
   `sheetAlarmsSeen`, `hoverCombatantId`, `hovered`, `hoverDelta` (mort, supprimé en 3a),
   `keyOverrides`, `editingHeroId`, `gameMenuOpen`, `codexOverlay`, `compendiumFocus`,
-  `compendiumReturn` (supprimé en 3c, D5), `possessionsScreen`, `combatCursor` ; après la vague,
-  24 avec `ecranDuClient` (D5) ;
-- 125 champs de jeu. Ce que l'invité garde à l'application d'un snapshot (`applyNetSnapshot`,
-  `netFlow.ts:160-182`) est PAR CLIENT : trois champs entiers, `localIntent`, `dispelCarrierId`,
-  `refus` (retirés du snapshot, `:110, 114, 118`, puis préservés, `:171-173`) ; quatre sous-champs de
-  `net`, `mode`, `mySeat`, `connection`, `hostAway` (`:174-180`) ; et l'écran `creator` quand l'hôte est
-  sur `party` (`keepCreator`, `:165, 170`). `NetState` (`:48-70`) mêle donc une part partagée
-  (`roomCode`, `seatNames`, `presence`, `ownership`, `slots`, `gmSeat`) et une part par client, lue
-  par 90 sites de production dans 33 fichiers (`git grep -nE "net\??\.(mode|mySeat|connection|hostAway)\b"`) ;
+  `compendiumReturn`, `possessionsScreen`, `combatCursor` ; 24 après la vague ;
+- 125 champs de jeu, dont `net` (`NetState`, `netFlow.ts:48-70`, avec `initialNet`), que `netOwnership`
+  lit pour la possession (`mode`, `mySeat`, `ownership`, `gmSeat`), et les trois champs que l'invité
+  garde à l'application d'un snapshot (`localIntent`, `dispelCarrierId`, `refus`, `netFlow.ts:110-118`,
+  `:171-173`) ;
 - `sessionEndOpen` (`stateFields.ts:76`) est de jeu : il ouvre la Fin de séance (effet de scène
   `combatEffects.ts:1538`, puis `partyFlow.endSession`, qui porte la remise de la Fortune de séance,
   `engine/fortune.ts:24`).
 
-**La moitié d'interface voyage aujourd'hui.** `snapshotSave` (`saves.ts:79-91`) copie toute clé de
-l'état initial hors des quatre entrées de `HORS_SAVE` (`saves.ts:60-71`), et `netSnapshot`
+**La moitié d'interface voyage aujourd'hui** (#1987). `snapshotSave` (`saves.ts:79-91`) copie toute
+clé de l'état initial hors des quatre entrées de `HORS_SAVE` (`saves.ts:60-71`), et `netSnapshot`
 (`netFlow.ts:97-122`) passe par lui : 22 des 25 champs d'interface sont dans le snapshot et dans la
-save (`snapshot-probe.mts`). `applyNetSnapshot` (`netFlow.ts:160-180`) repart de `getInitialState()`
-puis étale le snapshot : l'invité reçoit la fenêtre Codex, la fiche ouverte, la caméra et les touches de
-l'hôte (`snapshot-invite.mts`) :
-```
-codexOverlay {"category":"talents","id":"hote"} | sheetId hote | camRot 3 | keyOverrides {"cam-left":["KeyH"]} | localIntent {"actionId":"courir"}
-```
-Même classe dans la save : `loadGame` rend les touches et la caméra de la save, et `startScene` remet
-`keyOverrides` à sa valeur de CRÉATION du store (`loadKeyOverrides()`, `store.ts:2085`), si bien qu'une
-touche reliée pendant la session revient à l'ancienne au lancement d'une partie alors que
-`localStorage` porte la neuve (`setKeyBinding`, `store.ts:2086`). Défauts du périmètre, corrigés en 3c
-(D5).
+save (`snapshot-probe.mts`), et l'invité reçoit la fenêtre Codex, la fiche, la caméra et les touches de
+l'hôte (`snapshot-invite.mts`). La vague n'y touche pas (en-tête). Un défaut voisin est dans son
+périmètre, parce que 3c réécrit la remise à neuf de `startScene` : celle-ci remet `keyOverrides` à sa
+valeur de CRÉATION du store (`loadKeyOverrides()`, `store.ts:2085`), si bien qu'une touche reliée
+pendant la session revient à l'ancienne au lancement d'une partie alors que `localStorage` porte la
+neuve (`setKeyBinding`, `store.ts:2086`) ; D5 le corrige.
 
-**Les écrans** : `SCREENS` (`store.ts:196`) a 12 valeurs.
-- Cinq sont l'écran PARTAGÉ de la table : `screen` voyage dans le snapshot, et l'invité suit l'hôte. Ce
-  sont `menu` (défaite, `store.ts:2853` ; `massBattleFlow.ts:936`), `party` (la composition d'équipe se
-  fait à plusieurs, l'invité suit l'hôte du salon à l'équipe, `CoopLobby.tsx:131`), `campaign`,
-  `interlude` (`interludeFlow.ts:220, 1440, 1462`), `massBattle` (`massBattleFlow.ts:305, 308, 831,
-  865`).
-- Sept sont l'écran d'UN client : `creator` (chaque joueur crée SON héros ; `keepCreator` est
-  aujourd'hui le correctif qui le rend local chez l'invité, et l'hôte qui crée un héros entraîne encore
-  ses invités dans le créateur), et le shell web `editor`, `test`, `coop`, `compendium`, `gallery`,
-  `webglSpike`.
-- Le salon coop est un écran du client que la table fait quitter : l'invité attend sur `coop`
-  (`CoopLobby.tsx:107`) et passe sur `party` quand le snapshot de l'hôte y arrive (`invite-salon.mts`,
-  à `cf4f18bcf` : « écran de l'invité après le snapshot = party »).
-- Lecteurs de l'écran AFFICHÉ hors test, dans `src` et `scripts` (`lecteurs-ecran.sh`, sans exclusion) :
-  `ui/App.tsx:51` (puis `:77-87`), `clavier/keybindings.ts:220, 253, 275, 276, 281, 283, 495`,
-  `audio/music.ts:27`, `devtools.ts:599, 757, 1030` (`__wfrp.screen` rend `g().screen`), `openCodex`
-  (`store.ts:2136, 2142`), et le kit de recette `scripts/recette/lib.mjs:775` (`APP_READY`) et `:914`
-  (`gotoScreen`, qui attend `getState().screen === name`), soit 16 sites ; ses fixtures
-  `scripts/recette/lib.test.mjs:192-202` et `:2561` simulent `getState().screen`. Lecteurs de l'écran
-  du JEU : `modalArbiter.ts:332` (`ecranPlein`), `startScene` (`store.ts:2287`). Le commentaire
-  `modalArbiter.ts:313-317` dit l'écran `compendium` partagé.
+**Les écrans** : `SCREENS` (`store.ts:196`) a 12 valeurs, dans un seul champ `screen`, partagé avec la
+table (il voyage). Les règles et les flux en posent cinq : `menu` (défaite, `store.ts:2853` ;
+`massBattleFlow.ts:936`), `creator` (effet de scène « nouveau héros », `combatEffects.ts:1543`, par
+l'action d'adaptateur `setScreen`), `campaign`, `interlude` (`interludeFlow.ts:220, 1440, 1462`),
+`massBattle` (`massBattleFlow.ts:305, 308, 831, 865`). Le noyau lit `screen` à `modalArbiter.ts:332`
+(`ecranPlein`) et le garde à `startScene` (`store.ts:2287`).
 
 **Règles hors de `src/state`** (recherche de `useGame.setState(` et de `useGame.getState,
 useGame.setState` dans `gameIso`, `ui`, `audio`, `web`, `net`) : le saut d'exploration
@@ -261,9 +252,8 @@ deux portent `allow` : `net/session.test.ts:24, 46-51`, `net/relay.test.ts:70`.
 `localIntent` est UN champ par client : chez l'hôte, l'intention d'un invité qui ne porterait pas son
 verdict retomberait sur `courseArmee(get)` (`combatSlice.ts:939`), donc sur l'intention de l'HÔTE, et
 `consumeIntent()` (`combatSlice.ts:524-528`) dissout aujourd'hui l'intention armée de l'hôte sur tout
-clic exécuté au nom d'un invité. Même classe pour `refus` : `refuserGeste` (`refusVisible.ts:43`) écrit
-le refus d'un geste exécuté au nom d'un siège dans le `refus` de l'hôte, alors qu'il appartient à
-l'invité (`netFlow.ts:115-117`), qui ne le voit jamais.
+clic exécuté au nom d'un invité. Le refus d'un geste exécuté au nom d'un siège s'écrit de même dans le
+`refus` de l'hôte (`refusVisible.ts:43`) : c'est #1502, hors de la vague.
 
 **L'auto-cadence et l'horloge dans les tests.** `initCombatAuto` (`combatAuto.ts:239-245`) a deux
 appelants : `main.tsx:42` et `tir-rapide-combats-complets.test.ts:95` (`initCombatAuto();
@@ -323,8 +313,10 @@ supprimées (celles de `store.ts:49, 54` dès 3a, pour couper l'arc d'`actionReg
 3b), leurs importeurs réécrits vers le module qui déclare ; `merchants/index.ts` cède sa place à ses
 modules ; le baril `combatFlow` se dissout ; `monde/terrain/index.ts`, module de 168 lignes et non
 baril, ne garde que ses déclarations. La classe reçoit sa garde mécanique en 3b
-(`scripts/guards/lib/reexportations.mjs`, l'AST de `reexports.cjs` promu, stock vide sur `src/noyau`
-hors `index.ts` et sur `src/state`), parce qu'une purge sans garde se défait au lot suivant (credo).
+(`scripts/guards/lib/reexportations.mjs`, l'AST de `reexports-src.cjs` promu) sur TOUT `src`, parce
+qu'une purge sans garde se défait au lot suivant (credo) : `src/noyau` hors `index.ts` et `src/state`
+à zéro, et les 105 réexportations des autres dossiers (`data` 11, `engine` 16, `gameIso` 66, `scenes`
+1, `ui` 11, `reexports-src.cjs` à `cf4f18bcf`) en stock nominatif, qui ne peut que décroître.
 **Un seul échafaudage, nommé et borné** : de 3b à 3d, l'inscription à l'import que portait le baril
 (`combatFlow.ts:281, 283, 286`, et les modules qu'il importait pour leur effet) tient par des imports
 explicites `import './x'` dans `store.ts`, dans l'ordre exact où le baril les importait ; 3d les retire
@@ -364,53 +356,31 @@ Conséquences :
   `netOwnership.ts:115`), `null` sinon. `courseArmee`, `chargeArmee` (`armedIntentPortee`) et
   `consumeIntent` ne lisent que lui : une intention exécutée au nom d'un siège sans verdict joint ne
   court ni ne charge, et ne dissout pas l'intention armée du propriétaire. L'invité web joint son
-  verdict comme aujourd'hui (`argsAvecVerdictLocal`, `netFlow.ts:209`) ;
-- **un champ par client ne s'écrit que pour le client propriétaire** (m5 v5, la classe de la ligne
-  précédente) : toute écriture du noyau d'un champ de `CHAMPS_PAR_CLIENT` (D5) passe par
-  `ecrireLeClient(get, set, patch)` (`localIntent.ts`), sans effet sous un siège agissant (les remises
-  à neuf par `etatInitialDuJeu`, que seul le propriétaire joue, n'en sont pas). Le refus d'un
-  geste exécuté au nom d'un siège ne se perd pas : `refuserGeste` l'écrit alors au journal, partagé,
-  comme il le fait déjà hors combat (`refusVisible.ts:39-42`). La preuve de 3c : `git grep` des
-  écritures de ces champs dans `src/noyau` ne rend que `ecrireLeClient`.
+  verdict comme aujourd'hui (`argsAvecVerdictLocal`, `netFlow.ts:209`).
 
 **D5. Le type de l'état et des actions sort du store.** `src/noyau/etat.ts` déclare :
-- `EtatDeJeu` : les 125 champs de jeu du §1, `net` scindé, plus `reseauDuClient` et `entreeEnScene`
-  (ci-dessous), soit 127. Leurs types vont au noyau avec eux : `BattleActionMode` et sa valeur
-  `MODES_HORS_REGISTRE` (`actionRegistry.ts:548`, que garde `action-atteignabilite.test.ts:229`) suivent
-  `actionRegistry` dans N ; `LocalIntent` suit `localIntent` ; les types du premier niveau de
-  `store.ts` rangés N au §1 aussi ;
-- **`net` se scinde** (M3 v5) : `NetState` (`netFlow.ts:48-70`, avec `initialNet`) va au noyau réduit à
-  sa part partagée (`roomCode`, `seatNames`, `presence`, `ownership`, `slots`, `gmSeat`) ; sa part par
-  client devient le champ `reseauDuClient: { mode, mySeat, connection, hostAway }`. Les 90 lecteurs du
-  §1 (`net.mode`, `net.mySeat`, `net.connection`, `net.hostAway`) lisent `reseauDuClient` ; le
-  compilateur les trouve tous, puisque le type de `net` perd ces clés ;
-- `CHAMPS_PAR_CLIENT = ['localIntent', 'dispelCarrierId', 'refus', 'reseauDuClient'] as const` : la
-  SEULE source de ce qui est par client dans l'état du jeu, lue par le snapshot, la reprise, la save et
-  `ecrireLeClient` (D4). La règle du créateur n'y figure pas : `creator` devient un écran de client
-  (ci-dessous), et `keepCreator` (`netFlow.ts:165, 170`) disparaît ;
-- `HORS_SAVE = { campaignNarratif: … }` (déplacé de `saves.ts`, qui ne garde que la persistance) ;
-- `etatInitialDuJeu(): EtatDeJeu`, valeurs initiales des 127 champs (le littéral de `create` pour ses
+- `EtatDeJeu` : les 125 champs de jeu du §1. Leurs types vont au noyau avec eux : `BattleActionMode`
+  et sa valeur `MODES_HORS_REGISTRE` (`actionRegistry.ts:548`, que garde
+  `action-atteignabilite.test.ts:229`) suivent `actionRegistry` dans N ; `LocalIntent` suit
+  `localIntent` ; `NetState` et `initialNet` (`netFlow.ts:48-70`) vont au noyau, que `netOwnership`
+  lit pour la possession ; les types du premier niveau de `store.ts` rangés N au §1 aussi ;
+- `screen` reste UN champ, partagé avec la table comme aujourd'hui, typé par `Ecran`, l'union des 12 ids
+  de `SCREENS` (`store.ts:196`), qui déménage au noyau : c'est une liste d'ids, comme `IconId` (D6), et
+  le noyau en lit et en pose (§1). Rien ne change pour ses lecteurs (`App.tsx`, `keybindings.ts`,
+  `music.ts`, `devtools.ts`, le kit de recette) ;
+- `etatInitialDuJeu(): EtatDeJeu`, valeurs initiales des 125 champs (le littéral de `create` pour ses
   champs de jeu, plus `initialFields()` du manifeste `stateFields` ; ses initialiseurs non littéraux,
   `campaignStart`, `dayIndex`, `emptyWorldMap`, `initialNet`, sont des fonctions de N,
-  `init-calls.cjs`), lue par `startScene`, par la reprise et par `creerPartie` ;
-- `DonneesDeLaPartie` : les champs d'`EtatDeJeu` moins `CHAMPS_PAR_CLIENT` et `HORS_SAVE`, type
-  dérivé, et `donneesDeLaPartie(jeu)`, qui les copie en itérant les clés d'`etatInitialDuJeu()` ;
-- `repriseDeLaPartie(donnees)` : `etatInitialDuJeu()` moins `CHAMPS_PAR_CLIENT`, les données
-  par-dessus, l'élagage des places (`pruneSeatAssignments`, aujourd'hui `store.ts:105-108`) et
-  `reposerPaquetDeCampagne`. Elle ne touche donc jamais `reseauDuClient` : l'invité garde `mode`,
-  `mySeat`, `connection` et `hostAway` par construction, et le chargement d'une save garde la session
-  réseau courante (ce que fait `applyLoadedSave` aujourd'hui en posant le `net` courant, `store.ts:109`) ;
+  `init-calls.cjs`), lue par `startScene` et par `creerPartie` ;
 - `ActionsDuNoyau` : les 201 actions de jeu de `store.ts`, `combatSlice` sans le curseur,
   `RollFlowActionsMap` (`attackRoll`, `cascadeRoll`…, `rollFlowSpecs.ts:2131-2134`), et deux actions
   neuves descendues de `gameIso` (m12 v4) : `sauter(chemin, indice)` (élan, `planJump`, refus,
   `moveParty`, `runFlow`, `useStagePointer.ts:231-251`) et `actionnerLaPorte(portail)` (`toggleDoorIn`,
   `:277`, `:288`) ; `useStagePointer` garde la cadence de la marche et appelle ces deux actions ;
   toutes créées par des fabriques du noyau `(get, set) => actions` (la forme de `createCombatSlice`).
-  Classes coop des deux neuves (m8 v5) : `sauter` est un pas de la marche d'exploration, classe
-  `interne` comme `moveParty` (`intents.ts:288`) ; `actionnerLaPorte` est un geste de jeu, classe
-  `invité`, possession par le repli universel d'`intentAllowedFor` (`netOwnership.ts:576-582` : en
-  combat, le propriétaire du tour actif ; hors combat, la fenêtre ouverte, sinon l'hôte). L'invité
-  n'ouvre donc plus une porte dans sa seule copie de la scène, que le snapshot suivant écrasait ;
+  Leur classe coop est celle de `moveParty`, `interne`, avec la même conduite qu'aujourd'hui (le geste
+  joue chez le client qui l'émet) : le sort des gestes d'exploration de l'invité est #2895, qui
+  tranche la classe de toute la marche ;
 - `Jeu = EtatDeJeu & ActionsDuNoyau` ; `Get = () => Jeu`, `Set`, `PatchDeFlux`, `RemplacerLEtat`
   (`flowTypes.ts` va au noyau, typé sur `Jeu`).
 
@@ -419,73 +389,33 @@ porte les 24 champs d'interface, avec leurs valeurs initiales dans le littéral 
 `ActionsDeLAdaptateur` porte les 34 actions et le curseur. `create<GameState>` accepte l'intersection ;
 le `set` du store se passe en `Set` sur `Jeu` par contravariance, comme `createCombatSlice`
 aujourd'hui. Le compilateur refuse dès lors qu'un module du noyau lise ou écrive un champ d'interface
-ou appelle une action d'adaptateur. Les accès du §1 se coupent ainsi :
+ou appelle une action d'adaptateur. Le snapshot coop et la save ne changent pas : `netFlow` et `saves`
+(A) les composent de l'état entier du store, par `useGame.getInitialState()` comme aujourd'hui, et
+`applyLoadedSave` (A) garde son corps (§1, en-tête). Les accès du §1 se coupent ainsi :
 - `combatCursor` : la règle de péremption de D4 ;
 - `hoverDelta` : supprimé en 3a, avec son effet d'écriture (`useHoverTargeting.ts:202-219`), ses sept
   remises, sa déclaration, son entrée de manifeste, ses tests et son crédit du cliquet `set-scan-guard`
   (l'entrée « +4 resets ad hoc (#1135) » des lignes `:46-54`) ;
-- `startScene` repart d'`etatInitialDuJeu()` et ne garde que `screen`, `party`, `net` et
-  `reseauDuClient` ; il ne lit plus aucun champ d'interface ;
-- `combatEffects.ts:1543` (« nouveau héros ») émet `EVT.HEROS_A_CREER` ; l'adaptateur du propriétaire
-  ouvre SON créateur (`setEditingHero(null)`, `setScreen('creator')`), sans entraîner ses invités.
-
-**L'entrée en scène est un fait de jeu partagé** (m7 v5). Le champ de jeu `entreeEnScene: { sceneId,
-neuve, rang } | null` est posé par `marquerLEntree(get, set, neuve)` (N), dont `rang` vaut un de plus
-que le plus grand des rangs connus (l'état courant, et pour le chargement la save) : deux entrées
-successives diffèrent toujours. Il voyage dans le snapshot, comme `screen`. Le posent :
-- `transitionTo`, avec `neuve: false`, à la place de `get().autoSave()` (`store.ts:2407`), donc après
-  `advanceTime` et avant `openEncounterPsych` (le point de reprise précède la rencontre) ;
-- `startScene`, avec `neuve: true`, après sa remise à neuf ;
-- le chargement d'une save, avec `neuve: true`, après la reprise.
-
-Chaque client l'observe, par l'abonnement du store (D7) : quand le rang change, son adaptateur appelle
-`remettreLAdaptateur(neuve)`. Chez le seul propriétaire (`reseauDuClient.mode !== 'guest'`), une entrée
-`neuve: false` sauvegarde ensuite (`autoSave`) ; un hôte qui ne sauvegarde pas n'observe rien. Tout se
-joue dans la même pile synchrone, avant la prochaine image (la caméra se calcule une fois par image,
-`.claude/rules/rendu-et-rig.md`). `remettreLAdaptateur(neuve)` :
-- toujours : `camEdge` et `camPan` à leur valeur initiale, `resetStageGestes()` ;
-- sur `neuve: true`, aussi `debugLabels`, `debugRoofCut`, `reveler`, `inspectId`, `sheetId`,
-  `sheetTab`, `sheetScroll`, `sheetAlarmsSeen`, `hoverCombatantId`, `hovered`, `editingHeroId`,
-  `gameMenuOpen`, `codexOverlay`, `compendiumFocus`, `possessionsScreen`, `combatCursor` (16 champs, ce
-  que remet `startScene` aujourd'hui) ;
-- gardés : `camRot`, `zoom`, `viewMode`, `povActive` (comme `startScene`, `store.ts:2287`),
-  `keyOverrides` (préférence, corrige le défaut du §1) et `ecranDuClient` (que règle la péremption
-  ci-dessous).
-
-**Le snapshot et la sauvegarde ne portent que la partie** (M2 v4). `netSnapshot` rend
-`donneesDeLaPartie(get())` (stub de campagne et règles maison comme aujourd'hui) : ses trois
-suppressions (`netFlow.ts:110-118`) disparaissent, la moitié d'interface et la part par client ne
-partent plus. `applyNetSnapshot` pose `repriseDeLaPartie(game)` : les champs par client et toute la
-moitié d'interface de l'invité restent les siens, ce qui corrige l'écrasement mesuré au §1 et retire la
-fusion de `net` (`:174-180`). La save porte `donneesDeLaPartie` (`DonneesDeSave` en dérive,
-`snapshotSave` itère les clés d'`etatInitialDuJeu()`) ; `FORMAT_SAVE` change avec le type
-(`scripts/gen-formats.mjs`, racine `SaveGame`), et une save de l'ancienne forme est jetée comme toute
-autre (`saves.ts`). `applyLoadedSave` pose `repriseDeLaPartie(save.data)`, les champs par client hors
-`reseauDuClient` à leur valeur initiale, `screen: 'campaign'`, puis `marquerLEntree(neuve: true)`.
-`HORS_SAVE` perd `reveler`, `debugLabels` et `debugRoofCut`, exclus par construction.
-
-**Les écrans.** Le noyau porte `screen: EcranDuJeu`, l'écran partagé de la table (`menu`, `party`,
-`campaign`, `interlude`, `massBattle`, §1). L'adaptateur porte `ecranDuClient: EcranDuClient | null`
-(`creator`, `editor`, `test`, `coop`, `compendium`, `gallery`, `webglSpike`), par client puisqu'il ne
-voyage plus.
-- **Péremption** (M1 v5) : l'écran du client cède quand la table change d'écran. L'abonnement du store
-  (D7) remet `ecranDuClient` à `null` quand `screen` change entre deux états, sur le patron de la
-  péremption du curseur. L'invité au salon (`coop`) suit donc l'hôte sur `party`, puis sur `campaign`
-  après un chargement en session ; l'invité dans son créateur le quitte quand l'hôte lance la partie
-  (ce que fait `keepCreator` aujourd'hui) ; l'hôte dans le compendium voit la défaite qui le renvoie au
-  menu.
-- `ecranAffiche(s) = s.ecranDuClient ?? s.screen` (`store.ts`, A) est le seul lecteur de l'écran affiché.
-  Les 16 sites du §1 le lisent : `App.tsx`, `keybindings.ts` ×7, `music.ts`, `devtools.ts` ×3
-  (`__wfrp.screen` et `__wfrp.state().screen` rendent l'écran affiché ; un accesseur
-  `__wfrp.ecran()` le lit), `openCodex` ×2, et le kit de recette, dont `APP_READY` et `gotoScreen` lisent
-  `window.__wfrp.ecran()` au lieu de `window.__game.getState().screen` ; les deux fixtures de
-  `lib.test.mjs` simulent cet accesseur.
-- `setScreen` (adaptateur) range une valeur de client dans `ecranDuClient`, et une valeur du jeu dans
-  `screen` en remettant `ecranDuClient` à `null`. `compendiumReturn` disparaît (fermer l'écran du client
-  rend l'écran du jeu).
-- L'arbitre garde `ecranPlein` sur le seul `screen` du jeu (`modalArbiter.ts:332`) : il ne bloque plus
-  les gestes d'un invité quand l'hôte est dans un écran de client. Son commentaire
-  (`modalArbiter.ts:313-317`, « l'écran `compendium` est PARTAGÉ ») se réécrit dans le même commit.
+- `startScene` repart d'`etatInitialDuJeu()` et ne garde que `screen`, `party` et `net` ; il ne lit
+  plus aucun champ d'interface ;
+- entrée en scène : `transitionTo` émet `EVT.SCENE_ENTREE { sceneId, neuve: false }` à la place de
+  `get().autoSave()` (`store.ts:2407`, son unique appel), donc après `advanceTime` et avant
+  `openEncounterPsych` (le point de reprise précède la rencontre) ; `startScene` l'émet avec
+  `neuve: true` après sa remise à neuf. Tout se joue dans la même pile synchrone, avant la prochaine
+  image (la caméra se calcule une fois par image, `.claude/rules/rendu-et-rig.md`). L'écouteur de
+  l'adaptateur appelle `remettreLAdaptateur(neuve)`, puis sauvegarde sur `neuve: false` (`autoSave`,
+  qui exclut déjà l'invité, `store.ts:2222`). Chez l'invité, rien ne change : le snapshot lui porte
+  l'état d'interface de l'hôte comme aujourd'hui (#1987). `remettreLAdaptateur(neuve)` :
+  - toujours : `camEdge` et `camPan` à leur valeur initiale, `resetStageGestes()` ;
+  - sur `neuve: true`, aussi `debugLabels`, `debugRoofCut`, `reveler`, `inspectId`, `sheetId`,
+    `sheetTab`, `sheetScroll`, `sheetAlarmsSeen`, `hoverCombatantId`, `hovered`, `editingHeroId`,
+    `gameMenuOpen`, `codexOverlay`, `compendiumFocus`, `compendiumReturn`, `possessionsScreen`,
+    `combatCursor` (17 champs, ce que remet `startScene` aujourd'hui) ;
+  - gardés : `camRot`, `zoom`, `viewMode`, `povActive` (comme `startScene`, `store.ts:2287`) et
+    `keyOverrides` (préférence ; corrige le défaut du §1, avec un test : une touche reliée puis une
+    partie lancée, la touche tient) ;
+- `combatEffects.ts:1543` (« nouveau héros ») émet `EVT.HEROS_A_CREER` ; l'adaptateur ouvre le créateur
+  (`setEditingHero(null)`, `setScreen('creator')`).
 
 **D6. Services de plateforme et coupes.** `src/noyau/plateforme.ts` déclare ce que le noyau demande à
 l'environnement d'exécution : `programmer(suite, délai)` et `annuler(jeton)` (`combatFlow:19`,
@@ -513,7 +443,8 @@ reste :
   `ui/icons/_registry.generated.ts`. L'outillage (m12 v5) : une option générale `idUnion.out` de la
   cible (`cibles-registres.mjs:292-299`), qui vaut pour toute cible et sans cas propre aux icônes, et que
   `gen-registry.mjs:123-131` honore ; `scripts/docs/build-icones.mjs:47-52` et
-  `build-icones.test.mjs:12-23` lisent l'union à son fichier neuf. `MANEUVER_ICON` et `REVEAL_ICON` gardent leur type
+  `build-icones.test.mjs:12-23` lisent l'union à son fichier neuf ; ce test, qui mute en place la
+  cible partagée, passe désormais sa cible en argument à `gen-registry` (m10 v6). `MANEUVER_ICON` et `REVEAL_ICON` gardent leur type
   `Record<…, IconId>` : toute table d'icônes du noyau reste contrôlée par le compilateur, quelle que soit
   sa clé ;
 - `setAiTrace` (`ai.ts:62`) reste avec `ai.ts` dans N ; `devtools` (A) l'appelle, arc A → N ouvert.
@@ -536,8 +467,8 @@ est une fonction du noyau, et chaque propriétaire (le store web, la partie de D
 - **La transition du jeu** : `transitionDuJeu(prev, s): Partial<EtatDeJeu> | null` porte la
   réconciliation de l'occupation (`releaseRecomposedRanks`, `store.ts:3315-3321`, sa réentrance
   structurelle comprise). Le store l'applique par son UNIQUE `useGame.subscribe` (A), qui applique
-  ensuite les règles de l'adaptateur : la péremption du curseur (D4), celle de l'écran du client et
-  l'observation de l'entrée en scène (D5). La partie l'applique dans son `set`, après chaque écriture.
+  ensuite la seule règle de l'adaptateur, la péremption du curseur (D4). La partie l'applique dans son
+  `set`, après chaque écriture.
 - **L'auto-cadence** (m11 v4, m4 v5) : `planifierLeTickAuto(get, set)` (`combatAuto.ts`, N) porte la
   règle d'`initCombatAuto` (`combatAuto.ts:239-245` : rien en cadence manuelle, un tick coalescé par
   `programmer(…, 0)` sinon). `initCombatAuto()` (`store.ts`, A) abonne le store à cette fonction et rend
@@ -562,8 +493,9 @@ qui amende la formule du plan §4 (« entrées fournies par l'hôte ») : fourni
 lot 3h, qui les re-mesure à sa base (le juge v4 n'a pas vérifié les comptes de la v4).
 
 **D9. La surface : `src/noyau/index.ts` et la partie.** `creerPartie(etatInitial, entrees)` rend
-`{ etat(), envoyer(intention) → evenements, reprendre(jeton) → evenements, fermer() }`. Un hôte qui
-reprend une save passe `repriseDeLaPartie(donnees)` en état initial.
+`{ etat(), envoyer(intention) → evenements, reprendre(jeton) → evenements, fermer() }`, où
+`etatInitial` est un `EtatDeJeu` (`etatInitialDuJeu()`, ou l'état qu'un hôte a gardé). Le format de la
+save et du snapshot ne change pas dans la vague (en-tête) : la partie ne le lit pas.
 - **L'intention** : `{ type: K, args: Parameters<ActionsDuNoyau[K]>, siege? }` pour toute clé `K` de
   `ActionsDuNoyau`. La partie est propriétaire de l'état, comme le store web dont l'interface appelle
   toute action ; la classe coop ne borne donc pas l'union : `interne` compte des gestes de joueur
@@ -571,13 +503,15 @@ reprend une save passe `repriseDeLaPartie(donnees)` en état initial.
   des flux y sont, puisque ce sont des actions du noyau.
 - **Le siège** (M6 v4) : le corps d'`applyIntent` (`netFlow.ts:259-275`) devient UNE fonction du noyau,
   `appliquerLIntentionDUnSiege(get, siege, action, args)` : l'allowlist `GUEST_INTENTS`, puis la
-  possession par `intentAllowedFor`, deux contrôles distincts, chacun refusé au journal
-  (`coop.intentRefused` ; une intention hors allowlist, ignorée en silence aujourd'hui, est un client
-  qui triche et se dit) ; puis la réécriture du siège de `partyAddHero`/`partyReplaceHero`, puis
+  possession par `intentAllowedFor`, deux contrôles distincts, avec la conduite d'aujourd'hui : hors
+  allowlist, l'intention est ignorée en silence ; hors possession, le refus va au journal
+  (`coop.intentRefused`), et son affichage chez l'invité est #1502 ; puis la réécriture du siège de `partyAddHero`/`partyReplaceHero`, puis
   l'action sous `withActingSeat`. `netFlow` (hôte web) et `envoyer` (intention avec `siege`)
   l'appellent ; `HostSession` perd son option `allow` (`net/session.ts:27, 64`), parce que le point
   d'entrée des intentions devient unique. `net/session.test.ts:24, 46-51` et `net/relay.test.ts:70`
-  perdent `allow` ; les trois tests qui recopient le corps d'`applyIntent` (§1) appellent la fonction.
+  perdent `allow` ; les trois tests qui recopient le corps d'`applyIntent`
+  (`guest-intent-path.test.ts:57`, `hors-modal-intent-path.test.ts:74`,
+  `surface-1050-intent-path.test.ts:68`) appellent la fonction.
   Une intention de siège porte son verdict d'armement : `argsAvecVerdictLocal` est exporté par
   `index.ts` pour l'hôte qui le calcule chez son joueur, et un verdict absent vaut « non armé » (D4).
   Sans `siege`, le propriétaire agit.
@@ -592,8 +526,7 @@ reprend une save passe `repriseDeLaPartie(donnees)` en état initial.
   `brancherLeJeu(get, set, tablesDuJeu())`, pose les entrées (D8), et s'abonne au bus pour rendre les
   événements. `fermer()` débranche.
 - `index.ts` est le SEUL module de `src/noyau` qui réexporte (D2, garde de 3b). Il exporte la partie, les types
-  d'`EtatDeJeu`, d'`ActionsDuNoyau`, de `DonneesDeLaPartie` et de l'intention, `repriseDeLaPartie`,
-  `argsAvecVerdictLocal`, et les lecteurs purs dont un hôte a besoin pour montrer une fenêtre, chacun
+  d'`EtatDeJeu`, d'`ActionsDuNoyau` et de l'intention, `etatInitialDuJeu`, `argsAvecVerdictLocal`, et les lecteurs purs dont un hôte a besoin pour montrer une fenêtre, chacun
   pris au module qui le déclare : les six premiers morceaux de
   `docs/plans/2026-10-19-modale-attaque-godot.md` (`previewAttack`, `defenseDodgeMods`,
   `rederiveAttack`, `opReroll`, `opBonusSL`, la re-résolution de l'attaque), rendus appelables sans
@@ -701,20 +634,15 @@ automatique. Le contenu exact d'un lot vient de la re-mesure à sa base (H-b).
   chemins), et l'ordre des inscriptions identique avant et après (sonde jouée au rendu : liste des clés
   de chaque registre, dans l'ordre, sur la base et sur la tête).
 - **3c. Le type et les actions** (#2889).
-  - `etat.ts` et `flowTypes` au noyau ; `etatInitialDuJeu`, `CHAMPS_PAR_CLIENT`, `HORS_SAVE`,
-    `donneesDeLaPartie`, `repriseDeLaPartie` ; les 201 actions de jeu de `store.ts` et les déclarations
-    de premier niveau rangées N au §1 dans des fabriques et des modules du noyau ; `sauter` et
-    `actionnerLaPorte` (D5).
-  - `signalerLAvanceeDHorloge` et `transitionDuJeu` (D7) ; `net` scindé et `reseauDuClient` ;
-    `ecrireLeClient` (D4) ; `EcranDuJeu`, `ecranDuClient`, sa péremption, `ecranAffiche` aux 16 sites ;
-    `entreeEnScene`, `marquerLEntree`, `remettreLAdaptateur`, `HEROS_A_CREER` ; le snapshot, la save et
-    le chargement sur la partie (D5).
-  - Tests de `netFlow` promus des sondes : `snapshot-invite.mts` (la moitié d'interface et les champs
-    par client de l'invité, `reseauDuClient` compris, survivent au snapshot de l'hôte) et
-    `invite-salon.mts` (un invité au salon suit l'hôte sur `party`, puis sur `campaign` après un
-    chargement en session) ; un test d'entrée en scène chez l'invité (sa caméra se remet quand le
-    snapshot porte une entrée neuve) ; un test de refus sous siège agissant (le refus va au journal,
-    pas au `refus` de l'hôte).
+  - `etat.ts` et `flowTypes` au noyau ; `etatInitialDuJeu`, `Ecran`, `NetState` et `initialNet` ; les
+    201 actions de jeu de `store.ts` et les déclarations de premier niveau rangées N au §1 dans des
+    fabriques et des modules du noyau ; `sauter` et `actionnerLaPorte` (D5).
+  - `signalerLAvanceeDHorloge` et `transitionDuJeu` (D7), avec les deux tests de `TIME_ADVANCED` sur la
+    primitive ; `SCENE_ENTREE`, `remettreLAdaptateur`, `HEROS_A_CREER` (D5).
+  - Tests : la remise d'entrée (`startScene` remet les 17 champs et garde `camRot`, `zoom`, `viewMode`,
+    `povActive` ; `transitionTo` ne remet que la caméra et les gestes, et sauvegarde chez le seul
+    propriétaire) ; une touche reliée survit à `startScene` ; le snapshot et la save d'avant et d'après
+    le lot portent les mêmes clés (`useGame.getInitialState()`, aucune clé perdue ni gagnée).
   - Sonde d'entrée à la base du lot : un `tsc` sur `etat.ts` seul, arête retirée, avant de déplacer les
     actions. L'arête de type `noyau → state` sort de COUCHES (DoD de #2889, premier point).
   - Porte joueur au navigateur : une Course armée puis commise, une Charge, un changement de scène
@@ -731,17 +659,18 @@ automatique. Le contenu exact d'un lot vient de la re-mesure à sa base (H-b).
     (`scripts/guards/lib/racinesDeLaSuite.mjs`), sert à la fois l'exclusion de
     `EXCLUSIONS_DE_LA_SUITE` (que lisent `vite.config.ts`, les tranches de la CI `suiteVitest.mjs`,
     `scripts/test/run.mjs` par `enumerer` et la dérivation du périmètre
-    `perimetreDerivation.mjs:96,131`) et l'`include` de `vitest.noyau.config.ts` (sans `setupFiles`,
-    `isolate: true`). Un fichier `*.hors-store.test.ts` posé hors de `src/noyau` n'est pas exclu, donc
+    `perimetreDerivation.mjs:96,131`) et l'`include` de `vitest.noyau.config.ts` (`isolate: true`). Un fichier    `isolate: true`). Un fichier `*.hors-store.test.ts` posé hors de `src/noyau` n'est pas exclu, donc
     joué par la suite principale : aucun orphelin possible. Les gardes de corpus de tests lisent la
     configuration dont elles gardent le régime : `tests-sans-horloge-guard` lit les deux suites,
     `vi-mock-isolate-guard` la seule suite à `isolate: false`. Un script `test:noyau`, son pas dans
     `ci.yml`, et `test:noyau` dans la porte locale du lot.
-  - `vitest.noyau.config.ts` charge les données par la même porte que la suite (m9 v5) : son seul
-    greffon est `proseSource()` (`scripts/source/prose-source-plugin.mjs`, celui de `vite.config.ts:43`),
-    sans `registryGen` ni `react`, si bien que les `src/data/*.json` y sont matérialisés comme le veut
-    `data/index.ts:166-171`. Le metafile d'esbuild de 3e ne mesure que le graphe, où la forme disque du
-    JSON suffit ; le chargement des données par l'hôte Godot est l'affaire de la vague 6.
+  - `vitest.noyau.config.ts` charge les données par la même porte que la suite (m9 v5, m8 v6) : un
+    `setupFiles` minimal qui n'importe que `./data/overrides`, le gel du catalogue de la suite
+    (`test-setup.ts:98`, #2097 « catalogue figé en test »), et un seul greffon, `proseSource()`
+    (`scripts/source/prose-source-plugin.mjs`, celui de `vite.config.ts:43`), sans `registryGen` ni
+    `react`, si bien que les `src/data/*.json` y sont matérialisés comme le veut `data/index.ts:166-171`.
+    Le metafile d'esbuild de 3e ne mesure que le graphe, où la forme disque du JSON suffit ; le
+    chargement des données par l'hôte Godot est l'affaire de la vague 6.
   - `partie.hors-store.test.ts` n'importe que `src/noyau/index.ts` et joue, par une partie, une attaque
     complète (déclaration, jet, défense, critique, mise hors de combat, `cascadeNext` jusqu'à la
     clôture), puis une intention de siège sans verdict ; `plateforme.hors-store.test.ts` vérifie qu'un
@@ -769,32 +698,30 @@ re-mesure de la vague 7 confirme).
   change d'ensemble avec ses lecteurs, et la liste se corrige ici.
 - H-c : une PR 3b de l'ordre du lot 2b (1 317 fichiers) reste revuable parce qu'elle est mécanique ;
   sinon elle se scinde par composante fortement connexe du graphe de N.
-- H-e : un écran de client, une fiche ouverte, la fenêtre Codex, la caméra et les touches ne sont plus
-  partagés en coop. Aujourd'hui le snapshot de l'hôte les écrase chez l'invité (§1, `snapshot-invite`) ;
-  après 3c, chaque client garde les siens, et ne suivent l'hôte que l'écran partagé de la table
-  (`screen`, qui périme l'écran du client) et l'entrée en scène (qui remet la vue de chaque client).
-  Le compendium ou le créateur de l'hôte n'entraînent plus ses invités. C'est de l'ergonomie
-  révisable, pas une règle de jeu.
+- H-e : ce qui voyage en coop ne change pas. Le snapshot et la save restent composés par l'adaptateur
+  de l'état entier du store ; la moitié d'interface qui y voyage est #1987, l'affichage du refus chez
+  l'invité #1502, les gestes d'exploration de l'invité #2895. La vague déplace le code sans changer ce
+  qu'un client voit d'un autre, ce que prouvent les tests de clés de 3c.
 
-## 5. Réponses au verdict v5
+## 5. Réponses au verdict v6
 
-Les réponses au verdict v4 sont dans la v5 (`7e5d77832`, §5), que le juge v5 a jugées point par point.
+Les réponses aux verdicts v4 et v5 sont dans la v5 (`7e5d77832`) et la v6 (`590600539`), §5. Le verdict
+v6 est `verdict-du-juge-v6.md`.
 
 | Point | Réponse |
 |---|---|
-| M1 salon coop | D5 : l'écran du client se périme quand l'écran de la table change ; `invite-salon.mts` devient un test de `netFlow` (3c). |
-| M2 lecteurs de l'écran | §1 : 16 sites dans `src` et `scripts`, par `lecteurs-ecran.sh` sans exclusion ; D5 : `ecranAffiche` partout, `__wfrp.screen`, `__wfrp.state()` et `__wfrp.ecran()` sur l'écran affiché, kit de recette et ses deux fixtures sur `__wfrp.ecran()` ; la porte de 3c passe par `gotoScreen`. |
-| M3 part par client | D5 : `net` scindé, `reseauDuClient` dans `CHAMPS_PAR_CLIENT`, seule source ; `repriseDeLaPartie` ne touche jamais la part par client ; `creator` devient un écran de client, `keepCreator` disparaît ; test de parité en 3c. |
-| m1 réexportations | §1 : 38 dans 18 fichiers de `src/state` et 8 dans 7 de `src/noyau`, par l'AST ; D2 : toutes supprimées, garde `reexportations.mjs` en 3b ; `monde/terrain/index.ts` est un module, non un baril. |
-| m2 comptes | §1 : 44 instructions, 11 déclarations en valeur nommées, `GameState` en type. |
-| m3 tests rouges | §1 et D7, D9 : les deux tests de `TIME_ADVANCED` appellent la primitive ; `session.test.ts` et `relay.test.ts` perdent `allow` ; les trois copies d'`applyIntent` appellent la fonction du noyau. |
-| m4 auto-cadence | D7 : `initCombatAuto` dans `store.ts`, rend son désabonnement ; ses deux appelants nommés, le test se désabonne. |
-| m5 `refus` | D4 : un champ par client ne s'écrit que pour le propriétaire (`ecrireLeClient`) ; le refus d'un siège va au journal ; test en 3c. |
-| m6 deux contrôles | §1 et D9 : allowlist et possession sont distincts ; le retrait d'`allow` tient à l'unicité du point d'entrée ; une intention hors allowlist se dit au journal. |
-| m7 invité et scène | D5 : `entreeEnScene`, fait de jeu partagé observé par chaque client ; la sauvegarde d'entrée chez le seul propriétaire ; test en 3c. |
-| m8 classes coop | D5 : `sauter` `interne` comme `moveParty`, `actionnerLaPorte` `invité` sous le repli universel. |
-| m9 greffons | 3e : `vitest.noyau.config.ts` a pour seul greffon `proseSource()` ; le metafile ne mesure que le graphe ; l'hôte Godot à la vague 6. |
-| m10 tables tirables | D10 : l'union fermée porte sur les clés de code ; une famille tirable reste un accesseur vivant ; test d'édition puis tirage en 3d. |
-| m11 commentaire vivant | D5 : `modalArbiter.ts:313-317` réécrit dans le commit, avec sa conséquence dite. |
-| m12 outillage d'`IconId` | D6 : option générale `idUnion.out`, `gen-registry.mjs:123-131`, `build-icones.mjs:47-52` et son test. |
-| Non vérifiés v5 | D8 : 131 défauts `= defaultRNG` dans 48 fichiers de production selon le juge v5, re-mesurés en 3h ; `poc/godot` : 3e ; ordre d'inscription : preuve de 3b, sur tout le graphe et non sur les seuls imports de `store.ts`. |
+| M1 save et `net` | Sans objet : `net` reste entier, la save et le chargement ne changent pas (en-tête, D5). |
+| M2 rang d'entrée | Sans objet : plus de compteur d'entrée ; `SCENE_ENTREE` s'émet chez le propriétaire, dans la pile de `transitionTo` et de `startScene` (D5), et l'invité reçoit la vue par le snapshot comme aujourd'hui. |
+| M3 refus invisible | Sans objet : le refus d'un siège garde la conduite d'aujourd'hui (D9) ; son affichage chez l'invité est #1502. |
+| M4 `netLeave` et fixtures | Sans objet : `net` n'est pas scindé (D5). |
+| m1 compte des champs | Sans objet : 125 champs de jeu, `net` compris ; 24 champs d'interface (§1). |
+| m2 `connection`, `hostAway` | Restent dans `NetState`, au noyau avec lui (D5). |
+| m3 tests d'écran | Sans objet : `screen` reste un champ unique (D5). |
+| m4, m5 marche et porte de l'invité | #2895 ; `sauter` et `actionnerLaPorte` gardent la conduite de `moveParty` (D5). |
+| m6 intention hors allowlist | Silencieuse comme aujourd'hui, sans clé de message neuve (D9). |
+| m7 écran du créateur | Sans objet : `setScreen('creator')` reste l'écran partagé, posé par l'adaptateur sur `HEROS_A_CREER` (D5). |
+| m8 gel du catalogue | 3e : `setupFiles` minimal qui importe `./data/overrides`. |
+| m9 portée de la garde | D2 : `reexportations.mjs` sur tout `src`, zéro sous `src/noyau` (hors `index.ts`) et `src/state`, stock nominal décroissant ailleurs. |
+| m10 `build-icones.test.mjs` | D6 : la cible passe en argument, plus de mutation en place. |
+| m11 commentaire de l'arbitre | Sans objet : l'écran du compendium reste partagé, `modalArbiter.ts:313-317` reste vrai. |
+| Non vérifiés | D8 : défauts `= defaultRNG` re-mesurés en 3h ; `poc/godot` : 3e ; ordre d'inscription : preuve de 3b. |
