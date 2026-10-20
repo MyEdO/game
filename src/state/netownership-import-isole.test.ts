@@ -1,9 +1,9 @@
 /**
  * #1054 — `netOwnership` s'importe SEUL, sans monter le store. La table de possession (`ROUTES`,
- * #1051) doit être énumérable hors environnement de test complet (script, garde CI légère). Le
- * graphe `combatOrParty → targetingModes → … → store.ts` EXISTE (sonde (c) ci-dessous) : tout import
- * runtime de `netOwnership` vers cette famille de modules monte le store à l'import — et le store
- * s'évalue en `ReferenceError: Cannot access 'testRouter' before initialization`.
+ * #1051) doit être énumérable hors environnement de test complet (script, garde CI légère). Tout
+ * import runtime de `netOwnership` qui atteint `store.ts` monte le store à l'import — et le store
+ * s'évalue en `ReferenceError: Cannot access 'testRouter' before initialization`. La sonde (c)
+ * prouve que le détecteur mord sur un chemin réel : l'entrée de l'hôte web (`src/main.tsx`).
  *
  * DEUX mesures, complémentaires :
  *  (a) le CHEMIN RÉEL — un process `tsx` importe le module seul et doit sortir 0 (~0,25 s) ;
@@ -22,7 +22,7 @@ import { canoniser } from '../../scripts/docs/lib/chemin-mesure.mjs';
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url));
 const ENTREE = join(RACINE, 'src', 'state', 'netOwnership.ts');
-const LOURD = join(RACINE, 'src', 'state', 'combatOrParty.ts');
+const TEMOIN = join(RACINE, 'src', 'main.tsx');
 const STORE = join(RACINE, 'src', 'state', 'store.ts');
 
 const cheminCanonique = (fichier: string) => canoniser(fichier).replace(/\\/g, '/');
@@ -96,11 +96,11 @@ describe('#1054 — `netOwnership` s’importe SEUL', () => {
     ).toBeNull();
   });
 
-  it('le détecteur de chaîne MORD : depuis `combatOrParty` (lourd), le chemin vers le store EXISTE', () => {
+  it('le détecteur de chaîne MORD : depuis l’entrée de l’hôte web, le chemin vers le store EXISTE', () => {
     // Sans cette sonde, un résolveur cassé rendrait `null` partout et (b) serait vert à tort.
-    const route = lisible(chemin(LOURD, STORE));
-    expect(route?.[0], 'le BFS ne part pas du module attendu').toBe('src/state/combatOrParty.ts');
+    const route = lisible(chemin(TEMOIN, STORE));
+    expect(route?.[0], 'le BFS ne part pas du module attendu').toBe('src/main.tsx');
     expect(route?.[(route?.length ?? 0) - 1]).toBe('src/state/store.ts');
-    expect(route!.length, 'chaîne du lourd vers le store').toBeGreaterThan(1);
+    expect(route!.length, 'chaîne de l’entrée web vers le store').toBeGreaterThan(1);
   });
 });
