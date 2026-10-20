@@ -76,12 +76,6 @@
     {
       "famille": "URL",
       "fichier": "src/state/roll-modal-invariant.test.ts",
-      "ref": "existsSync : URL new URL(f, import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
-      "fichier": "src/state/roll-modal-invariant.test.ts",
       "ref": "readFileSync : URL new URL(f, import.meta.url)",
       "occurrence": 1
     },
