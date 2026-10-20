@@ -613,7 +613,14 @@ confronte deux prédicats jumeaux (`targetingHolder.ts:26-33` ⇄ la tête de `c
   (`placingZoneOf(s)`, source `cast` ou `siege`) ;
 - `targetingHolder` en dérive (balayage et deuxième frappe à l'identique ; `pendingSiegeAim` pour une
   zone de source `siege` ; rien sinon), la tête de `currentTargetingMode` aussi ;
-- `placingZoneOf` n'en dérive PAS : c'est une entrée de `detenteurDuCiblage`, inchangée, et ses sept
+- le CHOIX DE SOURCE de la zone en pose (`pendingCast.zone.placing && !center`, sinon
+  `pendingSiegeAim`, `combatFlow.ts:5462-5474`) devient `zoneEnPose(s)` dans `targetingHolder.ts`, le
+  module LÉGER (`targetingHolder.ts:5-10`) : `netOwnership` lit le détenteur sans monter le store
+  (`netownership-import-isole.test.ts`, mesures (a) et (b)), et `combatFlow` mène au store
+  (`combatFlow → seaVoyageFlow → store`, sonde du codeur de 3a, `codeur-d11/chaine.mjs`).
+  `detenteurDuCiblage` lit `zoneEnPose` ; `placingZoneOf` (`combatFlow.ts:5461`) la compose et y
+  ajoute libellé, ancre et portée ;
+- `placingZoneOf` n'en dérive PAS : c'est la projection de `zoneEnPose`, de réponse inchangée, et ses sept
   sites (`gameIso/stage/MondeDeCampagne.tsx:588`, `gameIso/stage/ZdeTemplate.tsx:28`,
   `actionRegistry.ts:510`, `combatFlow.ts:5489`, `devtools.ts:1569`, `targetingModes.ts:925` et `:969`)
   gardent leur réponse ;
