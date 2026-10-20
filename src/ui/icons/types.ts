@@ -12,7 +12,7 @@ export interface IconDef {
 /** Un fichier defs/ = une famille (plusieurs icônes du même domaine). */
 export type IconFamily = IconDef[];
 
-import type { IconIdGenerated } from './_registry.generated';
+import type { IconIdGenerated } from '../../data/icones.generated';
 
 /** Id d'icône AUTHORÉ (tables TS, champs typés) : union GÉNÉRÉE depuis les defs
  *  (`npm run gen`) — un id inventé ne compile pas. */

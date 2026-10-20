@@ -4,8 +4,6 @@ import { pathTo, walkNeighbors, type MoveEnv, type Pt } from '../noyau/monde/pat
 import { portalsForParty } from './roomPortals';
 import { memeCase, placesJouables, seatSlotsOf } from '../noyau/monde/seating';
 import { estUtilisable } from '../noyau/monde/usable';
-import { screenStepDot, type ScreenDir } from './combatCursor';
-import { type Dims } from '../geometry/iso';
 import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from '../noyau/monde/dir8';
 import { chebyshev } from '../engine/grid';
 import { maxJumpTiles, slowestMovement } from '../engine/movement';
@@ -160,7 +158,7 @@ export function exploreMovePlan(
   return { dest, path, ...(portal ? { portalId: portal.id } : {}) };
 }
 
-/** Seuil d'alignement écran (`screenStepDot`) sous lequel un voisin n'est PLUS considéré comme
+/** Seuil d'alignement écran sous lequel un voisin n'est PLUS considéré comme
  *  « dans le sens poussé » (#792). En iso, la case voisine IDÉALE d'un cardinal (pas diagonal de
  *  grille) colle à ~0.89–1.0 ; les repêchages hors-axe (pas simple-axe de grille, quasi-perpendiculaires
  *  en vertical du fait du ratio 2:1 TW/TH) tombent à ~0.45 — c'est ce rabattement trompeur qui
@@ -171,16 +169,17 @@ export function exploreMovePlan(
 const ALIGN_MIN = 0.6;
 
 /** Case d'ARRIVÉE d'un PAS clavier en exploration : la surface voisine CONNECTÉE (`walkNeighbors` —
- *  même connectivité que le BFS : `flat`/`ramp`, arête non murée, z auto-dérivé) dont le `tileCenter`
- *  colle le mieux à la direction ÉCRAN poussée (`screenStepDot`, projection partagée avec le curseur de
+ *  même connectivité que le BFS : `flat`/`ramp`, arête non murée, z auto-dérivé) qui colle le mieux à la
+ *  direction ÉCRAN poussée. L'`alignement` d'un voisin (normalisé, >0 ⇒ dans le sens poussé) est la
+ *  projection d'écran de l'appelant (`stepPartyDir` : `screenStepDot`, partagée avec le curseur de
  *  combat). Gère rampes/tabliers sans aucune ambiguïté de z. Bloqué (`null`) si aucune surface voisine
  *  n'est SUFFISAMMENT alignée (seuil `ALIGN_MIN`) sur la direction poussée — on ne rabat plus vers un
  *  voisin fortement latéral (source du zigzag/oscillation #792). PUR. */
-export function exploreStepDest(scene: Scene, from: Pt, dir: ScreenDir, dims: Dims): Pt | null {
+export function exploreStepDest(scene: Scene, from: Pt, alignement: (voisin: Pt) => number): Pt | null {
   let best: Pt | null = null;
   let bestDot = 0; // strictement positif : sinon aucune surface voisine ne part dans ce sens écran
   for (const n of walkNeighbors(scene, from)) {
-    const dot = screenStepDot(scene, from, n, dir, dims);
+    const dot = alignement(n);
     if (dot > bestDot) {
       bestDot = dot;
       best = n;

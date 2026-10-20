@@ -4,6 +4,7 @@ import { ficheDEntite } from './sceneNpc';
 import { memoByRef } from '../noyau/monde/sceneMemo';
 import { consumeAmmo } from '../engine/items';
 import type { Scene, SceneEntity } from '../noyau/monde/scene';
+import { presetPnjById } from './campaignData';
 
 // #2097 — `consumeAmmo` écrit le stock `poste.ammo` hydraté au spawn (`hydratePoste`).
 const geler = memoByRef((s: Scene) => s);
@@ -19,7 +20,7 @@ describe('munition tirée d’un poste né de la scène (#2097)', () => {
   it('la scène garde son stock', () => {
     const { ent } = coqueArmee();
     const avant = ent.postes![0].ammo![0].qty;
-    const c = ficheDEntite(ent);
+    const c = ficheDEntite(ent, presetPnjById);
     c.mannedPoste = c.postes![0];
     consumeAmmo(c, c.postes![0].ammo![0]);
     expect(c.postes![0].ammo![0].qty).toBe(avant! - 1);
@@ -30,7 +31,7 @@ describe('munition tirée d’un poste né de la scène (#2097)', () => {
     const { scene, ent } = coqueArmee();
     geler(scene);
     expect(Object.isFrozen(ent.postes![0].ammo![0])).toBe(true);
-    const c = ficheDEntite(ent);
+    const c = ficheDEntite(ent, presetPnjById);
     c.mannedPoste = c.postes![0];
     expect(() => consumeAmmo(c, c.postes![0].ammo![0])).not.toThrow();
   });

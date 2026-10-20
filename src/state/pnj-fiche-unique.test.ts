@@ -20,6 +20,7 @@ import { startPursuitSchema, givePossessionSchema } from '../data/schemas/defs-s
 import { findCreatureById, findVehicleById } from '../data';
 import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
 import { validateScene } from './validateScene';
+import { presetPnjById } from './campaignData';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -36,8 +37,8 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
 
   it('le même PNJ nommé porte le même nom en combat (`ficheDEntite`) et à la taverne (`sceneNpc`)', () => {
     pose([GERTA]);
-    const combat = ficheDEntite(GERTA);
-    const taverne = sceneNpc(get().scene, 'gerta')!;
+    const combat = ficheDEntite(GERTA, presetPnjById);
+    const taverne = sceneNpc(get().scene, 'gerta', presetPnjById)!;
     expect(combat.label).toBe('Gerta la Rusée');
     expect(taverne.label).toBe(combat.label);
     playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'gerta' } });
@@ -47,8 +48,8 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
   it('sans nom d’entité, la fiche garde le sien, sur les deux chemins', () => {
     const anonyme: SceneEntity = { ...GERTA, label: undefined };
     pose([anonyme]);
-    expect(ficheDEntite(anonyme).label).toBe('Humain');
-    expect(sceneNpc(get().scene, 'gerta')!.label).toBe('Humain');
+    expect(ficheDEntite(anonyme, presetPnjById).label).toBe('Humain');
+    expect(sceneNpc(get().scene, 'gerta', presetPnjById)!.label).toBe('Humain');
   });
 });
 
@@ -58,7 +59,7 @@ describe('#1882 — la porte et la fiche disent la MÊME chose d’un porteur', 
     expect(sceneEntitySchema.safeParse(ent).success).toBe(true);
     const sc = emptyScene(8, 8); sc.entities.push(ent);
     expect(validateScene([sc]).filter((w) => w.level === 'error')).toEqual([]);
-    expect(ficheDEntite(ent).creatureId).toBe('humain');
+    expect(ficheDEntite(ent, presetPnjById).creatureId).toBe('humain');
   });
 });
 
@@ -66,20 +67,20 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
   beforeEach(() => { useGame.setState(useGame.getInitialState(), true); });
 
   it('combat : `ficheDEntite` LÈVE en nommant la réf.', () => {
-    expect(() => ficheDEntite(MORT)).toThrow(FicheAbsente);
-    expect(() => ficheDEntite(MORT)).toThrow('réf. « creature-fantome-xyz » irrésoluble');
+    expect(() => ficheDEntite(MORT, presetPnjById)).toThrow(FicheAbsente);
+    expect(() => ficheDEntite(MORT, presetPnjById)).toThrow('réf. « creature-fantome-xyz » irrésoluble');
   });
 
   it('taverne : le PNJ n’est pas offert, et la partie ne s’ouvre pas contre lui', () => {
     pose([MORT]);
-    expect(tavernNpcOffers(get().scene)).toEqual([]);
+    expect(tavernNpcOffers(get().scene, presetPnjById)).toEqual([]);
     playTavernGame(get, set, { gameId: 'dominos', challengerId: get().party[0].id, opponent: { kind: 'npc', id: 'fantome' } });
     expect(activeSequence(get)).toBeFalsy();
   });
 
   it('marchandage : aucun marchand à fiche (`sceneNpc` rend `undefined`)', () => {
     pose([MORT]);
-    expect(sceneNpc(get().scene, 'fantome')).toBeUndefined();
+    expect(sceneNpc(get().scene, 'fantome', presetPnjById)).toBeUndefined();
   });
 
   it('infirmerie : aucune infirmerie ne s’ouvre, le refus est DIT au journal', () => {

@@ -17,6 +17,7 @@
 import type { Get } from './flowTypes';
 import { computeChargeReach, displayedReach } from './combatFlow';
 import { findActionById } from '../data/index';
+import { unSiegeAgit } from './netOwnership';
 
 /** Le mode d'intention ARMÉ (un seul à la fois) : l'id d'action du registre qui l'a posé. */
 export interface LocalIntent {
@@ -40,10 +41,17 @@ export const INTENT_REACH: Record<string, ((get: Get) => Map<string, number>) | 
   'portee-arme': null,
 };
 
+/** L'intention armée du PROPRIÉTAIRE du store, ou `null` quand un geste s'exécute au nom d'un AUTRE
+ *  siège (`withActingSeat`) : celui-là n'a droit qu'au verdict qu'il joint (`argsAvecVerdictLocal`),
+ *  et un verdict absent vaut « non armé ». Seule lecture de `localIntent` par le geste. */
+export function intentionDuProprietaire(get: Get): LocalIntent | null {
+  return unSiegeAgit() ? null : get().localIntent;
+}
+
 /** Id de PORTÉE de l'intention armée (`intent` de son action), ou `null` — la seule lecture par
  *  laquelle une surface apprend CE QUE le joueur a demandé à voir. */
 export function armedIntentPortee(get: Get): string | null {
-  const armed = get().localIntent;
+  const armed = intentionDuProprietaire(get);
   return (armed ? findActionById(armed.actionId)?.intent : undefined) ?? null;
 }
 

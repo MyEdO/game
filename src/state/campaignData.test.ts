@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { presetPnjById, affaireById, indiceById, trappingById } from './campaignData';
+import { presetPnjById } from './campaignData';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import { emptyScene } from '../noyau/monde/scene';
 import { applyEffects } from './combatFlow';
@@ -13,8 +13,6 @@ const LAME_CAMPAGNE = 'campagne-lame-maudite';
 
 const narratif: NarratifBlock = {
   ...emptyNarratif(),
-  affaires: [{ id: 'aff-corbeau-noir', titre: 'Le Corbeau noir' }],
-  indices: [{ id: 'ind-lettre-scellee', affaireId: 'aff-corbeau-noir', kind: 'indice', titre: 'Lettre scellée', stades: [{ id: 's1', prose: 'Une lettre.' }] }],
   presetsPnj: [{ id: 'pnj-baron-caché' }],
   objets: [{ id: LAME_CAMPAGNE, label: 'Lame maudite', categorie: 'melee', subType: null } as NarratifBlock['objets'][number]],
 };
@@ -47,32 +45,16 @@ beforeEach(() => {
   useGame.setState({ campaignNarratif: null, party: [], scene: null });
 });
 
-describe('campaignData — accesseurs de la couche narrative (#767)', () => {
-  it('sans campagne chargée (campaignNarratif === null) : tout accesseur couche-seulement retourne undefined', () => {
+describe('campaignData — lecture de la couche chargée dans le store (#767)', () => {
+  it('sans campagne chargée (campaignNarratif === null) : `presetPnjById` retourne undefined', () => {
     expect(useGame.getState().campaignNarratif).toBeNull();
     expect(presetPnjById('pnj-baron-caché')).toBeUndefined();
-    expect(affaireById('aff-corbeau-noir')).toBeUndefined();
-    expect(indiceById('ind-lettre-scellee')).toBeUndefined();
   });
 
-  it('campagne chargée par loadProject : les accesseurs retournent l’entrée de la campagne', () => {
+  it('campagne chargée par loadProject : `presetPnjById` retourne le preset de la campagne', () => {
     loadCampaign();
     expect(useGame.getState().campaignNarratif).not.toBeNull();
     expect(presetPnjById('pnj-baron-caché')?.id).toBe('pnj-baron-caché');
-    expect(affaireById('aff-corbeau-noir')?.titre).toBe('Le Corbeau noir');
-    expect(indiceById('ind-lettre-scellee')?.affaireId).toBe('aff-corbeau-noir');
-  });
-
-  it('trappingById : campagne-D’ABORD pour un objet du narratif, repli GLOBAL sinon', () => {
-    loadCampaign();
-    // Objet de campagne (n'existe pas dans src/data global).
-    expect(trappingById(LAME_CAMPAGNE)?.label).toBe('Lame maudite');
-    // Id global réel : tombe sur la règle globale.
-    expect(trappingById('dague')?.label).toBe('Dague');
-    // Preuve « échoue sans la clé » : campagne DÉCHARGÉE → l'objet de campagne n'est plus résolu.
-    useGame.setState({ campaignNarratif: null });
-    expect(trappingById(LAME_CAMPAGNE)).toBeUndefined();
-    expect(trappingById('dague')?.label).toBe('Dague'); // le global reste, lui
   });
 });
 

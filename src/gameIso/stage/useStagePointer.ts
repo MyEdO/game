@@ -35,7 +35,7 @@ import { planJump } from '../../state/jumpMove';
 import { refuserGeste } from '../../state/refusVisible';
 import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
 import { Combatant } from '../../engine/types';
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsActive } from '../../state/netOwnership';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw } from '../../state/stageYaw';
@@ -351,7 +351,7 @@ export function useStagePointer({
       return combatantAtTile(st.battle.combatants, t.x, t.y, t.z ?? 0)?.id ?? null;
     }
     const ent = entiteDuGeste(sc, v, t);
-    return ent && sceneNpc(sc, ent.id) ? ent.id : null;
+    return ent && sceneNpc(sc, ent.id, presetPnjById) ? ent.id : null;
   };
 
   /** LE geste SECONDAIRE du plateau — clic droit et appui long, un seul chemin : la fiche de ce que
@@ -466,7 +466,7 @@ export function useStagePointer({
       // d'une case adjacente, ou on le dit s'il est déjà à côté.
       setHover(null);
       st.setPendingInteract(null);
-      if (aPorteeDe(st.partyPos, ent)) st.log(`${ficheDEntite(ent).label} n’a rien à vous dire.`);
+      if (aPorteeDe(st.partyPos, ent)) st.log(`${ficheDEntite(ent, presetPnjById).label} n’a rien à vous dire.`);
       else if (plan) moveAlong(sc.id, plan);
       return;
     }

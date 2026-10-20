@@ -32,10 +32,13 @@ export function setPickProbe(p: PickProbe | null): void {
   sondeDePicking = p;
 }
 
+/** Le `kind` d'une pose de zone, par source : table TOTALE sur `PlacingZone['source']`. */
+const KIND_DE_POSE = { cast: 'zone', siege: 'siege' } as const satisfies Record<PlacingZone['source'], string>;
+
 /** Le geste attendu SUR LA CARTE (`__wfrp.gesteCarteAttendu`) : une pose de zone (`PlacingZone` sans sa
- *  `source`, rendue en `kind`) ou un choix de cibles d'incantation. */
+ *  `source`, rendue en `kind` par `KIND_DE_POSE`) ou un choix de cibles d'incantation. */
 export type GesteCarteAttendu =
-  | ({ kind: 'zone' | 'siege' } & Omit<PlacingZone, 'source'>)
+  | ({ kind: (typeof KIND_DE_POSE)[PlacingZone['source']] } & Omit<PlacingZone, 'source'>)
   | { kind: 'cibles'; label: string; casterId: string; cibles: string[] };
 
 /** Une IMAGE RENDUE, que le rendu déclare juste après `renderer.render` (`gameIso/stage/GameStage3D`) :
@@ -90,12 +93,13 @@ import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
 import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { pushChoice } from '../noyau/rollSeam';
 import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from './spawn';
 import type { PendingBladeTrap } from '../noyau/pendings';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { ev } from '../noyau/combatLog';
 import { isOutOfAction, syncDerivedConditions, cannotDefend, etatConnu, etatIdsConnus } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';
@@ -1569,7 +1573,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const zone = placingZoneOf(s);
       if (zone) {
         const { source, ...pose } = zone;
-        return { kind: source === 'siege' ? 'siege' : 'zone', ...pose };
+        return { kind: KIND_DE_POSE[source], ...pose };
       }
       const pc = s.pendingCast;
       if (pc?.pickingTargets) return { kind: 'cibles', label: effectiveSpellOf(pc)?.label ?? pc.spellId, casterId: pc.casterId, cibles: [...(pc.extraTargetIds ?? [])] };
@@ -1623,7 +1627,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         const pv = useGame.getState().pendingVictory;
         const t = trappingsInstanciables().find((x) => x.qualities?.length);
         if (pv && t) {
-          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }]);
+          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }], objetDuNarratif(useGame.getState().campaignNarratif));
           useGame.setState({ pendingVictory: { ...pv, gear: [...(pv.gear ?? []), ...gear] } });
           lootNote = ` — butin qualité ajouté : ${t.label} (${t.qualities.map((q) => q.id).join(', ')})`;
         } else if (!pv) {

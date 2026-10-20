@@ -80,7 +80,7 @@ import type { OutcomeBand } from '../../engine/activities';
 import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
-import type { PresetPnj } from '../../state/campaignNarratif';
+import type { ResolveurDePreset } from '../../state/resolveursDuNarratif';
 import type { Porteur } from '../liage';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
@@ -2742,7 +2742,7 @@ const sectionDescription = (text: string, porteur: PorteurDeRangee | undefined):
  */
 export function proseDeFiche(
   c: Combatant,
-  presetDe: (id: string) => PresetPnj | undefined,
+  presetDe: ResolveurDePreset,
   porteurDuNarratif: (cle: 'presetsPnj', id: string, suite: string) => Porteur | undefined,
 ): { section: CodexSection; entree?: { type: string; id: string } } | null {
   const p = c.porteurDeFiche;

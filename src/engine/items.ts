@@ -15,7 +15,7 @@ import { findTrappingById, findTraitById, qualityInstance, refLabel, type Trappi
 import { t } from '../i18n';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
- *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`campaignData.ts`,
+ *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
 export type TrappingResolver = (id: string) => TrappingData | undefined;
 import { slugId } from '../data/slug';

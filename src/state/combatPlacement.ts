@@ -16,7 +16,7 @@ import { crossZones, zoneCovers } from '../noyau/monde/zones';
 import { battleRng } from '../noyau/battleRng';
 import { ev } from '../noyau/combatLog';
 import { t } from '../i18n';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { pruneSeatAssignments } from '../noyau/monde/seating';
 import { occupied, premiereCaseEnAnneaux } from '../noyau/monde/combatGeometry';
 // Type-only (effacé à la compilation) : la FORME du Flow gaté posé pour une zone `crossTest` — ce

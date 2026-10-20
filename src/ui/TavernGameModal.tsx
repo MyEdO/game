@@ -19,6 +19,7 @@ import { t } from '../i18n';
 import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
 import { fourchette } from '../engine/tables';
+import { presetPnjById } from '../state/campaignData';
 
 /** Un sport d'ÉQUIPE n'oppose pas deux personnes : le camp d'en face est tenu par la salle. Raison
  *  UNIQUE, portée par les deux adversaires individuels qu'elle ferme. */
@@ -84,9 +85,9 @@ export function TavernGameModal() {
   // Lu par SÉLECTEUR — la scène change (transition, PNJ retiré) et l'offre doit se re-rendre ; une
   // lecture directe de `getState` la figeait au premier rendu.
   const scene = useGame((s) => s.scene);
-  const npcs = tavernNpcOffers(scene);
+  const npcs = tavernNpcOffers(scene, presetPnjById);
   const npc = npcs.find((n) => n.id === oppNpcId) ?? npcs[0];
-  const npcActor = npc ? sceneNpc(scene, npc.id) : undefined;
+  const npcActor = npc ? sceneNpc(scene, npc.id, presetPnjById) : undefined;
   // CE QUE L'AUTEUR PRESCRIT (`NADJ 04 l.72` : un jeu ET une mise de départ) : la modale s'y POSE
   // quand on choisit ce PNJ — le joueur reste libre d'en dévier, l'auteur ne fait qu'ouvrir la table.
   useEffect(() => {

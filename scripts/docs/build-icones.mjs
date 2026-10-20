@@ -32,8 +32,11 @@ function lire(p) {
   return readFileSync(p, 'utf8')
 }
 
-/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
-function rendu() {
+/** L'entrée `ICON_FAMILIES` de `REGISTRIES`, lue par défaut. */
+const ENTREE_ICONES = REGISTRIES.find(r => r.arrayName === 'ICON_FAMILIES')
+
+/** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire, depuis l'entrée de registre `entree`. */
+function rendu(entree) {
 
   /** Première capture d'un motif, fail-fast (une constante déplacée casse ici, pas dans le .md). */
   function capture(texte, motif, quoi, ou) {
@@ -42,14 +45,26 @@ function rendu() {
     return m[1]
   }
 
+  // ── Entrée du générateur de registres ────────────────────────────────────────────────────────────
+
+  const CHAMPS_ENTREE = entree
+  if (!CHAMPS_ENTREE) abandon("l'entrée `ICON_FAMILIES` introuvable dans scripts/docs/lib/cibles-registres.mjs")
+  for (const requis of ['dir', 'out', 'arrayName', 'exportName', 'type']) {
+    if (typeof CHAMPS_ENTREE[requis] !== 'string' || !CHAMPS_ENTREE[requis].trim()) abandon(`l'entrée ICON_FAMILIES de scripts/docs/lib/cibles-registres.mjs n'a plus de champ « ${requis} »`)
+  }
+  const UNION = CHAMPS_ENTREE.idUnion?.typeName
+  if (typeof UNION !== 'string' || !UNION.trim()) abandon("le `typeName` de l'union d'ids ICON_FAMILIES est absent de scripts/docs/lib/cibles-registres.mjs")
+  const UNION_OUT = CHAMPS_ENTREE.idUnion.out
+  if (typeof UNION_OUT !== 'string' || !UNION_OUT.trim()) abandon("l'union d'ids ICON_FAMILIES n'a plus de module à part (`idUnion.out`) dans scripts/docs/lib/cibles-registres.mjs : `src/state` l'importe de `src/data`, hors de `ui`")
+
   // ── Registre : familles et ids ───────────────────────────────────────────────────────────────────
 
-  const REGISTRE = lire('src/ui/icons/_registry.generated.ts')
+  const REGISTRE = lire(UNION_OUT)
   const IDS = [...REGISTRE.matchAll(/^\s*\|\s*'([a-z0-9-]+)\/([a-z0-9-]+)'$/gm)].map((m) => ({
     famille: m[1],
     id: `${m[1]}/${m[2]}`,
   }))
-  if (!IDS.length) abandon("l'union `IconIdGenerated` de src/ui/icons/_registry.generated.ts est vide ou illisible")
+  if (!IDS.length) abandon(`l'union \`${UNION}\` de ${UNION_OUT} est vide ou illisible`)
 
   const PAR_FAMILLE = new Map()
   for (const { famille, id } of IDS) {
@@ -134,16 +149,6 @@ function rendu() {
       detail: 'retourne le fragment `svg` de la def, seul',
     },
   ]
-
-  // ── Entrée du générateur de registres ────────────────────────────────────────────────────────────
-
-  const CHAMPS_ENTREE = REGISTRIES.find(r => r.arrayName === 'ICON_FAMILIES')
-  if (!CHAMPS_ENTREE) abandon("l'entrée `ICON_FAMILIES` introuvable dans scripts/docs/lib/cibles-registres.mjs")
-  for (const requis of ['dir', 'out', 'arrayName']) {
-    if (typeof CHAMPS_ENTREE[requis] !== 'string' || !CHAMPS_ENTREE[requis].trim()) abandon(`l'entrée ICON_FAMILIES de scripts/docs/lib/cibles-registres.mjs n'a plus de champ « ${requis} »`)
-  }
-  const UNION = CHAMPS_ENTREE.idUnion?.typeName
-  if (typeof UNION !== 'string' || !UNION.trim()) abandon("le `typeName` de l'union d'ids ICON_FAMILIES est absent de scripts/docs/lib/cibles-registres.mjs")
 
   const TYPES_TS = lire('src/ui/icons/types.ts')
   const ALIAS_ID = capture(TYPES_TS, /export type (IconId) =/, "l'alias `IconId`", 'src/ui/icons/types.ts')
@@ -256,7 +261,7 @@ function rendu() {
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-icones.mjs\` (\`npm run docs:icones\`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont LUS aux fichiers réels : l'union \`${UNION}\` de
-\`src/ui/icons/_registry.generated.ts\` (familles, ids, comptes), la charte de dessin et les
+\`${UNION_OUT}\` (familles, ids, comptes), la charte de dessin et les
 constantes de trait de \`src/ui/icons/defs/action.ts\`, la regex de nommage et les couleurs admises
 de \`src/ui/icons/icons.test.ts\`, les signatures des trois rendus de \`src/ui/Icon.tsx\`, l'entrée
 \`ICON_FAMILIES\` de \`scripts/docs/lib/cibles-registres.mjs\`, les valeurs \`"icon"\` des \`src/data/*.json\`, et le
@@ -296,7 +301,7 @@ ${FAMILLES.length} existantes — sinon ajouter l'entrée au fichier de famille 
 // ${CHAMPS_ENTREE.dir}/<famille>.ts
 ${CONSTANTES_TRAIT.join('\n')}
 
-export const ${CHAMPS_ENTREE.exportName ?? 'icons'}: ${CHAMPS_ENTREE.type ?? 'IconFamily'} = [
+export const ${CHAMPS_ENTREE.exportName}: ${CHAMPS_ENTREE.type} = [
   {
     id: 'famille/nom',
     label: 'Libellé FR',           // tooltip par défaut, galerie QC
@@ -320,7 +325,7 @@ Couleur : la garde n'accepte que ${COULEURS_OK.map((c) => `\`${c}\``).join(', ')
 npm run gen
 \`\`\`
 
-Réécrit \`${CHAMPS_ENTREE.out}\` (import explicite de chaque fichier de \`${CHAMPS_ENTREE.dir}\` +
+Réécrit \`${CHAMPS_ENTREE.out}\` (import explicite de chaque fichier de \`${CHAMPS_ENTREE.dir}\` et, dans \`${UNION_OUT}\`, son
 union de littéraux \`${UNION}\`, dérivée des champs \`id: '…'\` — script générique
 \`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\` de \`scripts/docs/lib/cibles-registres.mjs\`). Auto en dev (plugin Vite) et
 câblé dans \`npm run build\` — mais lancer la commande à la main après un ajout pour vérifier le
@@ -402,7 +407,7 @@ emoji, même « juste pour l'instant ».
   hors exclusions par nature.
 - \`npm test -- src/data/data-wellformed.test.ts\` — ${CAS_ICONE.length} cas résolvent une icône
   dans \`ICON_DEFS\`.
-- \`npm run gen\` — régénère \`${CHAMPS_ENTREE.out}\` (n'écrit rien si le contenu est inchangé ;
+- \`npm run gen\` — régénère \`${CHAMPS_ENTREE.out}\` et \`${UNION_OUT}\` (n'écrit rien si le contenu est inchangé ;
   vérifier le compteur de fichiers affiché).
 - \`npm run typecheck\` — un id d'icône authoré en TS hors du registre ne compile pas
   (\`${UNION}\` est une union fermée).
@@ -418,10 +423,11 @@ emoji, même « juste pour l'instant ».
   }
 }
 
-/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
-export function rendre() {
-  const { path, out } = rendu()
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire ;
+ *  `entree` remplace l'entrée `ICON_FAMILIES` de `REGISTRIES`. */
+export function rendre(entree = ENTREE_ICONES) {
+  const { path, out } = rendu(entree)
   return new Map([[path, out]])
 }
 
-if (import.meta.main) ecrireOuVerifier({ ...rendu(), check: process.argv.includes('--check') })
+if (import.meta.main) ecrireOuVerifier({ ...rendu(ENTREE_ICONES), check: process.argv.includes('--check') })

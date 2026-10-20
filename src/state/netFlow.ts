@@ -18,7 +18,8 @@
  * le store (non sérialisables, jamais dans les snapshots).
  */
 import type { GameState } from './store';
-import { useGame, registerScene, reposerPaquetDeCampagne } from './store';
+import { useGame } from './store';
+import { registerScene, reposerPaquetDeCampagne } from './registreDesScenes';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { HostSession, GuestSession } from '../net/session';
@@ -29,7 +30,7 @@ import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
 import type { NetMessage } from '../net/protocol';
 import type { Scene } from '../noyau/monde/scene';
 import { intentEluLocalement } from './targetingModes';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, RemplacerLEtat, Set } from './flowTypes';

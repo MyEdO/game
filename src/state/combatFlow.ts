@@ -16,7 +16,7 @@ import { ev, evLines, journaliser, type CombatEventKind } from '../noyau/combatL
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
-import { scheduleCombatTimer } from '../web/minuteries';
+import { programmer } from '../noyau/plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../noyau/monde/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
@@ -233,7 +233,7 @@ import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo
 import { chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './ai';
 import { resolveRun, chargeReach, testDuCavalier } from '../engine/movement';
 import type { RNG } from '../engine/dice';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { emitCombatEvent } from './combatEvents';
 import { massBattleTrackHit } from './massBattleFlow';
 // Géométrie de combat (`combatGeometry`) et gestes de placement (`combatPlacement`) — importés pour
@@ -266,6 +266,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 
 // --- Effets de scène/campagne : combatEffects.ts (baril) ---
 export * from './combatEffects';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, ouvrirChute, cloturer, registerCloture, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './commandTeam';
 // --- Manœuvres de créature (énumération + résolveurs roll/apply) : combatManeuvers.ts (baril) ---
@@ -301,12 +302,13 @@ import { refuserGeste } from './refusVisible';
 import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
+  stepDetail, stepPrecision, stepPsych,
   type Consequence, type TableSpec,
 } from '../noyau/rollSeam';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from '../noyau/stepBrand';
 import { dataLabel } from '../data';
-import { stepDetail, stepPrecision, stepPsych } from '../noyau/rollSeam';
+import { zoneEnPose, type ZoneEnPose } from './targetingHolder';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -5452,27 +5454,30 @@ export function openCastCascade(get: Get, set: SetFn, caster: Combatant): boolea
   return true;
 }
 
-/** Source UNIQUE de la « pose de zone » en cours — le gabarit qui suit le curseur. Couvre TOUT
- *  ce qui se pose librement : sorts ET miracles à ZdE (les prières passent par pendingCast).
- *  Le Souffle/Vomissement ne se posent PAS (LDB 85 : centre imposé — cible visible la plus
- *  proche, ou la cible du sort Souffle — cf. applyAreaAttack). Toute nouvelle source = une
- *  entrée ICI + un bras à `commitPlacedZone` ; l'UI (gabarit animé, survol, clic) est commune. */
-export type PlacingZone = { source: 'cast' | 'siege'; label: string; casterId: string; radius: number; rangeTiles: number | null };
+/** Gabarit de la zone EN POSE, celui qui suit le curseur : projection de `zoneEnPose`
+ *  (`targetingHolder.ts`), qui en choisit la source (sort ou miracle à ZdE, pilonnage indirect).
+ *  Ici se projettent libellé, ancre (`casterId`) et portée. Tout consommateur de `ZoneEnPose['source']`
+ *  est TOTAL (`switch` fermé par `satisfies never`, ou table `satisfies Record<…['source'], …>`) :
+ *  une source neuve fait nommer par le compilateur chaque site à compléter. Souffle et
+ *  Vomissement n'en sont pas : LDB 85, `applyAreaAttack`. */
+export type PlacingZone = { source: ZoneEnPose['source']; label: string; casterId: string; radius: number; rangeTiles: number | null };
 export function placingZoneOf(s: Pick<GameState, 'pendingCast' | 'pendingSiegeAim' | 'battle'>): PlacingZone | null {
-  const pc = s.pendingCast;
-  if (pc?.zone?.placing && !pc.zone.center) {
-    const caster = inBattleId(s.battle, pc.casterId);
-    const spell = effectiveSpellOf(pc);
-    return {
-      source: 'cast', label: spell?.label ?? pc.spellId, casterId: pc.casterId, radius: pc.zone.radius,
-      rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster) : null,
-    };
+  const zp = zoneEnPose(s);
+  switch (zp?.source) {
+    case 'cast': {
+      const pc = zp.cast;
+      const caster = inBattleId(s.battle, pc.casterId);
+      const spell = effectiveSpellOf(pc);
+      return {
+        source: 'cast', label: spell?.label ?? pc.spellId, casterId: pc.casterId, radius: zp.zone.radius,
+        rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster) : null,
+      };
+    }
+    // Pilonnage INDIRECT (AA 10 l.169/171) : l'ancre est le servant (`casterId`).
+    case 'siege': return { source: 'siege', label: 'Pilonnage', casterId: zp.aim.gunnerId, radius: zp.aim.radius, rangeTiles: zp.aim.rangeTiles };
+    case undefined: return null;
+    default: return zp satisfies never;
   }
-  // Pilonnage INDIRECT (« viser une case », AA 10 l.169/171) : pièce indirecte servie en attente du point
-  // d'impact — MÊME gabarit/curseur/clic que les sorts de zone (l'ancre = le servant, `casterId`).
-  const sa = s.pendingSiegeAim;
-  if (sa) return { source: 'siege', label: 'Pilonnage', casterId: sa.gunnerId, radius: sa.radius, rangeTiles: sa.rangeTiles };
-  return null;
 }
 
 /** La case `pt` est-elle une POSE valide pour la zone en cours ? Portée depuis l'ancre + Ligne
@@ -5488,8 +5493,11 @@ export function placedZoneValidAt(get: Get, pz: PlacingZone, pt: Pt): boolean {
 export function commitPlacedZone(get: Get, set: SetFn, pt: Pt): void {
   const pz = placingZoneOf(get());
   if (!pz) return;
-  if (pz.source === 'cast') castCommitZone(get, set, pt);
-  else if (pz.source === 'siege') get().siegeAimCommit(pt); // pilonnage indirect → ouvre la modale de tir sur la case
+  switch (pz.source) {
+    case 'cast': castCommitZone(get, set, pt); return;
+    case 'siege': get().siegeAimCommit(pt); return; // pilonnage indirect → ouvre la modale de tir sur la case
+    default: pz.source satisfies never;
+  }
 }
 
 /** POSE de la zone d'un SORT (après le jet et la Surincantation) : gates portée (LDB 47) + Ligne
@@ -7249,7 +7257,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   // L'ÉQUIPEMENT (giveTrapping sans heroId) devient du butin ATTRIBUABLE sur l'écran (qualités
   // conservées) au lieu d'aller d'office au 1er héros — même brique que la fenêtre de loot
   // (gearFromEffects). Un giveTrapping ciblé (heroId d'auteur) s'applique directement.
-  const { gear, rest: immediate } = gearFromEffects(all.filter((e) => !CONTEXT.has(e.type)));
+  const { gear, rest: immediate } = gearFromEffects(all.filter((e) => !CONTEXT.has(e.type)), objetDuNarratif(get().campaignNarratif));
   const messages = immediate.flatMap((e) => (e.type === 'journal' && e.desc ? [e.desc] : []));
   const issue = immediate.length ? applyEffects(get, set, immediate) : undefined;
   const counts = new Map<string, { label: string; count: number; creatureId?: string }>();
@@ -7289,7 +7297,6 @@ registerCloture('ouvrirEcranDeVictoire', (get, set, c) => {
 export function finishCombatEnd(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  if (get().combatCursor) set({ combatCursor: null }); // fin de combat : plus de navigation au curseur
   const heroesAlive = battle.combatants.some((c) => c.kind === 'hero' && !isOutOfAction(c));
   if (heroesAlive) { finishVictory(get, set); return; }
   // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
@@ -7431,7 +7438,7 @@ function clearActorAim(get: Get, set: SetFn): void {
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
   clearActorAim(get, set); // reprise d'un tour qu'aucune attaque n'a résolu (incantation témoin, manœuvre) : le geste est fini
   if (combatAdvanceBlocked(get())) return;
-  scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance'));
+  programmer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance'));
 }
 
 /** Reprend un tour d'IA SUSPENDU par la séquence de conséquences de combat (jets, révélations) une
@@ -7481,7 +7488,6 @@ export function advanceTurn(get: Get, set: SetFn) {
   // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — confirmRoundStart le posera.
   if (get().pendingRoundStart) return;
   if (combatAdvanceBlocked(get())) return;
-  if (get().combatCursor) set({ combatCursor: null }); // le curseur clavier/manette appartient au tour qui s'achève
   if (get().localIntent) set({ localIntent: null }); // l'intention armée appartient au tour qui s'achève
   clearActorAim(get, set); // le télégraphe appartient au geste du tour qui s'achève (filet : aucun chemin ne le laisse fuir)
   const battle = get().battle!; // non-null garanti par combatAdvanceBlocked ci-dessus
@@ -7690,7 +7696,7 @@ export function maybeRunEnemyTurn(get: Get, set: SetFn) {
   // planification : un beat qui arrive en second n'a plus rien à jouer, et celui qui ACCÉLÈRE la
   // cadence (recette) reste utile.
   if (battle.aiTurnPlayed === cleDeTour(battle, active.id)) return;
-  scheduleCombatTimer(() => runEnemyAI(get, set, active.id), beatHold(get, 'turnHandoff'));
+  programmer(() => runEnemyAI(get, set, active.id), beatHold(get, 'turnHandoff'));
 }
 
 /** CLÉ d'un tour d'IA : CE combattant, à CE tour de CE Round — l'unité que le jeton protège. */
@@ -8190,7 +8196,7 @@ function shipMaxPosteRange(ship: Combatant): number {
 /** Clôt le tour d'une coque IA (readability : mêmes tenues que le tour ennemi). Ne progresse PAS si la bordée a
  *  conclu le combat (reddition/naufrage — `checkBattleOver` l'a déjà fermé). */
 function endShipTurn(get: Get, set: SetFn, delay?: number): void {
-  scheduleCombatTimer(() => { if (!get().battle?.over) advanceTurn(get, set); }, delay ?? beatHold(get, 'enemyAdvance'));
+  programmer(() => { if (!get().battle?.over) advanceTurn(get, set); }, delay ?? beatHold(get, 'enemyAdvance'));
 }
 
 /**
@@ -8236,7 +8242,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   const enemy = inBattleId(battle, enemyId);
   if (!enemy || isOutOfAction(enemy)) return advanceTurn(get, set);
   // Re-test du prédicat de contrôle À L'ENTRÉE : `maybeRunEnemyTurn` l'a évalué AVANT de
-  // différer par `scheduleCombatTimer`, et `setGmSeat` (`netFlow.ts`) n'attend aucune fenêtre de combat —
+  // différer par `programmer`, et `setGmSeat` (`netFlow.ts`) n'attend aucune fenêtre de combat —
   // un siège MJ pris entre la planification et le tir rend cet acteur conduit à la MAIN. On rend la main
   // sans jouer : le MJ le pilote via l'UI (`controlsCombatant`), l'IA n'a plus à décider pour lui.
   if (!aiDriven(get(), enemy)) return;
@@ -8357,7 +8363,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     const aimKind = firedWeapon(enemy, target).type === 'ranged' ? 'ranged' : enemy.chargedThisTurn ? 'charge' : 'melee';
     set({ actorAim: { fromId: enemy.id, toId: target.id, kind: aimKind } });
     bus.emit(EVT.SCENE_DIRTY);
-    scheduleCombatTimer(() => {
+    programmer(() => {
       const b = get().battle;
       // Tour caduc (combat fini OU relancé pendant le télégraphe → `enemy` hors du combat courant).
       if (!b || b.over || !b.combatants.includes(enemy)) { clearActorAim(get, set); return; }
@@ -8379,7 +8385,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         // Attaques GRATUITES après l'attaque principale : d'Arme « disponibles » (Frénésie LDB 21 l.33 =
         // seule source en donnée) puis de créature (Morsure/Caudale/Piétinement, OPPOSÉES). La file
         // s'arrête à la première fenêtre ouverte ; ne PAS avancer alors (reprise via defenseConfirm).
-        if (!drainerLesGratuites(get, set, enemy, { disponibles: true })) scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'postAttack'));
+        if (!drainerLesGratuites(get, set, enemy, { disponibles: true })) programmer(() => advanceTurn(get, set), beatHold(get, 'postAttack'));
       }
     }, delay);
   };
@@ -8411,7 +8417,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // Télégraphe d'incantation (parité tir) : ligne pointillée + réticule ~0,7 s avant le jet.
       set({ actorAim: { fromId: enemy.id, toId: ctgt.id, kind: 'cast' } });
       bus.emit(EVT.SCENE_DIRTY);
-      scheduleCombatTimer(() => {
+      programmer(() => {
         const b = get().battle;
         if (!b || b.over) { clearActorAim(get, set); return; }
         castSpell(get, set, enemy, ctgt, action.spell);
@@ -8419,7 +8425,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         // l'IA : la reprise est portée par castConfirm/castCancel → resumeEnemyTurn (anti
         // double-advance, même pattern que la défense). castSpell peut refuser (contrecoup
         // bloquant, hors de portée…) → pas de modale → l'ennemi passe.
-        if (!get().pendingCast) { clearActorAim(get, set); scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance')); }
+        if (!get().pendingCast) { clearActorAim(get, set); programmer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance')); }
       }, TEMPO.aimTelegraph);
       return;
     }
@@ -8432,7 +8438,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       resolveManeuver(get, set, enemy, def, 0, null, 0, enemy); // cible = soi
       set({ battle: markActed(get, set) });
       checkBattleOver(get, set);
-      scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance'));
+      programmer(() => advanceTurn(get, set), beatHold(get, 'enemyAdvance'));
       return;
     }
     case 'castArea': {
@@ -8454,7 +8460,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         ?? (aoeSp ? zdeRadiusTiles(aoeSp.target, enemy) ?? 1 : 1);
       set({ actorAoe: { casterId: enemy.id, center, radius: aoeRadius } });
       bus.emit(EVT.SCENE_DIRTY);
-      scheduleCombatTimer(() => {
+      programmer(() => {
         set({ actorAoe: null });
         const b = get().battle;
         if (!b || b.over || !b.combatants.includes(enemy)) return;
@@ -8511,7 +8517,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const aiReloadIssue = FLOWS.reload.apply(get, { p: pr, ctx: { after: progress, weapon: rw.label } });
       set({ battle: { ...markActed(get, set), log: [...get().battle!.log, ...evLines(aiReloadIssue, 'reload', enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
-      scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
+      programmer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
       return;
     }
     case 'melee':
@@ -8551,7 +8557,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         : (action.state === COND.empetre ? tr('cf.enemyStaysEmpetre', { name: enemy.label }) : tr('cf.enemyStaysFlames', { name: enemy.label }));
       set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('condition', l, enemy.id)), ev('condition', line, enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
-      scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
+      programmer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
       return;
     }
     case 'grapple': {
@@ -8568,7 +8574,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       checkBattleOver(get, set);
-      scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'postAttack'));
+      programmer(() => advanceTurn(get, set), beatHold(get, 'postAttack'));
       return;
     }
     case 'manPoste': {
@@ -8582,7 +8588,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       serveAtPoste(enemy, poste, battle.combatants);
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('detail', tr('cs.manPoste', { name: enemy.label, weapon: poste.item.label }), enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
-      scheduleCombatTimer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
+      programmer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
       return;
     }
     case 'move': {
@@ -8607,7 +8613,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // sont DIFFÉRÉS après la tenue (beatHold moveTelegraph) — mêmes effets, juste annoncés d'abord.
       set({ actorMove: { id: enemy.id, path: path ?? [{ ...mv.to }] }, battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
-      scheduleCombatTimer(() => {
+      programmer(() => {
         set({ actorMove: null }); // toujours retirer le télégraphe (même si le tour est devenu caduc)
         const b = get().battle;
         // Tour caduc (combat fini OU combat/scène relancé pendant le télégraphe → `enemy` n'appartient

@@ -67,6 +67,7 @@ import type { RNG } from '../engine/dice';
 import { actorIn } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { pnjAuProfil, sceneNpc } from './sceneNpc';
+import { presetDuNarratif, type ResolveurDePreset } from './resolveursDuNarratif';
 import type { Scene } from '../noyau/monde/scene';
 import { jetSurfaced } from '../noyau/sieges';
 import { cadenceAuto } from '../engine/cadence';
@@ -133,7 +134,7 @@ export function tavernGameValue(hero: Combatant, game: TavernGame): number {
  *  SOURCE UNIQUE — sans elle, un site lirait `party` seul et le PNJ à fiche redeviendrait anonyme. */
 function tavernActor(get: Get, id: string | undefined): Combatant | undefined {
   if (!id) return undefined;
-  return actorIn(get(), id) ?? sceneNpc(get().scene, id);
+  return actorIn(get(), id) ?? sceneNpc(get().scene, id, presetDuNarratif(get().campaignNarratif));
 }
 
 /**
@@ -142,11 +143,11 @@ function tavernActor(get: Get, id: string | undefined): Combatant | undefined {
  * le libellé affiché est celui que rend la projection (`sceneNpc`), jamais un id brut. Un personnage SANS
  * fiche n'a aucune valeur à opposer : il n'est pas proposé (sa faute est dite par `validateScene`, #1882).
  */
-export function tavernNpcOffers(scene: Scene | null | undefined): { id: string; label: string; gameId: string; stakeBrass?: number }[] {
+export function tavernNpcOffers(scene: Scene | null | undefined, presetDe: ResolveurDePreset): { id: string; label: string; gameId: string; stakeBrass?: number }[] {
   return (scene?.entities ?? [])
     .filter((e) => e.kind === 'personnage' && e.tavernGame)
     .flatMap((e) => {
-      const fiche = sceneNpc(scene, e.id);
+      const fiche = sceneNpc(scene, e.id, presetDe);
       return fiche ? [{
         id: e.id,
         label: fiche.label,
@@ -361,7 +362,7 @@ export function playTavernGame(
   if (!challenger) { get().log(t('tavern.challengerAbsent', { jeu: game.label })); return; }
   const opp = opts.opponent;
   const opponentActor = opp.kind === 'hero' ? party.find((h) => h.id === opp.id)
-    : opp.kind === 'npc' ? sceneNpc(get().scene, opp.id)
+    : opp.kind === 'npc' ? sceneNpc(get().scene, opp.id, presetDuNarratif(get().campaignNarratif))
       : pnjAuProfil(opp.id, HABITUE);
   if (!!game.team !== (opts.allyProfil !== undefined)) {
     get().log(t(game.team ? 'tavern.equipeSansCoequipier' : 'tavern.coequipierHorsEquipe', { jeu: game.label }));

@@ -129,6 +129,11 @@ export function withActingSeat<T>(seat: number, fn: () => T): T {
   }
 }
 
+/** Un siège agit-il MAINTENANT (application d'un intent reçu, `withActingSeat`) ? */
+export function unSiegeAgit(): boolean {
+  return actingSeat != null;
+}
+
 /** Le siège au nom duquel on décide MAINTENANT : celui qui agit s'il y en a un, sinon le siège local.
  *  Exporté pour les gestes qui MARQUENT leur siège dans l'état partagé (demande de pause de Round) :
  *  le siège vient du TRANSPORT (`withActingSeat`, posé par `netFlow.applyIntent`), jamais des arguments
@@ -380,9 +385,9 @@ const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[
  * `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `battleClickEntity`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
- * (`targetingHolder`, source unique partagée avec l'aiguilleur), le clic appartient au PORTEUR de
- * ce pending : l'attaquant du balayage / de la 2ᵉ frappe, l'artilleur du pilonnage indirect. Aucun
- * pending détenteur → `null` : le clic universel garde ses règles (repli).
+ * (`targetingHolder`, projection de `detenteurDuCiblage`, que l'aiguilleur projette aussi), le clic
+ * appartient au PORTEUR de ce pending : l'attaquant du balayage / de la 2ᵉ frappe, l'artilleur du
+ * pilonnage indirect. Aucun pending détenteur → `null` : le clic universel garde ses règles (repli).
  */
 const CLIC_CARTE: Route = {
   rule: (s, seat) => {

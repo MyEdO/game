@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { documentById } from '../../state/campaignData';
+import { documentDuNarratif } from '../../state/resolveursDuNarratif';
 import { walkFlow } from '../../engine/flowCore';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import { scenario } from './documents-edo';
@@ -117,8 +117,9 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
 
   it('les stades croisés résolvent leur document et se révèlent au Carnet', () => {
     const dlg = ouvrirLaLiasse();
-    const indice = useGame.getState().campaignNarratif!.indices.find((i) => i.id === 'ind-billets-de-teugen')!;
-    expect(indice.stades.map((s) => documentById(s.documentId!))).toEqual([
+    const narratif = useGame.getState().campaignNarratif;
+    const indice = narratif!.indices.find((i) => i.id === 'ind-billets-de-teugen')!;
+    expect(indice.stades.map((s) => documentDuNarratif(narratif)(s.documentId!))).toEqual([
       paquet.find((d) => d.id === 'edo-document-8-invitation-de-teugen'),
       paquet.find((d) => d.id === 'edo-document-9-tout-se-passe-bien'),
     ]);

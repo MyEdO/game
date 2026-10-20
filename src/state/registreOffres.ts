@@ -16,7 +16,8 @@
  * l'escamoter (loi du refus visible, arbitrage 2026-08-19).
  */
 import type { GameState } from './store';
-import { activeCombatant, useGame } from './store';
+import { useGame } from './store';
+import { activeCombatant } from './combatFlow';
 import { actorIn } from '../noyau/monde/combatants';
 import { nomDEntite } from './sceneNpc';
 import { presetPnjById } from './campaignData';

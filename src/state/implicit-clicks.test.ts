@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, movementRemaining } from './store';
+import { useGame } from './store';
+import { movementRemaining } from './mount';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { computeMoveReach, computeRunReach, displayedReach } from './combatFlow';
 import { createHero } from '../engine/character';

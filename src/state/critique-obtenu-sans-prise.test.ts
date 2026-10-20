@@ -7,7 +7,7 @@ import { useGame, type BattleState } from './store';
 import { applyAttackResult } from './combatFlow';
 import { draineCascade } from './cascadeTestKit';
 import { seedBattleRng } from '../noyau/battleRng';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { emptyScene } from '../noyau/monde/scene';
 import { rederivePassiveAttack, type AttackResult } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';

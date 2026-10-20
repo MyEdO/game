@@ -12,6 +12,7 @@ import { teintesTirees } from './parts/tirageIndividuel';
 import { raceById } from './races';
 import { bipedDef } from './creatures';
 import { ficheDEntite } from '../../state/sceneNpc';
+import { presetPnjById } from '../../state/campaignData';
 import { hashSeed } from '../../engine/dice';
 import { RigPortrait } from '../../ui/RigPortrait';
 import type { SceneEntity } from '../../noyau/monde/scene';
@@ -25,7 +26,7 @@ const SEEDED = tire(hashSeed(ID));
 
 const entity = (extra: Partial<SceneEntity> = {}): SceneEntity =>
   ({ kind: 'personnage', id: ID, label: 'Passant', pos: { x: 0, y: 0 }, appearance: { species: 'humains-reiklander' }, ...extra }) as SceneEntity;
-const combatant = ficheDEntite;
+const combatant = (ent: SceneEntity) => ficheDEntite(ent, presetPnjById);
 const palette = (p: EnemyRigProfile | null) => ({ colors: p?.appearance.colors, parts: p?.appearance.parts });
 const armure = (p: EnemyRigProfile | null) => (p?.equip.armour ?? []).map((i) => JSON.stringify(i)).sort();
 

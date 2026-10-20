@@ -44,7 +44,7 @@ import { seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX, actorIn, ecrireActeur } from '../noyau/monde/combatants';
 import { releaseSeat } from '../noyau/monde/seating';
 import type { Scene } from '../noyau/monde/scene';
-import { rosterUpdate } from './roster';
+import { persisterLeHeros } from '../noyau/plateforme';
 import { ensureBourse, creditBourse, bourseOf, payWithAllocation, soloPayer } from './bourseFlow';
 import { transferPossession } from './possessionsFlow';
 
@@ -556,7 +556,7 @@ export function buySpellComponent(get: Get, set: Set, heroId: string, spellId: s
 }
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).
- *  Mute `store.party` (→ persisté par la save) ET propage au roster s'il y est (rosterUpdate). */
+ *  Mute `store.party` (→ persisté par la save) ET propage au roster s'il y est (`persisterLeHeros`). */
 export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { motivation?: string; ambitionShort?: string; ambitionLong?: string }): void {
   set((s) => ecrireActeur(s, heroId, (h) => ({
     ...h,
@@ -564,7 +564,7 @@ export function setHeroBackground(get: Get, set: Set, heroId: string, patch: { m
     details: { ...h.details, ambitionShort: patch.ambitionShort ?? h.details?.ambitionShort, ambitionLong: patch.ambitionLong ?? h.details?.ambitionLong },
   })));
   const hero = get().party.find((h) => h.id === heroId);
-  if (hero) rosterUpdate(hero);
+  if (hero) persisterLeHeros(hero);
 }
 
 /** Récompenses de fin de séance (écran de fin de séance) : Ambitions accomplies par héros (perso) et de

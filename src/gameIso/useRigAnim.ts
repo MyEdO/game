@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { bus, EVT } from '../state/bus';
+import { bus, EVT } from '../noyau/bus';
 import { useGame } from '../state/store';
 import { useRigClip } from './rig/anim/useRigClip';
 import { weaponRest, hasShieldEquipped } from './rig/anim/weaponClips';

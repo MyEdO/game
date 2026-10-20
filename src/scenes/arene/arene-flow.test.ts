@@ -10,6 +10,7 @@ import { makeShowcaseParty } from '../../data/pregens';
 import { creditBourse, bourseOf } from '../../state/bourseFlow';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import { lancerCampagne, campagneDuJeu, areneCampaign } from '../campaign';
+import { presetPnjById } from '../../state/campaignData';
 
 /** Évalue la Condition `when` d'un choix contre l'état VIVANT (source unique evalCondition). */
 const condOk = (when: Condition) => evalCondition(when, { flags: useGame.getState().flags, gameTime: 0 });
@@ -204,7 +205,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     applyEffects(useGame.getState, useGame.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'chirurgien-fantome' }]);
     expect(useGame.getState().medic).toBeNull();
     // La validation d'ATELIER voit ce que voit le runtime : elle résout la FICHE (même `sceneNpc`).
-    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id), within: () => true, walkable: () => true };
+    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
     expect(EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }, ctx)).toEqual([]);
     const issues = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'chirurgien-fantome' }, ctx);
     expect(issues.map((i) => i.level)).toEqual(['error']);

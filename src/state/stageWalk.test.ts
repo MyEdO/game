@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { emptyScene } from '../noyau/monde/scene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { resetStageGestes } from './stageGestes';

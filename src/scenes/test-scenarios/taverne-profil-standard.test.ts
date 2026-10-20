@@ -5,6 +5,7 @@ import { findTavernGameById } from '../../engine/tavernGame';
 import { sceneNpc } from '../../state/sceneNpc';
 import { tavernGameValue, tavernNpcOffers } from '../../state/tavernFlow';
 import { validateScene } from '../../state/validateScene';
+import { presetPnjById } from '../../state/campaignData';
 const scenarioConstruit = scenario.construire();
 
 const PNJ = 'habitue-bras-de-fer';
@@ -18,14 +19,14 @@ describe('scénario « Taverne — un PNJ à profil standard » (#1882)', () => 
   });
 
   it('il PROPOSE une partie : la table le liste sous son nom', () => {
-    expect(tavernNpcOffers(scenarioConstruit.scene)).toEqual([{ id: PNJ, label: ent.label, gameId: ent.tavernGame!.gameId }]);
+    expect(tavernNpcOffers(scenarioConstruit.scene, presetPnjById)).toEqual([{ id: PNJ, label: ent.label, gameId: ent.tavernGame!.gameId }]);
   });
 
   it('il joue SA fiche : le bras de fer se joue à la Force du profil standard Humain, F 30 (LDB 77 l.13)', () => {
     const jeu = findTavernGameById(ent.tavernGame!.gameId)!;
     expect(jeu.characteristic).toBe('force');
     expect(ent.ref).toBe('humain');
-    expect(tavernGameValue(sceneNpc(scenarioConstruit.scene, PNJ)!, jeu)).toBe(30);
+    expect(tavernGameValue(sceneNpc(scenarioConstruit.scene, PNJ, presetPnjById)!, jeu)).toBe(30);
   });
 
   it('la scène passe la porte de validation sans erreur', () => {

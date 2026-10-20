@@ -14,7 +14,8 @@
  */
 import type { Combatant } from '../engine/types';
 import type { BattleState, GameState } from './store';
-import { canMove, entityPickables, activeCombatant } from './store';
+import { entityPickables } from './combatEffects';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
 import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
@@ -29,8 +30,8 @@ import { healableTargets } from '../engine/healing';
 import { waterSprayCandidates } from '../engine/suffocation';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
-import { availableAttacks, placingZoneOf, STANCE_BLOCK } from './combatFlow';
-import { mountablesNear, mountMovement } from './mount';
+import { activeCombatant, availableAttacks, placingZoneOf, STANCE_BLOCK } from './combatFlow';
+import { canMove, mountablesNear, mountMovement } from './mount';
 import { servablePostes, crewPosteOf, type ShipPoste } from './shipPostes';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
@@ -335,7 +336,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
       // L'ÉPUISEMENT n'est plus une garde séparée : `entityPickables` ne rend que les feuilles des
       // actions ENCORE jouables (`actionsAuthorees` filtre les drapeaux), donc un décor épuisé sort
       // avec zéro candidat sans qu'une seconde garde ait à redire la même chose.
-      .flatMap((e) => entityPickables(e, flags).map((p) => ({ entityId: e.id, ...p })));
+      .flatMap((e) => entityPickables(e, flags, objetDuNarratif(state.campaignNarratif)).map((p) => ({ entityId: e.id, ...p })));
   },
 };
 
@@ -506,9 +507,13 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
    *  `commitPlacedZone` (même aiguilleur pour poser et pour renoncer) : un sort revient à sa modale,
    *  un pilonnage referme son placeur. Une seule entrée d'interlude pour le mode `placing-zone`. */
   placingZoneOff: (get) => {
-    const s = get();
-    if (placingZoneOf(s)?.source === 'siege') get().siegeAimCancel();
-    else get().castPlaceZone(false);
+    const pz = placingZoneOf(get());
+    if (!pz) return;
+    switch (pz.source) {
+      case 'cast': get().castPlaceZone(false); return;
+      case 'siege': get().siegeAimCancel(); return;
+      default: pz.source satisfies never;
+    }
   },
   batterySelectNone: (get) => get().battleSelectAction(null),
   /** Téléportation (`combatFlow.ts:5381` : `action: 'teleport'` + `reachable` = `flyReachable` depuis

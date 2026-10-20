@@ -9,6 +9,7 @@ import type { Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity, type CustomStatblock } from '../noyau/monde/scene';
 import { emptyNarratif } from './campaignNarratif';
+import { presetPnjById } from './campaignData';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -60,6 +61,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
         ent({ id: 'porte', kind: 'prop', ref: 'Tonneau' }),
         ent({ id: 'depart', kind: 'heroStart' }),
       ]),
+      presetPnjById,
     );
     expect(sources.map((s) => s.id)).toEqual(['pnj']);
     expect(sources[0].causesTerreur).toBe(2);
@@ -67,7 +69,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
 
   it('sceneFearSources honore le `presetId` : le PNJ nommé garde SA fiche (même résolution que combatSlice/tavernFlow)', () => {
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-nomme', base: 'brigand', profil: { label: 'Nommé Test', traits: [{ id: 'terreur', value: 2 }] } }] } });
-    const src = sceneFearSources(scene([ent({ id: 'pnj', presetId: 'pnj-nomme' })]))[0];
+    const src = sceneFearSources(scene([ent({ id: 'pnj', presetId: 'pnj-nomme' })]), presetPnjById)[0];
     expect(src.label).toBe('Nommé Test');
     expect(src.causesTerreur).toBe(2);
   });

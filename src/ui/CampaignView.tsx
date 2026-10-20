@@ -66,6 +66,7 @@ import { combatantClickActs } from '../state/combatOrParty';
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../state/clues';
+import { presetPnjById } from '../state/campaignData';
 
 /** Défaite : dans une bataille de masse ou une scène, `dismissDefeat` ; sans scène, l'Arène se
  *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
@@ -181,7 +182,7 @@ export function CampaignView() {
   // La fiche INSPECTÉE : le combattant en combat, hors combat le héros du groupe (`actorIn`) ou le PNJ de
   // scène (`sceneNpc`) — le geste secondaire d'un jeton hors combat n'est offert que là où elle se résout.
   const inspected = useMemo(
-    () => (inspectId ? actorIn(useGame.getState(), inspectId) ?? (battle ? undefined : sceneNpc(scene, inspectId)) ?? null : null),
+    () => (inspectId ? actorIn(useGame.getState(), inspectId) ?? (battle ? undefined : sceneNpc(scene, inspectId, presetPnjById)) ?? null : null),
     [inspectId, battle, party, scene],
   );
   // Dock : version « vivante » des héros en combat (PB/effets à jour), sinon la party.

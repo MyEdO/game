@@ -39,8 +39,7 @@ import { coupFerme } from './targetingHolder';
 import { mountMovement, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from '../noyau/combatLog';
-import { viewYawDeg } from './stageYaw';
-import { chargeArmee, courseArmee } from './localIntent';
+import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
 import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
@@ -63,7 +62,7 @@ import { effectiveChar, bonus } from '../engine/characteristics';
 import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrHaine } from '../engine/psychology';
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
-import { trappingById } from './campaignData';
+import { objetDuNarratif, presetDuNarratif } from './resolveursDuNarratif';
 import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
 import { talentFearIndice, canPreemptRanged, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './commandTeam';
@@ -107,8 +106,6 @@ import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { aPorteeDe } from './exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, quorumAtteint } from './netOwnership';
-import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent, type ScreenDir } from './combatCursor';
-import { cycleTarget, cyclePrevTarget, cursorActor } from './targeting';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { resolveRenounce } from './corruptionFlow';
@@ -122,7 +119,7 @@ import { reachable, moveReachFor, chebyshev, tileKey, Pt } from '../noyau/monde/
 import { combatDistance } from '../noyau/monde/footprint';
 import { combatOrder } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from '../noyau/monde/scene';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, setClotureDeCascade, poserCurseurCascade } from '../noyau/cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from '../noyau/partyWipe';
@@ -522,7 +519,7 @@ export function createCombatSlice(get: Get, set: Set) {
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */
   const consumeIntent = (): boolean => {
-    if (!get().localIntent) return false;
+    if (!intentionDuProprietaire(get)) return false;
     set({ localIntent: null });
     return true;
   };
@@ -961,7 +958,7 @@ export function createCombatSlice(get: Get, set: Set) {
         const dit = REFUS_DEPLACEMENT[movement.reason];
         if (dit) refuserGeste(get, set, t(dit));
         if (battle.preview) {
-          set({ battle: { ...battle, preview: null }, hoverDelta: null });
+          set({ battle: { ...battle, preview: null } });
           bus.emit(EVT.SCENE_DIRTY);
         }
         return;
@@ -992,7 +989,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (!courseDemandee && !isFrenzied(active)) return void refuserGeste(get, set, t('cs.refusCourseNonArmee'));
         // Zone de Course : tap 1 = aperçu « Courir » ; tap 2 = Test de `course` (pendingRun + destination).
         if (!clickOpts?.confirm && !(prev?.kind === 'run' && prev.path === movement.path)) {
-          set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } }, hoverDelta: null });
+          set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
           bus.emit(EVT.SCENE_DIRTY);
           return;
         }
@@ -1002,7 +999,7 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       // Tap 1 : APERÇU (chemin + coût) — sauf confirmation directe ou re-tap de la même case.
       if (!clickOpts?.confirm && !(prev?.kind === 'move' && prev.path === movement.path)) {
-        set({ battle: { ...battle, preview: { kind: 'move', tile: { ...dest }, path: movement.path, cost: movement.cost } }, hoverDelta: null });
+        set({ battle: { ...battle, preview: { kind: 'move', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
@@ -1026,7 +1023,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Mouvement décomposable : cumule le coût du segment ; reste en mode neutre → le joueur peut
       // re-cliquer une case (s'il reste du Mouvement) OU enchaîner une Action. Si ce segment précède
       // l'Action, on marque `movedPreAction` (verrouille tout Mouvement post-Action).
-      set({ battle: { ...battle, moveSnapshot: snapshot, movementUsed: (battle.movementUsed ?? 0) + movement.cost, movedPreAction: battle.movedPreAction || !battle.acted, action: null, reachable: new Map(), preview: null }, hoverDelta: null });
+      set({ battle: { ...battle, moveSnapshot: snapshot, movementUsed: (battle.movementUsed ?? 0) + movement.cost, movedPreAction: battle.movedPreAction || !battle.acted, action: null, reachable: new Map(), preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1056,47 +1053,6 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // ── Curseur de combat CLAVIER/MANETTE ───────────────────────────────────────────────────────
-    // Un seul curseur que clavier ET manette alimentent. Il pilote le réticule existant comme un survol
-    // (IsoStage) et se commet via battleClickEntity/Tile → parité souris exacte (cf. combatCursor.ts).
-    moveCursor: (dir: ScreenDir) => {
-      const { battle, scene, camRot, viewMode, camEdge } = get();
-      if (!battle || battle.over || !scene) return;
-      const owner = cursorActor(get); // l'ACTIF, ou le tireur Tir rapide ARMÉ pendant la pause (le curseur suit ses yeux)
-      if (!owner?.pos) return;
-      const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDeg: viewYawDeg(camRot, camEdge) };
-      const mode = currentTargetingMode(get);
-      if (mode.tileValidAt) {
-        // Mode-CASE (#198, résidus) : le curseur ne navigue QUE l'ensemble VALIDE du mode (Pousser/
-        // Téléportation/pose de zone) — jamais un snap sur une case non commettable (porte, hors reach).
-        const valid = tileModeValidTiles(get, { tileValidAt: mode.tileValidAt }, owner);
-        const next = nextCaseCursorTile(scene, get().combatCursor?.tile ?? null, dir, dims, owner.pos, valid);
-        if (next) set({ combatCursor: { tile: next } });
-        return;
-      }
-      set({ combatCursor: { tile: nextCursorTile(scene, get().combatCursor, dir, dims, owner.pos) } });
-    },
-    snapCursorToTarget: (step: 1 | -1) => {
-      const cur = get().combatCursor?.snappedId ?? null;
-      const tgt = step === 1 ? cycleTarget(get, cur) : cyclePrevTarget(get, cur);
-      if (tgt?.pos) set({ combatCursor: { tile: { ...tgt.pos }, snappedId: tgt.id } });
-    },
-    commitCursor: () => {
-      const s = get();
-      const cur = s.combatCursor;
-      if (!cur) return;
-      const intent = cursorCommitIntent(get, cur);
-      if (!intent) {
-        // Mode-CASE (#198, résidus) : un commit qui tombe malgré tout sur une case non commettable
-        // (occupant sans action pour ce mode) prévient — jamais muet — par la porte de refus commune
-        // (`refusVisible` : le journal n'est pas affiché en combat). Hors mode-case : no-op voulu
-        // (allié non actionnable, cf. combatCursor.test.ts).
-        if (currentTargetingMode(get).tileValidAt) refuserGeste(get, set, t('cs.cursorInvalidTile'));
-        return;
-      }
-      if (intent.kind === 'entity') s.battleClickEntity(intent.id, { confirm: true });
-      else s.battleClickTile(intent.pt, { confirm: true });
-    },
     // INTENTION LOCALE (spec zone 4) : la case d'action ARME le geste que le prochain clic du champ
     // commettra, et sa PORTÉE se peint aussitôt (`localIntent.ts` → `HighlightsView.intentReach`).
     // Purement locale : aucun intent réseau ne part d'ici (seul le COMMIT du geste en émet un).
@@ -1110,10 +1066,6 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ localIntent: !actionId || armed?.actionId === actionId ? null : { actionId } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    clearCursor: () => {
-      if (get().combatCursor) set({ combatCursor: null });
-    },
-
     battleClickEntity: (id: string, opts?: BattleClickOpts) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
@@ -1121,7 +1073,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // de frise, tous deux passent ICI — déclenche l'interruption hors du tour (le tireur n'est pas l'actif).
       const aiming = get().preemptAiming;
       if (aiming) {
-        set({ preemptAiming: null, combatCursor: null }); // désarme + retire le curseur clavier avant d'ouvrir la modale de tir
+        set({ preemptAiming: null }); // désarme avant d'ouvrir la modale de tir
         get().preemptRangedShot(aiming, id);
         return;
       }
@@ -1319,13 +1271,13 @@ export function createCombatSlice(get: Get, set: Set) {
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
       if (resolved?.status === 'blocked') return;
       const plan = movement ?? (resolved?.status === 'ok' ? { path: resolved.path, cost: resolved.cost } : undefined);
-      set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null }, hoverDelta: null });
+      set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null } });
     },
     runConfirm: () => {
       const { battle, scene, pendingRun: pr } = get();
       if (!battle || !scene || !pr || !pr.result || !pr.dest) return;
       const c = inBattleId(battle, pr.combatantId);
-      set({ pendingRun: null, hoverDelta: null });
+      set({ pendingRun: null });
       if (!c) return;
       // Combat monté : Course au Mouvement de la monture, empreinte/collisions de la monture (couple solidaire).
       const geom = mountOf(battle, c) ?? c;
@@ -1368,7 +1320,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...b, action: null, runBudget: range, movementUsed: (battle.movementUsed ?? 0) + cost, reachable: new Map(), preview: null, log } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    runCancel: () => set({ pendingRun: null, hoverDelta: null }),
+    runCancel: () => set({ pendingRun: null }),
 
     // ── Manœuvre navale (MDG 13) : le barreur (héros ACTIF, à la barre) dépense son Action pour un Test
     //    de Navigation → vire le cap (re-mappe les bordées) + avance la coque. « Un jet = une Action » : le
@@ -2248,7 +2200,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // canal de dés : le retrait de la feuille ramassée qui suit ne peut pas passer devant un dé (#1508).
       let label: string; // assigné dans chaque branche atteignant l'usage (le cas `else` renvoie)
       if (eff.type === 'giveTrapping') {
-        label = giveTrappingLabel(eff, trappingById);
+        label = giveTrappingLabel(eff, objetDuNarratif(get().campaignNarratif));
         nePeutPasDifferer(applyEffects(get, set, [{ ...eff, heroId: active.id }]), 'combatSlice.pickupItem (giveTrapping)');
       } else if (eff.type === 'giveMoney') {
         label = 'Argent';
@@ -2261,7 +2213,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set((s) => ({ flags: { ...s.flags, [cleFeuilleRamassee(entityId, action.id, idx)]: true } }));
       // Pool de ramassables vidé : `consume` → le décor disparaît ; sinon il reste (ses Effets non-objet
       // — journal/document — restent fouillables en exploration ; pas de sens à les grappiller en combat).
-      if (entityPickables(ent, get().flags).length === 0 && action.consume) {
+      if (entityPickables(ent, get().flags, objetDuNarratif(get().campaignNarratif)).length === 0 && action.consume) {
         removeEntity(get, set, entityId);
         set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('item', t('cs.pickup', { name: active.label, label }), active.id)] } });
       } else {
@@ -2716,7 +2668,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const roster = (enc.members ?? [])
         .map((m) => ({ m, ent: byEntity.get(m.entityId) }))
         .filter((r): r is { m: typeof r.m; ent: SceneEntity } => !!r.ent);
-      const enemies = roster.map(({ ent }) => ficheDEntite(ent));
+      const enemies = roster.map(({ ent }) => ficheDEntite(ent, presetDuNarratif(get().campaignNarratif)));
       // #30 — Blessures de COQUE persistantes : une coque spawnée qui EST le navire de campagne
       // (creatureId = vehicleId) repart de l'état persisté (writeback symétrique dans finalizeBattle).
       const vessel0 = get().vessel;

@@ -195,7 +195,7 @@ function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: strin
 
 /**
  * L'ENTRÉE résolue appartient-elle à la sous-liste marquée ? Le runtime juge l'entrée elle-même (objet
- * du catalogue OU de la campagne, `state/campaignData.ts`) par `porteLeChampMarqueur`, le prédicat
+ * du catalogue OU de la campagne, `state/resolveursDuNarratif.ts`) par `porteLeChampMarqueur`, le prédicat
  * qui bâtit les clés `<espace>?<marqueur>` que `refusDuMarqueur` lit au schéma.
  */
 export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): boolean {
@@ -326,7 +326,7 @@ export const estFeuilleDId = (noeud: unknown): boolean => typeDeFeuilleDId(noeud
  * `espaces-contrat.test.ts` exige la cible de chaque désignation (`espacesDesignes`).
  *
  * `ouverte` : le porteur admet aussi un id ABSENT de l'espace, que son runtime résout ailleurs (Effet
- * `giveTrapping` : objets de la campagne, `state/campaignData.ts`, sinon objet `custom`) ; un id
+ * `giveTrapping` : objets de la campagne, `state/resolveursDuNarratif.ts`, sinon objet `custom`) ; un id
  * PRÉSENT reste jugé par la sous-liste. Un id absent n'émet aucun repère : il n'est pas une référence
  * du type.
  */

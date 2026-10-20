@@ -16,7 +16,7 @@
  * de reprise (C3/C4) ne l'appelle pas — `cadenceAuto()` est faux par défaut (mode « manuel »).
  */
 import type { Get, Set } from './flowTypes';
-import { useGame, type GameState } from './store';
+import type { GameState } from './store';
 import type { CascadeStep } from '../noyau/pendings';
 import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, type AutoPolicy } from './modalArbiter';
 import { stepInteraction } from '../noyau/cascade';
@@ -24,7 +24,7 @@ import { influencesLocally } from './netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
-import { scheduleCombatTimer } from '../web/minuteries';
+import { programmer, enAttente, type Jeton } from '../noyau/plateforme';
 import { fateSaveOptions } from '../engine/fortune';
 
 /**
@@ -75,7 +75,7 @@ type Row = { id: string; interactive?: boolean; result: unknown; declared?: stri
  * Dissipation/son Test opposé seraient forfaits. La fenêtre ne se drive donc que si TOUTE rangée
  * encore due est influençable ICI ; sinon elle ATTEND son siège, exactement comme en manuel — et le
  * pilote ne planifie AUCUN beat (pas de poll) : c'est le jet distant, appliqué par le réseau, qui
- * change l'état et re-déclenche le tick (`initCombatAuto`).
+ * change l'état et re-déclenche le tick (`planifierLeTickAuto`).
  */
 const ATTENDRE = 'attendre';
 function stepWindowDrive(s: GameState): readonly (keyof GameState)[] | typeof ATTENDRE | null {
@@ -114,7 +114,7 @@ function driveSelf(get: Get, set: Set, drive: readonly (keyof GameState)[]): voi
     if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
     const fn = get()[drive[i++]] as undefined | (() => void);
     if (typeof fn === 'function') fn();        // roll() idempotent, puis confirm() (ferme/avance)
-    scheduleCombatTimer(step, beatHold(get, 'autoResolve'));
+    programmer(step, beatHold(get, 'autoResolve'));
   };
   step();
 }
@@ -155,10 +155,10 @@ function autoResolveCascade(get: Get, set: Set): void {
     }
     // Combat : avancer d'UNE étape (comme le joueur) → les étapes-jet en aval (Maladresse…) gardent leur
     // driver bespoke au tick suivant, au lieu d'être écrasées par un `cascadeResolveAll` global.
-    if (pc.purpose === 'combat') { get().cascadeNext(); scheduleCombatTimer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
+    if (pc.purpose === 'combat') { get().cascadeNext(); programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); return; }
   }
   get().cascadeResolveAll();
-  scheduleCombatTimer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante
+  programmer(() => tickCombatAuto(get, set), beatHold(get, 'autoResolve')); // gérer le bilan / l'étape suivante
 }
 
 /** Une étape de cascade sera-t-elle auto-résolue ? (sert à MASQUER la modale, cf. `willAutoResolve`). */
@@ -218,7 +218,7 @@ export function tickCombatAuto(get: Get, set: Set): void {
       // modale reste — vrai choix du joueur).
       if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
         const negate = fateSaveOptions(s.pendingFateSave.source).includes('negate');
-        scheduleCombatTimer(() => (negate ? get().fateNegate() : get().fateSurvive()), beatHold(get, 'autoResolve'));
+        programmer(() => (negate ? get().fateNegate() : get().fateSurvive()), beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':
@@ -231,15 +231,13 @@ export function tickCombatAuto(get: Get, set: Set): void {
 }
 
 /**
- * Branche le pilote sur le store (appelé UNE fois au démarrage — cf. `initAudioWiring`). À chaque
- * changement d'état, si la Cadence n'est pas « manuel », un tick est planifié (hors du cycle de `set`,
- * coalescé par `scheduled`). En mode manuel (défaut) : zéro overhead (la souscription sort aussitôt).
+ * Planifie un tick d'auto-cadence après un changement d'état : rien en mode manuel (défaut, zéro
+ * overhead), sinon UN tick hors du cycle de `set`, coalescé sur son jeton tant que la plateforme le dit
+ * en attente : un tick annulé par l'hôte n'en bloque aucun autre. L'hôte l'appelle à chaque écriture
+ * (`initCombatAuto`, `src/state/store.ts`).
  */
-let scheduled = false;
-export function initCombatAuto(): void {
-  useGame.subscribe(() => {
-    if (!cadenceAuto() || scheduled) return;
-    scheduled = true;
-    scheduleCombatTimer(() => { scheduled = false; tickCombatAuto(useGame.getState, useGame.setState); }, 0);
-  });
+let tickPlanifie: Jeton | null = null;
+export function planifierLeTickAuto(get: Get, set: Set): void {
+  if (!cadenceAuto() || (tickPlanifie !== null && enAttente(tickPlanifie))) return;
+  tickPlanifie = programmer(() => tickCombatAuto(get, set), 0);
 }

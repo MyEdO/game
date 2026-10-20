@@ -7,7 +7,7 @@ import { createHero } from '../engine/character';
 import { rederivePassiveAttack, issueAuJet, coupAApplique, causeDuCoupCritique, type AttackResult } from '../engine/combat';
 import { setRule, resetRule } from '../engine/policy';
 import { evaluateMissile, type CastResult, type MissileResult } from '../engine/magic';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { findSpell, type SpellData } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { critTableRows, critTableKeyFor, critImmediateSummary } from '../engine/critical';

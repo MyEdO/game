@@ -6,7 +6,8 @@
  * du stockage, avec un témoin de message pour le joueur.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { useGame, resetSceneRegistry } from './store';
+import { useGame } from './store';
+import { resetSceneRegistry } from './registreDesScenes';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
 import { idDeSortVivant } from '../data/sortsFusionnes';

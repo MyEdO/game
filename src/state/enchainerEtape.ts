@@ -1,5 +1,5 @@
 import type { Get } from './flowTypes';
-import { scheduleFlowTimer } from '../web/minuteries';
+import { programmer } from '../noyau/plateforme';
 
 /**
  * ENCHAÎNEMENT d'une étape depuis l'applier de la PRÉCÉDENTE — SOURCE UNIQUE de ce geste (`portFlow`,
@@ -10,6 +10,6 @@ import { scheduleFlowTimer } from '../web/minuteries';
  * et donc ses tests.
  */
 export function chainStep(get: Get, open: () => void): void {
-  if (get().pendingCascade) scheduleFlowTimer(open, 0);
+  if (get().pendingCascade) programmer(open, 0);
   else open();
 }

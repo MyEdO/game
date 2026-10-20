@@ -46,7 +46,6 @@ const STATE_FIELDS = {
   // télégraphe `actorAim` ci-dessus — un refus prononcé dans un combat n'ouvre pas le suivant, et
   // n'entre pas dans le checkpoint d'entrée de scène (`transitionTo` → `autoSave`).
   refus: { init: null, resetOn: ['scene', 'combatStart'] },
-  hoverDelta: { init: null, resetOn: [] },
   pendingReload: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingStateRecovery: { init: null, resetOn: ['scene', 'combatStart'] },
   pendingSteamSave: { init: null, resetOn: ['scene', 'combatStart'] },

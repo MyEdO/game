@@ -59,7 +59,6 @@ function setup() {
     pendingDualStrike: null,
     pendingCascade: null,
     suspendedCascades: [],
-    hoverDelta: null,
     combatCursor: null,
     hoverCombatantId: null,
   });
@@ -67,13 +66,13 @@ function setup() {
 }
 
 describe('useHoverTargeting — intention de déplacement', () => {
-  beforeEach(() => useGame.setState({ battle: null, hoverDelta: null }));
+  beforeEach(() => useGame.setState({ battle: null }));
   afterEach(() => {
     if (root) act(() => root!.unmount());
     root = null;
   });
 
-  it('publie la résolution canonique et son delta de ressources au survol', () => {
+  it('trace la Marche résolue au survol', () => {
     const active = setup();
     const hover = { x: active.pos!.x + 2, y: active.pos!.y };
     let result: ReturnType<typeof useHoverTargeting> | undefined;
@@ -85,15 +84,9 @@ describe('useHoverTargeting — intention de déplacement', () => {
     act(() => root!.render(<Probe />));
 
     expect(result?.hoverMove).toMatchObject({ kind: 'move', cost: 2 });
-    expect(useGame.getState().hoverDelta).toMatchObject({
-      action: 0,
-      move: 2,
-      adv: 0,
-      movement: { status: 'ok', kind: 'move', cost: 2 },
-    });
   });
 
-  it('publie le refus du résolveur sans tracer de chemin', () => {
+  it('ne trace aucun chemin sur un refus du résolveur', () => {
     const active = setup();
     active.engagedWith = ['enemy'];
     const hover = { x: active.pos!.x - 1, y: active.pos!.y };
@@ -106,17 +99,11 @@ describe('useHoverTargeting — intention de déplacement', () => {
     act(() => root!.render(<Probe />));
 
     expect(result?.hoverMove).toBeNull();
-    expect(useGame.getState().hoverDelta).toEqual({
-      action: 0,
-      move: 0,
-      adv: 0,
-      movement: { status: 'blocked', reason: 'engaged' },
-    });
   });
 });
 
 describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
-  beforeEach(() => useGame.setState({ battle: null, hoverDelta: null }));
+  beforeEach(() => useGame.setState({ battle: null }));
   afterEach(() => {
     if (root) act(() => root!.unmount());
     root = null;
@@ -144,7 +131,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
     return foe;
   }
 
-  it('cascade ouverte : ni réticule, ni piste, ni intention de déplacement', () => {
+  it('cascade ouverte : ni réticule, ni piste', () => {
     const active = setup();
     const foe = foeNextTo(active);
     const empty = { x: active.pos!.x, y: active.pos!.y + 2 };
@@ -152,7 +139,6 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
     // Référence : hors modale, la carte répond (réticule sur l'ennemi, piste sur la case vide).
     expect(probe({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim?.tip).toBeTruthy();
     expect(probe(empty).hoverMove).toMatchObject({ kind: 'move' });
-    expect(useGame.getState().hoverDelta?.movement).toMatchObject({ status: 'ok' });
 
     act(() => startCascade(useGame.getState, useGame.setState, {
       title: 'Surprise', purpose: 'test',
@@ -162,7 +148,6 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
     expect(probe({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim).toBeNull();
     const under = probe(empty);
     expect(under.hoverMove).toBeNull();
-    expect(useGame.getState().hoverDelta).toBeNull(); // l'aperçu de mouvement se lit à hoverDelta.movement
   });
 
   it('ciblage de sort PAR LA CARTE (pickingTargets) : le réticule reste actif sous la cascade', () => {
@@ -205,7 +190,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
  * Frénésie IMPOSE la course (`LDB 21 l.33`) : ce que la règle impose ne s'arme pas, et se peint.
  */
 describe('useHoverTargeting — au-delà de la Marche, la case ne se peint pas et le clic dit le refus', () => {
-  beforeEach(() => useGame.setState({ battle: null, hoverDelta: null, localIntent: null, refus: null }));
+  beforeEach(() => useGame.setState({ battle: null, localIntent: null, refus: null }));
   afterEach(() => {
     if (root) act(() => root!.unmount());
     root = null;
@@ -269,7 +254,7 @@ describe('useHoverTargeting — au-delà de la Marche, la case ne se peint pas e
  * `modalArbiter.mapDriven`), pas d'une liste de `pending*`.
  */
 describe('useHoverTargeting — pendant un interlude piloté par la carte, le survol reste vivant', () => {
-  beforeEach(() => useGame.setState({ battle: null, hoverDelta: null, pendingDualStrike: null }));
+  beforeEach(() => useGame.setState({ battle: null, pendingDualStrike: null }));
   afterEach(() => {
     if (root) act(() => root!.unmount());
     root = null;
@@ -318,7 +303,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
  * (`src/state/refusVisible.ts`).
  */
 describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus se dit au clic', () => {
-  beforeEach(() => useGame.setState({ battle: null, hoverDelta: null, localIntent: null, refus: null }));
+  beforeEach(() => useGame.setState({ battle: null, localIntent: null, refus: null }));
   afterEach(() => {
     if (root) act(() => root!.unmount());
     root = null;
@@ -409,7 +394,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
  * l'Action est consommée ou qu'un autre mode est armé).
  */
 describe('useHoverTargeting — grisage hors-LdV du SORT', () => {
-  beforeEach(() => useGame.setState({ battle: null, hoverDelta: null }));
+  beforeEach(() => useGame.setState({ battle: null }));
   afterEach(() => {
     if (root) act(() => root!.unmount());
     root = null;

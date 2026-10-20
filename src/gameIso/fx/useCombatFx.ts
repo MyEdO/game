@@ -6,7 +6,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../state/store';
-import { bus, EVT } from '../../state/bus';
+import { bus, EVT } from '../../noyau/bus';
 import { isSupportiveCast, spellFxForLabel } from '../rig/anim/spellClips';
 import { conditionMeta } from '../effectIcons';
 import { conditionLabel } from '../../data';

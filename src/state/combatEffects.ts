@@ -25,8 +25,8 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet } from '../engine/items';
-import { trappingById, indiceById, documentById } from './campaignData';
+import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet, type TrappingResolver } from '../engine/items';
+import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './resolveursDuNarratif';
 import { revealClue, discreditClue } from './clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
@@ -59,7 +59,7 @@ import { refuserGeste } from './refusVisible';
 import { type Flow, type FlowTest, type EffectOp, type Condition, flowFromEffects, flowEffects, testFlow, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from '../noyau/monde/flow';
 import { inRect, combatantsWithinRadius } from '../noyau/monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { combatDistance } from '../noyau/monde/footprint';
 import { registerCascadeApplier, setSuiteApresCommit, pushStep, idDeLaDernierePoussee,
   etapesDeLaFenetre, annoterEtapeDeLaFenetre } from '../noyau/cascade';
@@ -154,12 +154,12 @@ export function pushCombatStep(set: SetFn, step: BuiltCascadeStep | ((index: num
  *  jouable (`actionsAuthorees`). `key` = `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle
  *  porte l'action, parce que le ramassage épuise UNE action, pas un décor. Effets non-objet &
  *  branches (test) ignorés. */
-export function entityPickables(ent: SceneEntity, flags: Drapeaux = {}): { key: string; label: string }[] {
+export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
   for (const a of actionsAuthorees(ent, flags))
     flowEffects(a.flow).forEach((e, i) => {
       if (flags[cleFeuilleRamassee(ent.id, a.id, i)]) return; // déjà pris, un objet à la fois
-      if (e.type === 'giveTrapping') out.push({ key: `${a.id}:eff:${i}`, label: giveTrappingLabel(e, trappingById) });
+      if (e.type === 'giveTrapping') out.push({ key: `${a.id}:eff:${i}`, label: giveTrappingLabel(e, objetDe) });
       else if (e.type === 'giveMoney') out.push({ key: `${a.id}:eff:${i}`, label: 'Argent' });
     });
   return out;
@@ -229,11 +229,11 @@ function enFlowDeDeclencheur(trig: Trigger): Flow {
 /** Sépare d'un lot d'Effets les giveTrapping ATTRIBUABLES (sans heroId) → lignes de butin
  *  « qui l'emporte ? ». Brique partagée écran de victoire / fenêtre de loot. Un giveTrapping
  *  AVEC heroId est un don d'auteur ciblé : il reste dans `rest` et s'applique directement. */
-export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Effect[] } {
+export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver): { gear: LootGear[]; rest: Effect[] } {
   const gear: LootGear[] = [];
   const rest: Effect[] = [];
   for (const e of effects) {
-    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: giveTrappingLabel(e, trappingById), magic: !!e.qualities?.length || e.identified === false, effect: e });
+    if (e.type === 'giveTrapping' && !e.heroId) gear.push({ label: giveTrappingLabel(e, objetDe), magic: !!e.qualities?.length || e.identified === false, effect: e });
     else rest.push(e);
   }
   return { gear, rest };
@@ -246,7 +246,7 @@ export function gearFromEffects(effects: Effect[]): { gear: LootGear[]; rest: Ef
  *  strictement équivalent à applyEffects. Fenêtre déjà ouverte → le butin s'y AJOUTE. */
 export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): Applique {
   if (get().battle) return applyEffects(get, set, effects, sl);
-  const { gear, rest } = gearFromEffects(structuredClone(effects)); // #2097
+  const { gear, rest } = gearFromEffects(structuredClone(effects), objetDuNarratif(get().campaignNarratif)); // #2097
   // #2689
   const differe = applyEffects(get, set, rest, sl, title);
   if (differe) {
@@ -1271,7 +1271,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     suspensif: true,
     // EDO 02 l.89-95 : chaque document remis se lit avant la suite, refermé par `closeDocument` qui la rejoue.
     apply: (e, env, suite) => {
-      const doc = documentById(e.documentId);
+      const doc = documentDuNarratif(env.get().campaignNarratif)(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
       env.get().remettreDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, suite, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
       return 'suspend';
@@ -1281,7 +1281,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('revealClue'), icon: 'ui/search',
     make: () => ({ type: 'revealClue', indiceId: '' }),
     apply: (e, env) => {
-      const ind = indiceById(e.indiceId);
+      const ind = indiceDuNarratif(env.get().campaignNarratif)(e.indiceId);
       if (!ind) { console.warn(`revealClue : indice inconnu « ${e.indiceId} ».`); return; }
       const before = env.get().clues[e.indiceId];
       const clues = revealClue(env.get().clues, ind, env.get().gameTime, e.stade);
@@ -1295,7 +1295,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('discreditClue'), icon: 'ui/forbidden',
     make: () => ({ type: 'discreditClue', indiceId: '' }),
     apply: (e, env) => {
-      const ind = indiceById(e.indiceId);
+      const ind = indiceDuNarratif(env.get().campaignNarratif)(e.indiceId);
       if (!ind) { console.warn(`discreditClue : indice inconnu « ${e.indiceId} ».`); return; }
       const clues = discreditClue(env.get().clues, ind, env.get().gameTime);
       if (clues === env.get().clues) return;
@@ -1420,8 +1420,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'giveTrapping', custom: '' }),
     apply: (e, env) => {
       // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
-      // Résolveur campagne-D'ABORD (`campaignData.trappingById`) : un objet de `narratif.objets` gagne (#767).
-      const it = itemFromGive(e, undefined, trappingById);
+      // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
+      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif));
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
       // Évaluation, #2), skin légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
@@ -2098,7 +2098,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       if (!rule('tavern-games')) return;
       const parle = env.get().dialogue?.speakerId;
-      const propose = parle && tavernNpcOffers(env.get().scene).some((o) => o.id === parle);
+      const propose = parle && tavernNpcOffers(env.get().scene, presetDuNarratif(env.get().campaignNarratif)).some((o) => o.id === parle);
       env.get().openTavernGames(propose ? parle : undefined);
     },
   },
@@ -2289,7 +2289,7 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   // LE soigneur est une entité de la scène, et sa FICHE est la source unique de ce qu'il vaut : sa
   // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
-  const npc = sceneNpc(get().scene, e.entityId);
+  const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
   if (!npc) { get().log(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
   if (!possesses(npc, HEAL_SKILL)) { get().log(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   openMedic(get, set, {

@@ -59,7 +59,7 @@ const KEY = (slot: AnySlot) => `wfrp4.save.${slot}`;
  */
 const HORS_SAVE = {
   // #767 · #766
-  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, store.ts)',
+  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, registreDesScenes.ts)',
   // #1687 — état de la TOUCHE Alt à l'instant, pas une préférence : une save qui le porterait
   // rechargerait une partie aux utilisables révélés, touche relâchée.
   reveler: 'geste clavier en cours, jamais un état de partie',

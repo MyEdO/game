@@ -7,6 +7,7 @@ import { atteignables, objetsDuCatalogue } from './partage.testkit';
 import { useGame } from './store';
 import type { Scene } from '../noyau/monde/scene';
 import type { NarratifBlock } from './campaignNarratif';
+import { presetPnjById } from './campaignData';
 
 // #2097
 const geler = memoByRef((s: Scene) => s);
@@ -34,7 +35,7 @@ it('aucun combattant né d’une scène n’atteint la scène mémorisée ni le 
       geler(scene);
       expect(Object.isFrozen(scene), `${lot.nom} / ${scene.id} : gelée par memoByRef`).toBe(true);
       for (const ent of scene.entities.filter((e) => e.kind === 'personnage')) {
-        for (const [porte, c] of [['ficheDEntite', ficheDEntite(ent)], ['sceneNpc', sceneNpc(scene, ent.id)]] as const) {
+        for (const [porte, c] of [['ficheDEntite', ficheDEntite(ent, presetPnjById)], ['sceneNpc', sceneNpc(scene, ent.id, presetPnjById)]] as const) {
           fiches++;
           for (const [o, chemin] of atteignables(c, ent.id)) {
             const ou = Object.isFrozen(o) ? 'scène gelée' : catalogue.has(o) ? 'catalogue' : narratif.has(o) ? 'narratif' : null;

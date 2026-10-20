@@ -161,7 +161,7 @@ const MINUTERIES = ['setTimeout', 'setInterval'];
 const HOTES = ['window', 'globalThis', 'self', 'global'];
 const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node:timers/promises'];
 const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
-const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/state, src/noyau, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`), que \`clearTrackedTimers\` annule au teardown de test.`;
+const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/noyau, un appel différé passe par \`programmer\` (\`src/noyau/plateforme.ts\`) ; sous src/state, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`). Les deux voies aboutissent au registre tracé que \`clearTrackedTimers\` annule au teardown de test.`;
 
 const TYPES_CLAVIER = '/^key(down|up|press)$/';
 const GESTIONNAIRES_CLAVIER = '/^onkey(down|up|press)$/';

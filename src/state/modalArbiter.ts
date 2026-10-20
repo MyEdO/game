@@ -353,7 +353,7 @@ export function surfaceTientLaMain(s: ArbiterState): boolean {
 /** Toutes les clés `pending*` couvertes par `MODAL_DEFS` (owner MODALE, direct + coexistants). */
 type ModalCoveredKey = (typeof MODAL_DEFS)[number]['covers'][number];
 /** Toutes les clés `pending*` couvertes par `HORS_MODAL` (owner HORS-modale). */
-type HorsModalCoveredKey = (typeof HORS_MODAL)[number]['pendingKey'];
+export type HorsModalCoveredKey = (typeof HORS_MODAL)[number]['pendingKey'];
 
 /**
  * VERROU DE COMPILATION (#284) : tout `pending*` de `GameState` (`PendingKey`, dérivé — cf.

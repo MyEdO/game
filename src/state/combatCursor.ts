@@ -1,18 +1,24 @@
 /**
- * Curseur de combat unifié (clavier + manette) — logique PURE (lit l'état, ne mute rien). Le store
- * (`combatSlice`) porte l'état `combatCursor` et appelle ces fonctions ; clavier ET manette alimentent
- * le MÊME curseur, qui pilote le réticule existant (`hoverTargeting`/`movePreviewAt`) et commet via les
- * actions existantes `battleClickEntity`/`battleClickTile`. Zéro chemin parallèle.
+ * Curseur de combat unifié (clavier + manette), adaptateur web : les fonctions de navigation sont PURES
+ * (lisent l'état, ne mutent rien) ; `creerActionsDuCurseur` en fait les actions du store, et
+ * `curseurPerime` est la règle qui le remet à `null`. Clavier ET manette alimentent le MÊME curseur, qui
+ * pilote le réticule existant (`hoverTargeting`/`movePreviewAt`) et commet via les actions du noyau
+ * `battleClickEntity`/`battleClickTile`. Zéro chemin parallèle.
  */
 import type { Pt } from '../noyau/monde/path';
-import type { Get } from './flowTypes';
+import type { Get, Set } from './flowTypes';
+import type { GameState } from './store';
 import type { Combatant } from '../engine/types';
 import { tileCenter, type Dims } from '../geometry/iso';
 import { isWalkable, liftDe, tileAt, type Scene } from '../noyau/monde/scene';
 import { estAbsent } from '../noyau/monde/terrain';
 import { combatantAtTile } from '../noyau/monde/combatGeometry';
 import { combatantClickActs } from './combatOrParty';
-import type { TargetingMode } from './targetingModes';
+import { currentTargetingMode, type TargetingMode } from './targetingModes';
+import { cycleTarget, cyclePrevTarget, cursorActor } from './targeting';
+import { refuserGeste } from './refusVisible';
+import { viewYawDeg } from './stageYaw';
+import { t } from '../i18n';
 
 export interface CombatCursor {
   tile: Pt;
@@ -41,7 +47,7 @@ const DIR_VEC: Record<ScreenDir, [number, number]> = {
  * Alignement ÉCRAN du pas `from`→`to` avec la direction poussée : produit scalaire NORMALISÉ du vecteur
  * écran (origine→candidat, via `tileCenter`) avec le vecteur écran de `dir`. C'est la projection « le
  * curseur suit les yeux », SOURCE UNIQUE partagée par `nextCursorTile` (curseur de combat) ET
- * `exploreStepDest` (pas clavier d'exploration) — rien n'est codé en dur (rotation/vue comprises).
+ * `stepPartyDir` (pas clavier d'exploration, qui la passe à `exploreStepDest`) — rien n'est codé en dur (rotation/vue comprises).
  * Le LIFT vertical d'une case est celui du socle (`scene.liftDe`, hauteur MÉTRIQUE), PAS l'index de
  * couche `z` : une case d'une couche haute mais de même hauteur réelle (tablier rejoint par une rampe)
  * se projette au MÊME écran que sa voisine — sinon le candidat cross-couche serait scoré à une hauteur
@@ -191,4 +197,66 @@ export function nextCaseCursorTile(scene: Scene, cur: Pt | null, dir: ScreenDir,
     }
   }
   return best ?? from;
+}
+
+/**
+ * PÉREMPTION du curseur : il appartient à la fenêtre de geste ouverte. Périmé quand `battle` naît ou
+ * disparaît, quand `battle.over`, le combattant actif ou `battle.round` change, ou quand `preemptAiming`
+ * change (Tir rapide armé, désarmé ou déclenché). L'abonnement unique du store le remet à `null`. PUR.
+ */
+export function curseurPerime(prev: Pick<GameState, 'battle' | 'preemptAiming'>, s: Pick<GameState, 'battle' | 'preemptAiming'>): boolean {
+  const a = prev.battle;
+  const b = s.battle;
+  if (!a || !b) return a !== b;
+  return a.over !== b.over || (a.turn !== b.turn && a.order[a.turn] !== b.order[b.turn]) || a.round !== b.round || prev.preemptAiming !== s.preemptAiming;
+}
+
+type ActionsDuCurseur = Pick<GameState, 'moveCursor' | 'snapCursorToTarget' | 'commitCursor' | 'clearCursor'>;
+
+/** Les actions du curseur, composées par le store : la caméra (`viewYawDeg`) oriente la navigation, et le
+ *  commit passe par les deux actions de clic du noyau — parité souris exacte. */
+export function creerActionsDuCurseur(get: Get, set: Set): ActionsDuCurseur {
+  return {
+    moveCursor: (dir: ScreenDir) => {
+      const { battle, scene, camRot, viewMode, camEdge } = get();
+      if (!battle || battle.over || !scene) return;
+      const owner = cursorActor(get); // l'ACTIF, ou le tireur Tir rapide ARMÉ pendant la pause (le curseur suit ses yeux)
+      if (!owner?.pos) return;
+      const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDeg: viewYawDeg(camRot, camEdge) };
+      const mode = currentTargetingMode(get);
+      if (mode.tileValidAt) {
+        // Mode-CASE (#198, résidus) : le curseur ne navigue QUE l'ensemble VALIDE du mode (Pousser/
+        // Téléportation/pose de zone) — jamais un snap sur une case non commettable (porte, hors reach).
+        const valid = tileModeValidTiles(get, { tileValidAt: mode.tileValidAt }, owner);
+        const next = nextCaseCursorTile(scene, get().combatCursor?.tile ?? null, dir, dims, owner.pos, valid);
+        if (next) set({ combatCursor: { tile: next } });
+        return;
+      }
+      set({ combatCursor: { tile: nextCursorTile(scene, get().combatCursor, dir, dims, owner.pos) } });
+    },
+    snapCursorToTarget: (step: 1 | -1) => {
+      const cur = get().combatCursor?.snappedId ?? null;
+      const tgt = step === 1 ? cycleTarget(get, cur) : cyclePrevTarget(get, cur);
+      if (tgt?.pos) set({ combatCursor: { tile: { ...tgt.pos }, snappedId: tgt.id } });
+    },
+    commitCursor: () => {
+      const s = get();
+      const cur = s.combatCursor;
+      if (!cur) return;
+      const intent = cursorCommitIntent(get, cur);
+      if (!intent) {
+        // Mode-CASE (#198, résidus) : un commit qui tombe malgré tout sur une case non commettable
+        // (occupant sans action pour ce mode) prévient — jamais muet — par la porte de refus commune
+        // (`refusVisible` : le journal n'est pas affiché en combat). Hors mode-case : no-op voulu
+        // (allié non actionnable, cf. combatCursor.test.ts).
+        if (currentTargetingMode(get).tileValidAt) refuserGeste(get, set, t('cs.cursorInvalidTile'));
+        return;
+      }
+      if (intent.kind === 'entity') s.battleClickEntity(intent.id, { confirm: true });
+      else s.battleClickTile(intent.pt, { confirm: true });
+    },
+    clearCursor: () => {
+      if (get().combatCursor) set({ combatCursor: null });
+    },
+  };
 }

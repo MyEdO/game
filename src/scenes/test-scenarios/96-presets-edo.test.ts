@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { resolvePresetCreature } from '../../state/campaignData';
+import { resolvePresetCreature } from '../../state/resolveursDuNarratif';
+import { presetPnjById } from '../../state/campaignData';
 import { creatureToCombatant } from '../../state/spawn';
 import { testValue } from '../../engine/skills';
 import { savoirVoiesFluvialesBonus } from '../../engine/riverNavigation';
@@ -10,7 +11,7 @@ const scenarioConstruit = scenario.construire();
 
 /** Preset authoré → `CreatureData` résolue → `Combatant`, par la chaîne RÉELLE du spawn. */
 function spawnPreset(presetId: string): Combatant {
-  const r = resolvePresetCreature(presetId);
+  const r = resolvePresetCreature(presetId, presetPnjById);
   expect(r, `preset ${presetId} introuvable`).toBeDefined();
   return creatureToCombatant(r!.creature, presetId, { x: 0, y: 0 });
 }

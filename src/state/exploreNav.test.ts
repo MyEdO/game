@@ -4,6 +4,7 @@ import type { Flow } from '../noyau/monde/flow';
 import { aPorteeDe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, exploreStepDest, spawnFacing } from './exploreNav';
 import { chebyshev } from '../engine/grid';
 import { seatSlotsOf } from '../noyau/monde/seating';
+import { screenStepDot, type ScreenDir } from './combatCursor';
 
 const emptyFlow: Flow = { kind: 'seq', steps: [] };
 
@@ -290,17 +291,19 @@ describe('exploreStepDest — pas clavier, seuil d’alignement (#792 refuse le 
   };
   const dims = { w: 10, h: 10 };
   const from = { x: 5, y: 5 };
+  /** Le pas de `stepPartyDir` : la projection d'écran du curseur, sur le losange iso par défaut. */
+  const pas = (sc: Scene, dir: ScreenDir) => exploreStepDest(sc, from, (voisin) => screenStepDot(sc, from, voisin, dir, dims));
 
   it('champ libre : chaque cardinal renvoie son voisin idéal (diagonal de grille, dot≈1.0)', () => {
     const sc = emptyScene(10, 10);
     for (const dir of ['up', 'down', 'left', 'right'] as const) {
-      expect(exploreStepDest(sc, from, dir, dims)).toEqual(IDEAL[dir]);
+      expect(pas(sc, dir)).toEqual(IDEAL[dir]);
     }
   });
 
   it('8-connectivité en champ libre préservée : les 4 voisins idéaux (un par cardinal) restent tous atteignables après le seuil', () => {
     const sc = emptyScene(10, 10);
-    const reached = (['up', 'down', 'left', 'right'] as const).map((dir) => exploreStepDest(sc, from, dir, dims));
+    const reached = (['up', 'down', 'left', 'right'] as const).map((dir) => pas(sc, dir));
     expect(reached.every((d) => d !== null)).toBe(true);
     // 4 destinations distinctes (les 4 diagonales de grille autour du départ) — aucune collision.
     const keys = new Set(reached.map((d) => `${d!.x},${d!.y}`));
@@ -315,21 +318,21 @@ describe('exploreStepDest — pas clavier, seuil d’alignement (#792 refuse le 
     // l'ancien code s'y rabattait silencieusement (le zigzag #792). Avec le seuil : bloqué.
     expect(isWalkable(sc, 5, 4)).toBe(true);
     expect(isWalkable(sc, 4, 5)).toBe(true);
-    expect(exploreStepDest(sc, from, 'up', dims)).toBeNull();
+    expect(pas(sc, 'up')).toBeNull();
   });
 
   it('idéal bloqué (down), même garde symétrique', () => {
     const sc = emptyScene(10, 10);
     const idx = (x: number, y: number) => y * 10 + x;
     sc.layers[0].tiles[idx(6, 6)] = 'mur'; // voisin idéal de 'down'
-    expect(exploreStepDest(sc, from, 'down', dims)).toBeNull();
+    expect(pas(sc, 'down')).toBeNull();
   });
 
   it('idéal bloqué (left/right) : le voisin hors-axe reste bien ALIGNÉ (~0.89 ≥ ALIGN_MIN) et est accepté — pas un zigzag, un vrai second chemin', () => {
     const sc = emptyScene(10, 10);
     const idx = (x: number, y: number) => y * 10 + x;
     sc.layers[0].tiles[idx(4, 6)] = 'mur'; // voisin idéal de 'left' (4,6)
-    const dest = exploreStepDest(sc, from, 'left', dims);
+    const dest = pas(sc, 'left');
     expect(dest).not.toBeNull();
     expect(dest).not.toEqual({ x: 4, y: 6 });
   });

@@ -48,7 +48,7 @@ import { restoreSuppressedPsych } from '../engine/psychology';
 import { tickTraumaRecovery } from '../engine/trauma';
 import { applyOps } from '../engine/ops';
 import { fireClockTriggers } from './clockHooks';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 
 import type { Get, Set } from './flowTypes';
 

@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import { nomDuSiege } from '../../state/netFlow';
-import { useGame, activeCombatant, movementRemaining, type BattleState, type ShootingStanceKey } from '../../state/store';
+import { useGame, type BattleState, type ShootingStanceKey } from '../../state/store';
+import { movementRemaining } from '../../state/mount';
 import type { Combatant, Weapon, WeaponLoadout } from '../../engine/types';
 import { hasMeaningfulOption } from '../../state/turnEconomy';
 import { actionPrise, wastesAction, endTurnArmed } from '../../state/endTurnGuard';
 import { advantageCapFor } from '../../engine/advantage';
 import { attackWeapon } from '../../engine/combat';
-import { availableAttacks, selfManeuversOf, selfManeuverApplicable, previewResourceDelta, STANCE_BLOCK } from '../../state/combatFlow';
+import { activeCombatant, availableAttacks, selfManeuversOf, selfManeuverApplicable, previewResourceDelta, STANCE_BLOCK } from '../../state/combatFlow';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
 import { actionGate, runAction, currentInterludeAction, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../state/actionRegistry';

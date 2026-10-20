@@ -7,7 +7,8 @@
 import { describe, it, expect, beforeEach, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useGame, movementRemaining, type BattleState } from '../../state/store';
+import { useGame, type BattleState } from '../../state/store';
+import { movementRemaining } from '../../state/mount';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { contractDisease } from '../../engine/disease';

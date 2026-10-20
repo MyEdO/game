@@ -40,7 +40,7 @@ import { inBattleId } from '../noyau/monde/combatants';
 import { touchActors } from './combatOrParty';
 import type { CascadeStep } from '../noyau/pendings';
 import type { GameOp } from '../engine/ops';
-import type { IconId } from '../ui/icons';
+import type { IconIdGenerated as IconId } from '../data/icones.generated';
 import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
@@ -57,7 +57,7 @@ import { areGrappling } from '../engine/grapple';
 import { rule } from '../engine/policy';
 import { campSpend } from '../noyau/combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { t } from '../i18n';
 
 // ---------------------------------------------------------------------------
@@ -152,7 +152,7 @@ export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: Atta
 }
 
 /** Icône par type de manœuvre (id du registre `src/ui/icons/` — la hotbar rend `<Icon id>`).
- *  Typé par l'union GÉNÉRÉE `IconId` (import type-only : aucun couplage runtime state→ui). */
+ *  Typé par l'union GÉNÉRÉE `IconId` (`src/data/icones.generated.ts`, hors de `ui`). */
 export const MANEUVER_ICON: Record<AttackKind, IconId> = {
   arme: 'action/attack', morsure: 'creature/bite', caudale: 'creature/tail', cornes: 'creature/horns',
   souffle: 'creature/breath', vomi: 'creature/vomit', tentacules: 'creature/tentacles',

@@ -117,6 +117,9 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             mutations.ts (Tableaux de Corruption LDB 19). Les métadonnées de résolution
                             des sorts vivent dans SpellData (spells.json) — l'ancien registre spellspecs/
                             et le repli regex sont SUPPRIMÉS (Migration #5)
+                            UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
+                            `npm run gen` à part du registre `src/ui/icons/defs/`, par l'option
+                            `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
                             place) ET VERSIONNENT l'écriture (`bumperDataset`, module FEUILLE
@@ -216,7 +219,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             poignée `accesBase` (magasins typés, `vider`) ; doublure
                             `indexedDb.testkit.ts` (`brancherBasesSimulees`).
                             `minuteries.ts` : registre des timers réels (`scheduleCombatTimer`,
-                            `scheduleFlowTimer`, `clearTrackedTimer`), vidé au teardown de test
+                            `scheduleFlowTimer`, `clearTrackedTimer`, état d'un timer `timerEnVol`), vidé au teardown de test
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
@@ -290,7 +293,8 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
 src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'import EN VALEUR de chaque
                             module n'atteint que `engine`, `data` et les feuilles ; `state` ne s'y lit
-                            qu'en type (arête transitoire #2889, `COUCHES`). Modules : `triggeredEffects.ts`,
+                            qu'en type (arête transitoire #2889, `COUCHES`). Modules : `plateforme.ts`
+                            (services que l'hôte pose : appel différé et état de son jeton, persistance d'un héros), `triggeredEffects.ts`,
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`.
@@ -347,16 +351,19 @@ src/state/
                             = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
                             `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
                             global (`narratifSchema` refuse toute collision d'id).
-  campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
-                            `campaignNarratif` (posé par `loadProject`) par id STABLE. `presetPnjById`/`affaireById`/
-                            `indiceById`/`documentById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
-                            campagne-D'ABORD puis règle globale (`findTrappingById`). Maps mémoïsées par référence du
-                            bloc. Le moteur reste PUR : `engine/items` reçoit ce `trappingById` en résolveur injecté
-                            (défaut = global) aux sites d'état `giveTrapping` — il n'importe jamais le store.
+  resolveursDuNarratif.ts   COUTURE UNIQUE de résolution de la couche de campagne (#767, #2817), sans store : chaque
+                            résolveur prend son narratif en ARGUMENT (celui de la partie, `campaignNarratif`, ou celui du
+                            projet édité) et lit par id STABLE. `presetDuNarratif`/`indiceDuNarratif`/`documentDuNarratif`
+                            = COUCHE-SEULEMENT (n'existent pas au global) ; `objetDuNarratif` chaîne campagne-D'ABORD puis
+                            règle globale (`trappingDesObjetsPuisDuCatalogue`). Tables mémoïsées par identité du narratif.
+                            Le moteur reste PUR : `engine/items` reçoit ce résolveur d'objet injecté aux sites d'état
+                            `giveTrapping` — il n'importe jamais le store.
                             PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
                             (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
+  campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
+                            de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
   store.ts                  store Zustand : GameState + vue (caméra/zoom) + campagne (scènes, dialogues,
                             effets, temps/repos) + actions de combat — délègue aux modules (get,set) :
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).

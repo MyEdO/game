@@ -37,7 +37,7 @@ import {
   counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor,
   clearApproachMoves, defenseDodgeMods,
 } from './combatFlow';
-import { bus, EVT } from './bus';
+import { bus, EVT } from '../noyau/bus';
 import { campRestitue, campSpend } from '../noyau/combat/advantagePool';
 import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';

@@ -1,11 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
+import { useGame, initCombatAuto, type BattleState } from './store';
 import { initialFields } from './stateFields';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { setCadence, resetCadence } from '../engine/cadence';
-import { initCombatAuto } from './combatAuto';
 import { pickActiveModalKey } from './modalArbiter';
 import { avanceEtapeCascade } from './cascadeTestKit';
 import type { Combatant, Weapon } from '../engine/types';
@@ -85,6 +84,8 @@ const trenteCombats = (opts: Parameters<typeof monte>[0], main: boolean, pilote 
 describe('#997, #1765 — combats complets avec Tir rapide : aucun gel', () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetCadence(); });
+  let desabonner: (() => void) | undefined;
+  afterAll(() => { desabonner?.(); });
 
   it('IA contre IA (héros `aiControlled`)', () => {
     const out = trenteCombats({ heroAi: true }, false, true);
@@ -92,7 +93,7 @@ describe('#997, #1765 — combats complets avec Tir rapide : aucun gel', () => {
   });
 
   it('Auto-combat : les fenêtres des héros surfacés pilotées par `combatAuto`', () => {
-    initCombatAuto(); setCadence('auto');
+    desabonner = initCombatAuto(); setCadence('auto');
     const out = trenteCombats({ heroAi: false }, false);
     expect(out.filter((o) => o.issue !== 'fin')).toEqual([]);
     expect(out.some((o) => o.fenetresTirRapide > 0), 'des tirs d’interruption ouvrent leur fenêtre').toBe(true);
