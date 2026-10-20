@@ -4,7 +4,8 @@
  * dans le même dossier que l'index (cas des scénarios).
  * `idUnion` (option PAR registre) : émet AUSSI une union de littéraux `export type <typeName> =`
  * extraite des champs `<field>` littéraux des defs (`champsLitteraux`) — typage RÉEL des ids côté
- * consommateurs TS.
+ * consommateurs TS. Avec `idUnion.out`, l'union s'écrit dans ce module à part (chemin depuis la racine),
+ * et le registre des définitions ne la porte plus : un consommateur lit les ids sans importer les defs.
  * `fields` (option PAR registre) : quand un module de def exporte PLUSIEURS noms (pas 1 seul via
  * `exportName`), liste ces noms → chaque entrée du tableau généré devient `{ champ1, champ2, … }`
  * (ex. `src/data/schemas/defs/` : `file` + `schema`).
@@ -15,7 +16,7 @@
  * par id) dans `src/data/schemas/_art.generated.ts` (`genArt`) — la forme partagée extraite vers une
  * couche neutre (table `COUCHES`, `scripts/guards/lib/couches.mjs`) : la donnée juge un id d'art d'auteur sans importer
  * le rendu.
- * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type:string, typeFrom:string, importDir?:string, idUnion?:{ typeName:string, field:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string } }[]}
+ * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type:string, typeFrom:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string } }[]}
  */
 export const REGISTRIES = [
   {
@@ -289,14 +290,14 @@ export const REGISTRIES = [
   },
   {
     // Icônes UI SVG maison (24×24, currentColor — remplacent les emojis) : 1 famille = 1 fichier defs/.
-    // + union `IconIdGenerated` des ids déclarés → `IconId` (types.ts) est un VRAI type fermé.
+    // + union `IconIdGenerated` des ids déclarés, à part dans `src/data/` → `IconId` (types.ts) est un VRAI type fermé.
     dir: 'src/ui/icons/defs',
     out: 'src/ui/icons/_registry.generated.ts',
     exportName: 'icons',
     arrayName: 'ICON_FAMILIES',
     type: 'IconFamily',
     typeFrom: './types',
-    idUnion: { typeName: 'IconIdGenerated', field: 'id' },
+    idUnion: { typeName: 'IconIdGenerated', field: 'id', out: 'src/data/icones.generated.ts' },
   },
   {
     // Bandes d'ambiance (`SceneBackdrop`) : 1 illustration stylisée = 1 fichier defs/.
@@ -357,6 +358,6 @@ export const SORTIES_DES_ESPACES = {
 };
 
 /** Tous les fichiers que ce générateur écrit EN ENTIER, phase 2 comprise — ses cibles dans `GENERATORS` (build-all.mjs). */
-export const SORTIES = [...REGISTRIES.map((r) => r.out), SORTIE_ART, ...Object.values(SORTIES_DES_ESPACES)];
+export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out ? [r.idUnion.out] : [])]), SORTIE_ART, ...Object.values(SORTIES_DES_ESPACES)];
 
 export const SORTIE_FORMATS = 'src/state/formats.generated.ts'

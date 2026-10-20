@@ -27,7 +27,7 @@
  *    - la PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`, `resetDesFixes`) et le DRAPEAU de ré-entrance
  *      `onOwnTestFailed` (`noyau/triggeredEffects`, `resetOwnTestFailedGuard`) — cf. les commentaires
  *      du `beforeEach` ci-dessous.
- *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `state/store`) : peuplé par `registerScene`/`loadProject`
+ *    - le REGISTRE DES SCÈNES (`sceneRegistry`, `state/registreDesScenes`) : peuplé par `registerScene`/`loadProject`
  *      — donc aussi par des TESTS. Vidé en `afterEach` (`resetSceneRegistry`) : la pollution INTER-fichiers meurt. PORTÉE RÉELLE, mesurée et gardée par
  *      `state/scene-registry-isolation.test.ts` : un enregistrement de TÊTE DE FICHIER (module,
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
@@ -60,8 +60,8 @@
  *      de combat et `enemyProfile`, verte en local, selon l'ordre des fichiers du worker (2026-07-29).
  *
  * 2. FILET D'ISOLATION DES TIMERS. Le combat planifie l'IA et l'enchaînement des tours via de VRAIS
- *    `setTimeout` (`combatFlow.ts`/`combatDirector.ts`/`combatAuto.ts`, via `scheduleCombatTimer` de
- *    `web/minuteries.ts`) qui MUTENT `battle` et tirent `battleRng` (singleton de module) à leur
+ *    `setTimeout` (`combatFlow.ts`/`combatDirector.ts`/`combatAuto.ts`, via `programmer` de
+ *    `noyau/plateforme.ts`, que la plateforme web relaie au registre de `web/minuteries.ts`) qui MUTENT `battle` et tirent `battleRng` (singleton de module) à leur
  *    échéance. Un test qui arme `vi.useFakeTimers()` sans le restaurer laisse des timers fantômes :
  *    `vi.useRealTimers()` DÉSINSTALLE l'horloge factice et JETTE ses timers en attente (en mode réel,
  *    c'est un no-op → ZÉRO risque). Mais un test SYNCHRONE qui déclenche un beat de combat AVANT de
@@ -93,7 +93,8 @@
  * masque l'autre, et aucun résidu ne survit à son verdict pour accuser la victime suivante (#2286).
  */
 import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
-import { useGame, resetSceneRegistry, scenesDuRegistre, type GameState } from './state/store';
+import { useGame, type GameState } from './state/store';
+import { resetSceneRegistry, scenesDuRegistre } from './state/registreDesScenes';
 import { partagesDeLEtat } from './state/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';

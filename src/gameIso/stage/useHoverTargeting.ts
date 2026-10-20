@@ -3,7 +3,7 @@
  * glissements de token) : réticule + carte de jet du FAISABLE (`hoverAim` — une cible que le mode
  * courant refuse ne rend RIEN, arbitrage 2026-08-24 ; son refus se dit AU CLIC), combattant
  * SOUS le focus (`hoveredId`, miroir frise ; hors combat la fiche que le pointeur désigne), aperçus
- * de déplacement (combat `hoverMove` / exploration `explorePath`), grisage hors-LdV (`ghostIds`) et jauges EN DIRECT (hoverDelta).
+ * de déplacement (combat `hoverMove` / exploration `explorePath`), grisage hors-LdV (`ghostIds`).
  * Le curseur clavier/manette (combatCursor) PRIME sur la souris locale (hover) ET sur le survol de
  * frise (hoverCombatantId) — un seul réticule/aperçu à la fois.
  */
@@ -16,13 +16,12 @@ import { isOutOfAction, canTakeAction, hasCondition } from '../../engine/conditi
 import { isFrenzied } from '../../engine/psychology';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { controlsCombatant } from '../../state/netOwnership';
-import { outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement, previewResourceDelta, frenzyTarget, hasFreeWeaponAttack } from '../../state/combatFlow';
+import { activeCombatant, outOfSightTargetIds, castOutOfSightTargetIds, resolveMovement, frenzyTarget, hasFreeWeaponAttack } from '../../state/combatFlow';
 import { hoverTargeting, tilePreviewAt } from '../../state/targeting';
 import type { DifficultyShown } from '../../engine/combat';
 import { courseArmee } from '../../state/localIntent';
-import { activeCombatant } from '../../state/store';
 import { modalBlocksMapHover } from '../../state/mapHover';
-import { mapTargetingActive } from '../../state/targetingHolder';
+import { detenteurDuCiblage, mapTargetingActive } from '../../state/targetingHolder';
 import type { RoomPortal } from '../../state/roomPortals';
 import { CAST_MODE } from '../../state/targetingModes';
 
@@ -34,8 +33,6 @@ export interface HoverAim {
   path?: { x: number; y: number }[];
   /** Carte de jet : nom de la cible / arme-ou-sort / compétence + valeur / palier / dégâts. */
   tip: { title: string; targetName: string; skill: string; base: number; mod: number; dmg: number | null; difficulty?: DifficultyShown } | null;
-  /** Aperçu synthétisé (forme battle.preview) pour le clignotant des jauges (previewResourceDelta). */
-  preview?: { kind: 'attack' | 'charge' | 'moveAttack'; targetId: string; path?: { x: number; y: number }[]; dest?: { x: number; y: number }; cost?: number; adv?: 0 | 1 };
 }
 
 export function useHoverTargeting(
@@ -60,6 +57,9 @@ export function useHoverTargeting(
   const mapInert = useGame(modalBlocksMapHover);
   // Un ciblage CARTE est-il en cours ? Verdict UNIQUE du registre des pendings de ciblage.
   const mapTargeting = useGame(mapTargetingActive);
+  // Qui détient le ciblage : le MÊME verdict que le suivi du survol (`MondeDeCampagne`) et l'aiguilleur.
+  const genreDuDetenteur = useGame((s) => detenteurDuCiblage(s)?.genre);
+  // `hoverTargeting` lit ces pendings dans le store : ils invalident l'aperçu quand leur contenu change.
   const pendingCast = useGame((s) => s.pendingCast);
   const pendingCleave = useGame((s) => s.pendingCleave);
   const pendingDualStrike = useGame((s) => s.pendingDualStrike);
@@ -103,12 +103,12 @@ export function useHoverTargeting(
       if (!shooter?.pos) return null;
       const ht = hoverTargeting(st, shooter, occ);
       if (ht.kind !== 'ok') return null;
-      return { fromId: shooter.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty }, preview: ht.preview };
+      return { fromId: shooter.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
     }
     // Flux différés (bandeau TargetPrompt — Frappe Mortelle / 2ᵉ frappe / Surincantation +Cible) : le
     // réticule vient du MODE courant (targetingModes via hoverTargeting), AVANT les verrous acted/
     // Frénésie (ces ciblages surviennent APRÈS l'attaque-Action).
-    if (pendingCleave || pendingDualStrike || pendingCast?.pickingTargets) {
+    if (genreDuDetenteur !== undefined && genreDuDetenteur !== 'zone') {
       const actor = battle.combatants.find((c) => c.id === battle.order[battle.turn]);
       if (!actor) return null;
       const ht = hoverTargeting(st, actor, occ);
@@ -135,8 +135,8 @@ export function useHoverTargeting(
     // qui lit l'`AttackOption` armée (selectedAttack), jamais une branche par mode.
     const ht = hoverTargeting(st, activeH, occ);
     if (ht.kind !== 'ok') return null;
-    return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty }, preview: ht.preview };
-  }, [combatCursor, hover, hoverCombatantId, mode, battle, scene, myTurn, preemptAiming, mapInert, pendingCast, pendingCleave, pendingDualStrike]);
+    return { fromId: activeH.id, toId: occ.id, line: ht.line, path: ht.path, tip: { title: ht.title, targetName: ht.targetName, skill: ht.skill, base: ht.base, mod: ht.mod, dmg: ht.dmg, difficulty: ht.difficulty } };
+  }, [combatCursor, hover, hoverCombatantId, mode, battle, scene, myTurn, preemptAiming, mapInert, genreDuDetenteur, pendingCast, pendingCleave, pendingDualStrike]);
 
   // Combattant SOUS le focus (tuile survolée OU portrait de frise/Tab) — INDÉPENDANT du ciblage
   // (hoverAim exige Mon Tour + cible valide). Pilote le halo de focus du token ET, synchronisé au
@@ -199,24 +199,6 @@ export function useHoverTargeting(
     return exploreMovePlan(scene, partyPos, tile, optionsDeCheminDuGroupe(party));
   }, [hover, hoveredPortal, mode, dialogue, scene, partyPos, party]);
   const explorePath = explorePlan?.path ?? null;
-
-  // Jauges EN DIRECT (clignotant des gouttières de l'arche) : le coût/gain (Action/Mouvement/Avantage) de
-  // l'intention SOUS LA SOURIS — un aperçu de la forme tap-1 est synthétisé du survol et passe par la
-  // MÊME source (`previewResourceDelta`). Écrit au store seulement quand le delta CHANGE.
-  useEffect(() => {
-    const pvLike = hoverAim?.preview ?? (hoverMove && effHover && hoverMove.kind !== 'tile' ? { kind: hoverMove.kind, tile: { ...effHover }, path: hoverMove.path, cost: hoverMove.cost } : null);
-    const delta = pvLike && battle ? previewResourceDelta({ ...battle, preview: pvLike as never }) : null;
-    const next = delta
-      ? { ...delta, ...(hoverMovementResolution ? { movement: hoverMovementResolution } : {}) }
-      : hoverMovementResolution
-        ? { action: 0, move: 0, adv: 0, movement: hoverMovementResolution }
-        : null;
-    const cur = useGame.getState().hoverDelta;
-    const same = (!next && !cur) || (!!next && !!cur
-      && next.action === cur.action && next.move === cur.move && next.adv === cur.adv
-      && next.movement === cur.movement);
-    if (!same) useGame.setState({ hoverDelta: next });
-  }, [hoverAim, hoverMove, hoverMovementResolution, battle, effHover]);
 
   return { hoverAim, hoveredId, hoverMove, explorePath, ghostIds, effHover };
 }

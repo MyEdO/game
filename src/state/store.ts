@@ -20,7 +20,7 @@ import { type AttackKind } from '../engine/creatureAttacks';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { facingToward, DIR8_DELTA, rotateDir8, type Dir8 } from '../noyau/monde/dir8';
 import { footprintTiles, footprintN } from '../noyau/monde/footprint';
-import type { CombatCursor, ScreenDir } from './combatCursor';
+import { screenStepDot, type CombatCursor, type ScreenDir } from './combatCursor';
 import type { LocalIntent } from './localIntent';
 import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
@@ -46,12 +46,10 @@ import { quorumAtteint, decidingSeat } from './netOwnership';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
-export { activeCombatant, entityPickables } from './combatFlow';
 import { markActed } from './combatFlow';
 import { EMPTY_FLOW, type Flow } from '../noyau/monde/flow';
 import { moveEnv, type MoveSnapshot } from '../noyau/monde/combatGeometry';
 import { movementRemaining } from './mount';
-export { movementRemaining, canMove } from './mount';
 
 import { type BattleZone } from '../noyau/monde/zones';
 import * as interludeFlow from './interludeFlow';
@@ -76,16 +74,6 @@ import type { CodexFocus } from './codexFocus';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
-
-/** Paquet de campagne snapshotté (#766) : RÉ-ENREGISTRE toutes ses scènes (le `sceneRegistry` en mémoire
- *  module ne connaît sinon que la scène courante → transitions/portes vers les AUTRES scènes du
- *  paquet échoueraient en silence) et RE-DÉRIVE la couche narrative runtime (`HORS_SAVE`, `saves.ts`).
- *  Lue par la reprise de save et par le snapshot coop de l'invité (`netFlow.applyNetSnapshot`). */
-export function reposerPaquetDeCampagne(doc: CampaignDoc | null | undefined): Partial<GameState> {
-  if (!doc) return {};
-  for (const s of doc.scenes) registerScene(s);
-  return { campaignNarratif: doc.narratif };
-}
 
 /** Charge une save (Jalon 5) : reset zéro-maintenance (état de création sans les actions — le
  *  JSON round-trip écarte les fonctions) + données de la save par-dessus, écran campagne.
@@ -126,6 +114,10 @@ import { touchActors } from './combatOrParty';
 import { actorIn, capDuGroupe, ecrireActeur, estDebout, inBattleId, meneurDuMonde, poserCapDuGroupe } from '../noyau/monde/combatants';
 import { fireOwnTestFailed } from '../noyau/triggeredEffects';
 import { FLOWS, meetsRequiredSL, buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
+import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
+import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
+import { rosterUpdate } from './roster';
+import { planifierLeTickAuto } from './combatAuto';
 import { gainCorruption, resolveCorruptionPending, releaseCorruptionSlot, testDExposition } from './corruptionFlow';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import * as partyFlow from './partyFlow';
@@ -189,29 +181,13 @@ import { resultLine, openSequence, hostStep, idDansLaSequence, pousseSi, type Bu
 import { createCombatSlice } from './combatSlice';
 import { nomDEntite } from './sceneNpc';
 import { presetPnjById } from './campaignData';
+import { registerScene, reposerPaquetDeCampagne, sceneDuRegistre } from './registreDesScenes';
 
 /** Source unique des écrans valides — `Screen` en dérive (`typeof SCREENS[number]`) : un id absent
  *  ici échoue à la garde DEV `__wfrp.screen` (state/devtools.ts) au lieu de router silencieusement
  *  vers un écran blanc (#211). */
 export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test', 'interlude', 'coop', 'compendium', 'massBattle', 'gallery', 'webglSpike'] as const;
 export type Screen = typeof SCREENS[number];
-
-/** Registre des scènes (pour les transitions de campagne) : les scènes d'une campagne y entrent
- *  quand elle se lance (`loadProject`) ou se recharge (`reposerPaquetDeCampagne`), jamais à l'import. */
-const sceneRegistry: Record<string, Scene> = {};
-export function registerScene(s: Scene) {
-  sceneRegistry[s.id] = s;
-}
-/** TEST-ONLY (#777) : vide le `sceneRegistry` — simule un « registre reparti de zéro » (reload) SANS
- *  `vi.resetModules()`, incompatible avec la suite sous `isolate:false` (fuite de registre de modules
- *  entre fichiers du worker partagé). */
-export function resetSceneRegistry(): void {
-  for (const k of Object.keys(sceneRegistry)) delete sceneRegistry[k];
-}
-/** TEST-ONLY (#2097) : les scènes du registre, sources de donnée de la garde de partage. */
-export function scenesDuRegistre(): Scene[] {
-  return Object.values(sceneRegistry);
-}
 
 // Types des flux différés (Pending*, Money, RevealEntry…) — extraits dans ./pendings, ré-exportés
 // pour la compat des imports existants (`from '../state/store'`).
@@ -692,15 +668,6 @@ export interface GameState extends RollFlowActionsMap {
    *  sort de zone d'un lanceur IA ne se résolve, pour lire « où l'aire va tomber » (parité avec
    *  `actorAim` du missile, qui ne sait montrer qu'une ligne from→to inadaptée à une case). */
   actorAoe: { casterId: string; center: { x: number; y: number }; radius: number } | null;
-  /** Coût/gain (Action/Mouvement/Avantage) de l'intention SOUS LA SOURIS (desktop) — alimente le
-   *  clignotant des gouttières de l'arche, même source que le tap-1 (`previewResourceDelta`).
-   *  Posé par IsoStage au changement de tuile survolée ; null hors survol pertinent. */
-  hoverDelta: {
-    action: number;
-    move: number;
-    adv: number;
-    movement?: import('./combatFlow').MovementResolution;
-  } | null;
   /** Soin de Guérison en cours (modale interactive, combat ou hors-combat). */
   pendingHeal: PendingHeal | null;
   /** Passe de Chirurgie en cours (jet INFLUENÇABLE du chirurgien, modale embarquée dans l'infirmerie). */
@@ -2340,7 +2307,7 @@ export const useGame = create<GameState>((set, get) => ({
   /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
    *  `pos` force la case d'arrivée (utilisé par `transitionBack`). */
   transitionTo: (sceneId, entry, pos) => {
-    const target = sceneRegistry[sceneId];
+    const target = sceneDuRegistre(sceneId);
     if (!target) {
       get().log(t('store.sceneMissing', { scene: sceneId }));
       return;
@@ -2370,7 +2337,7 @@ export const useGame = create<GameState>((set, get) => ({
     const leaving = partyFlow.releaseHeroSeats(get().scene);
     const sceneInstances = { ...get().sceneInstances };
     if (leaving) {
-      const leavingAuthored = sceneRegistry[leaving.id];
+      const leavingAuthored = sceneDuRegistre(leaving.id);
       const mut = leavingAuthored ? captureMutation(leaving, leavingAuthored) : undefined;
       if (mut) sceneInstances[leaving.id] = mut;
       else delete sceneInstances[leaving.id];
@@ -2569,7 +2536,7 @@ export const useGame = create<GameState>((set, get) => ({
     const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge } = get();
     if (!scene || mode !== 'exploration' || dialogue) return;
     const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDeg: viewYawDeg(camRot, camEdge) };
-    const dest = exploreStepDest(scene, partyPos, dir, dims);
+    const dest = exploreStepDest(scene, partyPos, (voisin) => screenStepDot(scene, partyPos, voisin, dir, dims));
     if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
     // Glisse d'1 case via l'anim de marche EXISTANTE (ANIM_MOVE → walkPosOf), puis `moveParty` (z-aware :
     // facing, triggers, déplacement-puis-fouille) — le leader VISIBLE est le même qu'IsoStage.
@@ -3288,6 +3255,23 @@ export const useGame = create<GameState>((set, get) => ({
     }
   },
 }));
+
+// Plateforme web du noyau (#2817, D6) : ses appels différés passent par le registre tracé de
+// `web/minuteries` (#405, #415), son héros persisté par le roster. Son jeton est l'id du timer tracé :
+// le noyau ne le reçoit que de `programmer` et ne le rend qu'à `enAttente`, d'où la seule conversion
+// vers le jeton à marque.
+const plateformeWeb: PlateformeDe<ReturnType<typeof scheduleCombatTimer>> = {
+  programmer: scheduleCombatTimer,
+  enAttente: timerEnVol,
+  persisterLeHeros: rosterUpdate,
+};
+poserLaPlateforme(plateformeWeb as unknown as Plateforme);
+
+/** Branche l'auto-cadence de combat sur le store (une fois au démarrage, `main.tsx`) ; rend son
+ *  désabonnement. */
+export function initCombatAuto(): () => void {
+  return useGame.subscribe(() => planifierLeTickAuto(useGame.getState, useGame.setState));
+}
 
 // #668 — `fireScheduledEffects` tire les minuteries `delayedEffect` sur CHAQUE avance d'horloge, quel
 // que soit le chemin (advanceTime, rest, travel, sea émettent tous EVT.TIME_ADVANCED) — seam UNIQUE,

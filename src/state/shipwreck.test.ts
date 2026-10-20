@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, registerScene } from './store';
+import { useGame } from './store';
+import { registerScene } from './registreDesScenes';
 import { makePregens } from '../data/pregens';
 import { beginShipwreck } from './shipwreck';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';

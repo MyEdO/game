@@ -25,7 +25,7 @@ import { useGame } from '../../state/store';
 import { heightAt, isIndoor, liftDe, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { computeStateVisibleAndLight, sceneLightSources } from '../../state/visionState';
 import { capDuGroupe, meneurDuMonde } from '../../noyau/monde/combatants';
-import { placingZoneOf } from '../../state/combatFlow';
+import { detenteurDuCiblage } from '../../state/targetingHolder';
 import { controlsActive, controlsCombatant } from '../../state/netOwnership';
 import { GESTES_DEPLACANTS, gestesDeplacantsOuverts } from '../../state/gesteDArete';
 import { Dims, capsuleCenter } from '../../geometry/iso';
@@ -119,9 +119,9 @@ function CorpsDuMonde() {
   const planView = useGame((s) => s.pendingRoundStart?.round === 1); // ouverture : cadrer tout le champ
   const pendingAttack = useGame((s) => s.pendingAttack);
   const pendingCast = useGame((s) => s.pendingCast);
-  const pendingSiegeAim = useGame((s) => s.pendingSiegeAim); // pilonnage indirect : placeur de CASE
   const pendingCleave = useGame((s) => s.pendingCleave);
   const pendingDualStrike = useGame((s) => s.pendingDualStrike);
+  const cibleDetenue = useGame((s) => detenteurDuCiblage(s) !== null); // une fenêtre détient le ciblage carte
   const preemptAiming = useGame((s) => s.preemptAiming); // Tir rapide armé (pause) : cible par la carte hors tour
   const localIntent = useGame((s) => s.localIntent); // intention ARMÉE : sa portée est une marque de cases
   const hovered = useGame((s) => s.hovered); // tireur SURVOLÉ (frise ou token) : ses bandes de portée sont des marques de cases
@@ -580,12 +580,12 @@ function CorpsDuMonde() {
   // nourrissent les marques que le monde peint. La surcouche de plateau ne fait que porter les
   // handlers sur son SVG.
   // Suivi du SURVOL : tout contexte où l'on cible par la carte — mode neutre (attaque implicite),
-  // incantation (tooltip + gabarit ZdE), et flux différés (Frappe Mortelle / 2ᵉ frappe / Surincantation).
+  // incantation (tooltip + gabarit ZdE), et détenteur du ciblage (`detenteurDuCiblage`).
   const hoverTracking =
     mode === 'battle' && !!battle && !battle.over &&
     (((battle.action === null || battle.action === 'cast') && meneLActif) ||
       !!preemptAiming || // Tir rapide armé pendant la pause : on suit le survol (réticule + trait de visée) alors qu'il n'y a AUCUN actif
-      !!pendingCleave || !!pendingDualStrike || !!pendingCast?.pickingTargets || !!placingZoneOf({ pendingCast, pendingSiegeAim, battle }));
+      cibleDetenue);
   // Le picking inverse la projection COMMISE : exacte à chaque commit du lacet (cran, départ, arrêt,
   // pose au pointeur). PENDANT un maintien entre deux crans, elle retarde du lacet parcouru depuis le
   // dernier commit — jusqu'à un demi-cran, le temps du geste (#1403).

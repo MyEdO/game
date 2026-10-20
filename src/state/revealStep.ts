@@ -7,7 +7,7 @@
 import type { CascadeTableDone, RevealEntry } from '../noyau/pendings';
 import type { BuiltCascadeStep } from '../noyau/stepBrand';
 import { toRecapLines } from '../noyau/recapLine';
-import type { IconId } from '../ui/icons';
+import type { IconIdGenerated as IconId } from '../data/icones.generated';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */
 const REVEAL_ICON: Record<RevealEntry['kind'], IconId> = {

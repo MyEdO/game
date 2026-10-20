@@ -961,7 +961,7 @@ export function createCombatSlice(get: Get, set: Set) {
         const dit = REFUS_DEPLACEMENT[movement.reason];
         if (dit) refuserGeste(get, set, t(dit));
         if (battle.preview) {
-          set({ battle: { ...battle, preview: null }, hoverDelta: null });
+          set({ battle: { ...battle, preview: null } });
           bus.emit(EVT.SCENE_DIRTY);
         }
         return;
@@ -992,7 +992,7 @@ export function createCombatSlice(get: Get, set: Set) {
         if (!courseDemandee && !isFrenzied(active)) return void refuserGeste(get, set, t('cs.refusCourseNonArmee'));
         // Zone de Course : tap 1 = aperçu « Courir » ; tap 2 = Test de `course` (pendingRun + destination).
         if (!clickOpts?.confirm && !(prev?.kind === 'run' && prev.path === movement.path)) {
-          set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } }, hoverDelta: null });
+          set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
           bus.emit(EVT.SCENE_DIRTY);
           return;
         }
@@ -1002,7 +1002,7 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       // Tap 1 : APERÇU (chemin + coût) — sauf confirmation directe ou re-tap de la même case.
       if (!clickOpts?.confirm && !(prev?.kind === 'move' && prev.path === movement.path)) {
-        set({ battle: { ...battle, preview: { kind: 'move', tile: { ...dest }, path: movement.path, cost: movement.cost } }, hoverDelta: null });
+        set({ battle: { ...battle, preview: { kind: 'move', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
@@ -1026,7 +1026,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Mouvement décomposable : cumule le coût du segment ; reste en mode neutre → le joueur peut
       // re-cliquer une case (s'il reste du Mouvement) OU enchaîner une Action. Si ce segment précède
       // l'Action, on marque `movedPreAction` (verrouille tout Mouvement post-Action).
-      set({ battle: { ...battle, moveSnapshot: snapshot, movementUsed: (battle.movementUsed ?? 0) + movement.cost, movedPreAction: battle.movedPreAction || !battle.acted, action: null, reachable: new Map(), preview: null }, hoverDelta: null });
+      set({ battle: { ...battle, moveSnapshot: snapshot, movementUsed: (battle.movementUsed ?? 0) + movement.cost, movedPreAction: battle.movedPreAction || !battle.acted, action: null, reachable: new Map(), preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1319,13 +1319,13 @@ export function createCombatSlice(get: Get, set: Set) {
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
       if (resolved?.status === 'blocked') return;
       const plan = movement ?? (resolved?.status === 'ok' ? { path: resolved.path, cost: resolved.cost } : undefined);
-      set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null }, hoverDelta: null });
+      set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null } });
     },
     runConfirm: () => {
       const { battle, scene, pendingRun: pr } = get();
       if (!battle || !scene || !pr || !pr.result || !pr.dest) return;
       const c = inBattleId(battle, pr.combatantId);
-      set({ pendingRun: null, hoverDelta: null });
+      set({ pendingRun: null });
       if (!c) return;
       // Combat monté : Course au Mouvement de la monture, empreinte/collisions de la monture (couple solidaire).
       const geom = mountOf(battle, c) ?? c;
@@ -1368,7 +1368,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...b, action: null, runBudget: range, movementUsed: (battle.movementUsed ?? 0) + cost, reachable: new Map(), preview: null, log } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    runCancel: () => set({ pendingRun: null, hoverDelta: null }),
+    runCancel: () => set({ pendingRun: null }),
 
     // ── Manœuvre navale (MDG 13) : le barreur (héros ACTIF, à la barre) dépense son Action pour un Test
     //    de Navigation → vire le cap (re-mappe les bordées) + avance la coque. « Un jet = une Action » : le

@@ -9,7 +9,8 @@
  * hors du chemin `loadGame`. Sans le fix (campaignDoc absent), `transitionTo('scene-b')` échouerait.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, resetSceneRegistry } from './store';
+import { useGame } from './store';
+import { resetSceneRegistry } from './registreDesScenes';
 import { presetPnjById, trappingById } from './campaignData';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';

@@ -48,7 +48,7 @@ export const SEA_PERIL_INTERRUPT = 'voyage-mer';
 import type { Scene } from '../noyau/monde/scene';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './encounterAuthoring';
-import { registerScene } from './store';
+import { registerScene } from './registreDesScenes';
 import { openEmbrigadementRecovery } from './embrigadementFlow';
 import { vehicleCombatant } from '../engine/vehicle';
 import { voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';

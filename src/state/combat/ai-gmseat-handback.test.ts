@@ -10,7 +10,7 @@ import { humanControlled, aiDriven } from '../netOwnership';
 
 /**
  * Bac-à-sable MJ × exécution DIFFÉRÉE (#918 phase 2a). `maybeRunEnemyTurn` (`combatFlow.ts`) évalue
- * `aiDriven` PUIS diffère par `scheduleCombatTimer` ; `setGmSeat` (`netFlow.ts`) n'attend aucune fenêtre
+ * `aiDriven` PUIS diffère par `programmer` ; `setGmSeat` (`netFlow.ts`) n'attend aucune fenêtre
  * de combat. Un siège MJ pris entre la planification et le tir rend l'ennemi conduit À LA MAIN
  * (`pilotedByHuman` d'un ennemi = « un siège porte le rôle MJ », `netOwnership.ts`) : `runEnemyAI` doit
  * RE-TESTER son prédicat à l'entrée et rendre la main, au lieu de jouer un acteur qui ne lui appartient

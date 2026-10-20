@@ -117,6 +117,9 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             mutations.ts (Tableaux de Corruption LDB 19). Les métadonnées de résolution
                             des sorts vivent dans SpellData (spells.json) — l'ancien registre spellspecs/
                             et le repli regex sont SUPPRIMÉS (Migration #5)
+                            UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
+                            `npm run gen` à part du registre `src/ui/icons/defs/`, par l'option
+                            `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
                             place) ET VERSIONNENT l'écriture (`bumperDataset`, module FEUILLE
@@ -216,7 +219,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             poignée `accesBase` (magasins typés, `vider`) ; doublure
                             `indexedDb.testkit.ts` (`brancherBasesSimulees`).
                             `minuteries.ts` : registre des timers réels (`scheduleCombatTimer`,
-                            `scheduleFlowTimer`, `clearTrackedTimer`), vidé au teardown de test
+                            `scheduleFlowTimer`, `clearTrackedTimer`, état d'un timer `timerEnVol`), vidé au teardown de test
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
@@ -290,7 +293,8 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
 src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'import EN VALEUR de chaque
                             module n'atteint que `engine`, `data` et les feuilles ; `state` ne s'y lit
-                            qu'en type (arête transitoire #2889, `COUCHES`). Modules : `triggeredEffects.ts`,
+                            qu'en type (arête transitoire #2889, `COUCHES`). Modules : `plateforme.ts`
+                            (services que l'hôte pose : appel différé et état de son jeton, persistance d'un héros), `triggeredEffects.ts`,
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`.

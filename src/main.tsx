@@ -2,9 +2,8 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
 import { initAudioWiring } from './audio/wiring';
-import { initCombatAuto } from './state/combatAuto';
 import { installErrorCollector, setErrorContextProvider, wfrpErrorsApi } from './ui/errorCollector';
-import { useGame } from './state/store';
+import { useGame, initCombatAuto } from './state/store';
 import { initLibrary } from './state/projectLibrary';
 import '@fontsource/grenze-gotisch/latin-600.css'; // display de la charte (titres) — embarquée, zéro réseau
 import '@fontsource/grenze-gotisch/latin-800.css';

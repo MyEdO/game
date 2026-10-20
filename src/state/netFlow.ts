@@ -18,7 +18,8 @@
  * le store (non sérialisables, jamais dans les snapshots).
  */
 import type { GameState } from './store';
-import { useGame, registerScene, reposerPaquetDeCampagne } from './store';
+import { useGame } from './store';
+import { registerScene, reposerPaquetDeCampagne } from './registreDesScenes';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { HostSession, GuestSession } from '../net/session';

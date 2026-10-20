@@ -6,7 +6,7 @@ import { stepInteraction } from '../noyau/cascade';
 import type { RevealEntry } from '../noyau/pendings';
 import { deleteSlot } from './saves';
 import { suspendActiveCascade } from '../noyau/cascade';
-import { registerScene } from './store';
+import { registerScene } from './registreDesScenes';
 import type { Scene } from '../noyau/monde/scene';
 import { spawnEnemy } from './spawn';
 import { createHero } from '../engine/character';

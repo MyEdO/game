@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from './stateFields';
-import { useGame, entityPickables, type BattleState } from './store';
+import { useGame, type BattleState } from './store';
 import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascadeTestKit';
 import { flowFromEffects, flowEffects, testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
 import { buildAdvancementView } from './advancement';
@@ -32,7 +32,7 @@ import { toBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
-import { OPS_DIFFEREES } from './combatEffects';
+import { entityPickables, OPS_DIFFEREES } from './combatEffects';
 import { t } from '../i18n';
 import { makeRNG } from '../engine/dice';
 

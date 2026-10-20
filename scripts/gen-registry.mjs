@@ -121,6 +121,7 @@ function renduDuRegistre(r) {
     ? files.map((_, i) => `{ ${[...r.fields, ...presents(i)].map((fn) => `${fn}: e${i}_${fn}`).concat(constParts).join(', ')} }`)
     : files.map((_, i) => `e${i}`);
   // Union de littéraux des ids déclarés dans les defs (option `idUnion`) — triée, dédupliquée.
+  // `idUnion.out` posé : l'union s'écrit dans ce module à part, hors du registre des définitions.
   let unionDecl = '';
   if (r.idUnion) {
     const uniq = unionDesIds(r.dir, files, r.idUnion.field);
@@ -130,21 +131,27 @@ function renduDuRegistre(r) {
       `\n/** Union GÉNÉRÉE des \`${r.idUnion.field}\` déclarés dans les defs — le typage réel des consommateurs. */\n` +
       `export type ${r.idUnion.typeName} =\n${uniq.length ? `  | '${uniq.join(`'\n  | '`)}';\n` : '  | never;\n'}`;
   }
-  const body =
+  // `dossier` se lit depuis le module écrit : relatif au registre, depuis la racine pour l'union à part.
+  const entete = (dossier) =>
     `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
-    `// Ajouter une entrée = déposer un fichier dans ${importDir === '.' ? r.dir.split('/').pop() : importDir.replace('./', '')}/ puis \`npm run gen\`.\n` +
+    `// Ajouter une entrée = déposer un fichier dans ${dossier}/ puis \`npm run gen\`.\n`;
+  const aPart = Boolean(r.idUnion?.out);
+  const body =
+    entete(importDir === '.' ? r.dir.split('/').pop() : importDir.replace('./', '')) +
     `import type { ${r.type} } from '${r.typeFrom}';\n` +
     imports.join('\n') + '\n\n' +
     `export const ${r.arrayName}: ${r.type}[] = [${arr.join(', ')}];\n` +
-    unionDecl;
-  return { body, files: files.length };
+    (aPart ? '' : unionDecl);
+  return { body, files: files.length, union: aPart ? { out: r.idUnion.out, body: entete(r.dir) + unionDecl } : null };
 }
 
 function genOne(r, check) {
   const c = renduDuRegistre(r);
   if (!c) return { arrayName: r.arrayName, dir: r.dir, files: 0, changed: false, missing: true };
   // `ecrireDoc` n'écrit que si le contenu change (évite de toucher le mtime → boucles de watch).
-  const changed = !ecrireOuVerifier({ out: c.body, path: r.out, check, ...MESSAGES_DE(r.out) });
+  const ecrit = [{ out: c.body, path: r.out }, ...(c.union ? [{ out: c.union.body, path: c.union.out }] : [])]
+    .map(({ out, path }) => !ecrireOuVerifier({ out, path, check, ...MESSAGES_DE(path) }));
+  const changed = ecrit.some(Boolean);
   return { arrayName: r.arrayName, dir: r.dir, files: c.files, changed, missing: false };
 }
 
@@ -242,7 +249,9 @@ export function rendre() {
   const rendu = new Map();
   for (const r of REGISTRIES) {
     const c = renduDuRegistre(r);
-    if (c) rendu.set(r.out, c.body);
+    if (!c) continue;
+    rendu.set(r.out, c.body);
+    if (c.union) rendu.set(c.union.out, c.union.body);
   }
   rendu.set(SORTIE_ART, renduDesProjections().body);
   for (const [chemin, texte] of espacesRendus()) rendu.set(chemin, texte);

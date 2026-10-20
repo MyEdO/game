@@ -129,7 +129,7 @@ describe('cross-ref parseProject (#671, validation reportée de #765)', () => {
 /**
  * COOP (#1882) — la couche narrative d'un projet (`campaignNarratif`) est hors snapshot (`HORS_SAVE`,
  * saves.ts) : l'invité la RE-DÉRIVE de `campaignDoc`, par la même couture que la reprise de save
- * (`reposerPaquetDeCampagne`, store.ts). Sans elle, un PNJ à preset n'a pas de fiche chez l'invité.
+ * (`reposerPaquetDeCampagne`, registreDesScenes.ts). Sans elle, un PNJ à preset n'a pas de fiche chez l'invité.
  */
 describe('coop — l’invité re-dérive la couche narrative du paquet de l’hôte (#1882)', () => {
   it('l’hôte et l’invité voient le MÊME PNJ à preset', () => {

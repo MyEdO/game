@@ -41,7 +41,7 @@ const DIR_VEC: Record<ScreenDir, [number, number]> = {
  * Alignement ÉCRAN du pas `from`→`to` avec la direction poussée : produit scalaire NORMALISÉ du vecteur
  * écran (origine→candidat, via `tileCenter`) avec le vecteur écran de `dir`. C'est la projection « le
  * curseur suit les yeux », SOURCE UNIQUE partagée par `nextCursorTile` (curseur de combat) ET
- * `exploreStepDest` (pas clavier d'exploration) — rien n'est codé en dur (rotation/vue comprises).
+ * `stepPartyDir` (pas clavier d'exploration, qui la passe à `exploreStepDest`) — rien n'est codé en dur (rotation/vue comprises).
  * Le LIFT vertical d'une case est celui du socle (`scene.liftDe`, hauteur MÉTRIQUE), PAS l'index de
  * couche `z` : une case d'une couche haute mais de même hauteur réelle (tablier rejoint par une rampe)
  * se projette au MÊME écran que sa voisine — sinon le candidat cross-couche serait scoré à une hauteur

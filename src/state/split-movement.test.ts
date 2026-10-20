@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useGame, movementRemaining, canMove } from './store';
+import { useGame } from './store';
+import { movementRemaining, canMove } from './mount';
 import { computeMoveReach, attackPlan } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

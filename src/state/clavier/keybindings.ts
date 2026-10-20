@@ -18,7 +18,8 @@
  *  • la CAPTURE de touche du panneau de remap lui-même (`ui/KeyBindingsPanel.tsx`).
  */
 import type { GameState } from '../store';
-import { useGame, activeCombatant } from '../store';
+import { useGame } from '../store';
+import { activeCombatant } from '../combatFlow';
 import { controlsActive } from '../netOwnership';
 import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../dialogue';
 import { modaleDuDessus } from '../dismissStack';
