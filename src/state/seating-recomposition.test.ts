@@ -177,7 +177,7 @@ describe('la couture d’occupation est UNIQUE', () => {
     const appelants = readCorpus(['src'])
       .filter(({ rel, text }) => rel !== 'src/noyau/monde/seating.ts' && /releaseRecomposedRanks\(/.test(text))
       .map(({ rel }) => rel);
-    expect(appelants).toEqual(['src/state/store.ts']);
+    expect(appelants).toEqual(['src/noyau/transitionDuJeu.ts']);
   });
 
   it('le module qui RECOMPOSE le groupe n’écrit PAS l’assise lui-même', () => {

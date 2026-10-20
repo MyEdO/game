@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 
-describe('Set des flux : journal hors du patch (#319, #2724)', () => {
-  it('refuse journal, la recopie de l’état et un Partial<Jeu> brut', () => {
+describe('Set des flux : les clés réservées hors du patch (#319, #2724, #2817 D7)', () => {
+  it('refuse journal, gameTime, la recopie de l’état et un Partial<Jeu> brut', () => {
     const recus: unknown[] = [];
     const set: Set = (partial) => { recus.push(partial); };
     const brut: Partial<Jeu> = {};
@@ -11,13 +11,17 @@ describe('Set des flux : journal hors du patch (#319, #2724)', () => {
 
     // @ts-expect-error journal ne s'écrit pas par le patch d'un flux
     set({ journal: [] });
+    // @ts-expect-error gameTime n'avance que par `avancerLHorloge`
+    set({ gameTime: 0 });
+    // @ts-expect-error ni mêlé à un champ de jeu, ni par updater
+    set((s) => ({ party: s.party, gameTime: s.gameTime + 60 }));
     // @ts-expect-error recopier l'état emporte journal
     set((s) => ({ ...s }));
     // @ts-expect-error Partial<Jeu> laisse journal ouvert
     set(brut);
     set(patch);
 
-    expect(recus).toHaveLength(4);
+    expect(recus).toHaveLength(6);
   });
 });
 

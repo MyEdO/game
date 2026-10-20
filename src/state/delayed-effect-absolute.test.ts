@@ -4,7 +4,6 @@ import { applyEffects, fireScheduledEffects } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
-import { bus, EVT } from '../noyau/bus';
 import type { Effect } from '../noyau/monde/scene';
 
 /**
@@ -69,17 +68,15 @@ describe('delayedEffect — échéance en JOURS via le store réel', () => {
     expect(useGame.getState().scheduledEffects).toHaveLength(0);
   });
 
-  it('#668 — un chemin de temps NON-advanceTime (rest/travel/sea) émet EVT.TIME_ADVANCED et tire la minuterie', () => {
+  it('#668 — `avancerLHorloge`, sans le reste d’`advanceTime`, tire la minuterie', () => {
     lonePartyAt(30);
     const now = useGame.getState().gameTime;
     const rite: Effect = { type: 'delayedEffect', afterDays: 2, atHour: 0, flow: flowFromEffects([{ type: 'setFlag', flag: 'x' }]) };
     applyEffects(useGame.getState, useGame.setState, [rite]);
     const executeAt = (dayIndex(now) + 2) * MINUTES_PER_DAY;
 
-    // Simule restFlow/travelFlow/seaVoyageFlow : `set({gameTime})` + `bus.emit(EVT.TIME_ADVANCED)`,
-    // JAMAIS `advanceTime` — prouve que l'abonnement bus (pas advanceTime seul) tire la minuterie.
-    useGame.setState({ gameTime: executeAt });
-    bus.emit(EVT.TIME_ADVANCED, { minutes: 1 });
+    useGame.getState().avancerLHorloge(executeAt - now);
+    expect(useGame.getState().gameTime).toBe(executeAt);
 
     expect(useGame.getState().flags.x).toBe(true);
     expect(useGame.getState().scheduledEffects).toHaveLength(0);

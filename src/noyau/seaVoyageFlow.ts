@@ -30,7 +30,6 @@
  */
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
-import { bus, EVT } from './bus';
 import { openRest } from './restFlow';
 import { placeById, type WorldMap, type MapPlace, type MapRoute } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
@@ -1582,8 +1581,7 @@ export function continueSeaDayAfterScorbut(get: Get, set: Set, doneSteps?: Casca
   // la cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
   const arrived = plan.km - Math.min(plan.km, plan.kmDone + sea.milesToday) < 1e-9;
   const dayMinutes = arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute());
-  set({ gameTime: get().gameTime + dayMinutes });
-  bus.emit(EVT.TIME_ADVANCED, { minutes: dayMinutes });
+  get().avancerLHorloge(dayMinutes);
 
   // TEMPÉRATURE (MDG 13 l.203-225) : Tests d'Exposition du jour, `seaExposureTestsPerDay`. Froid : cascade
   // UNIQUE d'`engine/exposure` (MDG 14 l.277) ; chaleur : LDB 18 l.330. La dissipation des pénalités
@@ -1983,7 +1981,7 @@ registerCascadeApplier('extermination', (get, set, step) => {
   const inf = sea.infestation;
   const rng = battleRng();
   const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need, !!rule('test-extended-min-sl'));
-  set({ gameTime: get().gameTime + rollDice(1, 10, rng) * 60 }); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
+  get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
   let j: string[];
   if (done) {
     patchSea(get, set, { infestation: undefined });
@@ -2666,10 +2664,8 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   let hours = 0;
   for (let healed = 0; healed < missing; healed += rollDice(1, 10, rng)) hours += rollDice(1, 10, rng); // 1d10 h / 1d10 B (l.643)
   payFromGroup(get, set, costMoney, { purpose: 'réparation navire' });
-  set({
-    vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [] },
-    gameTime: get().gameTime + Math.max(1, hours) * 60,
-  });
+  set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [] } });
+  get().avancerLHorloge(Math.max(1, hours) * 60);
   return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed') : '', hours: Math.max(1, hours) })];
 }
 

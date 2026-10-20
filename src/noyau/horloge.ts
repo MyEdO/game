@@ -1,6 +1,7 @@
 /** Horloge de jeu : l'avance du temps et ce qui la suit hors combat (#668, #T2, #T3). */
 import { registerCloture, pushReveal } from './combatEffects';
-import { bus, EVT } from './bus';
+import { fireScheduledEffects } from './combatEffects';
+import { purgeSurAvanceDHorloge } from './upkeep';
 import { TIME_COST } from '../engine/timeCost';
 import { outOfCombatUpkeep } from './outOfCombatUpkeep';
 import { battleRng } from './battleRng';
@@ -10,18 +11,29 @@ import { nightBands } from './nightBands';
 import * as restFlow from './restFlow';
 import { openSequence } from './rollSeam';
 import { checkPartyWiped } from './partyWipe';
-import type { Get, Set } from './flowTypes';
+import type { Get, Set, SetDesClesReservees } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** L'horloge avance APRÈS le Flow de son site — verbe de CLÔTURE (#1508). */
 registerCloture('avancerHorloge', (get, _set, c) => get().advanceTime(c.minutes));
 
+/** L'UNIQUE écrivain de l'avance d'horloge (#668, #1599, #2817 D7) : tout chemin qui fait passer le temps
+ *  (advanceTime, repos, voyages terrestre, fluvial et en mer, chantier naval) l'appelle. */
+export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees) {
+  return {
+    avancerLHorloge: (minutes) => {
+      set({ gameTime: get().gameTime + minutes });
+      fireScheduledEffects(get, set);
+      purgeSurAvanceDHorloge(get, set);
+    },
+  } satisfies Partial<ActionsDuNoyau>;
+}
+
 export function creerActionsDHorloge(get: Get, set: Set) {
   return {
     advanceTime: (minutes) => {
       if (minutes <= 0) return;
-      set({ gameTime: get().gameTime + minutes });
-      bus.emit(EVT.TIME_ADVANCED, { minutes }); // #668 : l'abonné tire `fireScheduledEffects` SYNCHRONE ici
+      get().avancerLHorloge(minutes);
 
       // HORS COMBAT : faire progresser les États qui tickent (Hémorragique/Poison/Flammes) et l'agonie au
       // prorata du temps écoulé (1 Round ≈ TIME_COST.combatRound min). En combat, la frontière de Round le fait.

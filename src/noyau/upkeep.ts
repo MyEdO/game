@@ -19,7 +19,7 @@
  * `purgeClockEffects` (appelé à CHAQUE passage, même sans franchissement de jour) dissipe les effets
  * à durée d'HORLOGE arrivés à échéance : contrecoups d'incantation `castPenalties.untilTime`
  * (LDB 46/40 — « Pensez à vos actes » une semaine, Drain de puissance N minutes…). Sa cadence n'est
- * PAS l'entretien mais la COUTURE du temps (`purgeSurAvanceDHorloge` ← `EVT.TIME_ADVANCED`, store) :
+ * PAS l'entretien mais la COUTURE du temps (`purgeSurAvanceDHorloge` ← `avancerLHorloge`) :
  * le voyage terrestre et la journée de mer avancent l'horloge et DIFFÈRENT l'entretien à la cascade
  * de nuit.
  *
@@ -55,7 +55,7 @@ import type { Get, Set } from './flowTypes';
 
 /** Purge les effets à durée d'HORLOGE arrivés à échéance (`untilTime` ≤ maintenant) : contrecoups
  *  d'incantation (LDB 46/40) ET buffs de sort à durée en minutes/heures/jours (LDB 47 — cascade #T3).
- *  Appelée par la COUTURE du temps (`purgeSurAvanceDHorloge`, abonnée à `EVT.TIME_ADVANCED`) ET par
+ *  Appelée par la COUTURE du temps (`purgeSurAvanceDHorloge`, tirée par `avancerLHorloge`) ET par
  *  l'entretien quotidien ; couvre le groupe ET les combattants d'une bataille en cours (copies de spawn).
  *  RENVOIE les dissipations (reprises dans le rapport du jour au franchissement). */
 export function purgeClockEffects(get: Get, set: Set): string[] {
@@ -97,13 +97,13 @@ export function purgeClockEffects(get: Get, set: Set): string[] {
   return expiredLog;
 }
 
-/** Dissipations d'horloge PRODUITES par la couture du temps (`EVT.TIME_ADVANCED`) et pas encore
+/** Dissipations d'horloge PRODUITES par la couture du temps (`avancerLHorloge`) et pas encore
  *  reprises dans un bilan d'entretien — drainées par `runDailyUpkeep`. */
 const dissipationsDHorloge: string[] = [];
 
-/** Purge d'horloge branchée sur la COUTURE UNIQUE de l'avance du temps : tout chemin qui émet
- *  `EVT.TIME_ADVANCED` (advanceTime, repos, voyage terrestre, journée de mer) dissipe ce qui est
- *  échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
+/** Purge d'horloge tirée par la COUTURE UNIQUE de l'avance du temps : tout chemin qui la signale
+ *  (`avancerLHorloge`, écrivain unique de `gameTime` : advanceTime, repos, voyages terrestre, fluvial et en
+ *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
 export function purgeSurAvanceDHorloge(get: Get, set: Set): void {
   dissipationsDHorloge.push(...purgeClockEffects(get, set));

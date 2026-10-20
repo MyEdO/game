@@ -22,7 +22,6 @@
  */
 import { battleRng } from './battleRng';
 import { garanti } from '../lib/garanti';
-import { bus, EVT } from './bus';
 import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 
 /** Id du protocole de reprise TERRESTRE (effets DIFFÉRÉS dans `travelPlan.land.interrupt`). */
@@ -574,8 +573,7 @@ function runTravelDays(get: Get, set: Set): void {
     }
     const forced = forcedDriver ? forcedPaceDay(get, set, kmLeft, forcedDriver) : null;
     const hoursToday = forced ? forced.hours : Math.min(budget, kmLeft / kmh);
-    set({ gameTime: get().gameTime + Math.round(hoursToday * 60) });
-    bus.emit(EVT.TIME_ADVANCED, { minutes: Math.round(hoursToday * 60) });
+    get().avancerLHorloge(Math.round(hoursToday * 60));
     if (plan.mode === 'pied' || plan.mode === 'monture') addTravelHoursToday(get, set, today0, plan.mode, hoursToday);
     // L'ENTRETIEN du jour (rations/faim, maladies, convalescence) n'est PAS roulé ici : il se résout
     // dans la cascade de la halte de nuit (`buildNightCascade`), APRÈS le repas — sinon la Faim
@@ -823,8 +821,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   // à faire ici, `plan.kmDone`/`gameTime` sont déjà à jour.
   const fp = ctx?.forcedPaceResult;
   if (fp) {
-    set({ gameTime: get().gameTime + Math.round(fp.hours * 60) });
-    bus.emit(EVT.TIME_ADVANCED, { minutes: Math.round(fp.hours * 60) });
+    get().avancerLHorloge(Math.round(fp.hours * 60));
     const kmDone = Math.min(plan.km, plan.kmDone + fp.km);
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     if (fp.vehicleLame) set({ travelPlan: { ...get().travelPlan!, vehicleLame: true } });
@@ -1449,8 +1446,8 @@ function applyEreintant(get: Get, set: Set): string[] {
     addCondition(h, 'extenue', 1);
     lines.push(t('tf.detourExhausted', { name: h.label }));
   }
-  set({ party: [...party], gameTime: get().gameTime + 24 * 60 }); // un jour de plus sur la route
-  bus.emit(EVT.TIME_ADVANCED, { minutes: 24 * 60 });
+  set({ party: [...party] });
+  get().avancerLHorloge(24 * 60); // un jour de plus sur la route
   // Le jour de retard NE roule PAS l'entretien en eager (sinon Faim avant le repas de la halte) :
   // ce franchissement supplémentaire est décompté dans la cascade de nuit (`buildNightCascade`), qui
   // couvre tous les jours écoulés depuis `lastUpkeepDay` — donc ce détour aussi (non nourri : pas de repas ce jour-là).
