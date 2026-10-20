@@ -1,5 +1,5 @@
 import type { Combatant } from '../engine/types';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import { isOutOfAction } from '../engine/conditions';
 import { canStrikeFirst } from '../engine/qualities/dispatch';
 import { ACTION_GATES, freeDisengage, type ActionCtx } from './actionRegistry';

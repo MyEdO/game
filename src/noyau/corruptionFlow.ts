@@ -17,7 +17,7 @@
  *  - Effets d'éditeur : `corruptionExposure` (Test différé par modale) ; gain direct
  *    via l'Effet générique `ops` (op `corruption` + champ `align` optionnel).
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import { battleRng } from './battleRng';
@@ -382,7 +382,7 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
 /** Cible d'un effet de Corruption : héros désigné, sinon le premier vivant. #152 (suite #143) : le pool
  *  en combat est celui des PERSONNAGES (`followsCharacterRules`, PAS un proxy `kind==='hero'`) — un PNJ
  *  humain hostile MODÉLISÉ (statbloc d'éditeur ou bestiaire rétro-flagué) y est éligible comme un héros. */
-export function corruptionTarget(s: GameState, heroId?: string): Combatant | undefined {
+export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;
   return (heroId ? pool.find((h) => h.id === heroId) : undefined) ?? pool.find((h) => !h.dead && !h.outOfRencontre);
 }

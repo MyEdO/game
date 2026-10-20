@@ -161,7 +161,7 @@ export function rendreMalade(c: Combatant, n: Noeud): Combatant {
 /** La NUIT du malade (repos → « Dormir »), par les gestes du joueur : l'étape `diseaseTick` du nœud reçoit
  *  un dé POSÉ (« Dés fixés », `draineCascade`) — 1 pour une réussite, 100 pour un échec —, toute autre
  *  rangée un 1. Aucun dé tiré : deux nuits de même décor ne divergent que par l'issue du jet du nœud. */
-export function nuitDuMalade(get: Get, n: Noeud, sujetId: string, reussite: boolean): void {
+export function nuitDuMalade(get: Get<GameState>, n: Noeud, sujetId: string, reussite: boolean): void {
   const { symptomId } = porteDeMaladie(n)!;
   get().openRest({ lieu: sceneLieu(get) });
   get().restSleep();

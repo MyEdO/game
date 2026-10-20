@@ -9,7 +9,7 @@ import { findSpell, findSpellById } from '../data';
 import { missileDamage } from '../engine/magic';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Scene } from './monde/scene';
 
 const combatant = (over: Partial<Combatant>): Combatant =>
@@ -29,7 +29,7 @@ const scene = (mur?: number): Scene => {
   return { id: 's', name: 's', dimensions: { w: 8, h: 8 }, ambiance: 'jour', layers: [{ z: 0, tiles }], entities: [], dialogues: [], triggers: [], encounters: [] } as unknown as Scene;
 };
 
-const mkGet = (combatants: Combatant[], battleOver: Partial<Record<string, unknown>> = {}, sc = scene(), racine: Partial<Record<string, unknown>> = {}): (() => GameState) =>
+const mkGet = (combatants: Combatant[], battleOver: Partial<Record<string, unknown>> = {}, sc = scene(), racine: Partial<Record<string, unknown>> = {}): (() => Jeu) =>
   (() => ({
     scene: sc,
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, movementUsed: 0, action: null, selectedSpellId: null, acted: false, over: null, ...battleOver },
@@ -37,7 +37,7 @@ const mkGet = (combatants: Combatant[], battleOver: Partial<Record<string, unkno
     // L'INTENTION ARMÉE fait partie du contexte que l'affordance lit (spec HUD § ARBITRAGE 2026-08-19) :
     // le survol dit ce que le CLIC fera, or le clic dépend désormais de la case Charge.
     localIntent: null, ...racine,
-  })) as unknown as () => GameState;
+  })) as unknown as () => Jeu;
 
 const bow = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] }; // ×3 = 12 m = 6 cases
 

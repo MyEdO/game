@@ -20,7 +20,7 @@ import { isSkittishMount } from '../engine/traits/dispatch';
 import { meleeWarMachineHullOf, isMeleeWarMachine } from './siegePush';
 import { structureImmune } from '../engine/structures';
 import type { Pt } from './monde/path';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import { inBattleId } from './monde/combatants';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';

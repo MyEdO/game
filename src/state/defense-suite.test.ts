@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, freeAttackHookImpl, jouerLApresCoup, openAttackCascade } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng } from '../noyau/battleRng';

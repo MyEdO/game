@@ -37,7 +37,8 @@ import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from '../noyau/targeti
 import { KEYBINDINGS } from './clavier/keybindings';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
 import type { Combatant } from '../engine/types';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 

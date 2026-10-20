@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { edgeOf, emptyScene, type Scene, type WallSeg } from './monde/scene';
 import type { RoomPortal } from './monde/roomPortals';
 import { cloisons, piece } from '../state/pieces.fixture';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import type { Combatant } from '../engine/types';
 import {
   aretesUtilisables,

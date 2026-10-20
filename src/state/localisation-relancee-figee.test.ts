@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { maybeOpenDefense, openAttackCascade } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';

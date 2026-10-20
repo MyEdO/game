@@ -15,7 +15,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { lireEnSeuil, stepInteraction, stepReady, startCascade, registerCascadeApplier } from '../noyau/cascade';
 import { dieStep, freeCons } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { SeuilDeSauvegarde } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 

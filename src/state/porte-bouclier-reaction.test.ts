@@ -4,7 +4,8 @@
  * touche (LDB 13 l.151, l.183 ; LDB 18 l.17, l.46) ; perdu, rien (LDB 13 l.123). #1595 c.6234104573 ; #1093.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { applyAttackResult } from '../noyau/combatFlow';
 import { shieldReactionCost } from '../engine/combatFeatures/dispatch';
 import { seedBattleRng } from '../noyau/battleRng';

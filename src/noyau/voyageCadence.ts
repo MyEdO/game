@@ -12,7 +12,7 @@
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import type { StakeRef } from '../data';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
  *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
@@ -53,7 +53,7 @@ export const KINDS_SOUS_ORDRES: ReadonlySet<string> = new Set([
 ]);
 
 /** Ce que la politique d'ordres lit de l'état — sa signature la plus ÉTROITE. */
-export type EtatDeTraversee = Pick<GameState, 'net' | 'travelPlan'>;
+export type EtatDeTraversee = Pick<Jeu, 'net' | 'travelPlan'>;
 
 /**
  * La traversée se résout-elle SOUS ORDRES ? — SOURCE UNIQUE de « commandée ET locale », lue par la porte

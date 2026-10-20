@@ -13,7 +13,8 @@
  *  - Résistance (Menace) d'une étape de cascade (`cascadeResist`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { initialFields } from '../noyau/stateFields';
 import { intentAllowedFor, withActingSeat, seatInfluences } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from './intents';

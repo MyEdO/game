@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { hasMeaningfulOption, canActFirst } from '../noyau/turnEconomy';
 import type { Combatant } from '../engine/types';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
   ({

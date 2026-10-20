@@ -17,7 +17,8 @@
  * billboard composite (loi de selle `seatRiderOnMount`, `backends/webgl/sceneMeshes`).
  */
 import { useMemo, useState, type MutableRefObject } from 'react';
-import { useGame, type BattleState } from '../../state/store';
+import { useGame } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { hauteurDe, type Scene } from '../../noyau/monde/scene';
 import type { Dir8 } from '../../noyau/monde/dir8';
 import type { LightSource } from '../../noyau/monde/vision';

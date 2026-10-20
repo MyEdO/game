@@ -33,7 +33,7 @@
  *     `aggregateOpposeSl`, `CascadeStepMeta`) ; par défaut 0/absent.
  */
 import type { Get, Set } from './flowTypes';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Combatant, CharKey, Difficulty, Weapon } from '../engine/types';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import type { PairedSense, GameOp } from '../engine/ops';
@@ -325,7 +325,7 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
  * Aucune branche par TYPE de porteur ni par situation : un héros, un ennemi, le monde, un Test subi
  * face à une maladie passent par CE calcul.
  */
-function surfaceDesTenus(s: GameState, tenus: readonly (string | undefined)[], kinds: readonly string[], partage = false): Surface {
+function surfaceDesTenus(s: Jeu, tenus: readonly (string | undefined)[], kinds: readonly string[], partage = false): Surface {
   // Politique d'ORDRES d'une traversée : COMMANDÉE, les `kind` qu'elle couvre se résolvent d'office
   // (attendu validé en recette #1426 « Traversée commandée sans fenêtre »). Une séquence MIXTE garde
   // sa fenêtre — un seul jet hors des ordres suffit à la rouvrir.
@@ -1789,7 +1789,7 @@ export function dieStep(spec: DieStepSpec): BuiltCascadeStep | undefined {
  * (`noyau/combatEffects.groupeDe`). Un compteur, jamais la longueur du tableau : celle-ci recule à
  * chaque troncature, et re-servirait l'id d'une étape survivante.
  */
-export function pushDie(set: Set, spec: DieStepSpec, purpose: PendingCascade['purpose'] | ((s: GameState) => PendingCascade['purpose'])): void {
+export function pushDie(set: Set, spec: DieStepSpec, purpose: PendingCascade['purpose'] | ((s: Jeu) => PendingCascade['purpose'])): void {
   pushStep(set, (index) => dieStep({ ...spec, id: `${spec.id}-${index}` }), purpose);
 }
 

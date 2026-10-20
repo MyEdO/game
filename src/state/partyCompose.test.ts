@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { initialNet } from './netFlow';
+import { initialNet } from '../noyau/etat';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';

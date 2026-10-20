@@ -11,7 +11,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
-import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 
 /**
  * « SERVIR CETTE PIÈCE » (manning runtime, MDG 12-13) — l'action de combat KIND-AGNOSTIQUE par laquelle

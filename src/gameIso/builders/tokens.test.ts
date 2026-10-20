@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, type Scene, type SceneEntity } from '../../noyau/monde/scene';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { Combatant } from '../../engine/types';
 import { buildTokens } from './tokens';
 import { isOverhang, capsSolid } from './floors';

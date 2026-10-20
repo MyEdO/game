@@ -1,8 +1,9 @@
 /**
  * Méta-flux comme Effets de scène (#83) : les événements de campagne s'exposent comme des `Effect`
  * authorables, câblés sur les SURFACES EXISTANTES — `sessionEnd` ouvre `SessionEndModal` (via le flag
- * `sessionEndOpen`), `openCharacterCreator` ouvre l'assistant existant (`setEditingHero(null)` + écran
- * `creator`). Aucun nouveau moteur : on branche sur ce qui existe.
+ * `sessionEndOpen`), `openCharacterCreator` émet `EVT.HEROS_A_CREER`, que le store câble sur l'assistant
+ * existant (`setEditingHero(null)` + écran `creator`, #2817 D5). Aucun nouveau moteur : on branche sur ce
+ * qui existe.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';

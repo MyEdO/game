@@ -8,7 +8,7 @@
 import { Combatant } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
 import { combatDistance } from './monde/footprint';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { currentTargetingMode, type HoverTargeting, type TilePreview } from './targetingModes';
 import { controlsCombatant } from './netOwnership';
 import { inBattleId } from './monde/combatants';
@@ -21,7 +21,7 @@ import type { Pt } from './monde/path';
  * (`currentTargetingMode`) : attaque implicite, incantation, soin, surincantation, bordée… Retourne
  * `none` quand le survol n'a pas de sens (mauvaise équipe, hors mode, hors combat, mode-CASE pur).
  */
-export function hoverTargeting(get: () => GameState, active: Combatant, target: Combatant): HoverTargeting {
+export function hoverTargeting(get: () => Jeu, active: Combatant, target: Combatant): HoverTargeting {
   const battle = get().battle;
   if (!battle || battle.over || !active.pos || !target.pos) return { kind: 'none' };
   // Un engin de siège INERTE (immune, RAW AA 10 l.175-193) n'est JAMAIS une cible d'attaque/sort/soin : pas de
@@ -33,7 +33,7 @@ export function hoverTargeting(get: () => GameState, active: Combatant, target: 
 /** Le combattant qui PILOTE le curseur/ciblage : l'ACTIF si le siège local le contrôle, sinon — pendant la
  *  pause de début de Round — le TIREUR dont le Tir rapide est ARMÉ (`preemptAiming`, LDB 10). Source UNIQUE
  *  du ciblage clavier/manette/souris hors tour (il n'y a AUCUN actif à `turn:-1`). */
-export function cursorActor(get: () => GameState): Combatant | undefined {
+export function cursorActor(get: () => Jeu): Combatant | undefined {
   const s = get();
   const battle = s.battle;
   if (!battle || battle.over) return undefined;
@@ -46,7 +46,7 @@ export function cursorActor(get: () => GameState): Combatant | undefined {
 /** Héros que le siège LOCAL contrôle et qui peuvent DÉCLENCHER Tir rapide pendant la pause (LDB 10) : arme à
  *  distance chargée + pas encore tiré ce Round. Source UNIQUE de l'éligibilité (frise/badge, clavier, manette).
  *  Vide hors pause. */
-export function preemptShooterIds(get: () => GameState): string[] {
+export function preemptShooterIds(get: () => Jeu): string[] {
   const s = get();
   const battle = s.battle;
   if (!battle || battle.over || !s.pendingRoundStart) return [];
@@ -59,7 +59,7 @@ export function preemptShooterIds(get: () => GameState): string[] {
 /** Combattants que le TIREUR courant (actif OU visée Tir rapide armée) peut cibler au survol selon le mode
  *  courant — `candidates` du mode s'il en fournit (soin/surincantation/cleave/dual), sinon ceux dont
  *  l'affordance ≠ 'none' — triés du PLUS PROCHE au plus loin. Base du ciblage clavier (Tab). */
-export function validTargets(get: () => GameState): Combatant[] {
+export function validTargets(get: () => Jeu): Combatant[] {
   const battle = get().battle;
   if (!battle || battle.over) return [];
   const active = cursorActor(get);
@@ -73,7 +73,7 @@ export function validTargets(get: () => GameState): Combatant[] {
 
 /** Cible SUIVANTE (Tab) : la plus proche valide, ou la suivante par distance si une est déjà visée —
  *  cycle complet sur toutes les cibles valides puis retour à la première. Null si aucune. */
-export function cycleTarget(get: () => GameState, currentId: string | null): Combatant | null {
+export function cycleTarget(get: () => Jeu, currentId: string | null): Combatant | null {
   const sorted = validTargets(get);
   if (!sorted.length) return null;
   const idx = sorted.findIndex((c) => c.id === currentId);
@@ -85,7 +85,7 @@ export function cycleTarget(get: () => GameState, currentId: string | null): Com
  *  au déplacement du curseur clavier (`combatCursor.tile`, appelant commun). null hors mode-case ou
  *  tuile invalide (le mode ATTAQUE/CAST/HEAL/BATTERY, sans `tileValidAt`, retombe toujours à null ici —
  *  ces modes gardent l'aperçu de DÉPLACEMENT normal, `movePreviewAt`). */
-export function tilePreviewAt(get: () => GameState, pt: Pt): TilePreview | null {
+export function tilePreviewAt(get: () => Jeu, pt: Pt): TilePreview | null {
   const battle = get().battle;
   const active = cursorActor(get);
   if (!battle || battle.over || !active) return null;
@@ -95,7 +95,7 @@ export function tilePreviewAt(get: () => GameState, pt: Pt): TilePreview | null 
 }
 
 /** Cible PRÉCÉDENTE (Maj+Tab / gâchette gauche) : symétrique de `cycleTarget`, sens inverse. Null si aucune. */
-export function cyclePrevTarget(get: () => GameState, currentId: string | null): Combatant | null {
+export function cyclePrevTarget(get: () => Jeu, currentId: string | null): Combatant | null {
   const sorted = validTargets(get);
   if (!sorted.length) return null;
   const idx = sorted.findIndex((c) => c.id === currentId);

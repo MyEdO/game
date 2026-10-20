@@ -15,7 +15,7 @@ import { placeCombatant } from '../../noyau/monde/spawn';
 import { currentTargetingMode } from '../../noyau/targetingModes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { TestResult } from '../../engine/tests';
 import { makeRNG } from '../../engine/dice';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { combatantsWithinRadius, occupied, findFreeTile } from './combatGeometry';
 import { emptyScene, type Terrain } from './scene';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../etat';
 import { mk, battle } from '../../state/pionsEtages.testkit';
 
 /**

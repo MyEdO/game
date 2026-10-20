@@ -1,7 +1,7 @@
 /**
  * Registre des POSSESSIONS (#615, SOCLE POSSESSIONS T1-c1) — plomberie pure `(get, set)`, même
  * patron que `merchantFlow`/`bourseFlow`. Le registre
- * `GameState.possessions` est le SEUL foyer d'existence des possessions (bêtes/serviteurs/véhicules/
+ * `Jeu.possessions` est le SEUL foyer d'existence des possessions (bêtes/serviteurs/véhicules/
  * navires/immeubles) : aucun mirroir, aucune copie par kind.
  */
 import type { Possession, PossessionLocation, PossessionInput } from '../engine/possession';

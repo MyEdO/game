@@ -13,7 +13,7 @@ import { reponsesDuNoeud, testAnnonce, ouvrirDialogue } from './dialogue';
 import { conditionCtx } from '../engine/flowCore';
 import type { Flow } from './monde/flow';
 import type { Dialogue, DialogueNode } from './monde/scene';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './monde/dialogueHistory';
 import { campaignStart } from '../engine/clock';
 import { withBourseMoney } from '../engine/bourse';
@@ -28,7 +28,7 @@ const hero = (brass: number): Combatant =>
 const noeud = (choices: DialogueNode['choices']): Dialogue => ({ id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: '…', choices }] } as Dialogue);
 
 /** État minimal : SOLO (un seul siège, il décide), une conversation ouverte sur son unique nœud. */
-const etat = (dlg: Dialogue, over: Partial<GameState> = {}): GameState =>
+const etat = (dlg: Dialogue, over: Partial<Jeu> = {}): Jeu =>
   ({
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
     flags: {}, gameTime: campaignStart(), party: [hero(0)],
@@ -75,7 +75,7 @@ describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la 
 
   it('coop, siège qui ne DÉCIDE pas : toutes les réponses sont fermées, raison « siège »', () => {
     const dlg = noeud([{ label: 'Une' }, { label: 'Deux' }] as DialogueNode['choices']);
-    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {} } as GameState['net'] }));
+    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {} } as Jeu['net'] }));
     expect(r.every((x) => !x.enabled && x.refus === 'siege')).toBe(true);
   });
 });

@@ -12,7 +12,8 @@
  * jumeaux de `sauvegardes-projectile-magique.test.ts` dont ils reprennent les fixtures.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from '../store';
+import { useGame } from '../store';
+import type { BattleState } from '../../noyau/etat';
 import { applyCast } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';

@@ -28,7 +28,7 @@ import { buildAuthorPerilSteps, registerPerilInterrupt } from './authorPerils';
 /** Id du protocole de reprise TERRESTRE (effets DIFFÉRÉS dans `travelPlan.land.interrupt`). */
 const LAND_PERIL_INTERRUPT = 'travel-land';
 import { openRest, placesOfKind, sceneLieu, routeLieu } from './restFlow';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { placeById, placeOfScene, otherEnd, type MapRoute, type WorldMap } from './worldMap';
 import { billetApresDepart, offreDePassage } from './billetFlow';
 import {
@@ -243,7 +243,7 @@ export const MOUNT_MAX_HOURS = 12;
 /** Heures de voyage DÉJÀ parcourues le jour calendaire COURANT (accumulateur unique, `store.travelDayHours`)
  *  — le budget RAW de 6 h se compte PAR JOUR, jamais par trajet (#340). Un franchissement de jour remet à
  *  zéro (la clé `day` ne correspond plus). Lu par le flux ET par l'estimation d'avant départ (`WorldMapView`). */
-export function hoursTravelledToday(st: Pick<GameState, 'gameTime' | 'travelDayHours'>): { foot: number; mount: number; marched: boolean } {
+export function hoursTravelledToday(st: Pick<Jeu, 'gameTime' | 'travelDayHours'>): { foot: number; mount: number; marched: boolean } {
   const today = dayIndex(st.gameTime);
   const acc = st.travelDayHours;
   return acc && acc.day === today ? { foot: acc.foot, mount: acc.mount, marched: acc.marched }
@@ -310,7 +310,7 @@ function openRouteHalt(get: Get, set: Set, route: MapRoute, travelMarch: string[
 }
 
 /** Diffère un départ à l'aube (porte de départ) : la carte propose « Attendre l'aube » (`departWaitDawn`). */
-function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<GameState['pendingDeparture']>, 'dawnAt'>): void {
+function differerALAube(get: Get, set: Set, depart: Omit<NonNullable<Jeu['pendingDeparture']>, 'dawnAt'>): void {
   set({ pendingDeparture: { ...depart, dawnAt: get().gameTime + minutesUntilNext(get().gameTime, dawnMinute()) } });
 }
 

@@ -8,7 +8,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { findNavalPortById } from '../data';
 import { toMoney } from '../engine/money';
 import type { PortProfile } from '../engine/seaVoyage';
-import { useGame, type CampaignVessel } from '../state/store';
+import { useGame } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 import { PortHeader, EscaleTab } from './PortView';
 
 // `ShoreLeaveBody`/`ManannBody` (composés par `EscaleTab`) lisent l'événement en attente directement au

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useGame } from '../state/store';
-import type { Objective } from '../state/store';
+import type { Objective } from '../noyau/etat';
 import { Icon } from './Icon';
 import { formatImperial } from '../engine/clock';
 import { t } from '../i18n';

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from '../noyau/stateFields';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascade.testkit';
 import { flowFromEffects, testFlow } from '../noyau/monde/flow';
 import { flowEffects, EMPTY_FLOW } from '../engine/flowCore';

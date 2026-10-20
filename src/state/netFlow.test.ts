@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyNetSnapshot, initialNet, netHostStart, netJoin, netLeave } from './netFlow';
+import { applyNetSnapshot, netHostStart, netJoin, netLeave } from './netFlow';
+import { initialNet } from '../noyau/etat';
 import { useGame } from './store';
 import type { SocketLike } from '../net/relay';
 

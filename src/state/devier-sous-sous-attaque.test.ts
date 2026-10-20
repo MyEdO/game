@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { applyHullCriticalToTarget, jouerLesTirsDeBordee } from '../noyau/combatFlow';
 import { draineCascade } from './cascade.testkit';

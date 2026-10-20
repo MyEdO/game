@@ -4,7 +4,8 @@
  * LDB 10 l.767-773, LDB 85 l.362, LDB 21 l.33.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { initialFields } from '../noyau/stateFields';
 import { openAttackCascade } from '../noyau/combatFlow';
 import { targetingHolder } from '../noyau/targetingHolder';

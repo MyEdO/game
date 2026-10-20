@@ -4,7 +4,8 @@
  * (leader/centroïde/actif/paire de visée/peek de frise) et du cadre VISIBLE (culling d'animation).
  */
 import { useEffect, useRef, useState } from 'react';
-import { useGame, type BattleState } from '../../state/store';
+import { useGame } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { Combatant } from '../../engine/types';
 import { isOutOfAction } from '../../engine/conditions';
 import { Dims, screenToTile } from '../../geometry/iso';

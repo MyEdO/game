@@ -12,7 +12,7 @@ import { isOutOfAction } from '../../engine/conditions';
 import { isRider } from '../../noyau/mount';
 import { footprintN } from '../../noyau/monde/footprint';
 import { rangeBandModifier } from '../../engine/combat';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';
 

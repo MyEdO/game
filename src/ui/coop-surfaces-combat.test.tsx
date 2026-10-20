@@ -12,7 +12,8 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useGame, type BattleState } from '../state/store';
+import { useGame } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';

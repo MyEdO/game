@@ -55,7 +55,7 @@ import { runDailyUpkeep } from './upkeep';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
 import { bus, EVT } from './bus';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 
 export type RestKind = 'auberge' | 'maison' | 'camp';
 export type RestLodging = 'commune' | 'privee' | 'maison' | 'dehors' | 'bord';
@@ -684,7 +684,7 @@ export function restCost(p: PendingRest, party: Combatant[]): Money {
 
 /** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
  *  réglage de scène, sinon camp (défaut). PARAMÉTRABLE SUR LA ZONE dans l'éditeur. */
-export function restPlacesHere(st: GameState): { places: RestPlaces; quality: 'normale' | 'pietre' } | null {
+export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: 'normale' | 'pietre' } | null {
   const sc = st.scene;
   if (!sc) return null;
   const pos = st.partyPos;

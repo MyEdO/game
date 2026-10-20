@@ -11,7 +11,7 @@
  * ponctionné glouton par `payFromGroup`) ; le « +1 Chance max » est crédité directement ; la clôture
  * passe par le flux de repos standard (récupération, convalescence, horloge — weeks × 7 jours).
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { battleRng } from './battleRng';
 import { d100, deMonde, roll as rollDice } from '../engine/dice';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
@@ -407,7 +407,7 @@ export function incomeSkillOf(h: Combatant): string {
   return owned ?? ids[0] ?? 'athletisme';
 }
 
-const heroState = (s: GameState, heroId: string) => s.interlude?.perHero[heroId];
+const heroState = (s: Jeu, heroId: string) => s.interlude?.perHero[heroId];
 
 /** Ancrage de regle des effets d'une Activite d'interlude — l'`ActivityDef` du catalogue
  *  (`activities.json`), par id STABLE. Absent quand la demande n'en porte pas : on n'en fabrique pas. */
@@ -427,7 +427,7 @@ export function consumeActivity(get: Get, set: Set, heroId: string): void {
 /** Les Événements de la période sont-ils encore à tirer (phase `'tirage'`, #942 L7) ? LDB 22 l.5 —
  *  SOURCE UNIQUE lue par le MOTEUR (garde ci-dessous) et par l'écran (rappel visuel) : le champ
  *  `InterludeState.phase` n'est pas un décor d'UI, il verrouille l'engagement d'une Activité. */
-export function interludeDrawPending(s: GameState): boolean {
+export function interludeDrawPending(s: Jeu): boolean {
   return s.interlude?.phase === 'tirage';
 }
 
@@ -494,7 +494,7 @@ export function craftStart(get: Get, set: Set, heroId: string, trappingId: strin
 /** Lieu courant sur la carte du monde : la place dont la scène EST la scène courante (« Être dans
  *  `scene` = être à ce lieu », worldMap.ts). `null` hors carte — les Activités à gate `where`
  *  (ACE = « à Altdorf ») y sont alors indisponibles. */
-export function currentPlaceId(s: Pick<GameState, 'scene' | 'worldMap'>): string | null {
+export function currentPlaceId(s: Pick<Jeu, 'scene' | 'worldMap'>): string | null {
   const sid = s.scene?.id;
   return (sid && s.worldMap?.places.find((p) => p.scene === sid)?.id) || null;
 }
@@ -505,7 +505,7 @@ export function currentPlaceId(s: Pick<GameState, 'scene' | 'worldMap'>): string
  *  la préparation de bataille se joue DANS le menu d'Activités, pas sur un écran à part (ADE II 8 l.65 :
  *  budget d'Activités UNIQUE). Le rendu gate les prérequis (Infiltration ⇐ Planification, Sabotage ⇐
  *  Repérage) et l'anti-répétition — cf. `battlePrepEntries`. Sans bataille pendante, catalogue inchangé. */
-export function interludeCatalog(s: Pick<GameState, 'scene' | 'worldMap' | 'massBattle'>): ActivityDef[] {
+export function interludeCatalog(s: Pick<Jeu, 'scene' | 'worldMap' | 'massBattle'>): ActivityDef[] {
   const place = currentPlaceId(s);
   const base = activitiesFor('interlude').filter((d) => activityAvailableAt(d, place));
   if (s.massBattle?.phase !== 'prep') return base;

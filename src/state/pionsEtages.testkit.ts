@@ -2,7 +2,7 @@
  * Pions minimaux posés à (x, y, z) et bataille qui les porte, pour les tests z-blind de la géométrie
  * de combat et des gestes de placement (#798, #799, #802).
  */
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 
 export const mk = (id: string, x: number, y: number, z?: number, extra?: Partial<Combatant>): Combatant =>

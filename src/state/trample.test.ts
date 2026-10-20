@@ -7,7 +7,7 @@ import { ACTION_GATES } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 // ---------------------------------------------------------------------------
 // Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)

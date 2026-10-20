@@ -13,7 +13,8 @@
  * `defenseConfirm` ré-entre dans `attackConfirm`) est inchangée — vérifié ci-dessous.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { openAttackCascade, maybeOpenDefense } from '../noyau/combatFlow';
 import { intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';

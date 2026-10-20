@@ -5,7 +5,8 @@
  * Avantage (LDB 14 l.208-209), suspension puis reprise de la suite.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { applyAttackResult } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';

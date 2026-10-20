@@ -1,5 +1,5 @@
 import { libelleEffet } from '../data/schemas/defs-scenes/effets';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
@@ -105,7 +105,7 @@ import { campAdvantageHooks } from './combat/advantagePool';
  *  - slot libre EN COMBAT : `'combat'`, la séquence de l'arène (inchangé) ;
  *  - sinon : le `site` déclaré par l'appelant (l'entretien quotidien a le sien), à défaut `'affichage'`.
  */
-export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => (s: GameState): PendingCascade['purpose'] =>
+export const revealPurpose = (site: PendingCascade['purpose'], own: boolean) => (s: Jeu): PendingCascade['purpose'] =>
   own ? site : (s.pendingCascade?.purpose ?? (s.battle ? 'combat' : site));
 
 /** Empile une révélation en étape d'AFFICHAGE de cascade (`pushStep` : append à la séquence d'accueil,
@@ -260,7 +260,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
     .reduce((m, e) => m + toBrass(toMoney(e.montant)), 0);
   if (!gear.length && found <= 0) return undefined; // dépense (giveMoney négatif) ou simple récit : pas de fenêtre
   const messages = effects.flatMap((e) => (e.type === 'journal' && e.desc ? [e.desc] : []));
-  set((s: GameState) => {
+  set((s: Jeu) => {
     const prev = s.pendingLoot;
     if (!prev) return { pendingLoot: { title, messages: messages.length ? messages : undefined, gold: found > 0 ? fromBrass(found) : undefined, gear } };
     return {
@@ -284,7 +284,8 @@ export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pending
   // Une ligne de butin est un `giveTrapping` par construction (`gearFromEffects`) : elle ne porte aucun
   // canal de dés, donc le retrait qui suit ne peut pas passer devant un dé (#1508).
   nePeutPasDifferer(applyEffects(get, set, [{ ...bucket.gear[index].effect, heroId }]), 'assignGearAt');
-  set({ [key]: { ...bucket, gear: bucket.gear.filter((_, i) => i !== index) } });
+  const retrait: PatchDeFlux = { [key]: { ...bucket, gear: bucket.gear.filter((_, i) => i !== index) } };
+  set(retrait);
 }
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
@@ -660,7 +661,7 @@ registerCascadeApplier('chuteDe', (get, set, step, hero) => {
  * immédiate. Un compte, et non une liste de `kind` : un troisième kind à dé déclare le champ et il est
  * servi sans toucher ici.
  */
-export function comptePasDifferes(s: GameState): number {
+export function comptePasDifferes(s: Jeu): number {
   const attend = (p: { meta?: CascadeStepMeta }): boolean => p.meta?.differeLaSuite === true;
   // La séquence en cours de validation n'est pas toujours dans le slot : un dé ouvert PENDANT une
   // application est COLLECTÉ par la fenêtre d'insertion (`cascade`) et n'entrera dans le tableau qu'au
@@ -688,7 +689,7 @@ export function confierLaSuite(set: SetFn, suite: Suite): void {
   const pousse = idDeLaDernierePoussee();
   const enFenetre = pousse ? etapesDeLaFenetre().find((x) => x.id === pousse) : undefined;
   if (enFenetre && annoterEtapeDeLaFenetre(enFenetre.id, ajoute(enFenetre.meta))) return;
-  set((s: GameState) => {
+  set((s: Jeu) => {
     const p = s.pendingCascade;
     if (!p) return {};
     const i = indexDeLEtapeQuiAttend(p);
@@ -1145,19 +1146,19 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number): EffectEnv {
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
     mutateHero: (heroId, mutate, pick) => {
       const chosen = choisirHeros(get(), heroId, pick);
-      if (chosen) set((s: GameState) => ecrireActeur(s, chosen.id, mutate));
+      if (chosen) set((s: Jeu) => ecrireActeur(s, chosen.id, mutate));
       return chosen;
     },
   };
 }
 
-function choisirHeros(s: GameState, heroId: string | undefined, pick?: (heros: Combatant[]) => number): Combatant | null {
+function choisirHeros(s: Jeu, heroId: string | undefined, pick?: (heros: Combatant[]) => number): Combatant | null {
   const heros = s.party.map((h) => inBattleId(s.battle, h.id) ?? h);
   const idx = heroId ? heros.findIndex((h) => h.id === heroId) : pick ? pick(heros) : 0;
   return heros[idx] ?? null;
 }
 
-const idsDuGroupe = (s: GameState): string[] => s.party.map((h) => h.id);
+const idsDuGroupe = (s: Jeu): string[] => s.party.map((h) => h.id);
 
 /** Issue de l'`apply` d'un handler : `'suspend'` = un GESTE JOUEUR (handler `suspensif`) a pris la `suite`
  *  qu'on lui a confiée — son pending la rejouera à sa clôture, l'appelant n'a plus rien à jouer ; sinon
@@ -1166,9 +1167,9 @@ type EffectApplyResult = void | 'suspend';
 
 /** Écrit l'entrée `cle` d'un registre clé → valeur de l'état : drapeaux de scénario (`setFlag`), états de
  *  campagne (`poserEtat`). */
-function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle: string, valeur: GameState[K][string]): void {
-  env.set((s: GameState) => {
-    const registre: GameState[K] = { ...s[champ], [cle]: valeur };
+function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle: string, valeur: Jeu[K][string]): void {
+  env.set((s: Jeu) => {
+    const registre: Jeu[K] = { ...s[champ], [cle]: valeur };
     return { [champ]: registre } as PatchDeFlux;
   });
 }
@@ -1351,7 +1352,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // AJOUTE en fin (le plus récent = surface HUD). #238 « personne ne lit le journal » → archivé aussi.
       const hasSched = e.afterMinutes != null || e.afterDays != null || e.atDate != null || e.atHour != null || e.atMinute != null;
       const deadline = hasSched ? scheduleAt(env.get().gameTime, e) : undefined;
-      env.set((s: GameState) => {
+      env.set((s: Jeu) => {
         const rest = s.objectives.filter((o) => o.id !== e.id);
         return { objectives: [...rest, { id: e.id, text: texte, deadline }] };
       });
@@ -1367,7 +1368,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Solder un objectif l'ARCHIVE (`objectifsSoldes`, #717) : même objet, keyage par id STABLE
       // (re-solder le même id ne le compte pas deux fois). Cette archive est la SEULE dont le récap
       // de fin de chapitre dérive sa chronique — le journal, lui, est une fenêtre glissante de 40.
-      env.set((s: GameState) => {
+      env.set((s: Jeu) => {
         const soldes = e.id ? (done ? [done] : []) : before;
         const dejaLa = new Set(s.objectifsSoldes.map((o) => o.id));
         return {
@@ -1387,7 +1388,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('setDoor'), icon: 'map-tool/door',
     make: () => ({ type: 'setDoor', x: 0, y: 0, side: 'N', open: true }),
     apply: (e, env) => {
-      env.set((s: GameState) => {
+      env.set((s: Jeu) => {
         if (!s.scene) return {};
         const z = e.z ?? 0;
         const tentee = e.attempted === undefined ? s.scene : setDoorTentee(s.scene, e.x, e.y, e.side, z, e.attempted);
@@ -1480,7 +1481,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Récompenses', label: libelleEffet('giveXp'), icon: 'resource/xp',
     make: () => ({ type: 'giveXp', amount: 50 }),
     apply: (e, env) => {
-      env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
+      env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
       env.log(t('eff.xp', { amount: e.amount }));
     },
   },
@@ -1542,14 +1543,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   openCharacterCreator: {
     group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'ui/add',
     make: () => ({ type: 'openCharacterCreator' }),
-    apply: (_e, env) => { env.get().setEditingHero(null); env.get().setScreen('creator'); }, // assistant existant (src/ui/creator), nouveau héros
+    apply: () => { bus.emit(EVT.HEROS_A_CREER); }, // l'hôte ouvre son assistant de création, nouveau héros
   },
   restoreFortune: {
     group: 'Récompenses', label: libelleEffet('restoreFortune'), icon: 'resource/fortune',
     make: () => ({ type: 'restoreFortune' }),
     apply: (_e, env) => {
       // Début de session (LDB 17 l.41) : Chance regagnée jusqu'au maximum = Destin actuel.
-      env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => restoreFortune([h])[0]));
+      env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => restoreFortune([h])[0]));
       env.log(t('eff.restoreFortune'));
     },
   },
@@ -1890,7 +1891,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       // Repas (#T2) : tout le groupe est nourri pour la journée sans consommer de ration —
       // compteurs/malus de Faim remis à zéro (LDB 18 l.337-343 ; prix éventuel porté par le choix).
-      env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => {
+      env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => {
         if (h.dead) return h;
         const nourri = { ...h };
         feedFromMeal(nourri);
@@ -1926,7 +1927,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Échéance absolue (minute `gameTime`), résolue par `scheduleAt` (engine/clock — source unique).
       const now = env.get().gameTime;
       const executeAt = scheduleAt(now, e);
-      env.set((s: GameState) => ({ scheduledEffects: [...s.scheduledEffects, { executeAt, flow: e.flow, cancelFlag: e.cancelFlag }] }));
+      env.set((s: Jeu) => ({ scheduledEffects: [...s.scheduledEffects, { executeAt, flow: e.flow, cancelFlag: e.cancelFlag }] }));
     },
   },
 

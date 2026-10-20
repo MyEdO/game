@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { CampaignVessel } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { rollSeaWeather } from '../engine/seaWeather';

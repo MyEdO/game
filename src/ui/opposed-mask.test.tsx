@@ -22,7 +22,7 @@ import { GrappleModal } from './GrappleModal';
 import { DistraireModal } from './DistraireModal';
 import { AuContactModal } from './AuContactModal';
 import { DisengageModal } from './DisengageModal';
-import type { BattleState } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant, Weapon } from '../engine/types';
 import { cascadeDeTest } from '../state/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';

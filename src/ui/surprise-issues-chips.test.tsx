@@ -25,7 +25,7 @@ import { testValue } from '../engine/skills';
 import { jete } from '../engine/tests.testkit';
 import { CascadeBody } from './CascadeModal';
 import { resolveStake, combatStakeRef, regles } from '../data';
-import type { BattleState } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant, TalentInstance } from '../engine/types';
 
 beforeAll(() => {

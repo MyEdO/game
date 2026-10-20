@@ -10,7 +10,8 @@
  * sauvegarde Solide ratées, Critique subi).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { maybeOpenDefense, openAttackCascade, applyAttackResult, jouerLApresCoup, aiCreatureFreeAttacks } from '../noyau/combatFlow';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';

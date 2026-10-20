@@ -3,7 +3,7 @@
 // restent la SOURCE ; ce module ne porte que l'ÉTAT RUNTIME (quel stade est atteint, statut, épingle, nouveauté).
 import type { Indice } from './campaignNarratif';
 
-/** État runtime d'un indice révélé au carnet. Absent de `GameState.clues` = indice CACHÉ. */
+/** État runtime d'un indice révélé au carnet. Absent de `Jeu.clues` = indice CACHÉ. */
 export interface ClueState {
   /** id du stade actuellement atteint (dernier révélé). */
   stadeCourant: string;

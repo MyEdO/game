@@ -14,21 +14,21 @@
  * INVARIANT : `resetFields(scope)` reproduit EXACTEMENT le patch (clés + valeurs) que le site faisait
  * à la main. Un champ réinitialisé à une valeur ≠ `init` reste EXPLICITE hors `resetFields`, sur son site.
  */
-import type { GameState } from '../state/store';
+import type { EtatDeJeu } from './etat';
 
 /** Contextes de réinitialisation. `scene` = changement de scène (`transitionTo`) ;
  *  `combatStart` = ouverture de combat (`startCombat`). */
 export type ResetScope = 'scene' | 'combatStart';
 
-/** TOUTES les clés `pending*` de `GameState` — DÉRIVÉ (jamais une re-liste manuelle). Borne à la
+/** TOUTES les clés `pending*` de `EtatDeJeu` — DÉRIVÉ (jamais une re-liste manuelle). Borne à la
  *  fois `STATE_FIELDS` ci-dessous (couverture reset, `satisfies` en pied) et le registre d'owner
- *  coop (`modalArbiter.ts` MODAL_DEFS.covers / HORS_MODAL) : un `pending*` ajouté à `GameState`
+ *  coop (`modalArbiter.ts` MODAL_DEFS.covers / HORS_MODAL) : un `pending*` ajouté à `EtatDeJeu`
  *  qui n'apparaît nulle part dans l'un des deux casse tsc, à l'endroit qui l'oublie (#284). */
-export type PendingKey = { [K in keyof GameState]-?: K extends `pending${string}` ? K : never }[keyof GameState];
+export type PendingKey = { [K in keyof EtatDeJeu]-?: K extends `pending${string}` ? K : never }[keyof EtatDeJeu];
 
 /** Le manifeste : pour chaque champ transitoire, sa valeur initiale et les contextes qui le
  *  réinitialisent. SOURCE UNIQUE des clés — `FieldKey` en est DÉRIVÉ (fin de la double-liste). Le
- *  `satisfies` borne chaque clé à `keyof GameState` ET lie `init` au type du champ : bidirectionnel
+ *  `satisfies` borne chaque clé à `keyof EtatDeJeu` ET lie `init` au type du champ : bidirectionnel
  *  (clé fantôme ou `init` mal typé = compile rouge). */
 const STATE_FIELDS = {
   pendingTest: { init: null, resetOn: ['scene'] },
@@ -142,8 +142,8 @@ const STATE_FIELDS = {
   pendingChapterRecap: { init: null, resetOn: [] },
   // Porte d'heure de départ (maison, #340) : posée sur la carte du monde, effacée en quittant la scène/carte.
   pendingDeparture: { init: null, resetOn: ['scene'] },
-} satisfies { [K in keyof GameState]?: { readonly init: GameState[K]; readonly resetOn: readonly ResetScope[] } }
-  & { readonly [K in PendingKey]: { readonly init: GameState[K]; readonly resetOn: readonly ResetScope[] } };
+} satisfies { [K in keyof EtatDeJeu]?: { readonly init: EtatDeJeu[K]; readonly resetOn: readonly ResetScope[] } }
+  & { readonly [K in PendingKey]: { readonly init: EtatDeJeu[K]; readonly resetOn: readonly ResetScope[] } };
 
 /** Clés du manifeste — SOURCE des champs transitoires, dérivée de `STATE_FIELDS` (plus de double-liste). */
 type FieldKey = keyof typeof STATE_FIELDS;
@@ -151,8 +151,8 @@ type FieldKey = keyof typeof STATE_FIELDS;
 const FIELD_KEYS = Object.keys(STATE_FIELDS) as FieldKey[];
 
 /** Bloc complet `{ champ: init }` des champs transitoires — assemblé dans l'état initial du store. */
-export function initialFields(): Pick<GameState, FieldKey> {
-  const out = {} as Pick<GameState, FieldKey>;
+export function initialFields(): Pick<EtatDeJeu, FieldKey> {
+  const out = {} as Pick<EtatDeJeu, FieldKey>;
   for (const k of FIELD_KEYS) {
     // `init` est une valeur PARTAGÉE du manifeste ; les array (`[]`) ET les objets (`{}`, ex.
     // `sceneInstances`) sont copiés pour qu'aucune instance de store ne mute la valeur du manifeste
@@ -165,7 +165,7 @@ export function initialFields(): Pick<GameState, FieldKey> {
 }
 
 /** Sous-ensemble `{ champ: init }` des champs dont `resetOn` inclut `scope` — patch de reset. */
-export function resetFields(scope: ResetScope): Partial<Pick<GameState, FieldKey>> {
+export function resetFields(scope: ResetScope): Partial<Pick<EtatDeJeu, FieldKey>> {
   const out: Partial<Record<FieldKey, unknown>> = {};
   for (const k of FIELD_KEYS) {
     // `satisfies` narrowit les `resetOn: []` en `never[]` → on relit via le type garanti par le satisfies.
@@ -173,5 +173,5 @@ export function resetFields(scope: ResetScope): Partial<Pick<GameState, FieldKey
     const v = STATE_FIELDS[k].init;
     out[k] = Array.isArray(v) ? [...v] : v;
   }
-  return out as Partial<Pick<GameState, FieldKey>>;
+  return out as Partial<Pick<EtatDeJeu, FieldKey>>;
 }

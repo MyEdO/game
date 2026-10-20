@@ -5,7 +5,7 @@ import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { ensureBourse, bourseInstanceOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
-import type { CampaignVessel } from './store';
+import type { CampaignVessel } from '../noyau/etat';
 import type { Get, Set } from '../noyau/flowTypes';
 
 /**

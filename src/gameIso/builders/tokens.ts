@@ -8,7 +8,7 @@
  */
 import type { Scene } from '../../noyau/monde/scene';
 import { isMerScene, enrolledEntityIds } from '../../noyau/monde/scene';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { isPassengerInBattle } from '../../noyau/monde/shipPostes';
 import { isRider, isMount, riderOf } from '../../noyau/mount';

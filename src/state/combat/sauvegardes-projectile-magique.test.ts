@@ -8,7 +8,8 @@
  * un Indice de 1 sauve TOUJOURS (1d10 ≥ 1), un Indice de 11 ne sauve JAMAIS.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from '../store';
+import { useGame } from '../store';
+import type { BattleState } from '../../noyau/etat';
 import { applyCast } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';

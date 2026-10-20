@@ -12,7 +12,7 @@ import { composeAttack, type ModLine } from '../../engine/combat';
 import { difficultyOf, type AttackPreview } from '../../noyau/combatFlow';
 import { difficultyShownText } from '../../ui/difficultyText';
 import { DIFFICULTY_LABELS, type Combatant, type Weapon } from '../../engine/types';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 
 const dims: Dims = { w: 8, h: 8, rot: 0, view: 'iso' };
 const circ = (value: number): ModLine[] => [{ label: 'circonstances', value, famille: 'circonstance' }];

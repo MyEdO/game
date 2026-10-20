@@ -14,7 +14,7 @@ import {
   zoneAreaTiles, sceneZonesToBattle, decayZones, crossZones, zonesRoundTick, barrierTilesFor, type BattleZone,
 } from '../noyau/monde/zones';
 import { occupied } from '../noyau/monde/combatGeometry';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 const rng: RNG = { int: () => 5 } as RNG;
 

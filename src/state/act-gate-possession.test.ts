@@ -11,7 +11,8 @@
  * sièges de `roll-seam-socle.test.ts` (#1262 B7) : sans lui la régression est invisible.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { resolveActGates } from '../noyau/combat/turnHooks';
 import { cascadeAppliers } from '../noyau/cascade';
 import { surfaceOf } from '../noyau/rollSeam';

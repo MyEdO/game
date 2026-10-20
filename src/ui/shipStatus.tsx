@@ -3,7 +3,7 @@ import { fromBrass } from '../engine/money';
 import { crewRoles } from '../data';
 import { Coins } from './Coins';
 import type { GaugeTone } from './NotchGauge';
-import type { CampaignVessel } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 
 /** Bande de Moral d'équipage (MDG 14) → ton de jauge : canailles = danger, satisfait = warn,
  *  excellent/mené de main de maître = ok. Keyé par l'id STABLE de bande, jamais le libellé.

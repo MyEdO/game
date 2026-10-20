@@ -24,7 +24,7 @@ import { bonesToSvg } from '../../rig/renderBones';
 import { armePrincipale } from '../../rig/parts/equipment';
 import { VIEWS, type View } from '../../rig/facing';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
-import type { BattleState } from '../../../state/store';
+import type { BattleState } from '../../../noyau/etat';
 import type { Combatant, Weapon } from '../../../engine/types';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { subjectQuad } from './billboardMath';

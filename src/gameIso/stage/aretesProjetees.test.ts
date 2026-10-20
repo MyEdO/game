@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { aretesUtilisables, type AreteUtilisable, type ContexteAretes } from '../../noyau/aretes';
 import { cloisons, piece } from '../../state/pieces.fixture';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
 import { projeterAretes } from './aretesProjetees';

@@ -8,7 +8,7 @@
  *
  * `FLOW_VERBS` porte, par flux (clé = PRÉFIXE des délégués `<prefix><Verbe>` du store), son type
  * (mono/multi) et le SOUS-ENSEMBLE de verbes exposés — MAIS PAS le handler. C'est délibéré :
- * le handler `FLOWS.x` référence `Get`/`Set` → `GameState` → `RollFlowActionsMap`, donc l'inclure dans la
+ * le handler `FLOWS.x` référence `Get`/`Set` → `Jeu` → `RollFlowActionsMap`, donc l'inclure dans la
  * source du TYPE créerait un CYCLE (`FLOWS` deviendrait `any`). `FLOW_VERBS` (sans handler) est donc la
  * source du TYPE (`RollFlowActionsMap`, dans `rollFlowSpecs`) ET des verbes runtime/intents ;
  * `FLOW_HANDLERS` associe le handler pour le seul RUNTIME (`buildRollFlowActions`), avec exhaustivité
@@ -30,7 +30,7 @@ interface FlowVerbsBase {
 }
 /** Où vit, DANS l'état, l'id du combattant qui TIENT le jet d'un flux mono (`s[pending][field]`) —
  *  donnée pure, résolue par `netOwnership.intentAllowedFor`. `pending` reste `string` ICI : importer
- *  `PendingKey` (type de `GameState`) rendrait `FLOWS` `any` — le cycle que l'en-tête de ce module
+ *  `PendingKey` (type de `Jeu`) rendrait `FLOWS` `any` — le cycle que l'en-tête de ce module
  *  décrit (585 erreurs `TS2339` mesurées). Le VERROU de compilation qui exige un `pending*` réel vit
  *  donc chez le consommateur (`netOwnership._jetOwnerPendingCheck`), où `PendingKey` est importable. */
 export interface JetOwnerRef { pending: string; field: string }

@@ -887,7 +887,7 @@ const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   'src/noyau/pendings.ts': 1, // PendingExtendedTest
   'src/noyau/upkeep.ts': 1, // DeferredUpkeepTest
   'src/noyau/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
-  'src/state/store.ts': 1, // signature de `startExtendedTest`
+  'src/noyau/actionsDuNoyau.ts': 1, // signature de `startExtendedTest`
   // RELAIS d'une ligne DÉJÀ montée par le monteur (rien à recalculer ici) — EXEMPTION AU SITE
   'src/noyau/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
   // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:178). Le scanner est TEXTUEL : il ne voit pas

@@ -17,7 +17,7 @@
  * Les objets réseau vivants (sessions, sockets) restent des SINGLETONS de module — jamais dans
  * le store (non sérialisables, jamais dans les snapshots).
  */
-import type { GameState } from './store';
+import type { GameState, RemplacerLEtat } from './store';
 import { useGame } from './store';
 import { registerScene, reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
@@ -33,7 +33,8 @@ import { intentEluLocalement } from '../noyau/targetingModes';
 import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
-import type { Get, RemplacerLEtat, Set } from '../noyau/flowTypes';
+import type { Get, Set } from '../noyau/flowTypes';
+import { initialNet, type NetState } from '../noyau/etat';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_SAVE } from './formats.generated';
@@ -43,32 +44,6 @@ import { FORMAT_SAVE } from './formats.generated';
 export function nomDuSiege(net: Pick<NetState, 'seatNames'>, seat: number): string {
   return net.seatNames[seat] ?? (seat === 0 ? t('party.seat.host') : t('party.seat.player', { n: seat + 1 }));
 }
-
-/** État réseau SÉRIALISABLE (dans GameState). `ownership` : heroId → siège (0 = hôte).
- *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte). */
-export interface NetState {
-  mode: 'local' | 'host' | 'guest';
-  mySeat: number;
-  /** Code de room à 6 caractères (affiché/copiable par l'hôte, voyage dans les snapshots). */
-  roomCode: string | null;
-  seatNames: Record<number, string>;
-  /** Vue HÔTE : sièges en cours de reconnexion (absent = connecté). */
-  presence: Record<number, 'ok' | 'away'>;
-  /** Vue INVITÉ : sa propre connexion (préservée à l'application des snapshots). */
-  connection: 'ok' | 'reconnecting';
-  /** Vue INVITÉ : l'hôte est-il momentanément déconnecté ? */
-  hostAway: boolean;
-  ownership: Record<string, number>;
-  slots: number[];
-  /** Rôle MJ (bac-à-sable) : le siège qui conduit TOUT le camp ennemi + les jets du monde, sur toutes les
-   *  rencontres. `undefined` = IA (défaut, solo ET coop). UNIQUE (zéro ou un siège). Sérialisable (voyage
-   *  dans les snapshots coop). Cf. `pilotedByHuman`/`aiDriven`/`controlsCombatant` (netOwnership). */
-  gmSeat?: number;
-}
-export const initialNet = (): NetState => ({
-  mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0],
-});
 
 // ── Singletons réseau (non sérialisables) ──────────────────────────────────────────────────────
 let host: HostSession | null = null;

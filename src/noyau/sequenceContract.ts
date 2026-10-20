@@ -117,7 +117,7 @@ export interface SequenceState<P = unknown> {
 export interface SequenceFamilies {}
 
 /** L'état d'une séquence EN COURS, union discriminée par `def` DÉRIVÉE de `SequenceFamilies` : ce que
- *  `GameState.sequence` persiste (#2404). */
+ *  `Jeu.sequence` persiste (#2404). */
 export type EtatDeSequence = { [K in keyof SequenceFamilies]: EtatDeFamille<K> }[keyof SequenceFamilies];
 
 /** L'état d'une séquence de la famille `K`. */
@@ -138,7 +138,7 @@ export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<Sequ
  * migration : `state/sequence-parite-catalogue.test.ts`.
  *
  * `log` (ici et au verdict) reste `string[]` — ce N'EST PAS une position d'affichage du contrat, mais
- * l'entrée d'un TUYAU : ses lignes vont à `GameState.log(msg: string)` (`state/store.ts`), et sa
+ * l'entrée d'un TUYAU : ses lignes vont à `Jeu.log(msg: string)` (`actionsDuNoyau.ts`), et sa
  * seconde source est le journal du MOTEUR (`applyOps`, `engine/ops.ts`, `string[]`, alimenté par une
  * dizaine de familles d'aides). Marquer ce champ SEUL murerait un segment dont ni le puits ni l'autre
  * affluent ne le sont, et forcerait un blanchiment aux deux sites qui y déversent le moteur. Le

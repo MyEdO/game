@@ -8,7 +8,7 @@ import { parseProject } from '../../../noyau/worldMap';
 import { creatureToCombatant } from '../../../noyau/monde/spawn';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
 import { creatures } from '../../../data';
-import type { BattleState } from '../../../state/store';
+import type { BattleState } from '../../../noyau/etat';
 import type { Combatant } from '../../../engine/types';
 import { lireProjetLivre } from '../../../../scripts/source/projetLivre.mjs';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { canMount, mountUp, dismount, handleMountDeath, isRider, isMount, mountOf, riderOf } from './mount';
 import { occupiesTile, footprintN } from './monde/footprint';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import type { Scene } from './monde/scene';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { maybeOpenDefense } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';

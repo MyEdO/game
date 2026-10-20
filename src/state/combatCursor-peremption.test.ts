@@ -6,7 +6,8 @@
  * jeu appelle ; le curseur se pose par ses actions (`moveCursor`, `snapCursorToTarget`).
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { finishCombatEnd } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';

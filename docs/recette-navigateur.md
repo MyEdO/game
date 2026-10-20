@@ -126,7 +126,7 @@ node scripts/recette/shot-screen.mjs --screen gallery --out <dossier absolu>
 node scripts/recette/shot-screen.mjs --screen menu --mobile
 ```
 
-Options : `--screen <id>` (obligatoire, un id de `SCREENS`, `src/state/store.ts`), `--out <dir>`
+Options : `--screen <id>` (obligatoire, un id de `SCREENS`, `src/noyau/etat.ts`), `--out <dir>`
 (absolu obligatoire s’il est explicite ; défaut `DOSSIER_CAPTURES` temporaire canonique hors arbre), `--url <url>` (défaut : le port de CET arbre, cf. `scripts/port-dev.mjs`), `--mobile` (vue `mobile` de `vues-recette.json`),
 `--width`/`--height`, `--settle <ms>`. Exit ≠ 0 si la console a remonté une erreur/exception après
 l'ouverture de l'écran.
@@ -779,7 +779,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `echantillonner('corps', id)` / `echantillons()` | arme l'échantillonnage : une entrée `{ image, corps }` PAR IMAGE RENDUE, lue dans la page au moment où l'image est déclarée (`image` = `canvas.dataset.rendus`, numéro de l'image ; seul le canevas de la première image est retenu) ; `echantillons()` RELIT puis VIDE le tampon | lecture seule. Un rechargement Vite efface l'échantillonnage ; réarmer remet le tampon à vide ; sans armement, `echantillons()` rend `[]`. Mode d'emploi sous cette table |
 | `talk('id')` | téléporte le groupe à côté de l'entité + l'interpelle (dialogue/marchand) | rien si l'entité n'a ni dialogue ni marchand ; ⚠ un marchand-PNJ de scène n'a PAS de bande de décor (`ScreenShell` slot `backdrop`) — cette ambiance n'existe QUE par le chemin service-de-lieu (`openPlaceMerchant`, hub de ville) qui la porte en donnée. Ne pas conclure à une régression de décor en interpellant un PNJ |
 | `goto('id'\|{x,y,z?})` | place le groupe sur une case (déclenche portes/triggers au pas) | — |
-| `screen('menu'\|'party'\|…)` | navigue vers un écran | id validé contre `SCREENS` (`state/store.ts`) — `throw` immédiat + liste des ids valides si invalide (#211 ; avant : routage silencieux, écran blanc, zéro erreur console). ⚠ `screen('interlude')` n'ARME PAS l'interlude : `InterludeScreen` rend `null` sans `state.interlude` (peuplé par `startInterlude`) → écran vide. Utiliser `interlude()` (ci-dessous), pas `screen('interlude')` |
+| `screen('menu'\|'party'\|…)` | navigue vers un écran | id validé contre `SCREENS` (`noyau/etat.ts`) — `throw` immédiat + liste des ids valides si invalide (#211 ; avant : routage silencieux, écran blanc, zéro erreur console). ⚠ `screen('interlude')` n'ARME PAS l'interlude : `InterludeScreen` rend `null` sans `state.interlude` (peuplé par `startInterlude`) → écran vide. Utiliser `interlude()` (ci-dessous), pas `screen('interlude')` |
 | `levels()` | décompose le rendu multi-niveaux (tuiles/murs/hauteurs par étage) | lecture seule |
 | `viewLevel(z?\|null)` | force l'étage ACTIF (`etageActif`) ; sans argument : lit l'override | n'affecte que le RENDU, jamais la logique (LdV/portée restent réelles). ⚠ **portée mesurée** : n'ISOLE l'étage rendu qu'en **vue du DESSUS** — `stage/MondeDeCampagne.tsx` ne filtre `el.cell.z !== activeZ` que sous `planVue` (= `viewPolicy.etageIsole`, vrai pour le seul regard du dessus). En vue **ISO**, les deux couches restent peintes et `viewLevel` ne change RIEN au monde : c'est la loi de dégagement (`clearedSpace`, `builders/roofs.ts`) qui découvre ce qui abrite le groupe. Partout, il reste l'étage que le picking résout par défaut |
 | `ascii(z?)` | plan ASCII de la couche (à comparer œil-pour-œil avec l'écran) | `console.log(__wfrp.ascii())` pour l'alignement monospace |

@@ -19,7 +19,7 @@
  * générés ici — câblés dans le store sous des noms `*Roll`/`*Reroll`/… que le test statique
  * `roll-modal-invariant.test.ts` continue de vérifier.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { canReroll } from '../engine/fortune';
 import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves } from '../engine/menace';
@@ -182,7 +182,7 @@ export interface RollFlowLens<P extends PendingBase, Slot extends PendingBase = 
   actorTR: (slot: Slot) => TestResult | null;
   /** Re-dérive le patch du slot depuis un TestResult acteur canonique — FINISHER PUR (aucun RNG) : re-oppose
    *  contre le figé si opposé, projette vers la forme concrète. `null` = cas interdit (pas de dépense). */
-  applyRoll: (s: GameState, slot: Slot, actor: Combatant, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
+  applyRoll: (s: Jeu, slot: Slot, actor: Combatant, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
   /** Cible du dé de l'acteur (valeur ≤ = réussite) → source de `maxForcedRoll`/`evaluateTest`. ABSENT ⇒ le
    *  flux ne construit jamais de dé forcé (opposé binaire → `forceWin` ; pas de picker → pas de setForcedRoll). */
   dieTarget?: (slot: Slot, actor: Combatant) => number | null;
@@ -207,7 +207,7 @@ export type RollOutcome = TestOutcome;
 
 export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = P, Ctx = void> {
   /** Clé du pending dans le store (ex. `'pendingBattement'`). */
-  key: Exclude<keyof GameState, 'journal'> & string;
+  key: Exclude<keyof Jeu, 'journal'> & string;
   /**
    * MULTI (N jets dans une modale) : énumère les SLOTS de jet du pending, leur id, et les ré-injecte.
    * ABSENT ⇒ MONO : le pending EST le slot unique (`pid` ignoré par les handlers). Une SEULE fabrique
@@ -217,7 +217,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
   /** Le jet a-t-il déjà été lancé ? (`slot.result != null` / `slot.roll != null`). */
   rolled: (slot: Slot) => boolean;
   /** L'acteur qui dépense Chance/Résilience. `undefined` → l'action de dépense est ignorée. */
-  actor: (s: GameState, slot: Slot, p: P) => Combatant | undefined;
+  actor: (s: Jeu, slot: Slot, p: P) => Combatant | undefined;
   /**
    * Patch du SLOT qui pose le jet (appelle le moteur + RNG). `null` → abandon silencieux
    * (précondition manquante : cible disparue, sort introuvable…) — AVANT toute dépense de point.
@@ -226,9 +226,9 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * (seulement si `caps.forced`) : Résilience — cf. `ForcedResolve`. Absent → jet normal. `p` (dernier
    * arg) : le pending parent, pour un flux multi qui lit un contexte partagé (MONO : `slot === p`).
    */
-  resolve: (s: GameState, slot: Slot, actor: Combatant | undefined, get: Get, forced?: ForcedResolve, p?: P) => Partial<Slot> | null;
+  resolve: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, forced?: ForcedResolve, p?: P) => Partial<Slot> | null;
   /** Patch de RELANCE (défaut : `resolve`) — utile en Test opposé où l'adversaire garde son jet figé. */
-  reresolve?: (s: GameState, slot: Slot, actor: Combatant, get: Get, p?: P) => Partial<Slot> | null;
+  reresolve?: (s: Jeu, slot: Slot, actor: Combatant, get: Get, p?: P) => Partial<Slot> | null;
   /**
    * ISSUE CANONIQUE du slot (cf. `RollOutcome`) : SOURCE UNIQUE de « réussi + de combien ». La fabrique
    * DÉRIVE d'elle le gating de la Chance/Pacte/Résistance (`failed = !outcome(slot).won`), sans
@@ -242,7 +242,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * ligne, il acquitte. `ctx` porte ce que seule l'APPLICATION connaît (le DR cumulé réalisé, le nom
    * résolu de l'arme) — des données, jamais du texte. Chaîne vide / `null` = rien à journaliser.
    */
-  issue?: (p: P, s: GameState, ctx: Ctx) => string | string[] | null | undefined;
+  issue?: (p: P, s: Jeu, ctx: Ctx) => string | string[] | null | undefined;
   /**
    * CANAL de rendu de l'issue : `'log'` (journal narratif — défaut) ou `'battle'` (journal de combat,
    * `ev()`/`battle.log`) où `apply` REND les lignes sans les écrire : le site les tisse dans son propre
@@ -250,7 +250,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    */
   issueChannel?: 'log' | 'battle';
   /** Chance « +1 DR » (absent → le flux ne l'offre pas). `guard` → cas interdits (ex. Test binaire). */
-  bonus?: { guard?: (slot: Slot) => boolean; derive: (s: GameState, slot: Slot, actor: Combatant, p?: P) => Partial<Slot> | null };
+  bonus?: { guard?: (slot: Slot) => boolean; derive: (s: Jeu, slot: Slot, actor: Combatant, p?: P) => Partial<Slot> | null };
   /**
    * Inversion de Test (LDB 23 l.209/218, jeton d'Activité ; LDB 10, Talents « vous pouvez inverser ») :
    * un CHOIX du joueur (jamais automatique, #558). Deux gates DISTINCTES (`engine/reverseToken.ts`,
@@ -260,12 +260,12 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    */
   reverse?: {
     /** Compétence de CE jet (`{skill, spec}`), matchée STRUCTURÉE contre Talent/jeton. `null` → non concerné. */
-    skillOf: (s: GameState, slot: Slot, actor: Combatant, get: Get, p: P) => { skill?: string; spec?: string } | null;
+    skillOf: (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) => { skill?: string; spec?: string } | null;
     /** Dé/cible ACTEUR courants (post-jet, avant inversion). `null` → rien à inverser. */
     current: (slot: Slot) => { roll: number; target: number } | null;
     /** Re-dérive le patch du slot depuis le nouveau `{roll, sl, success}` inversé — `success` REFLÈTE
      *  le jet réel (jeton, libre, n'est PAS forcé réussi ; seule la voie Talent le garantit par sa gate). */
-    applyRoll: (s: GameState, slot: Slot, actor: Combatant, get: Get, tr: { roll: number; sl: number; success: boolean }, p: P) => Partial<Slot> | null;
+    applyRoll: (s: Jeu, slot: Slot, actor: Combatant, get: Get, tr: { roll: number; sl: number; success: boolean }, p: P) => Partial<Slot> | null;
   };
   /** Lentille de dérivation des verbes d'influence (cf. `RollFlowLens`). PRÉSENTE ⇒ la fabrique compose
    *  bonusSL/forceSuccess/setForcedRoll/resist depuis elle (le `bonus` et la branche `if(forced)` de
@@ -287,7 +287,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    */
   die?: {
     read: (slot: Slot, actor: Combatant | undefined, p?: P) => ForcedPick | null;
-    write: (s: GameState, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
+    write: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
     /** POLITIQUE Résilience : plancher de DR d'une réussite forcée (défaut 1). Un Test OPPOSÉ le porte à
      *  « DR de l'opposant + 1 » — LDB 17 l.68 : « vous l'emportez avec au moins DR +1 ». PARAMÈTRE, pas
      *  une branche : il ne concerne QUE le dé choisi au titre de la Résilience (un dé FIXÉ n'a aucun
@@ -295,7 +295,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     floorSL?: (slot: Slot, actor: Combatant | undefined, p: P) => number;
     /** ÉCRIVAIN de la seule voie RÉSILIENCE, quand la réussite achetée entraîne plus qu'une projection
      *  (incantation : DR de Talent, doublement de malepierre, plancher de NI). Absent = `write`. */
-    resilience?: (s: GameState, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
+    resilience?: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
   };
   /**
    * Traits déclaratifs du flux. `forced` : ce flux offre la Résilience (LDB 17 l.68, GLOBALE),
@@ -333,7 +333,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * par défaut (nulle le pending ET la cascade-hôte, cf. `cancel`). */
   onCancel?: (get: Get, set: Set, p: P) => void;
   /** Patch de re-rendu après mutation en place de l'acteur. Défaut : `touchActors` (combat ⇄ groupe). */
-  touch?: (s: GameState) => PatchDeFlux;
+  touch?: (s: Jeu) => PatchDeFlux;
 }
 
 export interface RollFlowHandlers {
@@ -360,7 +360,7 @@ export interface RollFlowHandlers {
   /** Où vit le dé du slot (l'ACCESSEUR `read`). `slot` est le pending/participant CONCRET ; `s` (l'état)
    *  permet au socle de retrouver le pending PARENT — certaines formes multi y rangent la cible (Test
    *  Étendu). `any` ici : les handlers ne portent pas `Slot`. */
-  picker?: (slot: any, actor: Combatant | undefined, s?: GameState) => ForcedPick | null;
+  picker?: (slot: any, actor: Combatant | undefined, s?: Jeu) => ForcedPick | null;
   /** Slot CONCRET visé (MONO : le pending ; MULTI : le participant `pid`, ou le premier). Accesseur
    *  PUR en LECTURE SEULE — extraction de `locate` sans son `commit`. Il ouvre à l'UI la provenance du
    *  slot (`forced`/`fixed`) et sa forme, sans qu'elle ait à connaître la clé de pending du flux :
@@ -535,7 +535,7 @@ function opDarkPact<P extends PendingBase>(
  * 7 verbes est écrit UNE fois — plus de `makeMultiRollFlow` qui recopiait la structure.
  */
 export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P, Ctx = void>(spec: RollFlowSpec<P, Slot, Ctx>): RollFlowHandlers {
-  const pendingOf = (s: GameState) => s[spec.key] as P | null | undefined;
+  const pendingOf = (s: Jeu) => s[spec.key] as P | null | undefined;
   const touch = spec.touch ?? touchActors;
   const locate = (set: Set, get: Get, p: P, pid?: string): { slot: Slot; commit: Commit<Slot> } | null => {
     if (!spec.multi) {
@@ -569,9 +569,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // (LDB 10 l.1016-1020) se jouent APRÈS un échec, et les trois verbes de renversement EXIGENT un jet
   // posé (`spec.rolled`, ci-dessous). Un `passive = rolled` fermerait le cas nominal et tuerait le
   // renversement entier. C'est la POSSESSION qui tranche, pas la seule présence du dé.
-  const passive = (slot: Slot, s: GameState, get: Get, p: P) =>
+  const passive = (slot: Slot, s: Jeu, get: Get, p: P) =>
     !!spec.multi && spec.rolled(slot) && !surfaceOf(get, spec.actor(s, slot, p)?.id);
-  const reresolveOf = (s: GameState, slot: Slot, actor: Combatant, get: Get, p: P) =>
+  const reresolveOf = (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) =>
     spec.reresolve ? spec.reresolve(s, slot, actor, get, p) : spec.resolve(s, slot, actor, get, undefined, p);
   const L = spec.lens; // lentille de dérivation des verbes d'influence (Chance/Résilience/Résistance)
   // « Échec » (gating de la Chance/Pacte/Résistance) DÉRIVÉ de l'issue canonique, sans prédicat
@@ -601,7 +601,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       : undefined);
   // Un écrivain de lentille exige un acteur LIVE ; l'accesseur déclaré, lui, peut s'en passer
   // (étape MONDE d'une cascade : aucun acteur à porter).
-  const dieWrite: ((s2: GameState, slot: Slot, a: Combatant | undefined, g: Get, tr: TestResult, p2: P) => Partial<Slot> | null) | undefined =
+  const dieWrite: ((s2: Jeu, slot: Slot, a: Combatant | undefined, g: Get, tr: TestResult, p2: P) => Partial<Slot> | null) | undefined =
     spec.die?.write ?? (L ? (s2, slot, a, g, tr, p2) => (a ? L.applyRoll(s2, slot, a, g, tr, p2) : null) : undefined);
   /** Ce flux sait-il RÉÉVALUER un dé saisi ? (lire où vit le dé ET réécrire l'issue re-dérivée.) */
   const fixable = !!dieRead && !!dieWrite;
@@ -638,7 +638,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       return slot ? spec.outcome(slot as unknown as Slot) : null;
     },
     // OÙ vit le dé de ce slot (LDB 17 l.68 : « vous choisissez le résultat ») : l'ACCESSEUR, point.
-    picker: ((slot: Slot, actor: Combatant | undefined, st?: GameState) =>
+    picker: ((slot: Slot, actor: Combatant | undefined, st?: Jeu) =>
       dieRead?.(slot, actor, st ? pendingOf(st) ?? undefined : undefined) ?? null) as RollFlowHandlers['picker'],
     fixable,
     roll(get, set, pid) {

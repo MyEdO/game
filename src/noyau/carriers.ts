@@ -20,11 +20,11 @@ import type { PlayerText } from '../i18n/playerText';
 import { placeOfScene } from './worldMap';
 import { type CargoCarrier, type CargoLot, cargoTotalEnc, carrierFreeEnc, spoilCargoByPct, cargoRaidLossPct, type CargoRaidOutcome } from '../engine/cargo';
 import { rule } from '../engine/policy';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { PatchDeFlux } from './flowTypes';
 
 /** Tranche d'état lue pour dresser les porteurs — évite de dépendre du store entier (testable à plat). */
-export type CarrierStateSlice = Pick<GameState, 'party' | 'vessel' | 'worldMap' | 'scene' | 'possessions'>;
+export type CarrierStateSlice = Pick<Jeu, 'party' | 'vessel' | 'worldMap' | 'scene' | 'possessions'>;
 
 /** id STABLE du porteur « navire de campagne » (un seul en jeu). */
 export const CAMPAIGN_VESSEL_CARRIER_ID = 'vessel';

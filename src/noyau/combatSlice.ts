@@ -10,7 +10,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
-import type { GameState, BattleState, ShootingStanceKey } from '../state/store';
+import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import type { BattleActionMode } from './actionRegistry';
 import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
@@ -140,7 +140,7 @@ import { testDuCavalier } from '../engine/movement';
  *  d'un jet. La console masque ses cases, mais ce garde-fou couvre AUSSI le clavier, les
  *  intents coop et la recette. (La PAUSE de début de Round, elle, est gatée à l'entrée UI —
  *  performClick d'IsoStage — pour rester neutre vis-à-vis des harnais de test sans UI.) */
-const combatBusy = (s: Pick<GameState, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
+const combatBusy = (s: Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingCast'>): boolean =>
   !!(pickActiveModalKey(s as never) || s.pendingCleave || s.pendingDualStrike || s.pendingCast);
 
 /** Animosité & Haine (ADE II Annexe I « Troubles psychologiques », règle facultative `psych-acquisition-optional`) :
@@ -284,7 +284,7 @@ function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'party' |
  *  l'ouverture de la fenêtre, et l'application de l'attaque (reprise d'`attackConfirm`) l'enchaîne au bout.
  *  Un enchaînement en cours ne retient pas le curseur quand le coup est SUSPENDU (`coupFerme`) : il passe
  *  sur l'étape que la suspension a poussée, et la chaîne attend qu'elle soit jouée. */
-function advanceCombatJet(get: () => GameState): void {
+function advanceCombatJet(get: () => Jeu): void {
   const seq = get().pendingCascade;
   const jet = seq?.purpose === 'combat' ? seq.participants[seq.cursor]?.jet : undefined;
   if ((jet === 'attack' || jet === 'defense')
@@ -294,7 +294,7 @@ function advanceCombatJet(get: () => GameState): void {
 
 /** Le curseur de la séquence de COMBAT est-il posé sur une étape de défense ? Porte d'entrée de
  *  `defenseConfirm`, et verdict de sa sortie (`quitterLaDefense`). */
-function surLEtapeDeDefense(s: GameState): boolean {
+function surLEtapeDeDefense(s: Jeu): boolean {
   const casc = s.pendingCascade;
   return casc?.purpose === 'combat' && casc.participants[casc.cursor]?.jet === 'defense';
 }
@@ -344,7 +344,7 @@ function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode
  * `CastModal`), un seul parcours pour toutes les fenêtres réactives de l'incantation.
  */
 function rollAllOwnedRows(
-  s: GameState,
+  s: Jeu,
   rows: readonly { id: string; interactive?: boolean; result: unknown }[] | undefined,
   roll: (id: string) => void,
 ): void {

@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { PendingCrewTest } from '../noyau/pendings';
-import type { BattleState } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import { CrewTestModalView } from './CrewTestModal';
 
 const noop = () => {};

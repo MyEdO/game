@@ -6,6 +6,7 @@ import { setRule } from '../engine/policy';
 import type { ScenarioConstruit, TestScenario } from '../scenes/test-scenarios/_shared';
 import { creditBourse } from '../noyau/bourseFlow';
 import type { Get, Set } from '../noyau/flowTypes';
+import type { GameState } from './store';
 
 /** POSE du scénario : règles, `construire` sur les datasets vivants, groupe, projet ou scène. Rend le
  *  contenu construit. */
@@ -20,7 +21,7 @@ export function poserScenario(get: Get, sc: TestScenario): ScenarioConstruit {
 
 /** DÉMARRAGE du scénario posé (`poserScenario`) : bourse, navire, combat direct, interlude (ADE II 8
  *  l.65) puis bataille de masse, sinon écran de campagne. */
-export function demarrerScenario(get: Get, set: Set, sc: TestScenario, c: ScenarioConstruit): void {
+export function demarrerScenario(get: Get<GameState>, set: Set, sc: TestScenario, c: ScenarioConstruit): void {
   // Bourse et navire APRÈS le reset que pose le chargement de la scène.
   const lead = get().party[0];
   if (sc.money && lead) creditBourse(get, set, lead.id, sc.money);
@@ -33,6 +34,6 @@ export function demarrerScenario(get: Get, set: Set, sc: TestScenario, c: Scenar
 }
 
 /** Lancement complet : `poserScenario` puis `demarrerScenario`. */
-export function lancerScenario(get: Get, set: Set, sc: TestScenario): void {
+export function lancerScenario(get: Get<GameState>, set: Set, sc: TestScenario): void {
   demarrerScenario(get, set, sc, poserScenario(get, sc));
 }

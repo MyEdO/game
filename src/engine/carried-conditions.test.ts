@@ -18,7 +18,8 @@
  * `state/roundHooks`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from '../state/store';
+import { useGame } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import { applyCast } from '../noyau/combatFlow';
 import { runCombatHooks } from '../noyau/combatHooks';
 import '../noyau/combat/roundHooks'; // effet de bord : enregistre le hook `tick-durations` (order 15.5)

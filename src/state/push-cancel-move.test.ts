@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { emptyScene } from '../noyau/monde/scene';
 import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 /**
  * #199 — « Annuler dépl. » sans effet sur la poussée d'un engin de siège crewé (bélier-porte). Cause

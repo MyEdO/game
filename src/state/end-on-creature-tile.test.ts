@@ -8,7 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import { attackPlan, computeMoveReach, computeRunReach } from '../noyau/combatFlow';
 import { sizeFootprint } from '../noyau/monde/footprint';
 import type { Combatant } from '../engine/types';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { SizeCategory } from '../engine/size';
 import { inBattleId } from '../noyau/monde/combatants';
 

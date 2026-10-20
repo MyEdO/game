@@ -6,7 +6,7 @@ import { emptyScene, hauteurDe, heightAt, liftDe, type Scene } from '../../noyau
 import { metricToLift } from '../../noyau/monde/relief';
 import { aretesUtilisables, type ContexteAretes } from '../../noyau/aretes';
 import { piece } from '../../state/pieces.fixture';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { buildFloors } from '../builders/floors';
 import { buildHighlights, type HighlightsView } from '../builders/highlights';

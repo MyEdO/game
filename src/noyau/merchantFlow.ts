@@ -3,7 +3,7 @@
  * `(get, set)` que combatFlow : ouverture/réassort, panier, achat/vente/réparation, Marchandage
  * (Test opposé), Évaluation.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
 import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
@@ -710,7 +710,7 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
 }
 
 /** Retire de leurs porteurs (clone + recompute) les instances `entries` (uid+heroId) : patch `ecrireActeur`. */
-function removeSold(s: GameState, entries: { uid: string; heroId: string }[]): ReturnType<typeof ecrireActeur> {
+function removeSold(s: Jeu, entries: { uid: string; heroId: string }[]): ReturnType<typeof ecrireActeur> {
   return ecrireActeur(s, entries.map((e) => e.heroId), (h) => {
     const uids = entries.filter((e) => e.heroId === h.id).map((e) => e.uid);
     const clone: Combatant = structuredClone(h);

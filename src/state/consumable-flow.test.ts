@@ -14,7 +14,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';
 import { cascadeAppliers } from '../noyau/cascade';
 import type { Combatant } from '../engine/types';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });

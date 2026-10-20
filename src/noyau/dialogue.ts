@@ -23,7 +23,7 @@ import type { EtatDialogue } from './pendings';
 import { condCtx, partyMoneyTotal } from './bourseFlow';
 import { ownsGroupDecision } from './netOwnership';
 import { surfaceTientLaMain } from './modalArbiter';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 
 /**
  * OUVRE une conversation : l'état de dialogue AVEC sa `session`. Couture UNIQUE de tous les ouvreurs
@@ -58,7 +58,7 @@ export function ouvrirDialogue(
  *    que le joueur a sous les yeux : la fenêtre de jet qu'une réponse à Test vient d'ouvrir, le
  *    marché qu'une réponse vient d'ouvrir, un écran plein la SUSPENDENT.
  */
-export function conversationRepond(s: GameState): s is GameState & { dialogue: EtatDialogue } {
+export function conversationRepond(s: Jeu): s is Jeu & { dialogue: EtatDialogue } {
   return !!s.dialogue && ownsGroupDecision(s) && !surfaceTientLaMain(s);
 }
 
@@ -103,7 +103,7 @@ export interface ReponseDeDialogue {
  * faux n'est pas rendue et ne consomme PAS de rang : la touche 3 choisit la 3ᵉ réponse À L'ÉCRAN.
  * Hors dialogue (ou sur un nœud introuvable) : aucune réponse — la touche n'a rien à adresser.
  */
-export function reponsesDuNoeud(s: GameState): ReponseDeDialogue[] {
+export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
   const etat = s.dialogue;
   if (!etat) return [];
   const node = etat.dialogue.nodes.find((n) => n.id === etat.nodeId);

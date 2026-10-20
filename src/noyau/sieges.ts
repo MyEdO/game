@@ -1,7 +1,7 @@
 /**
  * Tenue d'un porteur de dé par un siège, lue sur `s.net` (#1426).
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
@@ -11,7 +11,7 @@ import { WORLD_STEP_OWNER } from './pendings';
  * MJ quand il existe (bac-à-sable), l'hôte (siège 0) sinon. Il existe TOUJOURS, et il est humain :
  * c'est ce qui rend un jet de monde surfaçable au même titre que celui d'un héros (`rollSeam.surfaceOf`).
  */
-export function worldSeat(s: GameState): number {
+export function worldSeat(s: Jeu): number {
   return s.net.gmSeat ?? 0;
 }
 
@@ -25,7 +25,7 @@ export function worldSeat(s: GameState): number {
  * qui VOIT (un héros dont le siège est aussi le siège MJ — hôte-MJ solo — reste tenu par SON joueur,
  * il n'est pas « conduit par le monde »).
  */
-export function conduitParLeSiegeDuMonde(s: GameState, combatantId: string | undefined): boolean {
+export function conduitParLeSiegeDuMonde(s: Jeu, combatantId: string | undefined): boolean {
   if (combatantId === WORLD_STEP_OWNER) return true;
   if (!combatantId) return false;
   const c = inBattleId(s.battle, combatantId);
@@ -33,7 +33,7 @@ export function conduitParLeSiegeDuMonde(s: GameState, combatantId: string | und
 }
 
 /** Le siège possède-t-il ce combattant ? (héros non attribué → hôte, siège 0). */
-export function seatOwns(s: GameState, seat: number, combatantId: string | undefined): boolean {
+export function seatOwns(s: Jeu, seat: number, combatantId: string | undefined): boolean {
   if (conduitParLeSiegeDuMonde(s, combatantId)) return seat === worldSeat(s);
   if (!combatantId) return seat === 0;
   return (s.net.ownership[combatantId] ?? 0) === seat;
@@ -49,7 +49,7 @@ export function seatOwns(s: GameState, seat: number, combatantId: string | undef
  * l.125 ; Contre-sort : éligibilité `counterspellCandidates`, LDB 46 l.156).
  * SOURCE UNIQUE du surfaçage RÉACTIF : Défense (#989) et Contre-sort (#1028).
  */
-export function jetSurfaced(s: GameState, c: Combatant): boolean {
+export function jetSurfaced(s: Jeu, c: Combatant): boolean {
   if (c.kind === 'hero') return !c.aiControlled;
   if (c.kind === 'enemy') return s.net.gmSeat != null;
   return false;
@@ -69,7 +69,7 @@ export function jetSurfaced(s: GameState, c: Combatant): boolean {
  * résolution de ce siège reste ici (`seatOwns` route déjà la sentinelle vers lui), jamais recopiée
  * chez un appelant.
  */
-export function tenuParUnHumain(s: GameState, porteurId: string | undefined): boolean {
+export function tenuParUnHumain(s: Jeu, porteurId: string | undefined): boolean {
   if (!porteurId) return false;
   if (porteurId === WORLD_STEP_OWNER) return seatOwns(s, worldSeat(s), porteurId);
   const c = porteurParId(s, porteurId);

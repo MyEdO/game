@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { buildHighlights, type HighlightEl, type HighlightsView } from '../../builders/highlights';
-import type { BattleState } from '../../../state/store';
+import type { BattleState } from '../../../noyau/etat';
 import type { Combatant } from '../../../engine/types';
 import { gpToWorld } from './worldTris';
 import { SPECKLE_LIFT_M } from './groundAccents';

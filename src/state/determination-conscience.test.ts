@@ -22,7 +22,8 @@
  * (Grave) par le Test quotidien de la Pneumonie.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { contractDisease, symptomSuppressed, diseasePassiveOps } from '../engine/disease';
 import { dailyDiseaseUpkeep } from '../engine/rest';
 import { syncDerivedConditions, derivedStacks, stacks, addCondition, raisonRefusDetermination, fenetreDetermination } from '../engine/conditions';

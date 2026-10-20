@@ -10,7 +10,7 @@
  * re-set `battle` + émet SCENE_DIRTY — MÊME convention que `mount.ts`.
  */
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import { mannedPosteWeapon } from '../engine/items';
 import { warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { exposedCrew } from '../engine/shipCritical';

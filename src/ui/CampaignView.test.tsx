@@ -2,7 +2,8 @@
 /** #1176 */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { act } from 'react';
-import { useGame, type BattleState } from '../state/store';
+import { useGame } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import { datasetArray, setDataset } from '../data/overrides';
 import { areneCampaign, paquetDuJeu } from '../scenes/campaign';

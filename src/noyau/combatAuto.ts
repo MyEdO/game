@@ -16,7 +16,7 @@
  * de reprise (C3/C4) ne l'appelle pas — `cadenceAuto()` est faux par défaut (mode « manuel »).
  */
 import type { Get, Set } from './flowTypes';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
 import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, type AutoPolicy } from './modalArbiter';
 import { stepInteraction } from './cascade';
@@ -57,7 +57,7 @@ export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
  * précède l'opposition (une incantation n'ouvre jamais la seconde tant que la première est posée).
  * Hors cadence auto, rien ne bouge : la fenêtre attend son joueur.
  */
-const STEP_WINDOW_AUTO: readonly { rows: (s: GameState) => Row[] | undefined; drive: readonly (keyof GameState)[] }[] = [
+const STEP_WINDOW_AUTO: readonly { rows: (s: Jeu) => Row[] | undefined; drive: readonly (keyof Jeu)[] }[] = [
   // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
   // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
   { rows: (s) => s.pendingCounterspell?.participants, drive: ['counterspellDeclareAll', 'counterspellRollAll', 'counterspellConfirm'] },
@@ -78,7 +78,7 @@ type Row = { id: string; interactive?: boolean; result: unknown; declared?: stri
  * change l'état et re-déclenche le tick (`planifierLeTickAuto`).
  */
 const ATTENDRE = 'attendre';
-function stepWindowDrive(s: GameState): readonly (keyof GameState)[] | typeof ATTENDRE | null {
+function stepWindowDrive(s: Jeu): readonly (keyof Jeu)[] | typeof ATTENDRE | null {
   for (const w of STEP_WINDOW_AUTO) {
     const rows = w.rows(s);
     if (!rows) continue;
@@ -98,14 +98,14 @@ let gen = 0;
  * tient la main. Solo (`net` par défaut : mySeat 0, aucun ownership, pas de MJ) : inchangé, tout est à
  * soi. `null`/`'*'` = aucun concerné / moment partagé → résolu localement, comme avant.
  */
-function ownerLocal(s: GameState): boolean {
+function ownerLocal(s: Jeu): boolean {
   const owner = modalOwnerOf(s);
   if (owner == null || owner === '*') return true; // hôte / moment partagé (résolu par l'hôte)
   return seatOwns(s, s.net.mySeat, owner);
 }
 
 /** Enchaîne les actions `drive` (roll → confirm…) sur des ticks espacés, puis re-tick pour la suite. */
-function driveSelf(get: Get, set: Set, drive: readonly (keyof GameState)[]): void {
+function driveSelf(get: Get, set: Set, drive: readonly (keyof Jeu)[]): void {
   const myGen = ++gen;
   let i = 0;
   const step = () => {
@@ -162,7 +162,7 @@ function autoResolveCascade(get: Get, set: Set): void {
 }
 
 /** Une étape de cascade sera-t-elle auto-résolue ? (sert à MASQUER la modale, cf. `willAutoResolve`). */
-function stepAutoResolved(s: GameState, step: CascadeStep): boolean {
+function stepAutoResolved(s: Jeu, step: CascadeStep): boolean {
   if (step.jet) {
     const pol = JET_AUTO[step.jet];
     if (pol.mode === 'self') return true;
@@ -181,7 +181,7 @@ function stepAutoResolved(s: GameState, step: CascadeStep): boolean {
  * d'une cascade voyage/nuit (le joueur veut voir le résumé), ni un vrai choix laissé au joueur (surincantation
  * ou Destin en Rapide), ni la modale d'un combattant non piloté localement (coop).
  */
-export function willAutoResolve(s: GameState): boolean {
+export function willAutoResolve(s: Jeu): boolean {
   if (!cadenceAuto() || !ownerLocal(s)) return false;
   const pol = autoPolicyOf(s);
   if (!pol) return false;

@@ -7,10 +7,10 @@ import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant
 import { modalOwnerOf } from './modalArbiter';
 import { seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { cascadeDeTest } from '../state/cascade.testkit';
 
-const base = (over: Partial<GameState>): GameState =>
+const base = (over: Partial<Jeu>): Jeu =>
   ({
     net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0] },
     // `kind` PORTÉ par le groupe (comme tout héros réel, `createHero`) : hors combat, `seatInfluences`
@@ -20,10 +20,10 @@ const base = (over: Partial<GameState>): GameState =>
       { id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }, { id: 'e1', kind: 'enemy' },
     ] },
     ...over,
-  }) as unknown as GameState;
+  }) as unknown as Jeu;
 
 describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base du masque de présentation', () => {
-  const solo = () => base({ net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<GameState>);
+  const solo = () => base({ net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
 
   it('SOLO : `ownsLocal` est vrai pour TOUS — seul `rolledLocally` distingue mon jet de celui de l’IA', () => {
     const s = solo();
@@ -36,7 +36,7 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
     const s = base({
       net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] },
       battle: { order: ['h1', 'h2'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero', aiControlled: true }, { id: 'e1', kind: 'enemy' }] },
-    } as unknown as Partial<GameState>);
+    } as unknown as Partial<Jeu>);
     expect(rolledLocally(s, 'h2')).toBe(false);
   });
 
@@ -46,9 +46,9 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
   });
 
   it('COOP : l’ennemi conduit par le MJ est masqué pour l’invité, pas pour le MJ', () => {
-    const gm = base({ net: { mode: 'host', mySeat: 0, gmSeat: 0, seatNames: {}, ownership: { h2: 1 }, slots: [0, 0, 0, 0] } } as unknown as Partial<GameState>);
+    const gm = base({ net: { mode: 'host', mySeat: 0, gmSeat: 0, seatNames: {}, ownership: { h2: 1 }, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
     expect(rolledLocally(gm, 'e1'), 'le MJ a roulé ce jet lui-même').toBe(true);
-    const invite = { ...gm, net: { ...gm.net, mySeat: 1 } } as GameState;
+    const invite = { ...gm, net: { ...gm.net, mySeat: 1 } } as Jeu;
     expect(rolledLocally(invite, 'e1'), 'l’invité n’a pas roulé le jet du MJ').toBe(false);
     expect(rolledLocally(invite, 'h2'), 'son propre héros, si').toBe(true);
     expect(rolledLocally(invite, 'h1'), 'le héros de l’hôte, non').toBe(false);
@@ -79,7 +79,7 @@ describe('possession réseau (netOwnership)', () => {
     // La défense est désormais une étape `jet:'defense'` de la cascade `combat` (pendingDefense = porteur de
     // données) ; l'owner de la modale `cascade` = l'actorId de l'étape (le défenseur h2).
     const s = base({
-      pendingDefense: { attackerId: 'e1', defenderId: 'h2' } as GameState['pendingDefense'],
+      pendingDefense: { attackerId: 'e1', defenderId: 'h2' } as Jeu['pendingDefense'],
       pendingCascade: cascadeDeTest([{ id: 'd', jet: 'defense', kind: 'defenseJet', actorId: 'h2' }]),
     });
     expect(modalOwnerOf(s)).toBe('h2');
@@ -92,7 +92,7 @@ describe('possession réseau (netOwnership)', () => {
     // est ouverte avec `groupOwner:true` → l'entrée `cascade`
     // met l'owner à '*' (moment partagé + Contre-sort multi en coop). `pendingCast` coexiste comme data.
     const s = base({
-      pendingCast: { casterId: 'e1', targetId: 'h1' } as GameState['pendingCast'],
+      pendingCast: { casterId: 'e1', targetId: 'h1' } as Jeu['pendingCast'],
       pendingCascade: cascadeDeTest([{ id: 'c', jet: 'cast', kind: 'cast', actorId: 'e1', groupOwner: true }]),
     });
     expect(modalOwnerOf(s)).toBe('*');
@@ -123,7 +123,7 @@ describe('possession réseau (netOwnership)', () => {
     const s = base({
       net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 1, 0] },
       battle: null,
-    } as unknown as Partial<GameState>);
+    } as unknown as Partial<Jeu>);
     expect(seatSlotsRemaining(s, 1)).toBe(1);
     expect(intentAllowedFor(s, 1, 'partyAddHero', [{ id: 'h3' }])).toBe(true);
     // Quota épuisé : h3 ajouté au siège 1 → refus.
@@ -131,26 +131,26 @@ describe('possession réseau (netOwnership)', () => {
       net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1, h3: 1 }, slots: [0, 1, 1, 0] },
       party: [{ id: 'h1' }, { id: 'h2' }, { id: 'h3' }],
       battle: null,
-    } as unknown as Partial<GameState>);
+    } as unknown as Partial<Jeu>);
     expect(seatSlotsRemaining(full, 1)).toBe(0);
     expect(intentAllowedFor(full, 1, 'partyAddHero', [{ id: 'h4' }])).toBe(false);
   });
 
   it('partyRemoveHero : seul le propriétaire du héros peut le retirer', () => {
-    const s = base({ battle: null } as unknown as Partial<GameState>);
+    const s = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(s, 1, 'partyRemoveHero', ['h2'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'partyRemoveHero', ['h1'])).toBe(false);
   });
 
   it('partyReplaceHero : seul le propriétaire de l’ANCIEN héros (1er arg) peut le remplacer', () => {
-    const s = base({ battle: null } as unknown as Partial<GameState>);
+    const s = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h2'])).toBe(true);  // h2 = siège 1
     expect(intentAllowedFor(s, 1, 'partyReplaceHero', ['h1'])).toBe(false); // h1 = hôte
   });
 
   it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
     const vu = [{ id: 'ind', étapes: 1, statut: 'révélé', stadeCourant: 's1' }];
-    const horsCombat = base({ battle: null } as unknown as Partial<GameState>);
+    const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(horsCombat, 1, 'toggleCluePin', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'markCluesSeen', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'partyRemoveHero', ['h1']), 'opposé : un geste de groupe POSSÉDÉ reste refusé').toBe(false);
@@ -161,12 +161,12 @@ describe('possession réseau (netOwnership)', () => {
 });
 
 describe('controlsActive — gating d’affichage : le tour d’un héros distant est inerte (comme un tour ennemi)', () => {
-  const withSeat = (s: GameState, mySeat: number): GameState =>
-    ({ ...s, net: { ...s.net, mySeat } }) as GameState;
+  const withSeat = (s: Jeu, mySeat: number): Jeu =>
+    ({ ...s, net: { ...s.net, mySeat } }) as Jeu;
 
   it('mode local / hors combat : toujours vrai', () => {
-    expect(controlsActive(base({ net: { ...base({}).net, mode: 'local' } } as unknown as Partial<GameState>))).toBe(true);
-    expect(controlsActive(base({ battle: null } as unknown as Partial<GameState>))).toBe(true);
+    expect(controlsActive(base({ net: { ...base({}).net, mode: 'local' } } as unknown as Partial<Jeu>))).toBe(true);
+    expect(controlsActive(base({ battle: null } as unknown as Partial<Jeu>))).toBe(true);
   });
 
   it('tour du héros d’un AUTRE joueur : faux — pour l’hôte aussi', () => {
@@ -186,11 +186,11 @@ describe('controlsActive — gating d’affichage : le tour d’un héros distan
 });
 
 describe('controlsCombatant / rôle MJ (bac-à-sable) — un ennemi conduit par le siège MJ', () => {
-  const enemyTurn = (gmSeat?: number, mySeat = 0): GameState => {
+  const enemyTurn = (gmSeat?: number, mySeat = 0): Jeu => {
     const s = base({ battle: { ...base({}).battle!, order: ['e1', 'h1'], turn: 0 } });
-    return { ...s, net: { ...s.net, mySeat, ...(gmSeat != null ? { gmSeat } : {}) } } as GameState;
+    return { ...s, net: { ...s.net, mySeat, ...(gmSeat != null ? { gmSeat } : {}) } } as Jeu;
   };
-  const cid = (s: GameState, id: string) => s.battle!.combatants.find((c) => c.id === id)!;
+  const cid = (s: Jeu, id: string) => s.battle!.combatants.find((c) => c.id === id)!;
 
   it('sans MJ (gmSeat absent) : ennemi = IA, aucun contrôle joueur', () => {
     const s = enemyTurn();
@@ -230,12 +230,12 @@ describe('controlsCombatant / rôle MJ (bac-à-sable) — un ennemi conduit par 
 });
 
 describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES héros', () => {
-  const interludeState = (over: Partial<GameState> = {}): GameState => base({
+  const interludeState = (over: Partial<Jeu> = {}): Jeu => base({
     battle: null,
     interlude: { weeks: 2, phase: 'activities', perHero: { h1: { eventRoll: 1, left: 2, revenueBrass: 0 }, h2: { eventRoll: 2, left: 2, revenueBrass: 0 } } },
     bank: [{ heroId: 'h2', kind: 'stash', brass: 100, rate: 0 }],
     ...over,
-  } as Partial<GameState>);
+  } as Partial<Jeu>);
 
   it('activité visant un héros : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
@@ -254,7 +254,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   });
 
   it('modale de jet d’Activité (arbitre M8) : owner = héros du pending', () => {
-    const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as GameState['pendingActivity'] });
+    const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as Jeu['pendingActivity'] });
     expect(modalOwnerOf(s)).toBe('h2');
     expect(intentAllowedFor(s, 1, 'activityRoll')).toBe(true);
     expect(intentAllowedFor(s, 0, 'activityRoll')).toBe(false);

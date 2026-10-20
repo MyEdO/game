@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame, type GameState } from '../state/store';
-import type { NetState } from '../state/netFlow';
+import type { NetState } from '../noyau/etat';
 import { ownsLocalNet } from './ownership';
 import { makePregensWithWealth } from '../data/pregens';
 import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRosterNotice } from '../state/roster';

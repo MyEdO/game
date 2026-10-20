@@ -5,14 +5,14 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import { setDataset } from '../data/overrides';
 import { trappings } from '../data';
 import type { Possession } from '../engine/possession';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party`+`possessions` — `resolveCarrier` (#620) lit
  *  les deux ; `choisirForme` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
  *  fonctionnel de Zustand est miroité (merge du partiel renvoyé). */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
-  let state = { party, possessions, log: () => {} } as unknown as GameState;
+  let state = { party, possessions, log: () => {} } as unknown as Jeu;
   const get: Get = () => state;
   const set: Set = (p) => { state = { ...state, ...(typeof p === 'function' ? p(state) : p) }; };
   return { get, set };

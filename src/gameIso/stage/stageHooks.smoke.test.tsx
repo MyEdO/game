@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { useRef } from 'react';
 import { Combatant } from '../../engine/types';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { useStageCamera, stageFocus, adoucirFocal, computeViewBounds, cameraTargeting, VW, VH } from './useStageCamera';
 import { useStagePointer } from './useStagePointer';
 import { useHoverTargeting } from './useHoverTargeting';
