@@ -336,7 +336,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
 
 describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de taverne)', () => {
   const step = (over: Record<string, unknown>) => ({
-    id: 'opp-1', kind: 'triggeredTest', actorId: 'h', rollLabel: 'Résistance', base: 40, target: 40,
+    id: 'opp-1', kind: 'triggeredTest' as const, actorId: 'h', rollLabel: 'Résistance', base: 40, target: 40,
     label: fixtureText('Assommante'), ...over,
   });
   const openCascade = (s: ReturnType<typeof step>) => useGame.setState({

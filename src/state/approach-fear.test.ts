@@ -11,7 +11,6 @@ import { useGame } from './store';
 import { approachFearTrigger, advanceTurn, finishPlayerAction } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import '../noyau/combat/triggeredTest'; // effet de bord : applier `triggeredTest` + appliers de cascade
 import { seedBattleRng } from '../noyau/battleRng';
 import { stacks, COND } from '../engine/conditions';
 import { testDeRegle } from '../engine/reglesChiffrees';

@@ -1,7 +1,7 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { checkBattleOver } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
@@ -28,7 +28,7 @@ describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape 
     const step: CascadeStep = { id: 'bande-dessoulage', kind: 'dessoulage', label: fixtureText('Dessoûlage'), aggregate: 'none',
       participants: [{ id: hero.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 45, target: 40, sl: 1, success: true } }] };
 
-    const out = cascadeAppliers['dessoulage'].apply(get, set, step, hero, { steps: [step], index: 0 });
+    const out = applierDe('dessoulage')!(get, set, step, hero, { steps: [step], index: 0 });
 
     expect(hero.drunk).toBeUndefined();                          // dissipation appliquée (1er Test)
     expect(out?.insert?.[0]?.kind).toBe('dessoulageHangover');   // 2ᵉ Test devenu BANDE influençable
@@ -37,7 +37,7 @@ describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape 
 
     const hStep = out!.insert![0];
     hStep.participants![0].result = { roll: 10, target: hStep.participants![0].target, sl: 2, success: true };
-    cascadeAppliers['dessoulageHangover'].apply(get, set, hStep, hero, { steps: [hStep], index: 0 });
+    applierDe('dessoulageHangover')!(get, set, hStep, hero, { steps: [hStep], index: 0 });
     expect(hero.conditions?.some((c) => c.id === 'extenue')).toBe(true); // posée par le 2ᵉ Test résolu
   });
 });

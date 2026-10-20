@@ -13,6 +13,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /**
  * #1852 — LE COMBAT NE GÈLE PLUS. Invariant : à tout instant, au plus UNE étape hôte VIVANTE par slot
@@ -374,15 +375,15 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   });
 
   it('Maladresse : sa donnée vit SUR l’étape (`step.fumble`), invisible au slot ⇒ orphelin sans elle', () => {
-    expect(hoteOrphelin(ETAT_COMPLET.fumble as never, { id: 'f', kind: 'k', jet: 'fumble', actorId: 'h' })).toBe(true);
+    expect(hoteOrphelin(ETAT_COMPLET.fumble as never, { id: 'f', kind: cleDeFixture('k'), jet: 'fumble', actorId: 'h' })).toBe(true);
   });
 
   it('une étape déjà VALIDÉE (`committed`) n’est jamais orpheline : elle a rendu sa donnée', () => {
-    expect(hoteOrphelin({}, { id: 'd', kind: 'k', jet: 'defense', actorId: 'h', committed: true })).toBe(false);
+    expect(hoteOrphelin({}, { id: 'd', kind: cleDeFixture('k'), jet: 'defense', actorId: 'h', committed: true })).toBe(false);
   });
 
   it('une étape SANS jet n’est jamais orpheline (affichage, choix, bande)', () => {
-    const affichage: CascadeStep = { id: 's', kind: 'display' };
+    const affichage: CascadeStep = { id: 's', kind: cleDeFixture('display') };
     expect(hoteOrphelin({}, affichage)).toBe(false);
     expect(hoteOrphelin({}, undefined)).toBe(false);
   });
@@ -392,7 +393,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
     useGame.setState({
       pendingDefense: null,
       pendingCascade: cascadeDeTest([
-        { id: 'affichage', kind: 'display', actorId: 'h', label: fixtureText('X') },
+        { id: 'affichage', kind: cleDeFixture('display'), actorId: 'h', label: fixtureText('X') },
         { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
       ], { title: 'Défense', purpose: 'combat' }),
     });
@@ -400,7 +401,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   });
 
   it('l’ARBITRE n’élit pas la cascade quand le corps de l’étape `cast` s’efface (ciblage carte)', () => {
-    const casc = cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast', actorId: 'h' }]);
+    const casc = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast', actorId: 'h' }]);
     expect(pickActiveModalKey({ pendingCast: {} as never, pendingCascade: casc })).toBe('cascade');
     expect(pickActiveModalKey({ pendingCast: { pickingTargets: true } as never, pendingCascade: casc })).toBeNull();
   });
@@ -412,8 +413,8 @@ describe('#1852 — garde d’unicité d’id d’étape (portes `startCascade` 
   beforeEach(() => { useGame.setState({ pendingCascade: null, suspendedCascades: [], pendingTest: {} } as never); });
   afterEach(() => { useGame.setState({ pendingTest: null, pendingCascade: null } as never); });
 
-  const hote = (id: string): CascadeStep => ({ id, kind: 'testJet', jet: 'test', actorId: 'h' });
-  const affichage = (id: string): CascadeStep => ({ id, kind: 'display', actorId: 'h' });
+  const hote = (id: string): CascadeStep => ({ id, kind: cleDeFixture('testJet'), jet: 'test', actorId: 'h' });
+  const affichage = (id: string): CascadeStep => ({ id, kind: cleDeFixture('display'), actorId: 'h' });
 
   it('deux étapes HÔTES du MÊME id dans une séquence : refus bruyant', () => {
     expect(() => startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'combat', steps: [hote('a'), hote('a')] }))
@@ -466,7 +467,7 @@ describe('#1852 — jeton de tour : un combattant ne joue qu’UNE fois son tour
     expect(joues()).toBe(1);
     // Le MÊME tour reprend sans avoir rien consommé, à la clôture d'une séquence de conséquences.
     useGame.setState({ battle: { ...g().battle!, turn: 0, acted: false }, pendingCascade: null, pendingDefense: null } as never);
-    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'combat', steps: [{ id: 'aff', kind: 'display', actorId: enemy.id }] });
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'combat', steps: [{ id: 'aff', kind: cleDeFixture('display'), actorId: enemy.id }] });
     useGame.getState().cascadeFinish();
     vi.runAllTimers();
     expect(joues(), 'le tour repris est joué — une fois').toBe(2);

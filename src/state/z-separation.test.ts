@@ -12,7 +12,6 @@ import { combatDistance } from '../noyau/monde/footprint';
 import { combatantsWithinRadius, combatantAtTile, occupied } from '../noyau/monde/combatGeometry';
 import { zoneCovers, crossZones, zonesRoundTick, sceneZonesToBattle, type BattleZone } from '../noyau/monde/zones';
 import { applyTriggeredEffects } from '../noyau/triggeredEffects';
-import '../noyau/combatFlow'; // effet de bord : installe le routeur de Test consommé par `applyTriggeredEffects`
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { Scene, SceneEntity, SceneEffectZone } from '../noyau/monde/scene';

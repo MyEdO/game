@@ -15,8 +15,10 @@ import { openRoll, rollSansPilote, type RollRequest } from '../noyau/rollSeam';
 import { humanControlled } from '../noyau/netOwnership';
 import { jetSurfaced } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
-const KIND = 'sonde-siege-invite';
+const KIND = cleDeFixture('sonde-siege-invite');
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -48,7 +50,7 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
     useGame.setState({ battle: null, party: [], pendingCascade: null, journal: [], travelPlan: null } as never);
     useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {} } } as never);
     setGmSeat(useGame.getState, useGame.setState, null);
-    spyApplier(KIND, applied, (step) => ({ kind: step.kind }));
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND]: spyApplier(applied, (step) => ({ kind: step.kind })) } });
   });
 
   it('précondition MESURÉE : le prédicat d’affordance LOCALE ferme le jet de l’invité, le prédicat de SURFACE l’ouvre', () => {

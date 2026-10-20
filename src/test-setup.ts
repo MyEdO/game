@@ -16,12 +16,6 @@
  *    - le REGISTRE DES RÈGLES OPTIONNELLES (`engine/policy`) : `loadRuleOverrides({})` purge toute
  *      surcharge runtime → toutes les règles reviennent à leur défaut RAW (sinon une règle maison
  *      posée par un test — `cleave`, `combat-optional-rules`… — fuit dans un test pur ultérieur).
- *    - le REGISTRE DES CONSÉQUENCES DE CASCADE (`noyau/cascade`) : peuplé à l'import par les modules de
- *      domaine (restFlow/combatFlow/travelFlow — TOUJOURS importés ici via le store), mais aussi PAR
- *      LES TESTS (`cascade.test` enregistre un faux `shelter`, `cadence-rapide` un faux `tally`…). On
- *      capture le registre RÉEL avant chaque test et on le restaure après (retrait des kinds ajoutés,
- *      restauration des kinds écrasés) — sinon un faux applier écrase le vrai et fuit (ex. `shelter`
- *      écrasé → `rest-flow` n'insère plus l'Exposition).
  *    - le RNG DE COMBAT (`noyau/battleRng`) : semé par `seedBattleRng`/`store.seedRng`, il garde sinon
  *      la POSITION de flux laissée par le fichier précédent (cf. le bloc `seedBattleRng` ci-dessous).
  *    - la PRÉFÉRENCE « Dés fixés » (`engine/fixedDie`, `resetDesFixes`) et le DRAPEAU de ré-entrance
@@ -98,7 +92,6 @@ import { resetSceneRegistry, scenesDuRegistre } from './noyau/monde/registreDesS
 import { partagesDeLEtat } from './state/partage.testkit';
 import './data/overrides'; // gel des entrées du catalogue au chargement (#2097)
 import { loadRuleOverrides } from './engine/policy';
-import { cascadeAppliers } from './noyau/cascade';
 import { clearTrackedTimers } from './web/minuteries';
 import { resetOwnTestFailedGuard } from './noyau/triggeredEffects';
 import { resetDesFixes } from './engine/fixedDie';
@@ -114,7 +107,6 @@ import { takeRosterNotice } from './state/roster';
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
 // immunisé à toute mutation du gabarit) ; chaque test n'en `parse` qu'une copie fraîche.
 const PRISTINE_STATE = JSON.stringify(useGame.getInitialState());
-let cascadeSnapshot: Record<string, (typeof cascadeAppliers)[string]> = {};
 
 /**
  * Modules d'art des parts du rig, énumérés STRUCTURELLEMENT (`import.meta.glob` eager) : une famille
@@ -460,7 +452,6 @@ beforeEach(() => {
   // à la place de la surface que le banc mesure (portée et mesure : §1 de l'en-tête). Sans DOM la remise
   // à plat ne touche que la pile : aucun écouteur n'est branché sur un environnement `node`.
   resetDismissLayers();
-  cascadeSnapshot = { ...cascadeAppliers };
 });
 
 afterEach(() => {
@@ -479,8 +470,6 @@ afterEach(() => {
   // aucune scène enregistrée par un test (`registerScene`/`loadProject`) ne traverse vers un autre
   // fichier du worker (`isolate:false`). Portée exacte : en-tête §1 + `state/scene-registry-isolation.test.ts`.
   resetSceneRegistry();
-  for (const k of Object.keys(cascadeAppliers)) if (!(k in cascadeSnapshot)) delete cascadeAppliers[k];
-  Object.assign(cascadeAppliers, cascadeSnapshot);
   vi.useRealTimers();
   clearTrackedTimers();
   // Barrières §1 (art), §3 (nœuds), §4 (racines, act) et §5 (partage) en trois temps — cf. fin de l'en-tête.

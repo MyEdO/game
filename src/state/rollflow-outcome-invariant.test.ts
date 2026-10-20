@@ -8,6 +8,7 @@ import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascade.testkit';
 import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /**
  * GARDE BEHAVIORAL de l'ISSUE CANONIQUE (`spec.outcome`) — VERROUILLE la classe de bugs « le prédicat
@@ -158,7 +159,7 @@ const FIXTURES: Record<string, Fix> = {
   }) },
   cascade: { pid: 'st1', make: (win) => ({
     battle: arena(),
-    pendingCascade: cascadeDeTest([{ id: 'st1', kind: 'test', actorId: 'A', target: 40, rollLabel: 'Test', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }], { purpose: 'combat' }),
+    pendingCascade: cascadeDeTest([{ id: 'st1', kind: cleDeFixture('test'), actorId: 'A', target: 40, rollLabel: 'Test', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }], { purpose: 'combat' }),
   }) },
   extendedTest: { pid: 'r1', make: (win) => ({
     battle: arena(),

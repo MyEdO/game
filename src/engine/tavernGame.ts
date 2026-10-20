@@ -26,6 +26,7 @@ import type {
 } from './sequenceVocab';
 import tavernGamesJson from '../data/tavernGames.json';
 import { indexParId } from '../data/versionDataset';
+import type { DepartageDeSequence, ScoreDeSequence } from './sequenceVocab';
 
 /** Spécial d'un jeu (NADJ 16 l.82) : l'effet d'un Talent sur la Difficulté des Tests du jeu, pour
  *  le seul joueur qui le possède. `steps` suit `easeDifficulty` (positif = plus facile). */
@@ -62,7 +63,7 @@ export interface TavernGame {
    *  « En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui
    *  a le nombre le plus bas gagne » (l.105) → `units-lowest` ; Boules « en cas d'égalité, la partie se
    *  solde par un match nul » (l.57) → `nul`. Absent : l'égalité reste. */
-  tieBreak?: string;
+  tieBreak?: DepartageDeSequence;
   /** Bonus de CARACTÉRISTIQUE ajouté au DR de chaque manche — Bras de fer l.34 (Force), Alvatafl l.25
    *  (Intelligence), Bête l.42 (Capacité de Tir). Consommé par le socle (`SequenceParams.drBonus`). */
   drBonus?: CharKey;
@@ -95,8 +96,8 @@ export interface TavernGame {
      *  l.119) — DÉCLARÉ par l'entrée (jamais déduit d'un id de Compétence au code). */
     combatTest?: boolean;
   }[];
-  /** Formule de score d'un CAMP (id de `registerSequenceScore` : `sum` pour une équipe, l.119). */
-  campScore?: string;
+  /** Formule de score d'un CAMP (id de la table `scoresDeSequence` : `sum` pour une équipe, l.119). */
+  campScore?: ScoreDeSequence;
   /** Seuil d'un ACQUIS de manche (Middenball l.119 : « marquera un but si son total est de +25 ou plus »). */
   scoreThreshold?: number;
   /** PHASES de la partie (Middenball l.119 : « deux mi-temps de trois tours chacune »). */

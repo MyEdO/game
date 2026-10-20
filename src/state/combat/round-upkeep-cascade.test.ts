@@ -11,7 +11,7 @@ import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence, setCadence } from '../../engine/cadence';
 import { runCombatHooks } from '../../noyau/combatHooks';
-import '../../noyau/combat/roundHooks';
+import { cleDeFixture } from '../../noyau/noyau.testkit';
 
 /**
  * Jets d'upkeep de fin de Round concernant un HÉROS → étapes de CASCADE influençable (Mâchoires
@@ -225,12 +225,12 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     // Fragment 1 : la séquence de fin de Round, telle que l'ouvre `openRoundEndCascade` (combatFlow).
     startCascade(useGame.getState, useGame.setState, {
       title: 'Fin de Round', icon: 'time/clock', purpose: 'combat', roundBoundary: true,
-      steps: [{ id: 'fear', kind: 'note', actorId: H.id, outcome: [{ text: 'Peur de fin de Round' }]}],
+      steps: [{ id: 'fear', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ text: 'Peur de fin de Round' }]}],
     });
     // Fragment 2 : la défense de manœuvre de zone de la créature, appendue à la séquence en vol.
     startCascade(useGame.getState, useGame.setState, {
       title: 'Manœuvre', purpose: 'combat',
-      steps: [{ id: 'zone-def', kind: 'note', actorId: H.id, outcome: [{ text: 'Défense de zone' }]}],
+      steps: [{ id: 'zone-def', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ text: 'Défense de zone' }]}],
     });
     const merged = useGame.getState().pendingCascade!;
     expect(merged.participants.map((s) => s.id)).toEqual(['fear', 'zone-def']); // fusion, aucun fragment perdu

@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import '../../noyau/combatFlow'; // effet de bord : installe l'applier `triggeredTest`, le routeur + le hook onGainCondition
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { addCondition, stacks, hasCondition, combatTestPenalty, COND } from '../../engine/conditions';

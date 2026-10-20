@@ -4,10 +4,11 @@ import { useGame } from './store';
 import { makeRNG, roll as rollDes, type DiceSpec } from '../engine/dice';
 import {
   startCascade, runCascadeImmediate, stepInteraction, stepReady, roulerDe, lireEnTable, plageNaturelle,
-  specDeEtape, tableSpec, registerTableStep, rollTableStep, tableStepNaturalRange,
+  specDeEtape, tableSpec, rollTableStep, tableStepNaturalRange,
 } from '../noyau/cascade';
 import { dieStep, pushDie } from '../noyau/rollSeam';
 import { spyApplier } from './cascade.testkit';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { WORLD_STEP_OWNER } from '../noyau/pendings';
 import type { CascadeStep } from '../noyau/pendings';
 
@@ -27,12 +28,12 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   beforeEach(() => {
     tombes.length = 0;
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    spyApplier('deSpy', tombes, (step) => ({ roll: step.de!.result!.roll, total: step.de!.result!.total }));
+    avecLesTables({ appliers: { deSpy: spyApplier(tombes, (step) => ({ roll: step.de!.result!.roll, total: step.de!.result!.total })) } });
   });
 
   const chute = (id: string, over: Partial<Parameters<typeof dieStep>[0]> = {}) =>
     dieStep({
-      id, kind: 'deSpy', label: fixtureText('Hauteur de chute'), icon: 'nav/dice',
+      id, kind: cleDeFixture('deSpy'), label: fixtureText('Hauteur de chute'), icon: 'nav/dice',
       spec: { n: 2, sides: 10 }, unite: 'm', worldOwner: true, ...over,
     })!;
 
@@ -81,9 +82,9 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
   });
 
   it('(iii bis) la PORTE refuse des dés non tirables : aucune étape ouverte, jamais un affichage validé d’office', () => {
-    expect(() => dieStep({ id: 'muet', kind: 'deSpy', label: fixtureText('Rien'), spec: { n: 0, sides: 10 }, worldOwner: true }))
+    expect(() => dieStep({ id: 'muet', kind: cleDeFixture('deSpy'), label: fixtureText('Rien'), spec: { n: 0, sides: 10 }, worldOwner: true }))
       .toThrow(/dés non tirables \(0d10\)/);
-    expect(() => dieStep({ id: 'muet2', kind: 'deSpy', label: fixtureText('Rien'), spec: { n: 1, sides: 0 }, worldOwner: true }))
+    expect(() => dieStep({ id: 'muet2', kind: cleDeFixture('deSpy'), label: fixtureText('Rien'), spec: { n: 1, sides: 0 }, worldOwner: true }))
       .toThrow(/dés non tirables \(1d0\)/);
   });
 
@@ -119,7 +120,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     expect(chute('d1').worldOwner).toBe(true);
     expect(chute('d1', { worldOwner: false, actorId: 'h1' }).actorId).toBe('h1');
     startCascade(useGame.getState, useGame.setState, { title: 'Chute', purpose: 'test', steps: [chute('premier')] });
-    pushDie(useGame.setState, { id: 'suite', kind: 'deSpy', label: fixtureText('Dégâts de la chute'), spec: { n: 1, sides: 10 }, worldOwner: true }, 'test');
+    pushDie(useGame.setState, { id: 'suite', kind: cleDeFixture('deSpy'), label: fixtureText('Dégâts de la chute'), spec: { n: 1, sides: 10 }, worldOwner: true }, 'test');
     const p = useGame.getState().pendingCascade!;
     expect(p.participants.map((s) => s.id), 'UNE séquence, deux étapes — l’index d’append rend l’id unique').toEqual(['premier', 'suite-1']);
     expect(useGame.getState().suspendedCascades, 'aucune cascade suspendue : rien n’a ouvert de 2ᵉ fenêtre').toEqual([]);
@@ -153,7 +154,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
 describe('INVARIANCE — une table rend le même dé après la séparation tirage / lecture', () => {
   const T = 'test-invariance-table';
   beforeEach(() => {
-    registerTableStep(T, {
+    avecLesTables({ tablesTirables: { [T]: {
       label: 'Table d’invariance',
       die: 100,
       // La table COUVRE au-delà de 100 : les déclarations à `mod` positif doivent RESTER résolubles,
@@ -161,7 +162,7 @@ describe('INVARIANCE — une table rend le même dé après la séparation tirag
       // `miscast-colere`, dont les Points de Péché poussent le dé effectif au-dessus de 100).
       rows: [{ min: 1, max: 30, id: 'a' }, { min: 31, max: 70, id: 'b' }, { min: 71, max: 120, id: 'c' }],
       lines: (die) => [`ligne ${die}`],
-    });
+    } } });
   });
 
   /** LA RÉFÉRENCE — l'algorithme d'origine, écrit ici et nulle part ailleurs. */
@@ -213,7 +214,7 @@ describe('INVARIANCE — une table rend le même dé après la séparation tirag
 /** Type-only : une étape à dé NON résolue reste `'de'`, résolue elle bascule en `'affichage'`. */
 describe('interaction d’une étape à dé', () => {
   it('résolue, l’étape n’est plus un tirage à faire', () => {
-    const st: CascadeStep = { id: 'x', kind: 'deSpy', label: fixtureText('Chute'), de: { spec: { n: 1, sides: 10 } } };
+    const st: CascadeStep = { id: 'x', kind: cleDeFixture('deSpy'), label: fixtureText('Chute'), de: { spec: { n: 1, sides: 10 } } };
     expect(stepInteraction(st)).toBe('de');
     expect(stepInteraction({ ...st, de: { ...st.de!, result: { roll: 4, total: 4 } } })).toBe('affichage');
   });

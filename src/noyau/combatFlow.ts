@@ -259,7 +259,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 }
 
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, ouvrirChute, cloturer, registerCloture, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
@@ -269,14 +269,9 @@ import { fireTurnStartTriggers, fireTurnEndTriggers, resolveActGates } from './c
 import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOpposedAttacker, frozenOpposedBatchStep, simpleBatchTestStep } from './combat/triggeredTest'; // usage interne (applyCast : exécuteur de Flow de sort EN COMBAT, after-aware → canal de journal unique ; Surprise : opposition figée + bande de guetteurs)
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
-import {
-  bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS,
-  rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps,
-  resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue,
-  setManeuverPostHitHook,
-} from './combatManeuvers';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue } from './combatManeuvers';
 import { testFlow, type Flow } from './monde/flow';
-import { registerCascadeApplier, registerCascadeTableFold, runCascadeImmediate, registerTableStep, registerTableStepFamily, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef } from './cascade';
+import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
@@ -293,6 +288,7 @@ import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel } from '../data';
 import { zoneEnPose, type ZoneEnPose } from './targetingHolder';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -1350,13 +1346,6 @@ export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: strin
   checkBattleOver(get, set);
 }
 
-/** Étape de reprise « fuite » : la Déviation Critique du coup dans le dos a SUSPENDU l'application ; une
- *  fois le Critique tranché (Dévier/Subir), la fuite se complète ICI — jamais avant (LDB 15 l.68). */
-registerCascadeApplier('fleeMove', (get, set, step) => {
-  const f = step.fleeMove;
-  if (f) completeFlee(get, set, f.moverId, f.foeId, f.broken);
-});
-
 /** Lance l'action « Au Contact » d'un héros Engagé en mêlée (LDB 62 l.176, Option « Longueur d'arme »,
  *  règle `combat-weapon-reach`) : Test opposé de Corps à corps `mover` vs `foe`. Le jet du foe est tiré et
  *  FIGÉ d'avance (pattern Désengagement/Défense — montré dans la ligne adverse de la modale) ; le mover
@@ -1710,18 +1699,6 @@ export const CRIT_TABLE_IDS: Record<CritTableKey, string> = {
 const CRIT_TABLE_CATEGORIES: Record<CritTableKey, string> = {
   tete: 'criticalsTete', bras: 'criticalsBras', corps: 'criticalsCorps', jambe: 'criticalsJambe',
 };
-registerTableStepFamily(memoParVersion(['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe'], () => new Map<string, TableStepDef>(
-  (Object.keys(CRIT_TABLE_IDS) as CritTableKey[]).map((key) => {
-    const rows = critTableRows('ldb', key);
-    return [CRIT_TABLE_IDS[key], {
-      label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
-      die: 100,
-      rows,
-      lines: (die) => [findTableEntry(rows, die).label],
-      entryCategory: CRIT_TABLE_CATEGORIES[key],
-    }];
-  }),
-)));
 
 /**
  * La SÉVÉRITÉ se tire-t-elle sur les tables LDB (donc par une étape à table) ? Prédicat UNIQUE, qui LIT
@@ -1961,13 +1938,6 @@ export function applyHullCriticalToTarget(
  *  fourchettes et les ids ; le TIRAGE passe par le résolveur unique `rollTableStep`, le FORMATAGE des
  *  lignes reste au moteur (`rollStructureCritical`, appelé avec le dé déjà tiré : aucun dé consommé). */
 export const STRUCTURE_CRIT_TABLE = 'structure-criticals';
-registerTableStepFamily(memoParVersion('structureCriticals', () => new Map<string, TableStepDef>([[STRUCTURE_CRIT_TABLE, {
-  label: dataLabel(STRUCTURE_CRITICALS_LABEL),
-  die: 100,
-  rows: tableDesCritiquesDeStructure(),
-  lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
-  entryCategory: 'structureCriticals',
-}]])));
 
 /**
  * Critique de Structure (AA 10 l.112-127) — calqué sur `applyHullCriticalToTarget`. Le dé passe par
@@ -2144,7 +2114,7 @@ function autoDeviate(
 
 /** DÉCLARATION de l'étape UNIQUE d'une Blessure critique (#1426) : le d100 de SÉVÉRITÉ (LDB 18) et la
  *  décision Dévier/Subir (LDB 63 l.30) sont la MÊME fenêtre. `severite` = la table reste à tirer (le
- *  Critique n'existe qu'APRÈS le dé — il est posé par le PLI post-dé, `registerCascadeTableFold`) ;
+ *  Critique n'existe qu'APRÈS le dé — il est posé par le PLI post-dé, table `plis`) ;
  *  `pretire` = aucune table déclarée pour ce cas (`critSeverityInSeam`, `applyOpposedCritical`), le
  *  Critique voyage alors dans la charge dès le mint. */
 interface DeviationStepSpec {
@@ -2190,29 +2160,6 @@ function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
     defaultChoice: 'devier', deviation: dev, reveal: dev.reveal,
   }));
 }
-
-/**
- * PLI POST-DÉ de l'étape « Blessure critique » (#1426) — le dé de l'étape EST le dé naturel du Critique :
- * le moteur en fait la ligne AU MOMENT où le dé tombe (`resolveCritique` en `forcedRoll`, qui prime sur
- * `twice`), et le résultat est POSÉ sur l'étape. Il ne peut pas être re-dérivé au rendu : `resolveCritique`
- * consomme du RNG (amputation, relances) même sous dé posé, donc chaque redessin donnerait une autre
- * Blessure. C'est un pli IMPUR : le site unique de pose le MÉMORISE par valeur de dé sur l'étape
- * (`tableStepResolved`), de sorte qu'explorer les poses puis revenir sur un dé déjà vu rend LE MÊME
- * Critique. La révélation riche n'est portée par l'étape QUE si une décision y est offerte (le Critique
- * s'y lit pour choisir) ; sans options, elle reste due au chemin normal, après application.
- */
-registerCascadeTableFold('deviation', (step, get) => {
-  const p = step.critSeverity;
-  const rolled = step.table?.result;
-  if (!p || !rolled) return step;
-  const target = inBattleId(get().battle, p.targetId);
-  if (!target) return step;
-  const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
-  const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });
-  const { attackerId, targetId, decides, location: _lieu, overkill: _depassement, origine: _origine, twice: _twice, ...coup } = p;
-  const dev: PendingDeviation = { ...coup, attackerId, targetId, crit, decides, reveal, resumeAfter: true };
-  return { ...step, deviation: dev, ...(step.options ? { reveal } : {}) };
-});
 
 /** LDB 60 l.50. */
 function breakBacleArmour(target: Combatant, loc: HitLocation, log: string[]): void {
@@ -2343,27 +2290,6 @@ function pousserSauvegarde(set: SetFn, porteurId: string, seuils: SeuilDeSauvega
     wardSave: { seuils, suite },
   }, revealPurpose('sequence', false));
 }
-
-/**
- * APPLIER de l'étape de SAUVEGARDE (#1508) : le dé est tombé (lancé ou POSÉ). La lecture est celle du
- * socle (`cascade.lireEnSeuil`), qui écrit AUSSI la ligne — un dé jeté s'écrit, qu'il sauve ou non.
- *  - RATÉ et un seuil reste → le dé suivant de la grappe s'ouvre (patron `ouvrirDesDOps`) ;
- *  - sinon → la suite du coup RÉ-ENTRE à son site d'origine avec la sauvegarde décidée, jamais une
- *    application parallèle (patron de l'applier `deviation`, qui rejoue `applyAttackResult`).
- */
-registerCascadeApplier('sauvegarde', (get, set, step, porteur) => {
-  const ws = step.wardSave;
-  if (!ws || !step.de?.result) return;
-  // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `opsDe`/`chuteDe`).
-  if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-  const { sauve, ligne } = lireEnSeuil(ws.seuils[0], step.de.result, porteur.label);
-  const reste = ws.seuils.slice(1);
-  if (!sauve && reste.length) {
-    pousserSauvegarde(set, porteur.id, reste, ws.suite);
-    return { consequences: freeCons([ligne]) };
-  }
-  return { consequences: freeCons([ligne, ...reprendreApresSauvegarde(get, set, ws.suite, sauve)]) };
-});
 
 /** RÉ-ENTRE dans le site que la sauvegarde avait suspendu, avec son issue. La décision voyage sur la
  *  TOUCHE elle-même (`AttackResult.sauvegarde`, jumeau des `critiques: DecisionDeCritique[]` de la ré-entrée) : elle survit ainsi à la
@@ -3322,7 +3248,7 @@ function wearActiveWeapon(c: Combatant, weapon: Weapon, destroy: boolean, deSoli
  */
 function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse, casse: PendingCasseDArme): void {
   const id = `casse-${porteur.id}-${demande.cle}`;
-  const commun = { kind: 'casseDArme', label: demande.libelle, actorId: porteur.id, casse };
+  const commun = { kind: 'casseDArme' as const, label: demande.libelle, actorId: porteur.id, casse };
   const lecture = demande.lecture;
   if (lecture.kind === 'table') {
     // MÊME séquence d'accueil que le dé en seuil (`pushDie` ci-dessous) : la grappe ne se scinde pas
@@ -3467,17 +3393,6 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   return undefined;
 }
 
-/** La TABLE des Incidents de Tir d'Artillerie par Salve au registre des étapes (AA 10 l.270-277) :
- *  MÊME donnée que le résolveur du moteur (`ARTILLERY_MISFIRE`), lue une fois par la fenêtre (la ligne
- *  tirée) et une fois par l'application (`lireSalveMisfire`) — aucune transcription. */
-registerTableStep(TABLE_SALVE_MISFIRE, {
-  label: tr('step.salveMisfire'),
-  die: D10_SALVE_MISFIRE.sides,
-  rows: ARTILLERY_MISFIRE,
-  lines: (roll) => [findTableEntry(ARTILLERY_MISFIRE, roll).label],
-  entryCategory: 'artilleryMisfire',
-});
-
 /** L'ARME dont CETTE grappe joue la casse, quel que soit le point d'application qui reprendra.
  *  `undefined` : la lame piégée n'est plus entre les mains de son porteur (lue par `uid`). */
 function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
@@ -3499,60 +3414,6 @@ function demandesDeLaCasse(get: Get, casse: PendingCasseDArme): DemandeDeCasse[]
   const c = inBattleId(get().battle, reprise.actorId);
   return c ? desDOups(c, reprise.weapon, reprise.r) : [];
 }
-
-/**
- * APPLIER d'une étape de la grappe de CASSE D'ARME (#1508 T3b-4) : le dé est tombé (lancé ou POSÉ),
- * qu'il soit lu en SEUIL (Sauvegarde Solide) ou en TABLE (Incidents par Salve). Le dé rejoint les dés
- * de la grappe et le point d'application est RE-JOUÉ avec eux — c'est lui qui ouvre le dé suivant s'il
- * en reste un (patron de l'applier `opsDe`), ou qui applique enfin la Maladresse / le Piège-lame.
- *
- * Un dé LU EN SEUIL s'écrit, qu'il sauve ou non, par l'écriture unique des lignes de Solide (`engine/oups.ligneDeSolide`) :
- * sans cette ligne, l'arme casserait sous sa propre protection sans que rien ne l'explique.
- */
-registerCascadeApplier('casseDArme', (get, set, step, porteur) => {
-  const casse = step.casse;
-  if (!casse) return;
-  const de = step.de?.result;
-  const tirage = de?.total ?? step.table?.result?.die;
-  if (tirage == null) return; // aucun résultat sur l'étape : elle est ouverte, le goulot repassera
-  // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `sauvegarde`/`opsDe`).
-  if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-  const arme = armeDeLaCasse(get, casse);
-  if (!arme) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-  const des = new Map(casse.des);
-  const lignes: string[] = [];
-  const seuil = step.de?.seuil;
-  if (de && seuil) lignes.push(ligneDeSolide(arme.label, seuil, de.total));
-  // Le dé qui DÉCIDE s'écrit avant ce qu'il a décidé : la reprise ci-dessous (`applyOups`,
-  // `applyBladeTrap`) journalise ses propres lignes PENDANT cet applier, donc le goulot — qui écrit
-  // après lui — les placerait derrière. `dejaDites` dit au goulot que c'est fait (l'étape les affiche).
-  journaliser(get, set, lignes, 'info', { actorId: step.actorId });
-  const dit = (extra: string[] = []): { consequences?: Consequence[]; dejaDites?: true } => {
-    journaliser(get, set, extra, 'info', { actorId: step.actorId });
-    const consequences = freeCons([...lignes, ...extra]);
-    // RIEN à désigner — l'étape à TABLE n'a pas de ligne de seuil, sa conclusion est la LIGNE TIRÉE,
-    // écrite par l'application. Le drapeau ne protège alors aucune écriture : il ne se pose pas.
-    return consequences.length ? { consequences, dejaDites: true } : {};
-  };
-  const demande = demandesDeLaCasse(get, casse).filter((d) => !des.has(d.cle))[0];
-  if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
-  des.set(demande.cle, tirage);
-  if (casse.reprise.mode === 'bladeTrap') {
-    const defenseur = inBattleId(get().battle, casse.reprise.defenderId);
-    if (!defenseur) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
-    // Le seul dé du Piège-lame vient de tomber : l'application n'a plus rien à ouvrir — et si elle le
-    // faisait, le fail-fast le dirait plutôt que de laisser la conséquence jouer devant un dé.
-    nePeutPasDifferer(applyBladeTrap(get, set, defenseur, casse.reprise.bt, casse.reprise.defenderSL, des), 'reprise du dé de Sauvegarde Solide (Piège-lame)');
-    return dit();
-  }
-  const c = inBattleId(get().battle, casse.reprise.actorId);
-  if (!c) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
-  const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
-  // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
-  // Rien ne suit que la conclusion du dé de casse : un après-coup qui tient la main emporte sa queue.
-  if (issue !== OPS_DIFFEREES && casse.reprise.coup) jouerFlowEntier(jouerLApresCoup(get, set, casse.reprise.coup) ? OPS_DIFFEREES : undefined);
-  return dit();
-});
 
 /**
  * Réaction de Porte-bouclier, variante « Avantage de groupe » (AA 13 l.80, l.84). Coût et éligibilité en
@@ -4183,7 +4044,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
 // ── Attaques GRATUITES accordées par un TALENT déclenché (Assaut féroce `onHit`, Frappe réactive
 //    `onCharged`) : op `grantFreeAttack{when:'immediate'}` portée en DONNÉE par le talent. Résolution
 //    INSTANTANÉE (motif aiAvailableFreeAttack — pas de modale), arme TENUE, Action PRÉSERVÉE. La frappe est
-//    OUVERTE par le hook `freeAttack` que `runCombatFlow` appelle sur le `do`/`grantFreeAttack` — un
+//    OUVERTE par `accorderLAttaqueGratuite` que `runCombatFlow` appelle sur le `do`/`grantFreeAttack` — un
 //    éventuel jet préalable (Frappe réactive : Test d'Initiative LDB 10 l.496-500) est un nœud Flow
 //    `test` EN AMONT (cadence-aware : héros manuel = jet influençable ; ennemi/auto = inline). ──
 
@@ -4191,7 +4052,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
  *  réactive, la victime touchée pour Assaut féroce) : plafond /Round (`fa.cap` = niveau, via
  *  `freeAttacksThisTurn[fa.key]`) + 1× par chargeur ; coût (Avantage) ; puis frappe INSTANTANÉE à l'arme
  *  tenue, Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
- *  → s'arrête au niveau). Appelée par le hook `freeAttack` quand `runCombatFlow` exécute le `do`/`grantFreeAttack`
+ *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `do`/`grantFreeAttack`
  *  (le Test préalable a déjà réussi en amont, c'est un nœud Flow). */
 function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   const target = inBattleId(get().battle, fa.targetId);
@@ -4223,10 +4084,10 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   return applyAttackResult(get, set, actor, r.victim ?? target, r.weapon, r.res, { sousAttaque: true, suite });
 }
 
-/** HOOK `freeAttack` (injecté dans la brique `combat/triggeredTest` par `createCombatSlice`) : pont
- *  exécuteur de Flow → vraie frappe. Appelé par `runCombatFlow` sur un `do`/`grantFreeAttack`. REND la
+/** Pont exécuteur de Flow → vraie frappe, appelé par `runCombatFlow` (`combat/triggeredTest`) sur un
+ *  `do`/`grantFreeAttack`. REND la
  *  suspension de la frappe (#1852) — le dispatcher d'ops s'arrête à la première fenêtre ouverte. */
-export function freeAttackHookImpl(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
+export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   return applyTalentFreeAttack(get, set, actor, op, fa);
 }
 
@@ -4328,7 +4189,7 @@ export function applyAreaAttack(get: Get, set: SetFn, attacker: Combatant, a: Cr
 }
 
 /** Langue préhensile (IA) : jet CT puis résolution ; gratuit (Action préservée). L'entraînement de la proie
- *  (pull) est une conséquence POST-TOUCHE (hook `maneuverPostHit`), jouée pour la voie silencieuse ET la voie
+ *  (pull) est une conséquence POST-TOUCHE (`jouerLApresToucheDeManoeuvre`), jouée pour la voie silencieuse ET la voie
  *  cascade. Renvoie `true` si une défense de héros a suspendu (reprise à la fermeture). */
 export function applyTongue(get: Get, set: SetFn, attacker: Combatant, a: CreatureAttack): boolean {
   const battle = get().battle;
@@ -4343,11 +4204,11 @@ export function applyTongue(get: Get, set: SetFn, attacker: Combatant, a: Creatu
   return suspended;
 }
 
-/** Entraînement de la Langue préhensile (LDB 85 l.213) — conséquence POST-TOUCHE injectée dans
- *  `applyManeuverEffects` (hook `maneuverPostHit`) : sur une TOUCHE (un pion *Empêtré* posé ce tour) d'une
+/** Entraînement de la Langue préhensile (LDB 85 l.213) — conséquence POST-TOUCHE lue par
+ *  `applyManeuverEffects` (table `apresToucheDeManoeuvre`) : sur une TOUCHE (un pion *Empêtré* posé ce tour) d'une
  *  proie plus PETITE, elle est tirée vers la créature (pathing impur : `pullToward` + traversées de zone).
  *  Joué à l'IDENTIQUE pour la voie silencieuse (non-héros/Surpris) ET la voie cascade (héros influençable). */
-function maneuverPostHitImpl(get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number): string[] {
+function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number): string[] {
   if (def.kind !== 'langue' || !tgt.pos || !attacker.pos) return [];
   if (!(stacks(tgt, COND.empetre) > hadEmpetre && sizeGap(attacker.size, tgt.size) > 0)) return [];
   const b = get().battle;
@@ -4360,9 +4221,6 @@ function maneuverPostHitImpl(get: Get, set: SetFn, attacker: Combatant, def: Man
   applyZoneCrossings(get, set, tgt, [...tilesBetween(from, r.dest), { ...r.dest }]); // une traction TRAVERSE (Mur de feu, L11)
   return [tr('cs.tonguePull', { name: attacker.label, foe: tgt.label })];
 }
-// Câble la conséquence POST-TOUCHE (entraînement de la Langue) dans le résolveur feuille (inversion de
-// dépendance : combatManeuvers reste sans import de combatFlow). Enregistré à l'import, comme les appliers.
-setManeuverPostHitHook(maneuverPostHitImpl);
 
 /** Hurlement fantomatique (IA) : PAS de jet d'attaquant ; dépense TOUS les Avantages (min 2, LDB 85
  *  l.135). Renvoie false si pas assez d'Avantage. Clôt par `checkBattleOver`. */
@@ -4548,24 +4406,6 @@ function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspe
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
 
-/** Applier UNIQUE de l'étape « Blessure critique » (#1426) : le Critique est celui que le PLI post-dé a
- *  posé (ou celui du mint quand aucune table n'est déclarée). L'étape offrait-elle ses voies ?
- *   · OUI — « Subir » applique le Critique montré, « Dévier » l'ignore (−1 PA) : `resolveDeviation` ;
- *   · NON — le Critique est subi, et sa RÉVÉLATION reste DUE (aucune fenêtre ne l'a montrée) : la
- *     reprise part sans `deviation` tranchée, ce qui laisse le chemin normal la produire.
- *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`/`cascadeFinish`
- *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
- *  (préservées par le liveMerge de commitStep). */
-registerCascadeApplier('deviation', (get, set, step) => {
-  const dev = step.deviation;
-  if (!dev) return;
-  if (!step.options && dev.mode !== 'self') {
-    reprendreLeCoup(get, set, dev, { crit: dev.crit });
-    return;
-  }
-  resolveDeviation(get, set, dev, step.chosen === 'devier');
-});
-
 /** L'IA enchaîne ses attaques gratuites de créature après l'attaque principale (chacune 1 Avantage,
  *  OPPOSÉE). File initialisée au 1er appel (Morsure/Attaque caudale des traits, PUIS Piétinement de
  *  Taille — les Indices d'abord), puis poursuivie après chaque modale de défense résolue. Retourne
@@ -4705,21 +4545,6 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
 // LDB 40 l.52-89 ; les relances prescrites (l.54-55) sont des étapes INSÉRÉES.
 // ---------------------------------------------------------------------------
 
-// Une entrée par table RÉELLE de `miscast.json` (Mineure/Majeure LDB, leurs révisions VDM, Colère
-// des dieux) : fourchettes et ids STABLES lus par `miscastTableRows` (« 151+ », LDB 40 l.89, ouvert par
-// `tableOuverte`), famille mémoïsée sur les datasets du seam, et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
-// La catégorie Codex où vivent les LIGNES est DÉCLARÉE par la table elle-même (`codexCategory`,
-// miscast.json, #1117) : sans catégorie déclarée, l'enjeu reste au foyer du `kind` (repli déclaré).
-registerTableStepFamily(memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], () => new Map<string, TableStepDef>(
-  MISCAST_TABLES.map((table) => [table.id, {
-    label: table.label,
-    die: 100,
-    rows: miscastTableRows(table.id),
-    lines: (die) => [miscastRowAt(table.id, die).label],
-    ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),
-  }]),
-)));
-
 /** DÉCLARATION du tirage d'une Imparfaite/Colère : la table de la sévérité EN VIGUEUR (LDB ou VDM),
  *  d100, et — pour la COLÈRE SEULE — le +10 par Point de Péché, déclaré en modificateur VIVANT
  *  (`modPerActor`, résolu au moment du jet par `liveTableDecl`) : LDB 40 l.46, « Lorsque vous
@@ -4761,45 +4586,6 @@ function miscastTableSpec(caster: Combatant, ctx: PendingMiscastStep, id: string
 function liveSinPoints(caster: Combatant, severity: MiscastSeverity): number {
   return severity === 'colere' ? caster.sinPoints ?? 0 : 0;
 }
-
-/**
- * La LIGNE tirée (`result.id` via le dé posé, jamais un re-lookup local) résout le contrecoup. Une
- * ligne à RELANCE n'applique RIEN : elle INSÈRE l'étape du lancer suivant, pilotable à son tour —
- * « Chaos en cascade : effectuez un nouveau lancer sur le Tableau des Incantations Imparfaites
- * Majeures » (LDB 46 l.55) ; « Multiplication d'infortune : effectuez deux lancers sur cette table,
- * en relançant tous les résultats entre 91-00 » (l.54, d'où les deux étapes filles `rerollHigh`, chez
- * qui un dé effectif ≥ 91 insère une étape de plus sur la même table).
- */
-registerCascadeApplier('miscastTable', (get, set, step, caster) => {
-  const ctx = step.miscast;
-  const rolled = step.table?.result;
-  if (!ctx || !rolled || !caster) return;
-  const m = rollMiscast(ctx.severity, battleRng(), liveSinPoints(caster, ctx.severity), ctx.domainId, rolled.roll);
-  // GARDE DE LIGNE : le moteur doit retomber sur la ligne AFFICHÉE par le résolveur d'étape. Les deux
-  // lisent le même compteur vivant ; s'il bougeait entre le dé et la validation, on appliquerait une
-  // autre ligne que celle montrée — ça s'arrête ici, ça ne se subit pas en silence.
-  if (m.rowId !== rolled.id) {
-    throw new Error(`Imparfaite : la ligne appliquée (« ${m.rowId} ») n'est pas celle affichée (« ${rolled.id} », dé ${rolled.roll}→${rolled.die}) — le modificateur a bougé entre le jet et sa validation.`);
-  }
-  if (m.reroll) {
-    // Le JET de cette étape compte pour la Corruption de Sorcellerie même s'il ne fait que relancer
-    // (LDB 49 l.5, verbatim au site de `finishMiscast`) : par JET, pas par Imparfaite résolue.
-    const lines = sorceryCorruptionLines(get, set, caster, ctx, m.tableRolls);
-    // Les lancers d'une relance ne portent PAS le +10 de Péché (la Colère ne relance jamais).
-    const relance = (over: Partial<PendingMiscastStep>, suffixe: string) =>
-      tableStep(miscastTableSpec(caster, { ...ctx, ...over }, `${step.id}-${suffixe}`));
-    // Un mint qui REFUSE n'insère rien (politique de la porte : DEV throw, PROD dégradé) — le canal
-    // `insert` ne porte donc que les étapes réellement montées.
-    const sortie = (insert: readonly (BuiltCascadeStep | undefined)[]) =>
-      ({ insert: insert.filter((s): s is BuiltCascadeStep => !!s), ...(lines.length ? { consequences: freeCons(lines) } : {}) });
-    if (ctx.rerollHigh && rolled.die >= 91) return sortie([relance({}, 'relance')]);
-    if (m.reroll === 'mineure-x2') return sortie([relance({ rerollHigh: true }, 'x2-0'), relance({ rerollHigh: true }, 'x2-1')]);
-    return sortie([relance({ severity: 'majeure', rerollHigh: false }, 'majeure')]);
-  }
-  const fin = finishMiscast(get, set, caster, ctx, m);
-  // L'étape de révélation porte déjà ces lignes quand elle est poussée : pas de doublon de rangée.
-  return fin.affichee ? undefined : { consequences: freeCons(fin.lines) };
-});
 
 /**
  * Tire sur la table d'Incantation Imparfaite / Colère des dieux et applique au
@@ -5050,21 +4836,6 @@ export function castSpell(
   // Sans fenêtre, la modale pré-roulée sert de RÉVÉLATION (résultat + « Appliquer », sans « Lancer »).
   if (aiDriven(get(), caster) && get().battle) get().castRoll();
 }
-
-// Effet d'auteur `castSpell` (#98, scene.ts) : EN COMBAT, route par CE flux standard — enregistré ici
-// (pas dans combatEffects.ts, module FEUILLE qui n'importe rien de combatFlow).
-registerCastSpellEffect(castSpell);
-// Clôture `reprendreFlowDeCombat` (#2689) : `combatEffects` ne peut pas importer `combat/triggeredTest`
-// (cycle) ; elle s'enregistre donc ICI, où `combatEffects` est entièrement initialisé.
-registerCloture('reprendreFlowDeCombat', (get, set, c) => {
-  const { label } = c;
-  // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `opsDe`) ; les suivants jouent.
-  const cible = actorIn(get(), c.cibleId);
-  if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'info'); return; }
-  const opsCtx = ctxRepris(get, set, c.ctx, cible);
-  if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'info'); return; }
-  runCombatFlow({ mode: 'combat', get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
-});
 
 /**
  * Le Sort FIGÉ de `pc` est-il encore dissipable ? GARDE UNIQUE du Contre-sort (`LDB 46 l.156`), lue
@@ -6877,19 +6648,18 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
 }
 
 /**
- * Enregistre la conséquence d'un `kind` de fin de combat SOUS FORME DE BANDE (#1117 L4) : la boucle
- * PAR RANGÉE (verdict sur SA rangée, conséquence attribuée à SON porteur) est écrite ICI une fois pour
- * toutes — calque de `registerNightBandApplier`. Une étape sans rangées RENONCE (fail-closed) : plus
+ * La conséquence d'un `kind` de fin de combat SOUS FORME DE BANDE (#1117 L4) : la boucle PAR RANGÉE
+ * (verdict sur SA rangée, conséquence attribuée à SON porteur) est écrite ICI une fois pour toutes —
+ * calque de `bandeDeNuit`. Une étape sans rangées RENONCE (fail-closed) : plus
  * aucun jet de bilan de combat ne s'applique en MONO depuis L4.
  *
  * `consequences: []` : les lignes partent au journal PAR RANGÉE (`row.outcome` les rend dans la
  * fenêtre), jamais en bloc d'étape — deux porteurs ne partagent pas une issue.
  */
-function registerCombatEndBandApplier(
-  kind: string,
+function bandeDeFinDeCombat(
   rowFn: (get: Get, set: SetFn, band: CascadeStep, row: BatchParticipant, hero: Combatant, meta: CascadeStepMeta) => string[],
-): void {
-  registerCascadeApplier(kind, (get, set, step) => {
+): CascadeApplier {
+  return (get, set, step) => {
     if (!step.participants) return;
     for (const row of step.participants) {
       const hero = actorIn(get(), row.id);
@@ -6900,34 +6670,8 @@ function registerCombatEndBandApplier(
     }
     set(touchActors(get()));
     return { consequences: [] };
-  });
+  };
 }
-
-/** Conséquence d'une RANGÉE de bande `combatEndDisease` (LDB 18/20) : Test de Résistance RÉSOLU →
- *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
- *  (Contagieux) sont lues dans la charge de rangée, la bande portant l'entrée de règle commune. */
-registerCombatEndBandApplier('combatEndDisease', (_get, _set, _band, row, hero, meta) => {
-  const disease = typeof meta.disease === 'string' ? meta.disease : undefined;
-  if (!disease) return [];
-  const lines = applyContraction(hero, disease, row.result!.success, battleRng(), meta.instant === true ? { instant: true } : undefined);
-  return lines.length ? lines : [tr('cf.resistsInfection', { name: hero.label })];
-});
-
-/** Conséquence d'une RANGÉE de bande `combatEndCorruption` (LDB 19) : Test `influences-corruptrices` RÉSOLU →
- *  `corruptionGain` selon le Degré et le DR, puis `gainCorruption` (seuil/mutation via sa propre
- *  modale, mise en file quand le slot est déjà pris). */
-registerCombatEndBandApplier('combatEndCorruption', (get, set, _band, row, hero, meta) => {
-  const level = meta.level as import('../engine/corruption').ExposureLevel | undefined;
-  const label = typeof meta.exposureLabel === 'string' ? meta.exposureLabel : '';
-  if (!level) return [];
-  const gain = corruptionGain(level, row.result!.success, Math.max(0, row.result!.sl));
-  // Le verdict (roll/target) est déjà porté par la rangée de jet (RollLine ✓/✗ ±DR) — la conséquence ne
-  // re-décrit QUE ce qui a été appliqué (#295 Lot 1, Décision 1b) : le gain RÉEL, ou une résistance nue.
-  // Le DEGRÉ affronté est nommé des DEUX côtés (#1281, critère 2) : il l'était sur la seule réussite,
-  // et l'échec ne laissait qu'un « +N Point(s) de Corruption » qui ne disait pas à quoi le porteur avait cédé.
-  if (gain <= 0) return [tr('out.corruptExposureResist', { name: hero.label, label })];
-  return [tr('out.corruptExposureFail', { name: hero.label, label }), ...gainCorruption(get, set, hero, gain)];
-});
 
 /** Ouvre une cascade INFLUENÇABLE à UNE bande de Contraction de maladie pour `patient` (Test de
  *  Résistance `difficulty` → `applyContraction` à la validation, via l'applier `combatEndDisease`) —
@@ -7265,15 +7009,6 @@ export function finishVictory(get: Get, set: SetFn): void {
     },
   }]);
 }
-registerCloture('ouvrirEcranDeVictoire', (get, set, c) => {
-  set({
-    pendingVictory: {
-      ...c.ecran,
-      xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),
-      gold: fromBrass(Math.max(0, toBrass(partyMoneyTotal(get)) - c.laitonAvant)),
-    },
-  });
-});
 
 /** Continuation à la FERMETURE de la cascade de fin de combat (`combatEndBoundary`) : l'écran de victoire
  *  suit les Tests de fin de combat influencés. Re-dérive l'issue depuis l'état COURANT (une damnation par
@@ -7361,52 +7096,6 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   checkBattleOver(get, set);
   return undefined;
 }
-
-/** Applier MUET de l'étape d'AFFICHAGE de la conséquence Piège-lame : l'`outcome` (« lame brisée/arrachée »)
- *  est pré-posé sur l'étape (la mutation a déjà eu lieu dans `applyBladeTrap`) → rien à appliquer ici, seul
- *  l'affichage empilé reste (mirroir d'une révélation de Critique en étape de séquence). */
-registerCascadeApplier('bladeTrapResult', () => {});
-
-/** Applier de l'étape de CHOIX « piège-lame » (LDB 62 l.278-280). « Coup Critique » (défaut) inflige le
- *  critique normal sur sa défense (LDB 14 l.3). « Piéger » route un Test opposé de Force CADENCE-AWARE
- *  (le héros défenseur PEUT dépenser Chance/Résilience) via `runCombatFlow` : le défenseur jette, l'attaquant
- *  (porteur) oppose sa Force, en ajoutant le DR de la défense (`defSL`) au jet du défenseur (l.295) ; la
- *  branche de VICTOIRE porte l'op IMPURE `breakBlade` (désarme/brise, conséquence procédurale APRÈS le Test). */
-registerCascadeApplier('bladeTrap', (get, set, step) => {
-  const pbt = step.bladeTrap;
-  if (!pbt) return;
-  const battle = get().battle;
-  const defender = inBattleId(battle, pbt.defenderId);
-  const attacker = inBattleId(battle, pbt.attackerId);
-  if (!defender || !attacker) return;
-  if (step.chosen !== 'trap') {
-    // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
-    const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
-    const parryWeaponName = parryWeaponObj?.label ?? 'arme';
-    const lines = [tr('cf.critOnDefense', { name: defender.label })];
-    applyOpposedCritical(get, set, attacker, pbt.roll, { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
-    const b = get().battle!;
-    set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'info', defender.id, attacker.id)] } });
-    bus.emit(EVT.SCENE_DIRTY);
-    checkBattleOver(get, set);
-    return;
-  }
-  if (isOutOfAction(attacker)) return;
-  // Test opposé de Force CADENCE-AWARE : la branche success porte `breakBlade` (désarme/brise). Le bonus de DR
-  // de la défense (`defSL`, l.295) s'ajoute au jet du défenseur via `opposed.bonusSL` (modifie vainqueur ET
-  // marge nette) ; le contexte `bladeTrap` cible la lame de l'attaquant. `resolveFlowTest` complète le freeze
-  // avec le DR de l'attaquant qu'IL jette (`attackerSL`) → la conséquence recompose la marge nette, sans
-  // double-jet. `runCombatFlow` route le Test (héros manuel → cascade influençable ; ennemi/auto → inline).
-  const bt: BladeTrapFreeze = { attackerId: attacker.id, weaponUid: pbt.weapon.uid!, defSL: pbt.defSL, attackerSL: 0 };
-  const flow = testFlow(
-    // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
-    // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
-    { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('bladeTrapForce'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
-    { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
-    EMPTY_FLOW,
-  );
-  runCombatFlow({ mode: 'combat', get, set, target: defender, caster: attacker, label: 'Piège-lame', bladeTrap: bt }, flow);
-});
 
 /** Fin du TÉLÉGRAPHE d'intention (`actorAim`) — le télégraphe appartient au GESTE : posé quand l'IA
  *  déclare son action, effacé au SEAM où naît la ligne de journal de ce geste (`applyAttackResult`,
@@ -8085,23 +7774,6 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
   return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero, hero.label)]);
 }
 
-/** Applier de BANDE de Psychologie de combat : la déclaration de règle est celle de l'ÉTAPE, la
- *  conséquence se joue RANGÉE PAR RANGÉE (résultat, charge utile et Détermination du porteur), et
- *  chaque verdict reste SUR SA rangée (le portrait attribue) — jamais un agrégat (`aggregate:'none'`). */
-registerCascadeApplier('combatPsych', (get, set, step) => {
-  const cp = step.combatPsych;
-  if (!cp || !step.participants) return;
-  for (const part of step.participants) {
-    const hero = actorIn(get(), part.id);
-    if (!hero || !part.result) { part.outcome = []; continue; }
-    const lines = resultLines(resolveCombatPsychRow(get, hero, cp, psychRowMeta(part), part.result, !!part.immune));
-    part.outcome = lines;
-    for (const l of lines) get().log(l.text);
-  }
-  set(touchActors(get()));
-  return { consequences: [] };
-});
-
 // === TRACE DE DÉCISION IA (DEV uniquement) ==================================================
 // Buffer en anneau des derniers tours pilotés par l'IA : action CHOISIE + classement des candidats
 // (l'« intention », via `consumeAiRanking`). Rempli au SEUL site d'enregistrement de `runEnemyAI`
@@ -8652,4 +8324,338 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   }
 }
 
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [
+  'fleeMove', 'sauvegarde', 'casseDArme', 'deviation', 'miscastTable', 'combatEndDisease',
+  'combatEndCorruption', 'bladeTrapResult', 'bladeTrap', 'combatPsych',
+] as const;
+/** Les genres d'étape à pli que ce module déclare (table `plis`). */
+export const PLIS = ['deviation'] as const satisfies readonly (typeof GENRES_D_ETAPE)[number][];
+/** Les tables tirables que ce module déclare (table `tablesTirables`). */
+export const TABLES_TIRABLES = [TABLE_SALVE_MISFIRE] as const;
 
+/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
+export const GENRES_HOTES = ['attackJet', 'defenseJet', 'fumbleJet', 'disengageStep', 'cast'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Étape de reprise « fuite » : la Déviation Critique du coup dans le dos a SUSPENDU l'application ; une
+     *  fois le Critique tranché (Dévier/Subir), la fuite se complète ICI — jamais avant (LDB 15 l.68). */
+    fleeMove: (get, set, step) => {
+      const f = step.fleeMove;
+      if (f) completeFlee(get, set, f.moverId, f.foeId, f.broken);
+    },
+    /**
+     * APPLIER de l'étape de SAUVEGARDE (#1508) : le dé est tombé (lancé ou POSÉ). La lecture est celle du
+     * socle (`cascade.lireEnSeuil`), qui écrit AUSSI la ligne — un dé jeté s'écrit, qu'il sauve ou non.
+     *  - RATÉ et un seuil reste → le dé suivant de la grappe s'ouvre (patron `ouvrirDesDOps`) ;
+     *  - sinon → la suite du coup RÉ-ENTRE à son site d'origine avec la sauvegarde décidée, jamais une
+     *    application parallèle (patron de l'applier `deviation`, qui rejoue `applyAttackResult`).
+     */
+    sauvegarde: (get, set, step, porteur) => {
+      const ws = step.wardSave;
+      if (!ws || !step.de?.result) return;
+      // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `opsDe`/`chuteDe`).
+      if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const { sauve, ligne } = lireEnSeuil(ws.seuils[0], step.de.result, porteur.label);
+      const reste = ws.seuils.slice(1);
+      if (!sauve && reste.length) {
+        pousserSauvegarde(set, porteur.id, reste, ws.suite);
+        return { consequences: freeCons([ligne]) };
+      }
+      return { consequences: freeCons([ligne, ...reprendreApresSauvegarde(get, set, ws.suite, sauve)]) };
+    },
+    /**
+     * APPLIER d'une étape de la grappe de CASSE D'ARME (#1508 T3b-4) : le dé est tombé (lancé ou POSÉ),
+     * qu'il soit lu en SEUIL (Sauvegarde Solide) ou en TABLE (Incidents par Salve). Le dé rejoint les dés
+     * de la grappe et le point d'application est RE-JOUÉ avec eux — c'est lui qui ouvre le dé suivant s'il
+     * en reste un (patron de l'applier `opsDe`), ou qui applique enfin la Maladresse / le Piège-lame.
+     *
+     * Un dé LU EN SEUIL s'écrit, qu'il sauve ou non, par l'écriture unique des lignes de Solide (`engine/oups.ligneDeSolide`) :
+     * sans cette ligne, l'arme casserait sous sa propre protection sans que rien ne l'explique.
+     */
+    casseDArme: (get, set, step, porteur) => {
+      const casse = step.casse;
+      if (!casse) return;
+      const de = step.de?.result;
+      const tirage = de?.total ?? step.table?.result?.die;
+      if (tirage == null) return; // aucun résultat sur l'étape : elle est ouverte, le goulot repassera
+      // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `sauvegarde`/`opsDe`).
+      if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const arme = armeDeLaCasse(get, casse);
+      if (!arme) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const des = new Map(casse.des);
+      const lignes: string[] = [];
+      const seuil = step.de?.seuil;
+      if (de && seuil) lignes.push(ligneDeSolide(arme.label, seuil, de.total));
+      // Le dé qui DÉCIDE s'écrit avant ce qu'il a décidé : la reprise ci-dessous (`applyOups`,
+      // `applyBladeTrap`) journalise ses propres lignes PENDANT cet applier, donc le goulot — qui écrit
+      // après lui — les placerait derrière. `dejaDites` dit au goulot que c'est fait (l'étape les affiche).
+      journaliser(get, set, lignes, 'info', { actorId: step.actorId });
+      const dit = (extra: string[] = []): { consequences?: Consequence[]; dejaDites?: true } => {
+        journaliser(get, set, extra, 'info', { actorId: step.actorId });
+        const consequences = freeCons([...lignes, ...extra]);
+        // RIEN à désigner — l'étape à TABLE n'a pas de ligne de seuil, sa conclusion est la LIGNE TIRÉE,
+        // écrite par l'application. Le drapeau ne protège alors aucune écriture : il ne se pose pas.
+        return consequences.length ? { consequences, dejaDites: true } : {};
+      };
+      const demande = demandesDeLaCasse(get, casse).filter((d) => !des.has(d.cle))[0];
+      if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
+      des.set(demande.cle, tirage);
+      if (casse.reprise.mode === 'bladeTrap') {
+        const defenseur = inBattleId(get().battle, casse.reprise.defenderId);
+        if (!defenseur) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
+        // Le seul dé du Piège-lame vient de tomber : l'application n'a plus rien à ouvrir — et si elle le
+        // faisait, le fail-fast le dirait plutôt que de laisser la conséquence jouer devant un dé.
+        nePeutPasDifferer(applyBladeTrap(get, set, defenseur, casse.reprise.bt, casse.reprise.defenderSL, des), 'reprise du dé de Sauvegarde Solide (Piège-lame)');
+        return dit();
+      }
+      const c = inBattleId(get().battle, casse.reprise.actorId);
+      if (!c) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
+      const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
+      // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
+      // Rien ne suit que la conclusion du dé de casse : un après-coup qui tient la main emporte sa queue.
+      if (issue !== OPS_DIFFEREES && casse.reprise.coup) jouerFlowEntier(jouerLApresCoup(get, set, casse.reprise.coup) ? OPS_DIFFEREES : undefined);
+      return dit();
+    },
+    /** Applier UNIQUE de l'étape « Blessure critique » (#1426) : le Critique est celui que le PLI post-dé a
+     *  posé (ou celui du mint quand aucune table n'est déclarée). L'étape offrait-elle ses voies ?
+     *   · OUI — « Subir » applique le Critique montré, « Dévier » l'ignore (−1 PA) : `resolveDeviation` ;
+     *   · NON — le Critique est subi, et sa RÉVÉLATION reste DUE (aucune fenêtre ne l'a montrée) : la
+     *     reprise part sans `deviation` tranchée, ce qui laisse le chemin normal la produire.
+     *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`cascadeNext`/`cascadeFinish`
+     *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
+     *  (préservées par le liveMerge de commitStep). */
+    deviation: (get, set, step) => {
+      const dev = step.deviation;
+      if (!dev) return;
+      if (!step.options && dev.mode !== 'self') {
+        reprendreLeCoup(get, set, dev, { crit: dev.crit });
+        return;
+      }
+      resolveDeviation(get, set, dev, step.chosen === 'devier');
+    },
+    /**
+     * La LIGNE tirée (`result.id` via le dé posé, jamais un re-lookup local) résout le contrecoup. Une
+     * ligne à RELANCE n'applique RIEN : elle INSÈRE l'étape du lancer suivant, pilotable à son tour —
+     * « Chaos en cascade : effectuez un nouveau lancer sur le Tableau des Incantations Imparfaites
+     * Majeures » (LDB 46 l.55) ; « Multiplication d'infortune : effectuez deux lancers sur cette table,
+     * en relançant tous les résultats entre 91-00 » (l.54, d'où les deux étapes filles `rerollHigh`, chez
+     * qui un dé effectif ≥ 91 insère une étape de plus sur la même table).
+     */
+    miscastTable: (get, set, step, caster) => {
+      const ctx = step.miscast;
+      const rolled = step.table?.result;
+      if (!ctx || !rolled || !caster) return;
+      const m = rollMiscast(ctx.severity, battleRng(), liveSinPoints(caster, ctx.severity), ctx.domainId, rolled.roll);
+      // GARDE DE LIGNE : le moteur doit retomber sur la ligne AFFICHÉE par le résolveur d'étape. Les deux
+      // lisent le même compteur vivant ; s'il bougeait entre le dé et la validation, on appliquerait une
+      // autre ligne que celle montrée — ça s'arrête ici, ça ne se subit pas en silence.
+      if (m.rowId !== rolled.id) {
+        throw new Error(`Imparfaite : la ligne appliquée (« ${m.rowId} ») n'est pas celle affichée (« ${rolled.id} », dé ${rolled.roll}→${rolled.die}) — le modificateur a bougé entre le jet et sa validation.`);
+      }
+      if (m.reroll) {
+        // Le JET de cette étape compte pour la Corruption de Sorcellerie même s'il ne fait que relancer
+        // (LDB 49 l.5, verbatim au site de `finishMiscast`) : par JET, pas par Imparfaite résolue.
+        const lines = sorceryCorruptionLines(get, set, caster, ctx, m.tableRolls);
+        // Les lancers d'une relance ne portent PAS le +10 de Péché (la Colère ne relance jamais).
+        const relance = (over: Partial<PendingMiscastStep>, suffixe: string) =>
+          tableStep(miscastTableSpec(caster, { ...ctx, ...over }, `${step.id}-${suffixe}`));
+        // Un mint qui REFUSE n'insère rien (politique de la porte : DEV throw, PROD dégradé) — le canal
+        // `insert` ne porte donc que les étapes réellement montées.
+        const sortie = (insert: readonly (BuiltCascadeStep | undefined)[]) =>
+          ({ insert: insert.filter((s): s is BuiltCascadeStep => !!s), ...(lines.length ? { consequences: freeCons(lines) } : {}) });
+        if (ctx.rerollHigh && rolled.die >= 91) return sortie([relance({}, 'relance')]);
+        if (m.reroll === 'mineure-x2') return sortie([relance({ rerollHigh: true }, 'x2-0'), relance({ rerollHigh: true }, 'x2-1')]);
+        return sortie([relance({ severity: 'majeure', rerollHigh: false }, 'majeure')]);
+      }
+      const fin = finishMiscast(get, set, caster, ctx, m);
+      // L'étape de révélation porte déjà ces lignes quand elle est poussée : pas de doublon de rangée.
+      return fin.affichee ? undefined : { consequences: freeCons(fin.lines) };
+    },
+    /** Conséquence d'une RANGÉE de bande `combatEndDisease` (LDB 18/20) : Test de Résistance RÉSOLU →
+     *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
+     *  (Contagieux) sont lues dans la charge de rangée, la bande portant l'entrée de règle commune. */
+    combatEndDisease: bandeDeFinDeCombat((_get, _set, _band, row, hero, meta) => {
+      const disease = typeof meta.disease === 'string' ? meta.disease : undefined;
+      if (!disease) return [];
+      const lines = applyContraction(hero, disease, row.result!.success, battleRng(), meta.instant === true ? { instant: true } : undefined);
+      return lines.length ? lines : [tr('cf.resistsInfection', { name: hero.label })];
+    }),
+    /** Conséquence d'une RANGÉE de bande `combatEndCorruption` (LDB 19) : Test `influences-corruptrices` RÉSOLU →
+     *  `corruptionGain` selon le Degré et le DR, puis `gainCorruption` (seuil/mutation via sa propre
+     *  modale, mise en file quand le slot est déjà pris). */
+    combatEndCorruption: bandeDeFinDeCombat((get, set, _band, row, hero, meta) => {
+      const level = meta.level as import('../engine/corruption').ExposureLevel | undefined;
+      const label = typeof meta.exposureLabel === 'string' ? meta.exposureLabel : '';
+      if (!level) return [];
+      const gain = corruptionGain(level, row.result!.success, Math.max(0, row.result!.sl));
+      // Le verdict (roll/target) est déjà porté par la rangée de jet (RollLine ✓/✗ ±DR) — la conséquence ne
+      // re-décrit QUE ce qui a été appliqué (#295 Lot 1, Décision 1b) : le gain RÉEL, ou une résistance nue.
+      // Le DEGRÉ affronté est nommé des DEUX côtés (#1281, critère 2) : il l'était sur la seule réussite,
+      // et l'échec ne laissait qu'un « +N Point(s) de Corruption » qui ne disait pas à quoi le porteur avait cédé.
+      if (gain <= 0) return [tr('out.corruptExposureResist', { name: hero.label, label })];
+      return [tr('out.corruptExposureFail', { name: hero.label, label }), ...gainCorruption(get, set, hero, gain)];
+    }),
+    /** Applier MUET de l'étape d'AFFICHAGE de la conséquence Piège-lame : l'`outcome` (« lame brisée/arrachée »)
+     *  est pré-posé sur l'étape (la mutation a déjà eu lieu dans `applyBladeTrap`) → rien à appliquer ici, seul
+     *  l'affichage empilé reste (mirroir d'une révélation de Critique en étape de séquence). */
+    bladeTrapResult: () => {},
+    /** Applier de l'étape de CHOIX « piège-lame » (LDB 62 l.278-280). « Coup Critique » (défaut) inflige le
+     *  critique normal sur sa défense (LDB 14 l.3). « Piéger » route un Test opposé de Force CADENCE-AWARE
+     *  (le héros défenseur PEUT dépenser Chance/Résilience) via `runCombatFlow` : le défenseur jette, l'attaquant
+     *  (porteur) oppose sa Force, en ajoutant le DR de la défense (`defSL`) au jet du défenseur (l.295) ; la
+     *  branche de VICTOIRE porte l'op IMPURE `breakBlade` (désarme/brise, conséquence procédurale APRÈS le Test). */
+    bladeTrap: (get, set, step) => {
+      const pbt = step.bladeTrap;
+      if (!pbt) return;
+      const battle = get().battle;
+      const defender = inBattleId(battle, pbt.defenderId);
+      const attacker = inBattleId(battle, pbt.attackerId);
+      if (!defender || !attacker) return;
+      if (step.chosen !== 'trap') {
+        // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
+        const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
+        const parryWeaponName = parryWeaponObj?.label ?? 'arme';
+        const lines = [tr('cf.critOnDefense', { name: defender.label })];
+        applyOpposedCritical(get, set, attacker, pbt.roll, { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
+        const b = get().battle!;
+        set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'info', defender.id, attacker.id)] } });
+        bus.emit(EVT.SCENE_DIRTY);
+        checkBattleOver(get, set);
+        return;
+      }
+      if (isOutOfAction(attacker)) return;
+      // Test opposé de Force CADENCE-AWARE : la branche success porte `breakBlade` (désarme/brise). Le bonus de DR
+      // de la défense (`defSL`, l.295) s'ajoute au jet du défenseur via `opposed.bonusSL` (modifie vainqueur ET
+      // marge nette) ; le contexte `bladeTrap` cible la lame de l'attaquant. `resolveFlowTest` complète le freeze
+      // avec le DR de l'attaquant qu'IL jette (`attackerSL`) → la conséquence recompose la marge nette, sans
+      // double-jet. `runCombatFlow` route le Test (héros manuel → cascade influençable ; ennemi/auto → inline).
+      const bt: BladeTrapFreeze = { attackerId: attacker.id, weaponUid: pbt.weapon.uid!, defSL: pbt.defSL, attackerSL: 0 };
+      const flow = testFlow(
+        // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
+        // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
+        { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('bladeTrapForce'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
+        { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
+        EMPTY_FLOW,
+      );
+      runCombatFlow({ mode: 'combat', get, set, target: defender, caster: attacker, label: 'Piège-lame', bladeTrap: bt }, flow);
+    },
+    /** Applier de BANDE de Psychologie de combat : la déclaration de règle est celle de l'ÉTAPE, la
+     *  conséquence se joue RANGÉE PAR RANGÉE (résultat, charge utile et Détermination du porteur), et
+     *  chaque verdict reste SUR SA rangée (le portrait attribue) — jamais un agrégat (`aggregate:'none'`). */
+    combatPsych: (get, set, step) => {
+      const cp = step.combatPsych;
+      if (!cp || !step.participants) return;
+      for (const part of step.participants) {
+        const hero = actorIn(get(), part.id);
+        if (!hero || !part.result) { part.outcome = []; continue; }
+        const lines = resultLines(resolveCombatPsychRow(get, hero, cp, psychRowMeta(part), part.result, !!part.immune));
+        part.outcome = lines;
+        for (const l of lines) get().log(l.text);
+      }
+      set(touchActors(get()));
+      return { consequences: [] };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  plis: {
+    /**
+     * PLI POST-DÉ de l'étape « Blessure critique » (#1426) — le dé de l'étape EST le dé naturel du Critique :
+     * le moteur en fait la ligne AU MOMENT où le dé tombe (`resolveCritique` en `forcedRoll`, qui prime sur
+     * `twice`), et le résultat est POSÉ sur l'étape. Il ne peut pas être re-dérivé au rendu : `resolveCritique`
+     * consomme du RNG (amputation, relances) même sous dé posé, donc chaque redessin donnerait une autre
+     * Blessure. C'est un pli IMPUR : le site unique de pose le MÉMORISE par valeur de dé sur l'étape
+     * (`tableStepResolved`), de sorte qu'explorer les poses puis revenir sur un dé déjà vu rend LE MÊME
+     * Critique. La révélation riche n'est portée par l'étape QUE si une décision y est offerte (le Critique
+     * s'y lit pour choisir) ; sans options, elle reste due au chemin normal, après application.
+     */
+    deviation: (step, get) => {
+      const p = step.critSeverity;
+      const rolled = step.table?.result;
+      if (!p || !rolled) return step;
+      const target = inBattleId(get().battle, p.targetId);
+      if (!target) return step;
+      const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
+      const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });
+      const { attackerId, targetId, decides, location: _lieu, overkill: _depassement, origine: _origine, twice: _twice, ...coup } = p;
+      const dev: PendingDeviation = { ...coup, attackerId, targetId, crit, decides, reveal, resumeAfter: true };
+      return { ...step, deviation: dev, ...(step.options ? { reveal } : {}) };
+    },
+  } satisfies PartDeTable<'plis', typeof PLIS>,
+  tablesTirables: {
+    /** La TABLE des Incidents de Tir d'Artillerie par Salve dans les tables tirables (AA 10 l.270-277) :
+     *  MÊME donnée que le résolveur du moteur (`ARTILLERY_MISFIRE`), lue une fois par la fenêtre (la ligne
+     *  tirée) et une fois par l'application (`lireSalveMisfire`) — aucune transcription. */
+    [TABLE_SALVE_MISFIRE]: {
+      label: tr('step.salveMisfire'),
+      die: D10_SALVE_MISFIRE.sides,
+      rows: ARTILLERY_MISFIRE,
+      lines: (roll) => [findTableEntry(ARTILLERY_MISFIRE, roll).label],
+      entryCategory: 'artilleryMisfire',
+    },
+  } satisfies PartDeTable<'tablesTirables', typeof TABLES_TIRABLES>,
+  famillesTirables: [
+    memoParVersion(['criticalsTete', 'criticalsBras', 'criticalsCorps', 'criticalsJambe'], () => new Map<string, TableStepDef>(
+      (Object.keys(CRIT_TABLE_IDS) as CritTableKey[]).map((key) => {
+        const rows = critTableRows('ldb', key);
+        return [CRIT_TABLE_IDS[key], {
+          label: stepDetail(tr('step.blessuresCritiques'), dataLabel(libelleDeValeur(critTableSchema, key))),
+          die: 100,
+          rows,
+          lines: (die) => [findTableEntry(rows, die).label],
+          entryCategory: CRIT_TABLE_CATEGORIES[key],
+        }];
+      }),
+    )),
+    memoParVersion('structureCriticals', () => new Map<string, TableStepDef>([[STRUCTURE_CRIT_TABLE, {
+      label: dataLabel(STRUCTURE_CRITICALS_LABEL),
+      die: 100,
+      rows: tableDesCritiquesDeStructure(),
+      lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
+      entryCategory: 'structureCriticals',
+    }]])),
+    // Une entrée par table RÉELLE de `miscast.json` (Mineure/Majeure LDB, leurs révisions VDM, Colère
+    // des dieux) : fourchettes et ids STABLES lus par `miscastTableRows` (« 151+ », LDB 40 l.89, ouvert par
+    // `tableOuverte`), famille mémoïsée sur les datasets du seam, et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
+    // La catégorie Codex où vivent les LIGNES est DÉCLARÉE par la table elle-même (`codexCategory`,
+    // miscast.json, #1117) : sans catégorie déclarée, l'enjeu reste au foyer du `kind` (repli déclaré).
+    memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], () => new Map<string, TableStepDef>(
+      MISCAST_TABLES.map((table) => [table.id, {
+        label: table.label,
+        die: 100,
+        rows: miscastTableRows(table.id),
+        lines: (die) => [miscastRowAt(table.id, die).label],
+        ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),
+      }]),
+    )),
+  ],
+  clotures: {
+    // Clôture `reprendreFlowDeCombat` (#2689) : `combatEffects` ne peut pas importer `combat/triggeredTest`
+    // (cycle) ; elle s'enregistre donc ICI, où `combatEffects` est entièrement initialisé.
+    reprendreFlowDeCombat: (get, set, c) => {
+      const { label } = c;
+      // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `opsDe`) ; les suivants jouent.
+      const cible = actorIn(get(), c.cibleId);
+      if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'info'); return; }
+      const opsCtx = ctxRepris(get, set, c.ctx, cible);
+      if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'info'); return; }
+      runCombatFlow({ mode: 'combat', get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
+    },
+    ouvrirEcranDeVictoire: (get, set, c) => {
+      set({
+        pendingVictory: {
+          ...c.ecran,
+          xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),
+          gold: fromBrass(Math.max(0, toBrass(partyMoneyTotal(get)) - c.laitonAvant)),
+        },
+      });
+    },
+  },
+  // Effet d'auteur `castSpell` (#98, scene.ts) : EN COMBAT, route par CE flux standard — enregistré ici
+  // (pas dans combatEffects.ts, module FEUILLE qui n'importe rien de combatFlow).
+  lancerLeSort: castSpell,
+  // Câble la conséquence POST-TOUCHE (entraînement de la Langue) dans le résolveur feuille (inversion de
+  // dépendance : combatManeuvers reste sans import de combatFlow). Enregistré à l'import, comme les appliers.
+  apresToucheDeManoeuvre: jouerLApresToucheDeManoeuvre,
+} satisfies FragmentDeTables;

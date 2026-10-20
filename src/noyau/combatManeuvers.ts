@@ -32,7 +32,7 @@ import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, type AttackKind,
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/defs/maneuvers';
 import { findTalentById, findPsychologyById, findManeuverById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
-import { registerCascadeApplier, startCascade } from './cascade';
+import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
 import { defenseSurfaced } from './netOwnership';
 import { inBattleId } from './monde/combatants';
@@ -59,6 +59,7 @@ import { campSpend } from './combat/advantagePool';
 import { groupAdvantage } from '../engine/advantagePool';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
+import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 
 // ---------------------------------------------------------------------------
 // Émission d'animation + énumération
@@ -80,15 +81,11 @@ function floatTag(tgt: Combatant, text: string): void {
   bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'condition' });
 }
 
-/** HOOK de conséquence POST-TOUCHE d'une manœuvre (op IMPURE de géométrie) — injecté par le store
- *  (`setManeuverPostHitHook`), pointe sur l'entraînement de la Langue préhensile (LDB 85 l.213 : une proie
- *  plus petite Empêtrée est tirée vers la créature — pathing impur qui vit dans combatFlow). Appelé par
- *  `applyManeuverEffects` avec le nombre de pions *Empêtré* AVANT l'application des effets, pour que la
- *  voie SILENCIEUSE (non-héros/Surpris) ET la voie CASCADE (héros influençable) tirent à l'identique.
- *  Inversion de dépendance : ce module feuille reste sans import de combatFlow. Absent ⇒ no-op. */
-type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number) => string[] | void;
-let maneuverPostHitHook: ManeuverPostHitHook | undefined;
-export function setManeuverPostHitHook(fn: ManeuverPostHitHook): void { maneuverPostHitHook = fn; }
+/** Conséquence POST-TOUCHE d'une manœuvre (op IMPURE de géométrie, `TablesDuJeu.apresToucheDeManoeuvre`) —
+ *  l'entraînement de la Langue préhensile (LDB 85 l.213 ; pathing impur qui vit dans combatFlow). Appelée
+ *  par `applyManeuverEffects` avec le nombre de pions *Empêtré* AVANT l'application des effets, pour que la
+ *  voie SILENCIEUSE (non-héros/Surpris) ET la voie CASCADE (héros influençable) tirent à l'identique. */
+export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number) => string[] | void;
 
 /**
  * Application des EFFETS d'une manœuvre à UNE cible qui a PERDU l'opposition (ou n'en avait pas) — la
@@ -108,7 +105,7 @@ export function applyManeuverEffects(
   const wl = before - tgt.wounds.current;
   if (wl > 0) floatDamage(tgt, wl);
   if (tgt.wounds.current <= 0) applyZeroWounds(tgt);
-  const pull = maneuverPostHitHook?.(get, set, attacker, def, tgt, hadEmpetre);
+  const pull = tablesPosees().apresToucheDeManoeuvre(get, set, attacker, def, tgt, hadEmpetre);
   if (pull && pull.length) lines.push(...pull);
   return lines;
 }
@@ -536,7 +533,7 @@ export function resolveManeuver(
   }
   // Un nœud Flow `test` DANS les effets (Hurlement : « Test de Résistance/Calme ou Brisé », LDB 85) a pu
   // ouvrir une cascade `triggeredTest` INFLUENÇABLE pour un héros MANUEL (chemin silencieux `hitOne` →
-  // `applyManeuverEffects` → `applyTriggeredEffects` → testRouter cadence-aware). On la TAGUE `maneuverResume`
+  // `applyManeuverEffects` → `applyTriggeredEffects` → `routeTriggeredTest` cadence-aware). On la TAGUE `maneuverResume`
   // pour que sa fermeture reprenne le tour de la créature — MÊME mécanisme que la défense de zone
   // (dispatchCascadeDone → resumeManeuverDefense), sans `maneuverDefense` bidon pour un Test simple.
   const p = get().pendingCascade;
@@ -589,38 +586,6 @@ function openManeuverDefenseCascade(
   const p = get().pendingCascade;
   if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
 }
-
-/** Applier de l'étape `maneuverDefense` (héros influençable) — SOURCE UNIQUE de la conséquence : le jet du
- *  défenseur est déjà résolu par `FLOWS.cascade` (`meta.opposed` → `resolveOpposed(défenseur, aT)`), on lit
- *  son issue. RÉSISTE (`result.success`) → aucun effet ; sinon l'attaquant l'emporte → marge nette (DR net +
- *  Avantage variable) → effets via `applyManeuverEffects` (le MÊME que le chemin silencieux). Le Critique se
- *  FOLDE dans la MÊME cascade (les ops de Dégâts poussent une révélation → `pushReveal` l'append). */
-registerCascadeApplier('maneuverDefense', (get, set, step, hero) => {
-  if (!hero || !estJete(step.result)) return;
-  const md = step.meta?.maneuverDefense;
-  const opp = step.meta?.opposed;
-  if (!md || !opp) return;
-  const attacker = inBattleId(get().battle, md.attackerId);
-  const def = findManeuverById(md.maneuverId);
-  if (!attacker || !def) return;
-  const syncManeuver = () => {
-    set(touchActors(get()));
-    bus.emit(EVT.SCENE_DIRTY);
-  };
-  // `FLOWS.cascade` opposé : `success` = le DÉFENSEUR RÉSISTE (l'attaquant ne l'emporte pas) → aucun effet.
-  if (step.result.success) {
-    floatTag(hero, def.defense === 'init' ? t('fx.resists') : t('fx.dodge'));
-    syncManeuver();
-    return { consequences: freeCons([t('manv.resists', { name: hero.label })]) };
-  }
-  // L'attaquant l'emporte : on re-oppose le jet influencé du défenseur (reproduit `resolveOpposed` de la
-  // cascade) pour la MARGE NETTE (RAW Regard : +1 DR/Avantage variable), puis on applique les effets.
-  const drow = hydrateTR({ roll: step.result.roll, target: step.result.target, base: step.base, success: step.result.roll <= step.result.target, sl: step.result.sl });
-  const margin = resolveOpposed(opp.aT, drow).netSL + (def.advantageMode === 'variable' ? md.spent : 0);
-  const journal = applyManeuverEffects(get, set, attacker, def, hero, md.indice, margin, battleRng());
-  syncManeuver();
-  return { consequences: freeCons(journal) };
-});
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,
  *  pénalité d'Encombrement incluse) — la plus haute valeur. Vit ICI (feuille) : SOURCE UNIQUE,
@@ -719,3 +684,43 @@ export function startDistraire(_get: Get, set: SetFn, mover: Combatant, foe: Com
   const defRoll = { ...rollTest(defValue, 'intermediaire', battleRng()), base: defValue }; // Calme du foe, figé (jamais relancé)
   set({ pendingDistraire: { moverId: mover.id, foeId: foe.id, atk: null, defRoll, result: null } });
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['maneuverDefense'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Applier de l'étape `maneuverDefense` (héros influençable) — SOURCE UNIQUE de la conséquence : le jet du
+     *  défenseur est déjà résolu par `FLOWS.cascade` (`meta.opposed` → `resolveOpposed(défenseur, aT)`), on lit
+     *  son issue. RÉSISTE (`result.success`) → aucun effet ; sinon l'attaquant l'emporte → marge nette (DR net +
+     *  Avantage variable) → effets via `applyManeuverEffects` (le MÊME que le chemin silencieux). Le Critique se
+     *  FOLDE dans la MÊME cascade (les ops de Dégâts poussent une révélation → `pushReveal` l'append). */
+    maneuverDefense: (get, set, step, hero) => {
+      if (!hero || !estJete(step.result)) return;
+      const md = step.meta?.maneuverDefense;
+      const opp = step.meta?.opposed;
+      if (!md || !opp) return;
+      const attacker = inBattleId(get().battle, md.attackerId);
+      const def = findManeuverById(md.maneuverId);
+      if (!attacker || !def) return;
+      const syncManeuver = () => {
+        set(touchActors(get()));
+        bus.emit(EVT.SCENE_DIRTY);
+      };
+      // `FLOWS.cascade` opposé : `success` = le DÉFENSEUR RÉSISTE (l'attaquant ne l'emporte pas) → aucun effet.
+      if (step.result.success) {
+        floatTag(hero, def.defense === 'init' ? t('fx.resists') : t('fx.dodge'));
+        syncManeuver();
+        return { consequences: freeCons([t('manv.resists', { name: hero.label })]) };
+      }
+      // L'attaquant l'emporte : on re-oppose le jet influencé du défenseur (reproduit `resolveOpposed` de la
+      // cascade) pour la MARGE NETTE (RAW Regard : +1 DR/Avantage variable), puis on applique les effets.
+      const drow = hydrateTR({ roll: step.result.roll, target: step.result.target, base: step.base, success: step.result.roll <= step.result.target, sl: step.result.sl });
+      const margin = resolveOpposed(opp.aT, drow).netSL + (def.advantageMode === 'variable' ? md.spent : 0);
+      const journal = applyManeuverEffects(get, set, attacker, def, hero, md.indice, margin, battleRng());
+      syncManeuver();
+      return { consequences: freeCons(journal) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

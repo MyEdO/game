@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { startCascade, pushStep, registerTableStep, registerCascadeApplier, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from '../noyau/cascade';
+import { startCascade, pushStep, suspendActiveCascade, resumeSuspendedCascade, stepInteraction, stepReady } from '../noyau/cascade';
 import { tableStep, displayStep, monoStep, worldStep, surfaceDeLEtape, surfaceOf } from '../noyau/rollSeam';
 import { stepForcedDie } from '../ui/forcedDieRow';
 import { actorIn } from '../noyau/monde/combatants';
@@ -15,6 +15,8 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence, type Cadence } from '../engine/cadence';
 import type { CascadeStep } from '../noyau/pendings';
+import { avecLesTables, type FixtureDeTables, cleDeFixture } from '../noyau/noyau.testkit';
+import type { GenreDEtape, GenreDeCascade } from '../noyau/tablesPosees';
 
 /**
  * GARDE DE PARITÉ DE PORTEUR (#1426) — le pilote de cascade traite une table de MONDE exactement
@@ -38,22 +40,29 @@ const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 
 const TABLE = 'table-parite-porteur';
-registerTableStep(TABLE, {
-  label: fixtureText('Table de parité'),
-  die: 100,
-  rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
-  lines: () => ['ligne de parité'],
-});
-/** Applier muet : l'étape a un dénouement (elle est FRANCHISSABLE), sans conséquence à observer. */
-registerCascadeApplier('parite-table', () => undefined);
-registerCascadeApplier('parite-suspend', (g, s) => { suspendActiveCascade(g, s); });
+/** La table et les genres SYNTHÉTIQUES de la suite, posés par `avecLesTables`. */
+const FIXTURE: FixtureDeTables = {
+  tablesTirables: {
+    [TABLE]: {
+      label: fixtureText('Table de parité'),
+      die: 100,
+      rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
+      lines: () => ['ligne de parité'],
+    },
+  },
+  appliers: {
+    /** Applier muet : l'étape a un dénouement (elle est FRANCHISSABLE), sans conséquence à observer. */
+    'parite-table': () => undefined,
+    'parite-suspend': (g, s) => { suspendActiveCascade(g, s); },
+  },
+};
 
 type Porteur = 'heros' | 'monde';
 
 /** LA MÊME déclaration d'étape, montée pour l'un ou l'autre porteur — seule la possession change. */
 function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeStep {
   const commun = {
-    id, kind: 'parite-table', label: fixtureText('Table de parité'),
+    id, kind: cleDeFixture('parite-table'), label: fixtureText('Table de parité'),
     table: { tableId: TABLE, spec: { n: 1, sides: 100 } },
     stake: { key: { dataset: 'combat' as const, kind: 'mutation' } },
   };
@@ -62,7 +71,7 @@ function etapeTable(porteur: Porteur, heroId: string, id = 'parite-1'): CascadeS
 
 /** LE jet ouvert SEUL, tel que ses ouvreurs le montent — `openRoll` (`monoStep` du héros) ou
  *  `openWorldTest` (`worldStep`) : seule la possession change. */
-function etapeMono(porteur: Porteur, heroId: string, kind: string): CascadeStep {
+function etapeMono(porteur: Porteur, heroId: string, kind: GenreDEtape): CascadeStep {
   const id = `parite-mono-${kind}`;
   const actor = get().party.find((h) => h.id === heroId)!;
   return porteur === 'heros'
@@ -73,7 +82,7 @@ function etapeMono(porteur: Porteur, heroId: string, kind: string): CascadeStep 
 /** La surface d'un jet ouvert seul : la couture de ses ouvreurs (`surfaceDeLEtape`, cf. `ouvrirLEtape`). */
 const surfaceMono = (st: CascadeStep) => surfaceDeLEtape(get, st);
 
-const etapeMuette = (porteur: Porteur, heroId: string, id: string, kind = 'parite-affichage'): CascadeStep =>
+const etapeMuette = (porteur: Porteur, heroId: string, id: string, kind: GenreDeCascade = cleDeFixture('parite-affichage')): CascadeStep =>
   porteur === 'heros'
     ? displayStep({ id, kind, label: fixtureText('Muette'), actorId: heroId })
     : displayStep({ id, kind, label: fixtureText('Muette'), worldOwner: true });
@@ -135,7 +144,7 @@ function observeReprise(porteur: Porteur): Observation {
   const trace = traceDesTirages();
   startCascade(get, set, {
     title: 'Parité', purpose: 'test',
-    steps: [etapeMuette(porteur, heroId, 'parite-sus', 'parite-suspend'), etapeTable(porteur, heroId)],
+    steps: [etapeMuette(porteur, heroId, 'parite-sus', cleDeFixture('parite-suspend')), etapeTable(porteur, heroId)],
   });
   get().cascadeNext();               // l'applier suspend en plein vol
   if (get().pendingCascade) suspendActiveCascade(get, set); // (le store peut déjà l'avoir reprise)
@@ -179,7 +188,7 @@ const POLITIQUES: { nom: string; pose: boolean; cadence: Cadence }[] = [
 ];
 
 describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas « le monde »', () => {
-  beforeEach(() => { resetDesFixes(); resetCadence(); });
+  beforeEach(() => { resetDesFixes(); resetCadence(); avecLesTables(FIXTURE); });
   afterEach(() => { resetDesFixes(); resetCadence(); set({ pendingCascade: null, suspendedCascades: [] }); });
 
   for (const pol of POLITIQUES) {
@@ -253,7 +262,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     const serie = (porteur: Porteur) => POLITIQUES.map((pol) => {
       setDesFixes(pol.pose);
       setCadence(pol.cadence);
-      return { surface: surfaceMono(etapeMono(porteur, heroId, 'parite')), pose: canFixDie(get(), porteur === 'heros' ? heroId : WORLD_STEP_OWNER) };
+      return { surface: surfaceMono(etapeMono(porteur, heroId, cleDeFixture('parite'))), pose: canFixDie(get(), porteur === 'heros' ? heroId : WORLD_STEP_OWNER) };
     });
     const monde = serie('monde');
     const heros = serie('heros');
@@ -274,7 +283,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     const heroId = montage();
     set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
     // `progression` ∈ KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
-    const serie = (porteur: Porteur) => ['progression', 'tourbillon'].map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
+    const serie = (porteur: Porteur) => (['progression', 'tourbillon'] as const).map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
     const monde = serie('monde');
     expect(monde, 'une surface qui diverge par le PORTEUR est une branche « spéciale monde »').toEqual(serie('heros'));
     expect(monde, 'et la série discrimine la routine de voyage').toEqual(['I', 'M']);

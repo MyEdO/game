@@ -10,25 +10,26 @@ import { buildSeaGenericStep, seaActivityRefus } from '../noyau/seaActivities';
 import { creditBourse } from '../noyau/bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { toBrass } from '../engine/money';
-import { cascadeAppliers, startCascade, setOwnTestFailedEmitter } from '../noyau/cascade';
+import { applierDe, startCascade } from '../noyau/cascade';
 import { spyApplier } from './cascade.testkit';
-import { fireOwnTestFailed } from '../noyau/triggeredEffects';
-import { battleRng } from '../noyau/battleRng';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { activityById, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { refusNePeutTenter } from '../engine/skills';
-import { datasetFile, datasetSerializeRoot } from '../data/overrides';
+import { datasetFile, datasetSerializeRoot, setDataset } from '../data/overrides';
 import { validateDataset } from '../data/schemas/validate';
 import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { combatStakeRef } from '../data';
+import { combatStakeRef, symptoms } from '../data';
 import { t } from '../i18n';
 import { bandStep, monoStep, resultLine, rollStep } from '../noyau/rollSeam';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { PlayerText } from '../i18n/playerText';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import type { GenreDEtape } from '../noyau/tablesPosees';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -41,12 +42,12 @@ const heros = (over: Partial<Combatant> = {}): Combatant =>
 const INCONSCIENT = { conditions: [{ id: 'inconscient', value: 1 }] } as Partial<Combatant>;
 
 const appliquer = (step: CascadeStep, hero?: Combatant) =>
-  cascadeAppliers[step.kind].apply(useGame.getState, useGame.setState, step, hero, { steps: [step], index: 0 });
+  applierDe(step.kind)!(useGame.getState, useGame.setState, step, hero, { steps: [step], index: 0 });
 const ligneDe = (out: ReturnType<typeof appliquer>): string => resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
 const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: 'ragot' });
 
 /** Étape MONO de Ragot non tentable, montée par `monoStep` avec le refus de son porteur. */
-const ragotSansJet = (kind: string, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
+const ragotSansJet = (kind: GenreDEtape, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
   monoStep({
     id: kind, kind, label, actor: hero, difficulty: 'intermediaire', stake: combatStakeRef(kind),
     ligne: { test: { skill: 'ragot', char: 'sociabilite' }, refus: refusRagot(hero) },
@@ -238,32 +239,44 @@ describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () =
 });
 
 describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son porteur (LDB 09 l.30 ; MSRC 16 l.152)', () => {
-  const emis: { id: string; sl: number }[] = [];
+  /** Symptôme de fixture : sur un Test raté, Sonné à DR 0 exactement, À Terre à DR négatif — l'échec
+   *  SANS JET est un échec de DR 0 (`ECHEC_SANS_JET`). */
+  const SONDE = 'sonde-echec-sans-jet';
+  const SYMPTOMES_LIVRES = [...symptoms];
+  const porteur = (): Combatant => heros({
+    diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: SONDE }], minutesLeft: 1e5, durationMinutes: 1e5 }],
+  } as Partial<Combatant>);
   beforeEach(() => {
-    emis.length = 0;
-    useGame.setState({ party: [heros()], journal: [], pendingCascade: null });
-    setOwnTestFailedEmitter((_g, actor, sl) => { emis.push({ id: actor.id, sl }); return []; });
+    setDataset('symptoms', [...SYMPTOMES_LIVRES, {
+      id: SONDE, type: 'symptoms', label: 'Sonde',
+      effects: [
+        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '==', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'sonne' }] } } } },
+        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '<', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'a-terre' }] } } } },
+      ],
+    } as never]);
+    useGame.setState({ party: [porteur()], journal: [], pendingCascade: null });
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'mono-sans-jet': spyApplier([], () => null), 'bande-sans-jet': spyApplier([], () => null) } });
   });
-  afterEach(() => setOwnTestFailedEmitter((g, actor, sl) => fireOwnTestFailed(g, actor, { sl, rng: battleRng() })));
+  afterEach(() => setDataset('symptoms', SYMPTOMES_LIVRES));
 
-  it('étape MONO sans jet : l’événement part pour son porteur, DR 0', () => {
+  it('étape MONO sans jet : le porteur subit l’effet de son Test raté, à DR 0', () => {
     const hero = useGame.getState().party[0];
-    spyApplier('mono-sans-jet', [], () => null);
     const step = monoStep({
-      id: 'mono-sans-jet', kind: 'mono-sans-jet', label: t('mf.rechercheActive'), actor: hero, difficulty: 'intermediaire', stake: combatStakeRef('merchant-ragot'),
+      id: 'mono-sans-jet', kind: cleDeFixture('mono-sans-jet'), label: t('mf.rechercheActive'), actor: hero, difficulty: 'intermediaire', stake: combatStakeRef('merchant-ragot'),
       ligne: { test: { skill: 'ragot' }, refus: refusRagot(hero) },
     })!;
     startCascade(useGame.getState, useGame.setState, { title: 'X', purpose: 'test', steps: [step] });
     useGame.getState().cascadeNext();
-    expect(emis).toEqual([{ id: 'h', sl: 0 }]);
+    expect(hasCondition(useGame.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
+    expect(hasCondition(useGame.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });
 
-  it('rangée de BANDE sans jet : l’événement part pour SON porteur, DR 0', () => {
+  it('rangée de BANDE sans jet : SON porteur subit l’effet de son Test raté, à DR 0', () => {
     const hero = useGame.getState().party[0];
-    spyApplier('bande-sans-jet', [], () => null);
     const ligne = rollStep({ actor: hero, test: { skill: 'ragot' }, difficulty: 'intermediaire', refus: refusRagot(hero) });
-    startCascade(useGame.getState, useGame.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: 'bande-sans-jet' }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
+    startCascade(useGame.getState, useGame.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
     useGame.getState().cascadeNext();
-    expect(emis).toEqual([{ id: 'h', sl: 0 }]);
+    expect(hasCondition(useGame.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
+    expect(hasCondition(useGame.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);
   });
 });

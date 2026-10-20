@@ -607,8 +607,10 @@ y mettre un texte non vide. Le projet se pose par `__wfrp.projectMinimal()`, s'�
 
 - Un fichier de test du dépôt se lance par `npm test -- <fichier>` : la config de `vite.config.ts`
   charge `setupFiles: src/test-setup.ts`, sans quoi des modules du jeu cassent au chargement.
-- Une config vitest MAISON (sans ce `setupFiles`) casse sur les cycles d'import du moteur
-  (`clotureAppliers`) : ne pas en écrire.
+- Une config vitest MAISON (sans ce `setupFiles`) ne crée pas le store, qui seul pose les tables du jeu
+  (`brancherLeJeu`, `src/state/store.ts`) : sauf import du store par le test, la première lecture d'une
+  table par le socle lève « [noyau] tables du jeu non posées (`brancherLeJeu`) » (`tablesPosees`,
+  `src/noyau/tablesPosees.ts`). Ne pas en écrire.
 - Le hook `scripts/hooks/codeur-gates-guard.mjs` REFUSE un `vitest run` sans filtre de fichier (suite
   entière) ; avec un ou plusieurs chemins, il laisse passer.
 - Une forme de donnée (schéma zod) se sonde par un script `npx tsx <sonde.ts>` au scratchpad qui importe

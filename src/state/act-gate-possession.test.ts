@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { resolveActGates } from '../noyau/combat/turnHooks';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { surfaceOf } from '../noyau/rollSeam';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { ownsLocal, humanControlled } from '../noyau/netOwnership';
@@ -125,7 +125,7 @@ describe('#1262 — l’étape de CHOIX insérée par l’applier naît du mint 
   it('échec du gate → choix `actGateChoice` PORTÉ par le héros, jamais partagé', () => {
     const hero = setup(mk('H1'), COOP);
     const step = { id: 'actGate-H1-force-mentale', kind: 'actGate', label: 'Garder ses moyens', result: { roll: 90, target: 20, sl: -7, success: false } } as unknown as CascadeStep;
-    const res = cascadeAppliers.actGate!.apply(useGame.getState, useGame.setState, step, hero, { steps: [step], index: 0 });
+    const res = applierDe('actGate')!(useGame.getState, useGame.setState, step, hero, { steps: [step], index: 0 });
     const [choix] = res!.insert!;
     expect(choix.kind).toBe('actGateChoice');
     expect(choix.actorId, 'le choix porte SON porteur : l’hôte ne tranche pas la voie de l’invité').toBe('H1');
@@ -137,7 +137,7 @@ describe('#1262 — l’étape de CHOIX insérée par l’applier naît du mint 
   it('succès du gate → aucune insertion (rien à restreindre)', () => {
     const hero = setup(mk('H1'), COOP);
     const step = { id: 'actGate-H1-force-mentale', kind: 'actGate', label: 'Garder ses moyens', result: { roll: 5, target: 20, sl: 1, success: true } } as unknown as CascadeStep;
-    const res = cascadeAppliers.actGate!.apply(useGame.getState, useGame.setState, step, hero, { steps: [step], index: 0 });
+    const res = applierDe('actGate')!(useGame.getState, useGame.setState, step, hero, { steps: [step], index: 0 });
     expect(res!.insert).toBeUndefined();
   });
 });

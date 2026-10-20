@@ -24,13 +24,14 @@ import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, ps
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
-import { registerCascadeApplier, startCascade } from './cascade';
+import { startCascade } from './cascade';
 import { describeEncounterPsych } from './flowOutcomes';
 import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import { dataLabel } from '../data';
 import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Forme d'un Test de Psychologie de rencontre résolu — conservée pour `describeEncounterPsych`
  *  (l'applier en construit une à partir de l'étape de cascade). */
@@ -196,19 +197,27 @@ function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boole
   return freeCons([describeEncounterPsych(pe, hero.label), ...supersededLines(hero, hero.label)]);
 }
 
-/** Applier de BANDE : la déclaration de règle est celle de l'ÉTAPE, la conséquence se joue RANGÉE PAR
- *  RANGÉE (résultat + Détermination du porteur), et chaque verdict reste SUR SA rangée (le portrait
- *  attribue) — jamais un agrégat (`aggregate:'none'`). */
-registerCascadeApplier('encounterPsych', (get, set, step) => {
-  const ep = step.encounterPsych;
-  if (!ep || !step.participants) return;
-  for (const part of step.participants) {
-    const hero = actorIn(get(), part.id);
-    if (!hero || !part.result) { part.outcome = []; continue; }
-    const lines = resultLines(resolvePsychRow(hero, ep, part.result, !!part.immune));
-    part.outcome = lines;
-    for (const l of lines) get().log(l.text);
-  }
-  set(touchActors(get()));
-  return { consequences: [] };
-});
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['encounterPsych'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Applier de BANDE : la déclaration de règle est celle de l'ÉTAPE, la conséquence se joue RANGÉE PAR
+     *  RANGÉE (résultat + Détermination du porteur), et chaque verdict reste SUR SA rangée (le portrait
+     *  attribue) — jamais un agrégat (`aggregate:'none'`). */
+    encounterPsych: (get, set, step) => {
+      const ep = step.encounterPsych;
+      if (!ep || !step.participants) return;
+      for (const part of step.participants) {
+        const hero = actorIn(get(), part.id);
+        if (!hero || !part.result) { part.outcome = []; continue; }
+        const lines = resultLines(resolvePsychRow(hero, ep, part.result, !!part.immune));
+        part.outcome = lines;
+        for (const l of lines) get().log(l.text);
+      }
+      set(touchActors(get()));
+      return { consequences: [] };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

@@ -29,6 +29,7 @@ import type { Money } from '../engine/money';
 import type { SupportDetail } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { TestNomme } from '../engine/reglesChiffrees';
+import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -1562,10 +1563,10 @@ export interface PendingExtendedTest extends PendingBase {
    *  (`dissipateSpell` sur les combattants) au lieu de poser un flag de scène. */
   dispel?: { spellId: string; casterId: string; label: string };
   /** Issue de DOMAINE en donnée (kind-agnostique — Commerce d'opportunité, artisanat futur…) : résolue
-   *  par `extendedTestOutcomeAppliers[outcome.kind]` (calque `cascadeAppliers`) à la clôture du Test,
+   *  par la table `issuesDeTestEtendu` (calque de la table `appliers`) à la clôture du Test,
    *  qu'il ait ATTEINT sa cible ou buté sur `maxAttempts`. `meta` = paramètres sérialisables (jamais de
    *  closure — coop). Absent ⇒ comportement historique (`flag`/`dispel`, réussite seule). */
-  outcome?: { kind: string; meta?: CascadeStepMeta };
+  outcome?: { kind: IssueDeTestEtendu; meta?: CascadeStepMeta };
   /** ENJEU du Round (#1117) — référence de donnée résolue par `resolveStake`, rendue par la modale. */
   stake?: StakeRef;
   /** SUITE du Flow qui a ouvert le Test (Effet `extendedTest`, geste `suspensif`) — rejouée à sa clôture. */
@@ -1632,7 +1633,7 @@ export interface ManeuverDefenseFreeze {
 /** Contexte SÉRIALISABLE d'une ATTAQUE GRATUITE de talent (op `grantFreeAttack`) porté par une étape de
  *  cascade : la CIBLE de la frappe (`targetId` — un TIERS : le chargeur pour Frappe réactive), le plafond
  *  /Round (`cap` = niveau du talent) et la `key` d'imputation (`freeAttacksThisTurn`). Reconstruit l'`exec`
- *  impur de l'applier (la frappe est ouverte via `runCombatFlow` + le hook `freeAttack`). */
+ *  impur de l'applier (la frappe est ouverte via `runCombatFlow` + `accorderLAttaqueGratuite`). */
 export interface FreeAttackFreeze {
   targetId: string;
   cap: number;
@@ -1659,7 +1660,7 @@ export interface BladeTrapFreeze {
  * d'une fouille tire les effets PROGRAMMÉS et les ticks (Hémorragique, Poison, agonie) — jouée devant
  * un dé de chute, elle les tire sur des Blessures qui n'ont pas encaissé.
  *
- * UNION FERMÉE de verbes SÉRIALISABLES, résolus par un REGISTRE (patron `cascadeAppliers`) : jamais
+ * UNION FERMÉE de verbes SÉRIALISABLES, résolus par une TABLE (`clotures`, patron de la table `appliers`) : jamais
  * une fermeture JS. `pendingCascade` est SAUVEGARDÉ (`state/saves.ts`) et voyage sur le réseau — une
  * clôture qui serait une fonction ne survivrait ni à l'un ni à l'autre.
  */
@@ -1729,9 +1730,9 @@ export interface CascadeStepMeta {
   /** Plafond CHIFFRÉ du total sommé, versé par le flux propriétaire (naval : « jamais mieux qu'un
    *  Succès Minime », Manque de bras MDG 14 l.55 — `capToSuccesMinime`). Absent = aucun plafond. */
   aggregateCapTo?: number;
-  /** Id du prédicat de SUCCÈS du total sommé (`registerCascadeSuccessRule`, naval : `crew-test` →
+  /** Id du prédicat de SUCCÈS du total sommé (table `reglesDeSucces`, naval : `crew-test` →
    *  `crewTestSuccess`, MDG 14 l.13). Chaîne, jamais une closure : le pending est snapshoté en JSON. */
-  aggregateSuccessRule?: string;
+  aggregateSuccessRule?: RegleDeSucces;
   /** Marge adverse soustraite du total (`aggregate:'opposed'` — contresort). */
   aggregateOpposeSl?: number;
   /** Branche de réussite d'une étape `triggeredTest` (exécutée via `applyTriggeredTestBranch`). */
@@ -1811,7 +1812,7 @@ export interface CascadeRoll {
 }
 /**
  * Une ÉTAPE influençable d'une CASCADE séquentielle (bilan de nuit, journée de voyage…). Le `kind`
- * détermine la CONSÉQUENCE (appliée à la validation par `cascadeAppliers[kind]`, cf. noyau/cascade.ts) ;
+ * détermine la CONSÉQUENCE (appliée à la validation par `applierDe(kind)`, cf. noyau/cascade.ts) ;
  * le jet lui-même est kind-agnostique (Test de `base`+difficulté sur `target`). `meta` porte les
  * paramètres sérialisables de la conséquence (ex. `days`, `count`) — PAS de closure (coop : le pending
  * est snapshoté/transmis). Une étape SANS `target` est un simple passage (rare) ; les notes en clair
@@ -1996,7 +1997,7 @@ export interface CascadeDeResult {
 }
 
 /** TIRAGE SUR TABLE d'une étape de cascade — le MÊME dé (`CascadeDeDecl`), LU en table : le total
- *  sert de dé EFFECTIF au lookup de `tableId` (registre `tableStepDef` de `noyau/cascade.ts`).
+ *  sert de dé EFFECTIF au lookup de `tableId` (lecteur `tableStepDef` de `noyau/cascade.ts`).
  *  `result` absent = dé non jeté (interaction `'table'`). */
 export type CascadeTableDecl = CascadeDeTirage & {
   tableId: string;
@@ -2076,8 +2077,9 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  `rollSeam.composeRollLabel`) — un littéral ne s'y pose plus, et le stock d'avant est ÉTEINT : le
    *  fossile qui le gelait est mort, son cliquet reste en tripwire (`player-text-ratchet.test.ts`). */
   label?: PlayerText;
-  /** Nature de la conséquence (clé de `cascadeAppliers`). Ex. 'recovery' | 'nightmare' | 'exposure'. */
-  kind: string;
+  /** Genre de l'étape : clé de la table `appliers` (`GenreDEtape`), ou genre que l'hôte ou le jet traite
+   *  (`GenreHote`). */
+  kind: GenreDeCascade;
   /** Héros qui lance (résolu via `actorIn`). Absent → étape de groupe (rare). */
   actorId?: string;
   icon?: string;
@@ -2131,7 +2133,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Refus NOMMÉ d'une ligne non tentable (LDB 09 l.30) — présent ssi `result` est `EchecSansJet`. */
   refus?: PlayerText;
   /** Étape à TABLE (#942 L2) : un TIRAGE SUR TABLEAU est l'interaction `'table'` — le dé de l'étape se
-   *  jette sur `table.tableId` (registre `tableStepDef`), `rollTableStep` pose `table.result` (dé
+   *  jette sur `table.tableId` (lecteur `tableStepDef`), `rollTableStep` pose `table.result` (dé
    *  naturel + dé effectif + id de ligne + lignes). Résolue → l'étape s'affiche comme les autres
    *  (rangée `TableRollLine` + lignes de l'entrée). Une étape peut porter `table` ET `reveal` (charge
    *  riche du Critique) : la déclaration du tirage et son rendu détaillé sont deux choses. */
@@ -2292,7 +2294,7 @@ export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface };
  * VOYAGE — cf. docs/superpowers/specs/2026-06-14-multi-roll-modal-design.md, Étape 3) : on présente
  * UNE étape à la fois, chacune avec son cycle Chance/+1 DR/Pacte/Résilience, on valide, on enchaîne.
  * `participants` = les seules étapes INFLUENÇABLES (les notes en clair vont dans `log`). `cursor` =
- * l'étape courante. À la validation d'une étape, sa conséquence est appliquée (`cascadeAppliers`) et
+ * l'étape courante. À la validation d'une étape, sa conséquence est appliquée (`applierDe`) et
  * elle peut INSÉRER des étapes suivantes (dépendance : abri → nombre de jets d'Exposition). `purpose`
  * pilote la FINALISATION (reprise de voyage…). Même fabrique que le Test Étendu — seule la sémantique
  * d'étape (conséquence par `kind` au lieu d'un cumul de DR) change. */

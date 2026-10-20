@@ -5,16 +5,6 @@
  */
 import { create } from 'zustand';
 import { creerActionsDuCurseur, curseurPerime, screenStepDot, type CombatCursor, type ScreenDir } from './combatCursor';
-// #2817 D2
-import '../noyau/seaVoyageFlow';
-import '../noyau/corruptionFlow';
-import '../noyau/shipwreck';
-import '../noyau/combatEffects';
-import '../noyau/combatManeuvers';
-import '../noyau/combat/roundHooks';
-import '../noyau/combat/turnHooks';
-import '../noyau/combat/triggeredTest';
-import '../noyau/combat/hitModifiers';
 import { t } from '../i18n';
 import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
@@ -36,6 +26,8 @@ import type { Scene } from '../noyau/monde/scene';
 import { exploreStepDest } from '../noyau/monde/exploreNav';
 import { bus, EVT } from '../noyau/bus';
 import { createCombatSlice } from '../noyau/combatSlice';
+import { brancherLeJeu } from '../noyau/branchement';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { etatInitialDuJeu, type CampaignDoc, type Ecran, type Jeu } from '../noyau/etat';
 import { creerActionsDOrientation } from '../noyau/orientation';
@@ -438,6 +430,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
   setGameMenu: (open) => set({ gameMenuOpen: open }),
 }));
+
+// Le jeu branché sur son propriétaire, le store (#2889, D7).
+brancherLeJeu(useGame.getState, useGame.setState, tablesDuJeu());
 
 // Plateforme web du noyau (#2817, D6) : ses appels différés passent par le registre tracé de
 // `web/minuteries` (#405, #415), son héros persisté par le roster. Son jeton est l'id du timer tracé :

@@ -14,10 +14,10 @@ import { combatStakeRef } from '../data';
 import { monoStep } from '../noyau/rollSeam';
 import { hasCondition, COND } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
-import {
-  registerSequence, startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps,
-} from '../noyau/sequenceCore';
+import { startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps } from '../noyau/sequenceCore';
 import { type SequenceParams, type SequenceRound, type SequenceVerdict } from '../noyau/sequenceContract';
+import { avecLesTables, sequenceDeFixture, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /* ── (2) TABLE DE SCORE PAR PLAGE DE DR ──────────────────────────────────────────────────────────*/
 
@@ -68,22 +68,15 @@ interface JoutePayload { lices: string[]; passes: number[] }
 
 const JOUTE = 'test-tournoi-joute';
 
-declare module '../noyau/sequenceContract' {
-  interface SequenceFamilies {
-    [JOUTE]: JoutePayload;
-    'test-joute-borne-attrition': JoutePayload;
-    'test-joute-sans-fin': JoutePayload;
-  }
-}
 const passes: number[] = [];
 
-registerSequence(JOUTE, {
+beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOUTE]: sequenceDeFixture<JoutePayload>({
   round: (get, seq): SequenceRound<JoutePayload> | undefined => {
     const h = get().party[0];
     if (!h) return undefined;
     passes.push(seq.round);
     const step = monoStep({
-      id: `passe-${seq.round}`, kind: 'testJoute', label: fixtureText(`Passe ${seq.round}`), actor: h,
+      id: `passe-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText(`Passe ${seq.round}`), actor: h,
       difficulty: 'intermediaire', montee: { base: 50, target: 50 },
       stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
     });
@@ -96,7 +89,31 @@ registerSequence(JOUTE, {
     const roundActors = { winners: [h.id], all: [h.id] };
     return dernier ? { go: 'end', outcome: 'fini', roundActors } : { go: 'continue', roundActors };
   },
-});
+}), 'test-joute-borne-attrition': sequenceDeFixture<JoutePayload>({
+      round: (get, seq) => {
+        const h = get().party[0];
+        passes.push(seq.round);
+        const step = monoStep({
+          id: `b-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
+          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
+        });
+        return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
+      },
+      close: ({ get }) => ({ go: 'continue', roundActors: { all: [get().party[0].id] } }),
+    }), 'test-joute-sans-fin': sequenceDeFixture<JoutePayload>({
+      round: (get, seq) => {
+        const h = get().party[0];
+        passes.push(seq.round);
+        const step = monoStep({
+          id: `p-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
+          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
+        });
+        return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
+      },
+      close: () => ({ go: 'continue' }),
+    }) } }); });
 
 describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arrête au bout de ses phases', () => {
   beforeEach(() => {
@@ -230,19 +247,6 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
   /** Même invariant à la BORNE : une séquence qui s'arrête faute de conclusion s'arrête AUSSI sur une
    *  manche qui ne « passe » plus — l'attrition ne la frappe pas non plus. */
   it('la manche de BORNE n’inflige pas non plus l’attrition', () => {
-    registerSequence('test-joute-borne-attrition', {
-      round: (get, seq) => {
-        const h = get().party[0];
-        passes.push(seq.round);
-        const step = monoStep({
-          id: `b-${seq.round}`, kind: 'testJoute', label: fixtureText('Passe'), actor: h,
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
-        });
-        return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
-      },
-      close: ({ get }) => ({ go: 'continue', roundActors: { all: [get().party[0].id] } }),
-    });
     startSequence<JoutePayload>(useGame.getState, useGame.setState, {
       def: 'test-joute-borne-attrition',
       params: {
@@ -274,19 +278,6 @@ describe('la BORNE tient compte des phases déclarées', () => {
   });
 
   it('un réducteur qui ne conclut JAMAIS s’arrête quand même au total des phases', () => {
-    registerSequence('test-joute-sans-fin', {
-      round: (get, seq) => {
-        const h = get().party[0];
-        passes.push(seq.round);
-        const step = monoStep({
-          id: `p-${seq.round}`, kind: 'testJoute', label: fixtureText('Passe'), actor: h,
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
-        });
-        return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
-      },
-      close: () => ({ go: 'continue' }),
-    });
     startSequence<JoutePayload>(useGame.getState, useGame.setState, {
       def: 'test-joute-sans-fin', params: { phases: { count: 2, rounds: 2 } }, payload: { lices: [], passes: [] },
     });

@@ -26,7 +26,7 @@ import { testValue } from '../engine/skills';
 import { isOutOfAction } from '../engine/conditions';
 import { rule } from '../engine/policy';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { startCascade, registerCascadeApplier } from './cascade';
+import { startCascade } from './cascade';
 import { freeCons, rollSansPilote, rollStep } from './rollSeam';
 import { humanControlled } from './netOwnership';
 import { possessionLabel } from '../engine/possession';
@@ -38,6 +38,7 @@ import { dataLabel, refLabel } from '../data';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { stepDetail } from './rollSeam';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
  *  la policy `sea-shipwreck-swim`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade). */
@@ -209,23 +210,31 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
   return lines;
 }
 
-/** Étape-jet de Natation d'un naufrage (#269) : succès → rescapé (sort de la rencontre) ; échec → noyé
- *  (LDB 18 l.344). La DERNIÈRE étape validée déclenche la clôture complète (`finishShipwreck`). */
-registerCascadeApplier('shipwreckSwim', (get, set, step, hero, ctx) => {
-  if (!step.result || !hero) return;
-  const diff = rule('sea-shipwreck-swim') as Difficulty;
-  const success = step.result.success;
-  // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-  const line = t('wreck.applierLine', {
-    name: hero.label, test: swimTestLabel(diff),
-    issue: success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
-  });
-  if (success) { hero.outOfRencontre = false; hero.exitReason = undefined; } else hero.dead = true;
-  set({ party: [...get().party] });
-  if (ctx.index !== ctx.steps.length - 1) return { consequences: freeCons([line]) };
-  const shoreId = String(step.meta?.shoreId ?? '');
-  const journalMark = Number(step.meta?.journalMark ?? 0);
-  const swimmerIds = ctx.steps.filter((s) => s.kind === 'shipwreckSwim').map((s) => s.actorId!);
-  const shore = shoreId ? placeById(get().worldMap as WorldMap, shoreId) : undefined;
-  return { consequences: freeCons([line, ...finishShipwreck(get, set, shore, swimmerIds, journalMark)]) };
-});
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['shipwreckSwim'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Étape-jet de Natation d'un naufrage (#269) : succès → rescapé (sort de la rencontre) ; échec → noyé
+     *  (LDB 18 l.344). La DERNIÈRE étape validée déclenche la clôture complète (`finishShipwreck`). */
+    shipwreckSwim: (get, set, step, hero, ctx) => {
+      if (!step.result || !hero) return;
+      const diff = rule('sea-shipwreck-swim') as Difficulty;
+      const success = step.result.success;
+      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+      const line = t('wreck.applierLine', {
+        name: hero.label, test: swimTestLabel(diff),
+        issue: success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
+      });
+      if (success) { hero.outOfRencontre = false; hero.exitReason = undefined; } else hero.dead = true;
+      set({ party: [...get().party] });
+      if (ctx.index !== ctx.steps.length - 1) return { consequences: freeCons([line]) };
+      const shoreId = String(step.meta?.shoreId ?? '');
+      const journalMark = Number(step.meta?.journalMark ?? 0);
+      const swimmerIds = ctx.steps.filter((s) => s.kind === 'shipwreckSwim').map((s) => s.actorId!);
+      const shore = shoreId ? placeById(get().worldMap as WorldMap, shoreId) : undefined;
+      return { consequences: freeCons([line, ...finishShipwreck(get, set, shore, swimmerIds, journalMark)]) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

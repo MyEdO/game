@@ -304,7 +304,7 @@ export interface MiscastTableDef {
 const data = miscastJson as unknown as MiscastTableDef[];
 
 /** Une ligne de table d'Imparfaite/Colère telle que la DONNÉE la porte : fourchette + id STABLE +
- *  libellé. Forme de `TableStepRow` (noyau/cascade) — les rangées entrent au registre d'étapes PAR
+ *  libellé. Forme de `TableStepRow` (noyau/cascade) — les rangées entrent aux tables tirables PAR
  *  RÉFÉRENCE, sans duplication de fourchettes ni de libellés. */
 export interface MiscastTableRow {
   id: string;
@@ -370,7 +370,7 @@ export function miscastTableRows(tableId: string): (MiscastTableRow & { max: num
   return rows;
 }
 
-/** Jeu de tables d'Incantations Imparfaites en vigueur (dérivé des mêmes ids que le registre).
+/** Jeu de tables d'Incantations Imparfaites en vigueur (dérivé des mêmes ids que les tables tirables).
  *  POINT DE LECTURE UNIQUE du delta LDB/VDM. */
 function miscastTables(): Record<MiscastSeverity, Row[]> {
   const ids = rule('magic-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB;

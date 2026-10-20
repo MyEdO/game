@@ -2,6 +2,8 @@ import { libelleEffet } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
+import { tableTotale } from '../lib/tableTotale';
+import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
@@ -62,8 +64,7 @@ import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';
 import { bus, EVT } from './bus';
 import { combatDistance } from './monde/footprint';
-import { registerCascadeApplier, setSuiteApresCommit, pushStep, idDeLaDernierePoussee,
-  etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
+import { type CascadeApplier, pushStep, idDeLaDernierePoussee, etapesDeLaFenetre, annoterEtapeDeLaFenetre } from './cascade';
 import { exposureWaveBand } from './nightBands';
 import { freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -576,38 +577,6 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
 }
 
 /**
- * APPLIER du canal op → applier (#1508) : le dé de cette étape est tombé (lancé ou POSÉ). S'il reste
- * une demande non servie pour la MÊME grappe, elle s'ouvre à son tour ; sinon les ops s'appliquent AVEC
- * tous les dés de la grappe (`OpsCtx.des`), donc sans qu'aucun d'eux ne soit retiré, et la CONTINUATION
- * confiée par le walker qui a différé est rejouée APRÈS.
- *
- * Les dés déjà tombés se relisent sur les ÉTAPES SŒURS de la séquence (même grappe) : rien n'est
- * recopié dans le `meta`, donc rien ne peut diverger de ce que la fenêtre a montré.
- */
-registerCascadeApplier('opsDe', (get, set, step, hero, sctx) => {
-  const ops = opsDeLEtape(step);
-  if (!ops || !step.de?.result) return;
-  // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
-  if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-  const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
-  if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
-  const groupe = groupeDe(step);
-  const des = new Map<string, number>();
-  for (const s of sctx.steps.slice(0, sctx.index + 1)) {
-    const cle = s.meta?.opsDeCle;
-    if (groupeDe(s) !== groupe || typeof cle !== 'string' || !s.de?.result) continue;
-    des.set(cle, s.de.result.total);
-  }
-  const reste = demandesDeDes(ops, hero, ctx).filter((d) => !des.has(d.cle));
-  if (reste.length) { ouvrirDesDOps(set, hero, ops, ctx, reste[0], groupe); return; }
-  const journal = applyOps(hero, ops, { ...ctx, des });
-  set(touchActors(get()));
-  // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
-  // conséquence journalisée — cf. `setSuiteApresCommit`.
-  return { consequences: freeCons(journal) };
-});
-
-/**
  * OUVRE à la porte le 1d10 de DÉGÂTS d'une chute de hauteur CONNUE (LDB 15 l.80) — effondrement d'une
  * passerelle, chute de selle, Effet d'auteur : la hauteur est déjà dite par la situation, seul le dé
  * reste à jeter, et il se jette à la porte comme celui d'un Critique. `applyFall` reste le foyer
@@ -627,28 +596,6 @@ export function ouvrirChute(set: SetFn, cible: Combatant, metres: number): void 
     meta: { differeLaSuite: true, chuteMetres: metres },
   }, revealPurpose('sequence', false));
 }
-
-registerCascadeApplier('chuteDe', (get, set, step, hero) => {
-  const metres = step.meta?.chuteMetres;
-  // Le dé n'a pas encore de résultat : l'étape est ouverte, rien à appliquer — le goulot repassera.
-  if (typeof metres !== 'number' || !step.de?.result) return;
-  // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
-  if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-  const avant = hero.wounds.current;
-  const dejaATerre = hasCondition(hero, 'a-terre');
-  applyFall(hero, metres, step.de.result.total);
-  // Ce que LA CHUTE a coûté, lu IMMÉDIATEMENT après elle : la ligne dit sa propre conséquence, pas le
-  // solde de tout ce qui suivra (la suite confiée à l'étape est rejouée par le goulot, plus tard).
-  const perte = avant - hero.wounds.current;
-  const aTerre = !dejaATerre && hasCondition(hero, 'a-terre');
-  set(touchActors(get()));
-  return { consequences: freeCons([t('eff.fallTarget', {
-    name: hero.label,
-    m: metres,
-    lost: perte,
-    aterre: aTerre ? t('eff.fragATerre') : '',
-  })]) };
-});
 
 // ---------------------------------------------------------------------------
 // CONTINUATION d'un lot/d'une pile DIFFÉRÉE par un dé (#1508)
@@ -724,44 +671,24 @@ function indexDeLEtapeQuiAttend(p: PendingCascade): number {
 }
 
 /**
- * REGISTRE des CLÔTURES (#1508) — patron `cascadeAppliers` : chaque verbe de l'union `Cloture` est
- * résolu par UNE fonction, enregistrée par le module qui la POSSÈDE. La donnée voyage (sauvegarde,
- * réseau), le code reste ici.
+ * LES CLÔTURES (#1508) — chaque verbe de l'union `Cloture` est résolu par UNE fonction, déclarée par le
+ * module qui la POSSÈDE (`TablesDuJeu.clotures`, totale au type : un verbe sans applier ne compile pas).
+ * La donnée voyage (sauvegarde, réseau), le code reste ici.
  *
- * TOTALITÉ tenue au type (`_ClotureRegistreTotal` ci-dessous) : un verbe ajouté à l'union sans applier
- * ne compile pas — la clôture ne peut pas se perdre en silence, qui est exactement le défaut qu'elle
- * répare.
- */
-type ClotureApplier<K extends Cloture['verbe']> = (get: Get, set: SetFn, c: Extract<Cloture, { verbe: K }>) => void;
-const clotureAppliers = new Map<Cloture['verbe'], ClotureApplier<Cloture['verbe']>>();
-export function registerCloture<K extends Cloture['verbe']>(verbe: K, fn: ClotureApplier<K>): void {
-  clotureAppliers.set(verbe, fn as unknown as ClotureApplier<Cloture['verbe']>);
-}
-/** Les verbes de l'union, en VALEURS — lus par la garde de totalité du registre. */
-export const CLOTURE_VERBES = ['dialogueSuivant', 'avancerHorloge', 'retirerEntite', 'marquerActionJouee',
-  'testRateDeLActeur', 'effetsProgrammes', 'ouvrirEcranDeVictoire', 'teardownDeVictoire',
-  'reprendreFlow', 'reprendreFlowDeCombat'] as const;
-/** TOTALITÉ AU TYPE : un verbe ajouté à `Cloture` sans entrée dans `CLOTURE_VERBES` fait échouer `tsc`. */
-export type _ClotureVerbesTotaux = [Exclude<Cloture['verbe'], (typeof CLOTURE_VERBES)[number]>] extends [never] ? true
-  : ['VERBE DE Cloture ABSENT DE CLOTURE_VERBES', Exclude<Cloture['verbe'], (typeof CLOTURE_VERBES)[number]>];
-const _verbesTotaux: _ClotureVerbesTotaux = true;
-void _verbesTotaux;
-
-/**
  * JOUE une suite, dans l'ordre de la confidence — et si l'UN de ses maillons ouvre un dé à son tour
  * (l'horloge d'une fouille peut tirer un effet programmé qui fait tomber), ceux qui RESTENT partent
  * avec ce dé. Rien ne double-passe : l'étape SOURCE rend sa suite en se validant (`cascade.commitStep`,
  * au même endroit que son mémo de pli), et seuls les maillons NON ENCORE joués sont reportés.
  *
- * Branchée sur le GOULOT de validation (`cascade.setSuiteApresCommit`) pour la suite d'une étape : elle
- * vaut pour TOUTE étape qui en porte une, sans qu'aucun applier ait à y penser.
+ * Jouée par le GOULOT de validation (`cascade.commitStep`) pour la suite d'une étape : elle vaut pour
+ * TOUTE étape qui en porte une, sans qu'aucun applier ait à y penser.
  */
 export function jouerLesClotures(get: Get, set: SetFn, suite: Suite): void {
   for (let i = 0; i < suite.length; i++) {
     const c = suite[i];
-    const applier = clotureAppliers.get(c.verbe);
-    if (!applier) throw new Error(`#1508 — clôture « ${c.verbe} » sans applier (registerCloture) : la suite du verbe serait perdue.`);
     const avant = comptePasDifferes(get());
+    const applier = tablesPosees().clotures[c.verbe] as ClotureApplier<Cloture['verbe']> | undefined;
+    if (!applier) throw new Error(`#1508 — clôture « ${c.verbe} » sans applier (table \`clotures\`) : la suite du verbe serait perdue.`);
     applier(get, set, c);
     if (comptePasDifferes(get()) > avant && i + 1 < suite.length) {
       confierLaSuite(set, suite.slice(i + 1));
@@ -781,12 +708,6 @@ export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite)
   if (applique === OPS_DIFFEREES) { confierLaSuite(set, suite); return; }
   jouerLesClotures(get, set, suite);
 }
-
-setSuiteApresCommit((get, set, step) => jouerLesClotures(get, set, step.meta?.apresSuite ?? []));
-// Les clôtures que CE module possède ; les autres verbes appartiennent au module qui les joue (store,
-// combatFlow), qui les enregistre à son chargement.
-registerCloture('effetsProgrammes', (get, set, c) => jouerEffetsProgrammes(get, set, c.restants));
-registerCloture('reprendreFlow', (get, set, c) => jouerFlowEntier(runFlow(get, set, c.flow, c.label, c.sl)));
 
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
  *  dans le bon ensemble (file de combat si en combat, sinon le groupe). `hero` = celui désigné par
@@ -1248,14 +1169,6 @@ type EffectHandlerMap = {
   [K in Effect['type']]: EffectHandler<Extract<Effect, { type: K }>>;
 };
 
-/** Exécuteur EN COMBAT du flux d'incantation standard (`castSpell`, `noyau/combatFlow`) pour l'Effet
- *  `castSpell` (#98) — enregistré par `combatFlow` à son chargement : ce module FEUILLE n'importe RIEN
- *  de `combatFlow` (qui, lui, importe CE module). `null` tant qu'aucun appelant ne s'est enregistré. */
-let castSpellRunner: ((get: Get, set: SetFn, caster: Combatant, target: Combatant, spellId: string) => void) | null = null;
-/** Enregistre l'exécuteur d'incantation EN COMBAT de l'Effet `castSpell` (appelé par `combatFlow`). */
-export function registerCastSpellEffect(fn: NonNullable<typeof castSpellRunner>): void {
-  castSpellRunner = fn;
-}
 
 /**
  * REGISTRE des effets — source unique data-driven (fin du god-switch `applyEffects`). Déclaré dans
@@ -2140,8 +2053,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       }
       if (get().battle) {
         // EN COMBAT : flux d'incantation STANDARD (jet influençable si piloté par un humain, cadence-aware,
-        // même chemin que l'IA) — exécuteur enregistré par `combatFlow` (module FEUILLE, anti-cycle).
-        castSpellRunner?.(get, set, caster, target, spell.id);
+        // même chemin que l'IA) — exécuteur déclaré par `combatFlow` (table `lancerLeSort`).
+        tablesPosees().lancerLeSort(get, set, caster, target, spell.id); // `castSpell`, `noyau/combatFlow` (#98)
         return;
       }
       // HORS COMBAT (couture D) : seul un héros du GROUPE a un flux d'incantation jouable (`oocCastSpell`,
@@ -2234,7 +2147,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
  *  pour chaque DR négatif » → maladie CONTRACTÉE directement (`applyContraction`, incubation normale —
  *  le Test d'exposition EST le test, jamais un second Test de Contraction). « Relancez si le Personnage
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
-for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindExposition, (_get, _set, step, hero) => {
+const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
   if (step.result.success) return { consequences: freeCons([t('eff.waterSafe', { name: hero.label })]) };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());
@@ -2246,7 +2159,7 @@ for (const kindExposition of WATER_EXPOSURE_KINDS) registerCascadeApplier(kindEx
       ...(lines.length ? lines : [t('eff.waterAlready', { name: hero.label })]),
     ]),
   };
-});
+};
 
 /**
  * Applique une liste d'Effets via le REGISTRE `EFFECT_HANDLERS` (1 effet = 1 handler). Un handler
@@ -2305,3 +2218,72 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
     },
   });
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe'] as const;
+
+/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
+export const GENRES_HOTES = ['sceneTestJet'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    ...tableTotale(WATER_EXPOSURE_KINDS, () => appliquerLExpositionHydrique),
+    /**
+     * APPLIER du canal op → applier (#1508) : le dé de cette étape est tombé (lancé ou POSÉ). S'il reste
+     * une demande non servie pour la MÊME grappe, elle s'ouvre à son tour ; sinon les ops s'appliquent AVEC
+     * tous les dés de la grappe (`OpsCtx.des`), donc sans qu'aucun d'eux ne soit retiré, et la CONTINUATION
+     * confiée par le walker qui a différé est rejouée APRÈS.
+     *
+     * Les dés déjà tombés se relisent sur les ÉTAPES SŒURS de la séquence (même grappe) : rien n'est
+     * recopié dans le `meta`, donc rien ne peut diverger de ce que la fenêtre a montré.
+     */
+    opsDe: (get, set, step, hero, sctx) => {
+      const ops = opsDeLEtape(step);
+      if (!ops || !step.de?.result) return;
+      // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
+      if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} }, hero);
+      if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      const groupe = groupeDe(step);
+      const des = new Map<string, number>();
+      for (const s of sctx.steps.slice(0, sctx.index + 1)) {
+        const cle = s.meta?.opsDeCle;
+        if (groupeDe(s) !== groupe || typeof cle !== 'string' || !s.de?.result) continue;
+        des.set(cle, s.de.result.total);
+      }
+      const reste = demandesDeDes(ops, hero, ctx).filter((d) => !des.has(d.cle));
+      if (reste.length) { ouvrirDesDOps(set, hero, ops, ctx, reste[0], groupe); return; }
+      const journal = applyOps(hero, ops, { ...ctx, des });
+      set(touchActors(get()));
+      // La suite confiée à cette étape est rejouée par le GOULOT (`cascade.commitStep`), une fois cette
+      // conséquence journalisée (`jouerLesClotures`).
+      return { consequences: freeCons(journal) };
+    },
+    chuteDe: (get, set, step, hero) => {
+      const metres = step.meta?.chuteMetres;
+      // Le dé n'a pas encore de résultat : l'étape est ouverte, rien à appliquer — le goulot repassera.
+      if (typeof metres !== 'number' || !step.de?.result) return;
+      // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
+      if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      const avant = hero.wounds.current;
+      const dejaATerre = hasCondition(hero, 'a-terre');
+      applyFall(hero, metres, step.de.result.total);
+      // Ce que LA CHUTE a coûté, lu IMMÉDIATEMENT après elle : la ligne dit sa propre conséquence, pas le
+      // solde de tout ce qui suivra (la suite confiée à l'étape est rejouée par le goulot, plus tard).
+      const perte = avant - hero.wounds.current;
+      const aTerre = !dejaATerre && hasCondition(hero, 'a-terre');
+      set(touchActors(get()));
+      return { consequences: freeCons([t('eff.fallTarget', {
+        name: hero.label,
+        m: metres,
+        lost: perte,
+        aterre: aTerre ? t('eff.fragATerre') : '',
+      })]) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  clotures: {
+    effetsProgrammes: (get, set, c) => jouerEffetsProgrammes(get, set, c.restants),
+    reprendreFlow: (get, set, c) => jouerFlowEntier(runFlow(get, set, c.flow, c.label, c.sl)),
+  },
+} satisfies FragmentDeTables;

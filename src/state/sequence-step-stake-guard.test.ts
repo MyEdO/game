@@ -8,8 +8,8 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
  * pas, et un littéral qui n'est pas le 1ᵉʳ argument d'un monteur ne l'excite pas.
  *
  * COUVERTURE, nommée (un détecteur ne mesure que sa couverture) : les fichiers de `src/state` qui
- * ENREGISTRENT une séquence (`registerSequence`) — c'est-à-dire les FAMILLES de manches jouées par le
- * socle (`sequenceCore`). Une famille NEUVE entre donc dans la garde le jour où elle s'enregistre,
+ * DÉCLARENT une séquence (table `sequences`) — c'est-à-dire les FAMILLES de manches jouées par le
+ * socle (`sequenceCore`). Une famille NEUVE entre donc dans la garde le jour où elle se déclare,
  * sans qu'aucune liste ne soit tenue à la main.
  *
  * CE QUI LANCE : les monteurs qui produisent une ÉTAPE porteuse d'un jet (`bandStep`, `monoStep`,
@@ -35,9 +35,9 @@ export const MONTEURS_DE_RANGEE = ['rollStep', 'figurantRow', 'equipierRow', 'ta
 const TOUS = [...MONTEURS_LANCANTS, ...MONTEURS_SANS_JET, ...MONTEURS_DE_RANGEE] as string[];
 
 /** Les FAMILLES de séquence : les `.ts` de `src/noyau` (hors tests, corpus rendu par la primitive de
- *  marche `readCorpus`) qui enregistrent une définition auprès du socle. */
+ *  marche `readCorpus`) dont les `TABLES` déclarent une définition (`sequences`). */
 export function fichiersDeSequence(): CorpusFile[] {
-  return readCorpus([NOYAU], { exts: ['.ts'] }).filter((f) => /\bregisterSequence\s*[<(]/.test(f.text));
+  return readCorpus([NOYAU], { exts: ['.ts'] }).filter((f) => /^ {2}sequences: \{$/m.test(f.text));
 }
 
 const keyOf = (f: string) => f.slice(SRC.length + 1).split(sep).join('/');

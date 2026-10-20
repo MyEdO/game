@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { startCascade, registerTableStep, registerCascadeApplier } from '../noyau/cascade';
+import { startCascade } from '../noyau/cascade';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { freeCons } from '../noyau/rollSeam';
 import { CascadeBody } from './CascadeModal';
@@ -26,6 +26,12 @@ import { applyAttackResult } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import type { GenreDeCascade } from '../noyau/tablesPosees';
+
+/** Le genre de la bande de prose : une clé de fixture, typée comme une étape la porte. */
+const KIND_PROSE = cleDeFixture<GenreDeCascade>('uiBandProse');
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -34,13 +40,15 @@ beforeAll(() => {
 /** Table à d100 (deux fourchettes) et table à d10 (le domaine du dé n'est PAS toujours le d100). */
 const T = 'test-table-mode-ui';
 const T10 = 'test-table-mode-ui-d10';
+const T_HORS = 'test-table-mode-ui-hors-faces';
+const T11 = 'test-table-plancher-11';
 
 let host: HTMLDivElement;
 let root: Root;
 
 /** Étape à table (aucun acteur : le tirage est du MONDE — le siège hôte/MJ le contrôle). */
 const tableStep = (tableId: string, mod?: number): CascadeStep =>
-  ({ id: 'tm', kind: 'uiTableSpy', label: fixtureText('Tirage sur tableau'), icon: 'nav/dice', table: { tableId, ...(mod != null ? { mod } : {}) }});
+  ({ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage sur tableau'), icon: 'nav/dice', table: { tableId, ...(mod != null ? { mod } : {}) }});
 
 function openTable(mod?: number, tableId = T) {
   useGame.setState({
@@ -92,20 +100,32 @@ function typeSlowly(value: string) {
 
 beforeEach(() => {
   resetDesFixes();
-  registerTableStep(T, {
+  avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [T]: {
     label: 'Table du mode',
     die: 100,
     // Une ligne LABELLÉE et une ligne SANS libellé (repli sur sa fourchette) : le picker rend les deux.
     rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute' }],
     lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`],
-  });
-  registerTableStep(T10, {
+  }, [T10]: {
     label: 'Table à d10',
     die: 10,
     rows: [{ min: 1, max: 5, id: 'bas', label: 'Bas' }, { min: 6, max: 10, id: 'haut', label: 'Haut' }],
     lines: (die) => [`d10 → ${die}`],
-  });
-  registerCascadeApplier('uiTableSpy', () => {});
+  }, [T_HORS]: {
+      label: 'Table au-delà des faces',
+      die: 100,
+      rows: [{ min: 1, max: 100, id: 'dans' }, { min: 101, max: 150, id: 'au-dela' }],
+      lines: (die) => [`dé ${die}`],
+    }, [T11]: {
+      label: 'Table à plancher 11',
+      die: 100,
+      rows: [{ min: 11, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
+      lines: (die) => [`plancher (dé ${die})`],
+    } }, appliers: { ...tablesDuJeu().appliers, uiTableSpy: () => {}, uiTableProse: (_g, _s, step) => ({
+      consequences: freeCons([`Sigmund — Événement (${step.table!.result!.roll}) : la vie suit son cours.`]),
+    }), uiBandProse: (_g, _s, step) => ({
+      consequences: freeCons((step.participants ?? []).map((part) => `${part.label} — verdict`)),
+    }) } });
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -366,13 +386,6 @@ describe('Mode table — le dé montré est celui qui RÉSOUT (table à modifica
     openTable(-60);
     render();
     expect(raison()).toContain("hors d'atteinte avec le modificateur −60 (dé de 1 à 100).");
-    const T_HORS = 'test-table-mode-ui-hors-faces';
-    registerTableStep(T_HORS, {
-      label: 'Table au-delà des faces',
-      die: 100,
-      rows: [{ min: 1, max: 100, id: 'dans' }, { min: 101, max: 150, id: 'au-dela' }],
-      lines: (die) => [`dé ${die}`],
-    });
     openTable(undefined, T_HORS);
     render();
     expect(raison()).toBe("1 ligne grisée : hors d'atteinte (dé de 1 à 100).");
@@ -398,17 +411,6 @@ describe('Mode table — le dé montré est celui qui RÉSOUT (table à modifica
  * dérive pas — c'est cette table (min 11) qui sépare les deux comportements.
  */
 describe('Mode table — plancher ≠ 1 : l’écran affiche le dé du RÉSOLVEUR, jamais un recalcul', () => {
-  const T11 = 'test-table-plancher-11';
-
-  beforeEach(() => {
-    registerTableStep(T11, {
-      label: 'Table à plancher 11',
-      die: 100,
-      rows: [{ min: 11, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
-      lines: (die) => [`plancher (dé ${die})`],
-    });
-  });
-
   it('dé 15 sous −20 : le moteur borne à 11, et les DEUX surfaces affichent 11 (pas 1)', () => {
     setDesFixes(true);
     useGame.setState({
@@ -420,7 +422,7 @@ describe('Mode table — plancher ≠ 1 : l’écran affiche le dé du RÉSOLVEU
     // tomberait juste même avec un recalcul — la sonde ne prouverait alors rien.
     startCascade(useGame.getState, useGame.setState, {
       title: 'Tirage', purpose: 'test',
-      steps: [{ id: 'tm', kind: 'uiTableSpy', label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
+      steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
     });
     render();
     act(() => { useGame.getState().cascadeTableRoll('tm'); });
@@ -445,9 +447,6 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
   /** Séquence de DEUX étapes : la seconde prouve que le curseur n'a pas bougé tout seul. L'applier
    *  rend une CONSÉQUENCE (prose) — c'est elle qui, sans coupure, se collait au tirage suivant. */
   function openDeux() {
-    registerCascadeApplier('uiTableProse', (_g, _s, step) => ({
-      consequences: freeCons([`Sigmund — Événement (${step.table!.result!.roll}) : la vie suit son cours.`]),
-    }));
     useGame.setState({
       battle: null, party: [], pendingCascade: null, suspendedCascades: [], journal: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
@@ -455,8 +454,8 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
     startCascade(useGame.getState, useGame.setState, {
       title: 'Les nouvelles de la période', purpose: 'test',
       steps: [
-        { ...tableStep(T), kind: 'uiTableProse', id: 's1', label: fixtureText('Événement — Sigmund')},
-        { ...tableStep(T), kind: 'uiTableProse', id: 's2', label: fixtureText('Événement — Grunni')},
+        { ...tableStep(T), kind: cleDeFixture('uiTableProse'), id: 's1', label: fixtureText('Événement — Sigmund')},
+        { ...tableStep(T), kind: cleDeFixture('uiTableProse'), id: 's2', label: fixtureText('Événement — Grunni')},
       ],
     });
   }
@@ -549,14 +548,11 @@ describe('bandes successives — le corps ne rend QUE la bande courante', () => 
   // une séquence (#1262 V2 L4, `cascade.assertBandeDeclarePossession`).
   const bandStep = (id: string, label: string, rows: ReturnType<typeof bandRow>[]): CascadeStep =>
     ({
-      id, kind: 'uiBandProse', label, icon: 'nav/dice', aggregate: 'none', participants: rows,
+      id, kind: KIND_PROSE, label, icon: 'nav/dice', aggregate: 'none', participants: rows,
       ...(new Set(rows.map((r) => r.id)).size > 1 ? { groupOwner: true } : { actorId: rows[0].id }),
     }) as CascadeStep;
 
   function openBandes() {
-    registerCascadeApplier('uiBandProse', (_g, _s, step) => ({
-      consequences: freeCons((step.participants ?? []).map((part) => `${part.label} — verdict`)),
-    }));
     useGame.setState({
       battle: null, party: [heroOf('h1'), heroOf('h2')], pendingCascade: null, suspendedCascades: [], journal: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

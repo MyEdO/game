@@ -8,11 +8,14 @@ import { testSkillLabel } from '../data';
 import { modalOwnerOf } from './modalArbiter';
 import { seatOwns } from './sieges';
 import type { Combatant } from '../engine/types';
+import { avecLesTables, cleDeFixture } from './noyau.testkit';
+import { tablesDuJeu } from './tablesDuJeu';
+import { tableTotale } from '../lib/tableTotale';
 
 /**
  * SEAM DE JET UNIQUE — Ronde 0 (#275 substrat). Couvre les 3 surfaces (M/V/I) que `openRoll` DÉRIVE
  * des PORTEURS de la requête (#1479 — il n'existe plus de classe de jet : héros, ennemi, monde, Test
- * subi passent par le même calcul). Chaque test enregistre un applier DÉDIÉ (kind unique, namespacé) et observe : (a) si une
+ * subi passent par le même calcul). Le bloc pose des appliers DÉDIÉS (kinds uniques, namespacés) et observe : (a) si une
  * modale/cascade s'est ouverte (`pendingCascade`) — surface M/V ; (b) si l'applier a tourné d'office —
  * surface I (`runCascadeImmediate`, `cascade.ts:181`).
  */
@@ -23,10 +26,15 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     applied.length = 0;
     useGame.setState({ battle: null, party: [], pendingCascade: null, journal: [], travelPlan: null } as never);
     setGmSeat(useGame.getState, useGame.setState, null);
-    for (const kind of ['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch']) {
-      spyApplier(kind, applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 }),
-        (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
-    }
+    const sonde = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 }),
+      (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
+    avecLesTables({ appliers: {
+      ...tablesDuJeu().appliers,
+      ...tableTotale(['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch'], () => sonde),
+      // Le VRAI applier `progression` (`seaVoyageFlow.ts`) lit `travelPlan.sea`, absent des plans SYNTHÉTIQUES
+      // de ce bloc : il isole la POLICY de la porte (surface I), pas la conséquence métier réelle.
+      progression: spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 })),
+    } });
   });
 
   const hero = (over: Partial<Combatant> = {}): Combatant =>
@@ -51,7 +59,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   const ouvreDeMonde = () => openSequence(useGame.getState, useGame.setState, {
     title: 'Désertion', purpose: 'test',
     steps: [monoStep({
-      id: 'seam-subi', kind: 'seam-subi', monde: true, label: composeRollLabel(undefined, 'Désertion', {}), difficulty: 'intermediaire',
+      id: 'seam-subi', kind: cleDeFixture('seam-subi'), monde: true, label: composeRollLabel(undefined, 'Désertion', {}), difficulty: 'intermediaire',
       ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })!],
   });
@@ -59,7 +67,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('héros tenu par son joueur, cadence MANUELLE → M (modale influençable)', () => {
     useGame.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Résistance', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-hero');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-hero'));
     expect(useGame.getState().pendingCascade).toBeTruthy(); // surfacé, pas résolu d'office
     expect(applied).toHaveLength(0);
   });
@@ -67,7 +75,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('porteur ENNEMI — personne ne le tient → I (inline-PV, résolu d’office ; surfacé dès qu’un MJ siège)', () => {
     useGame.setState({ party: [enemy()] });
     const req: RollRequest = { side: { actorId: 'E' }, actionLabel: 'Perception', test: { skill: 'perception', char: 'initiative' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-enemy');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-enemy'));
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
     expect(applied[0].kind).toBe('seam-enemy');
@@ -76,7 +84,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     applied.length = 0;
     useGame.setState({ pendingCascade: null });
     setGmSeat(useGame.getState, useGame.setState, 0);
-    openRoll(useGame.getState, useGame.setState, req, 'seam-enemy');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-enemy'));
     expect(useGame.getState().pendingCascade).toBeTruthy();
     expect(applied).toHaveLength(0);
   });
@@ -90,7 +98,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('un Test SUBI par un héros que son joueur TIENT → M : il apparaît, comme tout autre jet', () => {
     useGame.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-subi');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-subi'));
     expect(useGame.getState().pendingCascade, 'un jet que je dois faire APPARAÎT').toBeTruthy();
     expect(applied, 'et rien ne s’applique tant qu’il n’est pas joué').toHaveLength(0);
   });
@@ -98,7 +106,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('le MÊME Test subi, porteur conduit par l’IA (personne ne le tient) → I, résolu d’office', () => {
     useGame.setState({ party: [hero({ aiControlled: true } as Partial<Combatant>)] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Scorbut', test: { skill: 'resistance', char: 'endurance' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-subi');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-subi'));
     expect(useGame.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
     expect(applied[0].kind).toBe('seam-subi');
@@ -128,10 +136,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
-    // `cascadeAppliers['progression']` est désormais le VRAI applier de mer (#275 Décision 4 cran 2, `seaVoyageFlow.ts`)
-    // — il lit `travelPlan.sea`, absent de ce plan SYNTHÉTIQUE ; ce test isole la POLICY de la porte (surface I),
-    // pas la conséquence métier réelle → double localement le kind pour ne pas dépendre de `seaVoyageFlow`.
-    spyApplier('progression', applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 }));
+    // `progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
     openRoll(useGame.getState, useGame.setState, req, 'progression');
     // 'progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
     // (`cascade.rollBatchParticipants` auto-roule le contributeur, `aggregateBatchStep` agrège au commit).
@@ -146,7 +151,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-batch');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-batch'));
     expect(useGame.getState().pendingCascade).toBeTruthy();
     const step = useGame.getState().pendingCascade!.participants[0];
     expect(step.result).toBeFalsy(); // pas d'agrégat pré-résolu — UNE rangée par contributeur, à lancer
@@ -164,7 +169,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('mono : startCascade pose pending.title = rollTitle(...) = actionLabel — DISTINCT de step.label composé (#352, régression double-rendu)', () => {
     useGame.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Recueillir des informations', test: { skill: 'ragot' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-hero');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-hero'));
     const p = useGame.getState().pendingCascade!;
     expect(p.title).toBe('Recueillir des informations');
     expect(p.title).toBe(rollTitle(useGame.getState, req));
@@ -181,7 +186,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   it('compétence de rangée : DÉRIVÉE du catalogue skills (id→label) — insurchargeable par la spec (#352 extension)', () => {
     useGame.setState({ party: [hero()] });
     const req: RollRequest = { side: { actorId: 'H' }, actionLabel: 'Recueillir des informations', test: { skill: 'ragot' }, difficulty: 'intermediaire' };
-    openRoll(useGame.getState, useGame.setState, req, 'seam-hero');
+    openRoll(useGame.getState, useGame.setState, req, cleDeFixture('seam-hero'));
     const step = useGame.getState().pendingCascade!.participants[0];
     // La compétence affichée en position de rangée est « Ragot » (catalogue), JAMAIS l'action
     // ("Recueillir des informations") — `testSkillLabel` est la SEULE source, dérivée du skillId.

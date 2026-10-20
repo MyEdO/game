@@ -371,9 +371,9 @@
   {
     "id": "cascade",
     "type": "primitives.manifest",
-    "label": "cascade/registerCascadeApplier",
+    "label": "cascade/applierDe",
     "fichier": "src/noyau/cascade.ts",
-    "concept": "étapes-jets subis influençables + appliers enregistrés par kind",
+    "concept": "étapes-jets subis influençables + appliers déclarés par kind",
     "perimetre": "toute conséquence différée en série",
     "verrou": "cascade-consequence-guard.test.ts"
   },

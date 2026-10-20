@@ -11,8 +11,8 @@ import { findTableEntry } from './tables';
 import type { DiceSpec } from './dice';
 import { ARTILLERY_MISFIRE, type ArtilleryMisfireEntry } from '../data/artilleryMisfire';
 
-/** id de la table au registre des étapes à TABLE (`noyau/cascade.registerTableStep`) — ÉCRITURE
- *  UNIQUE, lue par l'enregistrement comme par la demande de dé de la grappe d'Oups ! (`desDOups`). */
+/** id de la table dans les tables tirables (`tablesTirables`, `noyau/combatFlow.ts`) — ÉCRITURE
+ *  UNIQUE, lue par la déclaration comme par la demande de dé de la grappe d'Oups ! (`desDOups`). */
 export const TABLE_SALVE_MISFIRE = 'artillery-salve-misfire';
 
 /** Le d10 de la table (AA 10 l.270-277) — une seule écriture, lue par la demande de dé et par la

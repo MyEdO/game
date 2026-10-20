@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { surfaceDeLEtape, surfaceDesEtapes, buildBand, surfaceOf, tableStep, displayStep, monoStep, worldStep } from '../noyau/rollSeam';
 import { t } from '../i18n';
 import { actorIn } from '../noyau/monde/combatants';
-import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, registerTableStep, startCascade, pushStep, registerCascadeApplier, suspendActiveCascade, poserCurseurCascade, stepReady } from '../noyau/cascade';
+import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, startCascade, pushStep, suspendActiveCascade, poserCurseurCascade, stepReady } from '../noyau/cascade';
 import { fixtureText } from '../i18n/fixtureText';
 import { makePregens } from '../data/pregens';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
@@ -33,6 +33,9 @@ import type { LandMarketProfile } from '../engine/landCargo';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
 import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascade.testkit';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import type { GenreDEtape, GenreDeCascade } from '../noyau/tablesPosees';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * LE DÉ DE MONDE SOUS CONTRÔLE DU SIÈGE ENVIRONNEMENT (#1426).
@@ -59,13 +62,13 @@ type Surface = ReturnType<typeof surfaceDeLEtape>;
 /** Le dé de MONDE tel que `openWorldTest` le monte (`worldStep`), et sa surface par la couture de ses
  *  ouvreurs (`surfaceDeLEtape`, cf. `ouvrirLEtape`). */
 const surfaceMonde = (): Surface => surfaceDeLEtape(get, worldStep({
-  id: 'x', kind: 'x', label: fixtureText('Trouver un acheteur'), cible: 40,
+  id: 'x', kind: cleDeFixture('x'), label: fixtureText('Trouver un acheteur'), cible: 40,
   verdict: { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') },
 }));
 
 /** Le jet d'un HÉROS tel que `openRoll` le monte pour un côté `actorId` (`monoStep`, porteur = le héros),
  *  et sa surface par la même couture. */
-const surfaceHerosDe = (h: Combatant, kind = 'x', label = 'Test de héros'): Surface => surfaceDeLEtape(get, monoStep({
+const surfaceHerosDe = (h: Combatant, kind: GenreDEtape = cleDeFixture('x'), label = 'Test de héros'): Surface => surfaceDeLEtape(get, monoStep({
   id: kind, kind, label: fixtureText(label), actor: h, difficulty: 'intermediaire',
   ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
 })!);
@@ -120,9 +123,9 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
     set({ party: [h], battle: null });
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 0, ownership: { [h.id]: 0 } } });
     expect(seatOwns(get(), 0, h.id), 'précondition : le siège MJ POSSÈDE bien ce héros').toBe(true);
-    expect(surfaceHerosDe(h, 'x', 'Résistance'), 'possédé par le siège MJ n’est pas CONDUIT par lui — le joueur roule son héros').toBe('M');
+    expect(surfaceHerosDe(h, cleDeFixture('x'), 'Résistance'), 'possédé par le siège MJ n’est pas CONDUIT par lui — le joueur roule son héros').toBe('M');
     const bande = buildBand(get, {
-      id: 'b', kind: 'x', label: fixtureText('Bande'), difficulty: 'intermediaire',
+      id: 'b', kind: cleDeFixture('x'), label: fixtureText('Bande'), difficulty: 'intermediaire',
       porteurs: [{ actor: h, ligne: { test: { skill: 'resistance', char: 'endurance' } } }],
     })!;
     expect(surfaceDesEtapes(get, [bande]), 'la SÉQUENCE répond comme la requête — même calcul').toBe('M');
@@ -151,7 +154,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
   it('un Test SUBI et un jet volontaire du MÊME porteur rendent la MÊME série (la classe a disparu)', () => {
     const h = makePregens()[0];
     set({ party: [h], battle: null });
-    const requete = (actionLabel: string) => (): Surface => surfaceHerosDe(h, 'x', actionLabel);
+    const requete = (actionLabel: string) => (): Surface => surfaceHerosDe(h, cleDeFixture('x'), actionLabel);
     const serie = (surface: () => Surface) => {
       resetCadence();
       set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
@@ -500,9 +503,8 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
   it('la TRACE d’un seuil résolu sans fenêtre dit le VERDICT de l’étape, jamais « réussi/échec » (#2389)', () => {
     seedBattleRng(3);
     set({ battle: null, party: [], pendingCascade: null, suspendedCascades: [], journal: [] } as never);
-    registerCascadeApplier('sonde-seuil-trace', () => undefined);
     const verdict = { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') };
-    const st = worldStep({ id: 'w', kind: 'sonde-seuil-trace', label: fixtureText('Désertion'), rollLabel: 'Désertion', cible: 50, verdict });
+    const st = worldStep({ id: 'w', kind: cleDeFixture('sonde-seuil-trace'), label: fixtureText('Désertion'), rollLabel: 'Désertion', cible: 50, verdict });
     const [joue] = runCascadeImmediate(get, set, [st])!;
     const ligne = get().journal.find((x) => x.includes('Désertion'));
     expect(ligne, 'le dé sans fenêtre a sa trace').toBeTruthy();
@@ -821,22 +823,14 @@ function draineJour(pose: boolean): string | undefined {
 
 /** Table de sonde : deux lignes, un d100 — de quoi observer le PILOTE, jamais une règle. */
 const TABLE_SONDE = 'table-sonde-porteur';
-function tableDeSonde(): void {
-  registerTableStep(TABLE_SONDE, {
-    label: fixtureText('Table de sonde'),
-    die: 100,
-    rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
-    lines: () => ['ligne de sonde'],
-  });
-}
 /** Étape à TABLE portée par le MONDE (aucun acteur nommé). Le `kind` route l'applier de sonde. */
-const etapeTableMonde = (id: string, kind = 'sonde-table'): CascadeStep => tableStep({
+const etapeTableMonde = (id: string, kind: GenreDEtape = cleDeFixture('sonde-table')): CascadeStep => tableStep({
   id, kind, worldOwner: true,
   label: fixtureText('Table de monde'), table: { tableId: TABLE_SONDE, spec: { n: 1, sides: 100 } },
   stake: { key: { dataset: 'combat', kind: 'mutation' } },
 })!;
 /** Étape d'AFFICHAGE (rien à lancer) — `kind` libre : c'est lui qui route l'applier de sonde. */
-const etapeAffichage = (id: string, kind = 'sonde-affichage'): CascadeStep =>
+const etapeAffichage = (id: string, kind: GenreDeCascade = cleDeFixture('sonde-affichage')): CascadeStep =>
   displayStep({ id, kind, label: fixtureText('Étape muette'), worldOwner: true });
 
 /** Assez d'étapes pour qu'un seul geste en franchisse une SUITE, et pour que la profondeur de pile
@@ -844,11 +838,28 @@ const etapeAffichage = (id: string, kind = 'sonde-affichage'): CascadeStep =>
 const PAS_DE_CHARGE = 200;
 /** Profondeur de pile relevée au COMMIT de chaque étape de charge, dans l'ordre des rangs. */
 const profondeurs: number[] = [];
-registerCascadeApplier('sonde-charge', () => {
-  const limite = Error.stackTraceLimit;
-  Error.stackTraceLimit = Infinity;
-  profondeurs.push(new Error().stack!.split('\n').length);
-  Error.stackTraceLimit = limite;
+/** Les sondes du fichier, posées pour chaque test : la table de sonde et les appliers qui observent le
+ *  PILOTE (profondeur de pile, suspension, trace d'un seuil). */
+beforeEach(() => {
+  avecLesTables({
+    tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE_SONDE]: {
+      label: fixtureText('Table de sonde'),
+      die: 100,
+      rows: [{ id: 'basse', min: 1, max: 50 }, { id: 'haute', min: 51, max: 100 }],
+      lines: () => ['ligne de sonde'],
+    } },
+    appliers: {
+      ...tablesDuJeu().appliers,
+      'sonde-charge': () => {
+        const limite = Error.stackTraceLimit;
+        Error.stackTraceLimit = Infinity;
+        profondeurs.push(new Error().stack!.split('\n').length);
+        Error.stackTraceLimit = limite;
+      },
+      'sonde-suspend': (g, s2) => { suspendActiveCascade(g, s2); },
+      'sonde-seuil-trace': () => undefined,
+    },
+  });
 });
 
 // ── LES PORTES DU CURSEUR : une seule, et elle tient la charge ───────────────────────────────
@@ -900,7 +911,6 @@ describe('#1426 — les portes du curseur', () => {
   it('la PORTE publique pose le curseur ET résout la table qu’aucun siège ne joue', () => {
     setCadence('rapide');
     seedBattleRng(11);
-    tableDeSonde();
     set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Portes', purpose: 'test',
@@ -942,10 +952,9 @@ describe('#1426 — les portes du curseur', () => {
   it('CHARGE — les étapes résolues d’office se franchissent à profondeur de pile CONSTANTE, et la séquence se ferme', () => {
     setCadence('rapide');
     seedBattleRng(13);
-    tableDeSonde();
     set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     profondeurs.length = 0;
-    const steps = [...Array(PAS_DE_CHARGE)].map((_, i) => etapeTableMonde(`charge-${i}`, 'sonde-charge'));
+    const steps = [...Array(PAS_DE_CHARGE)].map((_, i) => etapeTableMonde(`charge-${i}`, cleDeFixture('sonde-charge')));
     startCascade(get, set, { title: 'Charge', purpose: 'test', steps });
     expect(get().pendingCascade!.participants[0].table!.result, 'la 1ʳᵉ est tirée à l’ouverture').toBeTruthy();
     get().cascadeNext(); // UN geste : le socle franchit toutes les suivantes
@@ -1030,7 +1039,6 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(c) cadence AUTO — la table est FRANCHIE dans le même geste que l’étape qui la précède', () => {
     setCadence('rapide');
     seedBattleRng(3);
-    tableDeSonde();
     set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Franchissement', purpose: 'test',
@@ -1046,12 +1054,10 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(c) REPRISE — une séquence parquée qui revient SUR une table (cadence auto) avance encore', () => {
     setCadence('rapide');
     seedBattleRng(5);
-    tableDeSonde();
-    registerCascadeApplier('sonde-suspend', (g, s2) => { suspendActiveCascade(g, s2); });
     set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Reprise', purpose: 'test',
-      steps: [etapeAffichage('sus', 'sonde-suspend'), etapeTableMonde('t2'), etapeAffichage('fin')],
+      steps: [etapeAffichage('sus', cleDeFixture('sonde-suspend')), etapeTableMonde('t2'), etapeAffichage('fin')],
     });
     // L'applier SUSPEND la séquence en plein vol ; la couture de CLÔTURE (`dispatchCascadeDone`,
     // combatSlice) la REPREND aussitôt — slot libre, hors combat : c'est la reprise du jeu réel.
@@ -1067,7 +1073,6 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(c) `pushStep` — une table APPENDUE sous le curseur (cadence auto) naît résolue', () => {
     setCadence('rapide');
     seedBattleRng(7);
-    tableDeSonde();
     set({ party: makePregens().slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     pushStep(set, etapeTableMonde('t3'), 'test');
     expect(get().pendingCascade!.cursor).toBe(0);
@@ -1078,11 +1083,10 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue, la cadenc
   it('(d) CONTRÔLE POSITIF — cadence manuelle : une table d’ACTEUR attend sa fenêtre, exactement comme celle du monde', () => {
     siegeDuMonde();
     seedBattleRng(3);
-    tableDeSonde();
     const heros = makePregens()[0];
     set({ party: [heros], pendingCascade: null, suspendedCascades: [], battle: null });
     const etape = tableStep({
-      id: 'ctrl-1', kind: 'ctrl-table', actorId: heros.id,
+      id: 'ctrl-1', kind: cleDeFixture('ctrl-table'), actorId: heros.id,
       label: fixtureText('Table d’acteur'), table: { tableId: TABLE_SONDE, spec: { n: 1, sides: 100 } },
       stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })!;

@@ -6,17 +6,16 @@
  * implémentations : un système lourd pourra en écrire une autre sans le toucher.
  *
  * CE QUE CETTE IMPLÉMENTATION POSSÈDE, et que plus aucun système ne recopie :
- *  - le REGISTRE des définitions (l'id est la donnée, la fonction est du TS enregistré — patron
- *    `registerCascadeApplier` : un état de séquence se snapshote en JSON, une closure y serait
- *    effacée en silence) ;
+ *  - la LECTURE des définitions (`TablesDuJeu.sequences` : l'id est la donnée, la fonction est du TS
+ *    déclaré — un état de séquence se snapshote en JSON, une closure y serait effacée en silence) ;
  *  - la PERSISTANCE de l'état entre les manches (slot `sequence`, snapshoté avec la partie) ;
  *  - le CYCLE ouvrir→clore→rouvrir : l'ouverture par les mints (`openSequence` — un littéral d'étape
  *    n'entre pas) et la résolution IMMÉDIATE quand aucune fenêtre n'est à montrer ;
  *  - l'ACCUMULATEUR PAR CAMP (`cum: Record<camp, total>` + `sequenceCumStep`, qui délègue au Test
  *    étendu canonique `extendedTestStep`) — jamais un `cumPlayer`/`cumOpponent` recopié par jeu ;
- *  - la FORMULE DE SCORE par camp (`registerSequenceScore`, paramétrée par la donnée : `min` pour les
+ *  - la FORMULE DE SCORE par camp (`TablesDuJeu.scoresDeSequence`, paramétrée par la donnée : `min` pour les
  *    poursuivis, `max` pour les poursuivants, `sum` pour une équipe) ;
- *  - le DÉPARTAGE D'ÉGALITÉ (`registerSequenceTieBreak`, paramétré par la donnée : Dominos NADJ 16
+ *  - le DÉPARTAGE D'ÉGALITÉ (`TablesDuJeu.departages`, paramétré par la donnée : Dominos NADJ 16
  *    l.105, Boules l.57) — jamais un branchement par id de jeu ;
  *  - la BORNE ANTI-BOUCLE (`SEQUENCE_MAX_ROUNDS`) : une séquence qui ne conclut pas S'ARRÊTE.
  *
@@ -28,7 +27,7 @@ import type { Get, Set } from './flowTypes';
 import { openSequence } from './rollSeam';
 import {
   SEQUENCE_MAX_ROUNDS, SEQUENCE_HARD_MAX_ROUNDS, SEQUENCE_PURPOSE, SEQUENCE_BORNE,
-  type SequenceDef, type SequenceParams, type SequenceState, type MancheClose, type SequenceFamilies, type EtatDeSequence,
+  type SequenceDef, type SequenceParams, type SequenceState, type MancheClose, type EtatDeSequence,
 } from './sequenceContract';
 import { runCascadeImmediate, stepInteraction, stepReady } from './cascade';
 import { estJete, extendedTestStep } from '../engine/tests';
@@ -47,18 +46,14 @@ import { actorIn } from './monde/combatants';
 import { battleRng } from './battleRng';
 import { t } from '../i18n';
 
+import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
+import type { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../engine/sequenceVocab';
 
-/** Registre des définitions, peuplé par les modules de DOMAINE à leur chargement. */
-const sequenceDefs: Record<string, SequenceDef<never>> = {};
-
-/** Enregistre (ou remplace) la définition d'une séquence sous son id. */
-export function registerSequence<K extends keyof SequenceFamilies>(id: K, def: SequenceDef<SequenceFamilies[K]>): void {
-  sequenceDefs[id] = def as unknown as SequenceDef<never>;
-}
-
-/** La définition d'un id, ou `undefined` (état restauré d'une save dont le module n'a pas chargé). */
+/** La définition d'un id, déclarée par son module de DOMAINE (`TablesDuJeu.sequences`), ou `undefined`
+ *  (état restauré d'une save dont l'id n'est plus une famille du jeu, famille de fixture d'un test).
+ *  LECTEUR OUVERT : l'id vient de l'état, et le cycle ne lit jamais la charge utile (`SequenceDef<never>`). */
 export function sequenceDefOf(id: string): SequenceDef<never> | undefined {
-  return sequenceDefs[id];
+  return (tablesPosees().sequences as unknown as Readonly<Record<string, SequenceDef<never> | undefined>>)[id];
 }
 
 /* ── FAMILLE (3) : FORMULE DE SCORE PAR CAMP ─────────────────────────────────────────────────────
@@ -66,33 +61,21 @@ export function sequenceDefOf(id: string): SequenceDef<never> | undefined {
  * comptent leur DR le plus BAS, les poursuivants le plus HAUT. Middenball (NADJ 16 l.119) : la SOMME
  * de l'équipe. La formule est NOMMÉE en donnée (`params.score`), jamais un `if` par jeu.
  *
- * REGISTRE OUVERT, patron `registerCascadeApplier` (`noyau/cascade.ts`) : la table naît VIDE et se
- * peuple par sa porte d'enregistrement — ce qu'on y lit est le nom d'une FORMULE (un rôle), jamais
- * l'identité d'une entrée de catalogue (garde `registry-id-branch`, doctrine #842). */
+ * TABLE du jeu (`TablesDuJeu.scoresDeSequence`) : ce qu'on y lit est le nom d'une FORMULE (un rôle),
+ * jamais l'identité d'une entrée de catalogue (garde `registry-id-branch`, doctrine #842). */
 export type SequenceScore = (values: readonly number[]) => number;
-
-const sequenceScores: Record<string, SequenceScore> = {};
-
-/** Enregistre (ou remplace) une formule de score de camp, sous le nom que la donnée emploiera. */
-export function registerSequenceScore(formule: string, fn: SequenceScore): void {
-  sequenceScores[formule] = fn;
-}
-
-registerSequenceScore('min', (v) => (v.length ? Math.min(...v) : 0));
-registerSequenceScore('max', (v) => (v.length ? Math.max(...v) : 0));
-registerSequenceScore('sum', (v) => v.reduce((n, x) => n + x, 0));
-registerSequenceScore('first', (v) => v[0] ?? 0);
 
 /** Applique la formule de score du camp — formule inconnue : `sum` (aucun camp ne perd son score). */
 export function sequenceScoreOf(formule: string | undefined, values: readonly number[]): number {
-  const fn = (formule ? sequenceScores[formule] : undefined) ?? sequenceScores.sum;
+  const scores = tablesPosees().scoresDeSequence;
+  const fn = (formule ? scores[formule] : undefined) ?? scores.sum;
   return fn(values);
 }
 
 /* ── FAMILLE (1bis) : DÉPARTAGE D'ÉGALITÉ DÉCLARÉ ────────────────────────────────────────────────
  * Deux camps à égalité : ce que le jeu en fait est un PARAMÈTRE (`params.tieBreak`), résolu par un
- * réducteur enregistré. `units-lowest` = Dominos (NADJ 16 l.105) ; `nul` = Boules (l.57). MÊME
- * registre ouvert que les formules de score : ce qui indexe est le nom d'un DÉPARTAGE, pas un id. */
+ * réducteur déclaré. `units-lowest` = Dominos (NADJ 16 l.105) ; `nul` = Boules (l.57). MÊME forme
+ * que les formules de score : ce qui indexe est le nom d'un DÉPARTAGE, pas un id. */
 export interface SequenceTieSide {
   /** Le d100 obtenu — son chiffre des unités est le « dé d'unités » du départage. */
   roll: number;
@@ -100,66 +83,25 @@ export interface SequenceTieSide {
 }
 export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'tie';
 
-const sequenceTieBreaks: Record<string, SequenceTieBreak> = {};
-/** Ce que le départage a LU de chaque camp, dit au joueur (résultat, journal). */
-const recitsDeDepartage: Record<string, (a: SequenceTieSide, b: SequenceTieSide) => string> = {};
-
-/** Enregistre (ou remplace) un départage d'égalité, sous le nom que la donnée emploiera, et le récit
- *  de ce qu'il a lu quand il en tient un. */
-export function registerSequenceTieBreak(departage: string, fn: SequenceTieBreak, recit?: (a: SequenceTieSide, b: SequenceTieSide) => string): void {
-  sequenceTieBreaks[departage] = fn;
-  if (recit) recitsDeDepartage[departage] = recit;
-  else delete recitsDeDepartage[departage];
-}
-
-/** L'égalité reste une égalité. */
-registerSequenceTieBreak('nul', () => 'tie');
-/** « les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le
- *  plus bas gagne » (NADJ 16 l.105). Le chiffre des unités d'un d100 : 100 → 0. */
-registerSequenceTieBreak('units-lowest', (a, b) => {
-  const ua = a.roll % 10;
-  const ub = b.roll % 10;
-  return ua < ub ? 'a' : ub < ua ? 'b' : 'tie';
-}, (a, b) => t('sequence.departageUnites', { mien: a.roll % 10, sien: b.roll % 10 }));
-
 /** Le récit du départage DÉCLARÉ (ce qu'il a lu de chaque camp) — `undefined` s'il n'en tient pas. */
 export function recitDuDepartage(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): string | undefined {
-  const recit = departage ? recitsDeDepartage[departage] : undefined;
+  const recit = departage ? tablesPosees().departages[departage]?.recit : undefined;
   return recit ? recit(a, b) : undefined;
 }
 
 /** Départage une égalité selon le nom DÉCLARÉ. Aucun (ou inconnu) : l'égalité reste. */
 export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'tie' {
-  const fn = departage ? sequenceTieBreaks[departage] : undefined;
+  const fn = departage ? tablesPosees().departages[departage]?.departage : undefined;
   return fn ? fn(a, b) : 'tie';
 }
 
 /* ── FAMILLE (5) : MISE, POT, ABANDON, ÉLIMINATION ───────────────────────────────────────────
  * Un tour rend un TOTAL de dés ; la plage où il tombe déclare l'EFFET DE POT qui s'ensuit (`Al-zahr,
- * NADJ 16 l.17`). MÊME registre ouvert que les formules de score et les départages : ce qui indexe
+ * NADJ 16 l.17`). MÊME forme que les formules de score et les départages : ce qui indexe
  * est le nom d'un EFFET (un rôle), jamais l'identité d'une entrée de catalogue (garde
  * `registry-id-branch`, doctrine #842). Les effets sont PURS : ils lisent le tour, ils rendent des
  * conséquences — le réducteur du domaine tient les bourses, les joueurs et l'ordre du tour. */
 export type SequencePotEffectFn = (turn: SequencePotTurn) => SequencePotOutcome;
-
-const sequencePotEffects: Record<string, SequencePotEffectFn> = {};
-
-/** Enregistre (ou remplace) un effet de pot, sous le nom que la donnée emploiera. */
-export function registerSequencePotEffect(effet: string, fn: SequencePotEffectFn): void {
-  sequencePotEffects[effet] = fn;
-}
-
-/** Le joueur RAFLE le pot et remporte la manche (`NADJ 16 l.17`). */
-registerSequencePotEffect('rafle-le-pot', () => ({ wins: true }));
-/** Le joueur REPREND `mises` mises dans le pot (`NADJ 16 l.17`) — le pot ne rend jamais plus qu'il
- *  ne contient. */
-registerSequencePotEffect('reprend-mise', (t) => ({ takes: Math.min(t.ante * t.mises, t.pot) }));
-/** Le total ATTEINT la cible (manche remportée) ou la PASSE au joueur suivant (`NADJ 16 l.17`). */
-registerSequencePotEffect('cible-ou-passe', (t) => (t.roll === t.target ? { wins: true } : { target: t.roll }));
-/** Le joueur REMET `mises` mises au pot, ou ABANDONNE la manche (`NADJ 16 l.17`). */
-registerSequencePotEffect('remise-ou-abandon', (t) => ({ choose: true, owes: t.ante * t.mises }));
-/** Le joueur QUITTE la manche (`NADJ 16 l.17`). */
-registerSequencePotEffect('quitte-la-manche', () => ({ out: true }));
 
 /** La PLAGE du total qui couvre ce tour, ou `undefined` si la séquence ne déclare aucun pot. Lue par
  *  la primitive PARTAGÉE du dépôt (`findTableEntry`) — aucun `find` par fourchette n'est réécrit. */
@@ -168,7 +110,7 @@ export function sequencePotRow(params: SequenceParams, total: number): SequenceP
   return rows?.length ? findTableEntry([...rows], total) : undefined;
 }
 
-/** CONSÉQUENCES d'un tour : la plage trouvée, puis son effet ENREGISTRÉ, appelé avec le PARAMÈTRE de
+/** CONSÉQUENCES d'un tour : la plage trouvée, puis son effet DÉCLARÉ, appelé avec le PARAMÈTRE de
  *  cette plage (`mises`, défaut 1) — l'appelant ne le lit pas, la donnée le porte. Plage ou effet
  *  inconnus : aucune conséquence (jamais un repli qui invente une sortie ou un gain). */
 export function resolveSequencePotTurn(
@@ -176,7 +118,7 @@ export function resolveSequencePotTurn(
   turn: Omit<SequencePotTurn, 'mises'>,
 ): { row?: SequencePotRow; outcome: SequencePotOutcome } {
   const row = sequencePotRow(params, turn.roll);
-  const fn = row ? sequencePotEffects[row.potEffectId] : undefined;
+  const fn = row ? tablesPosees().effetsDePot[row.potEffectId] : undefined;
   return { ...(row ? { row } : {}), outcome: fn ? fn({ ...turn, mises: row?.mises ?? 1 }) : {} };
 }
 
@@ -199,47 +141,11 @@ export function sequencePotIssue(outcome: SequencePotOutcome): string | undefine
 /* ── FAMILLE (7) : VOLÉE — CE QUE RAPPORTE UN LANCER ─────────────────────────────────────────────
  * Un passage rend N lancers ; chaque lancer rapporte ce que son EFFET DÉCLARÉ dit qu'il rapporte
  * (`SequenceVolleyRules.gain`, et ses formes exceptionnelles `critique`/`maladresse`/`depassement`).
- * MÊME registre ouvert que les formules de score, les départages et les effets de pot : ce qui indexe
+ * MÊME forme que les formules de score, les départages et les effets de pot : ce qui indexe
  * est le nom d'un EFFET (un rôle), jamais l'identité d'une entrée de catalogue (garde
  * `registry-id-branch`, doctrine #842). Les effets sont PURS : ils lisent le lancer, ils rendent un
  * gain — le réducteur du domaine tient les camps, les passages et les scores. */
 export type SequenceThrowFn = (turn: SequenceThrowTurn) => SequenceThrowOutcome;
-
-const sequenceThrows: Record<string, SequenceThrowFn> = {};
-
-/** Enregistre (ou remplace) un effet de lancer, sous le nom que la donnée emploiera. */
-export function registerSequenceThrow(effet: string, fn: SequenceThrowFn): void {
-  sequenceThrows[effet] = fn;
-}
-
-/** Le DR du lancer, jamais négatif — sans égard à ce qu'il reste à prendre. */
-registerSequenceThrow('dr', (t) => ({ gain: Math.max(0, t.sl) }));
-/** Le DR du lancer, ÉCRÊTÉ à la réserve restante : on ne prend pas plus qu'il n'y a (`NADJ 16 l.42`). */
-registerSequenceThrow('dr-ecrete', (t) => ({ gain: Math.max(0, Math.min(t.sl, t.reserve ?? t.sl)) }));
-/** TOUTE la réserve restante (`NADJ 16 l.42`). */
-registerSequenceThrow('toute-la-reserve', (t) => ({ gain: t.reserve ?? 0 }));
-/** Les points de la LIGNE désignée, sur une réussite (`NADJ 16 l.70`). */
-registerSequenceThrow('points-de-la-ligne', (t) => ({ gain: t.success ? (t.row?.points ?? 0) : 0 }));
-/** Les points de la ligne SUIVANTE de la table (`NADJ 16 l.70`) — la dernière ligne n'en a pas de
- *  suivante : elle rend la sienne. */
-registerSequenceThrow('points-de-la-ligne-suivante', (t) => ({
-  gain: t.rows[(t.rowIndex ?? -1) + 1]?.points ?? t.row?.points ?? 0,
-}));
-/** Les CHIFFRES du dé : sur une réussite, le lanceur tranche entre unités, dizaines et leurs dizaines ;
- *  sur un échec, le chiffre des unités (`NADJ 16 l.97`). */
-registerSequenceThrow('chiffres-du-de', (t) => {
-  const unites = t.roll % 10;
-  const dizaines = Math.floor(t.roll / 10) % 10;
-  if (!t.success) return { gain: unites };
-  return { choix: [...new Set([unites, dizaines, unites * 10, dizaines * 10])].sort((a, b) => a - b) };
-});
-/** Un gain que le lanceur fixe LIBREMENT dans la plage déclarée (`NADJ 16 l.97`) — la PLAGE est
- *  rendue telle quelle (`libre`), jamais énumérée : c'est une SAISIE, pas une liste de valeurs. */
-registerSequenceThrow('gain-au-choix', (t) => (t.libre ? { libre: t.libre } : {}));
-/** Aucun gain (`NADJ 16 l.97`). */
-registerSequenceThrow('aucun-gain', () => ({ gain: 0 }));
-/** Aucun gain, et le PASSAGE s'arrête là (`NADJ 16 l.97`). */
-registerSequenceThrow('termine-le-passage', () => ({ gain: 0, ends: true }));
 
 /** La LIGNE que DÉSIGNE une grandeur (`pick: 'reserve'`), avec son rang — `{}` si la séquence n'en
  *  déclare aucune, ou si aucune plage ne la couvre. Lue par la primitive PARTAGÉE du dépôt
@@ -257,7 +163,7 @@ export function resolveSequenceThrow(rules: SequenceVolleyRules, turn: SequenceT
   const nom = turn.critique && rules.critique ? rules.critique
     : turn.maladresse && rules.maladresse ? rules.maladresse
       : rules.gain;
-  const fn = nom ? sequenceThrows[nom] : undefined;
+  const fn = nom ? tablesPosees().lancers[nom] : undefined;
   return fn ? fn({ ...turn, libre: turn.libre ?? rules.libre }) : {};
 }
 
@@ -265,7 +171,7 @@ export function resolveSequenceThrow(rules: SequenceVolleyRules, turn: SequenceT
  *  (`depassement`). Sans cible ni effet, le gain passe tel quel — le socle n'invente rien. */
 export function sequenceThrowGain(rules: SequenceVolleyRules, turn: SequenceThrowTurn, gain: number): SequenceThrowOutcome {
   if (rules.exact == null || turn.points + gain <= rules.exact) return { gain };
-  const fn = rules.depassement ? sequenceThrows[rules.depassement] : undefined;
+  const fn = rules.depassement ? tablesPosees().lancers[rules.depassement] : undefined;
   return fn ? fn({ ...turn, gain }) : { gain };
 }
 
@@ -437,7 +343,7 @@ function borneOf(params: SequenceParams): number {
 }
 
 /**
- * DÉMARRE une séquence : pose son état PUIS ouvre la 1ʳᵉ manche. `def` doit être enregistrée (un id
+ * DÉMARRE une séquence : pose son état PUIS ouvre la 1ʳᵉ manche. `def` doit être déclarée (un id
  * inconnu ne pose rien — mieux vaut aucune séquence qu'une séquence qu'aucun réducteur ne clôt).
  */
 export function startSequence<P>(
@@ -628,3 +534,67 @@ export function pasVersLAbandon(get: Get): 'suivant' | 'terminer' | null {
   if (!cur) return 'terminer';
   return stepReady(cur, get()) ? 'suivant' : null;
 }
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  scoresDeSequence: {
+    min: (v) => (v.length ? Math.min(...v) : 0),
+    max: (v) => (v.length ? Math.max(...v) : 0),
+    sum: (v) => v.reduce((n, x) => n + x, 0),
+    first: (v) => v[0] ?? 0,
+  } satisfies PartDeTable<'scoresDeSequence', typeof SCORES_DE_SEQUENCE>,
+  departages: {
+    /** L'égalité reste une égalité. */
+    nul: { departage: () => 'tie' },
+    /** « les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le
+     *  plus bas gagne » (NADJ 16 l.105). Le chiffre des unités d'un d100 : 100 → 0. */
+    'units-lowest': { departage: (a, b) => {
+      const ua = a.roll % 10;
+      const ub = b.roll % 10;
+      return ua < ub ? 'a' : ub < ua ? 'b' : 'tie';
+    }, recit: (a, b) => t('sequence.departageUnites', { mien: a.roll % 10, sien: b.roll % 10 }) },
+  } satisfies PartDeTable<'departages', typeof DEPARTAGES>,
+  effetsDePot: {
+    /** Le joueur RAFLE le pot et remporte la manche (`NADJ 16 l.17`). */
+    'rafle-le-pot': () => ({ wins: true }),
+    /** Le joueur REPREND `mises` mises dans le pot (`NADJ 16 l.17`) — le pot ne rend jamais plus qu'il
+     *  ne contient. */
+    'reprend-mise': (t) => ({ takes: Math.min(t.ante * t.mises, t.pot) }),
+    /** Le total ATTEINT la cible (manche remportée) ou la PASSE au joueur suivant (`NADJ 16 l.17`). */
+    'cible-ou-passe': (t) => (t.roll === t.target ? { wins: true } : { target: t.roll }),
+    /** Le joueur REMET `mises` mises au pot, ou ABANDONNE la manche (`NADJ 16 l.17`). */
+    'remise-ou-abandon': (t) => ({ choose: true, owes: t.ante * t.mises }),
+    /** Le joueur QUITTE la manche (`NADJ 16 l.17`). */
+    'quitte-la-manche': () => ({ out: true }),
+  } satisfies PartDeTable<'effetsDePot', typeof EFFETS_DE_POT>,
+  lancers: {
+    /** Le DR du lancer, jamais négatif — sans égard à ce qu'il reste à prendre. */
+    dr: (t) => ({ gain: Math.max(0, t.sl) }),
+    /** Le DR du lancer, ÉCRÊTÉ à la réserve restante : on ne prend pas plus qu'il n'y a (`NADJ 16 l.42`). */
+    'dr-ecrete': (t) => ({ gain: Math.max(0, Math.min(t.sl, t.reserve ?? t.sl)) }),
+    /** TOUTE la réserve restante (`NADJ 16 l.42`). */
+    'toute-la-reserve': (t) => ({ gain: t.reserve ?? 0 }),
+    /** Les points de la LIGNE désignée, sur une réussite (`NADJ 16 l.70`). */
+    'points-de-la-ligne': (t) => ({ gain: t.success ? (t.row?.points ?? 0) : 0 }),
+    /** Les points de la ligne SUIVANTE de la table (`NADJ 16 l.70`) — la dernière ligne n'en a pas de
+     *  suivante : elle rend la sienne. */
+    'points-de-la-ligne-suivante': (t) => ({
+      gain: t.rows[(t.rowIndex ?? -1) + 1]?.points ?? t.row?.points ?? 0,
+    }),
+    /** Les CHIFFRES du dé : sur une réussite, le lanceur tranche entre unités, dizaines et leurs dizaines ;
+     *  sur un échec, le chiffre des unités (`NADJ 16 l.97`). */
+    'chiffres-du-de': (t) => {
+      const unites = t.roll % 10;
+      const dizaines = Math.floor(t.roll / 10) % 10;
+      if (!t.success) return { gain: unites };
+      return { choix: [...new Set([unites, dizaines, unites * 10, dizaines * 10])].sort((a, b) => a - b) };
+    },
+    /** Un gain que le lanceur fixe LIBREMENT dans la plage déclarée (`NADJ 16 l.97`) — la PLAGE est
+     *  rendue telle quelle (`libre`), jamais énumérée : c'est une SAISIE, pas une liste de valeurs. */
+    'gain-au-choix': (t) => (t.libre ? { libre: t.libre } : {}),
+    /** Aucun gain (`NADJ 16 l.97`). */
+    'aucun-gain': () => ({ gain: 0 }),
+    /** Aucun gain, et le PASSAGE s'arrête là (`NADJ 16 l.97`). */
+    'termine-le-passage': () => ({ gain: 0, ends: true }),
+  } satisfies PartDeTable<'lancers', typeof LANCERS>,
+} satisfies FragmentDeTables;

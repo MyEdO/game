@@ -16,6 +16,7 @@ import { createHero } from '../engine/character';
 import { CascadeBody } from './CascadeModal';
 import type { RevealEntry } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascade.testkit';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -68,7 +69,7 @@ describe('étape de révélation — le sujet et la barre de temps', () => {
   });
   it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
     openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: [], severity: 'minor' }));
-    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: 'choix', label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: cleDeFixture('choix'), label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
       options: [{ key: 'yes', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'no', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
     render();
     expect(host.querySelector('strong')?.textContent).toBe('Entrer');

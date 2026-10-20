@@ -3,6 +3,7 @@ import { pickActiveModalKey as pick } from './ActiveModal';
 import type { GameState } from '../state/store';
 import { cascadeDeTest } from '../state/cascade.testkit';
 import type { Weapon } from '../engine/types';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /**
  * Arbitre de modales (R2, désormais REGISTRE noyau/modalArbiter) : une seule modale de combat à
@@ -81,7 +82,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // La SITUATION est désormais portée par la cascade-hôte ouverte à l'incantation (CascadeModal → CastModal).
     expect(pickActiveModalKey({ pendingCast: {} })).toBeNull();
     // pendingCast + cascade `jet:'cast'` → l'arbitre renvoie 'cascade' (qui rend CastModal via le host).
-    const castCascade = cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast', actorId: 'h1' }]);
+    const castCascade = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast', actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingCast: {}, pendingCascade: castCascade })).toBe('cascade');
     // Ciblage CARTE (Surincantation / pose de zone) : la carte prend la main, la fenêtre s'efface —
     // et c'est l'ARBITRE qui ne l'élit pas (#1852). Il n'élit JAMAIS une modale au corps vide : le
@@ -94,7 +95,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
   it('le Contre-sort n’est PLUS une modale propre : la réaction est rendue DANS la cascade `cast` (Sort ennemi figé)', () => {
     // pendingCounterspell coexiste avec le pendingCast (+ cascade) du Sort ennemi → c'est la modale
     // `cascade` (→ CastModal) qui s'affiche (elle héberge les rangées de contre-lanceurs) : aucune entrée `counterspell`.
-    const enemyCast = cascadeDeTest([{ id: 'c', kind: 'castJet', jet: 'cast', groupOwner: true }]);
+    const enemyCast = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast', groupOwner: true }]);
     expect(pickActiveModalKey({ pendingCast: {}, pendingCascade: enemyCast, pendingCounterspell: { participants: [] } })).toBe('cascade');
     // Un pendingCounterspell SANS pendingCast/cascade (impossible en pratique) ne déclenche aucune modale.
     expect(pickActiveModalKey({ pendingCounterspell: { participants: [] } })).toBeNull();

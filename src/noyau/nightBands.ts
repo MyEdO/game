@@ -24,7 +24,7 @@ import type { EchecSansJet } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { isNightTestKind } from '../engine/types';
-import { registerCascadeApplier } from './cascade';
+import type { CascadeApplier } from './cascade';
 import { actorIn } from './monde/combatants';
 import { resultLines, bandStep, bandRowOfStep, bandCommonMeta, makeBandFactory, refusePorte, type Consequence, type BandSpec } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
@@ -118,14 +118,14 @@ export type NightBandApplier = (
 ) => BuiltCascadeStep[];
 
 /**
- * Enregistre la conséquence d'un `kind` de nuit SOUS FORME DE BANDE : la boucle par rangée (verdict sur
- * SA rangée, portrait attributeur) est écrite ICI une fois pour toutes, et les étapes INSÉRÉES par les
- * rangées repassent par la fabrique — c'est ainsi que le second Test du dessoûlage (LDB 09 l.485) fait
- * UNE bande de gueule de bois et non N étapes. Une étape sans rangées RENONCE (fail-closed) : plus
- * aucun `kind` de nuit ne s'applique en MONO depuis L3.
+ * La conséquence d'un `kind` de nuit SOUS FORME DE BANDE : la boucle par rangée (verdict sur SA rangée,
+ * portrait attributeur) est écrite ICI une fois pour toutes, et les étapes INSÉRÉES par les rangées
+ * repassent par la fabrique — c'est ainsi que le second Test du dessoûlage (LDB 09 l.485) fait UNE
+ * bande de gueule de bois et non N étapes. Une étape sans rangées RENONCE (fail-closed) : plus aucun
+ * `kind` de nuit ne s'applique en MONO depuis L3.
  */
-export function registerNightBandApplier(kind: string, rowFn: NightRowApplier, bandFn?: NightBandApplier): void {
-  registerCascadeApplier(kind, (get, set, step, _hero, ctx) => {
+export function bandeDeNuit(rowFn: NightRowApplier, bandFn?: NightBandApplier): CascadeApplier {
+  return (get, set, step, _hero, ctx) => {
     if (!step.participants) return;
     const insert: BuiltCascadeStep[] = [];
     for (const row of step.participants) {
@@ -139,7 +139,7 @@ export function registerNightBandApplier(kind: string, rowFn: NightRowApplier, b
     }
     set({ party: [...get().party] });
     return { consequences: [], insert: bandFn ? bandFn(get, set, step, ctx, insert) : nightBands(insert) };
-  });
+  };
 }
 
 /** DÉCLARATION d'une bande DÉJÀ MONTÉE, relue pour la RE-FABRIQUER (scission, vague suivante) : les
@@ -194,7 +194,7 @@ export function nightRowId(band: CascadeStep, row: BatchParticipant): string {
  *  posent : la nuit de camp / l'effet de scène (`exposure`) et l'entretien de MER (`sea-exposition`,
  *  seul couvert par les ORDRES d'une traversée, cf. `voyageCadence.KINDS_SOUS_ORDRES`). L'escalade
  *  cumulative les compte ENSEMBLE : un héros ne recommence pas à zéro en changeant de route. */
-export const EXPOSURE_BAND_KINDS: readonly string[] = ['exposure', 'sea-exposition'];
+export const EXPOSURE_BAND_KINDS = ['exposure', 'sea-exposition'] as const;
 
 /** Échec GENUINE d'Exposition : la peau de phoque (MDG 14 l.277) retient AU FROID un échec de justesse
  *  (+1 DR) — il ne compte alors ni comme conséquence ni dans l'escalade. */
@@ -216,7 +216,7 @@ export function exposurePriorFails(steps: CascadeStep[], hero: Combatant, kind: 
   }
   let n = 0;
   for (const s of steps) {
-    if (!EXPOSURE_BAND_KINDS.includes(s.kind) || !s.participants) continue;
+    if (!(EXPOSURE_BAND_KINDS as readonly string[]).includes(s.kind) || !s.participants) continue;
     if (((s.meta?.kind as ExposureKind) ?? 'froid') !== kind) continue;
     for (const row of s.participants) {
       if (row.id !== hero.id || cancelled.has(nightRowId(s, row))) continue;

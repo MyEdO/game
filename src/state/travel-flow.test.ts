@@ -24,7 +24,7 @@ import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelSta
 import { toDate } from '../engine/clock';
 import { creditBourse } from '../noyau/bourseFlow';
 import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engine/types';
-import { cascadeAppliers, rollTableStep } from '../noyau/cascade';
+import { applierDe, rollTableStep } from '../noyau/cascade';
 import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 
@@ -485,7 +485,7 @@ describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante 
   const perilInsert = (peripetieKind: string, kind: string) => {
     const p = PERIPETIES.find((x) => x.kind === peripetieKind)!;
     const step = { id: 'p', kind: 'landPerilTable', table: { tableId: 'land-peril-table', result: { id: p.id, roll: p.roll, lines: [] } }, meta: { destLabel: 'B' } } as never;
-    const out = cascadeAppliers.landPerilTable.apply(get, set, step, undefined, { steps: [step], index: 0 });
+    const out = applierDe('landPerilTable')!(get, set, step, undefined, { steps: [step], index: 0 });
     return (out?.insert ?? []).find((s) => s.kind === kind);
   };
 
@@ -563,7 +563,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     const picked = partyAssisted(get().party, 'conduite-d-attelage')!;
     // Le km courant RÉUSSIT → l'applier insère le km suivant (`galloped = 1`, pénalité −10).
     const reussi = { ...st, result: { roll: 5, target: st.target!, sl: 3, success: true } } as typeof st;
-    const out = cascadeAppliers.landForcedPace.apply(get, set, reussi, get().party[0], { steps: [reussi], index: 0 });
+    const out = applierDe('landForcedPace')!(get, set, reussi, get().party[0], { steps: [reussi], index: 0 });
     const km2 = (out?.insert ?? []).find((s) => s.kind === 'landForcedPace')!;
     expect(km2, 'le kilomètre suivant s’insère').toBeTruthy();
     expect(km2.base, 'base NUE : ni le Soutien ni la pénalité ne s’y cachent').toBe(skillBaseValue(picked.actor, 'conduite-d-attelage'));
@@ -586,7 +586,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
     // Échec SIMPLE (−1 DR) : pas de Problème de véhicule (l.253 côté conducteur), seules les bêtes jouent.
     const rate = { ...st, result: { roll: 99, target: st.target!, sl: -1, success: false } } as typeof st;
-    const out = cascadeAppliers.landForcedPace.apply(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+    const out = applierDe('landForcedPace')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
     return (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
   }
 
@@ -629,7 +629,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
       useGame.setState(avant, true);
       seedBattleRng(seed);
       const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
-      const out = cascadeAppliers.landForcedPace.apply(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+      const out = applierDe('landForcedPace')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
       lignes = (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
       insert = out?.insert ?? [];
     }
@@ -650,7 +650,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     for (let seed = 1; seed <= 200 && !control; seed++) {
       seedBattleRng(seed);
       const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
-      const out = cascadeAppliers.landForcedPace.apply(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+      const out = applierDe('landForcedPace')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
       control = (out?.insert ?? []).find((s) => s.kind === 'landForcedPaceControl') as typeof st | undefined;
     }
     expect(control, 'le cas « Incontrôlable » est atteignable').toBeTruthy();

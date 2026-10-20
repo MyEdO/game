@@ -2,7 +2,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makeRNG } from '../engine/dice';
-import { startCascade, registerTableStep, rollTableStep, runCascadeImmediate, stepInteraction, stepReady, tableStepDef, tableStepIds, tableStepDie, naturalRollForTableRow } from '../noyau/cascade';
+import { startCascade, rollTableStep, runCascadeImmediate, stepInteraction, stepReady, tableStepDef, tableStepIds, tableStepDie, naturalRollForTableRow } from '../noyau/cascade';
 import { spyApplier } from './cascade.testkit';
 import { STRUCTURE_CRIT_TABLE } from '../noyau/combatFlow';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
@@ -14,6 +14,8 @@ import { intentAllowedFor } from '../noyau/netOwnership';
 import { setDataset, datasetArray } from '../data/overrides';
 import { type MutationTable } from '../data/mutations';
 import type { CascadeStep } from '../noyau/pendings';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * ÉTAPE À TABLE (#942 L2) — le TIRAGE SUR TABLEAU est une interaction d'étape de cascade, résolue en UN
@@ -30,19 +32,18 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   beforeEach(() => {
     applied.length = 0;
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    registerTableStep(SYNTH, {
+    avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [SYNTH]: {
       label: 'Table synthétique',
       die: 100,
       rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
       lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`, 'note de la ligne'],
-    });
-    spyApplier('tableSpy', applied, (step) => ({
+    } }, appliers: { ...tablesDuJeu().appliers, tableSpy: spyApplier(applied, (step) => ({
       id: step.table!.result!.id, roll: step.table!.result!.roll, die: step.table!.result!.die,
-    }));
+    })) } });
   });
 
   const tableStep = (id: string, decl: Partial<CascadeStep['table']> = {}): CascadeStep =>
-    ({ id, kind: 'tableSpy', label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: SYNTH, ...decl }});
+    ({ id, kind: cleDeFixture('tableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: SYNTH, ...decl }});
 
   it("l'interaction est inférée du champ `table` : sans résultat = à tirer, avec résultat = affichage prêt", () => {
     const st = tableStep('t1');
@@ -107,11 +108,11 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
     expect(applied).toEqual([{ id: 'haute', roll: 51, die: 51 }]);
   });
 
-  it('table non enregistrée : fail-fast (un `tableId` fautif ne se résout jamais en silence)', () => {
-    // Le refus NOMME l'id ET ses deux causes possibles (jamais enregistrée, ou table retirée de la
+  it('table non déclarée : fail-fast (un `tableId` fautif ne se résout jamais en silence)', () => {
+    // Le refus NOMME l'id ET ses deux causes possibles (jamais déclarée, ou table retirée de la
     // donnée — cf. le cas de reprise ci-dessous) : un `tableId` fautif ne se résout jamais en silence.
     expect(() => rollTableStep({ tableId: 'table-inexistante' }, makeRNG(1)))
-      .toThrow(/« table-inexistante ».*jamais enregistrée.*retirée de la donnée/);
+      .toThrow(/« table-inexistante ».*jamais déclarée.*retirée de la donnée/);
   });
 
   it('dé effectif HORS PLAGE : fail-fast, jamais le repli silencieux sur la ligne extrême', () => {
@@ -197,7 +198,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
 
   /** Étape à table sur `T`, avec le `mod` voulu (le `mod` est ce qui rend le calcul du naturel visible). */
   const step = (mod?: number): CascadeStep =>
-    ({ id: 'tm', kind: 'tableModeSpy', label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T, ...(mod != null ? { mod } : {}) }});
+    ({ id: 'tm', kind: cleDeFixture('tableModeSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T, ...(mod != null ? { mod } : {}) }});
 
   const open = (mod?: number) =>
     startCascade(useGame.getState, useGame.setState, { title: 'Tirage', purpose: 'test', steps: [step(mod)] });
@@ -207,13 +208,12 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     applied.length = 0;
     setDesFixes(true);
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    registerTableStep(T, {
+    avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [T]: {
       label: 'Table du mode',
       die: 100,
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne ${die <= 50 ? 'basse' : 'haute'} (dé ${die})`],
-    });
-    spyApplier('tableModeSpy', applied, (s) => ({ id: s.table!.result!.id, roll: s.table!.result!.roll, die: s.table!.result!.die }));
+    } }, appliers: { ...tablesDuJeu().appliers, tableModeSpy: spyApplier(applied, (s) => ({ id: s.table!.result!.id, roll: s.table!.result!.roll, die: s.table!.result!.die })) } });
   });
   afterEach(() => resetDesFixes());
 
@@ -337,18 +337,17 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   const NEUTRE = 'test-table-sans-categorie';
   beforeEach(() => {
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    registerTableStep(NEUTRE, {
+    avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [NEUTRE]: {
       label: 'Table sans catégorie',
       die: 100,
       rows: [{ min: 1, max: 100, id: 'unique' }],
       lines: () => ['x'],
-    });
-    spyApplier('stakeSpy', [], () => undefined);
+    } }, appliers: { ...tablesDuJeu().appliers, stakeSpy: spyApplier([], () => undefined) } });
   });
 
   /** Étape sur la VRAIE table de Critiques de Structure, portant l'enjeu de son `kind`. */
   const structureStep = (id: string, forcedRoll?: number): CascadeStep => ({
-    id, kind: 'stakeSpy', label: fixtureText('Critique de Structure'), icon: 'nav/dice',
+    id, kind: cleDeFixture('stakeSpy'), label: fixtureText('Critique de Structure'), icon: 'nav/dice',
     table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, ...(forcedRoll ? { forcedRoll } : {}) },
     stake: combatStakeRef('structureCritical'),
   });
@@ -392,7 +391,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('table SANS catégorie d’entrées : l’enjeu est rendu TEL QUEL (repli déclaré)', () => {
     const st: CascadeStep = {
-      id: 'n1', kind: 'stakeSpy', label: fixtureText('Neutre'), icon: 'nav/dice',
+      id: 'n1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Neutre'), icon: 'nav/dice',
       table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structureCritical'),
     };
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [st] });
@@ -404,7 +403,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('étape SANS enjeu : le tirage n’en fabrique aucun', () => {
     const st: CascadeStep = {
-      id: 'm1', kind: 'stakeSpy', label: fixtureText('Muette'), icon: 'nav/dice',
+      id: 'm1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Muette'), icon: 'nav/dice',
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll: 40 },
     };
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [st] });

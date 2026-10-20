@@ -10,6 +10,7 @@ import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { cascadeDeTest } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /**
  * GARDE EXHAUSTIVE de l'option « Dés fixés » — le socle, pas 36 copies.
@@ -115,7 +116,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     }),
   },
   cascade: {
-    state: { pendingCascade: cascadeDeTest([{ id: 's1', kind: 'test', actorId: 'H', target: T, rollLabel: 'Test', result: { roll: 88, target: T, sl: -4, success: false } }]) },
+    state: { pendingCascade: cascadeDeTest([{ id: 's1', kind: cleDeFixture('test'), actorId: 'H', target: T, rollLabel: 'Test', result: { roll: 88, target: T, sl: -4, success: false } }]) },
     pid: 's1',
     read: () => ({ roll: P<{ participants: { result: { roll: number } }[] }>('pendingCascade').participants[0].result.roll, success: P<{ participants: { result: { success: boolean } }[] }>('pendingCascade').participants[0].result.success }),
   },
@@ -123,7 +124,7 @@ const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   // d100 (`roll ≤ cible`, cf. `partRead`) reviendrait à se fournir la valeur qu'on prétend mesurer :
   // la garde resterait verte alors même que l'accesseur de dé n'écrirait aucune issue.
   cascadeBatch: {
-    state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: 'batch', aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
+    state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('batch'), aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
     pid: 'H',
     read: () => {
       const r = P<{ participants: { participants: { result: { roll: number; success: boolean } }[] }[] }>('pendingCascade').participants[0].participants[0].result;

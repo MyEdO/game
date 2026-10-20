@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { fireTriggers } from '../../noyau/triggeredEffects';
-import '../../noyau/combatFlow'; // effet de bord : routeur de Test + applier triggeredTest + hook onHit
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../../noyau/battleRng';

@@ -38,7 +38,7 @@ import {
 } from '../data/mutations';
 import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
 import { findTableEntry } from '../engine/tables';
-import { registerCascadeApplier, registerTableStepFamily, pushStep, type TableStepDef } from './cascade';
+import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
 import { actorIn } from './monde/combatants';
@@ -58,6 +58,7 @@ import { stepDetail } from './rollSeam';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29). SEULE
  *  construction du Test, pour tout producteur (scène, interlude, fin de combat) et le choix du joueur. */
@@ -171,8 +172,6 @@ const tablesDeNature = memoParVersion('species', () => {
   return tables;
 });
 
-registerTableStepFamily(tablesDeNature);
-
 // Une entrée par table RÉELLE de `mutationTables.json` (LDB physique/mentale, tables EDOC par
 // Puissance, sous-tables « Tête bestiale ») : fourchettes et ids de mutation PROJETÉS depuis la
 // donnée (`mutationTableRows`, par référence) ; le lookup mécanique reste `mutationAt`. Le `label`
@@ -195,8 +194,6 @@ const tablesDeMutation = memoParVersion(['mutationTables', 'mutations'], () => {
   }
   return tables;
 });
-
-registerTableStepFamily(tablesDeMutation);
 
 /** Table de Corruption d'une nature de mutation : l'alignement de la SOURCE (posé par l'éditeur de
  *  niveau) PRIME ; sinon la règle globale `corruption-tables-edoc` ('ldb' → Tableaux du Livre de base ;
@@ -232,34 +229,6 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
     stake: combatStakeRef('mutationTable'),
   });
 }
-
-/** ÉTAPE 1 : la LIGNE tirée (`result.id`, l'autorité — jamais un re-lookup sur le dé) donne la nature,
- *  qui désigne la table de Corruption → l'étape 2 est INSÉRÉE juste après. */
-registerCascadeApplier('mutationNature', (_get, _set, step, hero) => {
-  const ctx = step.mutation;
-  const rolled = step.table?.result;
-  if (!ctx || !rolled || !hero) return;
-  const kind = rolled.id as 'physique' | 'mentale';
-  const suivante = mutationTableStep(hero, mutationTableIdFor(kind, ctx.align), { ...ctx, kind, natureRoll: rolled.roll });
-  return suivante ? { insert: [suivante] } : undefined;
-});
-
-/** ÉTAPES 2 et N : la LIGNE tirée (`result.id`) EST la mutation. Ligne à SOUS-TABLE → une étape de plus
- *  est INSÉRÉE (descente pilotée niveau par niveau) ; sinon la mutation est appliquée. */
-registerCascadeApplier('mutationTable', (get, set, step, hero) => {
-  const ctx = step.mutation;
-  const rolled = step.table?.result;
-  if (!ctx?.tableId || !rolled || !hero) return;
-  const m = mutationOfRow(rolled.id, rolled.roll);
-  const sub = mutationSubTableFor(ctx.tableId, m);
-  if (sub) {
-    const suivante = mutationTableStep(hero, sub, ctx);
-    return suivante ? { insert: [suivante] } : undefined;
-  }
-  const lines = finishMutation(get, set, hero, m, ctx.kind ?? 'physique', ctx.natureRoll ?? 0);
-  set({ ...touchActors(get()) });
-  return { consequences: freeCons(lines) };
-});
 
 /** Applique la MUTATION (l.82-91) : −BFM Points, d100 corps/esprit par espèce, tirage sur le
  *  Tableau de Corruption physique/mentale, effets dérivés, puis LIMITES (l.87) → damné. */
@@ -414,3 +383,42 @@ export function creerActionsDeCorruption(get: Get, set: Set) {
     },
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['mutationNature', 'mutationTable'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** ÉTAPE 1 : la LIGNE tirée (`result.id`, l'autorité — jamais un re-lookup sur le dé) donne la nature,
+     *  qui désigne la table de Corruption → l'étape 2 est INSÉRÉE juste après. */
+    mutationNature: (_get, _set, step, hero) => {
+      const ctx = step.mutation;
+      const rolled = step.table?.result;
+      if (!ctx || !rolled || !hero) return;
+      const kind = rolled.id as 'physique' | 'mentale';
+      const suivante = mutationTableStep(hero, mutationTableIdFor(kind, ctx.align), { ...ctx, kind, natureRoll: rolled.roll });
+      return suivante ? { insert: [suivante] } : undefined;
+    },
+    /** ÉTAPES 2 et N : la LIGNE tirée (`result.id`) EST la mutation. Ligne à SOUS-TABLE → une étape de plus
+     *  est INSÉRÉE (descente pilotée niveau par niveau) ; sinon la mutation est appliquée. */
+    mutationTable: (get, set, step, hero) => {
+      const ctx = step.mutation;
+      const rolled = step.table?.result;
+      if (!ctx?.tableId || !rolled || !hero) return;
+      const m = mutationOfRow(rolled.id, rolled.roll);
+      const sub = mutationSubTableFor(ctx.tableId, m);
+      if (sub) {
+        const suivante = mutationTableStep(hero, sub, ctx);
+        return suivante ? { insert: [suivante] } : undefined;
+      }
+      const lines = finishMutation(get, set, hero, m, ctx.kind ?? 'physique', ctx.natureRoll ?? 0);
+      set({ ...touchActors(get()) });
+      return { consequences: freeCons(lines) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  famillesTirables: [
+    tablesDeNature,
+    tablesDeMutation,
+  ],
+} satisfies FragmentDeTables;

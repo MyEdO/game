@@ -36,7 +36,7 @@ import type { TravelPlan, TravelRecapDay } from './travelFlow';
 import { toRecapLines, type RecapEvent } from './recapLine';
 import type { BatchParticipant } from './pendings';
 import { crewTestContributors, equipageImplique, shipMoraleScore, applyShipMoraleDelta, shipSaboteurDR, applyVesselCrewLoss, resolveShoreLeaveDesertion, shipboardSouls, shipUndercrew } from './shipCrew';
-import { buildAuthorPerilSteps, registerPerilInterrupt, applyPerilEffectsNow } from './authorPerils';
+import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
 
 /** Id du protocole de reprise MARITIME (effets appliqués SUR-LE-CHAMP, `resumeTravel` rejoue). */
 /** Id du PROTOCOLE de reprise maritime (`authorPerils`) : la mer applique les effets d'un péril
@@ -106,7 +106,7 @@ import type { Get, Set } from './flowTypes';
 import type { CampaignVessel } from './etat';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
+import { startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
@@ -121,12 +121,12 @@ import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `crew-test-zero-success` comprise) dans
  *  la machinerie générique, qui reste ignorante du domaine (quarantaine d'import #328 intacte). */
 export const CREW_TEST_SUCCESS_RULE = 'crew-test';
-registerCascadeSuccessRule(CREW_TEST_SUCCESS_RULE, crewTestSuccess);
 
 /** Navire hostile de l'événement en cours (MDG 15 « Cogue pirate » / « Langskip skaeling ») — porté
  *  sur l'état NAVAL le temps de la confrontation, il DÉRIVE l'abordage GÉNÉRIQUE (`startChaseBoarding`)
@@ -469,12 +469,12 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
  *  (`crewTestContributors`) et pose Moral/sabotage/traits navals en `meta` (agrégés à la validation par
  *  `cascade.aggregateBatchStep`, MÊME formule que `maneuverCrewTotal`). `null` = aucun PJ n'a de rôle
  *  utile (aucun jet à jouer ce Test-là, l'appelant applique son chemin sans-jet). `kind` = la clé du
- *  registre `registerCascadeApplier` (#275 Ronde 2 cran 2/3) — les 10 Tests canoniques partagent leur
+ *  table `appliers` (#275 Ronde 2 cran 2/3) — les 10 Tests canoniques partagent leur
  *  `testTypeId`, un ÉVÉNEMENT peut réutiliser un `testTypeId` sous un AUTRE `kind` (Ouragan → Affaler,
  *  cf. `sea-ouragan-affaler`) pour ne jamais retomber dans la routine auto-résolue (`KINDS_SOUS_ORDRES`
  *  est indexée par `kind`, pas `testTypeId`). */
 
-function buildVoyageCrewStep(get: Get, testTypeId: string, kind: string, opts: { sense?: PairedSense; extraDR?: number; icon?: string } = {}): BuiltCascadeStep | undefined {
+function buildVoyageCrewStep(get: Get, testTypeId: string, kind: GenreDEtape, opts: { sense?: PairedSense; extraDR?: number; icon?: string } = {}): BuiltCascadeStep | undefined {
   const plan = get().travelPlan;
   const ship = plan?.vehicle;
   if (!ship) return undefined;
@@ -651,7 +651,7 @@ function seaStrandingPenalty(get: Get): ModLine[] {
 /** Étape MONO « Dégagement » (Test de Force, #444) — partagée par l'Échouage (`sea-degagement`, MDG
  *  ch.13 l.471-473) et l'empêtrement dans des Débris marins (`sea-degagement-debris`, l.491, Test
  *  étendu). `penalite` = les malus sur la cible (l.473). `undefined` = aucun PJ éligible à la Force. */
-function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: string, { penalite = [], stakeValues }: { penalite?: ModLine[]; stakeValues?: Record<string, number> } = {}): BuiltCascadeStep | undefined {
+function buildStrandedOrEntangledStep(get: Get, difficulty: Difficulty, kind: GenreDEtape, { penalite = [], stakeValues }: { penalite?: ModLine[]; stakeValues?: Record<string, number> } = {}): BuiltCascadeStep | undefined {
   const force = partyAssisted(get().party, undefined, 'force');
   if (!force) return undefined;
   const test = { char: 'force' as const };
@@ -772,7 +772,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   // SALISSURES (MDG 13 l.148, #1105) : le Test de la semaine.
   pousseSi(out, buildFoulingStep(get));
   // #212. Embuscade AUTHORÉE à ancrage déterministe : franchissement de l'ancrage ce jour → Test de
-  // Perception PUIS abordage (applier `embuscade`, déjà enregistré).
+  // Perception PUIS abordage (applier `embuscade`, table `appliers`).
   if (route?.ambush?.scene && route.ambush.encounter && !sea.ambushFired) {
     const anchor = Math.max(0, Math.min(1, route.ambush.at ?? 0.5)) * plan.km;
     if (plan.kmDone + sea.milesToday >= anchor) {
@@ -813,7 +813,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
 
 /**
  * Construit la CASCADE du jour (#275 Ronde 2 cran 3) : tronc = Forcer le rythme (si demandé) → Affaler
- * (si vents violents) → Progression — l'applier `'progression'` (déjà enregistré, cran 2a) INSÈRE les
+ * (si vents violents) → Progression — l'applier `'progression'` (table `appliers`, cran 2a) INSÈRE les
  * étapes post-progression (`buildPostProgressionSteps`) une fois `sea.milesToday` connu. Aucun PJ apte
  * pour la Progression → applique la progression au plancher de Manque de bras (MDG 14 l.55) et bâtit
  * quand même les étapes qui n'en dépendent pas.
@@ -1110,15 +1110,6 @@ function finalizeFastVoyage(get: Get, set: Set): void {
 
 // ── Boucle jour par jour (#275 Ronde 2 cran 3 — pipeline cascade) ───────────────────────────────
 
-/** Périls d'AUTEUR de la route (`route.perils`) lus JOUR PAR JOUR — MÊME patron que le terrestre
- *  (travelFlow) : tirage à `chancePct` %, effets appliqués (butin attribué hors combat) ; un effet
- *  `startCombat`/`transition` INTERROMPT la traversée (reprise via `resumeTravel`). Renvoie `true` si
- *  la traversée s'est arrêtée là (combat/transition d'auteur). */
-// PROTOCOLE DE REPRISE MARITIME : les effets d'un péril interrompant s'appliquent SUR-LE-CHAMP —
-// `resumeTravel` rejoue la traversée après le combat/la transition. Déclaré au flux ; la chance de
-// chaque péril, elle, est une étape de MONDE construite par la source unique (`authorPerils.ts`).
-registerPerilInterrupt(SEA_PERIL_INTERRUPT, applyPerilEffectsNow);
-
 /** Événement de bord tous les 1d10 jours (ch.15 l.89) — résolu AVANT la cascade du jour (ne dépend
  *  d'aucune Progression). La Prière d'un Présage (`sea-priere`) et l'Ouragan (`sea-ouragan-affaler`,
  *  applier ci-dessous) peuvent SURFACER leur propre mini-cascade (`purpose:'test'`) — renvoie `true` si
@@ -1166,33 +1157,13 @@ const SEA_BOARD_EVENT_STEP_ID = 'sea-board-event';
 export const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
 
 // Table DÉRIVÉE du catalogue (`sea-events.json` : chaque entrée porte déjà `min`/`max`/`id`) — aucune
-// plage réécrite à la main ; FAMILLE (`registerTableStepFamily`) mémoïsée sur `seaBoardEvents`.
+// plage réécrite à la main ; FAMILLE (`famillesTirables`) mémoïsée sur `seaBoardEvents`.
 const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<string, TableStepDef>([[SEA_BOARD_EVENT_TABLE, {
   label: t('step.seaBoardEvent'),
   die: 100,
   rows: evenementsDeBord().map((e) => ({ id: e.id, min: e.min, max: e.max })),
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
-registerTableStepFamily(tableDesEvenementsDeBord);
-
-registerCascadeApplier(SEA_BOARD_EVENT_KIND, (get, set, step) => {
-  const tiree = step.table?.result;
-  if (!tiree) return {};
-  const rng = battleRng();
-  const event = seaBoardEventById(tiree.id);
-  // Le délai du PROCHAIN événement se tire ICI, juste après le dé d'événement, et il est posé AVANT la
-  // conséquence : celle-ci peut surfacer sa propre cascade, et une reprise re-déclencherait sinon CE
-  // même tirage.
-  patchSea(get, set, { daysToEvent: rollDaysToNextEvent(rng) });
-  if (!event) return {};
-  // UNE ligne par événement, et c'est la CONSÉQUENCE de l'étape (titre + texte VERBATIM de
-  // `sea-events.json`, AGENTS.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc
-  // la rangée reste lisible dans la pile après validation (« on ne perd pas les conséquences »,
-  // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `stageWeather`), qui rend
-  // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
-  // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
-  return { consequences: freeCons([resolveBoardEvent(get, set, event, rng, tiree.die)]) };
-});
 
 /**
  * Boucle maritime — appelée par `runTravelDays`/`resumeTravel` (plan `sea`) et la reprise de nuit.
@@ -1246,21 +1217,6 @@ function jouerLesEtapesDuJour(get: Get, set: Set, steps: BuiltCascadeStep[]): vo
 
 // ── Seam de jet (#275 Ronde 1) — appliers des sites de jet ouverts par `openRoll` ────────────────
 
-/** Forcer le rythme (MDG 13 l.95-107) : pose `paceToday`, le +M du jour se lit ensuite par
- *  `effectiveSeaM`. Étape du TRONC de la cascade du jour (`buildForcePaceStep`, avant Progression) —
- *  `tell()` (pas `{journal}`) : la ligne rejoint le RECAP du jour (`sea.lines` → `TravelRecapDay.lines`). */
-registerCascadeApplier('sea-force-pace', (get, set, step) => {
-  if (!step.result) return;
-  const won = step.result.success;
-  const forcePace = Number(step.meta?.forcePace ?? 0);
-  patchSea(get, set, { paceToday: won ? 'won' : 'lost' });
-  noteManieurs(get, set, step);
-  // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-  const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
 /** Acteur et soutiens d'un jet de Voile ou de Ramer (MDG 13 l.22-24, l.111). */
 function manieursDe(best: { actor: Combatant; support: SupportDetail }): string[] {
   return [best.actor.id, ...best.support.ids];
@@ -1278,101 +1234,6 @@ function noteManieurs(get: Get, set: Set, step: CascadeStep): void {
 function signedD10(n: number): string {
   return `${n < 0 ? '−' : '+'}${Math.abs(n)}d10`;
 }
-
-/** Prière d'un Présage (MDG 15 l.197-198 albatros / l.231-232 feu bleu) : bon
- *  présage → il faut RÉUSSIR pour l'appliquer ; mauvais présage → RÉUSSIR l'évite (`manannD >= 0 ? success : !success`, logique
- *  inchangée). `tell()` pour la même raison recap que `sea-force-pace` ci-dessus. La reprise du jour à
- *  la fermeture est portée par `dispatchCascadeDone` (purpose `test` en mer → `runSeaDay`), pas ici. */
-registerCascadeApplier('sea-priere', (get, set, step) => {
-  if (!step.result) return;
-  const manannD = Number(step.meta?.manannD ?? 0);
-  const moraleD = Number(step.meta?.moraleD ?? 0);
-  const success = step.result.success;
-  // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-  const j = [t('sv.stepIssue', { label: String(step.label), issue: success ? t('sv.prayerOk') : t('sv.prayerKo') })];
-  const apply = manannD >= 0 ? success : !success;
-  if (apply) {
-    if (manannD) tellManann(get, set, manannD);
-    const ship = get().travelPlan?.vehicle;
-    if (moraleD && ship) {
-      const delta = Math.sign(moraleD) * rollDice(Math.abs(moraleD), 10, battleRng());
-      for (const l of applyShipMoraleDelta(get, set, ship, delta)) tell(get, set, [l]);
-    }
-  }
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
-/** Scorbut (MDG 14 l.230) : BANDE — le verdict se lit RANGÉE PAR RANGÉE (patron Mal de mer ci-dessous),
- *  chaque porteur portant sa soupe de chou fermenté dans `row.meta`. */
-registerCascadeApplier('sea-scorbut', (get, set, step) => {
-  const lignes: FreeConsLine[] = [];
-  for (const row of step.participants ?? []) {
-    const hero = actorIn(get(), row.id);
-    // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-    // Succès sans effet (l'exposition « pour cette fois » n'a rien à ajouter) → aucune conséquence.
-    if (!hero || !row.result || row.result.success) continue;
-    const d = contractDisease('scorbut', battleRng());
-    if (d) hero.diseases = [...(hero.diseases ?? []), d];
-    lignes.push({ text: t('sv.scurvyGot', { name: hero.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'bad' });
-  }
-  touchParty(get, set);
-  return { consequences: freeCons(lignes) };
-});
-
-/** Mal de mer (MDG 14 l.217-220) : échec → contracté. `applyContraction` dédoublonne si
- *  DEUX étapes ratées le même jour pour le même héros (premier voyage ET mauvais temps cumulés,
- *  `buildSeasicknessSteps`). */
-registerCascadeApplier('sea-mal-de-mer', (get, set, step) => {
-  const lignes: FreeConsLine[] = [];
-  // BANDE : le verdict se lit RANGÉE PAR RANGÉE, dans l'ordre de la partie — le dé de contraction
-  // d'un porteur qui échoue tombe au rang de SA rangée.
-  for (const row of step.participants ?? []) {
-    const hero = actorIn(get(), row.id);
-    if (!hero || !row.result || row.result.success) continue;
-    if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: hero.label }), tone: 'bad' });
-  }
-  touchParty(get, set);
-  return { consequences: freeCons(lignes) };
-});
-
-/** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : boire au tonneau contaminé la veille
- *  expose au Test de Contraction propre à la maladie qui l'a contaminé (même cycle générique que
- *  Scorbut ci-dessus, difficulté lue sur `diseaseDefs()[…].contractDifficulty`). */
-registerCascadeApplier('sea-tonneau-expose', (get, set, step, hero) => {
-  if (!step.result || !hero) return;
-  const diseaseId = String(step.meta?.diseaseId ?? '');
-  const j = step.result.success ? [] : applyContraction(hero, diseaseId, false, battleRng());
-  touchParty(get, set);
-  return { consequences: freeCons(j.length ? [{ text: t('sv.waterDiseaseGot', { name: hero.label, disease: diseaseLabel(diseaseId) }), tone: 'bad' }] : []) };
-});
-
-/** Tonneau d'eau — CONTAMINATION (MDG 14 l.209) : un porteur boit au tonneau, échoue son
- *  Test de Résistance Intermédiaire (+0) → le tonneau devient une source de contagion (effet visible
- *  dès DEMAIN, jamais le jour même — le garde `!waterContaminated` évite qu'un second porteur en échec
- *  le même jour n'écrase la maladie déjà posée par le premier). */
-registerCascadeApplier('sea-tonneau-contamine', (get, set, step) => {
-  if (!step.result) return;
-  if (step.result.success) return { consequences: freeCons([]) };
-  const diseaseId = String(step.meta?.diseaseId ?? '');
-  if (!get().travelPlan?.sea?.waterContaminated) patchSea(get, set, { waterContaminated: { diseaseId } });
-  return { consequences: freeCons([{ text: t('sv.waterContaminated', { disease: diseaseLabel(diseaseId) }), tone: 'bad' }]) };
-});
-
-/** Épuisement (MDG 13 l.111) : BANDE, verdict lu rangée par rangée (patron Scorbut ci-dessus). */
-registerCascadeApplier('sea-epuisement', (get, set, step) => {
-  const lignes: FreeConsLine[] = [];
-  for (const row of step.participants ?? []) {
-    const hero = actorIn(get(), row.id);
-    // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-    // Succès sans effet (rien à ajouter) → aucune conséquence.
-    if (!hero || !row.result || row.result.success) continue;
-    addCondition(hero, 'extenue');
-    lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'bad' });
-  }
-  set({ party: [...get().party] });
-  return { consequences: freeCons(lignes) };
-});
 
 /** Applique les MILLES du jour depuis le total du Test de Progression (±10 %/DR, ch.15 l.78). Renvoie
  *  la ligne d'annonce (le call-site décide du canal — `tell()` build-time ou `consequences` d'applier). */
@@ -1759,68 +1620,8 @@ export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void
   openRest(get, set, { places: { bord: true }, lieu: nomDuNavire(vessel), travelHalt: true, travelDay });
 }
 
-// ── Registre `cascadeAppliers` des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
+// ── Appliers des Tests d'équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL,
 //    câblé par `buildSeaDayCascade`/`buildPostProgressionSteps`/`runSeaDay`) ────────────────────
-
-/** Progression du jour (MDG 14 l.61-65 ; ±10 %/DR ch.15 l.78) + PANNE DE VAPEUR (MDG 12 l.313) sur un
- *  navire à Propulsion à vapeur (Test de Métier lu sur les jets INDIVIDUELS des contributeurs). INSÈRE
- *  le reste de la journée (crise/embuscade/phare/orientation/extermination/entretien) une fois
- *  `sea.milesToday` connu (`buildPostProgressionSteps`, #275 Ronde 2 cran 3 Décision 2). */
-registerCascadeApplier('progression', (get, set, step) => {
-  if (!step.result) return;
-  const total = step.result.sl;
-  const j = applySeaProgress(get, set, total);
-  const plan = get().travelPlan;
-  const hull = plan?.vehicle;
-  const rng = battleRng();
-  if (hull && seaRig(hull).mode === 'vapeur') {
-    const triggered = (step.participants ?? []).some((x) => estJete(x.result)
-      && steamBreakdownTriggered({ success: x.result.roll <= x.result.target, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
-    if (triggered) {
-      // Tirage POST-POSE de la table de panne : l'étape `progression` est déjà posée, ce dé en est la
-      // conséquence — porte du canal (`deMonde`), même position RNG qu'inline (MDG 12 l.313).
-      const b = steamBreakdownFor(deMonde(rng));
-      j.push(t('sv.steamBreakdown', { label: b.label }), b.desc);
-      applySteamBreakdown(get, set, b, rng); // « Fuite de vapeur » → `pendingSteamSave` (sauvegarde d'Initiative) suspend AVANT le reste du jour
-    }
-  }
-  noteSeaLine(get, set, j);
-  if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `runSeaDay`)
-  const insert = buildPostProgressionSteps(get, set);
-  return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
-});
-
-/** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : Dégâts de coque (`overspeedDamage`)
- *  routés par `damageVesselHull`. */
-registerCascadeApplier('sea-overspeed', (get, set, step) => {
-  if (!step.result) return;
-  if (step.result.success) {
-    const j = [t('sv.holdsPace', { label: String(step.label) })];
-    noteSeaLine(get, set, j);
-    return { consequences: freeCons(j) };
-  }
-  const dmg = overspeedDamage(Number(step.meta?.overspeedDamage ?? 0), step.result.sl);
-  const hull = get().travelPlan?.vehicle;
-  const j = hull ? damageVesselHull(get, set, hull, dmg) : [];
-  const line = [t('sv.hullTakes', { label: String(step.label), n: dmg }), ...j];
-  noteSeaLine(get, set, line);
-  return { consequences: freeCons(line) };
-});
-
-/** Salissures (MDG 13 l.148, #1105) : la semaine est notée sur TOUT résultat ; échec → +1 niveau,
- *  plafonné (`weeklyFoulingLevel`). */
-registerCascadeApplier('sea-salissures', (get, set, step) => {
-  const vessel = get().vessel;
-  if (!step.result || !vessel) return;
-  const before = vessel.fouling?.level ?? 0;
-  const r = weeklyFoulingLevel(before, step.result.success);
-  set({ vessel: { ...vessel, fouling: { level: r.level, lastWeek: Number(step.meta?.week) } } });
-  const line = step.result.success ? t('sv.foulingHolds')
-    : r.gained ? t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })
-    : t('sv.foulingMax', { level: r.level });
-  noteSeaLine(get, set, [line]);
-  return { consequences: freeCons([line]) };
-});
 
 /** Conséquence PARTAGÉE d'Affaler (ch.13 l.288-294) : échec → Critique au Gréement (MDG 14 l.92-96).
  *  Appelée par l'applier de la CASCADE DU JOUR (`'affaler'`, routine) ET par l'événement Ouragan
@@ -1833,63 +1634,6 @@ function affalerConsequence(get: Get, set: Set, step: CascadeStep): Consequence[
   applyVesselCritical(get, set, crit);
   return [];
 }
-registerCascadeApplier('affaler', (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }));
-// Ouragan : cascade AUTONOME (`purpose:'test'`) ouverte AVANT la construction du jour
-// (`resolveSeaDayEvent`) — sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`.
-registerCascadeApplier('sea-ouragan-affaler', (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }));
-
-/** Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311) → Repères / Changement de cap. */
-registerCascadeApplier('orientation', (get, set, step) => {
-  if (!step.result) return;
-  const sea = get().travelPlan?.sea;
-  if (!sea) return;
-  const rng = battleRng();
-  const total = step.result.sl;
-  const dr = total + (sea.lighthouseDR ?? 0);
-  const out = orientationOutcome(dr, !!sea.minorDrift);
-  const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR ? `, phare +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
-  if (out.outcome === 'drift-minor') patchSea(get, set, { minorDrift: true });
-  if (out.rollCourseChange) {
-    const cc = rollCourseChange(rng, out.courseChangeBonus);
-    j.push(t('sv.courseChange', { roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc }));
-    const plan2 = get().travelPlan!;
-    const remaining = plan2.km - plan2.kmDone;
-    if (cc.outcome === 'retard') set({ travelPlan: { ...plan2, km: plan2.km + remaining * (cc.delayPct / 100) } });
-    if (cc.outcome === 'demi-tour') set({ travelPlan: { ...plan2, kmDone: Math.max(0, plan2.kmDone - (plan2.sea?.milesToday ?? 0)) } });
-    if (cc.outcome === 'quart-de-tour') {
-      const turn: Record<WindDirection, WindDirection> = { nord: cc.side === 'tribord' ? 'est' : 'ouest', sud: cc.side === 'tribord' ? 'ouest' : 'est', est: cc.side === 'tribord' ? 'sud' : 'nord', ouest: cc.side === 'tribord' ? 'nord' : 'sud' };
-      patchSea(get, set, { heading: turn[sea.heading] });
-    }
-  }
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
-/** Phare du port d'arrivée (ch.13 l.337) : réussite → bonus d'Orientation (Savoir Océans/manuel). */
-registerCascadeApplier('phare', (get, set, step) => {
-  if (!step.result) return;
-  const success = step.result.success;
-  const best = partyAssisted(get().party, 'orientation');
-  const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, false), savoirOceansBonus(best.actor)) : 0;
-  patchSea(get, set, { lighthouseDR: dr });
-  const j = [success ? t('sv.lighthouseSeen', { dr }) : t('sv.lighthouseMissed')];
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
-/** Embuscade authorée à ancrage déterministe (#212) : réussite = préparés (pas de Surprise). */
-registerCascadeApplier('embuscade', (get, set, step) => {
-  if (!step.result) return;
-  const plan = get().travelPlan;
-  const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan?.routeId);
-  const success = step.result.success;
-  const j = [success
-    ? t('sv.lookoutOk')
-    : t('sv.lookoutKo')];
-  noteSeaLine(get, set, j);
-  openAuthoredSeaAmbush(get, set, route, success);
-  return { consequences: freeCons(j) };
-});
 
 /**
  * Cœur d'UNE manche de CRISE (Poursuite ch.13 l.354-370 / Tourbillon ch.13 l.514-528) : dispatche sur
@@ -1941,118 +1685,6 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
   noteSeaLine(get, set, j);
   return j;
 }
-
-/** Le choix de Progression (MDG 14 l.63) n'a pas d'issue propre : il INSÈRE la voie retenue. */
-registerCascadeApplier('sea-progression-choice', (get, _set, step) => {
-  const nav = step.chosen === 'nav';
-  const next = nav ? buildNavProgressionStep(get) : buildVoyageCrewStep(get, 'progression', 'progression');
-  return next ? { insert: [next] } : undefined;
-});
-
-/** Voie NAVIGATION de la Progression (MDG 13 l.66) : le DR se lit au MÊME tableau que la voie
- *  d'équipage — même `applySeaProgress`, même suite de journée. */
-registerCascadeApplier('sea-progression-nav', (get, set, step) => {
-  if (!step.result) return;
-  noteManieurs(get, set, step);
-  const j = applySeaProgress(get, set, step.result.sl);
-  noteSeaLine(get, set, j);
-  const insert = buildPostProgressionSteps(get, set);
-  return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
-});
-
-/** Manche de Poursuite (ch.13 l.354-370) — issue partagée avec la poursuite terrestre (`engine/pursuit`). */
-registerCascadeApplier('poursuite', (get, set, step) => {
-  if (!step.result) return;
-  return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
-});
-
-/** Manche d'Évasion du Tourbillon (ch.13 l.514-528) : chaque manche coûte des Dégâts de collision. */
-registerCascadeApplier('tourbillon', (get, set, step) => {
-  if (!step.result) return;
-  return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
-});
-
-/** Extermination des nuisibles (MDG 14 l.98-104) : Test étendu, 1d10 h par Test — cumul mutualisé
- *  (`extendedTestStep`, #273 Étape 1 : consolidation arithmétique, cadence INCHANGÉE — un jet par jour). */
-registerCascadeApplier('extermination', (get, set, step) => {
-  if (!step.result) return;
-  const sea = get().travelPlan?.sea;
-  if (!sea?.infestation) return;
-  const inf = sea.infestation;
-  const rng = battleRng();
-  const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need, !!rule('test-extended-min-sl'));
-  get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
-  let j: string[];
-  if (done) {
-    patchSea(get, set, { infestation: undefined });
-    j = [t('sv.verminCleared', { label: inf.label, progress, need: inf.need })];
-  } else {
-    patchSea(get, set, { infestation: { ...inf, progress } });
-    j = [t('sv.verminProgress', { label: inf.label, progress, need: inf.need })];
-  }
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
-/** Renflouage d'un ÉCHOUAGE (MDG 13 l.471-473, #444) : Test de Force UNIQUE (pas étendu — RAW muet
- *  sur une répétition formelle) ; échec → le navire reste échoué, retenté le lendemain (même construction). */
-registerCascadeApplier('sea-degagement', (get, set, step) => {
-  if (!step.result) return;
-  const sea = get().travelPlan?.sea;
-  if (!sea?.stranded) return;
-  const label = sea.stranded.label;
-  const j = step.result.success
-    ? [t('sv.freedFromStrand', { hazard: label })]
-    : [t('sv.stillStranded', { hazard: label })];
-  if (step.result.success) patchSea(get, set, { stranded: undefined });
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
-/** Dégagement des Débris marins (MDG 13 l.491, #444) : Test ÉTENDU de Force (`hazard.freeTest`, total
- *  DR posé à la collision) — même cumul mutualisé que l'Extermination (`extendedTestStep`) ci-dessus. */
-registerCascadeApplier('sea-degagement-debris', (get, set, step) => {
-  if (!step.result) return;
-  const sea = get().travelPlan?.sea;
-  if (!sea?.entangled) return;
-  const ent = sea.entangled;
-  const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need, !!rule('test-extended-min-sl'));
-  let j: string[];
-  if (done) {
-    patchSea(get, set, { entangled: undefined });
-    j = [t('sv.disentangled', { label: ent.label, progress, need: ent.need })];
-  } else {
-    patchSea(get, set, { entangled: { ...ent, progress } });
-    j = [t('sv.disentangleProgress', { label: ent.label, progress, need: ent.need })];
-  }
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
-
-/** Voyage rapide (MDG 15 l.28) : le DR alimente le palier — calculé/persisté PUIS appliqué (embuscade
- *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
-registerCascadeApplier('voyage-rapide', (get, set, step) => {
-  if (!step.result) return;
-  computeFastPalier(get, set, step.result.sl);
-  finalizeFastVoyage(get, set);
-});
-
-/** Entretien du soir (remplace le Métier à −2 DR, MDG 14 l.116-124 ; réparation TEMPORAIRE ch.13 l.647). */
-registerCascadeApplier('entretien', (get, set, step) => {
-  if (!step.result) return;
-  const total = step.result.sl;
-  const rng = battleRng();
-  const adj = total + REPARATION.entretienCrewTestDR;
-  let j: string[];
-  if (adj >= 1) {
-    const hull = get().travelPlan!.vehicle!;
-    const healed = Math.min(hull.wounds.max - hull.wounds.current, rollDice(1, 10, rng));
-    healVesselHull(get, set, hull, healed);
-    j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
-  } else j = [t('sv.juryRepairsKo', { dr: adj })];
-  noteSeaLine(get, set, j);
-  return { consequences: freeCons(j) };
-});
 
 // ── PANNE DE VAPEUR (MDG 12 l.313-352) — résolution first-class au voyage ─────────────────────
 
@@ -2323,55 +1955,6 @@ function openPirateHail(get: Get, set: Set, event: SeaEventDef): void {
     ],
   });
 }
-
-/** CHOIX face à la Cogue pirate (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
- *  se soumettre → pillage `piratePillagePct` de la cale + CHOIX du tribut (étape insérée). */
-registerCascadeApplier('sea-pirate-hail', (get, set, step) => {
-  const j: string[] = [];
-  if (step.chosen === 'combattre') {
-    startChaseBoarding(get, set); // abordage immédiat (rencontre AUTHORÉE de la route)
-  } else if (step.chosen === 'soumettre') {
-    const pct = Number(rule('piratePillagePct'));
-    const vessel = get().vessel;
-    if (vessel?.cargo?.length) {
-      const r = spoilCargoByPct(vessel.cargo, pct);
-      if (r.removed) set({ vessel: { ...get().vessel!, cargo: r.lots } });
-      j.push(t('sv.pillaged', { enc: r.removed, pct }));
-    } else j.push(t('sv.pillagedEmpty'));
-    const tribut = choiceStep({
-      id: 'sea-pirate-tribute', kind: 'sea-pirate-tribute', icon: 'nautical/wind', actorId: seaDecider(get),
-      label: t('step.seaTribut'), defaultChoice: 'livrer',
-      options: [
-        { key: 'livrer', label: t('opt.livrerEquipage'), detail: t('sv.detailLivrer') },
-        { key: 'refuser', label: t('opt.refuser'), detail: t('sv.detailRefuser') },
-      ],
-    });
-    return { consequences: freeCons(j), ...(tribut ? { insert: [tribut] } : {}) };
-  } else {
-    const crise = lireCrise(step.meta);
-    startSeaPursuit(get, set, { label: crise.crisisLabel, desc: crise.crisisDesc }, 5);
-  }
-  // La reprise du jour à la fermeture de cette cascade (`purpose:'test'` en mer) est portée par
-  // `dispatchCascadeDone` → `runSeaDay` (couture canonique de clôture, jamais un `setTimeout` ad hoc).
-  return { consequences: freeCons(j) };
-});
-
-/** TRIBUT à Stromfels (A5.3 #327) : livrer un marin = perte réelle d'équipage (`applyVesselCrewLoss`) +
- *  déplaisir de Manann (facteur de Moral RAW −2d10, MDG 14 : sacrifier une âme à Stromfels, ennemi de
- *  Manann) ; refuser = abordage immédiat. AUCUNE perte silencieuse (tout dénoué au journal/à l'écran). */
-registerCascadeApplier('sea-pirate-tribute', (get, set, step) => {
-  const j: string[] = [];
-  if (step.chosen === 'refuser') {
-    j.push(t('sv.tributeRefused'));
-    startChaseBoarding(get, set);
-  } else {
-    for (const l of applyVesselCrewLoss(get, set, 1)) j.push(l);
-    j.push(t('sv.sailorGiven'));
-    const ship = get().travelPlan?.vehicle;
-    if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)
-  }
-  return { consequences: freeCons(j) };
-});
 
 /** Critique de navire au VOYAGE : Blessures non chiffrées par la table (les effets sont l'entrée) →
  *  l'entrée est PERSISTÉE sur le navire (`vessel.criticals`) et racontée ; ses effets mécaniques fins
@@ -2869,16 +2452,6 @@ export function finalizePortArrival(get: Get, set: Set, arrival: { toPlaceId: st
   if (to) finalizePortArrivalTo(get, set, to, arrival.allow);
 }
 
-/** Désertion (MDG 14 l.192-202, dé de MONDE par `openWorldTest`) : la boucle d100/marin réelle (INCHANGÉE, même seuil,
- *  mêmes tirages via `battleRng()`) vit ICI — l'étape `sea-desertion` n'est que le vecteur de visibilité
- *  MJ. La FINALISATION de l'accostage (`finalizePortArrival`) est portée par le champ `portArrival` de la
- *  cascade et jouée à sa clôture par `dispatchCascadeDone` (#387) — plus de `setTimeout` de reprise. */
-registerCascadeApplier('sea-desertion', (get, set, step) => {
-  if (!step.result) return;
-  const journal = resolveShoreLeaveDesertion(get, set, battleRng());
-  return { consequences: freeCons(journal) };
-});
-
 export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
   return {
     portRepair: () => portRepairVessel(get, set).forEach((l) => get().log(l)),
@@ -2888,3 +2461,430 @@ export function creerActionsDuVoyageEnMer(get: Get, set: Set) {
     resolveShoreLeave: (allow) => resolveShoreLeave(get, set, allow),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [
+  SEA_BOARD_EVENT_KIND, 'sea-force-pace', 'sea-priere', 'sea-scorbut', 'sea-mal-de-mer',
+  'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-epuisement', 'progression', 'sea-overspeed',
+  'sea-salissures', 'affaler', 'sea-ouragan-affaler', 'orientation', 'phare', 'embuscade',
+  'sea-progression-choice', 'sea-progression-nav', 'poursuite', 'tourbillon', 'extermination',
+  'sea-degagement', 'sea-degagement-debris', 'voyage-rapide', 'entretien', 'sea-pirate-hail',
+  'sea-pirate-tribute', 'sea-desertion',
+] as const;
+/** Les règles de succès que ce module déclare (table `reglesDeSucces`). */
+export const REGLES_DE_SUCCES = [CREW_TEST_SUCCESS_RULE] as const;
+/** Les interruptions de péril que ce module déclare (table `interruptionsDePeril`). */
+export const INTERRUPTIONS_DE_PERIL = [SEA_PERIL_INTERRUPT] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    [SEA_BOARD_EVENT_KIND]: (get, set, step) => {
+      const tiree = step.table?.result;
+      if (!tiree) return {};
+      const rng = battleRng();
+      const event = seaBoardEventById(tiree.id);
+      // Le délai du PROCHAIN événement se tire ICI, juste après le dé d'événement, et il est posé AVANT la
+      // conséquence : celle-ci peut surfacer sa propre cascade, et une reprise re-déclencherait sinon CE
+      // même tirage.
+      patchSea(get, set, { daysToEvent: rollDaysToNextEvent(rng) });
+      if (!event) return {};
+      // UNE ligne par événement, et c'est la CONSÉQUENCE de l'étape (titre + texte VERBATIM de
+      // `sea-events.json`, AGENTS.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc
+      // la rangée reste lisible dans la pile après validation (« on ne perd pas les conséquences »,
+      // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `stageWeather`), qui rend
+      // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
+      // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
+      return { consequences: freeCons([resolveBoardEvent(get, set, event, rng, tiree.die)]) };
+    },
+    /** Forcer le rythme (MDG 13 l.95-107) : pose `paceToday`, le +M du jour se lit ensuite par
+     *  `effectiveSeaM`. Étape du TRONC de la cascade du jour (`buildForcePaceStep`, avant Progression) —
+     *  `tell()` (pas `{journal}`) : la ligne rejoint le RECAP du jour (`sea.lines` → `TravelRecapDay.lines`). */
+    'sea-force-pace': (get, set, step) => {
+      if (!step.result) return;
+      const won = step.result.success;
+      const forcePace = Number(step.meta?.forcePace ?? 0);
+      patchSea(get, set, { paceToday: won ? 'won' : 'lost' });
+      noteManieurs(get, set, step);
+      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+      const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Prière d'un Présage (MDG 15 l.197-198 albatros / l.231-232 feu bleu) : bon
+     *  présage → il faut RÉUSSIR pour l'appliquer ; mauvais présage → RÉUSSIR l'évite (`manannD >= 0 ? success : !success`, logique
+     *  inchangée). `tell()` pour la même raison recap que `sea-force-pace` ci-dessus. La reprise du jour à
+     *  la fermeture est portée par `dispatchCascadeDone` (purpose `test` en mer → `runSeaDay`), pas ici. */
+    'sea-priere': (get, set, step) => {
+      if (!step.result) return;
+      const manannD = Number(step.meta?.manannD ?? 0);
+      const moraleD = Number(step.meta?.moraleD ?? 0);
+      const success = step.result.success;
+      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+      const j = [t('sv.stepIssue', { label: String(step.label), issue: success ? t('sv.prayerOk') : t('sv.prayerKo') })];
+      const apply = manannD >= 0 ? success : !success;
+      if (apply) {
+        if (manannD) tellManann(get, set, manannD);
+        const ship = get().travelPlan?.vehicle;
+        if (moraleD && ship) {
+          const delta = Math.sign(moraleD) * rollDice(Math.abs(moraleD), 10, battleRng());
+          for (const l of applyShipMoraleDelta(get, set, ship, delta)) tell(get, set, [l]);
+        }
+      }
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Scorbut (MDG 14 l.230) : BANDE — le verdict se lit RANGÉE PAR RANGÉE (patron Mal de mer ci-dessous),
+     *  chaque porteur portant sa soupe de chou fermenté dans `row.meta`. */
+    'sea-scorbut': (get, set, step) => {
+      const lignes: FreeConsLine[] = [];
+      for (const row of step.participants ?? []) {
+        const hero = actorIn(get(), row.id);
+        // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+        // Succès sans effet (l'exposition « pour cette fois » n'a rien à ajouter) → aucune conséquence.
+        if (!hero || !row.result || row.result.success) continue;
+        const d = contractDisease('scorbut', battleRng());
+        if (d) hero.diseases = [...(hero.diseases ?? []), d];
+        lignes.push({ text: t('sv.scurvyGot', { name: hero.label, soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'bad' });
+      }
+      touchParty(get, set);
+      return { consequences: freeCons(lignes) };
+    },
+    /** Mal de mer (MDG 14 l.217-220) : échec → contracté. `applyContraction` dédoublonne si
+     *  DEUX étapes ratées le même jour pour le même héros (premier voyage ET mauvais temps cumulés,
+     *  `buildSeasicknessSteps`). */
+    'sea-mal-de-mer': (get, set, step) => {
+      const lignes: FreeConsLine[] = [];
+      // BANDE : le verdict se lit RANGÉE PAR RANGÉE, dans l'ordre de la partie — le dé de contraction
+      // d'un porteur qui échoue tombe au rang de SA rangée.
+      for (const row of step.participants ?? []) {
+        const hero = actorIn(get(), row.id);
+        if (!hero || !row.result || row.result.success) continue;
+        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: hero.label }), tone: 'bad' });
+      }
+      touchParty(get, set);
+      return { consequences: freeCons(lignes) };
+    },
+    /** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : boire au tonneau contaminé la veille
+     *  expose au Test de Contraction propre à la maladie qui l'a contaminé (même cycle générique que
+     *  Scorbut ci-dessus, difficulté lue sur `diseaseDefs()[…].contractDifficulty`). */
+    'sea-tonneau-expose': (get, set, step, hero) => {
+      if (!step.result || !hero) return;
+      const diseaseId = String(step.meta?.diseaseId ?? '');
+      const j = step.result.success ? [] : applyContraction(hero, diseaseId, false, battleRng());
+      touchParty(get, set);
+      return { consequences: freeCons(j.length ? [{ text: t('sv.waterDiseaseGot', { name: hero.label, disease: diseaseLabel(diseaseId) }), tone: 'bad' }] : []) };
+    },
+    /** Tonneau d'eau — CONTAMINATION (MDG 14 l.209) : un porteur boit au tonneau, échoue son
+     *  Test de Résistance Intermédiaire (+0) → le tonneau devient une source de contagion (effet visible
+     *  dès DEMAIN, jamais le jour même — le garde `!waterContaminated` évite qu'un second porteur en échec
+     *  le même jour n'écrase la maladie déjà posée par le premier). */
+    'sea-tonneau-contamine': (get, set, step) => {
+      if (!step.result) return;
+      if (step.result.success) return { consequences: freeCons([]) };
+      const diseaseId = String(step.meta?.diseaseId ?? '');
+      if (!get().travelPlan?.sea?.waterContaminated) patchSea(get, set, { waterContaminated: { diseaseId } });
+      return { consequences: freeCons([{ text: t('sv.waterContaminated', { disease: diseaseLabel(diseaseId) }), tone: 'bad' }]) };
+    },
+    /** Épuisement (MDG 13 l.111) : BANDE, verdict lu rangée par rangée (patron Scorbut ci-dessus). */
+    'sea-epuisement': (get, set, step) => {
+      const lignes: FreeConsLine[] = [];
+      for (const row of step.participants ?? []) {
+        const hero = actorIn(get(), row.id);
+        // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+        // Succès sans effet (rien à ajouter) → aucune conséquence.
+        if (!hero || !row.result || row.result.success) continue;
+        addCondition(hero, 'extenue');
+        lignes.push({ text: t('sv.exhaustionGot', { name: hero.label, diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'bad' });
+      }
+      set({ party: [...get().party] });
+      return { consequences: freeCons(lignes) };
+    },
+    /** Progression du jour (MDG 14 l.61-65 ; ±10 %/DR ch.15 l.78) + PANNE DE VAPEUR (MDG 12 l.313) sur un
+     *  navire à Propulsion à vapeur (Test de Métier lu sur les jets INDIVIDUELS des contributeurs). INSÈRE
+     *  le reste de la journée (crise/embuscade/phare/orientation/extermination/entretien) une fois
+     *  `sea.milesToday` connu (`buildPostProgressionSteps`, #275 Ronde 2 cran 3 Décision 2). */
+    progression: (get, set, step) => {
+      if (!step.result) return;
+      const total = step.result.sl;
+      const j = applySeaProgress(get, set, total);
+      const plan = get().travelPlan;
+      const hull = plan?.vehicle;
+      const rng = battleRng();
+      if (hull && seaRig(hull).mode === 'vapeur') {
+        const triggered = (step.participants ?? []).some((x) => estJete(x.result)
+          && steamBreakdownTriggered({ success: x.result.roll <= x.result.target, sl: x.result.sl, isDouble: isDoubleRoll(x.result.roll) }));
+        if (triggered) {
+          // Tirage POST-POSE de la table de panne : l'étape `progression` est déjà posée, ce dé en est la
+          // conséquence — porte du canal (`deMonde`), même position RNG qu'inline (MDG 12 l.313).
+          const b = steamBreakdownFor(deMonde(rng));
+          j.push(t('sv.steamBreakdown', { label: b.label }), b.desc);
+          applySteamBreakdown(get, set, b, rng); // « Fuite de vapeur » → `pendingSteamSave` (sauvegarde d'Initiative) suspend AVANT le reste du jour
+        }
+      }
+      noteSeaLine(get, set, j);
+      if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `runSeaDay`)
+      const insert = buildPostProgressionSteps(get, set);
+      return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
+    },
+    /** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : Dégâts de coque (`overspeedDamage`)
+     *  routés par `damageVesselHull`. */
+    'sea-overspeed': (get, set, step) => {
+      if (!step.result) return;
+      if (step.result.success) {
+        const j = [t('sv.holdsPace', { label: String(step.label) })];
+        noteSeaLine(get, set, j);
+        return { consequences: freeCons(j) };
+      }
+      const dmg = overspeedDamage(Number(step.meta?.overspeedDamage ?? 0), step.result.sl);
+      const hull = get().travelPlan?.vehicle;
+      const j = hull ? damageVesselHull(get, set, hull, dmg) : [];
+      const line = [t('sv.hullTakes', { label: String(step.label), n: dmg }), ...j];
+      noteSeaLine(get, set, line);
+      return { consequences: freeCons(line) };
+    },
+    /** Salissures (MDG 13 l.148, #1105) : la semaine est notée sur TOUT résultat ; échec → +1 niveau,
+     *  plafonné (`weeklyFoulingLevel`). */
+    'sea-salissures': (get, set, step) => {
+      const vessel = get().vessel;
+      if (!step.result || !vessel) return;
+      const before = vessel.fouling?.level ?? 0;
+      const r = weeklyFoulingLevel(before, step.result.success);
+      set({ vessel: { ...vessel, fouling: { level: r.level, lastWeek: Number(step.meta?.week) } } });
+      const line = step.result.success ? t('sv.foulingHolds')
+        : r.gained ? t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })
+        : t('sv.foulingMax', { level: r.level });
+      noteSeaLine(get, set, [line]);
+      return { consequences: freeCons([line]) };
+    },
+    affaler: (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
+    // Ouragan : cascade AUTONOME (`purpose:'test'`) ouverte AVANT la construction du jour
+    // (`resolveSeaDayEvent`) — sa clôture reprend `runSeaDay` par la couture canonique `dispatchCascadeDone`.
+    'sea-ouragan-affaler': (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
+    /** Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311) → Repères / Changement de cap. */
+    orientation: (get, set, step) => {
+      if (!step.result) return;
+      const sea = get().travelPlan?.sea;
+      if (!sea) return;
+      const rng = battleRng();
+      const total = step.result.sl;
+      const dr = total + (sea.lighthouseDR ?? 0);
+      const out = orientationOutcome(dr, !!sea.minorDrift);
+      const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR ? `, phare +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
+      if (out.outcome === 'drift-minor') patchSea(get, set, { minorDrift: true });
+      if (out.rollCourseChange) {
+        const cc = rollCourseChange(rng, out.courseChangeBonus);
+        j.push(t('sv.courseChange', { roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc }));
+        const plan2 = get().travelPlan!;
+        const remaining = plan2.km - plan2.kmDone;
+        if (cc.outcome === 'retard') set({ travelPlan: { ...plan2, km: plan2.km + remaining * (cc.delayPct / 100) } });
+        if (cc.outcome === 'demi-tour') set({ travelPlan: { ...plan2, kmDone: Math.max(0, plan2.kmDone - (plan2.sea?.milesToday ?? 0)) } });
+        if (cc.outcome === 'quart-de-tour') {
+          const turn: Record<WindDirection, WindDirection> = { nord: cc.side === 'tribord' ? 'est' : 'ouest', sud: cc.side === 'tribord' ? 'ouest' : 'est', est: cc.side === 'tribord' ? 'sud' : 'nord', ouest: cc.side === 'tribord' ? 'nord' : 'sud' };
+          patchSea(get, set, { heading: turn[sea.heading] });
+        }
+      }
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Phare du port d'arrivée (ch.13 l.337) : réussite → bonus d'Orientation (Savoir Océans/manuel). */
+    phare: (get, set, step) => {
+      if (!step.result) return;
+      const success = step.result.success;
+      const best = partyAssisted(get().party, 'orientation');
+      const dr = success && best ? Math.max(1, lighthouseOrientationDR(best.actor, false), savoirOceansBonus(best.actor)) : 0;
+      patchSea(get, set, { lighthouseDR: dr });
+      const j = [success ? t('sv.lighthouseSeen', { dr }) : t('sv.lighthouseMissed')];
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Embuscade authorée à ancrage déterministe (#212) : réussite = préparés (pas de Surprise). */
+    embuscade: (get, set, step) => {
+      if (!step.result) return;
+      const plan = get().travelPlan;
+      const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan?.routeId);
+      const success = step.result.success;
+      const j = [success
+        ? t('sv.lookoutOk')
+        : t('sv.lookoutKo')];
+      noteSeaLine(get, set, j);
+      openAuthoredSeaAmbush(get, set, route, success);
+      return { consequences: freeCons(j) };
+    },
+    /** Le choix de Progression (MDG 14 l.63) n'a pas d'issue propre : il INSÈRE la voie retenue. */
+    'sea-progression-choice': (get, _set, step) => {
+      const nav = step.chosen === 'nav';
+      const next = nav ? buildNavProgressionStep(get) : buildVoyageCrewStep(get, 'progression', 'progression');
+      return next ? { insert: [next] } : undefined;
+    },
+    /** Voie NAVIGATION de la Progression (MDG 13 l.66) : le DR se lit au MÊME tableau que la voie
+     *  d'équipage — même `applySeaProgress`, même suite de journée. */
+    'sea-progression-nav': (get, set, step) => {
+      if (!step.result) return;
+      noteManieurs(get, set, step);
+      const j = applySeaProgress(get, set, step.result.sl);
+      noteSeaLine(get, set, j);
+      const insert = buildPostProgressionSteps(get, set);
+      return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
+    },
+    /** Manche de Poursuite (ch.13 l.354-370) — issue partagée avec la poursuite terrestre (`engine/pursuit`). */
+    poursuite: (get, set, step) => {
+      if (!step.result) return;
+      return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
+    },
+    /** Manche d'Évasion du Tourbillon (ch.13 l.514-528) : chaque manche coûte des Dégâts de collision. */
+    tourbillon: (get, set, step) => {
+      if (!step.result) return;
+      return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
+    },
+    /** Extermination des nuisibles (MDG 14 l.98-104) : Test étendu, 1d10 h par Test — cumul mutualisé
+     *  (`extendedTestStep`, #273 Étape 1 : consolidation arithmétique, cadence INCHANGÉE — un jet par jour). */
+    extermination: (get, set, step) => {
+      if (!step.result) return;
+      const sea = get().travelPlan?.sea;
+      if (!sea?.infestation) return;
+      const inf = sea.infestation;
+      const rng = battleRng();
+      const { total: progress, done } = extendedTestStep(inf.progress, step.result, inf.need, !!rule('test-extended-min-sl'));
+      get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
+      let j: string[];
+      if (done) {
+        patchSea(get, set, { infestation: undefined });
+        j = [t('sv.verminCleared', { label: inf.label, progress, need: inf.need })];
+      } else {
+        patchSea(get, set, { infestation: { ...inf, progress } });
+        j = [t('sv.verminProgress', { label: inf.label, progress, need: inf.need })];
+      }
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Renflouage d'un ÉCHOUAGE (MDG 13 l.471-473, #444) : Test de Force UNIQUE (pas étendu — RAW muet
+     *  sur une répétition formelle) ; échec → le navire reste échoué, retenté le lendemain (même construction). */
+    'sea-degagement': (get, set, step) => {
+      if (!step.result) return;
+      const sea = get().travelPlan?.sea;
+      if (!sea?.stranded) return;
+      const label = sea.stranded.label;
+      const j = step.result.success
+        ? [t('sv.freedFromStrand', { hazard: label })]
+        : [t('sv.stillStranded', { hazard: label })];
+      if (step.result.success) patchSea(get, set, { stranded: undefined });
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Dégagement des Débris marins (MDG 13 l.491, #444) : Test ÉTENDU de Force (`hazard.freeTest`, total
+     *  DR posé à la collision) — même cumul mutualisé que l'Extermination (`extendedTestStep`) ci-dessus. */
+    'sea-degagement-debris': (get, set, step) => {
+      if (!step.result) return;
+      const sea = get().travelPlan?.sea;
+      if (!sea?.entangled) return;
+      const ent = sea.entangled;
+      const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need, !!rule('test-extended-min-sl'));
+      let j: string[];
+      if (done) {
+        patchSea(get, set, { entangled: undefined });
+        j = [t('sv.disentangled', { label: ent.label, progress, need: ent.need })];
+      } else {
+        patchSea(get, set, { entangled: { ...ent, progress } });
+        j = [t('sv.disentangleProgress', { label: ent.label, progress, need: ent.need })];
+      }
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** Voyage rapide (MDG 15 l.28) : le DR alimente le palier — calculé/persisté PUIS appliqué (embuscade
+     *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
+    'voyage-rapide': (get, set, step) => {
+      if (!step.result) return;
+      computeFastPalier(get, set, step.result.sl);
+      finalizeFastVoyage(get, set);
+    },
+    /** Entretien du soir (remplace le Métier à −2 DR, MDG 14 l.116-124 ; réparation TEMPORAIRE ch.13 l.647). */
+    entretien: (get, set, step) => {
+      if (!step.result) return;
+      const total = step.result.sl;
+      const rng = battleRng();
+      const adj = total + REPARATION.entretienCrewTestDR;
+      let j: string[];
+      if (adj >= 1) {
+        const hull = get().travelPlan!.vehicle!;
+        const healed = Math.min(hull.wounds.max - hull.wounds.current, rollDice(1, 10, rng));
+        healVesselHull(get, set, hull, healed);
+        j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
+      } else j = [t('sv.juryRepairsKo', { dr: adj })];
+      noteSeaLine(get, set, j);
+      return { consequences: freeCons(j) };
+    },
+    /** CHOIX face à la Cogue pirate (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
+     *  se soumettre → pillage `piratePillagePct` de la cale + CHOIX du tribut (étape insérée). */
+    'sea-pirate-hail': (get, set, step) => {
+      const j: string[] = [];
+      if (step.chosen === 'combattre') {
+        startChaseBoarding(get, set); // abordage immédiat (rencontre AUTHORÉE de la route)
+      } else if (step.chosen === 'soumettre') {
+        const pct = Number(rule('piratePillagePct'));
+        const vessel = get().vessel;
+        if (vessel?.cargo?.length) {
+          const r = spoilCargoByPct(vessel.cargo, pct);
+          if (r.removed) set({ vessel: { ...get().vessel!, cargo: r.lots } });
+          j.push(t('sv.pillaged', { enc: r.removed, pct }));
+        } else j.push(t('sv.pillagedEmpty'));
+        const tribut = choiceStep({
+          id: 'sea-pirate-tribute', kind: 'sea-pirate-tribute', icon: 'nautical/wind', actorId: seaDecider(get),
+          label: t('step.seaTribut'), defaultChoice: 'livrer',
+          options: [
+            { key: 'livrer', label: t('opt.livrerEquipage'), detail: t('sv.detailLivrer') },
+            { key: 'refuser', label: t('opt.refuser'), detail: t('sv.detailRefuser') },
+          ],
+        });
+        return { consequences: freeCons(j), ...(tribut ? { insert: [tribut] } : {}) };
+      } else {
+        const crise = lireCrise(step.meta);
+        startSeaPursuit(get, set, { label: crise.crisisLabel, desc: crise.crisisDesc }, 5);
+      }
+      // La reprise du jour à la fermeture de cette cascade (`purpose:'test'` en mer) est portée par
+      // `dispatchCascadeDone` → `runSeaDay` (couture canonique de clôture, jamais un `setTimeout` ad hoc).
+      return { consequences: freeCons(j) };
+    },
+    /** TRIBUT à Stromfels (A5.3 #327) : livrer un marin = perte réelle d'équipage (`applyVesselCrewLoss`) +
+     *  déplaisir de Manann (facteur de Moral RAW −2d10, MDG 14 : sacrifier une âme à Stromfels, ennemi de
+     *  Manann) ; refuser = abordage immédiat. AUCUNE perte silencieuse (tout dénoué au journal/à l'écran). */
+    'sea-pirate-tribute': (get, set, step) => {
+      const j: string[] = [];
+      if (step.chosen === 'refuser') {
+        j.push(t('sv.tributeRefused'));
+        startChaseBoarding(get, set);
+      } else {
+        for (const l of applyVesselCrewLoss(get, set, 1)) j.push(l);
+        j.push(t('sv.sailorGiven'));
+        const ship = get().travelPlan?.vehicle;
+        if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)
+      }
+      return { consequences: freeCons(j) };
+    },
+    /** Désertion (MDG 14 l.192-202, dé de MONDE par `openWorldTest`) : la boucle d100/marin réelle (INCHANGÉE, même seuil,
+     *  mêmes tirages via `battleRng()`) vit ICI — l'étape `sea-desertion` n'est que le vecteur de visibilité
+     *  MJ. La FINALISATION de l'accostage (`finalizePortArrival`) est portée par le champ `portArrival` de la
+     *  cascade et jouée à sa clôture par `dispatchCascadeDone` (#387) — plus de `setTimeout` de reprise. */
+    'sea-desertion': (get, set, step) => {
+      if (!step.result) return;
+      const journal = resolveShoreLeaveDesertion(get, set, battleRng());
+      return { consequences: freeCons(journal) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  reglesDeSucces: {
+    [CREW_TEST_SUCCESS_RULE]: crewTestSuccess,
+  } satisfies PartDeTable<'reglesDeSucces', typeof REGLES_DE_SUCCES>,
+  famillesTirables: [
+    tableDesEvenementsDeBord,
+  ],
+  interruptionsDePeril: {
+    /** Périls d'AUTEUR de la route (`route.perils`) lus JOUR PAR JOUR — MÊME patron que le terrestre
+     *  (travelFlow) : tirage à `chancePct` %, effets appliqués (butin attribué hors combat) ; un effet
+     *  `startCombat`/`transition` INTERROMPT la traversée (reprise via `resumeTravel`). Renvoie `true` si
+     *  la traversée s'est arrêtée là (combat/transition d'auteur). */
+    // PROTOCOLE DE REPRISE MARITIME : les effets d'un péril interrompant s'appliquent SUR-LE-CHAMP —
+    // `resumeTravel` rejoue la traversée après le combat/la transition. Déclaré au flux ; la chance de
+    // chaque péril, elle, est une étape de MONDE construite par la source unique (`authorPerils.ts`).
+    [SEA_PERIL_INTERRUPT]: applyPerilEffectsNow,
+  } satisfies PartDeTable<'interruptionsDePeril', typeof INTERRUPTIONS_DE_PERIL>,
+} satisfies FragmentDeTables;

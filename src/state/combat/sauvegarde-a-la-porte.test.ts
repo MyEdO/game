@@ -23,7 +23,7 @@ import { t as tr } from '../../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from '../store';
 import type { BattleState } from '../../noyau/etat';
-import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../../noyau/combatFlow';
+import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, accorderLAttaqueGratuite, resolveDeviation } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { setRule, resetRule } from '../../engine/policy';
@@ -331,7 +331,7 @@ describe('ce que l’appelant allait faire APRÈS le coup est parqué sur SON é
     setBattle([frappeur, demon]);
     const { vu, unsub } = suitLAction(demon.id);
     try {
-      freeAttackHookImpl(useGame.getState, useGame.setState, frappeur,
+      accorderLAttaqueGratuite(useGame.getState, useGame.setState, frappeur,
         { op: 'grantFreeAttack' } as never, { targetId: demon.id, cap: 1, key: 'frappe-reactive' });
       const st = etapeCourante();
       expect(st?.kind, 'la frappe gratuite a bien ouvert la sauvegarde du démon').toBe('sauvegarde');

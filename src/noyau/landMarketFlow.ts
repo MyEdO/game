@@ -20,9 +20,8 @@ import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/s
 import { opposedTest, shiftDifficulty, type OpposedResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
-import { ouvrirEtal, registerEtalGenerateur } from './etalLotFlow';
+import { ouvrirEtal } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import { registerCascadeApplier } from './cascade';
 import { chainStep } from './enchainerEtape';
 import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { t } from '../i18n';
@@ -44,6 +43,7 @@ import { seasonOfMonth } from '../engine/travelStages';
 import { toDate, dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ (le Vin fige sa
  *  qualité secrète / son prix ICI, l.93-104). `wine` : cargaison à qualité incertaine. */
@@ -148,14 +148,7 @@ function apresHalle(get: Get, set: Set): void {
   }, LAND_GOSSIP_KIND, { placeId: cur.placeId });
 }
 
-registerEtalGenerateur('land', genererHalle, apresHalle);
-
 const LAND_GOSSIP_KIND = 'land-market-gossip';
-registerCascadeApplier(LAND_GOSSIP_KIND, (get, set, step) => {
-  if (!step.result?.success) return {};
-  generateTradeRumour(get, set, String(step.meta?.placeId ?? ''), battleRng());
-  return {};
-});
 
 /** Génère une RUMEUR CROSS-LIEU (MSRC 13 l.180) : tire un AUTRE Lieu à `market` de la carte, puis une
  *  rumeur (Tableau des rumeurs) désignant les biens qui s'y vendent au double. Ajoutée au board persistant
@@ -205,18 +198,6 @@ export function landEvalWine(get: Get, set: Set, cargoId: string): void {
 }
 
 const LAND_WINE_EVAL_KIND = 'land-market-wine-eval';
-registerCascadeApplier(LAND_WINE_EVAL_KIND, (get, set, step) => {
-  if (!step.result) return {};
-  const cargoId = String(step.meta?.cargoId ?? '');
-  const st = get().landMarket;
-  const offer = st?.offers.find((o) => o.cargoId === cargoId);
-  if (!st || !offer) return {};
-  const { success, sl, roll } = step.result;
-  const rev = wineEvalReveal(offer.basePrice, success, sl);
-  set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
-  const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-  return { consequences: freeCons([`${garanti(actor, step.actorId, 'évaluation du vin').label} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };
-});
 
 export function closeLandMarket(_get: Get, set: Set): void {
   set({ landMarket: null });
@@ -330,29 +311,6 @@ function openLandSellBuyerStep(get: Get, set: Set, carrierId: string, cargoIndex
 }
 
 const LAND_SELL_BUYER_KIND = 'land-sell-buyer';
-registerCascadeApplier(LAND_SELL_BUYER_KIND, (get, set, step) => {
-  if (!step.result) return {};
-  const carrierId = String(step.meta?.carrierId ?? '');
-  const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
-  const sellEnc = Number(step.meta?.sellEnc ?? 0);
-  const retryHalf = !!step.meta?.retryHalf;
-  const attempt = Number(step.meta?.attempt ?? 1);
-  const st = get().landMarket;
-  const carrier = carrierById(get(), carrierId);
-  const lot = carrier?.cargo[cargoIndex];
-  if (!st || !carrier || !lot) return {};
-  const label = findLandCargoById(lot.cargoId)?.label ?? lot.cargoId;
-  if (step.result.success) {
-    const demi = attempt === 2 ? [`${label} : pas d’acheteur pour tout le lot — la moitié (${sellEnc} Enc) trouve preneur.`] : [];
-    chainStep(get, () => finishLandSale(get, set, carrierId, cargoIndex, sellEnc, demi));
-    return {};
-  }
-  if (attempt === 1 && retryHalf) {
-    chainStep(get, () => openLandSellBuyerStep(get, set, carrierId, cargoIndex, Math.max(1, Math.floor(lot.enc / 2)), false, 2));
-    return {};
-  }
-  return { consequences: freeCons([`${label} : aucun acheteur intéressé à ${st.label} (Demande ${step.result.target}).`]) };
-});
 
 /** 2-3. Mise à prix (l.148-156) puis Marchandage opposé (l.127), une fois l'acheteur trouvé — retire le
  *  lot (ou la fraction vendue) du porteur et crédite la bourse. `avant` = les lignes déjà dues au
@@ -422,3 +380,55 @@ export function creerActionsDuMarcheTerrestre(get: Get, set: Set) {
     landEvalWine: (cargoId) => landEvalWine(get, set, cargoId),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [LAND_GOSSIP_KIND, LAND_WINE_EVAL_KIND, LAND_SELL_BUYER_KIND] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    [LAND_GOSSIP_KIND]: (get, set, step) => {
+      if (!step.result?.success) return {};
+      generateTradeRumour(get, set, String(step.meta?.placeId ?? ''), battleRng());
+      return {};
+    },
+    [LAND_WINE_EVAL_KIND]: (get, set, step) => {
+      if (!step.result) return {};
+      const cargoId = String(step.meta?.cargoId ?? '');
+      const st = get().landMarket;
+      const offer = st?.offers.find((o) => o.cargoId === cargoId);
+      if (!st || !offer) return {};
+      const { success, sl, roll } = step.result;
+      const rev = wineEvalReveal(offer.basePrice, success, sl);
+      set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
+      const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
+      return { consequences: freeCons([`${garanti(actor, step.actorId, 'évaluation du vin').label} — Évaluation du ${offer.label} (${roll}) : qualité jugée « ${rev.shownLabel} »${success ? '.' : ' — jugement peu sûr…'}`]) };
+    },
+    [LAND_SELL_BUYER_KIND]: (get, set, step) => {
+      if (!step.result) return {};
+      const carrierId = String(step.meta?.carrierId ?? '');
+      const cargoIndex = Number(step.meta?.cargoIndex ?? -1);
+      const sellEnc = Number(step.meta?.sellEnc ?? 0);
+      const retryHalf = !!step.meta?.retryHalf;
+      const attempt = Number(step.meta?.attempt ?? 1);
+      const st = get().landMarket;
+      const carrier = carrierById(get(), carrierId);
+      const lot = carrier?.cargo[cargoIndex];
+      if (!st || !carrier || !lot) return {};
+      const label = findLandCargoById(lot.cargoId)?.label ?? lot.cargoId;
+      if (step.result.success) {
+        const demi = attempt === 2 ? [`${label} : pas d’acheteur pour tout le lot — la moitié (${sellEnc} Enc) trouve preneur.`] : [];
+        chainStep(get, () => finishLandSale(get, set, carrierId, cargoIndex, sellEnc, demi));
+        return {};
+      }
+      if (attempt === 1 && retryHalf) {
+        chainStep(get, () => openLandSellBuyerStep(get, set, carrierId, cargoIndex, Math.max(1, Math.floor(lot.enc / 2)), false, 2));
+        return {};
+      }
+      return { consequences: freeCons([`${label} : aucun acheteur intéressé à ${st.label} (Demande ${step.result.target}).`]) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  generateursDEtal: {
+    land: { gen: genererHalle, apres: apresHalle },
+  },
+} satisfies FragmentDeTables;

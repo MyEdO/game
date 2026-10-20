@@ -23,6 +23,7 @@ import { CombatConsole } from './console/CombatConsole';
 import { ActiveModal } from './ActiveModal';
 import { CampaignView } from './CampaignView';
 import { cascadeDeTest } from '../state/cascade.testkit';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -78,7 +79,7 @@ describe('coop — UNE puce de spectateur à l’écran, jamais deux', () => {
     // La modale s'ouvre ENSUITE (jet du héros distant) : c'est elle qui parle désormais.
     act(() => {
       useGame.setState({
-        pendingCascade: cascadeDeTest([{ id: 's0', kind: 'note', actorId: 'h2', outcome: [] }]),
+        pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('note'), actorId: 'h2', outcome: [] }]),
       });
     });
     expect(puces(), 'deux puces coexistent : la console n’a pas relu la décision').toBe(1);

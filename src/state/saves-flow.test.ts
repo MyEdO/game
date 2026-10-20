@@ -15,8 +15,7 @@ import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, pa
 import { FORMAT_SAVE } from './formats.generated';
 import { rule, setRule, loadRuleOverrides } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef } from '../data/index';
-import { cascadeAppliers } from '../noyau/cascade';
-import '../noyau/combatFlow'; // enregistre les appliers de cascade (`triggeredBatchTest`), effet de bord
+import { applierDe } from '../noyau/cascade';
 import { talentSlots, slotCovers } from '../engine/careerSlots';
 import { createHero } from '../engine/character';
 import { testValue } from '../engine/skills';
@@ -287,11 +286,11 @@ describe('forme persistée — ce que le chargement lit', () => {
       .toEqual(combatStakeRef('critRowTest', { entryId: 'coupure-a-l-orteil', entryCategory: 'criticalsJambe' }));
   });
   it('le coup à l’équipage d’un bateau s’ouvre en BANDE (#1657 B3-2)', () => {
-    expect(Object.keys(cascadeAppliers), 'la porte qui sert désormais ce jet doit exister').toContain('triggeredBatchTest');
+    expect(applierDe('triggeredBatchTest'), 'la porte qui sert désormais ce jet doit exister').toBeDefined();
   });
 
   it('les étapes d’entretien se servent par l’applier de la porte (#1657 B3-3)', () => {
-    expect(Object.keys(cascadeAppliers), 'l’applier du cycle de maladie doit exister').toContain('diseaseTick');
+    expect(applierDe('diseaseTick'), 'l’applier du cycle de maladie doit exister').toBeDefined();
   });
 
   it('les jets en attente sauvés portent le nom figé (#1882, #1906)', () => {

@@ -1,7 +1,7 @@
 /**
  * PROBE — Hurlement fantomatique (LDB 85, `defense:'resist'`) sur un héros MANUEL : le « Test de
- * Résistance ou Brisé » est un nœud Flow `test` dans `def.effects` (maneuvers.json), routé par le
- * testRouter → étape de cascade `triggeredTest` INFLUENÇABLE. VÉRIFIE que le chemin RÉEL (attaque
+ * Résistance ou Brisé » est un nœud Flow `test` dans `def.effects` (maneuvers.json), routé par
+ * `routeTriggeredTest` → étape de cascade `triggeredTest` INFLUENÇABLE. VÉRIFIE que le chemin RÉEL (attaque
  * gratuite IA → `aiCreatureFreeAttacks`) : (1) ouvre l'étape influençable (Brisé DIFFÉRÉ), (2) SUSPEND
  * le tour, (3) reprend proprement à la fermeture (pas de double, pas d'orphelin).
  */

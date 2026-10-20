@@ -8,10 +8,10 @@
  *  - CE FICHIER = la STRUCTURE, destinée à TOUS les systèmes (poursuite, jeux, crises de mer, et
  *    demain les gros : combat, voyage, bataille de masse s'ils l'adoptent). Trois choses, pas une de
  *    plus : un ÉTAT (`SequenceState`, générique sur sa charge utile), une FABRIQUE DE MANCHE
- *    (`SequenceDef.round`), une CLÔTURE-SOUS-ID (`SequenceDef.close`, réducteur PUR enregistré sous
- *    l'id que porte l'état — patron `registerCascadeApplier` : l'id est la donnée, la fonction est du
- *    TS enregistré ; un état de séquence se snapshote en JSON, une closure y serait effacée en silence).
- *  - `sequenceCore.ts` = L'IMPLÉMENTATION LÉGÈRE de ce contrat : le registre, le cycle
+ *    (`SequenceDef.round`), une CLÔTURE-SOUS-ID (`SequenceDef.close`, réducteur PUR déclaré sous
+ *    l'id que porte l'état — patron de la table `appliers` : l'id est la donnée, la fonction est du
+ *    TS déclaré ; un état de séquence se snapshote en JSON, une closure y serait effacée en silence).
+ *  - `sequenceCore.ts` = L'IMPLÉMENTATION LÉGÈRE de ce contrat : la lecture des tables, le cycle
  *    ouvrir→clore→rouvrir, l'accumulateur par camp, les formules de score, les départages, la borne.
  *    C'est celle que consomment les systèmes SIMPLES (un jeu de taverne opposé n'y coûte que son
  *    entrée de donnée). Un système lourd pourra en écrire une AUTRE sans toucher au contrat.
@@ -25,6 +25,7 @@ import type { PendingCascade } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { RNG } from '../engine/dice';
 import type { CharKey } from '../engine/types';
+import type { DepartageDeSequence, ScoreDeSequence } from '../engine/sequenceVocab';
 import type { PlayerText } from '../i18n/playerText';
 import type {
   SequencePhases, SequencePotRules, SequenceRoundOps, SequenceTableRow, SequenceSide, SequenceVolleyRules,
@@ -59,14 +60,14 @@ export interface SequenceParams {
   target?: number;
   /** Plafond de DR d'une manche (Boules NADJ 16 l.57 : 6 DR). */
   drCap?: number;
-  /** Id du départage d'égalité ENREGISTRÉ. Absent = l'égalité reste une égalité. */
-  tieBreak?: string;
+  /** Id du départage d'égalité DÉCLARÉ (table `departages`). Absent = l'égalité reste une égalité. */
+  tieBreak?: DepartageDeSequence;
   /** Borne de manches propre à la séquence — jamais au-dessus de `SEQUENCE_HARD_MAX_ROUNDS`. Absente :
    *  `SEQUENCE_MAX_ROUNDS`. C'est ici qu'une famille dont la manche est BON MARCHÉ (un lancer, pas un
    *  Test opposé) dit ce que « ça ne conclut pas » veut dire chez elle. */
   maxRounds?: number;
-  /** Formule de score PAR CAMP (id enregistré : `min`/`max`/`sum`/`first`), keyée par camp. */
-  score?: Record<string, string>;
+  /** Formule de score PAR CAMP (id de la table `scoresDeSequence` : `min`/`max`/`sum`/`first`), keyée par camp. */
+  score?: Record<string, ScoreDeSequence>;
   /** (2) Table de score par plage de DR. */
   table?: readonly SequenceTableRow[];
   /** (3bis) Bonus de Caractéristique AJOUTÉ au DR de chaque manche (Bras de fer NADJ 16 l.34,
@@ -97,7 +98,7 @@ export interface SequenceParams {
  *  `payload`, il le transporte. C'est ce qui rend la MÊME structure instanciable par une poursuite,
  *  un jeu de taverne ou une crise de mer sans qu'aucun champ de l'un n'entre ici. */
 export interface SequenceState<P = unknown> {
-  /** Id de la DÉFINITION enregistrée — la donnée qui nomme les fonctions. */
+  /** Id de la DÉFINITION déclarée (table `sequences`) — la donnée qui nomme les fonctions. */
   def: string;
   /** Manche courante (0 = aucune encore ouverte). */
   round: number;
@@ -112,7 +113,7 @@ export interface SequenceState<P = unknown> {
 }
 
 /** REGISTRE DES FAMILLES au type : id de définition → charge utile. Chaque famille l'augmente à côté de
- *  son `registerSequence` (`declare module './sequenceContract'`), dont la signature exige l'entrée. */
+ *  son entrée de la table `sequences` (`declare module './sequenceContract'`), dont la signature exige l'entrée. */
 // eslint-disable-next-line typescript/no-empty-object-type -- #2404 : registre ouvert à l'augmentation de module (`declare module './sequenceContract'`), que seule une interface reçoit.
 export interface SequenceFamilies {}
 

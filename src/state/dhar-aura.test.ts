@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { combatHooksOf } from '../noyau/combatHooks';
-import '../noyau/combat/roundHooks'; // effet de bord : enregistre les hooks de fin de Round (dont recompute-auras)
 import { groupsFor } from '../engine/groups';
 import { castTestTalentDR } from '../engine/magic';
 import { findCreatureById } from '../data';

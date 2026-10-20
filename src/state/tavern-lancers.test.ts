@@ -26,9 +26,7 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import {
-  resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, sequenceScoreOf, registerSequenceTieBreak, closeSequenceRound, sequenceBoardOf,
-} from '../noyau/sequenceCore';
+import { resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, sequenceScoreOf, closeSequenceRound, sequenceBoardOf } from '../noyau/sequenceCore';
 import { SEQUENCE_HARD_MAX_ROUNDS, type EtatDeFamille, type MancheClose } from '../noyau/sequenceContract';
 import { type SequenceThrowTurn, type SequenceVolleyRules } from '../engine/sequenceVocab';
 import { resolveTavernRound } from '../engine/tavernGame';
@@ -36,6 +34,8 @@ import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, HABITUE } from 
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
@@ -136,11 +136,11 @@ describe('Famille (7) — les effets de lancer ENREGISTRÉS', () => {
   it('`toute-la-reserve` prend tout ce qui reste, `points-de-la-ligne` ne paie que la réussite', () => {
     expect(resolveSequenceThrow({ throws: 3, gain: 'toute-la-reserve' }, tour({ sl: 0, reserve: 11 })).gain).toBe(11);
     const rows = [{ points: 10, label: 'a' }, { points: 20, label: 'b' }];
-    const vise = { throws: 5, gain: 'points-de-la-ligne', rows };
+    const vise = { throws: 5, gain: 'points-de-la-ligne', rows } satisfies SequenceVolleyRules;
     expect(resolveSequenceThrow(vise, tour({ row: rows[0], rowIndex: 0, rows })).gain).toBe(10);
     expect(resolveSequenceThrow(vise, tour({ success: false, row: rows[0], rowIndex: 0, rows })).gain).toBe(0);
     // « encercler la cible SUIVANTE sur la table » (l.70) — et la dernière ligne rend la sienne.
-    const suivante = { throws: 5, gain: 'points-de-la-ligne', critique: 'points-de-la-ligne-suivante', rows };
+    const suivante = { throws: 5, gain: 'points-de-la-ligne', critique: 'points-de-la-ligne-suivante', rows } satisfies SequenceVolleyRules;
     expect(resolveSequenceThrow(suivante, tour({ critique: true, row: rows[0], rowIndex: 0, rows })).gain).toBe(20);
     expect(resolveSequenceThrow(suivante, tour({ critique: true, row: rows[1], rowIndex: 1, rows })).gain).toBe(20);
   });
@@ -520,11 +520,11 @@ describe('Plafond de DR et départage — les deux juges', () => {
   /** Une volée n'oppose pas deux jets mais deux SCORES : à égalité, c'est le départage DÉCLARÉ qui
    *  tranche (famille 1bis) — sans quoi un jeu de lancers N+1 verrait son `tieBreak` ignoré. */
   it('à SCORE ÉGAL, la volée passe par le départage DÉCLARÉ (jamais une égalité recodée)', () => {
-    registerSequenceTieBreak('test-le-defiant-gagne', () => 'a');
+    avecLesTables({ departages: { ...tablesDuJeu().departages, 'test-le-defiant-gagne': { departage: () => 'a' } } });
     const [a, b] = makePregens().slice(0, 2) as Combatant[];
     useGame.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
-    useGame.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: 'test-le-defiant-gagne' } } });
+    useGame.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4); // six boules à 4 DR : les deux camps à égalité
     const res = get().tavernGames!.result!;
     expect([res.playerSL, res.opponentSL], 'même score des deux côtés').toEqual([4, 4]);

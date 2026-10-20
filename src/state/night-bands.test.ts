@@ -35,6 +35,7 @@ import { monoStep } from '../noyau/rollSeam';
 import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { nightStakeRef } from '../data';
 import { cascadeDeTest } from './cascade.testkit';
+import type { GenreDEtape } from '../noyau/tablesPosees';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -49,7 +50,7 @@ function h(id: string, over: Partial<Combatant> = {}): Combatant {
 /** Étape MONO de nuit MINTÉE : la fabrique accepte seulement des produits de la porte (#1262 V2). La
  *  ligne est posée telle quelle (`montee`) — chaque cas fixe ses propres valeurs de jet. */
 function nuit(spec: {
-  id: string; kind: string; hero?: string; label?: string; rollLabel?: string;
+  id: string; kind: GenreDEtape; hero?: string; label?: string; rollLabel?: string;
   base?: number; target?: number; difficulty?: Difficulty; menace?: string; meta?: CascadeStepMeta;
 }): BuiltCascadeStep {
   const step = monoStep({

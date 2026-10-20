@@ -12,11 +12,9 @@ import { analyserCorpus } from '../guards/lib/dialecte.mjs';
  * mise à jour du .md.
  *
  * Lecture par AST (jamais un `import` runtime des scénarios) : le module `TestScenario` importe
- * transitivement `src/state/store.ts` (via `combatFlow.ts`…) — un `import` direct sous Node ESM
- * (`tsx`/`node`, hors bundler Vite/Vitest) lève `ReferenceError: Cannot access 'testRouter' before
- * initialization` (cycle `store.ts` ⇄ `triggeredEffects.ts`, mesuré #903bis) : Vite/Vitest tolèrent
- * ce cycle (transform SSR à liaisons tardives), Node ESM natif l'interdit (TDZ stricte). On lit donc
- * chaque fichier de scénario par AST, comme `jsdocUnion.mjs` lit les unions —
+ * transitivement `src/state/store.ts` (via `combatFlow.ts`…), dont l'évaluation crée le store et
+ * branche le jeu entier (`brancherLeJeu`) — un générateur de doc ne monte pas le jeu pour lire une
+ * donnée. On lit donc chaque fichier de scénario par AST, comme `jsdocUnion.mjs` lit les unions —
  * source de vérité identique (le fichier `.ts` lui-même), zéro effet de bord runtime.
  *
  * Le reste du document (comment vérifier une feature, comment ajouter un scénario, les conventions)

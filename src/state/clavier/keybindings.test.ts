@@ -12,6 +12,7 @@ import { modalHolds, pickActiveModalKey } from '../../noyau/modalArbiter';
 import type { GameState } from '../store';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { cascadeDeTest } from '../cascade.testkit';
+import { cleDeFixture } from '../../noyau/noyau.testkit';
 
 const binding = (id: string) => bindingParId(id)!;
 
@@ -30,14 +31,14 @@ const cartePilote = (over: Partial<GameState> = {}) =>
     // Étape `jet:'cast'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
     // `cascade`, `modalArbiter`). Une étape sans `jet` ne mesurerait pas la garde — l'arbitre élirait
     // la cascade et toutes les portes seraient fermées pour une autre raison.
-    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: 'castJet', jet: 'cast' }]),
+    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]),
     pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     ...over,
   });
 
 /** Cascade ORDINAIRE (révélation) : elle bloque la carte — clavier ET souris se taisent. */
 const cascadeBloquante = (over: Partial<GameState> = {}) =>
-  fake({ pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]), ...over });
+  fake({ pendingCascade: cascadeDeTest([{ id: 'r', kind: cleDeFixture('affichage'), actorId: 'h1' }]), ...over });
 
 const CURSEUR = ['cursor-up', 'cursor-down', 'cursor-left', 'cursor-right'];
 
@@ -255,7 +256,7 @@ describe('raccourcis — X commute le set d’armes', () => {
 
   it('se tait pendant un ciblage par la carte, comme les autres gestes qui ENGAGENT', () => {
     const s = avecSets(['lo-a', 'lo-b'], 'lo-a', {
-      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'affichage', actorId: 'h1' }]),
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: cleDeFixture('affichage'), actorId: 'h1' }]),
       pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     });
     expect(binding('switch-loadout').when(s)).toBe(false);

@@ -22,7 +22,6 @@ import { useGame } from '../state/store';
 import type { BattleState } from '../noyau/etat';
 import { applyCast } from '../noyau/combatFlow';
 import { runCombatHooks } from '../noyau/combatHooks';
-import '../noyau/combat/roundHooks'; // effet de bord : enregistre le hook `tick-durations` (order 15.5)
 import { effectSourcesOf } from '../noyau/triggeredEffects';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';

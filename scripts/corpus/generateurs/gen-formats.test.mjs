@@ -45,11 +45,12 @@ test('sensible : un champ optionnel ajouté, un type de champ changé', () => {
   assert.equal(autreType.FORMAT_SAVE, BASE.FORMAT_SAVE)
 })
 
-test('FORMAT_SAVE couvre CHAQUE famille de séquence de production : les `def` vus par le générateur sont les ids des `registerSequence(` de src hors tests', () => {
+test('FORMAT_SAVE couvre CHAQUE famille de séquence de production : les `def` vus par le générateur sont les clés des tables `sequences` de src hors tests', () => {
   const corpus = readCorpus(['src'])
   const constantes = new Map(corpus.flatMap((f) => [...f.text.matchAll(/export const (\w+) = '([^']+)'/g)].map((m) => [m[1], m[2]])))
-  const ids = corpus.flatMap((f) => [...f.text.matchAll(/registerSequence\(\s*(?:'([^']+)'|(\w+))/g)]
-    .map((m) => m[1] ?? constantes.get(m[2]) ?? `${f.rel} : ${m[2]} non résolu`))
-  assert.ok(ids.length > 0, 'aucun site `registerSequence(` lu : la garde ne mesurerait rien')
+  const tables = corpus.flatMap((f) => [...f.text.matchAll(/^ {2}sequences: \{\n([\s\S]*?)^ {2}\},?$/gm)].map((m) => ({ f, corps: m[1] })))
+  const ids = tables.flatMap(({ f, corps }) => [...corps.matchAll(/^ {4}(?:\[(\w+)\]|'([^']+)'): \{/gm)]
+    .map((m) => m[2] ?? constantes.get(m[1]) ?? `${f.rel} : ${m[1]} non résolu`))
+  assert.ok(ids.length > 0, 'aucune clé de table `sequences` lue : la garde ne mesurerait rien')
   assert.deepEqual(defsDeSequence(), [...new Set(ids)].sort())
 })

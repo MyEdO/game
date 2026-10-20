@@ -3,10 +3,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { combatStakeRef } from '../data';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { startCascade, registerCascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
+import { startCascade, type CascadeApplier, stepInteraction, stepReady, buildConsequenceSteps, runCascadeImmediate, pushStep, stepOpposedFreeze, advanceCascade, resolveRemainingCascade, compteurDeSequence } from './cascade';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier } from '../state/cascade.testkit';
+import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { journaliser } from './combatLog';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
@@ -14,16 +15,19 @@ import type { Combatant } from '../engine/types';
 /**
  * CASCADE séquentielle influençable (jets de NUIT / VOYAGE) — cœur générique. 3ᵉ consommateur de la
  * fabrique UNIQUE de jet, SÉQUENTIEL comme le Test Étendu mais avec une conséquence PROPRE par étape
- * (registre `cascadeAppliers`) et insertion dynamique d'étapes (dépendance abri → Exposition).
+ * (table des appliers, posée par `avecLesTables`) et insertion dynamique d'étapes (dépendance abri → Exposition).
  */
 describe('Cascade séquentielle influençable', () => {
   const applied: { kind: string; success: boolean }[] = [];
+  /** Les genres SYNTHÉTIQUES de la suite, posés par `avecLesTables` ; un test y ajoute les siens. */
+  let appliers: Record<string, CascadeApplier>;
   beforeEach(() => {
     applied.length = 0;
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    // Conséquence synthétique : enregistre l'étape validée + une ligne de journal.
-    spyApplier('tally', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
-      (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
+    // Conséquence synthétique : note l'étape validée + une ligne de journal.
+    appliers = {};
+    avecLesTables({ appliers });
+    appliers.tally = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
   });
 
   function hero() {
@@ -33,7 +37,7 @@ describe('Cascade séquentielle influençable', () => {
     return h;
   }
   const step = (id: string, actorId: string, target = 55): CascadeStep =>
-    ({ id, kind: 'tally', actorId, label: fixtureText(id), rollLabel: 'Résistance', base: target, target, result: null});
+    ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: target, target, result: null});
 
   it('présente une étape à la fois, applique chaque conséquence dans l’ordre, puis finalise', () => {
     useGame.getState().seedRng(3);
@@ -67,13 +71,11 @@ describe('Cascade séquentielle influençable', () => {
   it('une conséquence peut INSÉRER des étapes suivantes (dépendance abri → Exposition)', () => {
     useGame.getState().seedRng(5);
     const h = hero();
-    spyApplier('shelter', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
-      // Abri raté → 2 jets d'Exposition insérés ; réussi → aucun.
-      (step) => ({ insert: step.result?.success ? [] : [step1Insert(h, 'expo-a'), step1Insert(h, 'expo-b')] }));
+    appliers.shelter = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ insert: step.result?.success ? [] : [step1Insert(h, 'expo-a'), step1Insert(h, 'expo-b')] }));
     // Une étape insérée passe par un mint de la porte (`insert` n'accepte aucun littéral) : valeur
     // FOURNIE (40) à Intermédiaire (+0) — base 40, cible 40, comme le montage à la main d'avant.
     function step1Insert(actor: Combatant, id: string): BuiltCascadeStep {
-      return monoStep({ id, kind: 'tally', actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('fatigue'), ligne: { valeur: 40, valeurEtrangere: true } })!;
+      return monoStep({ id, kind: cleDeFixture('tally'), actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('fatigue'), ligne: { valeur: 40, valeurEtrangere: true } })!;
     }
     // Abri FORCÉ raté (dé 99) → insère 2 étapes d'Exposition.
     const shelter: CascadeStep = { id: 'abri', kind: 'shelter', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};
@@ -100,7 +102,7 @@ describe('Cascade séquentielle influençable', () => {
 
   it('mêmes verbes d’influence : la Chance relance une étape propre ratée', () => {
     const h = hero();
-    const failed: CascadeStep = { id: 's1', kind: 'tally', actorId: h.id, label: fixtureText('s1'), rollLabel: 'Résistance', base: 30, target: 30, result: { roll: 88, target: 30, sl: -5, success: false }, rerolled: false};
+    const failed: CascadeStep = { id: 's1', kind: cleDeFixture('tally'), actorId: h.id, label: fixtureText('s1'), rollLabel: 'Résistance', base: 30, target: 30, result: { roll: 88, target: 30, sl: -5, success: false }, rerolled: false};
     startCascade(useGame.getState, useGame.setState, { title: 'Nuit', purpose: 'test', steps: [failed] });
     useGame.getState().cascadeReroll('s1');
     expect(useGame.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
@@ -111,9 +113,9 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('stepInteraction / stepReady : type d’interaction inféré des champs', () => {
-    const jet: CascadeStep = { id: 'j', kind: 'tally', actorId: 'x', rollLabel: 'R', base: 30, target: 30, result: null};
-    const choix: CascadeStep = { id: 'c', kind: 'pick', actorId: 'x', options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]};
-    const aff: CascadeStep = { id: 'd', kind: 'note', actorId: 'x'};
+    const jet: CascadeStep = { id: 'j', kind: cleDeFixture('tally'), actorId: 'x', rollLabel: 'R', base: 30, target: 30, result: null};
+    const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: 'x', options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]};
+    const aff: CascadeStep = { id: 'd', kind: cleDeFixture('note'), actorId: 'x'};
     expect(stepInteraction(jet)).toBe('jet');
     expect(stepInteraction(choix)).toBe('choix');
     expect(stepInteraction(aff)).toBe('affichage');
@@ -133,10 +135,9 @@ describe('Cascade séquentielle influençable', () => {
 
   it('étape « choix » : no-op sans choix, puis l’option pilote la conséquence + insertion', () => {
     const h = hero();
-    spyApplier('pick', applied, (step) => ({ kind: step.kind, success: step.chosen === 'devier' }),
-      (step) => (step.chosen === 'devier' ? { insert: [displayStep({ id: 'suite', kind: 'note', actorId: h.id, label: fixtureText('Suite')})] } : {}));
-    spyApplier('note', applied, (step) => ({ kind: step.kind, success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
-    const choix: CascadeStep = { id: 'c', kind: 'pick', actorId: h.id, options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }]};
+    appliers.pick = spyApplier(applied, (step) => ({ kind: step.kind, success: step.chosen === 'devier' }), (step) => (step.chosen === 'devier' ? { insert: [displayStep({ id: 'suite', kind: cleDeFixture('note'), actorId: h.id, label: fixtureText('Suite')})] } : {}));
+    appliers.note = spyApplier(applied, (step) => ({ kind: step.kind, success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
+    const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }]};
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [choix] });
     useGame.getState().cascadeNext(); // pas de choix → no-op
     expect(applied).toHaveLength(0);
@@ -151,8 +152,8 @@ describe('Cascade séquentielle influençable', () => {
 
   it('étape « affichage » : validée sans jet ni choix', () => {
     const h = hero();
-    spyApplier('note', applied, () => ({ kind: 'note', success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
-    const aff: CascadeStep = { id: 'd', kind: 'note', actorId: h.id};
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
+    const aff: CascadeStep = { id: 'd', kind: cleDeFixture('note'), actorId: h.id};
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [aff] });
     useGame.getState().cascadeNext(); // affichage → acquitté directement, cascade finalisée
     expect(applied).toEqual([{ kind: 'note', success: true }]);
@@ -162,12 +163,12 @@ describe('Cascade séquentielle influençable', () => {
   it('« Tout résoudre » résout les étapes auto mais S\'ARRÊTE sur un CHOIX (pas d\'auto-tranche)', () => {
     useGame.getState().seedRng(7);
     const h = hero();
-    spyApplier('pick', applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
-    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const steps: CascadeStep[] = [
       step('s1', h.id), // jet (tally) — auto-résolu
-      { id: 'c', kind: 'pick', actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]}, // CHOIX → STOP
-      { id: 'd', kind: 'note', actorId: h.id}, // affichage (pas atteint tant que le choix n'est pas tranché)
+      { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]}, // CHOIX → STOP
+      { id: 'd', kind: cleDeFixture('note'), actorId: h.id}, // affichage (pas atteint tant que le choix n'est pas tranché)
     ];
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps });
     useGame.getState().cascadeResolveAll();
@@ -184,12 +185,12 @@ describe('Cascade séquentielle influençable', () => {
   it('runCascadeImmediate : CHOIX sans `defaultChoice` authoré → S\'ARRÊTE PENDANTE (jamais `options[0]` en silence, #351)', () => {
     useGame.getState().seedRng(7);
     const h = hero();
-    spyApplier('pick', applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
-    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const steps: CascadeStep[] = [
       step('s1', h.id), // jet (tally) — auto-résolu
-      { id: 'c', kind: 'pick', actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]}, // CHOIX sans défaut → STOP
-      { id: 'd', kind: 'note', actorId: h.id}, // jamais atteint
+      { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]}, // CHOIX sans défaut → STOP
+      { id: 'd', kind: cleDeFixture('note'), actorId: h.id}, // jamais atteint
     ];
     const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps);
     expect(applied.map((a) => a.kind)).toEqual(['tally']); // seul le jet est résolu
@@ -218,13 +219,13 @@ describe('Cascade séquentielle influençable', () => {
     const g = useGame.getState;
     const s = useGame.setState;
     const h = hero();
-    spyApplier('extendedJet', applied, () => ({ kind: 'extendedJet', success: true }));
-    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    appliers.extendedJet = spyApplier(applied, () => ({ kind: 'extendedJet', success: true }));
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const sequence = (): CascadeStep[] => {
       g().startExtendedTest({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
       const hote = g().pendingCascade!.participants[0];
       s({ pendingCascade: null });
-      return [hote, step('s1', h.id), { id: 'd', kind: 'note', actorId: h.id }];
+      return [hote, step('s1', h.id), { id: 'd', kind: cleDeFixture('note'), actorId: h.id }];
     };
 
     const temoinSteps = sequence();
@@ -255,9 +256,9 @@ describe('Cascade séquentielle influençable', () => {
   it('runCascadeImmediate : CHOIX avec `defaultChoice` authoré → tranché sans surfacer (comportement inchangé)', () => {
     useGame.getState().seedRng(7);
     const h = hero();
-    spyApplier('pick', applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+    appliers.pick = spyApplier(applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
     const steps: CascadeStep[] = [
-      { id: 'c', kind: 'pick', actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }], defaultChoice: 'a'},
+      { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }], defaultChoice: 'a'},
     ];
     const resolved = runCascadeImmediate(useGame.getState, useGame.setState, steps)!;
     expect(applied).toEqual([{ kind: 'pick', success: true }]); // défaut authoré appliqué
@@ -267,11 +268,11 @@ describe('Cascade séquentielle influençable', () => {
 
   it('étape « affichage » : contenu pré-posé (outcome) PRÉSERVÉ par un applier muet', () => {
     const h = hero();
-    registerCascadeApplier('reveal', () => {}); // applier MUET (mutation seule, aucun journal)
-    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+    appliers.reveal = () => {}; // applier MUET (mutation seule, aucun journal)
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const steps: CascadeStep[] = [
-      { id: 'r', kind: 'reveal', actorId: h.id, outcome: [{ text: 'Sonné appliqué (Assommante)' }]}, // affichage
-      { id: 'd', kind: 'note', actorId: h.id},
+      { id: 'r', kind: cleDeFixture('reveal'), actorId: h.id, outcome: [{ text: 'Sonné appliqué (Assommante)' }]}, // affichage
+      { id: 'd', kind: cleDeFixture('note'), actorId: h.id},
     ];
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps });
     useGame.getState().cascadeNext(); // valide l'affichage → figé, avance sur 'd'
@@ -285,15 +286,14 @@ describe('Cascade séquentielle influençable', () => {
     const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
     const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
     useGame.setState({ party: [h1, h2] });
-    spyApplier('crew-batch', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
-      (step) => ({ consequences: freeCons([`${step.label} → DR ${step.result?.sl}`]) }));
+    appliers['crew-batch'] = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ consequences: freeCons([`${step.label} → DR ${step.result?.sl}`]) }));
     const participants: BatchParticipant[] = [
       { id: h1.id, label: 'Timonier', essential: true, interactive: true, base: 40, target: 40, result: null },
       { id: h2.id, label: 'Vigie', essential: false, interactive: true, base: 40, target: 40, result: null },
     ];
     // Deux porteurs → possession de GROUPE (`bandStep`/`buildBatchStep`) : une bande anonyme n'entre
     // plus dans une séquence (#1262 V2 L4, `assertBandeDeclarePossession`).
-    const batch: CascadeStep = { id: 'progression', kind: 'crew-batch', label: fixtureText('Progression'), groupOwner: true, participants, result: null};
+    const batch: CascadeStep = { id: 'progression', kind: cleDeFixture('crew-batch'), label: fixtureText('Progression'), groupOwner: true, participants, result: null};
     startCascade(useGame.getState, useGame.setState, { title: 'Voyage', purpose: 'test', steps: [batch] });
     expect(stepInteraction(useGame.getState().pendingCascade!.participants[0])).toBe('batch');
     expect(stepReady(useGame.getState().pendingCascade!.participants[0], useGame.getState())).toBe(false); // aucun participant lancé
@@ -316,11 +316,11 @@ describe('Cascade séquentielle influençable', () => {
    */
   it('`dejaDites` : les conséquences rendues sont AFFICHÉES sur l’étape, et écrites au journal UNE fois', () => {
     const h = hero();
-    registerCascadeApplier('deja', (get, set) => {
+    appliers.deja = (get, set) => {
       journaliser(get, set, ['la conclusion, dite par l’applier'], 'info', { actorId: h.id });
       return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
-    });
-    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: 'deja', actorId: h.id }] });
+    };
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('deja'), actorId: h.id }] });
     useGame.getState().cascadeNext();
     expect(useGame.getState().journal.filter((l) => l === 'la conclusion, dite par l’applier'),
       'le goulot ne la ré-écrit pas').toHaveLength(1);
@@ -328,8 +328,8 @@ describe('Cascade séquentielle influençable', () => {
 
   it('`dejaDites` SANS conséquence à désigner : refus nommé (le drapeau ne remplace pas une conclusion)', () => {
     const h = hero();
-    registerCascadeApplier('dejaVide', () => ({ dejaDites: true }));
-    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'v', kind: 'dejaVide', actorId: h.id }] });
+    appliers.dejaVide = () => ({ dejaDites: true });
+    startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [{ id: 'v', kind: cleDeFixture('dejaVide'), actorId: h.id }] });
     expect(() => useGame.getState().cascadeNext()).toThrow(/dejaDites.*sans conclusion à désigner/s);
   });
 
@@ -350,13 +350,13 @@ describe('Cascade séquentielle influençable', () => {
     const h = hero();
     // Simule une conséquence FOLDÉE (déviation) : son applier re-déclenche le reste de l'attaque, qui
     // APPEND une étape au pending (via set, comme pushReveal). advanceCascade doit la préserver.
-    registerCascadeApplier('trigger', (get, set) => {
+    appliers.trigger = (get, set) => {
       const pc = get().pendingCascade!;
-      set({ pendingCascade: { ...pc, participants: [...pc.participants, { id: 'appended', kind: 'note', actorId: h.id, outcome: [{ text: 'conséquence ajoutée' }]}] } });
+      set({ pendingCascade: { ...pc, participants: [...pc.participants, { id: 'appended', kind: cleDeFixture('note'), actorId: h.id, outcome: [{ text: 'conséquence ajoutée' }]}] } });
       return {};
-    });
-    spyApplier('note', applied, () => ({ kind: 'note', success: true }));
-    const trig: CascadeStep = { id: 't', kind: 'trigger', actorId: h.id, outcome: [{ text: 'déclencheur' }]};
+    };
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
+    const trig: CascadeStep = { id: 't', kind: cleDeFixture('trigger'), actorId: h.id, outcome: [{ text: 'déclencheur' }]};
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [trig] });
     useGame.getState().cascadeNext(); // valide 'trigger' → APPEND 'appended' ; le pending NE se ferme PAS
     const p = useGame.getState().pendingCascade;
@@ -446,11 +446,11 @@ describe('Cascade séquentielle influençable', () => {
     it('une séquence ouverte PAR un applier (purpose différent) ne perd pas les étapes restantes', () => {
       const h = hero();
       // L'applier ouvre une séquence d'un AUTRE purpose (patron `sceneTest` déclenché par une étape de voyage).
-      registerCascadeApplier('opens', (get, set) => {
+      appliers.opens = (get, set) => {
         startCascade(get, set, { title: 'Test de scène', purpose: 'test', steps: [step('inner', h.id)] });
         return {};
-      });
-      const outer: CascadeStep = { id: 'day', kind: 'opens', actorId: h.id, outcome: [{ text: 'journée' }]};
+      };
+      const outer: CascadeStep = { id: 'day', kind: cleDeFixture('opens'), actorId: h.id, outcome: [{ text: 'journée' }]};
       startCascade(useGame.getState, useGame.setState, { title: 'Journée', purpose: 'travelDay', steps: [outer, step('later', h.id)] });
       useGame.getState().cascadeNext(); // valide 'day' → l'applier prend le slot
       expect(useGame.getState().pendingCascade!.purpose).toBe('test'); // la nouvelle séquence tient le slot
@@ -467,12 +467,12 @@ describe('Cascade séquentielle influençable', () => {
 
     it('pushStep suit la MÊME doctrine : append à même purpose, PARQUE l’autre (jamais un écrasement)', () => {
       const h = hero();
-      pushStep(useGame.setState, { id: 'p1', kind: 'note', actorId: h.id, label: fixtureText('Surprise')}, 'combat');
+      pushStep(useGame.setState, { id: 'p1', kind: cleDeFixture('note'), actorId: h.id, label: fixtureText('Surprise')}, 'combat');
       expect(useGame.getState().pendingCascade!.title).toBe('Surprise'); // l'étape prête son label au titre
-      pushStep(useGame.setState, { id: 'p2', kind: 'note', actorId: h.id}, 'combat');
+      pushStep(useGame.setState, { id: 'p2', kind: cleDeFixture('note'), actorId: h.id}, 'combat');
       expect(useGame.getState().pendingCascade!.participants.map((s) => s.id)).toEqual(['p1', 'p2']);
       // purpose DIFFÉRENT : la séquence de combat est PARQUÉE, pas remplacée (contrat inverse de l'ancien).
-      pushStep(useGame.setState, { id: 'p3', kind: 'note', actorId: h.id, label: fixtureText('Voyage')}, 'travelDay');
+      pushStep(useGame.setState, { id: 'p3', kind: cleDeFixture('note'), actorId: h.id, label: fixtureText('Voyage')}, 'travelDay');
       expect(useGame.getState().pendingCascade!.purpose).toBe('travelDay');
       expect(useGame.getState().pendingCascade!.participants.map((s) => s.id)).toEqual(['p3']);
       const stack = useGame.getState().suspendedCascades;
@@ -512,30 +512,33 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
   const s = useGame.setState;
   let joues: string[] = [];
   let erreurs: ReturnType<typeof vi.spyOn>;
+  const appliers: Record<string, CascadeApplier> = {
+    // `fenP` ouvre, pendant qu'il s'applique, UNE étape de la même séquence par `startCascade` ; son id
+    // vient du compteur de la séquence (`compteurDeSequence`), comme tout mint.
+    fenP: (get, set, step) => {
+      joues.push(step.id);
+      const id = `sc-${compteurDeSequence(get(), 'test')}`;
+      startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id, kind: cleDeFixture('fenF'), label: fixtureText('F') }] });
+    },
+    fenF: (_g, _s, step) => { joues.push(step.id); },
+    // `fenB` ouvre, sous applier, un fragment qui porte une BORNE et une ligne de `log`.
+    fenB: (get, set, step) => {
+      joues.push(step.id);
+      startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id: 'borne', kind: cleDeFixture('fenF'), label: fixtureText('F') }], roundBoundary: true, log: ['ligne du fragment'] });
+    },
+  };
   beforeEach(() => {
     joues = [];
     s({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
     erreurs = vi.spyOn(console, 'error').mockImplementation(() => {});
+    avecLesTables({ appliers });
   });
   afterEach(() => { erreurs.mockRestore(); });
 
-  // `fenP` ouvre, pendant qu'il s'applique, UNE étape de la même séquence par `startCascade` ; son id
-  // vient du compteur de la séquence (`compteurDeSequence`), comme tout mint.
-  registerCascadeApplier('fenP', (get, set, step) => {
-    joues.push(step.id);
-    const id = `sc-${compteurDeSequence(get(), 'test')}`;
-    startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id, kind: 'fenF', label: fixtureText('F') }] });
-  });
-  registerCascadeApplier('fenF', (_g, _s, step) => { joues.push(step.id); });
-  // `fenB` ouvre, sous applier, un fragment qui porte une BORNE et une ligne de `log`.
-  registerCascadeApplier('fenB', (get, set, step) => {
-    joues.push(step.id);
-    startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id: 'borne', kind: 'fenF', label: fixtureText('F') }], roundBoundary: true, log: ['ligne du fragment'] });
-  });
   const trois = (): CascadeStep[] => [
-    { id: 'a', kind: 'fenP', label: fixtureText('a') },
-    { id: 'c', kind: 'fenP', label: fixtureText('c') },
-    { id: 'b', kind: 'fenF', label: fixtureText('b') },
+    { id: 'a', kind: cleDeFixture('fenP'), label: fixtureText('a') },
+    { id: 'c', kind: cleDeFixture('fenP'), label: fixtureText('c') },
+    { id: 'b', kind: cleDeFixture('fenF'), label: fixtureText('b') },
   ];
   const ATTENDU = ['a', 'sc-3', 'c', 'sc-4', 'b'];
 
@@ -564,8 +567,8 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
 
   it('la BORNE et le `log` d’un fragment ouvert sous applier arrivent au slot : interactif, « Tout résoudre », immédiat ARRÊTÉ sur un choix', () => {
     const avecBorne = (): CascadeStep[] => [
-      { id: 'x', kind: 'fenB', label: fixtureText('x') },
-      { id: 'fin', kind: 'fenF', label: fixtureText('fin'), options: [{ key: 'o', label: fixtureText('o') }] },
+      { id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') },
+      { id: 'fin', kind: cleDeFixture('fenF'), label: fixtureText('fin'), options: [{ key: 'o', label: fixtureText('o') }] },
     ];
     startCascade(g, s, { title: 'T', purpose: 'test', steps: avecBorne() });
     advanceCascade(g, s);
@@ -587,8 +590,8 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
 
   it('immédiat REPRIS après une décision : la borne, le `log` et le compteur que la reprise collecte arrivent à la séquence finalisée', () => {
     const steps: CascadeStep[] = [
-      { id: 'decision', kind: 'fenF', label: fixtureText('d'), options: [{ key: 'o', label: fixtureText('o') }] },
-      { id: 'x', kind: 'fenB', label: fixtureText('x') },
+      { id: 'decision', kind: cleDeFixture('fenF'), label: fixtureText('d'), options: [{ key: 'o', label: fixtureText('o') }] },
+      { id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') },
     ];
     expect(runCascadeImmediate(g, s, steps, { title: 'T', purpose: 'test' })).toBeUndefined();
     g().cascadeChoose('decision', 'o');
@@ -601,7 +604,7 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
   });
 
   it('immédiat ALLÉ AU BOUT avec une borne collectée : aucun slot ne la porte, la levée la NOMME', () => {
-    const seul = (): CascadeStep[] => [{ id: 'x', kind: 'fenB', label: fixtureText('x') }];
+    const seul = (): CascadeStep[] => [{ id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') }];
     expect(() => runCascadeImmediate(g, s, seul(), { title: 'T', purpose: 'test' })).toThrow(/bornes collectées \(roundBoundary\)/);
     expect(erreurs).toHaveBeenCalledTimes(1);
   });
@@ -615,18 +618,23 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
   const g = useGame.getState;
   const s = useGame.setState;
   const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
-  registerCascadeApplier('repriseNeutre', () => {});
-  registerCascadeApplier('repriseCombat', (_get, set) => { set({ battle: {} as never }); });
-  beforeEach(() => { s({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], net: { ...g().net, mode: 'local', ownership: {} } } as never); });
+  const appliers: Record<string, CascadeApplier> = {
+    repriseNeutre: () => {},
+    repriseCombat: (_get, set) => { set({ battle: {} as never }); },
+  };
+  beforeEach(() => {
+    s({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], net: { ...g().net, mode: 'local', ownership: {} } } as never);
+    avecLesTables({ appliers });
+  });
   afterEach(() => { s({ battle: null, pendingCascade: null, suspendedCascades: [] }); });
 
-  const choix = (): CascadeStep => ({ id: 'decision', kind: 'repriseNeutre', label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] });
+  const choix = (): CascadeStep => ({ id: 'decision', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] });
 
   it('`rowSurface` déclarée au lancement : la bande résolue APRÈS la décision ne redit pas ses dés au journal, et la clôture la rend', () => {
     g().seedRng(5);
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     s({ party: [h] });
-    const bande = buildBand(g, { id: 'bande', kind: 'repriseNeutre', label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
+    const bande = buildBand(g, { id: 'bande', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
     expect(runCascadeImmediate(g, s, [choix(), bande], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ rowSurface: 'pv' });
 
@@ -638,7 +646,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
   });
 
   it('lancé SANS contexte : un combat ouvert en plein vol après la décision arrête la boucle sans rien empiler', () => {
-    const steps: CascadeStep[] = [choix(), { id: 'combat', kind: 'repriseCombat', label: fixtureText('Combat') }, { id: 'reste', kind: 'repriseNeutre', label: fixtureText('Reste') }];
+    const steps: CascadeStep[] = [choix(), { id: 'combat', kind: cleDeFixture('repriseCombat'), label: fixtureText('Combat') }, { id: 'reste', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Reste') }];
     expect(runCascadeImmediate(g, s, steps)).toBeUndefined();
     expect(g().pendingCascade!.piloteImmediat).toEqual({ sansContexte: true });
 

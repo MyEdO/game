@@ -18,6 +18,7 @@ import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, HABITUE } from '../noyau/tavernFlow
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
+import type { DepartageDeSequence } from '../engine/sequenceVocab';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
@@ -29,7 +30,7 @@ function heros(): Combatant {
 }
 
 /** Séquence de partie en cours, telle que `playTavernGame` la pose. */
-function partie(tieBreak: string | undefined, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
+function partie(tieBreak: DepartageDeSequence | undefined, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
   return {
     def: TAVERN_SEQUENCE, round: 1, cum: {},
     params: { ...(tieBreak ? { tieBreak } : {}) },
@@ -56,7 +57,7 @@ function doneRound(actorId: string, mien: Camp, sien: Camp): MancheClose {
 }
 
 /** L'issue de la manche close, sous la clause `tieBreak` (absente : aucune clause déclarée). */
-function issue(tieBreak: string | undefined, mien: Camp, sien: Camp): string | undefined {
+function issue(tieBreak: DepartageDeSequence | undefined, mien: Camp, sien: Camp): string | undefined {
   const a = heros();
   useGame.setState({ party: [a], tavernGames: null, sequence: partie(tieBreak, a.id) });
   closeSequenceRound(get, useGame.setState, doneRound(a.id, mien, sien));

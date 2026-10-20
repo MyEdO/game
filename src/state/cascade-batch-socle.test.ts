@@ -9,7 +9,8 @@ import { frozenOpposedBatchStep } from '../noyau/combat/triggeredTest';
 import type { CascadeStep, BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
-import '../noyau/travelPostes'; // enregistre l'applier de BANDE de voyage `weatherResistance` (EDOC 8 l.86/127)
+import { avecLesTables } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * SOCLE des BANDES de cascade (#1117, flux `cascadeBatch`) — les trois capacités qu'une rangée doit
@@ -72,7 +73,7 @@ describe('CHARGE UTILE par rangée (`meta`) — l’applier lit la donnée DE LA
     const h1 = bandHero('h1'); const h2 = bandHero('h2');
     useGame.setState({ party: [h1, h2] });
     const vues: { id: string; meta: unknown }[] = [];
-    spyApplier('bande-meta', vues, (step) => ({ id: 'step', meta: (step.participants ?? []).map((p) => ({ id: p.id, ...p.meta })) }));
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-meta': spyApplier(vues, (step) => ({ id: 'step', meta: (step.participants ?? []).map((p) => ({ id: p.id, ...p.meta })) })) } });
     startCascade(useGame.getState, useGame.setState, {
       title: 'Bande', purpose: 'test',
       steps: [band('bande-meta', [
@@ -100,7 +101,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     const h1 = bandHero('h1', { resolve: 2 }); const h2 = bandHero('h2', { resolve: 2 });
     useGame.setState({ party: [h1, h2] });
     const vues: { parts: { id: string; immune?: boolean }[] }[] = [];
-    spyApplier('bande-psy', vues, (step) => ({ parts: (step.participants ?? []).map((p) => ({ id: p.id, immune: p.immune })) }));
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-psy': spyApplier(vues, (step) => ({ parts: (step.participants ?? []).map((p) => ({ id: p.id, immune: p.immune })) })) } });
     startCascade(useGame.getState, useGame.setState, { title: 'Peur', purpose: 'test', steps: [psychBand()] });
 
     useGame.getState().cascadeBatchDetermine(h1.id);
@@ -121,7 +122,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
   it('bande NON psychologique → no-op (aucune Détermination brûlée)', () => {
     const h1 = bandHero('h1', { resolve: 2 });
     useGame.setState({ party: [h1] });
-    spyApplier('bande-nue', [], () => null);
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue': spyApplier([], () => null) } });
     startCascade(useGame.getState, useGame.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue', [row(h1.id)])] });
     useGame.getState().cascadeBatchDetermine(h1.id);
     expect(useGame.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
@@ -134,7 +135,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
     const talents = [{ talentId: 'resistance', spec: 'maladie', times: 1 }];
     const h1 = bandHero('h1', { talents }); const h2 = bandHero('h2', { talents });
     useGame.setState({ party: [h1, h2] });
-    spyApplier('bande-menace', [], () => null);
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-menace': spyApplier([], () => null) } });
     startCascade(useGame.getState, useGame.setState, {
       title: 'Contagion', purpose: 'test',
       steps: [band('bande-menace', [row(h1.id, { menace: 'maladie' }), row(h2.id, { menace: 'maladie' })], { menace: 'maladie' })],
@@ -150,7 +151,7 @@ describe('RÉSISTANCE (Menace) par rangée (LDB 10 l.1016-1020)', () => {
   it('rangée NON taguée → no-op (la spec du talent n’est pas consommée)', () => {
     const h1 = bandHero('h1', { talents: [{ talentId: 'resistance', spec: 'maladie', times: 1 }] });
     useGame.setState({ party: [h1] });
-    spyApplier('bande-nue2', [], () => null);
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue2': spyApplier([], () => null) } });
     startCascade(useGame.getState, useGame.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue2', [row(h1.id)])] });
     useGame.getState().cascadeBatchResist(h1.id);
     expect(useGame.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
@@ -218,7 +219,7 @@ describe('SEAM `onOwnTestFailed` PAR RANGÉE — toute bande, pas seulement la P
     const h1 = bandHero('h1', { diseases: [{ ...COLIQUE }] });
     const h2 = bandHero('h2', { diseases: [{ ...COLIQUE }] });
     useGame.setState({ party: [h1, h2] });
-    spyApplier('bande-seam', [], () => null);
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-seam': spyApplier([], () => null) } });
     startCascade(useGame.getState, useGame.setState, {
       title: 'X', purpose: 'test',
       steps: [

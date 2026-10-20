@@ -1,7 +1,6 @@
 /**
- * Hooks de DÉBUT DE TOUR ENNEMI (`turnStart`) enregistrés sur la couture `combatHooks`. Module FEUILLE
- * chargé par effet de bord depuis combatFlow (comme roundHooks/restFlow peuplent leurs registres) : la
- * séquence de début de tour de l'IA vit ICI, chaque étape étant un hook ordonné par `order`. N'importe RIEN de combatFlow → pas de cycle (les
+ * Hooks de DÉBUT DE TOUR ENNEMI (`turnStart`), déclarés dans la table `crochetsDeCombat` (`TABLES`,
+ * lue par `combatHooks`) : la séquence de début de tour de l'IA vit ICI, chaque étape étant un hook ordonné par `order`. N'importe RIEN de combatFlow → pas de cycle (les
  * fonctions déplacées ne dépendent que des modules feuilles `engine/*`, `combatLog`, `combatGeometry`,
  * `lineOfSight`, `battleRng`, `cascade`, `rollSeam` — ce dernier porte la PORTE d'ouverture de jet
  * (`surfaceOf`, `pushMono`, `choiceStep`, #1262).
@@ -14,8 +13,6 @@
  * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en
  * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
  */
-import { registerCombatHook } from '../combatHooks';
-import { registerCascadeApplier } from '../cascade';
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev, evLines } from '../combatLog';
@@ -41,6 +38,7 @@ import { aiDriven } from '../netOwnership';
 import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
+import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`) — point unique
  *  appelé par `advanceTurn` (tour suivant du Round) ET `confirmRoundStart` (1ᵉʳ combattant du Round),
@@ -118,37 +116,6 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
   }
   return out;
 }
-
-// Étape `actGate` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
-registerCascadeApplier('actGate', (_get, _set, step, hero) => {
-  if (!hero || !step.result) return;
-  if (step.result.success) return { consequences: freeCons([t('turn.actGateOk', { name: hero.label })]) };
-  const choix = choiceStep({
-    id: `actGateChoice-${hero.id}`, kind: 'actGateChoice', actorId: hero.id, icon: 'item/consumable',
-    label: t('turn.actGateChoice'),
-    options: [
-      { key: 'action', label: t('turn.actGateOptAction') },
-      { key: 'move', label: t('turn.actGateOptMove') },
-    ],
-    defaultChoice: 'action',
-  });
-  return {
-    consequences: freeCons([t('turn.actGateFail', { name: hero.label })]),
-    ...(choix ? { insert: [choix] } : {}),
-  };
-});
-// Étape `actGateChoice` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
-registerCascadeApplier('actGateChoice', (get, set, step, hero) => {
-  if (!hero) return;
-  const battle = get().battle;
-  if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
-  if (step.chosen === 'move') {
-    set({ battle: { ...battle, acted: true } });
-    return { consequences: freeCons([t('op.loseAction', { name: hero.label })]) };
-  }
-  set({ battle: { ...battle, movementUsed: mountMovement(battle, hero) } });
-  return { consequences: freeCons([t('op.loseMovement', { name: hero.label })]) };
-});
 
 // ============================================================================================
 // Fonctions de cycle de tour ennemi. Elles journalisent ELLES-MÊMES (kinds `frenzy`/`fear` via `ev`) —
@@ -254,61 +221,101 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
 // Chaque `run()` appelle au RUNTIME la fonction/le bloc correspondant (pas de souci de cycle à l'import).
 // ============================================================================================
 
-// Sortie de Frénésie (LDB 21 l.35) : aucun hook `end-frenzy` par-nom — c'est un effet déclenché
-// `onTurnStart` en DONNÉES (`psychology.json` : Sonné/Inconscient ∨ plus d'ennemi en LdV → Exténué),
-// diffusé UNIFORMÉMENT (héros + IA) par `fireTurnStartTriggers` AVANT les hooks d'entrée ci-dessous.
-registerCombatHook({
-  // Rage (LDB 85 l.281-283) : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
-  // devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses
-  // Avantages (minimum 3) pour entrer en Frénésie. » Décision IA (RNG-free) : ≥ 3 → Frénésie
-  // (politique historique conservée) ; sinon ≥ 1 ET des adversaires au contact non encore haïs →
-  // tout dépenser pour la Haine (état psy ciblé LDB 21 : +1 DR aux Tests de Combat contre le groupe
-  // + immunité à sa Peur, via psychology.json/psychDRAdjust). Cible = le 1ᵉʳ Groupe de chaque
-  // adversaire Engagé (racial des héros) ; re-testable en fin de Round comme toute Haine (LDB 21).
-  id: 'rage',
-  phase: 'onTurnStart',
-  order: 20,
-  run: ({ get, set, battle, self }) => {
-    const enemy = self;
-    if (!enemy || !hasRage(enemy.traits) || isFrenzied(enemy)) return;
-    const adv = enemy.advantage ?? 0;
-    if (adv >= 3) {
-      campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
-      (enemy.psychState ??= []).push({ type: 'frenesie' });
-      battle.log.push(ev('frenzy', t('turn.rageEnter', { name: enemy.label }), enemy.id));
-      set({ battle: { ...battle } });
-      return;
-    }
-    if (adv < 1) return;
-    // Adversaires en COMBAT RAPPROCHÉ (Engagés, vivants) non déjà couverts par une Haine ACTIVE.
-    const foes = (enemy.engagedWith ?? [])
-      .map((id) => inBattleId(battle, id))
-      .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
-    const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible);
-    const uncovered = foes.filter((f) => !hated.some((p) => groupMatch(p.cible!, f.groups ?? [])));
-    // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe
-    // n'est pas modélisable en Trait ciblé (groupMatch), on ne dépense pas pour lui.
-    const cibles = [...new Set(uncovered.map((f) => f.groups?.[0]).filter((g): g is string => !!g))];
-    if (!cibles.length) return;
-    campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
-    enemy.psychState ??= [];
-    for (const cible of cibles) {
-      const src = uncovered.find((f) => f.groups?.[0] === cible)!;
-      enemy.psychState.push({ type: 'haine', cible, sourceId: src.id, active: true, lastTestRound: battle.round });
-      battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, cible }), enemy.id));
-    }
-    set({ battle: { ...battle } });
-  },
-});
-registerCombatHook({
-  id: 'ai-maybe-frenzy', // l'IA tente d'entrer en Frénésie (LDB 21 l.31) AVANT le test psy (la Frénésie en rend immunisé)
-  phase: 'onTurnStart',
-  order: 30,
-  run: ({ get, set, self }) => { if (self) aiMaybeFrenzy(get, set, self); },
-});
-registerCombatHook({
-  id: 'resolve-psych-ai', // Peur/Terreur de l'IA au début de son tour (instantané, journalisé)
-  phase: 'onTurnStart',
-  order: 40,
-  run: ({ get, set, self }) => { if (self) resolvePsychAI(get, set, self); },
-});
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['actGate', 'actGateChoice'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    // Étape `actGate` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
+    actGate: (_get, _set, step, hero) => {
+      if (!hero || !step.result) return;
+      if (step.result.success) return { consequences: freeCons([t('turn.actGateOk', { name: hero.label })]) };
+      const choix = choiceStep({
+        id: `actGateChoice-${hero.id}`, kind: 'actGateChoice', actorId: hero.id, icon: 'item/consumable',
+        label: t('turn.actGateChoice'),
+        options: [
+          { key: 'action', label: t('turn.actGateOptAction') },
+          { key: 'move', label: t('turn.actGateOptMove') },
+        ],
+        defaultChoice: 'action',
+      });
+      return {
+        consequences: freeCons([t('turn.actGateFail', { name: hero.label })]),
+        ...(choix ? { insert: [choix] } : {}),
+      };
+    },
+    // Étape `actGateChoice` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
+    actGateChoice: (get, set, step, hero) => {
+      if (!hero) return;
+      const battle = get().battle;
+      if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
+      if (step.chosen === 'move') {
+        set({ battle: { ...battle, acted: true } });
+        return { consequences: freeCons([t('op.loseAction', { name: hero.label })]) };
+      }
+      set({ battle: { ...battle, movementUsed: mountMovement(battle, hero) } });
+      return { consequences: freeCons([t('op.loseMovement', { name: hero.label })]) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  crochetsDeCombat: [
+    // Sortie de Frénésie (LDB 21 l.35) : aucun hook `end-frenzy` par-nom — c'est un effet déclenché
+    // `onTurnStart` en DONNÉES (`psychology.json` : Sonné/Inconscient ∨ plus d'ennemi en LdV → Exténué),
+    // diffusé UNIFORMÉMENT (héros + IA) par `fireTurnStartTriggers` AVANT les hooks d'entrée ci-dessous.
+    {
+      // Rage (LDB 85 l.281-283) : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
+      // devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses
+      // Avantages (minimum 3) pour entrer en Frénésie. » Décision IA (RNG-free) : ≥ 3 → Frénésie
+      // (politique historique conservée) ; sinon ≥ 1 ET des adversaires au contact non encore haïs →
+      // tout dépenser pour la Haine (état psy ciblé LDB 21 : +1 DR aux Tests de Combat contre le groupe
+      // + immunité à sa Peur, via psychology.json/psychDRAdjust). Cible = le 1ᵉʳ Groupe de chaque
+      // adversaire Engagé (racial des héros) ; re-testable en fin de Round comme toute Haine (LDB 21).
+      id: 'rage',
+      phase: 'onTurnStart',
+      order: 20,
+      run: ({ get, set, battle, self }) => {
+        const enemy = self;
+        if (!enemy || !hasRage(enemy.traits) || isFrenzied(enemy)) return;
+        const adv = enemy.advantage ?? 0;
+        if (adv >= 3) {
+          campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
+          (enemy.psychState ??= []).push({ type: 'frenesie' });
+          battle.log.push(ev('frenzy', t('turn.rageEnter', { name: enemy.label }), enemy.id));
+          set({ battle: { ...battle } });
+          return;
+        }
+        if (adv < 1) return;
+        // Adversaires en COMBAT RAPPROCHÉ (Engagés, vivants) non déjà couverts par une Haine ACTIVE.
+        const foes = (enemy.engagedWith ?? [])
+          .map((id) => inBattleId(battle, id))
+          .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
+        const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible);
+        const uncovered = foes.filter((f) => !hated.some((p) => groupMatch(p.cible!, f.groups ?? [])));
+        // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe
+        // n'est pas modélisable en Trait ciblé (groupMatch), on ne dépense pas pour lui.
+        const cibles = [...new Set(uncovered.map((f) => f.groups?.[0]).filter((g): g is string => !!g))];
+        if (!cibles.length) return;
+        campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
+        enemy.psychState ??= [];
+        for (const cible of cibles) {
+          const src = uncovered.find((f) => f.groups?.[0] === cible)!;
+          enemy.psychState.push({ type: 'haine', cible, sourceId: src.id, active: true, lastTestRound: battle.round });
+          battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, cible }), enemy.id));
+        }
+        set({ battle: { ...battle } });
+      },
+    },
+    {
+      id: 'ai-maybe-frenzy', // l'IA tente d'entrer en Frénésie (LDB 21 l.31) AVANT le test psy (la Frénésie en rend immunisé)
+      phase: 'onTurnStart',
+      order: 30,
+      run: ({ get, set, self }) => { if (self) aiMaybeFrenzy(get, set, self); },
+    },
+    {
+      id: 'resolve-psych-ai', // Peur/Terreur de l'IA au début de son tour (instantané, journalisé)
+      phase: 'onTurnStart',
+      order: 40,
+      run: ({ get, set, self }) => { if (self) resolvePsychAI(get, set, self); },
+    },
+  ],
+} satisfies FragmentDeTables;

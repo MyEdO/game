@@ -12,13 +12,14 @@
  *    fenêtre qui jette le dé, et la rangée peut MONTRER contre quoi il est tombé.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { lireEnSeuil, stepInteraction, stepReady, startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { lireEnSeuil, stepInteraction, stepReady, startCascade } from '../noyau/cascade';
 import { dieStep, freeCons } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import type { SeuilDeSauvegarde } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 
 const PROTECTION: SeuilDeSauvegarde = { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: false };
 const DOME: SeuilDeSauvegarde = { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true };
@@ -92,7 +93,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   /** Étape de sauvegarde telle que la porte la fabrique (`combatFlow.pousserSauvegarde`) : 1d10, seuil
    *  déclaré, porteur nommé — NON résolue, c'est la fenêtre (ici le test) qui jette ou POSE le dé. */
   const sauvegardeStep = () => dieStep({
-    id: 'sauvegarde-ilyanwe', kind: 'seuilSpy', label: fixtureText('Sauvegarde'), icon: 'journal/critical',
+    id: 'sauvegarde-ilyanwe', kind: cleDeFixture('seuilSpy'), label: fixtureText('Sauvegarde'), icon: 'journal/critical',
     spec: { n: 1, sides: 10 }, actorId: PORTEUR.id, seuil: DOME,
   })!;
 
@@ -118,8 +119,8 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   beforeEach(() => {
     // L'applier de sauvegarde du combat vit dans `combatFlow` et RÉ-ENTRE dans le coup suspendu ; ce
     // qu'on mesure ici est le ROUTAGE d'une conséquence de cascade, avec la ligne réelle du socle.
-    registerCascadeApplier('seuilSpy', (_g, _s, step, porteur) =>
-      ({ consequences: freeCons([lireEnSeuil(step.de!.seuil!, step.de!.result!, porteur!.label).ligne]) }));
+    avecLesTables({ appliers: { seuilSpy: (_g, _s, step, porteur) =>
+      ({ consequences: freeCons([lireEnSeuil(step.de!.seuil!, step.de!.result!, porteur!.label).ligne]) }) } });
     useGame.setState({
       battle: null, party: [PORTEUR], journal: [], pendingCascade: null, suspendedCascades: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

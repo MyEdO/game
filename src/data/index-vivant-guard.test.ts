@@ -39,7 +39,9 @@
  *  - CHAMP STATIQUE DE CLASSE — `export class R { static PAR_ID = new Map(traits.map((t) => [t.id, t])); }`
  *    (le corps de classe est à profondeur > 0 : aucune déclaration de niveau module n'y est vue) ;
  *  - FABRIQUE INTER-MODULE — `const PAR_ID = construire();` où `construire()` (autre fichier) lit le
- *    dataset : le détecteur ne suit aucun appel hors du fichier ;
+ *    dataset : le détecteur ne suit aucun appel hors du fichier. Les tables du jeu (`tablesDuJeu()`)
+ *    en ont la forme : leur relecture d'une donnée éditée se prouve en exécution
+ *    (`src/noyau/tablesDuJeu.test.ts`) ;
  *  - RÉ-EXPORT RENOMMÉ — `export { traits as tousLesTraits }` dans un module tiers, puis
  *    `new Map(tousLesTraits.map(…))` chez son importateur : le vocabulaire ne suit que le seam ;
  *  - PARTITION PAR UN PRÉDICAT VIVANT — `const TENUES = TENUE_DEFS.filter((d) => !isClassDef(d.id))` :
@@ -57,7 +59,7 @@
  *  - FLÈCHE DANS L'ANNOTATION DE TYPE — `const C: Record<string, (id: string) => boolean> =
  *    Object.fromEntries(FLOW_STAKES.map(…))` : le `=>` du TYPE passe pour une frontière de corps, la
  *    lecture qui suit pour vivante ;
- *  - INSTRUCTION D'APPEL DE NIVEAU MODULE — `registerTableStep('x', { rows: BOARD_EVENTS.map(…) })` :
+ *  - INSTRUCTION D'APPEL DE NIVEAU MODULE — `declarer('x', { rows: BOARD_EVENTS.map(…) })` :
  *    ni `const`, ni affectation, ni boucle — l'instruction n'est pas balayée ;
  *  - APOSTROPHE DANS UN TEXTE JSX — `<p>l'arme</p>` ouvre une chaîne pour le balayage de profondeur,
  *    qui ne connaît pas le JSX : toute déclaration de niveau module qui SUIT est perdue.
@@ -243,7 +245,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     const aliasTypeObjet = `import seaCargoJson from '../data/sea-cargo.json';\nconst CARGO = seaCargoJson as unknown as { cargoes: X[]; sell: Y };\nconst V = CARGO.cargoes.filter((c) => c);\n`;
     const fabriqueLocale = `import { calendarPhases } from '../data';\nfunction ancre(p, id) { return p.find((x) => x.id === id).start; }\nexport const DAWN = ancre(calendarPhases, 'aube');\n`;
     const flecheDansLeType = `import { FLOW_STAKES } from '../data';\nconst C: Record<string, (id: string) => boolean> = Object.fromEntries(FLOW_STAKES.map((e) => [e.k, () => true]));\n`;
-    const appelDeModule = `import { BOARD_EVENTS } from '../engine/seaVoyage';\nregisterTableStep('x', { rows: BOARD_EVENTS.map((e) => e.id) });\n`;
+    const appelDeModule = `import { BOARD_EVENTS } from '../engine/seaVoyage';\ndeclarer('x', { rows: BOARD_EVENTS.map((e) => e.id) });\n`;
     const apostropheJsx = `import { traits } from '../data';\nexport const V = () => <p>l'arme</p>;\nconst PAR_ID = new Map(traits.map((t) => [t.id, t]));\n`;
     for (const cas of [champStatique, fabriqueInterModule, reexportRenomme, partitionParPredicat, lectureParMembre, aliasTypeObjet, fabriqueLocale, flecheDansLeType, appelDeModule]) {
       expect(indexFiges('src/engine/copie.ts', cas, parBinding), 'angle mort couvert : l’en-tête de ce fichier ne dit plus vrai').toEqual([]);

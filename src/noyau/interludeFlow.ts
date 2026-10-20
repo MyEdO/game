@@ -16,7 +16,7 @@ import { battleRng } from './battleRng';
 import { d100, deMonde, roll as rollDice } from '../engine/dice';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
-import { registerCascadeApplier, registerTableStep, startCascade } from './cascade';
+import { startCascade } from './cascade';
 import { freeCons, rollLine } from './rollSeam';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, toMoney, formatMoney, priceToMoney, canAfford, parseStatus, PA_PER_SC } from '../engine/money';
@@ -70,6 +70,7 @@ import { stepDetail } from './rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -139,13 +140,6 @@ export interface BankDeposit {
  *  donnée (`interludeEvents.json`), lookup mécanique inchangé (`interludeEventFor`). Le `label` est
  *  rendu au JOUEUR (rangée de tirage + grille du mode table), sans marque de livre. */
 export const INTERLUDE_EVENT_TABLE = 'interlude-events';
-registerTableStep(INTERLUDE_EVENT_TABLE, {
-  label: msg('if.eventTableLabel'),
-  die: 100,
-  rows: INTERLUDE_EVENTS,
-  lines: (die) => [interludeEventFor(die).label, interludeEventFor(die).desc],
-  entryCategory: 'interludeEvents', // la ligne tirée EST l'Événement : sa fiche porte son texte
-});
 
 /** Aucun modificateur : le dé NATUREL est le dé du lookup — c'est aussi ce que `perHero.eventRoll`
  *  persiste, et donc ce que tout lecteur re-résout. */
@@ -175,18 +169,6 @@ function purseStep(): CascadeStep {
     label: t('step.interludePurse'),
   };
 }
-
-/** La LIGNE tirée résout l'Événement du héros de l'étape. */
-registerCascadeApplier('interludeEvent', (get, set, step, hero) => {
-  const rolled = step.table?.result;
-  if (!rolled || !hero) return;
-  return { consequences: freeCons(finishInterludeEvent(get, set, hero, rolled.roll)) };
-});
-
-registerCascadeApplier('interludePurse', (get, set) => {
-  const lines = finishInterludeDraw(get, set);
-  return { consequences: freeCons(lines.length ? lines : [msg('if.noPurseEvent')]) };
-});
 
 /** Ouvre l'interlude : événements tirés et appliqués, commandes livrées, écran dédié. */
 export function startInterlude(get: Get, set: Set, weeks = 1): void {
@@ -1485,3 +1467,33 @@ export function creerActionsDInterlude(get: Get, set: Set) {
     interludeActivity: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['interludeEvent', 'interludePurse'] as const;
+/** Les tables tirables que ce module déclare (table `tablesTirables`). */
+export const TABLES_TIRABLES = [INTERLUDE_EVENT_TABLE] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** La LIGNE tirée résout l'Événement du héros de l'étape. */
+    interludeEvent: (get, set, step, hero) => {
+      const rolled = step.table?.result;
+      if (!rolled || !hero) return;
+      return { consequences: freeCons(finishInterludeEvent(get, set, hero, rolled.roll)) };
+    },
+    interludePurse: (get, set) => {
+      const lines = finishInterludeDraw(get, set);
+      return { consequences: freeCons(lines.length ? lines : [msg('if.noPurseEvent')]) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  tablesTirables: {
+    [INTERLUDE_EVENT_TABLE]: {
+      label: msg('if.eventTableLabel'),
+      die: 100,
+      rows: INTERLUDE_EVENTS,
+      lines: (die) => [interludeEventFor(die).label, interludeEventFor(die).desc],
+      entryCategory: 'interludeEvents', // la ligne tirée EST l'Événement : sa fiche porte son texte
+    },
+  } satisfies PartDeTable<'tablesTirables', typeof TABLES_TIRABLES>,
+} satisfies FragmentDeTables;

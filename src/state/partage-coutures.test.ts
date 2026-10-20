@@ -11,7 +11,6 @@ import { testScenarios } from '../scenes/test-scenarios';
 import { allBuiltinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { applyEffects, EFFECT_HANDLERS } from '../noyau/combatEffects';
 import { combatHooksOf } from '../noyau/combatHooks';
-import '../noyau/combat/roundHooks';
 import { memoByRef } from '../noyau/monde/sceneMemo';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { useGame } from './store';

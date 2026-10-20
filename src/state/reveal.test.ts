@@ -13,6 +13,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { cascadeDeTest } from './cascade.testkit';
 import { parseSceneDeProjet } from '../noyau/worldMap';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /** Stockage local en mémoire (patron partagé des tests de save). */
 function fakeStorage(): Storage {
@@ -81,7 +82,7 @@ describe('révélation → étape d’affichage de cascade', () => {
 
   it('une séquence EN VOL accueille la révélation (append), au lieu d’être parquée', () => {
     useGame.setState({
-      pendingCascade: cascadeDeTest([{ id: 'x', kind: 'affichage-test' }], { title: 'Nuit', purpose: 'night' }),
+      pendingCascade: cascadeDeTest([{ id: 'x', kind: cleDeFixture('affichage-test') }], { title: 'Nuit', purpose: 'night' }),
     });
     pushReveal(useGame.setState, { kind: 'mutation', title: 'Mutation — X', lines: [] });
     const c = useGame.getState().pendingCascade!;

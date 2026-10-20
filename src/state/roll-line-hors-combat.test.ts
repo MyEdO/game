@@ -8,7 +8,7 @@ import { dayIndex } from '../engine/clock';
 import { bestActivitySkill } from '../noyau/interludeFlow';
 import { inexplique, soutienDe, jetDe } from './cascade.testkit';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { clampTarget } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import { rule } from '../engine/policy';
@@ -317,7 +317,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     const { steps } = buildNightCascade(get, set, restPending([ivre], 'auberge'), { fedDaily: true });
     const desso = steps.find((s) => s.kind === 'dessoulage')!;
     desso.participants![0].result = { roll: 50, target: desso.participants![0].target, sl: 0, success: true } as never;
-    const out = cascadeAppliers.dessoulage!.apply(get, set, desso, get().party[0], { steps, index: 0 } as never);
+    const out = applierDe('dessoulage')!(get, set, desso, get().party[0], { steps, index: 0 } as never);
     const bande = (out!.insert ?? [])[0];
     expect(bande.kind).toBe('dessoulageHangover');
     const st = jetDe(bande);

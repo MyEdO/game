@@ -14,7 +14,7 @@
  *  - le site de l'annulation `suppressesCapabilities` (cherchée DANS le corps de `traitCapability`)
  *    et ses porteurs en donnée ;
  *  - les sites de l'Indice de qualité (type d'instance, dispatcher runtime, parseur d'authoring) ;
- *  - le site de `registerCombatHook`, la primitive d'enregistrement de la machinerie.
+ *  - le site de `CombatHook`, la forme sous laquelle la machinerie se déclare (table `crochetsDeCombat`).
  * La part ÉDITORIALE (critère de décision, frontière donnée/machinerie, recettes) vit ICI.
  *
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
@@ -73,7 +73,7 @@ function rendu() {
   const CAPACITE = declaration(CAPS, 'hasCapability')
   const CAP_ITEM = declaration(CAPS, 'itemCapability')
   const CAP_TRAIT = declaration('src/engine/traits/dispatch.ts', 'traitCapability')
-  const HOOKS = declaration('src/noyau/combatHooks.ts', 'registerCombatHook')
+  const HOOKS = declaration('src/noyau/combatHooks.ts', 'CombatHook')
 
   // ── ANNULATION d'une capacité par un AUTRE trait porté (`suppressesCapabilities`) ─────────────────
   // Le site de lecture est cherché DANS le corps de `traitCapability` : si la clause disparaît, le
@@ -406,10 +406,10 @@ primitives, \`docs/primitives.md\`). Ne pas dupliquer une op qui existe déjà s
 - **Donnée** = tout ce qu'un designer voudrait pouvoir varier par entité, éditable au Codex →
   \`passive\` / \`effects\` / \`capabilities\`.
 - **Machinerie** = les règles UNIVERSELLES de l'arène, qui ne nomment AUCUNE entité (décrément des
-  durées, ré-ordonnancement d'initiative, purge des invocations…) — elles s'enregistrent par
-  \`${HOOKS.nom}\` (\`${HOOKS.site}\`), la primitive unique des hooks de combat.
+  durées, ré-ordonnancement d'initiative, purge des invocations…) — elles se déclarent en
+  \`${HOOKS.nom}\` (\`${HOOKS.site}\`) dans la table \`crochetsDeCombat\`, la forme unique des hooks de combat.
 - Un hook qui teste un id d'entité en dur est une **dette démasquée** : il doit migrer vers les
-  \`effects\`/\`passive\` de l'entité nommée et disparaître du registre de hooks. La garde qui le fait
+  \`effects\`/\`passive\` de l'entité nommée et disparaître de la table des hooks. La garde qui le fait
   rougir est listée ci-dessous.
 - La doctrine complète (et ses cas jugés) vit dans \`docs/combat-events-coherence.md\`.
 

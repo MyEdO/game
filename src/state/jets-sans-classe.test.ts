@@ -18,7 +18,7 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape } from '../noyau/rollSeam';
 import { type BuiltCascadeStep } from '../noyau/stepBrand';
-import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { startCascade } from '../noyau/cascade';
 import { draineCascade } from './cascade.testkit';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
@@ -29,6 +29,9 @@ import { ECHEC_SANS_JET } from '../engine/tests';
 import { refusNePeutTenter } from '../engine/skills';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import type { GenreDeCascade } from '../noyau/tablesPosees';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -38,11 +41,11 @@ const NET0 = get().net;
 const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
-const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'];
+const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'] as const;
 
 const ligne = { test: { skill: 'resistance', char: 'endurance' } } as const;
 
-function bandeDe(kind: string, porteurs: Combatant[]): BuiltCascadeStep {
+function bandeDe(kind: GenreDeCascade, porteurs: Combatant[]): BuiltCascadeStep {
   return buildBand(get, { id: kind, kind, label: fixtureText(kind), difficulty: 'intermediaire', porteurs: porteurs.map((actor) => ({ actor, ligne })) })!;
 }
 
@@ -128,7 +131,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
       expect(surfaceDesEtapes(get, [bandeDe(k, get().party)]), `« ${k} » : le porteur est un héros, son joueur le tient`).toBe('M');
     }
     const deMonde = monoStep({
-      id: 'x', kind: 'x', monde: true, label: fixtureText('Désertion'), difficulty: 'intermediaire',
+      id: 'x', kind: cleDeFixture('x'), monde: true, label: fixtureText('Désertion'), difficulty: 'intermediaire',
       ligne: { valeur: 40 }, stake: voyageStakeRef('sea-salissures'),
     })!;
     expect(surfaceDesEtapes(get, [deMonde]), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
@@ -144,11 +147,11 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   });
 });
 
-registerCascadeApplier('sonde-1479', () => ({ consequences: [] }));
+beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'sonde-1479': () => ({ consequences: [] }) } }); });
 
 describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade', () => {
   const jet = (actor: Combatant, id: string): BuiltCascadeStep => monoStep({
-    id, kind: 'sonde-1479', actor, label: fixtureText(id), difficulty: 'intermediaire', ligne,
+    id, kind: cleDeFixture('sonde-1479'), actor, label: fixtureText(id), difficulty: 'intermediaire', ligne,
     stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
   })!;
 
@@ -190,7 +193,7 @@ describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () 
     const h = get().party[0];
     const refus = refusNePeutTenter(h, { skill: 'resistance' });
     const step = monoStep({
-      id: 'muet', kind: 'sonde-1479', actor: h, label: fixtureText('muet'), difficulty: 'intermediaire', ligne: { ...ligne, refus },
+      id: 'muet', kind: cleDeFixture('sonde-1479'), actor: h, label: fixtureText('muet'), difficulty: 'intermediaire', ligne: { ...ligne, refus },
       stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
     })!;
     expect(step.result).toEqual(ECHEC_SANS_JET);

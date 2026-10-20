@@ -3,7 +3,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
 import { buildRiverPlan, descenteJouee, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from '../noyau/riverVoyageFlow';
 import { buildApi } from './devtools';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascade.testkit';
 import { composeRollLabel } from '../noyau/rollSeam';
 import { t } from '../i18n';
@@ -311,13 +311,13 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
       { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ cargoId: 'vin', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
-      id: 'river-peril-0', kind: 'riverPerilDetect', actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
+      id: 'river-peril-0', kind: 'riverPerilDetect' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
       result: { roll: 99, target: 30, sl: -6, success: false }, meta: { perilId: 'eaux-peu-profondes' },
     };
     const echouage = Array.from({ length: 40 }, (_, seed) => {
       set({ possessions, travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!, journal: [] });
       seedBattleRng(seed);
-      return cascadeAppliers['riverPerilDetect'].apply(get, set, detect, undefined, { steps: [detect], index: 0 })?.insert?.find((s) => s.kind === 'riverEchouageForce');
+      return applierDe('riverPerilDetect')!(get, set, detect, undefined, { steps: [detect], index: 0 })?.insert?.find((s) => s.kind === 'riverEchouageForce');
     }).find(Boolean);
     expect(echouage, 'un échouage (40 %) sur 40 graines').toBeTruthy();
     expect(echouage!.difficulty).toBe('intermediaire');
@@ -544,7 +544,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
     expect(check.meta?.navLabel).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
 
     seedBattleRng(2);
-    const out = cascadeAppliers['riverPerilCheck'].apply(get, set, check, undefined, { steps: [check], index: 0 });
+    const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = out?.insert?.find((s) => s.kind === 'riverPerilNav');
     expect(nav, 'le Test d’évitement est inséré (barreur présent, péril à 100 %)').toBeTruthy();
     expect(nav!.rollLabel).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' }));
@@ -561,7 +561,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
     expect(legacy.meta?.navLabel).toBeUndefined();
 
     seedBattleRng(2);
-    const out = cascadeAppliers['riverPerilCheck'].apply(get, set, legacy, undefined, { steps: [legacy], index: 0 });
+    const out = applierDe('riverPerilCheck')!(get, set, legacy, undefined, { steps: [legacy], index: 0 });
     const nav = out?.insert?.find((s) => s.kind === 'riverPerilNav');
     expect(nav, 'le Test d’évitement s’insère aussi sur le chemin legacy').toBeTruthy();
     expect(nav!.rollLabel).toBe(refLabel('skills', { id: 'voile', spec: 'chaland' })); // dérivé du bateau EN COURS
@@ -577,7 +577,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
  */
 describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () => {
   const capsizeStep = () => ({
-    id: 'river-capsize', kind: 'riverCapsize', actorId: get().party[0].id, icon: 'nautical/wind',
+    id: 'river-capsize', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
     label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
     target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
   });
@@ -586,7 +586,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     launch(false, 45);
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const step = capsizeStep();
-    const out = cascadeAppliers['riverCapsize'].apply(get, set, step, undefined, { steps: [step], index: 0 });
+    const out = applierDe('riverCapsize')!(get, set, step, undefined, { steps: [step], index: 0 });
     const r1 = out?.insert?.find((s) => s.kind === 'riverRighting');
     expect(r1, 'le Round 1 du redressement est une étape INFLUENÇABLE').toBeTruthy();
     expect(r1!.difficulty).toBe('accessible'); // +20 RAW, jamais fondu dans un +N anonyme
@@ -606,12 +606,12 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const be = 3;
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'riverRighting', actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'riverRighting' as const, actorId: get().party[0].id, icon: 'nautical/tack',
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 98, target: 60, sl: -4, success: false }, interactive: true,
       meta: { rightRound: 0, rightRounds: be },
     };
-    const out0 = cascadeAppliers['riverRighting'].apply(get, set, round0, undefined, { steps: [round0], index: 0 });
+    const out0 = applierDe('riverRighting')!(get, set, round0, undefined, { steps: [round0], index: 0 });
     const round1 = out0?.insert?.find((s) => s.kind === 'riverRighting');
     expect(round1, 'le Round 2 s’insère tant qu’il reste des Rounds (BE)').toBeTruthy();
     // MSRC 7 l.40
@@ -624,7 +624,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
 
     // Dernier Round (index BE−1) échoué → naufrage.
     const last = { ...round1!, meta: { ...round1!.meta, rightRound: be - 1 }, result: { roll: 99, target: 50, sl: -5, success: false } };
-    cascadeAppliers['riverRighting'].apply(get, set, last, undefined, { steps: [last], index: 0 });
+    applierDe('riverRighting')!(get, set, last, undefined, { steps: [last], index: 0 });
     expect(get().travelPlan!.river!.sunk).toBe(true);
   });
 
@@ -632,12 +632,12 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     launch(false, 45);
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'riverRighting', actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'riverRighting' as const, actorId: get().party[0].id, icon: 'nautical/tack',
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 12, target: 60, sl: 4, success: true }, interactive: true,
       meta: { rightRound: 0, rightRounds: 3 },
     };
-    const out = cascadeAppliers['riverRighting'].apply(get, set, round0, undefined, { steps: [round0], index: 0 });
+    const out = applierDe('riverRighting')!(get, set, round0, undefined, { steps: [round0], index: 0 });
     expect(out?.insert ?? []).toEqual([]);
     expect(get().travelPlan!.river!.sunk).toBeFalsy();
   });
@@ -691,7 +691,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
     const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
     seedBattleRng(2);
-    const out = cascadeAppliers['riverPerilCheck'].apply(get, set, check, undefined, { steps: [check], index: 0 });
+    const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'riverPerilNav')!;
     expect(malus(nav)).toEqual([{ label: 'Hors de contrôle', value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
@@ -708,7 +708,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0], { scene: 'quai-b', label: 'Altdorf' });
     const check = built.steps.find((s) => s.kind === 'riverPerilCheck')!;
     seedBattleRng(2);
-    const out = cascadeAppliers['riverPerilCheck'].apply(get, set, check, undefined, { steps: [check], index: 0 });
+    const out = applierDe('riverPerilCheck')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'riverPerilNav')!;
     expect(malus(nav)).toEqual([]);
     expect(inexplique(nav), 'cible = base + Soutien + Difficulté, rien d’anonyme').toBe(0);
@@ -722,11 +722,11 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle!, characteristics: { ...plan.vehicle!.characteristics, endurance: 0 } } } });
     const step = {
-      id: 'river-capsize', kind: 'riverCapsize', actorId: get().party[0].id, icon: 'nautical/wind',
+      id: 'river-capsize', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
       label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
     };
-    const out = cascadeAppliers['riverCapsize'].apply(get, set, step, undefined, { steps: [step], index: 0 });
+    const out = applierDe('riverCapsize')!(get, set, step, undefined, { steps: [step], index: 0 });
     const r1 = (out?.insert ?? []).find((s) => s.kind === 'riverRighting')!;
     expect(r1.label).toContain('Round 1/1');
     expect(r1.label).not.toContain('/0');

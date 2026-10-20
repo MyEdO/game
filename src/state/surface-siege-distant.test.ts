@@ -11,7 +11,6 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import '../noyau/combatFlow';
 import { aiCreatureFreeAttacks, maybeHeroCleave } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';

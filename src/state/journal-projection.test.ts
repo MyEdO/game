@@ -8,6 +8,8 @@ import { startCascade, runCascadeImmediate } from '../noyau/cascade';
 import { spyApplier } from './cascade.testkit';
 import { FLOWS } from '../noyau/rollFlowSpecs';
 import type { CascadeStep, PendingReload, PendingTest } from '../noyau/pendings';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * #1262 V3 Lj — LE JOURNAL EST UNE PROJECTION.
@@ -89,7 +91,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
   beforeEach(() => {
     applied.length = 0;
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    spyApplier('tally', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }));
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, tally: spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success })) } });
   });
   function hero() {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
@@ -97,7 +99,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     return h;
   }
   const step = (id: string, actorId: string): CascadeStep =>
-    ({ id, kind: 'tally', actorId, label: fixtureText(id), rollLabel: 'Résistance', base: 55, target: 55, result: null });
+    ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: 55, target: 55, result: null });
 
   it('pilote IMMÉDIAT (aucune fenêtre) : l’étape MONO reçoit SA ligne de dé, dérivée', () => {
     useGame.getState().seedRng(3);

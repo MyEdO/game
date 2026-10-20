@@ -7,7 +7,7 @@ import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type Se
 import { meneurDuMonde, poserCapDuGroupe } from './monde/combatants';
 import { t } from '../i18n';
 import { bus, EVT } from './bus';
-import { registerCloture, cloturer, runFlow, flowRestant } from './combatEffects';
+import { cloturer, runFlow, flowRestant } from './combatEffects';
 import { removeEntity } from './combatPlacement';
 import { aPorteeDe } from './monde/exploreNav';
 import { nomDEntite } from './monde/sceneNpc';
@@ -20,6 +20,7 @@ import { fouilleDeLaPiece } from './monde/decouvertePorteSecrete';
 import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables } from './tablesPosees';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -96,10 +97,6 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   const resteLibre = places.some((p) => !get().scene?.seatAssignments?.[entityId]?.[p.slotId]);
   get().log(t(resteLibre ? 'seating.mustReachApproach' : 'seating.occupied'));
 }
-
-registerCloture('retirerEntite', (get, set, c) => removeEntity(get, set, c.entityId));
-
-registerCloture('marquerActionJouee', (_get, set, c) => set((s) => ({ flags: { ...s.flags, [cleActionJouee(c.entityId, c.actionId)]: true } })));
 
 export function creerActionsDInteraction(get: Get, set: Set) {
   return {
@@ -205,3 +202,11 @@ export function creerActionsDInteraction(get: Get, set: Set) {
     setPendingInteract: (pending) => set({ pendingInteract: pending }),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    retirerEntite: (get, set, c) => removeEntity(get, set, c.entityId),
+    marquerActionJouee: (_get, set, c) => set((s) => ({ flags: { ...s.flags, [cleActionJouee(c.entityId, c.actionId)]: true } })),
+  },
+} satisfies FragmentDeTables;

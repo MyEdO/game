@@ -34,6 +34,7 @@ import type { GameState } from './store';
 import { cascadeDeTest } from './cascade.testkit';
 import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; jetOwner?: JetOwnerRef; resolution?: readonly string[] };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -107,7 +108,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<GameState> = {})
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
       { id: H_HOST, kind: 'hero' }, { id: H_GUEST, kind: 'hero' }, { id: ENEMY, kind: 'enemy' },
     ] },
-    pendingCascade: cascadeDeTest([{ id: 's0', kind: `${jetHote(jet.pending)}Jet`, jet: jetHote(jet.pending), groupOwner: true }]),
+    pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture(`${jetHote(jet.pending)}Jet`), jet: jetHote(jet.pending), groupOwner: true }]),
     [jet.pending]: { [jet.field]: ownerId, targetId: H_HOST, spellId: 'drain', result: null },
     ...over,
   }) as unknown as GameState;

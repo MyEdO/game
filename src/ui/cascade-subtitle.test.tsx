@@ -19,6 +19,7 @@ import { dieStep } from '../noyau/rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import type { CascadeStep } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascade.testkit';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -125,7 +126,7 @@ describe('sous-titre d’étape — il porte la POSITION, jamais le libellé', (
    * le dé tombe et OÙ l'on en est — jamais ce qu'on joue, que le TITRE porte.
    */
   const pasDeDe = (id: string, actorId: string, label: string): CascadeStep => dieStep({
-    id, kind: 'uiDieSpy', actorId, label: fixtureText(label), icon: 'journal/critical',
+    id, kind: cleDeFixture('uiDieSpy'), actorId, label: fixtureText(label), icon: 'journal/critical',
     spec: { n: 1, sides: 10 }, seuil: { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true },
   })!;
 

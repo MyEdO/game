@@ -5,10 +5,11 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { resultLine } from '../noyau/rollSeam';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
+import type { GenreDeCascade } from '../noyau/tablesPosees';
 
 /**
  * VENTE au port (`portSellCargo`, dernier reliquat #275/#274) — la chaîne Ragot → acheteur →
@@ -234,7 +235,7 @@ describe('portBuyCargo — Marchandage d’achat SURFACÉ par cascade openRoll (
 });
 
 /** Étape de Marchandage portuaire POSÉE par la porte (`portBuyCargo` → `openRoll`), jet du héros rendu (`sl`). */
-function etapeMarchandage(hero: Combatant, kind: string, sl: number, success: boolean, meta: CascadeStep['meta']): CascadeStep {
+function etapeMarchandage(hero: Combatant, kind: GenreDeCascade, sl: number, success: boolean, meta: CascadeStep['meta']): CascadeStep {
   setupBuy([hero]);
   get().portBuyCargo('bois', 20);
   const posee = get().pendingCascade!.participants[0];
@@ -242,7 +243,7 @@ function etapeMarchandage(hero: Combatant, kind: string, sl: number, success: bo
   return { ...posee, id: kind, kind, meta, result: { roll: 50, target: 60, sl, success } };
 }
 const ligneDe = (kind: string, step: CascadeStep, actor: Combatant): string => {
-  const out = cascadeAppliers[kind].apply(get, set, step, actor, { steps: [step], index: 0 });
+  const out = applierDe(kind)!(get, set, step, actor, { steps: [step], index: 0 });
   return resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
 };
 

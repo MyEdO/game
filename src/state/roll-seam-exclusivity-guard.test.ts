@@ -3,8 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import * as ts from 'typescript/unstable/ast';
 import { useGame } from './store';
-import { CLOTURE_VERBES, jouerLesClotures } from '../noyau/combatEffects';
-import '../noyau/combatFlow'; // charge les clôtures que le combat enregistre (`ouvrirEcranDeVictoire`)
+import { jouerLesClotures } from '../noyau/combatEffects';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -887,7 +886,6 @@ const ETAPE_A_LA_MAIN_STOCK: Record<string, number> = {
   'src/noyau/pendings.ts': 1, // PendingExtendedTest
   'src/noyau/upkeep.ts': 1, // DeferredUpkeepTest
   'src/noyau/interludeFlow.ts': 2, // PendingActivityFields (type) + `target: 0` sentinelle d'ouverture
-  'src/noyau/actionsDuNoyau.ts': 1, // signature de `startExtendedTest`
   // RELAIS d'une ligne DÉJÀ montée par le monteur (rien à recalculer ici) — EXEMPTION AU SITE
   'src/noyau/restFlow.ts': 1, // `deferredUpkeepSteps` : `montee` recopie base/target/mods/clamped de la
   // ligne que `rollStep` a montée AU MOMENT DÛ (upkeep.ts:178). Le scanner est TEXTUEL : il ne voit pas
@@ -1492,21 +1490,21 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     expect(relaisDe('function f() { const t = applyAttackResult(g, s, a, d, w, r); use(t); return false; }'), 'capturé, jamais rendu').toEqual([]);
   });
 
-  it('chaque RELAIS du corpus est soumis au scan comme un point du coup — le relais en valeur (hook) seul lui échappe', () => {
+  it('chaque RELAIS du corpus est soumis au scan comme un point du coup', () => {
     // Un relais rend le retour du coup : son appelant le consomme comme celui d'un point du coup
-    // (`appelsPerdus` scanne les noms des relais). Le relais passé en VALEUR (`setFreeAttackHook`,
-    // `freeAttackHookImpl`) n'a pas d'appel par nom : le dispatcher d'ops de `runCombatFlow` le lit et
-    // rompt sa boucle à la première fenêtre ouverte (`combat/triggeredTest.ts:473`, #1852). Le signal
-    // MEURT là : `runCombatFlow` rend `void` (`combat/triggeredTest.ts:456`), et son appelant
-    // `resolveFreeAttacks` le redérive de l'état par `defenseEnCours` (`combatFlow.ts:4066`, `:4077`).
+    // (`appelsPerdus` scanne les noms des relais). Le dispatcher d'ops de `runCombatFlow` consomme le
+    // retour de `accorderLAttaqueGratuite` et rompt sa boucle à la première fenêtre ouverte
+    // (`combat/triggeredTest.ts:424`, #1852). Le signal MEURT là : `runCombatFlow` rend `void`
+    // (`combat/triggeredTest.ts:408`), et son appelant `resolveFreeAttacks` le redérive de l'état par
+    // `defenseEnCours` (`combatFlow.ts:4107`, `:4114`).
     // Une seule représentation jusqu'au dispatcher : #2639.
     expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan par NOM voit le point, pas le relais').toBe(1);
     expect(relaisDuCoup().sites, 'un relais NEUF d’un point du coup : son appelant doit consommer son retour').toEqual([
+      'src/noyau/combatFlow.ts accorderLAttaqueGratuite',
       'src/noyau/combatFlow.ts aiAvailableFreeAttack',
       'src/noyau/combatFlow.ts aiCreatureFreeAttacks',
       'src/noyau/combatFlow.ts autoCleave',
       'src/noyau/combatFlow.ts drainerLesGratuites',
-      'src/noyau/combatFlow.ts freeAttackHookImpl',
       'src/noyau/combatFlow.ts jouerLApresCoup',
       'src/noyau/combatFlow.ts jouerLaFrappePassive',
       'src/noyau/combatFlow.ts jouerLaSuiteDuCoup',
@@ -1527,18 +1525,11 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
 });
 
 /**
- * REGISTRE des CLÔTURES (#1508, #2689) : la suite d'une étape est une liste de `Cloture` — des
- * VERBES sérialisables (le `pendingCascade` est sauvegardé et voyage sur le réseau). Le registre doit
- * être TOTAL, sans quoi une clôture se perdrait exactement comme le signal qu'elle répare.
+ * Les CLÔTURES (#1508, #2689) : la suite d'une étape est une liste de `Cloture` — des VERBES
+ * sérialisables (le `pendingCascade` est sauvegardé et voyage sur le réseau). La table `clotures` est
+ * totale au type ; un verbe venu d'une donnée hors union lève.
  */
-describe('#1508 — le registre des clôtures est TOTAL', () => {
-  it('chaque verbe déclaré a son applier (un verbe sans applier LÈVE, nommément)', () => {
-    for (const verbe of CLOTURE_VERBES) {
-      expect(() => jouerLesClotures(useGame.getState, useGame.setState, [{ verbe } as never]),
-        `le verbe « ${verbe} » n’a pas d’applier enregistré`).not.toThrow(/sans applier/);
-    }
-  });
-
+describe('#1508 — un verbe de clôture inconnu lève', () => {
   it('un verbe INCONNU lève au lieu de se perdre en silence', () => {
     expect(() => jouerLesClotures(useGame.getState, useGame.setState, [{ verbe: 'verbeQuiNExistePas' } as never]))
       .toThrow(/sans applier/);

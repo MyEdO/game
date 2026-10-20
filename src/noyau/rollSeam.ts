@@ -4,7 +4,7 @@
  * `rollFlowFactory.ts`) + `cascade.ts` (séquenceur) — RIEN de parallèle.
  *
  * `openRoll` DÉCRIT un jet (`RollRequest`) et une CONTINUATION enregistrée par `kind`
- * (`registerCascadeApplier`, `cascade.ts:44`) ; la porte DÉRIVE la surface des PORTEURS RÉELS du jet
+ * (`applierDe`, `cascade.ts:94`) ; la porte DÉRIVE la surface des PORTEURS RÉELS du jet
  * (#1479) via les prédicats EXISTANTS (`surfaceOf`/`cadenceAuto`/`resoluSousOrdres`) :
  *   M = modale influençable (`startCascade`, propriétaire = l'acteur humain) ;
  *   V = étape visible-lançable MJ (`startCascade`, propriétaire = le siège `gmSeat` — un `actorId`
@@ -51,7 +51,8 @@ import type { ModLine } from '../engine/combat';
 import { combatBaseValue, combatValueModParts, conditionModLines, combatCharKey, combineMods, composeDifficulty } from '../engine/combat';
 import { volatileCharLines } from '../engine/characteristics';
 import { precipitationTestMods, type SeaPrecipitationId } from '../engine/seaWeather';
-import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, cascadeTableFolds, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
+import { startCascade, runCascadeImmediate, rollBatchParticipant, pushStep, tableStepPosee, clampStepAmount, porteursDeLEtape, compteurDeSequence } from './cascade';
+import { tablesPosees, type GenreDEtape, type GenreDeCascade } from './tablesPosees';
 import { testValue, partyBest, partyAssisted, testValueSplit, testValueParts, skillBaseValue, supportSplit, type SupportDetail } from '../engine/skills';
 import { testStatePenaltyParts, testStatePenalty } from '../engine/conditions';
 import { tenuParUnHumain, seatOwns, conduitParLeSiegeDuMonde } from './sieges';
@@ -325,7 +326,7 @@ function resolveMonoSide(get: Get, req: RollRequest): { actorId?: string; actor?
  * Aucune branche par TYPE de porteur ni par situation : un héros, un ennemi, le monde, un Test subi
  * face à une maladie passent par CE calcul.
  */
-function surfaceDesTenus(s: Jeu, tenus: readonly (string | undefined)[], kinds: readonly string[], partage = false): Surface {
+function surfaceDesTenus(s: Jeu, tenus: readonly (string | undefined)[], kinds: readonly GenreDeCascade[], partage = false): Surface {
   // Politique d'ORDRES d'une traversée : COMMANDÉE, les `kind` qu'elle couvre se résolvent d'office
   // (attendu validé en recette #1426 « Traversée commandée sans fenêtre »). Une séquence MIXTE garde
   // sa fenêtre — un seul jet hors des ordres suffit à la rouvrir.
@@ -347,7 +348,7 @@ function surfaceDesTenus(s: Jeu, tenus: readonly (string | undefined)[], kinds: 
   return 'M';
 }
 
-export function surfaceDesPorteurs(get: Get, porteurs: readonly (string | undefined)[], kinds: readonly string[]): Surface {
+export function surfaceDesPorteurs(get: Get, porteurs: readonly (string | undefined)[], kinds: readonly GenreDeCascade[]): Surface {
   if (cadenceAuto()) return 'I';
   return surfaceDesTenus(get(), porteurs.filter((id) => surfaceOf(get, id)), kinds);
 }
@@ -426,7 +427,7 @@ export function surfaceRow(get: Get, porteurId: string | undefined, row: BatchPa
 export interface BandSpec {
   /** Id de l'étape. Dédoublé en `#n` par `bandStepId` quand la même clé revient dans une séquence. */
   id: string;
-  kind: string;
+  kind: GenreDeCascade;
   /** Intitulé de la SITUATION. Absent : l'étape n'en porte pas, et la fenêtre qui l'accueille prend
    *  son repli (`cascade.ts` : « Conséquences »). Une chaîne VIDE, elle, s'affiche vide. */
   label?: PlayerText;
@@ -905,7 +906,7 @@ export function rollStep(spec: RollLineSpec): LigneMontee {
 /** Résout un test skill/char SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
-function buildMonoStep(get: Get, req: RollRequest, kind: string, meta?: CascadeStepMeta): CascadeStep {
+function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {
   const { actorId, actor, baseValue, support } = resolveMonoSide(get, req);
   // Ligne montée par le MONTEUR CANONIQUE : la cible reste dérivée de la valeur FONDUE (`testValue`
   // pour un acteur désigné, la valeur SOUTENUE de `partyAssisted` sinon).
@@ -941,7 +942,7 @@ function buildMonoStep(get: Get, req: RollRequest, kind: string, meta?: CascadeS
  *  NEUTRE : `aggregateFlatDR`/`aggregateCapTo`/`aggregateOpposeSl`) est calculé GÉNÉRIQUEMENT par
  *  `cascade.aggregateBatchStep` à la VALIDATION — ce constructeur ne lance AUCUN dé lui-même : chaque
  *  contributeur reste influençable individuellement avant l'agrégat (écart 2 de la Ronde 0). */
-function buildBatchStep(get: Get, req: RollRequest, kind: string, meta?: CascadeStepMeta): CascadeStep {
+function buildBatchStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {
   const participants = 'participants' in req.side ? req.side.participants : [];
   void get;
   // POSSESSION dérivée des rangées, MÊME règle que `bandStep` (#1262 V2 L4) : plusieurs porteurs →
@@ -964,13 +965,13 @@ function buildBatchStep(get: Get, req: RollRequest, kind: string, meta?: Cascade
  * LA PORTE UNIQUE (Décision 1). Dérive la surface des PORTEURS de la requête (#1479), construit
  * l'étape puis :
  *  - M/V (surfacé) : `startCascade` — la CONTINUATION est l'applier `kind` (lu à l'« Appliquer »,
- *    déjà câblé par `commitStep`/`cascadeAppliers`, `cascade.ts:94-97`) ;
- *  - I (inline) : `runCascadeImmediate` — MÊME registre, appelé d'office (mirror `runSkillTest`).
+ *    déjà câblé par `commitStep`/`applierDe`) ;
+ *  - I (inline) : `runCascadeImmediate` — MÊME applier, appelé d'office (mirror `runSkillTest`).
  * `meta` = paramètres SÉRIALISABLES de la conséquence (jamais de closure — coop, `CascadeStepMeta`).
  * Rend le retour de `ouvrirLEtape` : l'étape résolue sur place, ou `undefined` (fenêtre ouverte, pilote
  * interrompu, aucun candidat) — l'appelant qui ENCHAÎNE lit CE retour, jamais le slot.
  */
-export function openRoll(get: Get, set: Set, req: RollRequest, kind: string, meta?: CascadeStepMeta): CascadeStep[] | undefined {
+export function openRoll(get: Get, set: Set, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep[] | undefined {
   // Côté `partyBest` sans candidat (aucun PJ éligible à la compétence/carac visée) : rien à ouvrir —
   // même garde que l'ancien `if (best)` des call-sites (mandat coordinateur : la porte résout, donc
   // c'est ICI que le silence se décide, plus au call-site).
@@ -1000,7 +1001,7 @@ function ouvrirLEtape(get: Get, set: Set, step: CascadeStep, title: string): Cas
 export function openPartyTest(
   get: Get, set: Set,
   spec: { skill: string; char?: CharKey; assisted?: boolean; spec?: string; sense?: PairedSense; menace?: string; noSupport?: boolean; actionLabel: string; difficulty: Difficulty; stake?: StakeRef },
-  kind: string,
+  kind: GenreDEtape,
   meta?: CascadeStepMeta,
 ): void {
   const { skill, char, assisted, spec: specName, sense, menace, noSupport, actionLabel, difficulty, stake } = spec;
@@ -1025,7 +1026,7 @@ export function openPartyTest(
 export function openWorldTest(
   get: Get, set: Set,
   spec: { actionLabel: string; cible: number; verdict: SeuilVerdict; stake?: StakeRef },
-  kind: string,
+  kind: GenreDEtape,
   meta?: CascadeStepMeta,
 ): CascadeStep[] | undefined {
   const step = worldStep({
@@ -1196,7 +1197,7 @@ export function openBand(get: Get, set: Set, spec: BandOpenSpec): CascadeStep[] 
  *  déviation d'un Critique). */
 export interface ChoiceSpec {
   id: string;
-  kind: string;
+  kind: GenreDEtape;
   label: PlayerText;
   icon?: string;
   /** PORTEUR de la décision, REQUIS : l'arbitre (`modalArbiter`) route la fenêtre à son siège. Sans
@@ -1290,7 +1291,7 @@ export function openChoice(get: Get, set: Set, spec: ChoiceSpec & { title: strin
  *  la même raison : le nombre se pose au niveau de l'ÉTAPE. */
 export interface QuantitySpec {
   id: string;
-  kind: string;
+  kind: GenreDEtape;
   label: PlayerText;
   icon?: string;
   /** PORTEUR de la saisie, REQUIS : l'arbitre (`modalArbiter`) route la fenêtre à son siège. */
@@ -1355,7 +1356,7 @@ export function quantityStep(spec: QuantitySpec): BuiltCascadeStep | undefined {
  *  `target` ne sont PAS des champs de déclaration — le mint les pose. */
 interface MonoBase {
   id: string;
-  kind: string;
+  kind: GenreDEtape;
   label: PlayerText;
   icon?: string;
   difficulty: Difficulty;
@@ -1463,10 +1464,10 @@ export function monoStep(spec: MonoSpec): BuiltCascadeStep | undefined {
 }
 
 /** DÉCLARATION d'une étape à TABLE : quel tirage, pour qui. La DÉCLARATION du tirage (`table`) est
- *  celle du registre (`tableStepDef`, `cascade.ts`) — modificateur, plancher, dé imposé compris. */
+ *  celle des tables posées (`tableStepDef`, `cascade.ts`) — modificateur, plancher, dé imposé compris. */
 export interface TableSpec {
   id: string;
-  kind: string;
+  kind: GenreDeCascade;
   label: PlayerText;
   icon?: string;
   /** PORTEUR du tirage : l'arbitre route la fenêtre à son siège (un d100 subi a son sujet). Absent
@@ -1506,7 +1507,7 @@ export interface TableSpec {
   defaultChoice?: string;
   /** CHARGE de l'applier « déviation » (`combatFlow`) quand elle est connue AU MINT (aucune table à
    *  tirer : variante Aux Armes, chemins auto-contenus). Avec une table, c'est le PLI post-dé
-   *  (`cascade.registerCascadeTableFold`) qui la pose — le Critique n'existe qu'après le tirage. */
+   *  (table `plis`) qui la pose — le Critique n'existe qu'après le tirage. */
   deviation?: PendingDeviation;
   /** CHARGE de l'applier « sévérité du Critique » (`combatFlow`) : de quel coup le d100 posé décide.
    *  Recopiée telle quelle — une charge n'est pas une forme : elle ne rend rien et ne change pas
@@ -1596,9 +1597,9 @@ export function tableStepDone(spec: TableDoneSpec): BuiltCascadeStep | undefined
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   };
-  if (cascadeTableFolds[spec.kind]) {
+  if (tablesPosees().plis[spec.kind]) {
     refusePorte(`table déjà tirée « ${spec.id} » (${spec.kind}) : ce \`kind\` déclare un PLI post-dé `
-      + '(`registerCascadeTableFold`) qu\'aucune fenêtre ne jouera ici — le tirage doit passer par `tableStep`. Aucun tirage ouvert.');
+      + '(`TablesDuJeu.plis`) qu\'aucune fenêtre ne jouera ici — le tirage doit passer par `tableStep`. Aucun tirage ouvert.');
     return undefined;
   }
   // eslint-disable-next-line murs/marques -- #1262 : porte `tableStepDone` du seam — l'étape posée par `tableStepPosee` sort mintée par cette porte.
@@ -1609,7 +1610,7 @@ export function tableStepDone(spec: TableDoneSpec): BuiltCascadeStep | undefined
  *  zéro décision — l'étape est l'interaction `'affichage'` (`stepInteraction`), acquittée par « Continuer ». */
 interface DisplayBase {
   id: string;
-  kind: string;
+  kind: GenreDeCascade;
   label: PlayerText;
   icon?: string;
   /** Ce qui vient d'arriver, en lignes déjà écrites (`RecapLine[]`), rendues par le renderer partagé. */
@@ -1638,7 +1639,7 @@ export type DisplaySpec = DisplayBase & (
  * `reveal`, `table`, `options`, `target` n'y sont PAS déclarables. Une conséquence sans dé rendue par
  * `revealToStep` prendrait la forme d'une RÉVÉLATION — rangée `TableRollLine` et dé à l'appui — et
  * annoncerait un tirage qui n'a pas eu lieu (une lame arrachée des mains, une fuite qui reprend) ; en
- * plus, ce mint DÉRIVE `id` et `kind` de la `RevealEntry`, ce que les appliers enregistrés par `kind`
+ * plus, ce mint DÉRIVE `id` et `kind` de la `RevealEntry`, ce que les appliers déclarés par `kind`
  * ne survivraient pas.
  *
  * Rien à refuser ici : une étape d'affichage est toujours prête (`stepReady`), il n'existe pas de
@@ -1661,7 +1662,7 @@ export function displayStep(spec: DisplaySpec): BuiltCascadeStep {
 /** DÉCLARATION d'un dé de MONDE en ÉTAPE (#1426) — le nombre visé, ce qui se joue, rien d'autre. */
 export interface WorldStepSpec {
   id: string;
-  kind: string;
+  kind: GenreDEtape;
   label: PlayerText;
   icon?: string;
   /** Le NOMBRE VISÉ du pourcentage (`dé ≤ cible`). Aucune Difficulté ne s'y applique : ce n'est pas un Test. */
@@ -1710,7 +1711,7 @@ export function worldStep(spec: WorldStepSpec): BuiltCascadeStep {
  */
 export interface DieStepSpec {
   id: string;
-  kind: string;
+  kind: GenreDEtape;
   label: PlayerText;
   icon?: string;
   /** Les DÉS — REQUIS ici (à la différence de la déclaration persistée, où une table donne les
@@ -1811,7 +1812,7 @@ export function idDansLaSequence(get: Get, base: string, purpose?: PendingCascad
 /** Ce qui est vrai de TOUTE étape hôte : elle nomme son jet, et rien du montage. */
 interface HostBase {
   id: string;
-  kind: string;
+  kind: GenreDeCascade;
   label?: PlayerText;
   icon?: string;
   stake?: StakeRef;

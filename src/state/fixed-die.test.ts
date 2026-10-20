@@ -8,11 +8,13 @@ import { desFixes, setDesFixes, resetDesFixes, FIXED_ROLL_MAX, clampFixedRoll } 
 import { PREFERENCES, setPreference, resetPreference } from './preferences';
 import { rowForcedDie } from '../ui/forcedDieRow';
 import { bestForcedRoll, evaluateTest } from '../engine/tests';
-import { startCascade, registerTableStep } from '../noyau/cascade';
+import { startCascade } from '../noyau/cascade';
 import { spyApplier } from './cascade.testkit';
 import { freeCons } from '../noyau/rollSeam';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * Option de confort « Dés fixés » (#939) : saisir soi-même la valeur du d100 d'un jet qu'on CONTRÔLE,
@@ -425,24 +427,18 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
   const applied: string[] = [];
 
   const etape = (id: string): CascadeStep =>
-    ({ id, kind: 'markSpy', label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: TBL }});
+    ({ id, kind: cleDeFixture('markSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: TBL }});
 
   beforeEach(() => {
     applied.length = 0;
     setDesFixes(true);
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
-    registerTableStep(TBL, {
+    avecLesTables({ tablesTirables: { ...tablesDuJeu().tablesTirables, [TBL]: {
       label: 'Table de la marque',
       die: 100,
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne (dé ${die})`],
-    });
-    spyApplier(
-      'markSpy',
-      applied,
-      (s) => `conséquence de ${s.id} (dé ${s.table!.result!.roll})`,
-      (s) => ({ consequences: freeCons([`conséquence de ${s.id} (dé ${s.table!.result!.roll})`]) }),
-    );
+    } }, appliers: { ...tablesDuJeu().appliers, markSpy: spyApplier(applied, (s) => `conséquence de ${s.id} (dé ${s.table!.result!.roll})`, (s) => ({ consequences: freeCons([`conséquence de ${s.id} (dé ${s.table!.result!.roll})`]) })) } });
   });
 
   it('E1 dé POSÉ + E2 dé NATUREL : seule la ligne d’E1 porte la mention', () => {
