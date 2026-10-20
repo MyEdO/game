@@ -5,7 +5,8 @@ import type { JSX } from 'react';
  * l'ouvre). Contour POINTILLÉ ROUGE ANIMÉ (fourmis) + remplissage ; gris quand la case est invalide
  * (hors portée OU hors Ligne de Vue). INTERACTION (suit le survol) → overlay du stage, hors builders.
  */
-import { useGame, type BattleState } from '../../state/store';
+import { useGame } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { type PendingCast, type PendingSiegeAim } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
 import { zdeRadiusTiles, spellRangeTiles } from '../../engine/magic';

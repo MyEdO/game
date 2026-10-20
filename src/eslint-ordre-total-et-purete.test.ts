@@ -90,8 +90,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['ui', 'racine', false, 'type'], // la présentation n'importe pas l'entrée
       ['engine', 'constructor', false, 'type'], // clé du prototype
       ['constructor', 'ui', false, null], // zone inconnue : `murs/zone` la refuse, pas ce verdict
-      ['noyau', 'state', false, 'execution'], // transitoire de type (#2889), arc de valeur
-      ['noyau', 'state', true, null],
+      ['noyau', 'state', false, 'type'], // fermé (#2817 D5)
+      ['noyau', 'state', true, 'type'],
       ['noyau', 'web', false, 'type'], // fermé
       ['engine', 'noyau', false, 'type'],
       ['scenes', 'noyau', false, null], // importe

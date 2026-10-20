@@ -2,7 +2,7 @@
  * SLOTS DE JET — le slot `pending*` qui porte la donnée de chaque jet qu'une étape de cascade hôte,
  * et les prédicats purs qui en lisent l'état (orphelin, sans corps, en attente). Types seuls importés.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
 import type { PendingKey } from './stateFields';
 
@@ -42,7 +42,7 @@ export const PENDING_BY_JET: Record<HostJet, PendingKey | null> = {
  * Une étape déjà VALIDÉE (`committed`) est hors sujet : elle a rendu sa donnée et se ferme.
  * Prédicat PUR (aucun runtime importé) et TOTAL sur les `HostJet`.
  */
-export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
+export function hoteOrphelin(s: Partial<Jeu>, step: CascadeStep | undefined): boolean {
   return !!step && !step.committed && sansCorps(s, step);
 }
 
@@ -53,7 +53,7 @@ export function hoteOrphelin(s: Partial<GameState>, step: CascadeStep | undefine
  * qu'un enchaînement hors modale tient la main (`pendingDualStrike`, `pendingCleave`) n'élit aucune
  * fenêtre.
  */
-export function sansCorps(s: Partial<GameState>, step: CascadeStep | undefined): boolean {
+export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boolean {
   if (!step?.jet) return false;
   const slot = PENDING_BY_JET[step.jet];
   if (slot && s[slot] == null) return true;
@@ -78,7 +78,7 @@ export function sansCorps(s: Partial<GameState>, step: CascadeStep | undefined):
  * lancer » : c'est sa fenêtre qui la rend (`defenseConfirm` pose `committed`, `attackConfirm` vide son
  * slot). Prédicat PUR et TOTAL sur les `HostJet`, lu par `cascade.stepReady`.
  */
-export function hoteEnAttente(s: Partial<GameState>, step: CascadeStep): boolean {
+export function hoteEnAttente(s: Partial<Jeu>, step: CascadeStep): boolean {
   if (!step.jet || step.committed) return false;
   const slot = PENDING_BY_JET[step.jet];
   return slot != null && s[slot] != null;

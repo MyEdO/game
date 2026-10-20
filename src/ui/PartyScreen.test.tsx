@@ -14,7 +14,7 @@ import { useGame } from '../state/store';
 import { heroSubtitle } from './CharCard';
 import { makePregens } from '../data/pregens';
 import { rosterAdd } from '../state/roster';
-import { initialNet, type NetState } from '../state/netFlow';
+import { initialNet, type NetState } from '../noyau/etat';
 import { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';

@@ -21,7 +21,7 @@
  *   reçu) → 10 sauvegarde « 1d10 ≥ Indice » (traits propres + Trait octroyé par un Dôme) → 40 Martyr
  *   → 50 Perturbante.
  */
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../etat';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { TraitList } from '../../engine/statEntry';

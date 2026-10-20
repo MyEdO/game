@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
-import type { CampaignVessel } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 import type { PendingRest } from '../noyau/restFlow';
 import type { TravelPlan, TravelRecapDay } from '../noyau/travelFlow';
 import { activeDayWeather } from '../noyau/combatFlow';

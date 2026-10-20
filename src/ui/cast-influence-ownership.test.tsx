@@ -15,7 +15,7 @@ import { useGame } from '../state/store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { CastModal } from './CastModal';
-import type { BattleState } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

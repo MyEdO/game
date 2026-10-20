@@ -16,7 +16,7 @@
 import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
 import type { Dir8 } from './dir8';
-import type { GameState } from '../../state/store';
+import type { Jeu } from '../etat';
 
 /**
  * TAILLE MAXIMALE du groupe — les quatre aventuriers de la campagne. Constante CANONIQUE : toute
@@ -25,7 +25,7 @@ import type { GameState } from '../../state/store';
 export const PARTY_MAX = 4;
 
 /** Acteur d'une action joueur résolu dans le bon ensemble : file de combat si en combat, sinon le groupe. */
-export function actorIn(state: GameState, id: string): Combatant | undefined {
+export function actorIn(state: Jeu, id: string): Combatant | undefined {
   return (state.battle?.combatants ?? state.party).find((c) => c.id === id);
 }
 
@@ -38,10 +38,10 @@ export function actorIn(state: GameState, id: string): Combatant | undefined {
  * admis est une AFFECTATION idempotente (un message, un verdict) : chaque copie y écrit la même valeur.
  */
 export function ecrireActeur(
-  state: Pick<GameState, 'party' | 'battle'>,
+  state: Pick<Jeu, 'party' | 'battle'>,
   qui: string | readonly string[],
   transformer: (c: Combatant) => Combatant,
-): Pick<GameState, 'party'> & Partial<Pick<GameState, 'battle'>> {
+): Pick<Jeu, 'party'> & Partial<Pick<Jeu, 'battle'>> {
   const ids = new Set(typeof qui === 'string' ? [qui] : qui);
   const patch = (c: Combatant): Combatant => (ids.has(c.id) ? transformer(c) : c);
   const b = state.battle;
@@ -53,14 +53,14 @@ export function ecrireActeur(
 
 /**
  * Combattant EN COMBAT (`battle.combatants`) par id — distinct d'`actorIn` (combat OU groupe).
- * `battle` prend le type du champ `GameState['battle']` (nullable) : la plupart des call-sites tiennent
+ * `battle` prend le type du champ `Jeu['battle']` (nullable) : la plupart des call-sites tiennent
  * déjà un `battle` non-null en main (narrowed en amont), mais accepter le nullable rend la migration
  * mécanique (`inBattleId(battle, id)` remplace `battle.combatants.find(...)` sans changer les gardes
  * d'appel) plutôt que d'imposer un narrowing supplémentaire à chaque site. `id` accepte aussi
  * `undefined` (plusieurs sites cherchent un id OPTIONNEL, ex. `sourceId?`) — même repli honnête que
  * `.find` sur une valeur absente : ne matche jamais, retourne `undefined`.
  */
-export function inBattleId(battle: GameState['battle'], id: string | undefined): Combatant | undefined {
+export function inBattleId(battle: Jeu['battle'], id: string | undefined): Combatant | undefined {
   return id == null ? undefined : battle?.combatants.find((c) => c.id === id);
 }
 
@@ -76,7 +76,7 @@ export function inBattleId(battle: GameState['battle'], id: string | undefined):
  * requête (`resolveMonoSide`) et le porteur d'une rangée de bande (`rowSurfacee`). Possession, surface
  * et valeur d'un dé ne peuvent pas répondre depuis deux univers différents.
  */
-export function porteurParId(s: GameState, id: string): Combatant | undefined {
+export function porteurParId(s: Jeu, id: string): Combatant | undefined {
   return inBattleId(s.battle, id) ?? s.party.find((c) => c.id === id);
 }
 
@@ -88,7 +88,7 @@ export function porteurParId(s: GameState, id: string): Combatant | undefined {
  * seuls : `actorIn` couvre le premier, le second est hors du groupe. Sert la reconstitution du
  * contexte d'une étape de cascade née d'un Critique de coque (`meta.hullId` → `OpsCtx.hull`).
  */
-export function coqueParId(state: GameState, id: string): Combatant | undefined {
+export function coqueParId(state: Jeu, id: string): Combatant | undefined {
   const vehicule = state.travelPlan?.vehicle;
   return actorIn(state, id) ?? (vehicule?.id === id ? vehicule : undefined);
 }
@@ -147,10 +147,10 @@ function partyLeaderDeboutOf(party: readonly Combatant[]): Combatant | undefined
 }
 
 /**
- * Le groupe d'un état — la part de `GameState` que l'élection du meneur consomme, et la SEULE.
+ * Le groupe d'un état — la part de `Jeu` que l'élection du meneur consomme, et la SEULE.
  * Signature la plus ÉTROITE qui suffise.
  */
-export type MondeDuMeneur = Pick<GameState, 'party'>;
+export type MondeDuMeneur = Pick<Jeu, 'party'>;
 
 /** MENEUR du monde, lu sur l'ÉTAT — signature de tous les lecteurs (`state`, `gameIso`, `ui`). */
 export function meneurDuMonde(monde: MondeDuMeneur): Combatant | undefined {
@@ -176,7 +176,7 @@ export const CAP_GROUPE = '__party';
  * encore été posée (avant toute entrée de scène). Les lecteurs du regard hors combat passent par ici
  * — vue subjective, pivot, pas relatif, jeton du groupe. PUR.
  */
-export function capDuGroupe(monde: Pick<GameState, 'facing'>): Dir8 | null {
+export function capDuGroupe(monde: Pick<Jeu, 'facing'>): Dir8 | null {
   return monde.facing[CAP_GROUPE] ?? null;
 }
 

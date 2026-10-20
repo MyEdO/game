@@ -17,7 +17,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { emettreIntentInvite, interceptGuestActions, restoreGuestActions, netSnapshot, initialNet } from './netFlow';
+import { emettreIntentInvite, interceptGuestActions, restoreGuestActions, netSnapshot } from './netFlow';
+import { initialNet } from '../noyau/etat';
 import { intentEluLocalement } from '../noyau/targetingModes';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';

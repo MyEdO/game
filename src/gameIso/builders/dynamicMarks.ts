@@ -21,7 +21,7 @@ import { inBattleId } from '../../noyau/monde/combatants';
 import { footprintN } from '../../noyau/monde/footprint';
 import { mountOf } from '../../noyau/mount';
 import type { Pt } from '../../noyau/monde/path';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { combatantTokenScale } from '../sizeScale';
 import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';
 import type { TokenEl } from './types';

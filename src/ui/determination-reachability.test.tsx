@@ -12,7 +12,8 @@
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { useGame, type BattleState } from '../state/store';
+import { useGame } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import { conditionLabel, findActionById } from '../data';
 import { hasCondition } from '../engine/conditions';
 import { actionGate } from '../noyau/actionRegistry';

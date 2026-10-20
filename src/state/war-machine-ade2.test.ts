@@ -6,7 +6,8 @@ import { itemFromTrappingById, mannedPosteWeapon } from '../engine/items';
 import { useGame } from './store';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
-import type { BattleState, GameState } from './store';
+import type { GameState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 /**
  * Machines de guerre ADE II (ch.08 folio 88, l.243/251/253) :

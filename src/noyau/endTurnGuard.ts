@@ -1,5 +1,5 @@
 import type { Combatant } from '../engine/types';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import type { PendingCleave } from './pendings';
 import { canTakeAction } from '../engine/conditions';
 

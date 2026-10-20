@@ -14,7 +14,8 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
-import { useGame, type BattleState } from '../state/store';
+import { useGame } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
 import { navalTraitsDe } from '../engine/navalTraits';
 import { shipStations } from '../data';

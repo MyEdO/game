@@ -52,7 +52,7 @@ import { chargeArmee } from './localIntent';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { chebyshev } from '../engine/grid';
 import {
   attackPlan, previewAttack, previewCast, firedAttackBlock, retenuParLaPeur, frenzyTarget, noteApproachMove, placingZoneOf, placedZoneValidAt, commitPlacedZone, overcastTargetCandidates, cleaveTargets, dualStrikeTargets, castZoneSpell, castSpell, spellSightOf, openAttackCascade, firedWeapon, armeDeLaGratuite, difficultyOf, activeCombatant, castTargetBlock, type AttackPreview,
@@ -612,7 +612,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   const coutPaye = avantagePaye || mouvementPaye ? { advantage: avantagePaye, movement: mouvementPaye } : undefined;
   // === Approche-puis-frappe : DEUX beats explicites ===
   let approachPath: { x: number; y: number }[] | null = null;
-  let pa: GameState['pendingAttack'];
+  let pa: Jeu['pendingAttack'];
   if (plan.kind === 'charge') {
     // Charge (LDB 15 l.35-37) : se ruer au contact (portée de Course) puis attaquer — manœuvre
     // PLEINE (consomme tout le Mouvement). Combat monté : empreinte/Course de la MONTURE.

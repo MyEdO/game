@@ -104,7 +104,7 @@ import { contractDisease, applyContraction, contractionDue, diseaseDefs } from '
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../engine/types';
 import type { PendingSteamSave, CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
-import type { CampaignVessel } from '../state/store';
+import type { CampaignVessel } from './etat';
 import { openPartyTest, openWorldTest, composeRollLabel, openSequence, freeCons, rollLine, rollStep, monoStep, tableStep, bandStep, buildBand, choiceStep, openChoice, pousseSi, type RollRequest, type Consequence, type FreeConsLine } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { registerCascadeApplier, registerCascadeSuccessRule, registerTableStepFamily, startCascade, runCascadeImmediate, pushStep, type TableStepDef } from './cascade';

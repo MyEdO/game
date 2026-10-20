@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { applyAttackResult, runEnemyAI } from '../noyau/combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { spawnEnemy } from '../noyau/monde/spawn';

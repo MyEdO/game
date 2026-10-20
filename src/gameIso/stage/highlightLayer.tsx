@@ -5,7 +5,8 @@
  * (`stage/VolumetricWorld` → `backends/webgl/highlightMeshes`).
  * Aucune projection ici : cette couche ne connaît ni caméra ni couleur.
  */
-import type { GameState, BattleState } from '../../state/store';
+import type { GameState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { PendingAttack, PendingCleave, PendingDualStrike, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
 import { crowdEligible, eligibleAttackTargetIds, displayedReach, computeRunReach } from '../../noyau/combatFlow';

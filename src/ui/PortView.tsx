@@ -9,7 +9,7 @@ import { shipHasNavalTrait, vesselNavalTraits } from '../engine/navalTraits';
 import { foulingEffects } from '../engine/seaNavigation';
 import { canAfford, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
-import type { CampaignVessel } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 import type { PendingShoreLeave, PendingManannPriest } from '../noyau/seaVoyageFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useGame } from '../state/store';
-import type { CampaignVessel } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 import { findVehicleById } from '../data';
 import { findCargoById, findManannFactor, cargoTotalEnc, cargoOverload, overloadMaxEnc } from '../engine/seaVoyage';

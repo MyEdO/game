@@ -241,8 +241,8 @@ la plomberie.
 ## 1. Le registre des flux — \`FLOW_VERBS\`
 
 \`FLOW_VERBS\` (\`${VERBS}\`) est la **SOURCE UNIQUE** du câblage : elle porte, par flux, son type et
-le sous-ensemble de verbes exposés. Le type \`RollFlowActionsMap\` en est DÉRIVÉ et \`GameState\`
-l'étend — ajouter ou retirer un verbe ici est **bidirectionnel** : l'oublier ailleurs casse \`tsc\`.
+le sous-ensemble de verbes exposés. Le type \`RollFlowActionsMap\` en est DÉRIVÉ et \`ActionsDuNoyau\`
+(\`src/noyau/actionsDuNoyau.ts\`) l'étend — ajouter ou retirer un verbe ici est **bidirectionnel** : l'oublier ailleurs casse \`tsc\`.
 \`FLOW_HANDLERS\` (\`${SPECS}\`) y associe le handler, avec exhaustivité garantie
 (${CLES_FLOWS.size} entrées dans \`FLOWS\`, ${CLES_HANDLERS.size} dans \`FLOW_HANDLERS\`).
 
@@ -266,7 +266,7 @@ ${SANS_MODALE.length ? `Flux sans entrée propre dans \`MODAL_DEFS\` : ${SANS_MO
 ## 2. La recette — 1 spec + 1 confirm
 
 1. **Type du pending** : \`Pending<X> extends PendingBase\` (\`${PARTAGES.find((p) => p.nom === 'makeRollFlow').site.split(':')[0]}\` porte
-   \`PendingBase\` et ses champs hérités). Déclarer le slot dans \`GameState\`.
+   \`PendingBase\` et ses champs hérités). Déclarer le slot dans \`EtatDeJeu\` (\`src/noyau/etat.ts\`).
 2. **Entrée dans \`FLOWS\`** (\`${SPECS}\`) : \`makeRollFlow({ key, rolled, actor, resolve, outcome, … })\`.
    **Réutiliser les fabriques partagées** (§3) plutôt que réécrire les branches à la main.
 3. **Entrée dans \`FLOW_VERBS\`** (\`${VERBS}\`) : type, verbes, et le porteur (\`jetOwner\`) ou

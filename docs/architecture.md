@@ -291,9 +291,10 @@ src/engine/                 Règles WFRP4, PUR + testé :
                                 partyCoverage/dominantAxes depuis `data/axes.json` (`derivation` en ids de
                                 skills/talents) — SOURCE UNIQUE du mini-radar, du rail de composition (#417)
                                 et des « rôles » de carte (`heroRoles`, `ui/CharCard.tsx`, réconcilié dessus)
-src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'import EN VALEUR de chaque
-                            module n'atteint que `engine`, `data` et les feuilles ; `state` ne s'y lit
-                            qu'en type (arête transitoire #2889, `COUCHES`). Modules : `plateforme.ts`
+src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'import de chaque module
+                            n'atteint que `engine`, `data` et les feuilles ; `state` lui est fermé, même
+                            pour un type (`COUCHES`). Modules : `etat.ts` (le type de l'état du jeu,
+                            `Jeu`, et ses valeurs initiales), `actionsDuNoyau.ts`, `plateforme.ts`
                             (services que l'hôte pose : appel différé et état de son jeton, persistance d'un héros), `triggeredEffects.ts`,
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
@@ -402,7 +403,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
-  store.ts                  store Zustand : GameState + vue (caméra/zoom) + campagne (scènes, dialogues,
+  store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions
+                            d'adaptateur (vue, caméra/zoom, fiche, coop, saves) + campagne (scènes, dialogues,
                             effets, temps/repos) + actions de combat — délègue aux modules (get,set) du
                             noyau, dont il importe pour leur effet les modules à inscription (#2817 D2).
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-

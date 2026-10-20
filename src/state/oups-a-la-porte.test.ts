@@ -21,7 +21,8 @@
  *  - ce que l'appelant fera APRÈS le coup ne se joue qu'APRÈS le dé.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { applyOups, applyAttackResult, applyBladeTrap, resolveAttack } from '../noyau/combatFlow';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { seedBattleRng } from '../noyau/battleRng';

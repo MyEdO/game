@@ -5,7 +5,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 
 /**

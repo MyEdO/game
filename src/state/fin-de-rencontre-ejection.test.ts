@@ -17,7 +17,7 @@ import { finalizeBattle } from '../noyau/combatFlow';
 import { siegesRequis, quorumAtteint } from '../noyau/netOwnership';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
 
 function hero(id: string, label: string): Combatant {

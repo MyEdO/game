@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from '../noyau/monde/scene';
@@ -284,7 +285,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/scenes/test-scenarios/voyage.ts | aldric.xp = 300;': 'fixture',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - cost;': 'moteur',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - v.cost;': 'moteur',
-    'src/noyau/combatEffects.ts | env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));': 'gain',
+    'src/noyau/combatEffects.ts | env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));': 'gain',
     'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) + amount;': 'gain',
     "src/noyau/partyFlow.ts | if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: clone.label, xp })); }": 'gain',
     'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) - cost;': 'depense',

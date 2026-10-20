@@ -3,7 +3,7 @@
  * Perturbante, dégagement des plus petits, retrait d'entités, traversée de zones. La géométrie
  * qu'ils lisent vit dans `combatGeometry.ts`.
  */
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant, EffectSource } from '../engine/types';
 import { Scene, isWalkable } from './monde/scene';

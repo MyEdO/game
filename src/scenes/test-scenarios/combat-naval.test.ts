@@ -10,7 +10,7 @@ import { availableAttacks } from '../../noyau/combatManeuvers';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { PREGEN } from '../../data/pregens';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 import { presetPnjById } from '../../state/campaignData';
 

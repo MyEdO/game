@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { applyEffects, nePeutPasDifferer } from '../noyau/combatEffects';

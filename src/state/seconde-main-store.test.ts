@@ -3,7 +3,8 @@
  * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; LDB 41 l.170 ; MDG 13 l.656, l.724 ; AA 10 l.114 ; #1595 c.6229354257, c.6229550544.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { emptyScene } from '../noyau/monde/scene';

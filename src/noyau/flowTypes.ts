@@ -1,16 +1,15 @@
 /**
- * Types canoniques de la plomberie des flux du store : tout module `state/*` qui reçoit le
- * couple (get, set) de Zustand les importe d'ici — fini les alias `Get`/`Set` redéclarés par
- * fichier (et les `set: any`). `Set` accepte l'objet partiel ET la forme à updater fonctionnel,
- * comme le `set` de Zustand. Import de TYPE seulement (pas de cycle d'exécution avec le store).
+ * Types canoniques de la plomberie des flux : tout module qui reçoit le couple (get, set) de son
+ * propriétaire d'état les importe d'ici, typés sur `Jeu` (#2817 D5) ; l'adaptateur les paramètre sur son état
+ * entier. `Set` accepte l'objet partiel ET la forme à updater fonctionnel, comme le `set` de Zustand.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 
-export type Get = () => GameState;
+export type Get<E = Jeu> = () => E;
 /** Le patch d'un flux : `journal` n'y figure pas ; ses écrivains sont l'action `log` du store, `startScene` et
- *  le remplacement d'état (`RemplacerLEtat`) (#319, #2724). */
-export type PatchDeFlux = Partial<Omit<GameState, 'journal'>> & { journal?: never };
-export type Set = (partial: PatchDeFlux | ((s: GameState) => PatchDeFlux)) => void;
-/** Le `set` brut du store, réservé au REMPLACEMENT d'état (sauvegarde chargée, snapshot de l'hôte), qui
- *  porte `journal` avec le reste (#2724). */
-export type RemplacerLEtat = (etat: Partial<GameState>) => void;
+ *  le remplacement d'état (`RemplacerLEtat`, `src/state/store.ts`) (#319, #2724). */
+export type PatchDeFlux<E = Jeu> = Partial<Omit<E, 'journal'>> & { journal?: never };
+/** Un patch ou un updater qui écrit une clé que l'état `E` ne porte pas devient `never`, littéral ou non :
+ *  le compilateur refuse alors l'appel (#2817 D5). */
+type DansLEtat<P, E> = [Exclude<keyof P, keyof PatchDeFlux<E>>] extends [never] ? unknown : never;
+export type Set<E = Jeu> = <P extends PatchDeFlux<E>>(partial: (P | ((s: E) => P)) & NoInfer<DansLEtat<P, E>>) => void;

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { avanceEtapeCascade } from './cascade.testkit';
 import {
   maybeOpenDefense, openSurfacedDefense, openAttackCascade, startDisengage, openCastCascade,

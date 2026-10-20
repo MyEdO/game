@@ -8,7 +8,7 @@
  * PRÉFIXE du déplacement (`combatFlow.ts:mobileDuTour`, celui de `resolveMovement`), sa case `pos`.
  * Le coût propre à chaque geste (Mouvement, Action du Test) reste au geste.
  */
-import type { GameState, BattleState } from '../state/store';
+import type { Jeu, BattleState } from './etat';
 import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
 import type { MsgKey } from '../i18n';
@@ -58,7 +58,7 @@ export const REFUS_FRANCHISSEMENT: Readonly<Record<RefusFranchissement, MsgKey>>
 
 /** Exploration : le meneur DEBOUT, sur `partyPos`, hors dialogue — porteur de tout geste d'exploration
  *  du groupe (gestes d'arête, `fouillerLaPiece`). */
-export function porteurDExploration(s: GameState): VerdictGeste {
+export function porteurDExploration(s: Jeu): VerdictGeste {
   if (s.dialogue) return refus('geste.refus.dialogue');
   const meneur = meneurDeboutDuMonde(s);
   if (!meneur) return refus('geste.refus.personne');
@@ -66,7 +66,7 @@ export function porteurDExploration(s: GameState): VerdictGeste {
 }
 
 /** Combat : le préfixe de tout déplacement (`mobileDuTour`), ses refus nommés. */
-function porteurDeCombat(s: GameState, battle: BattleState): VerdictGeste {
+function porteurDeCombat(s: Jeu, battle: BattleState): VerdictGeste {
   const tour = mobileDuTour(s, battle);
   if (!('refus' in tour)) return tour;
   if (!tour.mobile) return refus(REFUS_DU_TOUR[tour.refus]);
@@ -78,7 +78,7 @@ function porteurDeCombat(s: GameState, battle: BattleState): VerdictGeste {
   return refus(REFUS_DU_TOUR[tour.refus], vars);
 }
 
-export function gesteDArete(s: GameState): GesteOuvert | RefusGeste {
+export function gesteDArete(s: Jeu): GesteOuvert | RefusGeste {
   const { scene } = s;
   if (!scene) return refus('geste.refus.aucuneScene');
   const battle = s.mode === 'battle' ? s.battle : null;
@@ -91,7 +91,7 @@ export function gesteDArete(s: GameState): GesteOuvert | RefusGeste {
 }
 
 /** Le geste part-il de la case du mobile ? (#2190 : un `from` falsifié téléportait l'actif.) */
-export function gesteDepuis(s: GameState, from: Pt): GesteOuvert | RefusGeste {
+export function gesteDepuis(s: Jeu, from: Pt): GesteOuvert | RefusGeste {
   const v = gesteDArete(s);
   if ('refus' in v) return v;
   const c = v.case;
@@ -104,7 +104,7 @@ export function gesteDepuis(s: GameState, from: Pt): GesteOuvert | RefusGeste {
 /** Le Test de chute tenté consomme l'Action (LDB 13 l.86-88) : refusé quand elle est déjà prise.
  *  `tombantId` = la rangée qui déclare. Lu par « Tenter » (`fallChoose`) et par son option dans la
  *  modale (`ui/FallModal.tsx`). */
-export function refusDuTestDeChute(s: GameState, tombantId: string): RefusGeste | null {
+export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
   if (!b?.acted) return null;
   return refus('fall.actionDejaPrise', { name: garanti(inBattleId(b, tombantId), tombantId, 'sauteur').label });
@@ -113,7 +113,7 @@ export function refusDuTestDeChute(s: GameState, tombantId: string): RefusGeste 
 /** Se suspendre d'abord coûte, en combat, le Mouvement de `mouvementDeLaChute` : refusé quand le
  *  Mouvement restant ne le couvre pas. Lu par la déclaration (`fallChoose`) et par son option dans la
  *  modale (`ui/FallModal.tsx`). */
-export function refusDeLaSuspension(s: GameState, tombantId: string): RefusGeste | null {
+export function refusDeLaSuspension(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
   if (!b || !s.pendingFall || !s.scene) return null;
   const c = garanti(inBattleId(b, tombantId), tombantId, 'sauteur');
@@ -122,6 +122,6 @@ export function refusDeLaSuspension(s: GameState, tombantId: string): RefusGeste
 }
 
 /** Le mobile peut-il accomplir un geste déplaçant MAINTENANT ? (sélecteur de store, valeur primitive). */
-export function gestesDeplacantsOuverts(s: GameState): boolean {
+export function gestesDeplacantsOuverts(s: Jeu): boolean {
   return !('refus' in gesteDArete(s));
 }

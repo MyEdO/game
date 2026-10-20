@@ -12,7 +12,7 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';

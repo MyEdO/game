@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { availableAttacks } from '../noyau/combatManeuvers';
 import { firedAttackBlock } from '../noyau/combatFlow';
 import type { Combatant, ShipPoste } from '../engine/types';
-import type { BattleState, GameState } from './store';
+import type { GameState } from './store';
+import type { BattleState } from '../noyau/etat';
 
 /**
  * Étape 3 « Servir un poste » (MDG 12-13). Un chef de pièce (`mannedPoste`) voit une attaque DÉDIÉE

@@ -3,7 +3,8 @@
  * LDB 13 l.183 ; LDB 62 l.248 ; LDB 85 l.98 ; LDB 85 l.134 ; LDB 14 l.159.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { applyAttackResult } from '../noyau/combatFlow';
 import { draineCascade } from './cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';

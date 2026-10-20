@@ -21,7 +21,8 @@
 import { tableTotale } from '../../lib/tableTotale';
 import { t as tr } from '../../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from '../store';
+import { useGame } from '../store';
+import type { BattleState } from '../../noyau/etat';
 import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';

@@ -21,7 +21,8 @@ import { ActivityPane, idBlocage } from './ActivityPane';
 import { MedicModal } from './MedicModal';
 import { MerchantPanelView } from './MerchantPanel';
 import { ShoreLeaveBody } from './ShoreLeaveModal';
-import { useGame, type CampaignVessel } from '../state/store';
+import { useGame } from '../state/store';
+import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant, ItemInstance } from '../engine/types';
 
 /** Balise ouvrante d'un `<button>` dont le contenu (ou l'`aria-label`) contient `texte`. */

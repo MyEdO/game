@@ -39,7 +39,7 @@ import { cameraTargeting, VW, VH } from './stage/useStageCamera';
 import { useStagePointer } from './stage/useStagePointer';
 import { useHoverTargeting } from './stage/useHoverTargeting';
 import type { Scene } from '../noyau/monde/scene';
-import type { BattleState } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import type { Pt } from '../noyau/monde/path';
 import type { AreteProjetee } from './stage/aretesProjetees';
 

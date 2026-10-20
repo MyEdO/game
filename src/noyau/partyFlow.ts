@@ -50,7 +50,7 @@ import { ensureBourse, bourseOf } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
 
 import type { Get, Set } from './flowTypes';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
@@ -237,7 +237,7 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   const movedUids = new Set([uid, ...contents.map((i) => i.uid)]);
 
   set((s) => {
-    let patch: Partial<Pick<GameState, 'party' | 'battle' | 'possessions'>> = {};
+    let patch: Partial<Pick<Jeu, 'party' | 'battle' | 'possessions'>> = {};
     if (from.kind === 'hero' || to.kind === 'hero') {
       const heros = [...(from.kind === 'hero' ? [fromCarrierId] : []), ...(to.kind === 'hero' ? [toCarrierId] : [])];
       patch = ecrireActeur(s, heros, (h) => {
@@ -339,7 +339,7 @@ export function grantXp(get: Get, set: Set, heroId: string, amount: number): voi
 }
 
 /** Refus d'une dépense de PX : la raison affichée, ou `null`. LDB 05 l.907. */
-export function refusDepensePx(s: Pick<GameState, 'battle'>): string | null {
+export function refusDepensePx(s: Pick<Jeu, 'battle'>): string | null {
   return s.battle ? t('pf.xpInCombat') : null;
 }
 
@@ -669,7 +669,7 @@ function compositionRefusee(get: Get): boolean {
 }
 
 /** Raison du refus de composition (`compositionRefusee`), ou `null` — lue par l'écran d'équipe. */
-export function refusComposition(s: Pick<GameState, 'battle'>): string | null {
+export function refusComposition(s: Pick<Jeu, 'battle'>): string | null {
   return s.battle ? t('pf.partyInCombat') : null;
 }
 

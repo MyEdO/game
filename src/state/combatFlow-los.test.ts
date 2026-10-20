@@ -6,7 +6,7 @@ import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { ModLine, RollBreakdown } from '../engine/combat';
 import type { GameState } from './store';
-import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 
 const shooter = (over: Partial<Combatant> = {}): Combatant =>
   ({

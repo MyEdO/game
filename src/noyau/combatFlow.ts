@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import type { PlayerText } from '../i18n/playerText';
-import type { GameState, BattleState, ShootingStanceKey } from '../state/store';
+import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, RevealEntry } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
@@ -1014,7 +1014,7 @@ export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
  *  → `resolveMelee({ dodgeMods })`), de la défense réactive et du pré-jet (`previewDefense`) : météo de
  *  la scène (neige épaisse, `LDB 14 l.82`) + défenseur monté (`LDB 14 l.184`), chacune sa ligne. Un
  *  calcul pour tous les lecteurs — sinon la rangée adverse annonce une Difficulté que le jet contredit (#1153 L4). */
-export function defenseDodgeMods(s: Pick<GameState, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
+export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: Combatant): ModLine[] {
   const sc = s.scene ? sceneCombatModifiers(s.scene, s.gameTime) : null;
   const weather: ModLine[] = sc?.dodgeMod ? [{ label: sc.label, value: sc.dodgeMod, famille: 'circonstance' }] : [];
   return [...weather, ...mountedDodgeMods(defender)];
@@ -1064,7 +1064,7 @@ export function previewCast(
     /** CONTEXTE du jet (état + cible visée) : l'aperçu annonce alors la CIBLE RÉELLE — protection de
      *  la victime, attribut et environnement de Domaine (`castContextMods`) compris. Absent (aucune
      *  cible désignée) : aperçu de la seule valeur du lanceur. */
-    ctx?: { s: GameState; target: Combatant; skipWard?: boolean };
+    ctx?: { s: Jeu; target: Combatant; skipWard?: boolean };
   },
 ): { label: string; base: number; target: number; mods: ModLine[] } {
   const ci = castInfo(spell);
@@ -1193,7 +1193,7 @@ export type RefusDuTour = Extract<MovementBlockReason, 'combat-over' | 'targetin
  * quitter sa case maintenant ? Partagé par le clic-sol (`resolveMovement`) et les gestes d'arête
  * (`noyau/gesteDArete.ts`). Engagé : LDB 15 l.43-49. `mobile` accompagne le refus dès qu'il existe.
  */
-export function mobileDuTour(s: GameState, battle: BattleState):
+export function mobileDuTour(s: Jeu, battle: BattleState):
   | { mobile: Combatant; case: Pt }
   | { refus: RefusDuTour; mobile?: Combatant } {
   if (battle.over) return { refus: 'combat-over' };
@@ -2051,7 +2051,7 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
       .filter((c) => c.id !== target.id && c.pos?.x === tl.x && c.pos?.y === tl.y && (c.pos?.z ?? 0) === tl.z)
       .map((c) => ({ id: c.id, to, metres, sansSurface }));
   });
-  set((s: GameState) => {
+  set((s: Jeu) => {
     const log = [...(s.battle?.log ?? []), ev('death', structureCollapseLog(target.label), target.id)];
     const combatants = (s.battle?.combatants.filter((c) => c.id !== target.id) ?? []).map((c) => {
       const tb = tombants.find((x) => x.id === c.id);
@@ -2735,7 +2735,7 @@ function appliquerLaTouche(
       refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
     }
     if (attacker.pos && target.pos) {
-      set((s: GameState) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
+      set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
     }
     bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind: 'melee', defense: 'none', weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
     const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
@@ -2915,7 +2915,7 @@ function appliquerLaTouche(
   const defense = weapon.type === 'ranged' ? 'none' : bestDefenseMode(target);
   // Orientation : l'attaquant se tourne vers la cible, le défenseur vers l'attaquant (frappe offensive).
   if (attacker.pos && target.pos) {
-    set((s: GameState) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
+    set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
   }
   // `weapon`/`parryWeapon` voyagent dans l'événement : le rig joue le geste de l'arme EMPLOYÉE
   // (2e frappe de dague gauche, tentacule…) et la parade de l'arme QUI A PARÉ (main-gauche,
@@ -3596,7 +3596,7 @@ function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, attacker
  * avant que la suivante soit déclarée. Une file qui le lit s'ARRÊTE sans rien consommer : sa frappe
  * est reprise à la fermeture.
  */
-export function defenseEnCours(s: Pick<GameState, 'pendingDefense'>): boolean {
+export function defenseEnCours(s: Pick<Jeu, 'pendingDefense'>): boolean {
   return s.pendingDefense != null;
 }
 
@@ -3722,7 +3722,7 @@ export function maybeOpenDefense(
  * L'ARME employée se résout par `attackWeaponOf` (#1026) chez TOUS les appelants : une arme lue
  * autrement ferait diverger ce prédicat de la fenêtre réellement ouverte.
  */
-export function surfacedDefensePending(s: GameState, attacker: Combatant, target: Combatant, weapon: Weapon, pa: PendingAttack): boolean {
+export function surfacedDefensePending(s: Jeu, attacker: Combatant, target: Combatant, weapon: Weapon, pa: PendingAttack): boolean {
   if (pa.defended || !pa.result?.attackerDetail || pa.result.defenderDetail) return false;
   if (pa.siege) return false;
   if (s.battle && victimeDuCoup(s.battle, target, pa).id !== target.id) return false;
@@ -5102,14 +5102,14 @@ export function counterspellChanted(pcs: PendingCounterspell | null | undefined)
 }
 
 /** Combattants d'une fenêtre de Contre-sort (rangées → acteurs vivants de l'état). PUR. */
-export function counterspellActors(s: GameState, pcs: PendingCounterspell | null | undefined): Combatant[] {
+export function counterspellActors(s: Jeu, pcs: PendingCounterspell | null | undefined): Combatant[] {
   return (pcs?.participants ?? []).map((p) => actorIn(s, p.id)).filter((c): c is Combatant => !!c);
 }
 
 /** Cette rangée peut-elle S'UNIR au Test Soutenu ? — au moins un AUTRE candidat de la fenêtre partage
  *  son Domaine sans lui être hostile (`soutenuPartners`, `LDB 46 l.162`). Prédicat UNIQUE, lu par
  *  l'affordance de la modale ET par la garde du geste (`counterspellDeclare`). */
-export function counterspellJoinable(s: GameState, pcs: PendingCounterspell | null | undefined, id: string): boolean {
+export function counterspellJoinable(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): boolean {
   const actors = counterspellActors(s, pcs);
   const me = actors.find((c) => c.id === id);
   return !!me && soutenuPartners(me, actors).length > 0;
@@ -5129,7 +5129,7 @@ export function counterspellDeclarePhase(pcs: PendingCounterspell | null | undef
  *  (`soutenuBonusOf`). `null` tant qu'aucune rangée n'est unie. Re-dérivé à chaque lecture — une
  *  déclaration change le meneur tant que la phase de déclaration est ouverte. */
 export function counterspellSoutenu(
-  s: GameState,
+  s: Jeu,
   pcs: PendingCounterspell | null | undefined,
 ): { leader: Combatant; bonus: number; unis: Combatant[] } | null {
   const ids = new Set((pcs?.participants ?? []).filter((p) => p.declared === 'soutenu').map((p) => p.id));
@@ -5142,7 +5142,7 @@ export function counterspellSoutenu(
 /** Soutien qui s'ajoute à la VALEUR du Test de CETTE rangée : le bonus du groupe pour son meneur, 0
  *  pour toute autre rangée. SOURCE UNIQUE — lue par le jet (`FLOWS.counterspell`) et par le
  *  breakdown de la modale, jamais recalculée. */
-export function counterspellSoutienFor(s: GameState, pcs: PendingCounterspell | null | undefined, id: string): number {
+export function counterspellSoutienFor(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): number {
   const grp = counterspellSoutenu(s, pcs);
   return grp && grp.leader.id === id ? grp.bonus : 0;
 }
@@ -5150,7 +5150,7 @@ export function counterspellSoutienFor(s: GameState, pcs: PendingCounterspell | 
 /** MÊME Soutien que `counterspellSoutienFor`, en DÉTAIL affichable : les contre-lanceurs unis QUI
  *  soutiennent ce meneur (`ids`), pour que la ligne de mod porte sa provenance. `undefined` hors
  *  meneur ou sans Soutien. */
-export function counterspellSupportFor(s: GameState, pcs: PendingCounterspell | null | undefined, id: string): SupportDetail | undefined {
+export function counterspellSupportFor(s: Jeu, pcs: PendingCounterspell | null | undefined, id: string): SupportDetail | undefined {
   const grp = counterspellSoutenu(s, pcs);
   if (!grp || grp.leader.id !== id || grp.bonus <= 0) return undefined;
   return { count: grp.bonus / 10, bonus: grp.bonus, ids: grp.unis.filter((c) => c.id !== grp.leader.id).map((c) => c.id) };
@@ -5159,7 +5159,7 @@ export function counterspellSupportFor(s: GameState, pcs: PendingCounterspell | 
 /** Cette rangée LANCE-t-elle le dé de la fenêtre ? — déclarée `solo`, ou MENEUR du groupe uni (le
  *  Soutenu n'a qu'un jet, `LDB 12 l.189`). `pass` ne lance jamais. Prédicat UNIQUE, lu par la garde
  *  du jet (`counterspellEngage`) ET par l'affordance de la rangée (`CastModal`). */
-export function counterspellRolls(s: GameState, pcs: PendingCounterspell | null | undefined, part: CounterParticipant): boolean {
+export function counterspellRolls(s: Jeu, pcs: PendingCounterspell | null | undefined, part: CounterParticipant): boolean {
   if (part.declared === 'solo') return true;
   if (part.declared !== 'soutenu') return false;
   return counterspellSoutenu(s, pcs)?.leader.id === part.id;
@@ -5445,7 +5445,7 @@ export function openCastCascade(get: Get, set: SetFn, caster: Combatant): boolea
  *  une source neuve fait nommer par le compilateur chaque site à compléter. Souffle et
  *  Vomissement n'en sont pas : LDB 85, `applyAreaAttack`. */
 export type PlacingZone = { source: ZoneEnPose['source']; label: string; casterId: string; radius: number; rangeTiles: number | null };
-export function placingZoneOf(s: Pick<GameState, 'pendingCast' | 'pendingSiegeAim' | 'battle'>): PlacingZone | null {
+export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | 'battle'>): PlacingZone | null {
   const zp = zoneEnPose(s);
   switch (zp?.source) {
     case 'cast': {
@@ -6272,7 +6272,7 @@ export function applyCast(
       : undefined;
     // Sort offensif : lanceur vers la cible, cible vers le lanceur.
     if (caster.pos && target.pos && caster.id !== target.id) {
-      set((s: GameState) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!), [target.id]: facingToward(target.pos!, caster.pos!) } }));
+      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!), [target.id]: facingToward(target.pos!, caster.pos!) } }));
     }
     const toucheInitiale = toucheDe(target, res, rebond);
     const initiale = appliquerTouchePourCible(get, set, target, toucheInitiale);
@@ -6429,7 +6429,7 @@ export function applyCast(
     // Soutien : le lanceur se tourne vers la cible ; pas de réaction de la cible (ce n'est pas une frappe).
     // Hors combat (pas de file/token tactique), on n'anime pas le geste iso.
     if (battle && caster.pos && target.pos && caster.id !== target.id) {
-      set((s: GameState) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!) } }));
+      set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!) } }));
     }
     if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', spell: spell.label, defense: 'none' });
   }
@@ -6597,7 +6597,7 @@ function scheduleRespawnFromOp(
     caster: { id: actor.id, label: actor.label, kind: actor.kind, pos: { ...actor.pos } },
     summon: { porteur, count, allyOfCaster: op.allyOfCaster },
   };
-  set((s: GameState) => ({ scheduledEffects: [...s.scheduledEffects, { executeAt: s.gameTime + days * MINUTES_PER_DAY, cancelFlag: op.cancelFlag, respawn }] }));
+  set((s: Jeu) => ({ scheduledEffects: [...s.scheduledEffects, { executeAt: s.gameTime + days * MINUTES_PER_DAY, cancelFlag: op.cancelFlag, respawn }] }));
   return [tr('cf.sourceRebuilds', { name: actor.label, days, s: days > 1 ? 's' : '' })];
 }
 
@@ -6611,7 +6611,7 @@ function domainBreathType(caster: Combatant): string | undefined {
 
 /** Bonus d'incantation CONDITIONNEL du Domaine (Aqshy l.157 : +`bonus` par État `perCondition` situé à
  *  `radiusStat` m du lanceur) — PARAMÈTRE en données (`DomainData.castBonus`) ; géométrie résolue ici. */
-export function domainCastBonus(s: GameState, caster: Combatant, spell: { domainId?: string | null }): number {
+export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: string | null }): number {
   const cb = findDomainById(spell.domainId)?.castBonus;
   if (!cb || !caster.pos) return 0;
   const radius = Math.max(1, Math.ceil(bonus(effectiveChar(caster, cb.radiusStat)) / 2));
@@ -6643,7 +6643,7 @@ export function castNearCorruption(get: Get): boolean {
  *  Prières passent par Prière, pas Langue). Une SEULE ligne même sous plusieurs auras : la plus forte
  *  (plus grand écart à 0), à égalité la première dans l'ordre des combattants puis de leurs effets.
  *  Hors combat (pas de géométrie), l'aura ne s'applique pas. */
-export function castWardLine(s: GameState, target: Combatant, spell: SpellLike): ModLine | null {
+export function castWardLine(s: Jeu, target: Combatant, spell: SpellLike): ModLine | null {
   if (castInfoIsPrayer(spell)) return null;
   if (!target.pos) return null;
   let best: ModLine | null = null;
@@ -6667,7 +6667,7 @@ export function castWardLine(s: GameState, target: Combatant, spell: SpellLike):
  * `skipWard` : Zone non encore posée — aucune cible désignée, donc pas de protection individuelle.
  */
 export function castContextMods(
-  s: GameState, caster: Combatant, target: Combatant, spell: SpellLike & { domainId?: string | null },
+  s: Jeu, caster: Combatant, target: Combatant, spell: SpellLike & { domainId?: string | null },
   opts?: { skipWard?: boolean },
 ): { mods: ModLine[]; total: number; ward: number; domain: number; env: number } {
   const wardLine = opts?.skipWard ? null : castWardLine(s, target, spell);

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import { nomDuSiege } from '../../state/netFlow';
-import { useGame, type BattleState, type ShootingStanceKey } from '../../state/store';
+import { useGame } from '../../state/store';
+import type { BattleState, ShootingStanceKey } from '../../noyau/etat';
 import { movementRemaining } from '../../noyau/mount';
 import type { Combatant, Weapon, WeaponLoadout } from '../../engine/types';
 import { hasMeaningfulOption } from '../../noyau/turnEconomy';

@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { touchActors, combatantClickActs } from './combatOrParty';
 import { actorIn } from './monde/combatants';
 import { useGame } from '../state/store';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';
 
 const c = (id: string): Combatant => ({ id, name: id } as unknown as Combatant);
-const state = (over: Partial<GameState>): GameState => ({ party: [], battle: null, ...over } as unknown as GameState);
+const state = (over: Partial<Jeu>): Jeu => ({ party: [], battle: null, ...over } as unknown as Jeu);
 
 /** Arène d'herbe minimale (combatantClickActs dérive l'affordance d'attaque → besoin d'une scène). */
 const arena = () => {

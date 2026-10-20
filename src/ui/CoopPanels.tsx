@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
-import type { NetState } from '../state/netFlow';
+import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';
 import { MenuToggle } from './MenuCard';
 import { Icon } from './Icon';

@@ -11,19 +11,19 @@
  * `detenteurDuCiblage` : la possession (`targetingHolder`) et la tête de l'aiguilleur en sont deux
  * projections, et un genre de détenteur non projeté casse la compilation.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { HorsModalCoveredKey } from './modalArbiter';
 import { sansCorps } from './slotsDeJet';
 
-type PendingCastEnCours = NonNullable<GameState['pendingCast']>;
+type PendingCastEnCours = NonNullable<Jeu['pendingCast']>;
 
 /** La zone EN POSE — le gabarit qui suit le curseur, et la fenêtre qui l'a ouverte. Choix de source
  *  seul : libellé, ancre et portée se projettent dans `combatFlow.placingZoneOf`. */
 export type ZoneEnPose =
   | { source: 'cast'; cast: PendingCastEnCours; zone: NonNullable<PendingCastEnCours['zone']> }
-  | { source: 'siege'; aim: NonNullable<GameState['pendingSiegeAim']> };
+  | { source: 'siege'; aim: NonNullable<Jeu['pendingSiegeAim']> };
 
-export function zoneEnPose(s: Pick<GameState, 'pendingCast' | 'pendingSiegeAim'>): ZoneEnPose | null {
+export function zoneEnPose(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim'>): ZoneEnPose | null {
   const pc = s.pendingCast;
   if (pc?.zone?.placing && !pc.zone.center) return { source: 'cast', cast: pc, zone: pc.zone };
   if (s.pendingSiegeAim) return { source: 'siege', aim: s.pendingSiegeAim };
@@ -38,7 +38,7 @@ export type DetenteurDuCiblage =
   | { genre: 'surincantation' }
   | { genre: 'zone'; zone: ZoneEnPose };
 
-type EtatDuCiblage = Pick<GameState, 'pendingCleave' | 'pendingDualStrike' | 'pendingAttack' | 'pendingCast' | 'pendingSiegeAim' | 'pendingCascade'>;
+type EtatDuCiblage = Pick<Jeu, 'pendingCleave' | 'pendingDualStrike' | 'pendingAttack' | 'pendingCast' | 'pendingSiegeAim' | 'pendingCascade'>;
 
 export function detenteurDuCiblage(s: EtatDuCiblage): DetenteurDuCiblage | null {
   if (s.pendingCleave && !s.pendingAttack && coupFerme(s)) return { genre: 'pendingCleave' };
@@ -85,7 +85,7 @@ export function targetingHolder(s: EtatDuCiblage): TargetingHolder | undefined {
  *  confirmation : `sansCorps`) et aucune étape après elle n'attend sa validation : une fenêtre qui
  *  suspend le coup (défense surfacée, Déviation, sauvegarde) le garde ouvert jusqu'à ce qu'elle soit
  *  jouée. LDB 14 l.9, LDB 85 l.362. */
-export function coupFerme(s: Partial<GameState>): boolean {
+export function coupFerme(s: Partial<Jeu>): boolean {
   const seq = s.pendingCascade;
   if (!seq || seq.purpose !== 'combat') return true;
   const cur = seq.participants[seq.cursor];
@@ -101,6 +101,6 @@ export type MapTargetingPending = (typeof MAP_TARGETING_PENDINGS)[number];
 
 /** Un ciblage CARTE est-il en cours ? Verdict UNIQUE des consommateurs de la scène : tant qu'il est
  *  vrai on DÉSIGNE une cible — ni piste de déplacement, ni curseur libre par-dessus. */
-export function mapTargetingActive(s: Pick<GameState, MapTargetingPending>): boolean {
+export function mapTargetingActive(s: Pick<Jeu, MapTargetingPending>): boolean {
   return MAP_TARGETING_PENDINGS.some((k) => !!s[k]);
 }

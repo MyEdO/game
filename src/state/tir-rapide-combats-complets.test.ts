@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
-import { useGame, initCombatAuto, type BattleState } from './store';
+import { useGame, initCombatAuto } from './store';
+import type { BattleState } from '../noyau/etat';
 import { initialFields } from '../noyau/stateFields';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';

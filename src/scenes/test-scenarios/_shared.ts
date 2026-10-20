@@ -61,7 +61,7 @@ export interface ScenarioConstruit {
   massBattle?: import('../../engine/massBattle').MassBattleSpec;
   /** Navire de campagne (MDG 13-15) posé au lancement, APRÈS le reset de scène (comme `money`) — pour
    *  un scénario de voyage/combat maritime (appareillage sur `state.vessel`). */
-  vessel?: import('../../state/store').CampaignVessel;
+  vessel?: import('../../noyau/etat').CampaignVessel;
 }
 
 /** Un scénario de test = sa FICHE (valeurs qui ne lisent aucun dataset : menu, doc générée, lancement)

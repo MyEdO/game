@@ -14,24 +14,24 @@
  * AJOUTER UNE MODALE = UNE entrée ici (+ son composant dans `ui/ActiveModal.COMPONENT`).
  * `pickActiveModalKey` et `modalOwnerOf` sont DÉRIVÉS du registre — rien d'autre à toucher.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { WORLD_STEP_OWNER } from './pendings';
 import type { PendingKey } from './stateFields';
 import { sansCorps } from './slotsDeJet';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
-export type ArbiterState = Partial<GameState>;
+export type ArbiterState = Partial<Jeu>;
 
 /**
  * Politique d'auto-résolution d'une modale (Cadence Rapide/Auto). Les noms d'actions de `drive` sont
- * des résolveurs RÉELS du store (typés `keyof GameState`, vérifiés par `modalAuto.valid.test.ts`) —
+ * des résolveurs RÉELS du store (typés `keyof Jeu`, vérifiés par `modalAuto.valid.test.ts`) —
  * jamais une dérivation (le mapping clé→action n'est PAS 1:1 : `stateRecovery`→`recover*`,
  * `corruption`→`resolveCorruption`…). Les jets de COMBAT (attaque/défense/cast/…) sont des étapes de la
  * `cascade` (`partial`), pilotées via `JET_AUTO` dans `combatAuto`.
  */
 export type AutoPolicy =
-  | { mode: 'self'; drive: readonly (keyof GameState)[] }                  // jet propre : enchaîner roll → confirm
-  | { mode: 'choice'; autoDrive?: readonly (keyof GameState)[] }           // vrai choix : Rapide LAISSE (joueur) ;
+  | { mode: 'self'; drive: readonly (keyof Jeu)[] }                  // jet propre : enchaîner roll → confirm
+  | { mode: 'choice'; autoDrive?: readonly (keyof Jeu)[] }           // vrai choix : Rapide LAISSE (joueur) ;
                                                                             // Auto-combat tranche — `autoDrive` = actions à
                                                                             // enchaîner si l'IA doit le résoudre (ex. cast)
   | { mode: 'partial' }                                                    // cascade / révélation : pilote dédié (combatAuto)
@@ -356,7 +356,7 @@ type ModalCoveredKey = (typeof MODAL_DEFS)[number]['covers'][number];
 export type HorsModalCoveredKey = (typeof HORS_MODAL)[number]['pendingKey'];
 
 /**
- * VERROU DE COMPILATION (#284) : tout `pending*` de `GameState` (`PendingKey`, dérivé — cf.
+ * VERROU DE COMPILATION (#284) : tout `pending*` de `Jeu` (`PendingKey`, dérivé — cf.
  * `stateFields.ts`) doit être couvert par `MODAL_DEFS.covers` OU `HORS_MODAL` — le TIERS n'existe
  * pas. Un `pending*` ajouté sans classer son owner coop casse tsc ICI : `_pendingOwnerCoverage`
  * n'accepte que `never` en 2ᵉ position ; toute clé manquante s'y affiche en litige (patron AutoPolicy).

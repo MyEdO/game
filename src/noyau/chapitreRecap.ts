@@ -11,7 +11,7 @@ import { evalCondition } from '../engine/flowCore';
 import type { RecapLine } from './recapLine';
 import type { ClotureBlock } from './monde/campaignNarratif';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { Objective } from '../state/store';
+import type { Objective } from './etat';
 import { condCtx } from './bourseFlow';
 import { visiblePlaces } from './worldMap';
 

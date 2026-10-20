@@ -13,7 +13,8 @@
  *  6. SOLO bit-à-bit, en combat ET hors combat : le joueur unique garde TOUTES ses dépenses.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { draineCascade } from './cascade.testkit';
 import { openAttackCascade } from '../noyau/combatFlow';
 import { gainCorruption } from '../noyau/corruptionFlow';

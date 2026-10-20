@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { occupied } from '../noyau/monde/combatGeometry';
 import { displaceSmaller } from '../noyau/combatPlacement';
 import { occupiesTile, footprintN } from '../noyau/monde/footprint';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import type { Scene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';

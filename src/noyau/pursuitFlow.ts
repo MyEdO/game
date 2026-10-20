@@ -51,7 +51,7 @@ import {
 import { SEQUENCE_BORNE, type SequenceRound, type SequenceState, type SequenceVerdict, type MancheClose } from './sequenceContract';
 import type { RNG } from '../engine/dice';
 import type { BatchParticipant, CascadeStep } from './pendings';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { traceLineOf } from '../engine/traceLine';
 import { t } from '../i18n';
 import { dataLabel } from '../data';
@@ -159,7 +159,7 @@ const drDit = (sl: number): PlayerText => t('pursuit.dr', { dr: drSigne(sl) });
 const distanceDite = (p: PursuitPayload): PlayerText => t('pursuit.titreDistance', { distance: p.distance, evasion: p.escapeAt });
 
 /** La poursuite EN COURS (charge utile de la séquence), ou `null` — lecture partagée avec l'UI. */
-export function pursuitOf(s: GameState): PursuitPayload | null {
+export function pursuitOf(s: Jeu): PursuitPayload | null {
   const seq = s.sequence as PursuitSequence | null;
   return seq && seq.def === PURSUIT_SEQUENCE ? seq.payload : null;
 }

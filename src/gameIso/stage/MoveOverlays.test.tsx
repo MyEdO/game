@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { diamondPath, type Dims } from '../../geometry/iso';
 import { ExplorePathPreview, TapPreview } from './MoveOverlays';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
 
 const dims: Dims = { w: 8, h: 8, rot: 0, view: 'iso' };

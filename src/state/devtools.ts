@@ -1,4 +1,5 @@
-import { useGame, SCREENS } from './store';
+import { useGame } from './store';
+import { SCREENS } from '../noyau/etat';
 import type { AreteUtilisable } from '../noyau/aretes';
 
 /** Ce que la SONDE DE PICKING du rendu rend (`gameIso/stage/pickProbe`) : le verdict que le picking
@@ -1025,7 +1026,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** Navigue vers un écran (menu/party/creator/editor/test/coop/campaign) — id invalide = `throw`
      *  IMMÉDIAT (liste des ids valides) plutôt qu'un routage silencieux vers un écran blanc (#211,
-     *  ex. 'game' n'existe pas : `SCREENS` est la source unique, `state/store.ts`). */
+     *  ex. 'game' n'existe pas : `SCREENS` est la source unique, `noyau/etat.ts`). */
     screen: (screen: string) => {
       if (!(SCREENS as readonly string[]).includes(screen)) {
         throw new Error(`__wfrp.screen : id invalide « ${screen} » — écrans valides : ${SCREENS.join(', ')}`);

@@ -10,7 +10,7 @@ import { useGame } from './store';
 import type { Combatant, ShipPoste, Weapon, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
-import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
+import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 
 /**
  * EMPLACEMENT DE SIÈGE AU SOL (AA / MDG 12) — une pièce d'artillerie d'équipe (`armes-de-siege`, qualité

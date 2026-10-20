@@ -1,4 +1,5 @@
-import { useGame, type BattleState } from '../state/store';
+import { useGame } from '../state/store';
+import type { BattleState } from '../noyau/etat';
 import { useOwns } from './ownership';
 import { findCrewTestTypeById, flowStakeRef } from '../data';
 import { rudeEpreuveMoraleDelta, crewTestSuccess } from '../engine/crewMorale';

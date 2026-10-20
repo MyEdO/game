@@ -20,7 +20,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { KEYBINDINGS } from '../state/clavier/keybindings';
-import { initialNet } from '../state/netFlow';
+import { initialNet } from '../noyau/etat';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { useGameKeyboard } from './clavier/useGameKeyboard';

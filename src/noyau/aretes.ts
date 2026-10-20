@@ -39,7 +39,7 @@ import { planFranchissement, type PlanFranchissement } from './fallMove';
 import { inBattleId } from './monde/combatants';
 import { portalsForParty, type RoomPortal } from './monde/roomPortals';
 import type { Pt } from './monde/path';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 
 /** Ce qu'une arête OFFRE. Identité STABLE (le libellé est de l'affichage). */
 export type CapaciteArete = 'structure' | 'chute' | 'fenetre' | 'escalade' | 'porte';

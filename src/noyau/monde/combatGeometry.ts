@@ -3,7 +3,7 @@
  * vision dans l'obscurité. Fonctions PURES de l'état lu (engine + path/footprint/zones/scene) ;
  * les gestes qui écrivent la bataille vivent dans `combatPlacement.ts`.
  */
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../etat';
 import type { Combatant } from '../../engine/types';
 import type { Dir8 } from './dir8';
 import { Scene, isWalkable } from './scene';

@@ -17,7 +17,7 @@ import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 
 /** Harnais MINIMAL (get/set) — même patron que `bourseFlow.test.ts`/`partyFlow.test.ts`. */
@@ -29,7 +29,7 @@ function makeHarness(party: Combatant[], possessions: Possession[] = []): { get:
     gameTime: 0,
     log: () => {},
     net: { ownership: {} as Record<string, number> },
-  } as unknown as GameState;
+  } as unknown as Jeu;
   const get: Get = () => state;
   const set: Set = (p) => {
     state = { ...state, ...(typeof p === 'function' ? p(state) : p) };

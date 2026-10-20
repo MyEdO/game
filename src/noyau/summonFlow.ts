@@ -13,7 +13,7 @@
  */
 import type { Combatant } from '../engine/types';
 import type { PorteurDeFiche } from '../engine/statblock';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import { Pt, tileKey } from './monde/path';
 import { Scene, isWalkable } from './monde/scene';

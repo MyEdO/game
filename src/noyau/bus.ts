@@ -55,4 +55,7 @@ export const EVT = {
    *  unique consommé par `devtools.ts` (`__wfrp.lastRoll()`, recette navigateur, #514), jamais lu par
    *  du code de règles (observation pure, aucun état persisté). */
   TEST_RESOLVED: 'test_resolved',
+  /** noyau → hôte : l'Effet `openCharacterCreator` demande la création d'un nouveau héros (sans charge) ;
+   *  l'hôte web ouvre son assistant (`src/ui/creator`). */
+  HEROS_A_CREER: 'heros_a_creer',
 } as const;

@@ -17,7 +17,7 @@
 import type { Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { windsModLine } from '../engine/windsOfMagic';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode } from './targetingModes';
 import { hoverTargeting } from './targeting';
@@ -27,7 +27,7 @@ import { inBattleId } from './monde/combatants';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
  *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe. */
-export function touchActors(state: GameState): PatchDeFlux {
+export function touchActors(state: Jeu): PatchDeFlux {
   return state.battle ? { battle: { ...state.battle, combatants: [...state.battle.combatants] } } : { party: [...state.party] };
 }
 
@@ -52,7 +52,7 @@ export function touchActors(state: GameState): PatchDeFlux {
  * seule source de vent connue de l'état) ; `undefined` hors voyage maritime actif (silence RAW —
  * `domainSeaIncantationDR` neutralise déjà un vent inconnu).
  */
-export function seaMagicContext(state: GameState): { atSea: boolean; wind: SeaWind | undefined } {
+export function seaMagicContext(state: Jeu): { atSea: boolean; wind: SeaWind | undefined } {
   const vessel = state.vessel;
   const boarding = !!vessel && !!state.battle?.combatants.some((c) => c.creatureId === vessel.vehicleId);
   const atSea = state.travelPlan?.mode === 'mer' || boarding;
@@ -62,13 +62,13 @@ export function seaMagicContext(state: GameState): { atSea: boolean; wind: SeaWi
 /** Modificateur COURANT des Vents Tourbillonnants (LDB 46 l.179-190, option `vents-tourbillonnants`)
  *  — SOURCE UNIQUE lue par `resolveCasting`/`resolveFocus` (`extraMod`) ET l'aperçu pré-jet des
  *  modales (Cast/Focus). 0 hors combat ou option inactive (`battle.windsOfMagic` absent). */
-export function windsMagicModOf(battle: GameState['battle']): number {
+export function windsMagicModOf(battle: Jeu['battle']): number {
   return battle?.windsOfMagic?.mod ?? 0;
 }
 
 /** La LIGNE de jet des Vents COURANTS (`engine/windsOfMagic`) — lecture d'état des deux surfaces
  *  d'affichage (aperçu d'Incantation, Focalisation). `null` sans Vents actifs. */
-export function windsMagicLineOf(battle: GameState['battle']): ModLine | null {
+export function windsMagicLineOf(battle: Jeu['battle']): ModLine | null {
   return windsModLine(battle?.windsOfMagic);
 }
 

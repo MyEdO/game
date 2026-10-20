@@ -3,7 +3,8 @@
  * déclarée, « Dégâts » déclarés, Défense gagnée par le jet nu, le dé fixé ou le forçage. #1093.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { maybeOpenDefense } from '../noyau/combatFlow';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';

@@ -27,7 +27,7 @@ export const COUCHES = Object.freeze({
       scenes: { issue: '#2884' },
     },
   },
-  noyau: { importe: ['engine', 'data', ...FEUILLES], transitoire: { state: { issue: '#2889', types: true } } },
+  noyau: { importe: ['engine', 'data', ...FEUILLES] },
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     transitoire: { state: { issue: '#2884' }, ui: { issue: '#2884', types: true } },

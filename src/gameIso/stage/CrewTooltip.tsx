@@ -3,7 +3,7 @@
  * renforts + Indice d'Arme d'équipe + effectif (sous-effectif en rouge), et l'invite « Clic : rejoindre »
  * si le héros actif peut la servir. Données pures (poste.crewIds / qualité arme-d-equipe) — zéro mécanique.
  */
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { Combatant } from '../../engine/types';
 import { serveTargetPoste, isPosteManned, servingCrewPresent, posteCrewSplit, isCrewQualified } from '../../noyau/monde/shipPostes';
 import { weaponGroupLabel } from '../../data';

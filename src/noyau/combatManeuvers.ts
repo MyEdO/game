@@ -14,7 +14,7 @@
  * `checkBattleOver` (l'appelant — store ou wrapper IA — le fait).
  */
 import type { Get, Set as SetFn } from './flowTypes';
-import type { BattleState, GameState } from '../state/store';
+import type { BattleState, Jeu } from './etat';
 import { facingToward } from './monde/dir8';
 import { Combatant, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { battleRng } from './battleRng';
@@ -421,14 +421,14 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
  *  (`maneuverDefense`) et rien ne leur est appliqué à la résolution. MÊME prédicat que TOUTES les autres
  *  défenses (`defenseSurfaced`, #989). Opposition réelle exigée : jet d'attaquant présent, défense ≠
  *  `resist`, effets à subir (pas de fumée pure) ; un défenseur Surpris (`cannotDefend`) ne réagit pas. */
-function defenseursSurfacesDeManoeuvre(s: GameState, def: ManeuverDef, atk: TestResult | null, affected: Combatant[]): Combatant[] {
+function defenseursSurfacesDeManoeuvre(s: Jeu, def: ManeuverDef, atk: TestResult | null, affected: Combatant[]): Combatant[] {
   const canDefend = !!atk && !!def.defense && def.defense !== 'resist' && (def.effects?.length ?? 0) > 0;
   return canDefend ? affected.filter((t) => defenseSurfaced(s, t) && !isOutOfAction(t) && !cannotDefend(t)) : [];
 }
 
 /** La manœuvre DÉCLARÉE (`pendingManeuver`) passe-t-elle la main à la défense d'un défenseur surfacé ?
  *  Patron `surfacedDefensePending` : source unique, partagée par l'affichage et la résolution. */
-export function maneuverDefensePending(s: GameState): boolean {
+export function maneuverDefensePending(s: Jeu): boolean {
   const pm = s.pendingManeuver;
   const battle = s.battle;
   if (!pm?.result || !battle) return false;
@@ -465,7 +465,7 @@ export function resolveManeuver(
   const faceTarget = (tgt?: Combatant | null): void => {
     const from = attacker.pos!, to = tgt?.pos;
     if (!to || tgt!.id === attacker.id || (to.x === from.x && to.y === from.y)) return;
-    set((s: GameState) => ({ facing: { ...s.facing, [attacker.id]: facingToward(from, to) } }));
+    set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(from, to) } }));
   };
   emitCreatureAttackAnim(attacker, def.kind);
   const flushLog = () => {

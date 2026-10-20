@@ -24,7 +24,7 @@ import { teamRingDecor } from '../builders/dynamicMarks';
 import { ENEMY_RING, HERO_RING } from '../teamColors';
 import { actorBillboards, actorPoses, type ActorPose, type BillboardSubject } from '../backends/webgl/sceneMeshes';
 import { buildTokens } from '../builders/tokens';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 
 /**
  * SILHOUETTE DU CORPS À TRAVERS LES MURS (#1297, LOT C) — le pendant, pour le corps, du jumeau

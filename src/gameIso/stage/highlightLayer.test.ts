@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from '../../noyau/monde/scene';
-import { useGame, type GameState, type BattleState } from '../../state/store';
+import { useGame, type GameState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { makePregens } from '../../data/pregens';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { Combatant } from '../../engine/types';

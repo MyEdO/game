@@ -1,6 +1,6 @@
 /**
  * Bourse PERSONNELLE par héros (SOCLE POSSESSIONS §8, #531 — arbitrages user 2026-07-20). La monnaie de
- * groupe (`GameState.money`) disparaît : chaque héros porte SA bourse (instance `ItemInstance` du
+ * groupe (`Jeu.money`) disparaît : chaque héros porte SA bourse (instance `ItemInstance` du
  * trapping `bourse`, id `trappings.json:2747`, champ `money`, LDB 61 l.29). Toute somme entrée/sortie est
  * une ALLOCATION sur une ou plusieurs bourses — la bande peut se cotiser (`payWithAllocation`), le
  * bénéficiaire d'un achat est INDÉPENDANT des payeurs. Miroir de `creditPartyMoney`/`merchantFlow`.
@@ -10,7 +10,7 @@ import { add as moneyAdd, subtract as moneySub, canAfford, toBrass, fromBrass, t
 import { bourseInstanceOf, bourseOf, withBourseMoney } from '../engine/bourse';
 import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import { actorIn, ecrireActeur } from './monde/combatants';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
@@ -22,7 +22,7 @@ export function partyMoneyTotal(get: Get): Money {
   return get().party.reduce((sum, h) => moneyAdd(sum, bourseOf(h)), ZERO_MONEY);
 }
 
-/** `ConditionCtx` de SCÈNE depuis l'état vivant — SOURCE UNIQUE (remplace le `GameState.money`
+/** `ConditionCtx` de SCÈNE depuis l'état vivant — SOURCE UNIQUE (remplace le `Jeu.money`
  *  disparu) : injecte le total des bourses du groupe (`partyMoneyTotal`) dans la Condition `money`,
  *  au lieu du `s.money` inexistant que `conditionCtx` attend en toute généralité. Tout appelant lisant
  *  l'état de scène (triggers, `if`, choix de dialogue) route DESSUS. */
@@ -32,7 +32,7 @@ export function condCtx(get: Get): ConditionCtx {
 
 /** Pose les Bourses : le montant se calcule UNE fois sur l'acteur lu (`actorIn`), l'instance Bourse
  *  se garantit UNE fois, puis la même s'écrit sur chaque copie (contrat d'`ecrireActeur`, #2312). */
-function ecrireBourses(s: GameState, montants: Record<string, (actuel: Money) => Money>): ReturnType<typeof ecrireActeur> {
+function ecrireBourses(s: Jeu, montants: Record<string, (actuel: Money) => Money>): ReturnType<typeof ecrireActeur> {
   const bourses: Record<string, ItemInstance> = {};
   for (const [id, montant] of Object.entries(montants)) {
     const lu = actorIn(s, id);

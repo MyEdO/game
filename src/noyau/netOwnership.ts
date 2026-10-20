@@ -3,7 +3,7 @@
  * combattants. Le « qui est concerné » vient du REGISTRE des modales (`modalArbiter.MODAL_DEFS`,
  * source unique partagée avec le gating d'affichage UI) — ajouter une modale n'exige RIEN ici.
  */
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { modalOwnerOf, horsModalOwnedIntents, horsModalByPending, type HorsModalDef } from './modalArbiter';
 import { inBattleId, porteurParId } from './monde/combatants';
@@ -34,7 +34,7 @@ const HORS_MODAL_BY_PENDING: Readonly<Record<string, HorsModalDef>> = horsModalB
 /**
  * VERROU DE COMPILATION (#1005) : toute clé `pending` déclarée par un `jetOwner` de `FLOW_VERBS` doit
  * être un `pending*` RÉEL de l'état (`PendingKey`, dérivé — cf. `stateFields.ts`). Le verrou vit ICI et
- * pas dans la table : `flowVerbs.ts` ne peut pas importer un type de `GameState` sans rendre `FLOWS`
+ * pas dans la table : `flowVerbs.ts` ne peut pas importer un type de `Jeu` sans rendre `FLOWS`
  * `any` (cf. son en-tête). Une coquille (`pendingCastX`) ne lèverait AUCUNE erreur au site de la table
  * et fermerait en silence TOUS les verbes du flux — elle s'affiche ici en litige (patron
  * `modalArbiter._pendingOwnerCoverage`).
@@ -59,7 +59,7 @@ void _jetOwnerPendingCheck;
  */
 type _NonNull<T> = Exclude<T, null | undefined>;
 type _StringFieldsOf<K extends PendingKey> = Extract<
-  { [F in keyof _NonNull<GameState[K]>]-?: _NonNull<GameState[K]>[F] extends string | undefined ? F : never }[keyof _NonNull<GameState[K]>],
+  { [F in keyof _NonNull<Jeu[K]>]-?: _NonNull<Jeu[K]>[F] extends string | undefined ? F : never }[keyof _NonNull<Jeu[K]>],
   string
 >;
 type _JetOwnerFieldBad = {
@@ -87,7 +87,7 @@ void _jetOwnerFieldCheck;
  * « en attente » mentirait. Le verdict est le MÊME pour les trois dispatchers et pour la rangée qui
  * les montre (`ReadyRow`) — afficher et décider ne peuvent pas répondre différemment.
  */
-export function siegesRequis(s: Pick<GameState, 'party' | 'net'>): number[] {
+export function siegesRequis(s: Pick<Jeu, 'party' | 'net'>): number[] {
   const requis = new Set<number>([0]);
   for (const h of s.party) {
     if (h.dead || h.outOfRencontre) continue;
@@ -98,7 +98,7 @@ export function siegesRequis(s: Pick<GameState, 'party' | 'net'>): number[] {
 }
 
 /** Tous les sièges requis ont-ils validé ? (même quorum, une seule lecture) */
-export function quorumAtteint(s: Pick<GameState, 'party' | 'net'>, readyBySeat: Record<number, boolean> = {}): boolean {
+export function quorumAtteint(s: Pick<Jeu, 'party' | 'net'>, readyBySeat: Record<number, boolean> = {}): boolean {
   return siegesRequis(s).every((seat) => readyBySeat[seat]);
 }
 
@@ -138,7 +138,7 @@ export function unSiegeAgit(): boolean {
  *  Exporté pour les gestes qui MARQUENT leur siège dans l'état partagé (demande de pause de Round) :
  *  le siège vient du TRANSPORT (`withActingSeat`, posé par `netFlow.applyIntent`), jamais des arguments
  *  de l'émetteur — un siège ne peut donc marquer ni démarquer que lui-même. */
-export function decidingSeat(s: GameState): number {
+export function decidingSeat(s: Jeu): number {
   return actingSeat ?? s.net.mySeat;
 }
 
@@ -151,7 +151,7 @@ export function decidingSeat(s: GameState): number {
  * Pendant l'application d'un intent, « local » = le siège AGISSANT (cf. `withActingSeat`) — c'est ce
  * qui permet aux gardes d'action de `combatSlice` de servir l'invité sans une ligne de code par flux.
  */
-export function ownsLocal(state: GameState, combatantId: string | undefined): boolean {
+export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean {
   const { mode, mySeat } = state.net;
   if (mode === 'local') return true;
   if (actingSeat != null) return seatOwns(state, actingSeat, combatantId); // `seatOwns` traite l'absence d'acteur
@@ -175,7 +175,7 @@ export function ownsLocal(state: GameState, combatantId: string | undefined): bo
  * une dépendance déclarée — si la route du dialogue divergeait, l'affordance suivrait le sentinel, pas
  * la route. `ui/ownership.test.tsx` verrouille cette égalité sur les 3 intents du jeton, siège par siège.
  */
-export function ownsGroupDecision(s: GameState): boolean {
+export function ownsGroupDecision(s: Jeu): boolean {
   return ownsLocal(s, WORLD_STEP_OWNER);
 }
 
@@ -183,14 +183,14 @@ export function ownsGroupDecision(s: GameState): boolean {
  * Le siège qui tient la décision de groupe (0 = l'hôte) — pour NOMMER celui qu'on attend dans
  * l'affordance de spectateur ; le verdict, lui, se demande à `ownsGroupDecision`.
  */
-export function groupDecisionSeat(s: GameState): number {
+export function groupDecisionSeat(s: Jeu): number {
   return s.net.gmSeat ?? 0;
 }
 
 /** Surfaçage de la DÉFENSE (#989) — nom de domaine des sites d'attaque (`maybeOpenDefense`,
  *  `resolveAttack`, `surfacedDefensePending`), qui DÉLÈGUE au prédicat général `jetSurfaced` (`sieges`) : une seule
  *  implémentation du surfaçage réactif, jamais deux tables de vérité. */
-export function defenseSurfaced(s: GameState, defender: Combatant): boolean {
+export function defenseSurfaced(s: Jeu, defender: Combatant): boolean {
   return jetSurfaced(s, defender);
 }
 
@@ -201,7 +201,7 @@ export function defenseSurfaced(s: GameState, defender: Combatant): boolean {
  * les jets du monde remontent au siège MJ) ; un PNJ neutre → faux. Prédicat de l'AFFORDANCE LOCALE
  * (qui a la main ICI) ; le SURFAÇAGE d'une défense, lui, passe par `defenseSurfaced` ci-dessus.
  */
-export function pilotedByHuman(s: GameState, c: Combatant): boolean {
+export function pilotedByHuman(s: Jeu, c: Combatant): boolean {
   if (c.kind === 'hero') return !c.aiControlled && ownsLocal(s, c.id);
   if (c.kind === 'enemy') return s.net.gmSeat != null; // conduit par le MJ (bac-à-sable) sinon IA
   return false;
@@ -215,7 +215,7 @@ export function pilotedByHuman(s: GameState, c: Combatant): boolean {
  * mon propre héros en Auto-combat — son jet reste le mien). `ownerId` absent = adversaire ABSTRAIT
  * (table de taverne, aucun Combatant) : jamais produit par ce siège.
  */
-export function rolledLocally(s: GameState, ownerId: string | undefined): boolean {
+export function rolledLocally(s: Jeu, ownerId: string | undefined): boolean {
   if (!ownerId) return false;
   const c = porteurParId(s, ownerId);
   return !!c && pilotedByHuman(s, c) && ownsLocal(s, c.id);
@@ -229,7 +229,7 @@ export function rolledLocally(s: GameState, ownerId: string | undefined): boolea
  * le `kind` du combattant. (Vit ICI, avec les primitives d'« qui pilote quoi » : `controlsActive`/
  * `controlsCombatant` en dépendent ; `combatGate` le ré-exporte pour ses consommateurs historiques.)
  */
-export function aiDriven(s: GameState, c: Combatant): boolean {
+export function aiDriven(s: Jeu, c: Combatant): boolean {
   if (c.kind === 'enemy') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
   // PNJ allié IA (`Combatant.aiControlled`, ex. défenseur de siège) : agit SEUL même en jeu MANUEL — sans
   // attendre l'Auto-combat global. On ne pilote jamais le combattant d'un AUTRE siège (`ownsLocal`).
@@ -243,7 +243,7 @@ export function aiDriven(s: GameState, c: Combatant): boolean {
  * faux ; PNJ `aiControlled` → faux ; ennemi sans MJ → faux ; ENNEMI quand le siège LOCAL porte le rôle MJ
  * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'hero'`) → comme un héros.
  */
-export function controlsCombatant(s: GameState, c: Combatant): boolean {
+export function controlsCombatant(s: Jeu, c: Combatant): boolean {
   if (!pilotedByHuman(s, c) || aiDriven(s, c)) return false;
   if (c.kind === 'hero') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
   // Ennemi/monde conduit par le MJ : seul le siège MJ le pilote — comparé au siège qui DÉCIDE
@@ -257,7 +257,7 @@ export function controlsCombatant(s: GameState, c: Combatant): boolean {
  * HUMAIN (`pilotedByHuman`) ET cadence MANUELLE (`!cadenceAuto` : en Rapide/Auto les jets se lancent
  * seuls, sans influence, donc résolus inline comme un monstre).
  */
-export function humanControlled(s: GameState, c: Combatant): boolean {
+export function humanControlled(s: Jeu, c: Combatant): boolean {
   return !cadenceAuto() && pilotedByHuman(s, c);
 }
 
@@ -275,7 +275,7 @@ export function humanControlled(s: GameState, c: Combatant): boolean {
  * Un `ownerId` qui ne désigne aucun combattant connu → faux (jamais d'affordance sur un jet inconnu).
  * Solo (`mode:'local'`) : un seul siège, il tient tout ce qu'un humain pilote.
  */
-export function seatInfluences(s: GameState, seat: number, ownerId: string | undefined): boolean {
+export function seatInfluences(s: Jeu, seat: number, ownerId: string | undefined): boolean {
   if (ownerId == null || ownerId === WORLD_STEP_OWNER) return seatOwns(s, seat, WORLD_STEP_OWNER);
   const c = porteurParId(s, ownerId);
   if (!c) return false;
@@ -295,7 +295,7 @@ export function seatInfluences(s: GameState, seat: number, ownerId: string | und
  * roulait, chez l'hôte, SES rangées à lui au lieu de celles de l'invité émetteur — l'intent accepté
  * produisait le mauvais effet. Hors application d'intent (rendu), `actingSeat` est nul : inchangé.
  */
-export function influencesLocally(s: GameState, ownerId: string | undefined): boolean {
+export function influencesLocally(s: Jeu, ownerId: string | undefined): boolean {
   return seatInfluences(s, decidingSeat(s), ownerId);
 }
 
@@ -304,7 +304,7 @@ export function influencesLocally(s: GameState, ownerId: string | undefined): bo
  * confort « Dés fixés » (`engine/fixedDie.ts`) : l'option est active ET le siège local peut influencer
  * ce jet (`influencesLocally` ci-dessus — même routage porteur→siège, source unique).
  */
-export function canFixDie(s: GameState, ownerId: string | undefined): boolean {
+export function canFixDie(s: Jeu, ownerId: string | undefined): boolean {
   return desFixes() && influencesLocally(s, ownerId);
 }
 
@@ -312,7 +312,7 @@ export function canFixDie(s: GameState, ownerId: string | undefined): boolean {
  *  d'un AUTRE joueur (hôte inclus), ET faux quand le héros actif est piloté par l'IA (Auto-combat) : l'UI
  *  traite alors ce tour comme un tour ennemi — AUCUNE affordance (grille de déplacement, réticule, barre
  *  d'action, raccourcis). Tour ennemi → vrai : l'IA tourne et l'UI est déjà inerte par ses propres verrous. */
-export function controlsActive(state: GameState): boolean {
+export function controlsActive(state: Jeu): boolean {
   const b = state.battle;
   if (!b || b.over) return true;
   const activeId = b.order[b.turn];
@@ -332,7 +332,7 @@ export function controlsActive(state: GameState): boolean {
 
 /** Emplacements de groupe encore à remplir par ce siège : slots attribués − héros possédés.
  *  (En mode local, slots = [0,0,0,0] → l'hôte garde les 4 emplacements, comme avant la coop.) */
-export function seatSlotsRemaining(s: GameState, seat: number): number {
+export function seatSlotsRemaining(s: Jeu, seat: number): number {
   const slots = (s.net.slots ?? [0, 0, 0, 0]).filter((x) => x === seat).length;
   const owned = s.party.filter((h) => (s.net.ownership[h.id] ?? 0) === seat).length;
   return slots - owned;
@@ -344,7 +344,7 @@ export function seatSlotsRemaining(s: GameState, seat: number): number {
  * (`repliUniversel`). `false` n'est donc JAMAIS relu comme une abstention.
  */
 export interface Route {
-  rule: (s: GameState, seat: number, args: unknown[]) => boolean | null;
+  rule: (s: Jeu, seat: number, args: unknown[]) => boolean | null;
   /** Route CONSERVÉE bien que son intent soit hors `GUEST_INTENTS` (défense en profondeur : un futur
    *  ajout à l'allowlist ne doit pas ouvrir le geste à tous). La valeur porte la raison MESURÉE. */
   horsAllowlist?: string;
@@ -423,7 +423,7 @@ const PAUSE_DE_ROUND_PAR_ARG0: Route = {
  * MODALE, c'est-à-dire au lanceur pour un Sort de héros : le siège d'une cible (ou le MJ pilotant une
  * rangée ennemie) voyait son drive refusé et sa fenêtre restait suspendue.
  */
-const routeRollAll = (rows: (s: GameState) => readonly { id: string; interactive?: boolean; result: unknown }[] | undefined): Route => ({
+const routeRollAll = (rows: (s: Jeu) => readonly { id: string; interactive?: boolean; result: unknown }[] | undefined): Route => ({
   rule: (s, seat) => (rows(s) ?? []).some((p) => !p.result && p.interactive && seatInfluences(s, seat, p.id)),
 });
 
@@ -558,7 +558,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     // testeur (`openSkillTest`→`pendingTest`→modalArbiter).
     ...(['chooseDialogue', 'closeDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
-        rule: (s: GameState, seat: number) => seat === (s.net.gmSeat ?? 0),
+        rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
         horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `HostSession` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal ; `closeDialogue` : aucun)',
       }] as readonly [string, Route],
     ),
@@ -578,7 +578,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
  * une entrée de `ROUTES` (aucune clé ne le nomme) : c'est la décision par défaut, appliquée dès
  * qu'aucune route ne tranche.
  */
-function repliUniversel(s: GameState, seat: number): boolean {
+function repliUniversel(s: Jeu, seat: number): boolean {
   const owner = modalOwnerOf(s);
   if (owner === '*') return true;
   if (owner !== null) return seatOwns(s, seat, owner);
@@ -588,7 +588,7 @@ function repliUniversel(s: GameState, seat: number): boolean {
 
 /** L'HÔTE accepte-t-il cet intent de `seat` ? UNE décision : la route de l'intent si elle TRANCHE
  *  (`true`/`false`), le repli universel si elle s'abstient (`null`) ou si l'intent n'est pas routé. */
-export function intentAllowedFor(s: GameState, seat: number, action: string, args: unknown[] = []): boolean {
+export function intentAllowedFor(s: Jeu, seat: number, action: string, args: unknown[] = []): boolean {
   const verdict = ROUTES.get(action)?.rule(s, seat, args) ?? null;
   return verdict === null ? repliUniversel(s, seat) : verdict;
 }

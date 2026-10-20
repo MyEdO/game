@@ -5,7 +5,7 @@ import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findVehicleById } from '../data';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../noyau/monde/scene';
-import type { CampaignVessel } from './store';
+import type { CampaignVessel } from '../noyau/etat';
 
 // #230 — le nom d'INSTANCE du navire de campagne (affichage) se propage aux coques spawnées.
 

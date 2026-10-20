@@ -14,7 +14,8 @@
  * souffrait du même mal, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from './intents';
 import { seedBattleRng } from '../noyau/battleRng';

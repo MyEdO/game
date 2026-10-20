@@ -7,7 +7,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import type { BattleState } from './store';
+import type { BattleState } from '../noyau/etat';
 import { draineCascade } from './cascade.testkit';
 
 // ---------------------------------------------------------------------------

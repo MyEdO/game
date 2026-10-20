@@ -14,7 +14,7 @@ import { GOLD_TINT } from '../highlightTints';
 import type { Combatant } from '../../engine/types';
 import type { DifficultyShown } from '../../engine/combat';
 import { difficultyShownText } from '../../ui/difficultyText';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import type { Pt } from '../../noyau/monde/path';
 
 /** Ce que le geste APERÇU fait du Mouvement du Tour, « avant → après » — le coût vient de la SOURCE

@@ -9,9 +9,7 @@
  * Fidélité : chaque `resolve`/`derive` reprend À L'IDENTIQUE le code historique du store
  * (références RAW en place). Ne rien y « simplifier » sans citer la source.
  */
-import type {
-  GameState,
-} from '../state/store';
+import type { Jeu } from './etat';
 import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingCrewTest, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, BatchParticipant } from './pendings';
 import type { PendingActivity, ActivityOppositionOn } from './interludeFlow';
 import type { Combatant, Weapon } from '../engine/types';
@@ -177,7 +175,7 @@ const DEFENSE_LABEL_FALLBACK = 'Intimidation';
 /** Opposition FIGÉE de l'étape de cascade COURANTE (celle dont le flux `cascadeBatch` lance les
  *  rangées) — la lecture, jamais une seconde source : `stepOpposedFreeze` (noyau/cascade.ts) décide
  *  seul de ce qu'est un freeze. `undefined` hors cascade ou sur une étape non opposée. */
-function currentStepFreeze(s: GameState) {
+function currentStepFreeze(s: Jeu) {
   const p = s.pendingCascade;
   return p ? stepOpposedFreeze(p.participants[p.cursor]) : undefined;
 }
@@ -376,7 +374,7 @@ const resultRollLens = <P extends import('./rollFlowFactory').PendingBase & { re
 function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & { result?: unknown }>(cfg: {
   key: RollFlowSpec<P>['key'];
   actorId: (p: P) => string;
-  rollActor: (s: GameState, actor: Combatant) => TestResult;
+  rollActor: (s: Jeu, actor: Combatant) => TestResult;
   /** Jet de l'ACTEUR : lecture (`p.def` — Désengagement/Au Contact/Empoignade ; `p.atk` — Distraire) et pose. */
   actorTR: (p: P) => TestResult | null | undefined;
   putActorTR: (tr: TestResult) => Partial<P>;
@@ -445,7 +443,7 @@ const simpleTestResolve = <P extends PendingBase>(
   difficulty: Difficulty | ((p: P) => Difficulty) = 'intermediaire',
   rng: () => RNG = battleRng,
   opts?: { actorless?: boolean },
-) => (_s: GameState, p: P, actor: Combatant | undefined): Partial<P> | null =>
+) => (_s: Jeu, p: P, actor: Combatant | undefined): Partial<P> | null =>
   simpleRoll(p, actor, value, difficulty, rng, opts) as unknown as Partial<P> | null;
 
 /** Idem mais le jet vit sous `result` (même distinction FLAT vs `result` que `flatRollLens`/`resultRollLens`).
@@ -454,7 +452,7 @@ const simpleTestResultResolve = <P extends PendingBase>(
   value: (p: P, actor: Combatant) => number,
   difficulty: Difficulty | ((p: P) => Difficulty) = 'intermediaire',
   rng: () => RNG = battleRng,
-) => (_s: GameState, p: P, actor: Combatant | undefined): Partial<P> | null => {
+) => (_s: Jeu, p: P, actor: Combatant | undefined): Partial<P> | null => {
   const r = simpleRoll(p, actor, value, difficulty, rng);
   return r ? ({ result: r } as unknown as Partial<P>) : null;
 };
@@ -472,7 +470,7 @@ const pick4 = (d: { roll: number; target?: number; clamped?: number } | null | u
 /** Jet rangé sous `result` (4 champs). */
 const resultDie = <P extends PendingBase & { result?: Die4 | null }>() => ({
   read: (p: P) => pick4(p.result),
-  write: (_s: GameState, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => ({ result: jetPose(tr) } as Partial<P>),
+  write: (_s: Jeu, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => ({ result: jetPose(tr) } as Partial<P>),
 });
 
 /** Le `TestResult` ENTIER vit sous `roll` (Récupération d'État, Marchandage). La valeur NUE du jet
@@ -480,20 +478,20 @@ const resultDie = <P extends PendingBase & { result?: Die4 | null }>() => ({
  *  (départage d'un Test opposé, LDB 12 l.160). */
 const trDie = <P extends PendingBase & { roll?: TestResult | null }>() => ({
   read: (p: P) => (p.roll ? deDuJet(p.roll) : null),
-  write: (_s: GameState, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => ({ roll: tr } as Partial<P>),
+  write: (_s: Jeu, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => ({ roll: tr } as Partial<P>),
 });
 
 /** Jet d'un PARTICIPANT rangé sous `result` à 3 champs ({roll,target,sl}) — le socle re-dérive le DR. */
 const roll3Die = <Slot extends PendingBase & { result?: { roll: number; target: number; clamped?: number; sl: number } | EchecSansJet | null }, P extends PendingBase>() => ({
   read: (r: Slot) => (estJete(r.result) ? deDuJet(r.result) : null),
-  write: (_s: GameState, _r: Slot, _a: Combatant | undefined, _g: Get, tr: TestResult) =>
+  write: (_s: Jeu, _r: Slot, _a: Combatant | undefined, _g: Get, tr: TestResult) =>
     ({ result: { roll: tr.roll, sl: tr.sl, ...cibleMesuree(tr) } } as unknown as Partial<Slot>),
 } as NonNullable<RollFlowSpec<P, Slot>['die']>);
 
 /** Jet APLATI au niveau du pending (4 champs). */
 const flatDie = <P extends PendingBase & { roll?: number | null; target?: number; clamped?: number }>() => ({
   read: (p: P) => (p.roll != null ? pick4({ roll: p.roll, target: p.target, clamped: p.clamped }) : null),
-  write: (_s: GameState, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => (jetPose(tr) as unknown as Partial<P>),
+  write: (_s: Jeu, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => (jetPose(tr) as unknown as Partial<P>),
 });
 
 /** Le DR d'un Test de compétence franchit-il le seuil EXIGÉ (`PendingTest.requireSL`, authoré) ?
@@ -1460,7 +1458,7 @@ export const FLOWS = {
     // la règle du site) ; sinon l'issue est celle du dé.
     die: {
       read: (r: BatchParticipant) => (estJete(r.result) ? { roll: r.result.roll, target: r.result.target, critable: false } : null),
-      write: (s: GameState, r: BatchParticipant, _a: Combatant | undefined, _g: Get, tr: TestResult) => {
+      write: (s: Jeu, r: BatchParticipant, _a: Combatant | undefined, _g: Get, tr: TestResult) => {
         const opp = currentStepFreeze(s);
         return {
           result: opp
@@ -2112,14 +2110,14 @@ type WiringActions<P extends string, W extends FlowVerbs> =
 type UnionToIntersection<U> =
   (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 
-/** Matérialise une intersection CALCULÉE en objet PLAT — sinon `interface GameState extends …` n'en
+/** Matérialise une intersection CALCULÉE en objet PLAT — sinon `interface ActionsDuNoyau extends …` n'en
  *  voit pas les membres (une intersection issue de `UnionToIntersection` reste « lazy »). */
 type FlattenActions<T> = { [K in keyof T]: T[K] };
 
 /**
  * Surface EXACTE des délégués de jet du store (`<prefix><Verbe>`), DÉRIVÉE de `FLOW_VERBS` (sans le
- * handler → aucune réf à `GameState`, donc PAS de cycle) : une entrée par flux → l'intersection de tous
- * les `Mono/MultiRollActions`, aplatie. `GameState extends RollFlowActionsMap` (store.ts) rend l'invariant
+ * handler → aucune réf à `Jeu`, donc PAS de cycle) : une entrée par flux → l'intersection de tous
+ * les `Mono/MultiRollActions`, aplatie. `ActionsDuNoyau extends RollFlowActionsMap` (`actionsDuNoyau.ts`) rend l'invariant
  * BIDIRECTIONNEL : ajouter/retirer un flux ou un verbe dans `FLOW_VERBS` change ce type → le store doit
  * tout réimplémenter (via `buildRollFlowActions`), sinon `tsc` casse.
  */
@@ -2163,7 +2161,7 @@ export function buildRollFlowActions(get: Get, set: Set): RollFlowActionsMap {
  * — c'est son propre jet qu'elle retouche, pas une seconde tentative.
  */
 function counterspellEngage(
-  s: GameState,
+  s: Jeu,
   part: CounterParticipant,
   actor: Combatant,
 ): boolean {

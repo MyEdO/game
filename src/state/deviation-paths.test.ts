@@ -7,7 +7,8 @@
  * lit sur la pièce, comme en mêlée (LDB 63 l.13 ; #1595 c.6232294713).
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { registerCombatHook } from '../noyau/combatHooks';
 import type { CombatEventCtx } from '../noyau/combatEvents';
 import { hasCondition, COND } from '../engine/conditions';

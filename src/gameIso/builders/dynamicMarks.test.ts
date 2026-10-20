@@ -33,7 +33,7 @@ import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';
 import { combatantTokenScale } from '../sizeScale';
 import type { TokenEl } from './types';
 import type { Combatant } from '../../engine/types';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 
 /**
  * DÉRIVATION des marques dynamiques (#1176, P3-0d) — la source UNIQUE que la pose consomme

@@ -13,7 +13,7 @@
  * plus jamais par des closures anonymes publiées positionnellement.
  */
 import type { Combatant } from '../engine/types';
-import type { BattleState, GameState } from '../state/store';
+import type { BattleState, Jeu } from './etat';
 import { entityPickables } from './combatEffects';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
@@ -287,7 +287,7 @@ export function actionGate(actionId: string, ctx: ActionCtx): ActionGate {
 
 /** Contexte des sélecteurs : impurs par nature (ils lisent le combat, parfois la scène). */
 export interface ActionSelectorCtx extends ActionCtx {
-  state?: GameState;
+  state?: Jeu;
   /** Arme visée quand le sélecteur dépend d'une arme précise (munitions compatibles). */
   weaponUid?: string;
 }
@@ -422,17 +422,17 @@ export interface ActionRunCtx {
   toggleOff?: boolean;
 }
 
-type Dispatcher = (get: () => GameState, ctx: ActionRunCtx, def: ActionDef) => void;
+type Dispatcher = (get: () => Jeu, ctx: ActionRunCtx, def: ActionDef) => void;
 
 /** Les DISPATCHERS, par id (`run` de `actions.json`) : une entrée = une méthode du store. */
 export const ACTION_RUN: Record<string, Dispatcher> = {
   battleSelectAction: (get, ctx, def) =>
     get().battleSelectAction(
-      (ctx.toggleOff ? null : (def.armed ?? null)) as Parameters<GameState['battleSelectAction']>[0],
+      (ctx.toggleOff ? null : (def.armed ?? null)) as Parameters<Jeu['battleSelectAction']>[0],
     ),
   battleSelectAttack: (get, ctx) => get().battleSelectAttack(ctx.attackId ?? 'arme'),
   battleManeuverArea: (get, ctx) =>
-    get().battleManeuverArea(ctx.attackKind as Parameters<GameState['battleManeuverArea']>[0]),
+    get().battleManeuverArea(ctx.attackKind as Parameters<Jeu['battleManeuverArea']>[0]),
   battleAim: (get) => get().battleAim(),
   battleReload: (get, ctx) => get().battleReload(ctx.weaponUid),
   battleSelectAmmo: (get, ctx) => { if (ctx.ammoUid) get().battleSelectAmmo(ctx.ammoUid, ctx.weaponUid); },
@@ -533,7 +533,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
  *  Une action qui déclare une INTENTION (`intent`) arme d'abord le mode local qui peint sa portée
  *  (`localIntent.ts`, spec zone 4) : c'est le clic du champ, ensuite, qui commet le geste. Les deux
  *  ne s'excluent pas — l'attaque arme son option ET affiche sa portée. */
-export function runAction(actionId: string, get: () => GameState, ctx: ActionRunCtx = {}): void {
+export function runAction(actionId: string, get: () => Jeu, ctx: ActionRunCtx = {}): void {
   const def = ACTIONS.find((a) => a.id === actionId);
   if (!def) return;
   if (def.intent) get().battleArmIntent(ctx.toggleOff ? null : def.id);
@@ -544,7 +544,7 @@ export function runAction(actionId: string, get: () => GameState, ctx: ActionRun
  *  que rend l'aiguilleur (`currentTargetingMode`). C'est la SORTIE d'un ciblage par la carte — le
  *  bandeau de phase de la console la rend, la touche d'annulation ne prend que celles qui portent
  *  `exitSafe`. `undefined` = aucun interlude en cours (mode ordinaire : attaque, cast, soin…). */
-export function currentInterludeAction(get: () => GameState): ActionDef | undefined {
+export function currentInterludeAction(get: () => Jeu): ActionDef | undefined {
   const modeId = currentTargetingMode(get).id;
   return ACTIONS.find((a) => a.surface === 'interlude' && a.mode === modeId);
 }

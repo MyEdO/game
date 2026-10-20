@@ -13,7 +13,7 @@
  * (get/set), jamais une closure capturée dans un pending (snapshoté/transmis en coop).
  */
 import type { Get, Set as SetFn } from './flowTypes';
-import type { BattleState } from '../state/store';
+import type { BattleState } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { rule } from '../engine/policy';

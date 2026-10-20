@@ -15,7 +15,7 @@ import { selectedAttackOption } from '../noyau/combatManeuvers';
 import { Scene } from '../noyau/monde/scene';
 import { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import { initialNet } from './netFlow';
+import { initialNet } from '../noyau/etat';
 
 /** Ce que l'affichage dira de cette Difficulté (`ui/difficultyText`, celle de la modale). */
 const dit = (p: Parameters<typeof difficultyOf>[0]): string | null => difficultyShownText(difficultyOf(p));

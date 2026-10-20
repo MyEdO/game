@@ -215,7 +215,7 @@ type ActionsDuCurseur = Pick<GameState, 'moveCursor' | 'snapCursorToTarget' | 'c
 
 /** Les actions du curseur, composées par le store : la caméra (`viewYawDeg`) oriente la navigation, et le
  *  commit passe par les deux actions de clic du noyau — parité souris exacte. */
-export function creerActionsDuCurseur(get: Get, set: Set): ActionsDuCurseur {
+export function creerActionsDuCurseur(get: Get<GameState>, set: Set<GameState>): ActionsDuCurseur {
   return {
     moveCursor: (dir: ScreenDir) => {
       const { battle, scene, camRot, viewMode, camEdge } = get();

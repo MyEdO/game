@@ -16,7 +16,7 @@
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
 import type { Get, Set } from './flowTypes';
-import type { GameState } from '../state/store';
+import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
@@ -300,19 +300,19 @@ export function tableStepIds(): string[] {
  * la 2ᵉ doit tirer au NOUVEAU total — LDB 40 l.46). Sans `modPerActor`, la déclaration est rendue
  * TELLE QUELLE (aucun coût pour les tables à modificateur figé).
  */
-export function liveTableDecl(s: GameState, step: CascadeStep): CascadeTableDecl {
+export function liveTableDecl(s: Jeu, step: CascadeStep): CascadeTableDecl {
   return declVivante(s, step.table as CascadeTableDecl, step.actorId);
 }
 
 /** LA MÊME composition pour un dé NU (`step.de`) — même site, même règle : le porteur du dé change,
  *  pas le geste (#1508). */
-export function liveDeDecl(s: GameState, step: CascadeStep): CascadeDeDecl {
+export function liveDeDecl(s: Jeu, step: CascadeStep): CascadeDeDecl {
   return declVivante(s, step.de as CascadeDeDecl, step.actorId);
 }
 
 /** LE CORPS COMMUN des deux compositions ci-dessus — générique sur la déclaration, pour qu'un champ
  *  ajouté à `CascadeDeDecl` traverse les deux lectures sans être recopié. */
-function declVivante<T extends CascadeDeTirage>(s: GameState, decl: T, actorId: string | undefined): T {
+function declVivante<T extends CascadeDeTirage>(s: Jeu, decl: T, actorId: string | undefined): T {
   if (!decl?.modPerActor) return decl;
   const actor = actorId ? actorIn(s, actorId) : undefined;
   const live = (actor?.[decl.modPerActor.counter] ?? 0) * decl.modPerActor.factor;
@@ -515,7 +515,7 @@ export function stepInteraction(step: CascadeStep): 'jet' | 'table' | 'de' | 'ba
  *  « tout résoudre »/immédiat (`resolveRemainingCascade`/`runCascadeImmediate`). Une témoin sans
  *  `result` n'en obtiendrait donc jamais — et comme elle ne freine pas ce prédicat, son jet serait
  *  simplement PERDU à la validation. */
-export function stepReady(step: CascadeStep, s: Partial<GameState>): boolean {
+export function stepReady(step: CascadeStep, s: Partial<Jeu>): boolean {
   switch (stepInteraction(step)) {
     case 'jet': return !!step.result;
     case 'table': return !!step.table!.result;
@@ -859,7 +859,7 @@ export function deStepResolved(step: CascadeStep, decl: CascadeDeDecl, result: C
  * l'étape RÉSOLUE, ou `null` quand rien n'est à poser (dé déjà tombé, étape sans dé, étape committée)
  * — un no-op y est un refus NOMMÉ par son poseur, jamais une écriture à vide.
  */
-function poseSurCourante(get: Get, set: Set, stepId: string, resoudre: (s: GameState, cur: CascadeStep) => CascadeStep | null): void {
+function poseSurCourante(get: Get, set: Set, stepId: string, resoudre: (s: Jeu, cur: CascadeStep) => CascadeStep | null): void {
   const p = get().pendingCascade;
   if (!p) return;
   const cur = p.participants[p.cursor];
@@ -1064,7 +1064,7 @@ function fenetrePour(same: PendingCascade | null, purpose: PendingCascade['purpo
  * `seqBase` — lire `pendingCascade.seq` y rendrait un rang PÉRIMÉ, donc un id déjà pris (collision).
  * `purpose` absent = « la séquence en place, quelle qu'elle soit » (sous-jeux à séquence unique).
  */
-export function compteurDeSequence(s: Pick<GameState, 'pendingCascade'>, purpose?: PendingCascade['purpose']): number {
+export function compteurDeSequence(s: Pick<Jeu, 'pendingCascade'>, purpose?: PendingCascade['purpose']): number {
   const cur = s.pendingCascade;
   const same = cur && (purpose === undefined || cur.purpose === purpose) ? cur : null;
   const p = purpose ?? same?.purpose ?? cur?.purpose;
@@ -1095,7 +1095,7 @@ export function compteurDeSequence(s: Pick<GameState, 'pendingCascade'>, purpose
  *
  *  L'invariant de possession de bande (`assertBandeDeclarePossession`, ci-dessous) s'applique à l'APPEND
  *  comme à l'ouverture : une bande sans possession glissée par cette voie échapperait sinon à la garde. */
-export function pushStep(set: Set, step: CascadeStep | ((index: number) => CascadeStep | undefined), purpose: PendingCascade['purpose'] | ((s: GameState) => PendingCascade['purpose'])): void {
+export function pushStep(set: Set, step: CascadeStep | ((index: number) => CascadeStep | undefined), purpose: PendingCascade['purpose'] | ((s: Jeu) => PendingCascade['purpose'])): void {
   set((s) => {
     const p = typeof purpose === 'function' ? purpose(s) : purpose;
     const cur = s.pendingCascade;

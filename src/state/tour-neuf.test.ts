@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
 import { advanceTurn, etatDeTourNeuf } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';

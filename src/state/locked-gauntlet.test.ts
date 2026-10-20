@@ -6,7 +6,8 @@
  * lue génériquement (aucun code par nom dans le moteur).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useGame, type BattleState } from './store';
+import { useGame } from './store';
+import type { BattleState } from '../noyau/etat';
 import { applyBladeTrap } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import type { BladeTrapFreeze } from '../noyau/pendings';

@@ -7,7 +7,7 @@ import { cloisons, piece } from '../../state/pieces.fixture';
 import { METRES_PER_LEVEL, STEP_MAX_M } from '../../noyau/monde/relief';
 import { buildScene } from '../../noyau/mapSpec';
 import type { Combatant } from '../../engine/types';
-import type { BattleState } from '../../state/store';
+import type { BattleState } from '../../noyau/etat';
 import { poseFromDims } from './projection';
 import { projeterAretes } from './aretesProjetees';
 import { resoudrePixel, type CadreDePick, type EtatDePick } from './pickResolve';
