@@ -1,0 +1,10 @@
+import { useGame } from '/home/user/game/src/state/store';
+import { initialFields } from '/home/user/game/src/state/stateFields';
+const s = useGame.getInitialState() as any;
+const fields = Object.keys(s).filter(k => typeof s[k] !== 'function');
+const sf = Object.keys(initialFields());
+console.log('champs init', fields.length, 'dont stateFields', sf.length);
+const UI = 'zoom povActive camRot camEdge camPan viewMode debugLabels debugRoofCut reveler inspectId sheetId sheetTab sheetScroll sheetAlarmsSeen hoverCombatantId hovered hoverDelta keyOverrides editingHeroId gameMenuOpen codexOverlay compendiumFocus compendiumReturn possessionsScreen combatCursor'.split(' ');
+console.log('UI absents', UI.filter(k => !fields.includes(k)));
+console.log('jeu', fields.filter(k => !UI.includes(k)).length);
+console.log('stateFields UI', sf.filter(k => UI.includes(k)));

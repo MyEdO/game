@@ -5,8 +5,8 @@
 //    doMock/importActual/importMock/unmock, require) qui vise un fichier déplacé, ou qui part d'un fichier
 //    déplacé, dans src/, scripts/, server/src et les fichiers de config de la racine ; garde la forme
 //    (alias `@/`, extension présente ou non, `./` initial) ;
-// 3. repointe les chemins littéraux `src/<ancien>[.ts]` dans les fichiers texte hors docs/plans/ et
-//    hors .git.
+// 3. repointe les chemins littéraux `src/<ancien>[.ts]` dans les fichiers texte suivis, hors des quatre
+//    dossiers d'historique (`HISTORIQUE` : docs/plans/, docs/superpowers/, docs/retours/, .claude/soldes/).
 // Rend le compte des réécritures par famille.
 const ts = require('/opt/node-tools/node_modules/typescript');
 const fs = require('fs'); const path = require('path'); const cp = require('child_process');

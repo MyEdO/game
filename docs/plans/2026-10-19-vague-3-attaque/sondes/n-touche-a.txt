@@ -1,0 +1,24 @@
+N files 123
+combatEffects.ts:1543 ACT:setEditingHero,ACT:setScreen | apply: (_e, env) => { env.get().setEditingHero(null); env.get().setScreen('creator'); }, // assistant existant
+combatFlow.ts:7292 FLD:combatCursor | if (get().combatCursor) set({ combatCursor: null }); // fin de combat : plus de navigation au curseur
+combatFlow.ts:7484 FLD:combatCursor | if (get().combatCursor) set({ combatCursor: null }); // le curseur clavier/manette appartient au tour qui s'ac
+combatSlice.ts:110 FLD:combatCursor | import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent, type ScreenDir } from './
+combatSlice.ts:964 FLD:hoverDelta | set({ battle: { ...battle, preview: null }, hoverDelta: null });
+combatSlice.ts:995 FLD:hoverDelta | set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost
+combatSlice.ts:1005 FLD:hoverDelta | set({ battle: { ...battle, preview: { kind: 'move', tile: { ...dest }, path: movement.path, cost: movement.cos
+combatSlice.ts:1029 FLD:hoverDelta | set({ battle: { ...battle, moveSnapshot: snapshot, movementUsed: (battle.movementUsed ?? 0) + movement.cost, m
+combatSlice.ts:1063 FLD:camRot,FLD:viewMode,FLD:camEdge | const { battle, scene, camRot, viewMode, camEdge } = get();
+combatSlice.ts:1067 FLD:camRot,FLD:viewMode,FLD:camEdge | const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDe
+combatSlice.ts:1073 FLD:combatCursor | const next = nextCaseCursorTile(scene, get().combatCursor?.tile ?? null, dir, dims, owner.pos, valid);
+combatSlice.ts:1074 FLD:combatCursor | if (next) set({ combatCursor: { tile: next } });
+combatSlice.ts:1077 FLD:combatCursor | set({ combatCursor: { tile: nextCursorTile(scene, get().combatCursor, dir, dims, owner.pos) } });
+combatSlice.ts:1080 FLD:combatCursor | const cur = get().combatCursor?.snappedId ?? null;
+combatSlice.ts:1082 FLD:combatCursor | if (tgt?.pos) set({ combatCursor: { tile: { ...tgt.pos }, snappedId: tgt.id } });
+combatSlice.ts:1086 FLD:combatCursor | const cur = s.combatCursor;
+combatSlice.ts:1114 FLD:combatCursor | if (get().combatCursor) set({ combatCursor: null });
+combatSlice.ts:1124 FLD:combatCursor | set({ preemptAiming: null, combatCursor: null }); // désarme + retire le curseur clavier avant d'ouvrir la mod
+combatSlice.ts:1322 FLD:hoverDelta | set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), des
+combatSlice.ts:1328 FLD:hoverDelta | set({ pendingRun: null, hoverDelta: null });
+combatSlice.ts:1371 FLD:hoverDelta | runCancel: () => set({ pendingRun: null, hoverDelta: null }),
+exploreNav.ts:7 FLD:combatCursor | import { screenStepDot, type ScreenDir } from './combatCursor';
+stateFields.ts:49 FLD:hoverDelta | hoverDelta: { init: null, resetOn: [] },
