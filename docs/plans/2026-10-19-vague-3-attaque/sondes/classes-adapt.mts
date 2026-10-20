@@ -1,0 +1,13 @@
+import { GUEST_INTENTS, CLASSE_DES_ACTIONS } from '/home/user/game/src/state/intents';
+import { useGame } from '/home/user/game/src/state/store';
+const A = ['rotateCam','setZoom','setCamPan','resetCamPan','toggleViewMode','togglePov','setReveler','setInspectId','setSheetId','setSheetTab','setSheetScroll','setSheetAlarmsSeen','setHoverCombatant','setHovered','setKeyBinding','resetKeyBindings','setScreen','setEditingHero','openCodex','closeCodexOverlay','openPossessionsScreen','closePossessionsScreen','setGameMenu','netHostStart','netJoin','netLeave','netAssign','setGmSeat','netAssignSlot','saveGame','autoSave','loadGame','importGame','stepPartyDir','moveCursor','snapCursorToTarget','commitCursor','clearCursor'];
+const C = CLASSE_DES_ACTIONS as Record<string,string>;
+const s = useGame.getState() as Record<string, unknown>;
+console.log('adapt', A.length, 'absent du store', A.filter(a => typeof s[a] !== 'function'));
+console.log('classes', A.map(a => `${a}:${C[a] ?? '∅'}`).join(' '));
+console.log('adapt dans GUEST_INTENTS', A.filter(a => GUEST_INTENTS.has(a)));
+const actions = Object.keys(s).filter(k => typeof s[k] === 'function');
+console.log('actions du store', actions.length, 'CLASSE', Object.keys(C).length, 'GUEST', GUEST_INTENTS.size);
+console.log('GUEST hors actions du store', [...GUEST_INTENTS].filter(g => typeof s[g] !== 'function').length);
+const champs = Object.keys(useGame.getInitialState()).filter(k => typeof (useGame.getInitialState() as any)[k] !== 'function');
+console.log('champs init', champs.length);

@@ -1,4 +1,4 @@
-# Vagues 3 et 4 (#2817, #2889) : l'orchestration au noyau — paragraphe de design v7 (2026-10-20)
+# Vagues 3 et 4 (#2817, #2889) : l'orchestration au noyau — paragraphe de design v7.1 (2026-10-20)
 
 Épique #2882 (« Restructuration : des couches à frontières tenues, un noyau de règles appelable par tout
 hôte »), plan `docs/plans/2026-10-19-restructuration.md`. Historique : v1 (`23e511c12`) REJETÉE
@@ -6,7 +6,9 @@ hôte »), plan `docs/plans/2026-10-19-restructuration.md`. Historique : v1 (`23
 6 majeurs, 7 mineurs) ; v3 (`662e46556`) REJETÉE (`verdict-du-juge-v3.md`, 1 bloquant, 4 majeurs,
 9 mineurs) ; v4 (`7a6a1e57b`) REJETÉE (`verdict-du-juge-v4.md`, 0 bloquant, 6 majeurs, 13 mineurs) ;
 v5 (`7e5d77832`) REJETÉE (`verdict-du-juge-v5.md`, 0 bloquant, 3 majeurs, 12 mineurs) ; v6
-(`590600539`) REJETÉE (`verdict-du-juge-v6.md`, 0 bloquant, 4 majeurs, 11 mineurs). Les six juges ont
+(`590600539`) REJETÉE (`verdict-du-juge-v6.md`, 0 bloquant, 4 majeurs, 11 mineurs) ; v7 (`63b132599`)
+ACCEPTÉE AVEC CORRECTIONS (`verdict-du-juge-v7.md`, 0 bloquant, 0 majeur, 12 mineurs), corrigée ici
+(v7.1, §5). Les six premiers juges ont
 gardé la méthode ; les juges v5 et v6 ont validé ses mécanismes (péremption du curseur, verdict du siège
 qui agit, horloge, transition du jeu, tables posées, motif hors store, tables tirables en accesseurs).
 
@@ -24,7 +26,7 @@ coop à deux sièges :
 
 La vague 3 ne change donc pas ce qui voyage : le snapshot et la save restent ceux d'aujourd'hui, que
 l'adaptateur compose à partir de l'état ENTIER du store (`netFlow`, `saves`, dans A). Ce qu'elle
-change, c'est où vivent les règles et les types. Les mesures du v4 au v6 sur le snapshot (`snapshot-invite`,
+change, c'est où vivent les règles et les types, plus cinq valeurs délibérées que H-e énumère. Les mesures du v4 au v6 sur le snapshot (`snapshot-invite`,
 `invite-salon`, `save-net`, `net-leave`, `rang-entree`) sont collées à #1987, où elles servent. Les
 principes de la v7 :
 - une règle que le propriétaire de l'état déclenche (écouteur, abonnement, verbe de clôture) est une
@@ -49,7 +51,8 @@ Sondes rejouables, dans `sondes/` :
   `champs-init.mts`, `icon-probe.mjs` (juge v4) ;
 - `invite-salon.mts`, `lecteurs-ecran.sh`, `reexports.cjs`, `reexports-noyau.cjs`, `toplevel-refs.cjs`,
   `init-calls.cjs` (juge v5) ; `reexports-src.cjs`, `save-net.mts`, `net-leave.mts`, `rang-entree.mts`,
-  `chargement-entree.mts`, `peremption-ecran.mts` (juge v6) ;
+  `chargement-entree.mts`, `peremption-ecran.mts` (juge v6) ; `touche-chargement.mts`, `crampes-dr0.mts`,
+  `remise-entree.mts`, `ui-grep.cjs`, `coupe-types.cjs`, `classes-adapt.mts` (juge v7) ;
 - `classes.mts`, `storeparts.cjs`, `premier-niveau.cjs` (inventaire de TOUT le premier niveau d'un
   module, M3 v4) ;
 - `inscriptions.tsv` (inscriptions de registre et poses de crochet dans les tests ; la commande
@@ -223,7 +226,12 @@ l'hôte (`snapshot-invite.mts`). La vague n'y touche pas (en-tête). Un défaut 
 périmètre, parce que 3c réécrit la remise à neuf de `startScene` : celle-ci remet `keyOverrides` à sa
 valeur de CRÉATION du store (`loadKeyOverrides()`, `store.ts:2085`), si bien qu'une touche reliée
 pendant la session revient à l'ancienne au lancement d'une partie alors que `localStorage` porte la
-neuve (`setKeyBinding`, `store.ts:2086`) ; D5 le corrige.
+neuve (`setKeyBinding`, `store.ts:2086`). La classe a deux autres sites : le chargement
+(`applyLoadedSave`, `store.ts:94-109`, qui part de `getInitialState()` puis de `save.data.keyOverrides`)
+et le snapshot chez l'invité (`applyNetSnapshot`, `netFlow.ts:160-166`) ; sonde `touche-chargement.mts`
+(juge v7) : `après importGame (chargement) : cam-left = KeyA | reliée = KeyZ`. D5 corrige
+`startScene` et le chargement, qui sont dans le périmètre sans toucher le format ; le site de l'invité
+est #1987, à qui `keyOverrides` est versé comme candidat par siège.
 
 **Les écrans** : `SCREENS` (`store.ts:196`) a 12 valeurs, dans un seul champ `screen`, partagé avec la
 table (il voyage). Les règles et les flux en posent cinq : `menu` (défaite, `store.ts:2853` ;
@@ -316,7 +324,7 @@ baril, ne garde que ses déclarations. La classe reçoit sa garde mécanique en 
 (`scripts/guards/lib/reexportations.mjs`, l'AST de `reexports-src.cjs` promu) sur TOUT `src`, parce
 qu'une purge sans garde se défait au lot suivant (credo) : `src/noyau` hors `index.ts` et `src/state`
 à zéro, et les 105 réexportations des autres dossiers (`data` 11, `engine` 16, `gameIso` 66, `scenes`
-1, `ui` 11, `reexports-src.cjs` à `cf4f18bcf`) en stock nominatif, qui ne peut que décroître.
+1, `ui` 11, `reexports-src.cjs` à `cf4f18bcf`) en stock nominatif, qui ne peut que décroître et que vide la vague 7, solde de l'épique #2882.
 **Un seul échafaudage, nommé et borné** : de 3b à 3d, l'inscription à l'import que portait le baril
 (`combatFlow.ts:281, 283, 286`, et les modules qu'il importait pour leur effet) tient par des imports
 explicites `import './x'` dans `store.ts`, dans l'ordre exact où le baril les importait ; 3d les retire
@@ -366,7 +374,10 @@ Conséquences :
   lit pour la possession ; les types du premier niveau de `store.ts` rangés N au §1 aussi ;
 - `screen` reste UN champ, partagé avec la table comme aujourd'hui, typé par `Ecran`, l'union des 12 ids
   de `SCREENS` (`store.ts:196`), qui déménage au noyau : c'est une liste d'ids, comme `IconId` (D6), et
-  le noyau en lit et en pose (§1). Rien ne change pour ses lecteurs (`App.tsx`, `keybindings.ts`,
+  le noyau en lit et en pose (§1). L'union porte aussi des ids de vue de client et d'outillage
+  (`editor`, `gallery`, `webglSpike`, `compendium`, `coop`, `test`), parce que `screen` mêle
+  aujourd'hui la phase de la table et la vue d'un client : c'est l'exception assumée au deuxième
+  principe de l'en-tête, que lève la frontière de #1987 ; Rien ne change pour ses lecteurs (`App.tsx`, `keybindings.ts`,
   `music.ts`, `devtools.ts`, le kit de recette) ;
 - `etatInitialDuJeu(): EtatDeJeu`, valeurs initiales des 125 champs (le littéral de `create` pour ses
   champs de jeu, plus `initialFields()` du manifeste `stateFields` ; ses initialiseurs non littéraux,
@@ -379,8 +390,9 @@ Conséquences :
   `:277`, `:288`) ; `useStagePointer` garde la cadence de la marche et appelle ces deux actions ;
   toutes créées par des fabriques du noyau `(get, set) => actions` (la forme de `createCombatSlice`).
   Leur classe coop est celle de `moveParty`, `interne`, avec la même conduite qu'aujourd'hui (le geste
-  joue chez le client qui l'émet) : le sort des gestes d'exploration de l'invité est #2895, qui
-  tranche la classe de toute la marche ;
+  joue chez le client qui l'émet) : le sort de ces gestes chez l'invité est #2895, qui
+  tranche la classe de toute la marche et de la porte, en exploration comme en combat
+  (`useStagePointer.ts:274-281`, étendu le 2026-10-20) ;
 - `Jeu = EtatDeJeu & ActionsDuNoyau` ; `Get = () => Jeu`, `Set`, `PatchDeFlux`, `RemplacerLEtat`
   (`flowTypes.ts` va au noyau, typé sur `Jeu`).
 
@@ -394,14 +406,17 @@ ou appelle une action d'adaptateur. Le snapshot coop et la save ne changent pas 
 `applyLoadedSave` (A) garde son corps (§1, en-tête). Les accès du §1 se coupent ainsi :
 - `combatCursor` : la règle de péremption de D4 ;
 - `hoverDelta` : supprimé en 3a, avec son effet d'écriture (`useHoverTargeting.ts:202-219`), ses sept
-  remises, sa déclaration, son entrée de manifeste, ses tests et son crédit du cliquet `set-scan-guard`
+  remises, sa déclaration, son entrée de manifeste, ses tests et fixtures (22 occurrences dans 4
+  fichiers de test, dont `ui/determination-reachability.test.tsx:49`) et son crédit du cliquet `set-scan-guard`
   (l'entrée « +4 resets ad hoc (#1135) » des lignes `:46-54`) ;
 - `startScene` repart d'`etatInitialDuJeu()` et ne garde que `screen`, `party` et `net` ; il ne lit
   plus aucun champ d'interface ;
-- entrée en scène : `transitionTo` émet `EVT.SCENE_ENTREE { sceneId, neuve: false }` à la place de
+- entrée en scène : `transitionTo` émet `EVT.ARRIVEE_EN_SCENE { sceneId, neuve: false }` à la place de
   `get().autoSave()` (`store.ts:2407`, son unique appel), donc après `advanceTime` et avant
   `openEncounterPsych` (le point de reprise précède la rencontre) ; `startScene` l'émet avec
-  `neuve: true` après sa remise à neuf. Tout se joue dans la même pile synchrone, avant la prochaine
+  `neuve: true` à la place de `resetStageGestes()` (`store.ts:2305`), juste après le `set` de remise,
+  donc avant `seedStartingPossessions`, `SCENE_DIRTY`, `openEncounterPsych` et `pushReveal`
+  (`:2311-2318`). Tout se joue dans la même pile synchrone, avant la prochaine
   image (la caméra se calcule une fois par image, `.claude/rules/rendu-et-rig.md`). L'écouteur de
   l'adaptateur appelle `remettreLAdaptateur(neuve)`, puis sauvegarde sur `neuve: false` (`autoSave`,
   qui exclut déjà l'invité, `store.ts:2222`). Chez l'invité, rien ne change : le snapshot lui porte
@@ -414,6 +429,8 @@ ou appelle une action d'adaptateur. Le snapshot coop et la save ne changent pas 
   - gardés : `camRot`, `zoom`, `viewMode`, `povActive` (comme `startScene`, `store.ts:2287`) et
     `keyOverrides` (préférence ; corrige le défaut du §1, avec un test : une touche reliée puis une
     partie lancée, la touche tient) ;
+- `applyLoadedSave` (A) garde la valeur courante de `keyOverrides`, comme il garde `net`
+  (`store.ts:109`) ; test : une touche reliée après une save survit à `importGame` ;
 - `combatEffects.ts:1543` (« nouveau héros ») émet `EVT.HEROS_A_CREER` ; l'adaptateur ouvre le créateur
   (`setEditingHero(null)`, `setScreen('creator')`).
 
@@ -425,7 +442,7 @@ alias de `track`, d'où une seule paire), et `persisterLeHeros(heros)` (`partyFl
 création du store et relaie vers `web/minuteries` et `roster` ; un appel sans plateforme posée LÈVE. Le
 reste :
 - le bus (`state/bus.ts`, émetteur pur) déménage au noyau tel quel (fait, `5168069cd`) ; ses
-  événement neuf (`HEROS_A_CREER`) naît en 3c avec son émetteur ;
+  deux événements neufs (`ARRIVEE_EN_SCENE`, `HEROS_A_CREER`) naissent en 3c avec leurs émetteurs ;
 - `campaignData` : ses résolveurs prennent le narratif en argument, sur le patron qui existe déjà,
   `presetDuNarratif` (`campaignData.ts:42`) ; ils passent dans N avec `mergeCreatureProfile` et
   `nomDePreset`. Les sites appelants (~25, dont `nomDEntite(ent, presetPnjById)`) passent
@@ -443,8 +460,11 @@ reste :
   `ui/icons/_registry.generated.ts`. L'outillage (m12 v5) : une option générale `idUnion.out` de la
   cible (`cibles-registres.mjs:292-299`), qui vaut pour toute cible et sans cas propre aux icônes, et que
   `gen-registry.mjs:123-131` honore ; `scripts/docs/build-icones.mjs:47-52` et
-  `build-icones.test.mjs:12-23` lisent l'union à son fichier neuf ; ce test, qui mute en place la
-  cible partagée, passe désormais sa cible en argument à `gen-registry` (m10 v6). `MANEUVER_ICON` et `REVEAL_ICON` gardent leur type
+  `build-icones.test.mjs:12-23` lisent l'union à son fichier neuf. Ce test mute en place l'entrée
+  `ICON_FAMILIES` de `REGISTRIES` puis appelle `rendre()` (`build-icones.mjs:140-145`) : `rendre`
+  prend son entrée en paramètre, `rendre(entree = REGISTRIES.find(…))`, dont le défaut garde le
+  contrat sans argument de `GENERATORS` (`build-icones.mjs:421-422`, `build-all.mjs:224`), et le
+  test passe une entrée de fixture (m10 v6, m4 v7). `MANEUVER_ICON` et `REVEAL_ICON` gardent leur type
   `Record<…, IconId>` : toute table d'icônes du noyau reste contrôlée par le compilateur, quelle que soit
   sa clé ;
 - `setAiTrace` (`ai.ts:62`) reste avec `ai.ts` dans N ; `devtools` (A) l'appelle, arc A → N ouvert.
@@ -463,7 +483,13 @@ est une fonction du noyau, et chaque propriétaire (le store web, la partie de D
   (`delayed-effect-absolute.test.ts:72-86`, `determination-conscience.test.ts:116-125`) appellent la
   primitive. Les sept émetteurs (`advanceTime`, `store.ts:3169` ; `restFlow.ts:190, 517` ;
   `seaVoyageFlow.ts:1585` ; `travelFlow.ts:577, 826, 1452`) l'appellent ; les deux écouteurs
-  disparaissent. #668 (« Échéancier narratif ABSOLU ») garde sa couture unique, sans capture.
+  disparaissent. #668 (« Échéancier narratif ABSOLU ») garde sa couture unique, sans capture, et
+  STRUCTURELLE : la garde `scripts/guards/lib/emission-horloge.mjs` n'admet qu'un site
+  `emit(EVT.TIME_ADVANCED`, celui de la primitive, si bien qu'une émission directe ne passe plus
+  en silence. Un test par chemin réel (repos `restFlow`, voyage `travelFlow`, mer `seaVoyageFlow`)
+  arme une échéance, avance le temps par le flux, et asserte qu'elle tire. Les commentaires qui
+  décrivent l'abonné (`noyau/pendings.ts:1670`, `upkeep.ts:22, 59, 101, 106`) se réécrivent dans le
+  lot.
 - **La transition du jeu** : `transitionDuJeu(prev, s): Partial<EtatDeJeu> | null` porte la
   réconciliation de l'occupation (`releaseRecomposedRanks`, `store.ts:3315-3321`, sa réentrance
   structurelle comprise). Le store l'applique par son UNIQUE `useGame.subscribe` (A), qui applique
@@ -504,11 +530,14 @@ save et du snapshot ne change pas dans la vague (en-tête) : la partie ne le lit
 - **Le siège** (M6 v4) : le corps d'`applyIntent` (`netFlow.ts:259-275`) devient UNE fonction du noyau,
   `appliquerLIntentionDUnSiege(get, siege, action, args)` : l'allowlist `GUEST_INTENTS`, puis la
   possession par `intentAllowedFor`, deux contrôles distincts, avec la conduite d'aujourd'hui : hors
-  allowlist, l'intention est ignorée en silence ; hors possession, le refus va au journal
-  (`coop.intentRefused`), et son affichage chez l'invité est #1502 ; puis la réécriture du siège de `partyAddHero`/`partyReplaceHero`, puis
+  allowlist, l'intention est ignorée en silence (aucun effet, aucune ligne de journal, contrat de
+  `session.test.ts:46-51` rejoué sur la fonction) ; hors possession, le refus va au journal
+  (`coop.intentRefused`), et son affichage chez l'invité est #1502. Le libellé, qui montre au joueur
+  l'id brut de l'action (« Action réseau refusée ({action}) », `fr.ts:2315`), se réécrit dans le lot en
+  libellé joueur sans id (« Action refusée : ce personnage n'est pas le vôtre. ») ; puis la réécriture du siège de `partyAddHero`/`partyReplaceHero`, puis
   l'action sous `withActingSeat`. `netFlow` (hôte web) et `envoyer` (intention avec `siege`)
   l'appellent ; `HostSession` perd son option `allow` (`net/session.ts:27, 64`), parce que le point
-  d'entrée des intentions devient unique. `net/session.test.ts:24, 46-51` et `net/relay.test.ts:70`
+  d'entrée des intentions devient unique. `net/session.test.ts:24, 46-51, 142` et `net/relay.test.ts:70`
   perdent `allow` ; les trois tests qui recopient le corps d'`applyIntent`
   (`guest-intent-path.test.ts:57`, `hors-modal-intent-path.test.ts:74`,
   `surface-1050-intent-path.test.ts:68`) appellent la fonction.
@@ -564,9 +593,12 @@ production. Régime des tests (inventaire `inscriptions.tsv`, 108 sites, 38 fich
   `.claude/rules/tests.md`). Une fixture qui a besoin d'un genre réel l'étale dans un objet neuf
   (`{ ...tablesDuJeu().appliers, deja: … }`), sans muter la table du jeu ;
 - un test sur un genre RÉEL asserte l'effet observable sur une fixture, sans espion ni `vi.mock` :
-  le `describe` « SEAM `onOwnTestFailed` » (`echec-sans-jet-appliers.test.ts:239-268`) porte un héros atteint des Crampes abdominales
-  (`symptoms.json`, déclencheur `onOwnTestFailed`, MSRC 16) et asserte l'effet que leur échec pose,
-  au lieu d'échanger l'émetteur (`:244-246`) ; ses genres `mono-sans-jet` et `bande-sans-jet` passent
+  le `describe` « SEAM `onOwnTestFailed` » (`echec-sans-jet-appliers.test.ts:239-268`) porte un
+  échec SANS JET, de DR 0, où les Crampes abdominales (seules sources `onOwnTestFailed` de la donnée,
+  gardées à DR −2 et moins, `symptoms.json:217-290` ; sonde `crampes-dr0.mts` : `DR 0 : lignes 0`)
+  n'observent rien. Il pose donc, par le seam d'édition `setDataset('symptoms', …)` puis restauré, un
+  symptôme de fixture à effet `onOwnTestFailed` sans seuil, et asserte l'effet que l'échec pose, au
+  lieu d'échanger l'émetteur (`:244-246`) ; ses genres `mono-sans-jet` et `bande-sans-jet` passent
   par `avecLesTables` ;
 - l'instantané des registres de `test-setup.ts:100,462,481-482` disparaît : aucune table ne change plus
   entre deux tests hors de `avecLesTables`, qui restaure.
@@ -638,11 +670,13 @@ automatique. Le contenu exact d'un lot vient de la re-mesure à sa base (H-b).
     201 actions de jeu de `store.ts` et les déclarations de premier niveau rangées N au §1 dans des
     fabriques et des modules du noyau ; `sauter` et `actionnerLaPorte` (D5).
   - `signalerLAvanceeDHorloge` et `transitionDuJeu` (D7), avec les deux tests de `TIME_ADVANCED` sur la
-    primitive ; `SCENE_ENTREE`, `remettreLAdaptateur`, `HEROS_A_CREER` (D5).
+    primitive ; `ARRIVEE_EN_SCENE`, `remettreLAdaptateur`, `HEROS_A_CREER` (D5).
   - Tests : la remise d'entrée (`startScene` remet les 17 champs et garde `camRot`, `zoom`, `viewMode`,
     `povActive` ; `transitionTo` ne remet que la caméra et les gestes, et sauvegarde chez le seul
-    propriétaire) ; une touche reliée survit à `startScene` ; le snapshot et la save d'avant et d'après
-    le lot portent les mêmes clés (`useGame.getInitialState()`, aucune clé perdue ni gagnée).
+    propriétaire, sonde `remise-entree.mts` promue) ; une touche reliée survit à `startScene` et à
+    `importGame` ; les trois tests de chemin d'horloge (D7).
+  - Sonde jouée au rendu, sans liste figée : les clés du snapshot et de la save, base contre tête ;
+    seule `hoverDelta` manque (3a).
   - Sonde d'entrée à la base du lot : un `tsc` sur `etat.ts` seul, arête retirée, avant de déplacer les
     actions. L'arête de type `noyau → state` sort de COUCHES (DoD de #2889, premier point).
   - Porte joueur au navigateur : une Course armée puis commise, une Charge, un changement de scène
@@ -659,7 +693,7 @@ automatique. Le contenu exact d'un lot vient de la re-mesure à sa base (H-b).
     (`scripts/guards/lib/racinesDeLaSuite.mjs`), sert à la fois l'exclusion de
     `EXCLUSIONS_DE_LA_SUITE` (que lisent `vite.config.ts`, les tranches de la CI `suiteVitest.mjs`,
     `scripts/test/run.mjs` par `enumerer` et la dérivation du périmètre
-    `perimetreDerivation.mjs:96,131`) et l'`include` de `vitest.noyau.config.ts` (`isolate: true`). Un fichier    `isolate: true`). Un fichier `*.hors-store.test.ts` posé hors de `src/noyau` n'est pas exclu, donc
+    `perimetreDerivation.mjs:96,131`) et l'`include` de `vitest.noyau.config.ts` (`isolate: true`). Un fichier `*.hors-store.test.ts` posé hors de `src/noyau` n'est pas exclu, donc
     joué par la suite principale : aucun orphelin possible. Les gardes de corpus de tests lisent la
     configuration dont elles gardent le régime : `tests-sans-horloge-guard` lit les deux suites,
     `vi-mock-isolate-guard` la seule suite à `isolate: false`. Un script `test:noyau`, son pas dans
@@ -698,30 +732,55 @@ re-mesure de la vague 7 confirme).
   change d'ensemble avec ses lecteurs, et la liste se corrige ici.
 - H-c : une PR 3b de l'ordre du lot 2b (1 317 fichiers) reste revuable parce qu'elle est mécanique ;
   sinon elle se scinde par composante fortement connexe du graphe de N.
-- H-e : ce qui voyage en coop ne change pas. Le snapshot et la save restent composés par l'adaptateur
-  de l'état entier du store ; la moitié d'interface qui y voyage est #1987, l'affichage du refus chez
-  l'invité #1502, les gestes d'exploration de l'invité #2895. La vague déplace le code sans changer ce
-  qu'un client voit d'un autre, ce que prouvent les tests de clés de 3c.
+- H-e : la FORME de ce qui voyage en coop ne change pas. Le snapshot et la save restent composés par
+  l'adaptateur de l'état entier du store ; la moitié d'interface qui y voyage est #1987, l'affichage du
+  refus chez l'invité #1502, les gestes de l'invité #2895. La vague change délibérément cinq VALEURS,
+  chacune avec son test :
+  - la clé `hoverDelta`, morte, quitte le snapshot et la save (3a) ;
+  - `keyOverrides` tient après `startScene` et après un chargement (D5) ;
+  - chez l'hôte, un clic exécuté au nom d'un siège ne dissout plus l'intention armée de l'hôte
+    (`consumeIntent`, `combatSlice.ts:524-528`, D4) ;
+  - le curseur de combat se périme (D4) ;
+  - `startScene` recalcule `campaignStart()` par `etatInitialDuJeu()` (`engine/clock.ts:109`), là où il
+    repart aujourd'hui de la valeur figée à la création du store (`store.ts:2290`).
 
-## 5. Réponses au verdict v6
+## 5. Réponses aux verdicts v6 et v7
 
-Les réponses aux verdicts v4 et v5 sont dans la v5 (`7e5d77832`) et la v6 (`590600539`), §5. Le verdict
-v6 est `verdict-du-juge-v6.md`.
+Les réponses aux verdicts v4 et v5 sont dans la v5 (`7e5d77832`) et la v6 (`590600539`), §5.
+
+**Verdict v6** (`verdict-du-juge-v6.md`) :
 
 | Point | Réponse |
 |---|---|
-| M1 save et `net` | Sans objet : `net` reste entier, la save et le chargement ne changent pas (en-tête, D5). |
-| M2 rang d'entrée | Sans objet : plus de compteur d'entrée ; `SCENE_ENTREE` s'émet chez le propriétaire, dans la pile de `transitionTo` et de `startScene` (D5), et l'invité reçoit la vue par le snapshot comme aujourd'hui. |
-| M3 refus invisible | Sans objet : le refus d'un siège garde la conduite d'aujourd'hui (D9) ; son affichage chez l'invité est #1502. |
-| M4 `netLeave` et fixtures | Sans objet : `net` n'est pas scindé (D5). |
-| m1 compte des champs | Sans objet : 125 champs de jeu, `net` compris ; 24 champs d'interface (§1). |
-| m2 `connection`, `hostAway` | Restent dans `NetState`, au noyau avec lui (D5). |
-| m3 tests d'écran | Sans objet : `screen` reste un champ unique (D5). |
-| m4, m5 marche et porte de l'invité | #2895 ; `sauter` et `actionnerLaPorte` gardent la conduite de `moveParty` (D5). |
-| m6 intention hors allowlist | Silencieuse comme aujourd'hui, sans clé de message neuve (D9). |
-| m7 écran du créateur | Sans objet : `setScreen('creator')` reste l'écran partagé, posé par l'adaptateur sur `HEROS_A_CREER` (D5). |
+| M1 save et `net` | Sans objet : `net` reste entier, la save et le chargement ne changent pas de forme (en-tête, D5). |
+| M2 rang d'`entreeEnScene` | Sans objet : plus de compteur d'entrée ; `ARRIVEE_EN_SCENE` s'émet chez le propriétaire, dans la pile de `transitionTo` et de `startScene` (D5). |
+| M3 refus visible | Sans objet : le refus d'un siège garde la conduite d'aujourd'hui (D9) ; son affichage au siège demandeur est #1502. |
+| M4 `net` scindé, `netLeave` | Sans objet : `net` n'est pas scindé. |
+| m1 90 lecteurs de l'écran | Sans objet : `screen` reste un champ unique, ses lecteurs ne changent pas. |
+| m2 `reseauDuClient` | Sans objet : `net` reste entier dans `NetState`. |
+| m3 tests d'écran | Sans objet : aucun écran de client. |
+| m4, m5 `sauter`, `actionnerLaPorte` | #2895, porte en combat comprise ; la conduite de `moveParty` est gardée (D5). |
+| m6 hors allowlist au journal | Silencieuse comme aujourd'hui (D9) ; le libellé de refus de possession devient un libellé joueur. |
+| m7 preuve d'`ecrireLeClient` | Sans objet : plus d'`ecrireLeClient`. |
 | m8 gel du catalogue | 3e : `setupFiles` minimal qui importe `./data/overrides`. |
-| m9 portée de la garde | D2 : `reexportations.mjs` sur tout `src`, zéro sous `src/noyau` (hors `index.ts`) et `src/state`, stock nominal décroissant ailleurs. |
-| m10 `build-icones.test.mjs` | D6 : la cible passe en argument, plus de mutation en place. |
-| m11 commentaire de l'arbitre | Sans objet : l'écran du compendium reste partagé, `modalArbiter.ts:313-317` reste vrai. |
-| Non vérifiés | D8 : défauts `= defaultRNG` re-mesurés en 3h ; `poc/godot` : 3e ; ordre d'inscription : preuve de 3b. |
+| m9 portée de la garde | D2 : `reexportations.mjs` sur tout `src`. |
+| m10 `build-icones.test.mjs` | D6 : `rendre(entree)` (voir m4 v7). |
+| m11 nom `entreeEnScene` | L'événement s'appelle `ARRIVEE_EN_SCENE`, distinct du module `state/entreeEnScene.ts` (voile de rendu). |
+
+**Verdict v7** (`verdict-du-juge-v7.md`, ACCEPTÉ AVEC CORRECTIONS) :
+
+| Point | Correction |
+|---|---|
+| m1 classe des touches | §1, D5 : `applyLoadedSave` garde `keyOverrides`, avec un test ; l'invité versé à #1987. |
+| m2 valeurs qui changent | En-tête et H-e : cinq valeurs délibérées énumérées ; le test de clés devient une sonde jouée au rendu de 3c. |
+| m3 Crampes à DR 0 | D10 : symptôme de fixture sans seuil posé par `setDataset`, restauré. |
+| m4 `build-icones` | D6 : `rendre(entree = …)`, défaut du contrat de `GENERATORS`. |
+| m5 tableau v6 | Réaligné ci-dessus ; événement renommé `ARRIVEE_EN_SCENE`. |
+| m6 horloge structurelle | D7 : garde `emission-horloge.mjs`, trois tests de chemin, cinq commentaires réécrits. |
+| m7 libellé de refus | D9 : libellé joueur sans id, réécrit dans le lot. |
+| m8 porte en combat | D5 : #2895 étendu à la porte en combat (commentaire du 2026-10-20). |
+| m9 inventaire de purge | D5 : fixtures de `hoverDelta` nommées ; D9 : `session.test.ts:142`, contrat hors allowlist rejoué. |
+| m10 point d'émission | D5 : à la place de `resetStageGestes()` (`store.ts:2305`). |
+| m11 `Ecran` au noyau | D5 : exception assumée au deuxième principe, levée par #1987. |
+| m12 rédaction | Fragment retiré ; « deux événements neufs » ; le stock de réexportations vidé par la vague 7. |
+| Non vérifiés | Les gardes de corpus de 3e se jouent sur la tête de 3e avec une fixture `*.hors-store.test.ts` ; `derived-conditions.test.ts:268-279` échange et restaure le crochet du moteur comme aujourd'hui : la levée de `brancherLeJeu` lit un drapeau du noyau, non ce crochet, si bien que l'échange ne la déclenche pas. |
