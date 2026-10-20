@@ -17,12 +17,12 @@ import { activityStakeRef } from '../data';
 import { activityById } from '../engine/activities';
 import { applyOps, type GameOp } from '../engine/ops';
 import { openPartyTest, freeCons } from './rollSeam';
-import { registerCascadeApplier } from './cascade';
 import { generateTradeRumour } from './landMarketFlow';
 import { placeOfScene } from './worldMap';
 import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 const ACTIVITY_ID = 'recueillir-informations';
 const INN_GOSSIP_KIND = 'inn-gather-info';
@@ -46,27 +46,35 @@ export function gatherInnInfo(get: Get, set: Set): void {
   }, INN_GOSSIP_KIND, {});
 }
 
-registerCascadeApplier(INN_GOSSIP_KIND, (get, set, step, hero) => {
-  get().advanceTime(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
-  if (step.result?.success) {
-    const placeId = placeOfScene(get().worldMap, get().scene?.id)?.id ?? '';
-    generateTradeRumour(get, set, placeId, battleRng());
-    return {};
-  }
-  const def = activityById(ACTIVITY_ID);
-  // EDOC 8 l.153 : aucune rumeur récoltée — branche d'ÉCHEC (#349, dette 1 : ton dérivé, pas une chaîne muette).
-  const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'bad' }]);
-  if (def?.failExtenue && hero) {
-    const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
-    applyOps(hero, [op], { source: { kind: 'activity', id: ACTIVITY_ID } });
-    set({ party: [...get().party] });
-    cons.push({ ops: [op] });
-  }
-  return { consequences: cons };
-});
-
 export function creerActionsDeLAuberge(get: Get, set: Set) {
   return {
     gatherInnInfo: () => gatherInnInfo(get, set),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [INN_GOSSIP_KIND] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    [INN_GOSSIP_KIND]: (get, set, step, hero) => {
+      get().advanceTime(innGatherInfoMinutes()); // « tout est horodaté » : quelle que soit l'issue
+      if (step.result?.success) {
+        const placeId = placeOfScene(get().worldMap, get().scene?.id)?.id ?? '';
+        generateTradeRumour(get, set, placeId, battleRng());
+        return {};
+      }
+      const def = activityById(ACTIVITY_ID);
+      // EDOC 8 l.153 : aucune rumeur récoltée — branche d'ÉCHEC (#349, dette 1 : ton dérivé, pas une chaîne muette).
+      const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'bad' }]);
+      if (def?.failExtenue && hero) {
+        const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
+        applyOps(hero, [op], { source: { kind: 'activity', id: ACTIVITY_ID } });
+        set({ party: [...get().party] });
+        cons.push({ ops: [op] });
+      }
+      return { consequences: cons };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

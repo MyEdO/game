@@ -29,7 +29,6 @@ import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
-import '../noyau/combat/triggeredTest';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;

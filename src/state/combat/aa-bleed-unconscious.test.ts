@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import '../../noyau/combatFlow'; // effet de bord : enregistre les hooks de fin de Round (dont `aa-bleed-unconscious`)
 import { runCombatHooks, type CombatHookCtx } from '../../noyau/combatHooks';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';

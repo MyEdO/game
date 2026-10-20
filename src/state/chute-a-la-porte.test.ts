@@ -14,9 +14,8 @@ import { cleActionJouee } from '../noyau/monde/usable';
 import { ouvrirDialogue } from '../noyau/dialogue';
 import { runCombatFlow, bandeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { seedBattleRng } from '../noyau/battleRng';
-import '../noyau/combatFlow'; // enregistre la clôture `reprendreFlowDeCombat`
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
-import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade, registerCascadeApplier } from '../noyau/cascade';
+import { stepInteraction, suspendActiveCascade, runCascadeImmediate, pushStep, startCascade, resolveRemainingCascade } from '../noyau/cascade';
 import { checkPartyWiped } from '../noyau/partyWipe';
 import { canFixDie } from '../noyau/netOwnership';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
@@ -31,6 +30,9 @@ import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { Flow } from '../noyau/monde/flow';
 import type { EffectOp } from '../engine/flowCore';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import type { InterruptionDePeril } from '../noyau/tablesPosees';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,
@@ -734,7 +736,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     marin(id, { kind: 'hero', wounds: { current: 190, max: 200, base: 200 } } as Partial<Combatant>);
   const route = (perils: unknown[]): MapRoute => ({ id: 'r1', perils } as unknown as MapRoute);
 
-  const monte = (perils: unknown[], interruptId: string): void => {
+  const monte = (perils: unknown[], interruptId: InterruptionDePeril): void => {
     seedBattleRng(3);
     const r = route(perils);
     useGame.setState({
@@ -752,7 +754,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     monte([
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
-    ], 'terre');
+    ], cleDeFixture('terre'));
     expect(draineCascade(useGame.getState)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
     const j = useGame.getState().journal;
     const iChute = j.findIndex((l) => l.includes('Blessure'));
@@ -771,7 +773,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     monte([
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
-    ], 'terre');
+    ], cleDeFixture('terre'));
     useGame.getState().cascadeResolveAll();
     const p = useGame.getState().pendingCascade!;
     expect(p.participants.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
@@ -797,7 +799,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     });
     useGame.getState().seedRng(7);
     const joues = runCascadeImmediate(useGame.getState, useGame.setState,
-      buildAuthorPerilSteps(r, 'Ubersreik', 'terre') as never, { title: 'Périls', purpose: 'sequence' })!;
+      buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' })!;
     expect(joues.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
     const j = useGame.getState().journal;
     expect(j.findIndex((l) => l.includes('PERIL-2')))
@@ -821,11 +823,11 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       fin: useGame.getState().journal[useGame.getState().journal.length - 1],
     });
 
-    monte(deuxChutes, 'terre');
+    monte(deuxChutes, cleDeFixture('terre'));
     draineCascade(useGame.getState);
     const interactif = etatFinal();
 
-    monte(deuxChutes, 'terre');
+    monte(deuxChutes, cleDeFixture('terre'));
     useGame.getState().cascadeResolveAll();
     const toutResoudre = etatFinal();
 
@@ -838,7 +840,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     });
     useGame.getState().seedRng(7);
     runCascadeImmediate(useGame.getState, useGame.setState,
-      buildAuthorPerilSteps(r, 'Ubersreik', 'terre') as never, { title: 'Périls', purpose: 'sequence' });
+      buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' });
     const immediat = etatFinal();
 
     expect(interactif.pv, 'les deux chutes ont encaissé').toBeLessThan(190);
@@ -1069,14 +1071,12 @@ describe('(xiii) IDENTITÉ sous RÉENTRANCE : deux compteurs vivants, aucun id e
   const fab = (set: Parameters<typeof pushStep>[0], tag: string): void =>
     pushStep(set, (index: number) => ({ id: `DE-${index}`, kind: 'x-note', label: tag } as never), 'combat');
 
-  registerCascadeApplier('x-pere', (get, set) => {
+  beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'x-pere': (get, set) => {
     fab(set, 'avant');
     runCascadeImmediate(get, set, [{ id: 'INT', kind: 'x-imm', label: 'i' }] as never, { title: 'in', purpose: 'combat' });
     fab(set, 'apres');
     return { consequences: [] };
-  });
-  registerCascadeApplier('x-imm', (_g, set) => { fab(set, 'imm'); return { consequences: [] }; });
-  registerCascadeApplier('x-note', (_g, _s, step) => { marque.push(`${step.id}/${step.label}`); return { consequences: [] }; });
+  }, 'x-imm': (_g, set) => { fab(set, 'imm'); return { consequences: [] }; }, 'x-note': (_g, _s, step) => { marque.push(`${step.id}/${step.label}`); return { consequences: [] }; } } }); });
 
   const monte = (): void => {
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null } as never);

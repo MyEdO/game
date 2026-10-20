@@ -1,7 +1,7 @@
 /**
  * Bus d'événements de combat — SOURCE UNIQUE de dispatch. À chaque moment canonique du cycle de
  * vie/combat, `emitCombatEvent(event, ctx)` :
- *   (a) joue les abonnés MACHINERIE (registre `combatHooks`, ordonnés par `order`) — règles de l'arène
+ *   (a) joue les abonnés MACHINERIE (table `crochetsDeCombat`, lue par `combatHooks`, ordonnés par `order`) — règles de l'arène
  *       qui ne nomment AUCUNE entité (tick de durées, zones, mort…) ; PUIS
  *   (b) diffuse l'événement aux TRIGGERS DE DONNÉES des entités de `audience` (`fireTriggers` →
  *       `TraitData`/`QualityData`/`Talent`/`État` `.effects`).

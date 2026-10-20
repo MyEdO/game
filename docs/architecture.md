@@ -59,7 +59,7 @@ mesure>`.
 
 Un Trigger doit fonctionner pour TOUT kind d'entité (maladie, talent, trait, sort, état, mutation)
 **sans code spécifique**. Données = `effects`/`passive` sur l'entité, dispatchées par l'unique
-`fireTriggers` ; machinerie = hooks `registerCombatHook`, règles universelles de l'arène qui ne
+`fireTriggers` ; machinerie = hooks de la table `crochetsDeCombat`, règles universelles de l'arène qui ne
 nomment AUCUNE entité. « Difficile à exprimer » n'autorise JAMAIS la machinerie : on étend le
 vocabulaire (`GameOp`, `Formula`, `Condition`). Détail et cas limites : `docs/combat-events-coherence.md` §3bis.
 

@@ -5,16 +5,12 @@ import { document } from '../grammaire/document';
 import { charKeySchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { facilitationSchema, gameOpSchema, jetSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
+import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
 
 export const file = 'tavernGames.json';
 export const famille = 'entite';
 
-/** Les effets de LANCER enregistrés (`registerSequenceThrow`, `src/noyau/sequenceCore.ts`) — ce qui
- *  indexe est le nom d'un EFFET, jamais l'identité d'une entrée de catalogue. */
-const throwEffectSchema = z.enum([
-  'dr', 'dr-ecrete', 'toute-la-reserve', 'points-de-la-ligne', 'points-de-la-ligne-suivante',
-  'chiffres-du-de', 'gain-au-choix', 'aucun-gain', 'termine-le-passage',
-]);
+const throwEffectSchema = z.enum(LANCERS);
 
 /** Le paramètre que chaque effet de Spécial exige — et lui seul. */
 const PARAMETRE_DE_L_EFFET = { cran: 'steps', difficulte: 'difficulty' } as const;
@@ -82,7 +78,7 @@ const doc = document(
     drCap: z.number().optional(),
     /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.105,
      *  `nul` Boules l.57) — consommé par `src/noyau/sequenceCore.ts` (`resolveSequenceTie`). */
-    tieBreak: z.enum(['units-lowest', 'nul']).optional(),
+    tieBreak: z.enum(DEPARTAGES).optional(),
     /** Bonus de Caractéristique ajouté au DR de chaque manche (Bras de fer l.34 : Force) — consommé
      *  par `SequenceParams.drBonus` (`src/noyau/sequenceCore.ts`). */
     drBonus: charKeySchema.optional(),
@@ -120,8 +116,8 @@ const doc = document(
       difficulty: { label: 'Difficulté' },
       combatTest: { label: 'Test de combat' },
     })).min(2).optional(),
-    /** Formule de score d'un CAMP (`registerSequenceScore` : `sum` pour une équipe, l.119). */
-    campScore: z.enum(['min', 'max', 'sum', 'first']).optional(),
+    /** Formule de score d'un CAMP (table `scoresDeSequence` : `sum` pour une équipe, l.119). */
+    campScore: z.enum(SCORES_DE_SEQUENCE).optional(),
     /** Seuil d'un acquis de manche (Middenball l.119 : but à 25 DR d'équipe). */
     scoreThreshold: z.number().optional(),
     /** Mi-temps (Middenball l.119 : deux mi-temps de trois tours). */
@@ -134,7 +130,7 @@ const doc = document(
     }), { ...metaDesChamps(plageSchema, { exigees: true }), points: { label: 'Points' }, label: { label: 'Libellé' } })).optional(),
     /** VOLÉE de lancers (famille 7 du socle) : Bête l.42, Arène l.70, Fléchettes l.97, Boules l.57.
      *  `gain`/`critique`/`maladresse`/`depassement` nomment un effet de lancer ENREGISTRÉ
-     *  (`registerSequenceThrow`, `src/noyau/sequenceCore.ts`), jamais un id de jeu. */
+     *  (table `lancers`, `src/noyau/sequenceCore.ts`), jamais un id de jeu. */
     volley: nommerChamps(z.strictObject({
       throws: z.number(),
       reserve: z.number().optional(),
@@ -258,7 +254,7 @@ const doc = document(
     specials: z.array(specialSchema).optional(),
     /** MISE / POT / ABANDON / ÉLIMINATION (Al-zahr l.17) — famille (5) du socle de séquence,
      *  consommée par `SequenceParams.pot` (`src/noyau/sequenceCore.ts`). `potEffectId` est le nom d'un
-     *  effet de pot ENREGISTRÉ (`registerSequencePotEffect`), jamais un id de jeu — la clé nomme donc
+     *  effet de pot DÉCLARÉ (table `effetsDePot`), jamais un id de jeu — la clé nomme donc
      *  ce qu'elle porte : une CLÉ DE REGISTRE, ni de la prose ni l'issue du tour. */
     pot: nommerChamps(z.strictObject({
       dice: nommerChamps(z.strictObject({ count: z.number(), faces: z.number() }), { count: { label: 'Nombre' }, faces: { label: 'Faces' } }),
@@ -268,7 +264,7 @@ const doc = document(
       roundsPerManche: z.number().optional(),
       rows: z.array(nommerChamps(z.strictObject({
         ...plageSchema.shape,
-        potEffectId: z.enum(['rafle-le-pot', 'reprend-mise', 'cible-ou-passe', 'remise-ou-abandon', 'quitte-la-manche']),
+        potEffectId: z.enum(EFFETS_DE_POT),
         /** Paramètre de l'effet : combien de mises il déplace (défaut 1). */
         mises: z.number().optional(),
         label: z.string(),

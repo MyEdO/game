@@ -15,6 +15,7 @@ import { COMBAT_INTENTS } from './intents';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 type Entry = { kind: 'mono' | 'multi'; verbs: readonly string[]; coop?: boolean; pidIsActor?: boolean };
 const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
@@ -41,7 +42,7 @@ const base = (over: Partial<GameState>): GameState =>
 const parts = [{ id: H_HOST, base: 40, target: 40, result: null }, { id: H_OWNER, base: 40, target: 40, result: null }];
 /** Cascade d'accueil des flux qui vivent en ÉTAPE (owner '*' : la modale ouvrirait TOUT à TOUS). */
 const groupCascade = {
-  pendingCascade: cascadeDeTest([{ id: 's0', kind: 'x', groupOwner: true }]),
+  pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('x'), groupOwner: true }]),
 } as unknown as Partial<GameState>;
 
 /** Un pending OUVERT par flux (les 2 héros en participants) — table totale, vérifiée ci-dessous. */

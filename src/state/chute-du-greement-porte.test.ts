@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { draineCascade } from './cascade.testkit';
 import { seedBattleRng } from '../noyau/battleRng';
 import { makePregens } from '../data/pregens';
@@ -93,7 +93,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    cascadeAppliers.triggeredBatchTest.apply(get, set, rates, undefined, { steps: [rates], index: 0 });
+    applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
 
     // #1508 : l'échec n'applique plus la chute — il OUVRE ses dés. La hauteur du gréement est un dé
     // (2d10), celle du nid-de-pie un ENTIER (aucun dé de hauteur, seuls les Dégâts se tirent) : c'est
@@ -133,7 +133,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 5, target: p.target!, success: true, sl: 3, crit: false, fumble: false },
       })),
     };
-    cascadeAppliers.triggeredBatchTest.apply(get, set, reussies, undefined, { steps: [reussies], index: 0 });
+    applierDe('triggeredBatchTest')!(get, set, reussies, undefined, { steps: [reussies], index: 0 });
     for (const h of get().party) expect(h.wounds.current, `${h.id} est tombé sur une RÉUSSITE`).toBe(h.wounds.max);
   });
 
@@ -160,7 +160,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    cascadeAppliers.triggeredBatchTest.apply(get, set, rates, undefined, { steps: [rates], index: 0 });
+    applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
     // La coque de la FILE a bien été retrouvée : sa Taille a donné le dé de hauteur (#1508 — la chute
     // s'ANNONCE au lieu de s'appliquer, et c'est ce dé qui prouve la lecture de la coque).
     const ouverte = get().pendingCascade!.participants.find((s) => s.kind === 'opsDe');
@@ -190,7 +190,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    const rendu = cascadeAppliers.triggeredBatchTest.apply(get, set, rates, undefined, { steps: [rates], index: 0 });
+    const rendu = applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
 
     const dit = JSON.stringify(rendu);
     expect(dit, `le refus n'est pas NOMMÉ : ${dit}`).toContain('n’est plus en jeu');

@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { WATER_EXPOSURE } from '../data';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { createHero } from '../engine/character';
@@ -124,7 +124,7 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
   it('échec de l\'étape → maladie contractée DIRECTEMENT (incubation normale, pas de second Test)', () => {
     const h = hero('h1');
     useGame.setState({ party: [h] });
-    const out = cascadeAppliers['waterExposure'].apply(
+    const out = applierDe('waterExposure')!(
       useGame.getState, useGame.setState,
       { id: 'w1', kind: 'waterExposure', actorId: 'h1', result: { roll: 99, target: 40, sl: -5, success: false } } as never,
       h, { steps: [], index: 0 },
@@ -136,7 +136,7 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
   it('réussite de l\'étape → rien de contracté', () => {
     const h = hero('h1');
     useGame.setState({ party: [h] });
-    cascadeAppliers['waterExposure'].apply(
+    applierDe('waterExposure')!(
       useGame.getState, useGame.setState,
       { id: 'w1', kind: 'waterExposure', actorId: 'h1', result: { roll: 3, target: 40, sl: 3, success: true } } as never,
       h, { steps: [], index: 0 },

@@ -18,17 +18,15 @@ import { rollLine, hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { toRecapLines } from './recapLine';
 import { creatureAttacks, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, freeAttackHookImpl, applyFocusInterruption, applyBladeTrap, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { defenseDodgeMods, activeCombatant, STANCE_BLOCK, applyIncomingMeleeAdvantage, firedWeapon, resolveAttack, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, disengageOutcome, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, castContextMods, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, runPreemptShots, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, cleaveTargets, dualStrikeTargets, resolveDualSecond, overcastTargetCandidates, drainerLesGratuites, aiOvercastPlan, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, castRefused, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, aiWouldPrepareSpell, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes } from './combatManeuvers';
-import { handleConditionGained, routeTriggeredTest, setFreeAttackHook, setFocusInterruptHook, setBladeTrapHook, zoneCrossTestHookImpl } from './combat/triggeredTest';
 import { resolveWeaponArea } from './combatArea';
-import { removeEntity, applyZoneCrossings, displaceSmaller, setZoneCrossTestHook } from './combatPlacement';
+import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
 import { hasBattement, hasDistraire, dualStrikeDefensePenalty } from '../engine/combatFeatures/dispatch';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { losClear } from './monde/lineOfSight';
 import { smokeOf, captureMoveSnapshot, formationDeCombat, moveEnv } from './monde/combatGeometry';
 import { discreetPrayerDifficulty } from '../engine/prayer';
-import { setTriggeredTestRouter, fireOwnTestFailed } from './triggeredEffects';
 import { emitCombatEvent } from './combatEvents';
 import { turnEconomyStamp } from './endTurnGuard';
 import { type Flow } from './monde/flow';
@@ -68,7 +66,7 @@ import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, setConditionGainedHook, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
+import { isOutOfAction, addCondition, removeCondition, hasCondition, canTakeAction, isActionLocked, stacks, recoveredStacks, COND, releaseConditionLocks, raisonRefusDetermination, fenetreDetermination, syncDerivedConditions, isConditionLocked, soinDeDetermination } from '../engine/conditions';
 import { HEAL_SKILL, availableHealModes, resolveWoundsHeal, resolveBleedHeal, resolveExtractLodgedAmmo, healDifficulty, applyHealWounds, type HealMode } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
 import { treatTrauma, receiveMedicalAid, poseDeterminationCanceller } from '../engine/trauma';
@@ -120,7 +118,7 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, setOwnTestFailedEmitter, setClotureDeCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, resolveRemainingCascade, finalizeCascade, setCascadeChoice, setCascadeAmount, rollCascadeTable, setCascadeTableForcedRoll, rollCascadeDe, setCascadeDeForcedRoll, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS } from './rollFlowSpecs';
@@ -405,117 +403,96 @@ export const DETERMINATION_CONSCIENCE_ID = 'determination-conscience';
  *  État » par point) ouvrent DEUX fenêtres — la seconde n'écrase plus la première. */
 export const determinationWindowId = (conditionId: string): string => `${DETERMINATION_CONSCIENCE_ID}:${conditionId}`;
 
+/** CLÔTURE d'une cascade — partagée par `cascadeNext` (avance) et `cascadeFinish` (« Tout résoudre »),
+ *  posée par `brancherLeJeu` pour la reprise d'une séquence parquée. Le JOUR de voyage
+ *  (`purpose:'travelDay'`) se ROUTE par domaine — fluvial (recalcul des km puis halte/arrivée) OU
+ *  terrestre (marche forcée eager/nuit + halte/arrivée) : le domaine se lit sur le plan (`river`
+ *  présent = descente fluviale), pas par deux chemins ad hoc. */
+export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof advanceCascade>): void {
+  // Une cascade de NUIT/voyage (faim, exposition, maladie) a pu anéantir tout le groupe : défaite AVANT
+  // de reprendre la route — no-op en combat (`combatEndBoundary` gère la défaite via `battle`).
+  if (done && checkPartyWiped(get, set)) return;
+  // `handled` : un dénouement a été joué (le filet `checkBattleOver` de fin ne se déclenche que pour
+  // une clôture NON routée). Deux étages, dans l'ordre historique de la chaîne :
+  //  (1) le dénouement de `purpose` — exclusif PAR CONSTRUCTION (une séquence porte UN `purpose`) ;
+  //  (2) les BORNES portées par la séquence — CUMULATIVES depuis #942 L1 : deux fragments FUSIONNÉS
+  //      (append de même `purpose`) apportent chacun sa borne ; une chaîne `else if` n'en jouait
+  //      qu'UNE et affamait les autres (ex. `maneuverResume` mangé par `roundBoundary`).
+  let handled = false;
+  // Repos MULTI-JOURS (#347) : la nuit qui vient de se clore en enchaîne une AUTRE tant qu'il en
+  // reste — AVANT le routage 'travel'/'travelHalt' (une nuit INTERMÉDIAIRE d'un séjour ne porte
+  // jamais `travelHalt`, cf. `openRestNight` — seule la DERNIÈRE nuit peut le porter).
+  if (done?.purpose === 'night' && done.restNights && done.restNights.nightsLeft > 0) { continueRestNights(get, set, done.restNights); handled = true; }
+  else if (done?.purpose === 'travel' && done.travelHalt) { travelFlow.continueTravelAfterNight(get, set); handled = true; }
+  else if (done?.purpose === 'travelDay') {
+    handled = true;
+    if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
+    else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set, done.piloteImmediat?.rowSurface === 'pv' ? done.participants : []);
+    else travelFlow.continueTravelDayAfterCascade(get, set, done);
+  }
+  // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
+  // jour (halte de nuit / arrivée), DIFFÉRÉE le temps du Test de Résistance — sinon le Repos et l'Exposition
+  // se court-circuitent et la journée suivante ne se ré-arme jamais (patron du sibling `seaScorbut`).
+  else if (done?.purpose === 'riverExposure') { continueRiverDayAfterExposure(get, set); handled = true; }
+  else if (done?.purpose === 'sequence') { closeSequenceRound(get, set, done); handled = true; } // manche de SÉQUENCE close → le socle résout puis rouvre/dénoue (noyau/sequenceCore)
+  // Entretien-survie maritime surfacé au MJ (#272 résiduel, seam #275) : la clôture enchaîne la phase suivante de la journée.
+  else if (done?.purpose === 'seaScorbut') { continueSeaDayAfterScorbut(get, set, done.participants); handled = true; }
+  else if (done?.purpose === 'seaExposure') { continueSeaDayAfterExposure(get, set, done.participants); handled = true; }
+  else if (done?.purpose === 'seaExhaustion') { continueSeaDayAfterExhaustion(get, set, done.participants); handled = true; }
+  else if (done?.purpose === 'seaActivities') { continueSeaActivitiesAfterCascade(get, set); handled = true; } // Activités en mer (#273 Étape 2) → Commerce d'opportunité séquencé puis halte
+  // Mini-cascade AUTONOME d'un événement de bord maritime (`purpose:'test'` : Cogue pirate, Ouragan,
+  // Prière d'un Présage — `resolveSeaDayEvent` a mis le jour EN ATTENTE) : sa clôture REPREND la conduite
+  // du jour. Couture GÉNÉRIQUE (toute la classe, pas seulement « fuir ») : ici `pendingCascade` est DÉJÀ
+  // null (post-`advanceCascade`), sans garde de synchronisation. Gaté sur `travelPlan.sea` : à
+  // l'accostage `travelPlan` est nul (la désertion `purpose:'test'`
+  // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` garde de son côté combat/steamSave.
+  else if (done?.purpose === 'test' && get().travelPlan?.sea) { runSeaDay(get, set); handled = true; }
+  // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
+  // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
+  // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE
+  // (la CLASSE « séquence dont la fermeture finalise une transition ») : `pendingCascade` est DÉJÀ null.
+  // INDÉPENDANTE des trois bornes de combat ci-dessous : elle se joue TOUJOURS si présente.
+  if (done?.portArrival) { finalizePortArrival(get, set, done.portArrival); handled = true; }
+  // Fin de combat : l'écran de victoire/défaite prend la main. EXCLUSION MÉTIER déclarée avec les deux
+  // bornes suivantes (jamais un accident de chaîne) — combat TERMINÉ ⇒ ni tour à reprendre, ni Round
+  // suivant à ouvrir.
+  if (done?.combatEndBoundary) { finishCombatEnd(get, set); handled = true; } // Tests de fin de combat clos → écran de victoire/défaite
+  // PRÉCÉDENCE déclarée `maneuverResume` > `roundBoundary` (le défaut que corrige #942 L1 était l'inverse :
+  // la borne de Round, première dans la chaîne, AFFAMAIT la reprise de tour d'une séquence FUSIONNÉE).
+  // Les deux bornes ne sont PAS équivalentes : au franchissement, `advanceTurn` a DÉJÀ posé `{turn: 0, round}` et
+  // joué les décomptes une-fois-par-Round (combatFlow.ts:5242-5243 → `resolveRoundBoundary` →
+  // `openRoundEndCascade`) ; le `roundBoundary` de la séquence porte seulement `enterRoundStartPause`.
+  // Lui céder la place SACRIFIE donc, pour le Round COURANT, la pause de début de Round et son reset
+  // per-Round (`shotsThisTurn`/`acted`/`movementUsed`…) — au profit du tour EN COURS. Moindre mal :
+  // l'inverse perd le tour définitivement (la pause pose `turn: -1` et GÈLE la machinerie,
+  // `combatAdvanceBlocked`), alors que ce qu'`advanceTurn` re-dérivera est la borne du Round SUIVANT.
+  // Chemin sans producteur mesuré aujourd'hui : `combatGate` bloque la fusion pendant un combat.
+  else if (done?.maneuverResume) { resumeManeuverDefense(get, set, done.maneuverResume); handled = true; } // défense de manœuvre de zone close → reprendre le tour de la créature (attaques gratuites restantes / avance)
+  else if (done?.roundBoundary) { enterRoundStartPause(get, set); handled = true; } // Peur de fin de Round close → pause de début de Round (PAS resolveRoundBoundary : décomptes déjà appliqués)
+  // REPRISE DE L'IA à la clôture — fondée sur l'ÉTAT (un combat tourne), jamais sur le `purpose` de
+  // la séquence close : une séquence `'test'`/`'affichage'` peut s'ouvrir EN COMBAT (Test déclenché
+  // par `routeTriggeredTest`, révélation d'un jet subi) et c'est ELLE qui gelait le tour via
+  // `combatAdvanceBlocked` — la clôturer sans reprendre laissait l'IA figée. `resumeSuspendedAI`
+  // porte ses propres gardes (`combatAdvanceBlocked` : bataille finie, autre pending, cascade encore
+  // ouverte ; acteur actif non piloté par l'IA) : l'élargissement ne peut pas la faire agir à tort.
+  // Continuation DÉTERMINISTE de la victoire différée (#345) d'abord : `checkBattleOver` a pu DIFFÉRER
+  // la cascade de fin de combat tant que ce slot était occupé — on re-vérifie ICI, slot libre, sans
+  // dépendre d'un clic (confirmRoundStart). Le garde `!pendingCascade` (checkBattleOver) protège la
+  // double-ouverture. `handled` (dénouement déjà joué : pause de Round, reprise de manœuvre…) garde
+  // la main sur son propre enchaînement.
+  if (!handled && get().battle) {
+    if (!checkBattleOver(get, set)) resumeSuspendedAI(get, set); // combat non terminé → reprendre l'IA
+  }
+  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) : `suspendedCascades` ne se vidait qu'au
+  // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
+  // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
+  // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `startCombat` reste
+  // propriété du teardown, cf. `dismissVictory`/`dismissDefeat`).
+  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+}
+
 /** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
 export function createCombatSlice(get: Get, set: Set) {
-  // Câble le déclencheur `onGainCondition` (Mâchoires d'acier…) : le moteur `addCondition` est PUR
-  // (hook injecté) ; la logique vit dans la brique feuille `combat/triggeredTest`, get/set liés ici.
-  // Idem pour le ROUTEUR de Test des triggers (héros manuel → cascade ; sinon inline) — installé ICI
-  // au RUNTIME (pas au top-level de la brique : `setTriggeredTestRouter` est en amont d'un cycle d'imports).
-  setConditionGainedHook((c, name) => handleConditionGained(get, set, c, name));
-  setTriggeredTestRouter(routeTriggeredTest);
-  // Émetteur `onOwnTestFailed` du seam central `commitStep` (tests de cascade/entretien ratés → Crampes) —
-  // injecté au runtime (inversion de dépendance, cf. `setOwnTestFailedEmitter`). Sous-Test FM inline.
-  setOwnTestFailedEmitter((g, actor, sl) => fireOwnTestFailed(g, actor, { sl, rng: battleRng() })); // RNG SEEDABLE (battleRng, jamais defaultRNG) — determinisme + coop
-  // Hook `grantFreeAttack` (op IMPURE) : pont exécuteur de Flow → vraie frappe — `runCombatFlow` l'appelle
-  // sur le `do`/`grantFreeAttack` (Frappe réactive / Assaut féroce / Frénésie). Inversion de dépendance.
-  setFreeAttackHook(freeAttackHookImpl);
-  // Hook `interruptFocus` (op IMPURE) : conséquence du Test `interruption-de-focalisation` RATÉ
-  // (LDB 46 l.144) — appelée par `runCombatFlow` sur le `do`/`interruptFocus`.
-  setFocusInterruptHook(applyFocusInterruption);
-  // Hook `breakBlade` (op IMPURE) : conséquence d'un Test opposé de Piège-lame GAGNÉ (désarme/brise la lame,
-  // LDB 62 l.280) — appelée par `runCombatFlow` sur le `do`/`breakBlade`.
-  setBladeTrapHook(applyBladeTrap);
-  // Hook `crossTest` de zone (Forêt d'épines, LDB 48 l.749, #500) : traversée gatée par un Test —
-  // délègue à `routeTriggeredTest` (héros manuel → cascade ; ennemi/auto → jet inline).
-  setZoneCrossTestHook(zoneCrossTestHookImpl);
-  // Clôture d'une cascade du JOUR de voyage (`purpose:'travelDay'`) : ROUTAGE par domaine — fluvial
-  // (recalcul des km puis halte/arrivée) OU terrestre (marche forcée eager/nuit + halte/arrivée). Le
-  // domaine se lit sur le plan (`river` présent = descente fluviale), pas par deux chemins ad hoc.
-  // Partagé par `cascadeNext` (avance) et `cascadeFinish` (« Tout résoudre »).
-  const dispatchCascadeDone = (done: ReturnType<typeof advanceCascade>) => {
-    // Une cascade de NUIT/voyage (faim, exposition, maladie) a pu anéantir tout le groupe : défaite AVANT
-    // de reprendre la route — no-op en combat (`combatEndBoundary` gère la défaite via `battle`).
-    if (done && checkPartyWiped(get, set)) return;
-    // `handled` : un dénouement a été joué (le filet `checkBattleOver` de fin ne se déclenche que pour
-    // une clôture NON routée). Deux étages, dans l'ordre historique de la chaîne :
-    //  (1) le dénouement de `purpose` — exclusif PAR CONSTRUCTION (une séquence porte UN `purpose`) ;
-    //  (2) les BORNES portées par la séquence — CUMULATIVES depuis #942 L1 : deux fragments FUSIONNÉS
-    //      (append de même `purpose`) apportent chacun sa borne ; une chaîne `else if` n'en jouait
-    //      qu'UNE et affamait les autres (ex. `maneuverResume` mangé par `roundBoundary`).
-    let handled = false;
-    // Repos MULTI-JOURS (#347) : la nuit qui vient de se clore en enchaîne une AUTRE tant qu'il en
-    // reste — AVANT le routage 'travel'/'travelHalt' (une nuit INTERMÉDIAIRE d'un séjour ne porte
-    // jamais `travelHalt`, cf. `openRestNight` — seule la DERNIÈRE nuit peut le porter).
-    if (done?.purpose === 'night' && done.restNights && done.restNights.nightsLeft > 0) { continueRestNights(get, set, done.restNights); handled = true; }
-    else if (done?.purpose === 'travel' && done.travelHalt) { travelFlow.continueTravelAfterNight(get, set); handled = true; }
-    else if (done?.purpose === 'travelDay') {
-      handled = true;
-      if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
-      else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set, done.piloteImmediat?.rowSurface === 'pv' ? done.participants : []);
-      else travelFlow.continueTravelDayAfterCascade(get, set, done);
-    }
-    // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
-    // jour (halte de nuit / arrivée), DIFFÉRÉE le temps du Test de Résistance — sinon le Repos et l'Exposition
-    // se court-circuitent et la journée suivante ne se ré-arme jamais (patron du sibling `seaScorbut`).
-    else if (done?.purpose === 'riverExposure') { continueRiverDayAfterExposure(get, set); handled = true; }
-    else if (done?.purpose === 'sequence') { closeSequenceRound(get, set, done); handled = true; } // manche de SÉQUENCE close → le socle résout puis rouvre/dénoue (noyau/sequenceCore)
-    // Entretien-survie maritime surfacé au MJ (#272 résiduel, seam #275) : la clôture enchaîne la phase suivante de la journée.
-    else if (done?.purpose === 'seaScorbut') { continueSeaDayAfterScorbut(get, set, done.participants); handled = true; }
-    else if (done?.purpose === 'seaExposure') { continueSeaDayAfterExposure(get, set, done.participants); handled = true; }
-    else if (done?.purpose === 'seaExhaustion') { continueSeaDayAfterExhaustion(get, set, done.participants); handled = true; }
-    else if (done?.purpose === 'seaActivities') { continueSeaActivitiesAfterCascade(get, set); handled = true; } // Activités en mer (#273 Étape 2) → Commerce d'opportunité séquencé puis halte
-    // Mini-cascade AUTONOME d'un événement de bord maritime (`purpose:'test'` : Cogue pirate, Ouragan,
-    // Prière d'un Présage — `resolveSeaDayEvent` a mis le jour EN ATTENTE) : sa clôture REPREND la conduite
-    // du jour. Couture GÉNÉRIQUE (toute la classe, pas seulement « fuir ») : ici `pendingCascade` est DÉJÀ
-    // null (post-`advanceCascade`), sans garde de synchronisation. Gaté sur `travelPlan.sea` : à
-    // l'accostage `travelPlan` est nul (la désertion `purpose:'test'`
-    // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` garde de son côté combat/steamSave.
-    else if (done?.purpose === 'test' && get().travelPlan?.sea) { runSeaDay(get, set); handled = true; }
-    // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
-    // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
-    // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE
-    // (la CLASSE « séquence dont la fermeture finalise une transition ») : `pendingCascade` est DÉJÀ null.
-    // INDÉPENDANTE des trois bornes de combat ci-dessous : elle se joue TOUJOURS si présente.
-    if (done?.portArrival) { finalizePortArrival(get, set, done.portArrival); handled = true; }
-    // Fin de combat : l'écran de victoire/défaite prend la main. EXCLUSION MÉTIER déclarée avec les deux
-    // bornes suivantes (jamais un accident de chaîne) — combat TERMINÉ ⇒ ni tour à reprendre, ni Round
-    // suivant à ouvrir.
-    if (done?.combatEndBoundary) { finishCombatEnd(get, set); handled = true; } // Tests de fin de combat clos → écran de victoire/défaite
-    // PRÉCÉDENCE déclarée `maneuverResume` > `roundBoundary` (le défaut que corrige #942 L1 était l'inverse :
-    // la borne de Round, première dans la chaîne, AFFAMAIT la reprise de tour d'une séquence FUSIONNÉE).
-    // Les deux bornes ne sont PAS équivalentes : au franchissement, `advanceTurn` a DÉJÀ posé `{turn: 0, round}` et
-    // joué les décomptes une-fois-par-Round (combatFlow.ts:5242-5243 → `resolveRoundBoundary` →
-    // `openRoundEndCascade`) ; le `roundBoundary` de la séquence porte seulement `enterRoundStartPause`.
-    // Lui céder la place SACRIFIE donc, pour le Round COURANT, la pause de début de Round et son reset
-    // per-Round (`shotsThisTurn`/`acted`/`movementUsed`…) — au profit du tour EN COURS. Moindre mal :
-    // l'inverse perd le tour définitivement (la pause pose `turn: -1` et GÈLE la machinerie,
-    // `combatAdvanceBlocked`), alors que ce qu'`advanceTurn` re-dérivera est la borne du Round SUIVANT.
-    // Chemin sans producteur mesuré aujourd'hui : `combatGate` bloque la fusion pendant un combat.
-    else if (done?.maneuverResume) { resumeManeuverDefense(get, set, done.maneuverResume); handled = true; } // défense de manœuvre de zone close → reprendre le tour de la créature (attaques gratuites restantes / avance)
-    else if (done?.roundBoundary) { enterRoundStartPause(get, set); handled = true; } // Peur de fin de Round close → pause de début de Round (PAS resolveRoundBoundary : décomptes déjà appliqués)
-    // REPRISE DE L'IA à la clôture — fondée sur l'ÉTAT (un combat tourne), jamais sur le `purpose` de
-    // la séquence close : une séquence `'test'`/`'affichage'` peut s'ouvrir EN COMBAT (Test déclenché
-    // par `routeTriggeredTest`, révélation d'un jet subi) et c'est ELLE qui gelait le tour via
-    // `combatAdvanceBlocked` — la clôturer sans reprendre laissait l'IA figée. `resumeSuspendedAI`
-    // porte ses propres gardes (`combatAdvanceBlocked` : bataille finie, autre pending, cascade encore
-    // ouverte ; acteur actif non piloté par l'IA) : l'élargissement ne peut pas la faire agir à tort.
-    // Continuation DÉTERMINISTE de la victoire différée (#345) d'abord : `checkBattleOver` a pu DIFFÉRER
-    // la cascade de fin de combat tant que ce slot était occupé — on re-vérifie ICI, slot libre, sans
-    // dépendre d'un clic (confirmRoundStart). Le garde `!pendingCascade` (checkBattleOver) protège la
-    // double-ouverture. `handled` (dénouement déjà joué : pause de Round, reprise de manœuvre…) garde
-    // la main sur son propre enchaînement.
-    if (!handled && get().battle) {
-      if (!checkBattleOver(get, set)) resumeSuspendedAI(get, set); // combat non terminé → reprendre l'IA
-    }
-    // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) : `suspendedCascades` ne se vidait qu'au
-    // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
-    // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
-    // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `startCombat` reste
-    // propriété du teardown, cf. `dismissVictory`/`dismissDefeat`).
-    if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
-  };
-  setClotureDeCascade(dispatchCascadeDone);
-
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */
   const consumeIntent = (): boolean => {
@@ -3370,12 +3347,12 @@ export function createCombatSlice(get: Get, set: Set) {
     // DÉ NU (#1508) : les deux mêmes verbes, le même goulot d'état — seule la LECTURE du dé change.
     cascadeDieRoll: (pid: string) => rollCascadeDe(get, set, pid),
     cascadeDieSetForcedRoll: (pid: string, roll: number) => setCascadeDeForcedRoll(get, set, pid, roll),
-    cascadeNext: () => dispatchCascadeDone(advanceCascade(get, set)),
+    cascadeNext: () => dispatchCascadeDone(get, set, advanceCascade(get, set)),
     // → BILAN (la modale reste ouverte) : rend `null`, rien à router. Rend une cascade FINALISÉE dans le
     // seul cas où la dernière étape a suspendu la séquence en plein vol (le BILAN n'est pas montrable) —
     // son dénouement passe alors par le MÊME routage que `cascadeNext`/`cascadeFinish`.
-    cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(done); },
-    cascadeFinish: () => dispatchCascadeDone(finalizeCascade(get, set)),
+    cascadeResolveAll: () => { const done = resolveRemainingCascade(get, set); if (done) dispatchCascadeDone(get, set, done); },
+    cascadeFinish: () => dispatchCascadeDone(get, set, finalizeCascade(get, set)),
     // Le joueur renonce à la séquence en cours (noyau/sequenceCore) : l'abandon est DEMANDÉ, et la manche
     // se clôt par les gestes du joueur (« Suivant », « Terminer ») jusqu'à la clôture, qui le joue — ou
     // jusqu'à une étape due, que le joueur joue avant. Une manche sans jet posé se ferme d'emblée.

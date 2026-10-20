@@ -4,7 +4,7 @@
  * INSTANCIATION DU SOCLE DE SÉQUENCE (`noyau/sequenceCore`, #1279) : l'état de manche, la persistance,
  * la borne anti-boucle et le cycle ouvrir→clore→rouvrir appartiennent au socle ; ce module ne fournit
  * que ce qui est PROPRE à la poursuite — sa charge utile (Distance, coureurs, adversaires), sa fabrique
- * de manche et son RÉDUCTEUR de clôture, enregistrés sous l'id `pursuit`. Les jugements purs (issue,
+ * de manche et son RÉDUCTEUR de clôture, déclarés sous l'id `pursuit`. Les jugements purs (issue,
  * bonus de vitesse, plus lent, politique de camp PNJ) vivent dans `engine/pursuit.ts`.
  *
  * DRAMATURGIE : une MANCHE par FENÊTRE. Une manche de course est UNE BANDE (`purpose` du socle,
@@ -32,7 +32,7 @@ import { pursuitTargetMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { Combatant, Difficulty } from '../engine/types';
 import { byId, combatStakeRef } from '../data/index';
 import { battleRng } from './battleRng';
-import { registerCascadeApplier, rollBatchParticipant } from './cascade';
+import { rollBatchParticipant } from './cascade';
 import { actorIn } from './monde/combatants';
 import { spawnEnemy } from './monde/spawn';
 import { testValue } from '../engine/skills';
@@ -45,9 +45,7 @@ import {
   pursuitOutcome, pursuitMoveBonus, pursuitLaggard, npcSacrificeChoice, npcPursuerChoice,
   PURSUIT_ESCAPE_DISTANCE, type PursuitFoe, type PursuitPolicy, type PursuitRunner,
 } from '../engine/pursuit';
-import {
-  registerSequence, startSequence, sequenceScoreOf,
-} from './sequenceCore';
+import { startSequence, sequenceScoreOf } from './sequenceCore';
 import { SEQUENCE_BORNE, type SequenceRound, type SequenceState, type SequenceVerdict, type MancheClose } from './sequenceContract';
 import type { RNG } from '../engine/dice';
 import type { BatchParticipant, CascadeStep } from './pendings';
@@ -57,6 +55,7 @@ import { t } from '../i18n';
 import { dataLabel } from '../data';
 import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Adversaire AUTHORÉ d'une poursuite : une RÉFÉRENCE de vivant (bestiaire ou statbloc d'éditeur) et
  *  son identité de course. Ses stats vivent sur la fiche référencée — l'Effet n'en recopie aucune. */
@@ -163,27 +162,6 @@ export function pursuitOf(s: Jeu): PursuitPayload | null {
   const seq = s.sequence as PursuitSequence | null;
   return seq && seq.def === PURSUIT_SEQUENCE ? seq.payload : null;
 }
-
-/** Applier de la BANDE de manche : MUET côté conséquence (la résolution de la manche est GLOBALE — elle
- *  compare tous les DR à la clôture, le réducteur de séquence) ; ne pousse qu'une ligne de journal
- *  lisible PAR RANGÉE. Une bande sans rangées RENONCE (fail-closed, patron `registerNightBandApplier`). */
-registerCascadeApplier(PURSUIT_MOVE_KIND, (get, _set, step) => {
-  if (!step.participants) return;
-  const lines: string[] = [];
-  for (const row of step.participants) {
-    const dr = row.result?.sl ?? 0;
-    const who = actorIn(get(), row.id)?.label ?? row.id;
-    lines.push(t('pursuit.row', { who, label: row.label ?? t('step.pursuitMouvement'), dr: drSigne(dr) }));
-  }
-  return { consequences: freeCons(lines) };
-});
-
-/** Applier de l'étape de DÉCISION (l.94) : la voie choisie est lue par le réducteur de clôture — ici,
- *  seule la phrase de ce qui a été décidé entre au récit. */
-registerCascadeApplier(PURSUIT_CHOICE_KIND, (_get, _set, step) => {
-  const choisi = step.options?.find((o) => o.key === step.chosen);
-  return choisi ? { consequences: freeCons([choisi.label]) } : undefined;
-});
 
 /** Héros du groupe ENCORE en course (vivants, dans la rencontre, non retirés par une décision de l.94). */
 function runners(get: Get, retires: readonly string[] = []): Combatant[] {
@@ -527,15 +505,44 @@ function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: strin
   if (p.encounter) get().startCombat(p.encounter);
 }
 
-registerSequence(PURSUIT_SEQUENCE, {
-  round: (get, seq) => pursuitRoundFactory(get, seq),
-  close: (ctx) => pursuitClose(ctx),
-  settle: (get, set, seq, outcome) => pursuitSettle(get, set, seq, outcome),
-  // `pursuitSettle` joue l'issue `abandon`.
-  abandon: (seq) => ({
-    label: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuite' : 'pursuit.abandonFuite'),
-    title: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuiteTitre'
-      : seq.payload.encounter ? 'pursuit.abandonFuiteCombatTitre' : 'pursuit.abandonFuiteTitre'),
-    outcome: 'abandon',
-  }),
-});
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [PURSUIT_MOVE_KIND, PURSUIT_CHOICE_KIND] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Applier de la BANDE de manche : MUET côté conséquence (la résolution de la manche est GLOBALE — elle
+     *  compare tous les DR à la clôture, le réducteur de séquence) ; ne pousse qu'une ligne de journal
+     *  lisible PAR RANGÉE. Une bande sans rangées RENONCE (fail-closed, patron `bandeDeNuit`). */
+    [PURSUIT_MOVE_KIND]: (get, _set, step) => {
+      if (!step.participants) return;
+      const lines: string[] = [];
+      for (const row of step.participants) {
+        const dr = row.result?.sl ?? 0;
+        const who = actorIn(get(), row.id)?.label ?? row.id;
+        lines.push(t('pursuit.row', { who, label: row.label ?? t('step.pursuitMouvement'), dr: drSigne(dr) }));
+      }
+      return { consequences: freeCons(lines) };
+    },
+    /** Applier de l'étape de DÉCISION (l.94) : la voie choisie est lue par le réducteur de clôture — ici,
+     *  seule la phrase de ce qui a été décidé entre au récit. */
+    [PURSUIT_CHOICE_KIND]: (_get, _set, step) => {
+      const choisi = step.options?.find((o) => o.key === step.chosen);
+      return choisi ? { consequences: freeCons([choisi.label]) } : undefined;
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  sequences: {
+    [PURSUIT_SEQUENCE]: {
+      round: (get, seq) => pursuitRoundFactory(get, seq),
+      close: (ctx) => pursuitClose(ctx),
+      settle: (get, set, seq, outcome) => pursuitSettle(get, set, seq, outcome),
+      // `pursuitSettle` joue l'issue `abandon`.
+      abandon: (seq) => ({
+        label: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuite' : 'pursuit.abandonFuite'),
+        title: t(seq.payload.partyRole === 'pursuing' ? 'pursuit.abandonPoursuiteTitre'
+          : seq.payload.encounter ? 'pursuit.abandonFuiteCombatTitre' : 'pursuit.abandonFuiteTitre'),
+        outcome: 'abandon',
+      }),
+    },
+  },
+} satisfies FragmentDeTables;

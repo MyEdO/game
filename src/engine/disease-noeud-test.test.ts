@@ -128,7 +128,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
 
   it('MORSURE : le porteur REFUSE une branche `success` peuplée et une branche `fail` à embranchement', () => {
     // AFFORDANCE MORTE, verrouillée PAR CONSTRUCTION (`noeudTest`, option `echecSeulServi`) : le canal
-    // différé (`registerNightBandApplier('diseaseTick')`, `noyau/restFlow.ts`) rend une liste VIDE sur
+    // différé (`bandeDeNuit`, applier `diseaseTick`, `noyau/restFlow.ts`) rend une liste VIDE sur
     // une réussite, et `spellOps` extrait les ops À PLAT — un `if` sous `fail` promettrait les ops des
     // deux côtés. Les deux formes seraient authorables sans effet, donc menteuses.
     const base = lire('symptoms.json');

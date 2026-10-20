@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emitCombatEvent } from './combatEvents';
-import { registerCombatHook } from './combatHooks';
+import { avecLesTables } from './noyau.testkit';
 import type { Combatant } from '../engine/types';
 
 /** Combattant nu (aucun effet de données) — pour vérifier que la diffusion data est INERTE sans donnée. */
@@ -13,7 +13,7 @@ const bare = (): Combatant => ({
 describe('emitCombatEvent — bus unique (machinerie PUIS données)', () => {
   it('joue les hooks MACHINERIE de l’événement via le bus', () => {
     const log: string[] = [];
-    registerCombatHook({ id: 'evt-test-hook', phase: 'onMiscast', run: ({ sink }) => sink('machinerie') });
+    avecLesTables({ crochetsDeCombat: [{ id: 'evt-test-hook', phase: 'onMiscast', run: ({ sink }) => sink('machinerie') }] });
     emitCombatEvent('onMiscast', {
       get: (() => ({ battle: undefined })) as never, set: (() => {}) as never,
       battle: {} as never, sink: (l) => log.push(l),
@@ -28,7 +28,7 @@ describe('emitCombatEvent — bus unique (machinerie PUIS données)', () => {
       get: (() => ({ battle: { combatants: [c] } })) as never, set: (() => {}) as never,
       battle: { combatants: [c] } as never, sink: (l) => log.push(l), audience: [c],
     });
-    expect(log).toEqual([]); // pas de hook onCombatStart enregistré + pas d'effet de données → no-op
+    expect(log).toEqual([]); // pas de hook onCombatStart déclaré + pas d'effet de données → no-op
   });
 
   it('sans audience ni self : no-op total', () => {

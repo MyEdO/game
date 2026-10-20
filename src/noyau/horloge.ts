@@ -1,5 +1,5 @@
 /** Horloge de jeu : l'avance du temps et ce qui la suit hors combat (#668, #T2, #T3). */
-import { registerCloture, pushReveal } from './combatEffects';
+import { pushReveal } from './combatEffects';
 import { fireScheduledEffects } from './combatEffects';
 import { purgeSurAvanceDHorloge } from './upkeep';
 import { TIME_COST } from '../engine/timeCost';
@@ -13,9 +13,7 @@ import { openSequence } from './rollSeam';
 import { checkPartyWiped } from './partyWipe';
 import type { Get, Set, SetDesClesReservees } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-
-/** L'horloge avance APRÈS le Flow de son site — verbe de CLÔTURE (#1508). */
-registerCloture('avancerHorloge', (get, _set, c) => get().advanceTime(c.minutes));
+import type { FragmentDeTables } from './tablesPosees';
 
 /** L'UNIQUE écrivain de l'avance d'horloge (#668, #1599, #2817 D7) : tout chemin qui fait passer le temps
  *  (advanceTime, repos, voyages terrestre, fluvial et en mer, chantier naval) l'appelle. */
@@ -80,3 +78,11 @@ export function creerActionsDHorloge(get: Get, set: Set) {
     },
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    /** L'horloge avance APRÈS le Flow de son site — verbe de CLÔTURE (#1508). */
+    avancerHorloge: (get, _set, c) => get().advanceTime(c.minutes),
+  },
+} satisfies FragmentDeTables;

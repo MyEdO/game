@@ -8,7 +8,7 @@
  * exige : aucun refus de schéma, et le porteur mémoire garde un nœud `{kind:'test', test, success,
  * fail}` à la nouvelle Difficulté, ses deux branches intactes.
  *
- * CE QU'IL MORD AUSSI : l'AFFORDANCE. Le canal du cycle (`registerNightBandApplier('diseaseTick')`,
+ * CE QU'IL MORD AUSSI : l'AFFORDANCE. Le canal du cycle (`bandeDeNuit`, applier `diseaseTick`,
  * `src/noyau/restFlow.ts`) rend une liste VIDE sur une réussite — une branche « Si RÉUSSITE » offerte
  * à l'auteur serait une case qui ne change rien, et le schéma du porteur la refuse peuplée
  * (`noeudTest`, option `echecSeulServi`). L'atelier n'en rend donc QU'UNE, celle de l'échec ; la même

@@ -29,9 +29,9 @@ import type { Effect } from './monde/scene';
 import type { BuiltCascadeStep } from './stepBrand';
 import { worldStep, freeCons } from './rollSeam';
 import { dataLabel } from '../data';
-import { registerCascadeApplier } from './cascade';
 import { applyEffects, applyEffectsLoot, jouerFlowEntier } from './combatEffects';
 import { t } from '../i18n';
+import { tablesPosees, type FragmentDeTables, type InterruptionDePeril, type PartDeTable } from './tablesPosees';
 
 export const AUTHOR_PERIL_KIND = 'authorPeril';
 
@@ -49,18 +49,12 @@ export interface PerilInterruptHandler {
   (get: Get, set: Set, effects: Effect[], label: string): string[];
 }
 
-const handlers: Record<string, PerilInterruptHandler> = {};
-
-/** Déclare un protocole de reprise sous son id (le flux propriétaire le nomme à la construction). */
-export function registerPerilInterrupt(id: string, fn: PerilInterruptHandler): void {
-  handlers[id] = fn;
-}
 
 /**
  * Les étapes de chance des périls d'auteur d'une route — UNE par péril, dans l'ORDRE d'authoring
  * (l'ordre EST le flux RNG : le premier déclaré tire le premier).
  */
-export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interruptId: string): BuiltCascadeStep[] {
+export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interruptId: InterruptionDePeril): BuiltCascadeStep[] {
   return (route.perils ?? []).map((peril, i) => worldStep({
     id: `author-peril-${i}`,
     kind: AUTHOR_PERIL_KIND,
@@ -73,30 +67,38 @@ export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interr
   }));
 }
 
-registerCascadeApplier(AUTHOR_PERIL_KIND, (get, set, step) => {
-  if (!step.result) return {};
-  const route = (get().worldMap)?.routes.find((r) => r.id === get().travelPlan?.routeId);
-  const peril = route?.perils?.[Number(step.meta?.perilIndex ?? -1)];
-  if (!peril) return {};
-  // ÉVITÉ : le dé garde sa ligne (rangée surfacée, ou trace de journal quand aucune fenêtre ne s'ouvre)
-  // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
-  // (`de-monde-surface.test.ts`, delta de journal nominatif), pas dans ce commentaire.
-  if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilAvoided', { label: peril.label }), tone: 'info' }]) };
-  const lignes: string[] = [t('tf.perilAuthor', { label: peril.label })];
-  if (perilInterrupts(peril.effects)) {
-    set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
-    const suite = handlers[String(step.meta?.interruptId ?? '')]?.(get, set, peril.effects, String(step.meta?.destLabel ?? '')) ?? [];
-    lignes.push(...suite);
-    // Les périls RESTANTS n'ont plus lieu d'être : le trajet s'arrête ici. La troncature — et non
-    // l'ouverture du combat — est ce qui garantit que leurs dés ne se tirent pas (parité du `break`).
-    return { consequences: freeCons(lignes), stopSequence: true };
-  }
-  jouerFlowEntier(applyEffectsLoot(get, set, peril.effects, peril.label)); // trouvaille d'auteur → fenêtre d'attribution
-  return { consequences: freeCons(lignes) };
-});
-
 /** Applique les effets d'un péril SUR-LE-CHAMP (protocole maritime : `resumeTravel` rejoue la traversée). */
 export const applyPerilEffectsNow: PerilInterruptHandler = (get, set, effects) => {
   jouerFlowEntier(applyEffects(get, set, effects));
   return [];
 };
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [AUTHOR_PERIL_KIND] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    [AUTHOR_PERIL_KIND]: (get, set, step) => {
+      if (!step.result) return {};
+      const route = (get().worldMap)?.routes.find((r) => r.id === get().travelPlan?.routeId);
+      const peril = route?.perils?.[Number(step.meta?.perilIndex ?? -1)];
+      if (!peril) return {};
+      // ÉVITÉ : le dé garde sa ligne (rangée surfacée, ou trace de journal quand aucune fenêtre ne s'ouvre)
+      // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
+      // (`de-monde-surface.test.ts`, delta de journal nominatif), pas dans ce commentaire.
+      if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilAvoided', { label: peril.label }), tone: 'info' }]) };
+      const lignes: string[] = [t('tf.perilAuthor', { label: peril.label })];
+      if (perilInterrupts(peril.effects)) {
+        set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
+        const suite = tablesPosees().interruptionsDePeril[String(step.meta?.interruptId ?? '')]?.(get, set, peril.effects, String(step.meta?.destLabel ?? '')) ?? [];
+        lignes.push(...suite);
+        // Les périls RESTANTS n'ont plus lieu d'être : le trajet s'arrête ici. La troncature — et non
+        // l'ouverture du combat — est ce qui garantit que leurs dés ne se tirent pas (parité du `break`).
+        return { consequences: freeCons(lignes), stopSequence: true };
+      }
+      jouerFlowEntier(applyEffectsLoot(get, set, peril.effects, peril.label)); // trouvaille d'auteur → fenêtre d'attribution
+      return { consequences: freeCons(lignes) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

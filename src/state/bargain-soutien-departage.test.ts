@@ -4,7 +4,7 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { creditBourse } from '../noyau/bourseFlow';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { resultLine } from '../noyau/rollSeam';
 import { emptyScene } from '../noyau/monde/scene';
 import { rollMerchantOpposition, type PortProfile } from '../engine/seaVoyage';
@@ -120,7 +120,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
     const step = soutenuStep('port-buy-bargain', leader.id, helper.id, sl, { cargoId: 'bois', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
-    const out = cascadeAppliers['port-buy-bargain'].apply(get, set, step, leader, { steps: [step], index: 0 });
+    const out = applierDe('port-buy-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/surcoût de \d+ %/);
     expect(line).not.toMatch(/remise/);
@@ -131,7 +131,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
     const step = soutenuStep('port-sell-bargain', leader.id, helper.id, sl, { cargoIndex: 0, sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
-    const out = cascadeAppliers['port-sell-bargain'].apply(get, set, step, leader, { steps: [step], index: 0 });
+    const out = applierDe('port-sell-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/Marchandage \(.*\) : -\d+ %/);
   });

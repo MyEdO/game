@@ -20,10 +20,10 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { monoStep } from '../noyau/rollSeam';
-import {
-  registerSequence, startSequence, activeSequence, sequenceCumRound, sequenceScoreOf,
-} from '../noyau/sequenceCore';
+import { startSequence, activeSequence, sequenceCumRound, sequenceScoreOf } from '../noyau/sequenceCore';
 import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from '../noyau/sequenceContract';
+import { avecLesTables, sequenceDeFixture, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
 const FICHIERS = ['../noyau/sequenceContract.ts', '../noyau/sequenceCore.ts'];
@@ -100,24 +100,20 @@ interface SeaCrisisPayload {
 
 const NAVAL = 'test-crise-navale';
 
-declare module '../noyau/sequenceContract' {
-  interface SequenceFamilies {
-    [NAVAL]: SeaCrisisPayload;
-    'test-boucle-infinie': { n: number };
-  }
-}
 
 /** Ce que le socle a REDONNÉ au domaine à chaque ouverture de manche — la preuve que l'état a persisté
  *  d'une manche à l'autre (rang, cumuls, charge navale). */
 const traceNavale: { round: number; metres: number; cum: Record<string, number> }[] = [];
+/** Manches ouvertes par la séquence qui ne conclut jamais (`test-boucle-infinie`). */
+let manches = 0;
 
-registerSequence(NAVAL, {
+beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAVAL]: sequenceDeFixture<SeaCrisisPayload>({
   round: (get, seq): SequenceRound<SeaCrisisPayload> | undefined => {
     const barreur = get().party[0];
     if (!barreur) return undefined;
     traceNavale.push({ round: seq.round, metres: seq.payload.metres, cum: { ...seq.cum } });
     const step = monoStep({
-      id: `crise-${seq.round}`, kind: 'testCriseNavale', label: fixtureText(`Manœuvre — manche ${seq.round}`),
+      id: `crise-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText(`Manœuvre — manche ${seq.round}`),
       actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: 'navigation' } },
       stake: combatStakeRef('pursuitMove', { values: { distance: seq.payload.metres, evasion: 500 } }),
     });
@@ -141,7 +137,19 @@ registerSequence(NAVAL, {
     if (seq.round >= 2) return { go: 'end', outcome: 'semé', cum, payload };
     return { go: 'continue', cum, payload };
   },
-});
+}), 'test-boucle-infinie': sequenceDeFixture<{ n: number }>({
+      round: (get, seq) => {
+        manches = seq.round;
+        const h = get().party[0];
+        const step = monoStep({
+          id: `b-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText('Boucle'), actor: h,
+          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
+        });
+        return step ? { title: fixtureText('Boucle'), steps: [step], immediate: true } : undefined;
+      },
+      close: () => ({ go: 'continue' }), // ne conclut JAMAIS
+    }) } }); });
 
 describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 manches déroulées)', () => {
   beforeEach(() => {
@@ -186,20 +194,7 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
 
   it('la BORNE anti-boucle est un invariant du CONTRAT, jamais un compteur par système', () => {
     expect(SEQUENCE_MAX_ROUNDS).toBe(50);
-    let manches = 0;
-    registerSequence('test-boucle-infinie', {
-      round: (get, seq) => {
-        manches = seq.round;
-        const h = get().party[0];
-        const step = monoStep({
-          id: `b-${seq.round}`, kind: 'testCriseNavale', label: fixtureText('Boucle'), actor: h,
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
-        });
-        return step ? { title: fixtureText('Boucle'), steps: [step], immediate: true } : undefined;
-      },
-      close: () => ({ go: 'continue' }), // ne conclut JAMAIS
-    });
+    manches = 0;
     startSequence(useGame.getState, useGame.setState, { def: 'test-boucle-infinie', payload: { n: 0 } });
     expect(activeSequence(useGame.getState), 'la séquence s’est arrêtée').toBeNull();
     expect(manches).toBe(SEQUENCE_MAX_ROUNDS);

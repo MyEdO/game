@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import { buildStageSteps } from '../noyau/travelPostes';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant } from '../noyau/pendings';
 
@@ -69,7 +69,7 @@ describe('Voyage — poste Cartographie (Établir des cartes, test étendu)', ()
     const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
     const part = batch.participants!.find((p) => p.id === 'h')!;
     part.result = { roll: 30, target: part.target, sl: 2, success: true }; // jet réussi (DR 2)
-    cascadeAppliers['stagePosteBatch'].apply(useGame.getState, useGame.setState, batch, undefined, { steps: [batch], index: 0 });
+    applierDe('stagePosteBatch')!(useGame.getState, useGame.setState, batch, undefined, { steps: [batch], index: 0 });
     expect(part.extendedDrTarget as number).toBeGreaterThan(0); // donnée de barre TOUJOURS présente
     expect(Array.isArray(part.outcome)).toBe(true); // conséquence rendue sur SA rangée
   });
@@ -84,9 +84,9 @@ describe('Voyage — poste Cartographie (Établir des cartes, test étendu)', ()
     const drTarget = part.extendedDrTarget as number;
     // Jet de complétion à GROS DR (dépasse la cible restante) : la carte s'achève ce jour.
     part.result = { roll: 10, target: part.target, sl: drTarget + 3, success: true };
-    cascadeAppliers['stagePosteBatch'].apply(useGame.getState, useGame.setState, batch, undefined, { steps: [batch], index: 0 });
+    applierDe('stagePosteBatch')!(useGame.getState, useGame.setState, batch, undefined, { steps: [batch], index: 0 });
     const agg = steps.find((s) => s.kind === 'stageAggregate')!;
-    cascadeAppliers['stageAggregate'].apply(useGame.getState, useGame.setState, agg, undefined, { steps, index: steps.indexOf(agg) });
+    applierDe('stageAggregate')!(useGame.getState, useGame.setState, agg, undefined, { steps, index: steps.indexOf(agg) });
     // FIGÉ à la cible (jamais `undefined` → jamais un redémarrage du Test étendu le lendemain).
     expect(useGame.getState().travelPlan!.extendedProgress).toBe(drTarget);
     // Étape SUIVANTE : plus de rangée de jet cartographie — un pas d'affichage « déjà achevée ».

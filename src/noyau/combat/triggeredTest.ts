@@ -2,9 +2,8 @@
  * EXÉCUTEUR DE FLOW cadence-aware « aucun jet de héros en silence » — résout un nœud `test` d'un Flow
  * selon le CONTEXTE (scène / combat × cadence) et reprend la CONTINUATION `after` (le reste du `seq`).
  *
- * Module FEUILLE (chargé par effet de bord depuis combatFlow, qui le `export *`) : il n'importe RIEN
- * de combatFlow. Il REJOINT la voie unifiée existante (`pushCombatStep` → cascade `purpose:'combat'`
- * influençable + `registerCascadeApplier` + `runPureFlowLines`) au lieu d'inventer un système.
+ * Il REJOINT la voie unifiée existante (`pushCombatStep` → cascade `purpose:'combat'` influençable +
+ * table `appliers` + `runPureFlowLines`) au lieu d'inventer un système.
  *
  * Trois entrées, UN résolveur :
  *  - `resolveFlowTest(ctx, node, after)` — point de décision unique sur un nœud `test` :
@@ -40,7 +39,7 @@ import { battleRng } from '../battleRng';
 import { runFlow, pushCombatStep, openSkillTest, applyLeafOps, drainPendingLog,
   confierLaSuite, porterOpsCtx, jouerFlowEntier, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
 import { journaliser } from '../combatLog';
-import { registerCascadeApplier } from '../cascade';
+
 import { freeCons, rollLine, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel } from '../rollSeam';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
@@ -50,6 +49,8 @@ import { touchActors } from '../combatOrParty';
 import { campSpend, spendableAdvantage } from './advantagePool';
 import { dataLabel } from '../../data';
 import { t } from '../../i18n';
+import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
+import { accorderLAttaqueGratuite, applyFocusInterruption, applyBladeTrap } from '../combatFlow';
 
 /** Pousse des lignes de journal d'un effet inline dans la file différée (déversée au rendu) — un hook
  *  profond fire AVANT le `set(battle.log)` final → on passe par la file (`drainPendingLog`, §5). */
@@ -82,7 +83,7 @@ export interface ExecCtx {
   /** Contexte d'une ATTAQUE GRATUITE de talent (op `grantFreeAttack`) : la CIBLE de la frappe (un TIERS —
    *  le chargeur pour Frappe réactive `onCharged`, la victime touchée pour Assaut féroce `onHit` — distinct
    *  de `target`/`caster` qui sont le porteur), + le plafond /Round (`cap` = niveau du talent) et la `key`
-   *  d'imputation (`freeAttacksThisTurn`). Threadé par `resolveFreeAttacks` ; le hook `freeAttack`
+   *  d'imputation (`freeAttacksThisTurn`). Threadé par `resolveFreeAttacks` ; `accorderLAttaqueGratuite`
    *  (couche combatFlow) l'emploie quand `runCombatFlow` rencontre un `do` portant `grantFreeAttack`. Tout
    *  est sérialisable (ids/nombres) → mirroir dans `meta.freeAttack` pour la voie cascade (héros manuel). */
   freeAttack?: FreeAttackFreeze;
@@ -93,40 +94,6 @@ export interface ExecCtx {
   bladeTrap?: BladeTrapFreeze;
 }
 
-/** HOOK de résolution d'une ATTAQUE GRATUITE (`grantFreeAttack`, op IMPURE) — injecté par le store
- *  (`setFreeAttackHook` dans `createCombatSlice`), pointe sur `applyTalentFreeAttack` (combatFlow). Appelé
- *  par `runCombatFlow` lorsqu'un `do`/`ops` porte un `grantFreeAttack` : il ouvre la VRAIE frappe (motif
- *  aiAvailableFreeAttack — instantanée, Action préservée). Inversion de dépendance (cette brique reste sans import
- *  de combatFlow → pas de cycle). Absent (hors store) ⇒ no-op (l'op reste inerte, comme dans `applyOps`).
- *  REND sa SUSPENSION (#1852) : une frappe qui ouvre une fenêtre arrête le dispatch des frappes suivantes
- *  — une attaque gratuite est un Test d'attaque COMPLET (LDB 85 l.41-43). */
-type FreeAttackHook = (
-  get: Get, set: SetFn, actor: Combatant, op: Extract<import('../../engine/ops').GameOp, { op: 'grantFreeAttack' }>,
-  fa: FreeAttackFreeze,
-) => Applique;
-let freeAttackHook: FreeAttackHook | undefined;
-export function setFreeAttackHook(fn: FreeAttackHook): void { freeAttackHook = fn; }
-
-/** HOOK de la branche d'ÉCHEC du Test `interruption-de-focalisation` (op `interruptFocus`, IMPURE)
- *  — injecté par le store (`setFocusInterruptHook` dans `createCombatSlice`), pointe sur
- *  `applyFocusInterruption` (combatFlow). Appelé par `runCombatFlow` lorsqu'un `do`/`ops` porte un
- *  `interruptFocus` : la cible perd ses DR focalisés (couverts par son composant) + subit une Imparfaite
- *  Mineure (LDB 46 l.144). Inversion de dépendance (cette brique reste sans import de combatFlow → pas de
- *  cycle). Absent (hors store) ⇒ no-op (l'op reste inerte, comme dans `applyOps`). */
-type FocusInterruptHook = (get: Get, set: SetFn, focuser: Combatant) => void;
-let focusInterruptHook: FocusInterruptHook | undefined;
-export function setFocusInterruptHook(fn: FocusInterruptHook): void { focusInterruptHook = fn; }
-
-/** HOOK de la branche de VICTOIRE d'un Test opposé de Piège-lame (op `breakBlade`, IMPURE) — injecté par le
- *  store (`setBladeTrapHook` dans `createCombatSlice`), pointe sur `applyBladeTrap` (combatFlow). Appelé par
- *  `runCombatFlow` lorsqu'un `do`/`ops` porte un `breakBlade` : l'attaquant ciblé (`bt.attackerId`) est
- *  désarmé de la lame `bt.weaponUid` ; marge nette `(DR défenseur + bt.defSL) − bt.attackerSL` ≥ 6 → lame
- *  BRISÉE sauf Incassable (LDB 62 l.280). Le DR du défenseur vient du Test résolu (`defSL` ci-dessous = celui
- *  du jet). Inversion de dépendance (cette brique reste sans import de combatFlow → pas de cycle). Absent
- *  (hors store) ⇒ no-op (l'op reste inerte, comme dans `applyOps`). */
-type BladeTrapHook = (get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number) => Applique;
-let bladeTrapHook: BladeTrapHook | undefined;
-export function setBladeTrapHook(fn: BladeTrapHook): void { bladeTrapHook = fn; }
 
 /**
  * SOURCE UNIQUE du `ConditionCtx` d'un nœud `if` : scène → `condCtx(get)` (drapeaux/horloge/
@@ -362,38 +329,6 @@ export function simpleBatchTestStep(
   }, participants);
 }
 
-/**
- * Étape de cascade GÉNÉRIQUE `triggeredBatchTest` — le pendant MULTI de l'applier `triggeredTest` :
- * la MÊME conséquence partagée (`applyTriggeredTestBranch`) est jouée POUR CHAQUE RANGÉE, contre le
- * résultat de CETTE rangée. Une branche qui porte un second Test (Vigilance, LDB 13 l.67) est routée
- * par `runCombatFlow` et n'APPEND son étape que pour le défenseur concerné. Le seam `onOwnTestFailed`
- * est émis par `commitStep` PAR RANGÉE PERDANTE (source unique des deux formes, mono et bande).
- */
-registerCascadeApplier('triggeredBatchTest', (get, set, step) => {
-  const onSuccess = step.meta?.onSuccess;
-  const onFail = step.meta?.onFail;
-  if (!onSuccess || !onFail || !step.participants) return;
-  const casterId = typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined;
-  const caster = casterId ? actorIn(get(), casterId) : undefined;
-  const hullId = typeof step.meta?.hullId === 'string' ? step.meta.hullId : undefined;
-  const hull = hullId ? coqueParId(get(), hullId) : undefined;
-  // La COQUE que l'étape DÉCLARE a disparu de l'état entre le mint et la résolution — une cascade
-  // suspendue (`suspendActiveCascade`) et reprise après la fin du voyage : `travelPlan.vehicle` n'est
-  // plus là, la file de combat non plus. La branche d'échec ne peut pas être calculée (la hauteur de
-  // chute se lit sur la Taille du bateau) : le refus est JOURNALISÉ et NOMMÉ, jamais joué à moitié —
-  // même régime que les gardes d'entrée ci-dessus (l'applier ne lève pas en pleine résolution).
-  if (hullId && !hull) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
-  const journal: string[] = [];
-  for (const part of step.participants) {
-    const hero = actorIn(get(), part.id);
-    if (!hero || !part.result) continue;
-    journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
-    set(touchActors(get()));
-    journal.push(...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step)));
-  }
-  return { consequences: freeCons(journal) };
-});
-
 /** Étapes de cascade des Tests de FIN DE ROUND en DONNÉES pour un porteur SURFACÉ (`surfaceOf` — un
  *  siège humain QUELCONQUE le tient, cadence manuelle) : pour chaque SOURCE d'effets déclenchés
  *  (États : récupération d'Empoisonné/Brisé LDB 16 ; TALENTS : Contrôle de la
@@ -480,23 +415,23 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
         if (node.effect.type === 'ops') {
           const unit = node.effect.on === 'caster' ? ctx.caster : ctx.target;
           if (unit) {
-            // Ops IMPURES `grantFreeAttack` : résolues par le hook injecté (couche combatFlow) — la frappe
+            // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
             // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
             // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
             // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
             // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
-            if (freeAttackHook && ctx.freeAttack) for (const op of node.effect.ops) if (op.op === 'grantFreeAttack' && freeAttackHook(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
-            // Op IMPURE `interruptFocus` (LDB 46 l.144) : le hook injecté (combatFlow) résout l'interruption
+            if (ctx.freeAttack) for (const op of node.effect.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
+            // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
             // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
-            if (focusInterruptHook) for (const op of node.effect.ops) if (op.op === 'interruptFocus') focusInterruptHook(ctx.get, ctx.set, unit);
-            // Op IMPURE `breakBlade` (LDB 62 l.280) : le hook injecté (combatFlow) désarme/brise la lame de
+            for (const op of node.effect.ops) if (op.op === 'interruptFocus') applyFocusInterruption(ctx.get, ctx.set, unit);
+            // Op IMPURE `breakBlade` (LDB 62 l.280) : `applyBladeTrap` (combatFlow) désarme/brise la lame de
             // l'attaquant ciblé (`ctx.bladeTrap`). `unit` = le défenseur piégeur ; son DR final (`ctx.opsCtx.sl`)
             // alimente la marge nette (= victoire Stupéfiante → bris). Le hook EMPILE sa conséquence comme étape
             // d'affichage propre (mirroir du Coup Critique) → rien à journaliser ici.
             // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
             // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
-            if (bladeTrapHook && ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
-              && bladeTrapHook(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
+            if (ctx.bladeTrap && node.effect.ops.some((op) => op.op === 'breakBlade')
+              && applyBladeTrap(ctx.get, ctx.set, unit, ctx.bladeTrap, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
               const reste = { ...node, effect: { ...node.effect, ops: node.effect.ops.filter((op) => op.op !== 'breakBlade') } };
               confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'seq', steps: [reste, ...stack.splice(0)] })]);
               return;
@@ -669,49 +604,6 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source); // continuation APRÈS la branche (ordre du journal)
 }
 
-/**
- * Étape de cascade GÉNÉRIQUE `triggeredTest` — UN applier pour TOUTE mécanique (zéro applier par
- * talent). Lit `step.result` (succès/DR posés par `FLOWS.cascade`) + les Flows `meta.onSuccess/onFail`
- * (sérialisables) et exécute la MÊME conséquence partagée `applyTriggeredTestBranch`, PUIS la
- * continuation `meta.after` (l'`ExecCtx` est RECONSTRUIT depuis get()/hero — jamais capturé).
- */
-registerCascadeApplier('triggeredTest', (get, set, step, hero) => {
-  if (!hero || !step.result) return;
-  const onSuccess = step.meta?.onSuccess;
-  const onFail = step.meta?.onFail;
-  if (!onSuccess || !onFail) return;
-  // `exec` (get/set) TOUJOURS fourni : une branche IMPURE à hook (interruptFocus / la success freeAttack /
-  // le breakBlade de Piège-lame) est routée vers `runCombatFlow` par `applyTriggeredTestBranch` (cf.
-  // flowHasImpureOp). `freeAttack` sérialisé (Frappe réactive) → joint pour cibler le TIERS (chargeur) ;
-  // `bladeTrap` sérialisé → joint pour cibler la lame de l'attaquant ; absents → branche sur soi.
-  const fa = step.meta?.freeAttack;
-  const bt = step.meta?.bladeTrap;
-  // Référent des Formules (`casterId`, cf. `CascadeStepMeta`) — combat OU groupe (`actorIn`, pas
-  // `inBattleId` seul) : un lanceur qui a quitté la file de combat (fui/KO retiré) mais reste vivant
-  // dans le groupe garde SON référent (Forêt d'épines LDB 48 l.749 : « qui utilise VOTRE Force
-  // Mentale », pas celle du traverseur) ; absent/introuvable ⇒ `applyTriggeredTestBranch` retombe sur `hero`.
-  const casterId = typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined;
-  const caster = casterId ? actorIn(get(), casterId) : undefined;
-  // ENTITÉ PORTEUSE recomposée du `meta` (ids sérialisés au mint) : un second Test enfoui dans la
-  // branche dérive son enjeu de la MÊME entité que celui qui vient d'être joué (#1262 V2 L6d).
-  const sk = step.meta?.sourceKind;
-  const sid = step.meta?.sourceEntityId;
-  const exec = {
-    get, set,
-    ...(caster ? { caster } : {}),
-    ...(typeof sk === 'string' && typeof sid === 'string' ? { source: { kind: sk as EffectSource['kind'], id: sid } } : {}),
-    ...(fa && typeof fa === 'object' && 'targetId' in fa ? { freeAttack: fa } : {}),
-    ...(bt && typeof bt === 'object' && 'attackerId' in bt ? { bladeTrap: bt } : {}),
-  };
-  const journal = applyTriggeredTestBranch(hero, step.result, { onSuccess, onFail }, exec);
-  // (SEAM `onOwnTestFailed` d'une étape de cascade : centralisé dans `commitStep` — jamais ici, sinon
-  //  double-émission ; l'étampe `meta.noOwnTestFailed` y garde la ré-entrance du FM de palier 2.)
-  set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
-  // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
-  // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
-  return { consequences: freeCons([...journal, ...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), exec.source)]) };
-});
-
 /** Le coût d'Avantage d'un nœud `choice` est-il payable par le décideur ? (Coût absent ⇒ gratuit ⇒ oui.)
  *  L'Avantage disponible est lu par `spendableAdvantage` — source unique des gardes d'abordabilité, qui
  *  rend la réserve du CAMP en mode Avantage de groupe (`AA 11 l.30`) et l'Avantage individuel en LDB. */
@@ -777,42 +669,8 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
 }
 
 /**
- * Étape de cascade GÉNÉRIQUE `triggeredChoice` — UN applier pour TOUTE décision opt-in (zéro applier par
- * mécanique). Reconstruit le décideur depuis get()/hero ; sur `chosen==='yes'` ET coût payable, dépense le
- * coût + joue la branche `yes` (via `runCombatFlow` — peut empiler une étape `triggeredTest` cadence-aware,
- * Frappe réactive) ; sinon joue `no`. Puis la continuation `after`. L'`ExecCtx` est RECONSTRUIT (jamais
- * capturé) ; le contexte `freeAttack` sérialisé rejoint l'exécution pour la frappe contre le tiers.
- */
-registerCascadeApplier('triggeredChoice', (get, set, step, hero) => {
-  if (!hero) return;
-  const yes = step.chosen === 'yes';
-  const cost = typeof step.meta?.choiceCost === 'number' ? step.meta.choiceCost : undefined;
-  const yesFlow = step.meta?.choiceYes;
-  const noFlow = step.meta?.choiceNo;
-  const fa = step.meta?.freeAttack;
-  const freeAttack = fa && typeof fa === 'object' && 'targetId' in fa ? fa : undefined;
-  const can = yes && choiceAffordable(get, hero, cost);
-  if (yes && can && cost != null) { campSpend(get, hero, cost); set(touchActors(get())); } // débite la réserve du camp (mode groupe) / le combattant (LDB)
-  // Le DÉCIDEUR (`hero`) est le `caster` (porteur). La branche vise `choiceTargetId` (la VICTIME, Déstabilisante)
-  // si présent, sinon le décideur lui-même (Frappe réactive : Test sur soi). Reconstruit depuis get() — jamais capturé.
-  const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;
-  const branchTarget = (tid ? inBattleId(get().battle, tid) : undefined) ?? hero;
-  // ENTITÉ PORTEUSE recomposée du `meta` : le Test de la branche `yes` en dérive son enjeu (#1262 V2 L6d).
-  const sk = step.meta?.sourceKind;
-  const sid = step.meta?.sourceEntityId;
-  const source = typeof sk === 'string' && typeof sid === 'string' ? { kind: sk as EffectSource['kind'], id: sid } : undefined;
-  const ctx: ExecCtx = { mode: 'combat', get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', ...(source ? { opsCtx: { source } } : {}), ...(freeAttack ? { freeAttack } : {}) };
-  if (can) runCombatFlow(ctx, yesFlow ?? EMPTY_FLOW);
-  else if (noFlow) runCombatFlow(ctx, noFlow);
-  return { consequences: freeCons(suiteDEtape(get, set, hero, step.meta?.after, step.label ?? 'Réaction', source)) };
-});
-
-/**
- * ROUTEUR d'un Flow de trigger PORTANT un nœud `test` vers la voie cadence-aware — installé dans
- * `triggeredEffects` (inversion de dépendance) par le STORE au runtime (`createCombatSlice`, comme le
- * hook `onGainCondition`), PAS au top-level de ce module : l'injecteur `setTriggeredTestRouter` vit en
- * amont d'un cycle d'imports (`triggeredEffects`→`combatEffects`→…→`combatFlow`→ce module) → l'appeler à
- * l'init donnerait une TDZ. Délègue au `runCombatFlow` à PILE (after-aware) : un `test` top-level
+ * ROUTEUR d'un Flow de trigger PORTANT un nœud `test` vers la voie cadence-aware, appelé par
+ * `triggeredEffects` quand le contexte porte son `set`. Délègue au `runCombatFlow` à PILE (after-aware) : un `test` top-level
  * (Mâchoires, `onGainCondition`) est traité IDENTIQUEMENT au Lot 0 (`after` = pile vide) ; un `test`
  * ENFOUI (Venin sous `if`, Hurlement dans un `seq`) suspend en empaquetant le reste de la pile dans
  * `after`. Le `caster`/référent = `actor` (le porteur de l'effet : Force de la source pour les formules) ;
@@ -913,14 +771,14 @@ export function bandeTriggeredTest(
   );
 }
 
-/** Implémentation du hook `setZoneCrossTestHook` (combatPlacement.ts, #500) — un `crossTest` de zone
- *  (Forêt d'épines, LDB 48 l.749) EST un `test` de Flow comme un autre : délègue à `routeTriggeredTest`,
- *  aucune machinerie propre. Injectée par le store (`createCombatSlice`), calque `freeAttackHookImpl`.
+/** Le Test de traversée d'une zone (`applyZoneCrossings`, combatPlacement.ts, #500) — un `crossTest` de
+ *  zone (Forêt d'épines, LDB 48 l.749) EST un `test` de Flow comme un autre : délègue à
+ *  `routeTriggeredTest`, aucune machinerie propre.
  *  `applyZoneCrossings` (l'appelant, combatPlacement.ts) n'a PAS accès à `drainPendingLog`
  *  (combatEffects.ts, cycle) : on draine ICI la voie INLINE (ennemi/auto — `resolveFlowTest` y pousse
  *  ses lignes dans `pendingLogQueue`, SOURCE UNIQUE) — no-op pour la voie cascade (héros manuel, aucune
  *  ligne encore produite au retour de `routeTriggeredTest`, elle en poussera à la résolution du jet). */
-export function zoneCrossTestHookImpl(get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: Flow, label: string, source?: EffectSource): void {
+export function testerLaTraverseeDeZone(get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: Flow, label: string, source?: EffectSource): void {
   routeTriggeredTest(get, set, mover, caster, flow, { label, ...(source ? { source } : {}) });
   const battle = get().battle;
   if (!battle) return;
@@ -934,7 +792,7 @@ export function zoneCrossTestHookImpl(get: Get, set: SetFn, mover: Combatant, ca
 const notifying = new WeakSet<Combatant>();
 
 /**
- * Hook `onGainCondition` rempli par le store (`setConditionGainedHook`) : quand un combattant gagne un
+ * Hook `onGainCondition` posé par `brancherLeJeu` (`setConditionGainedHook`) : quand un combattant gagne un
  * État EN COMBAT, déclenche ses effets `onGainCondition` (Mâchoires d'acier). Gardes : combat actif +
  * combattant DANS la file de combat (pas un membre du groupe hors combat) + anti-récursion. Un Test
  * routé suspend (cascade) ou résout inline (la brique gère le journal) ; d'éventuelles lignes
@@ -953,3 +811,115 @@ export function handleConditionGained(get: Get, set: SetFn, c: Combatant, name: 
     notifying.delete(c);
   }
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['triggeredBatchTest', 'triggeredTest', 'triggeredChoice'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /**
+     * Étape de cascade GÉNÉRIQUE `triggeredBatchTest` — le pendant MULTI de l'applier `triggeredTest` :
+     * la MÊME conséquence partagée (`applyTriggeredTestBranch`) est jouée POUR CHAQUE RANGÉE, contre le
+     * résultat de CETTE rangée. Une branche qui porte un second Test (Vigilance, LDB 13 l.67) est routée
+     * par `runCombatFlow` et n'APPEND son étape que pour le défenseur concerné. Le seam `onOwnTestFailed`
+     * est émis par `commitStep` PAR RANGÉE PERDANTE (source unique des deux formes, mono et bande).
+     */
+    triggeredBatchTest: (get, set, step) => {
+      const onSuccess = step.meta?.onSuccess;
+      const onFail = step.meta?.onFail;
+      if (!onSuccess || !onFail || !step.participants) return;
+      const casterId = typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined;
+      const caster = casterId ? actorIn(get(), casterId) : undefined;
+      const hullId = typeof step.meta?.hullId === 'string' ? step.meta.hullId : undefined;
+      const hull = hullId ? coqueParId(get(), hullId) : undefined;
+      // La COQUE que l'étape DÉCLARE a disparu de l'état entre le mint et la résolution — une cascade
+      // suspendue (`suspendActiveCascade`) et reprise après la fin du voyage : `travelPlan.vehicle` n'est
+      // plus là, la file de combat non plus. La branche d'échec ne peut pas être calculée (la hauteur de
+      // chute se lit sur la Taille du bateau) : le refus est JOURNALISÉ et NOMMÉ, jamais joué à moitié —
+      // même régime que les gardes d'entrée ci-dessus (l'applier ne lève pas en pleine résolution).
+      if (hullId && !hull) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      const journal: string[] = [];
+      for (const part of step.participants) {
+        const hero = actorIn(get(), part.id);
+        if (!hero || !part.result) continue;
+        journal.push(...applyTriggeredTestBranch(hero, part.result, { onSuccess, onFail }, { get, set, ...(caster ? { caster } : {}), ...(hull ? { hull } : {}) }));
+        set(touchActors(get()));
+        journal.push(...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step)));
+      }
+      return { consequences: freeCons(journal) };
+    },
+    /**
+     * Étape de cascade GÉNÉRIQUE `triggeredTest` — UN applier pour TOUTE mécanique (zéro applier par
+     * talent). Lit `step.result` (succès/DR posés par `FLOWS.cascade`) + les Flows `meta.onSuccess/onFail`
+     * (sérialisables) et exécute la MÊME conséquence partagée `applyTriggeredTestBranch`, PUIS la
+     * continuation `meta.after` (l'`ExecCtx` est RECONSTRUIT depuis get()/hero — jamais capturé).
+     */
+    triggeredTest: (get, set, step, hero) => {
+      if (!hero || !step.result) return;
+      const onSuccess = step.meta?.onSuccess;
+      const onFail = step.meta?.onFail;
+      if (!onSuccess || !onFail) return;
+      // `exec` (get/set) TOUJOURS fourni : une branche IMPURE à hook (interruptFocus / la success freeAttack /
+      // le breakBlade de Piège-lame) est routée vers `runCombatFlow` par `applyTriggeredTestBranch` (cf.
+      // flowHasImpureOp). `freeAttack` sérialisé (Frappe réactive) → joint pour cibler le TIERS (chargeur) ;
+      // `bladeTrap` sérialisé → joint pour cibler la lame de l'attaquant ; absents → branche sur soi.
+      const fa = step.meta?.freeAttack;
+      const bt = step.meta?.bladeTrap;
+      // Référent des Formules (`casterId`, cf. `CascadeStepMeta`) — combat OU groupe (`actorIn`, pas
+      // `inBattleId` seul) : un lanceur qui a quitté la file de combat (fui/KO retiré) mais reste vivant
+      // dans le groupe garde SON référent (Forêt d'épines LDB 48 l.749 : « qui utilise VOTRE Force
+      // Mentale », pas celle du traverseur) ; absent/introuvable ⇒ `applyTriggeredTestBranch` retombe sur `hero`.
+      const casterId = typeof step.meta?.casterId === 'string' ? step.meta.casterId : undefined;
+      const caster = casterId ? actorIn(get(), casterId) : undefined;
+      // ENTITÉ PORTEUSE recomposée du `meta` (ids sérialisés au mint) : un second Test enfoui dans la
+      // branche dérive son enjeu de la MÊME entité que celui qui vient d'être joué (#1262 V2 L6d).
+      const sk = step.meta?.sourceKind;
+      const sid = step.meta?.sourceEntityId;
+      const exec = {
+        get, set,
+        ...(caster ? { caster } : {}),
+        ...(typeof sk === 'string' && typeof sid === 'string' ? { source: { kind: sk as EffectSource['kind'], id: sid } } : {}),
+        ...(fa && typeof fa === 'object' && 'targetId' in fa ? { freeAttack: fa } : {}),
+        ...(bt && typeof bt === 'object' && 'attackerId' in bt ? { bladeTrap: bt } : {}),
+      };
+      const journal = applyTriggeredTestBranch(hero, step.result, { onSuccess, onFail }, exec);
+      // (SEAM `onOwnTestFailed` d'une étape de cascade : centralisé dans `commitStep` — jamais ici, sinon
+      //  double-émission ; l'étampe `meta.noOwnTestFailed` y garde la ré-entrance du FM de palier 2.)
+      set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
+      // Continuation `after` (le reste du `seq` qui suivait le `test`) — peut ré-appender une étape
+      // `triggeredTest` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
+      return { consequences: freeCons([...journal, ...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), exec.source)]) };
+    },
+    /**
+     * Étape de cascade GÉNÉRIQUE `triggeredChoice` — UN applier pour TOUTE décision opt-in (zéro applier par
+     * mécanique). Reconstruit le décideur depuis get()/hero ; sur `chosen==='yes'` ET coût payable, dépense le
+     * coût + joue la branche `yes` (via `runCombatFlow` — peut empiler une étape `triggeredTest` cadence-aware,
+     * Frappe réactive) ; sinon joue `no`. Puis la continuation `after`. L'`ExecCtx` est RECONSTRUIT (jamais
+     * capturé) ; le contexte `freeAttack` sérialisé rejoint l'exécution pour la frappe contre le tiers.
+     */
+    triggeredChoice: (get, set, step, hero) => {
+      if (!hero) return;
+      const yes = step.chosen === 'yes';
+      const cost = typeof step.meta?.choiceCost === 'number' ? step.meta.choiceCost : undefined;
+      const yesFlow = step.meta?.choiceYes;
+      const noFlow = step.meta?.choiceNo;
+      const fa = step.meta?.freeAttack;
+      const freeAttack = fa && typeof fa === 'object' && 'targetId' in fa ? fa : undefined;
+      const can = yes && choiceAffordable(get, hero, cost);
+      if (yes && can && cost != null) { campSpend(get, hero, cost); set(touchActors(get())); } // débite la réserve du camp (mode groupe) / le combattant (LDB)
+      // Le DÉCIDEUR (`hero`) est le `caster` (porteur). La branche vise `choiceTargetId` (la VICTIME, Déstabilisante)
+      // si présent, sinon le décideur lui-même (Frappe réactive : Test sur soi). Reconstruit depuis get() — jamais capturé.
+      const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;
+      const branchTarget = (tid ? inBattleId(get().battle, tid) : undefined) ?? hero;
+      // ENTITÉ PORTEUSE recomposée du `meta` : le Test de la branche `yes` en dérive son enjeu (#1262 V2 L6d).
+      const sk = step.meta?.sourceKind;
+      const sid = step.meta?.sourceEntityId;
+      const source = typeof sk === 'string' && typeof sid === 'string' ? { kind: sk as EffectSource['kind'], id: sid } : undefined;
+      const ctx: ExecCtx = { mode: 'combat', get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', ...(source ? { opsCtx: { source } } : {}), ...(freeAttack ? { freeAttack } : {}) };
+      if (can) runCombatFlow(ctx, yesFlow ?? EMPTY_FLOW);
+      else if (noFlow) runCombatFlow(ctx, noFlow);
+      return { consequences: freeCons(suiteDEtape(get, set, hero, step.meta?.after, step.label ?? 'Réaction', source)) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

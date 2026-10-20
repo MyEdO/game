@@ -15,6 +15,7 @@ import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../noyau/local
 import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
 import { cascadeDeTest } from '../../state/cascade.testkit';
+import { cleDeFixture } from '../../noyau/noyau.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -157,7 +158,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
     useGame.setState({ pendingCast: { casterId: active.id, targetId: active.id, spellId: 'benediction-de-bataille', missile: true, focused: false, result: null, pickingTargets: true } as never });
     act(() => startCascade(useGame.getState, useGame.setState, {
       title: 'Incantation', purpose: 'combat',
-      steps: [{ id: 'cast-jet', kind: 'castJet', jet: 'cast', actorId: active.id }],
+      steps: [{ id: 'cast-jet', kind: cleDeFixture('castJet'), jet: 'cast', actorId: active.id }],
     }));
 
     expect(probe({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim?.tip).toBeTruthy();

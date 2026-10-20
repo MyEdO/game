@@ -18,9 +18,9 @@ import { evalCondition } from '../engine/flowCore';
 import { applyOps, formulaExpectation } from '../engine/ops';
 import { battleRng } from './battleRng';
 import { worldStep, freeCons } from './rollSeam';
-import { registerCascadeApplier } from './cascade';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 export const ACTIVITY_WORLD_ROLL_KIND = 'activityWorldRoll';
 
@@ -47,17 +47,25 @@ export function buildActivityWorldRollSteps(def: ActivityDef, actor: Combatant):
     }));
 }
 
-registerCascadeApplier(ACTIVITY_WORLD_ROLL_KIND, (get, set, step) => {
-  if (!step.result) return {};
-  const def = activityById(String(step.meta?.activityId ?? ''));
-  const wr = def?.worldRolls?.find((w) => w.id === String(step.meta?.rollId ?? ''));
-  const h = get().party.find((x) => x.id === String(step.meta?.heroId ?? ''));
-  if (!def || !wr || !h) return {};
-  // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
-  if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'info' }]) };
-  const lignes = applyOps(h, wr.ops, {
-    rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activity', id: def.id },
-  });
-  set({ party: [...get().party] });
-  return { consequences: freeCons([{ text: wr.label, tone: 'bad' }, ...lignes.map((text) => ({ text, tone: 'bad' as const }))]) };
-});
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [ACTIVITY_WORLD_ROLL_KIND] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    [ACTIVITY_WORLD_ROLL_KIND]: (get, set, step) => {
+      if (!step.result) return {};
+      const def = activityById(String(step.meta?.activityId ?? ''));
+      const wr = def?.worldRolls?.find((w) => w.id === String(step.meta?.rollId ?? ''));
+      const h = get().party.find((x) => x.id === String(step.meta?.heroId ?? ''));
+      if (!def || !wr || !h) return {};
+      // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
+      if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'info' }]) };
+      const lignes = applyOps(h, wr.ops, {
+        rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activity', id: def.id },
+      });
+      set({ party: [...get().party] });
+      return { consequences: freeCons([{ text: wr.label, tone: 'bad' }, ...lignes.map((text) => ({ text, tone: 'bad' as const }))]) };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { combatHooksOf } from '../noyau/combatHooks';
-import '../noyau/combat/roundHooks'; // effet de bord : enregistre les hooks de fin de Round (dont recompute-auras)
 import { combatTestPenalty } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 

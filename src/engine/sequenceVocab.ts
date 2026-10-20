@@ -8,6 +8,28 @@
 import type { CharKey, Difficulty } from './types';
 import type { GameOp } from './ops';
 
+/** Les clés de CODE des tables de séquence (`src/noyau/sequenceCore.ts`, part TOTALE sur chaque liste) :
+ *  la donnée n'en nomme pas d'autre. Ce qui indexe est le nom d'un EFFET, jamais l'identité d'une
+ *  entrée de catalogue. Ici, les effets de LANCER (table `lancers`). */
+export const LANCERS = [
+  'dr', 'dr-ecrete', 'toute-la-reserve', 'points-de-la-ligne', 'points-de-la-ligne-suivante',
+  'chiffres-du-de', 'gain-au-choix', 'aucun-gain', 'termine-le-passage',
+] as const;
+/** Les effets de POT déclarés (table `effetsDePot`). */
+export const EFFETS_DE_POT = ['rafle-le-pot', 'reprend-mise', 'cible-ou-passe', 'remise-ou-abandon', 'quitte-la-manche'] as const;
+/** Les départages d'égalité déclarés (table `departages`). */
+export const DEPARTAGES = ['units-lowest', 'nul'] as const;
+/** Les formules de score d'un camp déclarées (table `scoresDeSequence`). */
+export const SCORES_DE_SEQUENCE = ['min', 'max', 'sum', 'first'] as const;
+/** Un effet de lancer déclaré. */
+export type Lancer = (typeof LANCERS)[number];
+/** Un effet de pot déclaré. */
+export type EffetDePot = (typeof EFFETS_DE_POT)[number];
+/** Un départage d'égalité déclaré. */
+export type DepartageDeSequence = (typeof DEPARTAGES)[number];
+/** Une formule de score de camp déclarée. */
+export type ScoreDeSequence = (typeof SCORES_DE_SEQUENCE)[number];
+
 /** UNE LIGNE de table de score par PLAGE de DR — lue par `findTableEntry` (`engine/tables.ts`).
  *  Torchon trempé (NADJ 16 l.111) : jambe 1 point, corps 2 points à partir de 3 DR, tête 3 points à
  *  partir de 6 DR. `label` est de l'AFFICHAGE (la logique lit `points`). */
@@ -44,7 +66,7 @@ export interface SequencePhases {
  * [GameOps], rendre le vocabulaire le plus générique et parametrable possible ». D'où : aucun champ
  * ne nomme son premier client, chaque mécanisme est PARAMÉTRÉ (combien de dés, quelle plage de
  * cible, combien de mises déplace un effet, combien de manches par joueur), et l'EFFET d'une plage
- * est un NOM ENREGISTRÉ résolu par une fonction pure — exactement le patron `GameOp` : un verbe
+ * est un NOM DÉCLARÉ résolu par une fonction pure — exactement le patron `GameOp` : un verbe
  * générique + ses paramètres, jamais un cas d'usage figé au type. Un jeu à enchère N+1 dont les
  * mécanismes existent déjà est une entrée JSON, zéro ligne de TS. */
 
@@ -55,13 +77,13 @@ export interface SequenceDice {
 }
 
 /** UNE PLAGE de résultat du tour et l'EFFET qu'elle déclenche — `potEffectId` est le nom d'un effet
- *  ENREGISTRÉ (`registerSequencePotEffect`, `noyau/sequenceCore`), jamais un id de jeu, et `mises`
+ *  DÉCLARÉ (table `effetsDePot`, `noyau/sequenceCore`), jamais un id de jeu, et `mises`
  *  le PARAMÈTRE que cet effet applique (combien de mises il déplace, défaut 1). `label` est de
  *  l'AFFICHAGE. */
 export interface SequencePotRow {
   min: number;
   max: number;
-  potEffectId: string;
+  potEffectId: EffetDePot;
   /** Nombre de MISES que l'effet déplace (reprise dans le pot, remise à payer) — défaut 1. */
   mises?: number;
   label: string;
@@ -118,8 +140,8 @@ export interface SequencePotOutcome {
  *
  * FORME — directive utilisateur du 2026-08-13 (verbatim au ticket #1279) : « Comme les games iOS
  * [GameOps], rendre le vocabulaire le plus générique et parametrable possible ». D'où : aucun champ
- * ne nomme son premier client, et ce que RAPPORTE un lancer est un NOM ENREGISTRÉ résolu par une
- * fonction pure (`registerSequenceThrow`, `noyau/sequenceCore`) — patron `GameOp` et patron des
+ * ne nomme son premier client, et ce que RAPPORTE un lancer est un NOM DÉCLARÉ résolu par une
+ * fonction pure (table `lancers`, `noyau/sequenceCore`) — patron `GameOp` et patron des
  * effets de pot (famille 5) : un verbe générique + ses paramètres. Un jeu de lancers N+1 dont les
  * verbes existent déjà est une entrée JSON, zéro ligne de TS.
  */
@@ -147,19 +169,19 @@ export interface SequenceVolleyRules {
   /** Ce qui DÉSIGNE la ligne d'un lancer : la RÉSERVE restante (`findTableEntry`), ou le LANCEUR. */
   pick?: 'reserve' | 'choix';
   rows?: readonly SequenceVolleyRow[];
-  /** Effet ENREGISTRÉ d'un lancer ORDINAIRE (`registerSequenceThrow`). */
-  gain: string;
-  /** Effet ENREGISTRÉ d'une réussite EXCEPTIONNELLE — un double sur un Test réussi (`NADJ 16 l.7`). */
-  critique?: string;
-  /** Effet ENREGISTRÉ d'un échec EXCEPTIONNEL — un double sur un Test raté (`NADJ 16 l.7`). */
-  maladresse?: string;
+  /** Effet DÉCLARÉ d'un lancer ORDINAIRE (table `lancers`). */
+  gain: Lancer;
+  /** Effet DÉCLARÉ d'une réussite EXCEPTIONNELLE — un double sur un Test réussi (`NADJ 16 l.7`). */
+  critique?: Lancer;
+  /** Effet DÉCLARÉ d'un échec EXCEPTIONNEL — un double sur un Test raté (`NADJ 16 l.7`). */
+  maladresse?: Lancer;
   /** PLAGE d'un gain que le lanceur fixe LIBREMENT (lue par l'effet qui l'offre). */
   libre?: { min: number; max: number };
   /** TOTAL EXACT visé : le camp qui l'atteint conclut, et un gain qui le DÉPASSE déclenche
    *  `depassement`. Absent : aucune cible exacte, les totaux se comparent au bout des manches. */
   exact?: number;
-  /** Effet ENREGISTRÉ du gain qui dépasse `exact`. Absent : le gain passe tel quel. */
-  depassement?: string;
+  /** Effet DÉCLARÉ du gain qui dépasse `exact`. Absent : le gain passe tel quel. */
+  depassement?: Lancer;
   /** Passages complets PRÉVUS par la règle. */
   manches?: number;
   /** ORDRE de passage : DÉCLARÉ (le challenger ouvre) ou TIRÉ AU SORT (`NADJ 16 l.97` : « jetez une

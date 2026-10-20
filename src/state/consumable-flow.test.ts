@@ -12,7 +12,7 @@ import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
 import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition } from '../engine/conditions';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
 
@@ -155,19 +155,19 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (actG
     const set = useGame.setState;
 
     // Échec du Test → l'applier insère l'étape de choix Action/Mouvement.
-    const out = cascadeAppliers['actGate'].apply(get, set, { id: 's1', kind: 'actGate', actorId: 'h1', result: { roll: 99, target: 30, sl: -6, success: false } } as never, h, { steps: [], index: 0 });
+    const out = applierDe('actGate')!(get, set, { id: 's1', kind: 'actGate', actorId: 'h1', result: { roll: 99, target: 30, sl: -6, success: false } } as never, h, { steps: [], index: 0 });
     expect(out?.insert?.[0]?.kind).toBe('actGateChoice');
     expect(out?.insert?.[0]?.options?.map((o: { key: string }) => o.key)).toEqual(['action', 'move']);
 
     // Choix « garder le Mouvement » → l'Action du tour est consommée sur la battle COURANTE.
-    cascadeAppliers['actGateChoice'].apply(get, set, { ...out!.insert![0], chosen: 'move' } as never, h, { steps: [], index: 0 });
+    applierDe('actGateChoice')!(get, set, { ...out!.insert![0], chosen: 'move' } as never, h, { steps: [], index: 0 });
     expect(useGame.getState().battle!.acted).toBe(true);
   });
 
   it('applier actGate : réussite → rien à restreindre', () => {
     const h = hero('h1');
     useGame.setState({ party: [h], battle: battleWith(h), mode: 'battle' });
-    const out = cascadeAppliers['actGate'].apply(useGame.getState, useGame.setState, { id: 's1', kind: 'actGate', actorId: 'h1', result: { roll: 2, target: 30, sl: 2, success: true } } as never, h, { steps: [], index: 0 });
+    const out = applierDe('actGate')!(useGame.getState, useGame.setState, { id: 's1', kind: 'actGate', actorId: 'h1', result: { roll: 2, target: 30, sl: 2, success: true } } as never, h, { steps: [], index: 0 });
     expect(out?.insert).toBeUndefined();
     expect(useGame.getState().battle!.acted).toBe(false);
   });

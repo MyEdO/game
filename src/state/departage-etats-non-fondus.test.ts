@@ -4,7 +4,7 @@ import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { creditBourse } from '../noyau/bourseFlow';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { resultLine } from '../noyau/rollSeam';
 import { rollMerchantSkill, rollMerchantOpposition, type PortProfile } from '../engine/seaVoyage';
 import { rollMerchantSkill as rollLandMerchantSkill } from '../engine/landCargo';
@@ -116,7 +116,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     const opened = get().pendingCascade!.participants[0] as CascadeStep;
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;
-    const out = cascadeAppliers['port-buy-bargain'].apply(get, set, step, leader, { steps: [step], index: 0 });
+    const out = applierDe('port-buy-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/remise de \d+ %/);
     expect(line).not.toMatch(/surcoût/);

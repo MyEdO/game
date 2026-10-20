@@ -10,9 +10,11 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { startCascade } from '../noyau/cascade';
 import { choiceStep } from '../noyau/rollSeam';
 import { CascadeBody } from './CascadeModal';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -27,7 +29,7 @@ function openChoix() {
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   });
   const step = choiceStep({
-    id: 'ch', kind: 'uiChoixSpy', label: fixtureText('Dévier ou subir ?'), actorId: 'h1',
+    id: 'ch', kind: cleDeFixture('uiChoixSpy'), label: fixtureText('Dévier ou subir ?'), actorId: 'h1',
     options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
   })!;
   startCascade(useGame.getState, useGame.setState, { title: 'Blessure critique', purpose: 'test', steps: [step] });
@@ -37,7 +39,7 @@ const render = () => act(() => { root.render(<CascadeBody />); });
 const terminer = () => [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Terminer');
 
 beforeEach(() => {
-  registerCascadeApplier('uiChoixSpy', () => {});
+  avecLesTables({ appliers: { ...tablesDuJeu().appliers, uiChoixSpy: () => {} } });
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);

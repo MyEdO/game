@@ -9,7 +9,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { registerCombatHook } from '../noyau/combatHooks';
 import type { CombatEventCtx } from '../noyau/combatEvents';
 import { hasCondition, COND } from '../engine/conditions';
 import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } from '../noyau/combatFlow';
@@ -25,6 +24,8 @@ import { stepInteraction } from '../noyau/cascade';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { draineCascade } from './cascade.testkit';
 import { t as tr } from '../i18n';
+import { avecLesTables } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 
@@ -496,7 +497,7 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
 describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.6228496170 Q3, Q4b)', () => {
   /** Les `onCrit` émis sur le bus (le hook machinerie reçoit le contexte entier de l'événement). */
   const onCrit: CombatEventCtx[] = [];
-  registerCombatHook({ id: 'test-deviation-paths-oncrit', phase: 'onCrit', run: (ctx) => { onCrit.push(ctx as CombatEventCtx); } });
+  beforeEach(() => { avecLesTables({ crochetsDeCombat: [...tablesDuJeu().crochetsDeCombat, { id: 'test-deviation-paths-oncrit', phase: 'onCrit', run: (ctx) => { onCrit.push(ctx as CombatEventCtx); } }] }); });
   beforeEach(() => { seedBattleRng(7); onCrit.length = 0; });
 
   /** Le Critique d'un Test opposé (LDB 14 l.3) d'un auteur à `fb` niveaux de Frappe blessante, sur une cible à `pb` PB. */

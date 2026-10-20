@@ -30,7 +30,7 @@ import { applyEffects, runFlow } from '../noyau/combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from '../noyau/shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
-import { cascadeAppliers, registerCascadeApplier, runCascadeImmediate } from '../noyau/cascade';
+import { applierDe, runCascadeImmediate } from '../noyau/cascade';
 import { inexplique, soutienDe, avanceEtapeCascade, draineCascade, type PoseDe } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { findCrewRoleById, resolveStake, testSkillLabel } from '../data';
@@ -52,6 +52,9 @@ import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET, estJete } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { hullNavalTraits } from '../engine/navalTraits';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import type { GenreDeCascade } from '../noyau/tablesPosees';
 
 /**
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
@@ -201,7 +204,7 @@ describe('journée en mer — la journée est UNE cascade `purpose:travelDay` (#
 /**
  * SEUIL DE SUCCÈS d'un Test d'équipage résolu PAR CASCADE (#1019) — MDG 14 l.13. La machinerie de batch
  * (`cascade.ts`) est sous quarantaine d'import naval (#328) : le flux propriétaire lui INJECTE son
- * prédicat (`registerCascadeSuccessRule('crew-test', crewTestSuccess)`), l'étape ne portant que l'id.
+ * prédicat (`reglesDeSucces['crew-test']`), l'étape ne portant que l'id.
  * Sans cette injection, une étape de voyage retomberait sur le seuil générique et IGNORERAIT la règle
  * optionnelle `crew-test-zero-success`.
  */
@@ -515,7 +518,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
   });
 });
 
-describe('registre cascadeAppliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL)', () => {
+describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 cran 3 — PILOTE RÉEL)', () => {
   beforeEach(freshState);
 
   function planWithSea() {
@@ -526,12 +529,12 @@ describe('registre cascadeAppliers — les 10 Tests d’équipage de VOYAGE (#27
 
   /** Étape À PARTICIPANTS déjà agrégée (`commitStep`/`aggregateBatchStep`, #275 Décision 4 cran 1) —
    *  `result.sl` = total agrégé, `result.success` = total ≥ 1 (MDG 14 l.13). */
-  function step(kind: string, sl: number, success = sl >= 1): CascadeStep {
+  function step(kind: GenreDeCascade, sl: number, success = sl >= 1): CascadeStep {
     return { id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success }};
   }
 
-  const apply = (kind: string, sl: number, success = sl >= 1) =>
-    cascadeAppliers[kind].apply(get, set, step(kind, sl, success), undefined, { steps: [], index: 0 });
+  const apply = (kind: GenreDeCascade, sl: number, success = sl >= 1) =>
+    applierDe(kind)!(get, set, step(kind, sl, success), undefined, { steps: [], index: 0 });
 
   it('entretien : réussite (total −2 ≥ 1) → réparation temporaire 1d10 Blessures, PERSISTÉE (#30 ; MDG 14 l.122 + ch.13 l.647)', () => {
     const plan = planWithSea();
@@ -1592,7 +1595,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     const [a, b] = get().party;
     a.diseases = [];
     b.diseases = [];
-    cascadeAppliers['sea-mal-de-mer'].apply(get, set, bandeMalDeMer([{ id: a.id, success: false }, { id: b.id, success: true }]), a, { steps: [], index: 0 });
+    applierDe('sea-mal-de-mer')!(get, set, bandeMalDeMer([{ id: a.id, success: false }, { id: b.id, success: true }]), a, { steps: [], index: 0 });
     const found = get().party.find((h) => h.id === a.id)!.diseases?.find((d) => d.id === 'mal-de-mer');
     expect(found).toBeTruthy();
     expect(found!.symptoms.map((s) => s.symptomId).sort()).toEqual(['malaise', 'nausee', 'persistant']);
@@ -1603,7 +1606,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
     const [a, b] = get().party;
     a.diseases = [];
     b.diseases = [];
-    cascadeAppliers['sea-mal-de-mer'].apply(get, set, bandeMalDeMer([{ id: a.id, success: true }, { id: b.id, success: true }]), a, { steps: [], index: 0 });
+    applierDe('sea-mal-de-mer')!(get, set, bandeMalDeMer([{ id: a.id, success: true }, { id: b.id, success: true }]), a, { steps: [], index: 0 });
     expect(get().party.flatMap((h) => h.diseases ?? [])).toHaveLength(0);
   });
 
@@ -1689,7 +1692,7 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     set({ travelPlan: plan });
     const hero = get().party[0];
-    cascadeAppliers['sea-tonneau-contamine'].apply(get, set, { id: 'x', kind: 'sea-tonneau-contamine', label: fixtureText('x'), result: { roll: 99, target: 40, sl: -6, success: false }, meta: { diseaseId: 'flux-sanglant' } }, hero, { steps: [], index: 0 });
+    applierDe('sea-tonneau-contamine')!(get, set, { id: 'x', kind: 'sea-tonneau-contamine', label: fixtureText('x'), result: { roll: 99, target: 40, sl: -6, success: false }, meta: { diseaseId: 'flux-sanglant' } }, hero, { steps: [], index: 0 });
     expect(get().travelPlan!.sea!.waterContaminated).toEqual({ diseaseId: 'flux-sanglant' });
   });
 
@@ -1697,21 +1700,21 @@ describe('Tonneau d\'eau contaminé — #460 (MDG 14 l.209, `vessel.waterLitres`
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     set({ travelPlan: plan });
     const hero = get().party[0];
-    cascadeAppliers['sea-tonneau-contamine'].apply(get, set, { id: 'x', kind: 'sea-tonneau-contamine', label: fixtureText('x'), result: { roll: 1, target: 40, sl: 6, success: true }, meta: { diseaseId: 'flux-sanglant' } }, hero, { steps: [], index: 0 });
+    applierDe('sea-tonneau-contamine')!(get, set, { id: 'x', kind: 'sea-tonneau-contamine', label: fixtureText('x'), result: { roll: 1, target: 40, sl: 6, success: true }, meta: { diseaseId: 'flux-sanglant' } }, hero, { steps: [], index: 0 });
     expect(get().travelPlan!.sea!.waterContaminated).toBeUndefined();
   });
 
   it('applier `sea-tonneau-expose` : boire au tonneau contaminé, échec → contracté', () => {
     const hero = get().party[0];
     hero.diseases = [];
-    cascadeAppliers['sea-tonneau-expose'].apply(get, set, { id: 'x', kind: 'sea-tonneau-expose', label: fixtureText('x'), result: { roll: 99, target: 20, sl: -8, success: false }, meta: { diseaseId: 'peste-noire' } }, hero, { steps: [], index: 0 });
+    applierDe('sea-tonneau-expose')!(get, set, { id: 'x', kind: 'sea-tonneau-expose', label: fixtureText('x'), result: { roll: 99, target: 20, sl: -8, success: false }, meta: { diseaseId: 'peste-noire' } }, hero, { steps: [], index: 0 });
     expect(get().party.find((h) => h.id === hero.id)!.diseases?.some((d) => d.id === 'peste-noire')).toBe(true);
   });
 
   it('applier `sea-tonneau-expose` : réussite → rien', () => {
     const hero = get().party[0];
     hero.diseases = [];
-    cascadeAppliers['sea-tonneau-expose'].apply(get, set, { id: 'x', kind: 'sea-tonneau-expose', label: fixtureText('x'), result: { roll: 1, target: 20, sl: 8, success: true }, meta: { diseaseId: 'peste-noire' } }, hero, { steps: [], index: 0 });
+    applierDe('sea-tonneau-expose')!(get, set, { id: 'x', kind: 'sea-tonneau-expose', label: fixtureText('x'), result: { roll: 1, target: 20, sl: 8, success: true }, meta: { diseaseId: 'peste-noire' } }, hero, { steps: [], index: 0 });
     expect(get().party.find((h) => h.id === hero.id)!.diseases ?? []).toHaveLength(0);
   });
 
@@ -1916,11 +1919,11 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
     set({ travelPlan: plan });
     return plan;
   }
-  function step(kind: string, sl: number, success = sl >= 1): CascadeStep {
+  function step(kind: GenreDeCascade, sl: number, success = sl >= 1): CascadeStep {
     return { id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success }};
   }
-  const apply = (kind: string, sl: number, success = sl >= 1) =>
-    cascadeAppliers[kind].apply(get, set, step(kind, sl, success), undefined, { steps: [], index: 0 });
+  const apply = (kind: GenreDeCascade, sl: number, success = sl >= 1) =>
+    applierDe(kind)!(get, set, step(kind, sl, success), undefined, { steps: [], index: 0 });
 
   it('Débris marins : l’étape de dégagement met en jeu SON enjeu (MDG 13 l.487-491), pas la progression bloquée de l’Échouage', () => {
     const plan = planWithSea();
@@ -2131,11 +2134,11 @@ describe('Survitesse — « Ça va lâcher, capitaine ! » (#443, MDG 13 l.121-1
     set({ travelPlan: { ...plan, sea } });
     return plan;
   }
-  function step(kind: string, sl: number, success = sl >= 1, meta?: Record<string, number>): CascadeStep {
+  function step(kind: GenreDeCascade, sl: number, success = sl >= 1, meta?: Record<string, number>): CascadeStep {
     return { id: kind, kind, label: fixtureText(kind), result: { roll: 0, target: 0, sl, success }, meta };
   }
-  const apply = (kind: string, sl: number, success = sl >= 1, meta?: Record<string, number>) =>
-    cascadeAppliers[kind].apply(get, set, step(kind, sl, success, meta), undefined, { steps: [], index: 0 });
+  const apply = (kind: GenreDeCascade, sl: number, success = sl >= 1, meta?: Record<string, number>) =>
+    applierDe(kind)!(get, set, step(kind, sl, success, meta), undefined, { steps: [], index: 0 });
 
   it('pas de survitesse (M dans les clous, ≤ M+4) → la Progression n’insère aucun Test de survitesse', () => {
     planWithSea(); // aucun eventMMod → M 5, sous le seuil M+4 (safeBonus)
@@ -2731,13 +2734,13 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
  */
 describe('journée commandée parquée sur une décision : le PV du jour est versé à la clôture', () => {
   beforeEach(freshState);
-  registerCascadeApplier('progression-choix-test', () => {});
+  beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'progression-choix-test': () => {} } }); });
 
   it('la bande résolue à la reprise arrive au PV de la halte', () => {
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'commande' })! });
     const h = get().party[0];
     const bande = buildBand(get, { id: 'bande-pv', kind: 'orientation', label: fixtureText('Orientation'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne: { test: { skill: 'orientation', char: 'intelligence' } } }] })!;
-    const decision: CascadeStep = { id: 'decision', kind: 'progression-choix-test', label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
+    const decision: CascadeStep = { id: 'decision', kind: cleDeFixture('progression-choix-test'), label: fixtureText('Décision'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
     expect(runCascadeImmediate(get, set, [decision, bande], { title: 'Jour', purpose: 'travelDay', rowSurface: 'pv' })).toBeUndefined();
 
     get().cascadeChoose('decision', 'a');

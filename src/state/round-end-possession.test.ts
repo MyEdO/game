@@ -33,7 +33,6 @@ import { ownsLocal, humanControlled } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import '../noyau/combat/roundHooks';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;

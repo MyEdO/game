@@ -46,8 +46,8 @@ function freshSea() {
 
 describe('couche voyageCadence — la liste FERMÉE des Tests sous ordres', () => {
   it('KINDS_SOUS_ORDRES : une liste pour les deux routes ; crises, embuscade, voyage rapide et Expositions hors route restent dehors', () => {
-    for (const k of ['progression', 'affaler', 'phare', 'orientation', 'entretien', 'river-exposition-tirage', 'river-exposition']) expect(KINDS_SOUS_ORDRES.has(k), k).toBe(true);
-    for (const k of ['poursuite', 'tourbillon', 'embuscade', 'extermination', 'ouragan', 'voyage-rapide', 'exposure', 'waterExposure']) expect(KINDS_SOUS_ORDRES.has(k), k).toBe(false);
+    for (const k of ['progression', 'affaler', 'phare', 'orientation', 'entretien', 'river-exposition-tirage', 'river-exposition']) expect(new Set<string>(KINDS_SOUS_ORDRES).has(k), k).toBe(true);
+    for (const k of ['poursuite', 'tourbillon', 'embuscade', 'extermination', 'ouragan', 'voyage-rapide', 'exposure', 'waterExposure']) expect(new Set<string>(KINDS_SOUS_ORDRES).has(k), k).toBe(false);
   });
 });
 

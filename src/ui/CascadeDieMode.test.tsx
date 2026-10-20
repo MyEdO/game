@@ -14,11 +14,13 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
-import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { startCascade } from '../noyau/cascade';
 import { dieStep } from '../noyau/rollSeam';
 import type { SeuilDeSauvegarde } from '../noyau/pendings';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { CascadeBody } from './CascadeModal';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -29,7 +31,7 @@ let root: Root;
 
 /** Étape à DÉ NU du MONDE : 2d10 mètres de chute, +3 de modificateur pour lire l'opération à l'écran. */
 const chute = (mod?: number) => dieStep({
-  id: 'dn', kind: 'uiDieSpy', label: fixtureText('Hauteur de chute'), icon: 'nav/dice',
+  id: 'dn', kind: cleDeFixture('uiDieSpy'), label: fixtureText('Hauteur de chute'), icon: 'nav/dice',
   spec: { n: 2, sides: 10 }, unite: 'm', worldOwner: true, ...(mod != null ? { mod } : {}),
 })!;
 
@@ -63,7 +65,7 @@ function typeSlowly(value: string) {
 
 beforeEach(() => {
   resetDesFixes();
-  registerCascadeApplier('uiDieSpy', () => {});
+  avecLesTables({ appliers: { ...tablesDuJeu().appliers, uiDieSpy: () => {} } });
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
@@ -170,7 +172,7 @@ describe('Dé à SEUIL en fenêtre (#1508) — la rangée dit ce qu’on joue AV
     startCascade(useGame.getState, useGame.setState, {
       title: 'Sauvegarde', purpose: 'test',
       steps: [dieStep({
-        id: 'sv', kind: 'uiDieSpy', label: fixtureText('Sauvegarde'), icon: 'journal/critical',
+        id: 'sv', kind: cleDeFixture('uiDieSpy'), label: fixtureText('Sauvegarde'), icon: 'journal/critical',
         spec: { n: 1, sides: 10 }, actorId: hero.id, seuil: DOME,
       })!],
     });

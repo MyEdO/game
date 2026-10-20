@@ -15,11 +15,12 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { startCascade, registerCascadeApplier, stepInteraction, stepReady, clampStepAmount, secondReadOf, runCascadeImmediate } from '../noyau/cascade';
+import { startCascade, stepInteraction, stepReady, clampStepAmount, secondReadOf, runCascadeImmediate } from '../noyau/cascade';
 import { quantityStep, monoStep, freeCons } from '../noyau/rollSeam';
 import { combatStakeRef } from '../data';
 import { evaluateCombinedTest } from '../engine/tests';
 import type { CascadeStep } from '../noyau/pendings';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 
 const get = useGame.getState.bind(useGame);
 
@@ -31,31 +32,33 @@ function hero() {
 
 /** Nombres RETENUS par l'applier à la validation — ce que le socle a réellement transmis. */
 const retenus: number[] = [];
-registerCascadeApplier('mesure-quantite', (_g, _s, step) => {
-  retenus.push(step.amount ?? -1);
-  return { consequences: freeCons([`retenu ${step.amount}`]) };
-});
 
 beforeEach(() => {
   retenus.length = 0;
   useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
+  avecLesTables({ appliers: {
+    'mesure-quantite': (_g, _s, step) => {
+      retenus.push(step.amount ?? -1);
+      return { consequences: freeCons([`retenu ${step.amount}`]) };
+    },
+  } });
 });
 
 describe('Étape « quantité » — la 6ᵉ interaction de la coquille', () => {
   it('une étape à `quantity` est l’interaction « quantite », et elle naît PRÊTE sur sa valeur d’ouverture', () => {
     const h = hero();
-    const st = quantityStep({ id: 'q', kind: 'mesure-quantite', label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 42 })!;
+    const st = quantityStep({ id: 'q', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 42 })!;
     expect(stepInteraction(st as CascadeStep)).toBe('quantite');
     expect(stepReady(st as CascadeStep, useGame.getState()), 'un compteur n’a pas d’état vide').toBe(true);
     expect((st as CascadeStep).amount).toBe(42);
     // Sans valeur d'ouverture déclarée : le minimum de la plage.
-    expect((quantityStep({ id: 'q2', kind: 'mesure-quantite', label: fixtureText('C'), actorId: h.id, min: 5, max: 9 })! as CascadeStep).amount).toBe(5);
+    expect((quantityStep({ id: 'q2', kind: cleDeFixture('mesure-quantite'), label: fixtureText('C'), actorId: h.id, min: 5, max: 9 })! as CascadeStep).amount).toBe(5);
   });
 
   it('la porte REFUSE une plage vide (aucun nombre à poser) — jamais une fenêtre en impasse', () => {
     const h = hero();
     // DEV : la porte throw ; c'est le refus lui-même qui est mesuré.
-    expect(() => quantityStep({ id: 'q', kind: 'mesure-quantite', label: fixtureText('C'), actorId: h.id, min: 10, max: 3 })).toThrow();
+    expect(() => quantityStep({ id: 'q', kind: cleDeFixture('mesure-quantite'), label: fixtureText('C'), actorId: h.id, min: 10, max: 3 })).toThrow();
   });
 
   it('la BORNE est un site unique : la saisie est ramenée dans la plage et calée sur le pas', () => {
@@ -72,7 +75,7 @@ describe('Étape « quantité » — la 6ᵉ interaction de la coquille', () => 
 
   it('le poseur d’état écrit le nombre BORNÉ sur l’étape courante, et l’applier le reçoit', () => {
     const h = hero();
-    const st = quantityStep({ id: 'q', kind: 'mesure-quantite', label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 1 })!;
+    const st = quantityStep({ id: 'q', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 1 })!;
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [st] });
     get().cascadeAmount('q', 77);
     expect(get().pendingCascade!.participants[0].amount).toBe(77);
@@ -88,7 +91,7 @@ describe('Étape « quantité » — la 6ᵉ interaction de la coquille', () => 
 
   it('résolution IMMÉDIATE : l’étape passe sur sa valeur d’ouverture, sans fenêtre ni défaut parallèle', () => {
     const h = hero();
-    const st = quantityStep({ id: 'q', kind: 'mesure-quantite', label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 30 })!;
+    const st = quantityStep({ id: 'q', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Combien ?'), actorId: h.id, min: 1, max: 100, value: 30 })!;
     runCascadeImmediate(useGame.getState, useGame.setState, [st as CascadeStep]);
     expect(retenus).toEqual([30]);
     expect(get().pendingCascade, 'aucune fenêtre laissée pendante').toBeNull();
@@ -137,7 +140,7 @@ describe('Seconde lecture d’un jet — Test COMBINÉ (LDB 12 l.202-208)', () =
   it('la PORTE transmet la déclaration jusqu’à l’étape : la fenêtre annonce ses DEUX cibles', () => {
     const h = hero();
     const st = monoStep({
-      id: 'm', kind: 'mesure-quantite', label: fixtureText('Test combiné'), actor: h,
+      id: 'm', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Test combiné'), actor: h,
       difficulty: 'intermediaire', ligne: { test: { skill: 'pari' } },
       second: { label: 'Initiative', target: 40, base: 40, difficulty: 'intermediaire' },
       stake: combatStakeRef('tavernGame', { values: { jeu: 'x', adversaire: 'y', mise: 'aucune' } }),

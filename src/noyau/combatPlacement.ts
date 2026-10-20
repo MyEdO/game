@@ -5,7 +5,7 @@
  */
 import type { BattleState } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { Combatant, EffectSource } from '../engine/types';
+import type { Combatant } from '../engine/types';
 import { Scene, isWalkable } from './monde/scene';
 import { Pt, tileKey } from './monde/path';
 import { footprintTiles, footprintN, occupiesTile } from './monde/footprint';
@@ -19,12 +19,9 @@ import { t } from '../i18n';
 import { bus, EVT } from './bus';
 import { pruneSeatAssignments } from './monde/seating';
 import { occupied, premiereCaseEnAnneaux } from './monde/combatGeometry';
-// Type-only (effacé à la compilation) : la FORME du Flow gaté posé pour une zone `crossTest` — ce
-// module reste BAS NIVEAU (aucun import de `combat/triggeredTest`/`combatEffects`, qui remonteraient
-// vers lui → cycle) ; la résolution cadence-aware est déléguée au hook `setZoneCrossTestHook`
-// (inversion de dépendance, calque `setFreeAttackHook`/`setBladeTrapHook`, installé par le store).
 import type { Flow as CoreFlow, EffectOp } from '../engine/flowCore';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { testerLaTraverseeDeZone } from './combat/triggeredTest';
 
 /** Perturbante (LDB 62 l.272-274) : repousse `target` d'au plus `tiles` cases dans la direction
  *  opposée à l'attaquant (cases praticables et libres seulement). Renvoie les cases reculées. */
@@ -103,15 +100,6 @@ export function removeEntity(get: Get, set: SetFn, id: string) {
   removeEntities(get, set, [id]);
 }
 
-/** HOOK de résolution cadence-aware d'une zone `crossTest` (Forêt d'épines, LDB 48 l.749) — injecté par
- *  le store (`setZoneCrossTestHook`, `createCombatSlice`), pointe sur `routeTriggeredTest`
- *  (`combat/triggeredTest`). Appelé par `applyZoneCrossings` pour CHAQUE zone gatée croisée : héros
- *  manuel → étape de cascade influençable ; ennemi/auto → jet inline (journal). Inversion de dépendance
- *  (ce module reste sans import de `combat/triggeredTest` → pas de cycle, cf. import ci-dessus). Absent
- *  (hors store, ex. test unitaire de cette seule brique) ⇒ no-op — comme les autres hooks. */
-type ZoneCrossTestHook = (get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: CoreFlow<EffectOp>, label: string, source?: EffectSource) => void;
-let zoneCrossTestHook: ZoneCrossTestHook | undefined;
-export function setZoneCrossTestHook(fn: ZoneCrossTestHook): void { zoneCrossTestHook = fn; }
 
 /** Traversée de zones persistantes (Mur de feu, LDB 47 — L11) au terme d'un déplacement :
  *  applique l'`onCross` des zones SANS `crossTest` et journalise (comportement inchangé) ; pour les
@@ -144,6 +132,6 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
       fail: z.onCross?.length ? { kind: 'do', effect: { type: 'ops', ops: z.onCross, on: 'target' } } : EMPTY_FLOW,
     };
     // L'ENTITÉ qui a posé la zone voyage avec le Test : la fenêtre dit ce qui barre le passage (#1262 V2 L6d).
-    zoneCrossTestHook?.(get, set, mover, caster, flow, z.label, z.source);
+    testerLaTraverseeDeZone(get, set, mover, caster, flow, z.label, z.source);
   }
 }

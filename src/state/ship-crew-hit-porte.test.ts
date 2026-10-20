@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import { seedBattleRng } from '../noyau/battleRng';
 import { runSeaDay, buildSeaPlan } from '../noyau/seaVoyageFlow';
 import { applyCriticalToTarget } from '../noyau/combatFlow';
@@ -89,7 +89,7 @@ function greementEnPeril(): readonly BuiltCascadeStep[] | undefined {
     stake: voyageStakeRef('riverRigging', { outOfControlPenalty: -20 }),
   })!;
   const step = { ...minte, result: { roll: 95, target: minte.target!, success: false, sl: -5, crit: false, fumble: false } };
-  return cascadeAppliers.riverRigging.apply(get, set, step, barreur, { steps: [step], index: 0 })?.insert;
+  return applierDe('riverRigging')!(get, set, step, barreur, { steps: [step], index: 0 })?.insert;
 }
 
 describe('#1657 B3-2 — le coup à l’équipage naît comme UNE BANDE, une rangée par siège', () => {
@@ -131,7 +131,7 @@ describe('#1657 B3-2 — le coup à l’équipage naît comme UNE BANDE, une ran
           : { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    cascadeAppliers.triggeredBatchTest.apply(get, set, avecResultats, undefined, { steps: [avecResultats], index: 0 });
+    applierDe('triggeredBatchTest')!(get, set, avecResultats, undefined, { steps: [avecResultats], index: 0 });
 
     const de = (id: string) => get().party.find((h) => h.id === id)!;
     for (const id of [rate.id, rate2.id]) {

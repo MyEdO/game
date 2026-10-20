@@ -1,11 +1,11 @@
 /**
  * Kit de TEST pour `cascade.ts` — `spyApplier` mutualise le motif dupliqué des suites de cascade : un
- * `registerCascadeApplier` qui PUSH une entrée dérivée de l'étape validée dans un tableau `applied` puis
- * renvoie une conséquence (`journal`/`insert`/…) optionnelle. N'importer que depuis l'outillage de test,
+ * applier de fixture (posé par `avecLesTables`) qui PUSH une entrée dérivée de l'étape validée dans un
+ * tableau `applied` puis renvoie une conséquence (`journal`/`insert`/…) optionnelle. N'importer que depuis l'outillage de test,
  * suite ou kit au sens d'`estSuiteVitest`/`estKitDeTest` (`scripts/guards/lib/fichierVitest.mjs`) —
  * module de test, pas de périmètre runtime.
  */
-import { registerCascadeApplier, type CascadeApplier } from '../noyau/cascade';
+import type { CascadeApplier } from '../noyau/cascade';
 import type { GameState } from './store';
 import type { BatchParticipant, CascadeStep, PendingCascade } from '../noyau/pendings';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
@@ -192,16 +192,15 @@ export function draineCascadeDifferee(get: () => GameState, avancerTimers: () =>
   return kinds;
 }
 
-/** Enregistre un applier-espion `kind` : `mapper(step)` alimente `applied`, `out(step)` (défaut : rien)
- *  fournit la conséquence renvoyée à `commitStep` (`journal`/`consequences`/`insert`). */
+/** Un applier-espion : `mapper(step)` alimente `applied`, `out(step)` (défaut : rien) fournit la
+ *  conséquence renvoyée à `commitStep` (`journal`/`consequences`/`insert`). Se pose par `avecLesTables`. */
 export function spyApplier<T>(
-  kind: string,
   applied: T[],
   mapper: (step: CascadeStep) => T,
   out?: (step: CascadeStep) => ReturnType<CascadeApplier>,
-): void {
-  registerCascadeApplier(kind, (_get, _set, step) => {
+): CascadeApplier {
+  return (_get, _set, step) => {
     applied.push(mapper(step));
     return out ? out(step) : undefined;
-  });
+  };
 }

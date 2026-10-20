@@ -50,11 +50,11 @@ import { toRecapLines } from './recapLine';
 import type { Get, Set } from './flowTypes';
 import type { BuiltCascadeStep } from './stepBrand';
 import { composeRollLabel, effectiveTarget, monoStep, openSequence, pousseSi, freeCons, resultLines, type RollRequest } from './rollSeam';
-import { registerCascadeApplier, registerExtendedTestOutcome } from './cascade';
 import { noteSeaLine, patchSea, openSeaHalt } from './seaVoyageFlow';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -264,66 +264,76 @@ export function seaActivitiesCatalog(): ActivityDef[] {
 
 // ── Seam de jet (#273 Étape 2) — appliers des étapes migrées vers la cascade ──────────────────────
 
-/** Cartographie (l.288-290, `sea-activity-chart`) : réussite → Carte marine (valeur = DR en CO, +2 DR
- *  d'Orientation) + Planque optionnelle (l.292). */
-registerCascadeApplier('sea-activity-chart', (get, set, step, hero) => {
-  if (!step.result || !hero) return;
-  const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
-  const j: string[] = [];
-  if (step.result.success) {
-    const it = itemFromTrappingById('carte-marine');
-    if (it) {
-      it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
-      hero.items = [...(hero.items ?? []), it];
-      autoStowNewItem(hero, it); // #204 : rangement par défaut
-      recomputeLoadout(hero);
-    }
-    j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
-    const stashCO = Math.max(0, Math.min(stashGold, Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO)));
-    if (stashCO > 0) {
-      const stashBrass = stashCO * PA_PER_CO;
-      payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
-      set({ bank: [...get().bank, { heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
-      j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
-    }
-  } else {
-    j.push(t('sact.chartKo', { name: hero.label }));
-  }
-  set({ party: [...get().party] });
-  return { consequences: freeCons(j) };
-});
-
-/** Chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : recompose `travelActivitySpec` (déterministe,
- *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
- *  (`appliquerIssueActivite`, source unique terre et mer). */
-registerCascadeApplier('sea-activity-generic', (get, set, step, hero) => {
-  if (!step.result || !hero) return;
-  const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
-  const spec = def ? travelActivitySpec(hero, def) : null;
-  if (!def || !spec) return;
-  const { consequences } = appliquerIssueActivite(get, hero, def, spec, step.result);
-  set({ party: [...get().party] });
-  return { consequences };
-});
-
-/** Issue de DOMAINE du Commerce d'opportunité (#273 Étape 1, Test étendu 3 tentatives max) : % récupéré
- *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `maxAttempts`. */
-registerExtendedTestOutcome('sea-activity-opportunity', (get, set, p, total) => {
-  const meta = p.outcome?.meta;
-  const heroId = String(meta?.heroId);
-  const investBrass = typeof meta?.investBrass === 'number' ? meta.investBrass : 0;
-  const hero = garanti(actorIn(get(), heroId), heroId, 'investisseur');
-  const pct = opportunityTradePct(total);
-  const back = Math.floor((investBrass * pct) / 100);
-  distributeCredit(get, set, fromBrass(back));
-  const line = t('sact.tradeDone', { name: hero.label, stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
-  noteSeaLine(get, set, [line]);
-  continueSeaActivitiesAfterCascade(get, set);
-  return { consequences: freeCons([line]) };
-});
-
 export function creerActionsDesActivitesEnMer(get: Get, set: Set) {
   return {
     seaActivitiesConfirm: (picks) => seaActivitiesConfirm(get, set, picks),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = ['sea-activity-chart', 'sea-activity-generic'] as const;
+/** Les issues de Test étendu que ce module déclare (table `issuesDeTestEtendu`). */
+export const ISSUES_DE_TEST_ETENDU = ['sea-activity-opportunity'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Cartographie (l.288-290, `sea-activity-chart`) : réussite → Carte marine (valeur = DR en CO, +2 DR
+     *  d'Orientation) + Planque optionnelle (l.292). */
+    'sea-activity-chart': (get, set, step, hero) => {
+      if (!step.result || !hero) return;
+      const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
+      const j: string[] = [];
+      if (step.result.success) {
+        const it = itemFromTrappingById('carte-marine');
+        if (it) {
+          it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
+          hero.items = [...(hero.items ?? []), it];
+          autoStowNewItem(hero, it); // #204 : rangement par défaut
+          recomputeLoadout(hero);
+        }
+        j.push(t('sact.chartOk', { name: hero.label, gold: Math.max(0, step.result.sl) }));
+        const stashCO = Math.max(0, Math.min(stashGold, Math.floor(toBrass(bourseOf(hero)) / PA_PER_CO)));
+        if (stashCO > 0) {
+          const stashBrass = stashCO * PA_PER_CO;
+          payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
+          set({ bank: [...get().bank, { heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
+        }
+      } else {
+        j.push(t('sact.chartKo', { name: hero.label }));
+      }
+      set({ party: [...get().party] });
+      return { consequences: freeCons(j) };
+    },
+    /** Chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : recompose `travelActivitySpec` (déterministe,
+     *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
+     *  (`appliquerIssueActivite`, source unique terre et mer). */
+    'sea-activity-generic': (get, set, step, hero) => {
+      if (!step.result || !hero) return;
+      const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
+      const spec = def ? travelActivitySpec(hero, def) : null;
+      if (!def || !spec) return;
+      const { consequences } = appliquerIssueActivite(get, hero, def, spec, step.result);
+      set({ party: [...get().party] });
+      return { consequences };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  issuesDeTestEtendu: {
+    /** Issue de DOMAINE du Commerce d'opportunité (#273 Étape 1, Test étendu 3 tentatives max) : % récupéré
+     *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `maxAttempts`. */
+    'sea-activity-opportunity': (get, set, p, total) => {
+      const meta = p.outcome?.meta;
+      const heroId = String(meta?.heroId);
+      const investBrass = typeof meta?.investBrass === 'number' ? meta.investBrass : 0;
+      const hero = garanti(actorIn(get(), heroId), heroId, 'investisseur');
+      const pct = opportunityTradePct(total);
+      const back = Math.floor((investBrass * pct) / 100);
+      distributeCredit(get, set, fromBrass(back));
+      const line = t('sact.tradeDone', { name: hero.label, stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
+      noteSeaLine(get, set, [line]);
+      continueSeaActivitiesAfterCascade(get, set);
+      return { consequences: freeCons([line]) };
+    },
+  } satisfies PartDeTable<'issuesDeTestEtendu', typeof ISSUES_DE_TEST_ETENDU>,
+} satisfies FragmentDeTables;

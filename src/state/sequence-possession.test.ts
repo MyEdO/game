@@ -33,7 +33,6 @@ import { tickCombatAuto } from '../noyau/combatAuto';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import '../noyau/combat/triggeredTest';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 const NET0 = useGame.getState().net;

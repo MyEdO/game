@@ -40,7 +40,7 @@ export function combatConditionCtx(c: Combatant, ctx: OpsCtx): ConditionCtx {
  * GARDE-FOU anti-jet-silencieux (calque `flattenFlow:280`) : un nœud `test` LÈVE — un Test EN COMBAT est
  * interactif/cadence-aware (étape de cascade ou jet inline avec branche honorée), résolu par
  * `resolveFlowTest`/`runCombatFlow`, JAMAIS en avalant la branche succès. Ses appelants sont
- * PROUVÉS sans nœud `test` au 1ᵉʳ niveau (un trigger `test` top-level est routé en amont par `testRouter`,
+ * PROUVÉS sans nœud `test` au 1ᵉʳ niveau (un trigger `test` top-level est routé en amont par `routeTriggeredTest`,
  * une branche de Test n'en contient pas) ; si un `test` enfoui apparaît un jour (Lot 4), l'erreur le rend
  * détectable au lieu de redevenir un jet silencieux. MÊME doctrine pour une op qui DEMANDE UN DÉ
  * (#1508) : sa magnitude s'ouvre à la porte (`applyLeafOps`/`ouvrirChute`), et `applyOps` la tirerait

@@ -38,6 +38,7 @@ import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
 import { RNG, defaultRNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
+import { routeTriggeredTest } from './combat/triggeredTest';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
  *  chose » (arbitrage user 2026-07-18). Cette identité voyage jusqu'à l'`OpsCtx` du dispatch, où
@@ -270,18 +271,7 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng?: RNG; ma
    *  du flag `feedOpposingPool` l'appelle). Absent ailleurs → clause inerte (cf. `engine/ops.ts`). */
   onOpposingAdvantage?: (n: number) => string[] }
 
-/** ROUTEUR d'un Flow de trigger PORTANT un nœud `test` (à n'importe quelle profondeur) vers la voie
- *  CADENCE-AWARE (héros manuel → cascade influençable ; sinon → jet inline) via `runCombatFlow`
- *  (after-aware : un `test` enfoui sous `if`/`seq` suspend en empaquetant le reste). Injecté par la
- *  brique `noyau/combat/triggeredTest.ts` (inversion de dépendance : ce module reste pur, sans import de
- *  la brique → pas de cycle). Absent ⇒ aucun routage : un nœud `test` non routé tombe sur
- *  `runPureFlowLines`, qui LÈVE (plus jamais de branche succès silencieuse). `opsCtx` porte le contexte
- *  de la touche (`woundsDealt`/`sl`/`location`/`attackKind`) lu par les Conditions `if` du Flow. */
-type TestRouter = (get: Get, set: SetFn, target: Combatant, actor: Combatant, flow: Flow, opsCtx?: OpsCtx) => void;
-let testRouter: TestRouter | undefined;
-export function setTriggeredTestRouter(fn: TestRouter): void { testRouter = fn; }
-
-/** Flow INTERACTIF (`flowHasTest`) atteint SANS routeur cadence-aware : un `test` TOP-LEVEL se joue
+/** Flow INTERACTIF (`flowHasTest`) atteint SANS `set` (la voie cadence-aware `routeTriggeredTest` en exige un) : un `test` TOP-LEVEL se joue
  *  inline ; toute autre forme n'a pas de voie d'interaction ici — ses parties PURES jouent (l'État
  *  automatique d'un Critique de Taillade), le nœud `choice` n'est PAS offert. Un `test` ENFOUI lève
  *  toujours (`resolveInlineFlowTest`) : une branche de jet muette n'est jamais acceptable. */
@@ -309,7 +299,7 @@ function flowHasChoiceSeulement(flow: Flow): boolean {
  *  comme un Test simple), puis branche `success`/`fail` jouée par `runPureFlowLines` (mêmes ops). Un `test`
  *  ENFOUI (hors top-level) LÈVE — un tel cas exige la voie cadence-aware (jamais de branche succès muette).
  *  `c` SUBIT le Test (son jet) ; `porteur` est le `caster` de la branche — même paire que la voie routée
- *  (`testRouter(get, set, t, actor, …)`). */
+ *  (`routeTriggeredTest(get, set, t, actor, …)`). */
 function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
   if (flow.kind !== 'test') throw new Error('resolveInlineFlowTest: nœud non-`test` (un test enfoui exige un routeur cadence-aware).');
   const ft = flow.test;
@@ -388,7 +378,7 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
 /** CŒUR d'application : applique une LISTE d'effets `TriggeredEffect` de `actor` correspondant à
  *  `trigger`, chacun via `runPureFlowLines` aux cibles résolues (`on`). Source UNIQUE : utilisé par
  *  `fireTriggers` (effets de traits/atouts) ET par les manœuvres (effets du profil de manœuvre).
- *  Un effet dont le Flow est un nœud `test` ET pour lequel `ctx.set` + le routeur sont fournis (hook
+ *  Un effet dont le Flow est un nœud `test` ET pour lequel `ctx.set` est fourni (hook
  *  `onGainCondition`) est ROUTÉ vers la voie cadence-aware (jamais la branche succès silencieuse). */
 export function applyTriggeredEffects(
   get: Get, actor: Combatant, effects: TriggeredEffect[], trigger: EffectTrigger, ctx: TriggerCtx = {},
@@ -428,7 +418,7 @@ export function applyTriggeredEffects(
       // Flow PORTANT un nœud `test` (à n'importe quelle profondeur — top-level Mâchoires, ou enfoui sous
       // `if`/`seq` : Venin/Hurlement/2 enchants) routé vers la voie cadence-aware (héros manuel → cascade
       // influençable ; ennemi/auto → inline) plutôt qu'avalé silencieusement — seulement si l'appelant
-      // fournit `set` + un routeur installé. Un Flow `test` non routé (pas de `set`) atteindrait
+      // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `if`.
       const flowCtx: OpsCtx = { rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
@@ -447,15 +437,15 @@ export function applyTriggeredEffects(
           lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
           continue;
         }
-        // Hors fin de Round : voie cadence-aware si un routeur est branché (onGainCondition / attaques →
-        // cascade influençable pour un héros manuel, inline + file différée sinon) ; SANS routeur (entretien
-        // HORS COMBAT) → INLINE. Jamais avalé. GÉNÉRIQUE : tout État à `onRoundEnd` test (Empoisonné…).
+        // Hors fin de Round : voie cadence-aware `routeTriggeredTest` quand le contexte porte `set`
+        // (onGainCondition / attaques → cascade influençable pour un héros manuel, inline + file différée
+        // sinon) ; SANS `set` (entretien HORS COMBAT) → INLINE. Jamais avalé. GÉNÉRIQUE : tout État à `onRoundEnd` test (Empoisonné…).
         // Un effet OPT-IN atteint ici un héros MANUEL (les autres sont filtrés plus haut) : son Flow est
         // emballé dans un nœud `choice` (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix.
         const flow: Flow = eff.optional
           ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', yes: eff.flow, no: EMPTY_FLOW }
           : eff.flow;
-        if (ctx.set && testRouter) { testRouter(get, ctx.set, t, actor, flow, flowCtx); continue; }
+        if (ctx.set) { routeTriggeredTest(get, ctx.set, t, actor, flow, flowCtx); continue; }
         if (eff.optional) continue; // opt-in SANS voie de choix (entretien hors combat) → non exercé
         lines.push(...resoudreSansRouteur(t, actor, eff.flow, flowCtx, get));
         continue;

@@ -15,7 +15,7 @@ import type { DefenseMode } from '../engine/combat';
 import type { RollFlowActionsMap } from './rollFlowSpecs';
 import type { PossessionInput } from '../engine/possession';
 import type * as tavernFlow from './tavernFlow';
-import type { PendingDesignationHeros, CascadeStepMeta, CounterDeclaration } from './pendings';
+import type { PendingDesignationHeros, PendingExtendedTest, CounterDeclaration } from './pendings';
 import type { MedicNpc } from './medicFlow';
 import type * as restFlow from './restFlow';
 import type { RestLodging, RestFood } from './restFlow';
@@ -430,7 +430,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** « Laisser passer » : aucun Contre-sort retenu → le Sort se résout tel quel (castConfirm). */
   counterspellCancel: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: { kind: string; meta?: CascadeStepMeta }; stake?: StakeRef; suite?: Flow }) => void;
+  startExtendedTest: (opts: { actorId: string; label: string; skillLabel: string; target: number; targetDR: number; maxAttempts?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: string; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
   // extendedTest{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll} : générés (RollFlowActionsMap, MULTI).
   /** Cumule le DR du Round courant (LDB 12 l.174) ; total < 0 → recommence ; total ≥ cible → réussite. */
   extendedTestNext: () => void;

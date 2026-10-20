@@ -13,6 +13,7 @@ import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import type { StakeRef } from '../data';
 import type { Jeu } from './etat';
+import type { GenreDeCascade } from './tablesPosees';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
  *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
@@ -46,7 +47,7 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
  * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
  * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
  */
-export const KINDS_SOUS_ORDRES: ReadonlySet<string> = new Set([
+export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCascade>([
   'progression', 'affaler', 'phare', 'orientation', 'entretien',
   'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement',
   'river-exposition-tirage', 'river-exposition',
@@ -67,7 +68,7 @@ export function traverseeCommandee(s: EtatDeTraversee): boolean {
 }
 
 /** Un Test de route de `kind` se résout-il d'office ? (traversée sous ordres + `kind` couvert). */
-export function resoluSousOrdres(s: EtatDeTraversee, kind: string): boolean {
+export function resoluSousOrdres(s: EtatDeTraversee, kind: GenreDeCascade): boolean {
   return traverseeCommandee(s) && KINDS_SOUS_ORDRES.has(kind);
 }
 

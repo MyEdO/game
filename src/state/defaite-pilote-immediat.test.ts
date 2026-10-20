@@ -9,7 +9,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade, resolveShoreLeave } from '../noyau/seaVoyageFlow';
-import { runCascadeImmediate, registerCascadeApplier } from '../noyau/cascade';
+import { runCascadeImmediate } from '../noyau/cascade';
 import { checkPartyWiped } from '../noyau/partyWipe';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { buildRiverPlan, runRiverDays } from '../noyau/riverVoyageFlow';
@@ -23,6 +23,8 @@ import { fixtureText } from '../i18n/fixtureText';
 import type { WorldMap } from '../noyau/worldMap';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -112,12 +114,12 @@ describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VO
   it('l’étape 1 anéantit le groupe : l’étape 2 n’est jamais appliquée, retour `undefined`', () => {
     set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens().slice(0, 2) } as never);
     const vus: string[] = [];
-    registerCascadeApplier('sondeWipe', (g, s, step) => {
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeWipe: (g, s, step) => {
       vus.push(step.id);
       if (step.id === 'a') { s({ party: aTerre(g().party) }); checkPartyWiped(g, s); }
       return undefined;
-    });
-    const steps: CascadeStep[] = [{ id: 'a', kind: 'sondeWipe', label: fixtureText('A') }, { id: 'b', kind: 'sondeWipe', label: fixtureText('B') }];
+    } } });
+    const steps: CascadeStep[] = [{ id: 'a', kind: cleDeFixture('sondeWipe'), label: fixtureText('A') }, { id: 'b', kind: cleDeFixture('sondeWipe'), label: fixtureText('B') }];
     const r = runCascadeImmediate(get, set, steps, { title: 'T', purpose: 'test' });
     expect(get().partyWiped).toBe(true);
     expect(r).toBeUndefined();

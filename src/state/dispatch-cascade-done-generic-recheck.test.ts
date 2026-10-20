@@ -4,6 +4,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascade.testkit';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 /**
  * Verrou STRUCTUREL (#345, correction juge ronde 3) : `dispatchCascadeDone` (combatSlice.ts) re-vérifie
@@ -42,7 +43,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
       // coexiste avec `battle` que dans des contextes déjà routés ailleurs — ce n'est PAS le cas générique
       // visé, d'où l'injection directe plutôt qu'un chemin de jeu réel). Étape d'AFFICHAGE (toujours prête).
       pendingCascade: cascadeDeTest(
-        [{ id: 'hypo-1', kind: 'hypoDisplayStep', actorId: hero.id, outcome: [{ text: 'note' }] }],
+        [{ id: 'hypo-1', kind: cleDeFixture('hypoDisplayStep'), actorId: hero.id, outcome: [{ text: 'note' }] }],
         { title: 'Étape hypothétique' },
       ),
     });

@@ -31,9 +31,9 @@ export const getLocale = (): Locale => locale;
  * `HIT_LOCATION_LABELS`/`BODY_SHAPE_LOC_LABELS` (`engine/types.ts`) et
  * `CHAR_PENALTY_KIND_LABEL` (`engine/trauma.ts`, familles Faim/Soif et Ivresse — V8c₃ l'a fait passer
  * de littéraux au catalogue, MÊME motif : la carte est figée à l'évaluation du module).
- * V8c₄ ajoute UN site à cette liste, et un seul : `label: t('cor.natureTable')` passé à
- * `registerTableStep` au CHARGEMENT de `noyau/corruptionFlow.ts` (la table « Corps ou esprit » est
- * enregistrée par une boucle de module) — le libellé y est résolu une fois pour toutes. Les autres
+ * V8c₄ ajoute UN site à cette liste, et un seul : `label: t('cor.natureTable')` de la famille
+ * `tablesDeNature` (`noyau/corruptionFlow.ts`, table « Corps ou esprit ») — le libellé y est résolu à
+ * la construction de la famille, puis gardé jusqu'à la prochaine édition de `species`. Les autres
  * cartes de la tranche n'en sont PAS : `SHIP_LOC_KEY`/`ALLURE_KEY`/`ENCOUNTER_KEY`/`SPELL_*` portent
  * des CLÉS (`MsgKey`), résolues à l'appel — c'est la forme à reprendre pour éteindre les précédentes.
  * V8c₅ n'AJOUTE aucun site à cette liste : ses cartes de module portent des CLÉS résolues à l'appel

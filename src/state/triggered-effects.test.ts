@@ -5,7 +5,6 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fireTriggers, applyTriggeredEffects } from '../noyau/triggeredEffects';
-import '../noyau/combatFlow'; // effet de bord : installe le routeur de Test + l'applier triggeredTest
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -386,7 +385,6 @@ describe('onOwnTestFailed — Crampes abdominales (MSRC 16 l.152-158)', () => {
 });
 
 // ── Correction 1 : cadence-aware (héros → cascade influençable, PNJ → inline) + ré-entrance en cascade ──
-import '../noyau/restFlow'; // effet de bord : enregistre les appliers d'entretien (diseaseTick…)
 import { hasCondition } from '../engine/conditions';
 
 const addCrampes = (c: Combatant) => { c.diseases = [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }]; };

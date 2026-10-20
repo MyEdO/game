@@ -1,15 +1,15 @@
 /**
  * #1054 — `netOwnership` s'importe SEUL, sans monter le store. La table de possession (`ROUTES`,
- * #1051) doit être énumérable hors environnement de test complet (script, garde CI légère). Tout
- * import runtime de `netOwnership` qui atteint `store.ts` monte le store à l'import — et le store
- * s'évalue en `ReferenceError: Cannot access 'testRouter' before initialization`. La sonde (c)
- * prouve que le détecteur mord sur un chemin réel : l'entrée de l'hôte web (`src/main.tsx`).
+ * #1051) doit être énumérable hors environnement de test complet (script, garde CI légère) : aucun
+ * import runtime de `netOwnership` n'atteint `store.ts`, dont l'évaluation crée le store et branche le
+ * jeu (`brancherLeJeu`). La sonde (c) prouve que le détecteur mord sur un chemin réel : l'entrée de
+ * l'hôte web (`src/main.tsx`).
  *
  * DEUX mesures, complémentaires :
  *  (a) le CHEMIN RÉEL — un process `tsx` importe le module seul et doit sortir 0 (~0,25 s) ;
  *  (b) la CHAÎNE — fermeture transitive des imports RUNTIME du fichier : `store.ts` ne doit pas y
- *      être atteignable, et l'échec NOMME le chemin fautif. (a) seule cesserait de mordre le jour
- *      où le store s'évaluerait sans crasher ; (b) seule ne mesure pas ce que le moteur exécute.
+ *      être atteignable, et l'échec NOMME le chemin fautif. C'est (b) qui mord : un store qui
+ *      s'évalue sans lever laisse (a) verte ; (a) mesure ce que le moteur exécute.
  */
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';

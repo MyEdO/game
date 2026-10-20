@@ -98,7 +98,7 @@ export function conditionSeverity(name: string): number {
 
 /**
  * Hook injecté (inversion de dépendance) appelé quand `c` GAGNE un État (nouveau ou empilé) — le
- * moteur reste PUR (il ne connaît ni le store, ni les triggers). Le store le remplit (module feuille)
+ * moteur reste PUR (il ne connaît ni le store, ni les triggers). Le noyau le pose (`brancherLeJeu`)
  * pour câbler le déclencheur `onGainCondition` (Mâchoires d'acier : « chaque fois que vous gagnez un
  * État Sonné »). Absent ⇒ aucune réaction (création de perso, effets hors combat, tests purs).
  */

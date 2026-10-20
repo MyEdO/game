@@ -9,6 +9,8 @@ import { tickCombatAuto } from '../noyau/combatAuto';
 
 import type { CascadeStep } from '../noyau/pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 /**
  * Cadence RAPIDE — le pilote `tickCombatAuto` auto-résout les cascades (jets de nuit/voyage → RÉSUMÉ)
@@ -20,7 +22,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
   beforeEach(() => {
     applied.length = 0;
     useGame.setState({ battle: null, pendingCascade: null, journal: [], net: { ...useGame.getState().net, mode: 'local' } });
-    spyApplier('tally', applied, (step) => step.id, (step) => ({ consequences: freeCons([step.id]) }));
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, tally: spyApplier(applied, (step) => step.id, (step) => ({ consequences: freeCons([step.id]) })) } });
   });
   afterEach(() => resetCadence());
 
@@ -30,7 +32,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
     return h;
   }
   const step = (id: string, actorId: string): CascadeStep =>
-    ({ id, kind: 'tally', actorId, label: fixtureText(id), rollLabel: 'Résistance', target: 55, result: null});
+    ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', target: 55, result: null});
 
   it('manuel (défaut) : le driver ne touche PAS la cascade', () => {
     const h = hero();
@@ -61,13 +63,13 @@ describe('Auto-combat — choix de cascade tranché par le défaut authoré', ()
   beforeEach(() => {
     chosen.length = 0;
     useGame.setState({ battle: null, pendingCascade: null, net: { ...useGame.getState().net, mode: 'local' } });
-    spyApplier('tally-choix', chosen, (step) => step.chosen);
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'tally-choix': spyApplier(chosen, (step) => step.chosen) } });
     setCadence('auto');
   });
   afterEach(() => resetCadence());
 
   const choix = (id: string, actorId: string, withDefault: boolean): CascadeStep => ({
-    id, kind: 'tally-choix', actorId, label: fixtureText(id),
+    id, kind: cleDeFixture('tally-choix'), actorId, label: fixtureText(id),
     options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
     ...(withDefault ? { defaultChoice: 'devier' } : {}),
   });

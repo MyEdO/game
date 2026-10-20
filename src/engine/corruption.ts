@@ -153,7 +153,7 @@ const NATURE_ROWS = new Map<number, MutationNatureRow[]>();
 
 /** Lignes du Tableau « corps ou esprit » pour un SEUIL d100 de mutation physique — Corps `01–seuil`,
  *  Esprit au-dessus ; seuil 0 (Elfe) → la seule ligne « Esprit 01-100 ». Mémoïsées par seuil : la
- *  référence est stable (registre d'étapes à table). SOURCE UNIQUE des fourchettes de ce Tableau. */
+ *  référence est stable (tables tirables). SOURCE UNIQUE des fourchettes de ce Tableau. */
 export function mutationNatureRowsFor(max: number): MutationNatureRow[] {
   const cached = NATURE_ROWS.get(max);
   if (cached) return cached;

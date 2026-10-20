@@ -13,6 +13,7 @@ import { ownsLocal } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import type { BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -74,17 +75,17 @@ describe('#1262 — bandStep : la bande pose SA possession', () => {
   });
 
   it('un SEUL porteur → pas de `groupOwner`, mais l’étape NOMME son porteur (jamais une étape sans owner)', () => {
-    const b = bandStep({ id: 'b', kind: 'k', label: fixtureText('L')}, [rang('H1')])!;
+    const b = bandStep({ id: 'b', kind: cleDeFixture('k'), label: fixtureText('L')}, [rang('H1')])!;
     expect(b.groupOwner).toBeUndefined();
     expect(b.actorId, 'la bande mono NOMME son porteur — c’est ce qui donne à l’arbitre un owner à router (sans `actorId` : fenêtre hôte seul)').toBe('H1');
   });
 
   it('zéro rangée → aucune fenêtre à ouvrir', () => {
-    expect(bandStep({ id: 'b', kind: 'k', label: fixtureText('L')}, [])).toBeUndefined();
+    expect(bandStep({ id: 'b', kind: cleDeFixture('k'), label: fixtureText('L')}, [])).toBeUndefined();
   });
 
   it('`options` n’est PAS un champ que la bande peut porter (invariant #1262 tenu à la construction)', () => {
-    const b = bandStep({ id: 'b', kind: 'k', label: fixtureText('L')}, [rang('H1'), rang('H2')])!;
+    const b = bandStep({ id: 'b', kind: cleDeFixture('k'), label: fixtureText('L')}, [rang('H1'), rang('H2')])!;
     expect(b.options).toBeUndefined();
   });
 });
@@ -114,7 +115,7 @@ describe('#1262 — une bande est TOUJOURS visible chez le siège de son porteur
   function ouvreBandeChezLHote(rows: BatchParticipant[]): void {
     useGame.setState({ party: [hero('H1'), hero('H2')] } as never);
     useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1, H2: 1 } } } as never);
-    const b = bandStep({ id: 'bande', kind: 'nightTest', label: fixtureText('Bande')}, rows)!;
+    const b = bandStep({ id: 'bande', kind: cleDeFixture('nightTest'), label: fixtureText('Bande')}, rows)!;
     startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [b] });
   }
 

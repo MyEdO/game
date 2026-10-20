@@ -1,5 +1,5 @@
 /** Tests de scène hors combat : Test simple, Test étendu (LDB 12), enfoncer une porte (EDO Appendice 2). */
-import { registerCloture, reprendreLaSuite, runFlow, cloturer } from './combatEffects';
+import { reprendreLaSuite, runFlow, cloturer } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
@@ -9,7 +9,8 @@ import { extendedTestStep } from '../engine/tests';
 import { rule } from '../engine/policy';
 import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
-import { extendedTestOutcomeAppliers, curseurPose } from './cascade';
+import { curseurPose } from './cascade';
+import { tablesPosees, type FragmentDeTables } from './tablesPosees';
 import { FLOWS, meetsRequiredSL } from './rollFlowSpecs';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { bus, EVT } from './bus';
@@ -21,15 +22,6 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Cloture } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-
-/** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
- *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
-registerCloture('testRateDeLActeur', (get, set, c) => {
-  const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
-  const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
-  if (fired.length) fired.forEach((l) => get().log(l));
-  set({ ...touchActors(get()) });
-});
 
 export function creerActionsDesTestsDeScene(get: Get, set: Set) {
   return {
@@ -65,7 +57,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
         if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
         // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `maxAttempts`.
         if (p.outcome) {
-          const applier = extendedTestOutcomeAppliers[p.outcome.kind];
+          const applier = tablesPosees().issuesDeTestEtendu[p.outcome.kind];
           const out = applier?.(get, set, p, total, done);
           const line = out?.consequences ? resultLine(out.consequences) : '';
           if (line) get().log(line);
@@ -198,3 +190,20 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
     },
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
+export const GENRES_HOTES = ['extendedJet', 'forceDoorStep'] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    /** SEAM `onOwnTestFailed` d'un Test RATÉ — verbe de CLÔTURE (#1508) : il APPLIQUE des ops (Crampes
+     *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
+    testRateDeLActeur: (get, set, c) => {
+      const cascadeSet = !get().pendingCascade && !get().pendingTest ? set : undefined;
+      const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set: cascadeSet });
+      if (fired.length) fired.forEach((l) => get().log(l));
+      set({ ...touchActors(get()) });
+    },
+  },
+} satisfies FragmentDeTables;

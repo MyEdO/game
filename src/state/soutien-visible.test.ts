@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { runFlow } from '../noyau/combatEffects';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 import { openPartyTest } from '../noyau/rollSeam';
 import { routeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { findTrappingById } from '../data';
@@ -92,7 +93,7 @@ describe('#1064 — le pending PORTE le détail du Soutien (couture)', () => {
     const leader = skilled('h1', undefined, 'perception', 5);
     const help = skilled('h2', undefined);
     useGame.setState({ party: [leader, help] });
-    openPartyTest(useGame.getState, useGame.setState, { skill: 'perception', actionLabel: 'Fouiller la pièce', difficulty: 'intermediaire' }, 'testSoutienSeam');
+    openPartyTest(useGame.getState, useGame.setState, { skill: 'perception', actionLabel: 'Fouiller la pièce', difficulty: 'intermediaire' }, cleDeFixture('testSoutienSeam'));
     const step = useGame.getState().pendingCascade!.participants[0];
     expect(step.base).toBe(35); // Niveau de Compétence NU du meneur (Ag 30 + 5), LDB 09 l.17
     expect(step.target).toBe(45); // …le Soutien reste un MODIFICATEUR compris dans la cible (l.189-190)

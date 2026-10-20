@@ -1,5 +1,5 @@
 /** Issue d'un combat : victoire, défaite, butin, vol de cargaison (#327). */
-import { registerCloture, applyEffects, confierLaSuite, cloturer, jouerFlowEntier, assignGearAt, harvestVictoryCreature } from './combatEffects';
+import { applyEffects, confierLaSuite, cloturer, jouerFlowEntier, assignGearAt, harvestVictoryCreature } from './combatEffects';
 import * as massBattleFlow from './massBattleFlow';
 import { resumeSuspendedCascade } from './cascade';
 import { applyLandCargoRaid } from './carriers';
@@ -8,13 +8,7 @@ import { flowFromEffects } from './monde/flow';
 import { quorumAtteint } from './netOwnership';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-
-registerCloture('teardownDeVictoire', (get, set, c) => {
-  if (c.batailleDeMasse) massBattleFlow.massBattleResumeCombat(get, set, c.kills);
-  // Teardown de combat (couture UNIVERSELLE, noyau/cascade.ts) : résume la cascade SUSPENDUE (ex. le
-  // reste d'une journée de voyage interrompue par un abordage) — APRÈS l'écran de victoire, jamais devant.
-  resumeSuspendedCascade(get, set);
-});
+import type { FragmentDeTables } from './tablesPosees';
 
 export function creerActionsDIssueDeCombat(get: Get, set: Set) {
   return {
@@ -97,3 +91,15 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
     },
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    teardownDeVictoire: (get, set, c) => {
+      if (c.batailleDeMasse) massBattleFlow.massBattleResumeCombat(get, set, c.kills);
+      // Teardown de combat (couture UNIVERSELLE, noyau/cascade.ts) : résume la cascade SUSPENDUE (ex. le
+      // reste d'une journée de voyage interrompue par un abordage) — APRÈS l'écran de victoire, jamais devant.
+      resumeSuspendedCascade(get, set);
+    },
+  },
+} satisfies FragmentDeTables;

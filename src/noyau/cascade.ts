@@ -5,7 +5,7 @@
  * modal-design.md, Étape 3.
  *
  * Le JET d'une étape est kind-agnostique (Test « +0 » sur `step.target`, géré par `FLOWS.cascade`).
- * La CONSÉQUENCE d'une étape dépend de son `kind` et vit dans le REGISTRE `cascadeAppliers` (code,
+ * La CONSÉQUENCE d'une étape dépend de son `kind` et vit dans la table des appliers (`applierDe`, code,
  * identique hôte/invité — jamais une closure dans le pending, qui est snapshoté/transmis en coop).
  * Une conséquence peut INSÉRER des étapes suivantes (dépendance : un abri réussi réduit le nombre de
  * jets d'Exposition des campeurs).
@@ -37,11 +37,17 @@ import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { dataLabel } from '../data';
 import { journaliser } from './combatLog';
+import { tablesPosees, type GenreDeCascade } from './tablesPosees';
+import { jouerLesClotures } from './combatEffects';
+import { fireOwnTestFailed } from './triggeredEffects';
+
+/** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
+const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
 
 /**
  * Conséquence d'une étape, appliquée à la VALIDATION. Mute le héros (via get/set), renvoie les
  * conséquences (rendues par `resultLine`, #295 Lot 0) et d'éventuelles étapes à INSÉRER juste après
- * l'étape courante (dépendance). Vit dans le registre — pas dans le pending (coop). `step.result` est
+ * l'étape courante (dépendance). Vit dans les tables du jeu — pas dans le pending (coop). `step.result` est
  * garanti non-null si `step.target != null`. `ctx` donne les étapes DÉJÀ jouées
  * (`ctx.steps[0..index-1]` committées) : une escalade cumulative (Exposition au froid : 1ᵉʳ échec →
  * −10 CT/Ag/Dex, 2ᵉ → reste, 3ᵉ → Blessures) lit le nombre d'échecs précédents de CE héros — c'est
@@ -81,21 +87,12 @@ export type CascadeApplier = (
   ctx: { steps: CascadeStep[]; index: number },
 ) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true } | void;
 
-/** Une entrée de registre : la conséquence appliquée (`apply`) seule. L'affichage de l'issue de
- *  modale a pour source UNIQUE `resultLine`/`Consequence[]` (#295 Lot 2 : `cons` vide ⇒ `''`, la
- *  rangée ✓/✗ ±DR porte alors seule le verdict), sans repli de secours. Ajouter un
- *  kind ne touche JAMAIS l'UI. */
-export interface CascadeKind {
-  apply: CascadeApplier;
-}
-
-/** Registre par `kind` — source unique extensible (+1 entrée par nature d'étape : `apply`).
- *  Peuplé par les modules de domaine (restFlow, travelFlow) à leur chargement et par les tests. */
-export const cascadeAppliers: Record<string, CascadeKind> = {};
-
-/** Enregistre (ou remplace) la conséquence d'un `kind` d'étape de cascade. */
-export function registerCascadeApplier(kind: string, apply: CascadeApplier): void {
-  cascadeAppliers[kind] = { apply };
+/** La conséquence d'un `kind`, lue aux tables posées (`TablesDuJeu.appliers`). L'affichage de
+ *  l'issue de modale a pour source UNIQUE `resultLine`/`Consequence[]` (#295 Lot 2 : `cons` vide ⇒
+ *  `''`, la rangée ✓/✗ ±DR porte alors seule le verdict), sans repli de secours. Ajouter un kind ne
+ *  touche JAMAIS l'UI. */
+export function applierDe(kind: string): CascadeApplier | undefined {
+  return tablesPosees().appliers[kind];
 }
 
 /**
@@ -114,58 +111,14 @@ export function registerCascadeApplier(kind: string, apply: CascadeApplier): voi
  */
 export type CascadeTableFold = (step: CascadeStep, get: Get) => CascadeStep;
 
-/**
- * CONTINUATION D'ÉTAPE rejouée APRÈS que sa conséquence est DITE (#1508) — injectée (patron
- * `ownTestFailedEmitter` ci-dessous), parce que la reprise vit dans `noyau/combatEffects` et que le
- * socle ne connaît ni Flow ni Effets.
- *
- * Elle est appelée ICI, au goulot unique de validation, et pas dans l'applier : un applier qui rejoue
- * lui-même sa suite le fait AVANT que `commitStep` ne journalise sa propre conséquence — le journal
- * annonce alors la suite avant la cause, et toute grandeur lue par différence après coup (les
- * Blessures d'une chute) est faussée par ce que la suite a déjà changé.
- */
-let suiteApresCommit: ((get: Get, set: Set, step: CascadeStep) => void) | null = null;
-/** Enregistre la reprise de continuation d'étape (appelée par `noyau/combatEffects` à son chargement). */
-export function setSuiteApresCommit(fn: NonNullable<typeof suiteApresCommit>): void { suiteApresCommit = fn; }
-
-/** Registre des plis par `kind` — patron `cascadeAppliers` (inversion de dépendance). */
-export const cascadeTableFolds: Record<string, CascadeTableFold> = {};
-
-/** Enregistre (ou remplace) le pli post-dé d'un `kind` d'étape à table. */
-export function registerCascadeTableFold(kind: string, fold: CascadeTableFold): void {
-  cascadeTableFolds[kind] = fold;
-}
-
-/**
- * Registre des PRÉDICATS DE SUCCÈS d'une étape batch sommée — INVERSION de dépendance, patron
- * `cascadeAppliers` : le seuil de succès d'un domaine (naval : `crewTestSuccess`, MDG 14 l.13, seuil
- * réglable par règle optionnelle) est FOURNI par le flux propriétaire, la machinerie générique ne
- * connaît que l'id. L'étape porte l'id (`meta.aggregateSuccessRule`, chaîne SÉRIALISABLE) et non la
- * fonction : un pending est snapshoté en JSON (sauvegarde, coop) — une closure y serait effacée en
- * silence et l'étape retomberait sur un seuil qui n'est pas le sien.
- */
-export const cascadeSuccessRules: Record<string, (sl: number) => boolean> = {};
-
-/** Enregistre (ou remplace) le prédicat de succès d'un id de règle d'agrégat. */
-export function registerCascadeSuccessRule(id: string, succeeds: (sl: number) => boolean): void {
-  cascadeSuccessRules[id] = succeeds;
-}
-
-/** ÉMETTEUR `onOwnTestFailed` INJECTÉ (inversion de dépendance, patron `testRouter`) : `commitStep` déclenche
- *  le trigger pour l'acteur d'une étape à jet raté SANS importer `triggeredEffects` (qui rebouclerait
- *  cascade↔triggeredEffects→combatFlow→cascade). Câblé par `combatFlow` (effet de bord au chargement). */
-type OwnTestFailedEmitter = (get: Get, actor: Combatant, sl: number) => string[];
-let ownTestFailedEmitter: OwnTestFailedEmitter | undefined;
-export function setOwnTestFailedEmitter(fn: OwnTestFailedEmitter): void { ownTestFailedEmitter = fn; }
-
-/** La clôture de cascade (`dispatchCascadeDone`) vit dans `combatSlice`, qui importe ce module : elle
- *  s'injecte (patron `setOwnTestFailedEmitter`). Lue par la reprise d'une séquence que le pilote
- *  immédiat a parquée derrière un combat (`resumeSuspendedCascade`). */
+/** La clôture de cascade (`dispatchCascadeDone`, `combatSlice`), qui ferme sur le propriétaire de
+ *  l'état : `brancherLeJeu` la pose. Lue par la reprise d'une séquence que le pilote immédiat a
+ *  parquée derrière un combat (`resumeSuspendedCascade`). */
 type ClotureDeCascade = (done: PendingCascade) => void;
 let clotureInjectee: ClotureDeCascade | undefined;
-export function setClotureDeCascade(fn: ClotureDeCascade): void { clotureInjectee = fn; }
+export function setClotureDeCascade(fn: ClotureDeCascade | undefined): void { clotureInjectee = fn; }
 function clotureDeCascade(done: PendingCascade): void {
-  if (!clotureInjectee) throw new Error('[cascade] clôture de cascade non injectée (`setClotureDeCascade`, combatSlice)');
+  if (!clotureInjectee) throw new Error('[cascade] clôture de cascade non posée (`brancherLeJeu`)');
   clotureInjectee(done);
 }
 
@@ -175,8 +128,9 @@ function clotureDeCascade(done: PendingCascade): void {
  * Test étendu (`extendedTestNext`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
- * Registre séparé de `cascadeAppliers` (un Test étendu n'est PAS une étape de cascade — `pendingExtendedTest`
- * coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape `jet:'extended'`).
+ * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
+ * cascade — `pendingExtendedTest` coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape
+ * `jet:'extended'`).
  */
 export type ExtendedTestOutcomeApplier = (
   get: Get,
@@ -186,22 +140,13 @@ export type ExtendedTestOutcomeApplier = (
   reached: boolean,
 ) => { consequences?: Consequence[] } | void;
 
-/** Registre par `kind` (`PendingExtendedTest.outcome.kind`) — source unique extensible, kind-agnostique. */
-export const extendedTestOutcomeAppliers: Record<string, ExtendedTestOutcomeApplier> = {};
-
-/** Enregistre (ou remplace) l'issue de domaine d'un `kind` de Test étendu. */
-export function registerExtendedTestOutcome(kind: string, apply: ExtendedTestOutcomeApplier): void {
-  extendedTestOutcomeAppliers[kind] = apply;
-}
-
 /**
- * REGISTRE des TABLES tirables par une étape (`CascadeStep.table.tableId`) — source unique
- * extensible, peuplée par les modules de DOMAINE à leur chargement (comme `cascadeAppliers`) : le
- * cœur générique ne nomme aucune table. `rows` porte les fourchettes `[min,max]` + l'id STABLE de
+ * TABLES tirables par une étape (`CascadeStep.table.tableId`, `TablesDuJeu.tablesTirables` et
+ * `famillesTirables`) — déclarées par les modules de DOMAINE : le cœur générique ne nomme aucune table. `rows` porte les fourchettes `[min,max]` + l'id STABLE de
  * chaque ligne (le lookup est `findTableEntry`, brique partagée) ; `lines` rend les lignes
  * d'affichage de la ligne tirée, formatées par le MOTEUR du domaine (source unique du texte).
  *
- * Distinct du registre des tables d'EFFETS (`data/effectTables.ts`, `findEffectTableById`) : celui-là
+ * Distinct des tables d'EFFETS (`data/effectTables.ts`, `findEffectTableById`) : celui-là
  * résout des lignes `{min,max,ops}` — un `GameOp[]` appliqué à une cible, sans id de ligne stable ni
  * issue hors-ops (Effondrement, note verbatim). Les deux partagent la brique de lookup, pas la forme.
  */
@@ -232,7 +177,7 @@ export interface TableStepDef {
    *  `ctx` — CONTEXTE DU TIRAGE, transmis par le résolveur quand son pilote en a un (`{ get }`).
    *  Il existe parce qu'une ligne de table ne dit pas toujours la même chose selon l'ÉTAT au moment
    *  du dé : une même fourchette peut porter deux issues (atteindre un nombre cible, ou le passer au
-   *  joueur suivant — `NADJ 16 l.17`), et un libellé figé à l'ENREGISTREMENT annoncerait la
+   *  joueur suivant — `NADJ 16 l.17`), et un libellé figé à la DÉCLARATION annoncerait la
    *  fourchette au lieu de ce qui vient d'arriver. Le socle ne connaît toujours aucun domaine : il
    *  transmet l'accès, il ne lit rien. Absent (résolveur PUR, moteur hors store) : la table rend son
    *  libellé de fourchette — toute implémentation doit rester correcte sans `ctx`. */
@@ -245,50 +190,34 @@ export interface TableStepDef {
   entryCategory?: string;
 }
 
-/** REGISTRE STATIQUE : les tables dont l'id est ÉCRIT AU CODE (Critiques par Localisation, Incantations
- *  imparfaites et Colère des dieux, Incidents de Tir par Salve, Événements d'interlude…) — une def
- *  posée une fois, au chargement de son module. */
-const tableStepStatiques: Record<string, TableStepDef> = {};
-
 /**
  * FAMILLE de tables DÉRIVÉES d'un dataset (#1692) — ses ids ET ses defs se redemandent à CHAQUE
- * lecture du registre, la famille portant son mémo (`memoParVersion`, `src/data/versionDataset.ts`).
- * Une saison retirée au Codex quitte le registre, une saison ajoutée y entre sans rechargement, et
- * AUCUN lecteur ne dépend d'un enregistrement déclenché ailleurs : la reprise d'une cascade
- * sauvegardée lit la même chose que la fenêtre qui a ouvert l'étape.
+ * lecture, la famille portant son mémo (`memoParVersion`, `src/data/versionDataset.ts`). Une saison
+ * retirée au Codex quitte les tables tirables, une saison ajoutée y entre sans rechargement : la
+ * reprise d'une cascade sauvegardée lit la même chose que la fenêtre qui a ouvert l'étape.
  *
  * La famille EST son mémo : un accesseur qui rend la table des defs à cet instant. Une famille de
- * plus coûte donc UNE ligne (`registerTableStepFamily(tablesDeX)`), pas une paire `ids`/`def`
- * recopiée.
+ * plus coûte donc UNE entrée de `famillesTirables`, pas une paire `ids`/`def` recopiée.
  */
 export type TableStepFamily = () => ReadonlyMap<string, TableStepDef>;
 
-const tableStepFamilles: TableStepFamily[] = [];
-
-/** Enregistre (ou remplace) une table tirable par une étape — id FIXE, def écrite au code. */
-export function registerTableStep(tableId: string, def: TableStepDef): void {
-  tableStepStatiques[tableId] = def;
-}
-
-/** Enregistre une FAMILLE de tables dérivées de la donnée (cf. `TableStepFamily`). */
-export function registerTableStepFamily(famille: TableStepFamily): void {
-  tableStepFamilles.push(famille);
-}
-
-/** LECTURE UNIQUE du registre — les statiques d'abord, les familles ensuite. */
+/** LECTURE UNIQUE des tables tirables posées — celles écrites au code d'abord (Critiques par
+ *  Localisation, Incantations imparfaites, Incidents de Tir par Salve…), les familles ensuite. */
 export function tableStepDef(tableId: string): TableStepDef | undefined {
-  const statique = tableStepStatiques[tableId];
+  const { tablesTirables, famillesTirables } = tablesPosees();
+  const statique = tablesTirables[tableId];
   if (statique) return statique;
-  for (const famille of tableStepFamilles) {
+  for (const famille of famillesTirables) {
     const def = famille().get(tableId);
     if (def) return def;
   }
   return undefined;
 }
 
-/** TOUS les ids tirables à cet instant — statiques + familles, sans doublon. */
+/** TOUS les ids tirables à cet instant — écrits au code + familles, sans doublon. */
 export function tableStepIds(): string[] {
-  return [...new Set([...Object.keys(tableStepStatiques), ...tableStepFamilles.flatMap((f) => [...f().keys()])])];
+  const { tablesTirables, famillesTirables } = tablesPosees();
+  return [...new Set([...Object.keys(tablesTirables), ...famillesTirables.flatMap((f) => [...f().keys()])])];
 }
 
 /**
@@ -377,7 +306,7 @@ export function rollTableStep(decl: CascadeTableDecl, rng: RNG, ctx?: TableStepC
  * l'issue porte son id stable + ses lignes. PURE.
  *
  * Deux fail-fast, aucun repli silencieux :
- *  - table introuvable au registre — jamais enregistrée, ou RETIRÉE de la donnée (un `tableId`
+ *  - table introuvable aux tables posées — jamais déclarée, ou RETIRÉE de la donnée (un `tableId`
  *    fautif ne se résout jamais en silence) ;
  *  - dé EFFECTIF HORS de la plage couverte par la table : `findTableEntry` replie sur la DERNIÈRE
  *    ligne, donc un `mod` fautif (au-dessus comme en dessous de la plage) rendrait la MÊME ligne
@@ -391,7 +320,7 @@ export function lireEnTable(decl: CascadeTableDecl, de: CascadeDeResult, ctx?: T
   // Aucune migration de sauvegarde (`.claude/memory/user-arbitrage-saves-reset-pas-migration.md`).
   if (!def) {
     throw new Error(
-      `rollTableStep : table d'étape « ${decl.tableId} » introuvable — jamais enregistrée (registerTableStep) ou table retirée de la donnée.`,
+      `rollTableStep : table d'étape « ${decl.tableId} » introuvable — jamais déclarée (tablesTirables) ou table retirée de la donnée.`,
     );
   }
   const lo = def.rows[0].min;
@@ -449,7 +378,7 @@ export function stakeAtTableRow(stake: StakeRef | undefined, decl: CascadeTableD
 
 /**
  * Étape à table RÉSOLUE : la déclaration qui a tiré + son résultat + l'enjeu redescendu à la ligne
- * jouée + le PLI post-dé du `kind` (`cascadeTableFolds`). SITE UNIQUE de la pose d'un `table.result`
+ * jouée + le PLI post-dé du `kind` (table `plis`). SITE UNIQUE de la pose d'un `table.result`
  * sur une étape — les CINQ pilotes de tirage (modale, dé posé, curseur posé, résolution forcée,
  * cascade immédiate) passent par ici, sinon l'un d'eux laisserait l'enjeu au `kind` pendant que les
  * autres l'ont fait descendre, et rendrait une étape tirée sans sa dérivée.
@@ -466,7 +395,7 @@ export function stakeAtTableRow(stake: StakeRef | undefined, decl: CascadeTableD
  * si le joueur avait posé 76 d'emblée. Le mémo est un contrat de CONSÉQUENCE, pas de séquence.
  */
 export function tableStepResolved(step: CascadeStep, decl: CascadeTableDecl, result: CascadeTableResult, get: Get): CascadeStep {
-  const fold = cascadeTableFolds[step.kind];
+  const fold = tablesPosees().plis[step.kind];
   const posee = tableStepPosee(step, decl, result);
   if (!fold) return posee;
   const memo = step.foldMemo;
@@ -664,19 +593,21 @@ export function aggregateBatchRolls(
 }
 
 /** Agrège une étape « batch » PRÊTE (`stepReady`) en un `CascadeRoll` scalaire — même vocabulaire
- *  `result` qu'une étape mono, pour que l'applier `cascadeAppliers[kind]` reste kind-agnostique du
+ *  `result` qu'une étape mono, pour que l'applier `applierDe(kind)` reste kind-agnostique du
  *  nombre de contributeurs (seam de jet #275 Décision 4 cran 1). Les paramètres de formule vivent en
  *  `meta` NEUTRE (`aggregateFlatDR`/`aggregateCapTo`/`aggregateOpposeSl`/`aggregateSuccessRule`), versés
- *  à la construction. Un id de règle de succès INCONNU jette (fail-closed) : retomber en silence sur le
- *  seuil générique appliquerait à un domaine un seuil qui n'est pas le sien. */
+ *  à la construction. L'étape porte l'ID du prédicat (`TablesDuJeu.reglesDeSucces`), jamais la
+ *  fonction : un pending est snapshoté en JSON (sauvegarde, coop). Un id de règle de succès INCONNU
+ *  jette (fail-closed) : retomber en silence sur le seuil générique appliquerait à un domaine un seuil
+ *  qui n'est pas le sien. */
 function aggregateBatchStep(step: CascadeStep): CascadeRoll {
   const meta = step.meta;
   const flatDR = typeof meta?.aggregateFlatDR === 'number' ? meta.aggregateFlatDR : 0;
   const capTo = typeof meta?.aggregateCapTo === 'number' ? meta.aggregateCapTo : undefined;
   const opposeSl = typeof meta?.aggregateOpposeSl === 'number' ? meta.aggregateOpposeSl : 0;
   const ruleId = typeof meta?.aggregateSuccessRule === 'string' ? meta.aggregateSuccessRule : undefined;
-  const successOf = ruleId ? cascadeSuccessRules[ruleId] : undefined;
-  if (ruleId && !successOf) throw new Error(`aggregateBatchStep : règle de succès « ${ruleId} » non enregistrée (registerCascadeSuccessRule).`);
+  const successOf = ruleId ? tablesPosees().reglesDeSucces[ruleId] : undefined;
+  if (ruleId && !successOf) throw new Error(`aggregateBatchStep : règle de succès « ${ruleId} » absente des tables (\`reglesDeSucces\`).`);
   const { sl, success } = aggregateBatchRolls(step.participants!, step.aggregate ?? 'summed-dr', { flatDR, capTo, opposeSl, successOf });
   return { roll: 0, target: 0, sl, success };
 }
@@ -1267,7 +1198,7 @@ function batchOwnTestFailedLines(get: Get, step: CascadeStep): string[] {
     if (!part.result || part.result.success || (estJete(part.result) && part.result.statuQuo) || part.meta?.noOwnTestFailed) continue;
     const actor = actorIn(get(), part.id);
     if (!actor) continue;
-    lines.push(...(ownTestFailedEmitter?.(get, actor, part.result.sl) ?? []));
+    lines.push(...emettreOwnTestFailed(get, actor, part.result.sl));
   }
   return lines;
 }
@@ -1335,7 +1266,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   let insereesParLApplier: CascadeStep[];
   let bornes: BornesDuFragment | null;
   try {
-    out = cascadeAppliers[step.kind]?.apply(get, set, step, hero, { steps, index: i });
+    out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
     // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
     // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
@@ -1345,7 +1276,10 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
-    suiteApresCommit?.(get, set, step);
+    // Rejouée ICI, au goulot, et pas dans l'applier : un applier qui rejouerait lui-même sa suite le
+    // ferait avant ce journal, et toute grandeur lue par différence après coup (les Blessures d'une
+    // chute) serait faussée par ce que la suite a déjà changé.
+    jouerLesClotures(get, set, step.meta?.apresSuite ?? []);
   } finally {
     insereesParLApplier = fenetreInsertion?.inseres ?? [];
     bornes = fenetreInsertion?.bornes ?? null;
@@ -1354,16 +1288,15 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // SEAM CENTRAL `onOwnTestFailed` (tests DIFFÉRÉS d'entretien + tests déclenchés de combat en cascade) :
   // toute étape à JET RATÉ (`faim`/`recovery`/`diseaseTick`/`diseasePersist`/`traumaFracture`/`contagion`/
   // `triggeredTest`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
-  // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Émetteur INJECTÉ
-  // (`setOwnTestFailedEmitter`, patron `testRouter`) pour éviter le cycle cascade↔triggeredEffects. Sous-Test
-  // du FM résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
+  // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Sous-Test du FM
+  // résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
   // Une BANDE émet PAR RANGÉE PERDANTE (`batchOwnTestFailedLines`) : le trigger est dû au Test, pas à la
   // forme de la fenêtre — SOURCE UNIQUE ici pour les deux formes, jamais un second site par applier.
   const interaction = stepInteraction(step);
   const ownTestFailedLines = interaction === 'batch'
     ? batchOwnTestFailedLines(get, step)
     : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && hero && !step.meta?.noOwnTestFailed)
-      ? (ownTestFailedEmitter?.(get, hero, step.result.sl) ?? []) : []);
+      ? emettreOwnTestFailed(get, hero, step.result.sl) : []);
   journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
@@ -1926,7 +1859,7 @@ function assertBornesPortees(bornes: BornesDuFragment): void {
 /** Un groupe de conséquences déjà calculées (lignes prêtes à afficher) — brique d'entrée pour
  *  rapatrier les conséquences d'un jet INLINE dans la modale. */
 export interface ConsequenceGroup {
-  kind: string;
+  kind: GenreDeCascade;
   label: string;
   lines: string[];
   icon?: string;

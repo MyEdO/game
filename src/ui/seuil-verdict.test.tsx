@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { startCascade, registerCascadeApplier } from '../noyau/cascade';
+import { startCascade } from '../noyau/cascade';
 import { openWorldTest, worldStep } from '../noyau/rollSeam';
 import { buildAuthorPerilSteps } from '../noyau/authorPerils';
 import { openPortAt } from '../noyau/seaVoyageFlow';
@@ -19,6 +19,8 @@ import { DIFFICULTY_LABELS } from '../engine/types';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import { CascadeBody } from './CascadeModal';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -27,7 +29,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const KIND = 'uiSeuilSpy';
+const KIND = cleDeFixture('uiSeuilSpy');
 const verdictAcheteur = { reussite: t('seuil.acheteurTrouve'), echec: t('seuil.aucunAcheteur') };
 
 function reset() {
@@ -49,7 +51,7 @@ const poser = (roll: number) => {
 beforeEach(() => {
   resetDesFixes();
   setDesFixes(true);
-  registerCascadeApplier(KIND, () => {});
+  avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND]: () => {} } });
   reset();
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -79,7 +81,7 @@ describe('#2389 — la rangée seuil dit le verdict de SON étape', () => {
   });
 
   it('SÉQUENCE (`worldStep` d’un péril d’auteur) : le verdict du péril', () => {
-    const [st] = buildAuthorPerilSteps({ id: 'r', from: 'a', to: 'b', km: 10, perils: [{ label: 'Brigands', chancePct: 30, effects: [] }] } as never, 'B', 'x');
+    const [st] = buildAuthorPerilSteps({ id: 'r', from: 'a', to: 'b', km: 10, perils: [{ label: 'Brigands', chancePct: 30, effects: [] }] } as never, 'B', cleDeFixture('x'));
     startCascade(useGame.getState, useGame.setState, { title: 'Route', purpose: 'affichage', steps: [st] });
     render();
     poser(10);

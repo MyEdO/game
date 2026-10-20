@@ -9,14 +9,10 @@ import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
 import { monoStep } from '../noyau/rollSeam';
-import { registerCascadeApplier } from '../noyau/cascade';
-import { registerSequence, startSequence, activeSequence } from '../noyau/sequenceCore';
+import { startSequence, activeSequence } from '../noyau/sequenceCore';
+import { avecLesTables, sequenceDeFixture, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
-declare module '../noyau/sequenceContract' {
-  interface SequenceFamilies {
-    'sonde-manche-branche-i': Record<string, never>;
-  }
-}
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -30,19 +26,18 @@ describe('#1595 — une manche résolue en branche I se clôt', () => {
   it('porteur sans siège (héros conduit par l’IA) : la manche s’ouvre, se résout ET se clôt', () => {
     const h = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'seq-otto' }), aiControlled: true };
     set({ party: [h] } as never);
-    registerCascadeApplier('sondeMancheI', () => undefined);
     const closes: number[] = [];
-    registerSequence('sonde-manche-branche-i', {
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeMancheI: () => undefined }, sequences: { ...tablesDuJeu().sequences, 'sonde-manche-branche-i': sequenceDeFixture<Record<string, never>>({
       round: (g, seq) => {
         const step = monoStep({
-          id: `m-${seq.round}`, kind: 'sondeMancheI', label: fixtureText('Manche'), actor: g().party[0],
+          id: `m-${seq.round}`, kind: cleDeFixture('sondeMancheI'), label: fixtureText('Manche'), actor: g().party[0],
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
           stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Manche'), steps: [step] } : undefined;
       },
       close: ({ seq }) => { closes.push(seq.round); return { go: 'end', outcome: 'fin' }; },
-    });
+    }) } });
     startSequence(get, set, { def: 'sonde-manche-branche-i', payload: {} });
     expect(get().pendingCascade, 'aucun siège ne tient le porteur : aucune fenêtre').toBeNull();
     expect(closes, 'la manche résolue sur place est CLOSE par le socle').toEqual([1]);

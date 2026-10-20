@@ -72,9 +72,9 @@ describe('cliquet composeur — canal journal: déprécié des CascadeApplier (#
   });
 
   it('fail-closed : le compteur détecte une duplication SYNTHÉTIQUE de jet dans un littéral journal:', () => {
-    const regressed = "registerCascadeApplier('x', (get, set, step, hero) => {\n"
-      + "  return { journal: [`${hero.name} : ${step.result.roll}/${step.result.target} → réussi.`] };\n"
-      + '});';
+    const regressed = "  x: (get, set, step, hero) => {\n"
+      + "    return { journal: [`${hero.name} : ${step.result.roll}/${step.result.target} → réussi.`] };\n"
+      + '  },';
     const n = dupCounts(regressed);
     expect(n.journalArrays).toBe(1);
     expect(n.jetDup).toBeGreaterThan(0);

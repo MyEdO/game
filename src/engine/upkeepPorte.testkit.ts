@@ -3,7 +3,7 @@
  * ni de convalescence : il DIFFÈRE (`UpkeepDeferTest`). Un test qui veut juger une CONSÉQUENCE doit donc
  * (1) collecter la spec — c'est ce que la porte reçoit — puis (2) INJECTER l'issue qu'il veut juger.
  *
- * `applique` est le miroir STRICT des appliers de nuit (`registerNightBandApplier('diseaseTick' |
+ * `applique` est le miroir STRICT des appliers de nuit (`bandeDeNuit`, appliers `'diseaseTick' |
  * 'diseaseGangrene' | 'diseasePersist')`, `src/noyau/restFlow.ts`) : mêmes trois routes, même lecture du
  * `meta`, et surtout LES MÊMES FONCTIONS — chaque route appelle l'unique foyer de sa conséquence
  * (`applyOps` ancré à la maladie, `applyDiseaseGangrene`, `applyDiseaseEnd` qui porte la guérison ET la

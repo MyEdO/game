@@ -1,8 +1,8 @@
 /**
  * LE FLUX DU LOT DE DÉS D'UN ÉTAL (#1426) — la couture entre les générateurs d'étal (halle terrestre,
- * étal portuaire) et la fenêtre de lot. Les générateurs ne connaissent pas la fenêtre : ils s'inscrivent
- * ICI sous un id (patron `registerCascadeApplier`), et le flux décide s'il les exécute d'un trait ou
- * s'il offre d'abord leurs dés à la pose.
+ * étal portuaire) et la fenêtre de lot. Les générateurs ne connaissent pas la fenêtre : ils se déclarent
+ * sous un id (`TablesDuJeu.generateursDEtal`), et le flux décide s'il les exécute d'un trait ou s'il
+ * offre d'abord leurs dés à la pose.
  *
  * DEUX CHEMINS, UN SEUL GÉNÉRATEUR — et c'est la SURFACE qui tranche, le même prédicat que tout jet
  * (`rollSeam.surfaceOf` sur le porteur MONDE, #1426) :
@@ -24,18 +24,15 @@ import { surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './pendings';
 import { lotEnregistreur, lotRejoueur, type EtalDraw } from './monde/etalLot';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { tablesPosees } from './tablesPosees';
 
 /** Un générateur d'étal : il TIRE (via le rng qu'on lui donne), il POSE son état, il ne rend rien.
  *  `phase` lui sert à NOMMER ce que chaque dé décide — sans nom, un dé n'est pas posable. */
 export type EtalGenerateur = (get: Get, set: Set, rng: RNG, phase: (label: string) => void) => void;
 
-const generateurs: Record<string, { gen: EtalGenerateur; apres?: (get: Get, set: Set) => void }> = {};
-
-/** Inscrit le générateur d'un étal sous son id (`'land'`, `'port'`). `apres` = ce qui suit l'étal une
- *  fois posé (le Test de Ragot de la halle) — il ne doit PAS s'ouvrir avant la validation du lot. */
-export function registerEtalGenerateur(cible: string, gen: EtalGenerateur, apres?: (get: Get, set: Set) => void): void {
-  generateurs[cible] = { gen, apres };
-}
+/** Les étals du jeu. Leur entrée porte le générateur et `apres`, ce qui suit l'étal une fois posé (le
+ *  Test de Ragot de la halle) — il ne doit PAS s'ouvrir avant la validation du lot. */
+export type CibleDEtal = 'land' | 'port';
 
 /**
  * Ouvre un étal : soit d'un trait, soit par la fenêtre de lot. `label` titre la fenêtre.
@@ -43,9 +40,8 @@ export function registerEtalGenerateur(cible: string, gen: EtalGenerateur, apres
  * `surfaceOf` porte DÉJÀ la cadence (auto → aucun siège à la manœuvre) : une fenêtre n'a pas de sens
  * quand le joueur a demandé qu'on joue à sa place.
  */
-export function ouvrirEtal(get: Get, set: Set, cible: 'land' | 'port', label: string): void {
-  const entree = generateurs[cible];
-  if (!entree) return;
+export function ouvrirEtal(get: Get, set: Set, cible: CibleDEtal, label: string): void {
+  const entree = tablesPosees().generateursDEtal[cible];
   if (!surfaceOf(get, WORLD_STEP_OWNER)) {
     entree.gen(get, set, battleRng(), () => {});
     entree.apres?.(get, set);
@@ -72,9 +68,8 @@ const enRangee = (d: EtalDraw): EtalLotRow => ({
 export function appliquerLotEtal(get: Get, set: Set): void {
   const p = get().pendingEtalLot;
   if (!p) return;
-  const entree = generateurs[p.cible];
+  const entree = tablesPosees().generateursDEtal[p.cible];
   set({ pendingEtalLot: null });
-  if (!entree) return;
   const rejeu = lotRejoueur(p.participants.map((r) => ({ id: r.id, label: r.label, min: r.min, max: r.max, value: r.value })), battleRng());
   entree.gen(get, set, rejeu.rng, () => {});
   entree.apres?.(get, set);

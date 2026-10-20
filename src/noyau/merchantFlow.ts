@@ -30,7 +30,7 @@ import { findTrappingById, trappingsInstanciables, findVehicleById, findCreature
 import { MERCHANTS } from './monde/merchants/archetypes';
 import type { UniteAchetable } from './monde/merchants/types';
 import { FLOWS } from './rollFlowSpecs';
-import { registerCascadeApplier, startCascade } from './cascade';
+import { startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
 import { actorIn, ecrireActeur } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -45,6 +45,7 @@ import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -246,36 +247,6 @@ function rollFreshStock(
  *  rafraîchit son stock si `merchant` porte déjà cette entité (`searchAvailability`), au choix de
  *  `s.merchant?.entityId === entityId` — un seul applier pour les deux appelants. */
 const MERCHANT_STOCK_KIND = 'merchant-stock';
-registerCascadeApplier(MERCHANT_STOCK_KIND, (get, set, step) => {
-  const meta = step.meta ?? {};
-  const entityId = String(meta.entityId ?? '');
-  const archetype = String(meta.archetype ?? '');
-  const ent = get().scene?.entities.find((e) => e.id === entityId);
-  const arch = MERCHANTS[archetype];
-  // `arch` (`meta.archetype`, sérialisé à l'ouverture) SUFFIT — un marchand de LIEU (#369, `openPlaceMerchant`)
-  // n'a aucune `SceneEntity` de scène, `ent` reste alors `undefined` (overrides d'entité simplement absents).
-  if (!arch) return {};
-  const settlement = String(meta.settlement ?? arch.settlement) as Settlement;
-  const now = Number(meta.now ?? get().gameTime);
-  const restockPeriod = Number(meta.restockPeriod ?? MINUTES_PER_DAY);
-  const gossipDay = !!meta.gossipDay;
-  const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-  persistStock(set, entityId, stock, now);
-  set((s) => {
-    if (s.merchant?.entityId === entityId) {
-      // Rafraîchi PENDANT une visite en cours (recherche active) — même reset que le chemin inline.
-      return { merchant: { ...s.merchant, stock, cart: [], bargainBuy: null, bargainSell: null, bargainLocked: false } };
-    }
-    const resaleRate = Number(meta.resaleRate ?? arch.resaleRate);
-    const buyMarkup = Number(meta.buyMarkup ?? arch.buyMarkup ?? 1);
-    const backdrop = meta.backdrop != null ? String(meta.backdrop) : undefined;
-    const persisted = s.merchantStocks[entityId];
-    return { merchant: { entityId, archetype, settlement, resaleRate, buyMarkup, backdrop, stock, cart: [], bargainLocked: persisted?.bargainLocked ?? false } };
-  });
-  return {
-    consequences: freeCons(tested.map(stockTraceLine)),
-  };
-});
 
 /** Ouvre l'étape de cascade VISIBLE-LANÇABLE au siège MJ (#273 dernier volet) — jamais un tirage
  *  silencieux : le `meta` porte les PARAMÈTRES sérialisables du tirage (le rng seedé reste calculé par
@@ -354,22 +325,6 @@ export function openPlaceMerchant(get: Get, set: Set, entityId: string, archetyp
  *  fenêtre est influençable (Chance/Résilience) et le siège MJ la voit ; la continuation (avance de la
  *  journée + réassort visible/inline) vit ICI, keyée par `kind`. */
 const MERCHANT_RAGOT_KIND = 'merchant-ragot';
-registerCascadeApplier(MERCHANT_RAGOT_KIND, (get, set, step) => {
-  if (!step.result) return {};
-  const meta = step.meta ?? {};
-  const entityId = String(meta.entityId ?? '');
-  const m = get().merchant;
-  if (!m || m.entityId !== entityId) return {}; // visite fermée entre-temps
-  const gossipDay = step.result.success;
-  const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-  finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
-  return {
-    consequences: freeCons([stepDetail(
-      actor ? dataLabel(actor.label) : t('eff.party'),
-      estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo') : t('mf.searchSansJet'),
-    )]),
-  };
-});
 
 /** Continuation PARTAGÉE (jet réussi/raté OU absence de candidat au Ragot) : avance la journée (« journée
  *  entière », LDB 59 l.50), puis même porte que l'ouverture (#273) — siège MJ → tirage VISIBLE ; sinon
@@ -1037,3 +992,58 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
     setSellHalving: (uid, delta) => setSellHalving(get, set, uid, delta),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [MERCHANT_STOCK_KIND, MERCHANT_RAGOT_KIND] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    [MERCHANT_STOCK_KIND]: (get, set, step) => {
+      const meta = step.meta ?? {};
+      const entityId = String(meta.entityId ?? '');
+      const archetype = String(meta.archetype ?? '');
+      const ent = get().scene?.entities.find((e) => e.id === entityId);
+      const arch = MERCHANTS[archetype];
+      // `arch` (`meta.archetype`, sérialisé à l'ouverture) SUFFIT — un marchand de LIEU (#369, `openPlaceMerchant`)
+      // n'a aucune `SceneEntity` de scène, `ent` reste alors `undefined` (overrides d'entité simplement absents).
+      if (!arch) return {};
+      const settlement = String(meta.settlement ?? arch.settlement) as Settlement;
+      const now = Number(meta.now ?? get().gameTime);
+      const restockPeriod = Number(meta.restockPeriod ?? MINUTES_PER_DAY);
+      const gossipDay = !!meta.gossipDay;
+      const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
+      persistStock(set, entityId, stock, now);
+      set((s) => {
+        if (s.merchant?.entityId === entityId) {
+          // Rafraîchi PENDANT une visite en cours (recherche active) — même reset que le chemin inline.
+          return { merchant: { ...s.merchant, stock, cart: [], bargainBuy: null, bargainSell: null, bargainLocked: false } };
+        }
+        const resaleRate = Number(meta.resaleRate ?? arch.resaleRate);
+        const buyMarkup = Number(meta.buyMarkup ?? arch.buyMarkup ?? 1);
+        const backdrop = meta.backdrop != null ? String(meta.backdrop) : undefined;
+        const persisted = s.merchantStocks[entityId];
+        return { merchant: { entityId, archetype, settlement, resaleRate, buyMarkup, backdrop, stock, cart: [], bargainLocked: persisted?.bargainLocked ?? false } };
+      });
+      return {
+        consequences: freeCons(tested.map(stockTraceLine)),
+      };
+    },
+    [MERCHANT_RAGOT_KIND]: (get, set, step) => {
+      if (!step.result) return {};
+      const meta = step.meta ?? {};
+      const entityId = String(meta.entityId ?? '');
+      const m = get().merchant;
+      if (!m || m.entityId !== entityId) return {}; // visite fermée entre-temps
+      const gossipDay = step.result.success;
+      const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
+      finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
+      return {
+        consequences: freeCons([stepDetail(
+          actor ? dataLabel(actor.label) : t('eff.party'),
+          estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo') : t('mf.searchSansJet'),
+        )]),
+      };
+    },
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+} satisfies FragmentDeTables;

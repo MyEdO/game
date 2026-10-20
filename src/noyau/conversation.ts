@@ -1,7 +1,7 @@
 /** Conversation : choix d'une réponse et clôture du dialogue. */
 import type { DialogueTransition } from './pendings';
 import { TIME_COST } from '../engine/timeCost';
-import { registerCloture, runFlow, jouerFlowEntier, cloturer } from './combatEffects';
+import { runFlow, jouerFlowEntier, cloturer } from './combatEffects';
 import { conversationRepond, reponsesDuNoeud } from './dialogue';
 import { t } from '../i18n';
 import { toMoney } from '../engine/money';
@@ -12,6 +12,7 @@ import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { type DialogueTurn, recordTurn } from './monde/dialogueHistory';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables } from './tablesPosees';
 
 /** Applique une avancée de dialogue (transition vers un nœud, ou clôture) — point UNIQUE partagé par
  *  `chooseDialogue` (cas sans Test) et `resolveTest` (reprise après un Test suspendu par `choice.flow`). */
@@ -23,16 +24,6 @@ function applyDialogueTransition(get: Get, set: Set, tr: DialogueTransition): vo
   }
   set({ dialogue: tr });
 }
-
-/** AVANCÉE du dialogue — verbe de CLÔTURE (#1508). Une modale de jet ENCORE ouverte (un Test que la
- *  suite vient d'ouvrir) reprend la transition à son compte : « le dialogue n'avance jamais sous une
- *  modale de jet » vaut du Test comme du dé — le dé, lui, est tenu par la mécanique de continuation
- *  (une clôture ne se joue qu'à la validation de la DERNIÈRE étape de la grappe). */
-registerCloture('dialogueSuivant', (get, set, c) => {
-  const pt = get().pendingTest;
-  if (pt) { set({ pendingTest: { ...pt, dialogueNext: c.transition } }); return; }
-  applyDialogueTransition(get, set, c.transition);
-});
 
 export function creerActionsDeConversation(get: Get, set: Set) {
   return {
@@ -101,3 +92,18 @@ export function creerActionsDeConversation(get: Get, set: Set) {
     },
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  clotures: {
+    /** AVANCÉE du dialogue — verbe de CLÔTURE (#1508). Une modale de jet ENCORE ouverte (un Test que la
+     *  suite vient d'ouvrir) reprend la transition à son compte : « le dialogue n'avance jamais sous une
+     *  modale de jet » vaut du Test comme du dé — le dé, lui, est tenu par la mécanique de continuation
+     *  (une clôture ne se joue qu'à la validation de la DERNIÈRE étape de la grappe). */
+    dialogueSuivant: (get, set, c) => {
+      const pt = get().pendingTest;
+      if (pt) { set({ pendingTest: { ...pt, dialogueNext: c.transition } }); return; }
+      applyDialogueTransition(get, set, c.transition);
+    },
+  },
+} satisfies FragmentDeTables;

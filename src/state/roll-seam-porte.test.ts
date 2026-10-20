@@ -16,6 +16,7 @@ import { seatOwns } from '../noyau/sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -63,7 +64,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     const h1 = hero('H1');
     deuxSieges([h1, hero('H2')]);
     openBand(useGame.getState, useGame.setState, {
-      id: 'resistance', kind: 'upkeepTest', label: fixtureText('Résistance'), title: 'Entretien', purpose: 'upkeep',
+      id: 'resistance', kind: cleDeFixture('upkeepTest'), label: fixtureText('Résistance'), title: 'Entretien', purpose: 'upkeep',
       difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { char: 'endurance' } } }],
     });
@@ -132,7 +133,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     const h1 = hero('H1');
     deuxSieges([h1, hero('H2')]);
     expect(() => openBand(useGame.getState, useGame.setState, {
-      id: 'orpheline', kind: 'k', label: fixtureText('L'), title: 'T', purpose: 'test',
+      id: 'orpheline', kind: cleDeFixture('k'), label: fixtureText('L'), title: 'T', purpose: 'test',
       rows: [{ id: 'FANTOME', base: 30, target: 30, result: null, difficulty: 'intermediaire' }],
     })).toThrow(/sans combattant/);
     expect(useGame.getState().pendingCascade, 'plus aucune rangée ⇒ aucune bande').toBeNull();
@@ -141,7 +142,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
   it('zéro porteur → aucune fenêtre (rien n’est mis en jeu)', () => {
     deuxSieges([hero('H1')]);
     openBand(useGame.getState, useGame.setState, {
-      id: 'vide', kind: 'k', label: fixtureText('L'), title: 'T', purpose: 'test', difficulty: 'intermediaire', porteurs: [],
+      id: 'vide', kind: cleDeFixture('k'), label: fixtureText('L'), title: 'T', purpose: 'test', difficulty: 'intermediaire', porteurs: [],
     });
     expect(useGame.getState().pendingCascade).toBeNull();
   });
@@ -180,7 +181,7 @@ describe('#1262 — openChoice : une décision PORTÉE, jamais partagée', () =>
   it('PORTEUR oublié → signalé (DEV : throw ; en PROD la décision se dégrade au lieu de disparaître)', () => {
     deuxSieges([hero('H1')]);
     expect(() => openChoice(useGame.getState, useGame.setState, {
-      id: 'orphelin', kind: 'pick', label: fixtureText('Choix'), title: 'T', purpose: 'test',
+      id: 'orphelin', kind: cleDeFixture('pick'), label: fixtureText('Choix'), title: 'T', purpose: 'test',
       actorId: '', options: [{ key: 'a', label: fixtureText('A') }],
     })).toThrow(/sans PORTEUR/);
     expect(useGame.getState().pendingCascade).toBeNull();
@@ -188,19 +189,19 @@ describe('#1262 — openChoice : une décision PORTÉE, jamais partagée', () =>
 
   it('`defaultChoice` hors des options → signalé (DEV : throw) — la clé fautive n’est jamais posée', () => {
     expect(() => choiceStep({
-      id: 'c', kind: 'pick', label: fixtureText('Choix'), actorId: 'H1',
+      id: 'c', kind: cleDeFixture('pick'), label: fixtureText('Choix'), actorId: 'H1',
       options: [{ key: 'a', label: fixtureText('A') }], defaultChoice: 'z',
     })).toThrow(/defaultChoice/);
   });
 
   it('zéro option → aucune fenêtre : elle serait une impasse (aucune décision à préserver)', () => {
-    expect(() => choiceStep({ id: 'c', kind: 'pick', label: fixtureText('Choix'), actorId: 'H1', options: [] })).toThrow(/sans option/);
+    expect(() => choiceStep({ id: 'c', kind: cleDeFixture('pick'), label: fixtureText('Choix'), actorId: 'H1', options: [] })).toThrow(/sans option/);
   });
 
   /** La branche DE PROD (porteur manquant → fenêtre dégradée) est masquée par le throw de DEV : la
    *  forme qu'elle produit se monte donc directement, comme l'arbitre la recevra. */
   it('forme DÉGRADÉE (choix sans porteur) : la fenêtre EXISTE et échoit à l’hôte — l’invité voit celle d’autrui, jamais une fenêtre morte', () => {
-    const sansPorteur: CascadeStep = { id: 'degrade', kind: 'pick', label: fixtureText('Choix'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
+    const sansPorteur: CascadeStep = { id: 'degrade', kind: cleDeFixture('pick'), label: fixtureText('Choix'), options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] };
     deuxSieges([hero('H1'), hero('H2')]);
     expect(() => startCascade(useGame.getState, useGame.setState, { title: 'T', purpose: 'test', steps: [sansPorteur] })).not.toThrow();
     expect(useGame.getState().pendingCascade, 'une décision supprimée serait pire qu’une fenêtre à l’hôte').not.toBeNull();
@@ -248,7 +249,7 @@ describe('#1262 — marque `BuiltCascadeStep` : les constructeurs de la porte la
   });
 
   it('la marque n’existe PAS à l’exécution : une étape sérialisée traverse le JSON sans rien perdre', () => {
-    const step = choiceStep({ id: 'c', kind: 'pick', label: fixtureText('Choix'), actorId: 'H1', options: [{ key: 'a', label: fixtureText('A') }] })!;
+    const step = choiceStep({ id: 'c', kind: cleDeFixture('pick'), label: fixtureText('Choix'), actorId: 'H1', options: [{ key: 'a', label: fixtureText('A') }] })!;
     expect(JSON.parse(JSON.stringify(step))).toEqual(step);
     expect(Object.getOwnPropertySymbols(step)).toEqual([]);
   });

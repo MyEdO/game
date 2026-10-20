@@ -15,7 +15,7 @@ import {
   monoStep, tableStep, tableStepDone, hostStep, openSequence, rollStep, pushMono, pushChoice, pushHost, pushTable, pushTableDone, pushBand, type HostSpec,
 } from '../noyau/rollSeam';
 import { type BuiltCascadeStep } from '../noyau/stepBrand';
-import { pushStep, registerTableStep, stepInteraction, registerCascadeTableFold, cascadeTableFolds } from '../noyau/cascade';
+import { pushStep, stepInteraction } from '../noyau/cascade';
 import { pushCombatStep } from '../noyau/combatEffects';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { ownsLocal } from '../noyau/netOwnership';
@@ -27,6 +27,8 @@ import type { GameState } from './store';
 import { nightBands } from '../noyau/nightBands';
 import type { Combatant, Weapon } from '../engine/types';
 import { combatStakeRef, type StakeRef } from '../data';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
 
 const hero = (id: string): Combatant =>
   ({
@@ -36,6 +38,8 @@ const hero = (id: string): Combatant =>
   }) as unknown as Combatant;
 
 const TABLE = 'test-mints-table';
+/** `kind` de sonde qui déclare un PLI post-dé (table `plis`). */
+const KIND_A_PLI = cleDeFixture('test-mints-kind-a-pli');
 
 /** ENJEU de sonde (#1262 V2 L6d) : `MonoSpec.stake` est REQUIS — une étape mono ne se DÉCLARE plus
  *  sans dire ce qui se joue. Les tests ci-dessous mesurent d'autres champs, mais ils le déclarent
@@ -45,12 +49,12 @@ const ENJEU: StakeRef = combatStakeRef('fatigue');
 beforeEach(() => {
   useGame.setState({ battle: null, party: [hero('H1')], pendingCascade: null, suspendedCascades: [] } as never);
   useGame.setState({ net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {} } } as never);
-  registerTableStep(TABLE, {
+  avecLesTables({ plis: { ...tablesDuJeu().plis, [KIND_A_PLI]: (step) => step }, tablesTirables: { ...tablesDuJeu().tablesTirables, [TABLE]: {
     label: 'Table des mints',
     rows: [{ min: 1, max: 50, id: 'basse' }, { min: 51, max: 100, id: 'haute' }],
     lines: (die) => [`ligne ${die}`],
     entryCategory: 'mutations',
-  });
+  } } });
 });
 
 // `stubEnv('DEV')` (contrat du résiduel muet) et les espions de journal sont RENDUS entre les cas :
@@ -61,7 +65,7 @@ const etapes = (): CascadeStep[] => useGame.getState().pendingCascade?.participa
 
 describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
   it('pose la POSSESSION et la SURFACE, et monte sa ligne par le monteur canonique', () => {
-    const step = monoStep({ id: 'calme', kind: 'psych', label: fixtureText('Garder son calme'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
+    const step = monoStep({ id: 'calme', kind: cleDeFixture('psych'), label: fixtureText('Garder son calme'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
     expect(step.actorId, 'le mint NOMME le porteur — c’est ce qui donne à l’arbitre un owner à router (sans lui : fenêtre hôte seul)').toBe('H1');
     expect(step.result, 'le dé n’est pas tombé : c’est la fenêtre qui le jette').toBeNull();
     expect(step.target, 'FM 40, Difficulté intermédiaire +0').toBe(40);
@@ -72,14 +76,14 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
 
   it('cible NON CALCULABLE → refusé (DEV : throw) : une étape sans cible serait « prête » d’office', () => {
     expect(() => monoStep({
-      id: 'fantome', kind: 'k', label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
+      id: 'fantome', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
       ligne: { valeur: Number.NaN, valeurEtrangere: true },
     })).toThrow(/cible non calculable/);
   });
 
   it('les slots HYBRIDES (révélation, lignes de conséquence) voyagent tels quels', () => {
     const step = monoStep({
-      id: 'h', kind: 'k', label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
+      id: 'h', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
       ligne: { test: { char: 'force-mentale' } },
       reveal: { kind: 'effet', title: 'Ce qui vient d’arriver', lines: ['a'] },
     })!;
@@ -100,7 +104,7 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
   it('enjeu MUET → l’étape s’ouvre QUAND MÊME, et le refus est journalisé (PROD simulée)', () => {
     vi.stubEnv('DEV', false);
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const step = monoStep({ id: 'muet', kind: 'k', label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { char: 'force-mentale' } } });
+    const step = monoStep({ id: 'muet', kind: cleDeFixture('k'), label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { char: 'force-mentale' } } });
     expect(step, 'le jet DÛ ne disparaît pas : l’étape existe').toBeTruthy();
     expect(step!.target, 'et elle lance pour de vrai (cible calculée)').toBe(40);
     expect(stepInteraction(step!)).toBe('jet');
@@ -110,14 +114,14 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
 
   it('enjeu MUET en DEV → THROW : la dégradation se voit au premier passage', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => monoStep({ id: 'muet', kind: 'k', label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { char: 'force-mentale' } } }))
+    expect(() => monoStep({ id: 'muet', kind: cleDeFixture('k'), label: fixtureText('Jet dû'), actor: hero('H1'), difficulty: 'intermediaire', stake: undefined, ligne: { test: { char: 'force-mentale' } } }))
       .toThrow(/enjeu MUET/);
   });
 });
 
 describe('#1262 — tableStep / tableStepDone : DEUX entrées, jamais un drapeau', () => {
   it('table À POSER : le dé n’est pas tombé, l’interaction est `table`', () => {
-    const step = tableStep({ id: 'tir', kind: 'mutation', label: fixtureText('Tirage'), actorId: 'H1', table: { tableId: TABLE }, stake: { key: { dataset: 'combat', kind: 'mutation' } } })!;
+    const step = tableStep({ id: 'tir', kind: cleDeFixture('mutation'), label: fixtureText('Tirage'), actorId: 'H1', table: { tableId: TABLE }, stake: { key: { dataset: 'combat', kind: 'mutation' } } })!;
     expect(step.table!.result).toBeUndefined();
     expect(stepInteraction(step)).toBe('table');
     expect(step.actorId).toBe('H1');
@@ -125,7 +129,7 @@ describe('#1262 — tableStep / tableStepDone : DEUX entrées, jamais un drapeau
 
   it('table À POSER portant DÉJÀ un résultat → refusée (le dé serait re-jeté par la fenêtre)', () => {
     expect(() => tableStep({
-      id: 'tir', kind: 'mutation', label: fixtureText('Tirage'), actorId: 'H1',
+      id: 'tir', kind: cleDeFixture('mutation'), label: fixtureText('Tirage'), actorId: 'H1',
       table: { tableId: TABLE, result: { roll: 60, die: 60, id: 'haute', lines: ['x'] } },
       stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })).toThrow(/tableStepDone/);
@@ -158,40 +162,36 @@ describe('#1262 — tableStep / tableStepDone : DEUX entrées, jamais un drapeau
   });
 
   /**
-   * CONTRÔLE POSITIF du refus (#1426) : un `kind` qui déclare un PLI post-dé (`registerCascadeTableFold`)
+   * CONTRÔLE POSITIF du refus (#1426) : un `kind` qui déclare un PLI post-dé (table `plis`)
    * ne peut PAS être poussé déjà tiré — aucune fenêtre ne jouerait son pli, et l'étape arriverait
    * résolue mais SANS sa dérivée (le Critique manquant à une étape de Déviation). Le refus passe par
    * le canal unique des portes (`refusePorte` : lève en DEV, journalise en PROD) et ne rend AUCUNE
    * étape — jamais un drop silencieux.
    */
   it('table déjà tirée sur un `kind` À PLI post-dé → REFUSÉE (le pli ne serait jamais joué)', () => {
-    const KIND_A_PLI = 'test-mints-kind-a-pli';
-    registerCascadeTableFold(KIND_A_PLI, (step) => step);
+    expect(() => tableStepDone({
+      id: 'plie', kind: KIND_A_PLI, label: fixtureText('Tirage'), actorId: 'H1',
+      table: { tableId: TABLE }, result: { roll: 60, die: 60, id: 'haute', lines: ['x'] },
+      stake: { key: { dataset: 'combat', kind: 'mutation' } },
+    })).toThrow(/PLI post-dé/);
+    // PROD : le canal journalise au lieu de lever, et le mint rend `undefined` (rien à pousser).
+    const dev = import.meta.env.DEV;
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    (import.meta.env as { DEV: boolean }).DEV = false;
     try {
-      expect(() => tableStepDone({
-        id: 'plie', kind: KIND_A_PLI, label: fixtureText('Tirage'), actorId: 'H1',
-        table: { tableId: TABLE }, result: { roll: 60, die: 60, id: 'haute', lines: ['x'] },
-        stake: { key: { dataset: 'combat', kind: 'mutation' } },
-      })).toThrow(/PLI post-dé/);
-      // PROD : le canal journalise au lieu de lever, et le mint rend `undefined` (rien à pousser).
-      const dev = import.meta.env.DEV;
-      vi.spyOn(console, 'error').mockImplementation(() => {});
-      (import.meta.env as { DEV: boolean }).DEV = false;
-      try {
-        expect(tableStepDone({
-          id: 'plie2', kind: KIND_A_PLI, label: fixtureText('Tirage'), actorId: 'H1',
-          table: { tableId: TABLE }, result: { roll: 60, die: 60, id: 'haute', lines: ['x'] },
-          stake: { key: { dataset: 'combat', kind: 'mutation' } },
-        }), 'aucune étape rendue : le refus est explicite, pas un drop').toBeUndefined();
-        expect(console.error, 'un refus PROD se journalise').toHaveBeenCalled();
-      } finally { (import.meta.env as { DEV: boolean }).DEV = dev; vi.restoreAllMocks(); }
-      // TÉMOIN : le MÊME appel sur un `kind` SANS pli passe — c'est bien le pli qui refuse.
       expect(tableStepDone({
-        id: 'sans-pli', kind: 'mutation', label: fixtureText('Tirage'), actorId: 'H1',
+        id: 'plie2', kind: KIND_A_PLI, label: fixtureText('Tirage'), actorId: 'H1',
         table: { tableId: TABLE }, result: { roll: 60, die: 60, id: 'haute', lines: ['x'] },
         stake: { key: { dataset: 'combat', kind: 'mutation' } },
-      })).toBeTruthy();
-    } finally { delete cascadeTableFolds[KIND_A_PLI]; }
+      }), 'aucune étape rendue : le refus est explicite, pas un drop').toBeUndefined();
+      expect(console.error, 'un refus PROD se journalise').toHaveBeenCalled();
+    } finally { (import.meta.env as { DEV: boolean }).DEV = dev; vi.restoreAllMocks(); }
+    // TÉMOIN : le MÊME appel sur un `kind` SANS pli passe — c'est bien le pli qui refuse.
+    expect(tableStepDone({
+      id: 'sans-pli', kind: 'mutation', label: fixtureText('Tirage'), actorId: 'H1',
+      table: { tableId: TABLE }, result: { roll: 60, die: 60, id: 'haute', lines: ['x'] },
+      stake: { key: { dataset: 'combat', kind: 'mutation' } },
+    })).toBeTruthy();
   });
 });
 
@@ -252,7 +252,7 @@ describe('#1262 — la MARQUE mure la porte', () => {
   });
 
   it('`openSequence` ouvre la séquence d’une étape MINTÉE', () => {
-    const step = monoStep({ id: 'm', kind: 'k', label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
+    const step = monoStep({ id: 'm', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
     openSequence(useGame.getState, useGame.setState, { title: 'Titre', purpose: 'test', steps: [step] });
     expect(useGame.getState().pendingCascade!.title).toBe('Titre');
     expect(etapes()).toHaveLength(1);
@@ -279,7 +279,7 @@ describe('#1262 — la MARQUE mure la porte', () => {
   });
 
   it('`pushCombatStep` accepte l’étape MINTÉE (la voie qui reste ouverte)', () => {
-    const step = monoStep({ id: 'm', kind: 'k', label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
+    const step = monoStep({ id: 'm', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } })!;
     pushCombatStep(useGame.setState, step);
     expect(etapes().map((s) => s.id)).toEqual(['m']);
     expect(useGame.getState().pendingCascade!.purpose).toBe('combat');
@@ -288,22 +288,22 @@ describe('#1262 — la MARQUE mure la porte', () => {
 
 describe('#1262 — les portes d’APPEND', () => {
   it('l’appelant ne fournit NI titre NI purpose : l’étape rejoint la séquence de combat', () => {
-    pushMono(useGame.setState, { id: 'a', kind: 'k', label: fixtureText('Étape A'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } });
+    pushMono(useGame.setState, { id: 'a', kind: cleDeFixture('k'), label: fixtureText('Étape A'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } });
     expect(useGame.getState().pendingCascade!.purpose).toBe('combat');
     expect(etapes()[0].id).toBe('a');
   });
 
   it('FABRIQUE-INDEX : deux étapes de MÊME clé prennent des ids DISTINCTS dans la séquence', () => {
-    const decl = (index: number) => ({ id: `miscast-${index}`, kind: 'k', label: fixtureText('Imparfaite'), actor: hero('H1'), difficulty: 'intermediaire' as const, stake: ENJEU, ligne: { test: { char: 'force-mentale' as const } } });
+    const decl = (index: number) => ({ id: `miscast-${index}`, kind: cleDeFixture('k'), label: fixtureText('Imparfaite'), actor: hero('H1'), difficulty: 'intermediaire' as const, stake: ENJEU, ligne: { test: { char: 'force-mentale' as const } } });
     pushMono(useGame.setState, decl);
     pushMono(useGame.setState, decl);
     expect(etapes().map((s) => s.id)).toEqual(['miscast-0', 'miscast-1']);
   });
 
   it('une déclaration REFUSÉE par son mint n’appende RIEN', () => {
-    pushMono(useGame.setState, { id: 'ok', kind: 'k', label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } });
+    pushMono(useGame.setState, { id: 'ok', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU, ligne: { test: { char: 'force-mentale' } } });
     expect(() => pushTable(useGame.setState, {
-      id: 'ko', kind: 'k', label: fixtureText('L'), actorId: 'H1',
+      id: 'ko', kind: cleDeFixture('k'), label: fixtureText('L'), actorId: 'H1',
       table: { tableId: TABLE, result: { roll: 60, die: 60, id: 'haute', lines: [] } },
       stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })).toThrow(/tableStepDone/);
@@ -311,12 +311,12 @@ describe('#1262 — les portes d’APPEND', () => {
   });
 
   it('`pushHost` refuse aussi la fenêtre fantôme (le mint est le même des deux côtés)', () => {
-    expect(() => pushHost(useGame.getState, useGame.setState, { id: 'h', kind: 'k', jet: 'attack', actorId: 'H1' })).toThrow(/pendingAttack/);
+    expect(() => pushHost(useGame.getState, useGame.setState, { id: 'h', kind: cleDeFixture('k'), jet: 'attack', actorId: 'H1' })).toThrow(/pendingAttack/);
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 
   it('`pushChoice` ne peut pas produire un choix de GROUPE (le mint ne pose que le porteur)', () => {
-    pushChoice(useGame.setState, { id: 'c', kind: 'pick', label: fixtureText('Choix'), actorId: 'H1', options: [{ key: 'a', label: fixtureText('A') }] });
+    pushChoice(useGame.setState, { id: 'c', kind: cleDeFixture('pick'), label: fixtureText('Choix'), actorId: 'H1', options: [{ key: 'a', label: fixtureText('A') }] });
     expect(etapes()[0].groupOwner).toBeUndefined();
     expect(etapes()[0].actorId).toBe('H1');
   });
@@ -325,7 +325,7 @@ describe('#1262 — les portes d’APPEND', () => {
    *  DE GROUPE est morte au profit du type (`ChoiceSpec.groupOwner?: never`, #1262 V4 M2). */
   it('la GARDE de possession mord sur la voie d’APPEND, comme à l’ouverture (#1262 B8)', () => {
     const rangee = (id: string) => ({ id, interactive: true, label: fixtureText('Résistance'), base: 40, target: 40, result: null });
-    const sansPossession: CascadeStep = { id: 'e', kind: 'sonde-bande', label: fixtureText('Bande'), aggregate: 'none', participants: [rangee('H1'), rangee('H2')] };
+    const sansPossession: CascadeStep = { id: 'e', kind: cleDeFixture('sonde-bande'), label: fixtureText('Bande'), aggregate: 'none', participants: [rangee('H1'), rangee('H2')] };
     expect(() => pushStep(useGame.setState, sansPossession, 'combat')).toThrow(/possession/);
     expect(useGame.getState().pendingCascade, 'aucune bande sans possession n’a été appendue').toBeNull();
   });
@@ -387,7 +387,7 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
   });
 
   it('zéro porteur → rien n’est appendu (aucune règle mise en jeu)', () => {
-    pushBand(useGame.getState, useGame.setState, { id: 'vide', kind: 'k', label: fixtureText('L'), difficulty: 'intermediaire', porteurs: [] });
+    pushBand(useGame.getState, useGame.setState, { id: 'vide', kind: cleDeFixture('k'), label: fixtureText('L'), difficulty: 'intermediaire', porteurs: [] });
     expect(useGame.getState().pendingCascade).toBeNull();
   });
 });
@@ -477,7 +477,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
     const h = hero('H1');
     h.characteristics['force-mentale'] = 71; // le héros a SES composantes : elles ne doivent PAS entrer
     const cumul = [{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'jet' as const }];
-    const commun = { id: 'right-1', kind: 'riverRighting', actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
+    const commun = { id: 'right-1', kind: 'riverRighting' as const, actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
 
     const parLigne = monoStep({ ...commun, ligne: { valeur: 42, valeurEtrangere: true, surLaCible: cumul } })!;
     const parMontee = monoStep({ ...commun, montee: rollStep({ difficulty: 'accessible', valeur: 42, valeurEtrangere: true, surLaCible: cumul }) })!;

@@ -35,6 +35,7 @@ import { trappingsInstanciables, psychologies } from '../data';
 import { traumaById } from '../engine/trauma';
 import { browserUnfreezeTimeout } from './devtoolsTimers';
 import { mountMovement, movementRemaining } from '../noyau/mount';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 describe('__wfrp — setup #1561', () => {
   beforeEach(() => {
@@ -136,7 +137,7 @@ describe('__wfrp.auto — observation des interactions de cascade', () => {
   afterEach(() => { useGame.setState({ pendingCascade: null }); });
 
   it('classe un kind inconnu par ses options sans choisir ni changer aucun état', () => {
-    const pendingCascade = cascadeDeTest([{ id: 'choix-inconnu', kind: 'recette-kind-neuf', options: [{ key: 'a', label: t('opt.piegerLame') }] }]);
+    const pendingCascade = cascadeDeTest([{ id: 'choix-inconnu', kind: cleDeFixture('recette-kind-neuf'), options: [{ key: 'a', label: t('opt.piegerLame') }] }]);
     useGame.setState({ battle: null, pendingCascade });
     const avant = useGame.getState();
     const copie = structuredClone(pendingCascade);
@@ -148,14 +149,14 @@ describe('__wfrp.auto — observation des interactions de cascade', () => {
   });
 
   it('observe une quantité prête avec sa valeur zéro sans la valider', () => {
-    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'quantite', kind: 'autre-kind-neuf', quantity: { min: 0, max: 10 }, amount: 0 }]) });
+    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'quantite', kind: cleDeFixture('autre-kind-neuf'), quantity: { min: 0, max: 10 }, amount: 0 }]) });
     const avant = useGame.getState();
     expect(buildApi().auto().cascade).toEqual({ id: 'quantite', kind: 'autre-kind-neuf', interaction: 'quantite', ready: true, chosen: null, amount: 0 });
     expect(useGame.getState()).toBe(avant);
   });
 
   it('observe le jet courant à son curseur sans le lancer', () => {
-    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'avant', kind: 'autre' }, { id: 'jet', kind: 'jet-neuf', target: 40, rollLabel: t('step.paradePiegerLame') }], { cursor: 1 }) });
+    useGame.setState({ battle: null, pendingCascade: cascadeDeTest([{ id: 'avant', kind: cleDeFixture('autre') }, { id: 'jet', kind: cleDeFixture('jet-neuf'), target: 40, rollLabel: t('step.paradePiegerLame') }], { cursor: 1 }) });
     const avant = useGame.getState();
     expect(buildApi().auto().cascade).toEqual({ id: 'jet', kind: 'jet-neuf', interaction: 'jet', ready: false, chosen: null, amount: null });
     expect(useGame.getState()).toBe(avant);
@@ -164,7 +165,7 @@ describe('__wfrp.auto — observation des interactions de cascade', () => {
   it('rend null sans cascade ou sans étape courante', () => {
     useGame.setState({ battle: null, pendingCascade: null });
     expect(buildApi().auto().cascade).toBeNull();
-    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'termine', kind: 'autre' }], { cursor: 1 }) });
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'termine', kind: cleDeFixture('autre') }], { cursor: 1 }) });
     const avant = useGame.getState();
     expect(buildApi().auto().cascade).toBeNull();
     expect(useGame.getState()).toBe(avant);

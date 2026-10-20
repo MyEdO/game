@@ -43,7 +43,7 @@ Trois rôles, séparés nettement :
 |---|---|---|
 | **Orchestrateur** | les points d'émission (`emitCombatEvent` + sites `fireTriggers` de cycle) | *QUAND* un événement canonique se produit |
 | **Dispatcher unique** | **`fireTriggers(get, actor, trigger, ctx)`** | *À QUI* : réunit TOUTES les sources d'effets du combattant et joue celles qui matchent — **sans brancher par kind** |
-| **Machinerie** | les hooks (`registerCombatHook`, `order`) | Règles universelles de l'arène qui ne nomment AUCUNE entité |
+| **Machinerie** | les hooks (table `crochetsDeCombat`, `order`) | Règles universelles de l'arène qui ne nomment AUCUNE entité |
 
 **Le dispatcher (`fireTriggers`) réunit toutes les sources** : `effectsOf` (Traits + Talents +
 Atouts d'arme) **ET** `fireConditionEffects` (États, avec leurs pions). Conséquence : un **État**
@@ -53,7 +53,7 @@ rappeler. **Maladies/Mutations** réagissent par **composition** (elles octroien
 couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouveau chemin de dispatch.
 
 **Le bus** : `emitCombatEvent(event, ctx)` (`src/noyau/combatEvents.ts`) — à chaque moment canonique,
-(a) joue les abonnés MACHINERIE (registre `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
+(a) joue les abonnés MACHINERIE (table `crochetsDeCombat`, lue par `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le
 même `sink`.
 

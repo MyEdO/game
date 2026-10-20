@@ -1,7 +1,7 @@
 /**
- * Registre de MODIFICATEURS DE TOUCHE ORDONNÉS (`HitModifier`) — couture d'extension calquée sur
- * `roundHooks`/`turnHooks` (module FEUILLE peuplé par effet de bord à l'import). Les sauvegardes
- * SYNCHRONES « après la touche » vivent ICI, chacune étant un modifier ordonné par `order` qui TESTE
+ * MODIFICATEURS DE TOUCHE ORDONNÉS (`HitModifier`, `TablesDuJeu.modificateursDeTouche`) — couture
+ * d'extension calquée sur `roundHooks`/`turnHooks`, déclarée ici. Les sauvegardes SYNCHRONES « après la
+ * touche » vivent ICI, chacune étant un modifier ordonné par `order` qui TESTE
  * une condition et TRANSFORME `res` (l'`AttackResult`). SITE UNIQUE des deux chemins de touche :
  * le coup physique (`applyAttackResult`) et le Projectile magique (`applyCast`/`appliquerTouchePourCible`),
  * qui n'a pas d'arme — la nature du coup se lit sur `ctx.attaque`, jamais sur `weapon.type`.
@@ -14,7 +14,7 @@
  * comme les `if` successifs d'origine se suivaient et re-testaient `res` (un modifier qui annule déjà
  * les Dégâts fait court-circuiter les suivants via leur propre garde `res.woundsLost`). Renvoie le
  * `res` final. Aucun modifier ne SUSPEND (pas de `pushCombatStep`/pending) : autoKill et l'offre de
- * Déviation Critique restent INLINE dans `applyAttackResult`, APRÈS ce registre.
+ * Déviation Critique restent INLINE dans `applyAttackResult`, APRÈS cette chaîne.
  *
  * ORDRE (encodé par `order`, figé par `hitSaves.golden.test`) :
  *   5 Réveil d'un dormeur → 8 Bouclier anti-flèches (le projectile est détruit AVANT d'être un coup
@@ -28,6 +28,7 @@ import type { TraitList } from '../../engine/statEntry';
 import type { AttackResult } from '../../engine/combat';
 import type { SeuilDeSauvegarde } from '../pendings';
 import { wardSaves, traitCapability } from '../../engine/traits/dispatch';
+import { tablesPosees } from '../tablesPosees';
 import { canPushback } from '../../engine/qualities/dispatch';
 import { isOutOfAction, loseWounds, applyZeroWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
 import { bonus, effectiveChar } from '../../engine/characteristics';
@@ -38,6 +39,7 @@ import { pushBackTiles } from '../combatPlacement';
 import { sceneMetresPerTile } from '../monde/scene';
 import { inBattleId } from '../monde/combatants';
 import { t } from '../../i18n';
+import type { FragmentDeTables } from '../tablesPosees';
 
 // ── Helpers propres aux sauvegardes ──
 
@@ -130,7 +132,7 @@ export function seuilsDeSauvegarde(
 
 /**
  * CE QUE SAUVER FAIT À UNE TOUCHE — « le coup est ignoré, même s'il s'agit d'un critique » (LDB 85
- * l.98, LDB 85 l.278). ÉCRITURE UNIQUE lue par TOUS les sites qui jugent la touche : le registre à la
+ * l.98, LDB 85 l.278). ÉCRITURE UNIQUE lue par TOUS les sites qui jugent la touche : les modificateurs à la
  * ré-entrée, les effets d'une attaque gratuite, la reprise d'un maillon de balayage. PURE.
  *
  * CE QUI EST IGNORÉ est ce que le livre nomme : les Dégâts, les Blessures, le Critique — et le coup de
@@ -174,8 +176,8 @@ export interface HitModifierCtx {
    *  touche telle qu'il la voit — l'appelant pousse l'étape de dé (`pousserSauvegarde`) et SUSPEND sa
    *  résolution avant toute mutation. Canal REQUIS : c'est la seule façon d'obtenir un dé ici. */
   ouvrirSauvegarde: (seuils: SeuilDeSauvegarde[], res: AttackResult) => void;
-  /** Un TIERS a encaissé à la place de la cible (Martyr) — l'appelant en tire ce qui ne relève pas du
-   *  registre (l'interruption de Focalisation vit dans `combatFlow`, que ce module n'importe pas). */
+  /** Un TIERS a encaissé à la place de la cible (Martyr) — l'appelant en tire ce qui ne relève pas des
+   *  modificateurs (l'interruption de Focalisation vit dans `combatFlow`, que ce module n'importe pas). */
   encaisse?: (c: Combatant, pb: number) => void;
 }
 
@@ -193,15 +195,16 @@ export interface HitModifier {
   apply(ctx: HitModifierCtx): AttackResult;
 }
 
-const MODIFIERS: HitModifier[] = [];
-
-/** Enregistre (ou REMPLACE par `id`) un modifier et garde la liste triée par `order` croissant.
- *  Idempotent par id (sûr face au double-import / HMR). */
-export function registerHitModifier(h: HitModifier): void {
-  const i = MODIFIERS.findIndex((x) => x.id === h.id);
-  if (i >= 0) MODIFIERS[i] = h;
-  else MODIFIERS.push(h);
-  MODIFIERS.sort((a, b) => a.order - b.order);
+/** Les modifiers posés, triés par `order` croissant (tri STABLE), une fois par table posée. */
+const tries = new WeakMap<readonly HitModifier[], readonly HitModifier[]>();
+function modifiersPoses(): readonly HitModifier[] {
+  const poses = tablesPosees().modificateursDeTouche;
+  let liste = tries.get(poses);
+  if (!liste) {
+    liste = [...poses].sort((a, b) => a.order - b.order);
+    tries.set(poses, liste);
+  }
+  return liste;
 }
 
 /**
@@ -229,115 +232,116 @@ export function runHitModifiers(ctx: HitModifierCtx): ToucheApresModifiers {
   let suspendu = false;
   const ouvrir = ctx.ouvrirSauvegarde;
   const surveille: HitModifierCtx = { ...ctx, ouvrirSauvegarde: (seuils, res) => { suspendu = true; ouvrir(seuils, res); } };
-  for (const h of MODIFIERS) {
+  for (const h of modifiersPoses()) {
     surveille.res = h.apply(surveille);
     if (suspendu) break;
   }
   return { res: surveille.res, suspendu };
 }
 
-/** Modifiers enregistrés (diagnostic / garde-fou de test). */
+/** Modifiers posés (diagnostic / garde-fou de test). */
 export function hitModifiers(): readonly HitModifier[] {
-  return MODIFIERS;
+  return modifiersPoses();
 }
 
 // ── Sauvegardes post-touche ────────────────────────────────────────────────────────────
 
-registerHitModifier({
-  // Sommeil (Magie mineure) / Belladone : un dormeur MAGIQUE (Inconscient À DURÉE, PB > 0) se RÉVEILLE
-  // quand on l'attaque (LDB 47 l.277). Le dormeur n'est PAS achevé (≠ coup de grâce d'un Inconscient
-  // à 0 PB, LDB 16 l.113 → `autoKill` annulé) : il encaisse une attaque normale et se relève. EXCEPTION :
-  // Salive analgésique (capability `wakelessBite`) — la morsure INDOLORE s'accroche à la proie sans la réveiller.
-  id: 'wake-sleeper',
-  order: 5,
-  apply: ({ attacker, target, res }) => {
-    if (res.hit && isMagicallyAsleep(target) && !traitCapability(attacker.traits, 'wakelessBite')) {
-      wakeSleeper(target);
-      res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.wakeSleeper', { name: attacker.label, foe: target.label })] };
-    }
-    return res;
-  },
-});
-
-registerHitModifier({
-  // SITE UNIQUE de la sauvegarde « 1d10 ≥ Indice » (Démoniaque LDB 85 l.98, Protection LDB 85 l.278,
-  // et le Trait qu'un Dôme octroie, LDB 47 l.410) : un seul collecteur d'Indices, quelle que soit la
-  // provenance. Ce modifier ne ROULE RIEN (#1508) : il DÉCLARE ses seuils à la porte, qui pousse l'étape
-  // de dé pour TOUT porteur (`combatFlow.pousserSauvegarde`) ; la touche revient ici avec sa sauvegarde
-  // DÉCIDÉE (`res.sauvegarde`), et c'est ce champ qui interdit un second dé quand le même coup repasse
-  // par le registre après une autre fenêtre (Déviation Critique).
-  id: 'ward-saves',
-  order: 10,
-  apply: ({ get, attacker, target, attaque, res, ouvrirSauvegarde }) => {
-    if (!res.hit || res.sansPrise) return res; // LDB 85 l.98, l.278 : « après chaque coup reçu »
-    // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
-    // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
-    if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
-    const seuils = seuilsDeSauvegarde(get().battle?.combatants ?? [], attacker, target, attaque, sceneMetresPerTile(get().scene))
-      .map(({ thr, trait, dome }) => ({ indice: thr, source: { kind: 'trait' as const, id: trait.id }, dome }));
-    // GRAPPE DÉPENDANTE : les seuils partent ENSEMBLE à la porte, qui n'en ouvre qu'UN à la fois — le
-    // suivant n'existe que si le précédent a raté, aucun dé n'est minté d'avance.
-    if (seuils.length) ouvrirSauvegarde(seuils, res);
-    return res;
-  },
-});
-
-registerHitModifier({
-  // Bouclier anti-flèches (LDB 47 — L11) : projectile ORGANIQUE entrant dans la zone → détruit,
-  // « n'infligeant aucun Dégât à leur cible ». Le tir et la munition sont consommés normalement.
-  // AVANT les sauvegardes : un projectile détruit en vol n'est pas un coup reçu (LDB 85 l.98), il n'y a
-  // donc aucun dé de sauvegarde à jeter contre lui.
-  id: 'arrow-ward',
-  order: 8,
-  apply: ({ get, attacker, target, weapon, attaque, res }) => {
-    if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
-      && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
-      res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.arrowWardDestroys', { name: target.label }) };
-    }
-    return res;
-  },
-});
-
-registerHitModifier({
-  // Martyr : LDB 43 l.107 ; le Critique reste sur la cible (LDB 14 l.3, LDB 13 l.159).
-  id: 'martyr',
-  order: 40,
-  apply: ({ get, attacker, target, weapon, res, encaisse }) => {
-    const raw = res.damage ?? res.woundsLost;
-    if (res.hit && !res.degatsTransferes && raw) {
-      const priest = martyrGuardOf(get().battle!, target);
-      if (priest) {
-        const loc = res.location ?? 'corps';
-        // LDB 13 l.159, LDB 43 l.107.
-        const taken = woundsFromHit(weapon, priest, loc, raw - bonus(effectiveChar(priest, 'endurance')), 0, 1, attacker.size);
-        loseWounds(priest, taken);
-        if (priest.wounds.current <= 0) applyZeroWounds(priest);
-        encaisse?.(priest, taken);
-        res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })] };
-      }
-    }
-    return res;
-  },
-});
-
-registerHitModifier({
-  // Perturbante (LDB 62 l.272-274) : mode « Repousser » armé → l'attaque réussie ne cause PAS de
-  // Dégâts, l'adversaire recule d'1 m par DR du Test opposé (1 case = 2 m, LDB 15 l.12).
-  id: 'pushback',
-  order: 50,
-  apply: ({ get, attacker, target, weapon, attaque, res }) => {
-    if (attacker.pushbackMode && attaque === 'melee' && weapon && canPushback(weapon)) {
-      attacker.pushbackMode = false; // consommé par cette attaque (réussie ou non)
-      if (res.hit) {
-        const meters = Math.max(0, res.netSL);
-        const wanted = Math.floor(meters / 2);
-        const moved = pushBackTiles(get, attacker, target, wanted);
-        res = {
-          ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
-          log: t('cf.pushback', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.pushbackBlocked') : '' }),
-        };
-      }
-    }
-    return res;
-  },
-});
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  modificateursDeTouche: [
+    {
+      // Sommeil (Magie mineure) / Belladone : un dormeur MAGIQUE (Inconscient À DURÉE, PB > 0) se RÉVEILLE
+      // quand on l'attaque (LDB 47 l.277). Le dormeur n'est PAS achevé (≠ coup de grâce d'un Inconscient
+      // à 0 PB, LDB 16 l.113 → `autoKill` annulé) : il encaisse une attaque normale et se relève. EXCEPTION :
+      // Salive analgésique (capability `wakelessBite`) — la morsure INDOLORE s'accroche à la proie sans la réveiller.
+      id: 'wake-sleeper',
+      order: 5,
+      apply: ({ attacker, target, res }) => {
+        if (res.hit && isMagicallyAsleep(target) && !traitCapability(attacker.traits, 'wakelessBite')) {
+          wakeSleeper(target);
+          res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.wakeSleeper', { name: attacker.label, foe: target.label })] };
+        }
+        return res;
+      },
+    },
+    {
+      // SITE UNIQUE de la sauvegarde « 1d10 ≥ Indice » (Démoniaque LDB 85 l.98, Protection LDB 85 l.278,
+      // et le Trait qu'un Dôme octroie, LDB 47 l.410) : un seul collecteur d'Indices, quelle que soit la
+      // provenance. Ce modifier ne ROULE RIEN (#1508) : il DÉCLARE ses seuils à la porte, qui pousse l'étape
+      // de dé pour TOUT porteur (`combatFlow.pousserSauvegarde`) ; la touche revient ici avec sa sauvegarde
+      // DÉCIDÉE (`res.sauvegarde`), et c'est ce champ qui interdit un second dé quand le même coup repasse
+      // par les modificateurs après une autre fenêtre (Déviation Critique).
+      id: 'ward-saves',
+      order: 10,
+      apply: ({ get, attacker, target, attaque, res, ouvrirSauvegarde }) => {
+        if (!res.hit || res.sansPrise) return res; // LDB 85 l.98, l.278 : « après chaque coup reçu »
+        // Sauvegarde déjà tombée : on APPLIQUE son issue. « le coup est ignoré, même s'il s'agit d'un
+        // critique » (LDB 85 l.98) — la ligne du dé, elle, est écrite par la porte (`cascade.lireEnSeuil`).
+        if (res.sauvegarde) return res.sauvegarde.sauve ? toucheSauvee(res) : res;
+        const seuils = seuilsDeSauvegarde(get().battle?.combatants ?? [], attacker, target, attaque, sceneMetresPerTile(get().scene))
+          .map(({ thr, trait, dome }) => ({ indice: thr, source: { kind: 'trait' as const, id: trait.id }, dome }));
+        // GRAPPE DÉPENDANTE : les seuils partent ENSEMBLE à la porte, qui n'en ouvre qu'UN à la fois — le
+        // suivant n'existe que si le précédent a raté, aucun dé n'est minté d'avance.
+        if (seuils.length) ouvrirSauvegarde(seuils, res);
+        return res;
+      },
+    },
+    {
+      // Bouclier anti-flèches (LDB 47 — L11) : projectile ORGANIQUE entrant dans la zone → détruit,
+      // « n'infligeant aucun Dégât à leur cible ». Le tir et la munition sont consommés normalement.
+      // AVANT les sauvegardes : un projectile détruit en vol n'est pas un coup reçu (LDB 85 l.98), il n'y a
+      // donc aucun dé de sauvegarde à jeter contre lui.
+      id: 'arrow-ward',
+      order: 8,
+      apply: ({ get, attacker, target, weapon, attaque, res }) => {
+        if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
+          && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
+          res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.arrowWardDestroys', { name: target.label }) };
+        }
+        return res;
+      },
+    },
+    {
+      // Martyr : LDB 43 l.107 ; le Critique reste sur la cible (LDB 14 l.3, LDB 13 l.159).
+      id: 'martyr',
+      order: 40,
+      apply: ({ get, attacker, target, weapon, res, encaisse }) => {
+        const raw = res.damage ?? res.woundsLost;
+        if (res.hit && !res.degatsTransferes && raw) {
+          const priest = martyrGuardOf(get().battle!, target);
+          if (priest) {
+            const loc = res.location ?? 'corps';
+            // LDB 13 l.159, LDB 43 l.107.
+            const taken = woundsFromHit(weapon, priest, loc, raw - bonus(effectiveChar(priest, 'endurance')), 0, 1, attacker.size);
+            loseWounds(priest, taken);
+            if (priest.wounds.current <= 0) applyZeroWounds(priest);
+            encaisse?.(priest, taken);
+            res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })] };
+          }
+        }
+        return res;
+      },
+    },
+    {
+      // Perturbante (LDB 62 l.272-274) : mode « Repousser » armé → l'attaque réussie ne cause PAS de
+      // Dégâts, l'adversaire recule d'1 m par DR du Test opposé (1 case = 2 m, LDB 15 l.12).
+      id: 'pushback',
+      order: 50,
+      apply: ({ get, attacker, target, weapon, attaque, res }) => {
+        if (attacker.pushbackMode && attaque === 'melee' && weapon && canPushback(weapon)) {
+          attacker.pushbackMode = false; // consommé par cette attaque (réussie ou non)
+          if (res.hit) {
+            const meters = Math.max(0, res.netSL);
+            const wanted = Math.floor(meters / 2);
+            const moved = pushBackTiles(get, attacker, target, wanted);
+            res = {
+              ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
+              log: t('cf.pushback', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.pushbackBlocked') : '' }),
+            };
+          }
+        }
+        return res;
+      },
+    },
+  ],
+} satisfies FragmentDeTables;

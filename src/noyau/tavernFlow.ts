@@ -50,12 +50,10 @@ import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
 import { advantageModLine, type ModLine } from '../engine/combat';
 import type { BatchParticipant, CascadeRoll } from './pendings';
-import { registerCascadeApplier, rollBatchParticipant, pushStep, registerTableStepFamily, rollTableStep, type TableStepDef } from './cascade';
+import { rollBatchParticipant, pushStep, rollTableStep, type TableStepDef } from './cascade';
 import { combatStakeRef, refLabel } from '../data/index';
 import { memoParVersion } from '../data/versionDataset';
-import {
-  registerSequence, startSequence, resolveSequenceTie, recitDuDepartage, sequenceCumRound, sequenceDrBonus, sequencePhaseOf, sequenceScoreOf, sequenceTableRow, resolveSequencePotTurn, sequencePotIssue, resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, activeSequence, setSequencePayload, setSequenceCum, PERTE_DU_TOUR, DECROISSANCE_DU_TOUR,
-} from './sequenceCore';
+import { startSequence, resolveSequenceTie, recitDuDepartage, sequenceCumRound, sequenceDrBonus, sequencePhaseOf, sequenceScoreOf, sequenceTableRow, resolveSequencePotTurn, sequencePotIssue, resolveSequenceThrow, sequenceThrowGain, sequenceThrowRow, sequenceVolleyRounds, activeSequence, setSequencePayload, setSequenceCum, PERTE_DU_TOUR, DECROISSANCE_DU_TOUR } from './sequenceCore';
 import { SEQUENCE_PURPOSE, SEQUENCE_BORNE, type SequenceBoard, type SequenceCloseCtx, type SequenceParams, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
 import { type SequencePotTurn, type SequenceThrowTurn, type SequenceThrowOutcome, type SequenceVolleyRules, type SequenceVolleyRow, type SequenceSide, type SequenceCombinedRules } from '../engine/sequenceVocab';
 import type { RNG } from '../engine/dice';
@@ -71,6 +69,7 @@ import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /**
  * Adversaire d'une partie — TROIS formes, chacune JOUE une fiche (`tavernGameValue`) :
@@ -407,38 +406,6 @@ export function playTavernGame(
   });
 }
 
-/** Applier de la manche : MUET côté conséquence (l'issue est GLOBALE — elle se décide à la clôture,
- *  dans le réducteur du socle) ; ne pousse que la ligne de récit de ce qui est tombé. */
-registerCascadeApplier(TAVERN_ROUND_KIND, (get, set, step) => {
-  const dr = (n: number) => `${n >= 0 ? '+' : ''}${n} DR`;
-  if (step.participants) {
-    const lines = step.participants.map((row) => {
-      // Le porteur se résout par l'accesseur de la TABLE (`tavernActor`), pas par celui du combat :
-      // un adversaire à FICHE est une entité de SCÈNE, qu'`actorIn` ne trouve pas — sa rangée
-      // retombait alors sur `row.label`, qui est le libellé de son TEST. Le journal disait « Force :
-      // −4 DR. » là où l'écran disait « Négociant : 0/10 » : deux surfaces, deux noms, un joueur qui
-      // attribue le score au mauvais camp.
-      const who = tavernActor(get, row.id)?.label ?? row.label ?? row.id;
-      return `${who} : ${dr(row.result?.sl ?? 0)}.`;
-    });
-    lines.push(...torchonRate(get, set, step.participants));
-    return { consequences: freeCons(lines) };
-  }
-  if (!step.result) return {};
-  // MANCHE MONO à jet adverse FIGÉ : le journal nomme les DEUX camps, comme la BANDE ci-dessus et
-  // comme la rangée de la fenêtre — même dérivation du côté adverse (`opposedAttackerLabel`, source
-  // unique). Sans elle, la manche se racontait par un libellé nu (« Force : +4 DR. ») où ni le
-  // joueur, ni son vis-à-vis, ni ce que chacun a obtenu n'étaient lisibles.
-  const opp = step.meta?.opposed;
-  const mien = step.actorId ? actorIn(get(), step.actorId)?.label : undefined;
-  const lignes = [`${mien ? `${mien} — ` : ''}${step.rollLabel ?? 'Jeu'} : ${dr(step.result.sl)}.`];
-  if (opp?.aT) {
-    const sien = opposedAttackerLabel(opp);
-    lignes.push(`${opp.attackerName}${sien ? ` — ${sien}` : ''} : ${dr(opp.aT.sl)}.`);
-  }
-  return { consequences: freeCons(lignes) };
-});
-
 /**
  * DÉCLARATION de la SECONDE LECTURE d'un jeu à Test COMBINÉ (`NADJ 16 l.90` : « un Test combiné
  * d'**Initiative** et de **Pari Accessible (+20)** ») — ce que la RANGÉE dit d'elle-même : la
@@ -643,29 +610,6 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
   return band ? { band, teams: { player: mien, opponent: sien } } : undefined;
 }
 
-/** APPLIER du CHOIX d'option : le dernier choix committé APPEND la bande du tour à la MÊME fenêtre —
- *  les rangées ne peuvent être montées qu'une fois toutes les options connues (la Difficulté et la
- *  Compétence de chaque rangée en dépendent). « Déclaration AVANT jets » : personne ne lance avant que
- *  chacun n'ait dit ce qu'il tente. */
-registerCascadeApplier(TAVERN_CHOICE_KIND, (get, set, step) => {
-  const seq = activeSequence<TavernPayload>(get);
-  const encours = get().pendingCascade;
-  if (!seq || !encours) return {};
-  const choix = encours.participants.filter((s) => s.kind === TAVERN_CHOICE_KIND);
-  const reste = choix.some((s) => s.chosen == null && s.id !== step.id);
-  const retenu = Object.fromEntries(choix.map((s) => [s.actorId ?? '', Number(s.chosen ?? 0)]));
-  const apres: TavernPayload = { ...seq.payload, choices: { ...retenu, ...(step.actorId ? { [step.actorId]: Number(step.chosen ?? 0) } : {}) } };
-  setSequencePayload(get, set, apres);
-  const option = step.options?.find((o) => o.key === step.chosen);
-  if (reste) return option ? { consequences: freeCons([option.label]) } : {};
-  const monte = equipeBande(get, { ...seq, payload: apres });
-  if (monte) {
-    setSequencePayload(get, set, { ...apres, teams: monte.teams });
-    pushStep(set, monte.band, SEQUENCE_PURPOSE);
-  }
-  return option ? { consequences: freeCons([option.label]) } : {};
-});
-
 /* ── LE TORCHON TREMPÉ (NADJ 16 l.109-111) ──────────────────────────────────────────────────────
  * « Il fait intervenir deux équipes de 12 personnes, placées en deux cercles de 11 joueurs qui dansent
  * main dans la main autour d'un membre de l'équipe adverse » (l.109) — d'où `team.size` 12 et
@@ -840,12 +784,6 @@ function torchonBoit(get: Get, set: Set, lanceurId: string, camp: 'player' | 'op
   if (perte) setSequenceCum(get, set, { ...seq.cum, [camp]: (seq.cum[camp] ?? 0) - perte });
   return lignes;
 }
-
-registerCascadeApplier(TAVERN_DRINK_KIND, (get, set, step) => {
-  if (!step.result || !step.actorId) return {};
-  const { camp, who } = lirePinte(step.meta);
-  return { consequences: freeCons(torchonBoit(get, set, step.actorId, camp, who, step.result.success)) };
-});
 
 /** FABRIQUE d'un TOUR d'équipe : les CHOIX d'option des héros surfacés (la bande suivra, appendée par
  *  le dernier choix) ; sans aucun siège humain, la bande se monte d'office sur la politique déclarée
@@ -1193,7 +1131,7 @@ function potTableId(gameId: string): string {
 }
 
 /** Les tables de MISE du catalogue — FAMILLE dérivée de `tavernGames` (#1692) : un jeu ajouté au
- *  Codex a SA table et un jeu retiré n'en a plus, à la première lecture du registre qui suit
+ *  Codex a SA table et un jeu retiré n'en a plus, à la première lecture des tables qui suit
  *  l'édition, pour TOUS ses lecteurs — pas seulement pour le site qui ouvre le lancer. */
 const tablesDePot = memoParVersion('tavernGames', () => {
   const tables = new Map<string, TableStepDef>();
@@ -1206,7 +1144,7 @@ const tablesDePot = memoParVersion('tavernGames', () => {
       rows: regles.rows.map((r) => ({ min: r.min, max: r.max, id: r.potEffectId, label: r.label })),
       // L'ENCART de résultat (ce que le joueur lit juste après « Lancer ») dit l'ISSUE du lancer, pas
       // la fourchette où il tombe : la cible est celle du TOUR, lue à la RÉSOLUTION via le contexte du
-      // tirage — jamais figée ici, à l'enregistrement. Même fonction que le journal (`sequencePotIssue`),
+      // tirage — jamais figée ici, à la déclaration. Même fonction que le journal (`sequencePotIssue`),
       // donc une seule vérité ; sans contexte ni séquence, la fourchette reste le libellé.
       lines: (total, ctx) => {
         const plage = findTableEntry([...regles.rows], total);
@@ -1220,8 +1158,6 @@ const tablesDePot = memoParVersion('tavernGames', () => {
   }
   return tables;
 });
-
-registerTableStepFamily(tablesDePot);
 
 /** La DÉCLARATION de tirage d'un tour : les dés de la donnée, jamais un dé écrit ici. */
 function potDecl(game: TavernGame): CascadeTableDecl {
@@ -1410,48 +1346,6 @@ function potRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Sequen
   if (!game?.pot || !seq.payload.seats?.length) return undefined;
   return seq.payload.target == null ? potOuvreManche(get, seq, game) : potTour(get, seq, game, rng);
 }
-
-/** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — pour un joueur tenu par un siège
- *  dont la plage OFFRE le choix — l'étape « remettre ou abandonner » appendée à la MÊME fenêtre
- *  (patron du choix d'option d'équipe). La décision, elle, est appliquée par la clôture. */
-registerCascadeApplier(TAVERN_POT_KIND, (get, set, step) => {
-  const seq = activeSequence<TavernPayload>(get);
-  const p = seq?.payload;
-  const game = p ? findTavernGameById(p.gameId) : undefined;
-  if (!seq || !p || !game?.pot) return {};
-  const total = potTotalOf(step);
-  if (total == null) return {};
-  const joueur = p.seats?.[Number(step.meta?.seat ?? p.seat ?? 0)];
-  const cible = Number(step.meta?.cible ?? p.target ?? 0);
-  const { outcome } = resolveSequencePotTurn(seq.params, potTurnOf(p, total, cible));
-  const du = outcome.owes ?? p.stakeBrass;
-  if (outcome.choose && joueur) {
-    const hero = joueur.hero ? actorIn(get(), joueur.id) : undefined;
-    if (hero && !cadenceAuto() && jetSurfaced(get(), hero) && potSolvable(get, p.net ?? {}, joueur, du)) {
-      const etape = choiceStep({
-        id: `${TAVERN_FOLD_KIND}-${seq.round}`,
-        kind: TAVERN_FOLD_KIND,
-        label: t('tavern.potChoix', { who: joueur.label }),
-        icon: 'nav/dice',
-        actorId: hero.id,
-        options: [
-          { key: 'remise', label: t('tavern.potChoixRemise', { montant: formatMoney(fromBrass(du)) }) },
-          { key: 'abandon', label: t('tavern.potChoixAbandon') },
-        ],
-        defaultChoice: 'remise',
-      });
-      if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
-    }
-  }
-  // La fenêtre dit ce que CE lancer produit (issue rendue par la famille), pas seulement la plage où
-  // il tombe : sans elle, une cible atteinte se lit comme une manche qui passe.
-  return { consequences: freeCons([potTotalLigne(seq.params, p, garanti(joueur, Number(step.meta?.seat ?? p.seat ?? 0), 'siège du pot'), total, cible)]) };
-});
-
-/** APPLIERS des deux CHOIX d'un jeu de mise : ils n'appliquent rien — le choix committé est LU par
- *  la clôture, seul juge de la manche (patron du réducteur unique). */
-registerCascadeApplier(TAVERN_TARGET_KIND, () => ({}));
-registerCascadeApplier(TAVERN_FOLD_KIND, () => ({}));
 
 /** La MANCHE en vol : pot, mouvements engagés, mises du pot courant, joueurs sortis, cible, et son
  *  gagnant une fois tranchée. */
@@ -1929,7 +1823,7 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
  * qu'un dépassement coupe le passage en cours de route (l.97).
  *
  * CE QUI VIT ICI : les deux lanceurs, l'ordre, les passages, le tableau de marque. CE QUI VIT AU
- * SOCLE : ce que RAPPORTE un lancer (effets ENREGISTRÉS, `resolveSequenceThrow`), ce qu'un gain
+ * SOCLE : ce que RAPPORTE un lancer (effets DÉCLARÉS, `resolveSequenceThrow`), ce qu'un gain
  * DEVIENT face à une cible exacte (`sequenceThrowGain`), la ligne que désigne la réserve
  * (`sequenceThrowRow`), et la formule de score d'un camp (famille 3, `sequenceScoreOf`).
  *
@@ -2136,51 +2030,6 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   if (!band) return undefined;
   return { title: titre, icon: 'nav/dice', steps: [band], immediate: !surface, payload: base };
 }
-
-/** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — quand le RAW laisse le gain au
- *  lanceur — l'étape de décision appendée à la MÊME fenêtre (patron du choix d'option d'équipe). Deux
- *  formes, parce que le RAW en donne deux : un CHOIX entre des valeurs nommées (« 2, 6, 20 ou 60 »,
- *  l.97) et une SAISIE dans une plage (« autant de points que vous le souhaitez, entre 1 et 100 »,
- *  l.97 — interaction `'quantite'` de la coquille). La décision, elle, est appliquée par la clôture,
- *  seul juge du tour. */
-registerCascadeApplier(TAVERN_THROW_KIND, (get, set, step) => {
-  const seq = activeSequence<TavernPayload>(get);
-  if (!seq) return {};
-  const lu = volleyTurnOf(get, seq, step);
-  const jet = step.participants?.[0];
-  if (!lu || !jet) return {};
-  const heros = actorIn(get(), jet.id);
-  const qui = heros?.label ?? jet.label ?? jet.id;
-  const tranche = heros && !cadenceAuto() && jetSurfaced(get(), heros);
-  const id = `${TAVERN_GAIN_KIND}-${seq.round}`;
-  const libre = lu.outcome.libre;
-  if (libre && tranche) {
-    const etape = quantityStep({
-      id, kind: TAVERN_GAIN_KIND, icon: 'nav/dice',
-      label: t('tavern.volleyGainChoix', { who: qui }),
-      actorId: heros!.id,
-      min: libre.min, max: libre.max, unit: t('tavern.volleyUnitePoints'),
-      value: volleyPolitiqueLibre(seq.params.volley!, lu.turn, libre),
-    });
-    if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
-  } else if (lu.outcome.choix?.length && tranche) {
-    const etape = choiceStep({
-      id, kind: TAVERN_GAIN_KIND, icon: 'nav/dice',
-      label: t('tavern.volleyGainChoix', { who: qui }),
-      actorId: heros!.id,
-      options: lu.outcome.choix.map((n) => ({ key: String(n), label: t('tavern.volleyPoints', { n }) })),
-      defaultChoice: String(volleyPolitique(seq.params.volley!, lu.turn, lu.outcome.choix)),
-    });
-    if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
-  }
-  return { consequences: freeCons([t('tavern.volleyJet', { who: qui, dr: lu.turn.sl })]) };
-});
-
-/** APPLIERS des CHOIX d'une volée (ligne visée, gain) et du camp mené : ils n'appliquent rien — le
- *  choix committé est LU par la clôture, seul juge (patron du réducteur unique). */
-registerCascadeApplier(TAVERN_AIM_KIND, () => ({}));
-registerCascadeApplier(TAVERN_GAIN_KIND, () => ({}));
-registerCascadeApplier(TAVERN_SIDE_KIND, () => ({}));
 
 /** ISSUE d'une volée : le camp au plus haut score ; à ÉGALITÉ, le départage DÉCLARÉ tranche (famille
  *  1bis du socle, `resolveSequenceTie`) — jamais une égalité recodée ici. Boules déclare `nul`
@@ -2549,18 +2398,6 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
   return { go: 'end', outcome: mien < sien ? 'player' : sien < mien ? 'opponent' : 'tie', cum: marques, payload, log };
 }
 
-/** APPLIER de l'effacement : la clôture seule en tire les conséquences (patron du réducteur unique). */
-registerCascadeApplier(TAVERN_ERASE_KIND, () => ({}));
-
-registerSequence(TAVERN_SEQUENCE, {
-  round: tavernRound, close: tavernClose, settle: tavernSettle, board: tavernBoard,
-  abandon: (seq) => ({
-    label: t('tavern.abandon'), title: t('tavern.abandonTitre'), outcome: TAVERN_ABANDON,
-    // Manche de MISE en vol (cible annoncée) : on n'en sort que par le pli (NADJ 16 l.17).
-    ...(seq.payload.pot !== undefined && seq.payload.target != null ? { refus: t('tavern.abandonEntreDeuxManches') } : {}),
-  }),
-});
-
 /** L'unité de score d'un jeu accordée à un compte (`scoreUnit`/`scoreUnitSingular`) ; des DR sans unité
  *  déclarée (l.11). */
 function uniteDeScore(game: TavernGame, n: number): string {
@@ -2614,3 +2451,172 @@ export function creerActionsDeTaverne(get: Get, set: Set) {
     closeTavernGames: () => closeTavernGames(get, set),
   } satisfies Partial<ActionsDuNoyau>;
 }
+
+/** Les genres d'étape que ce module déclare (table `appliers`). */
+export const GENRES_D_ETAPE = [
+  TAVERN_ROUND_KIND, TAVERN_CHOICE_KIND, TAVERN_DRINK_KIND, TAVERN_POT_KIND, TAVERN_TARGET_KIND,
+  TAVERN_FOLD_KIND, TAVERN_THROW_KIND, TAVERN_AIM_KIND, TAVERN_GAIN_KIND, TAVERN_SIDE_KIND,
+  TAVERN_ERASE_KIND,
+] as const;
+
+/** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
+export const TABLES = {
+  appliers: {
+    /** Applier de la manche : MUET côté conséquence (l'issue est GLOBALE — elle se décide à la clôture,
+     *  dans le réducteur du socle) ; ne pousse que la ligne de récit de ce qui est tombé. */
+    [TAVERN_ROUND_KIND]: (get, set, step) => {
+      const dr = (n: number) => `${n >= 0 ? '+' : ''}${n} DR`;
+      if (step.participants) {
+        const lines = step.participants.map((row) => {
+          // Le porteur se résout par l'accesseur de la TABLE (`tavernActor`), pas par celui du combat :
+          // un adversaire à FICHE est une entité de SCÈNE, qu'`actorIn` ne trouve pas — sa rangée
+          // retombait alors sur `row.label`, qui est le libellé de son TEST. Le journal disait « Force :
+          // −4 DR. » là où l'écran disait « Négociant : 0/10 » : deux surfaces, deux noms, un joueur qui
+          // attribue le score au mauvais camp.
+          const who = tavernActor(get, row.id)?.label ?? row.label ?? row.id;
+          return `${who} : ${dr(row.result?.sl ?? 0)}.`;
+        });
+        lines.push(...torchonRate(get, set, step.participants));
+        return { consequences: freeCons(lines) };
+      }
+      if (!step.result) return {};
+      // MANCHE MONO à jet adverse FIGÉ : le journal nomme les DEUX camps, comme la BANDE ci-dessus et
+      // comme la rangée de la fenêtre — même dérivation du côté adverse (`opposedAttackerLabel`, source
+      // unique). Sans elle, la manche se racontait par un libellé nu (« Force : +4 DR. ») où ni le
+      // joueur, ni son vis-à-vis, ni ce que chacun a obtenu n'étaient lisibles.
+      const opp = step.meta?.opposed;
+      const mien = step.actorId ? actorIn(get(), step.actorId)?.label : undefined;
+      const lignes = [`${mien ? `${mien} — ` : ''}${step.rollLabel ?? 'Jeu'} : ${dr(step.result.sl)}.`];
+      if (opp?.aT) {
+        const sien = opposedAttackerLabel(opp);
+        lignes.push(`${opp.attackerName}${sien ? ` — ${sien}` : ''} : ${dr(opp.aT.sl)}.`);
+      }
+      return { consequences: freeCons(lignes) };
+    },
+    /** APPLIER du CHOIX d'option : le dernier choix committé APPEND la bande du tour à la MÊME fenêtre —
+     *  les rangées ne peuvent être montées qu'une fois toutes les options connues (la Difficulté et la
+     *  Compétence de chaque rangée en dépendent). « Déclaration AVANT jets » : personne ne lance avant que
+     *  chacun n'ait dit ce qu'il tente. */
+    [TAVERN_CHOICE_KIND]: (get, set, step) => {
+      const seq = activeSequence<TavernPayload>(get);
+      const encours = get().pendingCascade;
+      if (!seq || !encours) return {};
+      const choix = encours.participants.filter((s) => s.kind === TAVERN_CHOICE_KIND);
+      const reste = choix.some((s) => s.chosen == null && s.id !== step.id);
+      const retenu = Object.fromEntries(choix.map((s) => [s.actorId ?? '', Number(s.chosen ?? 0)]));
+      const apres: TavernPayload = { ...seq.payload, choices: { ...retenu, ...(step.actorId ? { [step.actorId]: Number(step.chosen ?? 0) } : {}) } };
+      setSequencePayload(get, set, apres);
+      const option = step.options?.find((o) => o.key === step.chosen);
+      if (reste) return option ? { consequences: freeCons([option.label]) } : {};
+      const monte = equipeBande(get, { ...seq, payload: apres });
+      if (monte) {
+        setSequencePayload(get, set, { ...apres, teams: monte.teams });
+        pushStep(set, monte.band, SEQUENCE_PURPOSE);
+      }
+      return option ? { consequences: freeCons([option.label]) } : {};
+    },
+    [TAVERN_DRINK_KIND]: (get, set, step) => {
+      if (!step.result || !step.actorId) return {};
+      const { camp, who } = lirePinte(step.meta);
+      return { consequences: freeCons(torchonBoit(get, set, step.actorId, camp, who, step.result.success)) };
+    },
+    /** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — pour un joueur tenu par un siège
+     *  dont la plage OFFRE le choix — l'étape « remettre ou abandonner » appendée à la MÊME fenêtre
+     *  (patron du choix d'option d'équipe). La décision, elle, est appliquée par la clôture. */
+    [TAVERN_POT_KIND]: (get, set, step) => {
+      const seq = activeSequence<TavernPayload>(get);
+      const p = seq?.payload;
+      const game = p ? findTavernGameById(p.gameId) : undefined;
+      if (!seq || !p || !game?.pot) return {};
+      const total = potTotalOf(step);
+      if (total == null) return {};
+      const joueur = p.seats?.[Number(step.meta?.seat ?? p.seat ?? 0)];
+      const cible = Number(step.meta?.cible ?? p.target ?? 0);
+      const { outcome } = resolveSequencePotTurn(seq.params, potTurnOf(p, total, cible));
+      const du = outcome.owes ?? p.stakeBrass;
+      if (outcome.choose && joueur) {
+        const hero = joueur.hero ? actorIn(get(), joueur.id) : undefined;
+        if (hero && !cadenceAuto() && jetSurfaced(get(), hero) && potSolvable(get, p.net ?? {}, joueur, du)) {
+          const etape = choiceStep({
+            id: `${TAVERN_FOLD_KIND}-${seq.round}`,
+            kind: TAVERN_FOLD_KIND,
+            label: t('tavern.potChoix', { who: joueur.label }),
+            icon: 'nav/dice',
+            actorId: hero.id,
+            options: [
+              { key: 'remise', label: t('tavern.potChoixRemise', { montant: formatMoney(fromBrass(du)) }) },
+              { key: 'abandon', label: t('tavern.potChoixAbandon') },
+            ],
+            defaultChoice: 'remise',
+          });
+          if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
+        }
+      }
+      // La fenêtre dit ce que CE lancer produit (issue rendue par la famille), pas seulement la plage où
+      // il tombe : sans elle, une cible atteinte se lit comme une manche qui passe.
+      return { consequences: freeCons([potTotalLigne(seq.params, p, garanti(joueur, Number(step.meta?.seat ?? p.seat ?? 0), 'siège du pot'), total, cible)]) };
+    },
+    /** APPLIERS des deux CHOIX d'un jeu de mise : ils n'appliquent rien — le choix committé est LU par
+     *  la clôture, seul juge de la manche (patron du réducteur unique). */
+    [TAVERN_TARGET_KIND]: () => ({}),
+    [TAVERN_FOLD_KIND]: () => ({}),
+    /** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — quand le RAW laisse le gain au
+     *  lanceur — l'étape de décision appendée à la MÊME fenêtre (patron du choix d'option d'équipe). Deux
+     *  formes, parce que le RAW en donne deux : un CHOIX entre des valeurs nommées (« 2, 6, 20 ou 60 »,
+     *  l.97) et une SAISIE dans une plage (« autant de points que vous le souhaitez, entre 1 et 100 »,
+     *  l.97 — interaction `'quantite'` de la coquille). La décision, elle, est appliquée par la clôture,
+     *  seul juge du tour. */
+    [TAVERN_THROW_KIND]: (get, set, step) => {
+      const seq = activeSequence<TavernPayload>(get);
+      if (!seq) return {};
+      const lu = volleyTurnOf(get, seq, step);
+      const jet = step.participants?.[0];
+      if (!lu || !jet) return {};
+      const heros = actorIn(get(), jet.id);
+      const qui = heros?.label ?? jet.label ?? jet.id;
+      const tranche = heros && !cadenceAuto() && jetSurfaced(get(), heros);
+      const id = `${TAVERN_GAIN_KIND}-${seq.round}`;
+      const libre = lu.outcome.libre;
+      if (libre && tranche) {
+        const etape = quantityStep({
+          id, kind: TAVERN_GAIN_KIND, icon: 'nav/dice',
+          label: t('tavern.volleyGainChoix', { who: qui }),
+          actorId: heros!.id,
+          min: libre.min, max: libre.max, unit: t('tavern.volleyUnitePoints'),
+          value: volleyPolitiqueLibre(seq.params.volley!, lu.turn, libre),
+        });
+        if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
+      } else if (lu.outcome.choix?.length && tranche) {
+        const etape = choiceStep({
+          id, kind: TAVERN_GAIN_KIND, icon: 'nav/dice',
+          label: t('tavern.volleyGainChoix', { who: qui }),
+          actorId: heros!.id,
+          options: lu.outcome.choix.map((n) => ({ key: String(n), label: t('tavern.volleyPoints', { n }) })),
+          defaultChoice: String(volleyPolitique(seq.params.volley!, lu.turn, lu.outcome.choix)),
+        });
+        if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
+      }
+      return { consequences: freeCons([t('tavern.volleyJet', { who: qui, dr: lu.turn.sl })]) };
+    },
+    /** APPLIERS des CHOIX d'une volée (ligne visée, gain) et du camp mené : ils n'appliquent rien — le
+     *  choix committé est LU par la clôture, seul juge (patron du réducteur unique). */
+    [TAVERN_AIM_KIND]: () => ({}),
+    [TAVERN_GAIN_KIND]: () => ({}),
+    [TAVERN_SIDE_KIND]: () => ({}),
+    /** APPLIER de l'effacement : la clôture seule en tire les conséquences (patron du réducteur unique). */
+    [TAVERN_ERASE_KIND]: () => ({}),
+  } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
+  famillesTirables: [
+    tablesDePot,
+  ],
+  sequences: {
+    [TAVERN_SEQUENCE]: {
+      round: tavernRound, close: tavernClose, settle: tavernSettle, board: tavernBoard,
+      abandon: (seq) => ({
+        label: t('tavern.abandon'), title: t('tavern.abandonTitre'), outcome: TAVERN_ABANDON,
+        // Manche de MISE en vol (cible annoncée) : on n'en sort que par le pli (NADJ 16 l.17).
+        ...(seq.payload.pot !== undefined && seq.payload.target != null ? { refus: t('tavern.abandonEntreDeuxManches') } : {}),
+      }),
+    },
+  },
+} satisfies FragmentDeTables;

@@ -23,7 +23,7 @@ import { findTavernGameById } from '../engine/tavernGame';
 import { playTavernGame, tavernGameValue, tavernNpcOffers } from '../noyau/tavernFlow';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { activeSequence, sequenceBoardOf } from '../noyau/sequenceCore';
-import { cascadeAppliers } from '../noyau/cascade';
+import { applierDe } from '../noyau/cascade';
 import type { CascadeStep } from '../noyau/pendings';
 import { applyEffects } from '../noyau/combatEffects';
 import { setRule, resetRule } from '../engine/policy';
@@ -155,7 +155,7 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
 
   it('étape `tavern-drink` sans lanceur : erreur nommée, jamais un id affiché pour nom', () => {
     const step: CascadeStep = { id: 'pinte', kind: 'tavern-drink', label: fixtureText('Pinte'), actorId: get().party[0]!.id, result: { roll: 90, target: 40, sl: -5, success: false } };
-    expect(() => cascadeAppliers['tavern-drink']!.apply(get, set, step, undefined, { steps: [step], index: 0 })).toThrow(/tavern-drink.*torchonRate/);
+    expect(() => applierDe('tavern-drink')!(get, set, step, undefined, { steps: [step], index: 0 })).toThrow(/tavern-drink.*torchonRate/);
   });
 
   it('profil de coéquipier inconnu', () => {

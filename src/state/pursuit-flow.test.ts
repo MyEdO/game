@@ -29,6 +29,7 @@ import type { GameState } from './store';
 import type { CascadeStep } from '../noyau/pendings';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { setCadence, resetCadence } from '../engine/cadence';
+import { cleDeFixture } from '../noyau/noyau.testkit';
 
 function heroes() {
   const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
@@ -237,7 +238,7 @@ describe('Poursuite terrestre (#95)', () => {
     try {
       heroes();
       useGame.setState({ suspendedCascades: [] });
-      startCascade(useGame.getState, useGame.setState, { title: 'Journée', purpose: 'test', steps: [displayStep({ id: 'hote-1', kind: 'reveal', label: fixtureText('Une ombre'), worldOwner: true })] });
+      startCascade(useGame.getState, useGame.setState, { title: 'Journée', purpose: 'test', steps: [displayStep({ id: 'hote-1', kind: cleDeFixture('reveal'), label: fixtureText('Une ombre'), worldOwner: true })] });
       startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
       expect(useGame.getState().suspendedCascades.map((c) => c.purpose), 'la cascade hôte est parquée sous la poursuite').toEqual(['test']);
       useGame.getState().sequenceAbandon();
@@ -370,7 +371,7 @@ describe('Poursuite — une manche bandifiée se possède comme la manche vive',
 
   it('une étape ÉTRANGÈRE traverse INTACTE (même référence — la migration compare pour savoir si rien n’a bougé)', () => {
     const [a] = heroes();
-    const etrangere = displayStep({ id: 'reveal-x', kind: 'reveal', label: fixtureText('Une ombre'), worldOwner: true });
+    const etrangere = displayStep({ id: 'reveal-x', kind: cleDeFixture('reveal'), label: fixtureText('Une ombre'), worldOwner: true });
     const out = pursuitBands([mono(a, '1'), etrangere]);
     expect(out[1]).toBe(etrangere);
   });

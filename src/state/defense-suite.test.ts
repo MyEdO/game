@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, freeAttackHookImpl, jouerLApresCoup, openAttackCascade } from '../noyau/combatFlow';
+import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, accorderLAttaqueGratuite, jouerLApresCoup, openAttackCascade } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -362,7 +362,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     h.size = 'enorme'; // Taille SUPÉRIEURE : la touche balaie
     h.characteristics['capacite-de-combat'] = 95; h.advantage = 1;
     e1.characteristics['capacite-de-combat'] = 5; e1.characteristics.agilite = 5;
-    freeAttackHookImpl(useGame.getState, useGame.setState, h,
+    accorderLAttaqueGratuite(useGame.getState, useGame.setState, h,
       { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
     expect(useGame.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(useGame.getState().pendingCleave?.attackerId, 'la chaîne est offerte au héros').toBe('h');
@@ -385,7 +385,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     e1.characteristics['capacite-de-combat'] = 5; e1.characteristics.agilite = 5;
     useGame.setState({ pendingCleave: { attackerId: 'h', hitIds: ['e1'], count: 0, fm: false, restitution: { prevActed: false } } });
     useGame.setState({ battle: { ...useGame.getState().battle!, acted: true } });
-    freeAttackHookImpl(useGame.getState, useGame.setState, h,
+    accorderLAttaqueGratuite(useGame.getState, useGame.setState, h,
       { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
     expect(useGame.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(useGame.getState().pendingCleave?.restitution, 'la restitution d’ouverture reste celle de la chaîne').toEqual({ prevActed: false });

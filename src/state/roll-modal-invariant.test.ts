@@ -23,7 +23,6 @@ import { fileURLToPath } from 'node:url';
 let silence = false;
 
 import { useGame } from './store';
-import '../noyau/combatFlow'; // effet de bord : installe appliers de cascade + routeur de Test + hook onGainCondition
 import { openRoundEndCascade, openCombatEndCascade, aiCreatureFreeAttacks, maybeOpenDefense, resolveAttack, attackerFumbled } from '../noyau/combatFlow';
 import { gainCorruption } from '../noyau/corruptionFlow';
 import { createHero } from '../engine/character';
@@ -275,7 +274,7 @@ describe('Surfaçage « remonte-à-un-humain » — flip local (c)', () => {
     const { E } = freshCombat();
     E.talents = [...(E.talents ?? []), { talentId: 'machoires-d-acier', times: 1 }];
     set({ net: { ...get().net, gmSeat: 0 } }); // rôle MJ posé sur le siège 0 (bac-à-sable) → conduit les ennemis
-    addCondition(E, COND.sonne, 2); // onGainCondition → testRouter → resolveFlowTest → humanControlled(E)=true
+    addCondition(E, COND.sonne, 2); // onGainCondition → routeTriggeredTest → resolveFlowTest → humanControlled(E)=true
     const c = get().pendingCascade;
     expect(c, 'l’ennemi assigné doit ouvrir une cascade').toBeTruthy();
     expect(c!.participants.some((s) => s.kind === 'triggeredTest' && s.actorId === E.id), 'le Test REMONTE au nom de l’ennemi assigné').toBe(true);

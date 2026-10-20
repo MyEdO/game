@@ -1,13 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { openSequence, displayStep, monoStep } from '../noyau/rollSeam';
-import { registerCascadeApplier, startCascade, advanceCascade, resumeSuspendedCascade } from '../noyau/cascade';
+import { startCascade, advanceCascade, resumeSuspendedCascade } from '../noyau/cascade';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { makePregens } from '../data/pregens';
 import { voyageStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
 import type { BuiltCascadeStep } from '../noyau/stepBrand';
+import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import type { GenreDeCascade } from '../noyau/tablesPosees';
 
 /**
  * LE CONTRAT DU SOCLE DE SÉQUENCE (#1479), sur ses DEUX bords :
@@ -33,23 +36,21 @@ const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 const NET0 = get().net;
 
-const KIND_INERTE = 'sonde-1479-inerte';
-const KIND_OUVRE_COMBAT = 'sonde-1479-ouvre-combat';
-const KIND_JET = 'sonde-1479-jet';
+const KIND_INERTE = cleDeFixture('sonde-1479-inerte');
+const KIND_OUVRE_COMBAT = cleDeFixture('sonde-1479-ouvre-combat');
+const KIND_JET = cleDeFixture('sonde-1479-jet');
 
 let apples = 0;
-registerCascadeApplier(KIND_INERTE, () => { apples++; return {}; });
-registerCascadeApplier(KIND_OUVRE_COMBAT, (_get, setter) => {
+beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
   apples++;
   // Ce que fait `startCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE
   // contexte. La garde lit `get().battle` — inutile de monter un combat complet pour la mesurer.
   setter({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
   return {};
-});
-registerCascadeApplier(KIND_JET, () => ({}));
+}, [KIND_JET]: () => ({}) } }); });
 
 /** Les étapes d'AFFICHAGE de la sonde — porteur conduit par l'IA, donc AUCUN siège ne les tient. */
-function sequenceDe(premierKind: string): BuiltCascadeStep[] {
+function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
   const [h] = get().party;
   return [
     displayStep({ id: 's1', kind: premierKind, actorId: h.id, label: fixtureText('Étape 1') })!,
