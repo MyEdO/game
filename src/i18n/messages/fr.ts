@@ -1551,8 +1551,8 @@ export const fr = {
   'eff.medicNoNpc': 'Soins impossibles : aucun PNJ « {id} » dans cette scène.',
   'eff.medicNoHealSkill': 'Soins impossibles : {name} ne possède pas la Compétence Guérison.',
 
-  // ── #1318 V8c₂ — STORE (`state/store.ts`, `store.*`) : les lignes de journal émises par le store
-  // lui-même (navire de combat, sauvegarde, transition, fouille, dialogue, Test étendu, porte). ──
+  // ── #1318 V8c₂ — STORE (`store.*`) : les lignes de journal des actions du jeu et du store
+  // (navire de combat, sauvegarde, transition, fouille, dialogue, Test étendu, porte). ──
   'store.shipTack': '{ship} vire de bord — nouveau cap : {dir}.',
   'store.shipAdvance': '{ship} avance de {n} case{s} (cap {dir}).',
   'store.saveInBattle': 'Impossible de sauvegarder en plein combat.',

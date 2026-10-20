@@ -413,7 +413,7 @@ export interface ActionRunCtx {
   pickKey?: string;
   /** COQUE visée (`hullId`) — bordée, chant, rechargement de pièce, service d'un poste. */
   shipId?: string;
-  /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`battleShipManeuver(crewId)`, `store.ts`) : c'est le
+  /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`battleShipManeuver(crewId)`, `noyau/combatSlice.ts`) : c'est le
    *  barreur, pas le navire. Deux champs parce que ce sont deux entités — un seul mentait. */
   crewId?: string;
   posteUid?: string;

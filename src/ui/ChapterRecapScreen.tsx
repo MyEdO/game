@@ -20,7 +20,7 @@ import { porteurDeProjet } from './porteurDeProjet';
  * volet 2 la rend interactive (`useSessionEnd`, MÊME formulaire que la modale du menu système) ;
  * le pied de l'écran porte le geste du volet courant.
  * Fermer l'écran (Échap) ne fait qu'AJOURNER : le récap se re-pose au prochain lot d'effets tant que
- * la clôture n'a pas été CONSOMMÉE par « Terminer la séance » (`clotureConsommee`, `store.ts`).
+ * la clôture n'a pas été CONSOMMÉE par « Terminer la séance » (`clotureConsommee`, `noyau/chapitreRecap.ts`).
  * « Annuler », dans le volet interactif, AJOURNE lui aussi — il ne clôt rien.
  *
  * COOP : l'invité LIT la chronique (elle se partage à la table) mais ne tourne pas la page — le geste

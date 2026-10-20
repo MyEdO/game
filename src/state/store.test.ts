@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
 import { resetFields } from '../noyau/stateFields';
-import { useGame } from './store';
+import { GARDES_D_UNE_PARTIE_A_L_AUTRE, useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascade.testkit';
 import { flowFromEffects, testFlow } from '../noyau/monde/flow';
@@ -3213,7 +3213,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
   // Champs DÉLIBÉRÉMENT conservés (navigation/vue/groupe) ou dérivés de la scène de départ.
   // Tout le RESTE doit revenir à son défaut de création, automatiquement, sans liste à maintenir.
   const PRESERVED_OR_DERIVED = new Set([
-    'screen', 'party', 'camRot', 'zoom',                          // navigation / vue / groupe / préférences
+    'screen', 'party', ...GARDES_D_UNE_PARTIE_A_L_AUTRE,           // navigation / groupe / préférences de vue et de touches
     'scene', 'partyPos', 'flags', 'campaignSceneId', 'journal', 'mode', 'inventory', // dérivés
     'facing', // dérivé : orientation du meneur posée à l'entrée de scène (spawnFacing / heroStart)
   ]);
@@ -3244,9 +3244,12 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     //    Itère sur l’état de création (Zustand) → couvre AUTOMATIQUEMENT tout futur champ ajouté.
     const init = (useGame as unknown as { getInitialState: () => Record<string, unknown> }).getInitialState();
     const st = useGame.getState() as unknown as Record<string, unknown>;
+    //    `worldMap.id` est l'horodatage de sa création (`emptyWorldMap`, `src/noyau/worldMap.ts:220`) :
+    //    une partie neuve crée la sienne, l'id seul diffère.
+    const sansHorodatage = (k: string, x: unknown) => (k === 'worldMap' ? { ...(x as object), id: 'carte' } : x);
     for (const [k, v] of Object.entries(init)) {
       if (typeof v === 'function' || PRESERVED_OR_DERIVED.has(k)) continue;
-      expect({ [k]: st[k] }).toEqual({ [k]: v }); // échec lisible : nomme le champ qui a fui
+      expect({ [k]: sansHorodatage(k, st[k]) }).toEqual({ [k]: sansHorodatage(k, v) }); // échec lisible : nomme le champ qui a fui
     }
 
     // 4) Points névralgiques explicites (les 5 suspensions de combat + horloge + orientation + retour).

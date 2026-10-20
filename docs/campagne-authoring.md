@@ -272,7 +272,7 @@ mécanisme dédié de rendu) — voir le patron complet dans
 ### 9quater. Persistance d'état des scènes au revisit (#707)
 
 Quand le groupe QUITTE puis REVIENT dans une scène déjà visitée, ses mutations de jeu sont conservées
-— une couche d'INSTANCE par `sceneId` (`sceneInstances`, `src/state/store.ts`) capture le delta au
+— une couche d'INSTANCE par `sceneId` (`sceneInstances`, posée par `transitionTo`, `src/noyau/entreeEnScene.ts`) capture le delta au
 départ et le réapplique au clone frais du document à l'entrée (`transitionTo`). Le document projet
 reste la SOURCE (rééditable) ; l'instance est superposée, sérialisée dans la save, répliquée en coop.
 

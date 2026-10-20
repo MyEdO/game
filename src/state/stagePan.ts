@@ -1,8 +1,8 @@
 /**
  * PANORAMIQUE VIVANT de la caméra du stage — le décalage manuel de la vue à l'instant de la FRAME,
  * hors de tout rendu React. Même patron que `state/stageYaw.ts` : le geste le POSE, le rendu le LIT,
- * et l'ENTRÉE DE SCÈNE le remet à zéro (`startScene`/`transitionTo`, `state/store.ts`, aux deux mêmes
- * sites que `resetStageYaw`).
+ * et l'ENTRÉE DE SCÈNE le remet à zéro (`remettreLAdaptateur` sur `EVT.ARRIVEE_EN_SCENE`, `state/store.ts`, au
+ * même site que `resetStageYaw`).
  *
  * Le store garde le décalage COMMIS (`camPan`) : le relâchement du glisser l'écrit en UN `set`
  * ABSOLU (`setCamPan`), le recentrage le remet à zéro (`resetCamPan` : changement d'unité active,

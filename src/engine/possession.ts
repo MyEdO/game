@@ -39,7 +39,7 @@ interface PossessionCommon {
   destroyed?: boolean; // perdue/morte — journal, filtrée partout
 }
 
-/** Champs d'INSTANCE navals (miroir de `CampaignVessel`, store.ts:1341 — T2/#267 y migre le singleton) — vehicleId/label/wounds/upgrades/cargo
+/** Champs d'INSTANCE navals (miroir de `CampaignVessel`, `noyau/etat.ts` — T2/#267 y migre le singleton) — vehicleId/label/wounds/upgrades/cargo
  *  restent au tronc `Possession`/variante `navire` (mêmes champs que les autres natures) ; `crew` reste
  *  un champ propre de la variante `navire` (individuation marins nommés #250, T2). */
 export interface NavalPossessionState {

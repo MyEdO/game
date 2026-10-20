@@ -220,7 +220,7 @@ export function poserYaw(deg: number): void {
 }
 
 /** Remet le lacet à son ANGLE INITIAL (0 = le cran diagonal d'ouverture). Une couture l'appelle :
- *  l'ENTRÉE DE SCÈNE (`startScene`/`transitionTo`, `state/store.ts` — une nouvelle carte se regarde
+ *  l'ENTRÉE DE SCÈNE (`remettreLAdaptateur` sur `EVT.ARRIVEE_EN_SCENE`, `state/store.ts` — une nouvelle carte se regarde
  *  depuis son cran). Les tests s'en servent pour repartir de cet angle. */
 export function resetStageYaw(): void {
   cible = 0;

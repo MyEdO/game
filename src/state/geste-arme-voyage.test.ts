@@ -277,7 +277,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     setup();
     refuserGeste(get, useGame.setState, 'Hors de portée.');
     useGame.setState({ battle: null, mode: 'exploration' });
-    get().transitionTo(testScene().id); // seam RÉEL du checkpoint : `transitionTo` appelle `autoSave`
+    get().transitionTo(testScene().id); // seam RÉEL du checkpoint : l'entrée en scène fait sauvegarder l'hôte
     expect(get().refus, 'le refus a traversé le changement de scène').toBeNull();
     const snap = snapshotSave(
       get() as unknown as Record<string, unknown>,

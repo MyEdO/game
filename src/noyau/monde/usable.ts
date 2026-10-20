@@ -38,7 +38,7 @@ export const ACTION_FOUILLER = 'fouiller';
 export const cleActionJouee = (entId: string, actionId: string): string => `__action_${entId}_${actionId}`;
 
 /** Les capacités D'INSTANCE, par id STABLE. Une capacité N+1 = une ligne de `CAPACITES` et une ligne
- *  de sa table d'exécution (`state/store.ts`) — la seconde ne compile pas sans la première. */
+ *  de sa table d'exécution (`JOUER_CAPACITE`, `noyau/interactionsDExploration.ts`) — la seconde ne compile pas sans la première. */
 export type CapaciteId = 'parler' | 'commercer';
 
 /** Ce qu'une capacité d'instance DÉCLARE : à quelle condition l'entité l'offre, et sous quel libellé

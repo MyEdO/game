@@ -4,6 +4,8 @@
  * réensemencé par `seedBattleRng` (action `store.seedRng`).
  */
 import { RNG, makeRNG } from '../engine/dice';
+import type { Get, Set } from './flowTypes';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 let _rng: RNG = makeRNG(Date.now() & 0xffff);
 
@@ -15,4 +17,12 @@ export function battleRng(): RNG {
 /** Réensemence le RNG de combat (tests déterministes, coop réseau). */
 export function seedBattleRng(seed: number): void {
   _rng = makeRNG(seed);
+}
+
+export function creerActionsDesDes(_get: Get, _set: Set) {
+  return {
+    seedRng: (seed) => {
+      seedBattleRng(seed);
+    },
+  } satisfies Partial<ActionsDuNoyau>;
 }

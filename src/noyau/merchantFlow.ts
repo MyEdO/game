@@ -44,6 +44,7 @@ import { traceLineOf } from '../engine/traceLine';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Boutique OUVERTE (état de la visite en cours). Le stock persistant vit dans `merchantStocks`. */
 export interface MerchantState {
@@ -1003,4 +1004,36 @@ export function resolveAppraise(get: Get, set: Set): void {
     ? formatMoney(fromBrass(est.min))
     : t('mf.estimateRange', { min: formatMoney(fromBrass(est.min)), max: formatMoney(fromBrass(est.max)) });
   get().log(t('mf.appraiseValue', { item: pa.itemName, range }));
+}
+
+export function creerActionsDuMarchand(get: Get, set: Set) {
+  return {
+    openMerchant: (entityId) => openMerchant(get, set, entityId),
+    openPlaceMerchant: (entityId, archetype, backdrop) => openPlaceMerchant(get, set, entityId, archetype, backdrop),
+    closeMerchant: () => closeMerchant(get, set),
+    searchAvailability: () => searchAvailability(get, set),
+    buyItem: (label, heroId) => buyItem(get, set, label, heroId),
+    addToCart: (label) => addToCart(get, set, label),
+    decFromCart: (label) => decFromCart(get, set, label),
+    removeFromCart: (label) => removeFromCart(get, set, label),
+    clearCart: () => clearCart(get, set),
+    refuseBargain: (mode) => refuseBargain(get, set, mode),
+    payCart: () => payCart(get, set),
+    assignDistribution: (index, heroId) => assignDistribution(get, set, index, heroId),
+    confirmDistribution: () => confirmDistribution(get, set),
+    addToSellCart: (uid, heroId) => addToSellCart(get, set, uid, heroId),
+    removeFromSellCart: (uid) => removeFromSellCart(get, set, uid),
+    clearSellCart: () => clearSellCart(get, set),
+    confirmSell: () => confirmSell(get, set),
+    repairItem: (uid, heroId) => repairItem(get, set, uid, heroId),
+    startBargain: (mode) => startBargain(get, set, mode),
+    bargainConfirm: () => bargainConfirm(get, set),
+    bargainCancel: () => set({ pendingBargain: null }),
+    appraiseItem: (uid, heroId, mode) => appraiseItem(get, set, uid, heroId, mode),
+    appraiseGear: (scope, index, mode) => appraiseGear(get, set, scope, index, mode),
+    resolveAppraise: () => resolveAppraise(get, set),
+    appraiseCancel: () => set({ pendingAppraise: null }),
+    barterExchange: (opts) => barterExchange(get, set, opts),
+    setSellHalving: (uid, delta) => setSellHalving(get, set, uid, delta),
+  } satisfies Partial<ActionsDuNoyau>;
 }

@@ -23,6 +23,7 @@ import { battleRng } from './battleRng';
 import { surfaceOf } from './rollSeam';
 import { WORLD_STEP_OWNER } from './pendings';
 import { lotEnregistreur, lotRejoueur, type EtalDraw } from './monde/etalLot';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Un générateur d'étal : il TIRE (via le rng qu'on lui donne), il POSE son état, il ne rend rien.
  *  `phase` lui sert à NOMMER ce que chaque dé décide — sans nom, un dé n'est pas posable. */
@@ -77,4 +78,15 @@ export function appliquerLotEtal(get: Get, set: Set): void {
   const rejeu = lotRejoueur(p.participants.map((r) => ({ id: r.id, label: r.label, min: r.min, max: r.max, value: r.value })), battleRng());
   entree.gen(get, set, rejeu.rng, () => {});
   entree.apres?.(get, set);
+}
+
+export function creerActionsDuLotDEtal(get: Get, set: Set) {
+  return {
+    // LOT DE DÉS d'un étal (#1426) — les deux gestes de BLOC. « Valider » rejoue le générateur avec les
+    // dés du lot (posés ou naturels) : c'est le MÊME code que l'ouverture sans fenêtre, nourri par un rng
+    // rejoueur qui ne consomme aucun aléa vivant. « Renoncer » applique le lot TEL QU'IL EST TOMBÉ — un
+    // étal existe de toute façon, la fenêtre n'est qu'une offre de pose.
+    etalLotConfirm: () => { appliquerLotEtal(get, set); },
+    etalLotCancel: () => { appliquerLotEtal(get, set); },
+  } satisfies Partial<ActionsDuNoyau>;
 }

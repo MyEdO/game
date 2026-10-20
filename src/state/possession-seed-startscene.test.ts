@@ -1,6 +1,6 @@
 /**
  * Semis des Possessions de dotation au démarrage d'une partie neuve (#617/#618 SOCLE POSSESSIONS
- * Lot 1) — seam `startScene` (`store.ts`), JAMAIS `loadGame` (la save restaure `data.possessions`).
+ * Lot 1) — seam `startScene` (`noyau/entreeEnScene.ts`), JAMAIS `loadGame` (la save restaure `data.possessions`).
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame } from './store';

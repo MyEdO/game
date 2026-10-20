@@ -25,7 +25,7 @@ const TORCHON = findTavernGameById('torchon')!;
 
 /**
  * LE RÉCIT, mesuré au PUITS (`store.log`) et non au slot `journal` : ce slot est un ANNEAU de 40
- * lignes (`state/store.ts:2538`) alors qu'une partie de Torchon en émet ~85 d'un seul geste (le tour
+ * lignes (`noyau/journal.ts`) alors qu'une partie de Torchon en émet ~85 d'un seul geste (le tour
  * du héros, puis les 23 tours de figurants qui s'enchaînent d'office). Le tour joué en FENÊTRE est le
  * PREMIER : ses lignes sont les premières chassées de l'anneau, alors même que le socle les a
  * produites. Le puits est la surface où le socle écrit — c'est là que se mesure « le coup est raconté ».

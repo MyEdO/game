@@ -3,7 +3,7 @@
  * pour se déplacer sur le champ de bataille » — RAW muet sur un Test ou une vitesse chiffrée). Décision de
  * design (#156, Lot 2) : mouvement SIMPLE (aucun jet), effort collectif de l'Équipe — le CHEF de pièce
  * pousse, l'ENGIN et TOUS les servants du poste (`ShipPoste.crewIds`) translatent du MÊME delta (formation
- * rigide), exactement comme `shipAdvance` (store.ts:1240) déplace une coque + son équipage. Distance
+ * rigide), exactement comme `shipAdvance` (`shipManeuver.ts`) déplace une coque + son équipage. Distance
  * plafonnée à une valeur MAISON éditable (`rule('siege-engine-push-speed')`, engine/policy.ts).
  *
  * Module FEUILLE (aucune dépendance combatFlow/combatSlice) : mute les combattants, l'appelant (store)

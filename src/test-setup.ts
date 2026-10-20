@@ -33,7 +33,7 @@
  *      `beforeAll`) ne vaut que pour le PREMIER test — le teardown l'efface comme les autres. Un fichier
  *      qui a besoin du registre sur PLUSIEURS tests l'(ré)enregistre en `beforeEach` (`shipwreck.test.ts`,
  *      via `freshState`). Une scène laissée au registre changeait le comportement des fichiers suivants
- *      du worker : `transitionTo` est un NO-OP sur scène inconnue (`state/store.ts`) — la même clôture
+ *      du worker : `transitionTo` est un NO-OP sur scène inconnue (`noyau/entreeEnScene.ts`) — la même clôture
  *      de séquence transitionnait ou non selon la partition, d'où des rouges CI verts en local (#1014).
  *    - la PILE DES COUCHES DISMISSIBLES et sa PORTE clavier (`state/dismissStack` + `ui/useDismissLayer`,
  *      `resetDismissLayers`) : la pile des surfaces congédiables et le refcount de l'écouteur Échap sont

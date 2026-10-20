@@ -55,6 +55,9 @@ import type { CascadeStepMeta, BatchParticipant } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
+import { postingTenu } from '../engine/activities';
+import { ecrireActeur } from './monde/combatants';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 const POSTE_ICON: Record<string, string> = {
   'plein-air': 'expedition/outdoors', approvisionnement: 'item/consumable', 'recueillir-informations': 'expedition/rumor', 'rester-aux-aguets': 'ui/eye',
@@ -422,3 +425,9 @@ registerCascadeApplier('stageExposure', (_get, _set, step, hero) => {
   j.push(...coldExposureChill(hero, !!step.meta?.coldSeason));
   return { consequences: freeCons(j) };
 });
+
+export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
+  return {
+    setTravelRole: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+  } satisfies Partial<ActionsDuNoyau>;
+}

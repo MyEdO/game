@@ -7,7 +7,7 @@
  *
  * Composant à part, et c'est STRUCTUREL : les abonnements au store qui n'ont de sens qu'ici y vivent.
  * `facing` en est le cas d'école — toute écriture de cap reforge la référence de la table
- * (`store.ts`, à chaque pas et à chaque attaque) : lu par l'hôte, il re-rendrait le stage ENTIER.
+ * (`noyau/orientation.ts`, à chaque pas et à chaque attaque) : lu par l'hôte, il re-rendrait le stage ENTIER.
  * Un hook conditionnel est interdit ; un composant conditionnel, non.
  *
  * Les ACTEURS se dérivent des ÉLÉMENTS DU BUILDER (`tokenEls`), pas de `battle.combatants` : les

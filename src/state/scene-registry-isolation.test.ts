@@ -21,7 +21,7 @@ probe.id = PROBE_ID;
 registerScene(probe); // enregistrement de TÊTE DE FICHIER (portée module)
 
 /** La scène sonde est-elle CONNUE du registre ? Mesuré au seam réel : `transitionTo` est un no-op sur
- *  une scène inconnue (`state/store.ts`), la scène courante ne change alors pas. */
+ *  une scène inconnue (`noyau/entreeEnScene.ts`), la scène courante ne change alors pas. */
 function sceneKnown(): boolean {
   useGame.setState({ scene: null } as never);
   useGame.getState().transitionTo(PROBE_ID);

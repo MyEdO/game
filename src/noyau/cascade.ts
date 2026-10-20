@@ -172,7 +172,7 @@ function clotureDeCascade(done: PendingCascade): void {
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
- * Test étendu (`extendedTestNext`, store.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
+ * Test étendu (`extendedTestNext`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Registre séparé de `cascadeAppliers` (un Test étendu n'est PAS une étape de cascade — `pendingExtendedTest`
@@ -1435,7 +1435,7 @@ function reconcileSuspended(get: Get, set: Set, stale: PendingCascade, patch: Pa
 /** SUSPEND la cascade ACTIVE (si une l'est) : la pousse en tête de `suspendedCascades` (pile LIFO) et
  *  vide le slot `pendingCascade`. Primitive GÉNÉRIQUE (kind-agnostique, aucune mention de domaine) —
  *  déclenchée par la couture universelle `startCombat`/`transitionTo` (noyau/combatSlice.ts,
- *  state/store.ts) : un combat qui s'ouvre PENDANT une cascade active (ex. un abordage déclenché par
+ *  noyau/entreeEnScene.ts) : un combat qui s'ouvre PENDANT une cascade active (ex. un abordage déclenché par
  *  l'applier d'une étape de voyage) ne doit ni écraser ni perdre les étapes restantes — le slot
  *  `pendingCascade` redevient disponible pour les cascades DU COMBAT (jets d'attaque…), gates d'action
  *  inchangés (`targetingModes.ts`/`combatSlice.ts` continuent de lire `pendingCascade` = la cascade
@@ -1448,7 +1448,7 @@ export function suspendActiveCascade(get: Get, set: Set): void {
 
 /** RÉSUME la tête de pile (`suspendedCascades`, LIFO) dans le slot `pendingCascade` — SEULEMENT si le
  *  slot est LIBRE (jamais un écrasement). Déclenchée par la couture universelle de teardown de combat
- *  (`dismissVictory`/`dismissDefeat`, state/store.ts). Une séquence du pilote immédiat (`piloteImmediat`)
+ *  (`dismissVictory`/`dismissDefeat`, noyau/issueDeCombat.ts). Une séquence du pilote immédiat (`piloteImmediat`)
  *  ne revient pas au slot : son pilote la reprend (`piloterDepuisLeCurseur`). Renvoie `true` si une
  *  cascade a été résumée. */
 export function resumeSuspendedCascade(get: Get, set: Set): boolean {
@@ -1472,7 +1472,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
 
 /**
  * PURGE les étapes d'ENTRÉE DE ZONE des cascades PARQUÉES — couture du changement de scène
- * (`transitionTo`, state/store.ts). Une carte narrative d'entrée parquée (par un combat, par une
+ * (`transitionTo`, noyau/entreeEnScene.ts). Une carte narrative d'entrée parquée (par un combat, par une
  * autre séquence) narre la scène qu'on QUITTE : reprise plus tard, elle s'afficherait par-dessus la
  * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'sceneEntry'`) —
  * toute autre séquence parquée (un jour de voyage suspendu par un abordage, un Test de rencontre)

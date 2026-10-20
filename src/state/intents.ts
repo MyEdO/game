@@ -259,7 +259,7 @@ export const CLASSE_DES_ACTIONS = {
   // à la table) mais leurs GESTES sont à l'hôte, comme la fin de séance qu'ils enchaînent — l'ouverture
   // n'est pas une décision (rien à trancher), la clôture applique la même séance. Un ready-check de
   // table serait un autre ticket. Le refus est EFFECTIF, pas seulement classé : les actions sont
-  // inertes chez l'invité (`store.ts`, garde `s.net.mode === 'guest'`, contrat
+  // inertes chez l'invité (`noyau/chapitreRecap.ts`, garde `s.net.mode === 'guest'`, contrat
   // `chapitre-recap.test.ts` « les trois gestes du cadre sont INERTES ») et les boutons portent leur
   // raison (`GatedAction`, contrats de `CampaignOpeningScreen.test.tsx`/`ChapterRecapScreen.test.tsx`).
   acquitterOuverture: 'hôte', cloreChapitre: 'hôte', ajournerChapterRecap: 'hôte',
@@ -286,6 +286,7 @@ export const CLASSE_DES_ACTIONS = {
   // ── Machinerie d'hôte : scène, temps, groupe, combat, IA, journal ─────────────────────────────
   startScene: 'interne', setParty: 'interne', seedRng: 'interne', log: 'interne', autoSave: 'interne', advanceTime: 'interne',
   resumeCadence: 'interne', moveParty: 'interne', stepPartyDir: 'interne', stepPartyRelative: 'interne',
+  sauter: 'interne', actionnerLaPorte: 'interne',
   pivotParty: 'interne', restParty: 'interne', setPendingInteract: 'interne', jouerAction: 'interne',
   interactEntity: 'interne', closeDialogue: 'interne', designerHerosOuvrir: 'interne', remettreDocument: 'interne',
   startCombat: 'interne', faceAtCombatStart: 'interne', faceFromPath: 'interne', faceToward: 'interne',

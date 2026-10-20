@@ -47,7 +47,7 @@ import {
 import { bonus } from '../engine/characteristics';
 import { rollVehicleProblem, mountIncidentEffects } from '../engine/travelTables';
 import { applyOps } from '../engine/ops';
-import { ouvrirChute } from './combatEffects';
+import { ouvrirChute, jouerFlowEntier, applyEffectsLoot } from './combatEffects';
 import { applyHealWounds } from '../engine/healing';
 import { declareDisease } from '../engine/disease';
 import { findVehicleById, voyageStakeRef, weather, libelleOuAbsence } from '../data';
@@ -80,6 +80,8 @@ import type { Get, Set } from './flowTypes';
 import { traceLineOf } from '../engine/traceLine';
 import { dataLabel, refLabel } from '../data';
 import { stepDetail } from './rollSeam';
+import { DEFAULT_VOYAGE_ORDERS } from './voyageCadence';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Une journée du récapitulatif de voyage (audit M4) : progression + ce qui s'y est passé. */
 export interface TravelRecapDay {
@@ -1455,4 +1457,35 @@ function applyEreintant(get: Get, set: Set): string[] {
   lines.push(t('tf.detourDay'));
   log(get, set, lines);
   return lines;
+}
+
+export function creerActionsDuVoyage(get: Get, set: Set) {
+  return {
+    openWorldMap: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
+    closeWorldMap: () => set({ worldMapOpen: false }),
+    startTravel: (routeId, mode, opts) => startTravel(get, set, routeId, mode, opts),
+    resumeTravel: () => resumeTravel(get, set),
+    departWaitDawn: () => departWaitDawn(get, set),
+    departCancel: () => set({ pendingDeparture: null }),
+    setVoyageCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
+    /** Acquitte le récit de voyage. Une EMBUSCADE différée (`recap.then`) se déclenche ICI :
+     *  le joueur a lu ce qui lui arrive, le combat démarre — fermer la modale (bouton/Échap)
+     *  ne l'évite pas, et `resumeTravel` refuse tant qu'elle n'est pas acquittée. */
+    dismissTravelRecap: () => {
+      const recap = get().travelRecap;
+      set({ travelRecap: null });
+      const then = recap?.then;
+      if (!then || get().battle) return;
+      if (then.kind === 'effects') {
+        jouerFlowEntier(applyEffectsLoot(get, set, then.effects, t('eff.flowTitleDiscovery'))); // trouvaille d'étape de voyage → fenêtre aussi
+      } else {
+        get().transitionTo(then.scene, then.entry);
+        get().startCombat(then.encounter, undefined, { noSurprise: then.noSurprise });
+        // Vol terrestre (#327) : cette embuscade terrestre met la cargaison du convoi en jeu — la
+        // perte GRADUÉE se dénoue au teardown de combat. Posé APRÈS startCombat (le reset `combatStart`
+        // n'efface donc pas le marqueur).
+        if (get().battle) set({ cargoRaid: true });
+      }
+    },
+  } satisfies Partial<ActionsDuNoyau>;
 }

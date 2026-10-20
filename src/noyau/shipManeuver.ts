@@ -27,16 +27,22 @@ import { inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { findCrewRoleById } from '../data';
-import { profilNavalDe } from '../engine/coque';
+import { profilNavalDe, estNavire } from '../engine/coque';
 import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
-import type { Get } from './flowTypes';
+import type { Get, Set } from './flowTypes';
 import type { PlayerText } from '../i18n/playerText';
 
-import type { CrewRoleRoll } from './pendings'; // défini côté pendings (neutre) — cf. quarantaine #328
+import type { CrewRoleRoll } from './pendings';
+import { rotateDir8, DIR8_DELTA } from './monde/dir8';
+import { bus, EVT } from './bus';
+import { footprintTiles, footprintN } from './monde/footprint';
+import { placeCombatant } from './monde/spawn';
+import { applyShipCollision } from './monde/shipCollision';
+import type { ActionsDuNoyau } from './actionsDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
 
 /** Jet d'UN contributeur à son rôle : Test de la compétence du rôle (MDG 14). PUR (RNG injecté). Rend la LIGNE
  *  de la rangée — le jet, ou `ligneSansJet` avec le refus nommé (LDB 09 l.30 ; #2588 Q1). `null` si le
@@ -246,4 +252,66 @@ export function maneuverShip(get: Get, shipId: string, turnSteps: number, helmsm
   if (!r) return null;
   const advanced = applyShipManeuver(get, shipId, r, turnSteps);
   return { ...r, advanced };
+}
+
+export function creerActionsDeManoeuvre(get: Get, set: Set) {
+  return {
+    shipTurn: (shipId, turnSteps) => {
+      const { facing, battle } = get();
+      const cur = facing[shipId];
+      if (!cur) return; // navire sans cap initial → rien à virer
+      const next = rotateDir8(cur, turnSteps);
+      set({ facing: { ...facing, [shipId]: next } });
+      // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent facing[shipId].
+      const ship = inBattleId(battle, shipId);
+      get().log(t('store.shipTack', { ship: ship?.label ?? shipId, dir: next }));
+      bus.emit(EVT.SCENE_DIRTY);
+    },
+    shipAdvance: (shipId, cases) => {
+      const { facing, battle, scene } = get();
+      const dir = facing[shipId];
+      const hull = inBattleId(battle, shipId);
+      if (!battle || !hull?.pos || !dir) return 0;
+      const d = DIR8_DELTA[dir];
+      const w = scene?.dimensions.w ?? Infinity, h = scene?.dimensions.h ?? Infinity;
+      // Autres NAVIRES percutables (≠ self, pos connue) : une tuile occupée par un navire arrête l'avance ADJACENT
+      // (pas de chevauchement) et déclenche la collision (MDG 13 l.423-465).
+      const otherHulls = battle.combatants.filter((c) => c.id !== shipId && estNavire(c) && c.pos);
+      const hullAt = (x: number, y: number) => otherHulls.find((c) => footprintTiles(c.pos!, footprintN(c)).some((t) => t.x === x && t.y === y));
+      // Avance PAS-À-PAS le long du cap (coque 1×1) : on s'arrête au dernier pas libre — sortie de scène OU coque devant.
+      let moved = 0;
+      let victim: Combatant | undefined;
+      for (let step = 1; step <= Math.max(0, cases); step++) {
+        const nx = hull.pos.x + d.gx * step, ny = hull.pos.y + d.gy * step;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) break; // hors bornes de scène
+        const hit = hullAt(nx, ny);
+        if (hit) { victim = hit; break; } // coque devant → stop adjacent (moved = step − 1)
+        moved = step;
+      }
+      if (moved > 0) {
+        const delta = { x: d.gx * moved, y: d.gy * moved };
+        // Coque + équipage À BORD translatés du MÊME delta (formation rigide) ; les postes (sans `pos`) suivent la
+        // coque. MÊME patron de commit que le mouvement de combat (combatSlice : ANIM_MOVE).
+        const movers = [hull, ...(hull.crewIds ?? [])
+          .map((id) => inBattleId(battle, id))
+          .filter((c): c is Combatant => !!c?.pos)];
+        for (const m of movers) {
+          const from = { ...m.pos! };
+          placeCombatant(m, scene, { x: from.x + delta.x, y: from.y + delta.y });
+          bus.emit(EVT.ANIM_MOVE, { id: m.id, path: [from, { ...m.pos }] });
+        }
+        get().log(t('store.shipAdvance', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
+      }
+      // Éperonnage (MDG 13) : on percute de la PROUE (avance vers l'avant) ; FRONTAL si la victime tient un cap
+      // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).
+      if (victim) {
+        const opp = rotateDir8(dir, 4);
+        const vf = facing[victim.id];
+        const frontal = vf === opp || vf === rotateDir8(opp, 1) || vf === rotateDir8(opp, -1);
+        for (const line of applyShipCollision(hull, victim, milieuDuVoyage(get().travelPlan), { ramProue: true, frontal }).lines) get().log(line);
+      }
+      if (moved > 0 || victim) { set({ battle: { ...battle } }); bus.emit(EVT.SCENE_DIRTY); }
+      return moved;
+    },
+  } satisfies Partial<ActionsDuNoyau>;
 }

@@ -14,6 +14,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { Objective } from './etat';
 import { condCtx } from './bourseFlow';
 import { visiblePlaces } from './worldMap';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -93,4 +94,16 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
       lieux,
     }),
   });
+}
+
+export function creerActionsDuChapitre(_get: Get, set: SetFn) {
+  return {
+    // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (classe `hôte`,
+    // `state/intents.ts` `CLASSE_DES_ACTIONS`). Chez un invité ils sont INERTES — sans cette
+    // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
+    // L'écran, lui, reste visible : il porte son refus par `GatedAction` (`src/ui/GatedAction.tsx`).
+    acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),
+    cloreChapitre: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null, objectifsSoldes: [], chapitreDepuis: snapshotChapitre(s.party, s.gameTime), clotureConsommee: true })),
+    ajournerChapterRecap: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingChapterRecap: null })),
+  } satisfies Partial<ActionsDuNoyau>;
 }

@@ -43,6 +43,7 @@ import { appraiseRefus, APPRAISE_SKILL } from './merchantFlow';
 import { seasonOfMonth } from '../engine/travelStages';
 import { toDate, dayIndex } from '../engine/clock';
 import type { Get, Set } from './flowTypes';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ (le Vin fige sa
  *  qualité secrète / son prix ICI, l.93-104). `wine` : cargaison à qualité incertaine. */
@@ -408,4 +409,16 @@ export function landDumpCargo(get: Get, set: Set, carrierId: string, cargoIndex:
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
   set(persistCarriersCargo(get(), [{ carrierId, cargo: lots.filter((_, i) => i !== cargoIndex) }]));
   log(get, set, [`${lot.enc} Enc de ${label} bradés (${pct} % du prix de base) : ${formatMoney(fromBrass(gross * PA_PER_CO))}.`]);
+}
+
+export function creerActionsDuMarcheTerrestre(get: Get, set: Set) {
+  return {
+    openLandMarket: () => openLandMarket(get, set),
+    closeLandMarket: () => closeLandMarket(get, set),
+    landBuyCargo: (cargoId, enc) => landBuyCargo(get, set, cargoId, enc),
+    landSellCargo: (carrierId, cargoIndex) => landSellCargo(get, set, carrierId, cargoIndex),
+    landDumpCargo: (carrierId, cargoIndex) => landDumpCargo(get, set, carrierId, cargoIndex),
+    moveCargo: (fromId, toId, cargoId, enc) => moveCargo(get, set, fromId, toId, cargoId, enc),
+    landEvalWine: (cargoId) => landEvalWine(get, set, cargoId),
+  } satisfies Partial<ActionsDuNoyau>;
 }

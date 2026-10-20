@@ -7,7 +7,7 @@
  * `src/state`, le type de l'état seulement. INVARIANT — `netOwnership` ne demande que « qui est ce
  * combattant ? » et doit pouvoir s'importer seul (énumérer `ROUTES` dans un script ou une garde CI
  * légère) ; or `combatOrParty` importe `targetingModes` pour son affordance de clic, donc le moteur
- * de combat, donc `store.ts` — chaîne runtime MESURÉE par la sonde (c) de
+ * de combat — chaîne runtime LOURDE ; l'import isolé est gardé par
  * `netownership-import-isole.test.ts`. Ces primitives descendent donc ici, et la dépendance va du
  * LOURD vers le LÉGER : `combatOrParty` consomme ce module, jamais l'inverse. Le SEUL import runtime
  * admis vise `src/engine` (couche PURE, qui n'atteint jamais `src/state` — AGENTS.md règle 3) : y

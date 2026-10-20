@@ -16,6 +16,7 @@ import { skillBaseValue } from '../engine/skills';
 import { pnjAuPreset } from './monde/sceneNpc';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { ouvrirMarchandage } from './merchantFlow';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Le billet payé que le groupe tient en main : ses routes restantes, dans l'ordre du trajet. */
 export interface BilletEnMain {
@@ -121,4 +122,10 @@ export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule
   const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(get().campaignNarratif));
   if (!vendeur) return;
   ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, 'marchandage'), portrait: vendeur });
+}
+
+export function creerActionsDuBillet(get: Get, set: Set) {
+  return {
+    startBilletBargain: (routeId, vehicule) => startBilletBargain(get, set, routeId, vehicule),
+  } satisfies Partial<ActionsDuNoyau>;
 }

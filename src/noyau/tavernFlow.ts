@@ -70,6 +70,7 @@ import { t, interpolate, pluriel } from '../i18n';
 import { dataLabel, testSkillLabel } from '../data';
 import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /**
  * Adversaire d'une partie — TROIS formes, chacune JOUE une fiche (`tavernGameValue`) :
@@ -2604,4 +2605,12 @@ function finalizeTavernGame(
   const enjeu = netBrass > 0 ? t('tavern.enjeuGain', { montant: formatMoney(fromBrass(netBrass)) }) : netBrass < 0 ? t('tavern.enjeuPerte', { montant: formatMoney(fromBrass(-netBrass)) }) : '';
   const issue = t(winner === 'player' ? 'tavern.issueWon' : winner === 'opponent' ? 'tavern.issueLost' : 'tavern.issueTie');
   get().log(t('tavern.finDePartie', { jeu: game.label, who: challenger.label, adversaire: opponentName, issue, texte, enjeu }));
+}
+
+export function creerActionsDeTaverne(get: Get, set: Set) {
+  return {
+    openTavernGames: (npcId?: string) => openTavernGames(get, set, npcId),
+    playTavernGame: (opts) => playTavernGame(get, set, opts),
+    closeTavernGames: () => closeTavernGames(get, set),
+  } satisfies Partial<ActionsDuNoyau>;
 }

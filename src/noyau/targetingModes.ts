@@ -743,7 +743,7 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
  *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `battlePushEngine` — plafonné
  *  à `rule('siege-engine-push-speed')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
  *  du chef) est appliqué à l'ENGIN et à TOUS les servants du poste (`ShipPoste.crewIds`, chef inclus) :
- *  formation RIGIDE, MÊME patron que `shipAdvance` (store.ts) qui translate une coque + son équipage du
+ *  formation RIGIDE, MÊME patron que `shipAdvance` (`shipManeuver.ts`) qui translate une coque + son équipage du
  *  MÊME delta. Consomme l'Action du chef (comme `battleManPoste`) ; l'engin reste SANS tour (`inert`,
  *  jamais ajouté à `battle.order`) — seul le rendu de la pièce suit (`posteAnchor` lit `hull.pos`).
  *

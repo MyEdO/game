@@ -69,6 +69,7 @@ import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -1469,4 +1470,18 @@ function ligneNommee(ligne: { label?: string }, table: string): string {
   const { label } = ligne;
   if (label === undefined) throw new Error(`[${table}] ligne sans libellé dans une table descriptive (#1906)`);
   return label;
+}
+
+export function creerActionsDInterlude(get: Get, set: Set) {
+  return {
+    startInterlude: (weeks) => startInterlude(get, set, weeks),
+    interludeEnd: () => interludeEnd(get, set),
+    activityConfirm: () => confirmActivity(get, set),
+    interludeCraftStart: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
+    interludeBank: (heroId, kind, amountBrass, rate) => bankDeposit(get, set, heroId, kind, amountBrass, rate),
+    interludeWithdraw: (index) => bankWithdraw(get, set, index),
+    interludeOrder: (heroId, trapping) => orderItem(get, set, heroId, trapping),
+    interludeEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
+    interludeActivity: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
+  } satisfies Partial<ActionsDuNoyau>;
 }

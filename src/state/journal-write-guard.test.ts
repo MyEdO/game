@@ -8,16 +8,17 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « composeur du journal » (#319). `….journal.slice(-40)` réinvente l'action canonique
- * `log` (`src/state/store.ts`, action `log: (msg: string | string[]) => void`, source UNIQUE qui
+ * `log` (`src/noyau/journal.ts`, action `log: (msg: string | string[]) => void`, source UNIQUE qui
  * pousse et plafonne à 40 lignes). Migration soldée (#319) : 18 sites → `get().log(...)`, BASELINE
- * ZÉRO partout — toute réapparition du motif hors `store.ts` (son foyer) est une régression.
+ * ZÉRO partout — toute réapparition du motif hors `journal.ts` (son foyer) est une régression.
  *
- * `store.ts` HORS SCAN : c'est le foyer de la primitive, son implémentation EST le motif.
+ * `journal.ts` HORS SCAN : c'est le foyer de la primitive, son implémentation EST le motif.
  */
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
 const SCAN_DIRS = ['src/state', 'src/noyau'];
-const EXCLUDED = (rel: string) => estFichierVitest(rel) || rel === 'src/state/store.ts';
+const FOYER = 'src/noyau/journal.ts';
+const EXCLUDED = (rel: string) => estFichierVitest(rel) || rel === FOYER;
 
 function countsByFile(): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -30,12 +31,12 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou « log » — composition du journal (cliquet, #319)', () => {
-  it('aucun fichier de src/state (hors store.ts) ne réinvente `.journal.slice(-40)`', () => {
+  it('aucun fichier de src/state ni de src/noyau (hors journal.ts) ne réinvente `.journal.slice(-40)`', () => {
     const counts = countsByFile();
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(
       offenders,
-      `Nouvelle réinvention du composeur de journal — router par get().log(...) (src/state/store.ts) :\n${offenders.join('\n')}`,
+      `Nouvelle réinvention du composeur de journal — router par get().log(...) (${FOYER}) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 
@@ -44,8 +45,8 @@ describe('garde-fou « log » — composition du journal (cliquet, #319)', () =>
     expect(scanJournalWrite('src/state/x.ts', regressed).length).toBe(1);
   });
 
-  it('la primitive canonique elle-même (store.ts, hors scan) porte bien le motif — sinon le foyer a bougé', () => {
-    const src = readFileSync(join(ROOT, 'src/state/store.ts'), 'utf8');
-    expect(scanJournalWrite('src/state/store.ts', src).length).toBeGreaterThan(0);
+  it('la primitive canonique elle-même (journal.ts, hors scan) porte bien le motif — sinon le foyer a bougé', () => {
+    const src = readFileSync(join(ROOT, FOYER), 'utf8');
+    expect(scanJournalWrite(FOYER, src).length).toBeGreaterThan(0);
   });
 });

@@ -10,6 +10,7 @@ import type { Get, Set } from './flowTypes';
 import { rule } from '../engine/policy';
 import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/favor';
 import { t } from '../i18n';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 let favorSeq = 0;
 function newFavorId(): string {
@@ -92,4 +93,12 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
   } else {
     get().log(t('favor.brokenSilent', { name: h.label, level: favor.level, owedTo: favor.owedTo }));
   }
+}
+
+export function creerActionsDesFaveurs(get: Get, set: Set) {
+  return {
+    favorGrant: (heroId, level, owedTo, desc) => grantFavor(get, set, heroId, level, owedTo, desc),
+    favorSettle: (heroId, favorId) => settleFavorActivity(get, set, heroId, favorId),
+    favorBreak: (heroId, favorId) => breakFavor(get, set, heroId, favorId),
+  } satisfies Partial<ActionsDuNoyau>;
 }

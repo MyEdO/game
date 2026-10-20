@@ -22,6 +22,7 @@ import { generateTradeRumour } from './landMarketFlow';
 import { placeOfScene } from './worldMap';
 import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 const ACTIVITY_ID = 'recueillir-informations';
 const INN_GOSSIP_KIND = 'inn-gather-info';
@@ -63,3 +64,9 @@ registerCascadeApplier(INN_GOSSIP_KIND, (get, set, step, hero) => {
   }
   return { consequences: cons };
 });
+
+export function creerActionsDeLAuberge(get: Get, set: Set) {
+  return {
+    gatherInnInfo: () => gatherInnInfo(get, set),
+  } satisfies Partial<ActionsDuNoyau>;
+}

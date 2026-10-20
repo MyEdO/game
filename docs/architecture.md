@@ -74,7 +74,7 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
   en primitive sous #330 → `MasterDetail` dans `docs/primitives.md`.
 - `StatChip` / `itemStatParts` : trois formes de données différentes (chaîne d'`ItemInstance`,
   `Combatant.weapons` résolues, table par famille).
-- Sweep `actorIn` dans `store.ts` : `battle` y reste en portée pour le `set` final.
+- Sweep `actorIn` dans les fabriques d'actions du noyau : `battle` y reste en portée pour le `set` final.
 
 ## Arborescence
 
@@ -299,7 +299,14 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`, et les flux
-                            de jeu ci-dessous. Aucune réexportation : chaque importeur
+                            de jeu ci-dessous. Les ACTIONS de jeu (`ActionsDuNoyau`) naissent de fabriques
+                            `(get, set) => actions`, une par concept, rangées dans le module du concept
+                            (`createCombatSlice`, `creerActionsDuMarchand` de `merchantFlow.ts`…) ou dans
+                            un module propre : `entreeEnScene.ts` (partie neuve, changement de scène,
+                            `EVT.ARRIVEE_EN_SCENE`), `marcheDuGroupe.ts` (pas, saut, porte),
+                            `interactionsDExploration.ts` (offres, assise, fouille), `conversation.ts`,
+                            `testsDeScene.ts`, `issueDeCombat.ts`, `campagne.ts` (indices, documents, héros
+                            désignés), `orientation.ts`, `horloge.ts`, `journal.ts`. Aucune réexportation : chaque importeur
                             nomme le module qui déclare (garde `scripts/guards/lib/reexportations.mjs`).
   pendings.ts                 types Pending*
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
@@ -404,9 +411,10 @@ src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, co
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions
-                            d'adaptateur (vue, caméra/zoom, fiche, coop, saves) + campagne (scènes, dialogues,
-                            effets, temps/repos) + actions de combat — délègue aux modules (get,set) du
-                            noyau, dont il importe pour leur effet les modules à inscription (#2817 D2).
+                            d'adaptateur (vue, caméra/zoom, fiche, coop, saves) ; il étale les fabriques
+                            d'actions du noyau, remet son interface à l'entrée en scène
+                            (`EVT.ARRIVEE_EN_SCENE`) et importe pour leur effet les modules à inscription
+                            (#2817 D2).
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-
                               `gameIso/viewLevel.ts`) — SOURCE dans `state`, lu par l'hôte du monde
                               (`gameIso/stage/MondeDeCampagne`)
@@ -418,7 +426,7 @@ src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, co
                               stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
                               le message au joueur par `ui/SaveLoadModal`.
                               Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
-                              (`store.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
+                              (`noyau/etat.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
                               paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
                               `applyLoadedSave` RÉ-ENREGISTRE toutes ses scènes (`registerScene`) et
                               RE-DÉRIVE `campaignNarratif` — sans lui, le `sceneRegistry` en mémoire

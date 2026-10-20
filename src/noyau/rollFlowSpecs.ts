@@ -52,6 +52,7 @@ import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psyc
 import { t } from '../i18n';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
+import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -2172,4 +2173,10 @@ function counterspellEngage(
   const grp = part.declared === 'soutenu' ? counterspellSoutenu(s, pcs) : null;
   for (const c of grp ? grp.unis : [actor]) c.dispelledThisRound = true;
   return true;
+}
+
+export function creerActionsDuJetDActivite(get: Get, set: Set) {
+  return {
+    activityCancel: () => FLOWS.activity.cancel(get, set),
+  } satisfies Partial<ActionsDuNoyau>;
 }
