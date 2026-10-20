@@ -21,7 +21,7 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 // liaison vive `fireScheduledEffects` que le store lit du baril sous le bundler).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatFlow';
 import { nomDEntite, sceneNpc } from './sceneNpc';
-import { presetDuNarratif } from './campaignData';
+import { presetDuNarratif } from './resolveursDuNarratif';
 import { placeServices, type WorldMap } from './worldMap';
 import { allMusicDefs } from '../audio/music';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
@@ -204,7 +204,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const refCtx: EffectRefCtx = {
       sceneIds, dialogueIds: dlgIds, encounterIds: encIds,
       entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
-      npcSheet: (id) => sceneNpc(s, id),
+      npcSheet: (id) => sceneNpc(s, id, presetDe),
       within,
       walkable: (x, y, z) => groupePosable(s, { x, y, z }),
     };

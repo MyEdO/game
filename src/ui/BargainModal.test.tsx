@@ -10,6 +10,7 @@ import { skillBaseValue, testValue } from '../engine/skills';
 import { findMutationById } from '../data';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
+import { presetPnjById } from '../state/campaignData';
 
 const base: PendingBargain = {
   playerId: 'h',
@@ -45,7 +46,7 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
     useGame.getState().openMerchant('marchand');
     useGame.getState().startBargain('buy');
     const pb = useGame.getState().pendingBargain!;
-    const fiche = sceneNpc(scene, 'marchand')!;
+    const fiche = sceneNpc(scene, 'marchand', presetPnjById)!;
     expect(fiche.creatureId).toBe('nain');
     expect(pb.opposant.portrait?.creatureId).toBe('nain');
     Object.assign(initial, { pendingBargain: pb, party: [] });

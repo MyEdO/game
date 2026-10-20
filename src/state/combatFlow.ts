@@ -266,6 +266,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 
 // --- Effets de scène/campagne : combatEffects.ts (baril) ---
 export * from './combatEffects';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, registerCastSpellEffect, ouvrirChute, cloturer, registerCloture, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './commandTeam';
 // --- Manœuvres de créature (énumération + résolveurs roll/apply) : combatManeuvers.ts (baril) ---
@@ -7256,7 +7257,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   // L'ÉQUIPEMENT (giveTrapping sans heroId) devient du butin ATTRIBUABLE sur l'écran (qualités
   // conservées) au lieu d'aller d'office au 1er héros — même brique que la fenêtre de loot
   // (gearFromEffects). Un giveTrapping ciblé (heroId d'auteur) s'applique directement.
-  const { gear, rest: immediate } = gearFromEffects(all.filter((e) => !CONTEXT.has(e.type)));
+  const { gear, rest: immediate } = gearFromEffects(all.filter((e) => !CONTEXT.has(e.type)), objetDuNarratif(get().campaignNarratif));
   const messages = immediate.flatMap((e) => (e.type === 'journal' && e.desc ? [e.desc] : []));
   const issue = immediate.length ? applyEffects(get, set, immediate) : undefined;
   const counts = new Map<string, { label: string; count: number; creatureId?: string }>();
@@ -7296,7 +7297,6 @@ registerCloture('ouvrirEcranDeVictoire', (get, set, c) => {
 export function finishCombatEnd(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  if (get().combatCursor) set({ combatCursor: null }); // fin de combat : plus de navigation au curseur
   const heroesAlive = battle.combatants.some((c) => c.kind === 'hero' && !isOutOfAction(c));
   if (heroesAlive) { finishVictory(get, set); return; }
   // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
@@ -7488,7 +7488,6 @@ export function advanceTurn(get: Get, set: SetFn) {
   // d'IA en vol) ne doit pas ré-incrémenter le tour SOUS la pause — confirmRoundStart le posera.
   if (get().pendingRoundStart) return;
   if (combatAdvanceBlocked(get())) return;
-  if (get().combatCursor) set({ combatCursor: null }); // le curseur clavier/manette appartient au tour qui s'achève
   if (get().localIntent) set({ localIntent: null }); // l'intention armée appartient au tour qui s'achève
   clearActorAim(get, set); // le télégraphe appartient au geste du tour qui s'achève (filet : aucun chemin ne le laisse fuir)
   const battle = get().battle!; // non-null garanti par combatAdvanceBlocked ci-dessus

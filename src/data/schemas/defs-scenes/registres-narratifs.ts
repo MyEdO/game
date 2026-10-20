@@ -2,7 +2,7 @@
  * Les REGISTRES du bloc narratif (`NarratifBlock`, `src/state/campaignNarratif.ts`) — déclarés UNE fois.
  * Chaque liste d'entrées à `id` du narratif y a sa ligne ; la lisent le schéma (`raffineNarratif`,
  * `./narratif.ts` : unicité inter-registres et anti-collision globale), le résolveur de campagne
- * (`src/state/campaignData.ts`), le narratif vide (`emptyNarratif`), l'éditeur (`porteurDeLId`,
+ * (`src/state/resolveursDuNarratif.ts`), le narratif vide (`emptyNarratif`), l'éditeur (`porteurDeLId`,
  * `src/ui/editor/NarratifEditor.tsx`) et le compteur de la barre d'outils (`src/ui/editor/Editor.tsx`).
  * Un registre de plus = une ligne ici.
  *

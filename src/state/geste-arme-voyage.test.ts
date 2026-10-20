@@ -19,6 +19,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { argsAvecVerdictLocal } from './localIntent';
+import { withActingSeat } from './netOwnership';
 import { refuserGeste, eteindreRefus } from './refusVisible';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
 import { snapshotSave } from './saves';
@@ -157,6 +158,44 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
     expect(get().pendingRun ?? get().pendingCascade, 'la Course d’autrui est partie sur la case de l’hôte').toBeFalsy();
     expect(get().refus?.texte ?? '').toContain('Course');
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
+  });
+
+  /** Hôte qui a ARMÉ la Course sur le héros, puis l'a confié au siège 1 : le clic de ce siège
+   *  s'exécute chez lui, sous `withActingSeat`, comme `netFlow.applyIntent`. */
+  function hoteArmeHerosConfie() {
+    const net0 = get().net;
+    const { H } = setup();
+    useGame.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
+    runAction('course', get);
+    expect(get().localIntent, 'témoin : l’hôte a armé SA Course').toEqual({ actionId: 'course' });
+    useGame.setState({ net: { ...get().net, ownership: { [H.id]: 1 } } });
+    return { H, net0 };
+  }
+
+  it('SIÈGE sans verdict : son clic ne court pas et ne dissout pas l’intention armée du propriétaire', () => {
+    const { H, net0 } = hoteArmeHerosConfie();
+    try {
+      withActingSeat(1, () => get().battleClickTile({ x: 10 + 6, y: 10 }, { confirm: true }));
+      vi.runOnlyPendingTimers();
+      expect(get().refus?.texte ?? '', 'témoin : le geste du siège a passé la garde de possession, puis refusé faute de verdict').toContain('Course');
+      expect(get().localIntent, 'le clic d’un autre siège a dissous l’intention de l’hôte').toEqual({ actionId: 'course' });
+      expect(get().pendingRun ?? get().pendingCascade, 'le siège a couru sur la case de l’hôte').toBeFalsy();
+      expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
+    } finally {
+      useGame.setState({ net: net0, pendingRun: null });
+    }
+  });
+
+  it('SIÈGE avec verdict joint : son clic court, par le verdict qu’il porte', () => {
+    const { H, net0 } = hoteArmeHerosConfie();
+    try {
+      withActingSeat(1, () => get().battleClickTile({ x: 10 + 6, y: 10 }, { confirm: true, courseArmee: true }));
+      vi.runOnlyPendingTimers();
+      expect(get().refus, 'le geste armé du siège a été refusé').toBeNull();
+      expect(get().pendingRun, 'le siège n’a pas couru').toMatchObject({ combatantId: H.id, dest: { x: 10 + 6, y: 10 } });
+    } finally {
+      useGame.setState({ net: net0, pendingRun: null });
+    }
   });
 
   it('CLAVIER : `commitCursor` commet par l’ACTION DE STORE — donc par le wrapper d’invité', () => {

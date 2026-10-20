@@ -129,6 +129,11 @@ export function withActingSeat<T>(seat: number, fn: () => T): T {
   }
 }
 
+/** Un siège agit-il MAINTENANT (application d'un intent reçu, `withActingSeat`) ? */
+export function unSiegeAgit(): boolean {
+  return actingSeat != null;
+}
+
 /** Le siège au nom duquel on décide MAINTENANT : celui qui agit s'il y en a un, sinon le siège local.
  *  Exporté pour les gestes qui MARQUENT leur siège dans l'état partagé (demande de pause de Round) :
  *  le siège vient du TRANSPORT (`withActingSeat`, posé par `netFlow.applyIntent`), jamais des arguments

@@ -10,6 +10,7 @@ import type { SceneEntity } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { inFiringBand } from './combatFlow';
 import { tenueFor, tenueForClass } from '../gameIso/rig/parts/career';
+import { presetPnjById } from './campaignData';
 
 const POS = { x: 0, y: 0 };
 afterEach(() => vi.restoreAllMocks());
@@ -23,20 +24,20 @@ describe('#1882 — aucune fiche sans porteur : ni profil de repli, ni PNJ gén�
 
   it('une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité', () => {
     const ent = { id: 'badaud', kind: 'personnage', pos: POS, label: 'Badaud', appearance: { species: 'humains-reiklander' } } as SceneEntity;
-    expect(() => ficheDEntite(ent)).toThrow(FicheAbsente);
-    expect(() => ficheDEntite(ent)).toThrow(/personnage « badaud » : « ref », « statblock », « presetId » absents/);
+    expect(() => ficheDEntite(ent, presetPnjById)).toThrow(FicheAbsente);
+    expect(() => ficheDEntite(ent, presetPnjById)).toThrow(/personnage « badaud » : « ref », « statblock », « presetId » absents/);
   });
 
   it('un preset irrésoluble sans autre porteur est dit tel quel', () => {
     const ent = { id: 'baron', kind: 'personnage', pos: POS, presetId: 'preset-inconnu' } as SceneEntity;
-    expect(() => ficheDEntite(ent)).toThrow(/preset de PNJ « preset-inconnu » irrésoluble/);
+    expect(() => ficheDEntite(ent, presetPnjById)).toThrow(/preset de PNJ « preset-inconnu » irrésoluble/);
   });
 
   it('un preset irrésoluble ne retombe JAMAIS sur le statbloc ou la réf. qu’il côtoie', () => {
     const sb = { type: 'statblock', label: 'Statbloc voisin', char: { B: 10 } } as const;
     for (const voisin of [{ ref: 'humain' }, { statblock: sb }]) {
       const ent = { id: 'baron', kind: 'personnage', pos: POS, presetId: 'preset-inconnu', ...voisin } as SceneEntity;
-      expect(() => ficheDEntite(ent), JSON.stringify(voisin)).toThrow(/preset de PNJ « preset-inconnu » irrésoluble/);
+      expect(() => ficheDEntite(ent, presetPnjById), JSON.stringify(voisin)).toThrow(/preset de PNJ « preset-inconnu » irrésoluble/);
     }
   });
 });

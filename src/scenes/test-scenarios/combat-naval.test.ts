@@ -12,6 +12,7 @@ import { layerTiles, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { PREGEN } from '../../data/pregens';
 import type { BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
+import { presetPnjById } from '../../state/campaignData';
 
 /** Ids de PARTY pregen des 2 canonniers (Soldat + Chasseur) — chefs de pièce des pierriers de la barge amie.
  *  Couplage runtime `applyShipPostes` : ces ids ne changent PAS (ils réfèrent le groupe, pas la rencontre). */
@@ -26,7 +27,7 @@ function spawnRoster(): Combatant[] {
   const ents = scenConstruit.scene.entities
     .filter((e) => e.id.startsWith('enemy-enc-naval-'))
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
-  return ents.map(ficheDEntite);
+  return ents.map((e) => ficheDEntite(e, presetPnjById));
 }
 
 /**

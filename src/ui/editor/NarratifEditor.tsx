@@ -6,7 +6,7 @@ import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
 import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
-import { mergeCreatureProfile } from '../../state/campaignData';
+import { mergeCreatureProfile } from '../../state/resolveursDuNarratif';
 import { charAbr, creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import type { NarratifBlock, PresetPnj, Affaire, Indice, IndiceStade, DocumentNarratif, EtatNarratif, OuvertureBlock, ClotureBlock, AmbianceCadre, EcartDeFiche } from '../../state/campaignNarratif';

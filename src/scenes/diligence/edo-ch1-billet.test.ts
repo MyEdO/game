@@ -21,6 +21,7 @@ import { cleDeBillet, parseProject, ProjetRefuse, type ProjectDoc } from '../../
 import { skillBaseValue } from '../../engine/skills';
 import { pnjAuPreset } from '../../state/sceneNpc';
 import { draineCascade } from '../../state/cascadeTestKit';
+import { presetPnjById } from '../../state/campaignData';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;
@@ -159,7 +160,7 @@ describe('(b) prix des paliers par passager (EDO 01 l.142 ; LDB 59 l.43 ; LDB 10
 describe('(c) un seul Test de Marchandage par billet', () => {
   it('le vendeur est Gunnar et Hultz, au Marchandage de leur fiche ; après conclusion, le billet ne se remarchande plus', () => {
     aBord();
-    const gunnar = pnjAuPreset('edo-gunnar-et-hultz', 'probe')!;
+    const gunnar = pnjAuPreset('edo-gunnar-et-hultz', 'probe', presetPnjById)!;
     get().startBilletBargain(T1, 'diligence');
     const pb = get().pendingBargain!;
     expect(pb.opposant.label).toBe('Gunnar et Hultz');

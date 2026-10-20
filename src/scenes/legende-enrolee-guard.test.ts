@@ -17,6 +17,7 @@ import { useGame } from '../state/store';
 import { testScenarios } from './test-scenarios';
 import type { Scene } from '../noyau/monde/scene';
 import type { NarratifBlock } from '../state/campaignNarratif';
+import { presetPnjById } from '../state/campaignData';
 
 const EXEMPTES = new Map<string, string>([
   ['ls-abordage-cogue|chef-cogue', 'nom propre : le chef de l’équipage de la Dent de Manann'],
@@ -42,7 +43,7 @@ function enroles(): { site: string; label: string; nomDeFiche: string }[] {
       for (const m of enc.members ?? []) {
         const ent = sc.entities.find((e) => e.id === m.entityId && e.kind === 'personnage');
         if (!ent?.label) continue;
-        out.push({ site: `${sc.id}|${ent.id}`, label: ent.label, nomDeFiche: ficheDEntite({ ...ent, label: undefined }).label });
+        out.push({ site: `${sc.id}|${ent.id}`, label: ent.label, nomDeFiche: ficheDEntite({ ...ent, label: undefined }, presetPnjById).label });
       }
   }
   useGame.setState({ campaignNarratif: null });

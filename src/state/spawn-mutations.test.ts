@@ -10,7 +10,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { useGame } from './store';
-import { resolvePresetCreature } from './campaignData';
+import { resolvePresetCreature } from './resolveursDuNarratif';
+import { presetPnjById } from './campaignData';
 import { creatureToCombatant, statblockToCombatant } from './spawn';
 import { parseProject } from './worldMap';
 import type { NarratifBlock } from './campaignNarratif';
@@ -59,7 +60,7 @@ function talentsNatifs(refs: { id: string; times?: number }[] | undefined): { ta
 function porteursDuNarratif(ou: string, narratif: NarratifBlock): Porteur[] {
   return narratif.presetsPnj.flatMap((preset) => {
     useGame.setState({ campaignNarratif: narratif });
-    const r = resolvePresetCreature(preset.id);
+    const r = resolvePresetCreature(preset.id, presetPnjById);
     if (!r || !porteMutation(r.creature.traits)) return [];
     const creature = r.creature;
     return [{ ou: `${ou} › preset ${preset.id}`, traits: creature.traits, nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];

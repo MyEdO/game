@@ -18,6 +18,7 @@ import { Combatant } from '../engine/types';
 import { Scene } from '../noyau/monde/scene';
 import type { CascadeStep, BatchParticipant } from '../noyau/pendings';
 import { ficheDEntite } from './sceneNpc';
+import { presetDuNarratif, type ResolveurDePreset } from './resolveursDuNarratif';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, cibleLabel, PsychType, psychTest, failConditionAmount, psychResolution, psychBranchOps, psychBranchFlow, supersededLines, isPsychImmune, refreshAllDefendedPsych, endEncounterPsych } from '../engine/psychology';
 import { refLabel, combatStakeRef } from '../data';
@@ -46,10 +47,10 @@ export interface PendingEncounterPsych {
 
 /** PNJ « personnage » présents dans la scène, dérivés en Combatant (groups/causesPeur/Terreur/size).
  *  Un embusqueur caché n'inspire pas la Peur avant le combat. */
-export function sceneFearSources(scene: Scene): Combatant[] {
+export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Combatant[] {
   return (scene.entities ?? [])
     .filter((e) => e.kind === 'personnage' && !e.combat?.hiddenUntilCombat)
-    .map(ficheDEntite);
+    .map((e) => ficheDEntite(e, presetDe));
 }
 
 /** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.encounterPsych`). */
@@ -108,7 +109,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
   if (party.some(endEncounterPsych)) set({ party });
   const s = get();
   if (s.pendingCascade || !s.scene) return;
-  const npcs = sceneFearSources(s.scene);
+  const npcs = sceneFearSources(s.scene, presetDuNarratif(s.campaignNarratif));
   if (!npcs.length) return;
   // …PUIS le verdict « tant que vous défendez les êtres aimés » (l.75) sur ce qui a SURVÉCU à la borne
   // (pose authorée d'un Amour, Peur héritée) : le roster de la rencontre est le groupe + les PNJ présents.

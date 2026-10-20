@@ -4,6 +4,7 @@ import { validateScene } from '../../state/validateScene';
 import { ficheDEntite } from '../../state/sceneNpc';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { refs } from '../../data/schemas/grammaire/ref';
+import { presetPnjById } from '../../state/campaignData';
 
 describe('Batterie de scénarios de test', () => {
   it('couvre au moins 6 scénarios', () => {
@@ -39,7 +40,7 @@ describe('Batterie de scénarios de test', () => {
     assert(encounter.members?.length, 'enc-mutants doit contenir ses cinq membres');
     const species = encounter.members.map((member) => {
       const entity = entities.get(member.entityId)!;
-      const combatant = ficheDEntite(entity);
+      const combatant = ficheDEntite(entity, presetPnjById);
       return [combatant.label, combatant.species, enemyRigProfile(combatant)?.appearance.species];
     });
 

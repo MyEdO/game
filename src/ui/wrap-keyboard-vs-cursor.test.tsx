@@ -112,7 +112,12 @@ describe('(C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle 
   let host: HTMLDivElement;
   let root: Root;
   let commis = 0;
-  const etat = () => ({ ...(combatState() as object), combatCursor: { tile: { x: 1, y: 1 } }, commitCursor: () => { commis += 1; } }) as never;
+  /** Le combat d'abord, le curseur ensuite : un curseur posé dans l'écriture qui ouvre le combat est
+   *  périmé aussitôt (`curseurPerime`). */
+  const poserEtat = () => {
+    useGame.setState(combatState());
+    useGame.setState({ combatCursor: { tile: { x: 1, y: 1 } }, commitCursor: () => { commis += 1; } } as never);
+  };
   beforeEach(() => {
     commis = 0;
     host = document.createElement('div');
@@ -133,7 +138,7 @@ describe('(C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle 
   for (const role of ['tooltip', 'dialog'] as const) {
     it(`role="${role}" : Entrée active le bouton, le curseur tactique ne commet rien`, () => {
       act(() => root.render(<Surface surface={role} />));
-      act(() => { useGame.setState(etat()); });
+      act(() => { poserEtat(); });
       entree();
       expect(commis, `Entrée sur un bouton d’une surface ${role} a commis le curseur derrière`).toBe(0);
     });
@@ -141,7 +146,7 @@ describe('(C) SURFACE — un bouton focalisé dans un dialogue ou une infobulle 
 
   it('hors surface (focus résiduel du bouton « Pousser », #199) : Entrée commet le curseur', () => {
     act(() => root.render(<Surface />));
-    act(() => { useGame.setState(etat()); });
+    act(() => { poserEtat(); });
     entree();
     expect(commis, 'hors surface, Entrée appartient au curseur').toBe(1);
   });

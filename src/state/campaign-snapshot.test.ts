@@ -11,7 +11,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { resetSceneRegistry } from './registreDesScenes';
-import { presetPnjById, trappingById } from './campaignData';
+import { presetPnjById } from './campaignData';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
 import type { WorldMap } from './worldMap';
@@ -102,7 +103,7 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     expect(useGame.getState().worldMap?.id).toBe('snap-carte'); // carte du paquet restaurée
     // La couche narrative est re-dérivée de campaignDoc.narratif (non persistée au snapshot).
     expect(presetPnjById('snap-pnj')?.id).toBe('snap-pnj');
-    expect(trappingById(OBJET_ID)?.label).toBe('Lame maudite');
+    expect(objetDuNarratif(useGame.getState().campaignNarratif)(OBJET_ID)?.label).toBe('Lame maudite');
     // La preuve : scene-b, absente du registre reparti de zéro, l'est de nouveau → la transition réussit.
     useGame.getState().transitionTo('scene-b');
     expect(useGame.getState().scene?.id).toBe('scene-b');

@@ -14,6 +14,7 @@ import type { BargainOutcome } from '../engine/bargain';
 import { t } from '../i18n';
 import { skillBaseValue } from '../engine/skills';
 import { pnjAuPreset } from './sceneNpc';
+import { presetDuNarratif } from './resolveursDuNarratif';
 import { ouvrirMarchandage } from './merchantFlow';
 
 /** Le billet payé que le groupe tient en main : ses routes restantes, dans l'ordre du trajet. */
@@ -117,7 +118,7 @@ export function startBilletBargain(get: Get, set: Set, routeId: string, vehicule
   if (get().battle || get().pendingBargain) return;
   const offre = offreIci(get, routeId, vehicule);
   if (!offre || offre.couvert || !offre.vendeurPresetId || offre.issue) return;
-  const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`);
+  const vendeur = pnjAuPreset(offre.vendeurPresetId, `vendeur-${offre.cle}`, presetDuNarratif(get().campaignNarratif));
   if (!vendeur) return;
   ouvrirMarchandage(get, set, { kind: 'billet', routeId, vehicule, depuis: offre.depuis, titre: t('out.bargainTitreBillet') }, { label: vendeur.label, valeur: skillBaseValue(vendeur, 'marchandage'), portrait: vendeur });
 }

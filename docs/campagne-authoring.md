@@ -347,10 +347,10 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   d'un billet (`refuserSansProvenance`), `forme` ∈ `heros { identite? }` | `enum { valeurs }`.
 - **Registres.** Les listes à `id` du narratif sont déclarées UNE fois, dans `REGISTRES_NARRATIFS`
   (`src/data/schemas/defs-scenes/registres-narratifs.ts`) : schéma (unicité inter-registres,
-  anti-collision globale), résolveur (`campaignData.ts`), narratif vide (`emptyNarratif`) et éditeur la
+  anti-collision globale), résolveur (`resolveursDuNarratif.ts`), narratif vide (`emptyNarratif`) et éditeur la
   lisent. Un registre de plus = une ligne de cette table.
 - **Remettre un document.** L'Effect `{ type: 'document', documentId }` désigne une entrée de
-  `narratif.documents` ; `apply` la résout (`documentById`) et ouvre la modale `DocumentModal`
+  `narratif.documents` ; `apply` la résout (`documentDuNarratif`) et ouvre la modale `DocumentModal`
   (`store.document`, qui porte `documentId` : sa prose est nommée par les identités, § 9). L'Effet est
   SUSPENSIF : la suite du Flow attend la fermeture (`closeDocument`), si bien que deux documents remis
   à la suite se lisent l'un après l'autre (EDO 02 l.89-95). Toute remise passe par `remettreDocument`, qui
@@ -432,7 +432,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
   terse) porte `presetId` = l'id d'un `narratif.presetsPnj`. Présent, l'entité est INSTANCIÉE
   « base globale + surcharges du preset » (jamais depuis `ref`/`statblock`) : `resolvePresetCreature`
-  (`src/state/campaignData.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
+  (`src/state/resolveursDuNarratif.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
   passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)

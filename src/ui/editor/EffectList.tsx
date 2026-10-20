@@ -32,7 +32,7 @@ import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/sc
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { nomDEntite } from '../../state/sceneNpc';
-import { presetDuNarratif } from '../../state/campaignData';
+import { presetDuNarratif } from '../../state/resolveursDuNarratif';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';

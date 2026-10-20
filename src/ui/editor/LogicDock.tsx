@@ -11,7 +11,7 @@ import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { nomDEntite } from '../../state/sceneNpc';
-import { presetDuNarratif } from '../../state/campaignData';
+import { presetDuNarratif } from '../../state/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../noyau/monde/flow';
 import type { Warning } from '../../state/validateScene';

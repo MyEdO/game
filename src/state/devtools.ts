@@ -93,6 +93,7 @@ import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
 import { setAiTrace } from './ai';
 import { viewYawDeg } from './stageYaw';
 import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { pushChoice } from '../noyau/rollSeam';
 import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
@@ -1626,7 +1627,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         const pv = useGame.getState().pendingVictory;
         const t = trappingsInstanciables().find((x) => x.qualities?.length);
         if (pv && t) {
-          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }]);
+          const { gear } = gearFromEffects([{ type: 'giveTrapping', trappingId: t.id }], objetDuNarratif(useGame.getState().campaignNarratif));
           useGame.setState({ pendingVictory: { ...pv, gear: [...(pv.gear ?? []), ...gear] } });
           lootNote = ` — butin qualité ajouté : ${t.label} (${t.qualities.map((q) => q.id).join(', ')})`;
         } else if (!pv) {

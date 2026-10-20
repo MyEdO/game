@@ -35,6 +35,7 @@ import { baseWithTalents } from '../engine/talentEffects';
 import { entityPickables, OPS_DIFFEREES } from './combatEffects';
 import { t } from '../i18n';
 import { makeRNG } from '../engine/dice';
+import { objetDuNarratif } from './resolveursDuNarratif';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -2258,7 +2259,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     const feuilles = flowEffects(corps.usable!.actions![0].flow);
     expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'tromblon')).toBe(true);
     expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'dague')).toBe(true);
-    expect(entityPickables(corps, st.flags).map((p) => p.key)).toEqual(['fouiller:eff:1']);
+    expect(entityPickables(corps, st.flags, objetDuNarratif(st.campaignNarratif)).map((p) => p.key)).toEqual(['fouiller:eff:1']);
   });
 
   it('refusé si l’Action est déjà consommée', () => {

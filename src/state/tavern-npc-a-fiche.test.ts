@@ -32,6 +32,7 @@ import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
 import { scenario as scenarioEdo } from '../scenes/test-scenarios/96-presets-edo';
+import { presetPnjById } from './campaignData';
 const scenarioEdoConstruit = scenarioEdo.construire();
 
 const get = useGame.getState.bind(useGame);
@@ -67,8 +68,8 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
   it('sa valeur de jeu est DÉRIVÉE de sa fiche : deux PNJ aux avances de Pari différentes ne jouent pas la même', () => {
     poseScene([pnjDeScene('pnj-fort', 'Plantule', 70), pnjDeScene('pnj-faible', 'Un quidam', 30)]);
     const jeu = findTavernGameById('dominos')!;
-    const fort = sceneNpc(get().scene, 'pnj-fort')!;
-    const faible = sceneNpc(get().scene, 'pnj-faible')!;
+    const fort = sceneNpc(get().scene, 'pnj-fort', presetPnjById)!;
+    const faible = sceneNpc(get().scene, 'pnj-faible', presetPnjById)!;
 
     expect(tavernGameValue(fort, jeu)).toBe(tavernGameValue(faible, jeu) + 40);
     // …et surtout : ce ne sont PAS des valeurs de table, ce sont des lectures de fiche.
@@ -85,7 +86,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     const seq = activeSequence<{ opponentValue: number; opponentName: string; opponentId?: string }>(get)!;
     expect(seq.payload.opponentId).toBe('pnj-plantule');
     expect(seq.payload.opponentName).toBe('Plantule');
-    expect(seq.payload.opponentValue).toBe(tavernGameValue(sceneNpc(get().scene, 'pnj-plantule')!, jeu));
+    expect(seq.payload.opponentValue).toBe(tavernGameValue(sceneNpc(get().scene, 'pnj-plantule', presetPnjById)!, jeu));
     expect(seq.payload.opponentValue).toBe(55);
   });
 
@@ -106,7 +107,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
       pnjDeScene('pnj-muet', 'Un buveur', 35),
     ]);
 
-    const offres = tavernNpcOffers(get().scene);
+    const offres = tavernNpcOffers(get().scene, presetPnjById);
     expect(offres).toHaveLength(1);
     expect(offres[0]).toMatchObject({ id: 'pnj-plantule', label: 'Plantule', gameId: 'dominos', stakeBrass: 12 });
   });
@@ -182,7 +183,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
       battle: null, sequence: null, pendingCascade: null,
     });
 
-    const phillipe = sceneNpc(get().scene, 'npc-phillipe');
+    const phillipe = sceneNpc(get().scene, 'npc-phillipe', presetPnjById);
     expect(phillipe, 'le preset doit se résoudre en fiche').toBeTruthy();
     expect(phillipe!.label).toBe('Phillipe Descartes');
     // `EDO 23` lui donne Pari 50 : c'est SA valeur qui doit sortir du collecteur canonique, pas un
@@ -198,7 +199,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
       battle: null, sequence: null, pendingCascade: null,
     });
 
-    const offres = tavernNpcOffers(get().scene);
+    const offres = tavernNpcOffers(get().scene, presetPnjById);
     expect(offres).toEqual([{ id: 'npc-phillipe', label: 'Phillipe Descartes', gameId: 'dominos', stakeBrass: 24 }]);
   });
 });
@@ -221,8 +222,8 @@ describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
   it('l’offre de la salle porte le nom de l’ENTITÉ, pas le libellé de sa fiche', () => {
     poseScene([pnjRenomme('pnj-gerta', 'Gerta la Rusée', 'Batelière', { gameId: 'dominos', stakeBrass: 12 })]);
 
-    expect(sceneNpc(get().scene, 'pnj-gerta')!.label).toBe('Gerta la Rusée');
-    expect(tavernNpcOffers(get().scene)[0]).toMatchObject({ id: 'pnj-gerta', label: 'Gerta la Rusée' });
+    expect(sceneNpc(get().scene, 'pnj-gerta', presetPnjById)!.label).toBe('Gerta la Rusée');
+    expect(tavernNpcOffers(get().scene, presetPnjById)[0]).toMatchObject({ id: 'pnj-gerta', label: 'Gerta la Rusée' });
   });
 
   it('la manche ouverte contre lui le NOMME de son nom d’auteur, et joue les valeurs de sa fiche', () => {
@@ -305,6 +306,6 @@ describe('#1882 — la salle ne propose que des adversaires À FICHE', () => {
   it('un proposeur sans porteur de fiche est exclu de l’offre ; le proposeur à fiche reste', () => {
     const { statblock: _sansFiche, ...sansFiche } = pnjDeScene('pnj-vide', 'Sans fiche', 40, { gameId: 'dominos' });
     poseScene([pnjDeScene('pnj-gerta', 'Gerta', 45, { gameId: 'dominos' }), sansFiche as ReturnType<typeof pnjDeScene>]);
-    expect(tavernNpcOffers(get().scene).map((o) => o.id)).toEqual(['pnj-gerta']);
+    expect(tavernNpcOffers(get().scene, presetPnjById).map((o) => o.id)).toEqual(['pnj-gerta']);
   });
 });

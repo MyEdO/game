@@ -20,7 +20,7 @@ import { type AttackKind } from '../engine/creatureAttacks';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { facingToward, DIR8_DELTA, rotateDir8, type Dir8 } from '../noyau/monde/dir8';
 import { footprintTiles, footprintN } from '../noyau/monde/footprint';
-import { screenStepDot, type CombatCursor, type ScreenDir } from './combatCursor';
+import { creerActionsDuCurseur, curseurPerime, screenStepDot, type CombatCursor, type ScreenDir } from './combatCursor';
 import type { LocalIntent } from './localIntent';
 import type { RefusIHM } from './refusVisible';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
@@ -449,7 +449,7 @@ export interface GameState extends RollFlowActionsMap {
   setHoverCombatant: (id: string | null) => void;
   /** Curseur de combat CLAVIER/MANETTE : case visée (éventuellement aimantée à une cible). Il pilote le
    *  réticule comme un survol souris et se commet via battleClickEntity/Tile. null = aucune navigation
-   *  clavier en cours (la souris a la main). Vidé à l'avance de tour / fin de combat. */
+   *  clavier en cours (la souris a la main). Périmé par `curseurPerime`. */
   combatCursor: CombatCursor | null;
   /** Déplace le curseur d'une case dans la direction ÉCRAN poussée (le curseur « suit les yeux »). */
   moveCursor: (dir: ScreenDir) => void;
@@ -536,7 +536,7 @@ export interface GameState extends RollFlowActionsMap {
    *  re-pose au prochain lot d'effets — rien n'est perdu, rien n'est forcé. */
   ajournerChapterRecap: () => void;
   /** État runtime du carnet d'enquête (#670, mécanique MAISON) — keyé par id d'`Indice`
-   *  (`campaignData.indiceById`), absent = indice CACHÉ. CAMPAGNE-scopée : survit aux transitions
+   *  (`indiceDuNarratif`), absent = indice CACHÉ. CAMPAGNE-scopée : survit aux transitions
    *  de scène (une enquête traverse plusieurs scènes), vidée en nouvelle partie (`startScene`). */
   clues: Record<string, ClueState>;
   /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
@@ -570,7 +570,7 @@ export interface GameState extends RollFlowActionsMap {
   battle: BattleState | null;
   campaignSceneId: string | null;
   /** Couche NARRATIVE de la campagne chargée (#765/#767) — bloc `{affaires, indices, presetsPnj, objets}`
-   *  du paquet, posé par `loadProject`, lu par id via le résolveur UNIQUE `campaignData.ts`. RUNTIME
+   *  du paquet, posé par `loadProject`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
    *  (jamais dans `src/data` global, jamais au Compendium) ; null = aucune campagne à narratif. La
    *  persistance snapshot est déférée (#766). */
   campaignNarratif: NarratifBlock | null;
@@ -1887,6 +1887,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
 
 export const useGame = create<GameState>((set, get) => ({
   ...createCombatSlice(get, set),
+  ...creerActionsDuCurseur(get, set),
   screen: 'menu',
   compendiumFocus: null,
   compendiumReturn: 'menu',
@@ -3296,10 +3297,12 @@ bus.on(EVT.TIME_ADVANCED, () => purgeSurAvanceDHorloge(useGame.getState, useGame
 // élagage, geste d'assise — arrive avec sa propre vérité, déjà élaguée à sa source ; il n'y a alors
 // rien à réconcilier. C'est aussi ce qui rend la réentrance structurelle : l'écriture de libération
 // ci-dessous produit une occupation neuve, donc ne se rejoue pas.
+// Le même abonnement applique ENSUITE la péremption du curseur (`curseurPerime`).
 useGame.subscribe((s, prev) => {
   const scene = s.scene;
-  if (s.party === prev.party || !scene?.seatAssignments) return;
-  if (scene.seatAssignments !== prev.scene?.seatAssignments) return;
-  const debout = releaseRecomposedRanks(scene, prev.party, s.party);
-  if (debout !== scene) useGame.setState({ scene: debout });
+  if (s.party !== prev.party && scene?.seatAssignments && scene.seatAssignments === prev.scene?.seatAssignments) {
+    const debout = releaseRecomposedRanks(scene, prev.party, s.party);
+    if (debout !== scene) useGame.setState({ scene: debout });
+  }
+  if (curseurPerime(prev, s) && useGame.getState().combatCursor) useGame.setState({ combatCursor: null });
 });

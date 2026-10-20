@@ -25,7 +25,7 @@ import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../state/worldMap';
 import type { NarratifBlock } from '../../state/campaignNarratif';
 import { nomDEntite } from '../../state/sceneNpc';
-import { presetDuNarratif } from '../../state/campaignData';
+import { presetDuNarratif } from '../../state/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
 import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
 import { tokenBodyKind } from '../../gameIso/tokenBodyKind';

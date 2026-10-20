@@ -9,7 +9,8 @@ import { poserScenario } from '../state/scenarioFlow';
 import { lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
 import { makePregens } from '../data/pregens';
 import { scenario } from '../scenes/test-scenarios/96-presets-edo';
-import { presetPnjById, mergeCreatureProfile } from '../state/campaignData';
+import { presetPnjById } from '../state/campaignData';
+import { mergeCreatureProfile } from '../state/resolveursDuNarratif';
 import { sceneNpc } from '../state/sceneNpc';
 import { spawnEnemy } from '../state/spawn';
 import { netSnapshot, applyNetSnapshot } from '../state/netFlow';
@@ -294,7 +295,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     expect(useGame.getState().inspectId).toBe('npc-phillipe');
     const dlg = dialogue();
     expect(dlg.textContent).toContain('Phillipe Descartes');
-    const prose = proseDeFiche(sceneNpc(useGame.getState().scene, 'npc-phillipe')!, presetPnjById, duNarratif);
+    const prose = proseDeFiche(sceneNpc(useGame.getState().scene, 'npc-phillipe', presetPnjById)!, presetPnjById, duNarratif);
     expect(prose, 'Phillipe est un preset DÉCRIT').toBeTruthy();
     expect(ouvrirDescription(dlg).textContent).toContain(extrait((prose!.section.rows[0] as { text: string }).text));
   });
@@ -344,7 +345,7 @@ describe('proseDeFiche — provenance de la Description (#2206)', () => {
   it('preset au profil MUET sur base décrite : la desc de la BASE, portée par la base — liens Codex actifs', () => {
     // Base `squelette` : sa desc cite des entrées du Codex (celle de `mutant` n'en cite aucune).
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: 'squelette', profil: { label: 'Squelette muet' } }] } });
-    const c = sceneNpc(sceneAuPreset('pnj-muet'), 'pnj')!;
+    const c = sceneNpc(sceneAuPreset('pnj-muet'), 'pnj', presetPnjById)!;
     const p = proseDeFiche(c, presetPnjById, duNarratif)!;
     expect(p.section.rows).toEqual([{ t: 'text', text: findCreatureById('squelette')!.desc, porteur: { chemin: 'desc' } }]);
     expect(p.entree).toEqual({ type: 'creatures', id: 'squelette' });
@@ -386,7 +387,7 @@ describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée 
     useGame.setState(useGame.getInitialState());
     useGame.getState().setParty(makePregens().slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
-    const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj')!;
+    const gustav = sceneNpc(sceneAuPreset('edo-gustav-fondleburger'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-gustav-fondleburger')!.profil!.desc!;
     const porteur: Porteur = { type: 'projet', id: 'la-diligence', chemin: 'narratif.presetsPnj[1].profil.desc' };
     expect(proseDeFiche(gustav, presetPnjById, duNarratif)!.section.rows).toEqual([{ t: 'text', text: desc, porteur }]);
@@ -399,7 +400,7 @@ describe('DoD #2206 — la Description d’un preset de `la-diligence`, portée 
     useGame.setState(useGame.getInitialState());
     useGame.getState().setParty(makePregens().slice(0, 1));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign))).toBeNull();
-    const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj')!;
+    const terenz = sceneNpc(sceneAuPreset('edo-mutant-terenz'), 'pnj', presetPnjById)!;
     const desc = presetPnjById('edo-mutant-terenz')!.profil!.desc!;
     const porteur: Porteur = { type: 'projet', id: 'la-diligence', chemin: 'narratif.presetsPnj[14].profil.desc' };
     expect(proseDeFiche(terenz, presetPnjById, duNarratif)!.section.rows).toEqual([{ t: 'text', text: desc, porteur }]);
@@ -421,7 +422,7 @@ describe('InspectPanel — sans prose, ni onglet ni bloc vide', () => {
   it('Josef (`npc-josef`, profil sans prose, base `batelier` sans desc)', () => {
     poserScenario(useGame.getState, scenario);
     expect(findCreatureById('batelier')?.desc).toBeFalsy();
-    const josef = sceneNpc(useGame.getState().scene, 'npc-josef')!;
+    const josef = sceneNpc(useGame.getState().scene, 'npc-josef', presetPnjById)!;
     expect(josef.porteurDeFiche?.presetId).toBe('edo-josef-quartjin');
     sansOnglets(josef);
   });
@@ -466,7 +467,7 @@ describe('Aller-retour de l’état : `presetId` survit, `presetPnjById` répond
 describe('InspectPanel — hauteur stable entre onglets', () => {
   it('les deux panneaux restent montés dans la même cellule ; seul l’actif est lisible', () => {
     useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-muet', base: 'squelette', profil: { label: 'Squelette muet' } }] } });
-    const el = monter(<InspectPanel combatant={sceneNpc(sceneAuPreset('pnj-muet'), 'pnj')!} onClose={() => {}} />).ownerDocument.body;
+    const el = monter(<InspectPanel combatant={sceneNpc(sceneAuPreset('pnj-muet'), 'pnj', presetPnjById)!} onClose={() => {}} />).ownerDocument.body;
     const lisibles = () => panneaux(el).map((p) => !p.hasAttribute('inert') && p.getAttribute('aria-hidden') !== 'true');
     expect(el.querySelector('.insp-onglets')).toBeTruthy();
     expect(lisibles()).toEqual([true, false]);

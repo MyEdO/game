@@ -1,6 +1,6 @@
 /**
  * Effect `document { documentId }` (#679) — `apply` résout l'entrée au registre `narratif.documents` de
- * la campagne chargée (`documentById`) et pose la surface EXISTANTE `store.document` (titre, prose, origine) ; un
+ * la campagne chargée (`documentDuNarratif`) et pose la surface EXISTANTE `store.document` (titre, prose, origine) ; un
  * id inconnu n'ouvre rien et le dit en console (patron `revealClue`). Le document SUSPEND la suite jusqu'à
  * sa fermeture (`closeDocument`, EDO 02 l.89-95, #686).
  */

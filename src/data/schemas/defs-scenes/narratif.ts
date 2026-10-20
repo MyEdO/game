@@ -66,7 +66,7 @@ export const affaireSchema = nommerChamps(z.strictObject({
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
  *  même forme qu'une entrée de `creatures.json`, partielle). Le nœud de l'entrée partielle est SCELLÉ
  *  (`z.infer` y vaut `unknown`) : sa vue TS est celle que le runtime consomme, `Partial<CreatureData>`
- *  (`state/campaignData.ts`), même régime que `objets` ci-dessous. `source`|`adapteDe` : provenance du
+ *  (`state/resolveursDuNarratif.ts`), même régime que `objets` ci-dessous. `source`|`adapteDe` : provenance du
  *  texte du profil et folio du PNJ ; arbitrages chiffrés : `profil.maison` (#2001, #2206). */
 const presetPnjObjet = z.strictObject({
   id: z.string().min(1, 'id vide.'),

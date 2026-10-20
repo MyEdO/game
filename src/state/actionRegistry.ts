@@ -15,6 +15,7 @@
 import type { Combatant } from '../engine/types';
 import type { BattleState, GameState } from './store';
 import { entityPickables } from './combatEffects';
+import { objetDuNarratif } from './resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
 import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
@@ -335,7 +336,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
       // L'ÉPUISEMENT n'est plus une garde séparée : `entityPickables` ne rend que les feuilles des
       // actions ENCORE jouables (`actionsAuthorees` filtre les drapeaux), donc un décor épuisé sort
       // avec zéro candidat sans qu'une seconde garde ait à redire la même chose.
-      .flatMap((e) => entityPickables(e, flags).map((p) => ({ entityId: e.id, ...p })));
+      .flatMap((e) => entityPickables(e, flags, objetDuNarratif(state.campaignNarratif)).map((p) => ({ entityId: e.id, ...p })));
   },
 };
 

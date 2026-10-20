@@ -6,6 +6,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { layerTiles } from '../../noyau/monde/scene';
 import { findVehicleById } from '../../data';
 import type { Combatant } from '../../engine/types';
+import { presetPnjById } from '../../state/campaignData';
 
 const scen = testScenarios.find((s) => s.id === 'embuscade-fluviale')!;
 const scenConstruit = scen.construire();
@@ -16,7 +17,7 @@ function spawnRoster(): Combatant[] {
   return scenConstruit.scene.entities
     .filter((e) => e.id.startsWith('enemy-enc-fluvial-'))
     .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
-    .map(ficheDEntite);
+    .map((e) => ficheDEntite(e, presetPnjById));
 }
 
 describe('Embuscade fluviale — scène compilée + roster', () => {

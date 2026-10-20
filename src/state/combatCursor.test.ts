@@ -145,7 +145,8 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ battle: battle as never, scene: arena(), party: [hero, ally], ...over });
+    useGame.setState({ battle: battle as never, scene: arena(), party: [hero, ally] });
+    useGame.setState(over); // après le combat : un curseur posé dans l'écriture qui l'ouvre est périmé (`curseurPerime`)
     return { hero, ally, enemy };
   }
 
@@ -236,7 +237,8 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
       selectedSpellId: null, reachable: new Map(), // AUCUNE case de reach : (7,10) reste occupée/non commettable
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ battle: battle as never, scene: arena(), party: [hero], combatCursor: { tile: { x: 7, y: 10 } }, journal: [], refus: null });
+    useGame.setState({ battle: battle as never, scene: arena(), party: [hero], journal: [], refus: null });
+    useGame.setState({ combatCursor: { tile: { x: 7, y: 10 } } });
     useGame.getState().commitCursor();
     // Le refus se dit AU POINT DU GESTE (`state/refusVisible`) : en combat, le journal n'est pas
     // affiché — un feedback qui n'y va QUE serait muet pour le joueur.

@@ -351,16 +351,19 @@ src/state/
                             = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
                             `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
                             global (`narratifSchema` refuse toute collision d'id).
-  campaignData.ts           COUTURE UNIQUE de résolution de la couche de campagne runtime (#767) : lit le slot
-                            `campaignNarratif` (posé par `loadProject`) par id STABLE. `presetPnjById`/`affaireById`/
-                            `indiceById`/`documentById` = COUCHE-SEULEMENT (n'existent pas au global) ; `trappingById` chaîne
-                            campagne-D'ABORD puis règle globale (`findTrappingById`). Maps mémoïsées par référence du
-                            bloc. Le moteur reste PUR : `engine/items` reçoit ce `trappingById` en résolveur injecté
-                            (défaut = global) aux sites d'état `giveTrapping` — il n'importe jamais le store.
+  resolveursDuNarratif.ts   COUTURE UNIQUE de résolution de la couche de campagne (#767, #2817), sans store : chaque
+                            résolveur prend son narratif en ARGUMENT (celui de la partie, `campaignNarratif`, ou celui du
+                            projet édité) et lit par id STABLE. `presetDuNarratif`/`indiceDuNarratif`/`documentDuNarratif`
+                            = COUCHE-SEULEMENT (n'existent pas au global) ; `objetDuNarratif` chaîne campagne-D'ABORD puis
+                            règle globale (`trappingDesObjetsPuisDuCatalogue`). Tables mémoïsées par identité du narratif.
+                            Le moteur reste PUR : `engine/items` reçoit ce résolveur d'objet injecté aux sites d'état
+                            `giveTrapping` — il n'importe jamais le store.
                             PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
                             (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
+  campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
+                            de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
   store.ts                  store Zustand : GameState + vue (caméra/zoom) + campagne (scènes, dialogues,
                             effets, temps/repos) + actions de combat — délègue aux modules (get,set) :
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
