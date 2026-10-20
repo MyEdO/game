@@ -43,8 +43,6 @@ export const EVT = {
   /** store → rendu : zone d'effet déclenchée (souffle/vomi/cri/sort de zone) — flash des cases touchées
    *  AU MOMENT de la résolution {tiles:[{x,y}], kind, type} → on voit QUI est pris et pourquoi. */
   ANIM_AOE: 'anim_aoe',
-  /** store → * : le temps de jeu a avancé {minutes}. #T3 (cascade) branchera guérison/Fatigue/re-stock sur les franchissements. */
-  TIME_ADVANCED: 'time:advanced',
   /** UI → audio : le joueur lance les dés (clic « Lancer » d'une modale de jet). */
   DICE_ROLL: 'dice_roll',
   /** store → audio : un Effet de scène `playSfx` demande un son ponctuel du registre {id}. */

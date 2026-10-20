@@ -31,7 +31,6 @@ import { passiveMods, poseDeterminationCanceller } from '../engine/trauma';
 import { purgeClockEffects } from '../noyau/upkeep';
 import { determinationWindowId } from '../noyau/combatSlice';
 import { rule, setRule, resetRule } from '../engine/policy';
-import { bus, EVT } from '../noyau/bus';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 
@@ -113,8 +112,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
   });
 
   it('la COUTURE du temps referme la fenêtre, même quand le chemin ne joue pas l’entretien', () => {
-    // Chemin RÉEL du voyage terrestre / de la journée de mer (`travelFlow.ts:523-524`,
-    // `seaVoyageFlow.ts:1529-1530`) : l'horloge est posée puis `EVT.TIME_ADVANCED` est émis, et
+    // Forme du voyage terrestre / de la journée de mer : l'horloge avance par `avancerLHorloge`, et
     // l'entretien est DIFFÉRÉ à la cascade de nuit — rien n'y appelle `runDailyUpkeep`.
     const h = malade();
     useGame.setState({ mode: 'exploration', battle: null, party: [h], gameTime: 10_000, journal: [] } as never);
@@ -122,8 +120,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
     expect(stacks(useGame.getState().party[0], 'inconscient'), 'la dépense n’a pas réveillé le fiévreux').toBe(0);
 
     const minutes = rule('maladie-conscience-determination-minutes') as number;
-    useGame.setState({ gameTime: 10_000 + minutes } as never);
-    bus.emit(EVT.TIME_ADVANCED, { minutes });
+    useGame.getState().avancerLHorloge(minutes);
 
     const c0 = useGame.getState().party[0];
     expect(c0.activeEffects?.some((e) => e.effectId === determinationWindowId('inconscient')) ?? false, 'la fenêtre a survécu à son échéance').toBe(false);

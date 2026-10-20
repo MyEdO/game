@@ -1047,7 +1047,8 @@ function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string;
 
   // Naufrage : voyage perdu.
   if (river.sunk) {
-    set({ gameTime: get().gameTime + 24 * 60, travelPlan: null });
+    get().avancerLHorloge(24 * 60);
+    set({ travelPlan: null });
     log(get, set, [t('rv.wreck')]);
     return;
   }
@@ -1063,7 +1064,7 @@ function finishRiverDay(get: Get, set: Set, to: { scene: string; entry?: string;
   // UN SEUL franchissement de jour par cycle jour+nuit (comme le voyage terrestre).
   // L'ENTRETIEN n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans la
   // cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.
-  set({ gameTime: get().gameTime + (arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute())) });
+  get().avancerLHorloge(arrived ? 24 * 60 : minutesUntilNext(get().gameTime, duskMinute()));
   set({
     travelPlan: {
       ...get().travelPlan!, kmDone,

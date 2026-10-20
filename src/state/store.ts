@@ -22,7 +22,8 @@ import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
 import { snapshotSave, saveToSlot, readSlot, importSave, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveGame } from './saves';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
-import { pruneSeatAssignments, releaseRecomposedRanks } from '../noyau/monde/seating';
+import { pruneSeatAssignments } from '../noyau/monde/seating';
+import { transitionDuJeu } from '../noyau/transitionDuJeu';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { meneurDuMonde } from '../noyau/monde/combatants';
@@ -34,8 +35,6 @@ import { planifierLeTickAuto } from '../noyau/combatAuto';
 import type { Scene } from '../noyau/monde/scene';
 import { exploreStepDest } from '../noyau/monde/exploreNav';
 import { bus, EVT } from '../noyau/bus';
-import { purgeSurAvanceDHorloge } from '../noyau/upkeep';
-import { fireScheduledEffects } from '../noyau/combatEffects';
 import { createCombatSlice } from '../noyau/combatSlice';
 import { reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { etatInitialDuJeu, type CampaignDoc, type Ecran, type Jeu } from '../noyau/etat';
@@ -66,7 +65,7 @@ import { creerActionsDesTestsDeScene } from '../noyau/testsDeScene';
 import { creerActionsDuLotDEtal } from '../noyau/etalLotFlow';
 import { creerActionsDeCorruption } from '../noyau/corruptionFlow';
 import { creerActionsDuJournal } from '../noyau/journal';
-import { creerActionsDHorloge } from '../noyau/horloge';
+import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from '../noyau/horloge';
 import { creerActionsDuVoyage } from '../noyau/travelFlow';
 import { creerActionsDesPostesDeVoyage } from '../noyau/travelPostes';
 import { creerActionsDuBillet } from '../noyau/billetFlow';
@@ -324,6 +323,7 @@ export const useGame = create<GameState>((set, get) => ({
   ...creerActionsDuLotDEtal(get, set),
   ...creerActionsDeCorruption(get, set),
   ...creerActionsDuJournal(get, set),
+  ...creerActionsDAvanceeDHorloge(get, set),
   ...creerActionsDHorloge(get, set),
   ...creerActionsDuVoyage(get, set),
   ...creerActionsDesPostesDeVoyage(get, set),
@@ -456,16 +456,6 @@ export function initCombatAuto(): () => void {
   return useGame.subscribe(() => planifierLeTickAuto(useGame.getState, useGame.setState));
 }
 
-// #668 — `fireScheduledEffects` tire les minuteries `delayedEffect` sur CHAQUE avance d'horloge, quel
-// que soit le chemin (advanceTime, rest, travel, sea émettent tous EVT.TIME_ADVANCED) — seam UNIQUE,
-// plus de dépendance à advanceTime seul (bug de recette : repos/voyage sautaient les échéances).
-bus.on(EVT.TIME_ADVANCED, () => fireScheduledEffects(useGame.getState, useGame.setState));
-
-// MÊME couture pour la DISSIPATION des effets à durée d'horloge : `runDailyUpkeep` ne la portait plus
-// seul — le voyage terrestre (`travelFlow`) et la journée de mer (`seaVoyageFlow`) avancent l'horloge
-// et DIFFÈRENT l'entretien à la cascade de nuit, si bien qu'une fenêtre échue y survivait à sa borne.
-bus.on(EVT.TIME_ADVANCED, () => purgeSurAvanceDHorloge(useGame.getState, useGame.setState));
-
 // Entrée en scène (#2817 D5) : l'interface se remet, puis le changement de scène pose le point de reprise
 // (`autoSave`, hors combat et jamais chez l'invité).
 bus.on(EVT.ARRIVEE_EN_SCENE, ({ neuve }: { sceneId: string; neuve: boolean }) => {
@@ -480,25 +470,9 @@ bus.on(EVT.HEROS_A_CREER, () => {
   s.setScreen('creator');
 });
 
-// ── OCCUPATION AU RUNTIME — LA CHAISE SUIT LE CORPS ────────────────────────────────────────────
-// COUTURE UNIQUE, et PAR CONSTRUCTION : elle ne s'accroche pas aux écrivains de `party` (un seul
-// oublié rouvrirait le défaut), elle observe la TRANSITION d'état. Tout ce qui recompose le groupe
-// — `partyAddHero`/`partyRemoveHero`/`partyReplaceHero`, `setParty` en bloc, devtools, un écran de
-// test, un snapshot coop, une permutation écrite à la main — y passe sans le savoir : le corps
-// présent à chaque emplacement ASSIS est comparé avant/après, et l'emplacement dont le corps a
-// changé (ou disparu) se lève.
-// Ce qui décide n'est PAS la scène (une scène patchée dans la même écriture reste la même partie),
-// c'est l'OCCUPATION EN VIGUEUR : on réconcilie quand l'écriture n'a pas apporté une occupation
-// NEUVE. Une occupation neuve — chargement de save, `startScene`, `transitionTo`, snapshot coop,
-// élagage, geste d'assise — arrive avec sa propre vérité, déjà élaguée à sa source ; il n'y a alors
-// rien à réconcilier. C'est aussi ce qui rend la réentrance structurelle : l'écriture de libération
-// ci-dessous produit une occupation neuve, donc ne se rejoue pas.
-// Le même abonnement applique ENSUITE la péremption du curseur (`curseurPerime`).
+// Transition du jeu (`transitionDuJeu`, #2817 D7), puis péremption du curseur (`curseurPerime`).
 useGame.subscribe((s, prev) => {
-  const scene = s.scene;
-  if (s.party !== prev.party && scene?.seatAssignments && scene.seatAssignments === prev.scene?.seatAssignments) {
-    const debout = releaseRecomposedRanks(scene, prev.party, s.party);
-    if (debout !== scene) useGame.setState({ scene: debout });
-  }
+  const ecriture = transitionDuJeu(prev, s);
+  if (ecriture) useGame.setState(ecriture);
   if (curseurPerime(prev, s) && useGame.getState().combatCursor) useGame.setState({ combatCursor: null });
 });

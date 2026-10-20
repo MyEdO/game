@@ -187,9 +187,7 @@ export function sleepParty(
   const toDawn = minutesUntilNext(from, dawnMinute());
   const firstNight = toDawn === 0 ? MINUTES_PER_DAY : toDawn;
   for (let night = 0; night < n; night++) {
-    const before = get().gameTime;
-    set({ gameTime: night === 0 ? from + firstNight : before + MINUTES_PER_DAY });
-    bus.emit(EVT.TIME_ADVANCED, { minutes: get().gameTime - before });
+    get().avancerLHorloge(night === 0 ? firstNight : MINUTES_PER_DAY);
     set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil
     // Les Tests d'entretien de la journée (faim, soif, maladie, convalescence, dessoûlage) sont MONTÉS
     // par la porte, comme dans la nuit interactive : ce chemin les résout d'office (`runCascadeImmediate`
@@ -515,8 +513,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
   const toDawn = minutesUntilNext(from, dawnMinute());
-  set({ gameTime: from + (toDawn === 0 ? MINUTES_PER_DAY : toDawn) });
-  bus.emit(EVT.TIME_ADVANCED, { minutes: get().gameTime - from });
+  get().avancerLHorloge(toDawn === 0 ? MINUTES_PER_DAY : toDawn);
   set({ lastNightDay: dayIndex(get().gameTime) }); // nuit JOUÉE (#340) — désamorce la privation de sommeil
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en

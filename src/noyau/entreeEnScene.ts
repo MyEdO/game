@@ -16,10 +16,10 @@ import * as partyFlow from './partyFlow';
 import { captureMutation, applyMutation as applySceneMutation } from './monde/sceneInstance';
 import { resetFields } from './stateFields';
 import { TIME_COST } from '../engine/timeCost';
-import type { Get, SetDuJournal } from './flowTypes';
+import type { Get, SetDesClesReservees } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
-export function creerActionsDEntreeEnScene(get: Get, set: SetDuJournal) {
+export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
   return {
     setPendingCampaign: (pc) => set({ pendingCampaign: pc }),
     startScene: (scene, narratif) => {

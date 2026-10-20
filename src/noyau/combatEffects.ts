@@ -313,7 +313,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
 }
 
 /** Lot 0 — déclenche les effets PROGRAMMÉS (file `scheduledEffects`) dont l'échéance est atteinte.
- *  Appelé par `advanceTime` à chaque avance d'horloge (le temps progresse par actions discrètes →
+ *  Tiré par `avancerLHorloge` à chaque avance d'horloge (le temps progresse par actions discrètes →
  *  un événement programmé entre deux pas se déclenche dès le pas qui le dépasse). Un effet dont le
  *  `cancelFlag` a été posé est CONSOMMÉ sans s'appliquer (désamorçage). Les entrées dues sont
  *  retirées AVANT application (pas de re-déclenchement). */

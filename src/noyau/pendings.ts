@@ -1666,8 +1666,8 @@ export interface BladeTrapFreeze {
 export type Cloture =
   /** Avancée du dialogue (nœud suivant, ou fermeture) — la clôture de `chooseDialogue`/`resolveTest`. */
   | { verbe: 'dialogueSuivant'; transition: DialogueTransition }
-  /** Avancée d'horloge d'un verbe (fouille, dialogue) : l'abonné `TIME_ADVANCED` en tire les effets
-   *  PROGRAMMÉS et les ticks — donc APRÈS le dé, sur des Blessures encaissées. */
+  /** Avancée d'horloge d'un verbe (fouille, dialogue) : `advanceTime` (`avancerLHorloge`) en tire
+   *  les effets PROGRAMMÉS et les ticks — donc APRÈS le dé, sur des Blessures encaissées. */
   | { verbe: 'avancerHorloge'; minutes: number }
   /** Décor consommé par sa fouille (`interact.consume`). */
   | { verbe: 'retirerEntite'; entityId: string }
