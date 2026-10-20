@@ -199,8 +199,3 @@ export function poserLesTables(tables: TablesDuJeu): void { posees = tables; }
 /** Retire les tables — réservé à `debrancherLeJeu`. */
 export function retirerLesTables(): void { posees = null; }
 
-/** Une même entrée sous plusieurs clés de code : deux routes, une règle — une déclaration de plus,
- *  jamais une seconde implémentation. */
-export function sousLesCles<K extends string, V>(cles: readonly K[], v: V): Record<K, V> {
-  return Object.fromEntries(cles.map((k) => [k, v])) as Record<K, V>;
-}

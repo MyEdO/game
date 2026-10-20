@@ -2,7 +2,8 @@ import { libelleEffet } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
-import { tablesPosees, sousLesCles, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
+import { tableTotale } from '../lib/tableTotale';
+import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
@@ -2227,7 +2228,7 @@ export const GENRES_HOTES = ['sceneTestJet'] as const;
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    ...sousLesCles(WATER_EXPOSURE_KINDS, appliquerLExpositionHydrique),
+    ...tableTotale(WATER_EXPOSURE_KINDS, () => appliquerLExpositionHydrique),
     /**
      * APPLIER du canal op → applier (#1508) : le dé de cette étape est tombé (lancé ou POSÉ). S'il reste
      * une demande non servie pour la MÊME grappe, elle s'ouvre à son tour ; sinon les ops s'appliquent AVEC
