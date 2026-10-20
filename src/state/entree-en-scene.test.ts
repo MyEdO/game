@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { GARDES_D_UNE_PARTIE_A_L_AUTRE, etatInitialDeLAdaptateur, useGame, type EtatDeLAdaptateur } from './store';
 import { AUTO_SLOT, readSlot, snapshotSave } from './saves';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { tableTotale } from '../lib/tableTotale';
 
 /**
  * ENTRÉE EN SCÈNE (#2817 D5) : le noyau émet `EVT.ARRIVEE_EN_SCENE`, l'adaptateur remet son interface.
@@ -16,7 +17,7 @@ const g = useGame.getState;
 const INIT = etatInitialDeLAdaptateur();
 const CLES = Object.keys(INIT) as (keyof typeof INIT)[];
 /** Une valeur NON initiale pour CHACUN des champs d'interface, dérivée de l'état initial. */
-const salir = () => useGame.setState(Object.fromEntries(CLES.map((k) => [k, { sale: k }])) as Partial<EtatDeLAdaptateur>);
+const salir = () => useGame.setState(tableTotale<keyof EtatDeLAdaptateur, unknown>(CLES, sale) as Partial<EtatDeLAdaptateur>);
 const sale = (k: string) => ({ sale: k });
 const GARDES = CLES.filter((k) => GARDES_D_UNE_PARTIE_A_L_AUTRE.includes(k));
 const DE_LA_PARTIE = CLES.filter((k) => !GARDES_D_UNE_PARTIE_A_L_AUTRE.includes(k));

@@ -75,6 +75,7 @@ import { creerActionsDuVoyageEnMer } from '../noyau/seaVoyageFlow';
 import { creerActionsDuMarcheTerrestre } from '../noyau/landMarketFlow';
 import { creerActionsDeLAuberge } from '../noyau/innFlow';
 import { creerActionsDesActivitesEnMer } from '../noyau/seaActivities';
+import { tableTotale } from '../lib/tableTotale';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
 export type SheetTab = 'etat' | 'possessions' | 'competences' | 'magie' | 'avancement' | 'histoire';
@@ -286,7 +287,7 @@ function remettreLAdaptateur(neuve: boolean): void {
   const cles = neuve
     ? (Object.keys(init) as (keyof typeof init)[]).filter((k) => !GARDES_D_UNE_PARTIE_A_L_AUTRE.includes(k))
     : REMIS_A_CHAQUE_ENTREE;
-  useGame.setState(Object.fromEntries(cles.map((k) => [k, init[k]])) as Partial<EtatDeLAdaptateur>);
+  useGame.setState(tableTotale(cles, (k) => init[k]) as Partial<EtatDeLAdaptateur>);
   resetStageGestes();
 }
 
