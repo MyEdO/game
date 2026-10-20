@@ -168,7 +168,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
   ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @possessionGrantsFromRefs'],
   ['FlowTest', 'argDifficulty', 'src/noyau/triggeredEffects.ts @test'],
-  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @(module)'],
+  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @stageAggregate'],
   ['TraitInstance', 'hidden', 'src/engine/groups.ts @hiddenGroupsOf'],
 ];
 

@@ -10,7 +10,7 @@ import { seatOwns } from './sieges';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
-import { sousLesCles } from './tablesPosees';
+import { tableTotale } from '../lib/tableTotale';
 
 /**
  * SEAM DE JET UNIQUE — Ronde 0 (#275 substrat). Couvre les 3 surfaces (M/V/I) que `openRoll` DÉRIVE
@@ -30,7 +30,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
       (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
     avecLesTables({ appliers: {
       ...tablesDuJeu().appliers,
-      ...sousLesCles(['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch'], sonde),
+      ...tableTotale(['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch'], () => sonde),
       // Le VRAI applier `progression` (`seaVoyageFlow.ts`) lit `travelPlan.sea`, absent des plans SYNTHÉTIQUES
       // de ce bloc : il isole la POLICY de la porte (surface I), pas la conséquence métier réelle.
       progression: spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 })),

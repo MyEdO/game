@@ -151,7 +151,8 @@ import { garanti } from '../lib/garanti';
 import { stepPrecision } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-import { sousLesCles, type FragmentDeTables, type PartDeTable } from './tablesPosees';
+import { tableTotale } from '../lib/tableTotale';
+import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -748,7 +749,7 @@ export const GENRES_D_ETAPE = [
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    ...sousLesCles(EXPOSURE_BAND_KINDS, appliquerLExposition),
+    ...tableTotale(EXPOSURE_BAND_KINDS, () => appliquerLExposition),
     recovery: bandeDeNuit((_get, _set, _band, row, hero) => {
       const before = hero.wounds.current;
       const { wokeUp } = applyRecoveryDay(hero, { sl: row.result!.sl, success: row.result!.success });
