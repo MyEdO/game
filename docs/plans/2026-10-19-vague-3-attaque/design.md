@@ -354,7 +354,7 @@ Conséquences :
   les deux actions de clic. Les arcs `combatSlice.ts:42` et `:110` partent avec elle ;
 - **la péremption du curseur est UNE règle de l'adaptateur** : le curseur appartient à la fenêtre de
   geste ouverte. `curseurPerime(prev, s)` (`combatCursor.ts`) le dit périmé quand `battle` naît ou
-  disparaît, quand `battle.over`, `battle.turn` ou `battle.round` change, ou quand `preemptAiming`
+  disparaît, quand `battle.over`, le combattant actif (`battle.order[battle.turn]`) ou `battle.round` change, ou quand `preemptAiming`
   change. L'abonnement du store (D7) le remet à `null` dans la foulée. Les trois écritures du noyau
   (`combatFlow.ts:7292`, `:7484`, `combatSlice.ts:1124`) disparaissent : la fin de combat, le tour qui
   s'achève et le Tir rapide qui se déclenche sont trois cas de la règle, et un quatrième (un tour sauté
