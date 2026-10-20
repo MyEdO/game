@@ -14,6 +14,13 @@ import { NAISSANCE_ABSENTE, estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from '../test/identiteMesuree.mjs'
 import { lancerPontCodex, envoyerCodex, veillerCodex, verifierProtocoleCodex, projeterJournalCodex, VERSION_PROTOCOLE_CODEX, MAX_MESSAGE_CODEX } from './session-codex.mjs'
 
+/** L'écouteur `error` de la projection se retire au tick qui suit la dernière écriture close : attendre ce
+ *  tick, borné, au lieu d'en supposer le nombre. */
+async function ecouteursRendus(flux, attendus) {
+  for (let tours = 0; tours < 100 && flux.listenerCount('error') !== attendus; tours++) await new Promise(setImmediate)
+  assert.equal(flux.listenerCount('error'), attendus)
+}
+
 const FIXTURE = `
 import {createInterface} from 'node:readline';
 const send=x=>process.stdout.write(JSON.stringify(x)+'\\n');
@@ -238,8 +245,7 @@ test('projection facultative : Writable en panne asynchrone conserve le pont et 
   assert.equal(readFileSync(b.pont.journalDiagnostic, 'utf8'), '[Codex] Affichage suspendu : pipe fermé\n')
   b.pont.child.kill()
   await b.sortie
-  await new Promise(setImmediate)
-  assert.equal(sortie.listenerCount('error'), ecouteurs)
+  await ecouteursRendus(sortie, ecouteurs)
 })
 test('projection : spawn ENOENT sans exit libère son écouteur après close', async (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-enoent-'))
@@ -263,7 +269,7 @@ test('projection : spawn ENOENT sans exit libère son écouteur après close', a
   await new Promise(setImmediate)
   assert.deepEqual(erreurs, ['ENOENT'])
   assert.deepEqual(evenements, ['close'])
-  assert.equal(sortie.listenerCount('error'), ecouteurs)
+  await ecouteursRendus(sortie, ecouteurs)
 })
 test('projection : fermeture protège les écritures en vol jusqu’au callback et à error', async (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-pending-'))
@@ -281,7 +287,7 @@ test('projection : fermeture protège les écritures en vol jusqu’au callback 
   terminer(Error('écriture en vol échouée'))
   await new Promise(setImmediate)
   assert.deepEqual(erreurs, ['écriture en vol échouée'])
-  assert.equal(sortie.listenerCount('error'), ecouteurs)
+  await ecouteursRendus(sortie, ecouteurs)
 })
 test('projection facultative : journal illisible suspendu une fois et diagnostic défaillant isolé', (t) => {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-projection-illisible-'))
@@ -366,8 +372,7 @@ test('projection : sortie standard réelle par défaut et ligne invalide sans pe
     process.stdout.write = (s, callback) => { sortie.push(s); callback(); return true }
     lire()
   } finally { process.stdout.write = write; lire.fermer() }
-  await new Promise(setImmediate)
-  assert.equal(process.stdout.listenerCount('error'), ecouteurs)
+  await ecouteursRendus(process.stdout, ecouteurs)
   assert.deepEqual(sortie, ['[Codex] Journal : ligne JSON invalide\n', '[Codex] Fin du tour : interrupted\n'])
 })
 test('projection : propriété du thread et du tour dérivée du journal uniquement', (t) => {
