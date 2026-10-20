@@ -435,9 +435,10 @@ ou appelle une action d'adaptateur. Le snapshot coop et la save ne changent pas 
   (`setEditingHero(null)`, `setScreen('creator')`).
 
 **D6. Services de plateforme et coupes.** `src/noyau/plateforme.ts` déclare ce que le noyau demande à
-l'environnement d'exécution : `programmer(suite, délai)` et `annuler(jeton)` (`combatFlow:19`,
+l'environnement d'exécution : `programmer(suite, délai)`, qui rend un jeton opaque (`combatFlow:19`,
 `combatDirector:16`, `enchainerEtape:2`, `combatAuto:27` ; les deux minuteries d'aujourd'hui sont deux
-alias de `track`, d'où une seule paire), et `persisterLeHeros(heros)` (`partyFlow:47`). Le mot
+alias de `track`, d'où une seule fonction), et `persisterLeHeros(heros)` (`partyFlow:47`). Aucun module
+du noyau n'annule un appel différé : `annuler` n'entre pas à la plateforme (juge du tour 1 de 3a, m6). Le mot
 « plateforme » évite la collision avec l'hôte de jet (`hostStep`). L'adaptateur web la pose à la
 création du store et relaie vers `web/minuteries` et `roster` ; un appel sans plateforme posée LÈVE. Le
 reste :
