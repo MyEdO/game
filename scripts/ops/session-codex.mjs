@@ -531,7 +531,7 @@ export function lancerPontCodex({ plan, carte, dossier, consigne, schema, env, n
         await serial
         if (projection.etat === 'occupe' || projection.etat === 'attente') {
           await attendreSignal('demarre', () => tourDemarre)
-          await requete('turn/interrupt', { threadId: projection.threadId, turnId: projection.turnId })
+          await requete('turn/interrupt', { threadId: projection.threadId, turnId: projection.turnId }).catch((e) => { if (!toursTermines.has(projection.turnId)) throw e })
           await attendreSignal('termine', () => !tourDemarre)
         }
         fermetureTerminee = true
