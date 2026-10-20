@@ -13,7 +13,7 @@
  * Les Éclats (Indice → équipage) et les Critiques de Coque supplémentaires sont RENDUS (l'équipage et la
  * récursion de Coque relèvent de la boucle de combat naval, qui connaît l'équipage du navire).
  */
-import { d10, d100, rollDice, parseDice, type RNG, defaultRNG } from './dice';
+import { d10, d100, rollDice, parseDice, type RNG } from './dice';
 import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
@@ -90,7 +90,7 @@ export interface ShipCriticalResolved {
 
 /** Résout un Critique de navire sur la `location` touchée (Localisation déterminée en amont via
  *  `shipHitLocation` ; l'Équipage, lui, passe par le marin qui encaisse le coup). `forcedRoll` = d10 imposé (tests). PUR. */
-export function rollShipCritical(location: ShipCritKey, rng: RNG = defaultRNG, forcedRoll?: number, set: ShipCritSet = SHIP_CRIT_SET): ShipCriticalResolved {
+export function rollShipCritical(location: ShipCritKey, rng: RNG, forcedRoll?: number, set: ShipCritSet = SHIP_CRIT_SET): ShipCriticalResolved {
   const roll = forcedRoll ?? d10(rng);
   const table = set.tables[location];
   if (!table) {
@@ -133,7 +133,7 @@ export interface ShipCriticalHit {
  * l'équipage exposé). PUR — `forcedLocRoll`/`forcedCritRoll` figent les d100/d10 pour les tests.
  */
 export function resolveShipCriticalHit(
-  rig: ShipRig, rng: RNG = defaultRNG, forcedLocRoll?: number, forcedCritRoll?: number, opts?: HullCritOpts,
+  rig: ShipRig, rng: RNG, forcedLocRoll?: number, forcedCritRoll?: number, opts?: HullCritOpts,
 ): ShipCriticalHit {
   const set = shipCritSet(opts?.criticalTable);
   const location = shipHitLocation(rig, forcedLocRoll ?? d100(rng), opts?.locationTable ?? 'navire');
@@ -239,7 +239,7 @@ function crewHitVictims(hull: Combatant, crew: Combatant[], crewTarget: CrewTarg
  * touchés par un coup CERTAIN via `applyOps`) ; le RNG injecté sert au
  * SEUL tirage du poste (MDG 13 l.763), jamais à l'issue d'un Test.
  */
-export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCrewHit, rng: RNG = defaultRNG): CrewHitOutcome {
+export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCrewHit, rng: RNG): CrewHitOutcome {
   const { victims, fermees } = crewHitVictims(hull, crew, crewHit.crewTarget, rng);
   const ids = victims.map((c) => c.id);
   if (crewHit.test) return { victims: ids, testFlow: crewHit.test, hits: [], stationsFermees: fermees };
@@ -262,7 +262,7 @@ export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCr
  *    autant de marins exposés ; les Critiques de Coque supplémentaires (1d10…) sont résolus sur la coque.
  */
 export function applyHullCritical(
-  hull: Combatant, crew: Combatant[], rig: ShipRig, rng: RNG = defaultRNG, forcedLocRoll?: number, forcedCritRoll?: number, opts?: HullCritOpts,
+  hull: Combatant, crew: Combatant[], rig: ShipRig, rng: RNG, forcedLocRoll?: number, forcedCritRoll?: number, opts?: HullCritOpts,
 ): HullCriticalOutcome {
   const set = shipCritSet(opts?.criticalTable);
   let hit = resolveShipCriticalHit(rig, rng, forcedLocRoll, forcedCritRoll, opts);

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resolveMeleePassive, rederivePassiveAttack, weaponInflictsFlames, causeDuCoupCritique, resolveRanged, finishRanged, resolveStrayRangedHit, woundsAtCritLocation } from './combat';
-import type { RNG } from './dice';
 import { critiquesDuCoup, relanceLaLocalisation } from './critical';
 import { setRule, resetRule } from './policy';
 import { evaluateTest } from './tests';
 import type { Combatant, Weapon } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { makeRNG } from './dice';
+import { deFixe } from './dice.testkit';
 
 /**
  * « Retenir vos coups » — LDB 18 l.30 en 'ldb' ; Aux Armes (`Source/WH - V4 - Aux Armes/07 - MISES A JOUR DE L'ETAT HEMORRAGIQUE.md` l.59-61) :
@@ -166,7 +166,7 @@ describe("Retenir ses coups en 'ldb' — tout Coup Critique ignoré, rien d'autr
 });
 
 describe("Retenir ses coups au tir en 'ldb' : la règle de la mêlée retenue (LDB 18 l.30 ; AA 07 l.59)", () => {
-  const rngOf = (roll: number): RNG => ({ int: () => roll });
+  const rngOf = deFixe;
   const bowCrit = { ...bow, damage: { plusBF: false, flat: 4 } };
 
   it('tir non défendu (`resolveRanged`) : Coup Critique ignoré, Blessures inchangées, comme en mêlée', () => {

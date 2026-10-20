@@ -28,7 +28,7 @@ import type { ActorPose } from '../backends/webgl/sceneMeshes';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(10, 10);
+const SCENE: Scene = emptyScene('scene-test', 10, 10);
 const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view: 'iso' };
 const AFFINE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 };
 

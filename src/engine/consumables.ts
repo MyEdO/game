@@ -9,7 +9,7 @@
 import { Combatant, ItemInstance } from './types';
 import { type Flow, type EffectOp, walkFlow } from './flowCore';
 import { resolveFormula, type Formula, type GameOp } from './ops';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 
 /** Durée d'HORLOGE des effets durables d'un consommable (LDB 71/72 « Durée : … ») — UNE durée par objet
  *  (une drogue a UNE durée, pas une par op). Résolue AU BOIRE (`consumableUntilTime`), avec dés
@@ -30,7 +30,7 @@ export function isConsumable(item: ItemInstance): boolean {
 /** Échéance d'horloge des effets durables du consommable : `now + durée résolue` (minutes/heures/jours,
  *  dés tirés MAINTENANT — le RAW donne UNE durée par prise). Sans `consumableDuration` → undefined
  *  (les ops durables suivent le contexte appelant — permanent pour un retrait d'État instantané). */
-export function consumableUntilTime(item: ItemInstance, now: number, target: Combatant, rng: RNG = defaultRNG): number | undefined {
+export function consumableUntilTime(item: ItemInstance, now: number, target: Combatant, rng: RNG): number | undefined {
   const d = item.consumableDuration;
   if (!d) return undefined;
   const min = resolveFormula(d.minutes ?? 0, target, rng)

@@ -946,11 +946,17 @@ export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain;
  *  Tout ce que la scène reçoit ici vient de la SEMENCE éditable (`semences-de-scene.json`, #1716) :
  *  ce module ne choisit plus ni matière, ni terrain, ni échelle. `ambientLight` ABSENT de la semence
  *  vaut `auto` — la sentinelle est l’absence côté semence (champ typé `idDe('lightLevel')`), et la
- *  scène produite la porte EN CLAIR, comme avant #1716. */
-export function emptyScene(w = 20, h = 15): Scene {
+ *  scène produite la porte EN CLAIR, comme avant #1716. L'`id` vient de l'appelant : l'hôte le forge
+ *  unique (`idDEntropie`, `src/web/entropie.ts`, #2817). */
+/** Le sol d'une scène neuve : une couche au terrain de la semence (`semences-de-scene.json`). */
+function coucheDeSemence(w: number, h: number): Scene['layers'] {
+  return [{ z: 0, tiles: new Array(w * h).fill(semencesDeScene.terrain) }];
+}
+
+export function emptyScene(id: string, w = 20, h = 15): Scene {
   return {
     type: 'scene',
-    id: `scene-${Date.now()}`,
+    id,
     label: 'Nouvelle scène',
     dimensions: { w, h },
     ambiance: semencesDeScene.ambiance,
@@ -958,7 +964,7 @@ export function emptyScene(w = 20, h = 15): Scene {
     ambientLight: semencesDeScene.ambientLight ?? 'auto',
     reliefDefaults: { ...semencesDeScene.reliefDefaults },
     roofDefaults: { ...semencesDeScene.roofDefaults },
-    layers: [{ z: 0, tiles: new Array(w * h).fill(semencesDeScene.terrain) }],
+    layers: coucheDeSemence(w, h),
     entities: [],
     dialogues: [],
     triggers: [],
@@ -975,7 +981,7 @@ export function emptyScene(w = 20, h = 15): Scene {
 export function normalizeScene(s: Scene): Scene {
   return {
     ...s,
-    layers: s.layers ?? emptyScene(s.dimensions.w, s.dimensions.h).layers,
+    layers: s.layers ?? coucheDeSemence(s.dimensions.w, s.dimensions.h),
     entities: s.entities ?? [],
     dialogues: s.dialogues ?? [],
     triggers: s.triggers ?? [],

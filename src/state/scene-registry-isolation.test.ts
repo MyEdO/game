@@ -16,7 +16,7 @@ import { emptyScene } from '../noyau/monde/scene';
  * Les deux `it` ci-dessous sont ORDONNÉS : le second mesure l'effet du teardown du premier.
  */
 const PROBE_ID = 'sonde-registre-scenes';
-const probe = emptyScene(2, 2);
+const probe = emptyScene('scene-test', 2, 2);
 probe.id = PROBE_ID;
 registerScene(probe); // enregistrement de TÊTE DE FICHIER (portée module)
 

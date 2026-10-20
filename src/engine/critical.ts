@@ -8,7 +8,7 @@
  * Les FEUILLES n'adressent que ce qui diffère, déclaré une fois dans `REGIMES` : le modificateur de
  * SÉVÉRITÉ du d100 (LDB 18 l.17 ; AA 07 l.36) et le libellé de journal.
  */
-import { d100, d10, RNG, defaultRNG } from './dice';
+import { d100, d10, RNG } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { bonus, effectiveChar } from './characteristics';
 import { hitLocationByShape, locationLabel } from './combat';
@@ -195,7 +195,7 @@ export function findCritEntrySuffered(id: string): { entry: CritEntry; table: Cr
 
 /** Localisation d'un Coup Critique : 1d100 lu directement sur le Tableau de Localisation de la forme
  *  du corps (humanoïde p.159 / Localisations Alternatives p.312). */
-export function critLocationRoll(rng: RNG = defaultRNG, shape: BodyShape = 'humanoide'): HitLocation {
+export function critLocationRoll(rng: RNG, shape: BodyShape = 'humanoide'): HitLocation {
   return hitLocationByShape(d100(rng), shape);
 }
 
@@ -457,7 +457,7 @@ export function resolveCritique(
   jeu: JeuDeCritique,
   target: Combatant,
   location: HitLocation,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   options: OptionsCritique = {},
 ): CriticalResolved {
   const { overkill = 0, twice = false, forcedRoll } = options;

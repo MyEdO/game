@@ -29,7 +29,7 @@ afterEach(demonterRacines);
  *  SURVIT à un aller-retour JSON (le Schéma de Scène est de la donnée pure, aucune sérialisation
  *  dédiée — `JSON.parse(JSON.stringify(...))` EST le round-trip sauvegarde/chargement, #841). */
 function mount(entity?: SceneEntity) {
-  const scene: Scene = { ...emptyScene(4, 4), entities: entity ? [entity] : [] };
+  const scene: Scene = { ...emptyScene('scene-test', 4, 4), entities: entity ? [entity] : [] };
   let latest = scene;
   const montage = monterRacine(null);
   const render = (s: Scene) => {
@@ -90,7 +90,7 @@ describe('Inspector — introduction locale', () => {
 describe('Inspector — apparence visuelle des murs', () => {
   it('conserve la structure mécanique quand une apparence est choisie et sérialisée', async () => {
     const scene: Scene = {
-      ...emptyScene(4, 4),
+      ...emptyScene('scene-test', 4, 4),
       walls: [{ x: 1, y: 1, side: 'E', structure: 'mur-a-ossature-en-bois' }],
     };
     let latest = scene;
@@ -138,7 +138,7 @@ describe('Inspector — apparence visuelle des murs', () => {
 
 /** Monte l'`Inspector` sur l'arête E de (1,1) portant `wall` ; `sceneOf` rend la DERNIÈRE Scène écrite. */
 function mountWall(wall: NonNullable<Scene['walls']>[number]) {
-  const scene: Scene = { ...emptyScene(4, 4), walls: [wall] };
+  const scene: Scene = { ...emptyScene('scene-test', 4, 4), walls: [wall] };
   let latest = scene;
   const montage = monterRacine(null);
   const render = (next: Scene) => montage.rendre(
@@ -494,7 +494,7 @@ describe('Inspector — l’identifiant affiché est celui de la zone SÉLECTION
   /** Deux zones d'effet et une sélection PILOTÉE : rejouer le geste « je clique l'une, puis l'autre ». */
   function mountZones() {
     const scene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       effectZones: [
         { id: 'zone-V-z0', label: 'Passage couvert', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 }, z: 0 },
         { id: 'zone-X-z1', label: 'Galerie', presentation: 'interior', area: { kind: 'rect', x: 4, y: 4, w: 2, h: 2 }, z: 0 },
@@ -592,7 +592,7 @@ describe('Inspector — l’appareil mécanique d’une zone suit ce que la zone
   /** Une pièce nue (le cas de La Diligence : 37 zones sur 37) et une zone ARMÉE, côte à côte. */
   function mountZones() {
     const scene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       effectZones: [
         { id: 'zone-K-z0', label: 'Cuisine', presentation: 'interior', area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 }, z: 0 },
         {
@@ -656,7 +656,7 @@ describe('Inspector — places assises d’un décor', () => {
   /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
   function mountTable() {
     const scene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       entities: [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
         { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 }, label: 'Aubergiste' },
@@ -787,7 +787,7 @@ describe('Inspector — le profil de toiture est nommé par le NŒUD, une seule 
   };
 
   function profilOptions(sel: Sel) {
-    const scene: Scene = { ...emptyScene(4, 4), architecture: [body] };
+    const scene: Scene = { ...emptyScene('scene-test', 4, 4), architecture: [body] };
     const { container, rendre } = monterRacine(null);
     return { scene, container, rendre, sel };
   }
@@ -841,7 +841,7 @@ describe("Inspector — le type d'un ornement de façade est nommé par le NŒUD
     expect(attendu.map(([id]) => id)).toContain('belfry');
 
     const scene: Scene = {
-      ...emptyScene(4, 4),
+      ...emptyScene('scene-test', 4, 4),
       architecture: [{
         id: 'corps',
         style: 'taverne',

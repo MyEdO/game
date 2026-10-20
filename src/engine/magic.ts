@@ -16,7 +16,7 @@
  * et les Dégâts = Dégâts du Sort + DR + Bonus de Force Mentale, réduits
  * normalement par le Bonus d'Endurance et les PA (p.238).
  */
-import { RNG, defaultRNG } from './dice';
+import type { RNG } from './dice';
 import { rollTest, resolveOpposed, isDoubleRoll, evaluateTest, clampTarget, cibleDuTest, TestResult } from './tests';
 import { getTestPolicy } from './testPolicy';
 import { refCouvre } from '../data/schemas/grammaire/ref';
@@ -26,7 +26,7 @@ import { bonus, effectiveChar, effectiveArmourAt } from './characteristics';
 import { effectiveSkillCharKey, skillBaseValue, soutienBonus } from './skills';
 import { effectivelyHostile } from './relations';
 import { reverseRoll, hitLocationByShape, phraseDeTouche, type ToucheDuJournal } from './combat';
-import { resolveFormula, skillDRBonus, offTerrainTestDR } from './ops';
+import { resolveFormula, valeurSansTirage, skillDRBonus, offTerrainTestDR } from './ops';
 import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
 import { type OvercastSource, effectiveRangeMetres, missileOvercastDamageBonus, overcastSourceOf } from './overcast';
@@ -383,7 +383,7 @@ export function castTestTalentDR(c: Combatant, skill: 'langue' | 'focalisation' 
  */
 export function zdeDiameterMeters(target: SpellTarget | null | undefined, caster: Combatant): number | null {
   if (!target || target.kind !== 'area') return null;
-  const m = resolveFormula(target.meters, caster);
+  const m = valeurSansTirage(target.meters, caster);
   return target.span === 'radius' ? m * 2 : m;
 }
 
@@ -403,7 +403,7 @@ export function spellRangeTiles(range: SpellRange | null | undefined, caster: Co
   switch (range.kind) {
     case 'self': return 0;
     case 'touch': return 1;
-    case 'distance': return Math.max(1, Math.floor((resolveFormula(range.value, caster) * (range.unit === 'km' ? 1000 : 1)) / 2));
+    case 'distance': return Math.max(1, Math.floor((valeurSansTirage(range.value, caster) * (range.unit === 'km' ? 1000 : 1)) / 2));
     case 'special': return null;
   }
 }
@@ -416,14 +416,14 @@ export function effectiveSpellRangeTiles(range: SpellRange | null | undefined, c
   if (!range || steps <= 0 || range.kind === 'self' || range.kind === 'special') return spellRangeTiles(range, caster);
   if (range.kind === 'touch')
     return source === 'blessing' ? Math.max(1, Math.floor(effectiveRangeMetres('blessing', 0, steps) / 2)) : 1;
-  const baseM = resolveFormula(range.value, caster) * (range.unit === 'km' ? 1000 : 1);
+  const baseM = valeurSansTirage(range.value, caster) * (range.unit === 'km' ? 1000 : 1);
   return Math.max(1, Math.floor(effectiveRangeMetres(source, baseM, steps) / 2));
 }
 
 /** Nombre de cibles INITIAL d'un sort (la valeur « Cible » résolue), 1 par défaut. Base de la capacité
  *  de cibles supplémentaires en Surincantation (cf. `extraTargetCapacity`). */
 export function spellTargetCount(spell: { target?: SpellTarget | null }, caster: Combatant): number {
-  return spell.target?.kind === 'count' ? Math.max(1, resolveFormula(spell.target.n, caster)) : 1;
+  return spell.target?.kind === 'count' ? Math.max(1, valeurSansTirage(spell.target.n, caster)) : 1;
 }
 
 /**
@@ -446,7 +446,7 @@ export function prayerWrathTriggered(roll: number, sinPoints: number): boolean {
  * (« Jusqu'au lever du soleil » = prochaine aube ; à l'aube pile, un cycle entier). Null pour les autres
  * échelles (Rounds / Instantané / Spécial) — l'appelant n'invente RIEN. Zéro parsing de chaîne.
  */
-export function durationClockMinutes(duration: SpellDuration | null | undefined, caster: Combatant, now: number): number | null {
+export function durationClockMinutes(duration: SpellDuration | null | undefined, caster: Combatant, now: number, rng: RNG): number | null {
   if (!duration) return null;
   if (duration.kind === 'untilDawn') {
     const toDawn = minutesUntilNext(now, dawnMinute());
@@ -454,7 +454,7 @@ export function durationClockMinutes(duration: SpellDuration | null | undefined,
   }
   if (duration.kind !== 'clock') return null;
   const UNIT = { minutes: 1, hours: 60, days: MINUTES_PER_DAY };
-  return resolveFormula(duration.value, caster) * UNIT[duration.unit];
+  return resolveFormula(duration.value, caster, rng) * UNIT[duration.unit];
 }
 
 /**
@@ -642,7 +642,7 @@ export function withCastTestDRMods(caster: Combatant, kind: CastTestKind, t: Tes
 export function resolveCasting(
   caster: Combatant,
   spell: SpellLike,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   difficulty: Difficulty = 'intermediaire',
   focusedNI0 = false,
   /** Modificateur ponctuel au Test, calculé par l'ÉTAT qui connaît la géométrie (ex.
@@ -779,7 +779,7 @@ export function traitSpellDRMod(c: Combatant): number {
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
-      if (op.op === 'incomingSpellDRMod') n += resolveFormula(op.amount, c) * Math.max(1, t.value ?? 1);
+      if (op.op === 'incomingSpellDRMod') n += valeurSansTirage(op.amount, c) * Math.max(1, t.value ?? 1);
     }
   }
   return n;
@@ -789,7 +789,7 @@ export function traitSpellDRMod(c: Combatant): number {
  *  (op répétée par niveau, `LDB 10 l.1026` : « réduit de 2 par point »). Négatif = réduction. PUR. */
 export function talentSpellDRMod(c: Combatant): number {
   let n = 0;
-  for (const m of talentPassiveMods(c)) if (m.op.op === 'incomingSpellDRMod') n += resolveFormula(m.op.amount, c);
+  for (const m of talentPassiveMods(c)) if (m.op.op === 'incomingSpellDRMod') n += valeurSansTirage(m.op.amount, c);
   return n;
 }
 
@@ -890,7 +890,7 @@ export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult
  *  UNIQUE des modificateurs (`castTestDRMods`, `kind = 'dissipation'`). `env` = état magique du
  *  LIEU, fourni par l'appelant comme pour `resolveCasting`. `extraMod` s'ajoute à la VALEUR du Test
  *  avant le dé (Soutien du groupe uni, LDB 12 l.189 — cf. `soutenuBonusOf`). */
-export function resolveCounterspell(counter: Combatant, castT: TestResult, rng: RNG = defaultRNG, env: MagicEnvironment = {}, extraMod = 0): CounterspellOutcome {
+export function resolveCounterspell(counter: Combatant, castT: TestResult, rng: RNG, env: MagicEnvironment = {}, extraMod = 0): CounterspellOutcome {
   const value = castingValue(counter, 'langue', 'magick') + extraMod;
   const t = rollTest(value, 'intermediaire', rng);
   return counterspellOutcomeFrom(counter, withCastTestDRMods(counter, 'dissipation', t, { env }), castT);
@@ -949,7 +949,7 @@ export function resolveMagicMissile(
   caster: Combatant,
   target: Combatant,
   spell: SpellLike,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   focusedNI0 = false,
   extraMod = 0,
   /** Magie des mers (MDG 02 l.178-186) : le Projectile magique EST un Test d'Incantation
@@ -1106,7 +1106,7 @@ export interface FocusResult {
 export function resolveFocus(
   caster: Combatant,
   spell: SpellLike,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   difficulty: Difficulty = 'intermediaire',
   atSea = false,
   /** Vents Tourbillonnants (LDB 46 l.179-190, option `vents-tourbillonnants`) : modificateur de la

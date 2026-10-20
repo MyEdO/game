@@ -32,7 +32,7 @@ const heros = (over: Partial<Combatant> = {}): Combatant =>
     ...over,
   } as Combatant);
 
-const scene = (id: string, label: string): Scene => Object.assign(emptyScene(10, 10), { id, label });
+const scene = (id: string, label: string): Scene => Object.assign(emptyScene('scene-test', 10, 10), { id, label });
 const CARTE: WorldMap = {
   id: 'carte-test', label: 'Carte de test',
   places: [

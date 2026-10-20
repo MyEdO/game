@@ -72,7 +72,7 @@ let conteneur: HTMLDivElement | null = null;
 
 brancherArdoise();
 
-const SCENE: Scene = emptyScene(12, 12);
+const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const TINT: TintAt = () => 1;
 const KEEP = () => true;

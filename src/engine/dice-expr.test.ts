@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { rollExpr } from './dice';
 import type { RNG } from './dice';
+import { deMax, deMin } from './dice.testkit';
 
-const maxRng: RNG = { int: (_min, max) => max }; // chaque dé → son max
-const minRng: RNG = { int: (min) => min }; // chaque dé → son min
+const maxRng: RNG = deMax; // chaque dé → son max
+const minRng: RNG = deMin; // chaque dé → son min
 
 describe('rollExpr — évalue une expression de dés', () => {
   it('1d10+15 : min 16, max 25', () => {

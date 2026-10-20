@@ -11,7 +11,7 @@ import { pathTo } from './monde/path';
 
 // Scène 4×4 : falaise de 4 m entre le sommet (2,0) à 4 m et le pied (2,1) à 0 m — AUCUNE arête `climb`.
 function cliffScene(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const w = 4;
   const h = new Array(w * 4).fill(0) as number[];
   h[0 * w + 2] = 4; // (2,0) sommet à 4 m
@@ -25,7 +25,7 @@ const foot = { x: 2, y: 1 }; // pied (0 m)
 /** Étage : la case (1,1) existe à la couche 1, à 4 m ; partout ailleurs la couche 1 est `vide`. Une
  *  croisée sur l'arête E de (1,1), couche 1, donne sur la rue (2,1) au rez. */
 function etageScene(crossable: boolean): Scene {
-  const s = emptyScene(4, 3);
+  const s = emptyScene('scene-test', 4, 3);
   const n = 4 * 3;
   const tiles = new Array(n).fill('vide') as Terrain[];
   tiles[1 * 4 + 1] = s.layers[0].tiles[0];
@@ -38,7 +38,7 @@ function etageScene(crossable: boolean): Scene {
 
 /** Plain-pied : un couloir 3×1, une croisée d'allège `allege` m sur l'arête E de (1,0) — aucun détour possible. */
 function plainPiedScene(crossable: boolean, allege = 1): Scene {
-  const s = emptyScene(3, 1);
+  const s = emptyScene('scene-test', 3, 1);
   s.walls = [{ x: 1, y: 0, side: 'E', window: true, ...(crossable ? { crossable: true, allege } : {}) }];
   return s;
 }
@@ -65,7 +65,7 @@ describe('planFranchissement — falaise', () => {
   });
 
   it('dénivelé ≤ seuil sans croisée → la marche, pas un geste', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     const h = new Array(16).fill(0) as number[];
     h[2] = 1; // 1 m : ≤ STEP_MAX_M → `ramp`
     s.layers[0].height = h;

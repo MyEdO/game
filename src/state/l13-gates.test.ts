@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
+import { battleRng } from '../noyau/battleRng';
 import { applyCast, applyAttackResult, attackWardGate, doAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
@@ -16,11 +17,11 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CastResult, MissileResult } from '../engine/magic';
+import { desEnSuite } from '../engine/dice.testkit';
 
 /** RNG scripté (padding 5). */
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] ?? 5 } as RNG;
+  return desEnSuite(values, { ensuite: 5 });
 }
 
 describe('L13 — gates & redirections', () => {
@@ -70,7 +71,7 @@ describe('L13 — gates & redirections', () => {
     let failSeed: number | null = null;
     for (let s = 1; s <= 60; s++) {
       useGame.getState().seedRng(s);
-      if (!attackWardGate(E, hero).allowed) { failSeed = s; break; }
+      if (!attackWardGate(E, hero, battleRng()).allowed) { failSeed = s; break; }
     }
     expect(failSeed).not.toBeNull();
     useGame.getState().seedRng(failSeed!);

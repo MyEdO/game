@@ -43,7 +43,7 @@ const TAILLE = { w: 800, h: 600 };
  *  interroge — teinte et dégagement du monde CUIT — de la repose du semis d'accents, qui obéit aux
  *  mêmes entrées et peindrait à leur place. */
 const SCENE: Scene = (() => {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.layers[0].tiles = new Array(s.dimensions.w * s.dimensions.h).fill('bois');
   return s;
 })();

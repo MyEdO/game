@@ -334,7 +334,7 @@ export const TABLES = {
         const res = part.result;
         if (!hero || !res || res.success) { part.outcome = []; continue; }
         const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.86/127
-        applyOps(hero, [op]);
+        applyOps(hero, [op], { rng: battleRng() });
         const lines = resultLines([{ ops: [op] }]);
         part.outcome = lines;
         for (const l of lines) get().log(l.text);

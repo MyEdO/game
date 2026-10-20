@@ -195,7 +195,7 @@ describe('(D) Affordance joueur — store `battleManPoste` / `battleLeavePoste`'
 // ───────────────────────────────────────────────────────────────────────────────────────────────
 describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
   const input = (enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput => ({
-    enemy, heroes, scene: emptyScene(12, 12),
+    enemy, heroes, scene: emptyScene('scene-test', 12, 12),
     blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)),
     movement: enemy.movement, spells: [], ...extra,
   });

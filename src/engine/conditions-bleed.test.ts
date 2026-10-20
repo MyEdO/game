@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { bleedDeathRoll } from './conditions';
-import type { RNG } from './dice';
 import type { Combatant } from './types';
+import { deFixe } from './dice.testkit';
 
-const fixed = (v: number): RNG => ({ int: () => v });
+const fixed = deFixe;
 function mk(stacks: number): Combatant {
   return { name: 'X', conditions: stacks ? [{ id: 'hemorragique', value: stacks }] : [] } as unknown as Combatant;
 }

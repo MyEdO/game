@@ -12,7 +12,7 @@ import { testDeRegle } from '../../engine/reglesChiffrees';
  * `test` + `fall` (déjà livrés) → zéro modale dédiée.
  */
 function platformGap(): Scene {
-  const s = emptyScene(5, 3); // couche 0 : herbe marchable PARTOUT (le parterre sous le gouffre), 0 m
+  const s = emptyScene('scene-test', 5, 3); // couche 0 : herbe marchable PARTOUT (le parterre sous le gouffre), 0 m
   const z1 = new Array(15).fill('vide') as Terrain[];
   const h1 = new Array(15).fill(0) as number[];
   for (const x of [0, 1, 3, 4]) for (let y = 0; y < 3; y++) { z1[y * 5 + x] = 'plancher'; h1[y * 5 + x] = 4; } // 2 plateformes à 4 m, gouffre en x=2
@@ -47,7 +47,7 @@ describe('planJump', () => {
   });
 
   it('gouffre SANS surface sous lui (même étage, aucune couche) : refus NOMMÉ, jamais une chute sur rien', () => {
-    const s = emptyScene(5, 3);
+    const s = emptyScene('scene-test', 5, 3);
     s.layers[0].tiles[1 * 5 + 2] = 'vide'; // le gouffre (2,1) au rez, rien dessous
     expect(planJump(s, { x: 1, y: 1 }, { x: 3, y: 1 }, 4, 0)).toEqual({ kind: 'none', raison: 'aucune-surface' });
   });

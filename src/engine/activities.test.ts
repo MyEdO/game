@@ -21,8 +21,7 @@ import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entraineme
 import { byId } from '../data';
 
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] ?? 1 } as RNG;
+  return desEnSuite(values, { ensuite: 1 });
 }
 
 describe('craftTarget — Artisanat (LDB 23 l.68-85)', () => {
@@ -91,6 +90,7 @@ import { craftSpecOf, craftCatalog, learnableTalents, orderBlockOf, orderCatalog
 import { createHero } from './character';
 import { findTrappingById, skillInstanceLabel, talentConcrete, trappings } from '../data';
 import { priceToMoney } from './money';
+import { desEnSuite } from './dice.testkit';
 
 describe('craftSpecOf — dérivation partagée flux/catalogue', () => {
   it('matériaux = ¼ du prix (ch.23 l.66), gamme par pièce dominante', () => {

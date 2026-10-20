@@ -41,7 +41,7 @@ const doigt = (pointerId: number, x: number, y: number) =>
  *  du geste) ; le PANORAMIQUE se mesure au pan VIVANT (`getStagePan`) pendant le geste — le store ne
  *  converge qu'au relâchement, c'est la loi de la caméra impérative (`state/stagePan`). */
 function monter(): { pointer: StagePointer; setZoom: ReturnType<typeof vi.fn> } {
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   const setZoom = vi.fn();
   poserPan(0, 0); // le pan vivant est un module : on le remet à zéro entre deux tests
   useGame.setState({ scene, mode: 'exploration', partyPos: { x: 2, y: 1 }, party: [], dialogue: null, zoom: 1, camPan: { x: 0, y: 0 }, setZoom });

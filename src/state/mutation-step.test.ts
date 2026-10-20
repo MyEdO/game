@@ -18,6 +18,7 @@ import { canFixDie } from '../noyau/netOwnership';
 import { draineCascade } from './cascade.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { desEnSuite } from '../engine/dice.testkit';
 
 /**
  * MUTATION de Corruption en étapes à TABLE (#942 L5) — les TROIS tirages de la dissolution (LDB 19
@@ -297,6 +298,5 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
 
 /** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `data/mutationTables.test.ts`. */
 function scripted(values: number[]) {
-  let i = 0;
-  return { int: () => values[i++] ?? 1 };
+  return desEnSuite(values, { ensuite: 1 });
 }

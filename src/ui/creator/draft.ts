@@ -150,7 +150,7 @@ export interface CreatorDraft
   apparence: Omit<Appearance, 'species'>;
 }
 
-export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff) | 0)): CreatorDraft {
+export function newDraft(seed: number): CreatorDraft {
   // Page blanche cérémonielle (arbitrage 2026-07-13) : aucune race/carrière pré-tirée — l'id vide
   // signifie « non choisi », la fiche vivante démarre grisée et se remplit choix par choix.
   return {
@@ -194,8 +194,8 @@ export function newDraft(seed = (Date.now() & 0xffff) ^ ((Math.random() * 0xffff
  * reste aux défauts du créateur, à RE-VALIDER étape par étape. Préférer le `draft` sauvegardé du
  * roster quand il existe (round-trip sans perte) ; ce chemin est le repli (pré-tirés, imports,
  * héros d'avant cette fonctionnalité). */
-export function draftFromHero(hero: Combatant): CreatorDraft {
-  const d = newDraft();
+export function draftFromHero(hero: Combatant, seed: number): CreatorDraft {
+  const d = newDraft(seed);
   // `Combatant.species` est l'id LDB (rules) ; `appearance.species` est un id de rig → on
   // reconstruit le brouillon depuis l'id rules, pas depuis l'apparence.
   const speciesId = hero.species ?? d.speciesId;

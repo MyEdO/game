@@ -58,7 +58,7 @@ function freshState(withCarrier = true) {
   const possessions: Possession[] = withCarrier ? [dili(party[0].id)] : [];
   useGame.setState({
     party, possessions,
-    scene: { ...emptyScene(2, 2), id: 'ville-a', label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: landMap,
     travelPlan: null,

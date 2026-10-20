@@ -986,7 +986,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
     seedBattleRng(1); // déterminisme (suite isolate:false)
     useGame.setState({
       party: makePregens().slice(0, 3),
-      scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
       worldMap: seaMap,
       travelPlan: null,
@@ -1251,7 +1251,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       title: 'Plateau vide (garde du refus nommé)',
       tests: 'le refus de plateau vide',
       partyNote: 'pré-tirés',
-      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene() }),
+      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test') }),
     };
     const api = () => buildApi([...testScenarios, vide]); // registre LOCAL : le tableau importé n'est pas touché
     api().scenario('entrainement', 5); // mémoire d'onglet posée par un lancement QUI ABOUTIT
@@ -1273,7 +1273,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       tests: 'le refus de plateau vide avant le démarrage',
       partyNote: 'pré-tirés',
       money: { gold: 7, silver: 0, brass: 0 },
-      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene() }),
+      construire: () => ({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test') }),
     };
     useGame.getState().setScreen('menu');
     expect(() => buildApi([...testScenarios, vide]).scenario('plateau-vide-demarrage', 3)).toThrowError(/VIDE/);
@@ -1346,7 +1346,7 @@ describe('__wfrp.ready — la PROSE du refus est composée ICI (#1478)', () => {
   });
 
   it('monde monté, voile tombé : le ✓ nomme la scène', async () => {
-    useGame.setState({ scene: { ...emptyScene(4, 4), id: 'opera-plan' } });
+    useGame.setState({ scene: emptyScene('opera-plan', 4, 4) });
     const p = buildApi().ready(800);
     await vi.advanceTimersByTimeAsync(0);
     signalerEntreeEnScene('opera-plan', false);

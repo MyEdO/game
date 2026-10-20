@@ -119,7 +119,7 @@ function authoredPropFoot(scene: string, id: string): [string, number, number] {
 const authoredPropFootTable = (): [string, string, string, number, number][] =>
   LEGACY_AUTHORED_FOOT_SITES.map(([scene, id]) => [scene, id, ...authoredPropFoot(scene, id)] as [string, string, string, number, number]);
 
-const sceneWithEntity = (ent: SceneEntity): Scene => ({ ...emptyScene(8, 8), entities: [ent] });
+const sceneWithEntity = (ent: SceneEntity): Scene => ({ ...emptyScene('scene-test', 8, 8), entities: [ent] });
 
 describe('migration de l’empreinte : du legacy d’instance au catalogue de type', () => {
   it('migre sans dérive les empreintes de type : la physique d’un décor vient de son TYPE', () => {

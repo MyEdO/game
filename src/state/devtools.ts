@@ -156,6 +156,7 @@ import { traumaById } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
+import { idDEntropie } from '../web/entropie';
 
 function entreeDeRecette(dataset: string, id: string): unknown {
   if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
@@ -1254,7 +1255,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  d'auteur (`MAISON_PROJET_AUTHORE`) — elle passe `parseProject`. Rien n'est écrit : la recette la
      *  DÉFORME pour son cas, puis la pose par `projectSave`. */
     projectMinimal: (id = 'projet-recette', label = 'Projet de recette'): EntreeEcrite => {
-      const scene = emptyScene();
+      const scene = emptyScene(idDEntropie('scene'));
       const project = documentDeProjet(
         { type: 'projet', id, label, versionContenu: 1, maison: MAISON_PROJET_AUTHORE },
         [scene],
@@ -1648,7 +1649,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!target) return `✗ « ${id} » introuvable dans le combat — voir __wfrp.battle()`;
       if (typeof n !== 'number' || !Number.isFinite(n)) return `✗ Dégâts « ${String(n)} » : un nombre fini est attendu`;
       const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
-      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { caster });
+      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { rng: battleRng(), caster });
       useGame.setState({
         battle: { ...s.battle, log: [...s.battle.log, ev('info', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('info', l))] },
       });

@@ -44,7 +44,7 @@ import { CompassRose } from './PlanChrome';
 import { Row, Split } from './Layout';
 import { garanti } from '../lib/garanti';
 
-/** Hash déterministe d'un id → sens de courbure stable d'une route (pas de Math.random). */
+/** Hash déterministe d'un id → sens de courbure stable d'une route (aucune entropie). */
 function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;

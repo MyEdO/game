@@ -22,7 +22,7 @@ export interface CombatEventCtx extends CombatHookCtx {
   audience?: Combatant[];
   /** Contexte transmis aux triggers de données (victim/woundsDealt/location/attackKind/rng…). `set` est
    *  injecté depuis `ctx.set` (routage cadence-aware des Tests de trigger). */
-  triggerCtx?: Omit<TriggerCtx, 'set'>;
+  triggerCtx: Omit<TriggerCtx, 'set'>;
 }
 
 export function emitCombatEvent(event: EffectTrigger, ctx: CombatEventCtx): void {

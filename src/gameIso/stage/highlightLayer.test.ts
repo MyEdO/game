@@ -11,7 +11,7 @@ describe('combatHighlightsView — survol d’une entité SANS arme (#203 régre
   it('ne lève pas, et ne produit AUCUNE bande de portée : une structure (porte, weapons: []) n’en a pas', () => {
     const door = { id: 'structure-5-4-N-0', name: 'Porte', kind: 'structure', pos: { x: 5, y: 4 }, size: 'moyenne', conditions: [], wounds: { current: 10, max: 10 }, weapons: [] } as unknown as Combatant;
     const battle = { combatants: [door], order: [], turn: 0, zones: [], acted: false, action: null } as unknown as BattleState;
-    const get = (() => ({ battle, scene: emptyScene(6, 6) })) as unknown as () => GameState;
+    const get = (() => ({ battle, scene: emptyScene('scene-test', 6, 6) })) as unknown as () => GameState;
 
     const view = combatHighlightsView(get, battle, {
       myTurn: false,

@@ -8,6 +8,7 @@ import { applyOps } from './ops';
 import type { Combatant, Trauma, HitLocation } from './types';
 import type { RNG } from './dice';
 import { critiqueDoc } from '../data/criticals';
+import { desDuTest, desEnSuite } from './dice.testkit';
 
 
 const C = (over: Partial<Combatant>): Combatant =>
@@ -29,7 +30,7 @@ const FINGER_PER_ROUND = { versTraumaId: 'doigt-ampute' };
 const FOOT_AFTER_DELAY = { jours: { dice: { n: 1, sides: 10 } }, versTraumaId: 'membre-inferieur-ampute' };
 
 /** RNG qui débite une séquence fixe (int() ignore min/max — tests ciblés). */
-const seq = (vals: number[]): RNG => { let i = 0; return { int: () => vals[i++ % vals.length] }; };
+const seq = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 
 describe('#166/#167 — Aide Médicale reçue (LDB 18 l.307-312) : flag partagé', () => {
   it('receiveMedicalAid lève awaitingMedicalAid sur TOUTES les séquelles en attente', () => {
@@ -45,10 +46,10 @@ describe('#166/#167 — Aide Médicale reçue (LDB 18 l.307-312) : flag partagé
   it('les formes op (sort/prière = heal ; bandage/cataplasme = preventInfection) lèvent le flag via applyOps', () => {
     const gate = (): Trauma => plaie('brasD', { awaitingMedicalAid: true, perRound: FINGER_PER_ROUND });
     const cHeal = C({ wounds: { current: 3, max: 10 }, traumas: [gate()] });
-    applyOps(cHeal, [{ op: 'heal', amount: 2 }], {});
+    applyOps(cHeal, [{ op: 'heal', amount: 2 }], { rng: desDuTest });
     expect(cHeal.traumas!.every((t) => !t.awaitingMedicalAid)).toBe(true);
     const cBandage = C({ traumas: [gate()] });
-    applyOps(cBandage, [{ op: 'preventInfection' }], {});
+    applyOps(cBandage, [{ op: 'preventInfection' }], { rng: desDuTest });
     expect(cBandage.traumas!.every((t) => !t.awaitingMedicalAid)).toBe(true);
   });
 });
@@ -119,7 +120,7 @@ describe('#167 — « Pied écrasé » : perte du pied si pas de Chirurgie sous 
 describe('#166/#167 — câblage DONNÉE→plaie (stampCriticalEscalation) + entrées de tables', () => {
   it('stamp « Main ouverte » pose l’escalade périodique DÉCLARÉE + awaitingMedicalAid sur la plaie', () => {
     const traumas = [plaie('brasD')];
-    stampCriticalEscalation(traumas, { perRound: FINGER_PER_ROUND }, 'brasD', C({}));
+    stampCriticalEscalation(traumas, { perRound: FINGER_PER_ROUND }, 'brasD', C({}), desDuTest);
     expect(traumas[0].perRound).toEqual(FINGER_PER_ROUND);
     expect(traumas[0].awaitingMedicalAid).toBe(true);
   });
@@ -153,7 +154,7 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
     const traumas: Trauma[] = []; // Épaule luxée n’engendre PAS d’amputation → aucune plaie chirurgicale préalable
     stampCriticalEscalation(traumas, {
       medicalAidGate: { label: 'Épaule luxée (bras perdu)', disable: [{ op: 'maxWeaponHands', hands: 1 }], restoreDR: 6, recoveryPenalty: [{ op: 'charMod', char: 'capacite-de-combat', mod: -10 }] },
-    }, 'brasD', C({}));
+    }, 'brasD', C({}), desDuTest);
     expect(traumas).toHaveLength(1);
     const t = traumas[0];
     expect(t.location).toBe('brasD');
@@ -230,7 +231,7 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
 describe('#190 — réouverture (bleedOnReinjury) : chaque Dégât à la Localisation → +N Hémorragique, levée par Chirurgie (LDB 18 / AA 07)', () => {
   it('stamp pose une séquelle chirurgicale porteuse de `bleedOnReinjury` à la localisation', () => {
     const traumas: Trauma[] = []; // Blessure béante n’engendre PAS d’amputation → aucune plaie préalable
-    stampCriticalEscalation(traumas, { bleedOnReinjury: { amount: 2, label: 'Dégâts artériels' } }, 'corps', C({}));
+    stampCriticalEscalation(traumas, { bleedOnReinjury: { amount: 2, label: 'Dégâts artériels' } }, 'corps', C({}), desDuTest);
     expect(traumas).toHaveLength(1);
     expect(traumas[0]).toMatchObject({ label: 'Dégâts artériels', location: 'corps', bleedOnReinjury: 2, needsSurgery: true });
   });

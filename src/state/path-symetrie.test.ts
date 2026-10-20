@@ -54,7 +54,7 @@ describe('path — le franchissement d’une arête est SYMÉTRIQUE', () => {
   });
 
   it('une scène mono-couche reste symétrique quels que soient les murs d’arête', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.walls = [
       { x: 1, y: 1, side: 'E' } as WallSeg,
       { x: 2, y: 2, side: 'N' } as WallSeg,
@@ -70,7 +70,7 @@ describe('path — le franchissement d’une arête est SYMÉTRIQUE', () => {
  */
 function twoLayer(tuilesZ1: { x: number; y: number }[], murs: WallSeg[], videsZ0: { x: number; y: number }[] = []): Scene {
   const w = 4;
-  const s = emptyScene(w, 3);
+  const s = emptyScene('scene-test', w, 3);
   const z1 = new Array(w * 3).fill('vide') as Terrain[];
   for (const t of tuilesZ1) z1[t.y * w + t.x] = 'plancher';
   for (const v of videsZ0) s.layers[0].tiles[v.y * w + v.x] = 'vide' as Terrain;

@@ -93,7 +93,7 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
     const battleClickEntity = vi.fn();
     const battleClickTile = vi.fn();
     const setInspectId = vi.fn();
-    const scene: Scene = emptyScene(8, 8);
+    const scene: Scene = emptyScene('scene-test', 8, 8);
     useGame.setState({ scene, mode: 'battle', dialogue: null, battle, party: [hero, ally], inspectId: null, battleClickEntity, battleClickTile, setInspectId });
     monter(dims);
     return { battleClickEntity, battleClickTile, setInspectId };

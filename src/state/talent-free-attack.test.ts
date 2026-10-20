@@ -16,6 +16,7 @@ import { resetCadence, setCadence } from '../engine/cadence';
 import { setRule, resetRule } from '../engine/policy';
 import { applySummon } from '../noyau/summonFlow';
 import { campGain } from '../noyau/combat/advantagePool';
+import { desDuTest } from '../engine/dice.testkit';
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
@@ -60,7 +61,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
       useGame.getState().seedRng(2);
       const { H, E } = setup();
       campGain(useGame.getState, H, 2);
-      applySummon(useGame.getState, useGame.setState, H, { ref: 'loup' } as never, {});
+      applySummon(useGame.getState, useGame.setState, H, { ref: 'loup' } as never, { rng: desDuTest });
       const loup = () => useGame.getState().battle!.combatants.find((c) => c.summon)!;
       expect(loup().kind).toBe('hero');
       expect(loup().advantage).toBe(2);

@@ -10,13 +10,11 @@ import {
   forcedPaceModifier,
   FORCED_PACE_PENALTY_PER_KM,
 } from './vehicle';
+import { desEnSuite } from './dice.testkit';
 
 /** RNG SCRIPTÉ : rend les jets dans l'ordre exact de consommation (aucun clamp — un jet de trop ou de
  *  moins rend `undefined` et fait échouer le test, ce qui EST le contrat mesuré). */
-const script = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: () => vals[i++] };
-};
+const script = (...vals: number[]): RNG => desEnSuite(vals);
 
 describe('véhicule-à-coque (Combatant à PV)', () => {
   it('bâtit une coque depuis la facette hull (Diligence E45/B50)', () => {

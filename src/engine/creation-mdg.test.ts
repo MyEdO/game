@@ -11,12 +11,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { rollCareer } from './creation';
-import type { RNG } from './dice';
 import { careers, careersForSpecies, findCareerById, findSpeciesById, levelsForCareer, species } from '../data';
 import { newDraft, withSpecies, withCoastalSwap, careerRollPool, coastalSwapAvailable, type CreatorDraft } from '../ui/creator/draft';
+import { deFixe } from './dice.testkit';
 
 /** RNG figé : le d100 tombe toujours sur `v`. */
-const fixed = (v: number): RNG => ({ int: () => v });
+const fixed = deFixe;
 
 /** Brouillon du créateur pour (espèce, swap) — la table effective est celle du VRAI créateur. */
 const draft = (speciesId: string, coastalSwap: boolean): CreatorDraft =>

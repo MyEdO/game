@@ -1,7 +1,7 @@
 /**
  * Règles de déplacement étendu — Livre de base, ch.15 « Déplacement ».
  */
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { effectiveChar } from './characteristics';
 import { loseWounds, addCondition } from './conditions';
 import type { Combatant, Difficulty } from './types';
@@ -38,7 +38,7 @@ export function resolveRun(
   athletics: number,
   difficulty: Difficulty,
   movement: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): IssueDeCourse {
   return runFromTest(rollTest(athletics, difficulty, rng), movement);
 }
@@ -105,7 +105,7 @@ export function ladderClimbReach(movement: number): number {
 export function resolveLadderClimb(
   escalade: number,
   movement: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): { success: boolean; roll: number; target: number; dr: number; metres: number } {
   const t = rollTest(escalade, 'accessible', rng); // Escalade Accessible (+20)
   return { success: t.success, roll: t.roll, target: t.target, dr: t.sl, metres: Math.max(0, movement + t.sl) };
@@ -139,7 +139,7 @@ export function climbMovementCost(metres: number, metresPerTile: number): number
 export function resolveSurfaceClimb(
   escalade: number,
   movement: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   opts: { difficulty?: import('./types').Difficulty; requiresGrimpeur?: boolean; hasGrimpeur?: boolean } = {},
 ): { success: boolean; roll: number; target: number; dr: number; metres: number; impossible: boolean } {
   if (surfaceClimbImpossible(!!opts.requiresGrimpeur, !!opts.hasGrimpeur)) {
@@ -158,7 +158,7 @@ export function resolveDeliberateFall(
   athletics: number,
   difficulty: Difficulty,
   metres: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): IssueDeChute {
   return fallFromTest(rollTest(athletics, difficulty, rng), metres);
 }

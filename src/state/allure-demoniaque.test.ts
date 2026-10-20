@@ -6,6 +6,7 @@ import { chaosDomainOf } from '../engine/combatFeatures/dispatch';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { buildActorView } from '../engine/actorView';
 import { findSpellById } from '../data';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * Dé-stub d'« Allure démoniaque » (EDOC 13 l.270-280) : le Flow du sort sélectionne la colonne du Tableau
@@ -22,7 +23,7 @@ const caster = (spec?: string): Combatant =>
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   } as unknown as Combatant);
 
-const fixed = (n: number) => ({ int: () => n });
+const fixed = deFixe;
 const spellFlow = () => spellFlowFor(findSpellById('allure-demoniaque')!.effects, 'target');
 
 describe('chaosDomainOf — Domaine du Chaos du lanceur (spec du Talent Magie du Chaos)', () => {

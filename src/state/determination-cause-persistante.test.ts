@@ -18,6 +18,7 @@ import { hasCondition } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Flow } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
+import { deFixe } from '../engine/dice.testkit';
 
 /** Les ops du palier « −4 DR ou moins » de la rangée, telles que la donnée les déplie (même extraction
  *  que `src/engine/miscast-ops.test.ts`, qui éprouve le moteur — ici on éprouve le chemin du STORE). */
@@ -34,7 +35,7 @@ function opsDuPalier(): GameOp[] {
   throw new Error('rangée « Purifier la chair » introuvable');
 }
 
-const troisRounds: RNG = { int: () => 3 }; // 1d10 → 3 : la cause court 3 Rounds
+const troisRounds: RNG = deFixe(3); // 1d10 → 3 : la cause court 3 Rounds
 
 describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin store', () => {
   beforeEach(() => {

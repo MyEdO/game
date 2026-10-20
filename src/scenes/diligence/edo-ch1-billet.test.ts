@@ -7,6 +7,7 @@
  * paie au km. LDB 10 l.818, arbitrage #2547 (2026-10-09) : Négociateur au prix du palier.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame } from '../../state/store';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
@@ -72,18 +73,12 @@ function tarifDuBillet(): TarifDePassage {
   return offre.tarif;
 }
 
-/** Les d100 du prochain jet, dans l'ordre (patron `bargain-soutien-departage.test.ts`). */
-function forceD100(...dice: number[]): void {
-  const q = [...dice];
-  vi.spyOn(Math, 'random').mockImplementation(() => ((q.shift() ?? 1) - 0.5) / 100);
-}
-
 /** « Marchander » le billet puis « Conclure » : le joueur jette `joueur`, Gunnar et Hultz `vendeur`. */
 function marchander(joueur: (cible: number) => number, vendeur: number): BargainOutcome {
   get().startBilletBargain(T1, 'diligence');
   const pb = get().pendingBargain!;
   expect(pb.contrepartie).toEqual({ kind: 'billet', routeId: T1, vehicule: 'diligence', depuis: 'la-diligence', titre: t('out.bargainTitreBillet') });
-  forceD100(joueur(pb.playerSkill), vendeur);
+  imposerLesD100(joueur(pb.playerSkill), vendeur);
   get().bargainRoll();
   vi.restoreAllMocks();
   get().bargainConfirm();

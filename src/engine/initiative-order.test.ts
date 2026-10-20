@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { initiativeOrder } from './combat';
 import { makeRNG } from './dice';
 import type { Combatant } from './types';
+import { deFixe } from './dice.testkit';
 
 /**
  * Ordre d'Initiative — LDB 13 l.31 :
@@ -15,22 +16,15 @@ const ids = (cs: Combatant[]) => cs.map((x) => x.id);
 describe('initiativeOrder — tri RAW (LDB 13 l.31)', () => {
   it('Initiative distincte : triée par Initiative décroissante (le rng ne change rien sans égalité)', () => {
     const cs = [c('a', 30, 30), c('b', 50, 30), c('c', 40, 30)];
-    expect(ids(initiativeOrder(cs))).toEqual(['b', 'c', 'a']);
     expect(ids(initiativeOrder(cs, makeRNG(1)))).toEqual(['b', 'c', 'a']); // pas d'égalité exacte → aucun Test
   });
 
-  it('Initiative égale, Agilité distincte : départage par Agilité décroissante (inchangé, avec ou sans rng)', () => {
+  it('Initiative égale, Agilité distincte : départage par Agilité décroissante', () => {
     const cs = [c('a', 40, 30), c('b', 40, 50), c('c', 40, 40)];
-    expect(ids(initiativeOrder(cs))).toEqual(['b', 'c', 'a']);
     expect(ids(initiativeOrder(cs, makeRNG(7)))).toEqual(['b', 'c', 'a']); // Ag distincte → pas de Test d'Ag
   });
 
-  it('égalité EXACTE I+Ag, SANS rng : ordre d’entrée stable (comportement historique conservé)', () => {
-    const cs = [c('a', 40, 35), c('b', 40, 35), c('c', 40, 35)];
-    expect(ids(initiativeOrder(cs))).toEqual(['a', 'b', 'c']);
-  });
-
-  it('égalité EXACTE I+Ag, AVEC rng seedé : départage par Test d’Agilité — déterministe + permutation', () => {
+  it('égalité EXACTE I+Ag : départage par Test d’Agilité — déterministe + permutation', () => {
     const mk = () => [c('a', 40, 35), c('b', 40, 35), c('c', 40, 35)];
     const o1 = ids(initiativeOrder(mk(), makeRNG(123)));
     const o2 = ids(initiativeOrder(mk(), makeRNG(123)));
@@ -57,6 +51,6 @@ describe('initiativeOrder — tri RAW (LDB 13 l.31)', () => {
     const a = c('a', 40, 40); a.conditions = [{ id: 'sonne', value: 3 }];
     const b = c('b', 40, 40);
     // Dé 30 pour chacun : b réussit (40), a Sonné ×3 échoue (40 − 30 = 10) → b d'abord.
-    expect(ids(initiativeOrder([a, b], { int: () => 30 }))).toEqual(['b', 'a']);
+    expect(ids(initiativeOrder([a, b], deFixe(30)))).toEqual(['b', 'a']);
   });
 });

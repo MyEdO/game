@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import { addCondition, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * Trait Redoutable (Zoo Impérial) — au début de son tour, la créature complète ses Avantages jusqu'à
@@ -18,7 +19,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant => ({
   ...over,
 }) as unknown as Combatant;
 const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
-const fire = (c: Combatant) => fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onTurnStart', {});
+const fire = (c: Combatant) => fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onTurnStart', { rng: desDuTest });
 
 describe('Trait Redoutable (ZI) — Avantage minimum = Indice au début du tour', () => {
   it('porte l’Avantage jusqu’à l’Indice (value:2)', () => {

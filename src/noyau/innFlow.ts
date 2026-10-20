@@ -70,7 +70,7 @@ export const TABLES = {
       const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'bad' }]);
       if (def?.failExtenue && hero) {
         const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
-        applyOps(hero, [op], { source: { kind: 'activity', id: ACTIVITY_ID } });
+        applyOps(hero, [op], { rng: battleRng(), source: { kind: 'activity', id: ACTIVITY_ID } });
         set({ party: [...get().party] });
         cons.push({ ops: [op] });
       }

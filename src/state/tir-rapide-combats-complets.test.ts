@@ -36,7 +36,7 @@ function monte(opts: { heroAi: boolean; fate?: number; wounds?: number }) {
   H1.talents = [{ talentId: 'tir-rapide', times: 1 }];
   const battle = { combatants: [H1, H2, E1, E2], order: ['e1', 'h1', 'e2', 'h2'], turn: 3, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
-  useGame.setState({ ...initialFields(), party: [H1, H2], mode: 'battle', battle, scene: emptyScene(8, 8), net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } });
+  useGame.setState({ ...initialFields(), party: [H1, H2], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } });
 }
 
 type Issue = { issue: string; fenetresTirRapide: number; [k: string]: unknown };

@@ -14,7 +14,7 @@ import { terrainMatiere } from '../../noyau/monde/terrain';
 
 /** Scène 4×4 « plancher » avec un tableau de hauteurs métriques à 0 partout (édité par test). */
 function withHeight(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   s.layers[0].tiles = new Array(16).fill('plancher');
   s.layers[0].height = new Array(16).fill(0);
   return s;
@@ -30,19 +30,19 @@ const isBaseFace = (f: Face) => f.material.domain === 'terrain' && !f.material.p
 
 describe('edgeBlends (raccord d’arêtes de terrain)', () => {
   it('un voisin de priorité plus haute déborde ; même priorité ne déborde pas', () => {
-    const s = emptyScene(3, 3); // tout herbe (priorité 1)
+    const s = emptyScene('scene-test', 3, 3); // tout herbe (priorité 1)
     s.layers[0].tiles[1 * 3 + 2] = 'pave'; // E (x=2,y=1) = pavé (priorité 5)
     const blends = edgeBlends(s, 1, 1);
     expect(blends).toContainEqual({ dir: 'E', terrain: 'pave' });
     expect(blends.find((b) => b.terrain === 'herbe')).toBeUndefined();
   });
   it('aucun débordement si tous les voisins ≤ priorité du centre', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles[1 * 3 + 1] = 'pave'; // centre = pavé (haute priorité)
     expect(edgeBlends(s, 1, 1)).toEqual([]); // voisins herbe (basse)
   });
   it('opère sur le NIVEAU demandé (z) — chaque couche a ses propres raccords', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers.push({ z: 1, tiles: new Array(9).fill('herbe') });
     s.layers[1].tiles[1 * 3 + 2] = 'pave'; // voisin E au niveau 1
     expect(edgeBlends(s, 1, 1, 1)).toContainEqual({ dir: 'E', terrain: 'pave' });
@@ -107,7 +107,7 @@ describe('buildFloors — parois de relief auto-dérivées du dénivelé métriq
   });
 
   it('les tuiles « vide » d’un étage ne produisent AUCUN élément (on voit le dessous)', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers.push({ z: 1, tiles: new Array(9).fill('vide') });
     s.layers[1].tiles[1 * 3 + 1] = 'plancher';
     const els = buildFloors(s, undefined, { activeZ: 1 });
@@ -118,7 +118,7 @@ describe('buildFloors — parois de relief auto-dérivées du dénivelé métriq
 
 describe('buildFloors — bloc PLEIN d’un terrain (solidHeightM, ex. mur) : RENDU seul, combat intouché', () => {
   it('une tuile mur cernée d’herbe s’affiche comme un bloc : 4 FALAISES + dessus à solidHeightM, heightAt=0', () => {
-    const s = emptyScene(3, 3); // tout herbe, hauteur COMBAT 0 partout
+    const s = emptyScene('scene-test', 3, 3); // tout herbe, hauteur COMBAT 0 partout
     s.layers[0].tiles[1 * 3 + 1] = 'mur'; // centre = mur (solidHeightM ≈ 2.25 m)
     const el = elAt(buildFloors(s), 1, 1)!;
     const cliffs = reliefParts(el);
@@ -135,7 +135,7 @@ describe('buildFloors — bloc PLEIN d’un terrain (solidHeightM, ex. mur) : RE
   });
 
   it('deux tuiles mur adjacentes : pas de paroi sur l’arête PARTAGÉE (bloc continu), falaise vers l’herbe', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles[1 * 3 + 1] = 'mur';
     s.layers[0].tiles[1 * 3 + 2] = 'mur'; // voisin E, même bloc
     const dirs = reliefParts(elAt(buildFloors(s), 1, 1)).map((f) => f.side);
@@ -144,7 +144,7 @@ describe('buildFloors — bloc PLEIN d’un terrain (solidHeightM, ex. mur) : RE
   });
 
   it('le bloc s’AJOUTE à la hauteur propre de la tuile (mur posé sur un étage surélevé)', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].height = new Array(9).fill(0);
     s.layers[0].tiles[1 * 3 + 1] = 'mur';
     s.layers[0].height[1 * 3 + 1] = 4; // étage surélevé de 4 m SOUS le mur
@@ -181,7 +181,7 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
   });
 
   it('dalle de tablier et pilier : les matières que la SCÈNE pose pour `deck` et `pilier`', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.layers[0].tiles = new Array(16).fill('plancher');
     s.layers[0].height = new Array(16).fill(0);
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
@@ -198,7 +198,7 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
   });
 
   it('flanc d’un BLOC PLEIN : la matière est celle de son TERRAIN, pas celle de la scène', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].height = new Array(9).fill(0);
     s.layers[0].tiles[1 * 3 + 1] = 'mur';
     const attendue = terrainMatiere('mur');
@@ -213,7 +213,7 @@ describe('buildFloors — la matière de relief est LUE dans la donnée (#1691)'
 describe('buildFloors — TOIT d’un bloc plein (chemin de ronde sur le mur), vu d’un étage inférieur', () => {
   /** Bloc `mur` en (1,1) à z0 (dessus 4 m) COIFFÉ d’un sol `pierre` en (1,1) à z1, hauteur 4 m coïncidente. */
   function cappedWall(): Scene {
-    const s = emptyScene(3, 3); // z0 tout herbe (hauteur combat 0)
+    const s = emptyScene('scene-test', 3, 3); // z0 tout herbe (hauteur combat 0)
     s.layers[0].tiles[1 * 3 + 1] = 'mur'; // masse pleine (solidHeightM) → dessus à 4 m
     s.layers.push({ z: 1, tiles: new Array(9).fill('vide'), height: new Array(9).fill(0) });
     s.layers[1].tiles[1 * 3 + 1] = 'pierre'; // chemin de ronde
@@ -226,7 +226,7 @@ describe('buildFloors — TOIT d’un bloc plein (chemin de ronde sur le mur), v
     expect(capsSolid(s, 1, 1, 1)).toBe(true);
     expect(capsSolid(s, 1, 1, 0)).toBe(false); // z0 jamais
     // un tablier au-dessus d’une surface MARCHABLE (plancher, pas un bloc plein) n’est PAS un toit de bloc
-    const deck = emptyScene(3, 3);
+    const deck = emptyScene('scene-test', 3, 3);
     deck.layers[0].tiles = new Array(9).fill('plancher');
     deck.layers.push({ z: 1, tiles: new Array(9).fill('vide'), height: new Array(9).fill(0) });
     deck.layers[1].tiles[1 * 3 + 1] = 'planches';
@@ -242,7 +242,7 @@ describe('buildFloors — TOIT d’un bloc plein (chemin de ronde sur le mur), v
   });
 
   it('non-régression : un vrai surplomb (tablier sur route marchable) reste FANTÔME vu d’en bas', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles = new Array(9).fill('plancher');
     s.layers.push({ z: 1, tiles: new Array(9).fill('vide'), height: new Array(9).fill(0) });
     s.layers[1].tiles[1 * 3 + 1] = 'planches';
@@ -263,7 +263,7 @@ describe('buildFloors — TOIT d’un bloc plein (chemin de ronde sur le mur), v
     // (1,0) = mur (bloc 4 m) coiffé par un chemin de ronde `pierre` z1 4 m. Les parois de ce toit seraient
     // REDONDANTES avec celles du bloc et, à base égale, la couche z1 gagne le tri → elles recouvriraient une
     // rampe z0 de même hauteur posée devant. Donc : ZÉRO paroi sur le toit ; le bloc `mur` en dessous les porte.
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles[0 * 3 + 1] = 'mur';
     s.layers.push({ z: 1, tiles: new Array(9).fill('vide'), height: new Array(9).fill(0) });
     s.layers[1].tiles[0 * 3 + 1] = 'pierre'; s.layers[1].height![0 * 3 + 1] = 4;
@@ -277,7 +277,7 @@ describe('buildFloors — TOIT d’un bloc plein (chemin de ronde sur le mur), v
 
   it('TOIT DE GATEHOUSE : chemin de ronde sur un TUNNEL passable bordé de bloc plein → caps, ZÉRO piloti', () => {
     // (1,1) z0 = tunnel passable (plancher) BORDÉ par deux murs (0,1)/(2,1) montant à 4 m ; coiffé z1 à 4 m.
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles[1 * 3 + 0] = 'mur';
     s.layers[0].tiles[1 * 3 + 2] = 'mur';
     s.layers.push({ z: 1, tiles: new Array(9).fill('vide'), height: new Array(9).fill(0) });
@@ -292,7 +292,7 @@ describe('buildFloors — TOIT d’un bloc plein (chemin de ronde sur le mur), v
 
 describe('buildFloors — wedges de raccord de terrain', () => {
   it('un voisin de plus haute précédence pose un wedge sur l’arête qui lui fait face (inset 0.4)', () => {
-    const s = emptyScene(3, 3); // tout herbe
+    const s = emptyScene('scene-test', 3, 3); // tout herbe
     s.layers[0].tiles[1 * 3 + 2] = 'pave'; // voisin E
     const el = elAt(buildFloors(s), 1, 1)!;
     const wedges = el.faces.filter((f) => f.material.part === 'wedge');
@@ -309,7 +309,7 @@ describe('buildFloors — wedges de raccord de terrain', () => {
 describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)', () => {
   /** z0 praticable partout ; tablier 1×1 en (1,1) à z1, 4 m, cerné de vide. */
   function deckScene(): Scene {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.layers[0].tiles = new Array(16).fill('plancher');
     s.layers[0].height = new Array(16).fill(0);
     s.layers.push({ z: 1, tiles: new Array(16).fill('vide'), height: new Array(16).fill(0) });
@@ -368,7 +368,7 @@ describe('buildFloors — surplomb (tablier au-dessus d’une surface marchable)
 
 describe('buildFloors — sélection des couches et clés', () => {
   it('viewZ isole une seule couche (debug viewLevel)', () => {
-    const s = emptyScene(2, 2);
+    const s = emptyScene('scene-test', 2, 2);
     s.layers.push({ z: 1, tiles: new Array(4).fill('plancher') });
     const els = buildFloors(s, undefined, { activeZ: 1, viewZ: 1 });
     expect(els.every((e) => e.cell.z === 1)).toBe(true);
@@ -376,7 +376,7 @@ describe('buildFloors — sélection des couches et clés', () => {
   });
 
   it('clés STABLES d’identité monde (floor:x,y,z), identiques d’un appel à l’autre', () => {
-    const s = emptyScene(2, 2);
+    const s = emptyScene('scene-test', 2, 2);
     const a = buildFloors(s).map((e) => e.key);
     const b = buildFloors(s).map((e) => e.key);
     expect(a).toEqual(b);
@@ -387,7 +387,7 @@ describe('buildFloors — sélection des couches et clés', () => {
 
 describe('fogFloorZ — étage de sol effectif sous un trou', () => {
   it('retombe sur le premier sol construit sous l’étage actif ; sans trou, rend activeZ', () => {
-    const s = emptyScene(2, 2);
+    const s = emptyScene('scene-test', 2, 2);
     s.layers.push({ z: 1, tiles: new Array(4).fill('vide') });
     s.layers[1].tiles[0] = 'plancher'; // (0,0) construit à z1
     expect(fogFloorZ(s, 0, 0, 1)).toBe(1); // construit à l'étage actif

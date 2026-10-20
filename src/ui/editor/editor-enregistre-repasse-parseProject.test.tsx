@@ -60,7 +60,7 @@ async function enregistre(initialScene: Scene): Promise<{ ecrits: SavedProject[]
 
 /** Le document de projet TEL QU'ÉCRIT par l'application sur le chemin nominal. */
 async function enregistreEtCapture(): Promise<SavedProject> {
-  const { ecrits } = await enregistre({ ...emptyScene(4, 4), id: 'scene-round-trip', label: 'Round-trip' });
+  const { ecrits } = await enregistre({ ...emptyScene('scene-round-trip', 4, 4), label: 'Round-trip' });
   expect(ecrits).toHaveLength(1);
   return ecrits[0];
 }
@@ -96,7 +96,7 @@ describe('Éditeur — un projet ENREGISTRÉ repasse sa propre porte `parseProje
 describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
   /** Une scène dont UN décor ne nomme aucun type — ce que l'éditeur pouvait produire avant #877. */
   const sceneAuDecorSansType = (): Scene => ({
-    ...emptyScene(4, 4),
+    ...emptyScene('scene-test', 4, 4),
     id: 'scene-fautive',
     label: 'Salle fautive',
     entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'La jetée' }],
@@ -121,7 +121,7 @@ describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
 
   it('un projet SAIN s’enregistre comme avant — la porte ne barre que ce qui est fautif', async () => {
     const saine: Scene = {
-      ...emptyScene(4, 4), id: 'scene-saine', label: 'Salle saine',
+      ...emptyScene('scene-test', 4, 4), id: 'scene-saine', label: 'Salle saine',
       entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'tonneau' }],
     };
     const { ecrits, refus } = await enregistre(saine);
@@ -146,7 +146,7 @@ function entreeEnBibliotheque(over: Partial<SavedProject> = {}): SavedProject {
       label: 'Campagne d’avant',
       versionContenu: 1,
       maison: 'fixture de test',
-      scenes: [{ ...emptyScene(4, 4), id: 'scene-ancienne', label: 'Salle ancienne' }],
+      scenes: [{ ...emptyScene('scene-ancienne', 4, 4), label: 'Salle ancienne' }],
       narratif: emptyNarratif(),
     },
     ...over,
@@ -163,7 +163,7 @@ async function ouvreLaPremiereEntree(entrees: SavedProject[]): Promise<{ refus: 
 
   const { container, rendre } = monterRacine(null);
   await act(async () => {
-    rendre(<Editor initialScene={{ ...emptyScene(4, 4), id: 'scene-vierge', label: 'Vierge' }} />);
+    rendre(<Editor initialScene={{ ...emptyScene('scene-vierge', 4, 4), label: 'Vierge' }} />);
   });
   const byText = (label: string) =>
     Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes(label))!;
@@ -261,7 +261,7 @@ async function importePuisEnregistre(docJson: string): Promise<SavedProject[]> {
 
   const { container, rendre } = monterRacine(null);
   await act(async () => {
-    rendre(<Editor initialScene={{ ...emptyScene(4, 4), id: 'scene-vierge', label: 'Vierge' }} />);
+    rendre(<Editor initialScene={{ ...emptyScene('scene-vierge', 4, 4), label: 'Vierge' }} />);
   });
   const byText = (label: string) =>
     Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes(label))!;
@@ -293,7 +293,7 @@ describe('Éditeur — un projet IMPORTÉ garde son identité jusqu’à la bibl
       label: 'Campagne importée',
       versionContenu: 3,
       maison: 'fixture de test — aucun folio à citer',
-      scenes: [{ ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée' }],
+      scenes: [{ ...emptyScene('scene-importee', 4, 4), label: 'Salle importée' }],
       narratif: emptyNarratif(),
     };
     const ecrits = await importePuisEnregistre(JSON.stringify(doc));
@@ -320,7 +320,7 @@ async function ouvreEnCopiePuisEnregistre(paquet: BuiltinCampaign, nom: string):
 
   const { container, rendre } = monterRacine(null);
   await act(async () => {
-    rendre(<Editor initialScene={{ ...emptyScene(4, 4), id: 'scene-vierge', label: 'Vierge' }} />);
+    rendre(<Editor initialScene={{ ...emptyScene('scene-vierge', 4, 4), label: 'Vierge' }} />);
   });
   const byText = (label: string) =>
     Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes(label))!;

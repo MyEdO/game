@@ -79,7 +79,7 @@ describe('matières — toute vue du document est VIVANTE (aucun index figé à 
     expect(matieresCouvrantes().map((m) => m.id)).not.toContain(plan.id);
     // La scène minimale qui pose UNE masse de toit sur la matière non couvrante : refusée, nommément.
     const scene = (materiau: string): Scene => ({
-      ...emptyScene(),
+      ...emptyScene('scene-test'),
       id: 'toiture', label: 'Toiture',
       architecture: [{
         id: 'corps', style: 'colombage', storeys: [], facades: [],

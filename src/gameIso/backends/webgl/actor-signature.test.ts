@@ -12,7 +12,7 @@ import { actorBillboards, actorPoseKey, actorRenderSignature, type ActorPose } f
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
 
-const scene = emptyScene(6, 6);
+const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
 
 /** Héros rendu depuis SON PROPRE inventaire (pas de `creatureId`, pas d'IA) : garde-robe = `career`,

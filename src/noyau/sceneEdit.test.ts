@@ -47,7 +47,7 @@ import diligenceProjet from '../scenes/diligence/diligence-projet.json';
  *  d'`interiorCells`/`realFloorAt` à `z=0`, #881), sans aucune masse authorée : tout est à dériver.
  *  AUCUNE zone déclarée — les murs seuls suffisent (le point du ticket #881). */
 function corpsScene(size: number, pieces: ArchitectureRect[], body: Partial<ArchitectureBody> = {}): Scene {
-  const scene = emptyScene(size, size);
+  const scene = emptyScene('scene-test', size, size);
   scene.walls = perimeterWallSegs(pieces);
   scene.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [], ...body }];
   return scene;
@@ -187,13 +187,13 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
 
   /**
    * FORME COMPLÈTE d'une scène neuve (#1716) — l'attendu est un objet LITTÉRAL GELÉ, jamais la
-   * semence relue (`semencesDeScene`) : comparer `emptyScene()` au dataset qu'il vient de lire ne
+   * semence relue (`semencesDeScene`) : comparer `emptyScene` au dataset qu'il vient de lire ne
    * prouverait rien. Ce test est le témoin du passage des littéraux de code à la DONNÉE : la scène
    * créée est byte-identique à celle d'avant le lot, `id` horodaté mis à part.
    */
   it('une scène NEUVE reçoit EXACTEMENT les semences d’aujourd’hui — forme complète, pente raide, ardoise, un étage de comble', () => {
-    const { id, ...scene } = emptyScene(8, 8);
-    expect(id).toMatch(/^scene-\d+$/);
+    const { id, ...scene } = emptyScene('scene-test', 8, 8);
+    expect(id, 'l’id est celui de l’appelant').toBe('scene-test');
     expect(scene).toEqual({
       type: 'scene',
       label: 'Nouvelle scène',
@@ -292,7 +292,7 @@ describe('deriveArchitectureMasses — borne de comble (#947)', () => {
   /** Montée au faîte, en mètres : `portée / 2 × tan(pente)` — LA formule des nappes (`riseAt`). */
   const monteeM = (mass: BuildingMass, metresPerTile = 2): number =>
     ((spanOf(mass) * metresPerTile) / 2) * Math.tan((mass.pitchDeg * Math.PI) / 180);
-  const borneM = emptyScene(4, 4).roofDefaults.riseMaxStoreys * METRES_PER_LEVEL;
+  const borneM = emptyScene('scene-test', 4, 4).roofDefaults.riseMaxStoreys * METRES_PER_LEVEL;
 
   it('quelle que soit la portée, le comble tient sous la borne — et reste UNE seule masse', () => {
     for (const profondeur of [3, 5, 8, 12, 17, 24]) {
@@ -377,7 +377,7 @@ describe('realFloorAt/deriveArchitectureMasses — les MURS définissent l’int
   it('cour ceinte de murs et déclarée EXTERIOR → AUCUNE toiture (l’enclosure seule ne suffit pas)', () => {
     const cour = { x: 2, y: 2, w: 3, h: 3 };
     const scene: Scene = {
-      ...emptyScene(12, 12),
+      ...emptyScene('scene-test', 12, 12),
       walls: perimeterWallSegs([cour]),
       effectZones: [{ id: 'cour', label: 'Cour', area: { kind: 'rect', ...cour }, presentation: 'exterior' }],
       architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
@@ -452,7 +452,7 @@ describe('deriveArchitectureMasses — une colonne OUVERTE au sommet adopte la n
       for (let x = 0; x < size; x++) if (dedans(x, y)) rez[idx(x, y)] = 'pierre';
     cotes[idx(TREMIE.x, TREMIE.y)] = reliefM;
 
-    let scene = putLayer(emptyScene(size, size), 0, rez, cotes);
+    let scene = putLayer(emptyScene('scene-test', size, size), 0, rez, cotes);
     if (opts.etage !== false) {
       const etage: Terrain[] = new Array(size * size).fill('vide');
       for (let y = 0; y < size; y++)
@@ -533,7 +533,7 @@ function bati(
   cotes: Record<string, number>,
   emprise: ArchitectureRect[],
 ): Scene {
-  let scene = emptyScene(S, S);
+  let scene = emptyScene('scene-test', S, S);
   for (const couche of couches) {
     const tiles: Terrain[] = new Array(S * S).fill(couche.z === 0 ? 'herbe' : 'vide');
     const height = new Array<number>(S * S).fill(0);
@@ -697,14 +697,14 @@ describe('deriveArchitectureMasses — l’ORDRE du tableau `architecture` ne d�
  */
 describe('addArchitectureBody — le corps naît BORNÉ à l’emprise du geste', () => {
   it('l’étage z0 porte d’emblée un volume à l’emprise demandée', () => {
-    const { scene, id } = addArchitectureBody(emptyScene(10, 10), 'maison', { x: 3, y: 4, w: 2, h: 2 });
+    const { scene, id } = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 3, y: 4, w: 2, h: 2 });
     const body = scene.architecture!.find((candidate) => candidate.id === id)!;
     expect(body.storeys[0].parts).toEqual([{ id: 'part-0', foot: { x: 3, y: 4, w: 2, h: 2 } }]);
     expect([...bodyFootCells(body)].sort()).toEqual(['3,4', '3,5', '4,4', '4,5']);
   });
 
   it('l’emprise est bornée à la scène, et le corps n’est JAMAIS non borné', () => {
-    const { scene, id } = addArchitectureBody(emptyScene(10, 10), 'maison', { x: 9, y: 9, w: 4, h: 4 });
+    const { scene, id } = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 9, y: 9, w: 4, h: 4 });
     const body = scene.architecture!.find((candidate) => candidate.id === id)!;
     expect(body.storeys[0].parts[0].foot).toEqual({ x: 6, y: 6, w: 4, h: 4 });
     expect(bodyFootCells(body).size).toBeGreaterThan(0);
@@ -721,7 +721,7 @@ describe('normaliseAssises / seatOccupant — le seam unique d’assise', () => 
 
   /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
   function attablee(seatAssignments?: Scene['seatAssignments']): Scene {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     s.layers = [{ z: 0, tiles: new Array(100).fill('plancher') }];
     s.entities = [
       { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } },
@@ -846,7 +846,7 @@ describe('écritures mécaniques d’entité — privées au module, le seam est
  * `y·w+x`, et `tileAt` (`noyau/monde/scene.ts`) n'a plus AUCUN repli de tuile pour les masquer.
  */
 describe('putLayer — une couche posée porte EXACTEMENT `w×h` entrées', () => {
-  const grille = () => emptyScene(4, 4);
+  const grille = () => emptyScene('scene-test', 4, 4);
   const pleines = (n: number, t: Terrain = 'sol'): Terrain[] => new Array(n).fill(t);
 
   it('une couche COURTE est refusée, en nommant l’étage, le tableau, la longueur et l’attendu', () => {
@@ -951,7 +951,7 @@ describe('putLayer — une couche posée porte EXACTEMENT `w×h` entrées', () =
 
 describe('editEntity — un patch ne retire jamais le dernier porteur du type (#877, #1882)', () => {
   const sb = { type: 'statblock' as const, label: 'Brigand', char: { B: 10 } };
-  const avec = (...entities: Scene['entities']): Scene => ({ ...emptyScene(4, 4), entities });
+  const avec = (...entities: Scene['entities']): Scene => ({ ...emptyScene('scene-test', 4, 4), entities });
 
   it('retirer la SEULE fiche d’un personnage est refusé, en nommant l’entité', () => {
     const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' });
@@ -984,7 +984,7 @@ describe('editEntity — un patch ne retire jamais le dernier porteur du type (#
 
 describe('editEntity — la TRANSITION est jugée, pas l’état (#1882)', () => {
   it('un patch sans rapport sur une entité DÉJÀ sans type passe ; `validateScene` la nomme', () => {
-    const s: Scene = { ...emptyScene(4, 4), entities: [{ id: 'badaud', kind: 'personnage', pos: { x: 0, y: 0 } }] };
+    const s: Scene = { ...emptyScene('scene-test', 4, 4), entities: [{ id: 'badaud', kind: 'personnage', pos: { x: 0, y: 0 } }] };
     const out = editEntity(s, 'badaud', { facing: 'E', label: 'Badaud' });
     expect(out.entities[0]).toMatchObject({ facing: 'E', label: 'Badaud' });
     expect(validateScene([out]).filter((w) => w.level === 'error').map((w) => w.refId)).toContain('badaud');

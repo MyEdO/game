@@ -47,7 +47,7 @@ export const ROLL_SEAM_PHASE2_STOCK = new Map([
   ['src/noyau/combatFlow.ts', 3], // 5 → 3 (#1117 L4 : la voie INLINE des jets de fin de combat meurt — Contraction et Corruption sont des BANDES, résolues d'office pour les porteurs non pilotés)
   ['src/noyau/combatManeuvers.ts', 4],
   ['src/noyau/corruptionFlow.ts', 1], // 2 → 1 (#942 L5 : le d100 « corps ou esprit » passe par l'étape à table)
-  ['src/noyau/interludeFlow.ts', 3], // 4 → 3 (#942 L7 : le d100 d'Événement passe par l'étape à table)
+  ['src/noyau/interludeFlow.ts', 1], // 3 → 1 (#2817 : taux d'investissement en `d10`, pioche de qualités en `roll`)
   ['src/noyau/massBattleFlow.ts', 1],
   ['src/noyau/pursuitFlow.ts', 1],
   ['src/noyau/riverVoyageFlow.ts', 3],
@@ -210,7 +210,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/noyau/encounterPsychFlow.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2. B -> #1508 T2.' }],
   ['src/noyau/monde/etalLot.ts', { n: 2, kind: 'dette', why: 'mesuré : rng.int×2. F (désignation `rng.int`) -> #1508 T6.' }],
   ['src/noyau/innFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : applyOps×1. B -> #1508 T2.' }],
-  ['src/noyau/interludeFlow.ts', { n: 15, kind: 'dette', why: 'mesuré : applyOps×5, d100×3, deMonde×3, apprenticeshipTutorCost×1, entrainementTutorCost×1, roll×1, statusIncome×1. A (les 3 `deMonde` du contremaître), B, C -> #1508 T2/T4/T5.' }],
+  ['src/noyau/interludeFlow.ts', { n: 15, kind: 'dette', why: 'mesuré : applyOps×5, d100×1, d10×1, deMonde×3, apprenticeshipTutorCost×1, entrainementTutorCost×1, roll×2, statusIncome×1. A (les 3 `deMonde` du contremaître), B, C -> #1508 T2/T4/T5.' }],
   ['src/noyau/landMarketFlow.ts', { n: 7, kind: 'dette', why: 'mesuré : rollMerchantSkill×2, opposedTest×1, rng.int×1, rollCargoQuantity×1, rollFindMerchant×1, rollTradeRumour×1. C (peuplement de la halle), F -> #1508 T5/T6.' }],
   ['src/noyau/massBattleFlow.ts', { n: 5, kind: 'dette', why: 'mesuré : applyOps×2, d10×1, d100×1, rng.int×1. B, C, F -> #1508 T2/T5/T6.' }],
   ['src/noyau/medicFlow.ts', { n: 3, kind: 'dette', why: 'mesuré : applyOps×1, d10×1, rng.int×1. B, C (magnitude de soin), F -> #1508 T2/T5/T6.' }],

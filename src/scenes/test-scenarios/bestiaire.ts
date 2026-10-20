@@ -1,5 +1,6 @@
 import { makeShowcaseParty, pregenParty, PREGEN } from '../../data/pregens';
-import { rollMutation } from '../../data/mutations';
+import { mutationAt } from '../../data/mutations';
+import { battleRng } from '../../noyau/battleRng';
 import { attachMutation } from '../../engine/corruption';
 import { recomputeLoadout } from '../../engine/items';
 import { makePriest } from './_casters';
@@ -25,7 +26,7 @@ const LOTS: number[][] = [
 ];
 
 function mutate(c: Combatant, rolls: number[]): Combatant {
-  for (const r of rolls) attachMutation(c, rollMutation('physique', { int: () => r }));
+  for (const r of rolls) attachMutation(c, mutationAt('physique', r), battleRng());
   recomputeLoadout(c); // PA naturels (Peau d'acier, Écailles…)
   return c;
 }

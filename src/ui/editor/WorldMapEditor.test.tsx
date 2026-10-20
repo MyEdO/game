@@ -38,13 +38,13 @@ let root: Root;
 let lastMap: WorldMap | null;
 
 function scenes(): Scene[] {
-  const s1 = { ...emptyScene(), id: 's1', label: 'Scène Un', encounters: [{ id: 'enc1' }] };
-  const s2 = { ...emptyScene(), id: 's2', label: 'Scène Deux' };
+  const s1 = { ...emptyScene('s1'), label: 'Scène Un', encounters: [{ id: 'enc1' }] };
+  const s2 = { ...emptyScene('s2'), label: 'Scène Deux' };
   return [s1, s2];
 }
 
 function baseMap(): WorldMap {
-  const m = emptyWorldMap();
+  const m = emptyWorldMap('carte-test');
   const place: MapPlace = { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: 's1' };
   const place2: MapPlace = { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: 's2' };
   const route: MapRoute = { id: 'r1', a: 'p1', b: 'p2', km: 20, modes: ['pied'] };

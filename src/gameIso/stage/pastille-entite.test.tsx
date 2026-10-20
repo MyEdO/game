@@ -63,7 +63,7 @@ brancherArdoise();
 
 function monter(retouche: Record<string, unknown>): HTMLDivElement {
   useGame.setState({
-    scene: emptyScene(12, 12),
+    scene: emptyScene('scene-test', 12, 12),
     mode: 'battle',
     viewMode: 'iso',
     partyPos: { x: 6, y: 6 },
@@ -147,7 +147,7 @@ const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
 
 /** Une scène portant un TAS d'objets ramassables adjacent au héros. */
 function sceneAvecTas(nb: number): Scene {
-  const sc = emptyScene(12, 12);
+  const sc = emptyScene('scene-test', 12, 12);
   sc.entities.push({
     id: 'tas', kind: 'prop', pos: { x: 4, y: 3 }, label: 'Tas',
     usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects(Array.from({ length: nb }, (_, i) => ({ type: 'giveTrapping', custom: `Objet ${i + 1}` }))) }] },
@@ -444,7 +444,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
 describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun trajet de pointeur ne l’emporte', () => {
   /** La scène d'exploration : un décor à DEUX gestes en (4,3), le groupe à portée de bras en (4,4). */
   const sceneDecor = (): Scene => {
-    const sc = emptyScene(12, 12);
+    const sc = emptyScene('scene-test', 12, 12);
     sc.entities.push({
       id: 'coffre', kind: 'prop', pos: { x: 4, y: 3 }, label: 'Un coffre',
       usable: { actions: [

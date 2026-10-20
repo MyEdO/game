@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import type { Combatant } from './types';
 import { applyOps } from './ops';
+import { desDuTest } from './dice.testkit';
 
 /**
  * GARDE DE CLASSE — tout `ActiveEffect` posé doit porter un ANCRAGE DE RÈGLE.
@@ -140,7 +141,7 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | crit.ops | { rng, crew }', // ops d'un critique de navire (équipage)
   'engine/shipCritical.ts | set.shrapnelHit! | { rng }', // éclats d'un critique de navire (le `!` tient l'anomalie NOMMÉE juste au-dessus : un jeu sans `shrapnelHit` ne peut pas porter d'Éclats)
   'engine/shipCritical.ts | extra.ops | { rng }', // ops d'un critique de navire supplémentaire
-  'noyau/monde/aiSpellValue.ts | [op] | { caster: c, rng: STATIC_RNG }', // simulation d'IA sur un CLONE — jamais affichée au joueur
+  'noyau/monde/aiSpellValue.ts | [op] | { caster: c, rng: makeRNG(GRAINE_DU_CLONE) }', // simulation d'IA sur un CLONE — jamais affichée au joueur
   'noyau/combatEffects.ts | e.ops | { rng: battleRng() }', // ops d'un Souffle de zone (effet de scène)
   'noyau/combatFlow.ts | crit.ops | { rng: battleRng(), now: get().gameTime, location: loc, surLigne }', // ops d'une Blessure critique en combat
   'noyau/combatFlow.ts | outcome.ops | { rng: battleRng() }', // ops de l'issue d'une manœuvre
@@ -150,14 +151,14 @@ const BASELINE: string[] = [
   "noyau/seaVoyageFlow.ts | [{ op: 'grantTalent', talent: { id: 'chanceux' } }] | { label: event.label, rng, defaultUntilTime: until }", // Talent Chanceux octroyé par un événement de bord
   "noyau/seaVoyageFlow.ts | [ { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 }, { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 }, ] | { label: event.label, rng, defaultUntilTime: until }", // bonus de DR octroyés par un événement de bord
   'noyau/travelFlow.ts | r.entry.occupantOps | { rng: battleRng() }', // ops subies par l'occupant d'une rencontre de voyage
-  'noyau/travelPostes.ts | [op] | ', // Exténué du Test de résistance de traversée (État : ancré par son condId)
+  'noyau/travelPostes.ts | [op] | { rng: battleRng() }', // Exténué du Test de résistance de traversée (État : ancré par son condId)
   // #1279 S1 — EFFETS PAR MANCHE d'une séquence : les ops viennent de la DONNÉE de l'entrée qui joue
   // (`SequenceParams.rounds`), pas du socle, qui ne peut donc pas les ancrer lui-même. Aujourd'hui
   // seule la taverne en déclare (NADJ 16 l.34, LDB 14 l.219) : aucune ne pose d'`ActiveEffect`, et
   // l'État est ancré par son `condId`. L'ancrage propre est une DÉCLARATION à ajouter à l'entrée de données (les jeux de taverne n'ont pas d'entrée Codex
   // à viser à ce jour) — les deux lignes s'ôtent d'ici le jour où elle existe.
-  'noyau/sequenceCore.ts | [...ops] | { caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
-  'noyau/sequenceCore.ts | [...decl.attrition] | { caster: c }', // ops d'attrition d'intervalle
+  'noyau/sequenceCore.ts | [...ops] | { rng: battleRng(), caster: c, ...campAdvantageHooks(get) }', // ops de manche aux vainqueurs et aux perdants de la manche
+  'noyau/sequenceCore.ts | [...decl.attrition] | { rng: battleRng(), caster: c }', // ops d'attrition d'intervalle
   'noyau/monde/zones.ts | z.onCross | { caster: resolveCaster(z.casterId), rng, label: z.label }', // ops de franchissement d'une zone d'effet
   'noyau/monde/zones.ts | z.perRound | { caster, rng, label: z.label }', // ops récurrentes d'une zone d'effet
 ];
@@ -173,7 +174,7 @@ describe('ancrage de règle des ActiveEffect posés', () => {
 
   it('applyOps stampe l’ENTITÉ SOURCE du ctx sur les effets qu’il pose (ancrage général)', () => {
     const target = { id: 'c', name: 'C', characteristics: {}, conditions: [], activeEffects: [], wounds: { current: 10, max: 10, base: 10 } } as unknown as Combatant;
-    applyOps(target, [{ op: 'charMod', char: 'force', mod: 10 }], {
+    applyOps(target, [{ op: 'charMod', char: 'force', mod: 10 }], { rng: desDuTest,
       label: 'Force du taureau', source: { kind: 'spell', id: 'benediction-de-puissance' },
     });
     expect(target.activeEffects?.[0].source).toEqual({ kind: 'spell', id: 'benediction-de-puissance' });

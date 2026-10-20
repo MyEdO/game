@@ -14,7 +14,7 @@
 import { targetArc } from './fireArc';
 import { resolveCrewTestByRoles, type CrewAssignment, type CrewTestResult } from '../../engine/crewMorale';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
-import { defaultRNG, type RNG } from '../../engine/dice';
+import { type RNG } from '../../engine/dice';
 import type { Combatant, ShipPoste, FireArc } from '../../engine/types';
 import type { Dir8 } from './dir8';
 
@@ -37,7 +37,7 @@ export interface BatteryPlan {
  */
 export function resolveBattery(
   hull: Combatant, target: Combatant, heading: Dir8 | undefined,
-  assignments: CrewAssignment[], moraleScore: number, navigation: RefDesignee, rng: RNG = defaultRNG,
+  assignments: CrewAssignment[], moraleScore: number, navigation: RefDesignee, rng: RNG,
 ): BatteryPlan | null {
   if (!hull.pos || !target.pos) return null;
   const side = targetArc(heading ?? 'N', hull.pos, target.pos); // la bordée où tombe la cible

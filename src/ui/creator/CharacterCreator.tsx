@@ -71,6 +71,7 @@ import { rangeSpecLabel, ammoRangeModLabel } from '../weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
+import { graineDEntropie } from '../../web/entropie';
 import { makeRNG } from '../../engine/dice';
 import { generateName } from '../../engine/names';
 import { CharacterPreview } from '../CharacterPreview';
@@ -254,11 +255,11 @@ export function CharacterCreator() {
     const hero = party.find((h) => h.id === editingHeroId);
     if (!hero) return null;
     const saved = rosterLoad().find((e) => e.hero.id === editingHeroId);
-    const draft = saved?.draft ?? draftFromHero(hero);
+    const draft = saved?.draft ?? draftFromHero(hero, graineDEntropie());
     return { heroId: hero.id, draft, lossless: !!saved?.draft };
   }, [editingHeroId, party]);
 
-  const [d, setD] = useState<CreatorDraft>(() => editing?.draft ?? newDraft());
+  const [d, setD] = useState<CreatorDraft>(() => editing?.draft ?? newDraft(graineDEntropie()));
   const [step, setStep] = useState(0);
 
   const ids = stepIds();
@@ -2218,7 +2219,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
   const action = (
     <StepHeader title="Détails" sub="Le registre d'état civil du héros">
       <PlaqueRow
-        onClick={() => { const n = generateName(sp.refChar, d.apparence.sex, makeRNG(Math.floor(Math.random() * 1e9))); if (n) setD({ ...d, label: n }); }}
+        onClick={() => { const n = generateName(sp.refChar, d.apparence.sex, makeRNG(graineDEntropie())); if (n) setD({ ...d, label: n }); }}
         content="Tirer le nom"
         meta={<em>au générateur</em>}
       />

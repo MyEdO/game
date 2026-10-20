@@ -11,7 +11,7 @@ import { planClimb } from './climbMove';
 // Scène 4×4 : falaise de 4 m entre le pied (2,1) à 0 m et le sommet (2,0) à 4 m ; l'arête N de (2,1)
 // porte la grimpe. `climb` paramétré par test.
 function cliffScene(climb: WallClimb): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const w = 4;
   const h = new Array(w * 4).fill(0) as number[];
   h[0 * w + 2] = 4; // (2,0) sommet à 4 m

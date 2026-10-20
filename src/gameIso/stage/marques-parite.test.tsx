@@ -95,7 +95,7 @@ brancherArdoise();
 
 function monter(extra: Record<string, unknown> = {}): HTMLDivElement {
   useGame.setState({
-    scene: emptyScene(10, 10),
+    scene: emptyScene('scene-test', 10, 10),
     mode: 'battle',
     partyPos: { x: 3, y: 3 },
     party: [hero('h1', { x: 3, y: 3 }, [ARC])],

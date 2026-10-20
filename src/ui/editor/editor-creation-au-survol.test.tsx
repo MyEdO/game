@@ -50,7 +50,7 @@ async function montage(initialScene: Scene) {
 
 describe('Éditeur — l’architecture naît sur la case SURVOLÉE (jamais à l’origine de la scène)', () => {
   it('le CORPS naît sur la case survolée', async () => {
-    const h = await montage(emptyScene(8, 8));
+    const h = await montage(emptyScene('scene-test', 8, 8));
     await h.click('Architecture');
     await h.hover(3, 2);
     await h.click('Nouveau corps');
@@ -61,7 +61,7 @@ describe('Éditeur — l’architecture naît sur la case SURVOLÉE (jamais à l
 
   it('la PARTIE et la SECTION DE TOITURE naissent sur la case survolée', async () => {
     const initialScene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       architecture: [{
         id: 'corps',
         style: 'maison',

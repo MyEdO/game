@@ -36,6 +36,7 @@ import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascad
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { GenreDEtape, GenreDeCascade } from '../noyau/tablesPosees';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * LE DÉ DE MONDE SOUS CONTRÔLE DU SIÈGE ENVIRONNEMENT (#1426).
@@ -554,7 +555,7 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
     for (const saison of weather) {
       const tableId = `stage-weather-${saison.id}`;
       for (const face of [1, 25, 50, 75, 100]) {
-        const r = rollTableStep({ tableId, spec: { n: 1, sides: 100 }, forcedRoll: face }, { int: () => face });
+        const r = rollTableStep({ tableId, spec: { n: 1, sides: 100 }, forcedRoll: face }, deFixe(face));
         expect(r.id).toBe(weatherFromRoll(face, saison.id as Season));
       }
     }
@@ -734,7 +735,7 @@ const carteMer: WorldMap = {
   ],
   routes: [{ id: 'rmer', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
-const scenePlate = (id: string): Scene => { const s = emptyScene(6, 6); s.id = id; s.label = id; return s; };
+const scenePlate = (id: string): Scene => { const s = emptyScene('scene-test', 6, 6); s.id = id; s.label = id; return s; };
 
 /** Siège local qui POSSÈDE le monde (solo : siège 0). L'OPTION de pose n'est PAS touchée ici : elle se
  *  pose AVANT l'ouverture de la journée — c'est à l'ouverture que le socle tranche. */

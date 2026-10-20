@@ -35,7 +35,7 @@ function documentAPort(): Record<string, unknown> {
     versionContenu: 1,
     maison: 'fixture de test',
     narratif: emptyNarratif(),
-    scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle' }],
+    scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle' }],
     worldMap: {
       id: 'm', label: 'Côte', routes: [],
       places: [{ id: 'l1', label: 'Port', pos: { x: 50, y: 50 }, scene: 's1', port: { ref: 'salzenmund' } }],

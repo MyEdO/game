@@ -24,7 +24,7 @@ function envFor(attackerH: number, targetH: number) {
   const target = mk('tgt', 'enemy', targetH);
   target.pos = { x: 6, y: 5, ...(targetH ? { h: targetH } : {}) }; // adjacent, sur sa propre case
   const get = (() => ({
-    scene: { ...emptyScene(), weather: 'clair' },
+    scene: { ...emptyScene('scene-test'), weather: 'clair' },
     battle: { combatants: [attacker, target] },
     gameTime: 12 * 60,
     facing: {},

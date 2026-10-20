@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { lancerDeLaSecondeMain, reverseRoll, causeDuCoupCritique } from './combat';
 import type { RNG } from './dice';
+import { aucunDe } from './dice.testkit';
 
 function rngImpose(tirages: number[]): RNG & { tires: number } {
   const file = [...tirages];
@@ -17,7 +18,7 @@ function rngImpose(tirages: number[]): RNG & { tires: number } {
   };
 }
 
-const rngInterdit: RNG = { int: () => { throw new Error('RNG consommé'); } };
+const rngInterdit = aucunDe;
 
 describe('lancerDeLaSecondeMain', () => {
   it('sans Critique : le lancer inversé, sans tirage', () => {

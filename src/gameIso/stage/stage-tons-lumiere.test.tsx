@@ -39,7 +39,7 @@ import {
 } from './stagePointLights';
 
 const scène = (): Scene => {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   s.ambiance = 'exterieur';
   return s;
 };

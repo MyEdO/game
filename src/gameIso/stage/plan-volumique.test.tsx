@@ -106,7 +106,7 @@ function station(over: Partial<Station> = {}): Station {
 
 /** Un plan à deux stations et un mur : de quoi juger la présence des marqueurs ET celle de la structure. */
 function scèneDePlan(): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   s.walls = [{ x: 2, y: 2, side: 'N' }];
   return s;
 }

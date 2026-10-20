@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { entierDEntropie } from '../web/entropie';
 
 /** Affichage canonique d'un d100 (100 → « 00 », zéro-paddé). */
 export const fmtD100 = (roll: number) => (roll === 100 ? '00' : String(roll).padStart(2, '0'));
@@ -49,7 +50,7 @@ export function Dice({ roll }: { roll: number }) {
         setShown(roll);
         setRolling(false);
       } else {
-        setShown(1 + Math.floor(Math.random() * 100));
+        setShown(1 + entierDEntropie(100));
       }
     }, TICK_MS);
     return () => {

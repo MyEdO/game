@@ -36,7 +36,7 @@ function attendQueLEcheanceTire(t0: number): void {
 }
 
 function scene(id: string): Scene {
-  const s = emptyScene(10, 10); s.id = id; s.label = id; return s;
+  const s = emptyScene('scene-test', 10, 10); s.id = id; s.label = id; return s;
 }
 
 beforeEach(() => {
@@ -46,7 +46,7 @@ beforeEach(() => {
 
 describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   it('nuit du joueur (`restFlow`) : la modale de repos, Dormir, puis la cascade de nuit tirent l’échéance', () => {
-    set({ party: makePregens().slice(0, 1), scene: emptyScene(10, 10), gameTime: campaignStart() + 20 * 60 });
+    set({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
     get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     get().restSleep();
@@ -110,7 +110,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     };
     set({
       party: makePregens().slice(0, 3), worldMap: mer, gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [], pendingCrewTest: null,
-      scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
     const t0 = armeLEcheance();

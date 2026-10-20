@@ -43,7 +43,7 @@ let container: HTMLDivElement | null = null;
 
 function monter(retouche: Record<string, unknown> = {}): { el: HTMLDivElement; commits: () => number } {
   useGame.setState({
-    scene: emptyScene(8, 8),
+    scene: emptyScene('scene-test', 8, 8),
     mode: 'exploration',
     partyPos: { x: 2, y: 2 },
     party: [hero('h1', { x: 2, y: 2 })],

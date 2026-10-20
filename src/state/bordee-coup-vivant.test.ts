@@ -5,8 +5,8 @@ import { jouerLesTirsDeBordee } from '../noyau/combatFlow';
 import { draineCascade } from './cascade.testkit';
 import { resolveVolley } from '../engine/volley';
 import { setRule, resetRule } from '../engine/policy';
-import type { RNG } from '../engine/dice';
 import type { Combatant, ShipPoste } from '../engine/types';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * Chaque coup d'une bordée naît sur la cible VIVANTE, après l'application du coup précédent et de ses
@@ -32,7 +32,7 @@ const pirate = (blessures: number, p: Partial<Combatant> = {}): Combatant => ({
 }) as unknown as Combatant;
 const mer = () => ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 10, layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 /** Le d100 de chaque pièce : 34, Bras droit, sans double. */
-const fixe = (n: number): RNG => ({ int: () => n }) as unknown as RNG;
+const fixe = deFixe;
 
 /** Bordée de deux pièces sur `cible` au DR 3, drainée ; rend les lignes de touche du journal. */
 function bordee(cible: Combatant, graine: number): string[] {

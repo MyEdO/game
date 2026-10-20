@@ -12,7 +12,7 @@ import { builtinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 
 /** L'échelle des scènes de ce fichier — LUE, jamais redite : elles ne déclarent pas de
  *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`). */
-const MPT = sceneMetresPerTile(emptyScene(1, 1));
+const MPT = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
 /** L'échelle MER, LUE sur une scène LIVRÉE : l'abordage de la cogue (combat naval, MDG 13). */
 const MPT_MER = sceneMetresPerTile(
   paquetDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!).scenes.find((s) => s.id === 'ls-abordage-cogue')!,
@@ -353,7 +353,7 @@ describe('computeVisible — vue INCHANGÉE sur un plan complet (carte-fixture)'
       for (let x = 0; x < w; x++)
         if (surEtage(x, y)) { t1[y * w + x] = 'plancher'; h1[y * w + x] = METRES_PER_LEVEL; }
     return {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       id: 'fixture-plan-complet',
       layers: [{ z: 0, tiles }, { z: 1, tiles: t1, height: h1 }],
       walls: [...walls, ...walls.filter((m) => m.x >= 5 && m.y <= 4).map((m) => ({ ...m, z: 1 }))],
@@ -422,7 +422,7 @@ describe('croisée (#1712) — la vue et le tir passent, le pas non ; volets clo
   const couloir = (croisee: Partial<WallSeg> = {}): Scene => {
     const { w, h, tiles, walls } = parseWalledAscii(COULOIR, 'plancher', {});
     return {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       layers: [{ z: 0, tiles }],
       walls: walls.map((m) => (m.window ? { ...m, ...croisee } : m)),
     } as unknown as Scene;

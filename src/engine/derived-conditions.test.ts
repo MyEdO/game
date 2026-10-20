@@ -22,11 +22,11 @@ import { syncDerivedConditions, derivedStacks, stacks, addCondition, removeCondi
 import { suspendSource } from './suspension';
 import { applyOps } from './ops';
 import { MINUTES_PER_DAY } from './clock';
+import { desDuTest, desEnSuite } from './dice.testkit';
 
 const ignore: UpkeepDeferTest = () => {};
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] };
+  return desEnSuite(values);
 }
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
@@ -43,7 +43,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
 function jourDePneumonie(c: Combatant, success: boolean): string[] {
   const { specs, defer } = porteEntretien();
   const log = dailyDiseaseUpkeep(c, seq([]), defer);
-  for (const s of specs) log.push(...applique(c, s, { success }));
+  for (const s of specs) log.push(...applique(c, s, { success }, desDuTest));
   return log;
 }
 
@@ -221,7 +221,7 @@ describe('un porteur NON-symptôme porte son État par le même socle (#1599)', 
     const c = porteurMutation();
     syncDerivedConditions(c);
     expect(raisonRefusDetermination(c, 'sonne')).toBeUndefined();
-    expect(fenetreDetermination(c, 'sonne', 10_000)).toEqual({ scale: 'rounds', left: 1 });
+    expect(fenetreDetermination(c, 'sonne', 10_000, desDuTest)).toEqual({ scale: 'rounds', left: 1 });
   });
 
   it('la suspension de la SOURCE lève l’État ; à l’expiration, la cause le repose', () => {

@@ -11,7 +11,7 @@
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
 import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille } from './types';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
 import { poserEnjeu, type FlowTestNode } from './flowCore';
@@ -517,7 +517,7 @@ export function receiveMedicalAid(c: Combatant): string[] {
  * applique ensuite la règle de cumul de cette séquelle (LDB 18 l.251). Mute `c`, renvoie le journal.
  * Appelé par le hook de franchissement de Round (`roundHooks`, machinerie universelle — ne nomme aucune entité).
  */
-export function tickTraumaEscalation(c: Combatant, _rng: RNG = defaultRNG): string[] {
+export function tickTraumaEscalation(c: Combatant): string[] {
   const gated = (c.traumas ?? []).filter((t) => t.perRound && t.awaitingMedicalAid);
   if (!gated.length) return [];
   const log: string[] = [];
@@ -558,7 +558,7 @@ export function stampCriticalEscalation(
   esc: CritEscalation | undefined,
   location: HitLocation,
   ref: Combatant,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   existing: Trauma[] = [],
   /** ENJEU (#1117) POSÉ sur le nœud `critTrigger` à l'armement — la rangée qui arme EST le foyer, et
    *  seul ce point la connaît (la séquelle, elle, ne porte que son nœud). Il voyage avec le Trauma. */

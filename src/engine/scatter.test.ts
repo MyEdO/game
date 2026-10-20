@@ -1,13 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { scatter } from './scatter';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
 // RNG SCRIPTÉ : d10() lit `rng.int(1,10)` dans l'ordre — on force la séquence (direction d'abord, puis
 // les 2d10 de distance) pour vérifier byte-pour-byte le RAW de Dispersion (LDB 14 l.144-151).
-const seqRng = (seq: number[]): RNG => {
-  let i = 0;
-  return { int: () => seq[i++] };
-};
+const seqRng = (seq: number[]): RNG => desEnSuite(seq);
 
 describe('scatter — Dispersion d’une arme de jet ratée (LDB 14 l.144-151)', () => {
   it('1d10 = 9 → l’arme atterrit aux pieds du LANCEUR (l.151)', () => {

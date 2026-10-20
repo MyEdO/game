@@ -44,7 +44,7 @@ function combat() {
   e.pos = { x: 9, y: 9 };
   act(() => {
     useGame.setState({
-      party: [h], scene: emptyScene(), mode: 'battle',
+      party: [h], scene: emptyScene('scene-test'), mode: 'battle',
       net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {}, seatNames: {} },
       battle: {
         combatants: [h, e], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1,

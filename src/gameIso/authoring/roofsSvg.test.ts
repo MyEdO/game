@@ -69,7 +69,7 @@ const count = (svg: string, needle: string) => svg.split(needle).length - 1;
 const pitchDegFor = (pitchMPerCase: number) => (Math.atan(pitchMPerCase / 2) * 180) / Math.PI;
 
 function authoredGable(pitch = 0.5): RoofEl[] {
-  const scene = emptyScene(10, 10);
+  const scene = emptyScene('scene-test', 10, 10);
   scene.architecture = [{
     id: 'corps',
     style: 'maison',
@@ -90,7 +90,7 @@ function authoredGable(pitch = 0.5): RoofEl[] {
 }
 
 function authoredProfile(profile: 'hip' | 'shed', ridge: 'x' | 'y'): RoofEl[] {
-  const scene = emptyScene(10, 10);
+  const scene = emptyScene('scene-test', 10, 10);
   scene.architecture = [{
     id: 'corps',
     style: 'maison',
@@ -356,7 +356,7 @@ describe('roofSvg — modes PLAN', () => {
  */
 describe('roofDepth — une fermeture de comble passe sous le retour d’égout de sa nappe', () => {
   const scene = (() => {
-    const s = emptyScene(16, 16);
+    const s = emptyScene('scene-test', 16, 16);
     s.walls = [4, 8].flatMap((x) => [3, 4].map((y) => ({ x, y, side: 'E' as const, structure: 'mur-en-bois' })));
     s.architecture = [{
       id: 'corps', style: 'maison', storeys: [], facades: [],

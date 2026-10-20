@@ -20,7 +20,7 @@
  * fois, dans le même ordre, sur le même flux — l'étal est identique à l'octet. La fenêtre ne change
  * rien par sa seule existence : valider sans rien poser rejoue exactement les dés enregistrés.
  */
-import { defaultRNG, type RNG } from '../../engine/dice';
+import { type RNG } from '../../engine/dice';
 
 /** UN dé du lot : ce qu'il décide, ses bornes, sa valeur courante. `id` stable = son rang de tirage. */
 export interface EtalDraw {
@@ -46,7 +46,7 @@ export interface LotEnregistre {
  * Enveloppe un rng VIVANT : chaque tirage part au `base` (donc le flux d'aléa est celui d'avant) et
  * s'inscrit au journal sous le nom de la phase courante.
  */
-export function lotEnregistreur(base: RNG = defaultRNG): LotEnregistre {
+export function lotEnregistreur(base: RNG): LotEnregistre {
   const draws: EtalDraw[] = [];
   // Repli EXPLICITE : un dé que le générateur n'a pas nommé se VOIT (au lieu de se fondre dans un
   // libellé passe-partout) — c'est ce que la garde du lot refuse, et ce que le joueur ne doit
@@ -74,7 +74,7 @@ export function lotEnregistreur(base: RNG = defaultRNG): LotEnregistre {
  * comportement qui ne mente pas : inventer des valeurs ou boucler sur les dés déjà posés fabriquerait
  * un hasard qui n'a jamais été tiré. Le compteur `deborde` le rend mesurable.
  */
-export function lotRejoueur(draws: readonly EtalDraw[], secours: RNG = defaultRNG): { rng: RNG; deborde: () => number } {
+export function lotRejoueur(draws: readonly EtalDraw[], secours: RNG): { rng: RNG; deborde: () => number } {
   let i = 0;
   let deborde = 0;
   return {

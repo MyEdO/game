@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { resolveMelee, resolveRanged } from './combat';
 import { addCondition, cannotDefend } from './conditions';
-import type { RNG } from './dice';
 import type { Combatant, Weapon } from './types';
+import { deFixe } from './dice.testkit';
 
-const rngOf = (roll: number): RNG => ({ int: () => roll });
+const rngOf = deFixe;
 
 const mk = (_over: Partial<Combatant> = {}): Combatant =>
   ({

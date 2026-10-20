@@ -3,7 +3,7 @@ import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
 import { hasCondition } from '../engine/conditions';
 import { applyStopBleed } from '../engine/healing';
 import type { Combatant } from '../engine/types';
-import type { RNG } from '../engine/dice';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * COMPTEUR de TOURS DE BOUCLE : l'entretien est SILENCIEUX pour un porteur sans péril (ni journal, ni
@@ -23,7 +23,7 @@ function espionneEffets(c: Combatant, effets: unknown[]): { lectures: number } {
   return sonde;
 }
 
-const fixed = (v: number): RNG => ({ int: () => v });
+const fixed = deFixe;
 
 function mk(opts: { current?: number; conditions?: { id: string; value: number }[]; fate?: number; advantage?: number }): Combatant {
   return {

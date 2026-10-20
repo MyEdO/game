@@ -3,6 +3,7 @@ import { fireConditionEffects } from '../noyau/triggeredEffects';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import { slugId } from '../data/slug';
 import type { Combatant } from '../engine/types';
+import { deFixe, desDuTest } from '../engine/dice.testkit';
 
 const mk = (): Combatant => ({
   id: 'x', name: 'X', kind: 'enemy', characteristics: { endurance: 40 }, skills: [], talents: [], traits: [],
@@ -16,28 +17,28 @@ describe('Empoisonné — dégâts par-round en DONNÉES (effects: onRoundEnd �
   it('1 pion → 1 PB perdu, en IGNORANT BE+PA (le défaut de wounds)', () => {
     const c = mk(); addCondition(c, COND.empoisonne);
     const before = c.wounds.current;
-    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', {});
+    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng: desDuTest });
     expect(before - c.wounds.current).toBe(1); // BE=4 et PA=5 IGNORÉS (sinon 0)
   });
 
   it('3 pions → 3 PB perdus ({stacks:self} = nombre de pions)', () => {
     const c = mk(); addCondition(c, COND.empoisonne); addCondition(c, COND.empoisonne); addCondition(c, COND.empoisonne);
     const before = c.wounds.current;
-    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', {});
+    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng: desDuTest });
     expect(before - c.wounds.current).toBe(3);
   });
 
   it('aucun Empoisonné → aucun dégât (inerte)', () => {
     const c = mk();
     const before = c.wounds.current;
-    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', {});
+    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng: desDuTest });
     expect(c.wounds.current).toBe(before);
   });
 });
 
 describe('En Flammes — dégâts par-round en DONNÉES (effects onRoundEnd → wounds {sum:[1d10, pions, −1]} − BE − PAmin, min 1)', () => {
   const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
-  const fixedD10 = (v: number) => ({ int: () => v } as never); // int(1,10) moqué → d10 = v
+  const fixedD10 = deFixe; // int(1,10) moqué → d10 = v
 
   it('1 pion : 1d10 − BE − PAmin (BE=4, PAmin=0) ; d10=8 → 8−4 = 4 PB', () => {
     const c = mk(); c.armour = { corps: 0 } as never; addCondition(c, COND.enFlammes);
@@ -66,7 +67,7 @@ describe('En Flammes — dégâts par-round en DONNÉES (effects onRoundEnd → 
 
 describe('Hémorragique — dégâts par-round en DONNÉES (effects onRoundEnd → wounds {stacks:self}, réduit par Endurci)', () => {
   const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
-  const fire = (c: Combatant) => fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', {});
+  const fire = (c: Combatant) => fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng: desDuTest });
 
   it('2 pions, sans Endurci → 2 PB perdus, en IGNORANT BE+PA', () => {
     const c = mk(); addCondition(c, COND.hemorragique); addCondition(c, COND.hemorragique);
@@ -95,7 +96,7 @@ describe('Hémorragique — dégâts par-round en DONNÉES (effects onRoundEnd �
 describe('Auto-dissipation en fin de Round en DONNÉES (effects: onRoundEnd → removeCondition)', () => {
   const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
   const fire = (c: Combatant) =>
-    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', {});
+    fireConditionEffects((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng: desDuTest });
 
   // LDB 16 : Aveuglé (l.48) / Assourdi (l.32) / Surpris (l.136) sont retirés à la fin du Round.
   for (const name of [COND.aveugle, COND.assourdi, COND.surpris] as const) {

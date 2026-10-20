@@ -36,7 +36,7 @@ function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, o
   } as Combatant;
 }
 
-const scene = emptyScene(16, 16);
+const scene = emptyScene('scene-test', 16, 16);
 // Scène 1D avec un mur posé, pour les cas de Ligne de Vue (réutilise le motif d'ai-los.test.ts).
 function walledScene(w: number, walls: Record<string, string> = {}): Scene {
   const grid = new Array(w).fill('herbe');

@@ -19,7 +19,7 @@ export const dimsDe = (scene: Scene): Dims => ({ w: scene.dimensions.w, h: scene
 /** Une salle 8×8 cloisonnée en deux pièces, (0..3) et (4..7), par un mur percé de DEUX accès : une
  *  porte en (3,2,E) et un passage en (3,6,E). */
 export function scèneÀDeuxPièces(): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.effectZones = [piece('a', 0, 0, 4, 8), piece('b', 4, 0, 4, 8)];
   s.walls = [
     ...[0, 1, 3, 4, 5, 7].map((y) => ({ x: 3, y, side: 'E' as const })),

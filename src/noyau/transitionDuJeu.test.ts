@@ -15,7 +15,7 @@ const CORA = hero('cora');
 
 /** La taverne : une table ronde, les rangs 1 et 2 du groupe assis (place-1, place-2). */
 function taverneAttablee(): Scene {
-  let sc: Scene = emptyScene(12, 12);
+  let sc: Scene = emptyScene('scene-test', 12, 12);
   sc.id = 'taverne';
   sc.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } });
   for (const rang of [1, 2]) {

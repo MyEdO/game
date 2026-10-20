@@ -29,7 +29,7 @@ const DECOR_MORT = 'decor-absent-du-catalogue';
 
 /** Une scène SAINE : son unique décor nomme son type (`ref`) — ce que #877 rend REQUIS. */
 const sceneSaine = (): Scene => ({
-  ...emptyScene(4, 4),
+  ...emptyScene('scene-test', 4, 4),
   id: 'scene-export',
   label: 'Salle d’export',
   entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'La jetée', ref: 'tonneau' }],
@@ -171,7 +171,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
       versionContenu: 1, maison: 'fixture de test',
       narratif: emptyNarratif(),
       scenes: [{
-        ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée',
+        ...emptyScene('scene-test', 4, 4), id: 'scene-importee', label: 'Salle importée',
         entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le ponton' }],
       }],
     });
@@ -203,7 +203,7 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
       type: 'projet', id: 'proj-sain', label: 'Campagne saine',
       versionContenu: 1, maison: 'fixture de test',
       narratif: emptyNarratif(),
-      scenes: [{ ...emptyScene(4, 4), id: 'scene-importee', label: 'Salle importée', entities: [] }],
+      scenes: [{ ...emptyScene('scene-importee', 4, 4), label: 'Salle importée', entities: [] }],
     });
     const { refus, scenesChargees } = await importe(sain);
     expect(refus).toBeNull();

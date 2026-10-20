@@ -11,6 +11,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { propulsionDuNavire } from '../engine/shipBuild';
+import { desEnSuite } from '../engine/dice.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -29,7 +30,7 @@ const seaPlan = (): TravelPlan => ({
 
 const meteo = (mods: { ref?: unknown; value: number }[]): number[] => mods.filter((m) => m.ref === RULE_REF['meteo-maritime']).map((m) => m.value);
 const meteoApercu = (H: Combatant, E: Combatant): number[] => { const p = previewAttack(useGame.getState, H, E); return meteo([...p.mods, ...(p.difficultyParts ?? [])]); };
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] } as unknown as RNG; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 
 describe('Précipitations Très abondantes au combat ouvert pendant un voyage en mer (MDG 13 l.185)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, travelPlan: null }); });

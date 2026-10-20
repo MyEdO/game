@@ -96,7 +96,7 @@ describe('footprint — empreinte N×N par Taille (donnée `sizes.json::footprin
 describe('propDeclaredFoot / propFootTiles — l’empreinte d’un décor vient du CATALOGUE', () => {
   /** L'échelle des scènes de ce fichier — LUE, jamais redite : `emptyScene` ne pose pas de
    *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`) qui s'applique. */
-  const MPT = sceneMetresPerTile(emptyScene(4, 4));
+  const MPT = sceneMetresPerTile(emptyScene('scene-test', 4, 4));
 
   it('empreinte déclarée (abreuvoir 2×1, tente 2×2) ; absente pour un décor sans empreinte', () => {
     expect(propDeclaredFoot('abreuvoir')).toEqual({ w: 2, h: 1 });
@@ -139,12 +139,12 @@ describe('propDeclaredFoot / propFootTiles — l’empreinte d’un décor vient
 
   it.each(TRAVERSABLES_A_RECETTE)('%s : recette NON solide et sans `foot` — sa case reste traversable', (ref) => {
     expect(propDeclaredFoot(ref), `${ref} déclare un foot : ce contrat mesurerait autre chose`).toBeUndefined();
-    const scene: Scene = { ...emptyScene(8, 8), entities: [{ id: 'd-1', kind: 'prop', ref, pos: { x: 3, y: 3 } }] as SceneEntity[] };
+    const scene: Scene = { ...emptyScene('scene-test', 8, 8), entities: [{ id: 'd-1', kind: 'prop', ref, pos: { x: 3, y: 3 } }] as SceneEntity[] };
     expect(entityBlockedAt(scene, 3, 3, 0)).toBe(false);
   });
 
   it('témoin : un décor à recette SOLIDE, lui, bloque bien sa case (sans quoi le contrat ci-dessus passerait sur du vide)', () => {
-    const scene: Scene = { ...emptyScene(8, 8), entities: [{ id: 'd-1', kind: 'prop', ref: 'tonneau', pos: { x: 3, y: 3 } }] as SceneEntity[] };
+    const scene: Scene = { ...emptyScene('scene-test', 8, 8), entities: [{ id: 'd-1', kind: 'prop', ref: 'tonneau', pos: { x: 3, y: 3 } }] as SceneEntity[] };
     expect(entityBlockedAt(scene, 3, 3, 0)).toBe(true);
   });
 });

@@ -89,7 +89,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
     const c = caster(0, 0, 0);
     c.pos = { x: 0, y: 0 };
     const battle = { combatants: [c], order: [c.id], baseOrder: [c.id], turn: 0, round: 1, acted: false, log: [], over: null, zones: [] } as never;
-    useGame.setState({ battle, scene: emptyScene(6, 6), party: [] });
+    useGame.setState({ battle, scene: emptyScene('scene-test', 6, 6), party: [] });
     applyCast(useGame.getState, useGame.setState, c, c, findSpell('Sang de la Terre')!, okCast(), false, false);
     const zone = (useGame.getState().battle!.zones ?? []).find((z) => z.label === findSpell('Sang de la Terre')!.label)!;
     expect(zone).toBeTruthy();

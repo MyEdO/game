@@ -8,7 +8,7 @@ import { pathTo, reachable, walkComponentAt, walkNeighbors } from '../noyau/mond
  * reachable) en tient compte ; les scènes sans `walls` sont strictement inchangées (non-régression).
  */
 function walledColumn(doorAtY?: number): Scene {
-  const s = emptyScene(4, 4); // tout marchable
+  const s = emptyScene('scene-test', 4, 4); // tout marchable
   s.walls = [0, 1, 2, 3].map((y) => ({ x: 1 as const, y, side: 'E' as const, door: y === doorAtY }));
   return s;
 }
@@ -46,11 +46,11 @@ describe('murs sur arêtes — walkability', () => {
   });
 
   it('non-régression : sans `walls`, le BFS est inchangé', () => {
-    expect(pathTo(emptyScene(4, 4), { x: 0, y: 0 }, { x: 3, y: 3 }, { blocked: empty })).not.toBeNull();
+    expect(pathTo(emptyScene('scene-test', 4, 4), { x: 0, y: 0 }, { x: 3, y: 3 }, { blocked: empty })).not.toBeNull();
   });
 
   it('perf — `wallEdges` (mémoïsé par identité de `scene`) s’invalide quand une porte s’ouvre (nouvelle réf `scene`)', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.walls = [{ x: 1, y: 1, side: 'E', door: true, closed: true }]; // arête entre (1,1) et (2,1)
     const before = walkNeighbors(s, { x: 1, y: 1 });
     expect(before.some((n) => n.x === 2 && n.y === 1)).toBe(false); // porte fermée bloque
@@ -83,7 +83,7 @@ describe('composantes marchables — même verdict que `pathTo`, et rafraîchies
   });
 
   it('une case NON marchable n’a aucune étiquette', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.layers[0].tiles[1 * 4 + 1] = 'mur';
 
     expect(comp(s, 1, 1)).toBeNull();
@@ -91,7 +91,7 @@ describe('composantes marchables — même verdict que `pathTo`, et rafraîchies
   });
 
   it('ouvrir une porte (scène neuve) refait l’étiquetage : les deux côtés se rejoignent', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.walls = [0, 1, 2, 3].map((y) => ({ x: 1 as const, y, side: 'E' as const, door: y === 2, closed: y === 2 }));
     expect(comp(s, 0, 0), 'porte fermée : les deux côtés sont séparés').not.toBe(comp(s, 3, 0));
 

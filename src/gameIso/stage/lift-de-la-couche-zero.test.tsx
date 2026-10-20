@@ -41,7 +41,7 @@ const RELIEF_M = 4;
 /** Une scène d'UNE seule couche, plate sauf le palier de 4 m qui porte la porte de son arête E, entre
  *  deux pièces : ce seuil est le seul accès de la pièce du palier, que la falaise isole ailleurs. */
 function scèneÀReliefDeCouche0(): Scene {
-  const s = emptyScene(dims.w, dims.h);
+  const s = emptyScene('scene-test', dims.w, dims.h);
   const h = new Array(dims.w * dims.h).fill(0) as number[];
   h[RELIEF.y * dims.w + RELIEF.x] = RELIEF_M;
   h[RELIEF.y * dims.w + RELIEF.x + 1] = RELIEF_M;

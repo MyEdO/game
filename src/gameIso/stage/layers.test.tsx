@@ -21,7 +21,7 @@ const OPTS = { zoom: 1, mpt: 2 };
 
 describe('couche des murs — la projection porte les vérités du builder', () => {
   it('murs : PLUS d’op bakée (aucune estompe d’occlusion ici) ; vis = vérité du builder ; x,y,z portés', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.walls = [{ x: 1, y: 1, side: 'N' }];
     const objs = wallLayerObjs(buildWalls(s, 'jeu'), DIMS(s), 0, OPTS);
     expect(objs).toHaveLength(1);
@@ -32,7 +32,7 @@ describe('couche des murs — la projection porte les vérités du builder', () 
   });
 
   it('propage les relations architecturales du mur au stage, et le builder de toits porte les siennes', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     s.effectZones = [{ id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 2, y: 2, w: 1, h: 1 }, z: 0 }];
     s.walls = [{ x: 2, y: 2, side: 'N' }];
     s.architecture = [{
@@ -84,18 +84,18 @@ describe('trait d’obstacle — éléments de mur ET tuiles à bloc plein', () 
   });
 
   it('CONTRAT : toute couche portant au moins une tuile mur produit du trait ; sans obstacle, aucun', () => {
-    const grille = emptyScene(5, 5);
+    const grille = emptyScene('scene-test', 5, 5);
     grille.layers[0].tiles[2 * 5 + 2] = 'mur';
     expect(tuilesPleines(grille)).toBe(1);
     expect(wallTraitObjs(grille, TOP(grille), 0).length).toBeGreaterThan(0);
     // Contrat INVERSE : ni mur d'arête ni tuile pleine ⇒ pas un seul trait (rien à inventer).
-    const nue = emptyScene(5, 5);
+    const nue = emptyScene('scene-test', 5, 5);
     expect(tuilesPleines(nue)).toBe(0);
     expect(wallTraitObjs(nue, TOP(nue), 0)).toHaveLength(0);
   });
 
   it('le BROUILLARD s’applique au trait de tuile comme au reste : tout ou rien', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     s.layers[0].tiles[2 * 5 + 2] = 'mur';
     expect(wallTraitObjs(s, TOP(s), 0, new Set(['2,2,0'])).length).toBeGreaterThan(0);
     expect(wallTraitObjs(s, TOP(s), 0, new Set(['0,0,0']))).toHaveLength(0);

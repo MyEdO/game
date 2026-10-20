@@ -38,7 +38,7 @@ const images = brancherImagesPilotees();
 
 /** Scène d'EXTÉRIEUR sous la pluie : c'est elle qui ouvre le semis d'intempéries (le premier motif). */
 const SCENE: Scene = (() => {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.weather = 'pluie';
   s.ambiance = 'exterieur';
   return s;

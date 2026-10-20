@@ -39,7 +39,7 @@ let container: HTMLDivElement | null = null;
 
 /** Monte le stage sur une scène 8×8 dont la météo et l'ambiance sont celles du cas. */
 function monter(meteo: Scene['weather'], ambiance?: Scene['ambiance']): HTMLDivElement {
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   scene.weather = meteo;
   scene.ambiance = ambiance;
   useGame.setState({

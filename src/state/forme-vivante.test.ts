@@ -23,7 +23,7 @@ const TEXTE = 'Le propriétaire essuie un gobelet.';
 
 /** Une scène dont l'unique nœud de dialogue et l'unique journal portent `prose`. */
 function scene(noeud: Record<string, unknown>, journal: Record<string, unknown> = noeud): Scene {
-  const sc = emptyScene(4, 4);
+  const sc = emptyScene('scene-test', 4, 4);
   sc.id = 's1';
   sc.label = 'Salle';
   sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] as Scene['dialogues'];
@@ -57,7 +57,7 @@ describe('parseProject — forme vivante', () => {
       { kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu.', adapteDe: ADAPTE } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
       { kind: 'choice', prompt: 'Entrer ?', adapteDe: ADAPTE, yes: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration.', adapteDe: ADAPTE }] } } },
     ] };
-    const recu = { ...projet(sc), narratif: { ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', sousTitre: { texte: 'Ouverture.', adapteDe: ADAPTE } }, cloture: { titre: 'Fin', sousTitre: { texte: 'Clôture.', adapteDe: ADAPTE }, when: { kind: 'flag', expr: 'fin' } } }, worldMap: { ...emptyWorldMap(), places: [{ id: 'a', label: 'A', scene: 's1', pos: { x: 10, y: 10 } }, { id: 'b', label: 'B', scene: 's1', pos: { x: 20, y: 10 } }], routes: [{ id: 'route', a: 'a', b: 'b', km: 1, modes: ['pied'], when: { kind: 'flag', expr: 'pont' }, refus: { texte: 'Pont fermé.', adapteDe: ADAPTE } }] } };
+    const recu = { ...projet(sc), narratif: { ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', sousTitre: { texte: 'Ouverture.', adapteDe: ADAPTE } }, cloture: { titre: 'Fin', sousTitre: { texte: 'Clôture.', adapteDe: ADAPTE }, when: { kind: 'flag', expr: 'fin' } } }, worldMap: { ...emptyWorldMap('carte-test'), places: [{ id: 'a', label: 'A', scene: 's1', pos: { x: 10, y: 10 } }, { id: 'b', label: 'B', scene: 's1', pos: { x: 20, y: 10 } }], routes: [{ id: 'route', a: 'a', b: 'b', km: 1, modes: ['pied'], when: { kind: 'flag', expr: 'pont' }, refus: { texte: 'Pont fermé.', adapteDe: ADAPTE } }] } };
     const lu = parseProject(recu);
     const disque = JSON.parse(JSON.stringify(projetVersDepot(lu)));
     expect(disque.scenes[0].startMessage).toEqual(sc.startMessage);

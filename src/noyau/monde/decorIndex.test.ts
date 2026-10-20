@@ -20,7 +20,7 @@ const ent = (id: string, kind: SceneEntity['kind'], x: number, y: number, z?: nu
   ...(kind === 'prop' ? { ref: 'tonneau' } : {}),
 });
 
-const sceneAvec = (entities: SceneEntity[]): Scene => ({ ...emptyScene(8, 8), entities });
+const sceneAvec = (entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 
 describe('decorIndex — vue ANCRAGE (entitesEnCaseEtage)', () => {
   it('rend les entités d’une même case dans l’ORDRE DU DOCUMENT', () => {

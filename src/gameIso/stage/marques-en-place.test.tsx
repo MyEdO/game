@@ -103,7 +103,7 @@ describe('Marques de cases — le pas ne remonte AUCUN pool (#1176 P3-0c)', () =
     const espion = espionnerÉcritures();
     try {
       useGame.setState({
-        scene: emptyScene(10, 10), mode: 'battle', partyPos: { x: 3, y: 3 },
+        scene: emptyScene('scene-test', 10, 10), mode: 'battle', partyPos: { x: 3, y: 3 },
         party: [hero('h1', { x: 3, y: 3 })], battle: combatTémoin(PAS_AVANT),
         dialogue: null, flags: {}, hovered: null,
       } as never);

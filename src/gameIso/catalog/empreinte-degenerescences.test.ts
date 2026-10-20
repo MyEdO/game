@@ -20,7 +20,7 @@ describe('empreinte dérivée — aucune dégénérescence', () => {
     '%s : décor SOLIDE, chacune de ses cases bloque la marche à ses quatre caps (jamais traversable)',
     (id) => {
       for (const facing of DIR4_ORDER) {
-        const scene = emptyScene(14, 14);
+        const scene = emptyScene('scene-test', 14, 14);
         scene.entities = [{ id: 'd', kind: 'prop', pos: POS, ref: id, facing }];
         const cases = propFootTiles(id, POS, facing, sceneMetresPerTile(scene));
         expect(cases.length, `${id} cap ${facing}`).toBeGreaterThan(0);

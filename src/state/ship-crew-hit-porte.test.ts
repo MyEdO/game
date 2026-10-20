@@ -20,6 +20,7 @@ import { findVehicleById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { WorldMap } from '../noyau/worldMap';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * #1657 B3-2 — LE COUP À L'ÉQUIPAGE D'UN CRITIQUE DE COQUE PASSE PAR LA PORTE.
@@ -54,7 +55,7 @@ function equipage(): Combatant[] {
 function baseState(party: Combatant[]): void {
   useGame.setState({
     party,
-    scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelRecap: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
     gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -234,7 +235,7 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
     baseState(party);
     const pnj = marin();
 
-    const bande = bandeTriggeredTest(get, set, [...party, pnj], noeudGreement(), 'sonde-separation', { label: 'Gréement' });
+    const bande = bandeTriggeredTest(get, set, [...party, pnj], noeudGreement(), 'sonde-separation', { rng: desDuTest, label: 'Gréement' });
     expect(bande, 'aucune bande pour les porteurs tenus').toBeTruthy();
     expect(bande!.kind).toBe('triggeredBatchTest');
     expect(bande!.groupOwner, 'deux sièges concernés → possession de GROUPE').toBe(true);

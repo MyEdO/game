@@ -42,7 +42,7 @@ let container: HTMLDivElement | null = null;
 /** Scène minimale montrable, et un conteneur frais racine du prochain montage. */
 function poserEtat(): void {
   useGame.setState({
-    scene: emptyScene(6, 6),
+    scene: emptyScene('scene-test', 6, 6),
     mode: 'exploration',
     partyPos: { x: 2, y: 2 },
     party: [hero('h1', { x: 2, y: 2 })],

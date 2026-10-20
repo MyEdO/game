@@ -46,7 +46,7 @@ describe('chooseEnemyAction — mêlée bornée par la séparation verticale MÉ
 /** Rez herbe à 0 m sous un plancher d'étage (z1) à 4 m couvrant toute la carte : aucun lien de relief
  *  entre les deux (falaise), chaque étage est un plan de mêlée à part. */
 function etage(): Scene {
-  const s = emptyScene(10, 4);
+  const s = emptyScene('scene-test', 10, 4);
   s.layers.push({ z: 1, tiles: new Array(40).fill('plancher') as Terrain[], height: new Array(40).fill(4) as number[] });
   return s;
 }
@@ -80,7 +80,7 @@ describe('chooseEnemyAction — l’approche garde l’étage de la case atteint
 /** Sol herbe 12×5 à 0 m ; ESTRADE à 4 m sur x 5..7, gagnée par une rampe de marches de 1 m en y=2
  *  (x 2..4 : 1, 2, 3 m). `plat` : la même carte sans relief. */
 function estrade(plat: boolean): Scene {
-  const s = emptyScene(12, 5);
+  const s = emptyScene('scene-test', 12, 5);
   const hauteurs = new Array(60).fill(0) as number[];
   if (!plat) {
     for (let y = 0; y < 5; y++) for (const x of [5, 6, 7]) hauteurs[y * 12 + x] = 4;

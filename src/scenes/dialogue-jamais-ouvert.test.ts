@@ -34,7 +34,7 @@ describe('#1869 — un dialogue sans ouvreur est injouable', () => {
 
   // COUVERTURE du détecteur, sur un projet jouet : sans elle, le vert ci-dessus ne dirait rien.
   const dialogue = (id: string) => ({ id, start: 'n', nodes: [{ id: 'n', desc: '…', choices: [] }] });
-  const projet = (over: Partial<Scene>): Scene[] => [{ ...emptyScene(), id: 'jouet', dialogues: [dialogue('d')], ...over }];
+  const projet = (over: Partial<Scene>): Scene[] => [{ ...emptyScene('jouet'), dialogues: [dialogue('d')], ...over }];
 
   it('un dialogue que rien n’ouvre sort en AVERTISSEMENT, nommé', () => {
     const w = validateScene(projet({})).filter((x) => x.message === avisDialogueJamaisOuvert('d'));

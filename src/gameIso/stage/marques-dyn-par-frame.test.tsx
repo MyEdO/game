@@ -20,7 +20,7 @@ import { HERO_RING } from '../teamColors';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(10, 10);
+const SCENE: Scene = emptyScene('scene-test', 10, 10);
 const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view: 'iso' };
 
 /** Un lien d'engagement, le contour de l'actif et l'anneau d'équipe, sur `h1` — le sujet que le banc

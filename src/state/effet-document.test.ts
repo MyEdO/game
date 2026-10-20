@@ -23,7 +23,7 @@ const get = () => useGame.getState();
 const remettre = (documentId: string): Flow => ({ kind: 'do', effect: { type: 'document', documentId } });
 
 function fixtureScene(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   s.id = 'scene-doc';
   s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   return s;

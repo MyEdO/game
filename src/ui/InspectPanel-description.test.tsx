@@ -165,7 +165,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
 
   it('un personnage POSÉ à l’éditeur puis passé au preset se nomme du preset — titre de l’inspection et frise ; un nom d’auteur l’emporte (#1463 S3)', () => {
     const narratif: NarratifBlock = { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-tavernier', base: 'humain', profil: { label: 'Le Tavernier' } }] };
-    const vide = emptyScene(8, 8);
+    const vide = emptyScene('scene-test', 8, 8);
     vide.id = 'sc-pose';
     vide.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 1, y: 1 } });
     const posee = placeEntity(vide, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });

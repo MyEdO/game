@@ -4,6 +4,7 @@ import { CRITIQUE_DOCS, critiqueDoc, critiqueTable, critiqueEntries, type CritDo
 import { bumperDataset } from '../data/versionDataset';
 import type { Combatant } from './types';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
 /**
  * MORSURE « N+1 » (#1657 B2a) — un 9ᵉ document-table se lit SANS une ligne de moteur.
@@ -18,10 +19,7 @@ import type { RNG } from './dice';
  * Pose et retrait versionnent `criticalsTete` (`src/data/versionDataset.ts`).
  */
 
-const seq = (...values: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, values[i++])) };
-};
+const seq = (...values: number[]): RNG => desEnSuite(values, { borne: true });
 
 const cible = (): Combatant =>
   ({

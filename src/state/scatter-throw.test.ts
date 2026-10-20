@@ -44,7 +44,7 @@ function setBattle(combatants: Combatant[]) {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ battle, mode: 'battle', scene: emptyScene(), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null });
+  useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null });
 }
 
 const logText = () => useGame.getState().battle!.log.map((e: { text: string }) => e.text).join(' | ');

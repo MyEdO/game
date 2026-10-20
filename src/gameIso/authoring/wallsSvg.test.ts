@@ -17,7 +17,7 @@ import { emptyScene, setStructureDown, type Scene, type WallSeg } from '../../no
 const dims: Dims = { w: 6, h: 6 };
 
 function el(seg: WallSeg, edit?: (s: Scene) => Scene): WallEl {
-  let s = emptyScene(6, 6);
+  let s = emptyScene('scene-test', 6, 6);
   s.walls = [seg];
   if (edit) s = edit(s);
   return buildWalls(s, 'jeu')[0];
@@ -138,7 +138,7 @@ describe('wallSvg — colombage (recette `timber`, matériaux v2)', () => {
 
 describe('wallSvg — apparence de façade authorée', () => {
   const authored = (): WallEl => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.walls = [{ x: 2, y: 2, side: 'E' }];
     s.architecture = [{
       id: 'corps-auberge',
@@ -168,7 +168,7 @@ describe('wallSvg — apparence de façade authorée', () => {
   });
 
   it.each([0, 1, 2, 3] as const)('cran %s : les features planaires restent attachées et identifiables', (rot) => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.walls = [{ x: 2, y: 2, side: 'E' }];
     s.architecture = [{
       id: 'corps', style: 'taverne', storeys: [], masses: [],
@@ -187,7 +187,7 @@ describe('wallSvg — apparence de façade authorée', () => {
   });
 
   it('la géométrie de feature suit les quatre rotations sans coordonnées invalides', () => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.walls = [{ x: 2, y: 2, side: 'N' }];
     s.architecture = [{
       id: 'corps', style: 'taverne', storeys: [], masses: [],

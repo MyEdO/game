@@ -29,6 +29,7 @@ import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
+import { desDuTest } from '../engine/dice.testkit';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;
@@ -175,7 +176,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
     expect(isOutOfAction(H), 'sonde inerte sans ça : le porteur DOIT être hors d’action').toBe(true);
     expect(surfaceOf(g, H.id), 'et rester surfacé — hors d’action ne veut pas dire sans joueur').toBe(true);
 
-    applyTriggeredEffects(g, H, [eff], 'onWoundLoss', { set: useGame.setState });
+    applyTriggeredEffects(g, H, [eff], 'onWoundLoss', { rng: desDuTest, set: useGame.setState });
 
     const step = etapes().find((s) => s.kind === 'triggeredTest');
     expect(step, 'la porte ne filtre que sur la SURFACE : l’étape est là').toBeTruthy();
@@ -218,7 +219,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
       flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
     } as unknown as TriggeredEffect;
 
-    applyTriggeredEffects(g, H, [eff], 'onHit', { set: useGame.setState });
+    applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: useGame.setState });
 
     const choix = etapes().find((s) => s.kind === 'triggeredChoice');
     expect(choix, 'le « Vous pouvez » de l’invité n’est plus filtré à l’entrée du dispatcher').toBeTruthy();

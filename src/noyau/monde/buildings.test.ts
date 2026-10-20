@@ -12,7 +12,7 @@ import { lineOfSightCover } from './lineOfSight';
 
 /** Maison 3×3 en (2,2) : cloisons `mur-en-bois` tout autour, une PORTE au sud (arête N de (3,5)). */
 function houseScene() {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   const foot = { x: 2, y: 2, w: 3, h: 3 };
   const walls: WallSeg[] = [];
   for (let x = foot.x; x < foot.x + foot.w; x++) {
@@ -53,8 +53,8 @@ describe('bâtiment COMPOSÉ — cloisons d’arête (wallBetween) + terrain', (
  * ceux d'un mur plein. La vue : `noyau/monde/vision.test.ts` (croisée #1712).
  */
 describe('INVARIANT COMBAT — la fenêtre n’ouvre pas le passage, coûte un cran de couvert', () => {
-  const plain = () => { const s = emptyScene(6, 6); s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-de-chateau' }]; return s; };
-  const win = () => { const s = emptyScene(6, 6); s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-de-chateau', window: true }]; return s; };
+  const plain = () => { const s = emptyScene('scene-test', 6, 6); s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-de-chateau' }]; return s; };
+  const win = () => { const s = emptyScene('scene-test', 6, 6); s.walls = [{ x: 2, y: 2, side: 'N', structure: 'mur-de-chateau', window: true }]; return s; };
 
   it('passage : IDENTIQUE à un mur plein (wallIsOpen, wallBetween, isWalkable)', () => {
     const [p, w] = [plain(), win()];

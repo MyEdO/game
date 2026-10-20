@@ -59,7 +59,7 @@ function pnjDeScene(id: string, label: string, pariFinal: number, offre?: { game
 
 function poseScene(entities: ReturnType<typeof pnjDeScene>[]): void {
   const party = makePregens().slice(0, 2) as Combatant[];
-  set({ party, scene: { ...emptyScene(), entities }, battle: null, sequence: null, pendingCascade: null });
+  set({ party, scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null });
 }
 
 describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
@@ -179,7 +179,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
     set({
       party: makePregens().slice(0, 2) as Combatant[],
       campaignNarratif: scenarioEdoConstruit.narratif,
-      scene: { ...emptyScene(), entities: scenarioEdoConstruit.scene.entities },
+      scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
     });
 
@@ -195,7 +195,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
     set({
       party: makePregens().slice(0, 2) as Combatant[],
       campaignNarratif: scenarioEdoConstruit.narratif,
-      scene: { ...emptyScene(), entities: scenarioEdoConstruit.scene.entities },
+      scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
     });
 

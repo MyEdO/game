@@ -7,7 +7,10 @@ import { RNG, makeRNG } from '../engine/dice';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
-let _rng: RNG = makeRNG(Date.now() & 0xffff);
+/** Graine du RNG de combat avant que l'hôte ne la pose (`seedBattleRng`, D8). */
+const GRAINE_INITIALE_DE_BATAILLE = 1;
+
+let _rng: RNG = makeRNG(GRAINE_INITIALE_DE_BATAILLE);
 
 /** Le RNG de combat courant. */
 export function battleRng(): RNG {

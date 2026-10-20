@@ -1,14 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
-import { makeRNG, RNG } from './dice';
+import { makeRNG } from './dice';
 import { applyAlcoholTest, drunkPenalty, drunkCharPenalties, isDrunk, alcoholFailures, soberUp, drunkStaggers, DRUNK_CARACS } from './drunkenness';
 import { effectiveChar } from './characteristics';
 import { hasCondition, addClockCondition } from './conditions';
 import { applyOps } from './ops';
+import { deFixe, desDuTest } from './dice.testkit';
 
 /** Joue la MÉCANIQUE d'un résultat d'Ivresse (`drunkOps`) — reproduit `case 'intoxicate'` d'`applyOps`
  *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUp`). */
-const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { effectId: 'ivresse' });
+const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { rng: desDuTest, effectId: 'ivresse' });
 
 function hero(E = 30): Combatant {
   return {
@@ -21,7 +22,7 @@ function hero(E = 30): Combatant {
 }
 
 /** d10 forcé (int(1,10) → roll). */
-const d10fixed = (roll: number): RNG => ({ int: () => roll });
+const d10fixed = deFixe;
 
 describe('Ivresse — Résistance à l’alcool (LDB 09 l.471-487)', () => {
   it('réussir le Test : rien ne se passe', () => {

@@ -435,7 +435,7 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
     h.id = 'h1';
     h.pos = { x: 5, y: 5 };
     useGame.setState({
-      party: [h], scene: emptyScene(), pendingCleave: null, pendingDualStrike: null, pendingCast: null,
+      party: [h], scene: emptyScene('scene-test'), pendingCleave: null, pendingDualStrike: null, pendingCast: null,
       battle: {
         combatants: [h], order: [h.id], baseOrder: [h.id], turn: 0, round: 1, action: 'battery',
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false,

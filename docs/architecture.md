@@ -202,6 +202,8 @@ scripts/hooks/               Répartiteur des hooks d'appel d'outil (`repartiteu
 src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de toutes les zones : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
                             normalisation d'un nom (`norm`).
+                            `entityId.ts` : id PUR et unique dans une collection, plus petit suffixe
+                            libre parmi les ids pris (`nextEntityId`) — scène, entité, faveur, set d'armes.
                             `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
                             de chaînes ou de fragments de regex (`alternationDe`, `alternationDeRegex`),
                             `espacesExtensibles`. Module PUR, sans import : Node nu le charge aussi, par
@@ -227,6 +229,13 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
                             de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
                             `wfrp4.prefs.v1`).
+                            `entropie.ts` : le seul site de `Math.random` de `src/` (mur
+                            `murs/entropie`, #2817) — entier de présentation (`entierDEntropie`),
+                            graine (`graineDEntropie` : RNG de bataille posé par `seedBattleRng` au
+                            branchement du store, brouillon de création, générateur de nom), id
+                            d'entité unique d'un projet à l'autre (`idDEntropie` : scène, carte,
+                            projet, lieu, trajet — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
+                            de l'hôte) ; `src/engine` et `src/noyau` n'en tirent jamais.
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
                             `fsPersist.ts` : persistance des datasets édités au Codex (File System
@@ -238,7 +247,10 @@ src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (
                             ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via noyau/monde/relief).
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
-src/engine/                 Règles WFRP4, PUR + testé :
+src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/sans-hote`,
+                            `oxlint.config.mjs`) : ni entropie, ni horloge murale, ni service du
+                            navigateur ; un tirage prend le `RNG` que l'appelant nomme, une quantité
+                            lue avant le jet est une `FormuleSansTirage` évaluée sans RNG.
   types.ts                    Caractéristiques, Combatant, Weapon, ItemInstance, Difficulty…
   tests.ts                    Tests & Degrés de Réussite (DR), tests opposés.
                               **INVARIANT — `base` = le Niveau de Compétence NU (Caractéristique +
@@ -299,7 +311,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`, et les flux
-                            de jeu ci-dessous. Les ACTIONS de jeu (`ActionsDuNoyau`) naissent de fabriques
+                            de jeu ci-dessous. Sans hôte (mur `murs/sans-hote`) : le RNG de bataille
+                            (`battleRng.ts`) naît de la graine fixe `GRAINE_INITIALE_DE_BATAILLE`, que
+                            l'hôte ré-ensemence (`seedBattleRng(graineDEntropie())`, `state/store.ts`). Les ACTIONS de jeu (`ActionsDuNoyau`) naissent de fabriques
                             `(get, set) => actions`, une par concept, rangées dans le module du concept
                             (`createCombatSlice`, `creerActionsDuMarchand` de `merchantFlow.ts`…) ou dans
                             un module propre : `entreeEnScene.ts` (partie neuve, changement de scène,

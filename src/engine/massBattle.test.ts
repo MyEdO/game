@@ -9,11 +9,11 @@ import {
   WAR_MACHINES, STRUCTURES, BATTLE_HAZARDS,
   rallyHealAmount, initHoldState, resolveHoldRound, holdEnemyBonus, INSPIRE_BONUS,
 } from './massBattle';
+import { desEnSuite } from './dice.testkit';
 
 /** RNG déterministe : renvoie tour à tour les d100 fournis (bornés à [min,max]). */
 function seqRNG(...vals: number[]): RNG {
-  let i = 0;
-  return { int: (min, max) => Math.max(min, Math.min(max, vals[i++ % vals.length])) };
+  return desEnSuite(vals, { boucle: true, borne: true });
 }
 
 describe('Puissance de Bataille — estimation (ADE II 08 l.24-47)', () => {

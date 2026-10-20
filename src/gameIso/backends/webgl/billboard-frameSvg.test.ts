@@ -28,7 +28,7 @@ import {
 import type { TokenEl } from '../../builders/types';
 import type { Combatant, Weapon } from '../../../engine/types';
 
-const scene = emptyScene(6, 6);
+const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
 
 function acteur(patch: Partial<Combatant> = {}): Combatant {

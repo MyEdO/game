@@ -8,7 +8,7 @@
  * d'incantation (`landProb`, fourni par l'appelant) × opposition (Sorts de Contact/résistés, LDB 46
  * l.103-105). L'échelle est « Blessures-équivalent pour mon camp » (l'unité déjà employée par `ai.ts`).
  *
- * ZÉRO `battleRng()`/`rollTest`/`Math.random` : le planning doit rester déterministe (coop/tests
+ * ZÉRO `battleRng()`/`rollTest`/entropie : le planning doit rester déterministe (coop/tests
  * reproductibles). Les magnitudes de dés sont des MOYENNES (`formulaExpectation`), jamais tirées.
  */
 import { tableTotale } from '../../lib/tableTotale';
@@ -18,7 +18,7 @@ import { combatValue, attackModifiers, combineMods, woundsFromHit, type ModLine 
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
 import { formulaExpectation, slBonus, applyOps, type GameOp } from '../../engine/ops';
-import type { RNG } from '../../engine/dice';
+import { makeRNG } from '../../engine/dice';
 import type { SizeCategory } from '../../engine/size';
 import { groupMatch } from '../../engine/groups';
 import { spellOps } from '../../engine/flowCore';
@@ -29,9 +29,9 @@ import { RefIrresoluble, spawnEnemy } from './spawn';
 const AVG_DR = 1;
 /** DR MÉDIAN supposé pour l'échelle « +N DR » d'une op de sort scorée hors jet (PerSL). */
 const MED_DR = 2;
-/** RNG CONSTANT déterministe pour `applyOpClone` (renvoie la borne basse) — les ops de buff scorées
- *  (charMod/augment/octroi) ne consomment pas de dé ; ce RNG ne fait que satisfaire la signature. */
-const STATIC_RNG: RNG = { int: (min) => min };
+/** Graine du RNG d'`applyOpClone`, semé à neuf à chaque clone : le score d'un buff ne dépend ni de
+ *  l'ordre des évaluations, ni des dés de la partie. */
+const GRAINE_DU_CLONE = 1;
 
 /** Garde NaN : une grandeur dérivée du moteur peut être NaN si les Caractéristiques d'un combattant de
  *  test sont absentes (`{} as never`). On retombe alors sur `fallback` (neutre) → scoring déterministe. */
@@ -178,11 +178,11 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
   return best;
 }
 
-/** Clone PROFOND de `c` avec `op` appliquée (charMod/augment/octroi…) — déterministe (RNG constant non
- *  consommé par ces ops). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
+/** Clone PROFOND de `c` avec `op` appliquée (charMod/augment/octroi…) — déterministe (RNG semé à neuf,
+ *  `GRAINE_DU_CLONE`). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
 function applyOpClone(c: Combatant, op: GameOp): Combatant {
   const clone = structuredClone(c);
-  applyOps(clone, [op], { caster: c, rng: STATIC_RNG });
+  applyOps(clone, [op], { caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
   return clone;
 }
 

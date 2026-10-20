@@ -12,7 +12,7 @@
  * propre table 1d10. Aucune duplication : deux axes RAW (in-scene vs voyage) et deux tables sources.
  * PUR : RNG injecté ; ne mute rien.
  */
-import { RNG, defaultRNG, d10 } from './dice';
+import { RNG, d10 } from './dice';
 import { findTableEntry } from './tables';
 import drivingMishapJson from '../data/driving-mishap.json';
 
@@ -23,7 +23,7 @@ export interface MishapEntry { id: string; min: number; max: number; label: stri
 const MISHAP_TABLE = (drivingMishapJson as { entries: MishapEntry[] }).entries;
 
 /** 1d10 sur le Tableau des accidents de Conduite d'attelage (LDB 09 l.142). Renvoie l'entrée + le dé. */
-export function rollDrivingMishap(rng: RNG = defaultRNG): { roll: number; entry: MishapEntry } {
+export function rollDrivingMishap(rng: RNG): { roll: number; entry: MishapEntry } {
   const roll = d10(rng);
   return { roll, entry: findTableEntry(MISHAP_TABLE, roll) };
 }
@@ -36,7 +36,7 @@ export function mishapCausesCrash(outcome: DrivingMishapOutcome, twoWheeler = fa
 
 /** Dégâts d'ACCIDENT à UN occupant (LDB 09 l.149) : 2d10 réduits par le Bonus d'Endurance ET les PA,
  *  min 0 — « sauf si le véhicule roulait doucement » (à la discrétion : `slow` annule les Dégâts). Pur. */
-export function drivingAccidentDamage(be: number, pa: number, rng: RNG = defaultRNG, slow = false): number {
+export function drivingAccidentDamage(be: number, pa: number, rng: RNG, slow = false): number {
   if (slow) return 0;
   return Math.max(0, d10(rng) + d10(rng) - be - pa);
 }

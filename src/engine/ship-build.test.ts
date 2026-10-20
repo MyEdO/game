@@ -5,11 +5,9 @@ import {
 } from './shipBuild';
 import { findNavalTrait } from '../data';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 describe('buildShip — CONSTRUIRE UN NAVIRE en 4 étapes (MDG 12 l.108-164)', () => {
   it('étape 1 : les Caractéristiques de bateau standard (Moyenne : 500 CO, 6(8)/5(20), E 40, B 90, 400)', () => {

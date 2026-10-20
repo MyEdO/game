@@ -6,7 +6,7 @@
  *          3) Dégâts = Dégâts d'arme + DR
  *          4) Application = Dégâts − (Bonus d'Endurance + PA de la localisation)
  */
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { t } from '../i18n';
 import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason } from './tests';
 import { bonus, effectiveChar, baseWithTraits } from './characteristics';
@@ -1063,7 +1063,7 @@ export function rollMeleeAttacker(
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   location?: HitLocation,
   env: ModLine[] = [],
   flankRear?: boolean,
@@ -1078,7 +1078,7 @@ export function rollMeleeAttacker(
 export function rollMeleeDefender(
   defender: Combatant,
   mode: DefenseMode,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   dodgeMods: ModLine[] = [], // lignes d'Esquive du contexte (LDB 14 l.82, l.184) ; n'affectent pas la parade
   parryWeapon: Weapon | undefined = defaultParryWeapon(defender), // arme de parade choisie (spé + pénalité main 2nde)
   vsWeapon?: Weapon, // arme de l'ATTAQUANT (Rapide : −10 à la parade d'une arme non-Rapide, LDB 62 l.298-302)
@@ -1092,7 +1092,7 @@ export function rollMeleeDefender(
 /** Jet de Corps à corps « brut » d'un combattant pour le Test opposé de Désengagement
  *  (LDB 15 l.49 « Esquive/Corps à corps »). Inclut l'Avantage×10 et les pénalités
  *  d'États, mais PAS les Atouts d'arme ni les bonus de cible (ce n'est pas une attaque portée). */
-export function rollDisengageAttack(foe: Combatant, rng: RNG = defaultRNG): TestResult {
+export function rollDisengageAttack(foe: Combatant, rng: RNG): TestResult {
   const t = rollTest(combatValue(foe, 'melee', foe.weapons[0]), 'intermediaire', rng, baseTestMods(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }));
   return { ...t, base: combatBaseValue(foe, 'melee', foe.weapons[0]) }; // LDB 12 l.160
 }
@@ -1103,7 +1103,7 @@ export function rollDisengageAttack(foe: Combatant, rng: RNG = defaultRNG): Test
 /** Contexte du Test de Force d'Empoignade : il implique un déplacement (LDB 16 l.64). */
 export const GRAPPLE_TEST_CTX: EtatTestCtx = { movement: true };
 
-export function rollGrappleForce(c: Combatant, rng: RNG = defaultRNG): TestResult {
+export function rollGrappleForce(c: Combatant, rng: RNG): TestResult {
   const force = effectiveChar(c, 'force'); // valeur NUE : `baseTestMods` voyage dans le modificateur (LDB 12 l.160)
   return { ...rollTest(force, 'intermediaire', rng, baseTestMods(c, 'force', GRAPPLE_TEST_CTX)), base: force };
 }
@@ -1139,7 +1139,7 @@ export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
 
 /** Attaque gratuite « dans le dos » lors d'une Fuite (LDB 15 l.63,66) : Test de Corps
  *  à corps NON opposé, +20 au toucher (dos tourné), DR = Dégâts comme d'habitude. */
-export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RNG = defaultRNG): AttackResult {
+export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RNG): AttackResult {
   const weapon = backstabWeapon(foe);
   // Les lignes qui composent la cible, NOMMÉES : celles du Test de combat brut (`baseTestModLines`,
   // source unique du jet) + le dos tourné (`LDB 15 l.63-66`). Sans cette ligne, le bonus s'imputait à la
@@ -1340,7 +1340,7 @@ export function resolveMelee(
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   opts: AttackOptions = {},
 ): AttackResult {
   // Un OBJET INANIMÉ (structure de siège / véhicule-coque / affût inerte) n'a ni CC/Ag, ni Parade, ni Esquive → jamais de défense.
@@ -1453,7 +1453,7 @@ export function resolveRanged(
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   distanceTiles?: number,
   location?: HitLocation,
   env: ModLine[] = [],
@@ -1484,7 +1484,7 @@ export function rollRangedAttacker(
   attacker: Combatant,
   defender: Combatant,
   weapon: Weapon,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   distanceTiles?: number,
   location?: HitLocation,
   env: ModLine[] = [],
@@ -1841,22 +1841,18 @@ export function woundsAtCritLocation(res: AttackResult, weapon: Weapon, defender
  * Initiative ÉGALE **et** Agilité ÉGALE (égalité EXACTE), l'ordre relatif est résolu par un Test
  * d'Agilité — chaque membre lance un d100 vs sa valeur d'Ag, et l'on ordonne par DR décroissant (puis,
  * à DR égal, par jet croissant = la plus grande marge de réussite, départage stable).
- * `rng` ABSENT → aucun jet (tri stable déterministe, comportement historique inchangé) ; PRÉSENT → les
- * groupes à égalité exacte sont départagés par le Test (déterministe à graine fixée). Le Test n'est roulé
- * QUE pour les membres d'un groupe à égalité exacte (zéro tirage sinon → aucune dérive du RNG en aval).
- * PUR (RNG injecté).
+ * Le Test n'est roulé QUE pour les membres d'un groupe à égalité exacte (zéro tirage sinon → aucune
+ * dérive du RNG en aval). PUR (RNG injecté).
  */
-export function initiativeOrder(combatants: Combatant[], rng?: RNG): Combatant[] {
+export function initiativeOrder(combatants: Combatant[], rng: RNG): Combatant[] {
   const initOf = (c: Combatant) => c.initiative ?? baseWithTraits(c, 'initiative');
   const agOf = (c: Combatant) => baseWithTraits(c, 'agilite');
   const tieTest = new Map<Combatant, TestResult>();
-  if (rng) {
-    const groupKey = (c: Combatant) => `${initOf(c)}|${agOf(c)}`;
-    const groupSize = new Map<string, number>();
-    for (const c of combatants) groupSize.set(groupKey(c), (groupSize.get(groupKey(c)) ?? 0) + 1);
-    // Roulé dans l'ordre d'ENTRÉE, uniquement pour les égalités exactes → consommation RNG minimale et déterministe.
-    for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, undefined, 'agilite'), 'intermediaire', rng));
-  }
+  const groupKey = (c: Combatant) => `${initOf(c)}|${agOf(c)}`;
+  const groupSize = new Map<string, number>();
+  for (const c of combatants) groupSize.set(groupKey(c), (groupSize.get(groupKey(c)) ?? 0) + 1);
+  // Roulé dans l'ordre d'ENTRÉE, uniquement pour les égalités exactes → consommation RNG minimale et déterministe.
+  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, undefined, 'agilite'), 'intermediaire', rng));
   return [...combatants].sort((a, b) => {
     const ia = initOf(a), ib = initOf(b);
     if (ib !== ia) return ib - ia;

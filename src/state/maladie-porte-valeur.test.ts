@@ -33,6 +33,7 @@ import { DIFFICULTY_MODIFIERS, type Combatant } from '../engine/types';
 import { creditBourse } from '../noyau/bourseFlow';
 import type { CascadeRoll, CascadeStep } from '../noyau/pendings';
 import { fixtureText } from '../i18n/fixtureText';
+import { desDuTest } from '../engine/dice.testkit';
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   ({
@@ -71,7 +72,7 @@ function rangee(step: CascadeStep, id: string): { base?: number; target?: number
 beforeEach(() => {
   vi.useFakeTimers();
   seedBattleRng(1);
-  useGame.setState({ party: [hero()], battle: null, pendingRest: null, pendingCascade: null, scene: emptyScene(10, 10) });
+  useGame.setState({ party: [hero()], battle: null, pendingRest: null, pendingCascade: null, scene: emptyScene('scene-test', 10, 10) });
   creditBourse(useGame.getState, useGame.setState, 'h1', { gold: 5, silver: 0, brass: 0 });
 });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
@@ -203,7 +204,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
       const { specs, defer } = porteEntretien();
       tickDisease(c, 24 * 60, battleRng(), defer);
       syncDerivedConditions(c); // l'État que le Malaise PORTE, posé par le socle
-      for (const s of specs) applique(c, s, { success: true });
+      for (const s of specs) applique(c, s, { success: true }, desDuTest);
       return { extenue: stacks(c, 'extenue'), maladies: (c.diseases ?? []).length };
     })();
 

@@ -14,7 +14,7 @@
  *    bien correspondant s'y vend le DOUBLE de son prix de base.
  */
 import landCargoJson from '../data/land-cargo.json';
-import { d10, d100, roll as rollDice, type RNG, defaultRNG } from './dice';
+import { d10, d100, roll as rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import type { Difficulty } from './types';
@@ -108,7 +108,7 @@ export function availabilityPct(place: LandMarketProfile): number {
 
 /** Recherche d'une cargaison à l'ACHAT (l.22-34) : 1d100 ≤ %chance → un marchand est trouvé. Un Emplacement
  *  « Commerce » lance DEUX fois (marchandises locales + une cargaison aléatoire de la table). PUR. */
-export function rollFindMerchant(place: LandMarketProfile, rng: RNG = defaultRNG): { pct: number; localRoll: number; localFound: boolean; randomRoll?: number; randomFound?: boolean } {
+export function rollFindMerchant(place: LandMarketProfile, rng: RNG): { pct: number; localRoll: number; localFound: boolean; randomRoll?: number; randomFound?: boolean } {
   const pct = availabilityPct(place);
   const localRoll = d100(rng);
   const out = { pct, localRoll, localFound: localRoll <= pct } as { pct: number; localRoll: number; localFound: boolean; randomRoll?: number; randomFound?: boolean };
@@ -132,7 +132,7 @@ function invertD100(v: number): number {
 /** TAILLE de la cargaison disponible en points d'Encombrement (l.36-42) : (Taille + Richesse) × [1d100
  *  arrondi à la dizaine SUPÉRIEURE]. Centre de Commerce → on inverse aussi le d100 et on garde le plus
  *  grand des deux arrondis (l.40-42). PUR. */
-export function rollCargoQuantity(place: LandMarketProfile, rng: RNG = defaultRNG): { d100: number; enc: number } {
+export function rollCargoQuantity(place: LandMarketProfile, rng: RNG): { d100: number; enc: number } {
   const r = d100(rng);
   // L'inversion (l.40-42) ne concerne QUE les Lieux « tirant leur Richesse du Commerce » (`commerceRichesse`),
   // pas tout Lieu ayant « Commerce » en Produits — cf. l'exemple Grünburg (Commerce, mais 46 → 50, sans inversion).
@@ -141,13 +141,13 @@ export function rollCargoQuantity(place: LandMarketProfile, rng: RNG = defaultRN
 }
 
 /** Cargaison ALÉATOIRE de la saison (Tableau des cargaisons aléatoires, l.71-78) — table TERRESTRE. PUR. */
-export function rollRandomLandCargo(season: Season, rng: RNG = defaultRNG): LandCargoDef {
+export function rollRandomLandCargo(season: Season, rng: RNG): LandCargoDef {
   return rollSeasonalCargo([...landCargoes()], season, rng) as LandCargoDef;
 }
 
 /** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie (l.93-104) : 1d10 → qualité → prix de base
  *  (CO par 10 Enc). `bonusEchelons` (Kemperbad, l.95) monte le résultat de N crans dans le tableau. PUR. */
-export function rollWineQuality(rng: RNG = defaultRNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
+export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
   const roll = d10(rng);
   let idx = findTableEntryIndex(LAND.wineQuality, roll);
   if (idx < 0) idx = 0;
@@ -158,7 +158,7 @@ export function rollWineQuality(rng: RNG = defaultRNG, bonusEchelons = 0): { rol
 
 /** Prix de BASE terrestre (CO par 10 Enc) : le Vin/Eau-de-vie passe par la table de qualité SECRÈTE
  *  (`rollWineQuality`, + bonus régional du Lieu) ; les autres biens par la colonne saisonnière. PUR. */
-export function landCargoBasePrice(cargo: LandCargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG = defaultRNG): number {
+export function landCargoBasePrice(cargo: LandCargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG): number {
   if (cargo.wine) return rollWineQuality(rng, place?.wineBonusEchelons ?? 0).price;
   return cargoBasePrice(cargo, season, rng);
 }
@@ -193,7 +193,7 @@ export const partialSurchargePct = LAND.buy.partialSurchargePct;
 export const minCargoEnc = LAND.buy.minEnc;
 
 /** Compétence Marchandage d'un petit marchand pris au hasard (l.129) : 2d10 + 30 (≈ 32-50). PUR. */
-export function rollMerchantSkill(rng: RNG = defaultRNG): number {
+export function rollMerchantSkill(rng: RNG): number {
   return rollDice(2, 10, rng) + LAND.buy.merchantSkill.plus;
 }
 
@@ -227,7 +227,7 @@ export const gossipRule = LAND.gossip;
 
 /** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : d100 → une rumeur pointant les biens très
  *  demandés à un Emplacement. PUR. */
-export function rollTradeRumour(rng: RNG = defaultRNG): RumourRow {
+export function rollTradeRumour(rng: RNG): RumourRow {
   return structuredClone(findTableEntry(LAND.rumours, d100(rng))); // #2097
 }
 

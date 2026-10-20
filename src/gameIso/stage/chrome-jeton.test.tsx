@@ -102,7 +102,7 @@ const commitsReact = () => commits;
 
 function monter(retouche: Record<string, unknown> = {}): HTMLDivElement {
   useGame.setState({
-    scene: emptyScene(10, 10),
+    scene: emptyScene('scene-test', 10, 10),
     mode: 'battle',
     viewMode: 'iso',
     partyPos: { x: 6, y: 6 },
@@ -215,7 +215,7 @@ describe('Chrome des jetons — UNE dérivation, UN peintre (#1176 P3-0f)', () =
     const marque = { scaleK, n: 1, bodyTopFrac: frac }; // le héros de la sonde : taille moyenne, empreinte d'une case
     const el = monter();
     const h1 = chromeVolumique(el, 'h1')!;
-    const dims: Dims = { ...emptyScene(10, 10).dimensions, rot: 0, view: 'iso', edge: false } as Dims;
+    const dims: Dims = { ...emptyScene('scene-test', 10, 10).dimensions, rot: 0, view: 'iso', edge: false } as Dims;
     const { cx, cy } = tileCenter(3, 3, dims, 0);
     expect(h1.getAttribute('transform'), 'ancré aux PIEDS de sa case, comme le jeton').toBe(`translate(${cx},${cy})`);
     // LOSANGE : la hauteur MONDE du quad, à la cadence verticale de la projection affine, RABATTUE sur
@@ -633,7 +633,7 @@ describe('Pions en disques — la vue du dessus n’a plus un seul billboard de 
     // retombe sur le repli de surface de `stage/pickResolve.ts:resoudrePixel`, et ne répond juste que
     // si le disque est centré sur SA case.
     const top = monter({ viewMode: 'top' });
-    const dimsTop: Dims = { ...emptyScene(10, 10).dimensions, rot: 0, view: 'top', edge: false } as Dims;
+    const dimsTop: Dims = { ...emptyScene('scene-test', 10, 10).dimensions, rot: 0, view: 'top', edge: false } as Dims;
     const { cx, cy } = tileCenter(3, 3, dimsTop, 0);
     expect(pion(top, 'h1')!.getAttribute('transform')).toBe(`translate(${cx},${cy})`);
     const e = tileCenter(5, 3, dimsTop, 0);
@@ -643,7 +643,7 @@ describe('Pions en disques — la vue du dessus n’a plus un seul billboard de 
   it('LE CAP : le pion porte le triangle d’orientation de son `facing`, projeté par la vue', () => {
     const top = monter({ viewMode: 'top', facing: { h1: 'E' } });
     const cap = [...pion(top, 'h1')!.querySelectorAll('path')].map((p) => p.getAttribute('d'));
-    const dimsTop: Dims = { ...emptyScene(10, 10).dimensions, rot: 0, view: 'top', edge: false } as Dims;
+    const dimsTop: Dims = { ...emptyScene('scene-test', 10, 10).dimensions, rot: 0, view: 'top', edge: false } as Dims;
     expect(cap).toContain(discCapPath('E', 1, dimsTop));
     // Deux caps distincts donnent deux tracés distincts : le champ est LU, pas ignoré.
     expect(discCapPath('E', 1, dimsTop)).not.toBe(discCapPath('N', 1, dimsTop));

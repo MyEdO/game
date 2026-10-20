@@ -21,7 +21,7 @@ import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '..
 const [REF_A, REF_B] = props.filter((p) => !p.volume).map((p) => p.id);
 
 function scèneAvecDecor(ref: string): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   const decor: SceneEntity = { id: 'decor-1', kind: 'prop', pos: { x: 2, y: 2 }, ref } as SceneEntity;
   return { ...s, entities: [decor] };
 }
@@ -63,7 +63,7 @@ describe('Identité d’un billboard de DÉCOR — la clé porte le DESSIN (#117
    * second terrain à décor n'existe.
    */
   it('OVERLAY de terrain : l’identité porte le DÉCOR, pas seulement la case', () => {
-    const base = emptyScene(4, 4);
+    const base = emptyScene('scene-test', 4, 4);
     const layers = base.layers.map((l) => ({ ...l, tiles: [...l.tiles] }));
     layers[0].tiles[0] = 'bois';
     expect(identités({ ...base, layers })).toEqual(['prop:ov:0,0,0|arbre||1']);
@@ -83,7 +83,7 @@ describe('Identité d’un prop — l’échelle et le cap en font partie (#1396
     states: { visible: true },
     ...(patch.facing ? { facing: patch.facing } : {}),
   });
-  const scene = emptyScene(6, 6);
+  const scene = emptyScene('scene-test', 6, 6);
   const identité = (patch: { facing?: 'S' | 'E'; scale?: number }) =>
     collectBillboards(scene, sceneMetresPerTile(scene), { tokens: [], props: [propEl(patch)] })[0].identity;
 

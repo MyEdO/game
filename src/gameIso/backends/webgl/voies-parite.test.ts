@@ -39,7 +39,7 @@ function sceneEmbuscade(): Scene {
     ...(embusque ? { combat: { hiddenUntilCombat: true } } : {}),
   });
   return {
-    ...emptyScene(8, 4),
+    ...emptyScene('scene-test', 8, 4),
     id: 'fixture-embuscade',
     entities: [perso('vu-1', 1, false), perso('vu-2', 2, false), perso('embusque-1', 5, true), perso('embusque-2', 6, true)],
   };
@@ -121,7 +121,7 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
 
 describe('ÉCHELLE — la même pour les deux voies, sur TOUT le bestiaire', () => {
   // La scène n'est ici qu'un repère (échelle + sol) : une fixture nue suffit, le sujet est le bestiaire.
-  const scene = emptyScene(8, 4);
+  const scene = emptyScene('scene-test', 8, 4);
   const mpt = sceneMetresPerTile(scene);
 
   /** Facteur d'échelle du jeton dans le repère SVG de référence : le `speciesScale` du

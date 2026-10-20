@@ -28,7 +28,7 @@ const volume = (el: PropEl): VolumePropEl => {
 const socleM = (el: PropEl) => Math.min(...volume(el).faces.flatMap((f) => f.poly.map((p) => p.h)));
 /** L'échelle des scènes de ce fichier — LUE sur une scène : toutes sortent d'`emptyScene`, qui ne pose
  *  pas de `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`). */
-const MPT = sceneMetresPerTile(emptyScene(1, 1));
+const MPT = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
 /** Le décor est-il posé à CETTE ancre, à ce cap ? Comparé à la recette compilée à son propre pied. */
 const poseA = (el: PropEl, ancre: { x: number; y: number }, facing: Dir8) =>
   volume(el).faces.every((face, i) =>
@@ -43,7 +43,7 @@ const poseA = (el: PropEl, ancre: { x: number; y: number }, facing: Dir8) =>
  */
 describe('buildProps — un décor à recette sort en faces monde', () => {
   const sceneWithReliefAndUpperLayer = ({ x, y, z, heightM }: { x: number; y: number; z: number; heightM: number }) => {
-    const s = emptyScene(8, 8);
+    const s = emptyScene('scene-test', 8, 8);
     s.layers.push({ z, tiles: new Array(8 * 8).fill('pierre') });
     const étage = s.layers.find((l) => l.z === z)!;
     étage.height = new Array(8 * 8).fill(0);
@@ -61,7 +61,7 @@ describe('buildProps — un décor à recette sort en faces monde', () => {
   });
 
   it('un décor à recette n’a plus de billboard : il porte ses faces, son entId et son cap', () => {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [propEntity({ id: 'table-1', pos: { x: 2, y: 3 }, facing: 'E' })];
     const els = buildProps(scene);
     expect(els.filter(estPropVolumique)).toHaveLength(1);
@@ -72,7 +72,7 @@ describe('buildProps — un décor à recette sort en faces monde', () => {
   });
 
   it('un décor SANS recette reste un billboard (le décor historique ne bouge pas)', () => {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 't1', kind: 'prop', pos: { x: 2, y: 3 }, ref: REF_BILLBOARD }] as SceneEntity[];
     expect(buildProps(scene).filter(estPropVolumique)).toEqual([]);
     expect(buildBillboardProps(scene).map((el) => el.entId)).toEqual(['t1']);
@@ -90,7 +90,7 @@ describe('buildProps — un décor à recette sort en faces monde', () => {
 /** BUILDER de props : clés stables, overlays de terrain, géométrie d'empreinte, vérités de scène. */
 describe('buildProps — éléments prop du pivot', () => {
   const scene = () => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.layers[0].tiles[1 * 6 + 2] = 'mur'; // (2,1) : BLOC PLEIN — géré par le relief (solidHeightM), PAS un prop
     s.layers[0].tiles[3 * 6 + 4] = 'bois'; // (4,3) : overlay à DÉCOR (overlayProp → 'arbre')
     s.entities = [
@@ -186,7 +186,7 @@ describe('buildProps — éléments prop du pivot', () => {
  *  monde qu'ils rendent, jamais sur un `foot` de billboard. */
 describe('buildProps — ornements de bâtiment (data-driven par ArchitectureBody.style)', () => {
   const withRoof = (style: string, foot: { x: number; y: number; w: number; h: number }, walls: WallSeg[] = []) => {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     s.architecture = [{
       id: `body-${style}`,
       style,
@@ -319,7 +319,7 @@ describe('buildProps — ornements de bâtiment (data-driven par ArchitectureBod
 
 describe('buildProps — features de façade authorées', () => {
   const authoredFacade = () => {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     s.walls = [
       { x: 2, y: 5, side: 'N', door: true },
       { x: 3, y: 5, side: 'N' },

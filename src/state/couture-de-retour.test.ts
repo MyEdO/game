@@ -400,7 +400,7 @@ describe('markActed relit l’état vivant (battlePickup, #2312)', () => {
       const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
       hero.items = hero.items ?? [];
       hero.pos = { x: 0, y: 0 };
-      const scene = emptyScene(8, 8);
+      const scene = emptyScene('scene-test', 8, 8);
       scene.id = 'pickup-scene';
       scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } } as never);
       scene.entities.push({ id: 'corps', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Cocher',

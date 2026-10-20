@@ -192,7 +192,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     };
     useGame.setState({
       party: [a], journal: [],
-      scene: { ...emptyScene(), entities: [negociant] },
+      scene: { ...emptyScene('scene-test'), entities: [negociant] },
       battle: null, sequence: null, pendingCascade: null,
     });
     get().playTavernGame({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'npc', id: 'negociant' } });

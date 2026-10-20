@@ -6,11 +6,9 @@ import {
 } from './seaNavigation';
 import type { RNG } from './dice';
 import type { Combatant } from './types';
+import { desEnSuite } from './dice.testkit';
 
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 const hull = (E: number): Combatant => ({
   id: 'coque', name: 'Coque', kind: 'enemy',

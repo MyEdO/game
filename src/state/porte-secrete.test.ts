@@ -23,7 +23,7 @@ const SECRETE: WallSeg = { x: 1, y: 1, side: 'E', door: true, closed: true, secr
 
 /** Deux pièces (1,1) | (2,1), séparées par l'arête E de (1,1). */
 function deuxPieces(seg: WallSeg): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   s.effectZones = [
     { id: 'a', label: 'A', presentation: 'interior', area: { kind: 'rect', x: 1, y: 1, w: 1, h: 1 } },
     { id: 'b', label: 'B', presentation: 'interior', area: { kind: 'rect', x: 2, y: 1, w: 1, h: 1 } },

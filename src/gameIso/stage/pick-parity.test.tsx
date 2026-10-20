@@ -636,7 +636,7 @@ describe('verdict de picking — le rayon nomme, la surface ne devine pas (#1687
   /** Décor VOLUMIQUE DÉRIVÉ du catalogue (jamais une ref écrite en dur) : c'est sa présence qui
    *  autorise le rayon hors combat (`builders/props.ts:sceneAUnPropVolumique`). */
   const REF_VOLUMIQUE = props.find((p) => refEstVolumique(p.id))!.id;
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   scene.entities = [
     { id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: REF_VOLUMIQUE, facing: 'S' },
     { id: 'coffre-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: REF_VOLUMIQUE, facing: 'S' },
@@ -851,7 +851,7 @@ describe('sonde de picking — la CAMÉRA du cadre est celle du RENDU, jamais `s
  * Scène FABRIQUÉE ici (jamais un paquet livré) : un PNJ à `dialogueId`, aucun rayon inscrit.
  */
 describe('sonde de recette — le verdict dit la CASE, le geste nomme le PNJ (#1687)', () => {
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   const PNJ = 'baron-a-la-case';
   scene.entities = [
     { id: PNJ, kind: 'personnage', ref: 'humain', pos: { x: 4, y: 4 }, dialogueId: 'dlg-baron', facing: 'S' },

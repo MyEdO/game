@@ -6,6 +6,7 @@ import { effectiveChar } from './characteristics';
 import { RULE_REF } from './ruleRefs';
 import { restRecovery, needsRecoveryRoll } from './rest';
 import { addCondition, stacks } from './conditions';
+import { deSelonLaPlage } from './dice.testkit';
 
 const chars = (E = 30): Characteristics => ({
   'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,
@@ -26,7 +27,7 @@ function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; tr
 }
 
 /** RNG forcé : d100 → toujours `roll` (échec/réussite déterministe), d10 → 10. */
-const fixed = (roll: number): RNG => ({ int: (_min, max) => (max === 100 ? roll : max) });
+const fixed = (roll: number): RNG => deSelonLaPlage((_min, max) => (max === 100 ? roll : max));
 
 describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () => {
   it('consomme 1 ration/jour ; nourri = pas de faim', () => {

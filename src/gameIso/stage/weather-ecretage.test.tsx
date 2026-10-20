@@ -60,7 +60,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
 }
 
 function scèneCouverte(): Scene {
-  const scene = emptyScene(12, 12);
+  const scene = emptyScene('scene-test', 12, 12);
   scene.weather = 'pluie';
   scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
   return scene;

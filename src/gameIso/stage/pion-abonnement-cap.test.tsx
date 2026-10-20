@@ -51,7 +51,7 @@ function marque(c: Combatant): TokenChromeMark {
 }
 
 const H1 = hero('h1', { x: 3, y: 3 });
-const dimsDe = (view: 'iso' | 'top'): Dims => ({ ...emptyScene(10, 10).dimensions, rot: 0, view, edge: false }) as Dims;
+const dimsDe = (view: 'iso' | 'top'): Dims => ({ ...emptyScene('scene-test', 10, 10).dimensions, rot: 0, view, edge: false }) as Dims;
 
 let root: Root | null = null;
 let conteneur: HTMLDivElement | null = null;

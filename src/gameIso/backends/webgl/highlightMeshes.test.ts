@@ -32,7 +32,7 @@ import {
  * superposition. Aucun contexte GPU n'est requis (un `InstancedMesh` se construit et s'écrit hors
  * renderer).
  */
-const SCENE = emptyScene(8, 8);
+const SCENE = emptyScene('scene-test', 8, 8);
 const MPT = sceneMetresPerTile(SCENE);
 
 const cbt = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>

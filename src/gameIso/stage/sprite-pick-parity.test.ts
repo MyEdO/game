@@ -96,7 +96,7 @@ function intercepteAvantLeQuad(camera: Camera, obstacle: Mesh, quad: Mesh, point
  * promet, elle, reste mesuré ici : le pixel où l'on VOIT le jeton rend son id, mur ou pas.
  */
 describe('Un jeton derrière un mur qui le COUVRE — le volumique le rend quand même (#1297 lot B)', () => {
-  const scene = emptyScene(3, 3);
+  const scene = emptyScene('scene-test', 3, 3);
   scene.walls = [{ x: 1, y: 1, side: 'N' }];
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
@@ -146,7 +146,7 @@ describe('Les QUATRE arêtes de la case du jeton (#1176 P2-3, #1297 lot B)', () 
   ];
 
   for (const arete of ARETES) {
-    const scene = emptyScene(3, 3);
+    const scene = emptyScene('scene-test', 3, 3);
     scene.walls = [arete.seg];
     const dims = dimsDe(scene);
     const mpt = sceneMetresPerTile(scene);
@@ -164,7 +164,7 @@ describe('Les QUATRE arêtes de la case du jeton (#1176 P2-3, #1297 lot B)', () 
 });
 
 describe('Deux jetons qui se CHEVAUCHENT — même vainqueur des deux côtés (#1176 P2-3)', () => {
-  const scene = emptyScene(6, 6);
+  const scene = emptyScene('scene-test', 6, 6);
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
   const [a, b] = makeShowcaseParty();
@@ -201,7 +201,7 @@ describe('Deux jetons qui se CHEVAUCHENT — même vainqueur des deux côtés (#
  */
 describe('Coin de la boîte d’un billboard — la voie volumique y répond ENCORE (écart assumé)', () => {
   it('un point du COIN du quad, hors du corps dessiné, rend quand même l’id', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     const dims = dimsDe(scene);
     const mpt = sceneMetresPerTile(scene);
     const [hero] = makeShowcaseParty();
@@ -226,7 +226,7 @@ describe('Coin de la boîte d’un billboard — la voie volumique y répond ENC
  * (l'id lexicographique entre candidats nommés) rend vrai.
  */
 describe('Cibles à distance ÉGALE — le verdict ne dépend pas de l’ordre du tableau (#1176 P2-3)', () => {
-  const scene = emptyScene(6, 6);
+  const scene = emptyScene('scene-test', 6, 6);
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
   const [a, b] = makeShowcaseParty();
@@ -272,7 +272,7 @@ describe('Cibles à distance ÉGALE — le verdict ne dépend pas de l’ordre d
  * du monde laisse passer le clic, parce qu'elle laisse passer la SILHOUETTE.
  */
 describe('Un jeton derrière un billboard de DÉCOR — le clic retombe sur la tuile (#1297)', () => {
-  const scene = emptyScene(6, 6);
+  const scene = emptyScene('scene-test', 6, 6);
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
   const [hero] = makeShowcaseParty();

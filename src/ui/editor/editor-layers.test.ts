@@ -13,7 +13,7 @@ import { addLayer, fillTerrainRect, paintHeight } from './editorState';
  * Scène 6×3, on travaille la rangée y=1 : sol z=0 (herbe, 0 m) et un tablier z=1 (plancher) en x=1..4.
  */
 function withUpperDeck() {
-  let s = addLayer(emptyScene(6, 3), 1); // z=1 tout « vide » (non marchable) au départ
+  let s = addLayer(emptyScene('scene-test', 6, 3), 1); // z=1 tout « vide » (non marchable) au départ
   s = fillTerrainRect(s, { x: 1, y: 1, w: 4, h: 1 }, 'plancher', 1); // tablier marchable en x=1..4, y=1
   return s;
 }

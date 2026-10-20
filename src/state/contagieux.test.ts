@@ -8,6 +8,7 @@ import { easeDifficulty } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * Trait « Contagieux (Type) » — EDO App.2 l.228-230 : « La créature héberge la maladie indiquée, et
@@ -47,13 +48,13 @@ describe('Contagieux (Type) — transmission au toucher (EDO App.2 l.228-230)', 
 
   it('double exposition à la MÊME maladie (Maladie (Type) puis Contagieux) → fusion en gardant la PIRE', () => {
     const vic = mk({ id: 'v', kind: 'hero' });
-    applyOps(vic, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }], {});
-    applyOps(vic, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }], {});
+    applyOps(vic, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }], { rng: desDuTest });
+    applyOps(vic, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }], { rng: desDuTest });
     expect(vic.diseaseExposure).toEqual([{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
     // L'ordre inverse donne le même résultat (le plus dur gagne, pas le dernier).
     const vic2 = mk({ id: 'v2', kind: 'hero' });
-    applyOps(vic2, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }], {});
-    applyOps(vic2, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }], {});
+    applyOps(vic2, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur', difficultyShift: -2, incubation: 'instant' }], { rng: desDuTest });
+    applyOps(vic2, [{ op: 'exposeDisease', disease: 'fievre-du-rongeur' }], { rng: desDuTest });
     expect(vic2.diseaseExposure).toEqual([{ disease: 'fievre-du-rongeur', difficultyShift: -2, instant: true }]);
   });
 

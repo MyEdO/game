@@ -20,6 +20,7 @@ import { MINUTES_PER_DAY } from './clock';
 import { contractDisease, tickDisease, diseasePassiveOps } from './disease';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
 import { findSymptomById, findDiseaseById } from '../data';
+import { deFixe, desDuTest } from './dice.testkit';
 
 const sick = (over: Partial<Combatant> = {}): Combatant =>
   ({ label: 'Cobaye', diseases: [], ...over }) as Combatant;
@@ -29,12 +30,12 @@ const sick = (over: Partial<Combatant> = {}): Combatant =>
 describe('Fièvre Cérébrale Pourpre — EDO App.2 p.145', () => {
   it("contractDisease → incubation 1d10 HEURES (sous-journalière, EDO App.2) — vrai temps, plus arrondi à 0", () => {
     // incubation 1d10 heures (jet=5 → 300 min) : la dette « heures ≈ 0 jour » est levée → phase incubation.
-    const dz = contractDisease('fievre-cerebrale-pourpre', { int: () => 5 })!;
+    const dz = contractDisease('fievre-cerebrale-pourpre', deFixe(5))!;
     expect(dz).not.toBeNull();
     expect(dz.phase).toBe('incubation');
     expect(dz.minutesLeft).toBe(5 * 60);
     const c = sick({ diseases: [dz] });
-    tickDisease(c, 5 * 60, { int: () => 5 }, () => {}); // 5 h écoulées (sous la journée) → symptômes ACTIFS
+    tickDisease(c, 5 * 60, deFixe(5), () => {}); // 5 h écoulées (sous la journée) → symptômes ACTIFS
     expect(c.diseases![0].phase).toBe('active');
   });
 
@@ -71,8 +72,8 @@ describe('Fièvre Cérébrale Pourpre — EDO App.2 p.145', () => {
     const c = sick({ diseases: [dz] });
     // Les deux Tests (Toxine Très Facile, Persistant Difficile) partent à la porte ; issues INJECTÉES : réussis.
     const { specs, defer } = porteEntretien();
-    tickDisease(c, MINUTES_PER_DAY, { int: () => 1 }, defer);
-    const log = specs.flatMap((s) => applique(c, s, { success: true }));
+    tickDisease(c, MINUTES_PER_DAY, deFixe(1), defer);
+    const log = specs.flatMap((s) => applique(c, s, { success: true }, desDuTest));
     expect(c.diseases).toHaveLength(0);
     expect(log.some((l) => /guérit/.test(l))).toBe(true);
   });

@@ -34,7 +34,7 @@ function setupBattle(heroOver: Partial<Combatant> = {}) {
   seedBattleRng(1);
   const h = mkHero(heroOver); const f1 = mkFoe('f1', 1); const f2 = mkFoe('f2', 1);
   useGame.setState({
-    scene: { ...emptyScene(8, 4), weather: 'clair' },
+    scene: { ...emptyScene('scene-test', 8, 4), weather: 'clair' },
     gameTime: 0,
     battle: { combatants: [h, f1, f2], order: ['h', 'f1', 'f2'], turn: 0, round: 1, log: [],
       acted: false, movementUsed: 0, movedPreAction: false, loadoutSwapped: false, reachable: new Map() } as any,

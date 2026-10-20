@@ -23,7 +23,7 @@ import { spawnEnemy } from './monde/spawn';
 import { grantTrait } from '../engine/grantedTraits';
 import { resolveFormula, slBonus, nomDeSource, type GameOp } from '../engine/ops';
 import { isOutOfAction } from '../engine/conditions';
-import { RNG, defaultRNG } from '../engine/dice';
+import { RNG } from '../engine/dice';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { mirrorPools } from '../engine/advantagePool';
@@ -65,7 +65,7 @@ export interface SummonOpts {
   rounds?: number | null;
   /** Libellé du Sort (journal de dissipation). */
   label?: string;
-  rng?: RNG;
+  rng: RNG;
   /** Id du sort source (absent pour un death-spawn de trait). */
   spellId?: string;
 }
@@ -74,10 +74,10 @@ export interface SummonOpts {
  * Invoque la/les créature(s) de `summon` près du lanceur. Mute la bataille (combatants + ordre),
  * renvoie le journal. Hors combat : journalisé (rien posé sur la grille).
  */
-export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts = {}): string[] {
+export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts): string[] {
   const porteur: PorteurDeFiche = 'porteur' in summon ? summon.porteur : { ref: summon.ref };
   const invoque = 'porteur' in summon ? caster.label : summon.ref;
-  const rng = opts.rng ?? defaultRNG;
+  const rng = opts.rng;
   const count = Math.max(1, resolveFormula(summon.count, caster, rng) + slBonus(opts.sl, summon.countPerSL));
   const battle = get().battle;
   const scene = get().scene;

@@ -37,7 +37,7 @@ const mkFoe = (id: string, over: Partial<Combatant> = {}): Combatant => ({
 
 function setup(h: Combatant, f: Combatant) {
   useGame.setState({
-    scene: { ...emptyScene(8, 4), weather: 'clair' },
+    scene: { ...emptyScene('scene-test', 8, 4), weather: 'clair' },
     gameTime: 0,
     battle: { combatants: [h, f], order: ['h', f.id], turn: 0, round: 1, log: [],
       acted: false, movementUsed: 0, movedPreAction: false, loadoutSwapped: false, reachable: new Map() } as never,
@@ -196,7 +196,7 @@ describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main 
     const near = mkHero({ id: 'near', pos: { x: 4, y: 0 } });
     const far = mkHero({ id: 'far', pos: { x: 0, y: 6 } });
     useGame.setState({
-      scene: { ...emptyScene(10, 8), weather: 'clair', layers: [{ z: 0, tiles }] },
+      scene: { ...emptyScene('scene-test', 10, 8), weather: 'clair', layers: [{ z: 0, tiles }] },
       gameTime: 0,
       battle: { combatants: [sh, near, far], order: ['near', 'far', 'f'], turn: 0, round: 1, log: [], // tireur DERNIER : la boucle finie ouvre le Round (`ouvrirLeRound`), qui consommerait son dû
         acted: false, movementUsed: 0, movedPreAction: false, loadoutSwapped: false, reachable: new Map() } as never,

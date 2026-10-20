@@ -14,7 +14,7 @@ import { buildScene } from '../../noyau/mapSpec';
  */
 
 function sceneWith(walls: WallSeg[]): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   s.walls = walls;
   return s;
 }
@@ -616,7 +616,7 @@ describe('buildWalls — un mur COIFFÉ par un étage tient dans son enveloppe',
    *  couche vient ENTIÈREMENT de son tableau `height` (`heightAt` ne l'infère pas de `z`) : le plancher
    *  d'étage se pose donc explicitement à `etageM`, par défaut au sommet d'un mur — il y REPOSE. */
   function twoStoreys(walls: WallSeg[], etageM = METRES_PER_LEVEL): Scene {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.walls = walls;
     s.layers.push({
       z: 1,
@@ -673,7 +673,7 @@ describe('roofSeamGeometry — le joint de deux nappes prend la matière du mur 
     profile: 'gable', ridge: 'y', pitchDeg: 45, material: 'tuile',
   });
   const sceneWith = (walls: WallSeg[]): Scene => {
-    const s = emptyScene(16, 16);
+    const s = emptyScene('scene-test', 16, 16);
     s.walls = walls;
     // L'aile EST repose sur une terrasse de 2 m : son égout est plus haut, les deux nappes ne sont donc
     // PAS coplanaires au joint — c'est exactement le décrochement que ce générateur doit combler.

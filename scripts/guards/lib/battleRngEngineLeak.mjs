@@ -19,11 +19,11 @@
 // non importé ne compte pas.
 //
 // Critère de signature : un paramètre dont le TYPE référence l'identifiant `RNG` (`src/engine/dice.ts`),
-// nu ou en union (`RNG | undefined`, paramètre optionnel avec valeur par défaut `= defaultRNG`).
+// nu ou en union (`RNG | undefined`, paramètre optionnel).
 // ANGLES MORTS (faux négatifs préférés au bruit, cf. doctrine des gardes du dépôt) :
 //  - un type ALIASÉ (`import type { RNG as Dice } from '...'; function f(x: Dice)`) — la comparaison
 //    est TEXTUELLE sur le nom `RNG`, pas structurelle (pas de TypeChecker/Program ici) ;
-//  - un paramètre SANS annotation explicite (`rng = defaultRNG`, type inféré par le compilateur) —
+//  - un paramètre SANS annotation explicite (`rng = makeRNG(1)`, type inféré par le compilateur) —
 //    invisible à un scan lexical de l'AST syntaxique seul ;
 //  - une réexportation `export * from` (angle mort de `tableDesExports`).
 import * as tsModule from 'typescript/unstable/ast';

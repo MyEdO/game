@@ -6,6 +6,7 @@ import { traumaById } from './trauma';
 import type { Combatant, SkillInstance } from './types';
 import type { RNG } from './dice';
 import { propulsionDuNavire } from './shipBuild';
+import { desEnSuite } from './dice.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -20,7 +21,7 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
   }) as unknown as Combatant;
 
 /** RNG déterministe : renvoie la séquence de d100 fournie. */
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] }; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 
 describe('Catalogue des rôles d’équipage + types de Test (MDG 14) — données verbatim', () => {
   it('9 rôles, chacun {id,label,skills≥1,desc}', () => {

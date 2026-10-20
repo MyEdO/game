@@ -15,7 +15,7 @@ import { pathTo, walkNeighbors } from '../noyau/monde/path';
  * un tablier ISOLÉ perché à 5 m ((0,0)) SANS rampe.
  */
 function bridgeScene(): Scene {
-  const s = emptyScene(8, 3); // z0 : herbe, hauteur 0 partout
+  const s = emptyScene('scene-test', 8, 3); // z0 : herbe, hauteur 0 partout
   const w = 8;
   const tiles = new Array(w * 3).fill('vide') as Terrain[];
   const height = new Array(w * 3).fill(0) as number[];

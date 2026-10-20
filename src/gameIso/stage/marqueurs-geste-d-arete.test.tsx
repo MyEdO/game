@@ -46,7 +46,7 @@ afterEach(() => {
 
 /** Corniche : la rangée y=0 à 4 m, le reste au sol ; depuis (2,0), le cardinal SUD est une `chute`. */
 function corniche(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   const h = new Array(20).fill(0) as number[];
   for (let x = 0; x < 5; x += 1) h[x] = 4;
   s.layers[0].height = h;

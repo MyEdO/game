@@ -33,7 +33,7 @@ function combatAvecEjecte() {
   const sien = hero('h2', 'Wilhelm');
   const ejecte: Combatant = { ...sien, outOfRencontre: true, exitReason: 'destin' };
   useGame.setState({
-    party: [mien, sien], scene: emptyScene(), possessions: [],
+    party: [mien, sien], scene: emptyScene('scene-test'), possessions: [],
     net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Antoine' } },
     battle: {
       combatants: [mien, ejecte], order: ['h1', 'h2'], baseOrder: ['h1', 'h2'], turn: 0, round: 4,

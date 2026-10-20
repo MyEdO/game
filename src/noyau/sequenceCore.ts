@@ -279,7 +279,7 @@ export function sequenceRoundOps<P>(
     if (!ops?.length) return;
     for (const id of ids ?? []) {
       const c = porteur(id);
-      if (c) lines.push(...applyOps(c, [...ops], { caster: c, ...campAdvantageHooks(get) }));
+      if (c) lines.push(...applyOps(c, [...ops], { rng: battleRng(), caster: c, ...campAdvantageHooks(get) }));
     }
   };
   appliquer(decl.winner, targets.winners);
@@ -291,7 +291,7 @@ export function sequenceRoundOps<P>(
     for (const id of targets.all ?? []) {
       const c = porteur(id);
       const every = c ? sequenceAttritionEvery(seq.params, c) : 0;
-      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { caster: c }));
+      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { rng: battleRng(), caster: c }));
     }
   }
   return lines;

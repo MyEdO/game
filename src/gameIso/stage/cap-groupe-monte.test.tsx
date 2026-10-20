@@ -53,7 +53,7 @@ const héros = (label: string, graine: number): Combatant =>
   ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: graine }), id: label }) as Combatant;
 
 function scène(): Scene {
-  return emptyScene(12, 12);
+  return emptyScene('scene-test', 12, 12);
 }
 
 /** L'hôte RÉEL, en exploration, groupe de deux héros posté au centre. */

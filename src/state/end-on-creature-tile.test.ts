@@ -26,7 +26,7 @@ const empty = new Set<string>();
 
 describe('reachable/flyReachable — `noStop` : on TRAVERSE mais on ne s\'ARRÊTE pas', () => {
   it('couloir 1 case de large : la case noStop est franchie mais retirée des destinations', () => {
-    const corridor = emptyScene(5, 1); // x=0..4, une seule rangée → x=2 est l'UNIQUE passage vers x≥3
+    const corridor = emptyScene('scene-test', 5, 1); // x=0..4, une seule rangée → x=2 est l'UNIQUE passage vers x≥3
     const sans = reachable(corridor, { x: 0, y: 0 }, 4, { blocked: empty });
     expect(sans.has('2,0')).toBe(true); // sans contrainte : c'est une destination
 
@@ -38,7 +38,7 @@ describe('reachable/flyReachable — `noStop` : on TRAVERSE mais on ne s\'ARRÊT
   });
 
   it('flyReachable : pas d\'atterrissage sur une case noStop', () => {
-    const sky = emptyScene(5, 5);
+    const sky = emptyScene('scene-test', 5, 5);
     const fly = flyReachable(sky, { x: 0, y: 0 }, 4, { blocked: empty, noStop: new Set(['2,0']) });
     expect(fly.has('2,0')).toBe(false);
     expect(fly.has('3,0')).toBe(true); // le vol atteint l'au-delà en ligne directe

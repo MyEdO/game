@@ -62,7 +62,7 @@ function stageEl(): SVGSVGElement {
 /** Pièces en colonne x=2 : la pièce A de (2,1) à (2,yB-1), la pièce B en (2,yB), reliées par le
  *  passage (2,yB,N) — l'accès que le groupe, posé dans A, emprunte. */
 function scèneÀSeuil(yB: number): Scene {
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   scene.effectZones = [piece('room-a', 2, 1, 1, yB - 1), piece('room-b', 2, yB)];
   return scene;
 }
@@ -139,7 +139,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('préfère la surface marchable de activeZ à une couche supérieure superposée', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     const upper = new Array(64).fill('vide');
     upper[5 + 5 * 8] = 'herbe';
     scene.layers.push({ z: 1, tiles: upper });
@@ -185,7 +185,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('efface le hover au clic exploration accepté et ne le recrée qu’au prochain pointer move', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     useGame.setState({
       scene,
       mode: 'exploration',
@@ -236,7 +236,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('n’anime aucun pas au-delà de la position logique quand un dialogue interrompt la marche', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => {
       useGame.setState({
         partyPos: pos,
@@ -285,8 +285,8 @@ describe('useStagePointer — picking exploration', () => {
 
   it('arrête la marche avant toute nouvelle émission si la scène active est remplacée', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
-    const replacement = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
+    const replacement = emptyScene('scene-test', 8, 8);
     replacement.id = 'replacement';
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => {
       useGame.setState({ scene: replacement, partyPos: pos, mode: 'exploration', dialogue: null });
@@ -333,7 +333,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('anime un trajet complet par émissions contiguës cadencées et atteint la destination', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => useGame.setState({ partyPos: pos }));
     useGame.setState({
       scene,
@@ -571,7 +571,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('ouvre une porte extérieure fermée sans marcher puis emprunte le seuil au clic suivant', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(4, 3);
+    const scene = emptyScene('scene-test', 4, 3);
     scene.effectZones = [{
       id: 'room-a',
       label: 'Pièce A',
@@ -625,7 +625,7 @@ describe('useStagePointer — picking exploration', () => {
 
   it('anime un saut comme un unique segment engagé entre le départ et l’atterrissage', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.layers[0].tiles.fill('vide');
     scene.layers[0].tiles[1 + 1 * 8] = 'herbe';
     scene.layers[0].tiles[3 + 1 * 8] = 'herbe';
@@ -693,7 +693,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
 
   it('un clic au-delà du gouffre fait sauter le groupe, qui atterrit sur la rive d’en face', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.layers[0].tiles.fill('vide');
     scene.layers[0].tiles[1 + 1 * 8] = 'herbe';
     scene.layers[0].tiles[3 + 1 * 8] = 'herbe';
@@ -710,7 +710,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
   });
 
   it('un clic sur une porte fermée l’ouvre, et le groupe reste sur sa case', () => {
-    const scene = emptyScene(4, 3);
+    const scene = emptyScene('scene-test', 4, 3);
     scene.effectZones = [piece('room-a', 1, 1)];
     scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: true }];
     useGame.setState({ scene, mode: 'exploration', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
@@ -725,7 +725,7 @@ describe('useStagePointer — le saut et la porte passent par les actions du jeu
   });
 
   it('en combat, un clic sur une porte ouverte la referme', () => {
-    const scene = emptyScene(4, 3);
+    const scene = emptyScene('scene-test', 4, 3);
     scene.effectZones = [piece('room-a', 1, 1)];
     scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: false }];
     useGame.setState({ scene, mode: 'battle', partyPos: { x: 0, y: 1 }, party: [], dialogue: null });
@@ -781,7 +781,7 @@ describe('useStagePointer — relief et franchissement d’étage à la souris',
 
   it('vise une MARCHE au pixel où elle est dessinée, pas à son aplomb au sol', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.layers[0].height = new Array(64).fill(0);
     scene.layers[0].height![3 + 2 * 8] = 1; // marche d'1 m : rampe franchissable (STEP_MAX_M), rendue soulevée
     const moveParty = vi.fn();
@@ -798,7 +798,7 @@ describe('useStagePointer — relief et franchissement d’étage à la souris',
 
   it('monte d’un étage en cliquant la surface voisine, comme le pas clavier la franchit', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.layers[0].height = new Array(64).fill(0);
     scene.layers[0].height![4 + 4 * 8] = 3; // haut de l'escalier : 3 m, à une marche du plancher de l'étage
     const upper = new Array(64).fill('vide');
@@ -821,7 +821,7 @@ describe('useStagePointer — relief et franchissement d’étage à la souris',
 
   it('laisse le sol qu’on foule au clic sous une surface d’étage HORS de portée d’un pas', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     const upper = new Array(64).fill('vide');
     upper[6 + 6 * 8] = 'plancher';
     scene.layers.push({ z: 1, tiles: upper, height: new Array(64).fill(4) });
@@ -871,7 +871,7 @@ describe('useStagePointer — glisser-tourner au bouton MILIEU', () => {
 
   it('un glisser de N px au MILIEU pose le lacet à yaw0 + N × SENSIBILITE_DRAG_DEG_PX', () => {
     vi.stubGlobal('requestAnimationFrame', undefined);
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     useGame.setState({ scene, mode: 'exploration', partyPos: { x: 2, y: 1 }, party: [], dialogue: null });
     resetStageYaw();
     poserYaw(30); // on part d'un angle QUELCONQUE : le glisser est relatif à l'angle du début de geste
@@ -890,7 +890,7 @@ describe('useStagePointer — glisser-tourner au bouton MILIEU', () => {
 
   it('le bouton PRINCIPAL panoramique HORS du store, qui ne reçoit son commit qu’au relâchement', () => {
     vi.stubGlobal('requestAnimationFrame', undefined);
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     useGame.setState({ scene, mode: 'exploration', partyPos: { x: 2, y: 1 }, party: [], dialogue: null, camPan: { x: 0, y: 0 } });
     resetStageYaw();
     resetStagePan();
@@ -944,7 +944,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
 
   /** Scène d'un meuble à recette (fouillable) posé en (2,3), le groupe à portée de bras. */
   const sceneMeuble = (ref: string) => {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{
       id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref, facing: 'S',
       usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
@@ -990,7 +990,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('un meuble à places cliqué de loin : marche jusqu’à l’ABORD, puis assoit le meneur', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     const meneur = meneurJouable();
     // Bout en bout = ACTIONS RÉELLES : un test voisin a substitué des `vi.fn()` dans le store, et un
@@ -1029,7 +1029,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    *    rendre une case d'un AUTRE ÉTAGE — la table murale (13,10) résolvait (16,13,z1).
    */
   it('le rayon nomme le meuble visé ; sans rayon, la case dessinée sert de repli', () => {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     // ÉTAGE au-dessus : c'est lui que la boucle cross-couche servait à la place du meuble (cas du plateau fin).
     scene.layers = [scene.layers[0], { z: 1, tiles: new Array(8 * 8).fill('bois') }];
     scene.entities = [
@@ -1071,7 +1071,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('le chemin croise l’abord d’une place PRISE : un seul clic assoit quand même à l’arrivée', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     // Une SEULE place reste libre (`place-3`) : la marche vers son abord longe celui d'une place prise.
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-4': pnjAssis('d') } };
@@ -1109,7 +1109,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('debout sur l’abord d’une place PRISE : le clic MARCHE vers une place libre et y assoit', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a') } }; // une seule des quatre places est prise
     const vierge = useGame.getInitialState();
@@ -1144,7 +1144,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('table PLEINE sans fouille : le clic PARCOURT le chemin que le survol trace, et ne refuse qu’à portée', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') } };
     const vierge = useGame.getInitialState();
@@ -1193,7 +1193,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('décor SANS affordance : loin on s’en approche, à portée on le DIT — jamais un geste avalé', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'tonneau', label: 'Un tonneau' }] as typeof scene.entities;
     const vierge = useGame.getInitialState();
     const poser = (pos: { x: number; y: number }) => useGame.setState({
@@ -1232,7 +1232,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('meuble à places PLEIN mais fouillable : le clic replie sur la FOUILLE, jamais un refus d’assise', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     const prises = { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') };
     scene.entities = [{
       id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S',
@@ -1277,7 +1277,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    */
   it('table PLEINE + fouillable, groupe en DIAGONALE adjacente : le clic fouille SUR PLACE', () => {
     vi.useFakeTimers();
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{
       id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S',
       usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
@@ -1320,7 +1320,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
    * main au survol suivie d'un clic qui sert l'autre entité serait un mensonge d'interface.
    */
   const sceneDeuxDecors = () => {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [
       // PREMIER du document, SANS affordance : c'est lui qu'une lecture par position rend, toujours.
       // Décor À PLACES que l'auteur n'a PAS activé — le témoin le plus tendu du contrat : sa

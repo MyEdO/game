@@ -13,7 +13,7 @@ function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, o
     ...opts,
   } as Combatant;
 }
-const scene = emptyScene(12, 12);
+const scene = emptyScene('scene-test', 12, 12);
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
   return { enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra };
 }

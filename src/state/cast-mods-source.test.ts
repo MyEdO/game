@@ -8,6 +8,7 @@ import { evaluateTest } from '../engine/tests';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { findSpellById } from '../data/index';
 import type { Combatant } from '../engine/types';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * UNE source de modificateurs pour les Tests de la famille Incantation (`castTestDRMods`) — à DÉ
@@ -38,7 +39,7 @@ const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 0, isCritical: false,
  *  le DR mesuré non plus. */
 const SPELL_ID = 'flechette';
 /** RNG qui ne rend que le dé COMMUN — les voies naturelles se mesurent sur le même d100 que les deux autres. */
-const RNG_DE = { int: () => DE };
+const RNG_DE = deFixe(DE);
 
 const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => ({
   id, name: id, label: id, kind,

@@ -11,6 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor, ResolveWindowField } from './GameOpEditor';
 import { resolveWindowDuration, type GameOp, type ResolveWindow } from '../../engine/ops';
 import type { Combatant } from '../../engine/types';
+import { desDuTest } from '../../engine/dice.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -72,9 +73,9 @@ describe('ResolveWindowField — les quatre formes de la fenêtre sont AUTHORABL
     choisir('clock');
     choisir('defaut');
     expect(vus).toEqual([{ scale: 'rounds', left: 1 }, { scale: 'clock', minutes: 5 }, undefined]);
-    expect(resolveWindowDuration(vus[0], ref, 1_000)).toEqual({ scale: 'rounds', left: 1 });
-    expect(resolveWindowDuration(vus[1], ref, 1_000)).toEqual({ scale: 'clock', until: 1_005 });
-    expect(resolveWindowDuration(vus[2], ref, 1_000)).toEqual({ scale: 'rounds', left: 1 });
+    expect(resolveWindowDuration(vus[0], ref, 1_000, desDuTest)).toEqual({ scale: 'rounds', left: 1 });
+    expect(resolveWindowDuration(vus[1], ref, 1_000, desDuTest)).toEqual({ scale: 'clock', until: 1_005 });
+    expect(resolveWindowDuration(vus[2], ref, 1_000, desDuTest)).toEqual({ scale: 'rounds', left: 1 });
   });
 });
 

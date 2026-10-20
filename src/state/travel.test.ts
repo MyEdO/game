@@ -30,7 +30,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
   } as Combatant);
 
 function sceneA(): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   s.id = 'lieu-a-scene';
   s.label = 'Village A';
   // Rencontre pour la péripétie d'auteur « brigands » (statblock → pas de dépendance bestiaire).
@@ -43,7 +43,7 @@ function sceneA(): Scene {
   return s;
 }
 function sceneB(): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   s.id = 'lieu-b-scene';
   s.label = 'Bourg B';
   return s;

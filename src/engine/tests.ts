@@ -5,7 +5,7 @@
  * Compétence/Caractéristique (modifiée par la Difficulté). Le nombre de Degrés
  * de Réussite est la différence des dizaines : DR = dizaine(cible) − dizaine(jet).
  */
-import { d100, RNG, defaultRNG } from './dice';
+import { d100, RNG } from './dice';
 import { Difficulty, DIFFICULTY_MODIFIERS } from './types';
 import { type TestPolicy, getTestPolicy } from './testPolicy';
 import type { ModLine } from './combat';
@@ -126,8 +126,8 @@ export function refusSansJet<R>(ligne: { result?: object | null; refus?: R }): R
  *  (`REPLIS_DEUX_CIBLES`) : il tranche sur une grandeur que le RAW ne désigne pas. */
 export function rollTest(
   value: number,
-  difficulty: Difficulty = 'intermediaire',
-  rng: RNG = defaultRNG,
+  difficulty: Difficulty,
+  rng: RNG,
   modifier = 0,
   policy: TestPolicy = getTestPolicy(),
 ): TestResult {
@@ -272,7 +272,7 @@ export interface OpposedResult {
 export function opposedTest(
   attackerValue: number,
   defenderValue: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   attackerDifficulty: Difficulty = 'intermediaire',
   defenderDifficulty: Difficulty = 'intermediaire',
   /** Valeurs NUES des deux camps (`LDB 09 l.17`), grandeur du départage à DR égal (`LDB 12 l.160`). */

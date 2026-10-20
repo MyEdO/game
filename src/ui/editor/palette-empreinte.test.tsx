@@ -75,7 +75,7 @@ const chipDe = (container: HTMLElement, label: string): string | null => {
 
 describe('Palette — la chip d’empreinte annonce ce que la scène posera', () => {
   it('se tait pour un décor d’une case, et annonce les cases de ceux qui dépassent', async () => {
-    const h = monter(emptyScene(8, 8)); // aucun `metresPerTile` posé : le défaut du monde, 2 m/case
+    const h = monter(emptyScene('scene-test', 8, 8)); // aucun `metresPerTile` posé : le défaut du monde, 2 m/case
     await h.mount();
     expect(chipDe(h.container, 'Tonneau')).toBeNull();
     expect(chipDe(h.container, 'Chaise')).toBeNull();
@@ -86,7 +86,7 @@ describe('Palette — la chip d’empreinte annonce ce que la scène posera', ()
   });
 
   it('suit l’ÉCHELLE de la scène éditée : à 4 m/case, la table longue retombe sur une case', async () => {
-    const h = monter({ ...emptyScene(8, 8), metresPerTile: 4 });
+    const h = monter({ ...emptyScene('scene-test', 8, 8), metresPerTile: 4 });
     await h.mount();
     expect(chipDe(h.container, 'Table longue')).toBeNull();
     expect(chipDe(h.container, 'Table murale et 2 tabourets')).toBeNull();

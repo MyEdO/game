@@ -14,6 +14,7 @@ import { spellOps } from './flowCore';
 import type { Combatant, Trauma, HitLocation } from './types';
 import type { RNG } from './dice';
 import { critiqueDoc } from '../data/criticals';
+import { desEnSuite } from './dice.testkit';
 
 const C = (over: Partial<Combatant>): Combatant =>
   ({
@@ -25,7 +26,7 @@ const C = (over: Partial<Combatant>): Combatant =>
   } as Combatant);
 
 /** RNG qui débite une séquence fixe (int() ignore min/max — tests ciblés). */
-const seq = (vals: number[]): RNG => { let i = 0; return { int: () => vals[i++ % vals.length] }; };
+const seq = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 
 const hasCondOp = (ops: { op: string; id?: string }[], id: string) =>
   ops.some((o) => o.op === 'condition' && o.id === id);

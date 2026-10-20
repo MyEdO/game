@@ -10,6 +10,7 @@ import { SOUND_DEFS } from './_registry.generated';
 import type { SoundDef } from './types';
 import { musicDefsFor, type MusicSelection } from './music';
 import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
+import { entierDEntropie } from '../web/entropie';
 
 const LS_KEY = 'wfrp4.audio';
 const byId = new Map<string, SoundDef>(SOUND_DEFS.map((d) => [d.id, d]));
@@ -71,7 +72,7 @@ export function playSfx(id: string): void {
   if (prefs.muted || prefs.volume <= 0 || typeof Audio === 'undefined') return;
   const def = byId.get(id);
   if (!def || !def.files.length) return;
-  const file = def.files[Math.floor(Math.random() * def.files.length)];
+  const file = def.files[entierDEntropie(def.files.length)];
   const a = new Audio(`${import.meta.env.BASE_URL}audio/${file}`);
   a.volume = Math.min(1, prefs.volume * (def.volume ?? 1));
   void a.play().catch(() => {}); // autoplay refusé avant la 1ʳᵉ interaction : silencieux
@@ -147,7 +148,7 @@ export function playMusic(sel: MusicSelection): void {
   if (!sel || prefs.muted) return;
   const defs = 'def' in sel ? SOUND_DEFS.filter((d) => d.music && d.id === sel.def) : musicDefsFor(sel.ctx);
   if (!defs.length) return; // id inconnu ou contexte sans piste → silence (validation côté éditeur)
-  const def = defs[Math.floor(Math.random() * defs.length)];
+  const def = defs[entierDEntropie(defs.length)];
   const el = new Audio(`${import.meta.env.BASE_URL}audio/${def.files[0]}`);
   el.loop = true;
   el.volume = 0;

@@ -9,7 +9,7 @@ import type { Combatant } from '../../engine/types';
 import { collisionIndex, resolveCollision, type CollisionShip, type CollisionDamage } from '../../engine/collision';
 import { belierRam, hullNavalTraits } from '../../engine/navalTraits';
 import { applyOps } from '../../engine/ops';
-import { defaultRNG, type RNG } from '../../engine/dice';
+import { type RNG } from '../../engine/dice';
 import { propulsionDuNavire, type MilieuDeNavigation } from '../../engine/shipBuild';
 import { garanti } from '../../lib/garanti';
 
@@ -28,7 +28,7 @@ function toCollisionShip(hull: Combatant, milieu: MilieuDeNavigation): Collision
  * deux coques (RNG injecté ; les montants sont constants → déterministe). Renvoie les lignes + les Dégâts résolus.
  */
 export function applyShipCollision(
-  causer: Combatant, victim: Combatant, milieu: MilieuDeNavigation, opts: { frontal?: boolean; ramProue?: boolean } = {}, rng: RNG = defaultRNG,
+  causer: Combatant, victim: Combatant, milieu: MilieuDeNavigation, opts: { frontal?: boolean; ramProue?: boolean }, rng: RNG,
 ): { lines: string[]; causer: CollisionDamage; victim: CollisionDamage } {
   const res = resolveCollision(toCollisionShip(causer, milieu), toCollisionShip(victim, milieu), opts);
   const lines = [`${causer.label} percute ${victim.label}${opts.frontal ? ' de plein fouet' : ''} !`];

@@ -9,7 +9,7 @@ import { screenStepDot, type ScreenDir } from '../../state/combatCursor';
 const emptyFlow: Flow = { kind: 'seq', steps: [] };
 
 function sceneWith(entities: SceneEntity[]): Scene {
-  const sc = emptyScene(10, 10); // grille entièrement 'herbe' (marchable)
+  const sc = emptyScene('scene-test', 10, 10); // grille entièrement 'herbe' (marchable)
   sc.entities = entities;
   return sc;
 }
@@ -85,7 +85,7 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
   it('case d’une couche haute (tablier z1) sans entité : renvoie la case telle quelle, avec son z', () => {
     // Plus d'escaliers : le franchissement vertical s'auto-dérive du relief le long du chemin
     // (`pathTo`/`moveAlong`). exploreMoveDest se contente de renvoyer la case cliquée (z compris).
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.layers.push({ z: 1, tiles: new Array(100).fill('plancher'), height: new Array(100).fill(4) });
     expect(exploreMoveDest(sc, { x: 1, y: 1 }, { x: 3, y: 2, z: 1 })).toEqual({ x: 3, y: 2, z: 1 });
     expect(exploreMoveDest(sc, { x: 1, y: 1 }, { x: 5, y: 5 })).toEqual({ x: 5, y: 5 }); // sol : sans z
@@ -98,7 +98,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   const table = (over: Partial<SceneEntity> = {}): SceneEntity =>
     ({ id: 'table-1', kind: 'prop', pos: { x: 10, y: 10 }, ref: TABLE, facing: 'N', usable: { assise: true }, ...over }) as SceneEntity;
   const scèneTable = (assignments?: Scene['seatAssignments']): Scene => {
-    const sc = emptyScene(16, 16);
+    const sc = emptyScene('scene-test', 16, 16);
     sc.entities = [table()];
     if (assignments) sc.seatAssignments = assignments;
     return sc;
@@ -130,7 +130,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   });
 
   it('meuble sans place → null ; meuble absent → null', () => {
-    const sc = emptyScene(16, 16);
+    const sc = emptyScene('scene-test', 16, 16);
     sc.entities = [{ id: 'caisse', kind: 'prop', pos: { x: 10, y: 10 }, ref: 'comptoir-droit' }];
     expect(exploreSeatPlan(sc, { x: 8, y: 8 }, 'caisse')).toBeNull();
     expect(exploreSeatPlan(sc, { x: 8, y: 8 }, 'fantome')).toBeNull();
@@ -186,7 +186,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
    *  celle du sol occupé — jamais l'abord d'une place. La destination du clic est une lecture
    *  d'INTERACTION, au même titre que le halo et le curseur. */
   it('meuble à places NON activé : le clic vise la marche GÉNÉRIQUE, jamais l’abord d’une place', () => {
-    const sc = emptyScene(16, 16);
+    const sc = emptyScene('scene-test', 16, 16);
     sc.entities = [table({ usable: undefined })];
     expect(seatSlotsOf(sc, 'table-1'), 'précondition : le TYPE porte bien ses places').toHaveLength(4);
 
@@ -256,7 +256,7 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
   });
 
   it('associe le portail extérieur réorienté au trajet vers la pièce', () => {
-    const scene = emptyScene(4, 3);
+    const scene = emptyScene('scene-test', 4, 3);
     scene.effectZones = [{
       id: 'room-a',
       label: 'Pièce A',
@@ -295,14 +295,14 @@ describe('exploreStepDest — pas clavier, seuil d’alignement (#792 refuse le 
   const pas = (sc: Scene, dir: ScreenDir) => exploreStepDest(sc, from, (voisin) => screenStepDot(sc, from, voisin, dir, dims));
 
   it('champ libre : chaque cardinal renvoie son voisin idéal (diagonal de grille, dot≈1.0)', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     for (const dir of ['up', 'down', 'left', 'right'] as const) {
       expect(pas(sc, dir)).toEqual(IDEAL[dir]);
     }
   });
 
   it('8-connectivité en champ libre préservée : les 4 voisins idéaux (un par cardinal) restent tous atteignables après le seuil', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     const reached = (['up', 'down', 'left', 'right'] as const).map((dir) => pas(sc, dir));
     expect(reached.every((d) => d !== null)).toBe(true);
     // 4 destinations distinctes (les 4 diagonales de grille autour du départ) — aucune collision.
@@ -311,7 +311,7 @@ describe('exploreStepDest — pas clavier, seuil d’alignement (#792 refuse le 
   });
 
   it('idéal bloqué (up), seuls des voisins hors-axe (~0.45, < ALIGN_MIN) ouverts → bloqué (null), pas de rabattement latéral', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     const idx = (x: number, y: number) => y * 10 + x;
     sc.layers[0].tiles[idx(4, 4)] = 'mur'; // voisin idéal de 'up' (dot=1.0) : mur
     // Les hors-axe (0,-1)=(5,4) et (-1,0)=(4,5) restent marchables (dot≈0.4472 < 0.6) — SANS le seuil,
@@ -322,14 +322,14 @@ describe('exploreStepDest — pas clavier, seuil d’alignement (#792 refuse le 
   });
 
   it('idéal bloqué (down), même garde symétrique', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     const idx = (x: number, y: number) => y * 10 + x;
     sc.layers[0].tiles[idx(6, 6)] = 'mur'; // voisin idéal de 'down'
     expect(pas(sc, 'down')).toBeNull();
   });
 
   it('idéal bloqué (left/right) : le voisin hors-axe reste bien ALIGNÉ (~0.89 ≥ ALIGN_MIN) et est accepté — pas un zigzag, un vrai second chemin', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     const idx = (x: number, y: number) => y * 10 + x;
     sc.layers[0].tiles[idx(4, 6)] = 'mur'; // voisin idéal de 'left' (4,6)
     const dest = pas(sc, 'left');

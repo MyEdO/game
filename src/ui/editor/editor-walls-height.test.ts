@@ -18,7 +18,7 @@ describe('editorState — outil MURS (arêtes)', () => {
   });
 
   it('toggle pose un mur sur l’arête, re-toggle l’enlève', () => {
-    const s0 = emptyScene(5, 5);
+    const s0 = emptyScene('scene-test', 5, 5);
     const s1 = toggleEdgeWall(s0, 2, 2, 'E', 0, 'wall');
     expect(edgeWallState(s1, 2, 2, 'E')).toBe('wall');
     expect(wallBetween(s1, 2, 2, 3, 2)).toBe(true); // bloque le passage E
@@ -28,14 +28,14 @@ describe('editorState — outil MURS (arêtes)', () => {
   });
 
   it('le S d’une case et le N de la suivante désignent LA MÊME cloison (pas de doublon)', () => {
-    const s = toggleEdgeWall(emptyScene(5, 5), 2, 2, 'S', 0, 'wall');
+    const s = toggleEdgeWall(emptyScene('scene-test', 5, 5), 2, 2, 'S', 0, 'wall');
     expect(edgeWallState(s, 2, 3, 'N')).toBe('wall'); // même arête vue de l'autre case
     expect(s.walls).toHaveLength(1);
     expect(s.walls![0]).toMatchObject({ x: 2, y: 3, side: 'N' });
   });
 
   it('porte : pose une arête franchissable ; passe de mur→porte→rien', () => {
-    let s = toggleEdgeWall(emptyScene(5, 5), 1, 1, 'E', 0, 'door');
+    let s = toggleEdgeWall(emptyScene('scene-test', 5, 5), 1, 1, 'E', 0, 'door');
     expect(edgeWallState(s, 1, 1, 'E')).toBe('door');
     expect(wallBetween(s, 1, 1, 2, 1)).toBe(false); // une porte laisse passer
     s = toggleEdgeWall(s, 1, 1, 'E', 0, 'wall'); // bascule vers mur plein (≠ want → set)
@@ -45,21 +45,21 @@ describe('editorState — outil MURS (arêtes)', () => {
   });
 
   it('z>0 conservé sur la cloison ; z=0 omis (convention)', () => {
-    const s = toggleEdgeWall(emptyScene(5, 5), 0, 0, 'E', 2, 'wall');
+    const s = toggleEdgeWall(emptyScene('scene-test', 5, 5), 0, 0, 'E', 2, 'wall');
     expect(s.walls![0]).toEqual({ x: 0, y: 0, side: 'E', z: 2 });
-    const g = toggleEdgeWall(emptyScene(5, 5), 0, 0, 'E', 0, 'wall');
+    const g = toggleEdgeWall(emptyScene('scene-test', 5, 5), 0, 0, 'E', 0, 'wall');
     expect(g.walls![0]).toEqual({ x: 0, y: 0, side: 'E' }); // pas de z:0
   });
 });
 
 describe('editorState — outil MURS (diagonales)', () => {
   it('pose une diagonale \\ dans la case, re-toggle l’enlève', () => {
-    const s = toggleDiagonalWall(emptyScene(5, 5), 3, 3, '\\', 0);
+    const s = toggleDiagonalWall(emptyScene('scene-test', 5, 5), 3, 3, '\\', 0);
     expect(s.walls![0]).toMatchObject({ x: 3, y: 3, side: '\\' });
     expect(toggleDiagonalWall(s, 3, 3, '\\', 0).walls ?? []).toHaveLength(0);
   });
   it('basculer \\ → / remplace (une seule diagonale par case)', () => {
-    let s = toggleDiagonalWall(emptyScene(5, 5), 3, 3, '\\', 0);
+    let s = toggleDiagonalWall(emptyScene('scene-test', 5, 5), 3, 3, '\\', 0);
     s = toggleDiagonalWall(s, 3, 3, '/', 0);
     expect(s.walls).toHaveLength(1);
     expect(s.walls![0].side).toBe('/');
@@ -68,13 +68,13 @@ describe('editorState — outil MURS (diagonales)', () => {
 
 describe('editorState — sélection + structure d’une arête-mur', () => {
   /** Scène 5×5 avec une cloison pleine sur l’arête E de (2,2). */
-  const withWall = () => toggleEdgeWall(emptyScene(5, 5), 2, 2, 'E', 0, 'wall');
+  const withWall = () => toggleEdgeWall(emptyScene('scene-test', 5, 5), 2, 2, 'E', 0, 'wall');
 
   it('pickWallEdge : renvoie l’arête canonique quand le pointeur est près d’un segment posé', () => {
     const s = withWall();
     expect(pickWallEdge(s, 2.4, 2.0, 0)).toEqual({ x: 2, y: 2, side: 'E' }); // près de l’arête E
     expect(pickWallEdge(s, 2.0, 2.0, 0)).toBeNull(); // plein centre → repli sur le picking de tuile
-    expect(pickWallEdge(emptyScene(5, 5), 2.4, 2.0, 0)).toBeNull(); // aucune cloison ici
+    expect(pickWallEdge(emptyScene('scene-test', 5, 5), 2.4, 2.0, 0)).toBeNull(); // aucune cloison ici
   });
 
   it('patchWall : assigne une structure (id réel du catalogue), puis la retire', () => {
@@ -121,18 +121,18 @@ describe('editorState — sélection + structure d’une arête-mur', () => {
 
 describe('editorState — outil HAUTEUR (paintHeight, métrique)', () => {
   it('peint la hauteur métrique de la case (crée le tableau height au besoin)', () => {
-    const s = paintHeight(emptyScene(4, 4), { x: 1, y: 1 }, 1, 1, 0); // +1 m (estrade)
+    const s = paintHeight(emptyScene('scene-test', 4, 4), { x: 1, y: 1 }, 1, 1, 0); // +1 m (estrade)
     expect(s.layers[0].height).toBeDefined();
     expect(s.layers[0].height![1 * 4 + 1]).toBe(1); // exactement les mètres peints
     expect(s.layers[0].height![0]).toBe(0); // ailleurs = 0 m
   });
   it('pinceau 3×3 peint un carré ; fosse = mètres négatifs', () => {
-    const s = paintHeight(emptyScene(5, 5), { x: 2, y: 2 }, -2, 3, 0); // −2 m (fosse)
+    const s = paintHeight(emptyScene('scene-test', 5, 5), { x: 2, y: 2 }, -2, 3, 0); // −2 m (fosse)
     for (let y = 1; y <= 3; y++) for (let x = 1; x <= 3; x++) expect(s.layers[0].height![y * 5 + x]).toBe(-2);
     expect(s.layers[0].height![0]).toBe(0);
   });
   it('hors-grille = no-op', () => {
-    const s0 = emptyScene(4, 4);
+    const s0 = emptyScene('scene-test', 4, 4);
     expect(paintHeight(s0, { x: -1, y: 0 }, 1, 1, 0)).toBe(s0);
   });
 });

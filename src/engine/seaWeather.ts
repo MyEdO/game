@@ -31,7 +31,7 @@ import seaWeatherJson from '../data/sea-weather.json';
 import { findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, type RNG, defaultRNG } from './dice';
+import { d10, type RNG } from './dice';
 import { WORK_PERIOD_HOURS } from './seaNavigation';
 import type { Difficulty } from './types';
 import { refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
@@ -107,7 +107,7 @@ export function seaWeatherLabel(w: SeaWeather): string {
 
 /** Tire la météo du jour (l.164-166) : 1d10 + saison PAR ASPECT ; mer chaude → −2 (min 1) sur
  *  Température et Visibilité. PUR (RNG injecté). */
-export function rollSeaWeather(season: Season, rng: RNG = defaultRNG, warmSea = false): SeaWeather {
+export function rollSeaWeather(season: Season, rng: RNG, warmSea = false): SeaWeather {
   const mod = DATA.seasonMod[season] ?? 0;
   const aspect = (warm: boolean): WeatherRow => {
     let r = d10(rng) + mod;
@@ -124,7 +124,7 @@ export function rollSeaWeather(season: Season, rng: RNG = defaultRNG, warmSea = 
 
 /** Direction du vent (rose des vents, l.250-260). `dominantDirection` = vents dominants du plan
  *  d'eau (Mer des Griffes : ouest, l.253 — paramétrable par carte). PUR. */
-export function rollWindDirection(rng: RNG = defaultRNG, dominantDirection: WindDirection = 'ouest'): WindDirection {
+export function rollWindDirection(rng: RNG, dominantDirection: WindDirection = 'ouest'): WindDirection {
   const dir = findTableEntry(DATA.roseDesVents, d10(rng)).direction;
   return dir === 'dominant' ? dominantDirection : (dir as WindDirection);
 }
@@ -138,12 +138,12 @@ export function windAspect(heading: WindDirection, windFrom: WindDirection): Win
 }
 
 /** UNE mise à jour de la force du vent (l.272). PUR. */
-export function tickWindForce(current: SeaWindForceId, rng: RNG = defaultRNG): SeaWindForceId {
+export function tickWindForce(current: SeaWindForceId, rng: RNG): SeaWindForceId {
   return basculesDeForce(windForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
 }
 
 /** Force du vent au terme d'une journée : `windTicksPerDay` mises à jour (l.272). PUR. */
-export function tickWindForceDay(current: SeaWindForceId, rng: RNG = defaultRNG): SeaWindForceId {
+export function tickWindForceDay(current: SeaWindForceId, rng: RNG): SeaWindForceId {
   return basculesDeForce(windForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 

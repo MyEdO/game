@@ -14,7 +14,7 @@
  *    Elfe 30+10d10 ; taille Humain 145+5d10 cm, Nain 130+3d10, Halfling 90+2d10,
  *    Elfe 180+2d10 ; yeux/cheveux : 2d10 sur les tables (eyes.json / hairs.json).
  */
-import { RNG, defaultRNG, roll } from './dice';
+import { RNG, roll } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money } from './money';
@@ -66,7 +66,7 @@ export function randomSpeciesTable(): { max: number; ids: string[] }[] {
     .map(([max, ids]) => ({ max, ids }));
 }
 
-export function rollSpecies(rng: RNG = defaultRNG): { roll: number; ids: string[] } {
+export function rollSpecies(rng: RNG): { roll: number; ids: string[] } {
   const table = randomSpeciesTable();
   const r = roll(1, 100, rng);
   const entry = table.find((e) => r <= e.max) ?? table[table.length - 1];
@@ -79,7 +79,7 @@ export function rollSpecies(rng: RNG = defaultRNG): { roll: number; ids: string[
  * pour les espèces, plusieurs carrières peuvent partager une borne : un jet désigne la borne et
  * le joueur CHOISIT librement parmi toutes ses carrières (le bonus de PX récompense le tirage).
  */
-export function rollCareer(careers: CareerData[], sp: SpeciesData, rng: RNG = defaultRNG): { roll: number; ids: string[] } | null {
+export function rollCareer(careers: CareerData[], sp: SpeciesData, rng: RNG): { roll: number; ids: string[] } | null {
   const col = sp.refCareer;
   const table = careers
     .filter((c) => c.rand?.[col] != null)
@@ -124,7 +124,7 @@ export function parseStatus(s: string): Status {
 
 /** Richesse initiale (LDB 05 l.578) : Bronze 2d10 sc × Standing ; Argent 1d10 pa ×
  *  Standing ; Or 1 CO × Standing. Standing 0 (ex. Mendiant « Bronze 0 ») → rien. */
-export function rollInitialWealth(status: Status, rng: RNG = defaultRNG): Money {
+export function rollInitialWealth(status: Status, rng: RNG): Money {
   const m: Money = { gold: 0, silver: 0, brass: 0 };
   if (status.standing <= 0) return m;
   if (status.tier === 'Bronze') m.brass = roll(2 * status.standing, 10, rng);
@@ -143,23 +143,23 @@ function rollDetailFormula(base: Partial<Record<RaceKey, number>>, dice: Partial
 }
 
 /** Âge (LDB 05 l.705-711, table par espèce — ex. Humain 15+1d10, Nain 15+10d10). */
-export function rollAge(sp: SpeciesData, rng: RNG = defaultRNG): number {
+export function rollAge(sp: SpeciesData, rng: RNG): number {
   return rollDetailFormula(detailTables.ageBase, detailTables.ageRoll, sp, rng);
 }
 
 /** Taille en cm (LDB 05 l.728 — ex. Humain 145+5d10, Halfling 90+2d10).
  *  (Le dé bonus humain sur un 10 — l.724 — n'est pas simulé.) */
-export function rollHeight(sp: SpeciesData, rng: RNG = defaultRNG): number {
+export function rollHeight(sp: SpeciesData, rng: RNG): number {
   return rollDetailFormula(detailTables.heightBase, detailTables.heightRoll, sp, rng);
 }
 
 /** Couleur des yeux (2d10, table LDB 05 l.742-754) pour la colonne d'espèce (refChar). */
-export function rollEyes(sp: SpeciesData, rng: RNG = defaultRNG): string {
+export function rollEyes(sp: SpeciesData, rng: RNG): string {
   return rollDetail(eyesTable, sp, rng);
 }
 
 /** Couleur des cheveux (2d10, table LDB 05 l.756-768). */
-export function rollHair(sp: SpeciesData, rng: RNG = defaultRNG): string {
+export function rollHair(sp: SpeciesData, rng: RNG): string {
   return rollDetail(hairsTable, sp, rng);
 }
 
@@ -179,7 +179,7 @@ function rollDetail(
  *  multilangue-safe ; `Combatant.star` stocke l'id). `rand` = borne haute cumulée du 1d100. L'Étoile du
  *  Sorcier (l.62) regroupe plusieurs variantes sur la même borne, départagées par un 1d10 interne
  *  (`sub` = la fourchette de la variante) → table partagée, lue telle quelle par `findTableEntry`. */
-export function rollStar(rng: RNG = defaultRNG): { roll: number; id: string } {
+export function rollStar(rng: RNG): { roll: number; id: string } {
   const sorted = [...starsTable].sort((a, b) => a.rand - b.rand);
   const r = roll(1, 100, rng);
   const hit = sorted.find((e) => r <= e.rand) ?? sorted[0];

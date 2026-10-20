@@ -21,7 +21,7 @@ const GROUPE = 1; // un groupe d'UN héros : seul l'emplacement 1 est tenu
 const ABORDS_CAP_N = { 'pnj-1': { x: 6, y: 5 }, 'pnj-2': { x: 5, y: 6 }, 'pnj-3': { x: 4, y: 5 } } as const;
 
 function seatingScene(opts: { propFacing?: Dir8; blocs?: { x: number; y: number }[]; pnjPos?: Record<string, { x: number; y: number }> } = {}): Scene {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   const pnj = { ...ABORDS_CAP_N, ...opts.pnjPos };
   const entities: SceneEntity[] = [
     { id: PROP, kind: 'prop', pos: { ...POS }, ref: TABLE, ...(opts.propFacing ? { facing: opts.propFacing } : {}) },
@@ -255,7 +255,7 @@ describe('approche EFFECTIVE — une chaise contre un comptoir reste occupable',
 describe('abords réservés à l’échelle de la SCÈNE — un repli ne vole pas l’abord d’un meuble voisin', () => {
   /** table-1 en (5,5) et table-2 en (6,3), toutes deux cap N ; comptoir SOLIDE sur l'abord nord de table-1. */
   function deuxTables(): Scene {
-    const s = emptyScene(12, 12);
+    const s = emptyScene('scene-test', 12, 12);
     s.entities = [
       { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N' },
       { id: 'table-2', kind: 'prop', pos: { x: 6, y: 3 }, ref: TABLE, facing: 'N' },
@@ -382,7 +382,7 @@ describe('pruneSeatAssignments — normalisation déterministe', () => {
 describe('assise — deux places dans la MÊME case de siège restent deux places', () => {
   const MURALE = 'table-murale-2-tabourets';
   const grosseGrille = (): Scene => ({
-    ...emptyScene(12, 12),
+    ...emptyScene('scene-test', 12, 12),
     metresPerTile: 10, // à cette échelle le corps de la murale (3,00 m) tient sur UNE case
     entities: [
       { id: 'murale', kind: 'prop', pos: { x: 4, y: 4 }, ref: MURALE, facing: 'S' } as SceneEntity,

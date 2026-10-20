@@ -59,7 +59,7 @@ const interlocuteur = (id: string, x = 5, y = 5, label?: string): SceneEntity =>
 });
 
 function scèneAvec(...entities: SceneEntity[]): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   return { ...s, entities: [...s.entities, ...entities] };
 }
 

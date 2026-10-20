@@ -128,7 +128,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
   });
 
   it('Chute volontaire : `fallAcross` pose le Test de `chute`, `fallRoll` le jette', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
     useGame.setState({ party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingCascade: null });
@@ -140,7 +140,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
   });
 
   it('Saut : le Test du plan est celui de `saut` à la clé de l’élan', () => {
-    const s: Scene = emptyScene(5, 3);
+    const s: Scene = emptyScene('scene-test', 5, 3);
     s.layers.push({ z: 1, tiles: Array.from({ length: 15 }, (_, i) => (i % 5 === 2 ? 'vide' : 'plancher')), height: Array.from({ length: 15 }, (_, i) => (i % 5 === 2 ? 0 : 4)) });
     for (const [elan, cle] of [[0, 'sans-elan'], [2, 'avec-elan']] as const) {
       const plan = planJump(s, { x: 1, y: 1, z: 1 }, { x: 3, y: 1, z: 1 }, 4, elan);
@@ -240,7 +240,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
   });
 
   it('Course de l’IA : `aiApproachPlan` jette le Test de `course`', () => {
-    const scene = { ...emptyScene(30, 21), id: 's' };
+    const scene = emptyScene('s', 30, 21);
     const C = (kind: 'hero' | 'enemy', id: string, x: number): Combatant => ({ id, name: id, label: id, kind, pos: { x, y: 10 }, movement: 4,
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],

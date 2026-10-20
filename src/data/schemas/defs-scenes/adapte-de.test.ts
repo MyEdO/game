@@ -25,7 +25,7 @@ const DESC_REF = {
 /** Un projet VALIDE minimal (même forme que `projet()` de `state/forme-vivante.test.ts`). */
 const projetValide = () => ({
   type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
-  maison: 'fixture de test', narratif: emptyNarratif(), scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle' }],
+  maison: 'fixture de test', narratif: emptyNarratif(), scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle' }],
 });
 
 interface Site {

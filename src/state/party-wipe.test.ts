@@ -23,7 +23,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
 beforeEach(() => {
   vi.useFakeTimers();
   seedBattleRng(1);
-  useGame.setState({ battle: null, partyWiped: false, pendingRest: null, pendingCascade: null, travelPlan: null, scene: emptyScene(10, 10) });
+  useGame.setState({ battle: null, partyWiped: false, pendingRest: null, pendingCascade: null, travelPlan: null, scene: emptyScene('scene-test', 10, 10) });
 });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 

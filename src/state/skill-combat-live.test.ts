@@ -28,7 +28,7 @@ function combat(heroOver: Partial<Combatant> = {}) {
     combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene(8, 8) });
+  useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
   return { H, E };
 }
 

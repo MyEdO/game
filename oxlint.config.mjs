@@ -161,7 +161,23 @@ const MINUTERIES = ['setTimeout', 'setInterval'];
 const HOTES = ['window', 'globalThis', 'self', 'global'];
 const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node:timers/promises'];
 const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
-const MSG_MINUTERIE = `Minuterie nue (#405, #415) : sous src/noyau, un appel différé passe par \`programmer\` (\`src/noyau/plateforme.ts\`) ; sous src/state, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`). Les deux voies aboutissent au registre tracé que \`clearTrackedTimers\` annule au teardown de test.`;
+const MSG_MINUTERIE = `Minuterie nue (#405, #415, #2817) : \`src/engine\` n’en pose aucune ; sous src/noyau, un appel différé passe par \`programmer\` (\`src/noyau/plateforme.ts\`) ; sous src/state, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`). Les deux voies aboutissent au registre tracé que \`clearTrackedTimers\` annule au teardown de test.`;
+
+const MSG_SANS_HOTE = 'Sans hôte (#2817, AGENTS.md règle 3) : `src/engine` et `src/noyau` tournent sans hôte, qui leur FOURNIT ce qu’ils ne tirent pas d’eux-mêmes : un tirage passe par le `RNG` que l’appelant nomme (`battleRng()` au noyau, semé par l’hôte de `graineDEntropie`, `src/web/entropie.ts`), l’heure du jeu par `gameTime` de l’état, un appel différé par `programmer` (`src/noyau/plateforme.ts`), un id unique d’un projet à l’autre par l’appelant (`idDEntropie` de l’hôte ; `nextEntityId` au sein d’une collection), le navigateur par les services de `src/web`.';
+const MSG_ENTROPIE = 'Entropie (#2817) : `Math.random` ne s’écrit que dans `src/web/entropie.ts`, le seul site d’entropie de `src/` — un jet de règle prend un `RNG` nommé par l’appelant, une présentation ou un son tire de `entierDEntropie`, une graine de `graineDEntropie`, un id d’entité de `idDEntropie`.';
+const VERROU_ENTROPIE = [
+  { object: 'Math', property: 'random' },
+  { property: 'Math' },
+].map((cible) => ({ ...cible, message: MSG_ENTROPIE }));
+const VERROU_SANS_HOTE = [
+  { object: 'Date', property: 'now' },
+  { property: 'Date' },
+].map((cible) => ({ ...cible, message: MSG_SANS_HOTE }));
+const VERROU_SANS_HOTE_SYNTAXE = [
+  "NewExpression[callee.name='Date'][arguments.length=0]",
+  "CallExpression[callee.name='Date']",
+].map((selector) => ({ selector, message: MSG_SANS_HOTE }));
+const GLOBALES_D_HOTE = [...HOTES, 'performance', 'crypto', 'document', 'navigator', 'location', 'fetch', 'indexedDB', 'process', 'queueMicrotask', 'requestIdleCallback', 'requestAnimationFrame'];
 
 const TYPES_CLAVIER = '/^key(down|up|press)$/';
 const GESTIONNAIRES_CLAVIER = '/^onkey(down|up|press)$/';
@@ -610,14 +626,30 @@ export const BLOCS_LINT = [
     rules: { 'murs/zone': 'error' },
   },
   {
-    // #415, #2724
-    files: ['src/state/**', 'src/noyau/**', 'src/lib/**', 'src/web/**'],
+    // #415, #2724, #2817
+    files: ['src/state/**', 'src/noyau/**', 'src/engine/**', 'src/lib/**', 'src/web/**'],
     excludeFiles: [SOURCE_DES_MINUTERIES, 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     rules: {
       'murs/minuteries': ['error', ...MINUTERIES.map((name) => ({ name, message: MSG_MINUTERIE }))],
       'murs/minuteries-hote': ['error', ...HOTES.flatMap((object) => MINUTERIES.map((property) => ({ object, property, message: MSG_MINUTERIE })))],
       'murs/minuteries-import': ['error', { paths: MODULES_DE_MINUTERIES.map((name) => ({ name, importNames: MINUTERIES, message: MSG_MINUTERIE })) }],
       'murs/minuteries-appel': ['error', { selector: APPEL_DE_MINUTERIE, message: MSG_MINUTERIE }],
+    },
+  },
+  {
+    // #2817
+    files: ['src/**'],
+    excludeFiles: ['src/web/entropie.ts', 'src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: { 'murs/entropie': ['error', ...VERROU_ENTROPIE] },
+  },
+  {
+    // #2817
+    files: ['src/engine/**', 'src/noyau/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    rules: {
+      'murs/sans-hote': ['error', ...VERROU_SANS_HOTE],
+      'murs/sans-hote-syntaxe': ['error', ...VERROU_SANS_HOTE_SYNTAXE],
+      'murs/sans-hote-globale': ['error', ...GLOBALES_D_HOTE.map((name) => ({ name, message: MSG_SANS_HOTE }))],
     },
   },
   {

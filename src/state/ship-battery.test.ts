@@ -14,6 +14,7 @@ import { resolveVolley } from '../engine/volley';
 import { jouerLesTirsDeBordee } from '../noyau/combatFlow';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { t } from '../i18n';
+import { deFixe, desEnSuite } from '../engine/dice.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -25,7 +26,7 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
     kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], talents: [],
   }) as unknown as Combatant;
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] }; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 
 const poste = (side: FireArc, uid: string): ShipPoste => ({ item: { uid, name: `Canon ${side}` } as never, side });
 const hull = (postes: ShipPoste[]): Combatant =>
@@ -242,7 +243,7 @@ describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () =>
 
 // ── Chaque coup de bordée par la couture du coup, selon sa CIBLE (MDG 14 l.128 « un ennemi », EDOC 07 l.332) ──
 describe('bordée — chaque coup passe par la couture du coup, quelle que soit la cible', () => {
-  const fixe = (n: number): RNG => ({ int: () => n }) as unknown as RNG;
+  const fixe = deFixe;
   /** Créature ciblée : corps localisé, PA 2 partout. */
   const pirate = (traits: unknown[] = []): Combatant =>
     ({ ...sailor('target'), label: 'Pirate', wounds: { current: 30, max: 30 }, armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 },

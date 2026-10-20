@@ -249,7 +249,7 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     ...patch,
   });
   const sceneWithMasses = (...masses: BuildingMass[]): Scene => {
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     scene.architecture = [{
       id: 'corps-principal',
       label: 'Corps principal',
@@ -638,7 +638,7 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
 
 describe('resolveMass / massRoomZoneIds — dérivation partagée (#823)', () => {
   it('résout le ridge par défaut au LONG axe, et le pitch en m/case (metresPerTile × tan(pitchDeg))', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.metresPerTile = 3;
     const { shape } = resolveMass(scene, {
       id: 'm', z: 0, footprint: [{ x: 0, y: 0, w: 6, h: 2 }], levels: 1, profile: 'gable', pitchDeg: 45, material: 'tuile',
@@ -649,7 +649,7 @@ describe('resolveMass / massRoomZoneIds — dérivation partagée (#823)', () =>
   });
 
   it('l’égout lit le RELIEF sous l’emprise, jamais une cote déduite de l’index d’étage (`levels` n’y entre pas)', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.layers.push({ z: 1, tiles: new Array(100).fill('sol') });
     const at = (z: number, levels: number) =>
       resolveMass(scene, { id: 'm', z, footprint: [{ x: 0, y: 0, w: 2, h: 2 }], levels, profile: 'flat', pitchDeg: 30, material: 'tuile' }).shape.eaveHeightM;
@@ -662,7 +662,7 @@ describe('resolveMass / massRoomZoneIds — dérivation partagée (#823)', () =>
   });
 
   it('emprise NON PLANE : l’égout se prend au point HAUT — aucun mur porté n’est traversé', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     coter(scene, 0, WALL_H_M, [{ x: 0, y: 0 }]); // marche haute sous l'emprise (cage d'escalier, terrasse)
     const { shape } = resolveMass(scene, { id: 'm', z: 0, footprint: [{ x: 0, y: 0, w: 2, h: 2 }], levels: 1, profile: 'flat', pitchDeg: 30, material: 'tuile' });
     expect(shape.eaveHeightM).toBeCloseTo(WALL_H_M + WALL_H_M);
@@ -672,7 +672,7 @@ describe('resolveMass / massRoomZoneIds — dérivation partagée (#823)', () =>
   });
 
   it('massRoomZoneIds : zones intérieures recouvertes par l’emprise, sur toute la plage de niveaux (z − levels + 1 … z)', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.layers.push({ z: 1, tiles: new Array(100).fill('vide') });
     scene.effectZones = [
       { id: 'bas', label: 'Bas', presentation: 'interior', z: 0, area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 } },
@@ -803,7 +803,7 @@ describe('fermetures de comble — pièces de la NAPPE : matière du mur prolong
   const carryingWalls = (structure: string): WallSeg[] =>
     [1, 5].flatMap((x) => [2, 3].map((y) => ({ x, y, side: 'E' as const, structure })));
   const sceneWith = (masses: BuildingMass[], walls: WallSeg[] = []): Scene => {
-    const scene = emptyScene(16, 16);
+    const scene = emptyScene('scene-test', 16, 16);
     scene.walls = walls;
     scene.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses }];
     return scene;
@@ -936,7 +936,7 @@ describe('roofPans — le faîtage d’une portée IMPAIRE ne s’aplatit pas en
 describe('toiture dérivée — le comble mesuré au SOMMET tient sous la borne (#947)', () => {
   /** Corps clos SANS masse ni pente authorées : profil, pente et emprise se dérivent tous du plan. */
   const corps = (profondeur: number): Scene => {
-    const scene = emptyScene(36, 36);
+    const scene = emptyScene('scene-test', 36, 36);
     scene.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }];
     return encloseRect(scene, { x: 2, y: 2, w: profondeur, h: 28 });
   };
@@ -969,7 +969,7 @@ describe('toiture dérivée — le comble mesuré au SOMMET tient sous la borne 
 describe('buildRoofs — le PLAN est la source des masses dérivées (#841)', () => {
   /** Corps sans masse authorée : toute sa toiture se dérive de `roofDefaults` + du plan. */
   const planScene = (): Scene => {
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     scene.architecture = [{
       id: 'corps',
       style: 'maison',
@@ -1034,7 +1034,7 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
   const CENTRE = { x: 8, y: 0, w: 4, h: 12 }; // corps ÉTROIT perpendiculaire : ses BOUTS restent libres
 
   const trio = (): Scene => {
-    const scene = emptyScene(24, 20);
+    const scene = emptyScene('scene-test', 24, 20);
     scene.walls = perimeterWallSegs([AILE_O, AILE_E, CENTRE]);
     scene.architecture = [{
       id: 'corps', style: 'maison', storeys: [], facades: [],
@@ -1124,7 +1124,7 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
   });
 
   it('un groupe d’UNE masse est le chemin HISTORIQUE : domaine = ses cellules, pavage identique', () => {
-    const scene = emptyScene(24, 20);
+    const scene = emptyScene('scene-test', 24, 20);
     scene.walls = perimeterWallSegs([CENTRE]);
     scene.architecture = [{
       id: 'corps', style: 'maison', storeys: [], facades: [],
@@ -1158,7 +1158,7 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
     // raccord doit relier CETTE cote, jamais la retombée qu'aurait la masse lue seule sur ses cases.
     const CENTRE_C = { x: 8, y: 4, w: 4, h: 8 };
     const BLOC = { x: 8, y: 0, w: 4, h: 4 };
-    const scene = emptyScene(24, 20);
+    const scene = emptyScene('scene-test', 24, 20);
     scene.walls = perimeterWallSegs([CENTRE_C, AILE_E, BLOC]);
     scene.architecture = [{
       id: 'corps', style: 'maison', storeys: [], facades: [],
@@ -1284,7 +1284,7 @@ describe('groupe de nappe — une masse AUTHORÉE ne cède ni sa pente ni son pr
   const B = { x: 8, y: 2, w: 4, h: 4 };
 
   const scene = (masses: BuildingMass[], rects: { x: number; y: number; w: number; h: number }[]): Scene => {
-    const s = emptyScene(20, 14);
+    const s = emptyScene('scene-test', 20, 14);
     s.walls = perimeterWallSegs(rects);
     s.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses }];
     return s;
@@ -1366,7 +1366,7 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
     x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
 
   const plan = (): Scene => {
-    let sc = emptyScene(SIZE, SIZE);
+    let sc = emptyScene('scene-test', SIZE, SIZE);
     for (const [z, rects] of [[0, [OUEST, EST]], [1, [ETAGE]]] as const) {
       const tiles = new Array(SIZE * SIZE).fill(z === 0 ? 'herbe' : 'vide');
       for (let y = 0; y < SIZE; y++)

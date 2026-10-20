@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeRNG, RNG } from './dice';
+import { makeRNG } from './dice';
 import { addCondition, combatTestPenalty, meleeAttackerBonus, cannotDefend } from './conditions';
 import { parseQualityInstance } from './qualities/normalize';
 import { evaluateTest, resolveOpposed } from './tests';
@@ -34,7 +34,7 @@ describe('Portée des tirs (table des Difficultés, 14 - _GoBack.md l.82-118 ; 1
 });
 
 describe("Atouts d'arme (LDB Les armes)", () => {
-  const rngOf = (roll: number): RNG => ({ int: () => roll });
+  const rngOf = deFixe;
   const fighter = (cc: number, weapon: Partial<Weapon> = {}): Combatant =>
     ({
       id: 'a',
@@ -215,7 +215,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
 });
 
 describe('Sur la défensive (+20 en défense, LDB Combat l.118)', () => {
-  const rngOf = (roll: number): RNG => ({ int: () => roll });
+  const rngOf = deFixe;
   const mk = (cc: number, opts: Partial<Combatant> = {}): Combatant =>
     ({
       id: 'c',
@@ -265,7 +265,7 @@ describe('États en combat (LDB 16)', () => {
   it('Empoisonné : endOfRound n’applique PLUS les dégâts (migrés en données — effects onRoundEnd → wounds {stacks})', () => {
     const c = { name: 'x', conditions: [], characteristics: { endurance: 30 }, skills: [], wounds: { current: 10, max: 10 } } as unknown as Combatant;
     addCondition(c, 'empoisonne', 2);
-    endOfRound(c);
+    endOfRound(c, desDuTest);
     // Dégâts de poison désormais data-driven (etats.json + fireConditionEffects, cf. state/etat-perround.test) :
     // endOfRound ne les applique plus → PB inchangés ici.
     expect(c.wounds.current).toBe(10);
@@ -279,7 +279,7 @@ describe('États en combat (LDB 16)', () => {
       wounds: { current: 20, max: 20 },
     } as unknown as Combatant;
     addCondition(c, 'en-flammes', 3);
-    endOfRound(c, { int: () => 4 }); // dégâts de feu désormais data-driven (cf. state/etat-perround.test)
+    endOfRound(c, deFixe(4)); // dégâts de feu désormais data-driven (cf. state/etat-perround.test)
     expect(c.wounds.current).toBe(20); // endOfRound seul : aucun dégât de feu
   });
   it('Sonné : endOfRound NE touche plus le Sonné — Test de Résistance migré en DONNÉES (l.125-127)', () => {
@@ -292,14 +292,14 @@ describe('États en combat (LDB 16)', () => {
       wounds: { current: 10, max: 10 },
     } as unknown as Combatant;
     addCondition(c, 'sonne', 2);
-    endOfRound(c, { int: () => 5 }); // la Résistance au Sonné est `effects: onRoundEnd test` (etats.json), résolue par le dispatcher
+    endOfRound(c, deFixe(5)); // la Résistance au Sonné est `effects: onRoundEnd test` (etats.json), résolue par le dispatcher
     expect(c.conditions.some((x) => x.id === 'sonne')).toBe(true);   // endOfRound ne retire aucun pion (cf. state/round-upkeep-cascade.test)
     expect(c.conditions.some((x) => x.id === 'extenue')).toBe(false);
   });
 });
 
 describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
-  const rngOf = (roll: number): RNG => ({ int: () => roll });
+  const rngOf = deFixe;
   const mk = (cc: number, advantage = 0): Combatant => ({
     id: 'c',
     label: 'c',
@@ -345,6 +345,7 @@ import {
   type SpellLike,
 } from './magic';
 import { rollMiscast } from './miscast';
+import { deFixe, desDuTest } from './dice.testkit';
 
 describe('Tests & DR', () => {
   it('réussite si jet ≤ cible, DR = différence des dizaines', () => {
@@ -693,7 +694,7 @@ describe('Magie — effets actifs (buffs temporisés)', () => {
     const c = caster({ 'capacite-de-combat': 35 });
     const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'spell', id: 's-Bénédiction de Bataille' }, char: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
     c.activeEffects = [eff];
-    endOfRound(c);
+    endOfRound(c, desDuTest);
     expect(c.activeEffects.length).toBe(0);
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(35);
   });
@@ -744,22 +745,22 @@ describe('Magie — correctifs de fidélité (audit)', () => {
   // durée STRUCTURÉE. (L'échelle Rounds est portée par `{kind:'rounds'}`, hors de durationClockMinutes.)
   it('durationClockMinutes : clock littéral/(Bonus de X)/(X), untilDawn ; null hors-horloge', () => {
     const c = caster({ 'force-mentale': 45, intelligence: 38 }); // BFM 4 ; Int 38
-    expect(durationClockMinutes({ kind: 'clock', value: 1, unit: 'hours' }, c, 0)).toBe(60);
-    expect(durationClockMinutes({ kind: 'clock', value: { bonusOf: 'force-mentale' }, unit: 'days' }, c, 0)).toBe(4 * 24 * 60);
-    expect(durationClockMinutes({ kind: 'clock', value: { bonusOf: 'force-mentale' }, unit: 'minutes' }, c, 0)).toBe(4);
-    expect(durationClockMinutes({ kind: 'clock', value: { charOf: 'intelligence' }, unit: 'minutes' }, c, 0)).toBe(38); // carac PLEINE
+    expect(durationClockMinutes({ kind: 'clock', value: 1, unit: 'hours' }, c, 0, desDuTest)).toBe(60);
+    expect(durationClockMinutes({ kind: 'clock', value: { bonusOf: 'force-mentale' }, unit: 'days' }, c, 0, desDuTest)).toBe(4 * 24 * 60);
+    expect(durationClockMinutes({ kind: 'clock', value: { bonusOf: 'force-mentale' }, unit: 'minutes' }, c, 0, desDuTest)).toBe(4);
+    expect(durationClockMinutes({ kind: 'clock', value: { charOf: 'intelligence' }, unit: 'minutes' }, c, 0, desDuTest)).toBe(38); // carac PLEINE
     // « Jusqu'au lever du soleil » : prochaine aube (05:00) ; à l'aube pile → un cycle entier.
-    expect(durationClockMinutes({ kind: 'untilDawn' }, c, 0)).toBe(5 * 60);
-    expect(durationClockMinutes({ kind: 'untilDawn' }, c, 5 * 60)).toBe(24 * 60);
+    expect(durationClockMinutes({ kind: 'untilDawn' }, c, 0, desDuTest)).toBe(5 * 60);
+    expect(durationClockMinutes({ kind: 'untilDawn' }, c, 5 * 60, desDuTest)).toBe(24 * 60);
     // Hors-horloge : Rounds (échelle tactique), Instantané, Spécial → null (rien d'inventé).
-    expect(durationClockMinutes({ kind: 'rounds', value: 6 }, c, 0)).toBeNull();
-    expect(durationClockMinutes({ kind: 'instant' }, c, 0)).toBeNull();
-    expect(durationClockMinutes({ kind: 'special', text: 'Spécial' }, c, 0)).toBeNull();
+    expect(durationClockMinutes({ kind: 'rounds', value: 6 }, c, 0, desDuTest)).toBeNull();
+    expect(durationClockMinutes({ kind: 'instant' }, c, 0, desDuTest)).toBeNull();
+    expect(durationClockMinutes({ kind: 'special', text: 'Spécial' }, c, 0, desDuTest)).toBeNull();
     // AUCUN plancher moteur : à BFM 0, « (Bonus de FM) heures » vaut 0 minute — comme la même formule
     // en Rounds. Un minimum vit dans la FORMULE du sort (`{minimum, of}`), jamais ici.
     const faible = caster({ 'force-mentale': 9 });
-    expect(durationClockMinutes({ kind: 'clock', value: { bonusOf: 'force-mentale' }, unit: 'hours' }, faible, 0)).toBe(0);
-    expect(durationClockMinutes({ kind: 'clock', value: { minimum: 1, of: { bonusOf: 'force-mentale' } }, unit: 'hours' }, faible, 0)).toBe(60);
+    expect(durationClockMinutes({ kind: 'clock', value: { bonusOf: 'force-mentale' }, unit: 'hours' }, faible, 0, desDuTest)).toBe(0);
+    expect(durationClockMinutes({ kind: 'clock', value: { minimum: 1, of: { bonusOf: 'force-mentale' } }, unit: 'hours' }, faible, 0, desDuTest)).toBe(60);
   });
 });
 

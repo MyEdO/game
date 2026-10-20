@@ -68,7 +68,7 @@ const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat',
  *  et un MUR qui coupe la vue — sans lui, tout est vu dès le montage et un pas ne découvre RIEN : le
  *  champ de vision ne bougerait pas, et la sonde de teinte mesurerait une scène sans brouillard. */
 function scèneArène(): Scene {
-  const base = emptyScene(14, 14);
+  const base = emptyScene('scene-test', 14, 14);
   const props = Array.from({ length: 12 }, (_, i) => ({
     id: `tonneau-${i}`,
     kind: 'prop',
@@ -181,7 +181,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
 // LA TEINTE — écran nu, champ de vision passé à la main
 // ————————————————————————————————————————————————————————————————
 
-const SCENE_NUE: Scene = emptyScene(12, 12);
+const SCENE_NUE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE_NUE);
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];
 const KEEP: KeepEl = () => true;
@@ -436,7 +436,7 @@ describe('Scène neuve — le montage repart de zéro (#1396)', () => {
     const avant = quads();
     expect(avant.length, 'aucun board monté : rien à mesurer').toBeGreaterThan(0);
     const uuids = avant.map((m) => m.uuid);
-    const autreScène: Scene = emptyScene(12, 12); // une AUTRE scène : autre id, autres couches
+    const autreScène: Scene = emptyScene(`${SCENE_NUE.id}-autre`, 12, 12); // une AUTRE scène : autre id, autres couches
 
     await act(async () => {
       root!.render(

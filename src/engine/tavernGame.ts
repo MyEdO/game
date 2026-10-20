@@ -13,7 +13,7 @@
  *    `findTavernGameById`, seul accesseur du catalogue par id.
  * Moteur PUR (RNG seedable) : les valeurs de Compétence sont calculées par l'appelant.
  */
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { rollTest, resolveOpposed, easeDifficulty, TestResult } from './tests';
 import { Difficulty, CharKey, type Combatant } from './types';
 import { hasTalent } from './magic';
@@ -218,7 +218,7 @@ export function roundSL(t: TestResult, cap?: number): number {
  * départage (LDB 12 l.160). Un adversaire INCARNÉ (héros) a une valeur de Test fondue — son porteur
  * (`noyau/tavernFlow.ts`) réécrit alors `base` à l'accesseur canon.
  */
-export function rollTavernTest(value: number, rng: RNG = defaultRNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY, modifier = 0): TestResult {
+export function rollTavernTest(value: number, rng: RNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY, modifier = 0): TestResult {
   return { ...rollTest(value, difficulty, rng, modifier), base: value };
 }
 

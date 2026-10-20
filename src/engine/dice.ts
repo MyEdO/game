@@ -36,14 +36,9 @@ export function makeRNG(seed: number): RNG {
   };
 }
 
-/** RNG par défaut basé sur Math.random (parties solo non rejouables). */
-export const defaultRNG: RNG = {
-  int: (min, max) => min + Math.floor(Math.random() * (max - min + 1)),
-};
-
-export const d10 = (rng: RNG = defaultRNG) => rng.int(1, 10);
-export const d100 = (rng: RNG = defaultRNG) => rng.int(1, 100);
-export const roll = (n: number, sides: number, rng: RNG = defaultRNG) => {
+export const d10 = (rng: RNG) => rng.int(1, 10);
+export const d100 = (rng: RNG) => rng.int(1, 100);
+export const roll = (n: number, sides: number, rng: RNG) => {
   let total = 0;
   for (let i = 0; i < n; i++) total += rng.int(1, sides);
   return total;
@@ -75,7 +70,7 @@ export function fluxDerive(graine: number, ...segments: readonly (string | numbe
  * Elle vit ICI, dans le moteur PUR (rng injecté), et pas dans le seam : `src/data` en dépend, et une
  * donnée ne peut pas importer le store.
  */
-export const deMonde = (rng: RNG = defaultRNG): number => d100(rng);
+export const deMonde = (rng: RNG): number => d100(rng);
 
 /** Descripteur de jet de dés en DONNÉE (forme canonique partagée : « NdM(+P ») — `n`d`sides`+`plus`).
  *  Source UNIQUE réutilisée par la Formula `{dice}` (ops), les maladies (incubation/durée) et les
@@ -86,7 +81,7 @@ export interface DiceSpec {
   plus?: number;
 }
 /** Roule un `DiceSpec` (n dés à `sides` faces + `plus`). PUR (RNG injecté). */
-export const rollDice = (dc: DiceSpec, rng: RNG = defaultRNG): number => roll(dc.n, dc.sides, rng) + (dc.plus ?? 0);
+export const rollDice = (dc: DiceSpec, rng: RNG): number => roll(dc.n, dc.sides, rng) + (dc.plus ?? 0);
 
 /** Écriture canonique d'un `DiceSpec` (« 1d10 », « 3d10+5 ») — formateur d'affichage/édition. */
 export const formatDice = (dc: DiceSpec): string => `${dc.n}d${dc.sides}${dc.plus ? (dc.plus > 0 ? `+${dc.plus}` : `${dc.plus}`) : ''}`;
@@ -101,7 +96,7 @@ export function parseDice(s: string): DiceSpec | null {
 
 /** Évalue une expression de dés signée (« 1d10+15 », « 2d10 », « d10 », « 15 », « 1d6-1 ») → total
  *  tiré. Termes additionnés ; « NdM » roule N dés à M faces (N implicite = 1). PUR (RNG injecté). */
-export function rollExpr(expr: string, rng: RNG = defaultRNG): number {
+export function rollExpr(expr: string, rng: RNG): number {
   let total = 0;
   const re = /([+-]?)\s*(?:(\d*)d(\d+)|(\d+))/gi;
   let m: RegExpExecArray | null;

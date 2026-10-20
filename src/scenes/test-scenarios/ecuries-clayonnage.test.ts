@@ -78,7 +78,7 @@ function carte(): Scene {
     ],
   });
   return {
-    ...emptyScene(w, h),
+    ...emptyScene('scene-test', w, h),
     id: 'fixture-clayonnage',
     layers: [{ z: 0, tiles }],
     walls,

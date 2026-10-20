@@ -18,7 +18,7 @@
  * La DONNÉE vit dans `src/data/miscast.json` (éditable) ; ce module = types +
  * chargement + résolution. Ajouter/régler une entrée = éditer le JSON, jamais ce fichier.
  */
-import { RNG, defaultRNG, d100 } from './dice';
+import { RNG, d100 } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { rule } from './policy';
 import { findDomainById, combatStakeRef } from '../data';
@@ -475,7 +475,7 @@ function rowOps(row: Row, sin: number, domainId?: string): GameOp[] {
  * lui est appliqué comme à un dé tiré. Il ARRÊTE le tirage avant toute RELANCE (`reroll` posé, `ops`
  * vide) — l'appelant insère alors l'étape suivante, chaque niveau pilotable.
  */
-export function rollMiscast(severity: MiscastSeverity, rng: RNG = defaultRNG, sinPoints = 0, domainId?: string, forcedRoll?: number): MiscastResult {
+export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, domainId?: string, forcedRoll?: number): MiscastResult {
   const tables = miscastTables();
   const table = tables[severity];
   const base = forcedRoll ?? d100(rng);

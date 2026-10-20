@@ -3,6 +3,7 @@ import { evaluateTest, maxForcedRoll, bestForcedRoll, rollTest, evaluateCombined
 import { getTestPolicy, type TestPolicy } from './testPolicy';
 import type { RNG } from './dice';
 import { setRule, resetRule } from './policy';
+import { deFixe } from './dice.testkit';
 
 const P = (over: Partial<TestPolicy> = {}): TestPolicy => ({
   autoSuccessMax: 5, autoFailMin: 96, bandsMode: 'normal', slMode: 'standard', targetMin: 1, targetMax: 99, ...over,
@@ -42,7 +43,7 @@ describe('evaluateTest — DR rapide (« Calculer Rapidement un DR », LDB 12 l.
 });
 
 describe('Tests >100 % (LDB 12 l.73-77) : la valeur n’est plus plafonnée à 99', () => {
-  const rng50: RNG = { int: () => 50 }; // jet 50
+  const rng50: RNG = deFixe(50); // jet 50
   it('off (défaut) : valeur 115 plafonnée à 99 → DR = tens(99) − tens(50) = 4', () => {
     expect(rollTest(115, 'intermediaire', rng50, 0, P()).sl).toBe(4);
   });
@@ -139,7 +140,7 @@ describe('Bascule in-game : éditer UNE règle change le comportement (preuve «
     expect(evaluateTest(36, 80).sl).toBe(3); // dizaines du jet
   });
   it('test-over-100 → true : rollTest cesse de plafonner la valeur à 99', () => {
-    const rng50: RNG = { int: () => 50 };
+    const rng50: RNG = deFixe(50);
     expect(rollTest(115, 'intermediaire', rng50).sl).toBe(4); // défaut : plafonné 99
     setRule('test-over-100', true);
     expect(rollTest(115, 'intermediaire', rng50).sl).toBe(6); // règle on : valeur 115 pleine

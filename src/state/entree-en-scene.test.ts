@@ -24,7 +24,7 @@ const DE_LA_PARTIE = CLES.filter((k) => !GARDES_D_UNE_PARTIE_A_L_AUTRE.includes(
 const CAMERA = ['camEdge', 'camPan'] as const;
 
 const scene = (id: string): Scene => ({
-  ...emptyScene(6, 6),
+  ...emptyScene('scene-test', 6, 6),
   id,
   label: id,
   entities: [{ id: `depart-${id}`, kind: 'heroStart', pos: { x: 1, y: 1 } }],

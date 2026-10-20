@@ -9,7 +9,7 @@ import { revealToStep } from './revealStep';
 import { Combatant, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
-import { d10, d100, defaultRNG, roll as rollDice } from '../engine/dice';
+import { d10, d100, roll as rollDice } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL,
   type OpsCtx, type DemandeDe, type GameOp } from '../engine/ops';
@@ -1494,7 +1494,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, e, { rng: defaultRNG, sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, e, { rng: battleRng(), sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -1775,7 +1775,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       });
       if (!cible) return;
       const apres = { ...cible };
-      const lines = applyOps(apres, [{ op: 'sinMod', amount }], {});
+      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { rng: battleRng() });
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
       for (const l of lines) env.log(l);
     },

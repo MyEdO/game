@@ -33,7 +33,7 @@ function duel(turn: 0 | 1) {
     combatants: [H, E], order: [E.id, H.id], turn, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   };
-  useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene(8, 8), combatCursor: null, preemptAiming: null, pendingRoundStart: null, pendingAttack: null });
+  useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), combatCursor: null, preemptAiming: null, pendingRoundStart: null, pendingAttack: null });
   return { H, E };
 }
 

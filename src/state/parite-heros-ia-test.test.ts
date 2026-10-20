@@ -13,11 +13,10 @@ import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { isFrenzied } from '../engine/psychology';
 import { tavernGameValue } from '../noyau/tavernFlow';
 import { findTavernGameById } from '../engine/tavernGame';
-import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
+import { deFixe } from '../engine/dice.testkit';
 
 const g = useGame.getState;
-const deFixe = (n: number): RNG => ({ int: () => n });
 /** Le dé de combat (`battleRng`) posé sur `n`. */
 function deDeCombat(n: number): void { seedBattleRng(1); battleRng().int = () => n; }
 

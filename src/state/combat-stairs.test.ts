@@ -16,7 +16,7 @@ import { displayedReach, movePreviewAt } from '../noyau/combatFlow';
 // Scène 6×6 : sol z0 « herbe », 0 m. Couche z1 = un tablier (plancher) d'UNE case en (2,2) à 1 m, relié
 // au sol voisin par une simple rampe (Δ 1 m = STEP_MAX → marchable en un pas).
 function rampScene(): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   const w = 6;
   const z1 = new Array(w * 6).fill('vide') as Terrain[];
   const h1 = new Array(w * 6).fill(0) as number[];

@@ -23,7 +23,7 @@
  * d'Endurance sont passés par l'appelant (comme `provisions.ts`, pour éviter le cycle d'import).
  */
 import type { Combatant, CharKey } from './types';
-import { RNG, defaultRNG, d10 } from './dice';
+import { RNG, d10 } from './dice';
 import { findTableEntry } from './tables';
 import type { GameOp } from './ops';
 import drunkennessJson from '../data/drunkenness.json';
@@ -82,7 +82,7 @@ export function drunkCharPenalties(c: Combatant, key: CharKey): number[] {
  * nombre d'échecs atteint le Bonus d'Endurance `be` et que le personnage n'était pas déjà Ivre : il
  * devient Ivre → tirage 1d10 sur le Tableau d'Ivresse (effet appliqué par `applyDrunkResult`). Mute `c`.
  */
-export function applyAlcoholTest(c: Combatant, success: boolean, be: number, rng: RNG = defaultRNG): { log: string[]; becameDrunk?: DrunkEntry; drunkOps?: GameOp[] } {
+export function applyAlcoholTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: string[]; becameDrunk?: DrunkEntry; drunkOps?: GameOp[] } {
   const s: DrunkState = c.drunk ?? { failedTests: 0 };
   const log: string[] = [];
   if (success) { c.drunk = s; return { log }; }
@@ -102,7 +102,7 @@ export function applyAlcoholTest(c: Combatant, success: boolean, be: number, rng
  *  Animosité (Tout le monde)) est `entry.ops` (`GameOp[]` de `drunkenness.json`) — RENDUE, pas exécutée
  *  ici (cf. en-tête) ; c'est `applyAlcoholTest`/l'appelant qui la joue via `applyOps`. La gueule de bois
  *  et le risque d'Empoisonné du résultat « blackout » restent résolus au dessoûlage (`soberUp`). Mute `c`. */
-export function applyDrunkResult(c: Combatant, rng: RNG = defaultRNG): DrunkEntry {
+export function applyDrunkResult(c: Combatant, rng: RNG): DrunkEntry {
   const roll = d10(rng);
   const entry = findTableEntry(DRUNK_TABLE, roll);
   const s = c.drunk ?? { failedTests: 0 };

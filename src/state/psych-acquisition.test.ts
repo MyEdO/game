@@ -33,7 +33,7 @@ function setBattle(combatants: Combatant[], fateSave: BattleState extends never 
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ battle, mode: 'battle', scene: emptyScene(), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: fateSave as never });
+  useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: fateSave as never });
 }
 
 describe('#62 — Animosité & Haine sur dépense de Destin (fateSurvive / fateNegate)', () => {

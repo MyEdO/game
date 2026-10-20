@@ -25,7 +25,7 @@ import {
 /** Escalade : une arête grimpable en (1,1,E) — la case d'en face (2,1) est 4 m plus
  *  haut — et une seconde en (3,3,E), que rien ne borde. */
 function scèneGrimpable(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   const h = new Array(5 * 4).fill(0) as number[];
   h[1 * 5 + 2] = 4;
   s.layers[0].height = h;
@@ -39,7 +39,7 @@ function scèneGrimpable(): Scene {
 /** Chute : une CORNICHE — toute la rangée y=0 à 4 m, le reste au sol, sans arête
  *  `climb`. Depuis (2,0), seul le cardinal SUD descend. */
 function scèneDeFalaise(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const h = new Array(4 * 4).fill(0) as number[];
   for (let x = 0; x < 4; x += 1) h[0 * 4 + x] = 4;
   s.layers[0].height = h;
@@ -48,7 +48,7 @@ function scèneDeFalaise(): Scene {
 
 /** `structure-par-l-arete.test.tsx` : une fortification d'arête en (1,1,E). */
 function scèneFortifiée(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   s.walls = [{ x: 1, y: 1, side: 'E', structure: 'mur-a-ossature-en-bois' }];
   return s;
 }
@@ -61,7 +61,7 @@ const bataille = (combatants: Combatant[]): BattleState =>
 /** Deux pièces d'une case, (1,1) et (2,1), reliées par l'arête (1,1,E) — `seuil` absent = passage ;
  *  les trois autres côtés de la première sont murés, son seul accès est donc celui-là. */
 function scèneÀDeuxPièces(seuil?: WallSeg): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   s.effectZones = [piece('room-a', 1, 1), piece('room-b', 2, 1)];
   s.walls = [...cloisons(1, 1, ['N', 'S', 'O']), ...(seuil ? [seuil] : [])];
   return s;

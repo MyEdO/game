@@ -13,7 +13,7 @@ import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool } from './characteristics';
-import { d100, RNG, defaultRNG } from './dice';
+import { d100, RNG } from './dice';
 import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
@@ -335,7 +335,7 @@ function opPorteuseDEtat(c: Combatant, conditionId: string): Extract<GameOp, { o
  * ci-dessous. La fenêtre est celle que l'op PORTEUSE déclare (`ResolveWindow`), quel que soit le type
  * de son porteur : rien ici ne nomme une famille d'entité.
  */
-export function fenetreDetermination(c: Combatant, conditionId: string, now: number, rng?: RNG): Duration | undefined {
+export function fenetreDetermination(c: Combatant, conditionId: string, now: number, rng: RNG): Duration | undefined {
   return resolveWindowDuration(opPorteuseDEtat(c, conditionId)?.resolveWindow, c, now, rng);
 }
 
@@ -774,7 +774,7 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG = defaultRNG, emit?: ConditionEmit): string[] {
+export function endOfRound(c: Combatant, rng: RNG, emit?: ConditionEmit): string[] {
   const log: string[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
@@ -922,7 +922,7 @@ export function tickDurations(c: Combatant, emit?: ConditionEmit): string[] {
  * `calme` = la valeur de la PORTE (`testValue(c, 'calme')`), passée par l'appelant : `testValue` vit
  * dans `skills.ts`, qui importe CE module — le cycle interdit de la lire ici (#1657 B3-3).
  */
-export function nightmareCheck(c: Combatant, calme: number, rng: RNG = defaultRNG, out?: { base: number; result: TestResult }[]): string[] {
+export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { base: number; result: TestResult }[]): string[] {
   const res = rollTest(calme, 'facile', rng); // Calme Facile (+40), palier canonique
   out?.push({ base: calme, result: res });
   if (res.success) return [t('cond.nightmareNone', { name: c.label })];
@@ -936,7 +936,7 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG = defaultRN
  * jet, vos blessures coagulent un peu et vous perdez 1 État Hémorragique » — le double prime (pas de mort,
  * mais coagulation). Pur ; renvoie `died` (la finalisation — sauvetage par Destin — revient à l'appelant).
  */
-export function bleedDeathRoll(c: Combatant, rng: RNG = defaultRNG): { died: boolean; log: string[] } {
+export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: string[] } {
   const n = stacks(c, COND.hemorragique);
   if (n <= 0) return { died: false, log: [] };
   const r = d100(rng);

@@ -7,11 +7,9 @@ import {
 } from './landCargo';
 import { cargoTotalEnc, removeCargo } from './cargo';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 // Exemples canoniques de l'Index géographique du Reikland (MSRC 13 l.164-174).
 const grunburg: LandMarketProfile = { taille: 3, richesse: 2, produits: ['commerce'] };      // Ville, Richesse Moyenne

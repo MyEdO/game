@@ -220,7 +220,7 @@ describe('mode PROJET — une carte authorée dans l\'éditeur se contrôle sans
     const z0 = Array.from({ length: w * h }, (_, i) => (i % w <= 1 ? 'plancher' : 'route'));
     const z1 = Array.from({ length: w * h }, (_, i) => (detache && i % w <= 1 ? 'vide' : 'plancher'));
     return ecrireProjet(dir, 'appentis-projet.json', {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       id: 'appentis', label: 'Appentis sur cour', desc: 'Appentis sur cour — fixture.',
       layers: [{ z: 0, tiles: z0 }, { z: 1, tiles: z1 }],
       walls: [],
@@ -295,7 +295,7 @@ describe('RAPPORT — ce qui n\'a pas été mesuré ne se totalise pas', () => {
   function writeSingleFloorProject(dir: string): string {
     const w = 4, h = 3;
     return ecrireProjet(dir, 'quai-projet.json', {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       id: 'quai', label: 'Quai de plain-pied', desc: 'Quai de plain-pied — fixture.',
       layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }],
       walls: [{ x: 0, y: 0, side: 'N' }],
@@ -307,7 +307,7 @@ describe('RAPPORT — ce qui n\'a pas été mesuré ne se totalise pas', () => {
   function writeTwoFloorProject(dir: string): string {
     const w = 4, h = 3;
     return ecrireProjet(dir, 'quai-etage-projet.json', {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       id: 'quai', label: 'Quai avec étage', desc: 'Quai avec étage — fixture.',
       layers: [
         { z: 0, tiles: new Array(w * h).fill('plancher') },

@@ -34,7 +34,7 @@
 import seaNavJson from '../data/sea-navigation.json';
 import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, type RNG, defaultRNG } from './dice';
+import { d10, type RNG } from './dice';
 import { progressionMovement } from './shipNavigation';
 import type { Combatant, Difficulty } from './types';
 import { testValue } from './skills';
@@ -175,7 +175,7 @@ export interface CourseChangeResult {
 
 /** Tirage du tableau CHANGEMENT DE CAP (MDG 13 l.324-331) + côté de dérive (MDG 13 l.322 : « 1-5 tribord,
  *  6-10 bâbord »). `bonus` = +2 d'une dérive majeure. PUR (RNG injecté). */
-export function rollCourseChange(rng: RNG = defaultRNG, bonus = 0): CourseChangeResult {
+export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
   const roll = d10(rng) + bonus;
   const row = findTableEntry(tables().changementDeCap, roll);
   return {

@@ -14,6 +14,7 @@ import { consumableOps } from './consumables';
 import { MINUTES_PER_DAY } from './clock';
 import { testValue } from './skills';
 import type { Disease } from './disease';
+import { desDuTest } from './dice.testkit';
 
 /** Combatant minimal suffisant pour applyOps (blessures, états, maladies). */
 const makeTarget = (over: Partial<Combatant> = {}): Combatant =>
@@ -46,7 +47,7 @@ const activeDisease = (id: string, durationDays: number): Disease => ({
 function drinkPure(c: Combatant, id: string): void {
   const flow = itemFromTrappingById(id)!.consumable!;
   for (const leaf of flattenFlow(flow, { flags: {}, gameTime: 0, party: [c], target: view(c), caster: view(c) })) {
-    applyOps(c, (leaf as EffectOp).ops, { caster: c, now: 0 });
+    applyOps(c, (leaf as EffectOp).ops, { rng: desDuTest, caster: c, now: 0 });
   }
 }
 /** ActorView minimal pour les Conditions `compare`/`has` des flows de consommable. */

@@ -28,7 +28,7 @@ const NET0 = g().net;
 
 /** Pied (2,1) au sol, sommet (2,0) à 4 m ; l'arête N de (2,1) porte `climb` si fourni. */
 function falaise(climb?: WallClimb): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const h = new Array(16).fill(0) as number[];
   h[2] = 4;
   s.layers[0].height = h;
@@ -37,13 +37,13 @@ function falaise(climb?: WallClimb): Scene {
 }
 /** Croisée franchissable de plain-pied, E de (1,1) sur (2,1). */
 function croisee(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   s.walls = [{ x: 1, y: 1, side: 'E', window: true, crossable: true, allege: 1 }];
   return s;
 }
 /** Croisée franchissable d'étage : (1,1) à la couche 1 (4 m) sur la rue (2,1) au rez. */
 function croiseeDEtage(): Scene {
-  const s = emptyScene(4, 3);
+  const s = emptyScene('scene-test', 4, 3);
   const tiles = new Array(12).fill('vide') as Terrain[];
   tiles[1 * 4 + 1] = s.layers[0].tiles[0];
   const height = new Array(12).fill(0) as number[];

@@ -31,7 +31,7 @@ import shipConstructionJson from '../data/ship-construction.json';
 import steamBreakdownJson from '../data/steam-breakdown.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll as rollDice, type RNG, defaultRNG } from './dice';
+import { roll as rollDice, type RNG } from './dice';
 import { rollTest } from './tests';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -281,7 +281,7 @@ export interface RepairTick { roll: number; target: number; success: boolean; wo
  *  1d10 heures de travail et restaure 1d10 Blessures ») — `skillValue` = Métier (Constructeur de
  *  navires), ou Métier (Charpentier) déjà pénalisé de −10 par l'appelant (l.641). `lissage` : le coût
  *  monte de 50 % (ch.12 l.295). PUR (RNG injecté). */
-export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG = defaultRNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
+export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
   const t = rollTest(skillValue, opts.difficulty ?? 'intermediaire', rng);
   const hours = rollDice(1, 10, rng);
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
@@ -293,14 +293,14 @@ export function rollPortRepair(skillValue: number, woundsMissing: number, rng: R
 /** UNE réparation TEMPORAIRE en mer (l.647-649) : Complexe (−10) à Très Difficile (−30) selon les
  *  conditions ; réussie → 1 heure, 1d10 Blessures. Le navire devra tester son Endurance par jour de
  *  voyage et à chaque Manœuvre (l.651) — suivi par l'appelant (`temporaryPatched`). PUR. */
-export function rollTemporaryRepair(skillValue: number, woundsMissing: number, difficulty: Difficulty, rng: RNG = defaultRNG): RepairTick {
+export function rollTemporaryRepair(skillValue: number, woundsMissing: number, difficulty: Difficulty, rng: RNG): RepairTick {
   const t = rollTest(skillValue, difficulty, rng);
   return { roll: t.roll, target: t.target, success: t.success, wounds: t.success ? Math.min(woundsMissing, rollDice(1, 10, rng)) : 0, hours: 1, costGold: 0 };
 }
 
 /** Dégâts d'une réparation temporaire qui CÈDE (l.651 : « Chaque Test raté inflige 1d10–4 Dégâts »),
  *  plancher 0. PUR. */
-export function temporaryRepairFailureDamage(rng: RNG = defaultRNG): number {
+export function temporaryRepairFailureDamage(rng: RNG): number {
   return Math.max(0, rollDice(1, 10, rng) - 4);
 }
 

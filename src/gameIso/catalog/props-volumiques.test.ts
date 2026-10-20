@@ -40,7 +40,7 @@ const SANS_GISEMENT = 'une SOURCE d’instances volumiques a disparu du scan (co
 
 const propEntity = ({ id, ref, pos, facing }: { id: string; ref: string; pos: { x: number; y: number }; facing: 'N' | 'E' | 'S' | 'O' }): SceneEntity =>
   ({ id, kind: 'prop', pos, ref, facing }) as SceneEntity;
-const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene(8, 8), entities });
+const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 /** L'échelle des scènes de ce fichier — LUE sur la scène, jamais redite : `emptyScene` ne pose pas de
  *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`) qui s'applique. */
 const METRES_PAR_CASE = sceneMetresPerTile(sceneWith());

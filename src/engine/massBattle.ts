@@ -19,7 +19,7 @@ import {
 import { rollTest, difficultyFromModifier, type TestResult } from './tests';
 import type { Money } from './money';
 import { type Difficulty } from './types';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { findTableEntry } from './tables';
 
 // ── Tables verbatim (`mass-battle.json`) ─────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ export function mightReduction(sl: number): number {
 
 /** Un Test spectaculaire de Puissance NON opposé (l.120) : d100 ≤ Puissance courante, modifié par les
  *  bonus/malus de bataille (Planification/Discours/aléas). `modifier` = somme des modificateurs. */
-export function rollMightTest(might: number, modifier = 0, rng: RNG = defaultRNG): TestResult {
+export function rollMightTest(might: number, modifier: number, rng: RNG): TestResult {
   return rollTest(might, 'intermediaire', rng, modifier);
 }
 
@@ -144,9 +144,9 @@ export interface ClashResult {
 export function resolveClash(
   allyMight: number,
   enemyMight: number,
-  opts: { allyMod?: number; enemyMod?: number; rng?: RNG } = {},
+  opts: { allyMod?: number; enemyMod?: number; rng: RNG },
 ): ClashResult {
-  const rng = opts.rng ?? defaultRNG;
+  const rng = opts.rng;
   const allyTest = rollMightTest(allyMight, opts.allyMod ?? 0, rng);
   const enemyTest = rollMightTest(enemyMight, opts.enemyMod ?? 0, rng);
   return {

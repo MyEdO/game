@@ -17,10 +17,10 @@
  *    PAR Standing ; « Sur un Échec, vous ne gagnez que la moitié de la somme. Sur un Échec
  *    Stupéfiant (-6) […] vous n'avez rien gagné. »
  */
-import { RNG, defaultRNG, roll as rollDice } from './dice';
+import { RNG, roll as rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, PA_PER_SC, PA_PER_CO } from './money';
 import type { Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
-import { resolveFormula, type Formula, type GameOp } from './ops';
+import { valeurSansTirage, type Formula, type FormuleSansTirage, type GameOp } from './ops';
 import { evalCondition, type Condition, type ConditionCtx } from './flowCore';
 import { buildActorView } from './actorView';
 import type { ModLine } from './combat';
@@ -254,12 +254,12 @@ export function matchBattleOutcomes(def: ActivityDef, r: BattleResolution): Outc
   return matchOutcomes(def, r).filter((b) => battleCondMet(b.when, r));
 }
 
-/** UN modificateur de situation d'un Test d'Activité : une quantité (`Formula`) éventuellement GATÉE
+/** UN modificateur de situation d'un Test d'Activité : une quantité (`FormuleSansTirage`) éventuellement GATÉE
  *  par une `Condition` évaluée sur l'ACTEUR du Test (`when` absent = toujours). `label` nomme la ligne
  *  quand plusieurs termes se cumulent ; à défaut, l'appelant nomme la ligne unique. */
 export interface ActivityTestMod {
   when?: Condition;
-  mod: Formula;
+  mod: FormuleSansTirage;
   label?: string;
 }
 
@@ -304,7 +304,7 @@ export function activityTestMod(def: Pick<ActivityDef, 'testMods'>, actor: Comba
   const labels: string[] = [];
   for (const m of def.testMods ?? []) {
     if (m.when != null && !evalCondition(m.when, ctx)) continue;
-    const valeur = resolveFormula(m.mod, actor);
+    const valeur = valeurSansTirage(m.mod, actor);
     mod += valeur;
     if (m.label && valeur !== 0) labels.push(m.label);
   }
@@ -342,7 +342,7 @@ export interface ActivityDef extends TestSpec {
   extended?: { drPerStage: number };
   /** RAW EDOC 8 l.133 : échouer le Test d'une Activité octroie un État Exténué. */
   failExtenue?: boolean;
-  /** Modificateurs de SITUATION du Test de cette Activité, en DONNÉE — chaque entrée est une `Formula`
+  /** Modificateurs de SITUATION du Test de cette Activité, en DONNÉE — chaque entrée est une `FormuleSansTirage`
    *  (donc un `{rule}` éditable pour ce que le livre ne chiffre pas) éventuellement GATÉE par une
    *  `Condition` évaluée sur l'acteur (`activityTestMod`). Mendier (LDB 09 l.97) : « la Difficulté est
    *  modifiée par le discours choisi pour mendier et à quel point votre apparence peut susciter la
@@ -766,7 +766,7 @@ export function craftTarget(tier: PriceTier, avail: Availability, atouts: number
 }
 
 /** Coût du tuteur d'Apprentissage particulier : 2d10 pa PAR tranche de 100 PX (ch.23 l.63). */
-export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG = defaultRNG): Money {
+export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG): Money {
   const tranches = Math.max(1, Math.ceil(talentXpCost / 100));
   let pa = 0;
   for (let i = 0; i < tranches; i++) pa += rollDice(2, 10, rng);
@@ -777,7 +777,7 @@ export function apprenticeshipTutorCost(talentXpCost: number, rng: RNG = default
  *  d'achat en PX de l'Augmentation. Le tutorat pour les Compétences Avancées coûte le double de ce
  *  montant. » Le double porte sur la part MONÉTAIRE (« ce montant » = le paiement du tuteur — le
  *  coût en PX, lui, est le coût normal de l'Augmentation, déjà doublé hors carrière par `advanceCost`). */
-export function entrainementTutorCost(advanced: boolean, rng: RNG = defaultRNG): Money {
+export function entrainementTutorCost(advanced: boolean, rng: RNG): Money {
   const sc = rollDice(1, 10, rng) * (advanced ? 2 : 1);
   return fromBrass(sc);
 }
@@ -997,7 +997,7 @@ export function orderCatalog(): { id: string; label: string; categorie: string; 
 export function statusIncome(
   tier: PriceTier,
   standing: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   outcome: 'success' | 'fail' | 'astoundingFail' = 'success',
 ): Money {
   if (outcome === 'astoundingFail') return fromBrass(0);

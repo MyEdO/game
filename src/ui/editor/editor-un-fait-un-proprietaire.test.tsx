@@ -35,7 +35,7 @@ function champsEtiquetes(html: string): string[] {
 const TRIGGER = { id: 'trig-porte', rect: { x: 3, y: 4, w: 2, h: 2, z: 1 }, once: true, when: { kind: 'flag', expr: 'cle' }, flow: EMPTY_FLOW } as const;
 
 function sceneAvecTrigger(): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   s.layers = [s.layers[0], { ...s.layers[0], z: 1 }];
   s.triggers = [{ ...TRIGGER }];
   return s;
@@ -125,7 +125,7 @@ function palette(scene: Scene) {
 
 function sceneAvecCorps(masses: Scene['architecture'] extends undefined ? never : NonNullable<Scene['architecture']>[number]['masses'] = []): Scene {
   return {
-    ...emptyScene(12, 12),
+    ...emptyScene('scene-test', 12, 12),
     architecture: [{
       id: 'corps',
       label: 'La Diligence',
@@ -194,7 +194,7 @@ describe('une MASSE de toiture n’est une cible d’édition que si elle est AU
 
 describe('une RENCONTRE : le dock édite ses règles, la carte pose ses combattants', () => {
   it('le détail d’une rencontre édite ses règles et renvoie à la carte pour poser un membre', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.encounters = [{ id: 'enc-cour', members: [] }];
     const html = dock(scene, { tab: 'encounters', encSel: 'enc-cour' });
     const detail = html.slice(html.indexOf('logic-detail'));

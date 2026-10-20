@@ -18,29 +18,29 @@ import type { ActionAuthoree, SceneEntity } from '../../noyau/monde/scene';
 /** Primitives pures consommées par le headless-editor `buildScene`. */
 
 describe('editorState — scalaires de scène', () => {
-  it('emptyScene() pose des défauts EXPLICITES pour metresPerTile/ambientLight (#841 FU-A)', () => {
-    const s = emptyScene(4, 4);
+  it('emptyScene pose des défauts EXPLICITES pour metresPerTile/ambientLight (#841 FU-A)', () => {
+    const s = emptyScene('scene-test', 4, 4);
     expect(s.metresPerTile).toBe(2);
     expect(s.ambientLight).toBe('auto');
     expect(s.environment).toBeUndefined(); // « non spécifié » est une valeur légitime, pas un défaut caché
   });
 
   it('setMetresPerTile pose puis retire l’échelle métrique', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     expect(setMetresPerTile(s, 10).metresPerTile).toBe(10);
     expect(setMetresPerTile(setMetresPerTile(s, 10), undefined).metresPerTile).toBeUndefined();
     expect(s.metresPerTile).toBe(2); // immuable — défaut d'origine inchangé
   });
 
   it('setAmbientLight pose puis retire la lumière ambiante', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     expect(setAmbientLight(s, 'jour').ambientLight).toBe('jour');
     expect(setAmbientLight(setAmbientLight(s, 'jour'), undefined).ambientLight).toBeUndefined();
     expect(s.ambientLight).toBe('auto'); // immuable
   });
 
   it('setEnvironment pose puis retire la classification écologique — survit à un aller-retour JSON (#841 FU-A)', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     const withEnv = setEnvironment(s, 'sauvage');
     expect(withEnv.environment).toBe('sauvage');
     expect(JSON.parse(JSON.stringify(withEnv)).environment).toBe('sauvage');
@@ -49,7 +49,7 @@ describe('editorState — scalaires de scène', () => {
   });
 
   it('setSceneFlags fusionne dans flags sans muter la scène', () => {
-    const s: Scene = { ...emptyScene(4, 4), flags: { a: true } };
+    const s: Scene = { ...emptyScene('scene-test', 4, 4), flags: { a: true } };
     const out = setSceneFlags(s, { b: false });
     expect(out.flags).toEqual({ a: true, b: false });
     expect(s.flags).toEqual({ a: true });
@@ -58,7 +58,7 @@ describe('editorState — scalaires de scène', () => {
 
 describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)', () => {
   it('la variante « Pièce » de l’outil zone crée un intérieur NU : aucun effet, satisfait le filtre « Pièces révélées » (Inspector.tsx)', () => {
-    const { scene, idx } = addEffectZone(emptyScene(6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
+    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.room);
     const zone = scene.effectZones![idx];
     expect(zone.presentation).toBe('interior');
     // Le geste de l'auteur est ENTIER dès le glissé : rien à désarmer derrière lui.
@@ -72,7 +72,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
   });
 
   it('la variante « Piège / hasard » porte SA graine — l’effet vient de l’outil, pas du créateur partagé', () => {
-    const { scene, idx } = addEffectZone(emptyScene(6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.effect);
+    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 }, 0, EFFECT_ZONE_SEEDS.effect);
     const zone = scene.effectZones![idx];
     expect(zone.onCross?.some((o) => o.op === 'wounds')).toBe(true);
     expect(isDescriptiveZone(zone)).toBe(false);
@@ -80,7 +80,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
   });
 
   it('renameEffectZone renomme l’id ET repropage la référence dans FacadeSection.roomZoneIds', () => {
-    const { scene, idx } = addEffectZone(emptyScene(6, 6), { x: 0, y: 0, w: 2, h: 2 });
+    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
     const oldId = scene.effectZones![idx].id;
     const withFacade: Scene = {
       ...scene,
@@ -98,7 +98,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
   });
 
   it('renameEffectZone est un no-op si id absent, vide, identique ou en collision', () => {
-    const { scene, idx } = addEffectZone(emptyScene(6, 6), { x: 0, y: 0, w: 2, h: 2 });
+    const { scene, idx } = addEffectZone(emptyScene('scene-test', 6, 6), { x: 0, y: 0, w: 2, h: 2 });
     const oldId = scene.effectZones![idx].id;
     const { scene: scene2 } = addEffectZone(scene, { x: 3, y: 3, w: 2, h: 2 });
     const dupeId = scene2.effectZones![1].id;
@@ -111,7 +111,7 @@ describe('editorState — zone d’effet : presentation/id (#841 FU-B, le nœud)
 
 describe('editorState — patch d’entité', () => {
   const base = (): Scene => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.entities = [{ id: 'e0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
     return s;
   };
@@ -140,7 +140,7 @@ describe('editorState — patch d’entité', () => {
 
 describe('editorState — putLayer', () => {
   it('ajoute une couche z avec tuiles + hauteurs, triée', () => {
-    const s = emptyScene(2, 2);
+    const s = emptyScene('scene-test', 2, 2);
     const tiles: Terrain[] = ['pierre', 'pierre', 'pierre', 'pierre'];
     const height = [4, 4, 4, 4];
     const out = putLayer(s, 1, tiles, height);
@@ -151,7 +151,7 @@ describe('editorState — putLayer', () => {
   });
 
   it('remplace la couche z existante (pas de doublon)', () => {
-    const s = emptyScene(2, 2);
+    const s = emptyScene('scene-test', 2, 2);
     const out = putLayer(putLayer(s, 0, ['eau', 'eau', 'eau', 'eau']), 0, ['herbe', 'herbe', 'herbe', 'herbe']);
     expect(out.layers.filter((l) => l.z === 0)).toHaveLength(1);
     expect(layerTiles(out, 0)).toEqual(['herbe', 'herbe', 'herbe', 'herbe']);

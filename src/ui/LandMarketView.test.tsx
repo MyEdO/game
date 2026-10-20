@@ -34,7 +34,7 @@ describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test 
   beforeEach(() => {
     useGame.setState({
       party: makePregens().slice(0, 3), possessions: [],
-      scene: { ...emptyScene(2, 2), id: 'ville-a', label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: landMap, travelPlan: null, landMarket: null, journal: [],
     } as never);
     seedBattleRng(3);

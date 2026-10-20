@@ -56,7 +56,7 @@ const NUIT = 23 * 60;
 
 /** Scène d'extérieur portant `n` braséros (`props.json` : rayon 4 cases) à des cases distinctes. */
 function avecBraseros(n: number): Scene {
-  const scene = emptyScene(10, 10);
+  const scene = emptyScene('scene-test', 10, 10);
   scene.ambiance = 'exterieur';
   scene.entities = Array.from({ length: n }, (_, i) => ({
     id: `b${i}`, kind: 'prop', pos: { x: 1 + i, y: 2 }, ref: 'brasero',
@@ -67,7 +67,7 @@ function avecBraseros(n: number): Scene {
 /** Scène d'extérieur portant `n` lampadaires (`props.json` : rayon 5 cases, ton `lanterne`) — la
  *  source STABLE du décor, celle dont l'intensité ne dépend que de l'heure (#1245, L4). */
 function avecLampadaires(n: number): Scene {
-  const scene = emptyScene(10, 10);
+  const scene = emptyScene('scene-test', 10, 10);
   scene.ambiance = 'exterieur';
   scene.entities = Array.from({ length: n }, (_, i) => ({
     id: `l${i}`, kind: 'prop', pos: { x: 1 + i, y: 2 }, ref: 'lampadaire',

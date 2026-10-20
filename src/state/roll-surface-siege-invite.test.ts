@@ -17,6 +17,7 @@ import { jetSurfaced } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { desDuTest } from '../engine/dice.testkit';
 
 const KIND = cleDeFixture('sonde-siege-invite');
 
@@ -71,7 +72,7 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
   it('rollSansPilote REFUSE le héros d’un siège invité (il a un pilote — ailleurs)', () => {
     hoteAvecHerosDInvite();
     const h = useGame.getState().party[0];
-    expect(() => rollSansPilote(useGame.getState, h, 45)).toThrow(/jet silencieux/);
+    expect(() => rollSansPilote(useGame.getState, h, 45, 'intermediaire', desDuTest)).toThrow(/jet silencieux/);
   });
 
   it('un héros conduit par l’IA (aiControlled) n’a AUCUN pilote : il reste inline, et le repli l’accepte', () => {
@@ -81,6 +82,6 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
     expect(useGame.getState().pendingCascade, 'aucun pilote : aucune fenêtre').toBeNull();
     expect(applied, 'résolu d’office, conséquence appliquée').toHaveLength(1);
     const h = useGame.getState().party[0];
-    expect(() => rollSansPilote(useGame.getState, h, 45)).not.toThrow();
+    expect(() => rollSansPilote(useGame.getState, h, 45, 'intermediaire', desDuTest)).not.toThrow();
   });
 });

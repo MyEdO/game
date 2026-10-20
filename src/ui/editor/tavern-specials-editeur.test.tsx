@@ -30,7 +30,7 @@ function saisir(champ: HTMLInputElement | HTMLSelectElement, valeur: string) {
 
 describe('Inspecteur — un jeu de taverne orphelin se signale', () => {
   function inspecteur(entity: SceneEntity) {
-    const scene: Scene = { ...emptyScene(4, 4), entities: [entity] };
+    const scene: Scene = { ...emptyScene('scene-test', 4, 4), entities: [entity] };
     const montage = monterRacine(null);
     act(() => montage.rendre(
       <Inspector

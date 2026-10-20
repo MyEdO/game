@@ -425,7 +425,7 @@ export const TABLES = {
       id: 'finger-loss-escalation',
       phase: 'onRoundEnd',
       order: 76.7,
-      run: ({ battle, sink }) => { for (const c of battle.combatants) tickTraumaEscalation(c, battleRng()).forEach((l) => sink(l, c)); },
+      run: ({ battle, sink }) => { for (const c of battle.combatants) tickTraumaEscalation(c).forEach((l) => sink(l, c)); },
     },
     {
       // Noyade et Suffocation (LDB 18 l.345-346) : MACHINERIE environnementale UNIVERSELLE — la règle de mort

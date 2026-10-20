@@ -89,7 +89,7 @@ describe('dégagement — une seule loi pour toits et façades, sur un bâti SAN
    *  condition que la loi exige se bâtit ici — une carte d'auteur est une donnée vivante, elle a le
    *  droit de zoner tout son bâti du jour au lendemain. */
   const hangarSansPiece = (): Scene => {
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     const emprise = { x: 3, y: 3, w: 4, h: 4 };
     const masse: BuildingMass = {
       id: 'toit-hangar', z: 0, footprint: [emprise], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile',
@@ -226,7 +226,7 @@ describe('vue — une nappe se peint quand le groupe la VOIT (#950)', () => {
 
   /** Deux corps VOISINS, chacun sa ceinture de murs : celui qu'on habite, et celui d'à côté. */
   const hameau = (): Scene => {
-    const scene = emptyScene(14, 14);
+    const scene = emptyScene('scene-test', 14, 14);
     scene.ambientLight = 'jour';
     const corps = (id: string, emprise: { x: number; y: number; w: number; h: number }) => {
       const masse: BuildingMass = {

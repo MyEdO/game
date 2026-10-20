@@ -5,6 +5,7 @@ import { type Flow } from './flowCore';
 import { trappings, findTrappingById } from '../data';
 import { itemFromTrappingById } from './items';
 import { makeRNG } from './dice';
+import { desDuTest } from './dice.testkit';
 
 const user = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -40,9 +41,9 @@ describe('consommables — effet en FLOW (#50 : migration GameOp[] → Flow)', (
     expect(until).toBeLessThanOrEqual(100);
   });
   it('consumableUntilTime : heures/jours convertis en minutes ; sans durée → undefined', () => {
-    expect(consumableUntilTime(item({ consumableDuration: { hours: 3 } }), 100, user())).toBe(100 + 180);
-    expect(consumableUntilTime(item({ consumableDuration: { days: 1 } }), 0, user())).toBe(24 * 60);
-    expect(consumableUntilTime(item(), 0, user())).toBeUndefined();
+    expect(consumableUntilTime(item({ consumableDuration: { hours: 3 } }), 100, user(), desDuTest)).toBe(100 + 180);
+    expect(consumableUntilTime(item({ consumableDuration: { days: 1 } }), 0, user(), desDuTest)).toBe(24 * 60);
+    expect(consumableUntilTime(item(), 0, user(), desDuTest)).toBeUndefined();
   });
 
   it('bakeConsumableFlow : chaque feuille (branches de test comprises) est ciblée sur le buveur et porte untilTime/label', () => {

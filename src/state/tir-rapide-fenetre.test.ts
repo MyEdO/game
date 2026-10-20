@@ -42,7 +42,7 @@ function finDeRound(gmSeat?: number) {
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    ...initialFields(), party: [H1, H2], mode: 'battle', battle, scene: emptyScene(8, 8),
+    ...initialFields(), party: [H1, H2], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8),
     net: { ...g().net, mode: 'local', mySeat: 0, gmSeat, ownership: {} },
   });
 }

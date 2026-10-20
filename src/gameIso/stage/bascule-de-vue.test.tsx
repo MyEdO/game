@@ -125,7 +125,7 @@ const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat',
 /** Scène d'ARÈNE : douze décors semés autour du groupe — assez de sujets pour qu'un remontage se
  *  voie ; aucune toiture, donc aucun décor sous espace dégagé (la population ne varie que du meneur). */
 function scèneArène(): Scene {
-  const base = emptyScene(14, 14);
+  const base = emptyScene('scene-test', 14, 14);
   const props = Array.from({ length: 12 }, (_, i) => ({
     id: `decor-${i}`,
     kind: 'prop',

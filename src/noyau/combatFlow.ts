@@ -495,7 +495,7 @@ export function crowdEligible(battle: BattleState, attacker: Combatant, target: 
 /** Bénédiction de Protection (LDB 41 — L13) : si la cible est bénie, l'attaquant doit réussir un
  *  Test de FM Accessible (+20) pour OSER attaquer — joué à la DÉCLARATION ; sur un échec, « ils
  *  doivent choisir une cible ou une Action différente » (rien n'est consommé). */
-export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG = battleRng()): { allowed: boolean; lines: string[] } {
+export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG): { allowed: boolean; lines: string[] } {
   if (!hasActiveFlag(target, 'attackWardFM')) return { allowed: true, lines: [] };
   const t = rollTest(testValue(attacker, undefined, 'force-mentale'), 'accessible', rng);
   if (t.success) {
@@ -628,7 +628,7 @@ export function startleOnStormAtCombatStart(get: Get, set: SetFn): void {
   const dayW = activeDayWeather(get);
   if (!dayW || !weatherLightningNervous(dayW)) return;
   for (const c of battle.combatants) {
-    if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => battle.log.push(ev('condition', line, c.id)), triggerCtx: { startleCause: 'noise' } });
+    if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => battle.log.push(ev('condition', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
   }
 }
 
@@ -1376,7 +1376,7 @@ export function startGrapple(_get: Get, set: SetFn, actor: Combatant, foe: Comba
 export function resolveGrappleWin(actor: Combatant, foe: Combatant, mode: 'damage' | 'entangle' | 'free', dr: number, forceRoll: number): string {
   const beforeW = foe.wounds.current;
   const beforeEmp = stacks(actor, COND.empetre);
-  applyOps(mode === 'free' ? actor : foe, GRAPPLE.win[mode], { caster: actor, sl: dr, source: GRAPPLE_SOURCE });
+  applyOps(mode === 'free' ? actor : foe, GRAPPLE.win[mode], { rng: battleRng(), caster: actor, sl: dr, source: GRAPPLE_SOURCE });
   if (mode === 'damage') {
     const loc = locationLabel(hitLocationByShape(reverseRoll(forceRoll), foe.bodyShape), foe.bodyShape); // Localisation au lancer de Force (l.161)
     return tr('cs.grappleDamage', { name: actor.label, foe: foe.label, n: beforeW - foe.wounds.current, loc });
@@ -1870,7 +1870,7 @@ export function applyCriticalToTarget(
   // seul décide de la surface (porteur tenu → étape influençable ; sinon voie inline). Patron
   // `MiscastResult.testFlow` (`finishMiscast`). Létal : le RAW n'applique aucun effet supplémentaire (l'`applyOps`
   // ci-dessus est gaté pareillement) — le Test n'a plus d'objet.
-  if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { label: crit.label });
+  if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { rng: battleRng(), label: crit.label });
   return crit.lethal; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
 }
 
@@ -1927,7 +1927,7 @@ export function applyHullCriticalToTarget(
     if (coup?.testFlow) {
       const victimes = coup.victims.map((id) => crew.find((c) => c.id === id)).filter(Boolean) as Combatant[];
       pushCombatStep(set, (index) => bandeTriggeredTest(
-        get, set, victimes, coup.testFlow!, `ship-crew-hit-${target.id}-${index}`, { label: coup.label, hull: target },
+        get, set, victimes, coup.testFlow!, `ship-crew-hit-${target.id}-${index}`, { rng: battleRng(), label: coup.label, hull: target },
       ));
     }
   }
@@ -2712,7 +2712,7 @@ function appliquerLaTouche(
   }
   // LDB 14 l.159 — pose APRÈS `engage`.
   if (res.sansPrise === 'empoignade') {
-    applyOps(target, GRAPPLE.init, { caster: attacker, source: GRAPPLE_SOURCE });
+    applyOps(target, GRAPPLE.init, { rng: battleRng(), caster: attacker, source: GRAPPLE_SOURCE });
     critLog.push(tr('cf.grappleInit', { name: attacker.label, foe: target.label }));
   }
   const ctxCrit: DeviationCtx = {
@@ -2865,7 +2865,7 @@ function appliquerLaTouche(
     for (const c of battle.combatants) {
       // Nerveux (effet déclenché onStartled : +3 Brisé) — fired par le dispatcher générique (no-op si absent).
       // Cause 'noise' (bruits forts) → exemption Dressé (Guerre) lue par la Condition Flow `startleCause`.
-      if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => log.push(ev('condition', line, c.id)), triggerCtx: { startleCause: 'noise' } });
+      if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => log.push(ev('condition', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
     }
   }
   // Effets DÉCLENCHÉS « à la touche » authorés (donnée éditable) : Traits de l'attaquant (Toile, Venin…),
@@ -3758,7 +3758,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
 export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant): Applique {
   // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
-  const ward = attackWardGate(attacker, target);
+  const ward = attackWardGate(attacker, target, battleRng());
   const b0 = get().battle;
   if (ward.lines.length && b0) set({ battle: { ...b0, log: [...b0.log, ...evLines(ward.lines, 'info', attacker.id)] } });
   if (!ward.allowed) return undefined;
@@ -5761,7 +5761,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     const { mult: ocMult, bonusRounds: ocBonus } = overcastDurationParts(overcastSourceOf(spell), ch.overcastDurationSteps ?? 0);
     const baseRounds = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, battleRng()) : null;
     const rounds = baseRounds != null ? baseRounds * ocMult + ocBonus : null;
-    const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime) : null;
+    const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
     const clockMin = baseClockMin != null ? baseClockMin * ocMult : null;
     lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), {
       rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod),
@@ -6051,7 +6051,7 @@ export function applyCast(
     // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (noyau/triggeredEffects).
     // Cause 'magic' (présence de magie) → exemption Dressé (Magie) lue par la Condition Flow `startleCause`.
     for (const t of [target, ...extraTargets]) {
-      if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (line) => logLines.push(line), triggerCtx: { startleCause: 'magic' } });
+      if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (line) => logLines.push(line), triggerCtx: { rng: battleRng(), startleCause: 'magic' } });
     }
     // Surincantation « Cible » (LDB 47 l.28-31) : le MÊME jet frappe les cibles supplémentaires.
     for (const t2 of extraTargets) {
@@ -6080,7 +6080,7 @@ export function applyCast(
       const spec = spell;
       const baseRounds = spec.duration?.kind === 'rounds' ? resolveFormula(spec.duration.value, caster, battleRng()) : null;
       const rounds = baseRounds != null ? baseRounds * durationMult + durationBonusRounds : null;
-      const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime) : null;
+      const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
       const clockMin = baseClockMin != null ? baseClockMin * durationMult : null;
       if ((durationMult > 1 || durationBonusRounds > 0) && baseRounds != null) logLines.push(tr('cf.overcastDuration', { rounds: String(rounds) }));
       if (durationMult > 1 && baseClockMin != null) logLines.push(tr('cf.overcastDurationMin', { mult: durationMult }));
@@ -6236,7 +6236,7 @@ export function applyCast(
       // MÊME règle de Durée surincantée que les feuilles `on:'target'` (#1695) : `base × mult + bonus`.
       const base = castSpec.duration?.kind === 'rounds' ? resolveFormula(castSpec.duration.value, caster, battleRng()) : null;
       const baseRounds = base != null ? base * durationMult + durationBonusRounds : null;
-      const brutClockMin = base == null ? durationClockMinutes(spell.duration, caster, get().gameTime) : null;
+      const brutClockMin = base == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
       const clockMin = brutClockMin != null ? brutClockMin * durationMult : null;
       logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), {
         rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: slFor(caster), overcastDurationSteps, chosenTableRolls,
@@ -6583,7 +6583,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // borne quand `openSequence` suit) ; sinon voie inline de la porte, dont le journal est drainé ici.
   for (const c of battle.combatants) {
     if (c.dead) continue;
-    for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { label: a.label });
+    for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { rng: battleRng(), label: a.label });
   }
   inlineLines.push(...drainPendingLog(get, set).map((e) => e.text));
   for (const c of battle.combatants) {
@@ -7217,7 +7217,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       // Unique porte (#316) : le site MÉTIER émet via le bus ; les boucles internes `fireTriggers`
       // (roundHooks, bus-owned) restent la machinerie du bus. Sans `audience`/`self` → diffusion data
       // vide ici : STRICTEMENT équivalent à l'ancien `runCombatHooks('onRoundEnd', …)`.
-      emitCombatEvent('onRoundEnd', { get, set, battle, sink: tickLine });
+      emitCombatEvent('onRoundEnd', { triggerCtx: { rng: battleRng() }, get, set, battle, sink: tickLine });
       if (heroRoundLines.length) pushReveal(set, { kind: 'round', title: tr('cf.roundEndTitle', { n: round - 1 }), lines: heroRoundLines, severity: 'minor' }); // (entretien HÉROS — fermé au clic, #1270)
       // Maniement de deux armes : le −10 défensif expire au DÉBUT du prochain Tour de son porteur. Si ce
       // porteur est order[0] (il rejoue en premier), c'est ICI (le franchissement de Round) que son Tour démarre.
@@ -7742,7 +7742,7 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
   // CONSÉQUENCES de la branche réalisée, en ops dérivées de `psychology.json` — les MÊMES que la
   // surface annonce (`meta.onSuccess`/`onFail`). Le DR du jet est versé au contexte : la quantité
   // d'État de l'échec (`valuePerSL{onFailure}`) s'y résout, même arithmétique que `failConditionAmount`.
-  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR, round: battle?.round }), { sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
+  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
   if (res.mode === 'terreur') {
     // 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → État `failCondition` = Indice + |DR négatifs| ; devient
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
@@ -7923,7 +7923,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Unique porte (#316) : émission via le bus. `self: enemy` alimente les hooks (Rage) ; `audience: []`
   // SUPPRIME la diffusion data ICI (l'`onTurnStart` DATA est diffusé par `fireTurnStartTriggers`, non
   // dupliqué) → STRICTEMENT équivalent à l'ancien `runCombatHooks('onTurnStart', …)`.
-  emitCombatEvent('onTurnStart', { get, set, battle: get().battle!, self: enemy, audience: [], sink: (line, c) => { get().battle!.log.push(ev('detail', line, c?.id)); } });
+  emitCombatEvent('onTurnStart', { triggerCtx: { rng: battleRng() }, get, set, battle: get().battle!, self: enemy, audience: [], sink: (line, c) => { get().battle!.log.push(ev('detail', line, c?.id)); } });
   // Stupide (LDB 85 l.335) : sans allié non-Stupide à ses côtés (adjacent), Test d'Intelligence Facile
   // (+40) au début du Round ; sur un échec, elle perd son Mouvement ET son Action. RESTE INLINE (pas un
   // hook) : c'est un CONTRÔLE DE FLUX (`return advanceTurn` saute le tour) — un hook `run(ctx):void` ne
@@ -8202,7 +8202,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       }
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines: string[] = rt.struggleDamage != null
-        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { caster: enemy })
+        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { rng: battleRng(), caster: enemy })
         : [];
       const removed = recoveredStacks(netSL, stacks(enemy, action.state), success);
       if (removed > 0) removeCondition(enemy, action.state, removed);

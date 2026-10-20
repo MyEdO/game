@@ -12,7 +12,7 @@ import { intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 
 describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (LDB 15 l.68)', () => {
-  const scene = emptyScene(14, 14);
+  const scene = emptyScene('scene-test', 14, 14);
   const has = (m: Map<string, number>, x: number, y: number) => m.has(`${x},${y}`);
   it('exclut les cases qui RAPPROCHENT de l’adversaire, garde celles qui s’en éloignent', () => {
     const m = fleeReachable(scene, { x: 6, y: 6 }, { x: 6, y: 4 }, 4, { blocked: new Set() }); // adversaire au NORD (Tchebychev 2)

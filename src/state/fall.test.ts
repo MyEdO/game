@@ -41,7 +41,7 @@ describe('Effet fall — chute', () => {
 
   /** Balcon (couche 1, 4 m) sur la seule case (5,5) d'un parterre 10×10 au sol (couche 0). */
   function balconScene(): Scene {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     const tiles = new Array(100).fill('vide') as Terrain[];
     tiles[5 * 10 + 5] = s.layers[0].tiles[0];
     const height = new Array(100).fill(0) as number[];

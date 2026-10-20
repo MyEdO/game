@@ -68,13 +68,13 @@ brancherArdoise();
 /** Scène d'atelier : du sol partout (le SVG affine en peint les losanges), aucune entité — les
  *  billboards n'ont alors rien à rasteriser, ce que jsdom ne saurait pas faire. */
 function sceneAtelier(): Scene {
-  return emptyScene(8, 8);
+  return emptyScene('scene-test', 8, 8);
 }
 
 /** La même, plus un ENNEMI D'EMBUSCADE (`hiddenUntilCombat`) ENRÔLÉ dans une rencontre — invisible EN
  *  JEU avant le combat, et dont l'auteur voyait seulement l'empreinte pointillée : un cadre vide. */
 function sceneEmbuscade(): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   const embusque = {
     id: 'embusque-1', kind: 'personnage', pos: { x: 3, y: 3 }, ref: 'brigand',
     combat: { hiddenUntilCombat: true },
@@ -85,7 +85,7 @@ function sceneEmbuscade(): Scene {
 
 /** Deux couches de plein sol : de quoi mesurer ce que le canevas fait de la couche du DESSOUS. */
 function sceneDeuxCouches(): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   const base = s.layers[0];
   return { ...s, layers: [base, { ...base, z: 1, tiles: [...base.tiles] }] };
 }
@@ -105,7 +105,7 @@ function sceneDeuxDecors(): Scene {
 
 /** Une scène qui porte une LAMPE posée (`mapLights` la voit : un prop dont l'instance donne un rayon). */
 function sceneLampe(): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   const brasero = {
     id: 'brasero-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau', light: { radiusM: 6 },
   } as unknown as Scene['entities'][number];
@@ -128,7 +128,7 @@ function plaque(position: 'above' | 'below') {
 
 /** La scène d'atelier, plus un MEUBLE VOLUMIQUE : de quoi juger ce que le mode calage contraste. */
 function sceneMobilier(): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   const table = {
     id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S',
   } as unknown as Scene['entities'][number];

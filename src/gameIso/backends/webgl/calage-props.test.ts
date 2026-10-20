@@ -22,7 +22,7 @@ import {
  *  - les ARÊTES : elles ne portent que des sommets du décor, jamais ceux du sol qui l'entoure.
  */
 const sceneAvecDecor = (): Scene => ({
-  ...emptyScene(8, 8),
+  ...emptyScene('scene-test', 8, 8),
   entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' } as SceneEntity],
 });
 
@@ -75,7 +75,7 @@ describe('Surcharge de matériau — le DÉCOR VOLUMIQUE seul, sur le monde cuit
   });
 
   it('une scène SANS décor volumique n’a rien à surcharger : `null` (le maillage n’est pas touché)', () => {
-    const geometry = mondeCuit(emptyScene(8, 8));
+    const geometry = mondeCuit(emptyScene('scene-test', 8, 8));
     expect(rangsDeDecor(geometry)).toEqual([]);
     const { materials } = worldSurfaceMaterials(geometry, 1, { enFile: true });
     expect(materiauxDeCalage(materials, geometry, materiauCalage())).toBeNull();

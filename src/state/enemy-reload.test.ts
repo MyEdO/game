@@ -58,7 +58,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     expect(rw.reload).toBe(1);   // Indice de Recharge résolu par libellé
     expect(rw.loaded).toBe(true); // chargé au spawn → PAS de recharge à vide au 1er Round
     // Preuve « pas de softlock tour 1 » : l'IA choisit de TIRER (pas de reload), l'arme étant chargée.
-    const scene = emptyScene(16, 16);
+    const scene = emptyScene('scene-test', 16, 16);
     const h = heroAt(1, 1);
     const input: EnemyTurnInput = { enemy: e, heroes: [h], scene, blocked: new Set(['1,1']), movement: e.movement, spells: [] };
     expect(chooseEnemyAction(input).kind).toBe('shoot');
@@ -93,7 +93,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
         turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
         movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
       } as unknown as BattleState;
-      useGame.setState({ battle, scene: emptyScene(16, 16), party: [], partyPos: { x: 0, y: 0 }, mode: 'battle' });
+      useGame.setState({ battle, scene: emptyScene('scene-test', 16, 16), party: [], partyPos: { x: 0, y: 0 }, mode: 'battle' });
 
       runEnemyAI(useGame.getState, useGame.setState, enemy.id); // le reload INLINE est synchrone (avant advanceTurn différé)
 
@@ -122,7 +122,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
         turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
         movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
       } as unknown as BattleState;
-      useGame.setState({ battle, scene: emptyScene(16, 16), party: [], partyPos: { x: 0, y: 0 }, mode: 'battle' });
+      useGame.setState({ battle, scene: emptyScene('scene-test', 16, 16), party: [], partyPos: { x: 0, y: 0 }, mode: 'battle' });
 
       runEnemyAI(useGame.getState, useGame.setState, enemy.id);
 

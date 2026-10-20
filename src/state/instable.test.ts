@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * Instable (LDB 85 l.177) — MIGRÉ en DONNÉES (trait `instable` effects onRoundEnd) : « Chaque fois qu'elle
@@ -16,7 +17,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant => ({
 }) as unknown as Combatant;
 
 const battle = (cs: Combatant[]) => (() => ({ battle: { combatants: cs } })) as never;
-const roundEnd = (get: never, c: Combatant) => fireTriggers(get, c, 'onRoundEnd', {});
+const roundEnd = (get: never, c: Combatant) => fireTriggers(get, c, 'onRoundEnd', { rng: desDuTest });
 
 describe('Instable — perte de PB = écart d’Avantage avec l’adversaire Engagé supérieur', () => {
   it('Avantage 0 vs adversaire Engagé à 2 → perd 2 PB (PA ignorée)', () => {

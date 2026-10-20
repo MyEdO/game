@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
@@ -237,16 +238,10 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
 
 /** Marchandage de l'armurier ambulant (Marchandage 45) ouvert sur un groupe donné. */
 function setupAmbulant(party: Combatant[]): void {
-  const sc = emptyScene(4, 4); sc.id = 'm';
+  const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
   sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } } as never);
   set({ party, scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().openMerchant('pnj');
-}
-
-/** Impose la SÉQUENCE de d100 du flux (`rollTest` y tire sur `defaultRNG`, adossé à `Math.random`). */
-function forceD100(...dice: number[]): void {
-  const q = [...dice];
-  vi.spyOn(Math, 'random').mockImplementation(() => ((q.shift() ?? 1) - 0.5) / 100);
 }
 
 /** Meneur nu à 40 + 1 soutien (+10, fondu à 50) face à l'armurier à 45, DR ÉGAL des deux côtés. */
@@ -254,7 +249,7 @@ function marchanderEgalite(): void {
   const { leader, helper } = pairAvecSoutien(40);
   setupAmbulant([leader, helper]);
   get().startBargain('buy');
-  forceD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
+  imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
   get().bargainRoll();
 }
 

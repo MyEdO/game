@@ -18,6 +18,7 @@ import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
+import { desEnSuite } from '../engine/dice.testkit';
 
 /**
  * INCANTATION IMPARFAITE / COLÈRE DES DIEUX en étape à TABLE (#942 L6) — le d100 des Tableaux
@@ -74,8 +75,7 @@ const suivant = () => useGame.getState().cascadeNext();
 
 /** RNG scripté (dés imposés dans l'ordre) — même utilitaire que `state/mutation-step.test.ts`. */
 function scripted(values: number[]) {
-  let i = 0;
-  return { int: () => values[i++] ?? 1 };
+  return desEnSuite(values, { ensuite: 1 });
 }
 
 describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => {

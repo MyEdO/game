@@ -4,7 +4,7 @@ import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { Pt as ScenePt } from '../../noyau/monde/path';
 import { type Flow } from '../../noyau/monde/flow';
 import { walkFlow } from '../../engine/flowCore';
-import { nextEntityId } from '../../noyau/monde/entityId';
+import { nextEntityId } from '../../lib/entityId';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { findCreatureById } from '../../data';
 import { propRefPatch } from './propDefaults';

@@ -18,8 +18,7 @@ import type { GameOp } from './ops';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre (déjà dans les bornes attendues). */
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] };
+  return desEnSuite(values);
 }
 
 /** La PORTE, quand le Test différé n'est PAS le sujet du test (avance d'incubation/durée) : elle reçoit
@@ -80,7 +79,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const { specs, defer } = porteEntretien();
     tickDisease(c, 60, seq([]), defer); // 1 h écoulée → fin de durée → le Test de fin part À LA PORTE
     expect(specs.map((s) => s.kind)).toEqual(['diseasePersist']);
-    const log = applique(c, specs[0], { success: true }); // issue INJECTÉE : réussite
+    const log = applique(c, specs[0], { success: true }, desDuTest); // issue INJECTÉE : réussite
     expect(c.diseases).toHaveLength(0); // guérie en moins d’une journée — plus de durée « ≈ 1 jour » parasite
     expect(c.diseaseImmunities).toContain('mal-de-mer');
     expect(log.some((l) => /guérit/.test(l))).toBe(true);
@@ -107,7 +106,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // et les DEUX sont ici réussis (issue INJECTÉE).
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    const log = specs.flatMap((s) => applique(c, s, { success: true }));
+    const log = specs.flatMap((s) => applique(c, s, { success: true }, desDuTest));
     expect(c.diseases!.length).toBe(0);
     expect(log.some((l) => /guérit/.test(l))).toBe(true);
   });
@@ -158,14 +157,14 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // Infection du Sang (sa durée = 1d10 → 5). Issues INJECTÉES.
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    applique(c, specs.find((s) => s.kind === 'diseaseTick')!, { success: true });
+    applique(c, specs.find((s) => s.kind === 'diseaseTick')!, { success: true }, desDuTest);
     const log = applique(c, specs.find((s) => s.kind === 'diseasePersist')!, { success: false, sl: -10 }, seq([5]));
     expect(c.diseases!.map((d) => d.id)).toContain('infection-du-sang');
     expect(log.some((l) => /stupéfiant/.test(l))).toBe(true);
   });
 
   it('grantPsychTrait des symptômes actifs (Rage meurtrière) : Haine + Frénésie EFFECTIFS tant que la maladie est active, retirés à la guérison', () => {
-    const lowRng: RNG = { int: () => 1 }; // tout Test réussit (roll=1) → cycle/persistant réussis
+    const lowRng: RNG = deFixe(1); // tout Test réussit (roll=1) → cycle/persistant réussis
     // Témoin : aucune maladie → aucun Trait psy dérivé.
     expect(effectivePsychTraits(sick())).toEqual([]);
 
@@ -193,13 +192,13 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     // d'office (dérivation, zéro bookkeeping : la maladie n'est plus active donc plus rien à dériver).
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, lowRng, defer);
-    for (const s of specs) applique(c, s, { success: true });
+    for (const s of specs) applique(c, s, { success: true }, desDuTest);
     expect(c.diseases).toHaveLength(0);
     expect(effectivePsychTraits(c)).toEqual([]);
   });
 
   it('symptôme en INCUBATION : pas encore manifesté → aucun Trait psy dérivé', () => {
-    const dz = contractDisease('verole-cerebrale-a-taches-vertes', { int: () => 1 }, { incubation: 2, duration: 5 })!;
+    const dz = contractDisease('verole-cerebrale-a-taches-vertes', deFixe(1), { incubation: 2, duration: 5 })!;
     expect(dz.phase).toBe('incubation');
     expect(diseasePsychTraits(sick({ diseases: [dz] }))).toEqual([]); // dérivation gatée par phase==='active'
   });
@@ -251,14 +250,14 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
 
     it('Test RATÉ (issue injectée) → la cible MEURT (LDB 20 l.215 : « ou vous mourrez »)', () => {
       const { c, tick } = toxine({ fate: 0 });
-      const log = applique(c, tick, { success: false });
+      const log = applique(c, tick, { success: false }, desDuTest);
       expect(c.dead).toBe(true);
       expect(log.some((l) => /succombe/.test(l))).toBe(true);
     });
 
     it('Test raté MAIS 1 Point de Destin (LDB 17 l.29-37) → sauvé in extremis, pas mort', () => {
       const { c, tick } = toxine({ fate: 1, wounds: { current: 0, max: 10 } });
-      const log = applique(c, tick, { success: false });
+      const log = applique(c, tick, { success: false }, desDuTest);
       expect(c.dead).toBeFalsy();
       expect(c.fate).toBe(0);
       expect(log.some((l) => /sauvé/.test(l))).toBe(true);
@@ -266,7 +265,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
 
     it('Test RÉUSSI → aucune conséquence, la maladie continue', () => {
       const { c, tick } = toxine({ fate: 0 });
-      const log = applique(c, tick, { success: true });
+      const log = applique(c, tick, { success: true }, desDuTest);
       expect(c.dead).toBeFalsy();
       expect(log).toEqual([]);
     });
@@ -352,10 +351,10 @@ describe('MSRC 16 — Vers de carie : phase active PERSISTANTE (dégénérescenc
     for (let d = 0; d < 7; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
     const table = steps.map((s) => s.meta?.opsEchec).find((o): o is import('./ops').GameOp[] => Array.isArray(o) && o[0]?.op === 'rollTable')!;
     const dead = fullSick();
-    applyOps(dead, table, { rng: { int: () => 10 }, sl: -3 }); // d10=10 + |DR −3| = 13 → Mort
+    applyOps(dead, table, { rng: deFixe(10), sl: -3 }); // d10=10 + |DR −3| = 13 → Mort
     expect(dead.dead).toBe(true);
     const dizzy = fullSick();
-    applyOps(dizzy, table, { rng: (() => { const v = [1, 6]; let i = 0; return { int: () => v[i++] }; })(), sl: 0 }); // 1-2 → −1d10 Initiative
+    applyOps(dizzy, table, { rng: desEnSuite([1, 6]), sl: 0 }); // 1-2 → −1d10 Initiative
     expect(dizzy.characteristics.initiative).toBe(24);
   });
 });
@@ -387,6 +386,7 @@ describe('MSRC 16 — Vers du Reik : −10 Soc GATÉ visibilité (l.140) + écla
 // ── Corrections coordinateur : permanence des Traits de table (l.103) + rampe d'incubation (l.138) ──
 import { activeDiseaseTestMod } from './disease';
 import { dropExpiredGrantedTraits } from './grantedTraits';
+import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
 
 describe('MSRC 16 — Vers de carie : Traits de table PERMANENTS (l.103)', () => {
   it('grantTrait SANS durée = effet permanent → survit à la guérison + à un balayage d’effets expirés', () => {

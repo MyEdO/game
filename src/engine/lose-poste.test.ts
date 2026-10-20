@@ -4,6 +4,7 @@ import { applyOps } from './ops';
 import type { Combatant, ShipPoste } from './types';
 import type { ShipCrewHit } from '../data/shipCriticals';
 import { isUnarmed } from './items';
+import { deFixe, deSelonLaPlage } from './dice.testkit';
 
 /** Marin minimal — assez pour `testValue('athletisme')` (Ag=36) + `applyOps` wounds (BE=3, PA=0). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
@@ -24,7 +25,7 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
     const chef = { id: 'chef', name: 'Canonnier', mannedPoste: poste, weapons: [{ uid: 'p1', name: 'Pierrier', type: 'ranged' }] } as unknown as Combatant;
     return { hull, chef, poste };
   };
-  const rng0 = { int: () => 0 }; // tire le poste d'index 0
+  const rng0 = deFixe(0); // tire le poste d'index 0
 
   it('retire le poste de la coque ET démancipe son chef (mannedPoste + arme du poste)', () => {
     const { hull, chef } = setup();
@@ -84,7 +85,7 @@ describe('applyCrewHit — Canon détaché (data-driven, MDG 13 l.763-764)', () 
     return { hull: { id: 'hull', postes: [poste] } as unknown as Combatant, poste };
   };
   // Le SEUL tirage restant est celui du poste (`int(0, n)`) : plus aucun d100 n'est consommé ici.
-  const rngPoste = { int: () => 0 };
+  const rngPoste = deFixe(0);
 
   it('l’équipage du poste est DÉSIGNÉ et le nœud RENDU — rien n’est appliqué, rien n’est jeté', () => {
     const { hull } = hullWith(['m1']);
@@ -99,7 +100,7 @@ describe('applyCrewHit — Canon détaché (data-driven, MDG 13 l.763-764)', () 
   it('AUCUN dé n’est consommé pour l’issue : seul le tirage du POSTE part', () => {
     const { hull } = hullWith(['m1']);
     const tirages: [number, number][] = [];
-    const rng = { int: (min: number, max: number) => { tirages.push([min, max]); return 0; } };
+    const rng = deSelonLaPlage((min, max) => { tirages.push([min, max]); return 0; });
     applyCrewHit(hull, [sailor('m1')], detachTest, rng);
     expect(tirages, 'un d100 est encore tiré dans le moteur — le Test échapperait à la porte').toEqual([[0, 0]]);
   });

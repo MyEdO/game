@@ -29,7 +29,7 @@ function table(over: Partial<Combatant> = {}) {
   const h2 = { ...hero('h2', 'Rolf'), ...over } as Combatant;
   useGame.setState({
     party: [h1, h2],
-    scene: emptyScene(),
+    scene: emptyScene('scene-test'),
     net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
     battle: {
       combatants: [h1, h2], order: ['h1', 'h2'], baseOrder: ['h1', 'h2'], turn: -1, round: 2,

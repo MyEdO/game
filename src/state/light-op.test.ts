@@ -17,10 +17,11 @@ import { findSpellById, findTrappingById } from '../data';
 import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 const pos = { x: 3, y: 3 };
 /** Échelle TERRESTRE : celle d'une scène qui ne déclare rien — le défaut du monde (`LDB 15 l.12`). */
-const MPT_TERRE = sceneMetresPerTile(emptyScene(1, 1));
+const MPT_TERRE = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
 /** Échelle MER, LUE sur une scène livrée : l'abordage de la cogue du Loup et Saumure (combat naval,
  *  MDG 13) — jamais un littéral d'épreuve. */
 const MPT_MER = sceneMetresPerTile(
@@ -101,7 +102,7 @@ describe('sort « lumiere » — parité d\'émission', () => {
   it('appliquer les ops du sort pousse un ActiveEffect.light (temporisé)', () => {
     const c = target();
     const ops = spellEffectOps(findSpellById('lumiere')!.effects);
-    applyOps(c, ops, { label: 'Lumière' });
+    applyOps(c, ops, { rng: desDuTest, label: 'Lumière' });
     const eff = (c.activeEffects ?? []).find((e) => e.light);
     expect(eff, 'un ActiveEffect.light doit être posé').toBeTruthy();
     expect(eff!.light!.radiusM).toBe(20);

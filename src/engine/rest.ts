@@ -26,7 +26,7 @@
  * importe `conditions` — interdit dans `disease.ts` (cycle d'import via characteristics).
  */
 import { Combatant, UpkeepDeferTest } from './types';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
 import { testValue } from './skills';
@@ -76,7 +76,7 @@ export function dailyDiseaseUpkeep(c: Combatant, rng: RNG, defer: UpkeepDeferTes
  * Le foyer est CE module et non `disease.ts` : la réconciliation lit `conditions`, que `disease.ts` ne
  * peut pas importer (cycle mesuré `conditions` → `trauma` → `disease`).
  */
-export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG = defaultRNG): string[] {
+export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): string[] {
   const log = applyDiseasePersist(c, diseaseName, success, sl, rng);
   log.push(...syncDerivedConditions(c));
   return log;
@@ -189,7 +189,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   return { wokeUp };
 }
 
-export function restRecovery(c: Combatant, rng: RNG = defaultRNG, days = 1, collect?: RestRoll[]): string[] {
+export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRoll[]): string[] {
   if (c.dead || c.outOfRencontre) return []; // un mort / éjecté ne se repose pas
   // LDB 16 l.105 : un héros qui saigne, brûle ou est empoisonné ne trouve pas le repos — à stabiliser
   // d'abord (Test de Guérison, Sort). Pas de récupération réparatrice tant que ces États subsistent.

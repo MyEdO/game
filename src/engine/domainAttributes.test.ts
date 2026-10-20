@@ -13,6 +13,7 @@ import { hasCondition, stacks, addCondition } from './conditions';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import type { Get } from '../noyau/flowTypes';
+import { desDuTest, desEnSuite } from './dice.testkit';
 
 /** Applique les riders onHit AUTHORÉS d'un Domaine à `target` (gating par les Conditions Flow, contre
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
@@ -23,8 +24,7 @@ const applyDomain = (caster: Combatant, target: Combatant, domainId: string, rng
 };
 
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] ?? 5 } as RNG;
+  return desEnSuite(values, { ensuite: 5 });
 }
 
 function mk(over: Partial<Combatant> = {}): Combatant {
@@ -157,7 +157,7 @@ describe('Cieux — arc d’Azyr (LDB 48 l.106) : géométrie on:{near} + bypass
 
     const all = [caster, victim, nearMail, nearLeather, nearTalent, farFoe];
     const get = (() => ({ battle: { combatants: all } })) as unknown as Get;
-    applyTriggeredEffects(get, caster, domainOnHitEffects({ domainId: 'cieux' }), 'onHit', { victim });
+    applyTriggeredEffects(get, caster, domainOnHitEffects({ domainId: 'cieux' }), 'onHit', { rng: desDuTest, victim });
 
     expect(nearMail.wounds.current).toBe(10);   // 12 − 2 : métal percé
     expect(nearLeather.wounds.current).toBe(12); // armure non-métal intacte

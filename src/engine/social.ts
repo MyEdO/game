@@ -74,7 +74,7 @@ export function capriciousDR(roll: number): number {
  *  - (c) règle `social-begging-bonus` + actor Bronze + target Argent + `opts.begging` → force +10.
  *  - (d) règle `social-status-reaction-roll` : enveloppe le résultat via un 1d10 PRÉ-TIRÉ par l'appelant
  *        (`opts.reactionRoll`, RNG SEEDÉ, UN seul tirage par Test) — 1-2 → 0, 3-8 → mod, 9-10 → −mod.
- *        PUR : aucun tirage ici (plus de `Math.random` non seedé ni d'incohérence par candidat). */
+ *        PUR : aucun tirage ici. */
 export function statusCharmMod(
   actor: Status,
   target: Status,

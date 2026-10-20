@@ -8,7 +8,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, formulaSchema } from '../grammaire/valeurs';
+import { charKeySchema, formulaSchema, formuleSansTirageSchema } from '../grammaire/valeurs';
 import { flowSchema, conditionSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
@@ -29,7 +29,7 @@ function* opsPortees(noeud: unknown): Generator<Record<string, unknown>> {
 const spellRangeSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
   nommerChamps(z.strictObject({ kind: z.literal('touch') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('distance'), value: formulaSchema, unit: z.enum(['m', 'km']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('distance'), value: formuleSansTirageSchema, unit: z.enum(['m', 'km']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }),
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
 ]);
 
@@ -37,8 +37,8 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
  *  justification, quand le RAW laisse un point ouvert — AGENTS.md règle 7. */
 const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('count'), n: formulaSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formulaSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: z.string().optional() }), {
+  nommerChamps(z.strictObject({ kind: z.literal('count'), n: formuleSansTirageSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formuleSansTirageSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: z.string().optional() }), {
     kind: { label: 'Type' },
     span: { label: 'Envergure' },
     meters: { label: 'Mètres' },

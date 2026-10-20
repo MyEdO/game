@@ -17,6 +17,7 @@ import { applyOps, type GameOp } from '../engine/ops';
 import { rollShipCritical } from '../engine/shipCritical';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const ARM = (pa: number) => ({ tete: pa, brasG: pa, brasD: pa, corps: pa, jambeG: pa, jambeD: pa });
@@ -56,7 +57,7 @@ interface Frappe {
 /** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `attackConfirm`. */
 function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
   const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
-  applyOps(heros, opsDuHeros);
+  applyOps(heros, opsDuHeros, { rng: desDuTest });
   const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
   const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
   if (pieces.length) { cible.items = structuredClone(pieces); recomputeLoadout(cible); }
@@ -66,7 +67,7 @@ function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, rete
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: emptyScene(), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [],
+    battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [],
     net: { ...useGame.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined },
   });
   seedBattleRng(GRAINE);

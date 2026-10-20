@@ -44,7 +44,7 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
   it('le canevas tient, le rendu signale le corps d’erreur, la Validation nomme l’espèce', async () => {
     const erreurs = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const initialScene: Scene = {
-      ...emptyScene(6, 6),
+      ...emptyScene('scene-test', 6, 6),
       id: 'filet',
       entities: [{ id: 'pnj-faute', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, appearance: { species: 'espece-hors-vocabulaire' } }],
     };
@@ -71,12 +71,12 @@ describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
     brancherBasesSimulees();
     await __resetAutosaveForTest();
     const fautive: Scene = {
-      ...emptyScene(6, 6),
+      ...emptyScene('scene-test', 6, 6),
       id: 'scene-autosave-fautive',
       entities: [{ id: 'p3', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau', facing: 'NE' }],
     };
     await autosaveSave({ sceneId: fautive.id, scene: fautive, savedAt: 999 });
-    const container = await monter({ ...emptyScene(6, 6), id: fautive.id });
+    const container = await monter({ ...emptyScene('scene-test', 6, 6), id: fautive.id });
 
     expect([...container.querySelectorAll('button')].some((b) => b.textContent?.trim() === 'Restaurer'), 'rien à restaurer').toBe(false);
     expect(container.textContent, 'le titre dit l’état, sans question').toContain('Sauvegarde locale impossible à restaurer');

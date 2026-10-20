@@ -3,6 +3,7 @@ import { applyOps } from './ops';
 import { exposureNight } from './exposure';
 import { makeRNG } from './dice';
 import type { Combatant } from './types';
+import { desDuTest } from './dice.testkit';
 
 /**
  * Op `weatherWard` (Peau de loup d'hiver d'Ulric, Protection contre la pluie) : immunité à
@@ -25,7 +26,7 @@ describe('weatherWard — immunité à l’Exposition météo', () => {
 
   it('avec weatherWard : aucun Test, aucun échec, aucune Blessure', () => {
     const c = dummy({});
-    applyOps(c, [{ op: 'weatherWard' }], { label: 'Peau de loup d’hiver', defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'weatherWard' }], { rng: desDuTest, label: 'Peau de loup d’hiver', defaultDurationRounds: 9999 });
     const r = exposureNight(c, 4, 15, makeRNG(3));
     expect(r.rolls).toHaveLength(0);
     expect(r.failures).toBe(0);

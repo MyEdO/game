@@ -8,6 +8,7 @@ import { routeTriggeredTest } from '../noyau/combat/triggeredTest';
 import { planClimb } from '../noyau/monde/climbMove';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * CÂBLAGE de l'ENJEU sur la voie `runFlow` (#1117) — la SECONDE porte d'un `FlowTest`, à côté de
@@ -30,7 +31,7 @@ const hero = (): Combatant => ({
 /** Falaise de 4 m (patron `climbMove.test.ts`) : pied en (2,1) à 0 m, sommet (2,0) à 4 m, arête N
  *  grimpable en `surface` — la hauteur RÉELLE du décor fait l'enjeu. */
 function cliff(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const h = new Array(4 * 4).fill(0) as number[];
   h[0 * 4 + 2] = 4;
   s.layers[0].height = h;
@@ -68,7 +69,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
    */
   it('étage 2 : un jet MUET exigé par une entité DÉRIVE son enjeu du porteur, jusqu’à l’étape', () => {
     routeTriggeredTest(useGame.getState, useGame.setState, useGame.getState().party[0], useGame.getState().party[0],
-      testFlow({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { source: { kind: 'spell', id: 'chute' } });
+      testFlow({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { rng: desDuTest, source: { kind: 'spell', id: 'chute' } });
     const stake = firstStep().stake;
     expect(stake, 'jet muet : le porteur n’a pas été lu').toBeTruthy();
     const resolu = resolveStake(stake!);
@@ -79,7 +80,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
   it('étage 1 : l’enjeu DÉCLARÉ prime — la dérivation ne recouvre jamais l’auteur', () => {
     const stake = combatStakeRef('climbTest', { values: { metres: 4 } });
     routeTriggeredTest(useGame.getState, useGame.setState, useGame.getState().party[0], useGame.getState().party[0],
-      testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { source: { kind: 'spell', id: 'chute' } });
+      testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { rng: desDuTest, source: { kind: 'spell', id: 'chute' } });
     expect(firstStep().stake).toEqual(stake);
   });
 

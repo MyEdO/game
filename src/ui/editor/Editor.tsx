@@ -29,7 +29,6 @@ import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type Project
 import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
 import { type NarratifBlock, emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
-import { nextEntityId } from '../../noyau/monde/entityId';
 import { publierEditeur } from '../../state/editeurBridge';
 import {
   Tool, Sel, Pt, deleteSel, moveSel, selPos, pasteEntity, addLayer, removeLayer,
@@ -55,6 +54,7 @@ import { z } from 'zod';
 import { dialoguesSchema, triggersSchema, encountersSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
 import { nommerChamps, metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { rapportDeFautes, validerFormeVivante } from '../../data/schemas/validate';
+import { idDEntropie } from '../../web/entropie';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
  *  même mot que le contrôle cliqué — l'auteur retrouve SON geste en tête de la fenêtre. */
@@ -488,8 +488,7 @@ export function Editor({
     resetScene(scenesDuProjet[i]);
   }
   function addScene() {
-    const s = emptyScene();
-    s.id = `scene-${Date.now().toString(36)}`;
+    const s = emptyScene(idDEntropie('scene'));
     s.label = 'Nouvelle scène';
     setVoisines({ avant: scenesDuProjet, apres: [] });
     setSel(null);
@@ -497,7 +496,7 @@ export function Editor({
   }
   function duplicateScene() {
     const dup = clone(scene);
-    dup.id = nextEntityId(scene.id, scenesDuProjet.map((s) => s.id));
+    dup.id = idDEntropie('scene');
     dup.label = `${scene.label || scene.id} (copie)`;
     setVoisines({ avant: scenesDuProjet, apres: [] });
     setSel(null);
@@ -920,7 +919,7 @@ export function Editor({
    *  bloc — un piège à perte de travail, pour TOUTE contrainte du schéma. Refusé = rien n'est écrit,
    *  la modale reste ouverte, et le filet d'autosave n'est PAS purgé (il est alors le seul recours). */
   async function saveProject(name: string, pub: boolean, startSceneId: string) {
-    const id = projectId ?? `proj-${Date.now().toString(36)}`;
+    const id = projectId ?? idDEntropie('proj');
     const project = documentCourant(name, id);
     const refus = refusDeLaPorte(project, 'enregistrement');
     if (refus) {
@@ -966,7 +965,7 @@ export function Editor({
     setOrigineLivree(null);
     setPublished(false);
     setSel(null);
-    resetScene(emptyScene());
+    resetScene(emptyScene(idDEntropie('scene')));
   }
   function openAdvanced() {
     setAdvText(JSON.stringify({ dialogues: scene.dialogues, triggers: scene.triggers, encounters: scene.encounters }, null, 2));

@@ -20,7 +20,7 @@ const IDENTITE: ProjectIdentite = {
   maison: 'fixture de test',
 };
 
-const SCENES = (): Scene[] => [{ ...emptyScene(4, 4), id: 'scene-banc', label: 'Salle du banc' }];
+const SCENES = (): Scene[] => [{ ...emptyScene('scene-banc', 4, 4), label: 'Salle du banc' }];
 
 describe('documentDeProjet — l’enveloppe UNIQUE du document de projet', () => {
   it('écrit `id`, `type`, `label` EN TÊTE, puis le reste de l’identité, `narratif`, `scenes` — aucun numéro de forme', () => {

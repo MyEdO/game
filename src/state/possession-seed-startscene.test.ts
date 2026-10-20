@@ -47,7 +47,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2; // la dotation barque-fluviale est portée par ce Niveau, pas le 1
     useGame.getState().setParty([hero]);
-    const sc = emptyScene(6, 6);
+    const sc = emptyScene('scene-test', 6, 6);
     sc.id = 'test-seed-vehicule';
     useGame.getState().startScene(sc);
     const { possessions } = useGame.getState();
@@ -61,7 +61,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   it("héros sans carrière (party fixture nue) → aucun crash, aucune possession semée", () => {
     const lead = { id: 'lead', label: 'L', xp: 0 } as unknown as ReturnType<typeof createHero>;
     useGame.getState().setParty([lead]);
-    const sc = emptyScene(5, 5);
+    const sc = emptyScene('scene-test', 5, 5);
     sc.id = 'test-seed-sans-carriere';
     useGame.getState().startScene(sc);
     expect(useGame.getState().possessions).toHaveLength(0);
@@ -71,7 +71,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2;
     useGame.getState().setParty([hero]);
-    const sc = emptyScene(6, 6);
+    const sc = emptyScene('scene-test', 6, 6);
     sc.id = 'test-seed-loadgame';
     useGame.getState().startScene(sc);
     expect(useGame.getState().possessions).toHaveLength(1); // semé UNE fois par startScene

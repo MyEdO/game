@@ -847,30 +847,65 @@ export const hitLocationSchema = z.enum(['tete', 'brasG', 'brasD', 'corps', 'jam
  *  (58 mesurées), là où le site de référence est UN. */
 const refRegleOptionnelle = idDe('regleOptionnelle');
 
-/** `Formula` (`src/engine/ops.ts:87`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
- *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse). Resserré ici sur `CharKey`
- *  (fidèle à `src/engine/ops.ts:87`), sans risque pour les datasets (vérifié au parse). */
-export const formulaSchema: z.ZodType<unknown> = z.lazy(() =>
-  z.union([
-    z.number(),
-    nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } }),
-    nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }),
+/** Termes de jet de la grammaire (`TermeDeJet`, `src/engine/ops.ts`) : leur valeur ne se connaît qu'AU jet. */
+const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
+
+/** Premier terme de jet rencontré dans une formule (imbrications `sum[]`, `times.of`, `times.factor`,
+ *  `minimum.of`), ou `null`. PURE. */
+const termeDeJet = (f: unknown): string | null => {
+  if (f == null || typeof f !== 'object') return null;
+  const o = f as Record<string, unknown>;
+  const direct = TERMES_DE_JET.find((t) => t in o);
+  if (direct) return direct;
+  if (Array.isArray(o.sum)) for (const terme of o.sum) { const trouve = termeDeJet(terme); if (trouve) return trouve; }
+  const times = o.times as { of?: unknown; factor?: unknown } | undefined;
+  if (times && typeof times === 'object') return termeDeJet(times.of) ?? termeDeJet(times.factor);
+  return 'minimum' in o ? termeDeJet(o.of) : null;
+};
+
+/** Le refus d'une quantité lue avant tout jet qui porte un terme de jet, ou `undefined` si `f` n'en
+ *  porte aucun. */
+export const messageDeTermeDeJet = (f: unknown): string | undefined => {
+  const terme = termeDeJet(f);
+  return terme ? `le terme \`{${terme}}\` est tiré au jet, or cette quantité se lit avant tout jet (portée, cibles, zone, bonus de DR, modificateur de Test affiché). Emploie un littéral, une caractéristique ou un \`{rule}\` éditable.` : undefined;
+};
+
+/** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
+ *  récursif, `avecJet` admet les termes de jet. */
+const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<unknown>[] => [
+  z.number(),
+  nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } }),
+  nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }),
+  ...(avecJet ? [
     nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }),
     nommerChamps(z.strictObject({ rolled: z.literal(true) }), { rolled: { label: "résultat du jet" } }),
-    nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }),
-    nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }),
-    nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }),
-    nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }),
-    // LDB 09 l.97.
-    nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }),
-    nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }),
-    nommerChamps(z.strictObject({ sum: z.array(formulaSchema) }), { sum: { label: "somme" } }),
-    // VDM 05.
-    nommerChamps(z.strictObject({ times: nommerChamps(z.strictObject({ of: formulaSchema, factor: formulaSchema }), { of: { label: "contenu" }, factor: { label: "facteur" } }) }), { times: { label: "multiplicateur" } }),
-    // AA 07 l.113 ; LDB 18 l.88.
-    nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: formulaSchema }), { minimum: { label: "minimum" }, of: { label: "contenu" } }),
-  ]),
-);
+  ] : []),
+  nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }),
+  nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }),
+  nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }),
+  nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }),
+  // LDB 09 l.97.
+  ...(avecJet ? [nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } })] : []),
+  nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }),
+  nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }),
+  // VDM 05.
+  nommerChamps(z.strictObject({ times: nommerChamps(z.strictObject({ of: soi, factor: soi }), { of: { label: "contenu" }, factor: { label: "facteur" } }) }), { times: { label: "multiplicateur" } }),
+  // AA 07 l.113 ; LDB 18 l.88.
+  nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: soi }), { minimum: { label: "minimum" }, of: { label: "contenu" } }),
+];
+
+/** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/
+ *  jet-associé/pions/écart d'Avantage/Blessures/somme/facteur/borne basse). Resserré ici sur `CharKey`
+ *  (fidèle à `src/engine/ops.ts`), sans risque pour les datasets (vérifié au parse). */
+export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeFormule(formulaSchema, true) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]]));
+
+/** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
+ *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses
+ *  termes de jet, refusés nominativement. */
+export const formuleSansTirageSchema: z.ZodType<unknown> = z.lazy(() => z.union(
+  optionsDeFormule(formuleSansTirageSchema, false) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]],
+  { error: (iss) => messageDeTermeDeJet(iss.input) },
+));
 
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à

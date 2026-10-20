@@ -74,7 +74,7 @@ export interface ExecCtx {
   /** Libellé de source (journal / ActiveEffect). */
   label: string;
   /** Contexte d'incantation des ops (combat) : sl/durée/location/woundsDealt… (cf. `OpsCtx`). */
-  opsCtx?: OpsCtx;
+  opsCtx?: Omit<OpsCtx, 'rng'>;
   /** Jet d'ATTAQUANT DÉJÀ FIGÉ pour les nœuds `test` OPPOSÉS de ce Flow : le producteur l'a jeté
    *  lui-même (`rollFrozenOpposedAttacker`) parce qu'UNE opposition vaut pour N défenseurs — l'embuscade
    *  oppose le MÊME Test de Discrétion à tous les guetteurs (LDB 13 l.77). Absent ⇒ `resolveFlowTest`
@@ -102,7 +102,7 @@ export interface ExecCtx {
  */
 export function condCtxFor(ctx: ExecCtx): ConditionCtx {
   if (ctx.mode === 'scene') return condCtx(ctx.get);
-  const o = ctx.opsCtx ?? {};
+  const o: Omit<OpsCtx, 'rng'> = ctx.opsCtx ?? {};
   return {
     flags: {}, gameTime: o.now ?? 0, party: ctx.target ? [ctx.target] : [], sl: o.sl,
     location: o.location, woundsDealt: o.woundsDealt, engagedAdvantageGap: o.engagedAdvantageGap, attackKind: o.attackKind, startleCause: o.startleCause,
@@ -589,7 +589,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.success, onFail: node.fail }, exec);
     // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test OPPOSÉ PERDU par le porteur). Une
     // égalité parfaite n'est pas un échec (statu quo) : le trigger ne part que si l'attaquant l'emporte.
-    if (o.winner === 'attacker') lines.push(...fireOwnTestFailed(ctx.get, c, { sl: t.sl }));
+    if (o.winner === 'attacker') lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
     ctx.set(touchActors(ctx.get()));
     queueLines(ctx.get, ctx.set, lines, c.id);
     playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source);
@@ -598,7 +598,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   queueLines(ctx.get, ctx.set, [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.success, onFail: node.fail }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
-  if (!t.success) lines.push(...fireOwnTestFailed(ctx.get, c, { sl: t.sl }));
+  if (!t.success) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
   ctx.set(touchActors(ctx.get())); // les combattants ont muté (États retirés)
   queueLines(ctx.get, ctx.set, lines, c.id);
   playAfter(ctx.get, ctx.set, c, after, ctx.label, ctx.opsCtx?.source); // continuation APRÈS la branche (ordre du journal)
@@ -779,7 +779,7 @@ export function bandeTriggeredTest(
  *  ses lignes dans `pendingLogQueue`, SOURCE UNIQUE) — no-op pour la voie cascade (héros manuel, aucune
  *  ligne encore produite au retour de `routeTriggeredTest`, elle en poussera à la résolution du jet). */
 export function testerLaTraverseeDeZone(get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: Flow, label: string, source?: EffectSource): void {
-  routeTriggeredTest(get, set, mover, caster, flow, { label, ...(source ? { source } : {}) });
+  routeTriggeredTest(get, set, mover, caster, flow, { rng: battleRng(), label, ...(source ? { source } : {}) });
   const battle = get().battle;
   if (!battle) return;
   const drained = drainPendingLog(get, set);

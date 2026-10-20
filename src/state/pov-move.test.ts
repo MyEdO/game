@@ -19,23 +19,23 @@ function voidTile(s: Scene, w: number, x: number, y: number) {
 
 describe('povStepDest — cap MONDE → surface voisine connectée', () => {
   it("part vers l'EST (E) → (3,2)", () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     expect(povStepDest(s, { x: 2, y: 2 }, 'E')).toEqual({ x: 3, y: 2 });
   });
 
   it('part en diagonale NORD-EST (NE) → (3,1)', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     expect(povStepDest(s, { x: 2, y: 2 }, 'NE')).toEqual({ x: 3, y: 1 });
   });
 
   it('direction vers le vide → null (aucune surface connectée dans ce sens)', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     voidTile(s, 5, 3, 2); // case E de (2,2) vide → aucun voisin ne part vers l'est
     expect(povStepDest(s, { x: 2, y: 2 }, 'E')).toBeNull();
   });
 
   it('bord de carte → null (pas de voisin dans ce sens)', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     expect(povStepDest(s, { x: 4, y: 4 }, 'SE')).toBeNull(); // coin SE : hors carte
   });
 });
@@ -47,7 +47,7 @@ describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
     useGame.setState({
       screen: 'campaign',
       party: [hero],
-      scene: emptyScene(7, 7),
+      scene: emptyScene('scene-test', 7, 7),
       mode: 'exploration',
       partyPos: { x: 3, y: 3 },
       dialogue: null,

@@ -23,7 +23,7 @@ const hero = (id = 'h'): Combatant =>
   ({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
 
 function scèneDeTaverne(): Scene {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   s.id = 'taverne';
   s.entities = [
     { id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } },
@@ -99,7 +99,7 @@ describe('interactEntity sur un meuble à places — bascule s’asseoir / se re
 
   it('un meuble SANS place suit le chemin d’interaction historique (aucune branche d’assise)', () => {
     useGame.setState({ party: [hero()], scene: null, mode: 'exploration', journal: [] });
-    const sc = emptyScene(12, 12);
+    const sc = emptyScene('scene-test', 12, 12);
     sc.id = 'sans-places';
     sc.entities = [{ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } }, { id: 'caisse', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'comptoir-droit' }];
     useGame.getState().startScene(sc);

@@ -27,7 +27,7 @@
  */
 import { Combatant, Difficulty, UpkeepDeferTest, HitLocation, effectRef, type ConditionEmit, type ModLine, type TestIds } from './types';
 import type { Duration } from './duration';
-import { RNG, defaultRNG, roll, type DiceSpec, rollDice, formatDice } from './dice';
+import { RNG, roll, type DiceSpec, rollDice, formatDice } from './dice';
 import { MINUTES_PER_DAY } from './clock';
 import { findTableEntry } from './tables';
 import { spellOps, type FlowTestNode } from './flowCore';
@@ -59,7 +59,7 @@ export interface DiseaseTime {
   unit: TimeUnit;
 }
 /** Tire un `DiseaseTime` → MINUTES (jet × facteur d'unité). PUR (RNG injecté). */
-export const rollDiseaseTime = (t: DiseaseTime, rng: RNG = defaultRNG): number => rollDice(t.dice, rng) * UNIT_MINUTES[t.unit];
+export const rollDiseaseTime = (t: DiseaseTime, rng: RNG): number => rollDice(t.dice, rng) * UNIT_MINUTES[t.unit];
 /** Écriture d'affichage : « 1d10 heures », « 3d10+10 jours », « 2 heures » (valeur fixe). */
 export function formatDiseaseTime(time: DiseaseTime): string {
   const label = t(time.unit === 'days' ? 'dz.unitDays' : time.unit === 'hours' ? 'dz.unitHours' : 'dz.unitMinutes');
@@ -184,7 +184,7 @@ export const DISEASES = {
  *  `{ incubation: 0 }`). Renvoie `null` si inconnue. */
 export function contractDisease(
   id: string,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   opts?: { incubation?: number; duration?: number },
 ): Disease | null {
   const def = diseaseDefs()[id];
@@ -525,7 +525,7 @@ export function contractionDue(c: Combatant, diseaseName: string): boolean {
 /** Applique le RÉSULTAT d'un Test de Contraction DIFFÉRÉ : échec → contracte la maladie. Mute `c.diseases`.
  *  `opts.instant` (Contagieux (Type), EDO App.2 l.230 : « son incubation est changée en “Instantanée” ») :
  *  la maladie contractée démarre ACTIVE (incubation 0). */
-export function applyContraction(c: Combatant, diseaseName: string, success: boolean, rng: RNG = defaultRNG, opts?: { instant?: boolean }): string[] {
+export function applyContraction(c: Combatant, diseaseName: string, success: boolean, rng: RNG, opts?: { instant?: boolean }): string[] {
   if (success || !contractionDue(c, diseaseName)) return [];
   const dz = contractDisease(diseaseName, rng, opts?.instant ? { incubation: 0 } : undefined);
   if (!dz) return [];
@@ -544,7 +544,7 @@ export function rollContraction(
   diseaseName: string,
   resistVal: number,
   difficulty: Difficulty,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): string[] {
   if (!contractionDue(c, diseaseName)) return [];
   // Bonus d'effets actifs aux Tests liés à CETTE maladie (Fleur de lune +30 vs Peste noire…).
@@ -573,7 +573,7 @@ export function contagiousDiseases(c: Combatant): Disease[] {
 export function contractDiseaseOnce(
   c: Combatant,
   name: string,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   opts?: { incubation?: 'instantanee' | 'raw'; message?: MsgKey; contraction?: boolean },
 ): string[] {
   if ((c.diseases ?? []).some((d) => d.id === name)) {
@@ -593,7 +593,7 @@ export function contractDiseaseOnce(
  *  d'incubation et la Localisation de lésion (MSRC 16 l.140) est tirée si un symptôme la gate.
  *  SOURCE UNIQUE de cette bascule — `tickDisease` (incubation épuisée) et la Phase d'arrivée d'un
  *  voyage (EDOC 09 l.21) passent par ici. No-op sur une maladie déjà active. */
-export function declareDisease(c: Combatant, dz: Disease, rng: RNG = defaultRNG): string[] {
+export function declareDisease(c: Combatant, dz: Disease, rng: RNG): string[] {
   if (dz.phase !== 'incubation') return [];
   dz.phase = 'active';
   dz.minutesLeft = dz.durationMinutes;
@@ -629,7 +629,7 @@ export function applyDiseaseGangrene(c: Combatant, diseaseName: string, success:
 /** Conséquence du Test « persistant » de fin de durée DIFFÉRÉ (l.162) : réussite → guérison ;
  *  DR ≤ −6 → Infection du Sang ; ≤ −2 → Blessure Purulente ; sinon → +1d10 jours. La maladie en
  *  attente (`endTestPending`) est retirée (ou prolongée). Mute `c.diseases`. */
-export function applyDiseasePersist(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG = defaultRNG): string[] {
+export function applyDiseasePersist(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): string[] {
   const dz = (c.diseases ?? []).find((d) => d.id === diseaseName && d.endTestPending);
   if (!dz) return [];
   dz.endTestPending = undefined;

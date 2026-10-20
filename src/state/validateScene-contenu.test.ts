@@ -20,7 +20,7 @@ const REF_ENGIN = siegeEngines()[0].id;
 
 /** Plain-pied 8×8 d'herbe (tout est marchable) avec le départ du groupe posé en (1,1). */
 function scene(): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.id = 'S';
   s.entities.push({ id: 'start', kind: 'heroStart', pos: { x: 1, y: 1 } });
   return s;

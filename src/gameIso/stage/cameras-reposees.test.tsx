@@ -32,7 +32,7 @@ let conteneur: HTMLDivElement | null = null;
 
 brancherArdoise();
 
-const SCENE: Scene = emptyScene(10, 10);
+const SCENE: Scene = emptyScene('scene-test', 10, 10);
 const MPT = sceneMetresPerTile(SCENE);
 const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view: 'iso' };
 
