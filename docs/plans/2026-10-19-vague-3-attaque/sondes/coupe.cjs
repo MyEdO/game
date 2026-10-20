@@ -1,5 +1,5 @@
 const g=require(process.env.GRAPHE || './graphe.json');
-const isTest=f=>/\.test\.|testkit|test-setup|fixture/.test(f);
+const isTest=f=>/\.test\.|testkit|test-setup|fixture/i.test(f);
 const A=new Set(process.argv[2].split(',').map(s=>'state/'+s+(s.endsWith('.tsx')?'':'.ts')));
 const HOSTZ=new Set(['web','net','audio','ui','gameIso','scenes','racine']);
 const zone=f=>f.includes('/')?f.split('/')[0]:'racine';

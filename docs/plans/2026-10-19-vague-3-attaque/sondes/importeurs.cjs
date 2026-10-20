@@ -1,6 +1,6 @@
 const g=require(process.env.GRAPHE);
 const A=new Set(process.argv[2].split(',').map(s=>'state/'+s+'.ts'));
-const isTest=f=>/\.test\.|testkit|test-setup|fixture/.test(f);
+const isTest=f=>/\.test\.|testkit|test-setup|fixture/i.test(f);
 const zone=f=>f.includes('/')?f.split('/')[0]:'racine';
 const N=Object.keys(g).filter(f=>f.startsWith('state/')&&!isTest(f)&&!A.has(f));const Ns=new Set(N);
 const imp={}; for(const f of N) imp[f]={N:new Set(),A:new Set(),autres:new Set(),valN:0};

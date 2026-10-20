@@ -1,0 +1,109 @@
+# git grep -nE "register(CascadeApplier|CombatHook|CascadeTableFold|TableStep|TableStepFamily|CascadeSuccessRule|ExtendedTestOutcome|HitModifier|Cloture|CastSpellEffect|NightBandApplier|Sequence[A-Za-z]*|PerilInterrupt|EtalGenerateur)\(|spyApplier\(|set[A-Za-z]+(Hook|Emitter|Router)\(" -- 'src/**/*.test.ts' 'src/**/*.test.tsx' 'src/test-setup.ts' 'src/**/*testkit*'  (cf4f18bcf ; fichier, ligne, extrait)
+src/data/index-vivant-guard.test.ts	60	*  - INSTRUCTION D'APPEL DE NIVEAU MODULE — `registerTableStep('x', { rows: BOARD_EVENTS.map(…) })` :
+src/data/index-vivant-guard.test.ts	246	const appelDeModule = `import { BOARD_EVENTS } from '../engine/seaVoyage';\nregisterTableStep('x', { rows: BOA
+src/engine/derived-conditions.test.ts	268	const precedent = setConditionGainedHook((porteur) => {
+src/engine/derived-conditions.test.ts	279	setConditionGainedHook(precedent);
+src/engine/disease-noeud-test.test.ts	131	// différé (`registerNightBandApplier('diseaseTick')`, `state/restFlow.ts`) rend une liste VIDE sur
+src/engine/upkeepPorte.testkit.ts	6	* `applique` est le miroir STRICT des appliers de nuit (`registerNightBandApplier('diseaseTick' |
+src/noyau/cascade.test.ts	24	spyApplier('tally', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
+src/noyau/cascade.test.ts	69	spyApplier('shelter', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
+src/noyau/cascade.test.ts	135	spyApplier('pick', applied, (step) => ({ kind: step.kind, success: step.chosen === 'devier' }),
+src/noyau/cascade.test.ts	137	spyApplier('note', applied, (step) => ({ kind: step.kind, success: true }), (step) => ({ consequences: freeCon
+src/noyau/cascade.test.ts	153	spyApplier('note', applied, () => ({ kind: 'note', success: true }), (step) => ({ consequences: freeCons([`${s
+src/noyau/cascade.test.ts	164	spyApplier('pick', applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+src/noyau/cascade.test.ts	165	spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+src/noyau/cascade.test.ts	186	spyApplier('pick', applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+src/noyau/cascade.test.ts	187	spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+src/noyau/cascade.test.ts	220	spyApplier('extendedJet', applied, () => ({ kind: 'extendedJet', success: true }));
+src/noyau/cascade.test.ts	221	spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+src/noyau/cascade.test.ts	257	spyApplier('pick', applied, (step) => ({ kind: 'pick', success: step.chosen === 'a' }));
+src/noyau/cascade.test.ts	269	registerCascadeApplier('reveal', () => {}); // applier MUET (mutation seule, aucun journal)
+src/noyau/cascade.test.ts	270	spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+src/noyau/cascade.test.ts	287	spyApplier('crew-batch', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }),
+src/noyau/cascade.test.ts	318	registerCascadeApplier('deja', (get, set) => {
+src/noyau/cascade.test.ts	330	registerCascadeApplier('dejaVide', () => ({ dejaDites: true }));
+src/noyau/cascade.test.ts	352	registerCascadeApplier('trigger', (get, set) => {
+src/noyau/cascade.test.ts	357	spyApplier('note', applied, () => ({ kind: 'note', success: true }));
+src/noyau/cascade.test.ts	448	registerCascadeApplier('opens', (get, set) => {
+src/noyau/cascade.test.ts	523	registerCascadeApplier('fenP', (get, set, step) => {
+src/noyau/cascade.test.ts	528	registerCascadeApplier('fenF', (_g, _s, step) => { joues.push(step.id); });
+src/noyau/cascade.test.ts	530	registerCascadeApplier('fenB', (get, set, step) => {
+src/noyau/cascade.test.ts	617	registerCascadeApplier('repriseNeutre', () => {});
+src/noyau/cascade.test.ts	618	registerCascadeApplier('repriseCombat', (_get, set) => { set({ battle: {} as never }); });
+src/noyau/rollSeam.test.ts	27	spyApplier(kind, applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?
+src/noyau/rollSeam.test.ts	134	spyApplier('progression', applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.res
+src/state/cadence-rapide.test.ts	23	spyApplier('tally', applied, (step) => step.id, (step) => ({ consequences: freeCons([step.id]) }));
+src/state/cadence-rapide.test.ts	64	spyApplier('tally-choix', chosen, (step) => step.chosen);
+src/state/cascade-batch-socle.test.ts	75	spyApplier('bande-meta', vues, (step) => ({ id: 'step', meta: (step.participants ?? []).map((p) => ({ id: p.id
+src/state/cascade-batch-socle.test.ts	103	spyApplier('bande-psy', vues, (step) => ({ parts: (step.participants ?? []).map((p) => ({ id: p.id, immune: p.
+src/state/cascade-batch-socle.test.ts	124	spyApplier('bande-nue', [], () => null);
+src/state/cascade-batch-socle.test.ts	137	spyApplier('bande-menace', [], () => null);
+src/state/cascade-batch-socle.test.ts	153	spyApplier('bande-nue2', [], () => null);
+src/state/cascade-batch-socle.test.ts	221	spyApplier('bande-seam', [], () => null);
+src/state/cascade-consequence-guard.test.ts	75	const regressed = "registerCascadeApplier('x', (get, set, step, hero) => {\n"
+src/state/cascade-de-step.test.ts	30	spyApplier('deSpy', tombes, (step) => ({ roll: step.de!.result!.roll, total: step.de!.result!.total }));
+src/state/cascade-de-step.test.ts	156	registerTableStep(T, {
+src/state/cascade-parite-porteur.test.ts	41	registerTableStep(TABLE, {
+src/state/cascade-parite-porteur.test.ts	48	registerCascadeApplier('parite-table', () => undefined);
+src/state/cascade-parite-porteur.test.ts	49	registerCascadeApplier('parite-suspend', (g, s) => { suspendActiveCascade(g, s); });
+src/state/cascade-quantite-second.test.ts	34	registerCascadeApplier('mesure-quantite', (_g, _s, step) => {
+src/state/cascade-seuil.test.ts	120	registerCascadeApplier('seuilSpy', (_g, _s, step, porteur) =>
+src/state/cascade-table-step.test.ts	33	registerTableStep(SYNTH, {
+src/state/cascade-table-step.test.ts	39	spyApplier('tableSpy', applied, (step) => ({
+src/state/cascade-table-step.test.ts	210	registerTableStep(T, {
+src/state/cascade-table-step.test.ts	216	spyApplier('tableModeSpy', applied, (s) => ({ id: s.table!.result!.id, roll: s.table!.result!.roll, die: s.tab
+src/state/cascade-table-step.test.ts	340	registerTableStep(NEUTRE, {
+src/state/cascade-table-step.test.ts	346	spyApplier('stakeSpy', [], () => undefined);
+src/state/chute-a-la-porte.test.ts	1071	registerCascadeApplier('x-pere', (get, set) => {
+src/state/chute-a-la-porte.test.ts	1077	registerCascadeApplier('x-imm', (_g, set) => { fab(set, 'imm'); return { consequences: [] }; });
+src/state/chute-a-la-porte.test.ts	1078	registerCascadeApplier('x-note', (_g, _s, step) => { marque.push(`${step.id}/${step.label}`); return { consequ
+src/state/combatEvents.test.ts	16	registerCombatHook({ id: 'evt-test-hook', phase: 'onMiscast', run: ({ sink }) => sink('machinerie') });
+src/state/combatHooks.test.ts	13	registerCombatHook({ id: 't-b', phase: 'onTurnStart', order: 20, run: () => seen.push('b') });
+src/state/combatHooks.test.ts	14	registerCombatHook({ id: 't-a', phase: 'onTurnStart', order: 10, run: () => seen.push('a') });
+src/state/combatHooks.test.ts	15	registerCombatHook({ id: 't-c', phase: 'onTurnStart', order: 15, run: () => seen.push('c') });
+src/state/combatHooks.test.ts	22	registerCombatHook({ id: 't-dup', phase: 'onTurnEnd', run: () => { n += 1; } });
+src/state/combatHooks.test.ts	23	registerCombatHook({ id: 't-dup', phase: 'onTurnEnd', run: () => { n += 1; } });
+src/state/combatHooks.test.ts	31	registerCombatHook({ id: 't-gated', phase: 'onCombatEnd', enabledIf: 'combat-frappe-mortelle', run: () => { ra
+src/state/combatHooks.test.ts	41	registerCombatHook({ id: 't-always', phase: 'onCastResolved', run: () => { ran = true; } });
+src/state/de-monde-surface.test.ts	503	registerCascadeApplier('sonde-seuil-trace', () => undefined);
+src/state/de-monde-surface.test.ts	825	registerTableStep(TABLE_SONDE, {
+src/state/de-monde-surface.test.ts	847	registerCascadeApplier('sonde-charge', () => {
+src/state/de-monde-surface.test.ts	1050	registerCascadeApplier('sonde-suspend', (g, s2) => { suspendActiveCascade(g, s2); });
+src/state/defaite-pilote-immediat.test.ts	115	registerCascadeApplier('sondeWipe', (g, s, step) => {
+src/state/deviation-paths.test.ts	498	registerCombatHook({ id: 'test-deviation-paths-oncrit', phase: 'onCrit', run: (ctx) => { onCrit.push(ctx as Co
+src/state/echec-sans-jet-appliers.test.ts	244	setOwnTestFailedEmitter((_g, actor, sl) => { emis.push({ id: actor.id, sl }); return []; });
+src/state/echec-sans-jet-appliers.test.ts	246	afterEach(() => setOwnTestFailedEmitter((g, actor, sl) => fireOwnTestFailed(g, actor, { sl, rng: battleRng() }
+src/state/echec-sans-jet-appliers.test.ts	250	spyApplier('mono-sans-jet', [], () => null);
+src/state/echec-sans-jet-appliers.test.ts	262	spyApplier('bande-sans-jet', [], () => null);
+src/state/fixed-die.test.ts	434	registerTableStep(TBL, {
+src/state/fixed-die.test.ts	440	spyApplier(
+src/state/jets-sans-classe.test.ts	146	registerCascadeApplier('sonde-1479', () => ({ consequences: [] }));
+src/state/journal-projection.test.ts	92	spyApplier('tally', applied, (step) => ({ kind: step.kind, success: !!step.result?.success }));
+src/state/roll-seam-mints.test.ts	49	registerTableStep(TABLE, {
+src/state/roll-seam-mints.test.ts	170	registerCascadeTableFold(KIND_A_PLI, (step) => step);
+src/state/roll-surface-siege-invite.test.ts	51	spyApplier(KIND, applied, (step) => ({ kind: step.kind }));
+src/state/sea-voyage-flow.test.ts	203	* prédicat (`registerCascadeSuccessRule('crew-test', crewTestSuccess)`), l'étape ne portant que l'id.
+src/state/sea-voyage-flow.test.ts	2733	registerCascadeApplier('progression-choix-test', () => {});
+src/state/sequence-contrat-socle.test.ts	41	registerCascadeApplier(KIND_INERTE, () => { apples++; return {}; });
+src/state/sequence-contrat-socle.test.ts	42	registerCascadeApplier(KIND_OUVRE_COMBAT, (_get, setter) => {
+src/state/sequence-contrat-socle.test.ts	49	registerCascadeApplier(KIND_JET, () => ({}));
+src/state/sequence-familles.test.ts	80	registerSequence(JOUTE, {
+src/state/sequence-familles.test.ts	233	registerSequence('test-joute-borne-attrition', {
+src/state/sequence-familles.test.ts	277	registerSequence('test-joute-sans-fin', {
+src/state/sequence-manche-branche-i.test.ts	33	registerCascadeApplier('sondeMancheI', () => undefined);
+src/state/sequence-manche-branche-i.test.ts	35	registerSequence('sonde-manche-branche-i', {
+src/state/sequence-socle-naval.test.ts	114	registerSequence(NAVAL, {
+src/state/sequence-socle-naval.test.ts	190	registerSequence('test-boucle-infinie', {
+src/state/set-scan-guard.test.ts	154	// (`activityWorldRolls.ts`, `registerCascadeApplier(ACTIVITY_WORLD_ROLL_KIND)`). `applyOps` MUTE le
+src/state/tavern-lancers.test.ts	523	registerSequenceTieBreak('test-le-defiant-gagne', () => 'a');
+src/ui/CascadeDieMode.test.tsx	66	registerCascadeApplier('uiDieSpy', () => {});
+src/ui/CascadeTableMode.test.tsx	95	registerTableStep(T, {
+src/ui/CascadeTableMode.test.tsx	102	registerTableStep(T10, {
+src/ui/CascadeTableMode.test.tsx	108	registerCascadeApplier('uiTableSpy', () => {});
+src/ui/CascadeTableMode.test.tsx	370	registerTableStep(T_HORS, {
+src/ui/CascadeTableMode.test.tsx	404	registerTableStep(T11, {
+src/ui/CascadeTableMode.test.tsx	448	registerCascadeApplier('uiTableProse', (_g, _s, step) => ({
+src/ui/CascadeTableMode.test.tsx	557	registerCascadeApplier('uiBandProse', (_g, _s, step) => ({
+src/ui/cascade-choix-terminer.test.tsx	40	registerCascadeApplier('uiChoixSpy', () => {});
+src/ui/compendium/maladie-noeud-test-field.test.tsx	11	* CE QU'IL MORD AUSSI : l'AFFORDANCE. Le canal du cycle (`registerNightBandApplier('diseaseTick')`,
+src/ui/seuil-verdict.test.tsx	52	registerCascadeApplier(KIND, () => {});
