@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, heightAt, isWalkable, porteMasquee, startOf, type WallSeg } from '../../noyau/monde/scene';
 import { validateScene } from '../../state/validateScene';
-import { planFranchissement } from '../../state/fallMove';
-import { scenePlanDefects } from '../../state/planDefects';
-import { portesDeLaPiece } from '../../state/decouvertePorteSecrete';
-import { roomFocusAt } from '../../state/rooms';
+import { planFranchissement } from '../../noyau/fallMove';
+import { scenePlanDefects } from '../../noyau/planDefects';
+import { portesDeLaPiece } from '../../noyau/monde/decouvertePorteSecrete';
+import { roomFocusAt } from '../../noyau/monde/rooms';
 import { reachableCells } from '../../state/mapQC';
 import { useGame } from '../../state/store';
-import { avanceEtapeCascade } from '../../state/cascadeTestKit';
+import { avanceEtapeCascade } from '../../state/cascade.testkit';
 import { scenario } from './23-fenetre-ecuries';
 
 /**

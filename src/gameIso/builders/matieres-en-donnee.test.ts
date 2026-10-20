@@ -276,7 +276,7 @@ describe('couches émettrices du monde — aucune matière ni aucun terrain nomm
   it('le scan couvre les CINQ couches émettrices (sanity)', () => {
     for (const c of COUCHES)
       for (const b of c.bases) expect(fichiers().filter((f) => f.rel.startsWith(`${b}/`)).length, b).toBeGreaterThan(0);
-    expect(fichiers().some((f) => f.rel === 'state/sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
+    expect(fichiers().some((f) => f.rel === 'noyau/sceneEdit.ts'), 'la dérivation des masses n’est plus scannée').toBe(true);
     expect(fichiers().some((f) => f.rel === 'noyau/monde/scene.ts'), 'le SCHÉMA de scène n’est plus scanné').toBe(true);
     expect(fichiers().some((f) => duStore(f.rel) && f.rel.split('/').length > 2), 'le scan du store n’est plus récursif').toBe(true);
     expect(fichiers().some((f) => f.rel === 'ui/editor/Palette.tsx'), 'la PALETTE de l’éditeur n’est plus scannée').toBe(true);

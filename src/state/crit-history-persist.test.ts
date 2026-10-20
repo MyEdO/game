@@ -4,7 +4,7 @@
  *  - il PERSISTE via le save/load (snapshot JSON du store) — c'est lui qui arme l'escalade `onRepeat`.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { applyCriticalToTarget } from './combatFlow';
+import { applyCriticalToTarget } from '../noyau/combatFlow';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { readSlot, deleteSlot } from './saves';

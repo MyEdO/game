@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { narratifSchema } from './narratif';
-import { emptyNarratif } from '../../../state/campaignNarratif';
+import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 
 const vide = emptyNarratif();
 const ouverture = { titre: 'L’Ennemi Intérieur', pitch: 'Nos héros forment un groupe hétéroclite.' };

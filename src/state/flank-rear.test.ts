@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isFlankOrRear } from './combatFlow';
+import { isFlankOrRear } from '../noyau/monde/combatGeometry';
 
 // Flanc/dos (LDB 14 l.62) : front = orientation du défenseur ±45° (3 dir. avant) ; flanc/dos = les 5 autres.
 describe('isFlankOrRear — attaque dans le dos ou sur les côtés (LDB 14 l.62)', () => {

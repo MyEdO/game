@@ -8,10 +8,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { registerCombatHook } from './combatHooks';
-import type { CombatEventCtx } from './combatEvents';
+import { registerCombatHook } from '../noyau/combatHooks';
+import type { CombatEventCtx } from '../noyau/combatEvents';
 import { hasCondition, COND } from '../engine/conditions';
-import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } from './combatFlow';
+import { applyAttackResult, applyOpposedCritical, applyCast, resolveDeviation } from '../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
@@ -21,8 +21,8 @@ import { locationLabel, type Combatant, type HitLocation, type Weapon } from '..
 import type { AttackResult } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
 import { stepInteraction } from '../noyau/cascade';
-import { OPS_DIFFEREES } from './combatEffects';
-import { draineCascade } from './cascadeTestKit';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { draineCascade } from './cascade.testkit';
 import { t as tr } from '../i18n';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };

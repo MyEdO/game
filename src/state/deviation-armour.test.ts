@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { tenuParUnHumain } from '../noyau/sieges';
-import { applyAttackResult, resolveDeviation } from './combatFlow';
+import { applyAttackResult, resolveDeviation } from '../noyau/combatFlow';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { resetRule } from '../engine/policy';
 import { deviatableArmourAt, damageArmour, impenetrableAt } from '../engine/items';
@@ -10,9 +10,9 @@ import { mutationById } from '../data/mutations';
 import type { Combatant, Weapon, ItemInstance } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { stepInteraction } from '../noyau/cascade';
-import { OPS_DIFFEREES } from './combatEffects';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)
 // — la DONNÉE réelle de mutations.json, pour que ce test casse si le drapeau `noDeviation` disparaît.

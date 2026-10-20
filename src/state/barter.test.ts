@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { barterQuote, sellGain, sellRefusal, type MerchantState } from './merchantFlow';
-import { partyMoneyTotal } from './bourseFlow';
+import { barterQuote, sellGain, sellRefusal, type MerchantState } from '../noyau/merchantFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
 import { makePregens } from '../data/pregens';

@@ -4,7 +4,7 @@
  * MOTIF MESURÉ : le champ liste des CATÉGORIES de catalogue et rien d'autre — mesuré sur l'unique
  * porteur (`armurier`) : {ammunition, armor, melee, ranged} ⊆ `trappings.categorie` (5 valeurs
  * réelles). Il est comparé DIRECTEMENT au champ renommé par la vague 6d
- * (`state/merchantFlow.ts` : `arch.category.categories.includes(t.categorie)`) : même concept, donc
+ * (`noyau/merchantFlow.ts` : `arch.category.categories.includes(t.categorie)`) : même concept, donc
  * même terme. Son frère `subTypes` NE BOUGE PAS — `trappings.subType` n'a pas changé de nom.
  * Le nom change, les VALEURS ne changent pas.
  *

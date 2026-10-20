@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bodyShapeOf, creatureToCombatant, statblockToCombatant } from './spawn';
+import { bodyShapeOf, creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 
 // Forme du corps → Tableau de Localisation (LDB 76 l.15-29, « Point d'Impact des Créatures »).

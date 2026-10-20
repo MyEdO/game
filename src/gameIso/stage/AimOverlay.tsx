@@ -4,9 +4,10 @@
  * base ±mod · Dégâts N ». Une cible que le mode refuse n'est PAS rendue ici (arbitrage 2026-08-24 : le
  * survol n'affiche que le faisable) — le refus se dit au clic. INTERACTION → overlay du stage, hors builders.
  */
-import type { BattleState, PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../state/store';
+import type { BattleState } from '../../state/store';
+import type { PendingAttack, PendingDefense, PendingHeal, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
-import { attackWeaponOf, victimeDuCoup } from '../../state/combatFlow';
+import { attackWeaponOf, victimeDuCoup } from '../../noyau/combatFlow';
 import { Dims, tileCenter } from '../../geometry/iso';
 import { TargetReticle } from '../TargetReticle';
 import { relationColor } from '../teamColors';

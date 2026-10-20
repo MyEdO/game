@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { checkBattleOver } from './combatFlow';
-import { removeEntities } from './combatPlacement';
+import { checkBattleOver } from '../noyau/combatFlow';
+import { removeEntities } from '../noyau/combatPlacement';
 import { seatPoseOf, seatSlotsOf } from '../noyau/monde/seating';
 import { createHero } from '../engine/character';
 import { inanimateCombatant } from '../engine/inanimate';

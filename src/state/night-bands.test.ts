@@ -1,6 +1,6 @@
 /**
  * BANDES de la NUIT (#1117 L3) — les jets de nuit ne défilent plus un par un : ils font UNE fenêtre
- * par entrée de RÈGLE et par JOUR (`state/nightBands`), une RANGÉE par héros appelé.
+ * par entrée de RÈGLE et par JOUR (`noyau/nightBands`), une RANGÉE par héros appelé.
  *
  * Ce que ce fichier verrouille :
  *  1. la CLÉ contient le JOUR — trois jours franchis font trois fenêtres de Dessoûlage, jamais trois
@@ -21,18 +21,20 @@ import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { nightBands, splitBandRows, EXPOSURE_BAND_KINDS } from './nightBands';
+import { nightBands, splitBandRows, EXPOSURE_BAND_KINDS } from '../noyau/nightBands';
 import { pushStep } from '../noyau/cascade';
-import { modalOwnerOf } from './modalArbiter';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { seatOwns } from '../noyau/sieges';
-import { checkBattleOver, applyEffects } from './combatFlow';
+import { checkBattleOver } from '../noyau/combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { addCondition } from '../engine/conditions';
 import { contractDisease } from '../engine/disease';
 import type { Combatant, Difficulty } from '../engine/types';
 import type { CascadeStep, CascadeStepMeta } from '../noyau/pendings';
-import { monoStep, type BuiltCascadeStep } from '../noyau/rollSeam';
+import { monoStep } from '../noyau/rollSeam';
+import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { nightStakeRef } from '../data';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -316,7 +318,7 @@ describe('les TROIS producteurs d’Exposition passent par la MÊME fabrique de 
     const rxExposition = new RegExp(`kind: '(?:${EXPOSURE_BAND_KINDS.join('|')})'`);
     const producteurs = readCorpus(['src']).filter((f) => rxExposition.test(f.text));
     expect(producteurs.map((f) => f.rel), 'le stock de producteurs a bougé — vérifier que le nouveau passe par la fabrique')
-      .toEqual(['src/state/combatEffects.ts', 'src/state/restFlow.ts', 'src/state/seaVoyageFlow.ts']);
+      .toEqual(['src/noyau/combatEffects.ts', 'src/noyau/restFlow.ts', 'src/noyau/seaVoyageFlow.ts']);
     const sansFabrique = producteurs.filter((f) => !f.text.includes('exposureWaveBand')).map((f) => f.rel);
     expect(sansFabrique, `producteur d’Exposition hors fabrique :\n${sansFabrique.join('\n')}`).toEqual([]);
   });

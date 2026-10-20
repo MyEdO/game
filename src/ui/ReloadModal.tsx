@@ -1,5 +1,6 @@
 import { cibleMesuree } from '../engine/tests';
-import { useGame, type PendingReload } from '../state/store';
+import { useGame } from '../state/store';
+import { type PendingReload } from '../noyau/pendings';
 import { flowStakeRef } from '../data';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';
@@ -8,7 +9,7 @@ import { testBreakdown, testPending, supportSplit } from './breakdown';
 import { combatValueModParts } from '../engine/combat';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeReload } from '../state/flowOutcomes';
+import { describeReload } from '../noyau/flowOutcomes';
 
 /** Vue pure de la modale de rechargement (testable sans store). */
 export function ReloadModalView({

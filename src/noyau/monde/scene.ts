@@ -8,7 +8,8 @@
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow, EffectOp } from './flow';
+import type { Flow } from './flow';
+import type { EffectOp } from '../../engine/flowCore';
 import { type ScheduleSpec } from '../../engine/clock';
 // Les FORMES des 57 variantes d'`Effect` vivent en zod (`data/schemas/defs-scenes/effets.ts`) ;
 // l'union ci-dessous les compose par `z.infer`. Import de TYPE seul — aucun cycle runtime.
@@ -64,7 +65,6 @@ export type EntityKind = z.infer<typeof entityKindSchema>;
 import type { CustomStatblock } from '../../engine/statblock';
 import { chebyshev } from '../../engine/grid';
 import type { SeatAssignments } from './seating';
-export type { CustomStatblock };
 
 /**
  * Une ACTION AUTHORÉE sur une instance de décor (#1687) — le vocabulaire OUVERT des gestes qu'un
@@ -131,19 +131,19 @@ export interface SceneEntity {
    *  distance). Ex. `'arbalete'`. Résolue par `weaponFromId` (lookup exact, warn si hors catalogue). */
   weapon?: string;
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
-   *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`state/vision.ts`) qui le ramène aux
+   *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`noyau/monde/vision.ts`) qui le ramène aux
    *  cases de la scène. Override de l'instance ; sinon le rayon vient du TYPE de prop
    *  (`props.json` `light`). Absent + type sans `light` = pas de lumière.
    *  `tone` (#1245, L4) : id d'un `lightTones` — APPARENCE seule (couleur/intensité/vacillement),
    *  résolue au bord du rendu, hérité du type de prop s'il n'est pas posé ici ; absent = `flamme`. */
   light?: { radiusM: number; tone?: string };
-  /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `state/merchants`).
+  /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `noyau/monde/merchants/archetypes`).
    *  `settlement`/`resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
    *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat). */
   /** OVERRIDES par-entité des 3 règles maison Marché (LDB 59/60, `market-guild`/`market-mode`/
    *  `market-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
    *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
-   *  (state/merchantFlow, couture UNIQUE). */
+   *  (noyau/merchantFlow, couture UNIQUE). */
   merchant?: { archetype: string; settlement?: import('../../engine/disponibilite').Settlement; resaleRate?: number; buyMarkup?: number; restockDays?: number;
       guild?: boolean; marketMode?: 'complet' | 'sans-disponibilite' | 'sans-marchandage' | 'simplifie'; tenirComptes?: boolean };
   /** JOUEUR de taverne (#1279 S4) : présent = ce personnage PROPOSE une partie, et il la joue de SA
@@ -174,7 +174,7 @@ export interface SceneEntity {
     /** OPTIONNELS choisis (LDB 76 l.45) : `TraitInstance` fusionnés au spawn OU notes composées
      *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
     optionals?: import('../../engine/statEntry').OptionalEntry[];
-    /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/state/spawn.ts` › `spells`). */
+    /** Sorts connus (ids de spells.json) — choix d'auteur, remplace ceux de la créature `ref` (`src/noyau/monde/spawn.ts` › `spells`). */
     spells?: string[];
     /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : −10 + 2d10, graine stable par id). */
     randomChars?: boolean;
@@ -305,12 +305,6 @@ export function speakerEntity(
   return id ? entities.find((e) => e.id === id) : undefined;
 }
 
-/** Fenêtre horaire d'un trigger (heure-du-jour, `before` EXCLUSIF). Champs absents = borne ouverte ;
- *  objet vide = toujours vrai. Combinée en ET avec `rect`/`condition` : le déclencheur ne se produit
- *  qu'en entrant dans la zone PENDANT cette fenêtre (spot-check « au bon endroit au bon moment »).
- *  DÉCLARÉE dans le noyau engine (`engine/flowCore`, zéro dépendance) ; ré-exportée ici pour les
- *  importeurs historiques de `./scene` (ConditionEditor, tests). */
-export type { TemporalCondition } from '../../engine/flowCore';
 
 export type Trigger = z.infer<typeof triggerSchema>;
 
@@ -393,9 +387,9 @@ export interface Scene {
    *  Elle décide de TOUT ce qui traduit entre mètres et cases : les bandes de portée (`rangeBandAt`,
    *  engine/combat.ts, #249) et l'avance des navires ; la géométrie des recettes de décor et l'ancre des
    *  places assises, divisées par elle (`builders/propVolumes.ts`, `noyau/monde/seating.ts`, #1507) ; le rayon
-   *  des sources de lumière (`rayonEnCases`, `state/vision.ts`) ; et, du côté du RENDU, la cadence de la
+   *  des sources de lumière (`rayonEnCases`, `noyau/monde/vision.ts`) ; et, du côté du RENDU, la cadence de la
    *  cuisson (`gpToWorld`, `backends/webgl/worldTris.ts`), la pente des toits (`resolveMass`,
-   *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `state/sceneEdit.ts`). */
+   *  `builders/roofs.ts`) et la portée maximale d'un pignon (`gableSpanMaxTiles`, `noyau/sceneEdit.ts`). */
   metresPerTile?: number;
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */
@@ -440,7 +434,7 @@ export interface Scene {
    *  terrain à BLOC PLEIN (mur) tient sa matière de son TERRAIN (`terrains.json › matiere`), pas d'ici. */
   reliefDefaults: ReliefDefaults;
   /** TOITURE par défaut de la scène (#1715) : couverture, pente de RÉFÉRENCE et borne de comble des
-   *  masses DÉRIVÉES. REQUISE — `toitureEffective` (`state/sceneEdit.ts`) la LIT, la dérivation ne
+   *  masses DÉRIVÉES. REQUISE — `toitureEffective` (`noyau/sceneEdit.ts`) la LIT, la dérivation ne
    *  choisit plus rien ; le schema refuse au parse une scène qui n'en porte pas, et `emptyScene` la
    *  pose à la création. Un corps la surcharge champ par champ (`ArchitectureBody.roofDefaults`), et
    *  le TYPE de bâtiment du corps porte SA couverture (`buildings.json › roofMaterial`). */
@@ -609,7 +603,7 @@ export type Atterrissage =
  * MARCHABLE (`isWalkable`, tuile effondrée exclue) dont la hauteur ne dépasse pas le départ d'un pas
  * (`STEP_MAX_M`), sur TOUTES les couches, par hauteur MÉTRIQUE — l'index de couche ne départage
  * qu'une égalité (cf. `hauteurDe`). Calque de la boucle de couches de `path.ts::neighborsOf`. Seule
- * réponse à « où atterrit-on ? » : chute volontaire, croisée franchie (`state/fallMove.ts`),
+ * réponse à « où atterrit-on ? » : chute volontaire, croisée franchie (`noyau/fallMove.ts`),
  * effondrement d'une passerelle (`collapseStructure`). `LDB 15 l.82`. PUR.
  */
 export function surfaceDAtterrissage(scene: Scene, x: number, y: number, hauteurDepart: number): Atterrissage {
@@ -652,7 +646,7 @@ export function casesDeFace(seg: { x: number; y: number; side: WallSide }, face:
 
 /** Les propriétés d'un `WallSeg` qu'un char de LÉGENDE d'arête peut ÉCRIRE (`MapSpec.wallLegend`) :
  *  la MATIÈRE mécanique (`structure`, id de `structures.json`) et/ou le LOOK pur (`appearance`, id de
- *  `structureAppearance.json`). Liste UNIQUE — parse (`state/asciiMap`), recopie (`state/mapSpec`) et
+ *  `structureAppearance.json`). Liste UNIQUE — parse (`noyau/monde/asciiMap`), recopie (`noyau/mapSpec`) et
  *  clé d'export (`state/sceneToAscii`) itèrent dessus, jamais sur une énumération locale.
  *  N+1 propriété = DEUX lignes : ici, et dans `wallSegSchema` (`data/schemas/defs-scenes/scene.ts`). */
 export const WALL_OVERLAY_KEYS = ['structure', 'appearance'] as const;

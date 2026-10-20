@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { resolvePsychAI } from './combatFlow';
+import { resolvePsychAI } from '../noyau/combat/turnHooks';
 import { fearSourceFor } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

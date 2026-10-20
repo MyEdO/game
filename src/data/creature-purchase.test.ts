@@ -56,7 +56,7 @@ describe('creatures achetables (T0-b, #611)', () => {
   });
 
   it('aucune ne partage son id avec un trapping ou un véhicule', () => {
-    // `catalogEntryOf` (state/merchantFlow) résout un id trapping AVANT la créature, et le stock
+    // `catalogEntryOf` (noyau/merchantFlow) résout un id trapping AVANT la créature, et le stock
     // jette toute ligne d'unité sans `unit` : un id partagé rend la facette purchase de la
     // créature illisible par le marché.
     expect(idsCaptes(ACHAT_IDS, [...trappings.map((t) => t.id), ...vehicles.map((v) => v.id)])).toEqual([]);

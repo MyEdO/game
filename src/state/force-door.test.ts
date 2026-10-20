@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
-import { modalOwnerOf } from './modalArbiter';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 
 /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2, « Portes ») — flux multi PARALLÈLE, métier =
  *  DÉGÂTS sur objet (BE / B). Chaque héros frappe indépendamment (Bagarre → DR + BF − BE) avec son

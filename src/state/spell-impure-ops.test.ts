@@ -10,10 +10,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { applyCast } from './combatFlow';
+import { applyCast } from '../noyau/combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
 import { findSpell, findCreatureById } from '../data';
-import { spellEffectOps } from '../noyau/monde/flow';
+import { spellEffectOps } from '../engine/flowCore';
 import { effectiveChar } from '../engine/characteristics';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';

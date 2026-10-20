@@ -133,10 +133,10 @@ export type ResolverOwner = 'interlude' | 'mer' | 'voyage';
 
 /**
  * PROPRIÉTAIRE de chaque résolveur, MESURÉ sur ses consommateurs (#1318 V6) :
- *  - `interlude` → `runActivityResolver`/`openCatalogActivity` (`src/state/interludeFlow.ts`) et les
+ *  - `interlude` → `runActivityResolver`/`openCatalogActivity` (`src/noyau/interludeFlow.ts`) et les
  *    volets dédiés d'`InterludeScreen` (`entrainement`, `mecenat` : gate amont / volet, pas de branche
  *    dans le dispatch) ;
- *  - `mer` → `src/state/seaActivities.ts` (+ `SeaActivitiesModal`) ; `voyage` → `travelPostes.ts`.
+ *  - `mer` → `src/noyau/seaActivities.ts` (+ `SeaActivitiesModal`) ; `voyage` → `travelPostes.ts`.
  * La bataille de masse n'est PAS une famille : ses Scènes se résolvent par `sceneKind`
  * (`massBattleFlow.confirmBattleActivity`), le Rassemblement par `rallyHealAmount` (ADE II 8 l.122).
  * Table TOTALE (`satisfies Record<ActivityResolver, …>`) : un résolveur ajouté sans propriétaire
@@ -191,7 +191,7 @@ export interface OutcomeBand {
 }
 
 /** Condition d'issue de bataille évaluée sur la résolution d'une Scène/Activité (compteurs de combat +
- *  succès/DR). Voir `BattleResolution` (state/massBattleFlow). */
+ *  succès/DR). Voir `BattleResolution` (noyau/massBattleFlow). */
 export type BattleCond =
   | 'generalDown' | 'intervention' | 'noIntervention' | 'combatWon' | 'combatLost';
 
@@ -452,7 +452,7 @@ export interface ActivityDef extends TestSpec {
 }
 
 /** Résolveurs qui DÉRIVENT leur compétence du héros au moment d'ouvrir le jet (`openCatalogActivity`,
- *  `src/state/interludeFlow.ts`) : leur Activité n'a donc pas de `skills` en donnée, mais elle LANCE.
+ *  `src/noyau/interludeFlow.ts`) : leur Activité n'a donc pas de `skills` en donnée, mais elle LANCE.
  *  SOURCE UNIQUE consommée par `activityRolls` — une Activité de plus dans ce cas = une ligne ici. */
 const SKILL_DERIVING_RESOLVERS = new Set<ActivityResolver>(['income', 'craftExtended', 'learnTalent', 'reputation', 'ritualFocus']);
 

@@ -14,7 +14,7 @@
  *
  * La PORTE MALADIE (`rendreMalade` → `nuitDuMalade`) y vit aussi : un nœud de cycle (`onTick.test` d'un
  * symptôme, `dailyTest.test` d'une maladie) se joue par l'ENTRETIEN réel de la nuit (étape `diseaseTick`,
- * `engine/disease.ts` `tickDisease` → applier de `state/restFlow.ts`), jamais par `routeTriggeredTest`.
+ * `engine/disease.ts` `tickDisease` → applier de `noyau/restFlow.ts`), jamais par `routeTriggeredTest`.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,12 +25,13 @@ import type { Combatant, EffectSource, EffectSourceKind } from '../engine/types'
 import { contractDisease, tickDisease } from '../engine/disease';
 import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import type { GameState } from './store';
-import type { Flow, FlowTest } from '../noyau/monde/flow';
-import type { Get } from './flowTypes';
+import type { Flow } from '../noyau/monde/flow';
+import type { FlowTest } from '../engine/flowCore';
+import type { Get } from '../noyau/flowTypes';
 import type { CascadeStep } from '../noyau/pendings';
 import { battleRng } from '../noyau/battleRng';
-import { draineCascade } from './cascadeTestKit';
-import { sceneLieu } from './restFlow';
+import { draineCascade } from './cascade.testkit';
+import { sceneLieu } from '../noyau/restFlow';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');

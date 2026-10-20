@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Dims } from '../../geometry/iso';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { cloisons, piece } from '../../state/pieces.fixture';
-import { aretesUtilisables } from '../../state/aretes';
+import { aretesUtilisables } from '../../noyau/aretes';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';
 import { AreteOverlay } from './AreteOverlay';
 
@@ -45,7 +45,7 @@ const projete = (acces: readonly Acces[], visible: string[]): readonly AreteProj
 );
 
 /** Scène 5×4 : une arête grimpable en (1,1,E), la case d'en face (2,1) 4 m plus haut — le mobile s'y
- *  tient (même scène que celle du dériveur, `state/aretes.test.ts`). */
+ *  tient (même scène que celle du dériveur, `noyau/aretes.test.ts`). */
 function scèneGrimpable(): Scene {
   const s = emptyScene(5, 4);
   const h = new Array(5 * 4).fill(0) as number[];

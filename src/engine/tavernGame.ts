@@ -5,7 +5,7 @@
  *
  * DEUX RÉGIMES OFFICIELS, qui coexistent (le second est une règle optionnelle, `tavern-games-rapides`) :
  *  - COMPLET : chaque jeu joue SES règles (manches, mises et pot, passages de lancers, camps, Test
- *    combiné), portées par sa donnée et jouées par le socle de séquence (`state/sequenceCore`) ;
+ *    combiné), portées par sa donnée et jouées par le socle de séquence (`noyau/sequenceCore`) ;
  *  - RAPIDE (ch.16 l.9-11, verbatim l.11) : « effectuez un Test opposé de Compétence Intermédiaire (+0)
  *    en utilisant la Compétence indiquée dans la section "Jeu" du jeu en question. Si aucune Compétence
  *    n'est indiquée (comme pour Al-zahr), faites plutôt un Test opposé de Pari Intermédiaire (+0).
@@ -58,7 +58,7 @@ export interface TavernGame {
   target?: number;
   /** Plafond de DR d'une manche (Boules = 6 DR). */
   drCap?: number;
-  /** DÉPARTAGE d'égalité DÉCLARÉ (id résolu par le socle de séquence, `state/sequenceCore`) : Dominos
+  /** DÉPARTAGE d'égalité DÉCLARÉ (id résolu par le socle de séquence, `noyau/sequenceCore`) : Dominos
    *  « En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui
    *  a le nombre le plus bas gagne » (l.105) → `units-lowest` ; Boules « en cas d'égalité, la partie se
    *  solde par un match nul » (l.57) → `nul`. Absent : l'égalité reste. */
@@ -128,7 +128,7 @@ export interface TavernGame {
   scoreUnitSingular?: string;
   /** MISE, POT, ABANDON, ÉLIMINATION (Al-zahr, l.17) — famille (5) du socle de séquence : les dés du
    *  tour, la plage du nombre cible, les plages de résultat et leur effet de pot. Consommé par
-   *  `SequenceParams.pot` (`state/sequenceCore`). */
+   *  `SequenceParams.pot` (`noyau/sequenceCore`). */
   pot?: SequencePotRules;
   /** SPÉCIAUX déclarés (NADJ 16 l.82), lus par `specialsApplicables`. */
   specials?: TavernSpecial[];
@@ -164,7 +164,7 @@ export function tavernFastRegime(): boolean {
  * `characteristic` de l'entrée ne franchit PAS la projection. Jouer la Force à sa place est une
  * lecture d'ESPRIT, légitime mais hors texte : elle s'écrit en DONNÉE (`fastSkill`, taguée maison,
  * éditable au Codex), jamais en défaut de code. La valeur, elle, se calcule là où elle se calcule
- * toujours (`tavernTestSpec`/`tavernGameValue`, `state/tavernFlow.ts`).
+ * toujours (`tavernTestSpec`/`tavernGameValue`, `noyau/tavernFlow.ts`).
  */
 export function fastTavernGame(g: TavernGame): TavernGame {
   const test: { skill?: RefDesignee; char?: CharKey } = g.fastSkill ?? { skill: g.skill ?? { id: 'pari' } };
@@ -210,12 +210,12 @@ export function roundSL(t: TestResult, cap?: number): number {
 /**
  * Roule UN côté (Intermédiaire (+0)) — PRIMITIVE `roll*` (convention du dépôt : `roll*` = un seul jet,
  * jamais une décision de confrontation ; cf. `rollMerchantOpposition`/`rollTest`). Utilisée par
- * l'APPLIER (`state/tavernFlow.ts`, POST-COMMIT du jet du joueur déjà surfacé par `openRoll`) pour
+ * l'APPLIER (`noyau/tavernFlow.ts`, POST-COMMIT du jet du joueur déjà surfacé par `openRoll`) pour
  * rouler le côté ADVERSAIRE (« l'adversaire roule côté monde » — jamais le côté joueur, qui passe par
  * le seam). N'accepte QU'un rng — ne décide rien (#370).
  * `value` d'un adversaire ABSTRAIT est déjà la valeur NUE de la table : elle se pose en grandeur de
  * départage (LDB 12 l.160). Un adversaire INCARNÉ (héros) a une valeur de Test fondue — son porteur
- * (`state/tavernFlow.ts`) réécrit alors `base` à l'accesseur canon.
+ * (`noyau/tavernFlow.ts`) réécrit alors `base` à l'accesseur canon.
  */
 export function rollTavernTest(value: number, rng: RNG = defaultRNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY, modifier = 0): TestResult {
   return { ...rollTest(value, difficulty, rng, modifier), base: value };

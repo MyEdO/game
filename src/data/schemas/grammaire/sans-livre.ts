@@ -22,7 +22,7 @@ const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   'semences-de-scene':
     'configuration d’AUTHORING (#1716) — les DÉFAUTS d’une scène NEUVE (`emptyScene`, `noyau/monde/scene.ts`) : échelle de case, ambiance, éclairage, sol de départ, matières de relief, toiture. Aucun folio n’imprime le défaut d’un éditeur de scène. Le document EST son entrée (famille `config`) et EXIGE `maison` à sa racine (`exiges` de `schemas/defs/semences-de-scene.ts`) : ce qu’une scène neuve reçoit est un arbitrage, et il se dit là',
   'defauts-de-compilation':
-    'configuration d’AUTHORING (#1716) — les DÉFAUTS du COMPILATEUR de scène (`state/mapSpec.ts`) : sol du chemin de ronde et masse d’une `cells` d’enceinte, tuile de pont d’une scène de bord. Aucun folio n’imprime ce qu’un compilateur de carte pose à la place d’un auteur muet. Le document EST son entrée (famille `config`) et EXIGE `maison` à sa racine (`exiges` de `schemas/defs/defauts-de-compilation.ts`), même régime que `semences-de-scene`',
+    'configuration d’AUTHORING (#1716) — les DÉFAUTS du COMPILATEUR de scène (`noyau/mapSpec.ts`) : sol du chemin de ronde et masse d’une `cells` d’enceinte, tuile de pont d’une scène de bord. Aucun folio n’imprime ce qu’un compilateur de carte pose à la place d’un auteur muet. Le document EST son entrée (famille `config`) et EXIGE `maison` à sa racine (`exiges` de `schemas/defs/defauts-de-compilation.ts`), même régime que `semences-de-scene`',
   'donnees.manifest': 'manifeste d’outillage — rubriques de la carte des données, décrit le dépôt',
   'primitives.manifest': 'manifeste d’outillage — primitives partagées, décrit le dépôt',
   'raw.manifest': 'manifeste d’outillage — dette/blocage par id de topic ou de fiche RAW, décrit le dépôt',

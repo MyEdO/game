@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { resolveCastChain } from './combatFlow';
+import { resolveCastChain } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 
 /**
- * ORDRE de la chaîne d'incantation (`resolveCastChain`, src/state/combatFlow.ts) : Contre-sort, puis
+ * ORDRE de la chaîne d'incantation (`resolveCastChain`, src/noyau/combatFlow.ts) : Contre-sort, puis
  * Test opposé de la cible, puis application. LDB 46 l.156 : « Sur un succès, vous dissipez le Sort ;
  * sur un échec, le Sort utilise le DR du Test opposé pour déterminer si l'incantation a réussi
  * normalement. » — le Contre-sort décide donc si l'incantation aboutit, et se règle AVANT toute

@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, applySteamBreakdown, resolveSteamSave } from './seaVoyageFlow';
+import { buildSeaPlan, applySteamBreakdown, resolveSteamSave } from '../noyau/seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 import type { PendingSteamSave } from '../noyau/pendings';
 
 /**

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { resolveShoreLeaveDesertion } from './shipCrew';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { resolveShoreLeaveDesertion } from '../noyau/shipCrew';
+import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { makeRNG } from '../engine/dice';
 import { toBrass, type Money } from '../engine/money';

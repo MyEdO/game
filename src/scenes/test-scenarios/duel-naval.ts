@@ -3,7 +3,7 @@ import { itemFromTrappingById } from '../../engine/items';
 import type { SkillRef } from '../../data';
 import type { AuthoredShipPoste } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 
 // Banc du MODÈLE DEUX-ÉCHELLES couche MER (MDG 13-14, plan combat-naval-modele §1bis) : DEUX jetons-coques sur

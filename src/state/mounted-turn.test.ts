@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 
 function setup() {

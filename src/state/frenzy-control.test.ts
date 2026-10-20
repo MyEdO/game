@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { openRoundEndCascade } from './combatFlow';
-import { collectRoundEndTestSteps } from './combat/triggeredTest';
+import { openRoundEndCascade } from '../noyau/combatFlow';
+import { collectRoundEndTestSteps } from '../noyau/combat/triggeredTest';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import { createHero } from '../engine/character';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';

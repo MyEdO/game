@@ -874,7 +874,7 @@ export const formulaSchema: z.ZodType<unknown> = z.lazy(() =>
 
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
- *  l'application de l'op : le Péché est expié AVANT `applyOps` (`state/combatFlow.ts`). */
+ *  l'application de l'op : le Péché est expié AVANT `applyOps` (`noyau/combatFlow.ts`). */
 export const sinPointsSchema = nommerChamps(z.strictObject({ sinPoints: z.literal(true) }), { sinPoints: { label: "Points de Péché" } });
 
 /** `Formula` du dialecte de la Colère des dieux : une formule GÉNÉRALE, le terme de Péché, ou leur
@@ -909,7 +909,7 @@ export function admetLePeche(noeud: unknown): boolean {
 /** NATURE d'une Influence corruptrice (`LDB 19 l.29`) — clés des Tests de la fiche `influences-corruptrices`
  *  (`TESTS_DE_REGLE`, `engine/ruleRefs.ts`). SOURCE UNIQUE : les deux portes `corruptionExposure.nature`
  *  (op `GameOp`, effet de scène), les sélecteurs de l'atelier, la modale (`ui/CorruptionModal.tsx`) et
- *  la couture du slot (`state/corruptionFlow.ts`) en dérivent — jamais une deuxième liste. */
+ *  la couture du slot (`noyau/corruptionFlow.ts`) en dérivent — jamais une deuxième liste. */
 export const NATURES_D_INFLUENCE = TESTS_DE_REGLE['influences-corruptrices'];
 export type NatureDInfluence = (typeof NATURES_D_INFLUENCE)[number];
 export const natureDInfluenceSchema = enumNomme(tableTotale(NATURES_D_INFLUENCE, (n) => n));

@@ -325,7 +325,7 @@
           "files": [
             "night-stakes.json"
           ],
-          "desc": "Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStakeRef` (`src/data/index.ts`, appelé par `src/state/restFlow.ts`)"
+          "desc": "Enjeu VERBATIM par `kind` d'étape de la cascade de nuit (#331) — ce que l'échec coûte, lu par `nightStakeRef` (`src/data/index.ts`, appelé par `src/noyau/restFlow.ts`)"
         },
         {
           "files": [
@@ -451,7 +451,7 @@
           "files": [
             "merchants.json"
           ],
-          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `MERCHANTS`/`MERCHANT_ARCHETYPES` (`state/merchants/index.ts`) réexportent ce registre"
+          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `MERCHANTS` (`noyau/monde/merchants/archetypes.ts`) indexe ce registre"
         },
         {
           "files": [
@@ -540,7 +540,7 @@
     {
       "id": "campagne",
       "label": "Contenu de campagne / interlude / rencontres",
-      "note": "Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/state/campaignNarratif.ts`, #765) est EMBARQUÉ dans le JSON du projet, jamais dans `src/data` global : ses `narratif.objets` réutilisent le schéma `TrappingData` global (`src/data/index.ts`), et ses `presetsPnj.base` RÉFÉRENCENT une créature globale par id (`findCreatureById`) — jamais une copie.",
+      "note": "Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/noyau/monde/campaignNarratif.ts`, #765) est EMBARQUÉ dans le JSON du projet, jamais dans `src/data` global : ses `narratif.objets` réutilisent le schéma `TrappingData` global (`src/data/index.ts`), et ses `presetsPnj.base` RÉFÉRENCENT une créature globale par id (`findCreatureById`) — jamais une copie.",
       "entrees": [
         {
           "files": [
@@ -625,13 +625,13 @@
           "files": [
             "defauts-de-compilation.json"
           ],
-          "desc": "LES défauts du COMPILATEUR de scène (#1716) — ce que `buildScene` pose quand une section d'un `MapSpec` laisse le terrain implicite : sol du chemin de ronde et masse d'une `cells` d'enceinte (`src/state/mapSpec.ts`), tuile de pont d'une scène de bord (`buildBoardingScene`, `src/state/seaVoyageFlow.ts`). Objet unique, distinct des SEMENCES (créer une scène) — compiler une déclaration déjà écrite"
+          "desc": "LES défauts du COMPILATEUR de scène (#1716) — ce que `buildScene` pose quand une section d'un `MapSpec` laisse le terrain implicite : sol du chemin de ronde et masse d'une `cells` d'enceinte (`src/noyau/mapSpec.ts`), tuile de pont d'une scène de bord (`buildBoardingScene`, `src/noyau/seaVoyageFlow.ts`). Objet unique, distinct des SEMENCES (créer une scène) — compiler une déclaration déjà écrite"
         },
         {
           "files": [
             "buildings.json"
           ],
-          "desc": "LES types de bâtiment — empreinte offerte à la pose, couverture par défaut des nappes de toit, ornements d'identité posés en billboard ; lu par la façade `src/state/buildings.ts`"
+          "desc": "LES types de bâtiment — empreinte offerte à la pose, couverture par défaut des nappes de toit, ornements d'identité posés en billboard ; lu par la façade `src/noyau/monde/buildings.ts`"
         },
         {
           "files": [

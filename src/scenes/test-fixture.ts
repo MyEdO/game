@@ -1,5 +1,5 @@
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, Scene, Terrain } from '../noyau/monde/scene';
-import { buildEncounter } from '../state/encounterAuthoring';
+import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 
 const W = 22;
 const H = 16;

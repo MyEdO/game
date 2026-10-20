@@ -20,11 +20,11 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
-import { intentReach, armedIntentPortee } from './localIntent';
+import { computeChargeReach, computeRunReach, displayedReach } from '../noyau/combatFlow';
+import { intentReach, armedIntentPortee } from '../noyau/localIntent';
 import { combatHighlightsView } from '../gameIso/stage/highlightLayer';
 import type { HighlightsView } from '../gameIso/builders/highlights';
-import { runAction } from './actionRegistry';
+import { runAction } from '../noyau/actionRegistry';
 import { runBindingById } from './clavier/keybindings';
 import { applyNetSnapshot, netSnapshot } from './netFlow';
 import { GUEST_INTENTS } from './intents';

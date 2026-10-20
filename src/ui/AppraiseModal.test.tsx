@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppraiseModalView } from './AppraiseModal';
-import type { PendingAppraise } from '../state/store';
+import type { PendingAppraise } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { addCondition, COND } from '../engine/conditions';
 import { testValue, skillBaseValue } from '../engine/skills';

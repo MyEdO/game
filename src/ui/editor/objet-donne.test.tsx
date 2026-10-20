@@ -10,12 +10,12 @@ import { act, type ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EffectFields, effectSummary, type Ctx } from './EffectList';
 import { RefField } from '../compendium/refField/RefField';
-import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { trappings, type TrappingData } from '../../data';
 import { dansLaSousListe, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
 import type { Effect } from '../../noyau/monde/scene';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

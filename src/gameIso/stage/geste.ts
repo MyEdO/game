@@ -15,8 +15,8 @@
  */
 import { entitesEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { estUtilisable } from '../../noyau/monde/usable';
-import { caseOpposee, type AreteUtilisable, type CapaciteArete } from '../../state/aretes';
-import type { RoomPortal } from '../../state/roomPortals';
+import { caseOpposee, type AreteUtilisable, type CapaciteArete } from '../../noyau/aretes';
+import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import type { Pt } from '../../noyau/monde/path';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { Verdict } from './pickResolve';
@@ -41,13 +41,13 @@ export interface VerbesArete {
   sauter: (de: Pt, vers: Pt) => void;
   enjamber: (de: Pt, vers: Pt) => void;
   /** Le clic du Combattant-structure `cid` — celui d'un jeton, rien d'autre : le porteur consulte la
-   *  porte partagée (`state/combatOrParty.ts:combatantClickActs`) ; si elle refuse, le clic ne fait
+   *  porte partagée (`noyau/combatOrParty.ts:combatantClickActs`) ; si elle refuse, le clic ne fait
    *  rien (l'inspection est le geste SECONDAIRE du jeton) ; sinon l'aperçu puis le commit sont ceux du
-   *  flux de combat (`state/targetingModes.ts`, `samePreview`), jamais un armement propre à l'arête. */
+   *  flux de combat (`noyau/targetingModes.ts`, `samePreview`), jamais un armement propre à l'arête. */
   frapper: (cid: string) => void;
 }
 
-/** Dénivelé : le geste part de l'ancrage et va à la case d'en face (`state/aretes.ts:caseOpposee`). */
+/** Dénivelé : le geste part de l'ancrage et va à la case d'en face (`noyau/aretes.ts:caseOpposee`). */
 const traverser = (arete: AreteUtilisable, verbe: (de: Pt, vers: Pt) => void) =>
   verbe(arete.ancrage, caseOpposee(arete));
 
@@ -57,7 +57,7 @@ interface GesteArete {
    *  survole un clic joue, sans survol le 1er tap ARME l'ARÊTE et le 2e la joue. La structure ne le
    *  suit pas, parce qu'elle n'arme rien en propre : elle passe la main au flux de combat, qui porte
    *  déjà le même régime pour tout jeton (aperçu au tap-1, commit au tap-2 sur le même aperçu,
-   *  `state/targetingModes.ts`). Deux armements empilés demanderaient trois taps. */
+   *  `noyau/targetingModes.ts`). Deux armements empilés demanderaient trois taps. */
   armeParSurvol: boolean;
   /** Joue le geste. Le clic est TOUJOURS consommé : une arête qui offre un geste le sert, et la case
    *  qu'elle borde ne reçoit rien. */

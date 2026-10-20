@@ -5,10 +5,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { toBrass, fromBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { testScene } from '../scenes/test-fixture';
 import { consumeReverseToken } from '../engine/reverseToken';
 import { activityById } from '../engine/activities';

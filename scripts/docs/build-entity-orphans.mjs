@@ -22,7 +22,7 @@
 //   Domaine / Talent de lanceur / `learnSpell` de scène. L'instrument juste est donc
 //   `src/data/obtainability-guard.test.ts` (OBTENABILITÉ, baseline `spells: 0`), pas la citation.
 //   `trappings` — le stock marchand est bâti par PRÉDICAT sur des catégories déclarées EN DONNÉE
-//   (`computeFreshStockLines` de `state/merchantFlow.ts` filtre `trappings` par `arch.category` de `merchants.json`),
+//   (`computeFreshStockLines` de `noyau/merchantFlow.ts` filtre `trappings` par `arch.category` de `merchants.json`),
 //   chaîne hors grammaire MODE 2 (son `.map` rend un objet, pas `t.id`) — #1631.
 //   Le canal LABEL (`findSpell`, src/data/index.ts) n'est PAS cette raison : un détecteur
 //   id-OU-label ne réconcilierait pas ces catalogues.
@@ -31,7 +31,7 @@
 // `creatures` EST AU PÉRIMÈTRE depuis #1553 L3 (2026-09), et le passage a tranché ce qui la retenait :
 // son chemin d'accès EST une citation par id (scène, `montures.json`, `groups.json`, `careerLevels.json`
 // …) ou une sélection MODE 2 réelle (`creatures.filter((c) => c.purchase).map((c) => c.id)`,
-// `unitIdsOfKind` de `state/merchantFlow.ts`, bétail du Maquignon). Ce qui n'en est PAS un : la palette d'ATELIER de
+// `unitIdsOfKind` de `noyau/merchantFlow.ts`, bétail du Maquignon). Ce qui n'en est PAS un : la palette d'ATELIER de
 // l'éditeur de scène — cf. la SÉMANTIQUE DE « ORPHELINE » en en-tête de `entityConsumers.mjs`, qui
 // écrit cette exclusion pour qu'une extension future de MODE 2 ne la « corrige » pas en consommateur.
 // Le stock cliqueté (`entityOrphanStock.mjs#ENTITY_ORPHAN_RATCHET`) est NOMINATIF entrée par entrée
@@ -147,7 +147,7 @@ function rendu() {
   out += `Chacun échappe à la détection par id pour une raison PROPRE : un Sort ne se cite pas par id en\n`
   out += `prod (il s'obtient par Domaine / Talent de lanceur / \`learnSpell\` de scène — l'instrument juste\n`
   out += `est \`src/data/obtainability-guard.test.ts\`) ; le stock marchand des \`trappings\` est bâti par\n`
-  out += `PRÉDICAT sur des catégories déclarées en donnée (\`state/merchantFlow.ts\`, hors grammaire MODE 2\n`
+  out += `PRÉDICAT sur des catégories déclarées en donnée (\`noyau/merchantFlow.ts\`, hors grammaire MODE 2\n`
   out += `— #1631). \`creatures\` a quitté cette table pour les catalogues MESURÉS (#1553 L3). Détail du\n`
   out += `canal label (qui n'est PAS la cause) : en-tête de \`scripts/docs/build-entity-orphans.mjs\`.\n\n`
   out += `## Catalogues MESURÉS\n\n`

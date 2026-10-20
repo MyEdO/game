@@ -4,14 +4,14 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useGame } from './store';
-import { seedStartingPossessions } from './possessionsFlow';
+import { seedStartingPossessions } from '../noyau/possessionsFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 import { deleteSlot } from './saves';
 import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
-import type { Get, Set } from './flowTypes';
+import type { Get, Set } from '../noyau/flowTypes';
 
 /** Harnais MINIMAL (get/set) — même patron que `possessionsFlow.test.ts`. */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {

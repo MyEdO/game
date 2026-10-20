@@ -38,7 +38,7 @@ function corpus(roots: string[]): { file: string; src: string }[] {
 
 /** Tous les fichiers scannés, tous dossiers de couverture confondus. */
 const scanned = () => corpus(SCAN_ROOTS);
-/** Clé de baseline d'un fichier scanné : chemin RELATIF à `src/` (`state/combatFlow.ts`). */
+/** Clé de baseline d'un fichier scanné : chemin RELATIF à `src/` (`noyau/combatFlow.ts`). */
 const keyOf = (f: string) => f.slice(SRC.length + 1).split(sep).join('/');
 
 /** `stripLiterals` mémoïsé par CONTENU — jamais par chemin : une fixture ne peut pas usurper le
@@ -559,7 +559,7 @@ describe('« un signe, un sens » — les enjeux et leurs conséquences parlent 
   it('aucune ligne de conséquence des flux de voyage n’en exprime non plus', () => {
     const fautifs: string[] = [];
     for (const f of ['riverVoyageFlow.ts', 'seaVoyageFlow.ts']) {
-      const src = stripLiterals(readFileSync(join(SRC, 'state', f), 'utf8'));
+      const src = stripLiterals(readFileSync(join(SRC, 'noyau', f), 'utf8'));
       // On lit le fichier ENTIER hors commentaires : une ligne de journal est du texte de gabarit.
       if (FACTEUR.test(src)) fautifs.push(f);
     }

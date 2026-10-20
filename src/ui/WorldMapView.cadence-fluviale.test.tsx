@@ -12,13 +12,13 @@ import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapView } from './WorldMapView';
 import { useGame } from '../state/store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { creditBourse } from '../state/bourseFlow';
-import { buildScene } from '../state/mapSpec';
+import { creditBourse } from '../noyau/bourseFlow';
+import { buildScene } from '../noyau/mapSpec';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { t } from '../i18n';
 import { travelModeLabels } from '../engine/travel';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { WorldMap } from '../state/worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -55,10 +55,10 @@ export const favorLevelSchema = enumNomme({
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
 export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
-/** `PursuitFoeRef` (`state/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
+/** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
  *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
  *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
- *  (`state/pursuitFlow`). `id` est posé à l'ouverture quand l'auteur n'en écrit pas — il sert aux
+ *  (`noyau/pursuitFlow`). `id` est posé à l'ouverture quand l'auteur n'en écrit pas — il sert aux
  *  décisions de camp (`PursuitPolicy.prioritaires`). */
 /** LDB 15 l.94 */
 export const pursuitFoeSchema = nommerChamps(z.strictObject({
@@ -196,7 +196,7 @@ export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
- *  Scènes de combat, modificateur permanent). Appliqué par le store `startMassBattle` (state/massBattleFlow). */
+ *  Scènes de combat, modificateur permanent). Appliqué par le store `startMassBattle` (noyau/massBattleFlow). */
 /** ADE II 8 */
 export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type"  }, battle: { label: "bataille" } });
 
@@ -222,7 +222,7 @@ export const journalSchema = proseNommee(nommerChamps(z.strictObject({ type: z.l
 export const documentSchema = nommerChamps(z.strictObject({ type: z.literal('document'), documentId: z.string() }), { type: { label: "type"  }, documentId: { label: "document" , texte: { regime: "technique"} } });
 
 /** Mécanique MAISON du carnet d'enquête (#670, aucune règle RAW) : révèle/avance un `Indice` de
- *  `campaignNarratif`. `stade` omis → `revealClue` (`state/clues.ts`). */
+ *  `campaignNarratif`. `stade` omis → `revealClue` (`noyau/monde/clues.ts`). */
 export const revealClueSchema = nommerChamps(z.strictObject({
   type: z.literal('revealClue'),
   indiceId: z.string(),
@@ -272,7 +272,7 @@ export const setTimeSchema = nommerChamps(z
 export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: z.string() }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** Ouvre le PORT d'un lieu de la carte du monde — SCRIPTÉ (arrivée mise en scène, cinématique
- *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, state/seaVoyageFlow) : avec profil
+ *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, noyau/seaVoyageFlow) : avec profil
  *  de port → relâche à terre en attente de décision (`pendingShoreLeave`) ; sans profil → transition
  *  directe. `placeId` = id d'un `MapPlace` de `state.worldMap`. */
 /** MDG 15 l.127-129 */
@@ -459,7 +459,7 @@ export const learnSpellSchema = nommerChamps(z.strictObject({
 
 /** Incantation SCRIPTÉE (#98) : rituel scénique, piège magique, PNJ qui lance à un beat précis (dialogue,
  *  trigger, effet différé). `casterId`/`targetId` = id STABLE d'un combattant — un combattant EN COMBAT
- *  (`Combatant.id === SceneEntity.id`) ou un héros du GROUPE hors combat (`actorIn`, state/combatOrParty) ;
+ *  (`Combatant.id === SceneEntity.id`) ou un héros du GROUPE hors combat (`actorIn`, noyau/combatOrParty) ;
  *  un PNJ hors combat n'a pas de Combatant à faire incanter — pas de pseudo-combat inventé pour ce cas
  *  (le lanceur doit alors être en combat). `targetId` absent = le lanceur (soi/zone). `mode:'jet'`
  *  (défaut) route par le flux d'incantation STANDARD (`castSpell`, cadence-aware ; modale influençable
@@ -594,7 +594,7 @@ export const petitePriereSchema = z.strictObject({
  *
  *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il
  *  dit la FORME d'un Effet, pas le vocabulaire d'une scène. Ce qu'un Effet de SCÈNE peut viser se
- *  juge à la scène (`validateScene` → `EFFECT_HANDLERS.ops.refs`, `state/combatEffects.ts`). */
+ *  juge à la scène (`validateScene` → `EFFECT_HANDLERS.ops.refs`, `noyau/combatEffects.ts`). */
 export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
   z.discriminatedUnion('type', [
     setFlagSchema,

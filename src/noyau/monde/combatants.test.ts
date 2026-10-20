@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CAP_GROUPE, capDuGroupe, estDebout, meneurDuMonde, meneurDeboutDuMonde, niMortNiATerre, poserCapDuGroupe } from './combatants';
-import { mouvementDuGroupe, optionsDeCheminDuGroupe } from '../../state/exploreNav';
+import { mouvementDuGroupe, optionsDeCheminDuGroupe } from './exploreNav';
 import { isOutOfAction } from '../../engine/conditions';
 import { maxJumpTiles } from '../../engine/movement';
 import { effectiveMovement } from '../../engine/encumbrance';

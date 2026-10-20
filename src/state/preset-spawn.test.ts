@@ -2,13 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { useGame } from './store';
-import { mergeCreatureProfile, resolvePresetCreature } from './resolveursDuNarratif';
+import { mergeCreatureProfile, resolvePresetCreature } from '../noyau/monde/resolveursDuNarratif';
 import { presetPnjById } from './campaignData';
-import { FicheAbsente, sceneNpc } from './sceneNpc';
-import { creatureToCombatant } from './spawn';
+import { FicheAbsente, sceneNpc } from '../noyau/monde/sceneNpc';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
-import { parseProject } from './worldMap';
-import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
+import { parseProject } from '../noyau/worldMap';
+import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { findCreatureById, type CreatureData } from '../data';
 import type { Combatant } from '../engine/types';
@@ -147,7 +147,7 @@ describe('coop — l’invité re-dérive la couche narrative du paquet de l’h
   });
 });
 
-/** Lecture au Combatant d'une clé de `profil.char` (`creatureToCombatant`, `state/spawn.ts`). */
+/** Lecture au Combatant d'une clé de `profil.char` (`creatureToCombatant`, `noyau/monde/spawn.ts`). */
 function auCombatant(c: Combatant, cle: string): unknown {
   if (cle === 'M') return c.movement;
   if (cle === 'B') return c.wounds.max;

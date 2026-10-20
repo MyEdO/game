@@ -9,7 +9,7 @@ import { Icon } from './Icon';
 import { GameDate } from './GameDate';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
-import type { DialogueTurn } from '../state/dialogueHistory';
+import type { DialogueTurn } from '../noyau/monde/dialogueHistory';
 import { Stack } from './Layout';
 
 /** Une conversation = les tours d'une même SESSION de dialogue (`DialogueTurn.session`, posée à

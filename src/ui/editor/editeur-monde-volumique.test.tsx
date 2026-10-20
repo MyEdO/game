@@ -17,7 +17,7 @@ import { RENDER_ORDER } from '../../gameIso/backends/webgl/renderRanks';
 import { CALAGE_APLAT, NOM_ARETES_CALAGE, rangsDeDecor as rangsDeDecorDuMonde } from '../../gameIso/backends/webgl/calageProps';
 import type { WorldGeometry } from '../../gameIso/backends/webgl/sceneMeshes';
 import { effectiveLowerLayerMode, layerHidden, LOWER_LAYER_ISOLATE_BELOW } from './lowerLayerGabarit';
-import type { PlanDefectAt } from '../../state/planDefects';
+import type { PlanDefectAt } from '../../noyau/planDefects';
 import { brancherArdoise } from '../../gameIso/stage/banc-volumique';
 const scenarioToitsConstruit = scenarioToits.construire();
 
@@ -447,7 +447,7 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
   });
 
   /**
-   * LA GOMME — mesurée au CODE, pas au brief : `eraseAt` (`state/sceneEdit.ts:461`) retire une
+   * LA GOMME — mesurée au CODE, pas au brief : `eraseAt` (`noyau/sceneEdit.ts:461`) retire une
    * ENTITÉ à la case, JAMAIS du terrain. Il n'y a donc rien à « dé-peindre » du monde cuit : ce qui
    * doit disparaître est un BILLBOARD, et il disparaît au tick, sans gel de cadence ni recuisson
    * (les entités ne sont pas dans le read-set de la cuisson).

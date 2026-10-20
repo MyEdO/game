@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * Outil VOLÉE de l'éditeur — l'auteur trace une file de cases entre deux surfaces cotées et les cotes
- * s'interpolent par crans franchissables. L'invariant est UNIQUE (`state/stairFlight.ts`) : ce fichier
+ * s'interpolent par crans franchissables. L'invariant est UNIQUE (`noyau/stairFlight.ts`) : ce fichier
  * mesure d'abord que la MÊME file donne les MÊMES cotes par le chemin ASCII (`cells.stair` de
  * `buildScene`) et par le geste d'éditeur — sans quoi l'extraction ne serait qu'une copie de plus.
  * Puis que le REFUS est lisible à l'écran (raison en français sous le bouton, `GatedAction`) plutôt
@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { buildScene, type MapSpec } from '../../state/mapSpec';
+import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import { heightAt, type Scene } from '../../noyau/monde/scene';
 import { planStairFlight, applyStairFlight, type Pt } from './editorState';
 import { Palette } from './Palette';

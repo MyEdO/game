@@ -4,7 +4,7 @@
  */
 import type { GameState } from '../state/store';
 import type { CascadeStep } from './pendings';
-import type { PendingKey } from '../state/stateFields';
+import type { PendingKey } from './stateFields';
 
 /** Les jets qu'une étape peut HÔTER — union fermée de `CascadeStepBase.jet`. */
 export type HostJet = NonNullable<CascadeStep['jet']>;

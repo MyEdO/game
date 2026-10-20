@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
-import { aiDriven } from './netOwnership';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
+import { aiDriven } from '../noyau/netOwnership';
 import { structureCombatant, structureAimCell } from '../engine/structures';
-import { applyShipPostes } from './shipPostes';
+import { applyShipPostes } from '../noyau/monde/shipPostes';
 import { itemFromTrappingById } from '../engine/items';
 import { findStructureById } from '../data';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';

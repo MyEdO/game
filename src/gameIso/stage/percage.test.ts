@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { type Dims } from '../../geometry/iso';
 import { elOccluder } from './occluders';
 import { buildRoofs, massFootprintCells } from '../builders/roofs';
-import { effectiveArchitecture } from '../../state/sceneEdit';
+import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { chebyshev } from '../../engine/grid';
 import { heightAt } from '../../noyau/monde/scene';
 import { actorCapsuleOf } from './actorCapsule';

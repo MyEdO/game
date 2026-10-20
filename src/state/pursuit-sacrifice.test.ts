@@ -13,9 +13,10 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { pursuitOf, PURSUIT_POLICY_DEFAUT, type PursuitPayload } from './pursuitFlow';
+import { pursuitOf, PURSUIT_POLICY_DEFAUT, type PursuitPayload } from '../noyau/pursuitFlow';
 import type { PursuitFoe } from '../engine/pursuit';
-import { closeSequenceRound, type EtatDeFamille, type MancheClose } from './sequenceCore';
+import { closeSequenceRound } from '../noyau/sequenceCore';
+import { type EtatDeFamille, type MancheClose } from '../noyau/sequenceContract';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';

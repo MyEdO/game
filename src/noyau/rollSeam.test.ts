@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../state/store';
 import { type CascadeApplier } from './cascade';
-import { spyApplier } from '../state/cascadeTestKit';
+import { spyApplier } from '../state/cascade.testkit';
 import { setGmSeat } from '../state/netFlow';
 import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, resultLine, freeCons, type RollRequest, type Consequence } from './rollSeam';
 import { testSkillLabel } from '../data';
-import { modalOwnerOf } from '../state/modalArbiter';
+import { modalOwnerOf } from './modalArbiter';
 import { seatOwns } from './sieges';
 import type { Combatant } from '../engine/types';
 

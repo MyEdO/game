@@ -13,10 +13,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
-import { applyCast } from '../combatFlow';
+import { applyCast } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { draineCascade } from '../cascadeTestKit';
+import { draineCascade } from '../cascade.testkit';
 import { emptyScene } from '../../noyau/monde/scene';
 import { findSpell } from '../../data';
 import type { Combatant } from '../../engine/types';

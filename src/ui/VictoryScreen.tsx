@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGame } from '../state/store';
-import { ownsLocal } from '../state/netOwnership';
+import { ownsLocal } from '../noyau/netOwnership';
 import { harvestProfileFor } from '../engine/harvest';
 import { ReadyRow } from './ReadyRow';
 import { GearAssignList } from './GearAssignList';

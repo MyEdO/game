@@ -1,5 +1,5 @@
 /**
- * #1882 — UNE dérivation entité → adversaire (`state/sceneNpc.ts`), lue par le combat (`ficheDEntite`,
+ * #1882 — UNE dérivation entité → adversaire (`noyau/monde/sceneNpc.ts`), lue par le combat (`ficheDEntite`,
  * `combatSlice.ts` › spawn de rencontre) et par les lecteurs hors combat (`sceneNpc` : taverne,
  * marchandage `BargainModal.tsx`, infirmerie `combatEffects.ts` › `openMedicalAidEffect`).
  *  · UN nom : celui que l'entité donne, sur les deux chemins.
@@ -10,12 +10,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { emptyScene, type SceneEntity } from '../noyau/monde/scene';
-import { ficheDEntite, FicheAbsente, sceneNpc } from './sceneNpc';
-import { playTavernGame, tavernNpcOffers } from './tavernFlow';
-import { activeSequence } from './sequenceCore';
-import { applyEffects } from './combatEffects';
+import { ficheDEntite, FicheAbsente, sceneNpc } from '../noyau/monde/sceneNpc';
+import { playTavernGame, tavernNpcOffers } from '../noyau/tavernFlow';
+import { activeSequence } from '../noyau/sequenceCore';
+import { applyEffects } from '../noyau/combatEffects';
 import type { Combatant } from '../engine/types';
-import { EFFECT_HANDLERS } from './combatEffects';
+import { EFFECT_HANDLERS } from '../noyau/combatEffects';
 import { startPursuitSchema, givePossessionSchema } from '../data/schemas/defs-scenes/effets';
 import { findCreatureById, findVehicleById } from '../data';
 import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';

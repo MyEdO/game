@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { documentDuNarratif } from '../../state/resolveursDuNarratif';
+import { documentDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { walkFlow } from '../../engine/flowCore';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import { scenario } from './documents-edo';

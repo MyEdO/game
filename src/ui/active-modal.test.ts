@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { pickActiveModalKey as pick } from './ActiveModal';
 import type { GameState } from '../state/store';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 import type { Weapon } from '../engine/types';
 
 /**
- * Arbitre de modales (R2, désormais REGISTRE state/modalArbiter) : une seule modale de combat à
+ * Arbitre de modales (R2, désormais REGISTRE noyau/modalArbiter) : une seule modale de combat à
  * la fois, par priorité explicite (ordre du registre). La file est implicite — une modale moins
  * prioritaire dont le `pending` est posé n'apparaît qu'une fois les plus prioritaires fermées.
  * Les tests passent des pendings MINCES (la forme suffit à l'arbitre), sauf l'étape-jet élue : son

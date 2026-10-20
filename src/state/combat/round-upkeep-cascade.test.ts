@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { openRoundEndCascade } from '../combatFlow';
+import { openRoundEndCascade } from '../../noyau/combatFlow';
 import { startCascade } from '../../noyau/cascade';
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
@@ -10,8 +10,8 @@ import { fireConditionEffects } from '../../noyau/triggeredEffects';
 import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence, setCadence } from '../../engine/cadence';
-import { runCombatHooks } from '../combatHooks';
-import './roundHooks';
+import { runCombatHooks } from '../../noyau/combatHooks';
+import '../../noyau/combat/roundHooks';
 
 /**
  * Jets d'upkeep de fin de Round concernant un HÉROS → étapes de CASCADE influençable (Mâchoires
@@ -244,7 +244,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
 
     // La reprise de tour a joué : la machinerie de tours est RÉ-ARMÉE (timer d'avance posé) et la pause
     // de début de Round n'a PAS gelé le combat. Précédence `maneuverResume` > `roundBoundary` (#942 L1,
-    // site canonique `dispatchCascadeDone`, `state/combatSlice.ts`) : cette pause et son reset per-Round
+    // site canonique `dispatchCascadeDone`, `noyau/combatSlice.ts`) : cette pause et son reset per-Round
     // sont SACRIFIÉS pour le Round courant — les décomptes de fin de Round, eux, ont déjà été joués par
     // `advanceTurn` AVANT l'ouverture de la séquence.
     expect(useGame.getState().pendingRoundStart, 'la pause de Round ne doit pas geler la reprise de tour').toBeNull();

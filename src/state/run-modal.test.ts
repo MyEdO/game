@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
-import { mountMovement } from './mount';
+import { mountMovement } from '../noyau/mount';
 import type { Combatant } from '../engine/types';
 
 describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {

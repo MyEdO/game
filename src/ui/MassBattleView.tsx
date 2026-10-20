@@ -11,7 +11,7 @@ import {
   massBattleThreatPenalty, armyMight, armyStartMight,
   battleSceneById, battleSceneEffectLabel, battleActionRefus,
   type MassBattleState, type MassBattleArmy,
-} from '../state/massBattleFlow';
+} from '../noyau/massBattleFlow';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';

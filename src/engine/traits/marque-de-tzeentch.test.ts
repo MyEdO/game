@@ -8,7 +8,7 @@ import { groupsFor, hiddenGroupsOf } from '../groups';
 import { makeRNG, hashSeed } from '../dice';
 import { markMutationsAtSpawn } from './dispatch';
 import { rollMutation } from '../../data/mutations';
-import { statblockToCombatant } from '../../state/spawn';
+import { statblockToCombatant } from '../../noyau/monde/spawn';
 import creatures from '../../data/creatures.json';
 import type { Combatant } from '../types';
 

@@ -292,7 +292,7 @@ export type RefusDeFormeVivante = { readonly cause: 'schema' | 'prose-non-materi
 /**
  * Porte d'une forme VIVANTE (prose adressée matérialisée) : le schéma sur `versDisque(value)`, puis
  * la complétude (`proseNonMaterialisee`) sur `value` reçue. Sites : `parseProject` et
- * `parseSceneDeProjet` (`state/worldMap.ts`), `validateScene` (`state/validateScene.ts`).
+ * `parseSceneDeProjet` (`noyau/worldMap.ts`), `validateScene` (`state/validateScene.ts`).
  */
 export function validerFormeVivante(schema: z.ZodType, value: unknown): RefusDeFormeVivante | null {
   const fautes = validateDocument(schema, versDisque(value));

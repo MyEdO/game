@@ -8,7 +8,7 @@ import { foulingEffects } from '../engine/seaNavigation';
 import { moraleBand, weeklyCrewWageBrass, findMoraleFactor } from '../engine/crewMorale';
 import { provisioningManifest } from '../engine/provisions';
 import { fromBrass } from '../engine/money';
-import { bulkCarriers, type CarrierStateSlice, nomDuNavire } from '../state/carriers';
+import { bulkCarriers, type CarrierStateSlice, nomDuNavire } from '../noyau/carriers';
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { rigSchema } from '../data/schemas/defs/vehicles';

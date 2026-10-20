@@ -57,7 +57,7 @@ function mark<T extends RollRowData>(row: T): T & { readonly [ROLL_ROW_BRAND]: t
  * NOYAU d'une rangée MONO — la ligne, le jeteur, les FAITS de son jet, et l'OFFRE de chaque verbe.
  *
  * Aucune ÉLIGIBILITÉ d'influence n'y figure : les fenêtres de la Chance, du Sombre Pacte et de la
- * Résilience sont des prédicats purs du seam (`state/rollFlowFactory.ts`), appliqués au rendu par
+ * Résilience sont des prédicats purs du seam (`noyau/rollFlowFactory.ts`), appliqués au rendu par
  * `RollRow`/`InfluenceRow`. Ce qu'un site déclare, c'est ce qu'il SAIT : l'acteur, la ligne (`row.d`
  * porte le jet et son succès), `rerolled`, et les handlers des verbes qu'il OFFRE — un flux sans
  * Résilience ne passe pas `onForce`, et aucun booléen ne peut la rallumer.

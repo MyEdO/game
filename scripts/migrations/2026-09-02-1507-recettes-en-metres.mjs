@@ -26,7 +26,7 @@
  * valeur RAW en mètres PRÉ-DIVISÉE par 2 (Bougie « fournit un éclairage sur 10 mètres », `LDB 74
  * l.43`, écrite `5` ; Lanterne 20 m, `LDB 74 l.58`, écrite `10`), donc fausse dès qu'une scène change
  * d'échelle — 50 m en mer pour une bougie. Le champ devient `light.radiusM` et porte la valeur RAW
- * TELLE QUELLE ; `rayonEnCases` (`src/state/vision.ts`) le ramène aux cases à la fabrication de la
+ * TELLE QUELLE ; `rayonEnCases` (`src/noyau/monde/vision.ts`) le ramène aux cases à la fabrication de la
  * `LightSource`, qui reste le champ MÉCANIQUE en cases. Même règle pour l'op `light`
  * (`GameOp`, `src/engine/ops.ts`), qui est l'autre écriture de ce même rayon en donnée :
  * `radiusTiles → radiusM`, ×2, dans `trappings.json`, `spells.json` et `tables.json`.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statblockToCombatant, entitySize } from './spawn';
+import { statblockToCombatant, entitySize } from '../noyau/monde/spawn';
 import { sizeFromTraits } from '../engine/size';
 
 describe('sizeFromTraits + dérivation de Taille au spawn (LDB 85)', () => {

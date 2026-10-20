@@ -6,23 +6,24 @@ import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
-import { parseProject, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
+import { parseProject, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { validateScene } from '../state/validateScene';
 import { emptyScene } from '../noyau/monde/scene';
-import { emptyNarratif } from '../state/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
-import { MERCHANTS } from '../state/merchants';
+import { MERCHANTS } from '../noyau/monde/merchants/archetypes';
 import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
 import type { Effect } from '../noyau/monde/scene';
-import { carriedFlows, flowFromEffects, racinesDeFlow, walkFlow, type Flow } from '../noyau/monde/flow';
+import { flowFromEffects, type Flow } from '../noyau/monde/flow';
+import { carriedFlows, racinesDeFlow, walkFlow } from '../engine/flowCore';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
 import { declarationProseNommee, sourceHeritee } from '../data/schemas/grammaire/prose';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { identiteSchema, motifEnMot } from '../data/schemas/defs-scenes/narratif';
-import { identitesDe, nommer } from '../state/identites';
+import { identitesDe, nommer } from '../noyau/monde/identites';
 import { metaDesChamps } from '../data/schemas/grammaire/meta';
 import { raceKeySchema, sexeSchema } from '../data/schemas/grammaire/valeurs';
 
@@ -186,7 +187,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(fautifs).toEqual([]);
   });
 
-  /** Un marchand d'auteur pointe un ARCHÉTYPE du registre (`state/merchants.ts`) — sinon son stock est vide. */
+  /** Un marchand d'auteur pointe un ARCHÉTYPE du registre (`noyau/monde/merchants/archetypes.ts`) — sinon son stock est vide. */
   it.each(bundledFiles.map((f) => [f] as const))('%s : tout marchand référence un archétype RÉEL du registre', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs = doc.scenes.flatMap((sc) =>
@@ -298,7 +299,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   /**
-   * CONTRE-PREUVE de la PORTE d'identité (`parseProject`, `src/state/worldMap.ts`), sur une enveloppe
+   * CONTRE-PREUVE de la PORTE d'identité (`parseProject`, `src/noyau/worldMap.ts`), sur une enveloppe
    * CONSTRUITE — aucun paquet livré n'en est le sujet. L'enveloppe est COMPLÈTE par ailleurs (`label`,
    * `versionContenu`, provenance, narratif) : seule l'identité manque, et le refus porte une faute au
    * chemin `id` — lue dans ses FAUTES, jamais dans le texte du rapport.

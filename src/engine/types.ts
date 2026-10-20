@@ -229,7 +229,7 @@ export interface VehicleData {
     traits: NavalTraitRef[];
   };
   /** Facette PONT (couche tactique, §1bis du modèle naval) : plan person-scale du pont, authoré une fois
-   *  par TYPE et réutilisé dans tout scénario (jamais redessiné) ; `postes` est lu par `state/shipPostes.ts`. */
+   *  par TYPE et réutilisé dans tout scénario (jamais redessiné) ; `postes` est lu par `noyau/monde/shipPostes.ts`. */
   deck?: ShipDeck;
 }
 
@@ -366,7 +366,7 @@ export interface QualityInstance {
 }
 
 /** Côté de montage d'une pièce d'artillerie sur un navire (MDG 12-13), relatif au cap du bateau —
- *  pilote l'arc de tir. La LOGIQUE d'arc vit en `state/fireArc.ts` (elle dépend du cap Dir8) ; ce TYPE pur
+ *  pilote l'arc de tir. La LOGIQUE d'arc vit en `noyau/monde/fireArc.ts` (elle dépend du cap Dir8) ; ce TYPE pur
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
 export type FireArc = 'proue' | 'tribord' | 'poupe' | 'babord';
 
@@ -943,7 +943,7 @@ export interface ActiveEffect {
   attenuatedSymptom?: { disease: string; symptomId: string };
   /** GATE d'action par Round (op `actGate` — Racine de mandragore, LDB 71 l.35) : au début du tour du
    *  porteur en combat, un Test de `char` décide s'il garde Action ET Mouvement (réussite) ou UN seul
-   *  au choix (échec). Résolu cadence-aware par `resolveActGates` (state/combatFlow). */
+   *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
   actGate?: { char: CharKey };
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête — Peau de loup d'hiver d'Ulric,
    *  Protection contre la pluie) : `exposureNight` est sauté tant que l'effet dure. */
@@ -1019,7 +1019,7 @@ export interface Trauma {
    *  `cancels: 'all'` annule toute la pénalité (Merveille d'ingénierie : « ignorer complètement la
    *  perte… d'une jambe » ; Nez doré ; Œil de verre…) ; `'movement'` rétablit le déplacement seul
    *  (Fausse jambe : « ignorer 1 Point de Mouvement perdu »). L'Esquive se réapprend SÉPARÉMENT pour 200 PX
-   *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, state/partyFlow.ts) élève l'effet
+   *  (LDB 73) : `ItemInstance.prosthesisTrained` (posé par `trainProsthesis`, noyau/partyFlow.ts) élève l'effet
    *  de CETTE prothèse à `'all'` pour `prosthesisCancels` (trauma.ts), sans changer `cancels` en donnée. */
   prosthesis?: { trappingId: string; cancels: 'all' | 'movement' }[];
   /** Nombre d'éléments perdus pour une séquelle CUMULATIVE par comptage (LDB 18) : doigts (−5/doigt, 4+ →
@@ -1132,7 +1132,7 @@ export interface ItemInstance {
   /** Monnaie PERSONNELLE portée par cette instance (LDB 05/61 — la Bourse, `trappingId==='bourse'`) :
    *  la bourse de groupe devient une bourse PAR HÉROS (SOCLE POSSESSIONS §8, #531). Absent sur tout
    *  objet non-bourse. Compte de pièces (pas la valeur en sous) : `totalEncumbrance` en dérive l'Enc
-   *  (1 Enc / 200 pièces, LDB 61 l.29). Manipulé par les primitives `state/bourseFlow.ts`. */
+   *  (1 Enc / 200 pièces, LDB 61 l.29). Manipulé par les primitives `noyau/bourseFlow.ts`. */
   money?: import('./money').Money;
   /** Taille PRÉVUE pour l'objet (ADE II 2 l.706-710 : « la version ogre de la plupart des possessions
    *  vaut deux fois l'Encombrement classique ») — copiée du catalogue (`TrappingData.sizeFor`), propagée
@@ -1316,7 +1316,7 @@ export interface AuthoredShipPoste {
 /** Pièce d'artillerie MONTÉE — forme VIVANTE (runtime, sur le Combattant-coque). Étend `AuthoredShipPoste`
  *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
- *  `state/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
+ *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
 export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
   /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
    *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
@@ -1325,7 +1325,7 @@ export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
 
 /** Emplacement de POSTE sur un gabarit de pont (`ShipDeck`) — un MOUNT POINT authoré (pos + arc), PAS une
  *  contrainte de règle : le placement des pièces reste LIBRE (par bord + poids vs Contenance, cf.
- *  `state/shipPostes.ts`). Sert au RENDU / à l'aide d'authoring (où dessiner une pièce montée sur ce bord,
+ *  `noyau/monde/shipPostes.ts`). Sert au RENDU / à l'aide d'authoring (où dessiner une pièce montée sur ce bord,
  *  où poster son servant), réutilisé tel quel à la composition du Pont à l'abordage. */
 export interface DeckPosteSlot {
   /** Case du pont (coord de la grille `ascii`) où la pièce se rend et où se tient son servant. */
@@ -1341,7 +1341,7 @@ export interface DeckPosteSlot {
  *  AUTHORÉ une seule fois et réutilisé tel quel dans tout scénario (jamais redessiné). À l'abordage, le pont
  *  est instancié + cousu depuis ce gabarit. Le plan suit `parseWalledAscii` (authoring canon du projet :
  *  tuiles + murs d'arête, `:` = écoutille) ; les `postes` sont des emplacements de RENDU (cf. `DeckPosteSlot`).
- *  TYPE PUR (engine) — seul `postes` est lu à ce jour (`state/shipPostes.ts`) ; le plan `ascii` est du gabarit
+ *  TYPE PUR (engine) — seul `postes` est lu à ce jour (`noyau/monde/shipPostes.ts`) ; le plan `ascii` est du gabarit
  *  authorable, sans lecteur de production depuis #1789. */
 export interface ShipDeck {
   /** Plan du pont en box-drawing → tuiles + murs via `parseWalledAscii` ; la tuile de base est celle du
@@ -1415,10 +1415,10 @@ export interface Combatant {
    *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
   followsCharacterRules?: boolean;
   /** `id` STABLE de la fiche dont ce combattant est une instance (posé au spawn) : une créature du
-   *  bestiaire (`state/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —
+   *  bestiaire (`noyau/monde/spawn.ts`), ou la réf d'un objet inanimé (`inanimateCombatant`) —
    *  clé de résolution du rig/apparence (« plus de label » : on ne re-résout plus par `name`). */
   creatureId?: string;
-  /** Le porteur de fiche dont ce combattant a été spawné (`state/spawn.spawnEnemy`, #1882) — ce qui le
+  /** Le porteur de fiche dont ce combattant a été spawné (`noyau/monde/spawn.spawnEnemy`, #1882) — ce qui le
    *  re-spawne à l'identique (`scheduleRespawn ref:'self'`). Absent : un héros, né de sa création. */
   porteurDeFiche?: import('./statblock').PorteurDeFiche;
   /** Coque/navire (`bodyShape:'vehicule'`) : `id`s des Combattants d'ÉQUIPAGE exposés à bord (MDG 14).
@@ -1455,7 +1455,7 @@ export interface Combatant {
   mannedPoste?: ShipPoste;
   /** Commandant d'équipe (AA 13 l.29-35) : `id` du commandant (Talent Commandant d'équipe) qui a RÉUSSI
    *  à diriger CE chef de pièce. Tant que ce commandant reste vivant ET à portée de voix, l'équipe tire au
-   *  score de Projectiles du commandant (substitution re-validée à CHAQUE tir — `state/commandTeam`). */
+   *  score de Projectiles du commandant (substitution re-validée à CHAQUE tir — `noyau/monde/commandTeam`). */
   teamCommanderId?: string;
   species?: string;
   career?: string;
@@ -1507,7 +1507,7 @@ export interface Combatant {
    *  le système de Durée unifié, plus de compteur/flag round-scopé ad hoc.) */
   /** Groupes d'appartenance + traits psy possédés (matching des Cibles). */
   groups?: string[];
-  /** DOCTRINE TACTIQUE forcée en DONNÉE (id de `DOCTRINES` dans `state/ai.ts` : `meute`/`soldats`/
+  /** DOCTRINE TACTIQUE forcée en DONNÉE (id de `DOCTRINES` dans `noyau/monde/ai.ts` : `meute`/`soldats`/
    *  `tirailleurs`/`artillerie`/`horde`/`racaille`/`embuscade`/`standard`). Si présent et valide, l'IA
    *  l'utilise TELLE QUELLE (la sélection automatique par signaux est court-circuitée) — c'est le levier
    *  « forcer une doctrine » du Codex/éditeur. Absent ⇒ doctrine déduite des traits/Intelligence/groups/
@@ -1547,7 +1547,7 @@ export interface Combatant {
   travelRole?: StagePosting;
   /** Rôle d'ÉQUIPAGE naval ÉPINGLÉ (`id` de `crew-roles.json` : timonier/artilleur/mousse…) — le poste que ce membre
    *  tient lors des Tests d'équipage du navire (MDG 14). ABSENT ⇒ le Test décide : `shipDefaultRoles`
-   *  (`state/shipCrew`) affecte l'équipage au moment du jet, selon le TYPE de Test joué. Aucune surface
+   *  (`noyau/shipCrew`) affecte l'équipage au moment du jet, selon le TYPE de Test joué. Aucune surface
    *  n'affiche d'affectation devinée ; le joueur l'épingle/le change au roster (`ShipRolesPanel`, dont
    *  la ligne « Repos » pose la valeur `BENCHED`). Distinct de `travelRole` (voyage). */
   shipRole?: string;
@@ -1762,7 +1762,7 @@ export interface Combatant {
   /** Combattant INVOQUÉ par un Sort (champ `SpellSpec.summon` — Nécromancie, Hurlement du loup,
    *  Manifestation de démon…) : `byId` = le lanceur ; `expiresAtRound` = la créature se dissipe au
    *  franchissement de Round une fois ce numéro dépassé ; `despawnIfSummonerDown` = elle s'effondre
-   *  si le lanceur est hors de combat (minions de Nécromancie liés au sorcier). Géré par state/summonFlow. */
+   *  si le lanceur est hors de combat (minions de Nécromancie liés au sorcier). Géré par noyau/summonFlow. */
   summon?: { byId: string; expiresAtRound?: number; despawnIfSummonerDown?: boolean; label?: string; spellId?: string };
   // L'ÉTAT DE CHARGE (munition choisie/capturée, `loaded`, progression, chargeur) vit sur l'INSTANCE
   // D'ARME (`Weapon`) : chaque arme à distance possédée gère son propre rechargement et sa propre
@@ -1933,7 +1933,7 @@ export type TestIds =
   | { char: CharKey; skill?: undefined; spec?: undefined };
 
 /** Spec d'un Test de Résistance d'entretien DIFFÉRÉ (cascade de nuit influençable) : le moteur le
- *  COLLECTE au lieu de le rouler (`state/upkeep` calcule la cible et en fait une étape de cascade,
+ *  COLLECTE au lieu de le rouler (`noyau/upkeep` calcule la cible et en fait une étape de cascade,
  *  résolue par l'applicateur de `kind`). Garde l'invariante « si y'a un jet, y'a une étape ». */
 export type UpkeepDeferTest = (spec: {
   kind: NightTestKind;

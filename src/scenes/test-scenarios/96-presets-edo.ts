@@ -1,8 +1,8 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock, type PresetPnj } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock, type PresetPnj } from '../../noyau/monde/campaignNarratif';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
 
@@ -123,7 +123,7 @@ function construireScene(): Scene {
     startMessage:
       { texte: 'Un homme séduisant, épée au côté et dés à la ceinture, vous fait signe depuis la clairière.' },
     // Fiches par PRESET (`presetId`, #671) : `narratif` ci-dessus, `resolvePresetCreature` ; preset
-    // irrésoluble → `FicheAbsente` (`state/sceneNpc.ts`, #1882).
+    // irrésoluble → `FicheAbsente` (`noyau/monde/sceneNpc.ts`, #1882).
     entities: [
       // JOUEUR de taverne AUTHORÉ (#1279 S4) : « il leur propose une partie d'Impératrice Écarlate »
       // (`EDO 01 l.200`), et la mise plancher qu'il accepte est de 2 pistoles d'argent — « considère

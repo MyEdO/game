@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyCast } from './combatFlow';
+import { applyCast } from '../noyau/combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
 import { applyOps } from '../engine/ops';

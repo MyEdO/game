@@ -204,7 +204,7 @@
       "page": 31,
       "note": "EDO 02 l.301"
     },
-    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/state/spawn.ts`) — et un Personnage joueur n'y entre jamais."
+    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/noyau/monde/spawn.ts`) — et un Personnage joueur n'y entre jamais."
   },
   {
     "id": "rustres-et-idiots",
@@ -215,6 +215,6 @@
       "page": 31,
       "note": "EDO 02 l.327"
     },
-    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/state/spawn.ts`) — et un Personnage joueur n'y entre jamais."
+    "maison": "Groupe de comportement : ni l'espèce, ni la carrière, ni un Trait ou Talent ne le confère (`groupsFor`, LDB 21) ; seule une donnée d'auteur y range un combattant — `grantGroups` d'une créature ou d'un profil de preset, `groups` d'un statbloc de scène (`src/noyau/monde/spawn.ts`) — et un Personnage joueur n'y entre jamais."
   }
 ]

@@ -297,44 +297,13 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             (services que l'hôte pose : appel différé et état de son jeton, persistance d'un héros), `triggeredEffects.ts`,
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
-                            `battleRng.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`.
-  pendings.ts                 types Pending* (ré-exportés par store.ts)
+                            `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`, et les flux
+                            de jeu ci-dessous. Aucune réexportation : chaque importeur
+                            nomme le module qui déclare (garde `scripts/guards/lib/reexportations.mjs`).
+  pendings.ts                 types Pending*
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
                               réutilise pour l'icône/la coloration par camp, hors du périmètre `state`)
-  monde/                    MODÈLE DU MONDE, dossier de lecture (aucune zone de `COUCHES` ne le tient) :
-                            `flow.ts`, `sceneRules.ts`, `sceneMemo.ts`, `relief.ts`, `terrain/`,
-                            `wallIndex.ts`, `decorIndex.ts`, `footprint.ts`, `path.ts`, `lineOfSight.ts`,
-                            `zones.ts`, `usable.ts`, `combatants.ts`, `combatGeometry.ts`.
-  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 43 types exportés,
-                            dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/`, 2 ré-exports
-                            (`CustomStatblock`, `TemporalCondition`) et 1 COMPOSÉ : l'union `Effect`
-                            (57 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 60 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
-                            `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
-                            `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
-                            `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
-                            (annotations du `z.lazy`), `Layer` (l'infer du schéma dont `tiles` est
-                            ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et
-                            l'authoring TS n'est pas parsé), `WallOverlay` (ce qu'un char de légende
-                            d'arête ÉCRIT sur une arête : `structure`/`appearance`), `LectureDArete`
-                            (lecture `auteur`/`jeu` d'une arête, `porteSelon`), `Atterrissage` (où l'on
-                            atterrit en quittant une surface, `surfaceDAtterrissage`),
-                            `Terrain`, `CellSide` (alias primitifs), `Fige` (marque de type d'une
-                            valeur GELÉE : ce qu'une migration rejoue, jamais la semence du jour).
-                            Comptes
-                            et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
-                            `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
-                            au foyer des caps (`noyau/monde/dir8.ts`)
-  monde/dir8.ts               Dir8 (8 caps grille) + géométrie associée : rotateDir8, DIR8_DELTA,
-                              facingToward (#161 : ex-`gameIso/rig/facing.ts` — la géométrie de cap grille
-                              n'est pas du rendu, `gameIso` la ré-importe pour l'orientation écran)
-  monde/seating.ts            ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
-                              (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
-                              avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
-                              `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
-                              `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
-src/state/
   worldMap.ts               SCHÉMA DE CARTE DU MONDE (#T2) : lieux/routes au niveau projet + format projet
                             (`ProjectDoc`, porte `parseProject` : `projetSchema` SEUL contrôle de forme, aucun
                             numéro de version, toute autre forme REFUSÉE — #2404 ; `activeAxes?: string[]` #409 — axes de forces/faiblesses ACTIFS de
@@ -347,33 +316,14 @@ src/state/
                             une liste `ResolvedPlaceService[]` — payloads RÉFÉRENCÉS, jamais recopiés (zéro
                             duplication de vérité). Consommée par le hub de lieu (#343) et l'auberge ; les
                             consommateurs actuels (portFlow/landMarketFlow/restPlacesHere) restent inchangés.
-  campaignNarratif.ts       SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
-                            = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
-                            `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
-                            global (`narratifSchema` refuse toute collision d'id).
-  resolveursDuNarratif.ts   COUTURE UNIQUE de résolution de la couche de campagne (#767, #2817), sans store : chaque
-                            résolveur prend son narratif en ARGUMENT (celui de la partie, `campaignNarratif`, ou celui du
-                            projet édité) et lit par id STABLE. `presetDuNarratif`/`indiceDuNarratif`/`documentDuNarratif`
-                            = COUCHE-SEULEMENT (n'existent pas au global) ; `objetDuNarratif` chaîne campagne-D'ABORD puis
-                            règle globale (`trappingDesObjetsPuisDuCatalogue`). Tables mémoïsées par identité du narratif.
-                            Le moteur reste PUR : `engine/items` reçoit ce résolveur d'objet injecté aux sites d'état
-                            `giveTrapping` — il n'importe jamais le store.
-                            PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
-                            (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
-                            spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `spawn.ts` reste sans
-                            import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
-  campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
-                            de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
-  store.ts                  store Zustand : GameState + vue (caméra/zoom) + campagne (scènes, dialogues,
-                            effets, temps/repos) + actions de combat — délègue aux modules (get,set) :
   combatFlow.ts               flux de combat tour par tour (IA, attaques, effets, fin de combat).
-                              CONVENTION « baril » : les clusters FEUILLES extraits sont des modules
-                              séparés que combatFlow ré-exporte (`export * from './combatX'`) pour ne
-                              pas casser les importeurs — un module feuille n'importe RIEN de combatFlow
-                              (tout passe par get().xxx / modules feuilles). Déjà sortis : noyau/monde/combatGeometry.ts
-                              (géométrie pure), combatPlacement.ts (gestes de placement qui écrivent
-                              la bataille) et combatEffects.ts (effets de scène/campagne : applyEffects,
-                              butin attribuable, checkTriggers, pushReveal). NE PAS extraire le preview
+                              Les clusters FEUILLES extraits sont des modules séparés, que chaque importeur
+                              nomme directement : monde/combatGeometry.ts (géométrie pure),
+                              combatPlacement.ts (gestes de placement qui écrivent la bataille),
+                              combatEffects.ts (effets de scène/campagne : applyEffects, butin attribuable,
+                              checkTriggers, pushReveal), combatManeuvers.ts, combatHooks.ts, combatSetup.ts,
+                              combat/. Un module feuille n'importe RIEN de combatFlow (tout passe par
+                              get().xxx / modules feuilles). NE PAS extraire le preview
                               (previewAttack/Defense) : il partage attackEnv/bestDefenseMode avec la
                               résolution → cycle. La cohésion preview↔résolution est voulue.
   rollFlowFactory.ts / rollFlowSpecs.ts  FABRIQUE générique des flux de jet différé (« une situation = une modale ») +
@@ -399,7 +349,62 @@ src/state/
   upkeep.ts                   entretien QUOTIDIEN (#T3 cascade : rations/faim + maladies + convalescence
                               des critiques, jours CALENDAIRES) + purge des effets a duree d'horloge
                               (castPenalties/ActiveEffect.untilTime) — anti-double-comptage lastUpkeepDay
-  spawn.ts / bus.ts
+  monde/                    MODÈLE DU MONDE, dossier de lecture (aucune zone de `COUCHES` ne le tient) :
+                            `flow.ts`, `sceneRules.ts`, `sceneMemo.ts`, `relief.ts`, `terrain/`,
+                            `wallIndex.ts`, `decorIndex.ts`, `footprint.ts`, `path.ts`, `lineOfSight.ts`,
+                            `zones.ts`, `usable.ts`, `combatants.ts`, `combatGeometry.ts`, et les modules qui
+                            ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
+                            (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
+                            campagne, pièces, vision, authoring ASCII (`asciiMap.ts`).
+  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 41 types exportés,
+                            dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/` et 1 COMPOSÉ : l'union `Effect`
+                            (57 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
+                            `EffectOp` = 60 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
+                            `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
+                            `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
+                            `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
+                            (annotations du `z.lazy`), `Layer` (l'infer du schéma dont `tiles` est
+                            ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et
+                            l'authoring TS n'est pas parsé), `WallOverlay` (ce qu'un char de légende
+                            d'arête ÉCRIT sur une arête : `structure`/`appearance`), `LectureDArete`
+                            (lecture `auteur`/`jeu` d'une arête, `porteSelon`), `Atterrissage` (où l'on
+                            atterrit en quittant une surface, `surfaceDAtterrissage`),
+                            `Terrain`, `CellSide` (alias primitifs), `Fige` (marque de type d'une
+                            valeur GELÉE : ce qu'une migration rejoue, jamais la semence du jour).
+                            Comptes
+                            et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
+                            `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
+                            au foyer des caps (`noyau/monde/dir8.ts`)
+  monde/dir8.ts               Dir8 (8 caps grille) + géométrie associée : rotateDir8, DIR8_DELTA,
+                              facingToward (#161 : ex-`gameIso/rig/facing.ts` — la géométrie de cap grille
+                              n'est pas du rendu, `gameIso` la ré-importe pour l'orientation écran)
+  monde/seating.ts            ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
+                              (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
+                              avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
+                              `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
+                              `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
+  monde/campaignNarratif.ts SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
+                            = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
+                            `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
+                            global (`narratifSchema` refuse toute collision d'id).
+  monde/resolveursDuNarratif.ts COUTURE UNIQUE de résolution de la couche de campagne (#767, #2817), sans store : chaque
+                            résolveur prend son narratif en ARGUMENT (celui de la partie, `campaignNarratif`, ou celui du
+                            projet édité) et lit par id STABLE. `presetDuNarratif`/`indiceDuNarratif`/`documentDuNarratif`
+                            = COUCHE-SEULEMENT (n'existent pas au global) ; `objetDuNarratif` chaîne campagne-D'ABORD puis
+                            règle globale (`trappingDesObjetsPuisDuCatalogue`). Tables mémoïsées par identité du narratif.
+                            Le moteur reste PUR : `engine/items` reçoit ce résolveur d'objet injecté aux sites d'état
+                            `giveTrapping` — il n'importe jamais le store.
+                            PNJ nommés (#671) : `resolvePresetCreature` résout un `presetId` de scène en créature mergée
+                            (`mergeCreatureProfile`, base globale + surcharges du preset) + apparence embarquée ; câblée au
+                            spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
+                            import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
+  monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
+  campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
+                            de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
+  store.ts                  store Zustand : GameState + vue (caméra/zoom) + campagne (scènes, dialogues,
+                            effets, temps/repos) + actions de combat — délègue aux modules (get,set) du
+                            noyau, dont il importe pour leur effet les modules à inscription (#2817 D2).
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-
                               `gameIso/viewLevel.ts`) — SOURCE dans `state`, lu par l'hôte du monde
                               (`gameIso/stage/MondeDeCampagne`)
@@ -552,7 +557,7 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/state/intents.ts        Allowlist coop du store : la classe de chaque action (invité, hôte, local,
                             interne), lue par `netFlow.ts` pour enrober les intents de l'invité.
-src/state/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
+src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
                             paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
                             plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
                             base, legend)` → {w,h,tiles} (1 char = 1 tuile) ; `parseWalledAscii` (box-drawing
@@ -640,7 +645,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   `netOwnership.controlsActive`). Garde : `src/state/jets-sans-classe.test.ts` (coop × commandée),
   `src/state/voyage-cadence.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
   owner de poste comme le fait déjà le registre de modales pour les interruptions.
-- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/state/modalArbiter.ts` l.110-112 :
+- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `src/noyau/modalArbiter.ts` l.110-112 :
   décision de bourse PARTAGÉE (argent du groupe) → seul l'hôte la tranche, comme les autres actions à
   l'argent du groupe (achat/vente marchand…) ; aucun routage d'intent coop pour cette décision. Lever
   ⇒ router `pendingCouncil` en intent coop (vote/délégation) comme le reste des décisions partagées.

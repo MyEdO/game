@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyZoneCrossings } from './combatPlacement';
+import { applyZoneCrossings } from '../noyau/combatPlacement';
 import type { BattleZone } from '../noyau/monde/zones';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

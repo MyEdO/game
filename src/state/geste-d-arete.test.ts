@@ -2,15 +2,15 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, type Scene, type Terrain, type WallClimb } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import { engage, disengageFrom } from '../engine/engagement';
-import { mountUp } from './mount';
-import { computeMoveReach, resolveMovement } from './combatFlow';
-import { intentAllowedFor, withActingSeat } from './netOwnership';
+import { mountUp } from '../noyau/mount';
+import { computeMoveReach, resolveMovement } from '../noyau/combatFlow';
+import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from './intents';
-import { planFranchissement, phaseDeChute } from './fallMove';
-import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant } from './gesteDArete';
+import { planFranchissement, phaseDeChute } from '../noyau/fallMove';
+import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant } from '../noyau/gesteDArete';
 import { climbMovementCost } from '../engine/movement';
 import { sceneMetresPerTile } from '../noyau/monde/scene';
 import { t, type MsgKey } from '../i18n';
@@ -18,8 +18,8 @@ import type { Pt } from '../noyau/monde/path';
 
 /**
  * PORTEUR d'un geste d'arête (#700, #2190) : UNE réponse pour `climbAcross`, `fallAcross`,
- * `windowAcross` (`state/gesteDArete.ts`) — Engagé : LDB 15 l.43-49 ; cavalier : LDB 14 l.179 (#2205) ;
- * `from` falsifié (#2190). Chaque refus est NOMMÉ par `refuserGeste` (`state/refusVisible.ts`) : la bannière
+ * `windowAcross` (`noyau/gesteDArete.ts`) — Engagé : LDB 15 l.43-49 ; cavalier : LDB 14 l.179 (#2205) ;
+ * `from` falsifié (#2190). Chaque refus est NOMMÉ par `refuserGeste` (`noyau/refusVisible.ts`) : la bannière
  * `refus` en combat, le journal hors combat.
  */
 

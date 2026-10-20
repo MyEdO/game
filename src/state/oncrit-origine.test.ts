@@ -8,9 +8,9 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { itemFromTrappingById, weaponFromItem } from '../engine/items';
 import type { Combatant, Weapon } from '../engine/types';
-import { applyAttackResult } from './combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { avanceEtapeCascade, draineCascade } from './cascadeTestKit';
+import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 
 /** Un arc qui porte Taillade (toute Blessure critique) et Empaleuse (le seul Coup Critique). */
 function arcTailladeEmpaleuse(): Weapon {

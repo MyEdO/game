@@ -2,15 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { resolvePortArrival } from './seaVoyageFlow';
+import { resolvePortArrival } from '../noyau/seaVoyageFlow';
 import { advanceCascade, setCascadeChoice } from '../noyau/cascade';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { RNG } from '../engine/dice';
 import { skillBaseValue, testValue, soutienDetail } from '../engine/skills';
 import { skillCharacteristicById } from '../engine/character';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
-import { inexplique, soutienDe } from './cascadeTestKit';
+import { inexplique, soutienDe } from './cascade.testkit';
 import { resolveStake } from '../data';
 
 /**

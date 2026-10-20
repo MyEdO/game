@@ -10,7 +10,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  * écrit-il « ? », « Le groupe », « Navire » à sa place ? Non : une absence IMPOSSIBLE est requise par le
  * type ou lève (`garanti`, `noyau/monde/combatants.ts`) ; une absence ATTEIGNABLE se NOMME en français de
  * joueur (`libelleOuAbsence`, `data/index.ts` ; la source d'un lot d'ops par `nomDeSource`, `engine/ops.ts` ;
- * le navire de campagne par `nomDuNavire`, `state/carriers.ts`).
+ * le navire de campagne par `nomDuNavire`, `noyau/carriers.ts`).
  *
  * FORME jugée sur l'AST (`typescript`), jamais sur le nom des variables : tout `??` ou `||` dont
  * l'opérande GAUCHE (ou le dernier maillon d'une chaîne `a ?? b?.label ?? …`) est un accès `label`/`name`
@@ -32,18 +32,18 @@ const EXEMPTES = new Map<string, string>([
   ["src/engine/ops.ts|ctx?.label ?? t(`op.nature.${nature}`)", PRIMITIVE],
   ["src/engine/traceLine.ts|row.label ?? t('casc.autoRowFallbackLabel')", AUTHORE],
   ["src/engine/traceLine.ts|d.label ?? t('casc.dieTraceLabel')", AUTHORE],
-  ["src/state/combatEffects.ts|e.label || t('eff.psychScene')", AUTHORE],
-  ["src/state/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
+  ["src/noyau/combatEffects.ts|e.label || t('eff.psychScene')", AUTHORE],
+  ["src/noyau/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
   ["src/noyau/monde/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
   ['src/gameIso/stage/PastilleEntite.tsx|mark.label ?? \'\'', AUTHORE],
   ['src/net/relay.ts|env.name ?? \'\'', OUTILLAGE],
   ['src/noyau/cascade.ts|st.label ?? \'Conséquences\'', AUTHORE],
-  ['src/state/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
-  ['src/state/combat/triggeredTest.ts|step.label ?? \'Réaction\'', AUTHORE],
-  ['src/state/combatEffects.ts|step.label ?? \'\'', AUTHORE],
-  ['src/state/combatFlow.ts|step.label ?? \'\'', AUTHORE],
-  ['src/state/combatFlow.ts|parryWeaponObj?.label ?? \'arme\'', SANS_ARME],
-  ['src/state/combatSlice.ts|w?.label ?? \'pièce\'', SANS_ARME],
+  ['src/noyau/combat/triggeredTest.ts|step.label ?? \'\'', AUTHORE],
+  ['src/noyau/combat/triggeredTest.ts|step.label ?? \'Réaction\'', AUTHORE],
+  ['src/noyau/combatEffects.ts|step.label ?? \'\'', AUTHORE],
+  ['src/noyau/combatFlow.ts|step.label ?? \'\'', AUTHORE],
+  ['src/noyau/combatFlow.ts|parryWeaponObj?.label ?? \'arme\'', SANS_ARME],
+  ['src/noyau/combatSlice.ts|w?.label ?? \'pièce\'', SANS_ARME],
   ['src/state/devtools.ts|c?.label ?? \'—\'', OUTILLAGE],
   ['src/state/devtools.ts|here?.label ?? \'?\'', OUTILLAGE],
   ['src/noyau/triggeredEffects.ts|eff.flow.test.label ?? \'Réaction\'', AUTHORE],

@@ -22,17 +22,17 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { applyOups, applyAttackResult, applyBladeTrap, resolveAttack } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
+import { applyOups, applyAttackResult, applyBladeTrap, resolveAttack } from '../noyau/combatFlow';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { stepInteraction } from '../noyau/cascade';
 import { pushHost } from '../noyau/rollSeam';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 import type { CascadeStep, BladeTrapFreeze, PendingDefense, SuiteDeCoup } from '../noyau/pendings';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, isUnarmed, itemFromTrappingById, recomputeLoadout } from '../engine/items';
-import { serveChef } from './shipPostes';
+import { serveChef } from '../noyau/monde/shipPostes';
 import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 

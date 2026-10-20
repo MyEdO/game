@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { resumeSuspendedAI } from './combatFlow';
+import { resumeSuspendedAI } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 

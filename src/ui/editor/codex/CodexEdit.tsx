@@ -48,7 +48,8 @@ import { apparenceSuivante } from '../../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from '../../compendium/CreaturePreview';
 import { porteurDApercu } from '../../compendium/apercuPorteur';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import { type Flow, EMPTY_FLOW, type TriggeredEffect, type EffectTrigger } from '../../../noyau/monde/flow';
+import { type Flow, type TriggeredEffect } from '../../../noyau/monde/flow';
+import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema } from '../../../data/schemas/grammaire/mecanique';
 import type { ManeuverDef, ManeuverMeasure } from '../../../data';
 import { SYMPTOM_SEVERITIES } from '../../../data';
@@ -171,7 +172,7 @@ function refIdsIn(v: unknown): string[] {
  *  `REF_LIST_DATASET`, qui ne regarde QUE les champs top-level de `entry`) : même garantie de
  *  résolvabilité, décrite par un accesseur PUR `entry → (id|undefined)[]`. #173 : `mutationTables.
  *  ranges[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
- *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`state/combatFlow.ts::
+ *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`noyau/combatFlow.ts::
  *  domainCastBonus` au runtime) — ajouter une réf nichée = ajouter SON accesseur ici. `weather.json`
  *  partage la forme `ranges[]` mais sa clé est `.weather` (union fermée, pas une réf de dataset) :
  *  l'accesseur `mutation` y est simplement `undefined`, filtré plus bas — aucun faux positif. */

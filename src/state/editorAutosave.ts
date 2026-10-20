@@ -1,6 +1,6 @@
 import type { Scene } from '../noyau/monde/scene';
 import { accesBase } from '../web/indexedDb';
-import { parseSceneDeProjet, exigerUnRefus, type ProjetRefuse } from './worldMap';
+import { parseSceneDeProjet, exigerUnRefus, type ProjetRefuse } from '../noyau/worldMap';
 
 /**
  * Sauvegarde locale AUTOMATIQUE de la scène en cours d'édition : filet du crash de rendu de

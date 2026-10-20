@@ -13,9 +13,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ChapterRecapScreen } from './ChapterRecapScreen';
 import { SessionEndModal } from './SessionEndModal';
 import { useGame } from '../state/store';
-import { applyEffects } from '../state/combatEffects';
-import type { ChapterRecap } from '../state/chapitreRecap';
-import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
+import { applyEffects } from '../noyau/combatEffects';
+import type { ChapterRecap } from '../noyau/chapitreRecap';
+import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

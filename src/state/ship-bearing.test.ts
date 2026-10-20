@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { shipOfCrew, mountedWeaponBears, applyShipPostes } from './shipPostes';
+import { shipOfCrew, mountedWeaponBears, applyShipPostes } from '../noyau/monde/shipPostes';
 import type { Combatant, ShipPoste } from '../engine/types';
 
 /**

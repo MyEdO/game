@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../engine/qualities/normalize';
-import { resetFields } from './stateFields';
+import { resetFields } from '../noyau/stateFields';
 import { useGame, type BattleState } from './store';
-import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascadeTestKit';
-import { flowFromEffects, flowEffects, testFlow, EMPTY_FLOW } from '../noyau/monde/flow';
-import { buildAdvancementView } from './advancement';
+import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascade.testkit';
+import { flowFromEffects, testFlow } from '../noyau/monde/flow';
+import { flowEffects, EMPTY_FLOW } from '../engine/flowCore';
+import { buildAdvancementView } from '../noyau/monde/advancement';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene, type ActionAuthoree } from '../noyau/monde/scene';
@@ -14,8 +15,8 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance, type Weapon } 
 import { isOutOfAction } from '../engine/conditions';
 import { CAP_GROUPE, capDuGroupe } from '../noyau/monde/combatants';
 import { fleeBackstab, fleeTouche } from '../noyau/pendings';
-import { applyAttackResult, applyEffects, applyEffectsLoot, runFlow, computeMoveReach } from './combatFlow';
-import { mountUp } from './mount';
+import { applyAttackResult, computeMoveReach } from '../noyau/combatFlow';
+import { mountUp } from '../noyau/mount';
 import { combatValue, resolveMeleePassive } from '../engine/combat';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { AttackResult } from '../engine/combat';
@@ -26,16 +27,17 @@ import { loadRegister, weaponLoaded, reloadProgressOf } from '../engine/weaponLo
 // L'état de charge vit sur l'ARME (chaque arme à distance gère son
 // rechargement et sa munition) — raccourci de FIXTURE vers l'arme à distance du combattant.
 const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { TIME_COST } from '../engine/timeCost';
 import { toBrass, type Money } from '../engine/money';
-import { partyMoneyTotal, creditBourse, ensureBourse, bourseInstanceOf } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
+import { ensureBourse, bourseInstanceOf } from '../engine/bourse';
 import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
-import { entityPickables, OPS_DIFFEREES } from './combatEffects';
+import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow } from '../noyau/combatEffects';
 import { t } from '../i18n';
 import { makeRNG } from '../engine/dice';
-import { objetDuNarratif } from './resolveursDuNarratif';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -334,7 +336,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   // resolveTest avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
-  function mkToolTest(quality: string, over: Partial<import('./store').PendingTest>): Combatant {
+  function mkToolTest(quality: string, over: Partial<import('../noyau/pendings').PendingTest>): Combatant {
     const hero = {
       id: 'h1', label: 'Lest', kind: 'hero',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -1824,7 +1826,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
   });
 
   /** RÉSERVE de la revue (#1443, round 3) : un déplacement-puis-interaction armé n'a plus de sens
-   *  quand un combat s'ouvre — le pending appartient au cadre `combatStart` (`state/stateFields`),
+   *  quand un combat s'ouvre — le pending appartient au cadre `combatStart` (`noyau/stateFields`),
    *  comme ses voisins de recharge, de désengagement ou d'empoignade. */
   it('un pending armé ne survit pas à l’ouverture d’un combat', () => {
     armedScene();

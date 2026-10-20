@@ -17,11 +17,11 @@
  */
 import type { GameState } from './store';
 import { useGame } from './store';
-import { activeCombatant } from './combatFlow';
+import { activeCombatant } from '../noyau/combatFlow';
 import { actorIn } from '../noyau/monde/combatants';
-import { nomDEntite } from './sceneNpc';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from './campaignData';
-import { controlsActive } from './netOwnership';
+import { controlsActive } from '../noyau/netOwnership';
 import type { OffreRendue, OffresRenduesParPorteur } from './offreRendue';
 import { ACTIONS, type ActionDef } from '../data/index';
 import {
@@ -33,7 +33,7 @@ import {
   type ActionGate,
   type ActionRunCtx,
   type ActionSelectorCtx,
-} from './actionRegistry';
+} from '../noyau/actionRegistry';
 
 /** UNE offre : de quoi la peindre (libellé, icône, coût), la refuser avec sa raison (`gate`), et la
  *  commettre par la porte unique du registre (`actionId` + `args`). */

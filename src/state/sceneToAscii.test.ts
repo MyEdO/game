@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene, type MapSpec } from './mapSpec';
+import { buildScene, type MapSpec } from '../noyau/mapSpec';
 import { heightAt, isDescriptiveZone, tileAt, type Scene, type SceneEffectZone } from '../noyau/monde/scene';
 import { sceneZoneTiles } from '../noyau/monde/zones';
 import { sceneToAscii } from './sceneToAscii';

@@ -7,7 +7,7 @@ import { useGame } from '../state/store';
 import { emptyScene } from '../noyau/monde/scene';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
-import type { WorldMap } from '../state/worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const get = useGame.getState.bind(useGame);

@@ -699,7 +699,7 @@ Ordre de préférence STRICT pour exercer un flux :
 > `EXPLORE_STEP` (`src/state/clavier/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
 > (`src/state/combatCursor.ts`) — pas des axes de grille, d'où des pas en diagonale de grille en vue iso.
 > La case d'arrivée n'est PAS un delta de grille fixe : `stepPartyDir` → `exploreStepDest`
-> (`src/state/exploreNav.ts`) retient la voisine CONNECTÉE dont le centre est le mieux aligné avec la
+> (`src/noyau/monde/exploreNav.ts`) retient la voisine CONNECTÉE dont le centre est le mieux aligné avec la
 > direction ÉCRAN poussée (`screenStepDot`, `src/state/combatCursor.ts`) — le delta `x`/`y` dépend donc de
 > la rotation caméra et de la vue. Vérifier le déplacement par la position lue (`__wfrp.state()`), jamais
 > par un delta attendu en dur.
@@ -789,7 +789,7 @@ Trouver le helper par ce qu'on veut FAIRE ; son détail est à sa rangée (table
 | `editorEntities()` | INVENTAIRE du BROUILLON ouvert à l'éditeur : `{ id, kind, ref?, pos }` par entité — pour retrouver l'id que l'éditeur vient d'attribuer à ce qu'on a posé à la carte, avant de le passer à `editorPatchEntity` | lecture seule. ⚠ `entities()` lit la scène du STORE DE JEU, PAS le brouillon de l'éditeur : les deux divergent dès la première édition. Même pont et même attente qu'`editorOpen` ; rejet NOMMÉ si l'éditeur ne se monte pas |
 | `editorWorldMap()` | LECTURE SEULE du BROUILLON de carte du monde ouvert à l'éditeur (#2306) : `{ id, label, lieux, routes }` — lieux `{ id, label, scene, pos, when? }`, routes `{ id, a, b, km, when?, refus? }` —, `null` si le projet n'en porte aucune | lecture seule. ⚠ `routes()` lit la carte du STORE DE JEU, PAS le brouillon. Même pont et même attente qu'`editorEntities` ; rejet NOMMÉ si l'éditeur ne se monte pas |
 | `editorAreteScreenPos(x, y, z, dir, montageMs = 3000)` | point ÉCRAN du milieu de l'arête `dir` de la case (x, y) à l'étage `z` dans le canevas de l'ÉDITEUR, par la projection de sa vue (rotation, plan/iso, zoom, panoramique) — là où un VRAI clic de l'outil murs résout l'arête. Symétrique éditeur d'`areteScreenPos` ; `Promise` (`await`) | même voie et même attente qu'`editorEntities` ; refus NOMMÉ « ✗ canevas de l'éditeur non monté (aucune CTM) » |
-| `editorPatchEntity(entityId, patch)` | PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur : patch PARTIEL, une clé à `undefined` vaut ABSENTE. Le TYPE ne se retire PAS : le patch passe la porte d'authoring (`state/sceneEdit.ts:editEntity`, #877/#1882), qui refuse la transition « un porteur du type avant, aucun après » (`TypeNonNomme`) — l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue : `editorPatchEntity('p0', { ref: 'decor-absent' })`. Même voie qu'`editorOpen` : le pont d'INTENTION `state/editeurBridge` (commande `patcherEntite`), jamais une remontée du fiber React de `.editor-inspector` | SETUP seulement — préparer l'état, jamais déclencher le flux mesuré (c'est « Fichier → Exporter JSON » ou « Importer JSON… » qu'on clique ensuite à la main). QUATRE refus NOMMÉS : rejet si l'éditeur ne se monte pas (3000 ms, le message porte le helper appelé), `✗ « id » introuvable` listant les ids de la scène, `✗` sur une clé d'IDENTITÉ (`id`, `kind`) qu'aucun patch ne touche, et `✗` sur un type retiré, qui nomme le porteur absent. Le patch passe par le seam d'assise unique (`state/sceneEdit.ts:editEntity`) : il est ANNULABLE (Ctrl+Z) et normalisé comme une édition d'auteur. ⚠ « ABSENTE » vaut au DOCUMENT : en mémoire la clé reste présente à `undefined` (`{ ...e, ...patch }`, `state/sceneEdit.ts:patchEntity`) — `'ref' in ent` rend encore `true`, c'est la sérialisation (`JSON.stringify`) qui la fait disparaître, et le schéma qui la lit comme manquante |
+| `editorPatchEntity(entityId, patch)` | PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur : patch PARTIEL, une clé à `undefined` vaut ABSENTE. Le TYPE ne se retire PAS : le patch passe la porte d'authoring (`noyau/sceneEdit.ts:editEntity`, #877/#1882), qui refuse la transition « un porteur du type avant, aucun après » (`TypeNonNomme`) — l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue : `editorPatchEntity('p0', { ref: 'decor-absent' })`. Même voie qu'`editorOpen` : le pont d'INTENTION `state/editeurBridge` (commande `patcherEntite`), jamais une remontée du fiber React de `.editor-inspector` | SETUP seulement — préparer l'état, jamais déclencher le flux mesuré (c'est « Fichier → Exporter JSON » ou « Importer JSON… » qu'on clique ensuite à la main). QUATRE refus NOMMÉS : rejet si l'éditeur ne se monte pas (3000 ms, le message porte le helper appelé), `✗ « id » introuvable` listant les ids de la scène, `✗` sur une clé d'IDENTITÉ (`id`, `kind`) qu'aucun patch ne touche, et `✗` sur un type retiré, qui nomme le porteur absent. Le patch passe par le seam d'assise unique (`noyau/sceneEdit.ts:editEntity`) : il est ANNULABLE (Ctrl+Z) et normalisé comme une édition d'auteur. ⚠ « ABSENTE » vaut au DOCUMENT : en mémoire la clé reste présente à `undefined` (`{ ...e, ...patch }`, `noyau/sceneEdit.ts:patchEntity`) — `'ref' in ent` rend encore `true`, c'est la sérialisation (`JSON.stringify`) qui la fait disparaître, et le schéma qui la lit comme manquante |
 | `projectMinimal(id?, label?)` | rend une entrée de BIBLIOTHÈQUE DE PROJETS (`SavedProject`) minimale et VALIDE — une scène vide (`emptyScene`) enveloppée par `documentDeProjet`, identité d'un projet d'auteur (`MAISON_PROJET_AUTHORE`) : elle passe `parseProject`. Rien n'est écrit | SETUP seulement : la recette la DÉFORME pour son cas (jamais un document recopié du schéma, où un champ oublié — `maison` — fait refuser PLUS TÔT que le refus mesuré), puis la pose par `projectSave` |
 | `projectSave(entree)` | POSE l'entrée en bibliothèque par la fonction du même nom (`projectSave`, `state/projectLibrary.ts`) : le cache de `projectsLoad` est mis à jour, AUCUN rechargement de page requis (`✓ projet « id » posé…`, `✗` portant le message de l'écriture en échec) | SETUP seulement. Aucune porte : une entrée déformée se pose telle quelle. Les écrans qui listent les projets (« Ouvrir » de l'éditeur, bibliothèque de campagnes) lisent le cache à leur OUVERTURE (`useState(() => projectsLoad())`) : poser AVANT de les ouvrir, sinon les fermer et rouvrir. Setup et geste tiennent dans UNE session (`restaurerStockage` à `session.close()`, § « Pièges vécus ») |
 | `roofCut(on=false)` | lève-toit ON/OFF — `roofCut(false)` débraye le dégagement de la pièce occupée : toits, façades et décors de toit RESTENT peints même quand le groupe entre dans l'empreinte, **hors le disque local de perçage autour de chaque héros** | bascule GLOBALE — remettre `roofCut(true)` avant de valider un flux de vue réel (symétrique de `fog`). Ne débraye QUE le dégagement de PIÈCE : le perçage par occlusion (#1176 M3, `src/gameIso/stage/percage.ts`) reste actif, donc un trou subsiste dans la nappe au-dessus d'un héros qu'elle cache |
@@ -822,7 +822,7 @@ vues : canevas remonté, rechargement). Réarmer `echantillonner` avant la desce
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `battle()` | snapshot combat (round, actif, modales, `preview`, `endTurnArmed`, combattants une ligne chacun — dont `armes: [{ label, trappingId, formeChoisie, formeResolue }]`, les armes TENUES) | lecture seule. `preview` = l'APERÇU ARMÉ brut du store (`BattleState.preview` : `kind`, `path`, `tile`/`targetId`, `cost`…), pas une projection de recette — c'est lui que le 2ᵉ clic commet (`state/targetingModes.ts`, `samePreview`) : un 1er clic qui n'arme pas le geste attendu se lit ICI, avant de conclure à un clic mort |
+| `battle()` | snapshot combat (round, actif, modales, `preview`, `endTurnArmed`, combattants une ligne chacun — dont `armes: [{ label, trappingId, formeChoisie, formeResolue }]`, les armes TENUES) | lecture seule. `preview` = l'APERÇU ARMÉ brut du store (`BattleState.preview` : `kind`, `path`, `tile`/`targetId`, `cost`…), pas une projection de recette — c'est lui que le 2ᵉ clic commet (`noyau/targetingModes.ts`, `samePreview`) : un 1er clic qui n'arme pas le geste attendu se lit ICI, avant de conclure à un clic mort |
 | `hover('id'\|{x,y}\|null)` | survol PROGRAMMATIQUE (tooltip + réticule sans souris) | requiert le monde de campagne monté (`✗ monde de campagne non monté` sinon) |
 | `aim('id')` | vérité state du ciblage pour l'actif (`ok`/`invalid`/`none` + raison, compétence, dégâts) | uniquement en combat |
 | `pad('A'\|'B'\|…)` / `padDir('up'\|…)` | simule bouton/direction manette (shim DEV, MÊME chemin que la vraie manette) | requiert le shim `window.__wfrpPad(Dir)` installé (`useGamepad` monté) |
@@ -853,7 +853,7 @@ l'UNIQUE point de montage qui l'appelle. Poser `pendingTest` à la main (`store.
 `CascadeModal` soit monté ne produit donc aucune modale visible (piège du dernier recours de la
 doctrine ci-dessus). Raccourci de démo LÉGITIME pour l'armer EN COMBAT (passe par une vraie action du
 store, pas un `setState` forgé) : `__wfrp.store.getState().battleGainAdvantage(skillId)`
-(`src/state/combatSlice.ts`) — ouvre le `pendingTest` « Avantage — <compétence> » (LDB 09 l.305-308),
+(`src/noyau/combatSlice.ts`) — ouvre le `pendingTest` « Avantage — <compétence> » (LDB 09 l.305-308),
 à condition que `skillId` soit une Compétence que le combattant actif POSSÈDE (`hero.skills`) et dont
 la donnée porte `combatAdvantage` (`SkillData`, ex. `intuition`) ; sinon l'action ne fait rien
 (silencieux, cf. gate `skillAdvantageCap`).
@@ -862,7 +862,7 @@ la donnée porte `combatAdvantage` (`SkillData`, ex. `intuition`) ; sinon l'acti
 LANCEMENT ne passe PAS par le bouton « Focaliser (X/CN) » — celui-ci (`battleFocusSpell`) ne fait
 QUE (re)poser/empiler de la Focalisation, il ne lance jamais le sort. Le lancement effectif passe
 par un clic sur le **TOKEN DU LANCEUR lui-même** sur la carte (`castClickCommit`,
-`src/state/targetingModes.ts` — le clic-combattant en mode `cast` vise l'allié/ennemi/SOI selon le
+`src/noyau/targetingModes.ts` — le clic-combattant en mode `cast` vise l'allié/ennemi/SOI selon le
 token cliqué). Défaut d'affordance joueur ticketé par ailleurs — cette section décrit l'état ACTUEL,
 pas la cible d'UX.
 
@@ -877,11 +877,11 @@ pas la cible d'UX.
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — par la porte `spawnEnemy` (`src/state/spawn.ts`) du peuplement de scène, sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'hero'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup — `'hero'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
+| `spawn(creatureId, pos?, {side?, id?}?)` | instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — par la porte `spawnEnemy` (`src/noyau/monde/spawn.ts`) du peuplement de scène, sans rencontre de scène. `spawn('gobelin')` / `spawn('gobelin', {x:12,y:8}, {side:'hero'})` | `pos` défaut : à côté du combattant ACTIF (sinon 1er combattant positionné) ; `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup — `'hero'` marque aussi `aiControlled` (allié PNJ piloté par l'IA, jamais un 5ᵉ héros manuel) ; `creatureId` inconnu → `✗` |
 | `turn('id')` | donne le TOUR à un combattant (réinitialise Action/Mouvement, budget de Course, porte de Peur, postures) | Refus NOMMÉS (`✗`) : pas de combat, absent de l'ordre d'initiative, hors de combat, et pendant la PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »). Saute les bornes de Round — mise en place, pas simulation de partie. **Ne DÉCLENCHE PAS l'IA** (mesuré #1135) : positionne l'index de tour SEULEMENT (`battle.turn`), aucune logique de début de tour n'est invoquée — un ennemi conduit par l'IA reste immobile. Enchaîner `fastForward()` pour qu'il agisse. **Ne purge PAS l'armement de fin de tour** (`battle.endTurnArmed`, deux temps « Finir quand même ? ») : rappeler `turn()` sur le MÊME combattant au même Round après un cycle armé→confirmé peut retrouver l'empreinte d'économie de l'armement et afficher « Finir quand même ? » d'emblée — prendre un combattant vierge ou changer de Round (mesuré recette P2-A) |
 | `attaque(attaquantId, defenseurId)` | SETUP : POSE l'attaque d'un combattant PILOTÉ PAR L'IA sur un défenseur CHOISI et OUVRE la modale de Défense de ce dernier — c'est son CONTENU qu'on recette (parade du porteur d'une arme, options offertes). La fenêtre s'ouvre par la couture de la déclaration d'attaque de l'IA (`combatFlow.ts:maybeOpenDefense`), au tour de l'attaquant, qui lui est donné si besoin : sa fermeture reprend ce tour comme après une attaque d'IA | Refus NOMMÉS (`✗`), sans rien toucher : pas de combat, combattant introuvable ou hors de combat, attaquant absent de l'ordre d'initiative ou PILOTÉ PAR UN JOUEUR (son attaque passe par la modale d'attaque), Défense déjà ouverte, PAUSE de début de Round (« ✗ pause de début de Round : ouvrir le Round d'abord (__wfrp.confirm()) »), tour en cours d'un combattant PILOTÉ PAR L'IA dont les minuteurs sont en vol (« ✗ tour de X, piloté par l'IA (minuteurs en vol) : attendre la main d'un joueur (__wfrp.fastForward()) ») ; puis, si la couture ne l'ouvre pas, la raison : défenseur non surfacé (piloté par l'IA), pas au contact (`place()` d'abord), incapable de se défendre (`cannotDefend`), aucune Défense opposable à l'arme. Ensuite : la répondre aux vrais boutons, ou `resoudreModales` avec un `arret` sur `jet === 'defense'` pour la laisser ouverte |
 | `attaqueGratuite(attaquantId, defenseurId, type?)` | SETUP : l'ENNEMI piloté par l'IA déclare une attaque GRATUITE de créature (`morsure`, `caudale`, `tentacules`, `cornes`, `pietinement` ; défaut = la première disponible) sur le défenseur, par la file de PRODUCTION des gratuites d'IA (`combatFlow.ts:aiCreatureFreeAttacks`) posée à cette seule unité, au tour de l'attaquant qui lui est donné AVANT : sa fermeture reprend ce tour comme après une gratuite d'IA. Le coût d'Avantage est PAYÉ (`quality(id, null, n)` pour le créditer) | Refus NOMMÉS (`✗`), sans rien toucher : ceux d'`attaque`, attaquant non ennemi, aucune gratuite disponible contre ce défenseur (trait Morsure/Attaque caudale/Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact), `type` absent des disponibles (les liste), hors de portée (distance > 1, `place()` d'abord), défenseur non surfacé ou incapable de se défendre ; si la file ÉCARTE l'unité (Avantage sous le coût), le tour est rendu et le coût nommé. Une gratuite DÉCLARÉE rend `✓` dans trois issues : modale de Défense ouverte — la file vise le PREMIER adversaire au contact, donc sur le défenseur ou sur un autre héros surfacé au contact, nommé (« … sur Tireur — modale de Défense ouverte (premier adversaire au contact, pas H) ») ; coup suspendu sur une étape (« coup suspendu sur l'étape sauvegarde », `modal()`) ; coup joué sans fenêtre sur un adversaire qui n'en ouvre pas (`log()`) — gardes de mêlée de `maybeOpenDefense` (`combatFlow.ts`, la fenêtre des attaques d'IA) : non surfacé (piloté par l'IA), hors d'Allonge, ou incapable de se défendre (`cannotDefend` : un statut porté qui déclare `gating.cannotDefend`, Surpris, Inconscient). Recetter la fenêtre du défenseur choisi : l'isoler des autres adversaires au contact |
-| Armer la Course | aucun helper : la Course se joue comme un joueur. `cliquerAction(session, 'course')` ARME l'intention (`portee-course`, `src/state/localIntent.ts`) : la case porte alors la classe `on` (`.cc-cell[data-action="course"].on`) et la zone de Course se peint ; un clic de carte (`{ surface: SURFACE_CARTE, x, y }`) sur une case AU-DELÀ de la Marche ouvre la modale de Course. Sans l'armement, une case au-delà de la Marche est refusée (bandeau), et une case dans la Marche se marche sans modale | l'armement est une BASCULE : l'intention se consomme au clic de carte et tombe en fin de tour ; un second clic sur la case Course la désarme (`combatSlice.ts`, bascule de `localIntent`). Son état se LIT à la classe `on` de la case, jamais au nombre de clics. La Course exige le Mouvement entier du Tour (`computeRunReach`, `src/state/combatFlow.ts`) : « Monter » prend ce Mouvement (`battleMount`, `src/state/combatSlice.ts`), un cavalier ne court qu'au Tour suivant sa mise en selle |
+| Armer la Course | aucun helper : la Course se joue comme un joueur. `cliquerAction(session, 'course')` ARME l'intention (`portee-course`, `src/noyau/localIntent.ts`) : la case porte alors la classe `on` (`.cc-cell[data-action="course"].on`) et la zone de Course se peint ; un clic de carte (`{ surface: SURFACE_CARTE, x, y }`) sur une case AU-DELÀ de la Marche ouvre la modale de Course. Sans l'armement, une case au-delà de la Marche est refusée (bandeau), et une case dans la Marche se marche sans modale | l'armement est une BASCULE : l'intention se consomme au clic de carte et tombe en fin de tour ; un second clic sur la case Course la désarme (`combatSlice.ts`, bascule de `localIntent`). Son état se LIT à la classe `on` de la case, jamais au nombre de clics. La Course exige le Mouvement entier du Tour (`computeRunReach`, `src/noyau/combatFlow.ts`) : « Monter » prend ce Mouvement (`battleMount`, `src/noyau/combatSlice.ts`), un cavalier ne court qu'au Tour suivant sa mise en selle |
 | `place('id',{x,y})` | téléporte un combattant | **PIÈGE COMPOSITE (corrigé)** : cible une coque à postes (`postes` non vide) ou un membre de `ShipPoste.crewIds` → déplace la FORMATION ENTIÈRE (coque + tout l'équipage des postes) du même delta, MÊME sémantique que la poussée (`pushCommitTile`). Téléporter la coque SEULE désynchronisait aperçu (postes) et portée réelle (équipage resté en arrière) — 30 % du budget d'une recette perdu à débugger ce déphasage avant fix. Retourne `{msg, moved:[ids]}` en cas composite, une chaîne sinon (combattant simple inchangé). |
 | `turnShip('id','tribord'\|'babord'\|crans)` | vire le cap d'un navire (triche, sans jet) | ne déplace QUE le cap (`facing`), jamais la position — vérifier ensuite avec `aim()` |
 | `maneuver('id', side?, helmsmanId?)` | manœuvre RÉELLE (Test de Navigation, peut échouer) | contrairement à `turnShip`, PEUT rater — pas une triche. Un raté rend « ✓ Test joué : <navire> rate la manœuvre (DR n) — cap <cap> inchangé » : le `✓` dit que le Test est JOUÉ, pas réussi — lire le DR et le cap |
@@ -915,7 +915,7 @@ pas la cible d'UX.
 | `flags()` / `flag('id', value=true)` | lit/force un drapeau de scénario | id de règle optionnelle refusé avec renvoi à `rules(id, value)` |
 | `setMorale(n)` | pose directement `vessel.morale.score` (setup, MÊME patron que `flag()`) | pas le pipeline hebdomadaire (`recalcMorale`) — sert à rendre la désertion à quai (bande ≤75, `moraleBand(score).desertionRoll`) observable sans dérouler des semaines de facteurs ; `✗` sans `state.vessel` |
 | `gmSeat(bool?)` | flip du siège MJ SOLO (`setGmSeat`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `setParty`/`startScene`/`loadProject` — seuls `setGmSeat` et la fermeture d'un siège `netSeatClosed` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
-| `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `restParty` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`restSleep` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`state/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
+| `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `restParty` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`restSleep` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`noyau/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
 | `chantier('reparer'\|'carener'\|upgradeId, units?)` | services du chantier naval au port | hors combat, navire de campagne requis |
 | `massBattle(ally?, enemy?, rounds?)` | lance une bataille de masse de démo | la scène courante doit porter les rencontres attendues |
 | `scenario(id?, seed?)` | lance un scénario de test PRÊT À JOUER ; sans argument : liste les ids | Round 1 déjà acquitté, initiative déterministe SI `seed`. Un id inconnu ou une scène vide JETTENT une `Error` nommée (#1734) : l'id inconnu porte l'id demandé ET la liste des ids ; la scène vide (aucune scène active, ou `scene.entities` à 0) porte son id et son compte d'entités. Un lancement refusé n'écrit RIEN dans la mémoire d'onglet de `resumeLastScenario()` |
@@ -969,7 +969,7 @@ alors que `creation-gnome-jouable` vaut `false` par défaut.
 
 ### Voyage en mer — accélérer une traversée commandée (recette, #297)
 
-La progression jour par jour d'une traversée EN MER (`runSeaDay`, `state/seaVoyageFlow.ts` — météo,
+La progression jour par jour d'une traversée EN MER (`runSeaDay`, `noyau/seaVoyageFlow.ts` — météo,
 périls, halte de nuit) enchaîne les jours ; chaque jour est UNE cascade (`pendingCascade`, `purpose:
 'travelDay'`) qui se SUSPEND à chaque étape influençable et à chaque halte de nuit (`pendingRest`) ;
 elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`rest()` (ci-dessus,
@@ -1462,7 +1462,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Ordre canonique en combat piloté : DRAINER toute modale AVANT `turn('id')`** — `turn()` réinitialise
   `battle.acted:false` pour le NOUVEL actif, mais une résolution en vol d'une modale déjà ouverte
   (`pendingDefense`, cascade d'attaque…) écrit son résultat en fusionnant sur le `battle` COURANT
-  (`{...battle, acted: true, …}`, ex. `src/state/combatSlice.ts`/`combatFlow.ts`), donc APRÈS le
+  (`{...battle, acted: true, …}`, ex. `src/noyau/combatSlice.ts`/`combatFlow.ts`), donc APRÈS le
   `turn()`. Résultat : `battle.acted=true` fantôme posé sur le combattant qui vient de recevoir le
   tour, qui bloque silencieusement son Action sans message d'erreur. Vider `modal()`/`pendingDefense`/
   `pendingCascade`/tout `pending*` (`roll()`/`confirm()`/vrais boutons) AVANT tout `turn('id')`.
@@ -1527,8 +1527,8 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 
 - **Sort de ZONE = DEUX portées, DEUX clics** : le clic sur un token ne fait qu'ARMER l'incantation
   (`castZoneSpell` ouvre la modale sans cible — le centre se choisit APRÈS le jet,
-  `src/state/combatFlow.ts`). Le placement réel est un SECOND mode clic-case (« Poser la zone »,
-  `PLACING_MODE` de `src/state/targetingModes.ts`) avec SA PROPRE validité : portée du sort mesurée
+  `src/noyau/combatFlow.ts`). Le placement réel est un SECOND mode clic-case (« Poser la zone »,
+  `PLACING_MODE` de `src/noyau/targetingModes.ts`) avec SA PROPRE validité : portée du sort mesurée
   du lanceur à la CASE + Ligne de Vue (`placedZoneValidAt`). Un `aim()` ok sur une cible ne dit RIEN
   de la case de pose, et une case hors portée échoue SANS message (`commitPlacedZone`/`castCommitZone`
   retournent sans rien faire, le clic est mort). En recette : poser la zone sur une case PROCHE du
@@ -1572,8 +1572,8 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Combat naval — l'arc de bordée d'une pièce montée (`weapon.mountSide`)** : `firedAttackBlock`
   refuse le tir avec `reason:'arc'` si la cible n'est pas dans l'arc du bord monté, calculé depuis le
   cap de la COQUE support (`shipOfCrew` → `get().facing[ship.id]`), pas celui du servant
-  (`src/state/combatFlow.ts:334-344`). Tribord/babord pointent PERPENDICULAIREMENT au cap (rotation de
-  2 crans de 45°, `arcDir8`/`mountedWeaponBears`, `src/state/shipPostes.ts:128-146`) : une cible dans
+  (`src/noyau/combatFlow.ts:334-344`). Tribord/babord pointent PERPENDICULAIREMENT au cap (rotation de
+  2 crans de 45°, `arcDir8`/`mountedWeaponBears`, `src/noyau/monde/shipPostes.ts:128-146`) : une cible dans
   l'axe proue-poupe est TOUJOURS hors arc tribord/babord, quelle que soit la distance. Diagnostic à
   l'écran : `aim('cible')` → `{invalid, reason:'arc'}` = géométrie, pas munition/portée ; re-vérifier
   après un `turnShip`/`maneuver` du navire.
@@ -1593,12 +1593,12 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 - **Combat naval — `aim('<coque>')` n'est (quasi) jamais une attaque directe** : une coque composite
   (`postes` non vide) est routée par `attackAffordance` vers « Servir »/« Renfort » (poste libre
   ADJACENT et acteur non déjà en poste) ou `none` — jamais vers un réticule d'attaque
-  (`src/state/targetingModes.ts:237-242`, `serveTargetPoste`/`servablePostes`,
-  `src/state/shipPostes.ts:339-361`). En pratique, un héros DÉJÀ posté (`mannedPoste` renseigné) tombe
+  (`src/noyau/targetingModes.ts:237-242`, `serveTargetPoste`/`servablePostes`,
+  `src/noyau/monde/shipPostes.ts:339-361`). En pratique, un héros DÉJÀ posté (`mannedPoste` renseigné) tombe
   systématiquement sur `none` (`serveTargetPoste` refuse tant qu'on sert déjà une pièce) : la coque
   ennemie n'est donc pas une cible d'`aim()`, seuls ses membres d'équipage embarqués (`crewIds`) le
   sont. Dégâts à la coque = la Bordée, action du TOUR DE NAVIRE (mode `battery`, `batteryAffordance`,
-  `src/state/targetingModes.ts:175-187`), un flux de ciblage SÉPARÉ de l'attaque personnelle.
+  `src/noyau/targetingModes.ts:175-187`), un flux de ciblage SÉPARÉ de l'attaque personnelle.
 - **Combat naval — `place('id',{x,y})` ne réinitialise PAS `battle.action`/l'arme choisie** (vérifié
   empiriquement sur `src/state/devtools.ts:1089-1112` : la fonction mute `pos` puis
   `useGame.setState({ battle: { ...b } })` sans toucher `action`/`selectedAttack`) — repositionner une
@@ -1611,7 +1611,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   ciblage que cliquer le pion sur la carte (`src/ui/CampaignView.tsx:142-166`, `onStripPortrait`/
   `onDockPortrait`) — puis ouvre la modale Attaque. La modale PRÉSÉLECTIONNE l'arme PERSONNELLE du
   servant, jamais l'arme de poste (`personalWeaponsOf` exclut explicitly l'arme du poste servi de
-  l'auto-choix, `src/state/mount.ts:104-121`) : RE-sélectionner l'arme de poste dans le `<select>`
+  l'auto-choix, `src/noyau/mount.ts:104-121`) : RE-sélectionner l'arme de poste dans le `<select>`
   « Arme » de la modale (`src/ui/jetProps/useAttackJetProps.tsx:171-184`) avant de lancer le jet.
 
 - **Ouvrir la fiche complète d'un héros (`CharacterSheet`)** : `sheetId` est un `useState` LOCAL au
@@ -1715,9 +1715,9 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 |---|---|---|---|
 | 1 | **Un jet possédé par l'invité surface CHEZ LUI** | `ActiveModal` (`src/ui/ActiveModal.tsx`) ne monte la modale que si le siège local possède le concerné (`modalOwnerOf` + `ownsLocal`) ; `'*'` = tous | **invité** : la modale est rendue (`.modal-overlay`) — **hôte** : rien. Hors tour du concerné (défense réactive), l'hôte a la puce `.spectator-chip` |
 | 2 | **Le `pending*` NE prouve rien** | l'état voyage entier (`netSnapshot`) | `__wfrp.modal()` répond PAREIL des deux côtés — la possession se lit au DOM, jamais au pending. C'est le piège n°1 d'une recette coop |
-| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/state/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/state/netOwnership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
+| 3 | **Le choix de GROUPE va au meneur** | dialogue = décision de groupe : `chooseDialogue`/`closeDialogue`/`interactEntity` sont routés `seat === (net.gmSeat ?? 0)` (`ROUTES`, `src/noyau/netOwnership.ts`) ET absents de `GUEST_INTENTS` ; `DialogueBox` lit le MÊME routage par `ownsGroupDecision` (`src/noyau/netOwnership.ts`) | l'invité VOIT le dialogue (miroir) mais ses réponses sont **désactivées**, avec une puce `.spectator-chip` qui NOMME le meneur ; seul le choix du meneur fait avancer le nœud/le flag/le combat des deux côtés. Chez l'invité, `state().inDialogue` et le nœud affiché suivent l'hôte |
 | 4 | **Une bande partagée : chaque siège ses rangées** | `bandStep` (`src/noyau/rollSeam.ts`) pose `groupOwner` dès >1 porteur → `modalOwnerOf` rend `'*'` → fenêtre chez TOUS ; chaque rangée n'est actionnable que par le siège qui possède son acteur (`useOwns`, `src/ui/ownership.ts` — `rollAllUnrolledRows` filtré par `owns`) | la MÊME fenêtre est ouverte des deux côtés ; le bouton de jet d'une rangée n'est servi qu'au siège propriétaire ; « Tout lancer » ne roule QUE les rangées du siège qui clique |
-| 5 | **La Résilience de l'invité sur SA rangée** | `seatInfluences` : un héros non piloté par l'IA n'est influençable que par SON siège (`src/state/netOwnership.ts`) ; `canFixDie` (option « Dés fixés ») en dérive | chez l'invité, Chance/Résilience/Pacte ne sont offerts QUE sur sa rangée ; la rangée d'un héros de l'hôte les porte chez l'hôte et pas chez lui |
+| 5 | **La Résilience de l'invité sur SA rangée** | `seatInfluences` : un héros non piloté par l'IA n'est influençable que par SON siège (`src/noyau/netOwnership.ts`) ; `canFixDie` (option « Dés fixés ») en dérive | chez l'invité, Chance/Résilience/Pacte ne sont offerts QUE sur sa rangée ; la rangée d'un héros de l'hôte les porte chez l'hôte et pas chez lui |
 | 6 | **Console 0 des DEUX côtés** | — | `guard.errors()` vide pour chacune des deux sessions (un `consoleGuard` par page) |
 
 ### Pièges coop
@@ -1733,14 +1733,14 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   Fermer la fenêtre, ou rendre la main au bon siège, AVANT de conclure à une régression clavier.
 - **Ready-check de début de Round — le combat n'est PAS bloqué** : dès `net.mode !== 'local'`, l'hôte ne
   lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`roundStartReady(net.mySeat)`,
-  `src/state/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
+  `src/noyau/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
   ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
   (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
   « Commencer le combat » SOLO (`confirmRoundStart`) ; en recette coop, piloter par
   `store.getState().roundStartReady(<siège>)` sur la page du siège concerné.
 - **Sous-bandes successives INDISCERNABLES au DOM** : une bande peut en appeler une autre (chaque rangée
-  vaincue ré-appende SON Test à la cascade — Surprise → Vigilance, `src/state/combat/triggeredTest.ts`).
+  vaincue ré-appende SON Test à la cascade — Surprise → Vigilance, `src/noyau/combat/triggeredTest.ts`).
   Deux étapes consécutives présentent alors le MÊME libellé et les MÊMES boutons : la présence de
   `.modal-overlay` ne prouve donc RIEN sur la progression. Lire le CONTENU des rangées (noms des acteurs,
   valeurs, rangées déjà roulées) entre deux clics, et **drainer jusqu'à disparition de la fenêtre** des
@@ -1766,7 +1766,7 @@ Deux véhicules, un par famille d'invariants — les mélanger est ce qui fait t
 | Jet SOLO d'invité (1/2) | `entrainement` (`src/scenes/test-scenarios/entrainement.ts`) | `enc-entrainement` est SANS `surprise` : combat direct, ready-check, puis `battleRun()` dès le premier tour — mesuré en exécution comme le chemin court |
 
 ⚠ **Ne pas chercher le jet solo dans `embuscade`** : `surprise: 'party'` fait ouvrir la bande de Surprise
-(`applySurprise`, `src/state/combatFlow.ts`) AVANT tout tour, et chaque défenseur vaincu porteur de
+(`applySurprise`, `src/noyau/combatFlow.ts`) AVANT tout tour, et chaque défenseur vaincu porteur de
 Vigilance ré-appende SON Test — une file d'étapes successives à drainer des DEUX côtés (piège
 « sous-bandes indiscernables » ci-dessus) qui noie le jet qu'on venait mesurer.
 
@@ -1921,7 +1921,7 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
 - **Ouvrir le combat** : `__wfrp.fight(id)` (ou la rencontre déclenchée au pas) pose la PAUSE de début
   de Round ; « Commencer le combat » est un geste du joueur — `ouvrirRound` clique la case de phase
   `data-action="round-start"` (`.cc-phase`). La pause d'un Round SUIVANT (« Commencer le round N »,
-  `pendingRoundStart`) tient la main de la même façon (`src/state/modalArbiter.ts`, entrée `roundStart`) :
+  `pendingRoundStart`) tient la main de la même façon (`src/noyau/modalArbiter.ts`, entrée `roundStart`) :
   aucun tour ne commence tant qu'elle n'est pas confirmée.
 - **Cibler une attaque** : le PORTRAIT de la frise d'initiative (`button.ptile` d'une `.is-cell`,
   `src/ui/InitiativeStrip.tsx`) route son clic comme le pion de la carte (`onStripPortrait`,
@@ -1929,7 +1929,7 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
   'attaque')`, mode `ATTACK_MODE`) : le `title` reste le NOM nu —
   `cliquerSelecteur(session, '.is-cell button.ptile[title="Gobelin"]')`. Le suffixe « <nom> — cibler »
   n'est posé que pour un ciblage d'ENTITÉ d'un AUTRE mode (sort, Soin, Frappe Mortelle, 2ᵉ frappe… :
-  `ciblageEntiteArme`, `src/state/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
+  `ciblageEntiteArme`, `src/noyau/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
   d'abord (piège « Roster du HUD » ci-dessus).
 - **Finir le tour** : la plaque porte le crochet STABLE `data-action="end-turn"`
   (`src/ui/console/CombatConsole.tsx`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
@@ -2040,7 +2040,7 @@ Chemin mesuré en recette (2026-09-18, #1789) jusqu'à l'éditeur d'une op :
 mécaniques (Blessures / État / buffs… — vocabulaire des sorts) » → menu « Type : … » → l'op
 (`offTerrainMod` est sous *Séquelles & mobilité*).
 
-Le libellé de l'entrée est cité COMPLET (`src/state/combatEffects.ts:1484`) : viser « Effets
+Le libellé de l'entrée est cité COMPLET (`src/noyau/combatEffects.ts:1484`) : viser « Effets
 mécaniques » en `{ exact: true }` rate (piège du suffixe ci-dessus) — soit le texte entier, soit
 `exact: false`.
 
@@ -2048,7 +2048,7 @@ Un effet **Journal** (texte et provenance, #2001) suit le même chemin, mesuré 
 
 Éditeur → onglet **Triggers** (`src/ui/editor/LogicDock.tsx:85`) → **+ Nouveau trigger** (`:174`, qui
 sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/FlowEditor.tsx:226`) →
-**Journal** (`src/state/combatEffects.ts:1257`).
+**Journal** (`src/noyau/combatEffects.ts:1257`).
 
 - « + Bloc » est le `<summary>` d'un `<details>` (`AddMenu`, `src/ui/editor/AddMenu.tsx`) : le cliquer
   ouvre le menu, aucun bouton ne porte ce texte. Le menu s'ouvre avec TOUTES ses sections dépliées

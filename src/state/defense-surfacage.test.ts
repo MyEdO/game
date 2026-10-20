@@ -1,10 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { useGame, type BattleState, type PendingAttack } from './store';
-import { avanceEtapeCascade } from './cascadeTestKit';
-import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } from './combatFlow';
-import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
-import { willAutoResolve } from './combatAuto';
+import { useGame, type BattleState } from './store';
+import { type PendingAttack } from '../noyau/pendings';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { maybeOpenDefense, resolveAttack, openAttackCascade, defenderFumbled } from '../noyau/combatFlow';
+import { defenseSurfaced, aiDriven, intentAllowedFor, ownsLocal } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
+import { willAutoResolve } from '../noyau/combatAuto';
 import { evaluateTest, maxForcedRoll } from '../engine/tests';
 import { hitLocation, reverseRoll } from '../engine/combat';
 import { netSeatClosed } from './netFlow';
@@ -358,7 +359,7 @@ describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manue
 // ── B2 : #1000 — deux « Je ne faillirai pas ! » sur le MÊME Test opposé ─────────────────────────
 
 /**
- * #1000, cf. `opposedForcingCancelled` (`state/rollFlowSpecs.ts`) : le second forçage est ACCEPTÉ,
+ * #1000, cf. `opposedForcingCancelled` (`noyau/rollFlowSpecs.ts`) : le second forçage est ACCEPTÉ,
  * dépense son Point et POSE son dé ; les DEUX garanties de victoire (LDB 17 l.68 : « vous l'emportez
  * avec au moins DR +1 ») s'éteignent, et le Test se résout aux dés posés (un succès peut y porter
  * DR 0, LDB 12 l.94) — la localisation et le résultat du dé, eux, restent.

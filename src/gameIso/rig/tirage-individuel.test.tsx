@@ -11,7 +11,7 @@ import type { EnemyRigProfile } from './enemyProfile';
 import { teintesTirees } from './parts/tirageIndividuel';
 import { raceById } from './races';
 import { bipedDef } from './creatures';
-import { ficheDEntite } from '../../state/sceneNpc';
+import { ficheDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
 import { hashSeed } from '../../engine/dice';
 import { RigPortrait } from '../../ui/RigPortrait';

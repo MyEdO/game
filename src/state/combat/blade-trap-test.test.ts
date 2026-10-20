@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { parseQualityInstance } from '../../engine/qualities/normalize';
 import { isUnarmed } from '../../engine/items';
 import { useGame } from '../store';
-import '../combatFlow'; // effet de bord : enregistre l'applier 'bladeTrap' + installe les hooks (breakBlade…)
+import '../../noyau/combatFlow'; // effet de bord : enregistre l'applier 'bladeTrap' + installe les hooks (breakBlade…)
 import { pushChoice } from '../../noyau/rollSeam';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';

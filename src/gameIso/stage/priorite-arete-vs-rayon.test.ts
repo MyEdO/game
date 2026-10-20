@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { tileEdge, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, liftDe, type Scene } from '../../noyau/monde/scene';
-import { roomPortals, type RoomPortal } from '../../state/roomPortals';
-import { aretesUtilisables } from '../../state/aretes';
+import { roomPortals, type RoomPortal } from '../../noyau/monde/roomPortals';
+import { aretesUtilisables } from '../../noyau/aretes';
 import { cloisons, piece } from '../../state/pieces.fixture';
 import { METRES_PER_LEVEL, STEP_MAX_M } from '../../noyau/monde/relief';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { Combatant } from '../../engine/types';
 import type { BattleState } from '../../state/store';
 import { poseFromDims } from './projection';

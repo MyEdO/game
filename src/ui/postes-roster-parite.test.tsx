@@ -18,7 +18,7 @@ import { navalTraitsDe } from '../engine/navalTraits';
 import { crewRoles, shipStations } from '../data';
 import { exposedCrew } from '../engine/shipCritical';
 import { manoeuvreCrew } from './console/ShipSheet';
-import { shipDefaultRoles } from '../state/shipCrew';
+import { shipDefaultRoles } from '../noyau/shipCrew';
 import { activitiesFor } from '../engine/activities';
 import type { Combatant } from '../engine/types';
 import { TravelRolesPanel } from './TravelRolesPanel';

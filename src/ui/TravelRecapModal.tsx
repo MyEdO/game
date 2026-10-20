@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { MultiRollList } from './MultiRollList';
 import { RecapLineSections } from './RecapLine';
 import { travelModeLabels, routeDistanceLabel } from '../engine/travel';
-import type { TravelRecap } from '../state/travelFlow';
+import type { TravelRecap } from '../noyau/travelFlow';
 import { GameDate, gameDateText } from './GameDate';
 import { elision, t } from '../i18n';
 import { clockLabel } from '../engine/duration';
@@ -14,7 +14,7 @@ import { Icon } from './Icon';
  *  sectionnées par phase (#349, `RecapLineSections`) + JETS en multijet (MÊME brique que le bilan de
  *  nuit) — utilisé par la halte du soir (RestModal) et le recap de voyage. Une seule présentation des
  *  journées, pas deux. */
-export function TravelDayBody({ day }: { day: import('../state/travelFlow').TravelRecapDay }) {
+export function TravelDayBody({ day }: { day: import('../noyau/travelFlow').TravelRecapDay }) {
   // MER (route COMMANDÉE) : l'écran de traversée dédié (rose des vents + jauges + PV) remplace le corps
   // de recap terrestre — une seule surface de jour, propre à la mer.
   if (day.sea) return <SeaVoyageBody day={day} />;

@@ -2,7 +2,7 @@
  * UNE SURFACE TIENT LA MAIN → la conversation attend (#1869 correctif 2, condition 1).
  *
  * Une réponse ne se choisit que si la conversation est CE QUE LE JOUEUR A SOUS LES YEUX. Le verdict
- * « une surface tient la main » vit à l'ARBITRE (`surfaceTientLaMain`, `state/modalArbiter.ts`),
+ * « une surface tient la main » vit à l'ARBITRE (`surfaceTientLaMain`, `noyau/modalArbiter.ts`),
  * dérivé de ses registres ; `conversationRepond` le consomme, donc le VERBE et les touches
  * `dialogue-choice-N` avec lui.
  *
@@ -13,10 +13,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { GameState } from './store';
-import { conversationRepond, ouvrirDialogue } from './dialogue';
+import { conversationRepond, ouvrirDialogue } from '../noyau/dialogue';
 import { runBindingById } from './clavier/keybindings';
-import { withActingSeat } from './netOwnership';
-import { parseProject } from './worldMap';
+import { withActingSeat } from '../noyau/netOwnership';
+import { parseProject } from '../noyau/worldMap';
 import { makeShowcaseParty } from '../data/pregens';
 import type { Dialogue, Scene } from '../noyau/monde/scene';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';

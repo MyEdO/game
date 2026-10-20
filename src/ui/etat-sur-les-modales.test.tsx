@@ -11,7 +11,7 @@ import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 import { heroFaceAUnEnnemi } from '../state/combatDeTest.testkit';
-import { openAttackCascade } from '../state/combatFlow';
+import { openAttackCascade } from '../noyau/combatFlow';
 import { WardModal } from './WardModal';
 import { FrenzyModal } from './FrenzyModal';
 import { ApproachModal } from './ApproachModal';

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tileCenter, tileEdge, type Dims } from '../../geometry/iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { emptyScene, heightAt, liftDe, type Scene } from '../../noyau/monde/scene';
-import { aretesUtilisables } from '../../state/aretes';
+import { aretesUtilisables } from '../../noyau/aretes';
 import { useGame } from '../../state/store';
 import type { Pt } from '../../noyau/monde/path';
 import { projeterAretes, type AreteProjetee } from './aretesProjetees';

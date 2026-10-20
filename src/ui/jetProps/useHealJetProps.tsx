@@ -1,7 +1,7 @@
 import { cibleMesuree } from '../../engine/tests';
 import { useGame } from '../../state/store';
 import { flowStakeRef } from '../../data';
-import { HEAL_STAKE } from '../../state/medicFlow';
+import { HEAL_STAKE } from '../../noyau/medicFlow';
 import type { ComponentProps } from 'react';
 import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
@@ -9,7 +9,7 @@ import { OptionChooser } from '../OptionChooser';
 import { testValueSplit, testBreakdown, testPending } from '../breakdown';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
-import { describeHeal } from '../../state/flowOutcomes';
+import { describeHeal } from '../../noyau/flowOutcomes';
 import { combatHealModes } from '../../engine/healing';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';

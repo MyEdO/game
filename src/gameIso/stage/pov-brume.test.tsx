@@ -7,7 +7,7 @@ import * as THREE from 'three';
 import { useGame } from '../../state/store';
 import { poserCapDuGroupe } from '../../noyau/monde/combatants';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
-import { setRevealAll } from '../../state/visionState';
+import { setRevealAll } from '../../noyau/visionState';
 import { createHero } from '../../engine/character';
 import type { Dims } from '../../geometry/iso';
 import { AMBIANCE, ambianceLuminance } from '../catalog/ambiance';

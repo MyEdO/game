@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from 'vitest';
 import { useGame, initCombatAuto, type BattleState } from './store';
-import { initialFields } from './stateFields';
+import { initialFields } from '../noyau/stateFields';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { setCadence, resetCadence } from '../engine/cadence';
-import { pickActiveModalKey } from './modalArbiter';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { pickActiveModalKey } from '../noyau/modalArbiter';
+import { avanceEtapeCascade } from './cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
 
 /**

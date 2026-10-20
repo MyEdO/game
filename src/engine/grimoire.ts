@@ -16,7 +16,7 @@
  *  - Magie du Chaos : chaque sort = reprise du Talent (100 PX + 1 Corruption).
  *
  * Objet grimoire (LDB 46 l.95-97, 47 l.19-21) : ÉLIGIBILITÉ seule (`canCastFromGrimoire`). Le NI de
- * lecture est calculé ailleurs — `effectiveSpellOf`/`GRIMOIRE_NI_MODS` (`src/state/combatFlow.ts`).
+ * lecture est calculé ailleurs — `effectiveSpellOf`/`GRIMOIRE_NI_MODS` (`src/noyau/combatFlow.ts`).
  */
 import { Combatant } from './types';
 import { bonus, effectiveChar } from './characteristics';

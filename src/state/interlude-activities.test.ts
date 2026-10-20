@@ -5,16 +5,16 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { makeRNG, roll } from '../engine/dice';
 import { toBrass, fromBrass, priceToMoney, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { findTrappingById, findEffectTableById } from '../data';
 import { findTableEntry, findTableEntryIndex } from '../engine/tables';
 import { seedBattleRng } from '../noyau/battleRng';
-import type { PendingActivity } from './interludeFlow';
-import { openRitualFocus } from './interludeFlow';
+import type { PendingActivity } from '../noyau/interludeFlow';
+import { openRitualFocus } from '../noyau/interludeFlow';
 import { evaluateTest } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';

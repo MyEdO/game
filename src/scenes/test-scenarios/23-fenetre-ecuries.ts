@@ -1,5 +1,5 @@
 import { makePregens } from '../../data/pregens';
-import { buildScene, type WallSpec } from '../../state/mapSpec';
+import { buildScene, type WallSpec } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';

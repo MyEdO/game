@@ -1,6 +1,6 @@
 import { pregenParty, PREGEN } from '../../data/pregens';
 import { findSpeciesById } from '../../data';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
@@ -8,8 +8,8 @@ import type { Scene } from '../../noyau/monde/scene';
 /**
  * « Taverne — un PNJ à profil standard » (#1882) : un habitué de la salle, typé par le profil standard de
  * son espèce (`species.json › profilStandard`, `LDB 77 l.7`), PROPOSE une partie (`SceneEntity.tavernGame`,
- * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `state/combatEffects.ts`) sur SON offre :
- * l'opposant joue sa fiche (`sceneNpc`, `state/tavernFlow.ts`).
+ * `NADJ 04 l.72`). Son dialogue ouvre la table (`openTavernGames`, `noyau/combatEffects.ts`) sur SON offre :
+ * l'opposant joue sa fiche (`sceneNpc`, `noyau/tavernFlow.ts`).
  */
 const ESPECE = 'humains-reiklander';
 

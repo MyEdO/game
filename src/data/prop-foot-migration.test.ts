@@ -7,7 +7,7 @@ import { normalizeScene, emptyScene, sceneMetresPerTile, type Scene, type SceneE
 import { empreinteDuProp } from './props.types';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
 import { entityBlockedAt } from '../noyau/monde/sceneRules';
-import { parseProject } from '../state/worldMap';
+import { parseProject } from '../noyau/worldMap';
 import { scenarioEntities } from '../scenes/opera/furnished';
 import type { AreneSceneFactory } from '../../scripts/arene/scenes.d.mts';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';

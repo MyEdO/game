@@ -5,8 +5,8 @@ import { applyOps, skillDRBonus, charDRBonusOf } from '../engine/ops';
 import { testStatePenalty, addCondition } from '../engine/conditions';
 import { crewRoleValue, crewTalentDR, crewTestModOf } from '../engine/crewMorale';
 import { findCrewRoleById, findSeaShantyById } from '../data';
-import { rollCrewRole } from './shipManeuver';
-import { endShanty, applyShantyToCrew, quartIndex, QUART_MINUTES } from './shipCrew';
+import { rollCrewRole } from '../noyau/shipManeuver';
+import { endShanty, applyShantyToCrew, quartIndex, QUART_MINUTES } from '../noyau/shipCrew';
 import { makeRNG } from '../engine/dice';
 import { propulsionDuNavire } from '../engine/shipBuild';
 

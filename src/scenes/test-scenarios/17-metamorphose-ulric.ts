@@ -1,4 +1,4 @@
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';

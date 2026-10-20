@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { movementRemaining } from './mount';
+import { movementRemaining } from '../noyau/mount';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { computeMoveReach, computeRunReach, displayedReach } from './combatFlow';
+import { computeMoveReach, computeRunReach, displayedReach } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';

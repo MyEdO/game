@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyCast, applyAttackResult, attackWardGate, doAttack } from './combatFlow';
+import { applyCast, applyAttackResult, attackWardGate, doAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
 import { findSpell } from '../data';

@@ -6,10 +6,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/magic';
 import { findSpell } from '../data';
-import { currentTargetingMode } from './targetingModes';
+import { currentTargetingMode } from '../noyau/targetingModes';
 import type { Combatant } from '../engine/types';
 
 function wiz() {

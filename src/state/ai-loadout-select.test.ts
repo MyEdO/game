@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
-import { runEnemyAI } from './combatFlow';
+import { runEnemyAI } from '../noyau/combatFlow';
 const embuscadeConstruit = embuscade.construire();
 
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {

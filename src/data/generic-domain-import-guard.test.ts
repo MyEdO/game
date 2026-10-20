@@ -93,10 +93,10 @@ describe('garde-fou « le générique n’importe pas le domanial » (cliquet, #
   });
 
   it('FAIL-CLOSED : une primitive fictive important un module single-système est DÉTECTÉE', () => {
-    const ownerSystems = new Map<string, string[]>([['src/state/shipManeuver.ts', ['combat-naval']]]);
-    const contenu = "import { rollCrewRole } from '../state/shipManeuver';\n";
+    const ownerSystems = new Map<string, string[]>([['src/noyau/shipManeuver.ts', ['combat-naval']]]);
+    const contenu = "import { rollCrewRole } from '../noyau/shipManeuver';\n";
     const found = scanGenericDomainImport('src/ui/FakePrimitive.tsx', contenu, ownerSystems);
-    expect(found).toEqual([{ target: 'src/state/shipManeuver.ts', systemId: 'combat-naval' }]);
+    expect(found).toEqual([{ target: 'src/noyau/shipManeuver.ts', systemId: 'combat-naval' }]);
   });
 
   it('un propriétaire unique HÉRITÉ de la primitive (seul son système la pose) n’est PAS domanial', { timeout: 75_000 }, () => {

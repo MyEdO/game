@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../state/store';
 import { findLandCargoById } from '../engine/landCargo';
-import { bulkCarriers, bulkCargoRefs, primaryCargoCarrier, type CarrierStateSlice } from '../state/carriers';
+import { bulkCarriers, bulkCargoRefs, primaryCargoCarrier, type CarrierStateSlice } from '../noyau/carriers';
 import { carrierFreeEnc } from '../engine/cargo';
-import { placeById } from '../state/worldMap';
+import { placeById } from '../noyau/worldMap';
 import { canAfford, toMoney } from '../engine/money';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { ScreenShell } from './ScreenShell';
@@ -13,7 +13,7 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { CargoTransferPanel } from './CargoTransferPanel';
 import { TradeTable, type TradeGroup } from './TradeTable';
 import { GatedAction, raisonSi } from './GatedAction';
-import { appraiseRefus } from '../state/merchantFlow';
+import { appraiseRefus } from '../noyau/merchantFlow';
 import { Grid, Row, spanFull } from './Layout';
 
 /** Raison UNIQUE du refus des gestes de marché à un invité : l'hôte seul engage la bourse du groupe. */

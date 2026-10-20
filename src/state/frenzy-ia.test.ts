@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { chooseEnemyAction, EnemyTurnInput, type CastableSpell } from './ai';
+import { chooseEnemyAction, EnemyTurnInput, type CastableSpell } from '../noyau/monde/ai';
 import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
-import { aiMaybeFrenzy, aiAvailableFreeAttack } from './combatFlow';
+import { aiAvailableFreeAttack } from '../noyau/combatFlow';
+import { aiMaybeFrenzy } from '../noyau/combat/turnHooks';
 import { isFrenzied } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

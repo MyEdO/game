@@ -13,7 +13,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { DialogueDetail } from './DialogueDetail';
 import { EffectList, type Ctx } from './EffectList';
-import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import type { Dialogue, Effect } from '../../noyau/monde/scene';
 import { dialogueNodeSchema } from '../../data/schemas/defs-scenes/scene';
 import { journalSchema, setObjectiveSchema, grantFavorSchema, sceneFlowSchema } from '../../data/schemas/defs-scenes/effets';

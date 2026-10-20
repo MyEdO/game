@@ -23,25 +23,26 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
 import { toggleDoorIn } from '../../noyau/monde/scene';
 import { entityBlockedAt } from '../../noyau/monde/sceneRules';
-import { ficheDEntite, sceneNpc } from '../../state/sceneNpc';
-import { chebyshev, walkNeighbors, type Pt } from '../../noyau/monde/path';
-import { aPorteeDe, exploreMovePlan, exploreSeatPlan, mouvementDuGroupe, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../state/exploreNav';
+import { ficheDEntite, sceneNpc } from '../../noyau/monde/sceneNpc';
+import { walkNeighbors, type Pt } from '../../noyau/monde/path';
+import { chebyshev } from '../../engine/grid';
+import { aPorteeDe, exploreMovePlan, exploreSeatPlan, mouvementDuGroupe, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
 import { meneurDuMonde } from '../../noyau/monde/combatants';
 // `t` est déjà le nom local de la TUILE survolée dans ce module : la traduction s'y importe sous son
 // rôle, sans rebaptiser trente sites de pointeur.
 import { t as message } from '../../i18n';
-import { planJump } from '../../state/jumpMove';
-import { refuserGeste } from '../../state/refusVisible';
-import { runFlow, jouerFlowEntier } from '../../state/combatEffects';
+import { planJump } from '../../noyau/monde/jumpMove';
+import { refuserGeste } from '../../noyau/refusVisible';
+import { runFlow, jouerFlowEntier } from '../../noyau/combatEffects';
 import { Combatant } from '../../engine/types';
 import { bus, EVT } from '../../noyau/bus';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
-import { controlsActive } from '../../state/netOwnership';
+import { controlsActive } from '../../noyau/netOwnership';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw } from '../../state/stageYaw';
 import { accordsPan, getStagePan, poserPan } from '../../state/stagePan';
 import { battreStageFrames } from './stageFrames';
-import { combatantClickActs } from '../../state/combatOrParty';
+import { combatantClickActs } from '../../noyau/combatOrParty';
 import { hoverClickCommits } from '../../ui/pointerCaps';
 import { useLongPress } from '../../ui/useLongPress';
 import { type Dims } from '../../geometry/iso';
@@ -52,10 +53,10 @@ import { pointStageSousPixel, pointViewBoxSousPixel, resoudrePixel, tireLeRayon,
 import { armeParSurvol, entiteDuGeste, jouerArete, type VerbesArete } from './geste';
 import { actionsDe, estUtilisable } from '../../noyau/monde/usable';
 import { porteDOffre } from '../../state/offresUtilisables';
-import type { RoomPortal } from '../../state/roomPortals';
-import type { AreteUtilisable } from '../../state/aretes';
+import type { RoomPortal } from '../../noyau/monde/roomPortals';
+import type { AreteUtilisable } from '../../noyau/aretes';
 import type { AreteProjetee } from './aretesProjetees';
-import { nomDEntite } from '../../state/sceneNpc';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
 
 const PAN_THRESHOLD = 6; // px de glissement avant de passer en panoramique (sinon = clic)
@@ -306,11 +307,11 @@ export function useStagePointer({
     grimper: (de, vers) => { useGame.getState().climbAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     sauter: (de, vers) => { useGame.getState().fallAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
     enjamber: (de, vers) => { useGame.getState().windowAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
-    // FRAPPER une structure : le MUR est un Combattant (`state/combatSlice.ts`, `cid`), son geste est
+    // FRAPPER une structure : le MUR est un Combattant (`noyau/combatSlice.ts`, `cid`), son geste est
     // donc EXACTEMENT celui d'un jeton ennemi sous le rayon (`performClick` ci-dessous) — MÊME porte
-    // partagée (`state/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces). Elle
+    // partagée (`noyau/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces). Elle
     // s'inspecte, comme un jeton, au geste SECONDAIRE (`ficheSous`). L'aperçu et le commit sont ceux du
-    // flux de combat (`state/targetingModes.ts`, `samePreview`), celui que lit déjà le réticule de visée.
+    // flux de combat (`noyau/targetingModes.ts`, `samePreview`), celui que lit déjà le réticule de visée.
     frapper: (cid) => {
       if (combatantClickActs(useGame.getState, { id: cid })) useGame.getState().battleClickEntity(cid, { confirm: hoverClickCommits() });
     },

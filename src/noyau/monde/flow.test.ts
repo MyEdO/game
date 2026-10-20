@@ -5,8 +5,9 @@
 import { describe, it, expect } from 'vitest';
 import type { Effect } from './scene';
 import {
-  evalCondition, flattenFlow, flowFromEffects, flowHasTest, EMPTY_FLOW, conditionCtx, type Condition, type Flow,
+  flowFromEffects, type Flow,
 } from './flow';
+import { evalCondition, flattenFlow, flowHasTest, EMPTY_FLOW, conditionCtx, type Condition } from '../../engine/flowCore';
 import { createHero } from '../../engine/character';
 
 const REIK = 'humains-reiklander';

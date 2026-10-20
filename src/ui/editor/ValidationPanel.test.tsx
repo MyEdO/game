@@ -12,8 +12,8 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ValidationPanel } from './ValidationPanel';
 import { validateScene, type Warning } from '../../state/validateScene';
-import { parseProject } from '../../state/worldMap';
-import { PLAN_DEFECT_FAMILIES } from '../../state/planDefects';
+import { parseProject } from '../../noyau/worldMap';
+import { PLAN_DEFECT_FAMILIES } from '../../noyau/planDefects';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../../noyau/monde/scene';
 import diligenceProjet from '../../scenes/diligence/diligence-projet.json';
 

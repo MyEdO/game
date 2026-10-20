@@ -1,13 +1,13 @@
 import { useGame } from '../state/store';
 import { findSpellById } from '../data/index';
 import { castingValue } from '../engine/magic';
-import { windsMagicLineOf } from '../state/combatOrParty';
+import { windsMagicLineOf } from '../noyau/combatOrParty';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeFocus } from '../state/flowOutcomes';
+import { describeFocus } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 
 /**

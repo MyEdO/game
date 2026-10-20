@@ -19,7 +19,7 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
  *
  * Réserve de convention : le générateur écrit `ambientLight: "auto"` EXPLICITE là où l'éditeur
  * SUPPRIME la clé sur « auto » (`src/ui/editor/Inspector.tsx`) — les deux formes sont équivalentes
- * à la lecture (`src/state/vision.ts`) ; cette garde juge la forme GÉNÉRATEUR.
+ * à la lecture (`src/noyau/monde/vision.ts`) ; cette garde juge la forme GÉNÉRATEUR.
  * Angle mort : elle ne voit pas un projet MANUSCRIT ajouté à la liste des manuscrits alors qu'un
  * générateur existe pour lui — la couverture prouve l'inclusion, pas la sincérité du motif.
  */

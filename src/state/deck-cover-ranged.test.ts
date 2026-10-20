@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { attackEnv } from './combatFlow';
-import type { Get } from './flowTypes';
+import { attackEnv } from '../noyau/combatFlow';
+import type { Get } from '../noyau/flowTypes';
 import type { Combatant, Weapon, ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 

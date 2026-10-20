@@ -5,7 +5,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { activityById, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from './activiteMer.testkit';
 import { setRule, resetRule } from '../engine/policy';
-import { buildSeaGenericStep } from './seaActivities';
+import { buildSeaGenericStep } from '../noyau/seaActivities';
 import { composeRollLabel, effectiveTarget, type RollRequest } from '../noyau/rollSeam';
 import { testValue } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';

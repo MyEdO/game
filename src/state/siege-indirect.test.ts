@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { applyShipPostes } from './shipPostes';
-import { availableAttacks } from './combatFlow';
-import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
+import { applyShipPostes } from '../noyau/monde/shipPostes';
+import { availableAttacks } from '../noyau/combatManeuvers';
+import { resolveWeaponArea, areaTargets, type AreaHit } from '../noyau/combatArea';
 import { mannedPosteWeapon, itemFromTrappingById, weaponWithAmmo } from '../engine/items';
 import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';

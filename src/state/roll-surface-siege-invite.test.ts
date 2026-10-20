@@ -9,10 +9,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { spyApplier } from './cascadeTestKit';
+import { spyApplier } from './cascade.testkit';
 import { setGmSeat } from './netFlow';
 import { openRoll, rollSansPilote, type RollRequest } from '../noyau/rollSeam';
-import { humanControlled } from './netOwnership';
+import { humanControlled } from '../noyau/netOwnership';
 import { jetSurfaced } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
 

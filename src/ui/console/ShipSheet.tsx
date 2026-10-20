@@ -4,14 +4,14 @@ import { findVehicleById, findNavalTrait } from '../../data';
 import { moraleBand } from '../../engine/crewMorale';
 import { exposedCrew } from '../../engine/shipCritical';
 import { hullNavalTraits } from '../../engine/navalTraits';
-import { shipMoraleScore } from '../../state/shipCrew';
+import { shipMoraleScore } from '../../noyau/shipCrew';
 import { Planche } from '../Planche';
 import { PortraitTile } from '../PortraitTile';
 import { CharFrame } from '../CharFrame';
 import { ShipRolesPanel } from '../ShipRolesPanel';
 import { StationSheet } from '../StationSheet';
 import { postesToStations } from '../../state/stations';
-import { posteAnchor } from '../../state/shipPostes';
+import { posteAnchor } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
 import type { Combatant, NavalTraitRef } from '../../engine/types';
 import type { Dir8 } from '../../noyau/monde/dir8';
@@ -127,7 +127,7 @@ export function ShipInspectBody({ hull, crew, cap }: { hull: Combatant; crew: Co
  *
  * Deux retraits, deux raisons :
  *  - les SERVANTS de pièce sont montrés sous « Armes · postes » (un marin tient UN poste) ;
- *  - l'APTITUDE (`exposedCrew`) : `shipDefaultRoles` (`state/shipCrew`) n'enrôle que l'équipage
+ *  - l'APTITUDE (`exposedCrew`) : `shipDefaultRoles` (`noyau/shipCrew`) n'enrôle que l'équipage
  *    exposé, donc un mort ou un marin à 0 Blessure ne tient aucun rôle au Test — MÊME épinglé.
  *    L'offrir à l'épinglage promettrait un geste que la résolution ignore.
  */

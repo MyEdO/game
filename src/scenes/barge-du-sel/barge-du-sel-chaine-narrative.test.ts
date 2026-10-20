@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
-import { routesFrom, visiblePlaces } from '../../state/worldMap';
+import { routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../campaign';
 

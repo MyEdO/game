@@ -1,5 +1,5 @@
 /**
- * ARÊTES PROJETÉES — le pont entre le dériveur d'arêtes (`state/aretes.ts`, PUR et sans écran) et la
+ * ARÊTES PROJETÉES — le pont entre le dériveur d'arêtes (`noyau/aretes.ts`, PUR et sans écran) et la
  * chaîne de picking (`stage/pickResolve.ts`, qui raisonne en pixels de stage).
  *
  * L'hôte de rendu (`stage/MondeDeCampagne.tsx`) FOURNIT les arêtes déjà filtrées par le contexte
@@ -13,7 +13,7 @@
  */
 import { tileEdge, type Dims, type EdgeSide } from '../../geometry/iso';
 import { memoByRefDeps } from '../../noyau/monde/sceneMemo';
-import type { AreteUtilisable } from '../../state/aretes';
+import type { AreteUtilisable } from '../../noyau/aretes';
 import type { WallSide } from '../../noyau/monde/scene';
 import type { Pt } from '../../noyau/monde/path';
 
@@ -35,8 +35,8 @@ const memo = memoByRefDeps<readonly AreteUtilisable[], readonly AreteProjetee[]>
 /** Une arête de GRILLE, seule forme que `tileEdge` sait poser : les côtés DIAGONAUX d'un mur
  *  (`WallSide` `\` et `/`) n'occupent aucun segment de grille. Aucun des quatre dériveurs n'en rend,
  *  et pas de la même façon : escalade, chute et structure filtrent `N`/`E` au site
- *  (`state/aretes.ts`), les PORTES le tiennent du TYPE — `RoomPortal.edge.side` vaut `'N' | 'E'`
- *  (`state/roomPortals.ts:19`), une diagonale n'y compile pas. */
+ *  (`noyau/aretes.ts`), les PORTES le tiennent du TYPE — `RoomPortal.edge.side` vaut `'N' | 'E'`
+ *  (`noyau/monde/roomPortals.ts:19`), une diagonale n'y compile pas. */
 const estCardinale = (side: WallSide): side is EdgeSide & WallSide => side === 'N' || side === 'E';
 
 /**

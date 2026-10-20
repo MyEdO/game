@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { occupied } from '../noyau/monde/combatGeometry';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

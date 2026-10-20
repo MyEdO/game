@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { MODAL_DEFS } from './modalArbiter';
-import { JET_AUTO } from './combatAuto';
+import { MODAL_DEFS } from '../noyau/modalArbiter';
+import { JET_AUTO } from '../noyau/combatAuto';
 import { useGame } from './store';
 
 /**

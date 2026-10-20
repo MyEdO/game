@@ -59,7 +59,7 @@ import { ROOF_SLOPE_M } from '../../builders/roofs';
 import { buildWalls } from '../../builders/walls';
 import { tousLesTerrains } from '../../../noyau/monde/terrain';
 import type { Face, SceneEl } from '../../builders/types';
-import { buildScene } from '../../../state/mapSpec';
+import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { scenario as arene } from '../../../scenes/test-scenarios/arene';
 import { scenario as pontVitrine } from '../../../scenes/test-scenarios/pont-vitrine';

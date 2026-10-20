@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { hasActiveFlag } from '../engine/activeFlags';
-import { EMPTY_FLOW } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 
 function reset() {
   useGame.setState({

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
 import { fireTriggers } from '../../noyau/triggeredEffects';
-import '../combatFlow'; // effet de bord : routeur de Test + applier triggeredTest + hook onHit
+import '../../noyau/combatFlow'; // effet de bord : routeur de Test + applier triggeredTest + hook onHit
 import { createHero } from '../../engine/character';
 import { makeRNG } from '../../engine/dice';
 import { seedBattleRng } from '../../noyau/battleRng';
@@ -11,10 +11,10 @@ import { hasCondition } from '../../engine/conditions';
 import { REPLIS_DEUX_CIBLES, evaluateTest, resolveOpposed, bumpSL, type TestResult } from '../../engine/tests';
 import { jete } from '../../engine/tests.testkit';
 import { testValue, skillBaseValue } from '../../engine/skills';
-import { frozenOpposedBatchStep, rollFrozenOpposedAttacker, simpleTriggeredTestStep, simpleBatchTestStep, withDerivedStake } from './triggeredTest';
-import { resolveRecoverTest } from './recover';
+import { frozenOpposedBatchStep, rollFrozenOpposedAttacker, simpleTriggeredTestStep, simpleBatchTestStep, withDerivedStake } from '../../noyau/combat/triggeredTest';
+import { resolveRecoverTest } from '../../noyau/combat/recover';
 import { rollBatchParticipant } from '../../noyau/cascade';
-import { EMPTY_FLOW, type FlowTest } from '../../noyau/monde/flow';
+import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import type { Combatant, Weapon } from '../../engine/types';
 
 /**

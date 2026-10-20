@@ -822,7 +822,7 @@ function tierAcquis(it: ItemInstance, tier: ProsthesisTier, cumul: number): bool
  *  (`TrappingData.prosthesisTraining`, dans l'ordre) qui reste à acquérir — un aspect à lever (`grants`)
  *  ou une tranche de pénalité à racheter (`reduces`, l.19). `undefined` si l'objet n'est pas une prothèse
  *  entraînable, n'est pas porté, ou est déjà entièrement maîtrisé.
- *  SOURCE UNIQUE partagée par l'écran d'Avancement et `trainProsthesis` (state/partyFlow.ts). */
+ *  SOURCE UNIQUE partagée par l'écran d'Avancement et `trainProsthesis` (noyau/partyFlow.ts). */
 export function nextProsthesisTier(it: ItemInstance): ProsthesisTier | undefined {
   if (!it.equipped || !it.trappingId) return undefined;
   const tiers = findTrappingById(it.trappingId)?.prosthesisTraining ?? [];
@@ -1187,7 +1187,7 @@ export function traumaCharPenalties(c: Combatant, key: CharKey): number[] {
 /** Pénalité de mobilité/Esquive due aux traumatismes de jambe (≤ 0 ; sommée, LDB 14 l.95). Une prothèse
  *  qui annule TOUT (Merveille d'ingénierie, LDB 73) lève aussi l'Esquive ; la Fausse jambe SEULE laisse le
  *  −20 subsister tant qu'elle n'est pas ENTRAÎNÉE (200 PX, `ItemInstance.prosthesisTrained` — `trainProsthesis`,
- *  state/partyFlow.ts) : entraînée, `prosthesisCancels` l'élève à `'all'` et lève aussi l'Esquive. */
+ *  noyau/partyFlow.ts) : entraînée, `prosthesisCancels` l'élève à `'all'` et lève aussi l'Esquive. */
 export function traumaDodgePenaltyParts(c: Combatant): PassiveMod[] {
   return pmodsFull(c, 'skillMod', false).filter((m) => {
     const o = m.op as Extract<GameOp, { op: 'skillMod' }>;

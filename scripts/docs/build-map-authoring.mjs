@@ -1,6 +1,6 @@
 /**
  * Génère docs/map-authoring.md — le format déclaratif `MapSpec` et sa compilation en `Scene`.
- * La part FACTUELLE est DÉRIVÉE par AST de `src/state/mapSpec.ts` : champs de `MapSpec`,
+ * La part FACTUELLE est DÉRIVÉE par AST de `src/noyau/mapSpec.ts` : champs de `MapSpec`,
  * `WallSpec`, `CellRecipe`, `EncounterSpec` (nom, type, 1re phrase de JSDoc), formes des unions
  * `BindSpec`/`ReliefSpec`, ordre de compilation lu au JSDoc de tête du module ; les gardes du
  * harnais QC viennent des exports de `src/state/mapQC.ts` ; les exemples vivants sont MESURÉS
@@ -25,7 +25,7 @@ import { fileExports } from './lib/engineExports.mjs'
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
   const OUTIL = 'build-map-authoring'
-  const MAPSPEC = 'src/state/mapSpec.ts'
+  const MAPSPEC = 'src/noyau/mapSpec.ts'
   const MAPQC = 'src/state/mapQC.ts'
   const SCENES = 'src/scenes'
   /** Où vivent les parents d'interface hérités par `mapSpec.ts` (`WallSpec extends WallOverlay`) et le
@@ -433,7 +433,7 @@ construit ailleurs (variable non annotée, fabrique) n'est pas mesuré, et une c
 (\`...preset\`${DOCS_AVEC_EPANDAGE.length ? ` — ${DOCS_AVEC_EPANDAGE.length} document${DOCS_AVEC_EPANDAGE.length > 1 ? 's' : ''} concerné${DOCS_AVEC_EPANDAGE.length > 1 ? 's' : ''}` : ''}) échappe à la mesure ; le JSDoc rapporté est la
 1re PHRASE seulement (le corps complet vit au fichier) ; la sémantique de compilation (ce que fait
 vraiment chaque primitive) n'est pas dérivable — elle est verrouillée par
-\`src/state/mapSpec.test.ts\` ; la procédure image → grille et les pièges sont de l'ÉDITORIAL fixé
+\`src/noyau/mapSpec.test.ts\` ; la procédure image → grille et les pièges sont de l'ÉDITORIAL fixé
 dans le script.
 
 > **Pour l'IA (et l'humain) : c'est le chemin des scénarios de test et des générateurs** (dette #1601).
@@ -442,14 +442,14 @@ dans le script.
 > Tu décris une map en objet déclaratif \`MapSpec\` ; \`buildScene(spec)\` la compile en \`Scene\`.
 
 - Type + compilateur : \`${MAPSPEC}\`
-- **Spec exécutable** (exemples courts, à jour) : \`src/state/mapSpec.test.ts\` — chaque \`describe\`
+- **Spec exécutable** (exemples courts, à jour) : \`src/noyau/mapSpec.test.ts\` — chaque \`describe\`
   verrouille une section.
 - **Exemples VIVANTS** : les tableaux « Où voir quoi » en bas — les repères d'authoring (concept →
   scénario étalon) et la mesure par champ sur \`${SCENES}/\`.
 
 \`buildScene\` est **PUR** et **Node-safe** (zéro import \`ui/\`/\`gameIso/\`) : le générateur d'arène
 l'exécute via \`tsx\`. Il ne fait que **rejouer les primitives pures de l'éditeur**
-(\`src/state/sceneEdit.ts\`) dans un **ordre figé** — donc tout ce que le format exprime est, par
+(\`src/noyau/sceneEdit.ts\`) dans un **ordre figé** — donc tout ce que le format exprime est, par
 construction, reproductible à la main dans l'éditeur (règle 2 d’\`AGENTS.md\`). Si un besoin ne
 s'exprime pas proprement, on **étend une primitive** (avec un golden), on ne bricole jamais le
 scénario.
@@ -459,7 +459,7 @@ scénario.
 Champs REQUIS de \`MapSpec\` : ${REQUIS.map((c) => `\`${c}\``).join(', ')}.
 
 \`\`\`ts
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 const scene = buildScene({ ${DEMARRAGE}, heroStart: [2, 5] });
 // → plateau plat 16×10 d'herbe + 1 départ héros.
 \`\`\`
@@ -507,7 +507,7 @@ ${tableChamps(ENC_FIELDS)}
   refuse, \`validateScene\` et \`buildScene\` le refusent aussi.
 - À la souris, ce champ s'authore dans l'inspecteur de l'éditeur
   (\`src/ui/editor/SeatAssignmentsField.tsx\`). Toute mutation d'entité traverse le SEAM UNIQUE
-  \`normaliseAssises\` (\`src/state/sceneEdit.ts\`). Garde : \`src/ui/editor/seam-assise-guard.test.ts\`.
+  \`normaliseAssises\` (\`src/noyau/sceneEdit.ts\`). Garde : \`src/ui/editor/seam-assise-guard.test.ts\`.
 
 ## Ordre de compilation (${ETAPES} étapes, cité au JSDoc de tête de \`${MAPSPEC}\`)
 
@@ -564,7 +564,7 @@ ${ORDRE}
 6. **Vides & hauteurs** : trémies/balcons ; la validation de trémie d'une volée couvre les surfaces
    fantômes.
 7. **Zones nommées** : le calque \`zoneMap\` + \`zoneLegend\` recopie la légende du plan. Un char = une
-   pièce. Le calque se **DÉRIVE du bâti** (\`zonesFromSeeds\`, \`src/state/asciiMap.ts\`) : une GRAINE par
+   pièce. Le calque se **DÉRIVE du bâti** (\`zonesFromSeeds\`, \`src/noyau/monde/asciiMap.ts\`) : une GRAINE par
    pièce — plusieurs quand une porte interne la coupe —, dont le remplissage 4-connexe s'arrête à toute
    arête murale (mur, porte, fenêtre, structure) et à toute case que le pas ne foule pas ; un calque
    écrit à la main se met à mentir dès qu'on bouge un mur. \`clip\` borne une aire OUVERTE que le plan
@@ -604,7 +604,7 @@ ${lignesUsages}
 
 ${
     JAMAIS_VU.length
-      ? `Champs sans aucun exemple mesuré dans \`${SCENES}/\` : ${JAMAIS_VU.map((c) => `\`${c}\``).join(', ')} — leur seule démonstration vit dans \`src/state/mapSpec.test.ts\`.`
+      ? `Champs sans aucun exemple mesuré dans \`${SCENES}/\` : ${JAMAIS_VU.map((c) => `\`${c}\``).join(', ')} — leur seule démonstration vit dans \`src/noyau/mapSpec.test.ts\`.`
       : `Tous les champs de \`MapSpec\` ont au moins un exemple vivant dans \`${SCENES}/\`.`
   }
 `
@@ -612,7 +612,7 @@ ${
     out,
     path: 'docs/map-authoring.md',
     staleMsg:
-      'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/state/mapSpec.ts, src/state/mapQC.ts, des scénarios de src/scenes/, ou du script).',
+      'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/noyau/mapSpec.ts, src/state/mapQC.ts, des scénarios de src/scenes/, ou du script).',
     rerunMsg: '  → relancer `npm run docs:map-authoring` (dérivé jamais commité, #2203).',
     okMsg: 'docs:map-authoring — OK (docs/map-authoring.md à jour)',
     writeMsg: `docs/map-authoring.md — ${MAP_FIELDS.length} champs de MapSpec, ${ETAPES} étapes de compilation, ${DOCS_MESURES.length} documents mesurés.`,

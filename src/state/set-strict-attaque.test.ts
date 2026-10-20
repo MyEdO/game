@@ -8,9 +8,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
-import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
+import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from '../noyau/combatFlow';
 import type { Combatant, ItemInstance } from '../engine/types';
 
 const emptyScene = (w = 16, h = 12) =>

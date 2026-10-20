@@ -11,7 +11,7 @@ import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity 
 import { props } from '../../data';
 import type { Combatant } from '../../engine/types';
 import * as propsBuilder from '../builders/props';
-import * as roomPortalsModule from '../../state/roomPortals';
+import * as roomPortalsModule from '../../noyau/monde/roomPortals';
 import * as roofsBuilder from '../builders/roofs';
 import { buildRoofs } from '../builders/roofs';
 import { estPropVolumique } from '../builders/types';

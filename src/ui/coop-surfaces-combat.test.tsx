@@ -21,7 +21,7 @@ type NetMode = 'local' | 'host' | 'guest';
 import { CombatConsole } from './console/CombatConsole';
 import { ActiveModal } from './ActiveModal';
 import { CampaignView } from './CampaignView';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

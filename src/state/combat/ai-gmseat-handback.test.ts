@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { runEnemyAI } from '../combatFlow';
+import { runEnemyAI } from '../../noyau/combatFlow';
 import { setGmSeat } from '../netFlow';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
-import { humanControlled, aiDriven } from '../netOwnership';
+import { humanControlled, aiDriven } from '../../noyau/netOwnership';
 
 /**
  * Bac-à-sable MJ × exécution DIFFÉRÉE (#918 phase 2a). `maybeRunEnemyTurn` (`combatFlow.ts`) évalue

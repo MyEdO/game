@@ -32,8 +32,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ACTIONS } from '../data/index';
-import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from './actionRegistry';
-import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from './targetingModes';
+import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from '../noyau/actionRegistry';
+import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from '../noyau/targetingModes';
 import { KEYBINDINGS } from './clavier/keybindings';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
 import type { Combatant } from '../engine/types';
@@ -44,7 +44,7 @@ import { createHero } from '../engine/character';
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const CONSOLE_SRC = src('../ui/console/CombatConsole.tsx');
 const FRISE_SRC = src('../ui/InitiativeStrip.tsx');
-const TARGETING_SRC = src('./targetingModes.ts');
+const TARGETING_SRC = src('../noyau/targetingModes.ts');
 
 /** Le chantier des BRANCHEMENTS est-il ouvert ? Voir l'en-tête : `false` verrouille la baseline à vide. */
 const CHANTIER_BRANCHEMENTS_OUVERT = false;

@@ -5,10 +5,10 @@ import {
 } from '../noyau/monde/scene';
 import { wallSegSchema } from '../data/schemas/defs-scenes/scene';
 import { setDoorSchema } from '../data/schemas/defs-scenes/effets';
-import { roomPortals } from './roomPortals';
-import { buildScene } from './mapSpec';
+import { roomPortals } from '../noyau/monde/roomPortals';
+import { buildScene } from '../noyau/mapSpec';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
+import { applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Effect } from '../noyau/monde/scene';

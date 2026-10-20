@@ -10,7 +10,7 @@ import { applyOps } from '../engine/ops';
 import type { Combatant } from '../engine/types';
 
 /**
- * #T3 — Cascade RAW d'horloge (`state/upkeep.ts`) : ce que le passage du temps déclenche sur les
+ * #T3 — Cascade RAW d'horloge (`noyau/upkeep.ts`) : ce que le passage du temps déclenche sur les
  * franchissements de jour, QUEL QUE SOIT le chemin (advanceTime, repos, voyage) :
  *  - maladies (LDB 20) : incubation/durée en jours CALENDAIRES — progressent SANS repos ;
  *  - convalescence des Blessures critiques (LDB 18 l.222 : « un nombre de jours égal à 30 – votre Bonus d'Endurance ») ;

@@ -22,7 +22,7 @@ import { freeCons } from '../noyau/rollSeam';
 import { CascadeBody } from './CascadeModal';
 import type { CascadeStep } from '../noyau/pendings';
 import { createHero } from '../engine/character';
-import { applyAttackResult } from '../state/combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';

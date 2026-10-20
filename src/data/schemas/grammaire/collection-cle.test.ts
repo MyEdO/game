@@ -15,7 +15,7 @@ import { scanDuCorpus } from '../../../../scripts/docs/lib/structures-scan.mjs';
 import { projetSchema } from '../defs-scenes/projet';
 import { sceneSchema } from '../defs-scenes/scene';
 import { validateDocument, cheminLisible } from '../validate';
-import { parseProject, ProjetRefuse } from '../../../state/worldMap';
+import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
 import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, type MarqueDeCollection } from './collection-cle';
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';

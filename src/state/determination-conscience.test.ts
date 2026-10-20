@@ -27,8 +27,8 @@ import { contractDisease, symptomSuppressed, diseasePassiveOps } from '../engine
 import { dailyDiseaseUpkeep } from '../engine/rest';
 import { syncDerivedConditions, derivedStacks, stacks, addCondition, raisonRefusDetermination, fenetreDetermination } from '../engine/conditions';
 import { passiveMods, poseDeterminationCanceller } from '../engine/trauma';
-import { purgeClockEffects } from './upkeep';
-import { determinationWindowId } from './combatSlice';
+import { purgeClockEffects } from '../noyau/upkeep';
+import { determinationWindowId } from '../noyau/combatSlice';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { bus, EVT } from '../noyau/bus';
 import type { Combatant } from '../engine/types';

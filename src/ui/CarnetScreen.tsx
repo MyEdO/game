@@ -1,6 +1,6 @@
 /** Carnet d'enquête (#670 dernier lot) — surface de lecture JOUEUR du système d'enquête. Présentation
  *  MAISON (aucun livre ne définit de carnet) : lit `campaignNarratif` (données) + `clues` (état runtime,
- *  `src/state/clues.ts`) — un indice ABSENT de `clues` est CACHÉ, jamais affiché ici. */
+ *  `src/noyau/monde/clues.ts`) — un indice ABSENT de `clues` est CACHÉ, jamais affiché ici. */
 import { useEffect, useState } from 'react';
 import { ScreenShell } from './ScreenShell';
 import { MasterDetail } from './MasterDetail';
@@ -12,8 +12,8 @@ import { ListRow } from './ListRow';
 import { SourceBadge, sourceAffichee } from './SourceBadge';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import type { Affaire, DocumentNarratif, Indice, IndiceStade } from '../state/campaignNarratif';
-import { affichageDe, estNouveauPour, type ClueState, type IndiceAffiché } from '../state/clues';
+import type { Affaire, DocumentNarratif, Indice, IndiceStade } from '../noyau/monde/campaignNarratif';
+import { affichageDe, estNouveauPour, type ClueState, type IndiceAffiché } from '../noyau/monde/clues';
 import { Row, Stack } from './Layout';
 import { porteurDuNarratif } from './porteurDeProjet';
 

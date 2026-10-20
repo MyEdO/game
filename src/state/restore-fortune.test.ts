@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { restoreFortune } from '../engine/fortune';
 import { fortuneMax } from '../engine/talentEffects';
 import type { Combatant } from '../engine/types';

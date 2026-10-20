@@ -56,7 +56,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     `scripts/`, non typés par le `tsconfig`, n'alimentent AUCUNE colonne.
 //   - une écriture de `BRIDGE_PATH` appelée INDIRECTEMENT (table de dispatch, callback, `obj[k]()`) :
 //     la fermeture d'appels de `uiReachableScopes` déclare ses propres angles morts, à lire là-bas.
-// Précédent mesuré (2026-07-26) : `SceneEffectZone.tiles`, écrit par `src/state/mapSpec.ts` à
+// Précédent mesuré (2026-07-26) : `SceneEffectZone.tiles`, écrit par `src/noyau/mapSpec.ts` à
 // travers `Array.prototype.map`, était rapporté « écrivains : AUCUN » — le littéral traverse le
 // paramètre de type `U` de `map`, ce qui lui fait perdre sa freshness et prive `getContextualType`
 // de tout rattachement. `tsc` a le même angle mort : supprimer le champ n'y produisait aucune
@@ -75,10 +75,10 @@ const UI_PATH = [/^src[\\/]ui[\\/]/];
 /** Primitives d'édition qui ne sont PAS une interface : `sceneEdit.ts` n'a aucun écran. Une écriture
  *  qui y vit ne crédite QUE si sa fonction porteuse est ATTEINTE par une chaîne d'appels partant de
  *  `src/ui/**`. Une définition, fût-elle exportée, testée et ré-exportée par l'éditeur, ne crédite
- *  rien : `Scene.flags` ← `setSceneFlags` (`src/state/sceneEdit.ts:481`), ré-exporté par
+ *  rien : `Scene.flags` ← `setSceneFlags` (`src/noyau/sceneEdit.ts:481`), ré-exporté par
  *  `src/ui/editor/editorState.ts:52` et appelé par AUCUN composant, est précisément le défaut de
  *  #841 — le travail s'arrête à la porte de l'interface. */
-const BRIDGE_PATH = [/^src[\\/]state[\\/]sceneEdit\.ts$/];
+const BRIDGE_PATH = [/^src[\\/]noyau[\\/]sceneEdit\.ts$/];
 
 /** Chemin d'écriture ATTEIGNABLE PAR L'AUTEUR = interface + primitives réellement appelées par elle. */
 const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
@@ -88,7 +88,7 @@ const AUTHOR_PATH = [...UI_PATH, ...BRIDGE_PATH];
  *  Les scripts `.mjs` de `scripts/` ne sont pas typés par le `tsconfig` du dépôt : ils ne peuvent
  *  donc pas alimenter cette colonne INDICATIVE. Ils n'influent pas sur le verdict, qui ne dépend
  *  que de la colonne `authors`. */
-const PIPELINE_PATH = [/^src[\\/]state[\\/]mapSpec\.ts$/, /^src[\\/]scenes[\\/]/];
+const PIPELINE_PATH = [/^src[\\/]noyau[\\/]mapSpec\.ts$/, /^src[\\/]scenes[\\/]/];
 
 const isUiPath = (rel) => UI_PATH.some((re) => re.test(rel));
 const isAuthorPath = (rel) => AUTHOR_PATH.some((re) => re.test(rel));

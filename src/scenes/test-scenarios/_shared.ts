@@ -2,10 +2,10 @@ import { Combatant, type SkillInstance } from '../../engine/types';
 import { byId } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene, Terrain } from '../../noyau/monde/scene';
-import type { WorldMap } from '../../state/worldMap';
+import type { WorldMap } from '../../noyau/worldMap';
 import type { IconId } from '../../ui/icons';
-import { buildEncounters, type AuthoredEncounter } from '../../state/encounterAuthoring';
-import { buildScene } from '../../state/mapSpec';
+import { buildEncounters, type AuthoredEncounter } from '../../noyau/monde/encounterAuthoring';
+import { buildScene } from '../../noyau/mapSpec';
 
 /** Ajoute ou renforce une Compétence d'un héros de scénario, à la Caractéristique de la donnée. Une
  *  Compétence groupée se possède par spécialisation, désignée par son id — LDB 09 l.40, LDB 09 l.44. */
@@ -55,7 +55,7 @@ export interface ScenarioConstruit {
   worldMap?: WorldMap;
   /** Bloc narratif du scénario (presets de PNJ/affaires/indices) — posé au chargement (`loadProject`)
    *  pour que les `presetId` des entités de scène résolvent (#671). */
-  narratif?: import('../../state/campaignNarratif').NarratifBlock;
+  narratif?: import('../../noyau/monde/campaignNarratif').NarratifBlock;
   /** Bataille de masse (ADE II 08) : amorce le sous-système de Puissance de Bataille après le chargement
    *  de la scène (les Scènes de combat démarrent les rencontres de cette scène). */
   massBattle?: import('../../engine/massBattle').MassBattleSpec;

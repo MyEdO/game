@@ -11,11 +11,11 @@
 import { heightAt, tileAt, doorIsOpen, structureIsDown, crenellatedAt, isCrenellated, isWalkable, structureAt, edgeOf, porteMasquee, porteSelon, type FacadeFeature, type LectureDArete, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { findStructureById } from '../../data';
 import { isWallEdgeStructure } from '../../engine/structures';
-import { interiorCells } from '../../state/planDefects';
+import { interiorCells } from '../../noyau/planDefects';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { estAbsent } from '../../noyau/monde/terrain';
 import { viewedBuilder, type Viewed } from './viewTruth';
-import { effectiveArchitecture } from '../../state/sceneEdit';
+import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { structureAppearance, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
 import { facadeWallFeatureAppearance } from '../catalog/facades';
 import { WALL_H_M, isoPxToM } from '../iso';
@@ -261,7 +261,7 @@ const xyKey = (x: number, y: number) => `${x},${y}`;
 
 /** Le DEHORS d'une case, par étage — SEULE définition du dépôt, lue par l'ENVELOPPE des murs
  *  (`envelopeEdgesOf`) comme par le CÔTÉ SORTANT d'une arête (`outwardSide`, décors de façade).
- *  Le dehors = case n'appartenant à AUCUNE case INTÉRIEURE (`interiorCells`, `state/planDefects.ts`,
+ *  Le dehors = case n'appartenant à AUCUNE case INTÉRIEURE (`interiorCells`, `noyau/planDefects.ts`,
  *  #881 — closes par les murs ET non déclarées à ciel ouvert, jamais la seule notion
  *  `SceneEffectZone.presentation: 'interior'` : une enceinte close n'est pas un bâtiment couvert) ET
  *  hors de l'emprise BÂTIE d'une masse (le VOLUME du corps, PAS sa couverture de toit — #825bis : un

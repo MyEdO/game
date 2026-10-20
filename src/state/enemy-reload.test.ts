@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { applyAttackResult, runEnemyAI } from './combatFlow';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
-import { spawnEnemy } from './spawn';
+import { applyAttackResult, runEnemyAI } from '../noyau/combatFlow';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { findTrappingById } from '../data';
 import { qualityIndice } from '../engine/qualities/dispatch';
 import { seedBattleRng } from '../noyau/battleRng';

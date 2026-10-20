@@ -4,7 +4,7 @@
  * MOTIF MESURÉ : ce n'est PAS de la prose, c'est un LIBELLÉ — l'étiquette du bouton que le joueur
  * clique. Le rôle `libellé` de l'enveloppe a pour cible `label`
  * (`scripts/docs/lib/structures-lexique.mts`), et l'archive de dialogue la stocke déjà comme telle
- * (`DialogueTurn.choiceText`, `src/state/dialogueHistory.ts`). Le nœud PORTEUR, lui, porte de la
+ * (`DialogueTurn.choiceText`, `src/noyau/monde/dialogueHistory.ts`). Le nœud PORTEUR, lui, porte de la
  * prose et part en `desc` (migration `…-3a-prose-desc.mjs`) : deux rôles distincts, deux clés.
  *
  * ENTRÉES : les 4 `src/scenes/<campagne>/<campagne>-projet.json` (chemin

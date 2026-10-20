@@ -173,7 +173,7 @@ export function cargoRaidLossPct(outcome: CargoRaidOutcome, fleePct: number, los
 // Décision 1 (conception 2026-07-11) : UN concept pour héros, bête de bât, véhicule terrestre, barge et
 // navire — ils diffèrent par leur SOURCE de capacité et leur modèle de contenu, pas par leur nature. Ce
 // tronc est PUR : il fait l'arithmétique d'Enc + le transfert co-localisé ; la RÉSOLUTION de la capacité
-// depuis les objets réels (héros/monture/véhicule/navire) vit dans la couture d'état `state/carriers.ts`,
+// depuis les objets réels (héros/monture/véhicule/navire) vit dans la couture d'état `noyau/carriers.ts`,
 // qui assemble ces structures via les constructeurs ci-dessous.
 
 /** Nature physique d'un porteur → table de surcharge RAW (jambes = LDB 61 l.35-40 ; coque = MDG 12). Portée

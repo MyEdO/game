@@ -14,9 +14,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ROUTES, buildRoutes, type Route } from './netOwnership';
-import { jetOwnedIntents, participantOwnedIntents } from './flowVerbs';
-import { horsModalOwnedIntents } from './modalArbiter';
+import { ROUTES, buildRoutes, type Route } from '../noyau/netOwnership';
+import { jetOwnedIntents, participantOwnedIntents } from '../noyau/flowVerbs';
+import { horsModalOwnedIntents } from '../noyau/modalArbiter';
 import { GUEST_INTENTS, INTERLUDE_INTENTS, PARTY_INTENTS } from './intents';
 
 const JET = Object.keys(jetOwnedIntents());
@@ -134,7 +134,7 @@ describe('#1051 — l’ancienne regex d’interlude est ÉNUMÉRÉE (4 clés ex
  */
 describe('#1051 — DoD : aucune branche par nom d’intent dans `intentAllowedFor`', () => {
   const corps = (): string => {
-    const src = readFileSync(join(process.cwd(), 'src', 'state', 'netOwnership.ts'), 'utf8');
+    const src = readFileSync(join(process.cwd(), 'src', 'noyau', 'netOwnership.ts'), 'utf8');
     const i = src.indexOf('export function intentAllowedFor(');
     expect(i, 'fonction introuvable — la garde ne mesure plus rien').toBeGreaterThan(0);
     return src.slice(i, src.indexOf('\n}', i) + 2);

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { ownsLocal, intentAllowedFor } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
+import { ownsLocal, intentAllowedFor } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { castingBaseValue } from '../engine/magic';
 import type { Combatant } from '../engine/types';
 
@@ -162,7 +162,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
         result: { cast: true, roll: 30, target: 70, sl: 6, base: castingBaseValue(H, 'langue', 'magick'), isCritical: false, isFumble: false, log: 'x' },
       },
     });
-    const { openCastCascade, openCastOpposition } = await import('./combatFlow');
+    const { openCastCascade, openCastOpposition } = await import('../noyau/combatFlow');
     openCastCascade(useGame.getState, useGame.setState, H); // fenêtre = étape `jet:'cast'` du lanceur
     const ouvert = openCastOpposition(useGame.getState, useGame.setState, useGame.getState().pendingCast!, [T]);
     expect(ouvert).toBe(true);

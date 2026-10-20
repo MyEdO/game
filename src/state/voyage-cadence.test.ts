@@ -2,16 +2,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
-import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
+import { buildSeaPlan, runSeaDay } from '../noyau/seaVoyageFlow';
+import { buildRiverPlan, runRiverDays } from '../noyau/riverVoyageFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { skills as SKILLS, crewRoles as CREW_ROLES, refLabel } from '../data';
 import { KINDS_SOUS_ORDRES, DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
-import { creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 import { createHero } from '../engine/character';
-import { buildScene } from './mapSpec';
+import { buildScene } from '../noyau/mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 
 /**
  * CADENCE DE VOYAGE (#232) — la couche PARTAGÉE mer ⇄ fluvial : ordres COMMANDÉE (routine auto-résolue,

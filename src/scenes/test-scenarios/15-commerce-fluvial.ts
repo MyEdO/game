@@ -1,9 +1,9 @@
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { Scene } from '../../noyau/monde/scene';
-import type { MapPlace, MapRoute, WorldMap } from '../../state/worldMap';
+import type { MapPlace, MapRoute, WorldMap } from '../../noyau/worldMap';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import { REIK_INDEX, hasTradeGoods, reikMarket, type ReikEntry } from './_reik-index';
 import { firstLevel, rigSpeciesId } from '../../data';

@@ -3,7 +3,7 @@
 // + `seaVoyageFlow.ts` (persistance `set({ vessel: { ...vessel, wounds } })` via `setVesselHull`/
 // `persistHullWounds`/`damageVesselHull`/`healVesselHull`). Le motif détecté est la forme SPREAD
 // « on repart de l'ancien `vessel` et on y réécrit `wounds` » — la seule qui persiste RÉELLEMENT
-// une valeur de coque (`setVessel` en `src/state/combatEffects.ts` construit un vessel ENTIER neuf
+// une valeur de coque (`setVessel` en `src/noyau/combatEffects.ts` construit un vessel ENTIER neuf
 // à l'authoring, motif structurellement différent, hors périmètre). Module ESM pur, exécutable par
 // `node` nu — même patron que `journalWrite.mjs`.
 

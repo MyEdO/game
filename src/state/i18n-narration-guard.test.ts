@@ -53,40 +53,40 @@ const MIGRATED = new Set([
   'src/engine/conditions.ts',
   'src/engine/ops.ts',
   'src/engine/psychology.ts',
-  'src/state/combat/turnHooks.ts',
-  'src/state/outOfCombatUpkeep.ts',
-  'src/state/combatManeuvers.ts',
-  'src/state/flowOutcomes.ts',
-  'src/state/combatSlice.ts',
-  'src/state/combatFlow.ts',
-  'src/state/pursuitFlow.ts', // #1279 : toute la narration de poursuite est passee au catalogue
-  'src/state/interludeFlow.ts', // #1318 V8c₁ : `if.*`
-  'src/state/massBattleFlow.ts', // #1318 V8c₁ : `mbf.*`
-  'src/state/merchantFlow.ts', // #1318 V8c₁ : `mf.*`
+  'src/noyau/combat/turnHooks.ts',
+  'src/noyau/outOfCombatUpkeep.ts',
+  'src/noyau/combatManeuvers.ts',
+  'src/noyau/flowOutcomes.ts',
+  'src/noyau/combatSlice.ts',
+  'src/noyau/combatFlow.ts',
+  'src/noyau/pursuitFlow.ts', // #1279 : toute la narration de poursuite est passee au catalogue
+  'src/noyau/interludeFlow.ts', // #1318 V8c₁ : `if.*`
+  'src/noyau/massBattleFlow.ts', // #1318 V8c₁ : `mbf.*`
+  'src/noyau/merchantFlow.ts', // #1318 V8c₁ : `mf.*`
   'src/engine/disease.ts', // #1318 V8c₂ : `dz.*` (le moteur pur résout par `t()`, comme `ops.ts`)
-  'src/state/combatEffects.ts', // #1318 V8c₂ : `eff.*`
+  'src/noyau/combatEffects.ts', // #1318 V8c₂ : `eff.*`
   'src/state/store.ts', // #1318 V8c₂ : `store.*`
-  'src/state/travelFlow.ts', // #1318 V8c₂ : `tf.*`
-  'src/state/riverVoyageFlow.ts', // #1318 V8c₂ : `rv.*`
+  'src/noyau/travelFlow.ts', // #1318 V8c₂ : `tf.*`
+  'src/noyau/riverVoyageFlow.ts', // #1318 V8c₂ : `rv.*`
   'src/engine/healing.ts', // #1318 V8c₃ : `heal.*` (le moteur pur résout par `t()`, comme `ops.ts`)
   'src/engine/rest.ts', // #1318 V8c₃ : `rest.*`
-  'src/state/restFlow.ts', // #1318 V8c₃ : `rf.*`
-  'src/state/shipCrew.ts', // #1318 V8c₃ : `crew.*`
-  'src/state/seaVoyageFlow.ts', // #1318 V8c₃ : `sv.*`
+  'src/noyau/restFlow.ts', // #1318 V8c₃ : `rf.*`
+  'src/noyau/shipCrew.ts', // #1318 V8c₃ : `crew.*`
+  'src/noyau/seaVoyageFlow.ts', // #1318 V8c₃ : `sv.*`
   'src/engine/provisions.ts', // #1318 V8c₄ : `prov.*` (Faim & Soif — le moteur pur résout par `t()`)
   'src/engine/suffocation.ts', // #1318 V8c₄ : `suff.*`
   'src/engine/exposure.ts', // #1318 V8c₄ : `exp.*` (protection magique = `eff.weatherWarded`, partagée)
   'src/engine/mountTravel.ts', // #1318 V8c₄ : `mt.*`
   'src/engine/shipCritical.ts', // #1318 V8c₄ : `shipCrit.*` + `shipLoc.*` (foyer des Localisations de bateau)
   'src/engine/spellRangeFormat.ts', // #1318 V8c₄ : `spellFmt.*` (portée/cible/durée d'un sort)
-  'src/state/upkeep.ts', // #1318 V8c₄ : `upkeep.*`
-  'src/state/medicFlow.ts', // #1318 V8c₄ : `medic.*`
+  'src/noyau/upkeep.ts', // #1318 V8c₄ : `upkeep.*`
+  'src/noyau/medicFlow.ts', // #1318 V8c₄ : `medic.*`
   'src/state/netFlow.ts', // #1318 V8c₄ : `coop.*` (le namespace du salon, déjà posé)
-  'src/state/travelPostes.ts', // #1318 V8c₄ : `tp.*`
-  'src/state/corruptionFlow.ts', // #1318 V8c₄ : `cor.*`
-  'src/state/seaActivities.ts', // #1318 V8c₄ : `sact.*`
-  'src/state/portFlow.ts', // #1318 V8c₄ : `port.*`
-  'src/state/partyFlow.ts', // #1318 V8c₄ : `pf.*`
+  'src/noyau/travelPostes.ts', // #1318 V8c₄ : `tp.*`
+  'src/noyau/corruptionFlow.ts', // #1318 V8c₄ : `cor.*`
+  'src/noyau/seaActivities.ts', // #1318 V8c₄ : `sact.*`
+  'src/noyau/portFlow.ts', // #1318 V8c₄ : `port.*`
+  'src/noyau/partyFlow.ts', // #1318 V8c₄ : `pf.*`
   'src/engine/drunkenness.ts', // #1318 V8c₅ : `drunk.*`
   'src/engine/items.ts', // #1318 V8c₅ : `ammo.*` (munition attendue par une arme à distance)
   'src/engine/money.ts', // #1318 V8c₅ : `money.*` (épellation d'un montant)
@@ -99,13 +99,13 @@ const MIGRATED = new Set([
   'src/engine/travel.ts', // #1318 V8c₅ : `trv.*`
   'src/engine/advancement.ts', // #1318 V8c₅ : `adv.*` (les `reason` de refus, invisibles aux 7 formes)
   'src/engine/careerSlots.ts', // #1318 V8c₅ : `slot.*` (idem, + le Maxi de Talent)
-  'src/state/combat/roundHooks.ts', // #1318 V8c₅ : `turn.exhausted`
+  'src/noyau/combat/roundHooks.ts', // #1318 V8c₅ : `turn.exhausted`
   'src/state/clavier/keybindings.ts', // #1318 V8c₅ : `key.*` (le registre porte des CLÉS, `bindingLabel`)
-  'src/state/mount.ts', // #1318 V8c₅ : `mount.*`
-  'src/state/rollFlowFactory.ts', // #1318 V8c₅ : `roll.*`
-  'src/state/shipManeuver.ts', // #1318 V8c₅ : `shipManv.*`
-  'src/state/shipwreck.ts', // #1318 V8c₅ : `wreck.*`
-  'src/state/summonFlow.ts', // #1318 V8c₅ : `summon.*`
+  'src/noyau/mount.ts', // #1318 V8c₅ : `mount.*`
+  'src/noyau/rollFlowFactory.ts', // #1318 V8c₅ : `roll.*`
+  'src/noyau/shipManeuver.ts', // #1318 V8c₅ : `shipManv.*`
+  'src/noyau/shipwreck.ts', // #1318 V8c₅ : `wreck.*`
+  'src/noyau/summonFlow.ts', // #1318 V8c₅ : `summon.*`
 ]);
 
 /** Stock GELÉ par fichier (recensement #410, 2026-07-13) — littéraux FR de narration hors catalogue,
@@ -122,7 +122,7 @@ const MIGRATED = new Set([
  *  dernier test du fichier) : ce commentaire a menti une fois (92 annoncés pour 103 tenus), il ne le
  *  peut plus sans rougir. Une entrée qui REPARAÎTRAIT ici serait une régression, pas une dette : la
  *  table n'est plus un stock à résorber mais un cliquet à zéro.
- *  `state/combatFlow.ts` reste MIGRÉ (invariant ZÉRO) : les littéraux que ce prédicat y a révélés sont
+ *  `noyau/combatFlow.ts` reste MIGRÉ (invariant ZÉRO) : les littéraux que ce prédicat y a révélés sont
  *  au catalogue (`cf.gangwayCollapse`/`cf.spellNotFound`/`cf.cannotCast`/`cf.cannotPray`/`cf.oups`,
  *  plus `cf.outOfAction`/`cf.noLineOfSight`, et les DEUX que la 7ᵉ forme y a trouvés —
  *  `cf.componentAbsorbs`/`cf.sourceRebuilds` : un fichier « MIGRÉ » ne l'est que pour ce que le

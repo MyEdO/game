@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mountedAttackMods, mountedDodgeMods, mountMovement, mountUp } from './mount';
+import { mountedAttackMods, mountedDodgeMods, mountMovement, mountUp } from '../noyau/mount';
 import type { BattleState } from './store';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';

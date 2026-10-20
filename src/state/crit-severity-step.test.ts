@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import { applyAttackResult, resolveCritSeverity, critSeverityDecl, critSeverityInSeam, CRIT_TABLE_IDS, STRUCTURE_CRIT_TABLE } from '../noyau/combatFlow';
 import { setRule, resetRule } from '../engine/policy';
 import { stepInteraction, rollTableStep, tableStepDef } from '../noyau/cascade';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG, d100 } from '../engine/dice';
 import { resolveCritique, critTableRows } from '../engine/critical';
@@ -22,7 +22,7 @@ import type { Weapon, Combatant, HitLocation, ArmourPoints } from '../engine/typ
 const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ?? [])[(c.critEntriesSuffered ?? []).length - 1];
 const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 /**
  * SÉVÉRITÉ d'une Blessure critique en SEAM (#942 L4) — le d100 du Tableau des Critiques (LDB 18) est

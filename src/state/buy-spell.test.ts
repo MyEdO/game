@@ -5,7 +5,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects, effectiveSpellOf } from './combatFlow';
+import { effectiveSpellOf } from '../noyau/combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';

@@ -7,7 +7,7 @@ import { setCadence, resetCadence } from '../engine/cadence';
 import { makePregens } from '../data/pregens';
 import { voyageStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
-import type { BuiltCascadeStep } from '../noyau/rollSeam';
+import type { BuiltCascadeStep } from '../noyau/stepBrand';
 
 /**
  * LE CONTRAT DU SOCLE DE SÉQUENCE (#1479), sur ses DEUX bords :

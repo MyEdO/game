@@ -1,6 +1,6 @@
 import { pregen, PREGEN } from '../../data/pregens';
 import type { Combatant } from '../../engine/types';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';

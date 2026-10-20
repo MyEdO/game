@@ -4,7 +4,7 @@
  * (`src/data/reglesOptionnelles.json`, lu par `policy.ts` — chaque entrée y porte sa réf chapitre +
  * ligne) mais ici, en valeur pure. MÊME partage que `cadence.ts` : ce module
  * FEUILLE porte la valeur (moteur pur, zéro dépendance), `state/preferences.ts` porte le registre joueur
- * et la persistance, `state/netOwnership.canFixDie` porte le prédicat de CONTRÔLE (qui peut fixer quoi).
+ * et la persistance, `noyau/netOwnership.canFixDie` porte le prédicat de CONTRÔLE (qui peut fixer quoi).
  *
  * SEULE source de vérité de l'activation : le reste du moteur/store lit `desFixes()`.
  */

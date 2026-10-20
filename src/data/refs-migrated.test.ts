@@ -25,7 +25,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { COND } from '../engine/conditions';
 import { DISEASES } from '../engine/disease';
 import { findLieuServiceById } from './index';
-import { SERVICE_CITE } from '../state/worldMap';
+import { SERVICE_CITE } from '../noyau/worldMap';
 import { terrainEntree } from '../noyau/monde/terrain';
 import pregensJson from './pregens.json';
 import { makePregens } from './pregens';

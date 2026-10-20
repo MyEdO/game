@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects, fireScheduledEffects } from './combatEffects';
+import { applyEffects, fireScheduledEffects } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';

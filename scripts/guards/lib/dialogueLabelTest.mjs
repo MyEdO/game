@@ -4,7 +4,7 @@
 // aucun stock, aucune baseline : le compte attendu est ZÉRO).
 //
 // POURQUOI : ce qu'une réponse ANNONCE est DÉRIVÉ de son flux et rendu par la fenêtre
-// (`state/dialogue.ts` `testAnnonce` → `ui/DialogueBox` « N. [Compétence — Difficulté] libellé »).
+// (`noyau/dialogue.ts` `testAnnonce` → `ui/DialogueBox` « N. [Compétence — Difficulté] libellé »).
 // Un auteur qui écrit « (Test de Crochetage) » dans le libellé pose une SECONDE vérité : elle ment
 // dès que le flux change de Compétence ou de difficulté, et la réponse dit deux fois la même chose.
 // Le coût suit la même loi : la fenêtre le rend en puce (`Coins`), « — 4 pa » dans le libellé le redouble.

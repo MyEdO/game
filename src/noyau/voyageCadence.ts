@@ -9,7 +9,7 @@
  * INTERRUPTIONS — chaque jet de ROUTINE auto-résolu laisse sa ligne au PV DU JOUR (l'auto-pilote pilote
  * LE MÊME flux de jet, jamais un `rollTest` inline). Décision requise = modale/cascade ; routine = PV.
  */
-import type { NightEntry } from '../state/restFlow';
+import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import type { StakeRef } from '../data';
 import type { GameState } from '../state/store';

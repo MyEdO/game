@@ -6,15 +6,15 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { resolveFreeAttacks } from './combatFlow';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { resolveFreeAttacks } from '../noyau/combatFlow';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 import type { AttackResult } from '../engine/combat';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { setRule, resetRule } from '../engine/policy';
-import { applySummon } from './summonFlow';
+import { applySummon } from '../noyau/summonFlow';
 import { campGain } from '../noyau/combat/advantagePool';
 
 const HIT: AttackResult = {

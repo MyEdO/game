@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
-import { doAttack } from './combatFlow';
+import { draineCascade } from './cascade.testkit';
+import { doAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 

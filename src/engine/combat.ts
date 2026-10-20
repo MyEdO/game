@@ -1637,7 +1637,7 @@ export function coupAApplique(res: AttackResult, grapple: boolean | undefined, c
 }
 
 /** L'issue au jet du coup `res` tel que l'appelant le passe : sa ligne de touche et `compteDuCoup`,
- *  sans les `runHitModifiers` de l'application (`src/state/combat/hitModifiers.ts`). LDB 18 l.44 ; AA 07 l.65. */
+ *  sans les `runHitModifiers` de l'application (`src/noyau/combat/hitModifiers.ts`). LDB 18 l.44 ; AA 07 l.65. */
 export function issueAuJet(cible: Combatant, res: AttackResult, arme: Weapon, attaquant: Combatant): { ligne: string; compte: CompteDesCritiques } {
   const { compte, lieu } = compteDuCoup(res, arme, attaquant, cible, 0);
   if (!res.touche) return { ligne: res.log, compte };

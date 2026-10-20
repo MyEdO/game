@@ -5,7 +5,7 @@ import { EmbeddedShell } from './RollShell';
 import { ChoiceButtons } from './OptionChooser';
 import { Coins } from './Coins';
 import { canAfford } from '../engine/money';
-import { partyMoneyTotal } from '../state/bourseFlow';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { Icon } from './Icon';
 
 /**

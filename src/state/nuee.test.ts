@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { statblockToCombatant } from './spawn';
+import { statblockToCombatant } from '../noyau/monde/spawn';
 import { attackModifiers } from '../engine/combat';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { engage } from '../engine/engagement';
-import { buildEncounter } from './encounterAuthoring';
+import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import { testScene } from '../scenes/test-fixture';
-import type { CustomStatblock, Scene } from '../noyau/monde/scene';
+import type { Scene } from '../noyau/monde/scene';
+import type { CustomStatblock } from '../engine/statblock';
 import type { Weapon } from '../engine/types';
 
 // Nuée — Trait Nuée (LDB 85 l.251-253).
@@ -146,7 +147,7 @@ describe('Nuée AUTHORÉE en scène — spawn et Round joués par le store (LDB 
 
   it('la Nuée quitte un Engagement SANS Test, liens levés et déplacement rouvert', () => {
     // Volet joué par la porte JOUEUR (`battleDisengage`) : la Nuée ENNEMIE se pilote sous un siège MJ
-    // (`net.gmSeat`, `sieges.ts:65-68`, `netOwnership.ts:213-218`). L'IA, elle, ne joue PAS ce volet : `src/state/ai.ts`
+    // (`net.gmSeat`, `sieges.ts:65-68`, `netOwnership.ts:213-218`). L'IA, elle, ne joue PAS ce volet : `src/noyau/monde/ai.ts`
     // n'appelle jamais `startDisengage` — ticket ouvert par l'orchestratrice (#1718).
     const { scene, nueeId } = nueeScene();
     const { battle, heroId } = startNuee(scene);

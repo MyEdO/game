@@ -409,9 +409,9 @@ test('analyzeDiffDuCommit : lit le numstat TEL QUEL, sans second filtrage de che
 const porte = (message, ...fichiersEmportes) => evaluatePorteDuTicket({ message, fichiersEmportes })
 
 test('porte du ticket : un commit qui touche src/ sans aucun ticket est REFUSÉ, fichier nommé', () => {
-  const d = porte('chore: une ligne de rien', 'src/state/combatFlow.ts')
+  const d = porte('chore: une ligne de rien', 'src/noyau/combatFlow.ts')
   assert.ok(d, 'un commit de substance sans ticket doit être refusé')
-  assert.match(d.reason, /src\/state\/combatFlow\.ts/)
+  assert.match(d.reason, /src\/noyau\/combatFlow\.ts/)
   assert.match(d.reason, /refs #N/)
   assert.match(d.reason, /2026-09-11/, 'le refus porte le verbatim daté du régime')
 })

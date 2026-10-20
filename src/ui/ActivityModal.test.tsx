@@ -13,7 +13,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { ActivityModal } from './ActivityModal';
-import type { PendingActivity } from '../state/interludeFlow';
+import type { PendingActivity } from '../noyau/interludeFlow';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

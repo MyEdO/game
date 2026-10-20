@@ -1,5 +1,5 @@
 /**
- * Modale de REPOS (state/restFlow) : offre par lieu/zone, choix PAR HÉROS (couchage + pitance,
+ * Modale de REPOS (noyau/restFlow) : offre par lieu/zone, choix PAR HÉROS (couchage + pitance,
  * orthogonaux), coût RAW (LDB 66), Exposition d'un campement (LDB 18 l.327-334). UNE NUIT comme
  * PLUSIEURS passent par une CHAÎNE de cascades séquentielles influençables (#347, `openRestNight`/
  * `continueRestNights`) — chaque jet = une étape, verrouillée à « Valider » avant le suivant, chaque
@@ -10,8 +10,8 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
-import { restPlacesHere, lodgingOptions } from './restFlow';
+import { applyEffects } from '../noyau/combatEffects';
+import { restPlacesHere, lodgingOptions } from '../noyau/restFlow';
 import { resolveStake } from '../data';
 import { contractDisease, tickDisease, diseaseDefs } from '../engine/disease';
 import { spellOps } from '../engine/flowCore';
@@ -19,14 +19,14 @@ import { battleRng as battleRngFor } from '../noyau/battleRng';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
 import { toBrass, type Money } from '../engine/money';
-import { creditBourse, partyMoneyTotal } from './bourseFlow';
+import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { stacks, addCondition } from '../engine/conditions';
 
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { resetCadence, setCadence } from '../engine/cadence';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 
 const ration = (uid: string): ItemInstance => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc', qualities: [], enc: 0, equipped: false });
 

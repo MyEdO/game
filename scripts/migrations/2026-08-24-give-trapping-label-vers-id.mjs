@@ -7,8 +7,8 @@
  * MOTIF MESURÉ : `giveTrappingSchema` (`src/data/schemas/defs-scenes/effets.ts:121`) est un
  * `z.strictObject` dont les seuls canaux d'objet sont `trappingId` et `custom` ; AUCUN lecteur du
  * dépôt ne lit `.trapping` (`applyOps` case `giveTrapping`, `src/engine/ops.ts:1910` ;
- * `giveTrappingLabel`/`gearFromEffects`, `src/state/combatEffects.ts:146,175` ;
- * `createCombatSlice`, `src/state/combatSlice.ts:2246`). Les nœuds à `trapping` ne donnent donc
+ * `giveTrappingLabel`/`gearFromEffects`, `src/noyau/combatEffects.ts:146,175` ;
+ * `createCombatSlice`, `src/noyau/combatSlice.ts:2246`). Les nœuds à `trapping` ne donnent donc
  * RIEN au runtime : demi-migration `7b4e7bbd4` restée en donnée, bug des 18 dons muets.
  *
  * MOTIF MESURÉ (volet 2) : `withGiveQualities` (`src/engine/items.ts:313`) fait

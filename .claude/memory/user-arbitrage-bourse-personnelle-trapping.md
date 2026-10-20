@@ -10,4 +10,4 @@ Verbatim utilisateur (2026-09-06) : « Non laisse comme ca, tant que la bourse e
 
 **Why:** le RAW compte la monnaie dans l’Encombrement INDIVIDUEL et le jeu ne connaît pas d’inventaire de groupe — une bourse commune contredirait les deux.
 
-**How to apply:** la monnaie vit par héros, dans une `ItemInstance` du trapping `bourse` (champ `money`) ; toute somme entrée ou sortie est une allocation par les primitives de `src/state/bourseFlow.ts`, jamais une écriture directe ; toute surface « Bourse » de groupe est dérivée.
+**How to apply:** la monnaie vit par héros, dans une `ItemInstance` du trapping `bourse` (champ `money`) ; toute somme entrée ou sortie est une allocation par les primitives de `src/noyau/bourseFlow.ts`, jamais une écriture directe ; toute surface « Bourse » de groupe est dérivée.

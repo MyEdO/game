@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
-import { hoverTargeting } from './targeting';
+import { hoverTargeting } from '../noyau/targeting';
 import type { Scene } from '../noyau/monde/scene';
 import { testScene } from '../scenes/test-fixture';
 import type { Weapon } from '../engine/types';

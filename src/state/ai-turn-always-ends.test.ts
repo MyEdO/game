@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { scenario } from '../scenes/test-scenarios/42-belier-porte';
-import { runEnemyAI } from './combatFlow';
+import { runEnemyAI } from '../noyau/combatFlow';
 const scenarioConstruit = scenario.construire();
 
 /**

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { attackEnv } from './combatFlow';
+import { attackEnv } from '../noyau/combatFlow';
 import type { ModLine } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
-import type { Get } from './flowTypes';
+import type { Get } from '../noyau/flowTypes';
 import type { Combatant, Weapon } from '../engine/types';
 import { ligneDeRegle } from '../engine/reglesChiffrees';
 

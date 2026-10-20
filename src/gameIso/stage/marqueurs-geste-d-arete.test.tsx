@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * MARQUEURS D'ARÊTE = VERDICT DE L'ACTION (#700, #2190) — l'hôte RÉEL (`MondeDeCampagne`) n'offre un
- * geste d'arête que si `gesteDArete` (`state/gesteDArete.ts`) l'accepte : afficher et agir ne peuvent pas
+ * geste d'arête que si `gesteDArete` (`noyau/gesteDArete.ts`) l'accepte : afficher et agir ne peuvent pas
  * répondre différemment. POINT D'OBSERVATION : l'offre que l'écran publie (`getStageFrame().aretes()`),
  * celle que le picking consulte.
  */
@@ -12,7 +12,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
 import { engage } from '../../engine/engagement';
-import { placeCombatant } from '../../state/spawn';
+import { placeCombatant } from '../../noyau/monde/spawn';
 import { testScene } from '../../scenes/test-fixture';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';

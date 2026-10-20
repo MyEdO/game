@@ -12,10 +12,10 @@ import { BargainModal } from './BargainModal';
 import { useGame } from '../state/store';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { makePregensWithWealth, PREGEN } from '../data/pregens';
-import { creditBourse, partyMoneyTotal } from '../state/bourseFlow';
+import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
-import { draineCascade } from '../state/cascadeTestKit';
+import { draineCascade } from '../state/cascade.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

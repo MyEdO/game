@@ -17,7 +17,7 @@ import { emptyScene, type Scene, type SceneEntity, type Dialogue } from '../../n
 import { buildRoofs } from '../../gameIso/builders/roofs';
 import { buildWalls } from '../../gameIso/builders/walls';
 import { battleScenesToStations } from '../../state/stations';
-import { buildingRoofMaterial } from '../../state/buildings';
+import { buildingRoofMaterial } from '../../noyau/monde/buildings';
 import { validateScene } from '../../state/validateScene';
 import { encloseRect } from '../../state/sceneEdit.testkit';
 import { sceneZonesToBattle, sceneZoneTiles } from '../../noyau/monde/zones';
@@ -28,7 +28,7 @@ import { DialogueBox } from '../DialogueBox';
 import type { Ctx } from './EffectList';
 import { paintEffectZone, type Sel, type Tool } from './editorState';
 import { evalCondition, conditionCtx } from '../../engine/flowCore';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

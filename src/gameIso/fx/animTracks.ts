@@ -153,7 +153,7 @@ function onAttack(d: AttackEvent): void {
           from.rig ?? {},
         );
   // CIBLE de l'échange : `to === from` n'en est PAS une (le souffle d'une créature,
-  // `state/combatManeuvers.emitCreatureAttackAnim`, se poste sous cette forme). La piste d'attaque se joue,
+  // `noyau/combatManeuvers.emitCreatureAttackAnim`, se poste sous cette forme). La piste d'attaque se joue,
   // mais sans impact armé : émis, il reviendrait à l'attaquant, qui se déroberait au milieu de son propre
   // geste (`onImpact` pose une piste `hit` sur `to`) sous un bruit de touche. Une seule garde pour les
   // deux conséquences — l'impact et le geste de défense.

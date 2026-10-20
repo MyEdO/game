@@ -563,9 +563,9 @@ export const BLOCS_LINT = [
 
     files: ['src/state/**/*.ts', 'src/state/**/*.tsx', 'src/noyau/**/*.ts', 'src/noyau/**/*.tsx'],
     excludeFiles: [
-      'src/state/flowOutcomes.ts',
-      'src/state/rollFlowSpecs.ts',
-      'src/state/encounterPsychFlow.ts',
+      'src/noyau/flowOutcomes.ts',
+      'src/noyau/rollFlowSpecs.ts',
+      'src/noyau/encounterPsychFlow.ts',
       'src/state/**/*.test.ts', 'src/state/**/*.test.tsx',
       'src/noyau/**/*.test.ts', 'src/noyau/**/*.test.tsx',
     ],

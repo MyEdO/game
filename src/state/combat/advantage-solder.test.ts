@@ -6,10 +6,10 @@ import type { AdvantagePools } from '../../engine/advantagePool';
 import {
   resolveBattement, battementEligible, battementRemoval,
   resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue,
-} from '../combatManeuvers';
-import { resolveGrappleOpposed } from '../combatFlow';
+} from '../../noyau/combatManeuvers';
+import { resolveGrappleOpposed } from '../../noyau/combatFlow';
 import { fearSourceFor } from '../../engine/psychology';
-import { riderFearSize } from '../mount';
+import { riderFearSize } from '../../noyau/mount';
 import { retreatAdvantageCost, keptAdvantageOnDisengage, canDisengageWithLessAdvantage } from '../../engine/combatFeatures/dispatch';
 import type { TestResult } from '../../engine/tests';
 

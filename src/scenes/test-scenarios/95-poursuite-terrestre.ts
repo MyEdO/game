@@ -1,12 +1,12 @@
 import { makePregens } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
 /**
  * POURSUITE TERRESTRE JOUABLE (#95, LDB 15 l.88-108) : le groupe fuit trois brigands sur un chemin
- * découvert. Le trigger d'entrée pose l'Effet `startPursuit` (state/pursuitFlow ouvre la boucle de
+ * découvert. Le trigger d'entrée pose l'Effet `startPursuit` (noyau/pursuitFlow ouvre la boucle de
  * manches, cascade influençable `purpose:'pursuite'`) dès le premier pas. Rattrapé (Distance ≤ 0),
  * la fuite se dénoue en COMBAT (`enc-rattrapage`, mêmes brigands) ; semé, elle se dénoue au récit.
  */

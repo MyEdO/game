@@ -1,9 +1,9 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { hasCommandTeam } from '../engine/combatFeatures/dispatch';
 import { setRule, resetRule } from '../engine/policy';
-import { voiceCommandRangeM, teamCommandTargets, canAidTeam } from './commandTeam';
-import { applyShipPostes } from './shipPostes';
-import { attackEnv, previewAttack } from './combatFlow';
+import { voiceCommandRangeM, teamCommandTargets, canAidTeam } from '../noyau/monde/commandTeam';
+import { applyShipPostes } from '../noyau/monde/shipPostes';
+import { attackEnv, previewAttack } from '../noyau/combatFlow';
 import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { seedBattleRng } from '../noyau/battleRng';

@@ -6,15 +6,15 @@ description: À utiliser quand on ajoute ou modifie un jet ou Test (attaque, sor
 
 # Ajouter un flux de jet
 
-Lire **`docs/ajouter-un-flux-de-jet.md`** — un nouveau jet = 1 spec (`src/state/rollFlowSpecs.ts`,
-verbes dans la table `FLOW_VERBS` de `src/state/flowVerbs.ts`) + 1 xConfirm ; la modale = `RollShell`
+Lire **`docs/ajouter-un-flux-de-jet.md`** — un nouveau jet = 1 spec (`src/noyau/rollFlowSpecs.ts`,
+verbes dans la table `FLOW_VERBS` de `src/noyau/flowVerbs.ts`) + 1 xConfirm ; la modale = `RollShell`
 paramétrée (slots/jetProps, JAMAIS de mécanique générique recodée) ; le résolveur porte les trois cas
 de résolution forcée ; mono = multi N=1. Gardes réelles : `rollFlowWiring.test.ts` (câblage) et
 `maneuver-defense-cascade.test.ts` (surfaçage contrôleur humain).
 
 - Un Test que le RAW dit OPPOSÉ passe, sur le chemin joueur, par la machinerie d'opposition
-  (`opposedBinaryFlow` `src/state/rollFlowSpecs.ts:375`, `openCastOpposition`,
-  `src/state/combat/triggeredTest.ts`, `VsHeader`) : les deux jets visibles, ré-opposés à chaque
+  (`opposedBinaryFlow` `src/noyau/rollFlowSpecs.ts:375`, `openCastOpposition`,
+  `src/noyau/combat/triggeredTest.ts`, `VsHeader`) : les deux jets visibles, ré-opposés à chaque
   influence (utilisateur, 2026-07-17 : « les jets opposés sont un MENSONGE […] alors qu'on SAIT FAIRE
   DES JETS OPPOSÉS ! »). Un test simple avec tirage adverse caché dans l'applier exige une justification
   RAW citée.

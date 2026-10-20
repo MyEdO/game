@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { avanceEtapeCascade, cascadeDeTest } from './cascadeTestKit';
-import { applyAttackResult } from './combatFlow';
-import { combatAdvanceBlocked } from './combatGate';
+import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
+import { applyAttackResult } from '../noyau/combatFlow';
+import { combatAdvanceBlocked } from '../noyau/combatGate';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 // Coup Critique / Assommante en révélation + gel de l'IA.
 describe('Conséquences d’attaque en révélation (store)', () => {

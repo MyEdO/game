@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castSpell, routeCounterspell, counterspellCandidates } from './combatFlow';
-import { intentAllowedFor, influencesLocally, canFixDie } from './netOwnership';
+import { castSpell, routeCounterspell, counterspellCandidates } from '../noyau/combatFlow';
+import { intentAllowedFor, influencesLocally, canFixDie } from '../noyau/netOwnership';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setDesFixes } from '../engine/fixedDie';
 import { createHero } from '../engine/character';

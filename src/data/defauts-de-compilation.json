@@ -2,7 +2,7 @@
   "id": "defauts-de-compilation",
   "type": "defauts-de-compilation",
   "label": "Défauts de compilation",
-  "maison": "Ce que le compilateur de scène pose quand l'auteur ne dit rien : une `cells` d'enceinte ne nomme ni le sol de son chemin de ronde ni la matière de sa masse, et une scène de bord n'authore pas la tuile de son pont. Aucun folio n'imprime le défaut d'un compilateur de carte. Valeurs reprises à l'identique de ce que `src/state/mapSpec.ts` et `buildBoardingScene` posaient avant le lot #1716.",
+  "maison": "Ce que le compilateur de scène pose quand l'auteur ne dit rien : une `cells` d'enceinte ne nomme ni le sol de son chemin de ronde ni la matière de sa masse, et une scène de bord n'authore pas la tuile de son pont. Aucun folio n'imprime le défaut d'un compilateur de carte. Valeurs reprises à l'identique de ce que `src/noyau/mapSpec.ts` et `buildBoardingScene` posaient avant le lot #1716.",
   "cheminDeRonde": "pierre",
   "masse": "mur",
   "pont": "planches"

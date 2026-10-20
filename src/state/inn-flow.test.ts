@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { gatherInnInfo, innGatherInfoMinutes } from './innFlow';
+import { gatherInnInfo, innGatherInfoMinutes } from '../noyau/innFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
-import { buildScene } from './mapSpec';
+import { buildScene } from '../noyau/mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 import { stacks } from '../engine/conditions';
 
 /**

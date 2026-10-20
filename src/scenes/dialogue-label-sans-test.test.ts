@@ -2,7 +2,7 @@
  * GARDE ABSOLUE (#1869) — un libellé de réponse de dialogue ne RECOPIE JAMAIS le Test de son flux,
  * ni le coût de son `cost`.
  *
- * Ce qu'une réponse annonce est DÉRIVÉ : `testAnnonce` (`state/dialogue.ts`) lit la Compétence et la
+ * Ce qu'une réponse annonce est DÉRIVÉ : `testAnnonce` (`noyau/dialogue.ts`) lit la Compétence et la
  * difficulté DANS le flux, et `DialogueBox` les rend en tête de ligne (« 2. [Crochetage —
  * Intermédiaire (+0)] Crocheter la cage. »). Un « (Test de Crochetage) » écrit à la main dans le
  * libellé est une SECONDE vérité : elle survit au changement de Compétence, et le joueur lit deux

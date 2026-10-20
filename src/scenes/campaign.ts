@@ -5,11 +5,11 @@
  *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
  *  bibliothèque (`campagneDeLEntree`, `state/projectLibrary.ts`). */
 import { Scene } from '../noyau/monde/scene';
-import { WorldMap, parseProject, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../state/worldMap';
-import type { NarratifBlock } from '../state/campaignNarratif';
+import { WorldMap, parseProject, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
+import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
 import type { GameState } from '../state/store';
-import type { Get } from '../state/flowTypes';
+import type { Get } from '../noyau/flowTypes';
 import { playerEntryError } from '../state/projectLibrary';
 import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';

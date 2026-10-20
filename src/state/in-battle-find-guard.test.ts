@@ -37,8 +37,8 @@ const BASELINES: Record<string, number> = {
   // (le cliquet la surveille comme n'importe quel autre fichier) plutôt qu'exemptée en bloc.
   'src/noyau/monde/combatants.ts': 1,
   // src/state (Lot 1)
-  'src/state/combat/recover.ts': 1,
-  'src/state/combatFlow.ts': 1,
+  'src/noyau/combat/recover.ts': 1,
+  'src/noyau/combatFlow.ts': 1,
   'src/state/devtools.ts': 1,
   // src/ui (#410 — stock à résorber par #276)
   'src/ui/ApproachModal.tsx': 1,

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { runEnemyAI } from '../combatFlow';
+import { runEnemyAI } from '../../noyau/combatFlow';
 import { createHero } from '../../engine/character';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';

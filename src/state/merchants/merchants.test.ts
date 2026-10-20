@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MERCHANTS } from './index';
+import { MERCHANTS } from '../../noyau/monde/merchants/archetypes';
 
 describe('registre archétypes marchands (#2)', () => {
   it('charge les archétypes depuis defs/ (clé = name)', () => {

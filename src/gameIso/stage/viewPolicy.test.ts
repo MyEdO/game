@@ -11,8 +11,8 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { setNorthDeg } from '../../state/sceneEdit';
-import { ambientScalar } from '../../state/vision';
+import { setNorthDeg } from '../../noyau/sceneEdit';
+import { ambientScalar } from '../../noyau/monde/vision';
 import { AMBIENT_INTENSITY, shadeSousSoleil, wantsContactShadow } from '../backends/webgl/sceneMeshes';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { stageLightScalars, stageLights } from './stageLights';

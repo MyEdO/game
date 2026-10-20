@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveAttack, strayShotVictim } from './combatFlow';
+import { resolveAttack, strayShotVictim } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
 import { Scene } from '../noyau/monde/scene';

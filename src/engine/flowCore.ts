@@ -579,7 +579,7 @@ export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'seq', steps: [] });
  *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
  *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de
  *  Round, après l'entretien), `onTurnStart`/`onTurnEnd` (début/fin du tour du porteur).
- *  Cycle de l'HORLOGE de campagne (émis par `state/clockHooks`, au franchissement de jour de
+ *  Cycle de l'HORLOGE de campagne (émis par `noyau/clockHooks`, au franchissement de jour de
  *  `runDailyUpkeep`) : `onDayStart` — une fois par JOUR calendaire franchi, rattrapage compris (trois
  *  jours sautés = trois émissions) ; `onWake` — au RÉVEIL, c'est-à-dire le jour d'une nuit JOUÉE
  *  (`lastNightDay`) seulement : une avance d'horloge de 24 h sans sommeil ne l'émet pas. */
@@ -880,7 +880,7 @@ export function testFlow<E = EffectOp>(test: FlowTest, success: Flow<E>, fail: F
  *  - le PRODUCTEUR moteur nomme son dataset au moment où il fabrique le nœud — un nœud venu d'un
  *    `.json` porte ses branches mais ignore la rangée à laquelle il appartient (`miscast.ts` `mkTest`) ;
  *  - la couche `state` le DÉRIVE du porteur qui exige le jet (`withDerivedStake`,
- *    `src/state/combat/triggeredTest.ts`).
+ *    `src/noyau/combat/triggeredTest.ts`).
  * PUR. Les six porteurs de nœud `test` du moteur passent par ici pour nommer ce qui se joue :
  * rangée d'Imparfaite (`miscast.json`), rangée de Critique (`criticals.json`), coup à l'équipage
  * (`river-criticals.json`, `ship-criticals.json`), cycle de maladie (`symptoms.json`,

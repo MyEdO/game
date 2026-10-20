@@ -13,7 +13,8 @@ import { Stack } from '../Layout';
  * `do` réutilise `EffectFields` (sans `test` : le jet est un nœud Flow) ; le `si` réutilise `ConditionEditor`
  * (algèbre flag/horaire/ET/OU/NON, partagé avec le `when` des triggers/dialogues).
  */
-import { Flow, FlowTest, EMPTY_FLOW } from '../../noyau/monde/flow';
+import { Flow } from '../../noyau/monde/flow';
+import { FlowTest, EMPTY_FLOW } from '../../engine/flowCore';
 import type { Effect } from '../../noyau/monde/scene';
 import type { FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
@@ -34,7 +35,7 @@ import {
   effectSummary,
   ctxDeCatalogue,
 } from './EffectList';
-import type { RacineDeCatalogue } from '../../state/combatEffects';
+import type { RacineDeCatalogue } from '../../noyau/combatEffects';
 import { AddMenu, pickable } from './AddMenu';
 import { ConditionEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
@@ -74,12 +75,12 @@ export const noeudTestNeuf = (): NoeudTest => ({ kind: 'test', test: { difficult
  * jet est la seule forme admise le passe à `false` : le bouton « Retirer » ne s'affiche pas, et le
  * nœud reste porté quoi qu'il arrive.
  *
- * `racine` = la racine de catalogue du champ (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`) : ses
+ * `racine` = la racine de catalogue du champ (`CIBLES_PAR_RACINE`, `noyau/combatEffects.ts`) : ses
  * branches n'offrent que les cibles que le marcheur de CE champ honore.
  *
  * `branches` = ce que le CANAL du porteur sert vraiment. `'les-deux'` (défaut) pour un jet dont
  * l'issue choisit sa branche (Blessures critiques, `engine/critical.ts`). `'echec'` pour un canal
- * qui n'applique que l'échec (cycle de maladie, `state/restFlow.ts`) : la branche de réussite n'est
+ * qui n'applique que l'échec (cycle de maladie, `noyau/restFlow.ts`) : la branche de réussite n'est
  * pas rendue, et le schéma du porteur la refuse peuplée (`noeudTest`, option `echecSeulServi`) —
  * une case qui ne changerait rien n'est pas offerte.
  */

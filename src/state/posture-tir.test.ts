@@ -3,8 +3,8 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { findActionById } from '../data/index';
-import { actionGate, runAction } from './actionRegistry';
-import { openAttackCascade, previewAttack, STANCE_BLOCK } from './combatFlow';
+import { actionGate, runAction } from '../noyau/actionRegistry';
+import { openAttackCascade, previewAttack, STANCE_BLOCK } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -310,10 +310,10 @@ describe('G5 — le prédicat de posture n’est recodé nulle part', () => {
     // Périmètre = les SURFACES de la posture (fenêtre de jet, console, registre) : c'est là qu'un
     // second prédicat naît. `combatSlice` porte le même motif pour l'économie du Mouvement elle-même
     // (Maladresse, annulation de segment), qui n'a rien d'une posture.
-    for (const rel of ['../ui/jetProps/useAttackJetProps.tsx', '../ui/console/CombatConsole.tsx', './actionRegistry.ts']) {
+    for (const rel of ['../ui/jetProps/useAttackJetProps.tsx', '../ui/console/CombatConsole.tsx', '../noyau/actionRegistry.ts']) {
       expect(lire(rel), `${rel} recode le prédicat de posture`).not.toMatch(/movementUsed\s*===\s*0/);
     }
     // … et le prédicat, lui, l'exprime bien (une garde qui ne mesure rien serait verte pour rien).
-    expect(lire('./combatFlow.ts')).toMatch(/battle\.movementUsed > 0/);
+    expect(lire('../noyau/combatFlow.ts')).toMatch(/battle\.movementUsed > 0/);
   });
 });

@@ -6,9 +6,9 @@
  * recopié des deux côtés dériverait, et le banc cesserait de mesurer ce que le contrat prouve.
  */
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { portalsForParty } from '../../state/roomPortals';
+import { portalsForParty } from '../../noyau/monde/roomPortals';
 import { piece } from '../../state/pieces.fixture';
-import { aretesUtilisables } from '../../state/aretes';
+import { aretesUtilisables } from '../../noyau/aretes';
 import { type Dims } from '../../geometry/iso';
 import { poseFromDims } from './projection';
 import { projeterAretes } from './aretesProjetees';

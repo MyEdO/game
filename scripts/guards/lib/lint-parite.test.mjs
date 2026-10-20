@@ -176,7 +176,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['scripts/docs/parite-locale.mjs','a.localeCompare(b);','murs/ordre-total-locale',1],
     ['src/parite-locale.test.ts','a.localeCompare(b);','murs/ordre-total-locale',0],
     ['src/state/parite-issue.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',1],
-    ['src/state/rollFlowSpecs.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',0],
+    ['src/noyau/rollFlowSpecs.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',0],
     ['src/engine/parite-dynamique.ts',"import('../ui/x');",'murs/purete-imports',1],
     ['src/engine/parite-dynamique.test.ts',"import('../ui/x');",'murs/purete-imports',0],
     ['src/data/parite-statique.ts',"import {x} from '../state/x';x();",'murs/purete-imports',1],

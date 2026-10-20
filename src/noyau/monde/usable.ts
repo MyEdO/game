@@ -15,7 +15,7 @@
  *     qu'un opt-in d'instance ait à ouvrir).
  *
  * `jouer` (jeu de taverne) n'est PAS une offre : `openTavernGames` n'a aucun appelant hors du nœud
- * de dialogue `tavernGames` (`state/combatEffects.ts`, mesuré) — une entrée ici serait une
+ * de dialogue `tavernGames` (`noyau/combatEffects.ts`, mesuré) — une entrée ici serait une
  * affordance morte. Le rôle `tavernGame` reste sur l'entité et se joue par son dialogue.
  *
  * PUR et FEUILLE : aucune lecture de store, aucun rendu. Les DRAPEAUX de jeu (épuisement) sont un

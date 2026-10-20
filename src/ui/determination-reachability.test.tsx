@@ -15,7 +15,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame, type BattleState } from '../state/store';
 import { conditionLabel, findActionById } from '../data';
 import { hasCondition } from '../engine/conditions';
-import { actionGate } from '../state/actionRegistry';
+import { actionGate } from '../noyau/actionRegistry';
 import { emptyScene } from '../noyau/monde/scene';
 import { CombatConsole } from './console/CombatConsole';
 import type { Combatant } from '../engine/types';

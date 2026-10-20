@@ -9,7 +9,7 @@ import type { CreatureDef } from './creatures/types';
  *  - le PLAN CORPOREL FIN de rendu (`CreatureDef.plan` : biped/quadruped/serpentine/arachnid/avian/
  *    winged/cephalopod/squig/…) — squelette + poses, dans `gameIso/rig` ;
  *  - la FORME DE CORPS grossière de règles (`BodyShape`, Tableau de Localisation LDB 76 p.312) —
- *    SOURCE DE VÉRITÉ neutre `engine/bodyForm.SPECIES_BODY_SHAPE`, lue par `state/spawn.bodyShapeOf`.
+ *    SOURCE DE VÉRITÉ neutre `engine/bodyForm.SPECIES_BODY_SHAPE`, lue par `noyau/monde/spawn.bodyShapeOf`.
  *
  * Le plan fin PROJETTE sur la forme grossière (many-to-one : tous les gabarits humanoïdes-like →
  * humanoïde). Ce test verrouille l'invariant « projection(plan) == forme déclarée » pour CHAQUE espèce :

@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';
 
 /**

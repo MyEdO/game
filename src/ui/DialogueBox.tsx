@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef } from 'react';
 import { nomDuSiege } from '../state/netFlow';
 import { useGame } from '../state/store';
-import { COUCHE_CONVERSATION, reponsesDuNoeud, type ReponseDeDialogue, type TestAnnonce } from '../state/dialogue';
+import { COUCHE_CONVERSATION, reponsesDuNoeud, type ReponseDeDialogue, type TestAnnonce } from '../noyau/dialogue';
 import { testSkillLabel } from '../data';
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { spellMoney } from '../engine/money';
@@ -13,11 +13,11 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { Prose } from './Prose';
 import { SpectatorChip } from './SpectatorChip';
 import { useOwnsGroupDecision } from './ownership';
-import { groupDecisionSeat } from '../state/netOwnership';
+import { groupDecisionSeat } from '../noyau/netOwnership';
 import { useModalA11y } from './Modal';
 import { GatedAction, raisonSi } from './GatedAction';
 import { speakerEntity } from '../noyau/monde/scene';
-import { nomDEntite } from '../state/sceneNpc';
+import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 
 /**
@@ -52,7 +52,7 @@ export function DialogueBox() {
   const choose = useGame((s) => s.chooseDialogue);
   const net = useGame((s) => s.net);
   const meneur = nomDuSiege(net, groupDecisionSeat(useGame.getState()));
-  // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-choice-N` (`state/dialogue.ts`).
+  // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-choice-N` (`noyau/dialogue.ts`).
   // Abonnement au RÉSULTAT, jamais à une liste d'entrées recopiée : la signature est une valeur
   // primitive, donc un changement d'état qui ne change aucune réponse ne re-rend rien.
   const signature = useGame((s) => JSON.stringify(reponsesDuNoeud(s)));

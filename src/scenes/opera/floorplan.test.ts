@@ -4,14 +4,14 @@ import {
   OPERA_WALL_LEGEND, OPERA_ZONE_SEEDS, operaZoneLayers, OPERA_BASE, OPERA_LEGEND,
 } from './floorplan';
 import { ETAGE_ASCII } from './floorplan.ascii';
-import { walledRowsOf, zonesFromSeeds } from '../../state/asciiMap';
+import { walledRowsOf, zonesFromSeeds } from '../../noyau/monde/asciiMap';
 import { scenarioEntities } from './furnished';
 import { scenario as operaPlan } from '../test-scenarios/opera-plan';
 import { tileAt, heightAt, isWalkable, wallBetween, type Scene } from '../../noyau/monde/scene';
 import { reachable, walkComponentAt, type Pt } from '../../noyau/monde/path';
-import { effectiveArchitecture } from '../../state/sceneEdit';
+import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { unreachableDescriptiveZones, reachedFloors } from '../../state/mapQC';
-import { scenePlanDefects } from '../../state/planDefects';
+import { scenePlanDefects } from '../../noyau/planDefects';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { buildWalls } from '../../gameIso/builders/walls';
 import { buildRoofs, clearedSpace } from '../../gameIso/builders/roofs';
@@ -336,7 +336,7 @@ describe('plan de l’Opéra — apparence des murs (#1180)', () => {
   /**
    * `OPERA_WALL_LEGEND` est PORTEUSE du cloisonnement, pas décorative : le char `w` ne vaut mur que pour
    * le lecteur à qui la table est passée. Omise à un seul des lecteurs de la grille, la pièce fuit à
-   * travers le refend et deux graines se disputent la même case (`zonesFromSeeds`, `state/asciiMap.ts`).
+   * travers le refend et deux graines se disputent la même case (`zonesFromSeeds`, `noyau/monde/asciiMap.ts`).
    */
   it('la même légende va à TOUS les lecteurs de la grille : sans elle, le zonage de l’étage fuit', () => {
     const rows = walledRowsOf(ETAGE_ASCII, s.dimensions.w);

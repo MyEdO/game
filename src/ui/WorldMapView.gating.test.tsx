@@ -16,7 +16,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapView } from './WorldMapView';
 import { useGame } from '../state/store';
-import { parseProject, type WorldMap } from '../state/worldMap';
+import { parseProject, type WorldMap } from '../noyau/worldMap';
 import { VB_W, VB_H } from './worldMapViewport';
 import { buildApi } from '../state/devtools';
 import { emptyScene, type Scene } from '../noyau/monde/scene';

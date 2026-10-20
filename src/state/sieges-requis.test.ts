@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { siegesRequis, quorumAtteint } from './netOwnership';
+import { siegesRequis, quorumAtteint } from '../noyau/netOwnership';
 import { useGame, type BattleState } from './store';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
@@ -102,10 +102,10 @@ describe('les dispatchers de ready-check CONSOMMENT le quorum (aucune recopie)',
 
   it('STRUCTUREL — plus AUCUN site ne recopie la formule du quorum', () => {
     const recopie = /seatNames\[[^\]]+\]\s*!=\s*null/g;
-    for (const f of ['./combatSlice.ts', './store.ts', './restFlow.ts', '../ui/RestModal.tsx', '../ui/VictoryScreen.tsx', '../ui/ReadyRow.tsx']) {
+    for (const f of ['../noyau/combatSlice.ts', './store.ts', '../noyau/restFlow.ts', '../ui/RestModal.tsx', '../ui/VictoryScreen.tsx', '../ui/ReadyRow.tsx']) {
       expect(src(f).match(recopie) ?? [], `${f} recopie le quorum au lieu d’appeler siegesRequis`).toEqual([]);
     }
     // … et la source unique, elle, la porte bien (méta : sans ce témoin, la garde serait verte à vide).
-    expect(src('./netOwnership.ts').match(recopie)?.length).toBe(1);
+    expect(src('../noyau/netOwnership.ts').match(recopie)?.length).toBe(1);
   });
 });

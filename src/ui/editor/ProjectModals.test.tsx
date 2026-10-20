@@ -12,9 +12,9 @@ import { OpenProjectModal, refusDeLaPorteDuProjet, refusMotive, type GesteDePort
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { allBuiltinCampaigns } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
-import { parseProject, parseSceneDeProjet, refusDeForme, type CauseDeRefus, type ProjetRefuse } from '../../state/worldMap';
+import { parseProject, parseSceneDeProjet, refusDeForme, type CauseDeRefus, type ProjetRefuse } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT, initLibrary, projectsLoad, projectSave, projetDeLEntree, type EntreeListee, type SavedProject } from '../../state/projectLibrary';
 import { __setFabriqueIdbForTest } from '../../web/indexedDb';
 import { brancherBasesSimulees } from '../../web/indexedDb.testkit';

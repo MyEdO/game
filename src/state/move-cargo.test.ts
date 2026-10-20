@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { carrierById, persistCarriersCargo } from './carriers';
-import type { WorldMap } from './worldMap';
+import { carrierById, persistCarriersCargo } from '../noyau/carriers';
+import type { WorldMap } from '../noyau/worldMap';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
 

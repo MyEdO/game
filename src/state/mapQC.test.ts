@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildScene } from './mapSpec';
+import { buildScene } from '../noyau/mapSpec';
 import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-pieces';
 import { reachableCells, unreachableDescriptiveZones, reachedFloors } from './mapQC';
 import { walkNeighbors, type Pt } from '../noyau/monde/path';

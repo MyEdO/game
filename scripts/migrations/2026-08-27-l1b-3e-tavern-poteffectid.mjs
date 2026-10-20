@@ -4,7 +4,7 @@
  * MOTIF MESURÉ : la valeur n'est ni de la prose ni l'issue du tour — c'est une CLÉ DE REGISTRE. Le
  * JSDoc du def le disait déjà avant ce lot (`src/data/schemas/defs/tavernGames.ts` : « le nom d'un
  * effet de pot ENREGISTRÉ (`registerSequencePotEffect`), jamais un id de jeu ») : la valeur est
- * l'index de `sequencePotEffects` (`src/state/sequenceCore.ts:145`), lu par
+ * l'index de `sequencePotEffects` (`src/noyau/sequenceCore.ts:145`), lu par
  * `resolveSequencePotTurn`. La clé porte désormais ce qu'elle contient — suffixe `Id` du dépôt pour
  * une clé de registre. Sous le nom `effect`, le détecteur de structures la classait en PROSE.
  *

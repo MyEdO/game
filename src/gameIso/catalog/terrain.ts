@@ -1,7 +1,8 @@
 /** Présentation des terrains — DÉRIVÉE du dataset `src/data/terrains.json` via la façade
  *  `noyau/monde/terrain` (lecture VIVANTE, index O(1)). La méta sémantique (walkable/priority) vient du même
  *  document : ici on n'expose que ce que le rendu lit. */
-import { terrainEntree, type TerrainDef } from '../../noyau/monde/terrain';
+import { terrainEntree } from '../../noyau/monde/terrain';
+import { type TerrainDef } from '../../data/terrains.types';
 import type { TerrainStops } from '../../data/terrains.types';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE } from './missing';
 

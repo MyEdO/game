@@ -9,7 +9,7 @@ import { refOuSpec } from '../grammaire/ref';
 export const file = 'tavernGames.json';
 export const famille = 'entite';
 
-/** Les effets de LANCER enregistrés (`registerSequenceThrow`, `src/state/sequenceCore.ts`) — ce qui
+/** Les effets de LANCER enregistrés (`registerSequenceThrow`, `src/noyau/sequenceCore.ts`) — ce qui
  *  indexe est le nom d'un EFFET, jamais l'identité d'une entrée de catalogue. */
 const throwEffectSchema = z.enum([
   'dr', 'dr-ecrete', 'toute-la-reserve', 'points-de-la-ligne', 'points-de-la-ligne-suivante',
@@ -81,10 +81,10 @@ const doc = document(
     target: z.number().optional(),
     drCap: z.number().optional(),
     /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.105,
-     *  `nul` Boules l.57) — consommé par `src/state/sequenceCore.ts` (`resolveSequenceTie`). */
+     *  `nul` Boules l.57) — consommé par `src/noyau/sequenceCore.ts` (`resolveSequenceTie`). */
     tieBreak: z.enum(['units-lowest', 'nul']).optional(),
     /** Bonus de Caractéristique ajouté au DR de chaque manche (Bras de fer l.34 : Force) — consommé
-     *  par `SequenceParams.drBonus` (`src/state/sequenceCore.ts`). */
+     *  par `SequenceParams.drBonus` (`src/noyau/sequenceCore.ts`). */
     drBonus: charKeySchema.optional(),
     /** L'Avantage est en jeu, aux règles habituelles (NADJ 16 l.34, l.119) — `options[].combatTest` dit
      *  quel Test d'un jeu à options admet le +10 (LDB 14 l.215). */
@@ -101,7 +101,7 @@ const doc = document(
       attritionEvery: { label: 'Fréquence d’attrition' },
     }).optional(),
     /** Effectif RAW d'un camp d'un jeu d'ÉQUIPE (Middenball l.119 : 11 par équipe) — le groupe le
-     *  complète de figurants (`src/state/tavernFlow.ts`). */
+     *  complète de figurants (`src/noyau/tavernFlow.ts`). */
     team: nommerChamps(z.strictObject({ size: z.number() }), { size: { label: 'Taille' } }).optional(),
     /** FORME d'un tour (capacité DÉCLARÉE, jamais déduite d'un effectif) : `team` = tous testent et on
      *  somme par équipe (Middenball l.119) ; `thrower` = un tour, un lanceur (Torchon l.111). */
@@ -134,7 +134,7 @@ const doc = document(
     }), { ...metaDesChamps(plageSchema, { exigees: true }), points: { label: 'Points' }, label: { label: 'Libellé' } })).optional(),
     /** VOLÉE de lancers (famille 7 du socle) : Bête l.42, Arène l.70, Fléchettes l.97, Boules l.57.
      *  `gain`/`critique`/`maladresse`/`depassement` nomment un effet de lancer ENREGISTRÉ
-     *  (`registerSequenceThrow`, `src/state/sequenceCore.ts`), jamais un id de jeu. */
+     *  (`registerSequenceThrow`, `src/noyau/sequenceCore.ts`), jamais un id de jeu. */
     volley: nommerChamps(z.strictObject({
       throws: z.number(),
       reserve: z.number().optional(),
@@ -202,7 +202,7 @@ const doc = document(
     /** SANCTION DU LANCEUR QUI MANQUE (famille 10 du socle) — Torchon l.111 : le Test que le raté
      *  impose, ce que son échec coûte au camp (`points`) et applique au lanceur (`ops`), et le prix
      *  du balayage final des trop sobres (`sobrietyPoints`). Consommée par
-     *  `SequenceParams.throwerPenalty` (`src/state/sequenceCore.ts`). */
+     *  `SequenceParams.throwerPenalty` (`src/noyau/sequenceCore.ts`). */
     throwerPenalty: nommerChamps(z.strictObject({
       test: nommerChamps(z.strictObject({
         skill: refOuSpec('skill').optional(),
@@ -257,7 +257,7 @@ const doc = document(
     /** NADJ 16 l.82 */
     specials: z.array(specialSchema).optional(),
     /** MISE / POT / ABANDON / ÉLIMINATION (Al-zahr l.17) — famille (5) du socle de séquence,
-     *  consommée par `SequenceParams.pot` (`src/state/sequenceCore.ts`). `potEffectId` est le nom d'un
+     *  consommée par `SequenceParams.pot` (`src/noyau/sequenceCore.ts`). `potEffectId` est le nom d'un
      *  effet de pot ENREGISTRÉ (`registerSequencePotEffect`), jamais un id de jeu — la clé nomme donc
      *  ce qu'elle porte : une CLÉ DE REGISTRE, ni de la prose ni l'issue du tour. */
     pot: nommerChamps(z.strictObject({

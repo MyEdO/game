@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { useGame, type GameState } from './store';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { assignSeat, seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
-import { intentAllowedFor, ROUTES } from './netOwnership';
+import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from './intents';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
 import type { Combatant } from '../engine/types';

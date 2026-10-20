@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { FLOWS } from './rollFlowSpecs';
-import { amazingTestLabel } from './flowOutcomes';
+import { FLOWS } from '../noyau/rollFlowSpecs';
+import { amazingTestLabel } from '../noyau/flowOutcomes';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { isDoubleRoll } from '../engine/tests';
 import type { PendingTest } from '../noyau/pendings';

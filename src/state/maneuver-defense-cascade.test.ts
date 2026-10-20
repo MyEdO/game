@@ -12,14 +12,14 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { aiCreatureFreeAttacks, applyAreaAttack } from './combatFlow';
+import { aiCreatureFreeAttacks, applyAreaAttack } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { creatureAttacks } from '../engine/creatureAttacks';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 
 describe('Défense de manœuvre de zone — cascade influençable (héros) vs silence (IA)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });

@@ -59,7 +59,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * Les deux stocks se sont éteints par des voies DIFFÉRENTES, et c'est ce qui rend le zéro vrai : les 138
  * appels des harnais sont passés à `i18n/fixtureText` (E7), un minteur RÉSERVÉ AUX TESTS et muré par
  * chemin d'import (cliquets T4/T5, en bas de ce fichier) ; le dernier site de PRODUCTION
- * (`state/combatManeuvers.ts`) est passé au minteur du texte AUTHORÉ, `dataLabel`, parce que le texte
+ * (`noyau/combatManeuvers.ts`) est passé au minteur du texte AUTHORÉ, `dataLabel`, parce que le texte
  * qu'il portait est le `label` d'une entité de catalogue et non une phrase écrite au call-site.
  *
  * CE QUE CETTE CONSTANTE DEVIENT : un TRIPWIRE, pas un gel. Vide, elle fait rougir toute occurrence de
@@ -329,7 +329,7 @@ describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient 
   });
 
   it('MUTATION : un SEUL appel, dans N’IMPORTE quel fichier, rougit nominativement', () => {
-    expect(violations({ 'src/state/combatManeuvers.ts': 1 }, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/state/combatManeuvers.ts : 1 appel(s) de rawText pour un gel de 0']);
+    expect(violations({ 'src/noyau/combatManeuvers.ts': 1 }, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/noyau/combatManeuvers.ts : 1 appel(s) de rawText pour un gel de 0']);
     expect(violations({ 'src/state/nouveauFlux.ts': 1 }, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/state/nouveauFlux.ts : 1 appel(s) de rawText pour un gel de 0']);
   });
 

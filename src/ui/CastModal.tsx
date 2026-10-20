@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import { influencesLocally } from '../state/netOwnership';
-import { overcastTargetCandidates, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../state/combatFlow';
+import { influencesLocally } from '../noyau/netOwnership';
+import { overcastTargetCandidates, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../noyau/combatFlow';
 import type { CounterDeclaration } from '../noyau/pendings';
 import { findSpellById } from '../data/index';
-import { spellEffectOps } from '../noyau/monde/flow';
+import { spellEffectOps } from '../engine/flowCore';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { testValue } from '../engine/skills';
 import { clampTarget } from '../engine/tests';
@@ -484,7 +484,7 @@ export function CastModal() {
               contre-lanceurs éligibles ont chacun leur rangée DANS cette même modale d'incantation
               (plus de modale séparée : un contre-sort EST un lancement de sort opposé).
               PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `counterspellConfirm`,
-              src/state/combatSlice.ts) ; la COMPOSITION (contrer seul / s'unir / s'abstenir) se fige
+              src/noyau/combatSlice.ts) ; la COMPOSITION (contrer seul / s'unir / s'abstenir) se fige
               au premier jet de la fenêtre (#1059) — au-delà, seules les rangées déclarées agissent.
               COOP : chaque rangée est pilotée par le siège qui POSSÈDE son porteur — héros du siège,
               ennemi du MJ (#1028) ; les autres la lisent. */}

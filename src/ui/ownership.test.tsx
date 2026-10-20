@@ -1,5 +1,5 @@
 /**
- * LA POSSESSION VUE DE L'UI (#1262 L1) — `state/netOwnership.ownsLocal` remplace neuf recopies du même prédicat,
+ * LA POSSESSION VUE DE L'UI (#1262 L1) — `noyau/netOwnership.ownsLocal` remplace neuf recopies du même prédicat,
  * chacune précédée d'un terme de mode réseau (`net.mode === 'local' || …`, `!online || …`,
  * `online ? … : tout`). Ce test mesure les DEUX choses que la migration affirme :
  *
@@ -17,7 +17,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { useGame } from '../state/store';
 import type { GameState } from '../state/store';
 import { ownsLocalNet, useOwns, type NetView } from './ownership';
-import { intentAllowedFor, ownsLocal, ownsGroupDecision } from '../state/netOwnership';
+import { intentAllowedFor, ownsLocal, ownsGroupDecision } from '../noyau/netOwnership';
 
 const HEROS = [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }] as unknown as GameState['party'];
 

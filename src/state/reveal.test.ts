@@ -1,18 +1,18 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { pushReveal } from './combatFlow';
-import { revealToStep } from './revealStep';
+import { pushReveal } from '../noyau/combatEffects';
+import { revealToStep } from '../noyau/revealStep';
 import { stepInteraction } from '../noyau/cascade';
 import type { RevealEntry } from '../noyau/pendings';
 import { deleteSlot } from './saves';
 import { suspendActiveCascade } from '../noyau/cascade';
-import { registerScene } from './registreDesScenes';
+import { registerScene } from '../noyau/monde/registreDesScenes';
 import type { Scene } from '../noyau/monde/scene';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { cascadeDeTest } from './cascadeTestKit';
-import { parseSceneDeProjet } from './worldMap';
+import { cascadeDeTest } from './cascade.testkit';
+import { parseSceneDeProjet } from '../noyau/worldMap';
 
 /** Stockage local en mémoire (patron partagé des tests de save). */
 function fakeStorage(): Storage {

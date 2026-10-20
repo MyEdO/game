@@ -4,7 +4,7 @@
  * Un Rituel est un Sort ; il ne s'en distingue que par un TAG (`SpellData.isRitual`), lu pour
  * composer le `CastingNumberSubject.kind` que les portées `kinds:['sort'|'rituel']` départagent.
  * Deux modificateurs curés en dépendent :
- *  - grimoire — `GRIMOIRE_NI_MODS` (`src/state/combatFlow.ts`), `VDM 12 l.646-647` ;
+ *  - grimoire — `GRIMOIRE_NI_MODS` (`src/noyau/combatFlow.ts`), `VDM 12 l.646-647` ;
  *  - complexe Cairnapan — `arcane-phenomena.json`, `VDM 14 l.489`.
  *
  * Le piège que ce test ferme : le tag vivait dans l'interface TS SANS exister au `strictObject` du
@@ -17,7 +17,7 @@ import { spells } from './index';
 import { arcanePhenomena } from './arcanePhenomena';
 import { castingNumberOf } from '../engine/magic';
 import { effectiveCastingNumber, type CastingNumberMod } from '../engine/castingNumber';
-import { GRIMOIRE_NI_MODS } from '../state/combatFlow';
+import { GRIMOIRE_NI_MODS } from '../noyau/combatFlow';
 
 /** Entrée de sort RÉELLE (Caresse de Laniph), re-taguée Rituel — même forme que la donnée committée. */
 const asRituel = () => {

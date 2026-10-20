@@ -9,8 +9,8 @@
  * Un CONCEPT du décor = UNE couture, nommée — quatre en tout, et pas deux pour le même concept :
  *  - la GÉOMÉTRIE de la recette → `buildPropVolumes` (`gameIso/builders/propVolumes.ts`) ;
  *  - l'ANCRE d'une place assise → `placesPartielles` (`noyau/monde/seating.ts`) ;
- *  - le FOYER d'une lampe (le centre de la primitive `emet`) → `foyerDe` (`state/vision.ts`) ;
- *  - le RAYON d'une source de lumière → `rayonEnCases` (`state/vision.ts`).
+ *  - le FOYER d'une lampe (le centre de la primitive `emet`) → `foyerDe` (`noyau/monde/vision.ts`) ;
+ *  - le RAYON d'une source de lumière → `rayonEnCases` (`noyau/monde/vision.ts`).
  * La LISTE COMPLÈTE des sites qui traduisent entre mètres et cases — décor compris, et jusqu'aux
  * portées de règle et aux cadences de rendu — est tenue NOMINATIVEMENT par
  * `state/echelle-de-scene.test.ts` : un site de plus s'y déclare, ou il sort rouge.
@@ -135,7 +135,7 @@ export const PROP_CYLINDER_AXES = Object.keys(REPERE_D_AXE) as readonly PropCyli
 /**
  * FOYER d'un décor qui éclaire : la primitive de sa recette d'où part la lumière (le lit de braises
  * d'un âtre, la coupelle d'une bougie). UNE au plus par recette (`validatePropCatalog`) — une source
- * ponctuelle a un seul foyer. Le rendu en tire la POSITION MONDE de la lampe (`state/vision.ts`
+ * ponctuelle a un seul foyer. Le rendu en tire la POSITION MONDE de la lampe (`noyau/monde/vision.ts`
  * `mapLights` → `LightSource.foyer`), au lieu de la poser à l'aplomb de la case : elle suit donc la
  * géométrie, cap compris. Sans `emet`, le rendu applique sa hauteur par défaut (`FLAME_LIFT_M`).
  * `true` seul est admis : `emet: false` dirait la même chose que l'absence, en une seconde graphie.
@@ -370,7 +370,7 @@ export interface PropData {
   cover?: 'imparfaite' | 'moyenne' | 'totale';
   /** Source lumineuse : `radiusM` = le rayon éclairé en MÈTRES, la valeur RAW telle qu'elle est écrite
    *  (LDB 74 l.43/58). Le LECTEUR le divise par le `metresPerTile` de la scène pour en faire les cases
-   *  d'une `LightSource` (`state/vision.ts`, `rayonEnCases`). */
+   *  d'une `LightSource` (`noyau/monde/vision.ts`, `rayonEnCases`). */
   light?: { radiusM: number; tone?: string };
   foot?: { w: number; h: number };
   volume?: PropVolumeRecipe;

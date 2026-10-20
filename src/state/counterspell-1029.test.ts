@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castSpell, routeCounterspell, counterspellCandidates, counterspellChanted, isDispellableCast, withPreRollFixedDie } from './combatFlow';
+import { castSpell, routeCounterspell, counterspellCandidates, counterspellChanted, isDispellableCast, withPreRollFixedDie } from '../noyau/combatFlow';
 import { effectivelyHostile } from '../engine/relations';
 import type { SpellLike } from '../engine/magic';
 import { createHero } from '../engine/character';

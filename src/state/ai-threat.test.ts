@@ -11,9 +11,9 @@
  * espérances de dégâts (`expectedDamage`) soient chiffrables (≠ tests à `{} as never` qui restent neutres).
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
+import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput, type CastableSpell } from '../noyau/monde/ai';
 import { emptyScene } from '../noyau/monde/scene';
-import { chebyshev } from '../noyau/monde/path';
+import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
 import type { Dir8 } from '../noyau/monde/dir8';

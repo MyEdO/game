@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatEffects';
-import { resetFields } from './stateFields';
+import { applyEffects } from '../noyau/combatEffects';
+import { resetFields } from '../noyau/stateFields';
 import type { Effect } from '../noyau/monde/scene';
 
 /**

@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyCast } from './combatFlow';
+import { applyCast } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { immuneToSpellDomain, spellDomainImmunityOf } from '../engine/traits/dispatch';
 import { hasCondition } from '../engine/conditions';

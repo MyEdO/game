@@ -13,7 +13,7 @@ import { STEP_MS } from '../geometry/walk';
 import { demarrerMarche, arreterMarche, resetStageWalk, marcheEnVol } from './stageWalk';
 import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
-import { cascadeDeTest } from './cascadeTestKit';
+import { cascadeDeTest } from './cascade.testkit';
 import { areneCampaign, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 
 const get = useGame.getState;

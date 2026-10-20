@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
+import { maneuverCrewTotal, deriveManeuverFromCrew } from '../noyau/shipManeuver';
 import { moraleBand } from '../engine/crewMorale';
 import type { Combatant } from '../engine/types';
 

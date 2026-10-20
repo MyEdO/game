@@ -17,19 +17,19 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applySurprise, approachFearTrigger, resolveFreeAttacks } from './combatFlow';
+import { applySurprise, approachFearTrigger, resolveFreeAttacks } from '../noyau/combatFlow';
 import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition, addCondition, isOutOfAction, COND } from '../engine/conditions';
 import { surfaceOf } from '../noyau/rollSeam';
-import { modalOwnerOf } from './modalArbiter';
-import { humanControlled } from './netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
+import { humanControlled } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
-import './combat/triggeredTest';
+import '../noyau/combat/triggeredTest';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;

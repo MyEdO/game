@@ -22,9 +22,9 @@ import { useGame } from '../state/store';
 import { KEYBINDINGS } from '../state/clavier/keybindings';
 import { initialNet } from '../state/netFlow';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from '../state/spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
-import type { BattleActionMode } from '../state/actionRegistry';
+import type { BattleActionMode } from '../noyau/actionRegistry';
 import type { GameState } from '../state/store';
 
 function Harness() {

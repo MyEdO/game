@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
-import { applyHullCriticalToTarget, jouerLesTirsDeBordee } from './combatFlow';
-import { draineCascade } from './cascadeTestKit';
-import { spawnEnemy } from './spawn';
+import { applyHullCriticalToTarget, jouerLesTirsDeBordee } from '../noyau/combatFlow';
+import { draineCascade } from './cascade.testkit';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { emptyScene } from '../noyau/monde/scene';
 import { toucheAuJetPose, type AttackResult, type RollBreakdown } from '../engine/combat';
 import { damageArmour } from '../engine/items';

@@ -5,8 +5,8 @@
  * le sort des candidats. Tout passe par le MÊME `cast` (résolu par `castSpell` côté store). PUR/déterministe.
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
-import { opValue } from './aiSpellValue';
+import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from '../noyau/monde/ai';
+import { opValue } from '../noyau/monde/aiSpellValue';
 import { emptyScene } from '../noyau/monde/scene';
 import { findSpellById, type SpellData } from '../data';
 import { isDispellableSpell } from '../engine/magic';

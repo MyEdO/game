@@ -28,9 +28,10 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { simpleTriggeredTestStep, withDerivedStake } from './combat/triggeredTest';
+import { simpleTriggeredTestStep, withDerivedStake } from '../noyau/combat/triggeredTest';
 import { effectSourcesOf } from '../noyau/triggeredEffects';
-import { EMPTY_FLOW, type Flow } from '../noyau/monde/flow';
+import { type Flow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
 import { resolveStake, findById, combatStakeRef, regles, type StakeRef } from '../data';
 import { ACTIVITIES } from '../engine/activities';
@@ -219,9 +220,9 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
    */
   it('assertion INVERSE : les 3 portes existent, et AUCUN moteur ne résout un nœud hors d’elles', () => {
     const portes: [string, string][] = [
-      ['resolveFlowTest', 'src/state/combat/triggeredTest.ts'],
+      ['resolveFlowTest', 'src/noyau/combat/triggeredTest.ts'],
       ['resolveInlineFlowTest', 'src/noyau/triggeredEffects.ts'],
-      ['bandeTriggeredTest', 'src/state/combat/triggeredTest.ts'],
+      ['bandeTriggeredTest', 'src/noyau/combat/triggeredTest.ts'],
     ];
     const RACINE = join(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
     const absentes = portes.filter(([nom, fichier]) =>

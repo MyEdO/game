@@ -6,13 +6,13 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
-import { heroStatus } from './interludeFlow';
+import { draineCascade } from './cascade.testkit';
+import { heroStatus } from '../noyau/interludeFlow';
 import { applyOps } from '../engine/ops';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { fromBrass } from '../engine/money';
-import { creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 
 describe('statusMod (LDB 23 l.228-234) — Standing temporaire « pour la prochaine aventure »', () => {
   beforeEach(() => {

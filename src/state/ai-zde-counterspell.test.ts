@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
 import type { Combatant } from '../engine/types';

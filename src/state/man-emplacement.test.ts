@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from './shipPostes';
-import { firedWeapon, resolveAttack, buildAiInput, availableAttacks } from './combatFlow';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
+import { servablePostes, serveAtPoste, leaveChef, isPosteManned, applyShipPostes, servingCrewPresent, serveTargetPoste, posteCrewSplit, isCrewQualified } from '../noyau/monde/shipPostes';
+import { firedWeapon, resolveAttack, buildAiInput } from '../noyau/combatFlow';
+import { availableAttacks } from '../noyau/combatManeuvers';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { crewedPenalty } from '../engine/crewedWeapon';
 import { seedBattleRng } from '../noyau/battleRng';
 import { useGame } from './store';
 import { emptyScene } from '../noyau/monde/scene';
-import type { Combatant, ShipPoste } from '../engine/types';
-import type { FireArc } from './fireArc';
+import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { initialNet } from './netFlow'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte

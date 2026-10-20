@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { checkBattleOver } from './combatFlow';
+import { checkBattleOver } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from '../noyau/monde/scene';

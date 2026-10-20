@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hitModifiers } from './combat/hitModifiers';
+import { hitModifiers } from '../noyau/combat/hitModifiers';
 import { isMagicallyAsleep, wakeSleeper } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';

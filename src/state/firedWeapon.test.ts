@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { firedWeapon } from './combatFlow';
+import { firedWeapon } from '../noyau/combatFlow';
 import type { Combatant, Weapon } from '../engine/types';
 
 const W = (uid: string, name: string): Weapon =>

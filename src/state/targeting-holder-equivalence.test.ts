@@ -7,10 +7,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import './store';
-import { TARGETING_HOLDERS, targetingHolder } from './targetingHolder';
-import { currentTargetingMode } from './targetingModes';
-import { placingZoneOf } from './combatFlow';
-import { horsModalByPending } from './modalArbiter';
+import { TARGETING_HOLDERS, targetingHolder } from '../noyau/targetingHolder';
+import { currentTargetingMode } from '../noyau/targetingModes';
+import { placingZoneOf } from '../noyau/combatFlow';
+import { horsModalByPending } from '../noyau/modalArbiter';
 import type { GameState } from './store';
 
 const formes = (spellId: string) => [

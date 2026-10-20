@@ -31,13 +31,13 @@
 import { heightAt, sceneMetresPerTile, type ArchitectureBody, type ArchitectureRect, type BuildingMass, type FacadeFeature, type Scene, type WallSeg, type WallSide } from '../../noyau/monde/scene';
 import { memoByRef } from '../../noyau/monde/sceneMemo';
 import { aretesA } from '../../noyau/monde/wallIndex';
-import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../state/sceneEdit';
+import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../noyau/sceneEdit';
 import { roofMaterial } from '../catalog/roofs';
-import { buildingsMeta } from '../../state/buildings';
+import { buildingsMeta } from '../../noyau/monde/buildings';
 import { facadeStructureAppearance, facadeWallFeatureAppearance } from '../catalog/facades';
 import { wallApp, type StructureAppearanceDef } from '../catalog/structures';
 import { WALL_H_M, isoPxToM } from '../iso';
-import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../state/rooms';
+import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../noyau/monde/rooms';
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';
 import type { CellSide, Face, GP, RoofEl, RoofLine, RoofLineKind } from './types';
 import { viewedBuilder, type Viewed, type ViewRule } from './viewTruth';
@@ -105,7 +105,7 @@ export function massFootprintCells(footprint: readonly ArchitectureRect[]): Set<
 
 /** Axe de faîtage RÉSOLU : celui authoré, sinon le LONG axe de l'emprise réelle (jamais sa boîte
  *  englobante seule — mais bbox et emprise coïncident sur l'axe qui compte ici). Une masse carrée sans
- *  `ridge` authoré est refusée EN AMONT (`validateBuildingMasses`, `state/mapSpec.ts`) : ce repli 'x' ne
+ *  `ridge` authoré est refusée EN AMONT (`validateBuildingMasses`, `noyau/mapSpec.ts`) : ce repli 'x' ne
  *  sert qu'à ne jamais planter sur une donnée déjà validée. */
 export function resolveMassRidge(mass: Pick<BuildingMass, 'ridge'>, cells: ReadonlySet<string>): 'x' | 'y' {
   if (mass.ridge) return mass.ridge;
@@ -901,7 +901,7 @@ export function closureAppearance(
  *  (défaut 0) n'est pas décoratif — c'est lui qui tranche la PIÈCE où se tient l'allié : deux pièces
  *  superposées portent des zones DISTINCTES, et une masse ne couvre que la plage `z-levels+1..z`.
  *
- *  `sight` = les cases `"x,y,z"` que le groupe VOIT (`state/vision.ts`) : sans elle, aucune nappe
+ *  `sight` = les cases `"x,y,z"` que le groupe VOIT (`noyau/monde/vision.ts`) : sans elle, aucune nappe
  *  n'est régie par la vision (éditeur, QC, POV). */
 export interface RoofView {
   allies?: { x: number; y: number; z?: number }[];
@@ -1045,7 +1045,7 @@ export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: n
  *  Un allié à ciel ouvert ne dégage rien — aucune pièce, aucune emprise ne le contient ni ne le coiffe.
  *
  *  Il dit ENFIN quelles nappes le groupe VOIT (`seenSections`, #950), depuis les cases que le moteur
- *  de vision lui donne (`sight`, `state/vision.ts`) : la nappe d'un corps se peint quand le groupe
+ *  de vision lui donne (`sight`, `noyau/monde/vision.ts`) : la nappe d'un corps se peint quand le groupe
  *  voit le PIED de ce corps — une case de son emprise élargie d'1, à l'un des niveaux qu'il porte
  *  (MÊME critère que les ornements de toiture, `builders/props.ts`). Un allié DEDANS — sa pièce, ou
  *  le volume d'une masse dont il occupe un niveau — n'en voit AUCUNE : on ne regarde pas au travers
@@ -1082,7 +1082,7 @@ export function clearedSpace(
     }
     openSky ||= !dedans;
   }
-  const tilesById = roomTilesById(scene); // les cases d'une pièce : UNE dérivation (`state/rooms`)
+  const tilesById = roomTilesById(scene); // les cases d'une pièce : UNE dérivation (`noyau/monde/rooms`)
   for (const id of zoneIds) zoneCells.set(id, tilesById.get(id) ?? new Set<string>());
   const seenSections = sight
     ? new Set(openSky ? masses.filter(({ mass, cells }) => footInSight(mass.z, cells, sight)).map(({ mass }) => mass.id) : [])
@@ -1182,7 +1182,7 @@ function groupEaveSegs(domain: ReadonlySet<string>, group: readonly ResolvedMass
 
 /** Champ COMMUN d'un groupe de plusieurs masses : domaine = union des emprises, profondeur BFS depuis
  *  les seuls bords amorçants, et UNE pente refittée sur la portée du domaine (`fittedPitchDeg`,
- *  `state/sceneEdit.ts` — la borne de comble #947 est celle du corps, jamais une seconde copie).
+ *  `noyau/sceneEdit.ts` — la borne de comble #947 est celle du corps, jamais une seconde copie).
  *  `2 × profondeur` est la portée que cette borne lit : elle rapporte la montée à `portée/2`. */
 function groupField(scene: Scene, body: ArchitectureBody, group: readonly ResolvedMass[]): RoofField {
   const domain = new Set<string>();
@@ -1270,7 +1270,7 @@ export function resolveNappes(scene: Scene): ReadonlyMap<string, MassNappe> {
 }
 
 /** Éléments `roof` de la scène, DÉRIVÉS des masses de bâtiment. Les corps se lisent par
- *  `effectiveArchitecture` (`state/sceneEdit.ts`) : les masses `derived` se RECALCULENT du plan à
+ *  `effectiveArchitecture` (`noyau/sceneEdit.ts`) : les masses `derived` se RECALCULENT du plan à
  *  chaque construction — toute mutation de plan (pièce, case, étage, exclusion) fait suivre la
  *  toiture, sans qu'aucune mutation n'ait à la re-matérialiser ; les masses authorées passent
  *  intactes. Une nappe de toit ne prend pas le voile case par case (#818, enveloppe par nature — cf.

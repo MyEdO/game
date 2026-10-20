@@ -1,10 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { aiOvercastPlan } from './combatFlow';
-import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from './ai';
-import { opValue, spellActionValue, type SpellPlacement } from './aiSpellValue';
-import { creatureToCombatant } from './spawn';
+import { aiOvercastPlan } from '../noyau/combatFlow';
+import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from '../noyau/monde/ai';
+import { opValue, spellActionValue, type SpellPlacement } from '../noyau/monde/aiSpellValue';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { emptyScene } from '../noyau/monde/scene';
-import { chebyshev } from '../noyau/monde/path';
+import { chebyshev } from '../engine/grid';
 import { findCreatureById, findSpell, type SpellData } from '../data';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
@@ -12,7 +12,7 @@ import type { Combatant, Weapon } from '../engine/types';
 /**
  * IA — ÉVALUATEUR DE SORT op-driven (remplace `aiBestMissile`/`aiFocusPlan`/`aiAreaSpell`, supprimés).
  * Aucun planner par-catégorie : la valeur d'un sort = Σ valeur de ses `GameOp` (`opValue`/
- * `spellActionValue`, src/state/aiSpellValue.ts) × fiabilité × opposition. `chooseEnemyAction` reçoit
+ * `spellActionValue`, src/noyau/monde/aiSpellValue.ts) × fiabilité × opposition. `chooseEnemyAction` reçoit
  * `spells: CastableSpell[]` et en dérive des décisions `cast`/`castArea`/`focus`. `aiOvercastPlan`
  * (Surincantation auto, LDB 47) reste inchangé.
  */

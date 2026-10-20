@@ -1,5 +1,5 @@
 import { useGame, SCREENS } from './store';
-import type { AreteUtilisable } from './aretes';
+import type { AreteUtilisable } from '../noyau/aretes';
 
 /** Ce que la SONDE DE PICKING du rendu rend (`gameIso/stage/pickProbe`) : le verdict que le picking
  *  résoudrait sous un pixel CLIENT — case d'ANCRAGE, nature de ce qui est frappé, combattant, et voie
@@ -62,12 +62,12 @@ export function setImageRendue(image: ImageRendue): void {
   e.toile ??= image.toile;
   if (e.toile === image.toile) e.tampon.push({ image: image.rendus, corps: image.corps(e.id) });
 }
-import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from './seaVoyageFlow';
+import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from '../noyau/seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
-import { beginShipwreck } from './shipwreck';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from './worldMap';
+import { beginShipwreck } from '../noyau/shipwreck';
+import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
-import { buildRiverDayCascade } from './riverVoyageFlow';
+import { buildRiverDayCascade } from '../noyau/riverVoyageFlow';
 import { findVehicleById, refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { DIFFICULTY_LABELS } from '../engine/types';
@@ -81,23 +81,23 @@ import { routeDistanceLabel } from '../engine/travel';
 import { mirrorPools } from '../engine/advantagePool';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
-import { touchActors } from './combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyEffects, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from './combatFlow';
-import { aiDriven, defenseSurfaced } from './netOwnership';
+import { touchActors } from '../noyau/combatOrParty';
+import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from '../noyau/combatFlow';
+import { aiDriven, defenseSurfaced } from '../noyau/netOwnership';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
-import { canonEdge } from './sceneEdit';
+import { canonEdge } from '../noyau/sceneEdit';
 import type { CellSide } from '../noyau/monde/scene';
 import type { HungerState, ThirstState } from '../engine/provisions';
 import { shipHitLocation, toucheAuJetPose } from '../engine/combat';
-import { setAiTrace } from './ai';
+import { setAiTrace } from '../noyau/monde/ai';
 import { viewYawDeg } from './stageYaw';
-import { gearFromEffects, nePeutPasDifferer } from './combatEffects';
-import { objetDuNarratif } from './resolveursDuNarratif';
+import { gearFromEffects, nePeutPasDifferer, applyEffects } from '../noyau/combatEffects';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { pushChoice } from '../noyau/rollSeam';
 import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById, findPsychologyById, psychologies, psychologyLabel } from '../data';
 import { verdictApprentissage } from '../engine/grimoire';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import type { PendingBladeTrap } from '../noyau/pendings';
 import { bus, EVT } from '../noyau/bus';
 import { ev } from '../noyau/combatLog';
@@ -112,27 +112,27 @@ import { formatImperial } from '../engine/clock';
 import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { projectsLoad, projectSave, type EntreeEcrite, type SavedProject } from './projectLibrary';
-import { emptyNarratif } from './campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { makeShowcaseParty } from '../data/pregens';
-import { hoverTargeting } from './targeting';
-import { maneuverShip } from './shipManeuver';
+import { hoverTargeting } from '../noyau/targeting';
+import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
-import { setRevealAll, computeStateVisible } from './visionState';
+import { setRevealAll, computeStateVisible } from '../noyau/visionState';
 import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
 import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
 import { houseRulesMutability, resetHouseRule } from './houseRules';
 import { cadence } from '../engine/cadence';
 import { PREFERENCES, preferenceDef, setPreference, resetPreference, type PrefValue } from './preferences';
-import { pickActiveModalKey, autoPolicyOf } from './modalArbiter';
-import { willAutoResolve } from './combatAuto';
-import { combatAdvanceBlocked } from './combatGate';
-import { endTurnArmed } from './endTurnGuard';
+import { pickActiveModalKey, autoPolicyOf } from '../noyau/modalArbiter';
+import { willAutoResolve } from '../noyau/combatAuto';
+import { combatAdvanceBlocked } from '../noyau/combatGate';
+import { endTurnArmed } from '../noyau/endTurnGuard';
 import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
-import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from './combatManeuvers';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from '../noyau/combatManeuvers';
 import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
-import { partyMoneyTotal, distributeCredit, condCtx } from './bourseFlow';
+import { partyMoneyTotal, distributeCredit, condCtx } from '../noyau/bourseFlow';
 import { demarrerScenario, poserScenario } from './scenarioFlow';
 import { t, deElide } from '../i18n';
 import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
@@ -153,8 +153,8 @@ import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
 import { collectionALaCle } from '../data/schemas/grammaire/collection-cle';
 import { traumaById } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
-import { openSkillTest } from './combatEffects';
-import { EMPTY_FLOW, type FlowTest } from '../noyau/monde/flow';
+import { openSkillTest } from '../noyau/combatEffects';
+import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
 
 function entreeDeRecette(dataset: string, id: string): unknown {
   if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
@@ -405,7 +405,7 @@ function riverDayCascade(): string {
   const s = useGame.getState();
   const plan = s.travelPlan;
   if (!plan?.river) return '✗ aucune descente fluviale en cours (travelPlan.river)';
-  const map = s.worldMap as import('./worldMap').WorldMap | undefined;
+  const map = s.worldMap as import('../noyau/worldMap').WorldMap | undefined;
   const route = map?.routes.find((r) => r.id === plan.routeId);
   const to = map ? placeById(map, plan.toPlaceId) : undefined;
   if (!route || !to) return '✗ route ou destination introuvable sur la carte du monde';
@@ -1206,7 +1206,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur (#877) : patch PARTIEL, une clé à
-     *  `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`state/sceneEdit.ts:editEntity`) :
+     *  `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`noyau/sceneEdit.ts:editEntity`) :
      *  l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue
      *  (`{ ref: 'decor-absent' }`), jamais en retirant le type (#1882). SETUP seulement : le patch passe
      *  par le pont d'INTENTION (`state/editeurBridge`, commande `patcherEntite`) — la MÊME voie
@@ -2020,7 +2020,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — VRAI
-     *  pipeline (`spawnEnemy`, `src/state/spawn.ts` — la porte du
+     *  pipeline (`spawnEnemy`, `src/noyau/monde/spawn.ts` — la porte du
      *  peuplement de scène : profil, armes/armure depuis les Traits, Psychologie, Groupes…), sans
      *  passer par une rencontre de scène. `spawn('gobelin')`, `spawn('gobelin', {x,y}, {side:'hero'})`.
      *  `pos` défaut : à côté du combattant ACTIF (ou, à défaut, le premier combattant positionné) —

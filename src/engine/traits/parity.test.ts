@@ -65,7 +65,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Camaraderie', 'trait psy ciblé (parsePsychTraits)'],
   ['Phobie', 'trait psy ciblé ≈ Peur 1 (parsePsychTraits)'],
   ['Immunité Psychologique', 'psychImmune (parsePsychTraits)'],
-  // Afflictions transmises — engine/disease.ts + state/corruptionFlow.ts
+  // Afflictions transmises — engine/disease.ts + noyau/corruptionFlow.ts
   ['Maladie', 'contraction post-combat (disease.ts — Lot D) ; arg = la maladie (rats/skavens : fievre-du-rongeur)'],
   ['Infecté', 'Blessure Purulente post-combat (disease.ts — Lot D)'],
   ['Corruption', 'exposition du groupe (corruptionFlow — Lot E)'],
@@ -75,7 +75,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   // gameTime + d10 j (file scheduledEffects, horloge) ; fireScheduledEffects → applySummon ; précautions = cancelFlag.
   ['Gardien éternel', 'reconstitution d10 j si tué (op scheduleRespawn onSlain → resolveTriggerImpureOps → fireScheduledEffects/applySummon ; précautions = cancelFlag), #19'],
   // Désespoir (VDM 09 l.280) : mécanique AUTHORÉE en `effects`, comme Venin/Constricteur — le
-  // déclencheur d'HORLOGE `onWake` est dispatché par `fireClockTriggers` (state/clockHooks, bus-owned),
+  // déclencheur d'HORLOGE `onWake` est dispatché par `fireClockTriggers` (noyau/clockHooks, bus-owned),
   // cadencé par `runDailyUpkeep` le jour d'une nuit JOUÉE.
   ['Désespoir', 'État Exténué au réveil pendant une semaine — `effects` AUTHORÉ (onWake → op condition extenue, fireClockTriggers/clockHooks) ; la borne d’une semaine est la durée d’horloge du Trait accordé (`grantTrait.durationHours` du sort Aperçu de la mort, purgée par purgeClockEffects), cf. `state/clock-triggers.test.ts`'],
   // Dressé (Magie) : trait MARQUEUR sans effet propre — lu par le gate `startleCause` de Nerveux
@@ -194,7 +194,7 @@ const DISPATCH = new Set<string>([
   // posée côté statblocs Nurgle) + `grantGroups:['tzeentch']` + `passive` : `grantTalent` (Savoir-vivre
   // (Disciples de Tzeentch), structurel — `talentEffects.traitGrantedTalents`), `grantCareerTalent` ×10
   // (achats hors-Carrière au tarif normal — `talentEffects.careerTalentAdditions`) + `capabilities.markMutations`
-  // (tirage 1d10/3 Mutations alternées mental/phys, `state/spawn.spawnMutations` — PLUS LÉGER que Khorne :
+  // (tirage 1d10/3 Mutations alternées mental/phys, `noyau/monde/spawn.spawnMutations` — PLUS LÉGER que Khorne :
   // ni Frénésie ni blocage d'incantation, non RAW pour Tzeentch).
   'Marque de Tzeentch',
   // Ogre (ADE II 2 l.708, folio 31) : `capabilities.encumbranceFactor`/`consumptionFactor` (donnée)

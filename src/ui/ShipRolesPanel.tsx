@@ -14,7 +14,7 @@ export const postesEquipage = () => [...crewRoles.map(crewRoleAsPoste), reposAsP
  *
  * Le roster n'affiche QUE l'ÉPINGLAGE (arbitrage user 2026-09-04) : ce qui n'est pas épinglé descend
  * au banc « À la discrétion du Test », car c'est LITTÉRALEMENT ce qui se passe — `shipDefaultRoles`
- * (`state/shipCrew`) affecte l'équipage AU MOMENT du Test, selon le TYPE de Test joué (10 types, 5
+ * (`noyau/shipCrew`) affecte l'équipage AU MOMENT du Test, selon le TYPE de Test joué (10 types, 5
  * rôles chacun, rôle essentiel différent) ; la modale du Test montre alors l'affectation retenue,
  * sa valeur et son ★. Deviner ici aurait affiché un rôle que le Test n'aurait pas forcément retenu.
  */

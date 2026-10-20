@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, applyStructureCriticalToTarget, applyCriticalToTarget, applyCast, checkBattleOver, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from './combatFlow';
+import { applyAttackResult, applyStructureCriticalToTarget, applyCriticalToTarget, applyCast, checkBattleOver, collapseStructure, weaponContextOf, resolveRoundBoundary, STRUCTURE_CRIT_TABLE } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpellById } from '../data';
@@ -10,7 +10,7 @@ import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import type { TestResult } from '../engine/tests';
 import { stepInteraction } from '../noyau/cascade';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 import { findTableEntry } from '../engine/tables';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { rollStructureCritical } from '../engine/structureCritical';
@@ -24,7 +24,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Weapon, Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { effectiveWeapon } from '../engine/weaponDamage';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 
 /**
  * Structures destructibles JOUABLES en combat (AA 10 l.94-127) : enrôlement depuis les arêtes de mur,

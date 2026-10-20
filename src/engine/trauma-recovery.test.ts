@@ -18,7 +18,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 
 /** LA PORTE, côté test : `tickTraumaRecovery` ne roule plus le Test de fin de fracture (#1657 B3-3) —
  *  il le DIFFÈRE. `finDeFracture` INJECTE l'issue par la MÊME route que l'applier de nuit
- *  `traumaFracture` (`state/restFlow.ts` → `applyFractureEnd`). */
+ *  `traumaFracture` (`noyau/restFlow.ts` → `applyFractureEnd`). */
 function porteFracture(): { specs: Parameters<UpkeepDeferTest>[0][]; defer: UpkeepDeferTest } {
   const specs: Parameters<UpkeepDeferTest>[0][] = [];
   return { specs, defer: (s) => { specs.push(s); } };

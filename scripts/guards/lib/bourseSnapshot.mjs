@@ -6,7 +6,7 @@
 import * as ts from 'typescript/unstable/ast';
 import { estAppelDeclare } from './canonUnique.mjs';
 
-const BOURSE = { 'src/state/bourseFlow.ts': ['partyMoneyTotal'] };
+const BOURSE = { 'src/noyau/bourseFlow.ts': ['partyMoneyTotal'] };
 const STORE = { 'src/state/store.ts': ['useGame'] };
 
 const sansParentheses = (n) => {

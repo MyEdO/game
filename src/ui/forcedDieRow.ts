@@ -25,10 +25,11 @@
  * intercepte côté invité.
  */
 import { useRef } from 'react';
-import { FLOW_HANDLERS, FLOW_VERBS } from '../state/rollFlowSpecs';
-import type { FlowKey } from '../state/flowVerbs';
-import { canFixDie } from '../state/netOwnership';
-import { withPreRollFixedDie } from '../state/combatFlow';
+import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
+import { FLOW_VERBS } from '../noyau/flowVerbs';
+import type { FlowKey } from '../noyau/flowVerbs';
+import { canFixDie } from '../noyau/netOwnership';
+import { withPreRollFixedDie } from '../noyau/combatFlow';
 import { useGame } from '../state/store';
 import { FIXED_ROLL_MAX } from '../engine/fixedDie';
 import { liveTableDecl, liveDeDecl, plageNaturelle, specDeEtape, tableSpec } from '../noyau/cascade';

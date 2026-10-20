@@ -5,13 +5,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { initialFields } from './stateFields';
-import { openAttackCascade } from './combatFlow';
-import { targetingHolder } from './targetingHolder';
-import { pickActiveModalKey } from './modalArbiter';
+import { initialFields } from '../noyau/stateFields';
+import { openAttackCascade } from '../noyau/combatFlow';
+import { targetingHolder } from '../noyau/targetingHolder';
+import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 

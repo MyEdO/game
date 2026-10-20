@@ -4,19 +4,19 @@
  * QUESTION : le `label` d'un personnage membre d'une rencontre est-il le nom du combattant, ou une
  * légende d'authoring (« Gobelin de la stalle voisine », « Guetteur du corps de garde ») qui s'affiche en combat,
  * au journal et au jet comme si c'était son nom ? C'est son NOM : le label d'entité gagne sur la fiche
- * (`state/sceneNpc.ts › fiche`). Une légende va dans un commentaire, jamais dans le `label`.
+ * (`noyau/monde/sceneNpc.ts › fiche`). Une légende va dans un commentaire, jamais dans le `label`.
  * Motif : label d'entité enrôlée, différent du nom de sa fiche, de plus de `MOTS_MAX` mots hors article initial.
  * Exemptés au SITE (`scène|entité`) : un nom propre plus long, avec sa raison.
  */
 import { describe, it, expect } from 'vitest';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { parseProject } from '../state/worldMap';
-import { ficheDEntite } from '../state/sceneNpc';
+import { parseProject } from '../noyau/worldMap';
+import { ficheDEntite } from '../noyau/monde/sceneNpc';
 import { useGame } from '../state/store';
 import { testScenarios } from './test-scenarios';
 import type { Scene } from '../noyau/monde/scene';
-import type { NarratifBlock } from '../state/campaignNarratif';
+import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from '../state/campaignData';
 
 const EXEMPTES = new Map<string, string>([

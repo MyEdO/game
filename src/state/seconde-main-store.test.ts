@@ -5,9 +5,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from './store';
 import { battleRng, seedBattleRng } from '../noyau/battleRng';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { emptyScene } from '../noyau/monde/scene';
-import { initialFields } from './stateFields';
+import { initialFields } from '../noyau/stateFields';
 import { setRule, resetRule } from '../engine/policy';
 import { rederivePassiveAttack, resolveMelee, type AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';

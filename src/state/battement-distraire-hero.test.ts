@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { actionGate } from './actionRegistry';
+import { actionGate } from '../noyau/actionRegistry';
 import { t } from '../i18n';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

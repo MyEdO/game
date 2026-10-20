@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
-import { ficheDEntite } from './sceneNpc';
+import { ficheDEntite } from '../noyau/monde/sceneNpc';
 import { memoByRef } from '../noyau/monde/sceneMemo';
 import { consumeAmmo } from '../engine/items';
 import type { Scene, SceneEntity } from '../noyau/monde/scene';

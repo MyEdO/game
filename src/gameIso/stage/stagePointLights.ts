@@ -1,6 +1,6 @@
 /**
  * LAMPES PONCTUELLES de l'écran de jeu volumique (#1245, lot L1) — les FLAQUES que les sources de
- * lumière de la scène (`state/visionState.ts` → `sceneLightSources`) posent dans le monde. Module PUR
+ * lumière de la scène (`noyau/visionState.ts` → `sceneLightSources`) posent dans le monde. Module PUR
  * à part de `GameStage3D`, au même titre que `stageLights.ts` (l'ambiante et le soleil) : l'écran
  * MONTE ce que cette passe décide, il ne décide rien lui-même.
  *
@@ -13,7 +13,7 @@
  * ignore un objet invisible) et ferait donc exactement varier le compte que l'on fige.
  *
  * `decay = 0` : l'atténuation physique en 1/d² n'a rien à voir avec la mécanique du jeu, qui dégrade
- * linéairement jusqu'à son rayon (`state/vision.ts` `falloff`). Ce que `distance` fait, en revanche,
+ * linéairement jusqu'à son rayon (`noyau/monde/vision.ts` `falloff`). Ce que `distance` fait, en revanche,
  * est exactement ce qu'on veut : three coupe la contribution par `pow2(saturate(1 − pow4(d/distance)))`,
  * donc RIEN au-delà de `radiusTiles × mpt` — la flaque ne déborde jamais du rayon RAW de la source.
  *
@@ -49,7 +49,7 @@
 import * as THREE from 'three';
 import { findLightLevelById, findLightToneById, DEFAULT_LIGHT_TONE_ID, type LightToneDef } from '../../data';
 import { heightAt, type Scene } from '../../noyau/monde/scene';
-import type { LightSource } from '../../state/vision';
+import type { LightSource } from '../../noyau/monde/vision';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { LIGHT_COLOR } from '../backends/webgl/sceneMeshes';
 
@@ -62,7 +62,7 @@ export const POINT_LIGHT_BUDGET = 12;
  *  AUCUNE primitive déclarée : un billboard (dont le dessin n'a pas de volume monde où pointer) ou une
  *  lampe PORTÉE (dont le foyer est une main, pas une recette). Un décor VOLUMIQUE, lui, déclare sa
  *  primitive émettrice (`PropPrimitive.emet`) et sa source est posée à SON centre (`LightSource.foyer`,
- *  `state/vision.ts`) : ce sont deux valeurs d'UN paramètre, pas deux régimes. Apparence, aucune règle. */
+ *  `noyau/monde/vision.ts`) : ce sont deux valeurs d'UN paramètre, pas deux régimes. Apparence, aucune règle. */
 export const FLAME_LIFT_M = 1;
 
 /** Luminance VISÉE au foyer d'UNE flaque au palier `nuit` (part d'albédo, `ambianceLum` comprise). En
@@ -135,7 +135,7 @@ export interface LitLamp {
  *
  * La flaque qu'un personnage reçoit est celle de SA CASE, par la MÊME définition que le sol
  * (`flaquePart`, la loi mesurée sur les chunks de three), et non le dégradé linéaire du champ mécanique
- * (`state/vision.ts` `falloff`) : deux lois donneraient deux flaques à l'écran, et un héros au bord
+ * (`noyau/monde/vision.ts` `falloff`) : deux lois donneraient deux flaques à l'écran, et un héros au bord
  * serait plus clair que la case sous ses pieds. Elle S'AJOUTE à l'exposition de la frame exactement
  * comme elle s'ajoute au palier d'ambiance pour le sol (`flaqueLuminance`) — three additionne les
  * contributions. Le plafond à 1 est celui de l'écran : au-delà, le rendu du sol écrête lui aussi.

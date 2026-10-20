@@ -3,11 +3,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { CIBLES_PAR_RACINE, type RacineDeCatalogue } from '../state/combatEffects';
+import { CIBLES_PAR_RACINE, type RacineDeCatalogue } from '../noyau/combatEffects';
 
 /**
  * CLIQUET de donnée (#1874 C0) : toute feuille `ops` d'une racine de CATALOGUE (`src/data`) porte un `on`
- * de la table de SA racine (`CIBLES_PAR_RACINE`, `state/combatEffects.ts`), ou n'en porte pas (défaut =
+ * de la table de SA racine (`CIBLES_PAR_RACINE`, `noyau/combatEffects.ts`), ou n'en porte pas (défaut =
  * première entrée). Pendant catalogue de `EFFECT_HANDLERS.ops.refs` → `validateScene` pour la scène.
  *
  * La racine se lit au CHAMP de donnée qui porte la feuille — jamais à une liste d'ids. Une feuille qu'aucun

@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
 import { scenario } from './22-dome';
-import { applyAttackResult, runEnemyAI, applyCast } from '../../state/combatFlow';
+import { applyAttackResult, runEnemyAI, applyCast } from '../../noyau/combatFlow';
 import { findSpellById } from '../../data';
 import type { CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { draineEtLit } from '../../state/cascadeTestKit';
+import { draineEtLit } from '../../state/cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
-import { OPS_DIFFEREES } from '../../state/combatEffects';
+import { OPS_DIFFEREES } from '../../noyau/combatEffects';
 const scenarioConstruit = scenario.construire();
 
 /**

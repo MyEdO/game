@@ -5,11 +5,11 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { draineCascade } from './cascadeTestKit';
-import { applyEffects } from './combatFlow';
+import { draineCascade } from './cascade.testkit';
+import { applyEffects } from '../noyau/combatEffects';
 import { interludeEventFor } from '../data/interludeEvents';
 import { toBrass, fromBrass } from '../engine/money';
-import { partyMoneyTotal, creditBourse } from './bourseFlow';
+import { partyMoneyTotal, creditBourse } from '../noyau/bourseFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { setRule, resetRule } from '../engine/policy';

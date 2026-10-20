@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { startleOnStormAtCombatStart } from './combatFlow';
+import { startleOnStormAtCombatStart } from '../noyau/combatFlow';
 import { stacks, hasCondition, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './store';

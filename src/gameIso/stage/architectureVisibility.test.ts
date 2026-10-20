@@ -3,15 +3,15 @@ import { cutawayForSection, cutawayOverhead, exteriorWallViewZ, frontFacadeCutaw
 import { occludesActor, type Dims } from '../../geometry/iso';
 import { elOccluder } from './occluders';
 import { buildRoofs, clearedSpace, massFootprintCells, massRoomZoneIds } from '../builders/roofs';
-import { effectiveArchitecture } from '../../state/sceneEdit';
+import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { emptyScene, heightAt, type BuildingMass, type Scene, type WallSeg } from '../../noyau/monde/scene';
 import { actorCapsuleOf } from './actorCapsule';
 import { buildWalls } from '../builders/walls';
 import { buildFloors } from '../builders/floors';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
-import { isRoomZone } from '../../state/rooms';
-import { computeStateVisible } from '../../state/visionState';
+import { isRoomZone } from '../../noyau/monde/rooms';
+import { computeStateVisible } from '../../noyau/visionState';
 
 /** Un allié dans une PIÈCE : la pièce dégagée, et les cases qu'elle couvre. */
 const piece = (id: string, cells: string[]): ClearedSpace =>

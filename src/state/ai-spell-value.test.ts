@@ -1,10 +1,10 @@
 /**
- * Garde-fou de l'ÉVALUATEUR de sort op-driven (`src/state/aiSpellValue.ts`) — la valeur d'un `GameOp`
+ * Garde-fou de l'ÉVALUATEUR de sort op-driven (`src/noyau/monde/aiSpellValue.ts`) — la valeur d'un `GameOp`
  * pour le camp du lanceur, échelle « Blessures-équivalent ». EXHAUSTIF par classification (dégâts /
  * soin / buff marginal / contrôle / invocation / défaut signé) + escompte d'opposition. PUR, déterministe.
  */
 import { describe, it, expect } from 'vitest';
-import { opValue, oppositionDiscount, hitProbability, type OpEvalCtx } from './aiSpellValue';
+import { opValue, oppositionDiscount, hitProbability, type OpEvalCtx } from '../noyau/monde/aiSpellValue';
 import type { SpellData } from '../data';
 import type { Combatant, Weapon } from '../engine/types';
 

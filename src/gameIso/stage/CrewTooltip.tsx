@@ -5,7 +5,7 @@
  */
 import type { BattleState } from '../../state/store';
 import { Combatant } from '../../engine/types';
-import { serveTargetPoste, isPosteManned, servingCrewPresent, posteCrewSplit, isCrewQualified } from '../../state/shipPostes';
+import { serveTargetPoste, isPosteManned, servingCrewPresent, posteCrewSplit, isCrewQualified } from '../../noyau/monde/shipPostes';
 import { weaponGroupLabel } from '../../data';
 import { GOLD_TINT, ENEMY_CUE_TINT, RING_ALLY_TINT } from '../highlightTints';
 

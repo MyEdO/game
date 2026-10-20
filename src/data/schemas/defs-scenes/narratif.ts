@@ -1,6 +1,6 @@
 import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
- * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : `src/state/campaignNarratif.ts`
+ * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : `src/noyau/monde/campaignNarratif.ts`
  * en dérive ses types par `z.infer`.
  *
  * Frontière RÉFÉRENCE vs NARRATIF : le narratif est EMBARQUÉ dans le document de campagne et
@@ -66,7 +66,7 @@ export const affaireSchema = nommerChamps(z.strictObject({
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
  *  même forme qu'une entrée de `creatures.json`, partielle). Le nœud de l'entrée partielle est SCELLÉ
  *  (`z.infer` y vaut `unknown`) : sa vue TS est celle que le runtime consomme, `Partial<CreatureData>`
- *  (`state/resolveursDuNarratif.ts`), même régime que `objets` ci-dessous. `source`|`adapteDe` : provenance du
+ *  (`noyau/monde/resolveursDuNarratif.ts`), même régime que `objets` ci-dessous. `source`|`adapteDe` : provenance du
  *  texte du profil et folio du PNJ ; arbitrages chiffrés : `profil.maison` (#2001, #2206). */
 const presetPnjObjet = z.strictObject({
   id: z.string().min(1, 'id vide.'),
@@ -92,7 +92,7 @@ const METACARACTERES_MARKDOWN = /[\\`*_[\]<>#|~]/;
 const sansMarkdown = (sujet: string) => z.string().regex(/\S/, `${sujet} vide.`).refine((t) => !METACARACTERES_MARKDOWN.test(t), `${sujet} : métacaractère Markdown refusé (\\ \` * _ [ ] < > # | ~).`);
 
 /** Les `fragments` comme mots entiers (bornes Unicode), le plus long d'abord (`alternationDe`) : `nommer`
- *  (`src/state/identites.ts`) et le contrôle d'ancre la partagent. */
+ *  (`src/noyau/monde/identites.ts`) et le contrôle d'ancre la partagent. */
 export function motifEnMot(fragments: readonly string[], drapeaux = 'u'): RegExp {
   return new RegExp(`(?<!\\p{L})(?:${alternationDe(fragments)})(?!\\p{L})`, drapeaux);
 }
@@ -294,7 +294,7 @@ const formeNarratif = nommerChamps(z.strictObject({
   ecartes: listeCle(ecartSchema, 'entree').optional(),
 }), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués typés au catalogue, onglet en lecture seule"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
-/** `NarratifBlock` (`state/campaignNarratif.ts`) — forme + sémantique. */
+/** `NarratifBlock` (`noyau/monde/campaignNarratif.ts`) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);
 
 nommerNoeud(indiceSchema, { element: 'indice' });

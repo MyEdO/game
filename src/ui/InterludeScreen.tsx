@@ -4,11 +4,11 @@ import { useGame } from '../state/store';
 import { interludeEventFor } from '../data/interludeEvents';
 import { memoParVersion } from '../data/versionDataset';
 import { formatMoney, fromBrass, toBrass, toMoney, add as moneyAdd, PA_PER_SC, type Money } from '../engine/money';
-import { bourseOf } from '../state/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { heroStatus, heroClass, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../state/interludeFlow';
+import { heroStatus, heroClass, incomeSkillOf, interludeCatalog, bestActivitySkill, type InterludeState, type InterludeHeroState, type BankDeposit } from '../noyau/interludeFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
-import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../state/massBattleFlow';
+import { armyMight, battleActivityDifficulty, battlePrepEntries, peutTenterAction, refusTenterAction, type MassBattleState } from '../noyau/massBattleFlow';
 import {
   craftCatalog, craftTarget, learnableTalents, orderCatalog, metierOf, bankPayout, entrainementOptions,
   classGatedDifficulty, activityTestMod, activityModLines,
@@ -779,7 +779,7 @@ function LearnPane({ hero, refus, fails, money, desc, porteur }: { hero: Combata
   // La bannière du volet EST la raison : le bouton s'y LIE au lieu de la redire au survol.
   const banniereXp = sel && !xpOk ? <>PX insuffisants : {xp}/{sel.xpCost}.</> : undefined;
   // Caractéristique du Test = celle du Maxi du Talent, sinon Int (même dérivation que le flux,
-  // `state/interludeFlow.ts`) — donc lue sur l'entrée EFFECTIVE : une variante réglée (AA) peut
+  // `noyau/interludeFlow.ts`) — donc lue sur l'entrée EFFECTIVE : une variante réglée (AA) peut
   // remplacer le `max` (`{bonusOf}` → nombre), et l'affichage suivrait sinon la base.
   const talent = sel ? findTalentById(sel.id) : undefined;
   const tMax = effectiveEntry(talent)?.max;
@@ -885,7 +885,7 @@ function EntrainementPane({ hero, refus, money, desc, porteur }: { hero: Combata
 /** « Acquitter une Faveur » (LDB 23 l.147/149, #509) : consacre l'Activité à la progression d'une
  *  Faveur en cours — sans jet. Mineure : 1 Activité ; Majeure : 2+ CONSÉCUTIVES (RAW l.149 ; la
  *  rupture par CHOIX SEUL est maison — arbitrage utilisateur 2026-08-03 [entériné 2026-08-03],
- *  verbatim au ticket #1040, cf. `resetInterruptedFavorProgress`, state/favorFlow) ; Importante :
+ *  verbatim au ticket #1040, cf. `resetInterruptedFavorProgress`, noyau/favorFlow) ; Importante :
  *  jamais par Activité (l.151, mention verbatim affichée). */
 function FavorSettlePane({ hero, refus, favors }: { hero: Combatant; refus?: string; favors: Favor[] }) {
   const settle = useGame((s) => s.favorSettle);
@@ -1111,7 +1111,7 @@ function CatalogPane({ hero, def, refus }: { hero: Combatant; def: ActivityDef; 
   const uid = targetUid || weapons[0]?.uid || artefacts[0]?.uid || '';
   const spell = spellId || spellOptions[0]?.spell.id || '';
   // Gate de Classe appliquée EN CATALOGUE — même dérivation que `openCatalogActivity`
-  // (`src/state/interludeFlow.ts`) : source unique `classGatedDifficulty`.
+  // (`src/noyau/interludeFlow.ts`) : source unique `classGatedDifficulty`.
   const diff = classGatedDifficulty(def, hero);
   // Pré-jet dérivé de la DONNÉE — même dérivation que le flux (`openCatalogActivity`) :
   // `masterWeapon` impose la compétence de l'arme visée ; sinon `bestActivitySkill` (SOURCE UNIQUE

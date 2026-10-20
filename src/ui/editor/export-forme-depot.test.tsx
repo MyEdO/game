@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Editor } from './Editor';
 import { buildApi } from '../../state/devtools';
-import { parseProject, ProjetRefuse } from '../../state/worldMap';
+import { parseProject, ProjetRefuse } from '../../noyau/worldMap';
 import { emptyScene } from '../../noyau/monde/scene';
 import { __setFabriqueIdbForTest } from '../../web/indexedDb';
 import { brancherBasesSimulees } from '../../web/indexedDb.testkit';

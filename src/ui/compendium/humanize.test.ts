@@ -7,9 +7,10 @@ import {
 } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { useGame } from '../../state/store';
-import { emptyNarratif } from '../../state/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { OPTIONAL_RULES, setRule, resetRule } from '../../engine/policy';
-import { walkFlow, type Flow, type Condition, type EffectOp } from '../../noyau/monde/flow';
+import { type Flow } from '../../noyau/monde/flow';
+import { walkFlow, type Condition, type EffectOp } from '../../engine/flowCore';
 import type { GameOp, Formula } from '../../engine/ops';
 
 /** Ids KEBAB (multi-segment) connus des registres : « en-flammes », « magie-des-arcanes »,

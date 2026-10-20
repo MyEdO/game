@@ -11,13 +11,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import './combatFlow';
-import { aiCreatureFreeAttacks, maybeHeroCleave } from './combatFlow';
+import '../noyau/combatFlow';
+import { aiCreatureFreeAttacks, maybeHeroCleave } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { resetCadence } from '../engine/cadence';
-import { pilotedByHuman, defenseSurfaced, aiDriven } from './netOwnership';
+import { pilotedByHuman, defenseSurfaced, aiDriven } from '../noyau/netOwnership';
 import { tenuParUnHumain, seatOwns } from '../noyau/sieges';
 import { fleeTouche, fleeToucheDu } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';

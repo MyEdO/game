@@ -2,7 +2,7 @@ import { useGame, type BattleState } from '../state/store';
 import { useOwns } from './ownership';
 import { findCrewTestTypeById, flowStakeRef } from '../data';
 import { rudeEpreuveMoraleDelta, crewTestSuccess } from '../engine/crewMorale';
-import { maneuverCrewTotal } from '../state/shipManeuver';
+import { maneuverCrewTotal } from '../noyau/shipManeuver';
 import type { PendingCrewTest } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { RollShell, type RollAction } from './RollShell';

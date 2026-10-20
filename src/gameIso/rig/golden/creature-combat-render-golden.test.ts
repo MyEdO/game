@@ -22,7 +22,7 @@
 import { VIEWS } from '../facing';
 import { describe, it, expect } from 'vitest';
 import { creatures } from '../../../data';
-import { creatureToCombatant } from '../../../state/spawn';
+import { creatureToCombatant } from '../../../noyau/monde/spawn';
 import { actorDrawInputs } from '../../backends/webgl/sceneMeshes';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';

@@ -1,25 +1,25 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { useGame } from './store';
-import { buildRiverPlan, descenteJouee, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from './riverVoyageFlow';
+import { buildRiverPlan, descenteJouee, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from '../noyau/riverVoyageFlow';
 import { buildApi } from './devtools';
 import { cascadeAppliers } from '../noyau/cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascadeTestKit';
+import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascade.testkit';
 import { composeRollLabel } from '../noyau/rollSeam';
 import { t } from '../i18n';
 import { byId, refLabel, resolveStake, voyageStakeRef, VOYAGE_STAKES, regles } from '../data';
-import { creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { RULE_REF } from '../engine/ruleRefs';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
-import { buildScene } from './mapSpec';
+import { buildScene } from '../noyau/mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Possession } from '../engine/possession';
-import type { MapRoute, MapRouteTrace, WorldMap } from './worldMap';
+import type { MapRoute, MapRouteTrace, WorldMap } from '../noyau/worldMap';
 
 /**
  * VOYAGE FLUVIAL (MSRC 7) — la descente du Reik en barge JOUÉE jour par jour. Depuis la Phase B, TOUS

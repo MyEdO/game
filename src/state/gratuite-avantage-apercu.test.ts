@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { hoverTargeting } from './targeting';
+import { hoverTargeting } from '../noyau/targeting';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';

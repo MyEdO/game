@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { addPossession, stablePossession } from './possessionsFlow';
+import { addPossession, stablePossession } from '../noyau/possessionsFlow';
 import { snapshotSave, parseSave } from './saves';
 import { possessionTotalEnc } from '../engine/possession';
 import type { Possession } from '../engine/possession';

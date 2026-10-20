@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyMutation, gainCorruption, mutationNatureTableId, mutationTableIdFor } from './corruptionFlow';
+import { applyMutation, gainCorruption, mutationNatureTableId, mutationTableIdFor } from '../noyau/corruptionFlow';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { stepInteraction, rollTableStep, tableStepDef } from '../noyau/cascade';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
@@ -14,8 +14,8 @@ import {
 import { species } from '../data';
 import { createHero } from '../engine/character';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
-import { canFixDie } from './netOwnership';
-import { draineCascade } from './cascadeTestKit';
+import { canFixDie } from '../noyau/netOwnership';
+import { draineCascade } from './cascade.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 

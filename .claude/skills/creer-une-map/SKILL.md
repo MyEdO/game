@@ -9,7 +9,7 @@ description: À utiliser quand on crée ou modifie une carte, une scène, un bâ
 `user-doctrine-campagne-jamais-generee-par-script`, skill `creer-une-campagne`) : terrain, murs, relief et
 escaliers, décor, bâtiments et leurs étages. **`MapSpec` + `buildScene` reste le chemin des scénarios de
 test et des générateurs** (dette #1601) : jamais poser les tuiles une à une ; si le vocabulaire manque,
-ÉTENDRE une primitive + un golden, jamais bricoler le scénario. Cartes ASCII : `src/state/asciiMap.ts`
+ÉTENDRE une primitive + un golden, jamais bricoler le scénario. Cartes ASCII : `src/noyau/monde/asciiMap.ts`
 (`parseAsciiRows`/`parseWalledAscii`). `buildScene` rejoue les primitives de l'éditeur : son résultat reste
 éditable (règle stricte 2).
 

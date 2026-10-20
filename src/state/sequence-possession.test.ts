@@ -20,21 +20,21 @@ import { useGame } from './store';
 import {
   applySurprise, approachFearTrigger, applyAttackResult, applyOpposedCritical,
   openCombatEndCascade, openRoundStartPsych,
-} from './combatFlow';
+} from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resetDesFixes } from '../engine/fixedDie';
 import { surfaceOf } from '../noyau/rollSeam';
-import { modalOwnerOf } from './modalArbiter';
-import { humanControlled, pilotedByHuman } from './netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
+import { humanControlled, pilotedByHuman } from '../noyau/netOwnership';
 import { seatOwns, jetSurfaced } from '../noyau/sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
-import { tickCombatAuto } from './combatAuto';
+import { tickCombatAuto } from '../noyau/combatAuto';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import './combat/triggeredTest';
-import { OPS_DIFFEREES } from './combatEffects';
+import '../noyau/combat/triggeredTest';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;

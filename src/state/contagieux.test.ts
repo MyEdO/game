@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { openCombatEndCascade } from './combatFlow';
+import { openCombatEndCascade } from '../noyau/combatFlow';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import { applyOps } from '../engine/ops';
 import { diseaseDefs } from '../engine/disease';

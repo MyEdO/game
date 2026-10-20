@@ -10,9 +10,9 @@ import { combatStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
 import { monoStep } from '../noyau/rollSeam';
 import { registerCascadeApplier } from '../noyau/cascade';
-import { registerSequence, startSequence, activeSequence } from './sequenceCore';
+import { registerSequence, startSequence, activeSequence } from '../noyau/sequenceCore';
 
-declare module './sequenceContract' {
+declare module '../noyau/sequenceContract' {
   interface SequenceFamilies {
     'sonde-manche-branche-i': Record<string, never>;
   }

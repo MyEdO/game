@@ -14,7 +14,7 @@
  * mort ou inconscient de faim.
  */
 import { isOutOfAction } from '../engine/conditions';
-import type { Get, Set } from '../state/flowTypes';
+import type { Get, Set } from './flowTypes';
 import type { PendingCascade } from './pendings';
 
 /** Le groupe est-il anéanti HORS COMBAT ? Si oui, présente la défaite (drapeau `partyWiped`) et purge

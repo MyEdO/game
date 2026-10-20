@@ -4,7 +4,7 @@ import { attachMutation } from '../../engine/corruption';
 import { recomputeLoadout } from '../../engine/items';
 import { makePriest } from './_casters';
 import type { Combatant } from '../../engine/types';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 

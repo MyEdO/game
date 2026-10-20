@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { applyCriticalToTarget } from './combatFlow';
+import { applyCriticalToTarget } from '../noyau/combatFlow';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { locationLabel, type Combatant } from '../engine/types';

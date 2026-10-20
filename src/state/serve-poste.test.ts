@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { availableAttacks } from './combatManeuvers';
-import { firedAttackBlock } from './combatFlow';
+import { availableAttacks } from '../noyau/combatManeuvers';
+import { firedAttackBlock } from '../noyau/combatFlow';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { BattleState, GameState } from './store';
 

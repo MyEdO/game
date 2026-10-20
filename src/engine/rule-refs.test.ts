@@ -178,7 +178,7 @@ function refLessProducers(): string[] {
  * (`meleeAttackerBonusLines`), aura anti-Sort (`castWardLine`). Ce qui reste est MESURÉ, par famille :
  *  - RENVOIS légitimes — la ligne PORTE déjà l'identité de sa donnée dans son libellé : les quatre
  *    lignes volatiles de Caractéristique (`characteristics.ts` — la carac EST la fiche du libellé)
- *    et les trois modificateurs de MÉTÉO de scène (`sc.label`, poussés par `state/combatFlow.ts` :
+ *    et les trois modificateurs de MÉTÉO de scène (`sc.label`, poussés par `noyau/combatFlow.ts` :
  *    la donnée de scène ne porte aucune identité Codex (#1173), seule la branche `sc.concealed`
  *    en a une, celle de la Cible dissimulée).
  *  - lignes dont la RÈGLE n'a pas encore de fiche au catalogue (`regles.json`) : couvert de tir,
@@ -193,13 +193,13 @@ function refLessProducers(): string[] {
  *    par le pending (`PendingTest.mods`), donc hors de ce stock : l'affichage n'en produit plus.
  */
 const RATCHET = [
-  "src/state/combatFlow.ts · tr('cf.coverLabel', { cover })",
-  'src/state/combatFlow.ts · sc.label',
-  'src/state/combatFlow.ts · sc.label',
-  'src/state/combatFlow.ts · sc.label',
-  "src/state/combatFlow.ts · 'Contrecoup'",
-  "src/state/travelFlow.ts · t('tf.modGallop')",
-  "src/state/travelFlow.ts · t('tf.modGalloped', { n: galloped })",
+  "src/noyau/combatFlow.ts · tr('cf.coverLabel', { cover })",
+  'src/noyau/combatFlow.ts · sc.label',
+  'src/noyau/combatFlow.ts · sc.label',
+  'src/noyau/combatFlow.ts · sc.label',
+  "src/noyau/combatFlow.ts · 'Contrecoup'",
+  "src/noyau/travelFlow.ts · t('tf.modGallop')",
+  "src/noyau/travelFlow.ts · t('tf.modGalloped', { n: galloped })",
   "src/engine/activities.ts · modLabel ?? 'Modificateur'",
   "src/ui/ActivityModal.tsx · 'Rounds tenus'",
   "src/ui/RollLine.tsx · `${cut < 0 ? 'plafond' : 'plancher'} ${target}`",
@@ -309,7 +309,7 @@ describe('Famille — chaque ModLine ÉMISE dit si elle DÉTERMINE la Difficult�
 /** Stock DÉCROISSANT des magnitudes littérales à côté d'un renvoi : la Cible dissimulée, que la scène
  *  pose par météo (`noyau/monde/sceneRules.ts`), rejoint sa fiche avec le vocabulaire météo unique (#1173, lot
  *  « Météo » du plan de #2778). */
-const STOCK_LITTERALES: string[] = ['src/state/combatFlow.ts · sc.concealedLabel'];
+const STOCK_LITTERALES: string[] = ['src/noyau/combatFlow.ts · sc.concealedLabel'];
 
 /**
  * RÈGLES CHIFFRÉES (#1173) — la valeur, la famille et le libellé d'une ligne de règle chiffrée sont ceux

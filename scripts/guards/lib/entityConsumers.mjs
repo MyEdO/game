@@ -42,7 +42,7 @@
 // VÉRACITÉ de champ (`param.champ`) ou sa NÉGATION (`!param.champ`) — un seul niveau de champ à chaque
 // fois — ces trois formes de terme étant COMBINABLES entre elles par `&&`/`||` (jamais les deux dans le
 // même prédicat — ambiguïté de précédence non résolue). Mesuré : `vehicles.filter((v) => v.purchase &&
-// !v.ship)` (`state/merchantFlow.ts:136`, catalogue de vente du Maquignon, `unitKinds:
+// !v.ship)` (`noyau/merchantFlow.ts:136`, catalogue de vente du Maquignon, `unitKinds:
 // ['vehicule-terrestre']` dans `merchants.json`) combine véracité et négation, chaîne bien à
 // `.map((v) => v.id)` (`unitIdsOfKind`) : c'est ce cas qui a fait étendre la grammaire (2026-07-27).
 // Toute parenthèse de groupement, tout chaînage optionnel (`x?.y`), tout niveau de champ multiple
@@ -54,7 +54,7 @@
 // « on ne manipule que des IDs ; le `label` est de l'AFFICHAGE ») : un filtre qui sélectionne mais ne
 // mène nulle part par id (`.map((q) => q.label)`, ou pas de `.map` du tout) ne prouve AUCUN chemin
 // d'accès à l'entité — SÉLECTIONNER n'est pas la même chose que MENER À. Mesuré : `qualities.filter((q)
-// => q.polarite === 'atout')` dans `falseQualities()` (`src/state/interludeFlow.ts:1069`) sélectionne bien
+// => q.polarite === 'atout')` dans `falseQualities()` (`src/noyau/interludeFlow.ts:1069`) sélectionne bien
 // par champ, mais nourrit une liste de RUMEURS FAUSSES (Particularités que le personnage croit à tort
 // déceler après un jet raté — ADE II) affichées par LABEL, jamais appliquées : la qualité sélectionnée
 // n'est précisément PAS atteinte. Rejeté par cette règle générale (aucune exception codée sur ce
@@ -87,7 +87,7 @@ export const CATEGORY_FILES = {
   // Au périmètre depuis #1553 L3. Le chemin de JEU d'une créature est la CITATION de son id (un
   // document de scène — `entities[].ref`, `encounters[]` —, une autre donnée : `montures.json`,
   // `groups.json`, `careerLevels.json`…) ou la sélection MODE 2 `creatures.filter((c) => c.purchase)
-  // .map((c) => c.id)` (`state/merchantFlow.ts:134`, bétail du Maquignon, 14 entrées). La palette de
+  // .map((c) => c.id)` (`noyau/merchantFlow.ts:134`, bétail du Maquignon, 14 entrées). La palette de
   // l'éditeur n'en est PAS un — cf. SÉMANTIQUE en en-tête.
   creatures: 'creatures.json',
 };

@@ -6,7 +6,7 @@
  * nom d'entité en dur dans l'IA. La résolution (store) reprend le chemin joueur (`resolveManeuver` sur soi).
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';
 

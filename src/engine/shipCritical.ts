@@ -35,7 +35,7 @@ const SHIP_LOC_KEY: Record<ShipLocation, MsgKey> = {
 
 /** Libellé JOUEUR d'une Localisation de bateau — la donnée n'en porte pas (tables keyées par id).
  *  Résolveur TOTAL : aucun repli sur l'id, donc aucun moteur-speak à l'écran. FOYER UNIQUE (la
- *  navigation fluviale s'y branche, `state/riverVoyageFlow.ts`). */
+ *  navigation fluviale s'y branche, `noyau/riverVoyageFlow.ts`). */
 export const shipLocationLabel = (loc: ShipLocation): PlayerText => t(SHIP_LOC_KEY[loc]);
 
 /** Réfs de tables data-driven d'une coque (MDG naval par défaut / MSRC fluvial) — `hull.locationTable` (colonne

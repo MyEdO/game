@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Warning } from '../../state/validateScene';
-import { PLAN_DEFECT_FAMILIES, type PlanDefectFamily } from '../../state/planDefects';
+import { PLAN_DEFECT_FAMILIES, type PlanDefectFamily } from '../../noyau/planDefects';
 import { Icon } from '../Icon';
 import { ListRow } from '../ListRow';
 import { Band } from '../Band';

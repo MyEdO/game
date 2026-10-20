@@ -147,12 +147,12 @@ const champs = {
  *    `registry.ts`)
  *  - `cn` → NI effectif `castingNumberOf` (`src/engine/magic.ts`), lu par `evaluateCasting`
  *    (`magic.ts`) et `castLandProbability` (`magic.ts`) ; aperçu pré-jet `previewCast`
- *    (`src/state/combatFlow.ts`) ; NI de lecture au grimoire `effectiveSpellOf`
- *    (`src/state/combatFlow.ts`) ; « NI » affiché de la fiche Codex (`registry.ts`)
- *  - `duration` → `durationClockMinutes` (`src/state/combatFlow.ts`), durée de la zone posée
- *    par `placeSpellZone` (`src/state/combatFlow.ts`)
- *  - `effects` → `spellFlowFor` (`src/state/combatFlow.ts`), `spellOps`
- *    (`src/state/combatEffects.ts`)
+ *    (`src/noyau/combatFlow.ts`) ; NI de lecture au grimoire `effectiveSpellOf`
+ *    (`src/noyau/combatFlow.ts`) ; « NI » affiché de la fiche Codex (`registry.ts`)
+ *  - `duration` → `durationClockMinutes` (`src/noyau/combatFlow.ts`), durée de la zone posée
+ *    par `placeSpellZone` (`src/noyau/combatFlow.ts`)
+ *  - `effects` → `spellFlowFor` (`src/noyau/combatFlow.ts`), `spellOps`
+ *    (`src/noyau/combatEffects.ts`)
  * `range`/`target`/`missile`/`damage`/`ignorePA`/`ignoreBE`/`opposed` en sont ABSENTS : aucune
  * variante curée ne les republie, et une liste blanche n'admet un champ qu'au moment où une donnée
  * réelle l'exerce.

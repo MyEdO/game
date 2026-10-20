@@ -6,7 +6,7 @@ import { formatImperial } from '../engine/clock';
 import { t } from '../i18n';
 import { Prose, mdToText } from './Prose';
 import { useIdentites } from './useIdentites';
-import { nommer } from '../state/identites';
+import { nommer } from '../noyau/monde/identites';
 
 /** Libellé de compte à rebours (#668) — dérivé de `deadline - now` en MINUTES, aux mêmes seuils que
  *  les clés `countdown.*` (i18n/messages/fr.ts). */

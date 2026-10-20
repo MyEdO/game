@@ -22,7 +22,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees } from '../web/indexedDb.testkit';
 import { tileEdge, screenToTileF, type Dims } from '../geometry/iso';
-import { canonEdge } from './sceneEdit';
+import { canonEdge } from '../noyau/sceneEdit';
 import { nearestEdge } from '../ui/editor/editorState';
 
 beforeAll(() => {

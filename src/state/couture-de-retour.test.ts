@@ -4,10 +4,10 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from '../noyau/monde/scene';
 import { flowFromEffects } from '../noyau/monde/flow';
-import { applyEffects } from './combatEffects';
-import { finalizeBattle } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
+import { finalizeBattle } from '../noyau/combatFlow';
 import { inBattleId } from '../noyau/monde/combatants';
-import { touchActors } from './combatOrParty';
+import { touchActors } from '../noyau/combatOrParty';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { contractDisease, tickDisease } from '../engine/disease';
@@ -26,7 +26,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { sansDeclarationsDeMetadonnees } from '../../scripts/guards/lib/canonUnique.mjs';
 import { join, posix } from 'node:path';
-import { buildAdvancementView } from './advancement';
+import { buildAdvancementView } from '../noyau/monde/advancement';
 import { learnableSpells } from '../engine/grimoire';
 import { itemFromTrappingById } from '../engine/items';
 import { careers } from '../data';
@@ -205,7 +205,7 @@ describe('coutures du héros en combat (#2312)', () => {
   it('touchActors est la seule couture qui recopie la file de combat pour la re-rendre', () => {
     const forme = /combatants:\s*\[\.\.\.[\w!.()]*combatants\]/;
     const sites = readCorpus(['src'])
-      .filter(({ rel }) => rel !== 'src/state/combatOrParty.ts')
+      .filter(({ rel }) => rel !== 'src/noyau/combatOrParty.ts')
       .flatMap(({ rel, text }) => text.split('\n').map((l, i) => [`${rel}:${i + 1}`, l] as const))
       .filter(([, l]) => forme.test(l))
       .map(([site]) => site);
@@ -227,7 +227,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
 
   /** Les dépenses de PX : chaque export de `partyFlow.ts` qui passe par la couture `depenserPx`. */
   const derivees = (): string[] => {
-    const src = readFileSync(join(__dirname, 'partyFlow.ts'), 'utf-8');
+    const src = readFileSync(join(__dirname, '../noyau/partyFlow.ts'), 'utf-8');
     return src.split(/\nexport function /).slice(1)
       .filter((corps) => corps.includes('depenserPx(get'))
       .map((corps) => corps.slice(0, corps.indexOf('(')))
@@ -271,12 +271,12 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
   const ECRITURES_XP: Record<string, 'depense' | 'moteur' | 'gain' | 'creation' | 'fixture' | 'type' | 'lecture'> = {
     'src/data/index.ts | xp: number;': 'type',
     'src/data/schemas/defs/spells.ts | xp: z.number(),': 'type',
-    'src/state/advancement.ts | xp: number;': 'type',
+    'src/noyau/monde/advancement.ts | xp: number;': 'type',
     'src/noyau/pendings.ts | xp: number;': 'type',
     'src/ui/creator/CreatorDice.tsx | xp: number;': 'type',
     'src/engine/persistence.ts | xp: PERSISTE, charAdvances: PERSISTE, careerLevel: PERSISTE, careerSlotChoices: PERSISTE,': 'type',
-    'src/state/advancement.ts | xp: hero.xp ?? 0,': 'lecture',
-    'src/state/combatFlow.ts | xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),': 'lecture',
+    'src/noyau/monde/advancement.ts | xp: hero.xp ?? 0,': 'lecture',
+    'src/noyau/combatFlow.ts | xp: Math.max(0, (get().party[0]?.xp ?? 0) - c.xpAvant),': 'lecture',
     'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
     'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
@@ -284,12 +284,12 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/scenes/test-scenarios/voyage.ts | aldric.xp = 300;': 'fixture',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - cost;': 'moteur',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - v.cost;': 'moteur',
-    'src/state/combatEffects.ts | env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));': 'gain',
-    'src/state/partyFlow.ts | clone.xp = (clone.xp ?? 0) + amount;': 'gain',
-    "src/state/partyFlow.ts | if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: clone.label, xp })); }": 'gain',
-    'src/state/partyFlow.ts | clone.xp = (clone.xp ?? 0) - cost;': 'depense',
-    'src/state/partyFlow.ts | clone.xp = (clone.xp ?? 0) - tier.px;': 'depense',
-    'src/state/interludeFlow.ts | depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) }));': 'depense',
+    'src/noyau/combatEffects.ts | env.set((s: GameState) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));': 'gain',
+    'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) + amount;': 'gain',
+    "src/noyau/partyFlow.ts | if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: clone.label, xp })); }": 'gain',
+    'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) - cost;': 'depense',
+    'src/noyau/partyFlow.ts | clone.xp = (clone.xp ?? 0) - tier.px;': 'depense',
+    'src/noyau/interludeFlow.ts | depenserPx(get, set, h.id, (lu) => ({ ...lu, xp: Math.max(0, (lu.xp ?? 0) - (pa.xpCost ?? 0)) }));': 'depense',
   };
 
   it('les clés PX de métadonnées ne cachent aucune écriture exécutée', () => {

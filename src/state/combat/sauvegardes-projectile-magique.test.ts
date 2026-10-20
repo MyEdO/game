@@ -9,10 +9,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
-import { applyCast } from '../combatFlow';
+import { applyCast } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
-import { draineEtLit } from '../cascadeTestKit';
+import { draineEtLit } from '../cascade.testkit';
 import { emptyScene } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 

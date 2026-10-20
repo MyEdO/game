@@ -10,8 +10,8 @@ Tu exécutes une spec précise — tu n'inventes ni périmètre ni design.
 
 - **Porte d'entrée : brief refusé sans invariant confronté**, car un socle modifié sans son invariant
   casse les flux qui le composent. Dès que ton brief touche un socle
-  (`src/noyau/cascade.ts`, `src/noyau/rollSeam.ts`, `src/noyau/sieges.ts`, `src/state/rollFlowFactory.ts`,
-  `src/state/netOwnership.ts`, `src/state/combatFlow.ts`
+  (`src/noyau/cascade.ts`, `src/noyau/rollSeam.ts`, `src/noyau/sieges.ts`, `src/noyau/rollFlowFactory.ts`,
+  `src/noyau/netOwnership.ts`, `src/noyau/combatFlow.ts`
   hors site isolé, tout module composé par plusieurs flux) ou demande une branche par type de
   porteur, il doit porter : (1) `## Invariant` — le verbatim cité, sa source, la question à laquelle
   il répondait ; (2) le cas canonique que le socle couvre déjà (`fichier:ligne`) et la preuve que le

@@ -6,8 +6,9 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { aiCreatureFreeAttacks, availableAttacks } from './combatFlow';
-import { ACTION_GATES } from './actionRegistry';
+import { aiCreatureFreeAttacks } from '../noyau/combatFlow';
+import { availableAttacks } from '../noyau/combatManeuvers';
+import { ACTION_GATES } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { findManeuverById } from '../data';
 import { testScene } from '../scenes/test-fixture';

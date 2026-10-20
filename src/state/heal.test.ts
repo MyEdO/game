@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { bourseOf, creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import { availableHealModes } from '../engine/healing';
 import { traumaById, dechirureFractureFicheId } from '../engine/trauma';

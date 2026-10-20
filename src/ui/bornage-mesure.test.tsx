@@ -13,7 +13,7 @@ import { BargainModalView } from './BargainModal';
 import { CorruptionModal } from './CorruptionModal';
 import { StateRecoveryModal } from './StateRecoveryModal';
 import { CascadeBody } from './CascadeModal';
-import { openCombatEndCascade } from '../state/combatFlow';
+import { openCombatEndCascade } from '../noyau/combatFlow';
 import { RollLine, ANONYMES } from './RollLine';
 import { opposedLines } from './breakdown';
 import { testDeRegle } from '../engine/reglesChiffrees';

@@ -57,7 +57,7 @@ export const propDeclaredFoot = (ref: string | undefined): { w: number; h: numbe
 /**
  * ANCRE MONDE d'un décor posé en `pos` — le point sur lequel TOUT ce que le décor projette se pose :
  * sa géométrie volumique (`gameIso/builders/props.ts` → `buildPropVolumes`), son dessin billboard, et
- * le FOYER de la source qu'il porte (`state/vision.ts` → `LightSource.foyer`). Un décor s'ancre au
+ * le FOYER de la source qu'il porte (`noyau/monde/vision.ts` → `LightSource.foyer`). Un décor s'ancre au
  * CENTRE de son empreinte : `pos` en est le coin NO, `decorFootGeometry` donne le décalage
  * fractionnaire vers ce centre. UNE définition, parce qu'une lampe calée sur un autre point que sa
  * propre géométrie s'en détacherait dès la première empreinte non 1×1 — mesuré à 1,414 m sur une

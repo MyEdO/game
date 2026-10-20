@@ -16,7 +16,7 @@ import { useState } from 'react';
 import type { Scene } from '../../noyau/monde/scene';
 import { PARTY_MAX } from '../../noyau/monde/combatants';
 import { labelEmplacement, releaseSeat, seatSlotsOf, type SeatAssignmentResult, type SeatOccupant } from '../../noyau/monde/seating';
-import { normaliseAssises, seatOccupant } from '../../state/sceneEdit';
+import { normaliseAssises, seatOccupant } from '../../noyau/sceneEdit';
 import { ChipDeRefus } from '../ChipDeRefus';
 
 /** Motif de refus d'`assignSeat`, dit à l'auteur. Chaque libellé énonce le fait MESURÉ par la raison

@@ -2,7 +2,7 @@
  * VOCABULAIRE DE SÉQUENCE — les FORMES DE DONNÉE qu'une entrée de catalogue peut déclarer pour se
  * faire jouer en manches (#1279). Elles vivent dans le MOTEUR parce que ce sont des données de
  * RÈGLE, lues des deux côtés de la frontière : par les catalogues du moteur (`tavernGame.ts` et son
- * `tavernGames.json`) et par le contrat d'orchestrateur du store (`state/sequenceContract.ts`), qui
+ * `tavernGames.json`) et par le contrat d'orchestrateur du store (`noyau/sequenceContract.ts`), qui
  * les republie dans ses `SequenceParams`. Aucune logique ici : ce fichier ne fait que DIRE.
  */
 import type { CharKey, Difficulty } from './types';
@@ -55,7 +55,7 @@ export interface SequenceDice {
 }
 
 /** UNE PLAGE de résultat du tour et l'EFFET qu'elle déclenche — `potEffectId` est le nom d'un effet
- *  ENREGISTRÉ (`registerSequencePotEffect`, `state/sequenceCore`), jamais un id de jeu, et `mises`
+ *  ENREGISTRÉ (`registerSequencePotEffect`, `noyau/sequenceCore`), jamais un id de jeu, et `mises`
  *  le PARAMÈTRE que cet effet applique (combien de mises il déplace, défaut 1). `label` est de
  *  l'AFFICHAGE. */
 export interface SequencePotRow {
@@ -119,7 +119,7 @@ export interface SequencePotOutcome {
  * FORME — directive utilisateur du 2026-08-13 (verbatim au ticket #1279) : « Comme les games iOS
  * [GameOps], rendre le vocabulaire le plus générique et parametrable possible ». D'où : aucun champ
  * ne nomme son premier client, et ce que RAPPORTE un lancer est un NOM ENREGISTRÉ résolu par une
- * fonction pure (`registerSequenceThrow`, `state/sequenceCore`) — patron `GameOp` et patron des
+ * fonction pure (`registerSequenceThrow`, `noyau/sequenceCore`) — patron `GameOp` et patron des
  * effets de pot (famille 5) : un verbe générique + ses paramètres. Un jeu de lancers N+1 dont les
  * verbes existent déjà est une entrée JSON, zéro ligne de TS.
  */

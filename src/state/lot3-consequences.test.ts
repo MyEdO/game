@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyEffects } from './combatEffects';
+import { applyEffects } from '../noyau/combatEffects';
 import { hasCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 

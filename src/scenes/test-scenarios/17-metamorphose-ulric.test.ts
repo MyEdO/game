@@ -6,8 +6,8 @@
  *    (pas de double-application des deltas).
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyTurnInput } from '../../state/ai';
-import { creatureToCombatant } from '../../state/spawn';
+import { chooseEnemyAction, type EnemyTurnInput } from '../../noyau/monde/ai';
+import { creatureToCombatant } from '../../noyau/monde/spawn';
 import { emptyScene } from '../../noyau/monde/scene';
 import { findCreatureById } from '../../data';
 import { scenario } from './17-metamorphose-ulric';

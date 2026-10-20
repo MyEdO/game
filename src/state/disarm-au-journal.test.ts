@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { applyCriticalToTarget, aiHandGate } from './combatFlow';
+import { applyCriticalToTarget, aiHandGate } from '../noyau/combatFlow';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { resolveCritique } from '../engine/critical';

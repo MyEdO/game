@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { previewAttack } from './combatFlow';
-import { rollCrewRole } from './shipManeuver';
+import { previewAttack } from '../noyau/combatFlow';
+import { rollCrewRole } from '../noyau/shipManeuver';
 import { crewRoleTestMods, resolveCrewTestByRoles } from '../engine/crewMorale';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -9,7 +9,7 @@ import { findCrewRoleById } from '../data';
 import { RULE_REF } from '../engine/ruleRefs';
 import type { Combatant, Weapon } from '../engine/types';
 import type { RNG } from '../engine/dice';
-import type { TravelPlan } from './travelFlow';
+import type { TravelPlan } from '../noyau/travelFlow';
 import { propulsionDuNavire } from '../engine/shipBuild';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */

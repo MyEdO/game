@@ -184,7 +184,7 @@ describe('la couture d’occupation est UNIQUE', () => {
     // `partyFlow` ajoute, retire, remplace : il écrit le GROUPE, jamais la scène. La politique
     // d'occupation n'a donc qu'un auteur — un `set({ scene })` ici en ferait un second, libre de
     // diverger de la couture rang par rang.
-    const src = lire('src/state/partyFlow.ts');
+    const src = lire('src/noyau/partyFlow.ts');
     const ecritures = [...src.matchAll(/set\(\s*(?:\([^)]*\)\s*=>\s*)?\(?\{[^}]*\bscene\s*:/g)].map((m) => m[0]);
     expect(ecritures).toEqual([]);
   });

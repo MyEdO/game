@@ -9,7 +9,7 @@ import { act, useState, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CouvreField } from './CouvreField';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
-import { emptyNarratif, type NarratifBlock } from '../../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
 import { narratifSchema } from '../../data/schemas/defs-scenes/narratif';
 import { ficheDeDossier, idDEntree } from '../../data/source/dossier';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';

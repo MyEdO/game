@@ -80,7 +80,7 @@ import type { OutcomeBand } from '../../engine/activities';
 import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
 import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
-import type { ResolveurDePreset } from '../../state/resolveursDuNarratif';
+import type { ResolveurDePreset } from '../../noyau/monde/resolveursDuNarratif';
 import type { Porteur } from '../liage';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
 import { bonus, effectiveChar } from '../../engine/characteristics';
@@ -1775,7 +1775,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'weatherConditions', label: 'Conditions météo', group: 'Tables', cluster: 'Voyage terrestre',
     // Effets par condition (EDOC 8) — cible Codex des chips « Météo : … » des lignes de jet
-    // (`engine/weatherTestMod.ts`, `state/combatFlow.ts`, `state/travelPostes.ts`).
+    // (`engine/weatherTestMod.ts`, `noyau/combatFlow.ts`, `noyau/travelPostes.ts`).
     build: () => weatherConditions.map((c) => ({
       id: c.id, label: c.label, desc: c.desc, source: src(c.source),
       meta: facts(
@@ -1925,7 +1925,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   {
     key: 'defautsDeCompilation', label: 'Défauts de compilation', group: 'Tables',
     // UNE seule entrée (objet `defauts-de-compilation.json`) — ce que le compilateur de scène pose
-    // quand l'auteur laisse le terrain implicite (`state/mapSpec.ts`). Éditable ici (`edit.object: 'single'`).
+    // quand l'auteur laisse le terrain implicite (`noyau/mapSpec.ts`). Éditable ici (`edit.object: 'single'`).
     build: () => [{
       id: 'defauts-de-compilation', label: 'Défauts de compilation',
       sections: sections({

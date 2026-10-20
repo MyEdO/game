@@ -22,7 +22,7 @@ import { dataLabel } from '../data';
 import { riverForceLabel } from '../engine/riverNavigation';
 import { locationLabel } from '../engine/types';
 import { shipLocationLabel } from '../engine/shipCritical';
-import { riverLocLabel } from './riverVoyageFlow';
+import { riverLocLabel } from '../noyau/riverVoyageFlow';
 import { diseaseLabel, refLabel, findCareerById } from '../data';
 import type { PlayerText } from '../i18n/playerText';
 import { ammoFamilyLabel } from '../engine/items';
@@ -45,7 +45,7 @@ interface Site {
   apres: string;
 }
 
-/* ── V8b : les positions NOMMÉES du contrat de séquence (`state/sequenceContract.ts`) ────────────*/
+/* ── V8b : les positions NOMMÉES du contrat de séquence (`noyau/sequenceContract.ts`) ────────────*/
 
 const MANCHE = 3, DIST = { distance: 4, escapeAt: 10 };
 const distanceDite = (p: { distance: number; escapeAt: number }): PlayerText =>
@@ -168,7 +168,7 @@ const SIGNES: Site[] = [3, 0, -2].map((sl) => ({
   apres: drApres(sl),
 }));
 
-/* ── V8c₀ : la narration de combat rendue au catalogue (`state/combatFlow.ts`, invariant ZÉRO) ───*/
+/* ── V8c₀ : la narration de combat rendue au catalogue (`noyau/combatFlow.ts`, invariant ZÉRO) ───*/
 
 const COMBAT: Site[] = [
   {
@@ -433,8 +433,8 @@ const V8C2: Site[] = [
 ];
 
 /* ── V8c₃ : les cinq fichiers de la tranche 3 rendus au catalogue (invariant ZÉRO) ────────────────
- * `seaVoyageFlow` (`sv.*`), `engine/healing` (`heal.*`), `engine/rest` (`rest.*`), `state/restFlow`
- * (`rf.*`), `state/shipCrew` (`crew.*`), plus `engine/trauma` (`tra.*`, ramené à son seul id de type).
+ * `seaVoyageFlow` (`sv.*`), `engine/healing` (`heal.*`), `engine/rest` (`rest.*`), `noyau/restFlow`
+ * (`rf.*`), `noyau/shipCrew` (`crew.*`), plus `engine/trauma` (`tra.*`, ramené à son seul id de type).
  * Trois oracles portent le TEXTE CORRIGÉ, pas le texte d'avant : la LOCALISATION d'impact, la MALADIE
  * citée et l'ASPECT du vent étaient rendus en ID brut (« la déchirure (jambeG) », « la durée de
  * « peste-noire » », « vent arriere ») — la parité avec un bug n'est pas un abri (précédent V8c₂). */
@@ -856,7 +856,7 @@ describe('#1318 V8b/V8b₂/V8c₀/V8c₁/V8c₂ — la migration au catalogue es
    * V8c₄ l'étend de DEUX ids de plus, vus fuir sur d'autres surfaces : `greement` à nouveau (mais par
    * `engine/shipCritical.ts` cette fois — « Critique navire (greement) », un SECOND site pour le MÊME
    * id, ce que la sonde déjà en place n'empêchait pas puisqu'elle ne lit que les oracles) et l'id de
-   * CARRIÈRE (« carrière → chasseur-de-primes », `state/partyFlow.ts`).
+   * CARRIÈRE (« carrière → chasseur-de-primes », `noyau/partyFlow.ts`).
    *
    * La garde balaie TOUS les oracles du fichier — un futur cas qui recopierait un id se ferait prendre
    * ici, pas à la recette. Elle ne mesure QUE les ids déjà vus fuir : elle ne certifie pas le zéro.

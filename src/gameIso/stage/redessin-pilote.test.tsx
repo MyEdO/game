@@ -22,7 +22,7 @@ import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/sc
 import type { Dims } from '../../geometry/iso';
 import type { PropEl, TokenEl } from '../builders/types';
 import type { KeepEl, TintAt } from '../backends/webgl/sceneMeshes';
-import type { LightSource } from '../../state/vision';
+import type { LightSource } from '../../noyau/monde/vision';
 import type { WalkTrack } from '../fx/walkPose';
 import { COMBAT_TOKEN_BASE, NO_DYNAMIC_MARKS, teamRingRadiusK, type DynamicMarks } from '../builders/dynamicMarks';
 import { HERO_RING } from '../teamColors';

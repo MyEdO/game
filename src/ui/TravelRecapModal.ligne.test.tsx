@@ -14,7 +14,7 @@ import { TravelRecapModal } from './TravelRecapModal';
 import { useGame } from '../state/store';
 import { toDate, MINUTES_PER_DAY } from '../engine/clock';
 import { gameDateText } from './GameDate';
-import type { TravelRecap } from '../state/travelFlow';
+import type { TravelRecap } from '../noyau/travelFlow';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

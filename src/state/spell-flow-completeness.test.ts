@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
-import { flowEffects, spellOps, type Flow } from '../noyau/monde/flow';
+import { type Flow } from '../noyau/monde/flow';
+import { flowEffects, spellOps } from '../engine/flowCore';
 import { spells } from '../data';
 import type { Combatant } from '../engine/types';
 

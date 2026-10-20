@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import {
   maybeOpenDefense, openSurfacedDefense, openAttackCascade, startDisengage, openCastCascade,
   openCastOpposition, shareCastStep, applyStructureCriticalToTarget, applyMiscast, resolveDeviation,
   previewCritEntry,
-} from './combatFlow';
+} from '../noyau/combatFlow';
 import { stakeAtTableRow } from '../noyau/cascade';
 import { combatStakeRef } from '../data';
-import { ownsLocal } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
+import { ownsLocal } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { seatOwns } from '../noyau/sieges';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { resolveCritique } from '../engine/critical';

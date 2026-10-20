@@ -163,12 +163,12 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['EntityAppearance', 'armurePortee', 'src/gameIso/rig/enemyProfile.ts @equip, src/ui/editor/codex/CodexEdit.tsx @AppearanceField'],
   ['CritEscalation', 'onRepeat', 'src/engine/critical.ts @repeat'],
   ['Amputation', 'timing', 'src/engine/critical.ts @resolveCritique, src/ui/compendium/registry.ts @meta'],
-  ['FlowTest', 'opposed', 'src/state/combat/triggeredTest.ts @opp'],
+  ['FlowTest', 'opposed', 'src/noyau/combat/triggeredTest.ts @opp'],
   ['CountSpec', 'fixed', 'src/data/index.ts @count'],
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
   ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @possessionGrantsFromRefs'],
   ['FlowTest', 'argDifficulty', 'src/noyau/triggeredEffects.ts @test'],
-  ['TravelTableEntry', 'stageOutcome', 'src/state/travelPostes.ts @(module)'],
+  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @(module)'],
   ['TraitInstance', 'hidden', 'src/engine/groups.ts @hiddenGroupsOf'],
 ];
 

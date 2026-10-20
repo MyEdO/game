@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Combatant } from '../engine/types';
-import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../state/rollFlowFactory';
+import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
 import { ChanceButtons } from './ChanceButtons';
 import { ResilienceButton } from './ResilienceButton';
 
@@ -8,7 +8,7 @@ import { ResilienceButton } from './ResilienceButton';
  * Rangée « influencer le jet » PARTAGÉE (Chance · Relance gratuite · +1 DR · Pacte · Résilience).
  *
  * L'acteur est passé UNE fois : ses ressources en sont dérivées (`actorInfluenceView`), et les
- * FENÊTRES de chaque verbe viennent des prédicats du seam (`state/rollFlowFactory.ts`). Ce qu'un
+ * FENÊTRES de chaque verbe viennent des prédicats du seam (`noyau/rollFlowFactory.ts`). Ce qu'un
  * appelant fournit, ce sont des FAITS (l'acteur, l'état du jet `roll`) et l'OFFRE de chaque verbe
  * (la présence de `onReroll`/`onDarkPact`/`onForce`) — jamais une éligibilité recomposée.
  * `children` : boutons contextuels supplémentaires (Détermination, actions de chirurgie…).

@@ -26,8 +26,8 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * Le test échoue si un fichier DÉPASSE sa baseline (= nouveau hardcode = régression) OU si une
  * baseline est devenue trop haute (fichier assaini sans qu'elle soit abaissée — patron repris de
  * `no-emoji-affordance.test.ts` CLIQUET, lignes 100-111). Un fichier absent de `BASELINES` a une
- * baseline 0 implicite : `engine/conditions.ts`, `state/combat/roundHooks.ts`,
- * `state/combatFlow.ts` (les 3 cibles historiques du Lot 0, migrées aux Lots 4/4bis/6) y restent.
+ * baseline 0 implicite : `engine/conditions.ts`, `noyau/combat/roundHooks.ts`,
+ * `noyau/combatFlow.ts` (les 3 cibles historiques du Lot 0, migrées aux Lots 4/4bis/6) y restent.
  *
  * Mécanique de détection (marqueurs réactifs par-nom, exclusion des imports) :
  * `scripts/guards/lib/hardcode.mjs` (module .mjs pur, partagé avec le hook pre-commit).
@@ -91,16 +91,16 @@ const EXCLUDED = (rel: string) => estFichierVitest(rel);
  *       `hasCondition(c, 'naufrage')`), `engine/exposure.ts` (l.111, gate hypothermie), `engine/rest.ts`
  *       (5 sites revélés : l.97/112/113/141/155, instrumentation `stacks(c, 'extenue'/'inconscient'/
  *       'a-terre')` masquée derrière `const/let … = stacks(` ou `removeCondition`), `state/
- *       outOfCombatUpkeep.ts` (l.11, gate de veille), `state/travelFlow.ts` (l.687) et `state/
+ *       outOfCombatUpkeep.ts` (l.11, gate de veille), `noyau/travelFlow.ts` (l.687) et `state/
  *       travelPostes.ts` (l.278,308) — fatigue `extenue` par-nom en instrumentation de voyage. */
 const BASELINES: Record<string, number> = {
   'src/engine/traits/dispatch.ts': 2,
-  'src/state/ai.ts': 6, // dont #411 : recover/retreat par-nom en-flammes (l.526) + empetre (l.682,1098)
-  'src/state/combatManeuvers.ts': 1, // #402 : hasTraitKey(mort-vivant) littéral → capabilities.undead (Trait), reste isBestial (défense)
+  'src/noyau/monde/ai.ts': 6, // dont #411 : recover/retreat par-nom en-flammes (l.526) + empetre (l.682,1098)
+  'src/noyau/combatManeuvers.ts': 1, // #402 : hasTraitKey(mort-vivant) littéral → capabilities.undead (Trait), reste isBestial (défense)
   // #411 (2026-07-13) — stock révélé par l'extension aux littéraux, GELÉ, à résorber (doctrine #295)
   'src/engine/rest.ts': 8, // #413 : gate repos (l.13) + fatigue/veille extenue+inconscient+a-terre (l.97,112,113,125,141,145,155)
   'src/engine/suffocation.ts': 2, // pose Inconscient par-nom à l'issue du décompte (l.43,51)
-  'src/state/combatEffects.ts': 2, // détection « mis à terre » par-nom (a-terre, l.776,779)
+  'src/noyau/combatEffects.ts': 2, // détection « mis à terre » par-nom (a-terre, l.776,779)
   'src/engine/combat.ts': 1, // isHelplessTarget — hasCondition(c, 'inconscient') (l.651)
   'src/engine/healing.ts': 1, // Soin ciblant un Inconscient par-nom (l.86)
   // TABLE de références Codex (#1078) : `determination: { category: 'characteristics', id: 'determination' }`
@@ -111,9 +111,9 @@ const BASELINES: Record<string, number> = {
   // #413 (2026-07-14) — stock révélé par la fermeture du loophole d'instrumentation, GELÉ
   'src/engine/conditions.ts': 2, // isOutOfAction coque — hasCondition(c, 'naufrage') (MDG 13 l.674) ; usesSuddenDeath — hasTalent(c, 'chanceux') (AA 07 l.67)
   'src/engine/exposure.ts': 1, // gate hypothermie — hasCondition(c, 'inconscient') derrière wounds<=0 (l.111)
-  'src/state/outOfCombatUpkeep.ts': 1, // gate de veille — hasCondition(c, …) derrière wounds<=0 (l.11)
-  'src/state/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)
-  'src/state/travelPostes.ts': 2, // instrumentation voyage — stacks(h, 'extenue') (l.278,308)
+  'src/noyau/outOfCombatUpkeep.ts': 1, // gate de veille — hasCondition(c, …) derrière wounds<=0 (l.11)
+  'src/noyau/travelFlow.ts': 1, // instrumentation voyage — stacks(h, 'extenue') (l.687)
+  'src/noyau/travelPostes.ts': 2, // instrumentation voyage — stacks(h, 'extenue') (l.278,308)
 };
 
 /** Nombre de sites réactifs par-nom, par fichier relatif (uniquement les fichiers non-vides). */
@@ -156,8 +156,8 @@ describe('garde-fou « tout migrer » — réactions de combat hardcodées (cliq
   });
 
   it('#385 — le site data-driven réel combatEffects.ts (spec.easierIf!.hasTalent) ne remonte plus', () => {
-    const src = readFileSync(join(ROOT, 'src/state/combatEffects.ts'), 'utf8');
-    const findings = scanHardcode('src/state/combatEffects.ts', src);
+    const src = readFileSync(join(ROOT, 'src/noyau/combatEffects.ts'), 'utf8');
+    const findings = scanHardcode('src/noyau/combatEffects.ts', src);
     expect(findings.map((f) => f.detail).filter((d) => /easierIf/.test(d))).toEqual([]);
   });
 

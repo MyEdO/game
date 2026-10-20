@@ -10,7 +10,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapView } from './WorldMapView';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import type { WorldMap } from '../state/worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 import { dayIndex } from '../engine/clock';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';

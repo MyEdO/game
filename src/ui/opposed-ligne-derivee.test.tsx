@@ -15,11 +15,11 @@ import { useGame } from '../state/store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { CascadeBody } from './CascadeModal';
-import { frozenOpposedBatchStep } from '../state/combat/triggeredTest';
+import { frozenOpposedBatchStep } from '../noyau/combat/triggeredTest';
 import { findQualityById } from '../data';
-import { EMPTY_FLOW } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

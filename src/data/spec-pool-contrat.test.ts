@@ -304,7 +304,7 @@ describe('L2 #1548 — `refOuSpec` refuse la sentinelle AU PARSE (`ref.ts#SENTIN
 /**
  * INVARIANT `estSpecialisable ⟹ specPoolOf ≠ []` — une Compétence dont le catalogue est NON VIDE doit
  * proposer au moins une spéc `pool` : sinon le tirage d'une spéc n'a aucun candidat et le `throw` de
- * `designateSpec` (`src/state/spawn.ts`) devient atteignable en partie.
+ * `designateSpec` (`src/noyau/monde/spawn.ts`) devient atteignable en partie.
  *
  * PÉRIMÈTRE : `estSpecialisable` lit le catalogue RÉSOLU (espace `<fichier>#[<id>].specs` de l'INDEX
  * DES IDS), `specs[]` inline et `specsSource` compris — mesuré 2026-08-31 : `corps-a-corps`,
@@ -321,7 +321,7 @@ describe('L2 #1548 — toute Compétence spécialisable propose au moins une sp�
     const vides = skills.filter((s) => estSpecialisable('skill', s.id) && specPoolOf(s).length === 0).map((s) => s.id);
     expect(
       vides,
-      `Compétence(s) au catalogue NON VIDE mais sans aucune spéc \`pool\` — \`designateSpec\` (src/state/spawn.ts) n'a aucun candidat à tirer et LÈVE :\n${vides.join('\n')}`,
+      `Compétence(s) au catalogue NON VIDE mais sans aucune spéc \`pool\` — \`designateSpec\` (src/noyau/monde/spawn.ts) n'a aucun candidat à tirer et LÈVE :\n${vides.join('\n')}`,
     ).toEqual([]);
   });
 });

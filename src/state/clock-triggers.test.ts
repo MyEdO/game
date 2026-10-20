@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
-import { runDailyUpkeep } from './upkeep';
-import { fireClockTriggers } from './clockHooks';
-import { sleepParty } from './restFlow';
-import { spellEffectOps, flowHasTest } from '../noyau/monde/flow';
+import { runDailyUpkeep } from '../noyau/upkeep';
+import { fireClockTriggers } from '../noyau/clockHooks';
+import { sleepParty } from '../noyau/restFlow';
+import { spellEffectOps, flowHasTest } from '../engine/flowCore';
 import { createHero } from '../engine/character';
 import { attachMutation } from '../engine/corruption';
 import { applyOps } from '../engine/ops';

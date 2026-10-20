@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { creditBourse } from './bourseFlow';
+import { creditBourse } from '../noyau/bourseFlow';
 import { emptyScene } from '../noyau/monde/scene';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -8,7 +8,7 @@ import type { Combatant } from '../engine/types';
 /**
  * #93 — flags marchand PAR-ENTITÉ (guilde / mode marché / tenir les comptes) : l'override d'entité
  * PRIME sur la règle maison globale (`engine/policy`) ; absent → héritage du global (couture unique
- * `marketRule`, state/merchantFlow). Vérifie la COMPOSITION (pas la mécanique déjà testée ailleurs).
+ * `marketRule`, noyau/merchantFlow). Vérifie la COMPOSITION (pas la mécanique déjà testée ailleurs).
  */
 function reset() {
   useGame.setState({ party: [], scene: null, merchant: null, merchantStocks: {} });

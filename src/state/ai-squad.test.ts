@@ -9,7 +9,7 @@
  * espérances de dégâts (`expectedDamage`) soient chiffrables (≠ tests à `{} as never`).
  */
 import { describe, it, expect } from 'vitest';
-import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput } from './ai';
+import { chooseEnemyAction, type EnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { outnumberMod } from '../engine/combat';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, Weapon } from '../engine/types';

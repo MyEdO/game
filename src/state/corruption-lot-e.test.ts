@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { gainCorruption } from './corruptionFlow';
-import { draineCascade } from './cascadeTestKit';
+import { gainCorruption } from '../noyau/corruptionFlow';
+import { draineCascade } from './cascade.testkit';
 import { corruptionThresholdExceeded } from '../engine/corruption';
 import { PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';

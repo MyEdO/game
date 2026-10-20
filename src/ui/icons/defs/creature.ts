@@ -1,6 +1,6 @@
 import type { IconFamily } from '../types';
 
-/* Attaques naturelles des créatures (hotbar de manœuvres — sens : src/state/combatManeuvers.ts).
+/* Attaques naturelles des créatures (hotbar de manœuvres — sens : src/noyau/combatManeuvers.ts).
    Charte : voir defs/action.ts (grille 24×24, trait 1.8 rond, silhouette pleine, une métaphore). */
 
 /** Trait principal. */

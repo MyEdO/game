@@ -8,7 +8,7 @@ import { OPTIONAL_RULES, setRule, resetRule, ruleDef } from './policy';
 import { houseRuleTabs, OWN_TAB_MIN } from '../ui/houseRuleTabs';
 import { evaluateMissile, applyFullPower, overcastSL, castAfterCrit, defaultCritChoice, type CastResult } from './magic';
 import { hasInstinctiveDiction } from './combatFeatures/dispatch';
-import { isDispellableCast } from '../state/combatFlow';
+import { isDispellableCast } from '../noyau/combatFlow';
 import type { PendingCast } from '../noyau/pendings';
 import type { Combatant } from './types';
 

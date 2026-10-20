@@ -1,7 +1,8 @@
 import { makePregens } from '../../data/pregens';
-import type { Scene, SceneEntity, CustomStatblock } from '../../noyau/monde/scene';
-import type { MapSpec } from '../../state/mapSpec';
-import { buildScene } from '../../state/mapSpec';
+import type { Scene, SceneEntity } from '../../noyau/monde/scene';
+import type { CustomStatblock } from '../../engine/statblock';
+import type { MapSpec } from '../../noyau/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import { flowFromEffects, testFlow, type Flow } from '../../noyau/monde/flow';
 

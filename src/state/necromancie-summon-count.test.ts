@@ -9,8 +9,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { spawnEnemy } from './spawn';
-import { castCommitZone } from './combatFlow';
+import { spawnEnemy } from '../noyau/monde/spawn';
+import { castCommitZone } from '../noyau/combatFlow';
 import { findSpell } from '../data';
 import { evaluateCasting } from '../engine/magic';
 import { bonus, effectiveChar } from '../engine/characteristics';

@@ -5,7 +5,7 @@ import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
 import { downloadText, fileSlug } from '../web/fileIo';
-import { parseProject, documentDeProjet, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
+import { parseProject, documentDeProjet, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import {
   projectsLoad, projectSave, projetDeLEntree, projectRemove, nomDeProjet, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
   messageDeRefusJoueur, MARQUE_AUTRE_FORMAT, estRefusee,

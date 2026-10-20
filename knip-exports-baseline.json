@@ -2,10 +2,10 @@
   "src/i18n/index.ts": [
     "setLocale"
   ],
-  "src/state/landMarketFlow.ts": [
+  "src/noyau/landMarketFlow.ts": [
     "LandMarketState"
   ],
-  "src/state/portFlow.ts": [
+  "src/noyau/portFlow.ts": [
     "PortState"
   ],
   "src/ui/editor/editorState.ts": [

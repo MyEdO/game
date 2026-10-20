@@ -141,7 +141,7 @@
     "id": "makeRollFlow",
     "type": "primitives.manifest",
     "label": "makeRollFlow/FLOWS",
-    "fichier": "src/state/rollFlowSpecs.ts",
+    "fichier": "src/noyau/rollFlowSpecs.ts",
     "concept": "fabrique de flux de jet + registre spec par kind",
     "perimetre": "tout Test interactif joueur",
     "verrou": "rollflow-no-drift.test.ts, rollFlowWiring.test.ts"
@@ -282,7 +282,7 @@
     "id": "touchActors",
     "type": "primitives.manifest",
     "label": "touchActors",
-    "fichier": "src/state/combatOrParty.ts",
+    "fichier": "src/noyau/combatOrParty.ts",
     "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
     "verrou": "couture-de-retour.test.ts"
@@ -291,7 +291,7 @@
     "id": "depenserPx",
     "type": "primitives.manifest",
     "label": "depenserPx/refusDepensePx",
-    "fichier": "src/state/partyFlow.ts",
+    "fichier": "src/noyau/partyFlow.ts",
     "concept": "dépense de PX d'un héros : refus en combat, puis écriture par id",
     "perimetre": "tout achat de progression, rachat de prothèse, changement de Carrière (#2312)",
     "verrou": "couture-de-retour.test.ts"
@@ -354,7 +354,7 @@
     "id": "resolveFreeAttacks",
     "type": "primitives.manifest",
     "label": "resolveFreeAttacks",
-    "fichier": "src/state/combatFlow.ts",
+    "fichier": "src/noyau/combatFlow.ts",
     "concept": "attaque gratuite déclenchée, kind-agnostique",
     "perimetre": "toute source de Frappe réactive/Assaut féroce/Trait/État",
     "verrou": "creatureFreeAttacks.test.ts"
@@ -363,7 +363,7 @@
     "id": "shipDamage",
     "type": "primitives.manifest",
     "label": "damageHull/healHull/damageVesselHull/healVesselHull",
-    "fichier": "src/state/shipDamage.ts",
+    "fichier": "src/noyau/monde/shipDamage.ts",
     "concept": "dégâts/soin de coque, source unique de state.vessel.wounds",
     "perimetre": "voyage fluvial/maritime + combat naval",
     "verrou": "vessel-wounds-write-guard.test.ts"
@@ -390,7 +390,7 @@
     "id": "netOwnership",
     "type": "primitives.manifest",
     "label": "ownsLocal/pilotedByHuman/aiDriven/siegesRequis",
-    "fichier": "src/state/netOwnership.ts",
+    "fichier": "src/noyau/netOwnership.ts",
     "concept": "axe contrôleur (qui pilote, qui est jouée par l'IA) et quorum des sièges requis",
     "perimetre": "gating de siège/coop",
     "verrou": "netOwnership.test.ts"
@@ -454,10 +454,10 @@
     "id": "identites",
     "type": "primitives.manifest",
     "label": "nommer/identitesResolues/useIdentites",
-    "fichier": "src/state/identites.ts",
+    "fichier": "src/noyau/monde/identites.ts",
     "concept": "identité d'un état `heros` à l'affichage : les repères d'une prose de paquet substitués en mot entier, en une passe, par la ligne du couple espèce × sexe figé à la désignation ; prose stockée intacte ; lue au rendu par `useIdentites` (`src/ui/useIdentites.ts`), mémoïsée sur une clé primitive",
     "perimetre": "tout site de prose de paquet déclaré `paquet` dans `SITES_PROSE` (`<Prose paquet>`, `mdToText(nommer(…))`)",
-    "verrou": "src/state/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
+    "verrou": "src/noyau/monde/identites.test.ts, src/ui/prose-paquet.test.tsx, src/ui/prose-sites.test.ts"
   },
   {
     "id": "resolveRender",
@@ -721,7 +721,7 @@
     "css": "src/ui/styles/ready-row.css",
     "concept": "rangée de ready-check coop : sièges requis seuls, siège nommé, état prêt/attendu",
     "perimetre": "pause de Round, écran de Victoire, nuit de repos",
-    "verrou": "quorum = siegesRequis (src/state/netOwnership.ts), source unique"
+    "verrou": "quorum = siegesRequis (src/noyau/netOwnership.ts), source unique"
   },
   {
     "id": "panneauParametre",
@@ -864,7 +864,7 @@
     "id": "suite",
     "type": "primitives.manifest",
     "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
-    "fichier": "src/state/combatEffects.ts",
+    "fichier": "src/noyau/combatEffects.ts",
     "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
     "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
     "verrou": "src/state/chute-a-la-porte.test.ts, src/state/roll-seam-exclusivity-guard.test.ts"
@@ -1454,7 +1454,7 @@
     "id": "suiteDuCoup",
     "type": "primitives.manifest",
     "label": "applyAttackResult / jouerLApresCoup / APRES_COUP / SuiteDeCoup / SuiteDeDefense",
-    "fichier": "src/state/combatFlow.ts",
+    "fichier": "src/noyau/combatFlow.ts",
     "concept": "un COUP = application + après-coup, une écriture : l'après-coup est une liste ordonnée de temps (`APRES_COUP` : Maladresses, réaction, suite) ; ce qu'un site fera APRÈS son coup est déclaré en DONNÉE à l'entrée, et une fenêtre ouverte emporte le TEMPS où reprendre — y compris quand une fenêtre de défense s'interpose",
     "perimetre": "toute frappe qui peut être suspendue : balayage, gratuites de créature et de talent, attaque pilotée, sauvegarde, Déviation, Maladresse, casse d'arme",
     "verrou": "src/state/apres-coup.test.ts"
@@ -1940,7 +1940,7 @@
     "id": "reponsesDuNoeud",
     "type": "primitives.manifest",
     "label": "reponsesDuNoeud/testAnnonce/ouvrirDialogue",
-    "fichier": "src/state/dialogue.ts",
+    "fichier": "src/noyau/dialogue.ts",
     "concept": "ce qu'une réponse de dialogue OFFRE et ANNONCE, dérivé de sa donnée : liste VISIBLE (filtre when, rang affiché, index de donnée, verdict d'offre) et Test déclaré par son flux, en ids stables",
     "perimetre": "la fenêtre de dialogue et les touches dialogue-choice-1..9 — toute surface qui sert une réponse",
     "verrou": "src/scenes/dialogue-label-sans-test.test.ts (le libellé ne recopie jamais le Test de son flux)"
@@ -1949,7 +1949,7 @@
     "id": "surfaceTientLaMain",
     "type": "primitives.manifest",
     "label": "surfaceTientLaMain/SURFACES_HORS_PENDING",
-    "fichier": "src/state/modalArbiter.ts",
+    "fichier": "src/noyau/modalArbiter.ts",
     "concept": "une surface PARTAGÉE (état de jeu que tous les sièges voient) tient la main : verdict UNIQUE de l'arbitre, dérivé des modales du registre, des fenêtres HORS-modale qui se déclarent tientLaMain et des surfaces partagées hors pending* (marché, taverne, document, carte du monde, port, marché de terre, écran plein). Les surfaces PAR SIÈGE (fiche, menu système, codex, écrans ouverts par un joueur) n'y entrent jamais : elles vivent dans la pile des couches du client (dismissStack.modaleDuDessus)",
     "perimetre": "le VERBE qui s'exécute chez l'hôte : conversationRepond (chooseDialogue, touches dialogue-choice-N) ; la marche tenue (stageWalk.marcheAutorisee, avec la pile des couches pour l'écran du siège)",
     "verrou": "src/state/dialogue-surface-tient-la-main.test.ts (un contrat par surface partagée + contrat coop : l'écran par siège de l'hôte ne refuse pas l'invité) ; src/ui/dialogue-couche-du-dessus.test.tsx (couche du dessus) ; src/state/stageWalk.test.ts"
@@ -2006,7 +2006,7 @@
     "fichier": "src/engine/items.ts",
     "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, `formeChoisie` parmi les `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
     "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
-    "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/state/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+    "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
     "id": "successionDesCorps",

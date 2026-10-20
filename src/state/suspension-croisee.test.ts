@@ -3,13 +3,13 @@ import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
 import { wallSegSchema } from '../data/schemas/defs-scenes/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
-import { avanceEtapeCascade } from './cascadeTestKit';
-import { planFranchissement, defautDeSuspension, phaseDeChute } from './fallMove';
-import { scenePlanDefects } from './planDefects';
-import { buildScene } from './mapSpec';
-import { patchWall } from './sceneEdit';
+import { avanceEtapeCascade } from './cascade.testkit';
+import { planFranchissement, defautDeSuspension, phaseDeChute } from '../noyau/fallMove';
+import { scenePlanDefects } from '../noyau/planDefects';
+import { buildScene } from '../noyau/mapSpec';
+import { patchWall } from '../noyau/sceneEdit';
 import { setRule, resetRule } from '../engine/policy';
 
 /**

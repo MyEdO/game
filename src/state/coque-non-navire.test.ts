@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Combatant } from '../engine/types';
 import { useGame } from './store';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { seedBattleRng } from '../noyau/battleRng';
-import { applyCriticalToTarget, runEnemyAI } from './combatFlow';
+import { applyCriticalToTarget, runEnemyAI } from '../noyau/combatFlow';
 import { buildApi } from './devtools';
 import { emptyScene } from '../noyau/monde/scene';
 import { vehicleCombatant } from '../engine/vehicle';

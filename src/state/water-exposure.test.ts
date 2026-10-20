@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { cascadeAppliers } from '../noyau/cascade';
 import { WATER_EXPOSURE } from '../data';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';

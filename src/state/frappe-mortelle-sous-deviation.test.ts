@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { autoCleave } from './combatFlow';
+import { autoCleave } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, ItemInstance } from '../engine/types';
@@ -13,7 +13,7 @@ import { resetCadence } from '../engine/cadence';
 import { isOutOfAction } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import { bus, EVT } from '../noyau/bus';
-import { draineCascade, type ChoisitCle } from './cascadeTestKit';
+import { draineCascade, type ChoisitCle } from './cascade.testkit';
 
 const LIEUX = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const;
 const harnois = (): ItemInstance =>

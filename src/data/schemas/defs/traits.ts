@@ -142,7 +142,7 @@ const doc = document(
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
     grantsManeuvers: z.array(ref('maneuver')).optional(),
-    /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`state/advancement.ts`). */
+    /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`noyau/monde/advancement.ts`). */
     passive: z.array(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
     appearance: entityAppearanceSchema.optional(),
     capabilities: traitCapabilitiesSchema.optional(),

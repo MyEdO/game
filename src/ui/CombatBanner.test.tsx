@@ -10,7 +10,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame, type BattleState } from '../state/store';
 import { ev, type CombatEvent } from '../noyau/combatLog';
-import { REFUS_MS } from '../state/refusVisible';
+import { REFUS_MS } from '../noyau/refusVisible';
 import { CombatBanner } from './CombatBanner';
 
 beforeAll(() => {

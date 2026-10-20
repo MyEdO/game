@@ -10,7 +10,7 @@
  * sous `gameIso/`, d'où les builders et `state/` sont importables (`src/data` n'importe ni l'un ni
  * l'autre, cf. le mur `murs/purete-imports`, #1709).
  */
-import { parseProject } from '../../state/worldMap';
+import { parseProject } from '../../noyau/worldMap';
 import { buildFloors } from '../builders/floors';
 import { buildProps } from '../builders/props';
 import type { Scene } from '../../noyau/monde/scene';

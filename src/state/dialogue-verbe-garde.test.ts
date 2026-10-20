@@ -12,8 +12,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { KEYBINDINGS } from './clavier/keybindings';
-import { conversationRepond } from './dialogue';
-import { partyMoneyTotal } from './bourseFlow';
+import { conversationRepond } from '../noyau/dialogue';
+import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { toBrass } from '../engine/money';

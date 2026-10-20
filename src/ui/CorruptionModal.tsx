@@ -13,7 +13,7 @@ import { Icon } from './Icon';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeCorruption } from '../state/flowOutcomes';
+import { describeCorruption } from '../noyau/flowOutcomes';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };

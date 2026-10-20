@@ -1,6 +1,7 @@
-import { useGame, type PendingBargain } from '../state/store';
+import { useGame } from '../state/store';
+import { type PendingBargain } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
-import { influencesLocally } from '../state/netOwnership';
+import { influencesLocally } from '../noyau/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
 import { soutienMod, opposedLines } from './breakdown';
 import { testValueParts } from '../engine/skills';
@@ -8,7 +9,7 @@ import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeBargain } from '../state/flowOutcomes';
+import { describeBargain } from '../noyau/flowOutcomes';
 
 /** Vue pure de la modale de Marchandage (Test OPPOSÉ, testable sans store). */
 export function BargainModalView({

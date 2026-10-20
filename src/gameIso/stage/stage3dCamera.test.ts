@@ -7,7 +7,7 @@ import { affineCamera, projectToScreen } from '../backends/webgl/cameras';
 import { tileCenter, type Dims, type Rot } from '../../geometry/iso';
 import { metricToLift } from '../../noyau/monde/relief';
 import { sceneMetresPerTile } from '../../noyau/monde/scene';
-import { buildScene } from '../../state/mapSpec';
+import { buildScene } from '../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../scenes/test-scenarios/siege-enceinte';
 
 /**

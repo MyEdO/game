@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { counterspellJoinable, counterspellSoutenu, counterspellSoutienFor, counterspellDeclarePhase, autoDeclareWitnessRows } from './combatFlow';
-import { intentAllowedFor } from './netOwnership';
+import { counterspellJoinable, counterspellSoutenu, counterspellSoutienFor, counterspellDeclarePhase, autoDeclareWitnessRows } from '../noyau/combatFlow';
+import { intentAllowedFor } from '../noyau/netOwnership';
 import { seedBattleRng } from '../noyau/battleRng';
 import { castingValue } from '../engine/magic';
 import { createHero } from '../engine/character';

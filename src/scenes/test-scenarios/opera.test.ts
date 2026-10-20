@@ -1,10 +1,11 @@
-import { flowEffects, EMPTY_FLOW, type Flow } from '../../noyau/monde/flow';
+import { type Flow } from '../../noyau/monde/flow';
+import { flowEffects, EMPTY_FLOW } from '../../engine/flowCore';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateScene } from '../../state/validateScene';
 import { isWalkable, layerTiles, type Effect } from '../../noyau/monde/scene';
 import { pathTo } from '../../noyau/monde/path';
 import { useGame } from '../../state/store';
-import { applyEffects } from '../../state/combatEffects';
+import { applyEffects } from '../../noyau/combatEffects';
 import { createHero } from '../../engine/character';
 import { scenario } from './opera';
 const scenarioConstruit = scenario.construire();

@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { porteEnJeu, porteMasquee, porteTentee, setDoorRevealed, setDoorTentee, type Scene, type WallSeg } from '../noyau/monde/scene';
-import { buildScene, type WallSpec } from './mapSpec';
+import { buildScene, type WallSpec } from '../noyau/mapSpec';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { evalCondition } from '../engine/flowCore';
 import { resetRule, setRule } from '../engine/policy';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import { setDoorSchema } from '../data/schemas/defs-scenes/effets';
-import { idDeTriggerDePorte, triggersDePortesSecretes } from './decouvertePorteSecrete';
+import { idDeTriggerDePorte, triggersDePortesSecretes } from '../noyau/monde/decouvertePorteSecrete';
 import { t } from '../i18n';
 
 /**

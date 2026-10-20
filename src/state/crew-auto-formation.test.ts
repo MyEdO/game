@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { buildScene } from './mapSpec';
-import { buildEncounters } from './encounterAuthoring';
-import { crewFormationSlots } from './shipPostes';
+import { buildScene } from '../noyau/mapSpec';
+import { buildEncounters } from '../noyau/monde/encounterAuthoring';
+import { crewFormationSlots } from '../noyau/monde/shipPostes';
 import { pregenParty, PREGEN } from '../data/pregens';
 import type { Scene } from '../noyau/monde/scene';
 

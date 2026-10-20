@@ -11,7 +11,7 @@
  * texte FR ; (b) la TABLE `[{ id: '…', label: '…' }, …]` déclarée au niveau module, où l'`id` tient
  * la clé et le `label` la valeur — mêmes deux règles, mêmes seuils. La forme (b) exige que CHAQUE
  * objet de la table porte les deux champs en chaîne littérale, ce qui laisse dehors les rangées
- * d'action poussées une à une (`state/combatManeuvers.ts`, `out.push({ id, label, icon, … })`).
+ * d'action poussées une à une (`noyau/combatManeuvers.ts`, `out.push({ id, label, icon, … })`).
  * La table de libellés passée à `enumNomme` est le FOYER : elle est écartée par construction (littéral argument,
  * ou constante nommée passée à `enumNomme` dans le même fichier), pas par une liste de fichiers.
  *

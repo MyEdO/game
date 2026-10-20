@@ -9,8 +9,8 @@
  *      l'échelle de la scène — la même bougie éclaire 5 cases à terre et 1 case en mer.
  */
 import { describe, it, expect } from 'vitest';
-import { combatantLights } from './vision';
-import { spellEffectOps } from '../noyau/monde/flow';
+import { combatantLights } from '../noyau/monde/vision';
+import { spellEffectOps } from '../engine/flowCore';
 import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { findSpellById, findTrappingById } from '../data';

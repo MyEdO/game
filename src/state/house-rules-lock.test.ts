@@ -4,7 +4,7 @@ import { setHouseRule, resetHouseRule, houseRulesMutability } from './houseRules
 import { rule, resetRule, setRule, OPTIONAL_RULES } from '../engine/policy';
 import { setPreference, resetPreference } from './preferences';
 import { cadence } from '../engine/cadence';
-import { resolveRoundBoundary } from './combatFlow';
+import { resolveRoundBoundary } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';

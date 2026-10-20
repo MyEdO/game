@@ -19,7 +19,7 @@
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { decorFootGeometry } from '../../noyau/monde/footprint';
 import { estUtilisable } from '../../noyau/monde/usable';
-import { nomDEntite } from '../../state/sceneNpc';
+import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
 import { RING_A_PX } from './dynamicMarks';
 import { ancrageDuDecor, ancrageDuJeton, type Ancrage } from './tokenChrome';

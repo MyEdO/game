@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { postesToStations, battleScenesToStations } from './stations';
-import { posteAnchor, applyShipPostes } from './shipPostes';
-import { battleSceneById } from './massBattleFlow';
+import { posteAnchor, applyShipPostes } from '../noyau/monde/shipPostes';
+import { battleSceneById } from '../noyau/massBattleFlow';
 import { itemFromTrappingById } from '../engine/items';
-import type { Combatant, ShipPoste, ShipDeck } from '../engine/types';
+import type { Combatant, ShipPoste, ShipDeck, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
-import type { FireArc } from './fireArc';
 
 /**
  * INDEX de Stations (postes d'artillerie) + résolveur d'ancre spatiale — PURS, sans store.

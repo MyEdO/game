@@ -15,7 +15,7 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
-import type { Get, Set } from '../state/flowTypes';
+import type { Get, Set } from './flowTypes';
 import type { GameState } from '../state/store';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, type RNG, type DiceSpec } from '../engine/dice';
@@ -116,7 +116,7 @@ export type CascadeTableFold = (step: CascadeStep, get: Get) => CascadeStep;
 
 /**
  * CONTINUATION D'ÉTAPE rejouée APRÈS que sa conséquence est DITE (#1508) — injectée (patron
- * `ownTestFailedEmitter` ci-dessous), parce que la reprise vit dans `state/combatEffects` et que le
+ * `ownTestFailedEmitter` ci-dessous), parce que la reprise vit dans `noyau/combatEffects` et que le
  * socle ne connaît ni Flow ni Effets.
  *
  * Elle est appelée ICI, au goulot unique de validation, et pas dans l'applier : un applier qui rejoue
@@ -125,7 +125,7 @@ export type CascadeTableFold = (step: CascadeStep, get: Get) => CascadeStep;
  * Blessures d'une chute) est faussée par ce que la suite a déjà changé.
  */
 let suiteApresCommit: ((get: Get, set: Set, step: CascadeStep) => void) | null = null;
-/** Enregistre la reprise de continuation d'étape (appelée par `state/combatEffects` à son chargement). */
+/** Enregistre la reprise de continuation d'étape (appelée par `noyau/combatEffects` à son chargement). */
 export function setSuiteApresCommit(fn: NonNullable<typeof suiteApresCommit>): void { suiteApresCommit = fn; }
 
 /** Registre des plis par `kind` — patron `cascadeAppliers` (inversion de dépendance). */
@@ -644,7 +644,7 @@ export function forceBatchParticipant(p: BatchParticipant, evaluation?: StepEval
  *  le flux propriétaire (naval : `crewTestSuccess`) ; absent = ≥ 1. PUR, aucun concept de domaine.
  *  SOURCE UNIQUE pour `CascadeStep.participants` (`BatchParticipant[]`, flag `essential`) — le même
  *  « essentiel ×2 » (l.19) est ré-implémenté sur une forme DISTINCTE par `maneuverCrewTotal`
- *  (`state/shipManeuver.ts`, pending MULTI de COMBAT `ShipManeuverParticipant[]`, `roleId` matché) : NON
+ *  (`noyau/shipManeuver.ts`, pending MULTI de COMBAT `ShipManeuverParticipant[]`, `roleId` matché) : NON
  *  convergentes VOLONTAIREMENT, deux pendings de forme différente (#351). */
 export function aggregateBatchRolls(
   parts: BatchParticipant[],
@@ -919,7 +919,7 @@ function clampTableNatural(decl: CascadeTableDecl, roll: number): number {
  * n'arme que l'affordance de celui qui clique, `ui/forcedDieRow.ts`) et l'autorisation d'un geste reçu
  * par le réseau est celle du SIÈGE ÉMETTEUR (`netOwnership.intentAllowedFor`) — la ré-évaluer avec
  * l'état LOCAL de l'hôte ferait tomber en silence le geste légitime d'un invité (cf. le même arbitrage,
- * verbatim, sur `opSetForcedRoll`, `state/rollFlowFactory.ts`).
+ * verbatim, sur `opSetForcedRoll`, `noyau/rollFlowFactory.ts`).
  *
  * Le dé se RE-POSE tant que l'étape est COURANTE (le résultat est recalculé) — même liberté que la
  * saisie post-jet d'un slot de flux : une valeur en cours de frappe n'est pas un engagement. Le
@@ -1028,7 +1028,7 @@ export function annoterEtapeDeLaFenetre(id: string, meta: CascadeStepMeta): bool
 
 /**
  * ID de la DERNIÈRE étape poussée pendant l'application en cours (#1508), ou `null` hors fenêtre. La
- * couture de continuation (`state/combatEffects.confierLaSuite`) confie sa suite à CELLE-LÀ : « la
+ * couture de continuation (`noyau/combatEffects.confierLaSuite`) confie sa suite à CELLE-LÀ : « la
  * dernière étape ouverte » est un fait de POUSSÉE, pas de position — depuis que les étapes s'insèrent,
  * la dernière du tableau peut être une étape ANTÉRIEURE d'un autre porteur.
  */
@@ -1434,7 +1434,7 @@ function reconcileSuspended(get: Get, set: Set, stale: PendingCascade, patch: Pa
 
 /** SUSPEND la cascade ACTIVE (si une l'est) : la pousse en tête de `suspendedCascades` (pile LIFO) et
  *  vide le slot `pendingCascade`. Primitive GÉNÉRIQUE (kind-agnostique, aucune mention de domaine) —
- *  déclenchée par la couture universelle `startCombat`/`transitionTo` (state/combatSlice.ts,
+ *  déclenchée par la couture universelle `startCombat`/`transitionTo` (noyau/combatSlice.ts,
  *  state/store.ts) : un combat qui s'ouvre PENDANT une cascade active (ex. un abordage déclenché par
  *  l'applier d'une étape de voyage) ne doit ni écraser ni perdre les étapes restantes — le slot
  *  `pendingCascade` redevient disponible pour les cascades DU COMBAT (jets d'attaque…), gates d'action

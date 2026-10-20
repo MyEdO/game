@@ -1,15 +1,16 @@
 import { cibleMesuree } from '../engine/tests';
-import { useGame, type PendingAppraise } from '../state/store';
+import { useGame } from '../state/store';
+import { type PendingAppraise } from '../noyau/pendings';
 import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
 import type { Combatant } from '../engine/types';
-import { influencesLocally } from '../state/netOwnership';
+import { influencesLocally } from '../noyau/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testValueSplit, testBreakdown, testPending } from './breakdown';
-import { APPRAISE_SKILL } from '../state/merchantFlow';
+import { APPRAISE_SKILL } from '../noyau/merchantFlow';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeAppraise } from '../state/flowOutcomes';
+import { describeAppraise } from '../noyau/flowOutcomes';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
 const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };

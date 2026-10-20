@@ -127,8 +127,8 @@ Régime de push, `package-lock` : `docs/reprise-apres-pause.md`.
 
 ```
 src/engine/   règles WFRP4 PURES + testées (types, tests/DR, combat, ops.ts = GameOp, magic…)
-src/noyau/    orchestration sans hôte (cascade, rollSeam…) ; monde/ (scene.ts = SCHÉMA)
-src/state/    store Zustand + flux (combatFlow, rollFlowFactory/Specs, upkeep…)
+src/noyau/    orchestration sans hôte (cascade, combatFlow, rollFlow…) ; monde/ (scene.ts = SCHÉMA)
+src/state/    store Zustand, adaptateur web (saves, netFlow…)
 src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage/ ; authoring/, pov/, rig/, fx/
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées

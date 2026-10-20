@@ -28,7 +28,6 @@
 import { findActionById } from '../data/index';
 import type { Combatant, DispositionConsole, EntreeBarre, ZoneBarre } from '../engine/types';
 
-export type { DispositionConsole, EntreeBarre, ZoneBarre } from '../engine/types';
 
 /** GÉOMÉTRIE IMMUABLE de la console — arbitrage utilisateur 2026-08-16 : « je ne veux pas que la
  *  taille de l'interface ou les boutons bougent ».

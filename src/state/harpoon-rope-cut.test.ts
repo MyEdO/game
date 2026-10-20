@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 import type { PendingAttack } from '../noyau/pendings';
-import { firedWeapon, weaponContextOf } from './combatFlow';
+import { firedWeapon, weaponContextOf } from '../noyau/combatFlow';
 import * as capabilities from '../engine/capabilities';
 
 // Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : choix joueur AVANT le jet

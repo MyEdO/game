@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
 import { combatFeed, narrateIntent, narrateRefus } from '../gameIso/combatNarration';
-import { eteindreRefus, REFUS_MS } from '../state/refusVisible';
+import { eteindreRefus, REFUS_MS } from '../noyau/refusVisible';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 import { Icon } from './Icon';
 import { TeamSegments } from './TeamSegments';
@@ -9,7 +9,7 @@ import { TeamSegments } from './TeamSegments';
 /**
  * Bandeau haut : annonce le beat de combat COURANT — projection de sources existantes (zéro état
  * dédié), par ordre de PRIORITÉ :
- *  1. le REFUS du geste qu'on vient de tenter (`state/refusVisible`) — c'est une réponse DIRECTE au
+ *  1. le REFUS du geste qu'on vient de tenter (`noyau/refusVisible`) — c'est une réponse DIRECTE au
  *     joueur, elle passe devant tout le reste : un télégraphe d'IA en cours ne doit pas l'avaler,
  *     sinon le clic reste sans réponse à l'écran (spec HUD § 2026-08-19, « refus VISIBLE ») ;
  *  2. l'INTENTION télégraphiée de l'IA (`actorAim` → « X charge / vise / lance un sort sur Y ») ;

@@ -22,7 +22,7 @@ import { tableTotale } from '../../lib/tableTotale';
 import { t as tr } from '../../i18n';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame, type BattleState } from '../store';
-import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../combatFlow';
+import { aiCreatureFreeAttacks, applyAttackResult, applyCast, autoCleave, freeAttackHookImpl, resolveDeviation } from '../../noyau/combatFlow';
 import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { setRule, resetRule } from '../../engine/policy';
@@ -31,8 +31,8 @@ import { stepInteraction } from '../../noyau/cascade';
 import type { CascadeStep } from '../../noyau/pendings';
 import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
-import { OPS_DIFFEREES } from '../combatEffects';
-import { avanceEtapeCascade, cascadeDeTest } from '../cascadeTestKit';
+import { OPS_DIFFEREES } from '../../noyau/combatEffects';
+import { avanceEtapeCascade, cascadeDeTest } from '../cascade.testkit';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
@@ -76,7 +76,7 @@ const sauvegardesOuvertes = (): CascadeStep[] =>
   (useGame.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'sauvegarde' && !s.de?.result);
 
 /** Ce que le joueur a LU : une séquence peut se CLORE en cours de route, donc les lignes se captent au
- *  fil de l'eau (même geste que `cascadeTestKit.draineEtLit`), jamais à la fin sur un slot vidé. */
+ *  fil de l'eau (même geste que `cascade.testkit › draineEtLit`), jamais à la fin sur un slot vidé. */
 let lues: string[] = [];
 function capter(): void {
   for (const s of useGame.getState().pendingCascade?.participants ?? []) {

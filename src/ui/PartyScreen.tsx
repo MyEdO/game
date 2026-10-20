@@ -19,7 +19,7 @@ import { HeroPresentation } from './HeroPresentation';
 import { Modal } from './Modal';
 import { ScreenShell } from './ScreenShell';
 import { GatedAction, raisonSi } from './GatedAction';
-import { refusComposition } from '../state/partyFlow';
+import { refusComposition } from '../noyau/partyFlow';
 import { RoseAxes } from './RoseAxes';
 import { DetailFrame } from './DetailFrame';
 import { HeroSheet } from './HeroSheet';
@@ -27,7 +27,7 @@ import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { Tabs } from './composites/Tabs';
 import { coreAxisIds } from '../data';
-import { resolveActiveAxes } from '../state/worldMap';
+import { resolveActiveAxes } from '../noyau/worldMap';
 import { t } from '../i18n';
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
@@ -103,7 +103,7 @@ export function PartyScreen() {
   // Le choix de campagne appartient à l'hôte (ou au solo), hors partie en cours (« Reprendre »).
   const canPickCampaign = net.mode !== 'guest' && !inProgress;
   // Axes ACTIFS de la campagne (#409/#417) : `resolveActiveAxes` lit `activeAxes` sur
-  // `pendingCampaign` (`ProjectDoc`, `state/worldMap.ts`) et retombe sur le socle `coreAxisIds`
+  // `pendingCampaign` (`ProjectDoc`, `noyau/worldMap.ts`) et retombe sur le socle `coreAxisIds`
   // si absent — SOURCE UNIQUE de ce défaut, jamais un `?? []` dispersé côté écran.
   const axisIds = resolveActiveAxes(pendingCampaign ?? {});
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { resolvePsychAI, fireTurnStartTriggers } from './combatFlow';
+import { resolvePsychAI, fireTurnStartTriggers } from '../noyau/combat/turnHooks';
 import { isFrenzied } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';

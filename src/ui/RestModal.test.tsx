@@ -12,7 +12,7 @@ import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
-import type { TravelPlan, TravelRecapDay } from '../state/travelFlow';
+import type { TravelPlan, TravelRecapDay } from '../noyau/travelFlow';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

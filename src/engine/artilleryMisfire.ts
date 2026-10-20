@@ -5,7 +5,7 @@
  * STRUCTURÉE et PURE — ne mute rien, l'appelant applique). AA 10 l.264 : « Si l'arme subit un
  * Incident de tir à n'importe quel moment du processus, déterminez-en les effets puis faites un jet
  * dans le tableau suivant » — cette table se tire EN PLUS de l'Incident de tir générique (LDB), et
- * UNIQUEMENT pour une arme à Atout *Salve* (branchement : `state/combatFlow.ts::applyOups`).
+ * UNIQUEMENT pour une arme à Atout *Salve* (branchement : `noyau/combatFlow.ts::applyOups`).
  */
 import { findTableEntry } from './tables';
 import type { DiceSpec } from './dice';

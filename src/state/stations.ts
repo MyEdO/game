@@ -4,10 +4,9 @@
  * Une Station est un point d'ancrage + une identité (label/icône/faction/équipage) ; AUCUN effet de règle — la
  * vérité mécanique reste la coque et ses `postes` (cf. `shipPostes.ts`). Module PUR (moteur + state pur, pas de store).
  */
-import { isPosteManned } from './shipPostes';
-import { battleSceneById } from './massBattleFlow';
-import type { FireArc } from './fireArc';
-import type { Combatant, ShipPoste } from '../engine/types';
+import { isPosteManned } from '../noyau/monde/shipPostes';
+import { battleSceneById } from '../noyau/massBattleFlow';
+import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 
 export type StationKind = 'poste' | 'activity' | 'battleScene';

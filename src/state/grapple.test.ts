@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { applyAttackResult, availableAttacks } from './combatFlow';
+import { applyAttackResult } from '../noyau/combatFlow';
+import { availableAttacks } from '../noyau/combatManeuvers';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { areGrappling, setGrapple } from '../engine/grapple';

@@ -7,7 +7,7 @@ import { Icon } from './Icon';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
-import { describeApproach } from '../state/flowOutcomes';
+import { describeApproach } from '../noyau/flowOutcomes';
 
 /**
  * Modale d'APPROCHE d'une source de Peur (LDB 21 l.27) : Test SEC de `pendingApproach.test` qui diffère le

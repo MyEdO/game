@@ -4,8 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
-import { EFFECT_HANDLERS } from './combatEffects';
+import { EFFECT_HANDLERS, applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 
 describe('Effet givePossession (#617/#618 Lot 1)', () => {

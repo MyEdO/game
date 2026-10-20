@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 
 // #1097 — l'Esquive de Désengagement (LDB 15 l.43) lit les lignes d'Esquive du contexte : monté −20 (LDB 14 l.184).
 describe('Désengagement : Esquive du cavalier', () => {

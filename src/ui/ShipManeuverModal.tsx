@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { useOwns } from './ownership';
-import { maneuverCrewTotal, deriveManeuverFromCrew } from '../state/shipManeuver';
+import { maneuverCrewTotal, deriveManeuverFromCrew } from '../noyau/shipManeuver';
 import { milieuDuVoyage } from '../engine/shipBuild';
 import { RollShell, type RollAction } from './RollShell';
 import type { BuiltRollRow } from './rollRowBuild';

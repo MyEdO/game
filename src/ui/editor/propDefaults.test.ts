@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { propRefPatch } from './propDefaults';
-import { EMPTY_FLOW } from '../../noyau/monde/flow';
+import { EMPTY_FLOW } from '../../engine/flowCore';
 import { propDeclaredFoot } from '../../noyau/monde/footprint';
 
 describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un décor `searchable`', () => {

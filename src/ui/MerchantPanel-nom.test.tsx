@@ -8,7 +8,7 @@ import { useGame } from '../state/store';
 import { placeEntity } from './editor/editorState';
 import { emptyScene } from '../noyau/monde/scene';
 import { creatureLabel } from '../data';
-import { MERCHANTS } from '../state/merchants';
+import { MERCHANTS } from '../noyau/monde/merchants/archetypes';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

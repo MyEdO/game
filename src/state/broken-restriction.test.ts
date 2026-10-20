@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { computeMoveReach } from './combatFlow';
-import { chooseEnemyAction } from './ai';
+import { computeMoveReach } from '../noyau/combatFlow';
+import { chooseEnemyAction } from '../noyau/monde/ai';
 import { hasCondition } from '../engine/conditions';
-import { chebyshev } from '../noyau/monde/path';
+import { chebyshev } from '../engine/grid';
 import type { Combatant } from '../engine/types';
 
 const scene = () =>

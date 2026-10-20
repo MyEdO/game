@@ -3,14 +3,15 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { aiApproachPlan, applyEffects, approachFearTrigger, checkFocusInterruption, computeRunReach, displayedReach, openCombatEndCascade } from './combatFlow';
+import { aiApproachPlan, approachFearTrigger, checkFocusInterruption, computeRunReach, displayedReach, openCombatEndCascade } from '../noyau/combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { buildApi } from './devtools';
-import { mountUp } from './mount';
+import { mountUp } from '../noyau/mount';
 import type { Pt } from '../noyau/monde/path';
-import { chooseEnemyAction, type EnemyTurnInput } from './ai';
-import { gainCorruption } from './corruptionFlow';
+import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
+import { gainCorruption } from '../noyau/corruptionFlow';
 import { fleeTouche } from '../noyau/pendings';
-import { planJump } from './jumpMove';
+import { planJump } from '../noyau/monde/jumpMove';
 import { testValue } from '../engine/skills';
 import { clampTarget, rollTest } from '../engine/tests';
 import { makeRNG } from '../engine/dice';
@@ -22,7 +23,7 @@ import { setDataset } from '../data/overrides';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { FICHE_DE_TEST, poserFicheDeTest, restaurerFiche, testDeFiche, testDuJeu } from './ficheDeTest.testkit';
 import type { Flow } from '../noyau/monde/flow';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle

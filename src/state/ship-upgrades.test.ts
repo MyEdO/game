@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { spawnEnemy } from './spawn';
-import { shipManeuverParams } from './shipManeuver';
+import { spawnEnemy } from '../noyau/monde/spawn';
+import { shipManeuverParams } from '../noyau/shipManeuver';
 
 /**
  * Améliorations d'INSTANCE (MDG 12) appliquées au spawn : un navire-instance = type + `upgrades[]`

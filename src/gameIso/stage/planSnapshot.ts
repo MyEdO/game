@@ -42,7 +42,7 @@ import type { Scene } from '../../noyau/monde/scene';
  *  POLITIQUE DE VUE (`viewPolicy({ view: 'top' }).ombreSoleil`), qui l'applique sur le FONDU. La valeur
  *  ci-dessous est donc MIDI — l'heure la plus solaire qui soit : si un soleil pouvait encore se lever
  *  sur un plan, il se lèverait ici. Le palier d'ambiance ne la lit pas non plus (`PLAN_PLAT` est un
- *  override, `state/vision.ambientScalar`). Invariance mesurée au banc `plan-volumique.test`. */
+ *  override, `noyau/monde/vision.ambientScalar`). Invariance mesurée au banc `plan-volumique.test`. */
 export const HEURE_INERTE = 12 * 60;
 
 /** MISE EN SCÈNE de lumière du plan : pleine (`ambientScalar` prend l'override tel quel). */

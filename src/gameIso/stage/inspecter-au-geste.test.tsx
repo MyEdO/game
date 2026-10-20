@@ -7,7 +7,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame, type BattleState } from '../../state/store';
 import type { Combatant } from '../../engine/types';
 import { makePregens } from '../../data/pregens';
-import { spawnEnemy } from '../../state/spawn';
+import { spawnEnemy } from '../../noyau/monde/spawn';
 import { poserScenario } from '../../state/scenarioFlow';
 import { scenario } from '../../scenes/test-scenarios/96-presets-edo';
 import { DELAI_APPUI_LONG } from '../../ui/useLongPress';

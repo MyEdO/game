@@ -11,9 +11,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { DocumentModal } from '../../ui/DocumentModal';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
-import { pickActiveModalKey } from '../../state/modalArbiter';
+import { pickActiveModalKey } from '../../noyau/modalArbiter';
 import { evalCondition } from '../../engine/flowCore';
-import { condCtx } from '../../state/bourseFlow';
+import { condCtx } from '../../noyau/bourseFlow';
 import { snapshotSave } from '../../state/saves';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
 

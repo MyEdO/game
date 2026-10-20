@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { applyEffects } from './combatFlow';
+import { applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 
 describe('Méta-effets de scène (#83)', () => {

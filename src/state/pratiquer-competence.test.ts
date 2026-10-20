@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import type { WorldMap } from './worldMap';
+import type { WorldMap } from '../noyau/worldMap';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
@@ -16,7 +16,7 @@ import { refusNePeutTenter } from '../engine/skills';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { refLabel, skills, specPoolOf } from '../data';
 import { avecActivite } from './activiteMer.testkit';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant } from '../noyau/pendings';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';

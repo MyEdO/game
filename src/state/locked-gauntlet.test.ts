@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { applyBladeTrap } from './combatFlow';
+import { applyBladeTrap } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import type { BladeTrapFreeze } from '../noyau/pendings';
 

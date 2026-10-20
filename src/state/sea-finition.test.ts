@@ -3,15 +3,16 @@ import { emptyScene } from '../noyau/monde/scene';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
-import { buildSeaPlan } from './seaVoyageFlow';
-import { vesselFreeEnc, vesselMaxLoadEnc } from './portFlow';
-import { seaActivityBlocked } from './seaActivities';
+import { buildSeaPlan } from '../noyau/seaVoyageFlow';
+import { vesselFreeEnc, vesselMaxLoadEnc } from '../noyau/portFlow';
+import { seaActivityBlocked } from '../noyau/seaActivities';
 import { activityById } from '../engine/activities';
 import { toBrass, PA_PER_CO } from '../engine/money';
-import { partyMoneyTotal, bourseOf, creditBourse, debitBourse } from './bourseFlow';
-import type { WorldMap } from './worldMap';
+import { partyMoneyTotal, creditBourse, debitBourse } from '../noyau/bourseFlow';
+import { bourseOf } from '../engine/bourse';
+import type { WorldMap } from '../noyau/worldMap';
 import type { Combatant } from '../engine/types';
-import { avanceEtapeCascade } from './cascadeTestKit';
+import { avanceEtapeCascade } from './cascade.testkit';
 import type { CascadeStep } from '../noyau/pendings';
 
 /** Remet la Bourse d'un héros à un montant EXACT (test) — vide puis crédite (SOCLE POSSESSIONS #531). */

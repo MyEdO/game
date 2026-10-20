@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { applyOups } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
+import { applyOups } from '../noyau/combatFlow';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { useGame } from './store';
 import type { CascadeStep } from '../noyau/pendings';
-import { draineCascade, poseSurDeNonTombe } from './cascadeTestKit';
+import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, recomputeLoadout } from '../engine/items';
 

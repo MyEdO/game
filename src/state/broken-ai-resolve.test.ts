@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { chooseEnemyAction } from './ai';
-import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
-import { spawnEnemy } from './spawn';
+import { chooseEnemyAction } from '../noyau/monde/ai';
+import { runEnemyAI, aiTurnLog, clearAiTurnLog } from '../noyau/combatFlow';
+import { spawnEnemy } from '../noyau/monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { stacks } from '../engine/conditions';
 import { seedBattleRng } from '../noyau/battleRng';

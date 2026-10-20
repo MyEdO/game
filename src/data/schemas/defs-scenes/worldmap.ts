@@ -1,6 +1,6 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
- * Schémas zod de la CARTE DU MONDE d'un projet (`src/state/worldMap.ts`) — lieux, routes, services.
+ * Schémas zod de la CARTE DU MONDE d'un projet (`src/noyau/worldMap.ts`) — lieux, routes, services.
  *
  * ORDRE DU SEAM : le schéma voit `places[].port` AVANT `resolvePortRef` (`parseProject`), donc
  * sous ses DEUX formes documentées (`worldMap.ts:181-183`) — la forme SPARSE par référence
@@ -117,7 +117,7 @@ export const placePoiSchema = nommerChamps(z
 
 /**
  * Kinds de `Condition` réellement ÉVALUABLES avec le contexte de la CARTE (`condCtx`,
- * `src/state/bourseFlow.ts` : `flags`, `etats`, `gameTime`, `party`, `money`). Les autres kinds lisent
+ * `src/noyau/bourseFlow.ts` : `flags`, `etats`, `gameTime`, `party`, `money`). Les autres kinds lisent
  * `target`/`caster`/`sl`/`location`/état de combat — absents ici, et `evalCondition`
  * (`src/engine/flowCore.ts`) les rend alors FAUX : un lieu disparaîtrait de la carte, ou un trajet
  * se fermerait, EN SILENCE et sans qu'aucune donnée ne soit fautive. Le sous-ensemble se vérifie
@@ -152,7 +152,7 @@ export const conditionCondCtxSchema = conditionSchema.superRefine((cond, ctx) =>
       code: 'custom',
       message:
         `Condition : « ${hors.join(' », « ')} » n'est pas évaluable au contexte hors combat ` +
-        `(drapeaux, états de campagne, horloge, groupe, bourse — « condCtx », src/state/bourseFlow.ts) : la Condition serait ` +
+        `(drapeaux, états de campagne, horloge, groupe, bourse — « condCtx », src/noyau/bourseFlow.ts) : la Condition serait ` +
         `FAUSSE en silence. Kinds admis : ${[...CONDITION_KINDS_CARTE].join(', ')}.`,
     });
   }
@@ -197,7 +197,7 @@ export const palierDeBilletSchema = nommerChamps(z.strictObject({
   prix: prixParClasseSchema,
 }), { drMin: { label: "DR net minimal" }, prix: { label: "prix par classe" , texte: { regime: "technique"} } });
 
-/** `RouteBillet` (`state/worldMap.ts`) — billet d'auteur d'un passage payant (`EDO 01 l.142`). La
+/** `RouteBillet` (`noyau/worldMap.ts`) — billet d'auteur d'un passage payant (`EDO 01 l.142`). La
  *  contiguïté de `suite` se valide à la carte (`worldMapSchema`), les classes et `depuis` à la route. */
 export const routeBilletSchema = nommerChamps(z.strictObject({
   prix: prixParClasseSchema,

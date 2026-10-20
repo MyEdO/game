@@ -7,9 +7,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { DesignationHerosModal } from './DesignationHerosModal';
 import { useGame } from '../state/store';
-import { applyEffects, runFlow } from '../state/combatEffects';
+import { applyEffects, runFlow } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
-import { emptyNarratif } from '../state/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 
 afterEach(() => demonterRacines());

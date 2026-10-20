@@ -11,11 +11,11 @@ import { listerArbre, listerDossier } from './lister.mjs';
 import { estFichierVitest } from './fichierVitest.mjs';
 import { join, relative } from 'node:path';
 
-/** Clés `pending*`/transitoires du manifeste (`state/stateFields.ts`) — lues par REGEX sur le
+/** Clés `pending*`/transitoires du manifeste (`noyau/stateFields.ts`) — lues par REGEX sur le
  *  SOURCE (pas d'import TS, module `.mjs` nu) : `  <key>: { init: ...` en tête de ligne.
- * @param {string} stateDir @returns {Set<string>} */
-export function stateFieldKeys(stateDir) {
-  const text = readFileSync(join(stateDir, 'stateFields.ts'), 'utf8');
+ * @param {string} dir dossier qui porte `stateFields.ts` @returns {Set<string>} */
+export function stateFieldKeys(dir) {
+  const text = readFileSync(join(dir, 'stateFields.ts'), 'utf8');
   const re = /^\s{2}(\w+): \{ init:/gm;
   const keys = new Set();
   let m;
@@ -82,19 +82,19 @@ export function scanFile(path) {
   return results;
 }
 
-/** Scan complet de `src/state/*.ts` (hors `store.ts`/`stateFields.ts`/tests) et de `src/noyau/**` — compte par fichier
+/** Scan complet de `src/state/*.ts` (hors `store.ts`/tests) et de `src/noyau/**` (hors `stateFields.ts`/tests) — compte par fichier
  *  + classification « reset ad hoc de champ STATE_FIELDS hors `resetFields(...)` ».
  * @param {string} root racine du dépôt
  * @returns {{ totalCalls: number, totalAdHocResets: number, files: Array<{ file: string, setCalls: number, adHocPendingResets: number, adHocLines: number[] }> }} */
 export function runSetScan(root) {
   const stateDir = join(root, 'src/state');
   const noyauDir = join(root, 'src/noyau');
-  const pendingKeys = stateFieldKeys(stateDir);
+  const pendingKeys = stateFieldKeys(noyauDir);
   const files = [
     ...listerDossier(stateDir)
-      .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && f !== 'store.ts' && f !== 'stateFields.ts')
+      .filter((f) => f.endsWith('.ts') && !estFichierVitest(f) && f !== 'store.ts')
       .map((f) => join(stateDir, f)),
-    ...listerArbre(noyauDir, { filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) }).map((f) => join(noyauDir, f)),
+    ...listerArbre(noyauDir, { filtre: (f) => f.endsWith('.ts') && !estFichierVitest(f) && f !== 'stateFields.ts' }).map((f) => join(noyauDir, f)),
   ];
 
   const report = [];

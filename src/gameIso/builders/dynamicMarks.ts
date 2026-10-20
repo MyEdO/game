@@ -19,7 +19,7 @@ import { DIR8_DELTA, type Dir8 } from '../../noyau/monde/dir8';
 import { wedgePath } from '../topoMarkers';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { footprintN } from '../../noyau/monde/footprint';
-import { mountOf } from '../../state/mount';
+import { mountOf } from '../../noyau/mount';
 import type { Pt } from '../../noyau/monde/path';
 import type { BattleState } from '../../state/store';
 import { combatantTokenScale } from '../sizeScale';
@@ -127,7 +127,7 @@ export function dynamicMarks(battle: BattleState | null, party: Pt | null, token
     const actif = inBattleId(battle, battle.order[battle.turn]);
     const unité = actif ? mountOf(battle, actif) ?? actif : undefined;
     // C'est l'UNITÉ REPRÉSENTÉE qui doit être posée, pas le combattant actif : une monture posée porte
-    // le contour même si son cavalier n'a pas de `pos` (il en est le passager, cf. `state/mount`).
+    // le contour même si son cavalier n'a pas de `pos` (il en est le passager, cf. `noyau/mount`).
     if (unité?.pos)
       active = {
         id: unité.id,

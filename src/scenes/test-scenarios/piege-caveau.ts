@@ -1,6 +1,7 @@
 import { makePregens } from '../../data/pregens';
-import { buildScene } from '../../state/mapSpec';
-import { flowFromEffects, testFlow, type Condition } from '../../noyau/monde/flow';
+import { buildScene } from '../../noyau/mapSpec';
+import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
+import { type Condition } from '../../engine/flowCore';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 

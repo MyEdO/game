@@ -502,7 +502,7 @@ Les chapitres suivants contiennent essentiellement des **listes de prix** sans r
 
 **Fichiers engine** : `src/engine/encumbrance.ts`, `src/engine/items.ts`, `src/engine/consumables.ts`
 
-**Store / State** : `src/state/partyFlow.ts` (`usePartyItem`), `src/state/combatFlow.ts` (`battleUseItem`)
+**Store / State** : `src/noyau/partyFlow.ts` (`usePartyItem`), `src/noyau/combatFlow.ts` (`battleUseItem`)
 
 **Données** : `src/data/trappings.json` (catalogue avec `enc`, `kind`, `desc`)
 

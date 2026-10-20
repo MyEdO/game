@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../../state/store';
-import { applyEffects, runFlow } from '../../state/combatFlow';
-import { EFFECT_HANDLERS } from '../../state/combatEffects';
-import { sceneNpc } from '../../state/sceneNpc';
+import { EFFECT_HANDLERS, applyEffects, runFlow } from '../../noyau/combatEffects';
+import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import { emptyScene, wallBetween, type ArchitectureRect, type Scene, type SceneEntity, type WallSeg } from '../../noyau/monde/scene';
-import { evalCondition, flowEffects, type Condition } from '../../noyau/monde/flow';
-import { parseProject } from '../../state/worldMap';
+import { evalCondition, flowEffects, type Condition } from '../../engine/flowCore';
+import { parseProject } from '../../noyau/worldMap';
 import { makeShowcaseParty } from '../../data/pregens';
-import { creditBourse, bourseOf } from '../../state/bourseFlow';
+import { creditBourse } from '../../noyau/bourseFlow';
+import { bourseOf } from '../../engine/bourse';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import { lancerCampagne, campagneDuJeu, areneCampaign } from '../campaign';
 import { presetPnjById } from '../../state/campaignData';
@@ -130,7 +130,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('CARTE DU MONDE : le Bourg est un lieu connu (bouton 🗺️) et ses routes mènent à d’AUTRES scènes du paquet', async () => {
-    const { placeOfScene, routesFrom, otherEnd, placeById } = await import('../../state/worldMap');
+    const { placeOfScene, routesFrom, otherEnd, placeById } = await import('../../noyau/worldMap');
     const wm = doc.worldMap!;
     const bourg = placeOfScene(wm, 'arene-hub')!;
     expect(bourg).toBeTruthy();

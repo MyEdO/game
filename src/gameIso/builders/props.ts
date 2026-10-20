@@ -13,13 +13,13 @@
  * et par l'éditeur — mêmes décors partout.
  */
 import { Scene, tileAt, heightAt, porteNonSecrete, sceneMetresPerTile, type ArchitectureRect } from '../../noyau/monde/scene';
-import { roofHidden, massFootBBox } from '../../state/buildings';
-import { effectiveArchitecture } from '../../state/sceneEdit';
+import { roofHidden, massFootBBox } from '../../noyau/monde/buildings';
+import { effectiveArchitecture } from '../../noyau/sceneEdit';
 import { decorAncre, decorFootGeometry } from '../../noyau/monde/footprint';
 import { findPropById, refEstVolumique } from '../../data';
 import { buildPropVolumes } from './propVolumes';
 import { terrainOverlayProp } from '../../noyau/monde/terrain';
-import { buildingFeatures } from '../../state/buildings';
+import { buildingFeatures } from '../../noyau/monde/buildings';
 import { facadeFeatureViz } from '../catalog/facades';
 import { WALL_H_M } from '../iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';

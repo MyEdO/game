@@ -1,5 +1,5 @@
 /**
- * `castCommitZone` (src/state/combatFlow.ts:3499) — le lanceur au sein de sa propre Zone d'Effet
+ * `castCommitZone` (src/noyau/combatFlow.ts:3499) — le lanceur au sein de sa propre Zone d'Effet
  * (SpellTarget kind:'area', src/engine/spellRange.ts:34) :
  *  - PAR DÉFAUT il est touché comme tout autre combattant (LDB 47 l.28, « Les Sorts marqués ZdE
  *    affectent tous les individus à l'intérieur de ce diamètre ») ;
@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castCommitZone } from './combatFlow';
+import { castCommitZone } from '../noyau/combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';

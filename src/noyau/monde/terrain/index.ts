@@ -19,7 +19,6 @@ import { memoParVersion } from '../../../data/versionDataset';
 import type { TerrainDef } from '../../../data/terrains.types';
 import type { Terrain } from '../scene';
 
-export type { TerrainDef } from '../../../data/terrains.types';
 
 const indexVivant = memoParVersion('terrains', () =>
   Object.fromEntries(terrains.map((t) => [t.id, t])) as Readonly<Record<string, TerrainDef>>,

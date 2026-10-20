@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
-import { modalOwnerOf } from './modalArbiter';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { seatOwns } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
 

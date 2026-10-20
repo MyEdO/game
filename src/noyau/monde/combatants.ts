@@ -127,7 +127,7 @@ export function niMortNiATerre(h: Combatant): boolean {
  * MENEUR du groupe hors combat : le premier héros encore debout, à défaut le premier du roster. C'est
  * lui que le jeton de groupe DESSINE et fait marcher, donc lui que suivent la caméra, le regard de
  * première personne, l'assise, le cap d'entrée de scène et les lampes portées par le groupe
- * (`state/visionState.ts` `sceneLightSources`). Définition UNIQUE — #1362 : tout lecteur du meneur
+ * (`noyau/visionState.ts` `sceneLightSources`). Définition UNIQUE — #1362 : tout lecteur du meneur
  * dans `src/state`, `src/gameIso`, `src/ui` passe par ici ; deux règles feraient marcher un jeton,
  * éclairer l'autre et pivoter un troisième. PRIVÉ : les appelants passent par `meneurDuMonde`.
  */

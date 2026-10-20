@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { Dims } from '../../geometry/iso';
 import { METRES_PER_LEVEL, metricToLift } from '../../noyau/monde/relief';
 import { emptyScene, heightAt, isWalkable, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
-import { buildScene, type MapSpec } from '../../state/mapSpec';
+import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import { chebyshev } from '../../engine/grid';
 import { walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { useGame } from '../../state/store';

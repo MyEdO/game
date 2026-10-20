@@ -370,7 +370,7 @@ describe('garde-fou « logique par label interdite » : volets `.label` (#142)',
   });
 
   it('collectIdParamFunctions + scanLabelAsIdArg : détecte `.label` passé où le paramètre déclaré est `id` (LOT 5)', () => {
-    // Cas PLANTÉ = le motif EXACT de #142 LOT 5 (`state/spawn.ts` avant correction) : `bodyShapeOf`
+    // Cas PLANTÉ = le motif EXACT de #142 LOT 5 (`noyau/monde/spawn.ts` avant correction) : `bodyShapeOf`
     // déclare un paramètre `id: string` — lui passer `sb.label` fait résoudre par un libellé d'auteur,
     // pas une identité stable.
     const decl = 'export function bodyShapeOf(id: string): BodyShape {\n  return rec.appearance.species;\n}';

@@ -20,7 +20,7 @@ import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc, remetLeDocument } from '../campagne/lib.mjs';
-import { emptyNarratif } from '../../src/state/campaignNarratif.ts';
+import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { dailyWaterLitres } from '../../src/engine/seaWeather.ts';
 import { itemFromTrappingById } from '../../src/engine/items.ts';
 

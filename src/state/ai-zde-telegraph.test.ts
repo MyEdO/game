@@ -13,9 +13,9 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { runEnemyAI } from './combatFlow';
-import { spawnEnemy } from './spawn';
-import { chebyshev } from '../noyau/monde/path';
+import { runEnemyAI } from '../noyau/combatFlow';
+import { spawnEnemy } from '../noyau/monde/spawn';
+import { chebyshev } from '../engine/grid';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
 import { seedBattleRng } from '../noyau/battleRng';

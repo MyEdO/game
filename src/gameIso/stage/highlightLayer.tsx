@@ -5,12 +5,14 @@
  * (`stage/VolumetricWorld` → `backends/webgl/highlightMeshes`).
  * Aucune projection ici : cette couche ne connaît ni caméra ni couleur.
  */
-import type { GameState, BattleState, PendingAttack, PendingCleave, PendingDualStrike, PendingCast } from '../../state/store';
+import type { GameState, BattleState } from '../../state/store';
+import type { PendingAttack, PendingCleave, PendingDualStrike, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
-import { crowdEligible, eligibleAttackTargetIds, displayedReach, computeRunReach, hasFreeWeaponAttack } from '../../state/combatFlow';
-import { currentTargetingMode } from '../../state/targetingModes';
-import { armedIntentPortee, courseArmee, intentReach, PORTEE_ARME, type LocalIntent } from '../../state/localIntent';
-import { controlsCombatant } from '../../state/netOwnership';
+import { crowdEligible, eligibleAttackTargetIds, displayedReach, computeRunReach } from '../../noyau/combatFlow';
+import { hasFreeWeaponAttack } from '../../noyau/combatManeuvers';
+import { currentTargetingMode } from '../../noyau/targetingModes';
+import { armedIntentPortee, courseArmee, intentReach, PORTEE_ARME, type LocalIntent } from '../../noyau/localIntent';
+import { controlsCombatant } from '../../noyau/netOwnership';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { attackWeapon } from '../../engine/combat';
 import { effectiveWeaponRange } from '../../engine/weaponDamage';
@@ -21,14 +23,14 @@ import type { HighlightsView } from '../builders/highlights';
 export interface HighlightOpts {
   myTurn: boolean;
   pendingAttack: PendingAttack | null;
-  /** Flux différés qui TIENNENT le ciblage (`state/targetingHolder`) — ils vivent à la racine du store,
+  /** Flux différés qui TIENNENT le ciblage (`noyau/targetingHolder`) — ils vivent à la racine du store,
    *  hors `battle` : le contexte les porte pour que l'écran déjà monté réapprenne leur changement
    *  (même raison que `localIntent`/`hovered`). Le VERDICT, lui, se lit au mode courant
    *  (`currentTargetingMode`), jamais à une 2ᵉ liste de priorités recopiée ici. */
   pendingCleave: PendingCleave | null;
   pendingDualStrike: PendingDualStrike | null;
   pendingCast: PendingCast | null;
-  /** INTENTION ARMÉE (`state/localIntent`) — elle vit à la RACINE du store, hors `battle` : c'est par
+  /** INTENTION ARMÉE (`noyau/localIntent`) — elle vit à la RACINE du store, hors `battle` : c'est par
    *  ce contexte que l'hôte fait savoir au monde qu'elle a changé. Sa PORTÉE, elle, se lit à sa source
    *  unique (`intentReach`). */
   localIntent: LocalIntent | null;

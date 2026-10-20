@@ -4,7 +4,7 @@
  *
  * Les fenêtres de la Chance (`LDB 17 l.23` + `LDB 12 l.40`), du Sombre Pacte (`LDB 19 l.17`) et de
  * la Résilience (`LDB 17 l.68`) ne sont plus recomposées par les modales : elles vivent en prédicats
- * purs au seam (`state/rollFlowFactory.ts`) et la coquille les applique aux FAITS de la rangée. Ce
+ * purs au seam (`noyau/rollFlowFactory.ts`) et la coquille les applique aux FAITS de la rangée. Ce
  * test monte la rangée POUR DE VRAI et lit les boutons — pas les props.
  *
  * La face NÉGATIVE compte autant : un bouton rendu qu'aucune règle n'autorise est une affordance

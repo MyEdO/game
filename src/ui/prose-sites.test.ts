@@ -134,7 +134,7 @@ interface SiteMesure {
 
 /** Racine TEXTE du périmètre : `mdToText` rend le markdown en texte brut, hors de `<Prose>`. */
 const RACINE_TEXTE = 'mdToText';
-/** Ce qu'un site `mdToText` appelle pour nommer une prose de paquet (`src/state/identites.ts`). */
+/** Ce qu'un site `mdToText` appelle pour nommer une prose de paquet (`src/noyau/monde/identites.ts`). */
 const NOMMEUR = 'nommer';
 
 function mesure(): { sites: SiteMesure[]; anomalies: string[] } {

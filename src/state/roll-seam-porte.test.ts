@@ -7,10 +7,11 @@
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
-import { openBand, openChoice, choiceStep, bandStep, type BuiltCascadeStep, type BandOpenSpec, type BandPorteur } from '../noyau/rollSeam';
-import { modalOwnerOf } from './modalArbiter';
+import { openBand, openChoice, choiceStep, bandStep, type BandOpenSpec, type BandPorteur } from '../noyau/rollSeam';
+import { type BuiltCascadeStep } from '../noyau/stepBrand';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 import { startCascade } from '../noyau/cascade';
-import { ownsLocal } from './netOwnership';
+import { ownsLocal } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { CascadeStep } from '../noyau/pendings';

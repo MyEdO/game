@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { rotateDir8, DIR8_DELTA } from '../noyau/monde/dir8';
-import { inFireArc, targetArc } from './fireArc';
+import { inFireArc, targetArc } from '../noyau/monde/fireArc';
 import { useGame } from './store';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { makeRNG } from '../engine/dice';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { emptyScene } from '../noyau/monde/scene';
-import { maneuverShip, rollShipManeuver, applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew, shipManeuverParams } from './shipManeuver';
+import { maneuverShip, rollShipManeuver, applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew, shipManeuverParams } from '../noyau/shipManeuver';
 import * as navalTraitsMod from '../engine/navalTraits';
 import { crewTestSuccess, crewRoleValue } from '../engine/crewMorale';
 import { refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';

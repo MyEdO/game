@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
-import { controlsActive } from './netOwnership';
+import { controlsActive } from '../noyau/netOwnership';
 import { setCadence } from '../engine/cadence';
 const embuscadeConstruit = embuscade.construire();
 

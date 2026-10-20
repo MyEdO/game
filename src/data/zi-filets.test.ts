@@ -3,7 +3,7 @@ import { fireTriggers } from '../noyau/triggeredEffects';
 import { useGame } from '../state/store';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { emptyScene } from '../noyau/monde/scene';
-import { resolveRecoverTest } from '../state/combat/recover';
+import { resolveRecoverTest } from '../noyau/combat/recover';
 import { weaponFromTrait } from '../engine/creatureEquip';
 import { findTrappingById, findQualityById } from './index';
 import type { Combatant, Weapon } from '../engine/types';

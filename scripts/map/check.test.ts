@@ -11,14 +11,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { auditFacade, auditUnsupportedFloor, auditZoneCoverage, floorPairs, scenePlanDefects, groundTerrains, PLAN_DEFECT_FAMILIES, type Defect, type PlanDefectFamilyDef } from '../../src/state/planDefects';
+import { auditFacade, auditUnsupportedFloor, auditZoneCoverage, floorPairs, scenePlanDefects, groundTerrains, PLAN_DEFECT_FAMILIES, type Defect, type PlanDefectFamilyDef } from '../../src/noyau/planDefects';
 import { locateGrid } from './locate';
 import { codedSites } from './sites';
-import { zonesFromSeeds, type ZoneSeed } from '../../src/state/asciiMap';
+import { zonesFromSeeds, type ZoneSeed } from '../../src/noyau/monde/asciiMap';
 import { findMap, findMaps, type MapSource } from './registry';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, emptyScene, type Scene, type SceneEffectZone, type WallSeg } from '../../src/noyau/monde/scene';
-import { documentDeProjet, type ProjectIdentite } from '../../src/state/worldMap';
-import { emptyNarratif } from '../../src/state/campaignNarratif';
+import { documentDeProjet, type ProjectIdentite } from '../../src/noyau/worldMap';
+import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif';
 
 /** « La Diligence » — paquet ÉDITEUR (`src/scenes/diligence/diligence-projet.json`) : la Scène y est
  *  déjà compilée, `findMaps` la relit par `parseProject` sans rien rebâtir. */
@@ -168,7 +168,7 @@ describe('mesures INFORMATIVES sur les scènes réelles (non contractuelles — 
   /** PLAFONDS relevés sur le plan de La Diligence au 2026-07-27, jamais des égalités : l'auteur est en
    *  train de rattacher ses cases à des pièces, ces comptes ne doivent que DESCENDRE. Une valeur gravée
    *  passerait au rouge à la première correction ; le contrat de COMPORTEMENT de chaque famille vit sur
-   *  fixtures synthétiques (`src/state/planDefects.test.ts`), jamais sur cette carte. */
+   *  fixtures synthétiques (`src/noyau/planDefects.test.ts`), jamais sur cette carte. */
   const PLAFONDS_DILIGENCE: Record<string, number> = {
     'facade-decalee': 0,
     'mur-manquant': 0,

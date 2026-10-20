@@ -13,7 +13,7 @@ import { FlowEditor } from './FlowEditor';
 import type { GameOp } from '../../engine/ops';
 import type { Effect } from '../../noyau/monde/scene';
 import type { Flow } from '../../noyau/monde/flow';
-import { CIBLES_D_EFFET_DE_SCENE } from '../../state/combatEffects';
+import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

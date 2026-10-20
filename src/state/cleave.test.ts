@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { cleaveTargets, doAttack, autoCleave } from './combatFlow';
+import { cleaveTargets, doAttack, autoCleave } from '../noyau/combatFlow';
 import { occupiesTile, footprintN } from '../noyau/monde/footprint';
 import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
@@ -8,7 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { BattleState } from './store';
-import { draineCascade } from './cascadeTestKit';
+import { draineCascade } from './cascade.testkit';
 
 // ---------------------------------------------------------------------------
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)

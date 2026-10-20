@@ -8,9 +8,9 @@
  * effacée » au diff du document.
  */
 import { describe, it, expect } from 'vitest';
-import { documentDeProjet, parseProject, type ProjectIdentite } from './worldMap';
+import { documentDeProjet, parseProject, type ProjectIdentite } from '../noyau/worldMap';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { emptyNarratif } from './campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 
 const IDENTITE: ProjectIdentite = {
   type: 'projet',

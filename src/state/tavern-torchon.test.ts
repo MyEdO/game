@@ -15,8 +15,8 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
-import { sequenceTableRow } from './sequenceCore';
-import { tavernParams } from './tavernFlow';
+import { sequenceTableRow } from '../noyau/sequenceCore';
+import { tavernParams } from '../noyau/tavernFlow';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
 

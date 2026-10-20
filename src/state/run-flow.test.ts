@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { runFlow } from './combatFlow';
+import { runFlow } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import type { Flow } from '../noyau/monde/flow';
 

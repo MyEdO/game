@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TravelRecapModal } from './TravelRecapModal';
-import type { TravelRecap } from '../state/travelFlow';
+import type { TravelRecap } from '../noyau/travelFlow';
 
 const base: TravelRecap = {
   fromLabel: 'Weiler', toLabel: 'Federholz', mode: 'pied', status: 'arrived',

@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ChanceButtons } from './ChanceButtons';
-import type { RollActorView, RollInfluenceView } from '../state/rollFlowFactory';
+import type { RollActorView, RollInfluenceView } from '../noyau/rollFlowFactory';
 
 const noop = () => {};
 /** Jet POSÉ et RATÉ, jamais relancé — la fenêtre de la Chance (LDB 17 l.23 + LDB 12 l.40). */

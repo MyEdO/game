@@ -272,7 +272,7 @@ export function focusSpecOf(spell: SpellLike): string | undefined {
 
 /** VENT à AFFICHER pour la Focalisation de ce sort (id de domaine « bete » → « Ghur ») — source
  *  UNIQUE du libellé, partagée par le refus de `resolveFocus` et par la gate `sort-focalisable`
- *  (`state/actionRegistry.ts`). Aucun Vent pour un Sort d'Arcane commun. */
+ *  (`noyau/actionRegistry.ts`). Aucun Vent pour un Sort d'Arcane commun. */
 export function focusWindLabel(spell: SpellLike): string | undefined {
   const spec = focusSpecOf(spell);
   return spec ? (findDomainById(spec)?.wind ?? findDomainById(spec)?.label ?? spec) : undefined;

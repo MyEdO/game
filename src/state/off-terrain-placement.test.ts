@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { placeCombatant } from './spawn';
+import { placeCombatant } from '../noyau/monde/spawn';
 import type { Scene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';

@@ -5,7 +5,7 @@ import {
   allBuiltinCampaigns, areneCampaign, builtinCampaigns, campagneALancer, campagneDuJeu, copieDuJeu, diligenceCampaign, documentDuJeu, paquetDuJeu,
   type BuiltinCampaign,
 } from './campaign';
-import { parseProject, projetVersDepot, ProjetRefuse, type ProjectDoc } from '../state/worldMap';
+import { parseProject, projetVersDepot, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { campagnesLivrees as livrees } from './projetsLivres.testkit';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vite.config.ts`

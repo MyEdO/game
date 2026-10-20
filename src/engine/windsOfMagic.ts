@@ -11,7 +11,7 @@
  *
  * Module PUR : le grain (scène/Round) et la couture combat (tirage à l'ouverture, re-tirage au
  * Round, câblage `extraMod` de `resolveCasting`/`resolveFocus`) vivent en `state/` — cf.
- * `src/state/combatFlow.ts` (`windsOfMagicAtCombatStart`) et `src/state/combat/roundHooks.ts`.
+ * `src/noyau/combatFlow.ts` (`windsOfMagicAtCombatStart`) et `src/noyau/combat/roundHooks.ts`.
  */
 import type { RNG } from './dice';
 import { defaultRNG, d10 } from './dice';

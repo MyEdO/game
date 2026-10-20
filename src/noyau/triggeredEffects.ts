@@ -10,12 +10,12 @@
  * qui frappe) — donc « Force de la source » = sa Force.
  */
 import { type Combatant, type Weapon, type HitLocation, type Difficulty, type EffectSource } from '../engine/types';
-import type { Get, Set as SetFn } from '../state/flowTypes';
-import { type EffectTrigger, type TriggeredEffect, type Flow, flowHasTest, spellEffectOps, EMPTY_FLOW } from './monde/flow';
+import type { Get, Set as SetFn } from './flowTypes';
+import { type TriggeredEffect, type Flow } from './monde/flow';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';
-import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../engine/flowCore';
+import { ARG_TEMPLATE, INDICE_TEMPLATE, type EffectTrigger, flowHasTest, spellEffectOps, EMPTY_FLOW, resolveTestDifficulty } from '../engine/flowCore';
 import { weaponIdentity } from '../engine/items';
 import { estUnCoupCritique, type OrigineCritique } from '../engine/critical';
 import { featureLevel } from '../engine/combatFeatures/dispatch';
@@ -26,7 +26,7 @@ import { actorIn } from './monde/combatants';
 import { isEngagedWith, isEngaged } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
 import { combatDistance } from './monde/footprint';
-import { chebyshev } from './monde/path';
+import { chebyshev } from '../engine/grid';
 import { losClear, tileSeenByFoe } from './monde/lineOfSight';
 import { smokeOf, combatantsWithinRadius, porteeEnCases } from './monde/combatGeometry';
 import { sceneMetresPerTile } from './monde/scene';
@@ -36,7 +36,6 @@ import { activeSymptoms } from '../engine/disease';
 import { difficultyFromLabel, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
-import { resolveTestDifficulty } from './monde/flow';
 import { RNG, defaultRNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
 
@@ -274,7 +273,7 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng?: RNG; ma
 /** ROUTEUR d'un Flow de trigger PORTANT un nœud `test` (à n'importe quelle profondeur) vers la voie
  *  CADENCE-AWARE (héros manuel → cascade influençable ; sinon → jet inline) via `runCombatFlow`
  *  (after-aware : un `test` enfoui sous `if`/`seq` suspend en empaquetant le reste). Injecté par la
- *  brique `state/combat/triggeredTest.ts` (inversion de dépendance : ce module reste pur, sans import de
+ *  brique `noyau/combat/triggeredTest.ts` (inversion de dépendance : ce module reste pur, sans import de
  *  la brique → pas de cycle). Absent ⇒ aucun routage : un nœud `test` non routé tombe sur
  *  `runPureFlowLines`, qui LÈVE (plus jamais de branche succès silencieuse). `opsCtx` porte le contexte
  *  de la touche (`woundsDealt`/`sl`/`location`/`attackKind`) lu par les Conditions `if` du Flow. */

@@ -518,7 +518,7 @@ describe('applyOps — opérations unitaires', () => {
 
 describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveChar', () => {
   const sort = (id: string, casterId = 'm') => ({ source: { kind: 'spell' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
-  /** ctx de `runCastFlow` (`src/state/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
+  /** ctx de `runCastFlow` (`src/noyau/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
   const priere = (id: string) => ({ source: { kind: 'spell' as const, id }, sourceSpellId: id });
   const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', char: 'force', mod }], { label: 'Effet', defaultDurationRounds: 6, ...ctx });
   it('deux Prières DIFFÉRENTES se somment ; la MÊME Prière ne se cumule pas (LDB 40 l.19)', () => {

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
-import { spawnEnemy } from './spawn';
+import { spawnEnemy } from '../noyau/monde/spawn';
 
 /** Arène 20×8, MUR vertical en x=10 percé d'une brèche en y=0. */
 function wallScene() {

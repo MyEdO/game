@@ -97,7 +97,7 @@ describe('NI — la nature Rituel mord sur les modificateurs de la donnée commi
 
   it('le grimoire quadruple le NI d’un Rituel là où il double celui d’un Sort', async () => {
     const { castingNumberOf } = await import('../engine/magic');
-    const { GRIMOIRE_NI_MODS } = await import('../state/combatFlow');
+    const { GRIMOIRE_NI_MODS } = await import('../noyau/combatFlow');
     const r = spells.find((s) => s.id === 'creer-une-pierre-de-pouvoir')!;
     expect(castingNumberOf(r, false, {}, GRIMOIRE_NI_MODS)).toBe(r.cn! * 4);
     expect(castingNumberOf({ ...r, isRitual: false }, false, {}, GRIMOIRE_NI_MODS)).toBe(r.cn! * 2);

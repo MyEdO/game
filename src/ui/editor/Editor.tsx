@@ -1,9 +1,9 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
-import { resizeGrid, editEntity, TypeNonNomme } from '../../state/sceneEdit';
+import { resizeGrid, editEntity, TypeNonNomme } from '../../noyau/sceneEdit';
 import { validateScene, type Warning } from '../../state/validateScene';
-import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../state/planDefects';
+import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../noyau/planDefects';
 import { testScene } from '../../scenes/test-fixture';
 import { creatures, premierOffert } from '../../data';
 import { useSceneHistory } from './useSceneHistory';
@@ -25,11 +25,11 @@ import { downloadText } from '../../web/fileIo';
 import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
-import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../state/worldMap';
+import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
-import { type NarratifBlock, emptyNarratif } from '../../state/campaignNarratif';
+import { type NarratifBlock, emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
-import { nextEntityId } from '../../state/entityId';
+import { nextEntityId } from '../../noyau/monde/entityId';
 import { publierEditeur } from '../../state/editeurBridge';
 import {
   Tool, Sel, Pt, deleteSel, moveSel, selPos, pasteEntity, addLayer, removeLayer,
@@ -728,7 +728,7 @@ export function Editor({
   function identiteCourante(nom: string, id: string): ProjectIdentite {
     return { ...(identite ?? { type: 'projet' as const, id, versionContenu: 1, maison: MAISON_PROJET_AUTHORE }), label: nom };
   }
-  /** L'ÉTAT VIVANT de l'éditeur lié au constructeur unique du document (`state/worldMap`) — les
+  /** L'ÉTAT VIVANT de l'éditeur lié au constructeur unique du document (`noyau/worldMap`) — les
    *  trois sorties du projet (enregistrer, exporter, mettre à l'essai) partent d'ici. */
   function documentCourant(nom: string, id: string): ProjectDoc {
     return documentDeProjet(identiteCourante(nom, id), scenesDuProjet, { worldMap, activeAxes, narratif });

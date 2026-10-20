@@ -7,13 +7,13 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { aiCreatureFreeAttacks } from './combatFlow';
+import { aiCreatureFreeAttacks } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
-import { cascadeDeTest, draineCascade } from './cascadeTestKit';
+import { cascadeDeTest, draineCascade } from './cascade.testkit';
 
 describe('Hurlement fantomatique — Test de Résistance influençable (héros manuel)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });

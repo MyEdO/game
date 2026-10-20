@@ -774,7 +774,7 @@ export interface OptionsNoeudTest {
   /**
    * Le porteur ne SERT que la branche `fail`, et il l'applique par extraction PLATE de ses ops
    * (`spellOps`, `engine/flowCore.ts`) — c'est le régime du cycle de maladie : l'applier de repos
-   * (`registerNightBandApplier('diseaseTick')`, `state/restFlow.ts`) rend une liste VIDE sur une
+   * (`registerNightBandApplier('diseaseTick')`, `noyau/restFlow.ts`) rend une liste VIDE sur une
    * réussite, et `symptomOnTick` (`engine/disease.ts`) ne lit que `fail`.
    * Deux formes seraient alors AUTHORABLES SANS EFFET, donc menteuses : une branche `success`
    * peuplée (jamais jouée) et une branche `fail` à embranchement (`if`/`test`/`choice`), dont

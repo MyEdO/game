@@ -1,13 +1,13 @@
 import { useGame } from '../state/store';
 import { flowStakeRef } from '../data';
-import { distraireAttackValue, distraireDefenseValue, distraireFoes } from '../state/combatFlow';
+import { distraireAttackValue, distraireDefenseValue, distraireFoes } from '../noyau/combatManeuvers';
 import { OptionChooser } from './OptionChooser';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { testBreakdown } from './breakdown';
-import { describeDistraire } from '../state/flowOutcomes';
+import { describeDistraire } from '../noyau/flowOutcomes';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 

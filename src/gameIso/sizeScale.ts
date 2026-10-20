@@ -21,7 +21,7 @@ import type { Combatant } from '../engine/types';
 import type { SceneEntity } from '../noyau/monde/scene';
 import { findCreatureById } from '../data';
 import { presetPnjById } from '../state/campaignData';
-import { entitySize } from '../state/spawn';
+import { entitySize } from '../noyau/monde/spawn';
 import { resolveRender, type RenderResolution } from './rig/bodyPlan';
 import { enemyRigProfile, refOf, rendersFromOwnInventory } from './rig/enemyProfile';
 import { bodyTopFrac } from './rig/composeRig';

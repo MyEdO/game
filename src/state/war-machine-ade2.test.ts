@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { firedAttackBlock } from './combatFlow';
-import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
+import { firedAttackBlock } from '../noyau/combatFlow';
+import { resolveWeaponArea, areaTargets, type AreaHit } from '../noyau/combatArea';
 import { fireTriggers } from '../noyau/triggeredEffects';
 import { itemFromTrappingById, mannedPosteWeapon } from '../engine/items';
 import { useGame } from './store';

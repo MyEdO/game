@@ -27,7 +27,7 @@ import { teamRingDecor } from '../../builders/dynamicMarks';
 import { estPropVolumique, type CellSide, type Face, type PropEl, type RoofEl, type SceneEl, type TokenEl, type WallEl } from '../../builders/types';
 import { findPropById, findPropMaterialById, matieresDe, refEstVolumique } from '../../../data';
 import { roofMaterial } from '../../catalog/roofs';
-import { toitureEffective } from '../../../state/sceneEdit';
+import { toitureEffective } from '../../../noyau/sceneEdit';
 import type { PropVertexRange } from './spriteRaycast';
 import { roofCourseStepM, variantOf } from '../../detail/courses';
 import type { DetailRecipe } from '../../detail/types';
@@ -65,7 +65,7 @@ import { combatantRender, combatantTokenScale, entityRender, entityTokenScale, s
 import { RIG_GROUND_PIVOT, groundStateOf, planGroundPose, rigGroundPose, rigGroundTiltDeg, type GroundState, type Pose } from '../../groundPose';
 import { hash32 } from '../../../data/hash';
 import { versionDesDatasets } from '../../../data/versionDataset';
-import { entitySize } from '../../../state/spawn';
+import { entitySize } from '../../../noyau/monde/spawn';
 import { sizeFootprint } from '../../../noyau/monde/footprint';
 import { VIEWS, type View } from '../../rig/facing';
 import type { Rot } from '../../../geometry/iso';
@@ -405,7 +405,7 @@ function propRecipeDeps(scene: Scene): readonly unknown[] {
  * couverture à surveiller, et la couverture effective d'un corps est le plus souvent celle de ses
  * propres masses.
  *  - TOITURES : celles que la scène NOMME (`BuildingMass.material`, et la couverture EFFECTIVE dont les
- *    masses DÉRIVÉES héritent — `toitureEffective`, `state/sceneEdit.ts` : corps, puis type de bâtiment,
+ *    masses DÉRIVÉES héritent — `toitureEffective`, `noyau/sceneEdit.ts` : corps, puis type de bâtiment,
  *    puis scène).
  *    Résolues par le MÊME accès que la cuisson (`roofMaterial`, `builders/roofs.ts`). Une couverture
  *    qu'aucun corps ne pose ne recuit donc rien.

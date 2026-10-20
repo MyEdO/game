@@ -28,7 +28,7 @@ import type { AdvancementRef } from '../../data';
 import { isOptionalNote } from '../../engine/statEntry';
 import { effectiveEntry } from '../../engine/variants';
 import { facesDuDe, fourchette } from '../../engine/tables';
-import { spellEffectOps } from '../../noyau/monde/flow';
+import { spellEffectOps } from '../../engine/flowCore';
 import type { Flow, TriggeredEffect } from '../../noyau/monde/flow';
 import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';

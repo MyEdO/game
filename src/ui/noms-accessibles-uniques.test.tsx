@@ -12,7 +12,7 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { NarratifEditor, type ProjetEdite } from './editor/NarratifEditor';
 import { CodexEdit } from './editor/codex/CodexEdit';
-import { emptyNarratif, type NarratifBlock } from '../state/campaignNarratif';
+import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
 import { creatures } from '../data';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 import { defautsDeNoms, nomAccessible } from './nomsAccessibles.testkit';

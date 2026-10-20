@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
-import { maybeOpenDefense } from '../state/combatFlow';
+import { maybeOpenDefense } from '../noyau/combatFlow';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { fmtD100 } from './Dice';
@@ -24,7 +24,7 @@ import { AuContactModal } from './AuContactModal';
 import { DisengageModal } from './DisengageModal';
 import type { BattleState } from '../state/store';
 import type { Combatant, Weapon } from '../engine/types';
-import { cascadeDeTest } from '../state/cascadeTestKit';
+import { cascadeDeTest } from '../state/cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 
 beforeAll(() => {

@@ -1,6 +1,6 @@
 /**
  * Forme du corps d'une ESPÈCE → Tableau de Localisation (LDB 76 l.15-29). SOURCE DE VÉRITÉ RÈGLES,
- * neutre (aucune dépendance au registre de RENDU du rig). `state/spawn` (`bodyShapeOf`) en dérive la
+ * neutre (aucune dépendance au registre de RENDU du rig). `noyau/monde/spawn` (`bodyShapeOf`) en dérive la
  * `BodyShape` d'un Combattant sans importer `gameIso` (#187 : découplage taxonomie de forme ↔ rendu).
  *
  * Le RENDU (`gameIso/rig`) déclare, lui, un PLAN CORPOREL FIN par espèce (biped/quadruped/serpentine/

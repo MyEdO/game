@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { useGame, type BattleState } from './store';
-import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, freeAttackHookImpl, jouerLApresCoup, openAttackCascade } from './combatFlow';
+import { aiCreatureFreeAttacks, aiAvailableFreeAttack, autoCleave, doAttack, freeAttackHookImpl, jouerLApresCoup, openAttackCascade } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import { OPS_DIFFEREES } from './combatEffects';
+import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 /**
  * CE QUE LA FENÊTRE DE DÉFENSE FERA APRÈS LE COUP — la donnée portée par `pendingDefense.suite`,

@@ -21,7 +21,7 @@ import { arcsDe, estModule, sourceALExecution } from '../../scripts/guards/lib/i
 import { canoniser } from '../../scripts/docs/lib/chemin-mesure.mjs';
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url));
-const ENTREE = join(RACINE, 'src', 'state', 'netOwnership.ts');
+const ENTREE = join(RACINE, 'src', 'noyau', 'netOwnership.ts');
 const TEMOIN = join(RACINE, 'src', 'main.tsx');
 const STORE = join(RACINE, 'src', 'state', 'store.ts');
 
@@ -82,7 +82,7 @@ describe('#1054 — `netOwnership` s’importe SEUL', () => {
   it('(a) chemin RÉEL : un process qui importe le module seul sort 0 et lit la table', () => {
     const r = spawnSync(
       process.execPath,
-      ['--import', 'tsx', '-e', "import('./src/state/netOwnership.ts').then((m) => { if (!(m.ROUTES.size > 200)) { throw new Error('table vide'); } })"],
+      ['--import', 'tsx', '-e', "import('./src/noyau/netOwnership.ts').then((m) => { if (!(m.ROUTES.size > 200)) { throw new Error('table vide'); } })"],
       { cwd: RACINE, encoding: 'utf8' },
     );
     expect(r.stderr + r.stdout, 'l’import isolé de netOwnership échoue — un import LOURD est revenu').toBe('');

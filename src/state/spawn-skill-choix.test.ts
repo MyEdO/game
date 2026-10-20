@@ -9,7 +9,7 @@
  * (« chaque Spécialisation étant traitée comme une Compétence unique »).
  */
 import { describe, it, expect } from 'vitest';
-import { creatureToCombatant } from './spawn';
+import { creatureToCombatant } from '../noyau/monde/spawn';
 import { creatures, findCreatureById, byId, specPoolOf, skillInstanceLabel } from '../data';
 import { testValue, actorHasSkill } from '../engine/skills';
 import { knowsCastingSkill } from '../engine/magic';

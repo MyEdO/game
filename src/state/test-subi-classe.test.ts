@@ -14,15 +14,16 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
-import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from './combat/triggeredTest';
+import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from '../noyau/combat/triggeredTest';
 import { flowTestGated, combatConditionCtx } from '../noyau/combat/flowEval';
-import { pushCombatStep } from './combatEffects';
-import { draineCascade } from './cascadeTestKit';
+import { pushCombatStep } from '../noyau/combatEffects';
+import { draineCascade } from './cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { GameOp, OpsCtx } from '../engine/ops';
-import { EMPTY_FLOW, type Flow } from '../noyau/monde/flow';
+import { type Flow } from '../noyau/monde/flow';
+import { EMPTY_FLOW } from '../engine/flowCore';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -161,7 +162,7 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
   switch (porteDe(n)) {
     case 'maladie': {
       // L'ENTRETIEN réel de la nuit : l'étape `diseaseTick` reçoit l'issue imposée par un dé POSÉ. Le témoin
-      // est la MÊME nuit réussie : l'applier `diseaseTick` (`state/restFlow.ts`) n'applique que l'échec.
+      // est la MÊME nuit réussie : l'applier `diseaseTick` (`noyau/restFlow.ts`) n'applique que l'échec.
       nuitDuMalade(get, n, 'h3', branchesVides || issue);
       return { jouee: true, poses };
     }

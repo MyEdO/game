@@ -5,14 +5,14 @@
  * stations à bord (MDG 13) partagent le MÊME type-vue.
  *
  * FRONTIÈRE : ceci ne décrit QUE l'assignation. La RÉSOLUTION (jets individuels du voyage vs Tests
- * d'équipage mutualisés) reste dans ses modules dédiés (`engine/activities`, `state/shipCrew`) — un Poste
+ * d'équipage mutualisés) reste dans ses modules dédiés (`engine/activities`, `noyau/shipCrew`) — un Poste
  * ne fait qu'exposer l'identité assignable, jamais la mécanique de résolution. PUR.
  */
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ActivityDef } from '../engine/activities';
 import type { Combatant } from '../engine/types';
 import type { CrewRoleData, ShipStationData } from '../data';
-import { BENCHED } from './shipCrew';
+import { BENCHED } from '../noyau/shipCrew';
 
 /** Identité assignable commune : ce qu'il faut pour NOMMER une ligne et l'ouvrir au Codex. L'`icon` est
  *  optionnelle (absente pour un rôle d'équipage). `skills` est la Compétence que le poste met en jeu,

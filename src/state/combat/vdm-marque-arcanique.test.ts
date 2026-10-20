@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from '../store';
-import { applyMiscast } from '../combatFlow';
+import { applyMiscast } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
-import { draineCascade } from '../cascadeTestKit';
+import { draineCascade } from '../cascade.testkit';
 import { createHero } from '../../engine/character';
 import { setRule, resetRule } from '../../engine/policy';
 import { hasTalent, talentTestSLBonus } from '../../engine/magic';

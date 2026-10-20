@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { draineCascade, cascadeDeTest } from './cascadeTestKit';
+import { draineCascade, cascadeDeTest } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { fleeReachable } from '../noyau/monde/path';
 import { emptyScene } from '../noyau/monde/scene';
 import { stacks, hasCondition, COND } from '../engine/conditions';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from '../noyau/pendings';
-import { intentAllowedFor } from './netOwnership';
-import { modalOwnerOf } from './modalArbiter';
+import { intentAllowedFor } from '../noyau/netOwnership';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 
 describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (LDB 15 l.68)', () => {
   const scene = emptyScene(14, 14);

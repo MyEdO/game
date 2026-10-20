@@ -20,7 +20,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
   copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
   déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
   `src/scenes/diligence/`.
-- **Chargement et validation** : `parseProject()` (`src/state/worldMap.ts`) est la porte UNIQUE — relit
+- **Chargement et validation** : `parseProject()` (`src/noyau/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
   (`src/state/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
   confrontent le contenu. Un changement de forme réécrit les paquets commités dans le MÊME commit, par
@@ -28,7 +28,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
   (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
-  `buildScene()` (`src/state/mapSpec.ts`), comme les scénarios de test, et une option que `scene()` ne lit pas
+  `buildScene()` (`src/noyau/mapSpec.ts`), comme les scénarios de test, et une option que `scene()` ne lit pas
   LÈVE en se nommant. Régime réservé au contenu CALCULÉ
   non authorable à la main, jamais à un projet de campagne : `barge-du-sel` et `loup-et-saumure` sont la
   dette #1601 (« Campagnes possédées par un GÉNÉRATEUR … statuer la migration vers MANUSCRIT »), `arene`
@@ -54,8 +54,8 @@ Câblé par des **Effects** (`src/noyau/monde/scene.ts`), jamais en dur :
   le `mousse` — ne pas inventer de rôle générique, prendre l'id existant.
 
 **Bridge campagne ⇄ combat** : au DÉBUT du combat, toute coque spawnée dont `creatureId === vessel.vehicleId`
-repart de l'état persisté (`src/state/combatSlice.ts`) ; à la FIN, ses dégâts sont réécrits dans le navire
-de campagne (`src/state/combatFlow.ts`). Sans `setVessel` (ou avec un autre `vehicleId`), aucune
+repart de l'état persisté (`src/noyau/combatSlice.ts`) ; à la FIN, ses dégâts sont réécrits dans le navire
+de campagne (`src/noyau/combatFlow.ts`). Sans `setVessel` (ou avec un autre `vehicleId`), aucune
 persistance — chaque combat spawn une coque fraîche.
 
 ## 3. Routes et voyage (`worldMap.routes`, `MapRoute`)
@@ -66,14 +66,14 @@ persistance — chaque combat spawn une coque fraîche.
 - `ambush: { scene, encounter, at? }` — cible du « Attaqués ! ». En MER, `at` (fraction 0-1, défaut 0.5)
   ANCRE l'embuscade de façon DÉTERMINISTE : elle se déclenche quand la distance franchit `at × km`, une
   fois par traversée, hors RNG (#212).
-- `sea: true` → voyage joué sur le navire de campagne (`src/state/seaVoyageFlow.ts`, cap `seaHeading`) ;
-  `river: true` → descente jouée jour par jour (`src/state/riverVoyageFlow.ts`, `riverPerils`/
+- `sea: true` → voyage joué sur le navire de campagne (`src/noyau/seaVoyageFlow.ts`, cap `seaHeading`) ;
+  `river: true` → descente jouée jour par jour (`src/noyau/riverVoyageFlow.ts`, `riverPerils`/
   `riverExposure`). Terrestre = table de péripéties + `inns` (relais d'auberge).
 - `billets[véhicule]` (`RouteBillet`) — BILLET d'auteur d'un passage payant, posé sur la PREMIÈRE route du
   trajet : `prix` par classe du véhicule (sous par place, forfait du trajet), `suite` (routes suivantes
   couvertes, contiguës, dans le mode), `depuis` (exigé si la route n'a pas de `from`), `marchandage`
   (`presetId` du vendeur au narratif, `paliers` `{ drMin, prix }` du Test gagné), provenance `source` ∨
-  `maison`. Payé une fois au départ (`src/state/billetFlow.ts`), il couvre sa suite sans débit et
+  `maison`. Payé une fois au départ (`src/noyau/billetFlow.ts`), il couvre sa suite sans débit et
   s'abandonne si le groupe part ailleurs ou autrement. Sans billet d'auteur, le passage se paie au km
   de la classe (`billetImplicite`, LDB 51 l.178). Validation au chargement : `worldmap.ts`.
 - Une route `sea: true` REQUIERT un `seaHeading` explicite d'auteur — aucun défaut silencieux :
@@ -83,7 +83,7 @@ persistance — chaque combat spawn une coque fraîche.
   (pit #408, traversées interminables).
 - `when` (`Condition`) — PRATICABILITÉ du trajet, axe ARÊTE du gating narratif (anti-backtracking) :
   absent = toujours praticable ; faux = le trajet reste À L'ÉCRAN (le lieu déjà visité ne disparaît pas)
-  mais le départ est REFUSÉ — `startTravel` (`src/state/travelFlow.ts`) le revérifie au départ, au même
+  mais le départ est REFUSÉ — `startTravel` (`src/noyau/travelFlow.ts`) le revérifie au départ, au même
   niveau que `from` : la vue n'est pas le verrou.
 - `refus` — raison JOUEUR de l'indisponibilité, rendue en infobulle par `GatedAction`. **EXIGÉE dès que
   `when` est posé** (`mapRouteSchema`, `src/data/schemas/defs-scenes/worldmap.ts`) : un trajet fermé MUET
@@ -111,7 +111,7 @@ persistance — chaque combat spawn une coque fraîche.
 ## 5. Ports par référence (`place.port`)
 
 `place.port = { ref }` où `ref` est un id de `naval-ports.json` (#217). L'authoring JSON est SPARSE :
-`resolvePortRef()` (`src/state/worldMap.ts`, appelé par `parseProject()`) fait couler Taille/Richesse/
+`resolvePortRef()` (`src/noyau/worldMap.ts`, appelé par `parseProject()`) fait couler Taille/Richesse/
 surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par port.
 
 ## 6. Postes d'artillerie par référence (`poste`, #222)
@@ -120,7 +120,7 @@ surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par
 crewIds }`. La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
 depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` doit désigner une pièce
 POSABLE (trapping à art d'affût `siegeRig`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
-héros adjacent (`serveAtPoste()`, `src/state/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.
+héros adjacent (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.
 Garde-fou : les projets ne portent AUCUN poste en forme ancienne (base copiée), cf. la garde #222 de
 `src/data/refs-migrated.test.ts`.
 Formation des servants (#210) : un servant posé SUR la case de l'engin (ou sans position propre) est
@@ -158,7 +158,7 @@ par défaut, duel). `onVictory` = un `Flow` (aplati en Effets).
 `EncounterDef.siege` (booléen, case « Rencontre de siège » du dock Logique) est un champ **SÉPARÉ** :
 il ouvre les structures destructibles de la scène (porte, mur) au choix de cible de l'IA ennemie.
 Défaut littéral `false` — un objectif `destroyStructure` ne l'active PAS. Résolu par `siegeActif`
-(`src/state/combatFlow.ts`), consommé par `buildAiInput` ; sans effet sur les dégâts, l'immunité
+(`src/noyau/combatFlow.ts`), consommé par `buildAiInput` ; sans effet sur les dégâts, l'immunité
 (`structureImmune`) ni le ciblage joueur.
 
 ## 9. Flags, états de campagne et gating
@@ -189,13 +189,13 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   paquet>`, ou `mdToText(nommer(…))`) substitue chaque repère, en mot entier et en une passe, par la valeur
   de la ligne du couple espèce (`refChar`) × sexe d'apparence FIGÉ au choix du héros (`GameState.identitesFigees`,
   posé par `designerHerosChoisir`, EDO 02 l.114) : mort, remplacé ou réédité, le sosie garde son nom
-  (`identitesResolues` / `nommer`, `src/state/identites.ts`). Non désigné, sans sexe d'apparence, ou sans
+  (`identitesResolues` / `nommer`, `src/noyau/monde/identites.ts`). Non désigné, sans sexe d'apparence, ou sans
   ligne : verbatim. Un
   site de catalogue (à `porteur`) ne nomme jamais. L'onglet **États** édite l'identité (ancres, repères
   renommables — le renommage suit dans chaque ligne —, lignes et provenance de chaque valeur).
 
 **Un geste joueur ne coupe pas le Flow.** `designerHeros`, `document`, `extendedTest` et `forceDoor` sont des Effets
-SUSPENSIFS (`EffectHandler.suspensif`, `src/state/combatEffects.ts`) : comme un nœud `test`
+SUSPENSIFS (`EffectHandler.suspensif`, `src/noyau/combatEffects.ts`) : comme un nœud `test`
 (`openSkillTest(..., after)`), leur pending porte la SUITE — le reste de la pile de `runFlow`, ou le reste
 du lot d'`applyEffects` — et sa clôture la rejoue (`reprendreLaSuite`) : choix du héros (ou, plus aucun
 vivant, clôture sans choix), document fermé, Test étendu atteint, épuisé ou abandonné, porte cédée ou abandonnée. Une
@@ -239,7 +239,7 @@ chaîne de nom dupliquée dans la donnée.
 - **Ce que la réponse ANNONCE est DÉRIVÉ, jamais écrit** (#1869) — la fenêtre rend
   « `N. [Compétence — Difficulté] libellé (coût)` » : le NUMÉRO est le rang de la réponse dans la
   liste VISIBLE (une réponse masquée par son `when` ne prend pas de numéro, et la touche 1-9 adresse
-  ce rang-là), le TAG vient du `flow` de la réponse (`testAnnonce`, `src/state/dialogue.ts` : nœud
+  ce rang-là), le TAG vient du `flow` de la réponse (`testAnnonce`, `src/noyau/dialogue.ts` : nœud
   `test`, ou effet `extendedTest` — qui ajoute son DR cumulé), et la PUCE de coût vient de son `cost`
   (`Coins`). **N'écris JAMAIS la Compétence, « (Test de …) » ni le coût (« — 4 pa », « (4 sous) »)
   dans le `label`** : la mention ment au premier changement de flux ou de prix, et le joueur la lit
@@ -325,7 +325,7 @@ donne `executeAt <= now` : ce n'est PAS une erreur — l'effet/l'objectif tire a
 ## 10ter. Bloc narratif (`narratif`, paquet auto-suffisant #765)
 
 Un paquet de campagne porte un bloc `narratif` (frère de `scenes`/`worldMap`, au NIVEAU
-projet — jamais per-scène), typé `NarratifBlock` (`src/state/campaignNarratif.ts`) :
+projet — jamais per-scène), typé `NarratifBlock` (`src/noyau/monde/campaignNarratif.ts`) :
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
@@ -337,7 +337,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   rattachés à une affaire (`affaireId`), révélés par `stades` et recoupés par `refs` (ids d'autres
   indices) ; l'ORDRE de `stades` fait sens — des paliers : le stade courant d'un indice est le plus
   avancé atteint, jamais un recul, et un stade antérieur lu après coup s'ajoute à son historique
-  (`revealClue`, `src/state/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
+  (`revealClue`, `src/noyau/monde/clues.ts`) ; un stade (`IndiceStade`) porte sa `prose` (verbatim quand `source` est posé, maison sans), un `documentId` (id d'un
   `narratif.documents`, #679), ou les deux — au moins l'un ; **`presetsPnj`** (`PresetPnj`) — PNJ
   pré-composés (`base` = id d'une créature globale surchargé par `profil`/`apparence`) ; **`objets`**
   (`TrappingData`) — possessions propres à la campagne ; **`documents`** (`DocumentNarratif`,
@@ -381,7 +381,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   le schéma du porteur juge seul la forme ; id inconnu → son registre ; sous-entrée inconnue → son entrée
   (stade → son indice, valeur → son état).
 - **Identité (à plat).** Le paquet porte aussi son identité de campagne (`ProjectIdentite`,
-  `src/state/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
+  `src/noyau/worldMap.ts`) — champs PLATS à la racine du document depuis #1467 L1b, sans poche
   intermédiaire : `id`/`label`/`versionContenu` forment un trio TOUT-OU-RIEN, `icon`/`desc`/`auteur`
   sont optionnels. `versionContenu` est le numéro de CONTENU de l'auteur ; le document ne porte aucun
   numéro de FORME. Identité pour la bibliothèque (#766), REQUISE par la porte : un document sans
@@ -391,7 +391,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   document : aucun numéro de version, aucune migration de chargement — un document d'une autre forme est
   REFUSÉ par `parseProject` (`ProjetRefuse`, cause `schema`, rapport zod), et une scène d'autosave par
   `parseSceneDeProjet` (#2404, décision utilisateur du 2026-10-05). La fabrique UNIQUE du document est
-  `documentDeProjet` (`src/state/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
+  `documentDeProjet` (`src/noyau/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
   `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
@@ -432,12 +432,12 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
   terse) porte `presetId` = l'id d'un `narratif.presetsPnj`. Présent, l'entité est INSTANCIÉE
   « base globale + surcharges du preset » (jamais depuis `ref`/`statblock`) : `resolvePresetCreature`
-  (`src/state/resolveursDuNarratif.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
+  (`src/noyau/monde/resolveursDuNarratif.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et `preset.apparence` sont
   passées à `spawnEnemy` (canal `{ presetCreature, presetId }`, l'id du preset restant au porteur de fiche du combattant) ; le portrait de dialogue (`gameIso/tokenBodyKind.tsx`)
   dérive le rig de `preset.base`/`preset.apparence`. Couche non chargée / preset irrésoluble → `FicheAbsente`
-  (`src/state/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
+  (`src/noyau/monde/sceneNpc.ts`, #1882), jamais un PNJ générique. `parseProject` valide fail-fast (le visiteur des références
   narratives, ci-dessus) que tout `presetId` de scène résout un preset déclaré. Curation (#680) : un profil imprimé
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
@@ -448,7 +448,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   refuse la forme dépôt (cause `prose-non-materialisee`, chemins nommés) : un lecteur Node d'un projet
   livré passe par `lireProjetLivre` (`scripts/source/projetLivre.mjs`), `dev-validate` lit le disque en
   `?raw`. L'export portable garde `desc` ET `descRef` ; « Exporter forme dépôt » (§1) passe par
-  `projetVersDepot` (`src/state/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
+  `projetVersDepot` (`src/noyau/worldMap.ts`) : prose ET ports par référence ramenés à leur forme
   canonique.
 
 ## 10quater. Cadre du chapitre : ouverture cérémonielle et clôture (`narratif.ouverture` / `.cloture`, #717)
@@ -456,7 +456,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 Deux clés OPTIONNELLES du bloc narratif encadrent un chapitre. Absentes, la campagne démarre
 directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet existant n'est touché.
 
-- **`ouverture`** (`OuvertureBlock`, `src/state/campaignNarratif.ts`) : `surtitre?`, `titre`,
+- **`ouverture`** (`OuvertureBlock`, `src/noyau/monde/campaignNarratif.ts`) : `surtitre?`, `titre`,
   `sousTitre?`, `chapitre?`, `pitch` (Markdown), `source?`, `ambiance?` (`veillee` | `parchemin`,
   défaut `veillee`). `loadProject` la pose dans `pendingOuverture` **après** `startScene` (qui remet
   l'état à l'init) ; `CampaignView` monte alors `CampaignOpeningScreen` par-dessus la vue. Le `pitch`
@@ -464,7 +464,7 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   rendu par `<Prose>`. Un pitch sourcé se vérifie au fichier `Source/` — garde transverse sur tout paquet livré qui déclare un `source`
   (`src/scenes/bundled-projects.test.ts`, livre résolu par `books.json`), jamais à l'œil.
 - **`cloture`** (`ClotureBlock`) : `when` (`Condition`), `titre`, `sousTitre?`. Le `when` est ÉVALUÉ
-  au contexte HORS COMBAT (`condCtx`, `src/state/bourseFlow.ts`) — même sous-ensemble borné qu'un
+  au contexte HORS COMBAT (`condCtx`, `src/noyau/bourseFlow.ts`) — même sous-ensemble borné qu'un
   `when` de carte (`CONDITION_KINDS_CARTE`), sinon la Condition serait FAUSSE en silence. Il est relu
   APRèS CHAQUE lot d'effets appliqué (`applyEffects` → `armChapterRecapIfDue`), jamais par un
   branchement dans `setFlag` : une clôture peut dépendre de l'horloge, du groupe ou de la bourse.

@@ -17,7 +17,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
 const SCAN_DIRS = ['src/state', 'src/noyau'];
-const FOYERS = new Set(['src/state/shipDamage.ts', 'src/state/seaVoyageFlow.ts']);
+const FOYERS = new Set(['src/noyau/monde/shipDamage.ts', 'src/noyau/seaVoyageFlow.ts']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || FOYERS.has(rel);
 
 function countsByFile(): Record<string, number> {
@@ -36,7 +36,7 @@ describe('garde-fou « coque » — écriture de state.vessel.wounds hors seam (
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(
       offenders,
-      `Nouvelle écriture de coque hors seam — router par setVesselHull/damageVesselHull/healVesselHull/persistHullWounds (src/state/seaVoyageFlow.ts) :\n${offenders.join('\n')}`,
+      `Nouvelle écriture de coque hors seam — router par setVesselHull/damageVesselHull/healVesselHull/persistHullWounds (src/noyau/seaVoyageFlow.ts) :\n${offenders.join('\n')}`,
     ).toEqual([]);
   });
 
@@ -48,7 +48,7 @@ describe('garde-fou « coque » — écriture de state.vessel.wounds hors seam (
   it('le foyer de persistance (seaVoyageFlow.ts, hors scan) porte bien le motif — sinon le foyer a bougé', () => {
     // shipDamage.ts est l'AUTRE foyer (mutation du Combattant-coque via applyOps, jamais un
     // spread `vessel:` — motif structurellement différent, cf. sa docstring) : rien à vérifier ici.
-    const src = readFileSync(join(ROOT, 'src/state/seaVoyageFlow.ts'), 'utf8');
-    expect(scanVesselWoundsWrite('src/state/seaVoyageFlow.ts', src).length).toBeGreaterThan(0);
+    const src = readFileSync(join(ROOT, 'src/noyau/seaVoyageFlow.ts'), 'utf8');
+    expect(scanVesselWoundsWrite('src/noyau/seaVoyageFlow.ts', src).length).toBeGreaterThan(0);
   });
 });

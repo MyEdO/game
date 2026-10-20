@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { crewFormationSlots, assignCrewFormation } from './shipPostes';
+import { crewFormationSlots, assignCrewFormation } from '../noyau/monde/shipPostes';
 import type { ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 

@@ -11,13 +11,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { emptyScene, Scene } from '../noyau/monde/scene';
-import { WorldMap } from './worldMap';
-import { maxHoursPerDay } from './travelFlow';
-import { sceneLieu } from './restFlow';
-import { campaignStart } from '../engine/clock';
+import { WorldMap } from '../noyau/worldMap';
+import { maxHoursPerDay } from '../noyau/travelFlow';
+import { sceneLieu } from '../noyau/restFlow';
+import { campaignStart, dayIndex } from '../engine/clock';
 import { setRule, resetRule, rule } from '../engine/policy';
 import { stacks } from '../engine/conditions';
-import { dayIndex } from './upkeep';
 import type { Combatant } from '../engine/types';
 
 const get = () => useGame.getState();
