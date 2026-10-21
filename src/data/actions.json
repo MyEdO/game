@@ -5,11 +5,13 @@
     "label": "Attaque",
     "icon": "action/attack",
     "surface": "deduite-du-set",
-    "gate": "action-libre",
+    "gate": [
+      "fantassin",
+      "action-libre"
+    ],
     "run": "battleSelectAttack",
     "mode": "attack",
     "intent": "portee-arme",
-    "candidates": "attaques-disponibles",
     "coutAction": "action",
     "keys": [
       "g1-attaque"
@@ -21,7 +23,10 @@
     "label": "Charger",
     "icon": "journal/charge",
     "surface": "deduite-du-set",
-    "gate": "charge-possible",
+    "gate": [
+      "set-de-melee",
+      "charge-possible"
+    ],
     "intent": "portee-charge",
     "coutAction": "mouvement",
     "rule": {
@@ -83,7 +88,10 @@
     "label": "Viser",
     "icon": "action/aim",
     "surface": "deduite-du-set",
-    "gate": "action-libre-hors-frenesie",
+    "gate": [
+      "tireur",
+      "action-libre-hors-frenesie"
+    ],
     "run": "battleAim",
     "coutAction": "action",
     "rule": {
@@ -107,7 +115,7 @@
     "surface": "deduite-du-set",
     "gate": "action-libre-hors-frenesie",
     "run": "battleReload",
-    "candidates": "armes-a-distance",
+    "candidates": "armes-a-recharge",
     "panneau": true,
     "coutAction": "action",
     "rule": {
@@ -137,7 +145,7 @@
     "label": "Repousser",
     "icon": "ui/undo",
     "surface": "deduite-du-set",
-    "gate": "toujours",
+    "gate": "arme-de-repousse",
     "run": "battleTogglePushback",
     "coutAction": "aucun",
     "maison": "arme un MODE d’attaque (la prochaine attaque repousse au lieu de blesser) — le coût est celui de l’attaque.",
@@ -155,7 +163,10 @@
     "label": "Tir immobile",
     "icon": "travel/anchor",
     "surface": "deduite-du-set",
-    "gate": "tir-immobile-armable",
+    "gate": [
+      "tireur",
+      "tir-immobile-armable"
+    ],
     "run": "battleToggleStance",
     "stance": "heldGround",
     "coutAction": "aucun",
@@ -174,7 +185,10 @@
     "label": "Dans le tas",
     "icon": "action/aim",
     "surface": "deduite-du-set",
-    "gate": "tir-dans-le-tas-armable",
+    "gate": [
+      "tireur",
+      "tir-dans-le-tas-armable"
+    ],
     "run": "battleToggleStance",
     "stance": "intoCrowd",
     "coutAction": "aucun",
@@ -271,7 +285,10 @@
     "label": "Se désengager",
     "icon": "melee/disengage",
     "surface": "grille",
-    "gate": "desengagement",
+    "gate": [
+      "engage",
+      "desengagement"
+    ],
     "run": "battleDisengage",
     "coutAction": "action",
     "rule": {
@@ -462,6 +479,7 @@
     "icon": "melee/close-in",
     "surface": "grille",
     "gate": [
+      "battement-connu",
       "action-libre-hors-frenesie",
       "battement-cible-eligible"
     ],
@@ -486,6 +504,7 @@
     "icon": "flag/focus",
     "surface": "grille",
     "gate": [
+      "distraire-connu",
       "mouvement-intact",
       "distraire-cible-eligible"
     ],
@@ -509,7 +528,10 @@
     "label": "Frénésie",
     "icon": "flag/frenzy",
     "surface": "grille",
-    "gate": "action-libre",
+    "gate": [
+      "frenesie-possible",
+      "action-libre"
+    ],
     "run": "battleFrenzy",
     "coutAction": "action",
     "rule": {
@@ -543,7 +565,7 @@
     "surface": "grille",
     "gate": "toujours",
     "run": "battleSelectAttack",
-    "candidates": "attaques-disponibles",
+    "candidates": "attaques-de-trait",
     "coutAction": "aucun",
     "maison": "ARME l’attaque pour le clic-ennemi ; le coût est celui de l’attaque résolue.",
     "keys": [
@@ -558,7 +580,7 @@
     "surface": "grille",
     "gate": "action-libre",
     "run": "battleManeuverArea",
-    "candidates": "attaques-disponibles",
+    "candidates": "attaques-de-zone",
     "coutAction": "action",
     "keys": [
       "attaque-"
@@ -635,7 +657,10 @@
     "label": "Descendre",
     "icon": "action/dismount",
     "surface": "geste-d-etat",
-    "gate": "mouvement-intact",
+    "gate": [
+      "monte",
+      "mouvement-intact"
+    ],
     "run": "battleDismount",
     "coutAction": "mouvement",
     "maison": "descendre n’exige aucun Test : l’imputation au Mouvement est notre arbitrage.",
@@ -668,7 +693,10 @@
     "label": "Quitter la pièce",
     "icon": "action/leave-post",
     "surface": "geste-d-etat",
-    "gate": "action-libre",
+    "gate": [
+      "poste-servi",
+      "action-libre"
+    ],
     "run": "battleLeavePoste",
     "coutAction": "action",
     "maison": "quitter la pièce n’exige aucun Test : l’imputation à l’Action est notre arbitrage.",
@@ -702,7 +730,10 @@
     "label": "Diriger l’équipe",
     "icon": "action/lead",
     "surface": "grille",
-    "gate": "action-libre",
+    "gate": [
+      "equipe-a-aider",
+      "action-libre"
+    ],
     "run": "battleAidTeam",
     "coutAction": "action",
     "rule": {
@@ -734,7 +765,10 @@
     "label": "Manœuvrer",
     "icon": "action/steer-ship",
     "surface": "geste-d-etat",
-    "gate": "action-libre",
+    "gate": [
+      "a-la-barre",
+      "action-libre"
+    ],
     "run": "battleShipManeuver",
     "coutAction": "action",
     "rule": {
@@ -751,7 +785,10 @@
     "label": "Bordée",
     "icon": "action/aim",
     "surface": "grille",
-    "gate": "navire-action",
+    "gate": [
+      "navire",
+      "navire-action"
+    ],
     "run": "battleSelectAction",
     "armed": "battery",
     "mode": "battery",
@@ -770,7 +807,10 @@
     "label": "Rude épreuve",
     "icon": "scenario/naval",
     "surface": "grille",
-    "gate": "navire-action",
+    "gate": [
+      "navire",
+      "navire-action"
+    ],
     "run": "battleCrewTest",
     "coutAction": "action",
     "rule": {
@@ -787,7 +827,7 @@
     "label": "Chanson de marin",
     "icon": "scenario/opera",
     "surface": "grille",
-    "gate": "toujours",
+    "gate": "navire",
     "run": "battleSingShanty",
     "coutAction": "gratuit",
     "maison": "tâche PARALLÈLE : le chant occupe le chanteur, pas l’Action du navire — arbitrage maison (l’acte exige pourtant un Test).",
@@ -805,7 +845,7 @@
     "label": "Recharger la pièce",
     "icon": "journal/reload",
     "surface": "grille",
-    "gate": "toujours",
+    "gate": "vehicule",
     "run": "battleShipReload",
     "coutAction": "gratuit",
     "maison": "tâche d’équipage PARALLÈLE : elle occupe l’équipage, pas le tour du navire — arbitrage maison (l’acte exige pourtant un Test).",
@@ -851,7 +891,7 @@
     "label": "Commencer le round",
     "icon": "ui/round-start",
     "surface": "bandeau-de-phase",
-    "gate": "toujours",
+    "gate": "pause-de-round",
     "run": "roundStart",
     "coutAction": "aucun",
     "maison": "ouverture du Round depuis la pause d’initiative — geste de table, aucun coût de jeu."

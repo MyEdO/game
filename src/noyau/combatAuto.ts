@@ -18,7 +18,7 @@
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, type AutoPolicy } from './modalArbiter';
+import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, pendingOuvert, HORS_MODAL, type AutoPolicy, type HorsModalDef } from './modalArbiter';
 import { stepInteraction } from './cascade';
 import { influencesLocally } from './netOwnership';
 import { seatOwns } from './sieges';
@@ -43,6 +43,25 @@ export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
   extended: { mode: 'choice' },   // multi-participant (rare en combat)
   forceDoor: { mode: 'choice' },  // multi groupOwner (rare en combat)
 };
+
+/** La FENÊTRE qui tient la main (#2898), pour un hôte qui la nomme au joueur : la modale élue (`pickActiveModalKey`),
+ *  son propriétaire (`modalOwnerOf`) et ses verbes DÉCLARÉS — le `drive` (ou l'`autoDrive`) de sa politique
+ *  (`autoPolicyOf`), celle de l'étape-jet courante pour la cascade (`JET_AUTO`), ou le drive de la fenêtre réactive
+ *  ouverte dans l'étape (`STEP_WINDOW_AUTO`) ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`) qui
+ *  tient la main, avec ses `intents` ou ses `verbes`. `null` : rien ne tient la main. */
+export function fenetreDuJeu(s: Jeu): { cle: string; proprietaire: string | undefined; verbes: readonly string[] } | null {
+  const cle = pickActiveModalKey(s);
+  if (cle) {
+    const pc = s.pendingCascade;
+    const jet = pc?.participants[pc.cursor]?.jet;
+    const pol = cle === 'cascade' && jet ? JET_AUTO[jet] : autoPolicyOf(s);
+    const reactive = jet ? STEP_WINDOW_AUTO.find((w) => w.rows(s)) : undefined;
+    const verbes = reactive ? reactive.drive : pol?.mode === 'self' ? pol.drive : pol?.mode === 'choice' ? (pol.autoDrive ?? []) : [];
+    return { cle, proprietaire: modalOwnerOf(s) ?? undefined, verbes };
+  }
+  const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
+  return hors ? { cle: hors.key, proprietaire: hors.owner(s), verbes: hors.intents ?? hors.verbes ?? [] } : null;
+}
 
 /**
  * FENÊTRES RÉACTIVES ouvertes DANS l'étape `jet:'cast'` (Contre-sort #1028, opposition de cible #949)

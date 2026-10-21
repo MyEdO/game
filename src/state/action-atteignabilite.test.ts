@@ -111,12 +111,12 @@ const REMEDE_KEYS = REMEDE_BRANCHE ? REMEDES.map((a) => a.id) : [];
  *  sans une ligne de code — est dans `gameIso/stage/pastille-entite.test.tsx`, où débrancher le rendeur
  *  vire rouge. */
 const OFFRES_SRC = src('./registreOffres.ts');
-/** Les surfaces que le SOCLE lit réellement (`offresDuRegistre('<surface>'`, `noyau/actionRegistry`, et ses
- *  appelants) : une entrée de ces surfaces SANS porteur déclaré est skippée EN SILENCE par le socle — elle
- *  n'atteindrait donc personne. C'est ce que la garde de porteur ci-dessous refuse. */
+/** Les surfaces que lisent PAR PORTEUR les appelants du socle (`offresParPorteur(offres, '<surface>')`,
+ *  `noyau/actionRegistry`) : une offre de ces surfaces SANS porteur déclaré n'y désigne personne — elle
+ *  n'atteindrait donc aucune entité ni aucune alvéole. C'est ce que la garde de porteur ci-dessous refuse. */
 const OFFRES_CONSOMMEES = [...new Set(
   [OFFRES_SRC, src('../ui/console/CombatConsole.tsx')]
-    .flatMap((s) => s.split("offresDuRegistre(").slice(1).map((suite) => suite.split("'")[1]))
+    .flatMap((s) => s.split("offresParPorteur(").slice(1).map((suite) => suite.split("'")[1]))
     .filter((s) => ACTIONS.some((a) => a.surface === s)), // écarte la DÉCLARATION du socle (son paramètre)
 )];
 const PASTILLE_BRANCHE = OFFRES_CONSOMMEES.includes('pastille-entite');
@@ -149,7 +149,7 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
     expect(bad, `sélecteur(s) inconnu(s) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
   it('toute surface CONSOMMÉE PAR LE SOCLE déclare sa population ET son porteur (`ACTION_PORTEURS`)', () => {
-    // Le socle (`noyau/actionRegistry.offresDuRegistre`) SKIPPE EN SILENCE une entrée dont le sélecteur
+    // Le regroupement par porteur (`noyau/actionRegistry.offresParPorteur`) SKIPPE EN SILENCE une offre dont le sélecteur
     // n'a pas d'enveloppe de porteur : personne ne saurait identifier ses candidats, et l'action
     // n'atteindrait aucune surface sans que rien ne le dise. La garde porte donc sur TOUTES les surfaces
     // que le socle lit — lues à SA source (`OFFRES_CONSOMMEES`), jamais recopiées : brancher une 3ᵉ

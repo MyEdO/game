@@ -81,10 +81,11 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 Zones de `src/` (#2882, plan `docs/plans/2026-10-19-restructuration.md`) : un dossier de premier niveau
 de `src/` est une zone, et les fichiers posés à même `src/` forment la zone `racine`. La table `COUCHES`
 (`scripts/guards/lib/couches.mjs`) est la seule source des zones et de leurs sens d'import : par zone,
-ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), et ses arêtes transitoires,
-chacune avec la sous-issue qui la retire. Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
+ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), ses arêtes transitoires,
+chacune avec la sous-issue qui la retire, et ses portes : pour une zone importée, le seul module qu'elle
+en lit (`portes`). Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
 `murs/zone` refuse un fichier de `src/` dont la zone n'a pas de ligne, et `murs/purete-imports` refuse,
-hors tests, un arc d'import qu'elle n'ouvre pas, sur toutes les formes d'arc de
+hors tests, un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de
 `scripts/guards/lib/arcsDImport.mjs`. Banc : `src/eslint-ordre-total-et-purete.test.ts`.
 
 Convention `X/interne/` (#2724) : un fichier sous `X/interne/` n'est importable que depuis `X/`, et ne
@@ -433,6 +434,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable en ligne de commande, sans store
+                            ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
+                            (`portes` de `COUCHES`), plus `scenes` et les feuilles. `partieTexte.ts` (fichier de
+                            partie, rejeu, jetons, erreurs), `vue.ts` (projection et rendus bornés), `cli.ts`
+                            (commandes) ; lancé par `scripts/hote-texte.mjs`.
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.

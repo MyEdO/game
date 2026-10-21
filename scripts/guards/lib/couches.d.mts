@@ -4,7 +4,12 @@ export interface Couche {
   readonly importe: readonly string[] | '*';
   readonly types?: readonly string[];
   readonly transitoire?: Readonly<Record<string, { readonly issue: string; readonly types?: boolean }>>;
+  /** Pour une zone importée, le seul module qu'elle en lit (chemin relatif à la racine). */
+  readonly portes?: Readonly<Record<string, string>>;
 }
+
+/** La surface du noyau : porte de `noyau`, entrée de la fermeture, seul module de `src/noyau/` qui réexporte. */
+export const SURFACE_DU_NOYAU: "src/noyau/index.ts";
 
 /** Les zones de `src/` et leurs sens d'import (#2882). */
 export const COUCHES: Readonly<Record<string, Couche>>;
@@ -18,3 +23,6 @@ export function estZone(z: unknown): z is string;
 
 /** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type, arêtes transitoires comprises. */
 export function ouvertes(de: string): { libres: string[]; enType: string[] };
+
+/** La porte que la zone `de` impose vers `vers` et que l'arc vers `cibleRel` manque, `null` sinon. */
+export function porteManquee(de: string, vers: string, cibleRel: string): string | null;

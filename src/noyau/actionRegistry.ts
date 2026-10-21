@@ -19,21 +19,27 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { currentTargetingMode } from './targetingModes';
 import { canTakeAction, isOutOfAction, raisonRefusDetermination, raisonVerrouEtat } from '../engine/conditions';
 import { isEngaged } from '../engine/engagement';
-import { isFrenzied } from '../engine/psychology';
+import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
-import { compatibleAmmo } from '../engine/items';
+import { compatibleAmmo, activeLoadout, isUnarmed } from '../engine/items';
+import { canPushback } from '../engine/qualities/dispatch';
+import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
+import { actorHasSkill, possesses } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
-import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks } from './combatManeuvers';
+import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { inBattleId } from './monde/combatants';
 import { wastesAction, endTurnArmed } from './endTurnGuard';
-import { healableTargets } from '../engine/healing';
-import { waterSprayCandidates } from '../engine/suffocation';
+import { HEAL_SKILL, healableTargets } from '../engine/healing';
+import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
+import { canAidTeam } from './monde/commandTeam';
+import { controlsCombatant } from './netOwnership';
+import { surfaceTientLaMain } from './modalArbiter';
 import { dispellableSpellsOn } from '../engine/dispel';
 import { combatAdvantageSkills } from '../engine/skillCombatApps';
 import { activeCombatant, placingZoneOf, STANCE_BLOCK } from './combatFlow';
 import { canMove, mountablesNear, mountMovement } from './mount';
-import { servablePostes, crewPosteOf } from './monde/shipPostes';
+import { servablePostes, crewPosteOf, shipOfCrew } from './monde/shipPostes';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
 import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
@@ -93,11 +99,10 @@ function actionLibre({ active, battle }: ActionCtx): ActionGate {
 }
 
 /** Désengagement (LDB 15 l.45-49) : l'option d'Esquive coûte l'Action, l'option d'Avantage non —
- *  d'où un gate qui reste ouvert Action dépensée quand l'Avantage est strictement supérieur. */
+ *  d'où un gate qui reste ouvert Action dépensée quand l'Avantage est strictement supérieur. Sa
+ *  pertinence (être Engagé) est le gate `engage`. */
 function desengagementGate(ctx: ActionCtx): ActionGate {
-  const { active, battle } = ctx;
-  if (!isEngaged(active)) return no(t('agate.notEngaged'));
-  if (!battle.acted) return ok;
+  if (!ctx.battle.acted) return ok;
   return freeDisengage(ctx) ? ok : no(t('agate.actionSpentNoFreeDisengage'));
 }
 
@@ -252,9 +257,50 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
    *  pas (loi du refus visible au point du geste, arbitrage 2026-08-19). */
   'equipage-suffisant': ({ active, battle }) =>
     (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
-  'navire-action': ({ active, battle }) =>
-    !estNavire(active) ? no(t('agate.notAVessel')) : battle.acted ? no(t('agate.vesselActionSpent')) : ok,
+  'navire-action': ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok),
+  // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
+  fantassin,
+  'set-de-melee': (ctx) => et(fantassin, ({ active }) => (setDeMelee(active) ? ok : no(t('agate.noMeleeSet'))))(ctx),
+  tireur: ({ active }) => (armesADistance(active).length > 0 ? ok : no(t('agate.noRangedWeapon'))),
+  'arme-de-repousse': ({ active }) =>
+    (active.weapons.some((w) => w.type === 'melee' && canPushback(w)) ? ok : no(t('agate.noPushbackWeapon'))),
+  engage: ({ active }) => (isEngaged(active) ? ok : no(t('agate.notEngaged'))),
+  'battement-connu': ({ active }) => (hasBattement(active) ? ok : no(t('agate.noBattement'))),
+  'distraire-connu': ({ active }) => (hasDistraire(active) ? ok : no(t('agate.noDistraire'))),
+  'frenesie-possible': ({ active }) => (isFrenzyCapable(active) && !isFrenzied(active) ? ok : no(t('agate.noFrenzy'))),
+  'equipe-a-aider': ({ active, battle }) => (canAidTeam(active, battle.combatants) ? ok : no(t('agate.noTeamToAid'))),
+  monte: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))),
+  'poste-servi': ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))),
+  /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`battleShipManeuver` accepte l'un ou l'autre). */
+  'a-la-barre': ({ active, battle }) =>
+    (estNavire(active) || shipOfCrew(battle.combatants, active.id) ? ok : no(t('agate.notAtHelm'))),
+  navire: ({ active }) => (estNavire(active) ? ok : no(t('agate.notAVessel'))),
+  vehicule: ({ active }) => (isVehicle(active) ? ok : no(t('agate.notAVehicle'))),
+  /** La pause de début de Round (`LDB 17 l.25`) : personne n'agit encore (`turn: -1`, `enterRoundStartPause`). */
+  'pause-de-round': ({ battle }) => (battle.turn < 0 ? ok : no(t('agate.notRoundStart'))),
 };
+
+/** Les gates de PERTINENCE (#2911) : une entrée dont l'un refuse n'a pas lieu d'être pour ce porteur, et
+ *  `offresDeLActif` ne l'offre pas ; tout autre refus FERME l'offre en gardant sa raison. */
+export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
+  'fantassin', 'set-de-melee', 'tireur', 'arme-de-repousse', 'engage', 'battement-connu', 'distraire-connu',
+  'frenesie-possible', 'equipe-a-aider', 'monte', 'poste-servi', 'a-la-barre', 'navire', 'vehicule', 'pause-de-round', GATE_ETAT_PORTE,
+]);
+
+/** Les armes à distance du porteur — population du sélecteur `armes-a-distance` et du gate `tireur`. */
+function armesADistance(active: Combatant) {
+  return active.weapons.filter((w) => w.type === 'ranged');
+}
+
+/** Le set au poing ouvre-t-il un corps à corps ? Arme de mêlée DU set, ou set MAINS NUES (`LDB 15 l.35-37`,
+ *  `LDB 13 l.90`). Sans set (statbloc de créature), l'arsenal réel, Mains nues écartées (`isUnarmed`). */
+function setDeMelee(active: Combatant): boolean {
+  const set = activeLoadout(active);
+  const armes = set
+    ? [set.main, set.off].flatMap((uid) => active.weapons.filter((w) => !!uid && w.uid === uid))
+    : active.weapons.filter((w) => !isUnarmed(w));
+  return armes.length === 0 || armes.some((w) => w.type === 'melee');
+}
 
 /** Les entrées de REMÈDE du registre — celles que la donnée porte au gate `etat-porte`. */
 export const REMEDES = ACTIONS.filter((a) => [a.gate].flat().includes(GATE_ETAT_PORTE));
@@ -308,23 +354,35 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
     return sp ? [sp] : [];
   },
   'cibles-soin': ({ active, battle }) =>
-    healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true }),
+    possesses(active, HEAL_SKILL)
+      ? healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true })
+      : [],
   'cibles-aspersion': ({ active, battle }) =>
-    waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)),
-  'sorts-dissipables': ({ battle }) => dispellableSpellsOn(battle.combatants),
+    hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
+  /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. */
+  'sorts-dissipables': ({ active, battle }) =>
+    actorHasSkill(active, 'langue', 'magick') ? dispellableSpellsOn(battle.combatants) : [],
   /** Méthodes d'Avantage POSSÉDÉES (dédupliquées par Compétence : un Savoir groupé = une case). Le
    *  PLAFOND ne filtre plus ici : il est le verdict d'offre `avantage-sous-plafond`, qui laisse la case
    *  dessinée fermée avec sa raison — une seule source, jamais un filtre muet doublé d'un gate. */
   'competences-avantage': ({ active }) =>
     [...new Map(combatAdvantageSkills(active).map((s) => [s.skillId, s])).values()],
-  'attaques-disponibles': ({ active, battle }) => availableAttacks(active, battle),
+  /** Attaques de TRAIT qui ARMENT le clic (`select-attack`) et attaques de ZONE immédiates (`maneuver-area`) :
+   *  l'attaque d'ARME est le geste du conduit (`attaque`), jamais une case de la grille. Le tri se lit au
+   *  discriminant `kind` et au `targeting` de `AttackOption`. */
+  'attaques-de-trait': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && a.targeting !== 'zone'),
+  'attaques-de-zone': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && a.targeting === 'zone'),
   'sorts-du-heros': ({ active }) => active.spells ?? [],
-  'etats-retirables': ({ active }) => ((active.resolve ?? 0) > 0 ? active.conditions : []),
+  /** Les États PORTÉS : la réserve de Détermination est le verdict d'offre (`determination-en-reserve`), qui dit son refus. */
+  'etats-retirables': ({ active }) => active.conditions,
   consommables: ({ active }) => (active.items ?? []).filter(isConsumable),
-  'armes-a-distance': ({ active }) => active.weapons.filter((w) => w.type === 'ranged'),
+  'armes-a-distance': ({ active }) => armesADistance(active),
+  /** Les armes à distance qui ont un cycle de charge (`reload`) : c'est l'arme que `battleReload` recharge. */
+  'armes-a-recharge': ({ active }) => armesADistance(active).filter((w) => (w.reload ?? 0) > 0),
+  /** Les munitions compatibles de l'arme visée, ou de chaque arme à distance quand aucune n'est visée. */
   'munitions-compatibles': ({ active, weaponUid }) => {
-    const w = active.weapons.find((x) => x.uid === weaponUid) ?? active.weapons.find((x) => x.type === 'ranged');
-    return w ? compatibleAmmo(active, w) : [];
+    const visee = active.weapons.find((x) => x.uid === weaponUid);
+    return (visee ? [visee] : armesADistance(active)).flatMap((w) => compatibleAmmo(active, w));
   },
   'manoeuvres-sur-soi': ({ active }) => selfManeuversOf(active).filter((m) => selfManeuverApplicable(active, m)),
   'sets-d-armes': ({ active }) => active.loadouts ?? [],
@@ -383,11 +441,24 @@ export const ACTION_PORTEURS: Record<string, (candidat: unknown) => ActionPorteu
     return { porteurId: id, args: { spellId: id } };
   },
   /** Une ARME à distance : son `uid` porte le candidat (l'alvéole de recharge en est paramétrée). */
-  'armes-a-distance': (c) => {
-    const w = c as { uid: string; label?: string };
-    return { porteurId: w.uid, args: { weaponUid: w.uid }, label: w.label };
+  'armes-a-distance': porteurDArme,
+  'armes-a-recharge': porteurDArme,
+  /** Une ATTAQUE de trait : son id porte le candidat, et c'est lui que `battleSelectAttack` arme. */
+  'attaques-de-trait': (c) => {
+    const a = c as AttackOption;
+    return { porteurId: a.id, args: { attackId: a.id }, label: a.label };
+  },
+  /** Une attaque de ZONE : `battleManeuverArea` la résout par son `kind`. */
+  'attaques-de-zone': (c) => {
+    const a = c as AttackOption;
+    return { porteurId: a.id, args: { attackKind: a.kind }, label: a.label };
   },
 };
+
+function porteurDArme(c: unknown): ActionPorteur {
+  const w = c as { uid: string; label?: string };
+  return { porteurId: w.uid, args: { weaponUid: w.uid }, label: w.label };
+}
 
 /** Ce que l'acte prend dans l'économie du tour, en toutes lettres — la donnée `cost` du registre, dite
  *  à l'endroit du geste (spec HUD zone 4 : « coût de l'Action affiché »). `null` = rien à annoncer. */
@@ -555,6 +626,9 @@ export interface Offre {
   def: ActionDef;
   /** Libellé de l'ACTION (« Monter », « Ramasser ») — ce que le joueur lit. */
   label: string;
+  /** QUI porte l'offre quand l'entrée s'offre par candidat (`ACTION_PORTEURS`) : une entité du champ, l'objet
+   *  paramètre d'une alvéole. Absent pour une entrée offerte une fois. */
+  porteurId?: string;
   /** Nom du CANDIDAT quand un même porteur en offre plusieurs (une pièce parmi deux, un objet d'un tas). */
   candidat?: string;
   icon: string;
@@ -570,53 +644,84 @@ export interface OffresParPorteur {
   offres: Offre[];
 }
 
+/** L'entrée est-elle PERTINENTE pour ce porteur ? Aucun de ses gates de `GATES_DE_PERTINENCE` ne refuse. */
+function pertinente(def: ActionDef, ctx: ActionCtx): boolean {
+  return [def.gate].flat().every((g) => !GATES_DE_PERTINENCE.has(g) || ACTION_GATES[g]({ ...ctx, def }).ok);
+}
+
 /**
- * CE QUE LE REGISTRE OFFRE, PAR PORTEUR (#1411 P2-C) — lecture UNIQUE du motif « entrée × sélecteur ×
- * candidat » du registre des actions, pour TOUTE surface qui offre PAR CANDIDAT :
- *  • `pastille-entite` — les gestes qu'une chose du champ ouvre (monter sur la MONTURE, servir/pousser
- *    la PIÈCE, ramasser le TAS), hors console : le geste vit sur ce qui l'offre (spec HUD zone 4) ;
- *  • `geste-secondaire` — le geste que l'alvéole d'une AUTRE entrée ouvre sur SON candidat (clic droit,
- *    appui long), rendu par la console.
- *
- * UNE seule lecture pour les deux : elles posaient la même question (« quelles entrées de cette surface
- * couvrent CE candidat, et avec quels arguments ? »), et la console y répondait en DEVINANT l'identité
- * du candidat (`o?.id ?? o?.uid`). Ici l'identité est DÉCLARÉE par l'enveloppe de sélecteur
- * (`ACTION_PORTEURS`) : aucune forme de candidat n'est reniflée, aucun id d'action n'est cité.
- *
- * Le verdict d'offre est celui du registre, évalué sur les ARGUMENTS mêmes du dispatch — une offre
- * refusée reste une offre (`gate.ok === false`), et sa surface la montre avec sa raison plutôt que de
- * l'escamoter (loi du refus visible, arbitrage 2026-08-19).
- *
- * Les offres de la surface `surface` dans le contexte `ctx`, groupées par porteur. Une entrée sans
- * sélecteur, ou dont le sélecteur n'a pas de porteur déclaré, n'offre rien : elle ne peut désigner
- * personne, et la garde `action-atteignabilite` refuse déjà ce cas.
+ * TOUTES LES OFFRES DE L'ACTIF (#2898, #2911) — l'énumération UNIQUE du registre, que lisent la console, les
+ * pastilles du champ et l'hôte texte. Ordre : celui du registre ; l'ordre d'affichage, le regroupement par site et
+ * l'habillage appartiennent à la surface.
+ *  • Une entrée qu'un gate de PERTINENCE refuse n'est pas offerte : elle n'a pas lieu d'être pour ce porteur.
+ *  • Une entrée dont le sélecteur a un porteur déclaré (`ACTION_PORTEURS`) s'offre PAR CANDIDAT, son verdict
+ *    évalué sur les arguments mêmes du dispatch (« au plafond de CETTE méthode »).
+ *  • Une entrée dont le sélecteur ne rend aucun candidat n'offre rien.
+ *  • Toute autre entrée est UNE offre, sans argument, au verdict d'`actionGate`.
+ * Une offre fermée reste une offre (`gate.ok === false`), et sa surface la montre avec sa raison (loi du refus
+ * visible, arbitrage 2026-08-19). Des entrées d'interlude, seule compte la sortie du ciblage courant
+ * (`currentInterludeAction`), quand `ctx.state` est posé.
  */
-export function offresDuRegistre(surface: ActionDef['surface'], ctx: ActionSelectorCtx): OffresParPorteur[] {
-  const parPorteur = new Map<string, OffresParPorteur>();
-  for (const def of ACTIONS) {
-    if (def.surface !== surface || !def.candidates) continue;
-    const selecteur = ACTION_CANDIDATES[def.candidates];
-    const porteur = ACTION_PORTEURS[def.candidates];
-    if (!selecteur || !porteur) continue;
-    for (const candidat of selecteur(ctx)) {
-      const p = porteur(candidat);
-      if (!p) continue;
-      const groupe = parPorteur.get(p.porteurId) ?? { porteurId: p.porteurId, offres: [] };
-      groupe.offres.push({
-        actionId: def.id,
-        def,
-        label: def.label,
-        candidat: p.label,
-        icon: def.icon,
-        cost: actionCostLabel(def),
-        // Le verdict porte sur CE candidat, sur les MÊMES arguments que le dispatcher recevra.
-        gate: actionGate(def.id, { ...ctx, args: p.args }),
-        args: p.args,
-      });
-      parPorteur.set(p.porteurId, groupe);
-    }
+export function offresDeLActif(ctx: ActionSelectorCtx): Offre[] {
+  const etat = ctx.state;
+  const interlude = etat ? currentInterludeAction(() => etat) : undefined;
+  const offre = (def: ActionDef, args: ActionRunCtx, p?: ActionPorteur): Offre => ({
+    actionId: def.id, def, label: def.label, ...(p ? { porteurId: p.porteurId, candidat: p.label } : {}),
+    icon: def.icon, cost: actionCostLabel(def), args, gate: actionGate(def.id, { ...ctx, args }),
+  });
+  return ACTIONS.flatMap((def): Offre[] => {
+    if (def.surface === 'interlude' && def !== interlude) return [];
+    if (!pertinente(def, ctx)) return [];
+    const selecteur = def.candidates ? ACTION_CANDIDATES[def.candidates] : undefined;
+    if (!selecteur) return [offre(def, {})];
+    const candidats = selecteur(ctx);
+    const porteur = ACTION_PORTEURS[def.candidates!];
+    if (!porteur) return candidats.length ? [offre(def, {})] : [];
+    return candidats.flatMap((c) => {
+      const p = porteur(c);
+      return p ? [offre(def, p.args, p)] : [];
+    });
+  });
+}
+
+/** L'offre que des ARGUMENTS de dispatch désignent : celle de l'entrée `actionId` dont chaque argument est repris par
+ *  `args`. Une offre par candidat se reconnaît à ses arguments (le sort, l'arme, l'attaque) ; une offre unique, sans
+ *  argument, à son seul id. La console y reconnaît ses cases, l'hôte texte le geste qu'il joue. */
+export function offreDesignee(offres: readonly Offre[], actionId: string, args: ActionRunCtx = {}): Offre | undefined {
+  const voulus = args as Record<string, unknown>;
+  return offres.find((o) => o.actionId === actionId && Object.entries(o.args).every(([k, v]) => voulus[k] === v));
+}
+
+/** Les offres d'une SURFACE qui offre par candidat (pastilles du champ, gestes secondaires d'une alvéole),
+ *  groupées par PORTEUR. Une offre sans porteur n'y désigne personne (garde `action-atteignabilite`). */
+export function offresParPorteur(offres: readonly Offre[], surface: ActionDef['surface']): OffresParPorteur[] {
+  const groupes = new Map<string, OffresParPorteur>();
+  for (const o of offres) {
+    if (o.def.surface !== surface || !o.porteurId) continue;
+    const g = groupes.get(o.porteurId) ?? { porteurId: o.porteurId, offres: [] };
+    g.offres.push(o);
+    groupes.set(o.porteurId, g);
   }
-  return [...parPorteur.values()];
+  return [...groupes.values()];
+}
+
+/** L'état de la BARRE de l'actif (#2898) — verdict UNIQUE, lu par la console et par l'hôte texte :
+ *  • `spectatrice` — personne n'agit (pause de Round, combat clos), ou l'actif n'est pas piloté par ce siège
+ *    (`controlsCombatant` : ennemi, Auto-combat, autre siège coop) ;
+ *  • `tenue` — une surface partagée tient la main (`surfaceTientLaMain` : modale, fenêtre hors-modale qui se
+ *    déclare `tientLaMain`, surface hors `pending*`) ;
+ *  • `ouverte` — l'actif joue ses offres (`offresDeLActif`). */
+export type EtatDeLaBarre =
+  | { forme: 'ouverte'; active: Combatant; battle: BattleState }
+  | { forme: 'spectatrice' | 'tenue'; raison: string };
+
+export function etatDeLaBarre(s: Jeu): EtatDeLaBarre {
+  const battle = s.battle;
+  const active = battle && !battle.over ? activeCombatant(battle) : undefined;
+  if (!battle || !active) return { forme: 'spectatrice', raison: t('barre.personneNAgit') };
+  if (!controlsCombatant(s, active)) return { forme: 'spectatrice', raison: t('barre.nonPilote', { name: active.label }) };
+  if (surfaceTientLaMain(s)) return { forme: 'tenue', raison: t('barre.mainTenue') };
+  return { forme: 'ouverte', active, battle };
 }
 
 /** L'action d'INTERLUDE du ciblage COURANT : l'entrée `surface: 'interlude'` dont le `mode` est celui

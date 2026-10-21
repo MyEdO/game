@@ -1123,9 +1123,10 @@ describe('CombatConsole — trois formes, une seule bande', () => {
     monter(h, { foes: [e], turn: 1 });
     expect(host.querySelector('.combat-console')!.getAttribute('data-forme')).toBe('spectatrice');
     expect(hotbar.capacites, 'des touches restent branchées sur un pont sans case').toEqual([]);
-    // … et à l'ouverture non plus (le pont y est l'arche seule).
+    // … et à l'ouverture non plus (le pont y est l'arche seule). La pause pose `turn: -1` avec son pending
+    // (`enterRoundStartPause`, `combatFlow.ts`) : personne n'agit.
     monter(h, { foes: [e] });
-    act(() => { useGame.setState({ pendingRoundStart: { round: 1, readyBySeat: {} } as never }); });
+    act(() => { useGame.setState({ pendingRoundStart: { round: 1, readyBySeat: {} } as never, battle: { ...useGame.getState().battle!, turn: -1 } }); });
     expect(hotbar.capacites).toEqual([]);
     act(() => { useGame.setState({ pendingRoundStart: null }); });
   });

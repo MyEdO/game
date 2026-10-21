@@ -322,7 +322,7 @@ export const ECRIT_LU = {
     ecrit: [],
     lit: ['src/', 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
     raison: RETRAIT_WORKTREE_FERME +
-      'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` de src/noyau, sans le store, ' +
+      'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` de src/noyau et src/hoteTexte, sans le store, ' +
       'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
       'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
   },

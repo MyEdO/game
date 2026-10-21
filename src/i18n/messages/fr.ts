@@ -2746,6 +2746,23 @@ export const fr = {
   'agate.noFocusSkillWind': '{name} ne maîtrise pas Focalisation ({wind})',
   // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `noyau/siegePush.pushCrewOk`).
   'agate.pushUndercrew': 'équipe trop réduite pour pousser l’engin',
+  // PERTINENCE d'une entrée (`GATES_DE_PERTINENCE`, #2911) : ce que le porteur n'a pas pour que l'offre ait lieu d'être.
+  'agate.noMeleeSet': 'le set au poing n’ouvre aucun corps à corps',
+  'agate.noRangedWeapon': 'aucune arme à distance',
+  'agate.noPushbackWeapon': 'aucune arme qui repousse',
+  'agate.noBattement': 'ne sait pas battre le fer',
+  'agate.noDistraire': 'ne sait pas distraire',
+  'agate.noFrenzy': 'aucune Frénésie à déclencher',
+  'agate.noTeamToAid': 'aucune équipe à aider',
+  'agate.notMounted': 'pas en selle',
+  'agate.noPosteManned': 'ne sert aucune pièce',
+  'agate.notAtHelm': 'ni navire ni à la barre',
+  'agate.notAVehicle': 'pas un véhicule',
+  'agate.notRoundStart': 'hors de la pause de début de Round',
+  // ÉTAT DE LA BARRE de l'actif (`noyau/actionRegistry.etatDeLaBarre`).
+  'barre.personneNAgit': 'aucun combattant au tour',
+  'barre.nonPilote': '{name} n’est pas piloté par ce siège',
+  'barre.mainTenue': 'une fenêtre tient la main',
   // ── PASTILLES D'ENTITÉ (spec HUD zone 4) : ce qu'une chose du champ offre, dit au joueur.
   'pastille.nGestes': '{n} gestes',
   'pastille.intitule': 'Que faire ?',

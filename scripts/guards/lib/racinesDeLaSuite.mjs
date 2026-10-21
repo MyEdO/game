@@ -19,9 +19,9 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
 ])
 
 /** Les tests HORS STORE (#2817) : joués par la seule suite du noyau (`vitest.noyau.config.ts`, `isolate: true`), sans
- *  le store ni le socle de test de la suite principale. Un `*.hors-store.test.ts` posé hors de `src/noyau` n'est pas
- *  exclu : la suite principale le joue. */
-export const MOTIF_HORS_STORE = 'src/noyau/**/*.hors-store.test.ts'
+ *  le store ni le socle de test de la suite principale — ceux du noyau et ceux de son hôte texte (#2898). Un
+ *  `*.hors-store.test.ts` posé hors de `src/noyau` et de `src/hoteTexte` n'est pas exclu : la suite principale le joue. */
+export const MOTIF_HORS_STORE = 'src/{noyau,hoteTexte}/**/*.hors-store.test.ts'
 
 /** Les suites Vitest qu'un step `npm run <nom>` de la CI joue hors de la suite principale : `config` = la config que
  *  lance le script `package.json` du même nom (`vitest run --config <config>`), `motif` = son `include`. La liste

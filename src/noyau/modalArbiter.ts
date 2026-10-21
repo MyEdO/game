@@ -258,6 +258,9 @@ export interface HorsModalDef {
    *  fenêtre et n'a pas d'autre porteur. Absent = aucun intent invité n'y est adossé, ou son porteur
    *  ne se lit pas dans le pending (il est alors routé nominativement par `intentAllowedFor`). */
   intents?: readonly string[];
+  /** Verbes de la partie qui FERMENT ce pending quand aucun intent n'y est adossé — ce qu'un hôte nomme au joueur
+   *  (`fenetreDuJeu`, #2898). Leur routage reste celui de `netOwnership`. */
+  verbes?: readonly string[];
 }
 
 export const HORS_MODAL = [
@@ -267,7 +270,7 @@ export const HORS_MODAL = [
   { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*' }, // Écran de victoire : `readyBySeat`, unanimité
   { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId }, // Placeur de case (ciblage carte, pas de modale)
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
-  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*' }, // Pause de début de Round (fenêtre Chance) : ready-check par siège
+  { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['confirmRoundStart', 'roundStartReady'] }, // Pause de début de Round (fenêtre Chance) : ready-check par siège
   { key: 'seaActivities', pendingKey: 'pendingSeaActivities', tientLaMain: true, owner: () => '*' }, // Activités hebdomadaires en mer : décision de groupe
   { key: 'manannPriest', pendingKey: 'pendingManannPriest', tientLaMain: true, owner: () => '*' }, // Événement de port (MDG 15) : décision de groupe
   { key: 'shoreLeave', pendingKey: 'pendingShoreLeave', tientLaMain: true, owner: () => '*' }, // Relâche à terre (MDG 15) : décision de groupe
@@ -333,7 +336,7 @@ export const SURFACES_HORS_PENDING = [
 ] as const satisfies readonly SurfaceHorsPendingDef[];
 
 /** Un pending est OUVERT s'il porte quelque chose : une collection vide est un slot au repos. */
-const pendingOuvert = (v: unknown): boolean => (Array.isArray(v) ? v.length > 0 : !!v);
+export const pendingOuvert = (v: unknown): boolean => (Array.isArray(v) ? v.length > 0 : !!v);
 
 /**
  * UNE SURFACE PARTAGÉE TIENT-ELLE LA MAIN ? Verdict UNIQUE de « ce que TOUS les sièges ont sous les

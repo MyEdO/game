@@ -2,7 +2,8 @@
 //  - `murs/zone` : un fichier de `src/` vit dans une zone de la table ; créer `src/foo/` demande sa ligne.
 //  - `murs/purete-imports` : un arc d'import (`arcsDImport.mjs`, toutes ses formes, motifs
 //    d'`import.meta.glob` compris) d'une zone vers une autre n'existe que si la table l'ouvre ; un arc
-//    de type seul passe là où la table n'ouvre que le type.
+//    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte
+//    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`).
 // La zone d'une cible se lit sur son chemin NORMALISÉ sans disque (`cibleLexicale`, alias du dépôt et
 // chemin `/…` compris) : le premier segment sous `src/` s'il nomme une zone, `racine` pour un fichier
 // posé à même `src/`. Un paquet n'est pas jugé, ni un motif de glob `!…` ou dont la zone est un joker.
@@ -10,7 +11,7 @@
 import { posix as cheminPosix, relative } from 'node:path';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { visiteurDArcs } from './arcsDImport.mjs';
-import { estZone, fermeture, ouvertes } from './couches.mjs';
+import { estZone, fermeture, ouvertes, porteManquee } from './couches.mjs';
 
 /** La zone d'un chemin RELATIF à la racine du dépôt, `null` hors de `src/`. Un segment qui n'est pas une
  *  zone de la table rend son nom brut, pour que `murs/zone` le nomme. */
@@ -51,9 +52,15 @@ const purete = {
     const juger = (node, spec, typeSeul) => {
       const cible = cibleLexicale(importeur, spec, racine);
       if (cible === null) return;
-      const vers = zoneDe(relative(racine, cible));
+      const cibleRel = posix(relative(racine, cible));
+      const vers = zoneDe(cibleRel);
       if (!estZone(vers)) return;
       const ferme = fermeture(de, vers, typeSeul);
+      const porte = ferme === null ? porteManquee(de, vers, cibleRel) : null;
+      if (porte !== null) {
+        context.report({ node, message: `Porte de couche (#2882, #2898) : ${nommer(de)} ne lit de ${nommer(vers)} que sa porte \`${porte}\`, en valeur comme en type — ${TABLE} la déclare (\`portes\`) : importer le nom de la porte, ou l’y exporter.` });
+        return;
+      }
       if (ferme === null) return;
       const portee = ferme === 'type' ? 'ni à l’EXÉCUTION ni pour un TYPE' : 'à l’EXÉCUTION';
       const remede = ferme === 'type' ? 'déplacer la forme partagée dans une zone ouverte' : 'déplacer la forme partagée dans une zone ouverte, ou n’importer que le TYPE (`import type`)';
