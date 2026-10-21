@@ -55,7 +55,7 @@ import { lanceUnGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourd
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { CACHE_FRAICHEUR } from '../docs/lib/cache-fraicheur.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
-import { RACINES_PRESENTES } from '../guards/lib/couches.mjs'
+import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /**

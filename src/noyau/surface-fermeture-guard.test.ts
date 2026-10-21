@@ -8,6 +8,7 @@
 import { beforeAll, describe, it, expect } from 'vitest';
 import { mesure as mesurer, paquetDe, ENTREES_FERMEES } from '../../scripts/guards/lib/fermetureDuNoyau.mjs';
 import { SURFACE_DU_NOYAU } from '../../scripts/guards/lib/couches.mjs';
+import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { detenteur } from '../detenteur.testkit';
 
 /** Les témoins d'une lecture vivante, par entrée qui importe : sans eux, une lecture cassée rendrait la garde verte en
@@ -22,7 +23,7 @@ const TEMOINS: Readonly<Partial<Record<string, readonly string[]>>> = {
 it('les entrées : la surface, les scénarios, chaque module du commun des hôtes lu dans l’arbre, l’entrée de l’hôte texte', () => {
   expect(ENTREES_FERMEES).toEqual(expect.arrayContaining(Object.keys(TEMOINS)));
   expect(ENTREES_FERMEES.filter((e) => e.startsWith('src/hote/')), 'le commun des hôtes ne se lit plus').toEqual(expect.arrayContaining(['src/hote/formes.ts', 'src/hote/partie.ts', 'src/hote/projection.ts']));
-  expect(ENTREES_FERMEES.filter((e) => /\.(test|generated)\./.test(e)), 'ni suite ni module généré ignoré').toEqual([]);
+  expect(ENTREES_FERMEES.filter((e) => estFichierVitest(e) || e.endsWith('.generated.ts')), 'ni suite ni module généré ignoré').toEqual([]);
 });
 
 it('les paquets de la fermeture se lisent (témoin : `zod`, depuis la surface)', () => {

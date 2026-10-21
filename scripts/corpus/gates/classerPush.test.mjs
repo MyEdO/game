@@ -7,7 +7,7 @@ import { DOCUMENTAIRE, gatesSautables } from '../../gates/classerPush.mjs'
 import { gatesDeCi } from '../../gates/gatesDeCi.mjs'
 import { corpusParGate, inerte } from '../../gates/ecrivainsAtteints.mjs'
 import { ECRIT_LU } from '../../gates/toutes.mjs'
-import { RACINES_PRESENTES } from '../../guards/lib/couches.mjs'
+import { RACINES_PRESENTES } from '../../guards/lib/racinesPresentes.mjs'
 import { gitDeLArbreReel } from '../../test/gitDeBanc.mjs'
 import { jetonNomme } from '../../test/lib/bancClasserPush.mjs'
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { correspondGlob, listerArbre, parUnitesDeCode } from '../../guards/lib/lister.mjs'
@@ -25,12 +25,14 @@ const estMur = (nom) => nom.startsWith('murs/') || RESTRICTION_NATIVE.test(nom)
 /** Ce fichier est-il armé par au moins un mur de la config réelle ? @param {string} rel */
 const armeParUnMur = (rel) => configEslint.some((b) => Object.keys(b.rules ?? {}).some(estMur) && couvre(b, rel) && !exempte(b, rel))
 
-/** Les fichiers du DISQUE, toutes extensions, qu'arme au moins un mur, marchés depuis les racines que ses globs nomment. */
+/** Les fichiers du DISQUE, toutes extensions, qu'arme au moins un mur, marchés depuis les racines que ses globs nomment
+ *  et que l'arbre porte (`hotes/` n'existe qu'avec son premier fichier, #2928). */
 function fichiersSousUnMur(racine) {
   const blocs = configEslint.filter((b) => Object.keys(b.rules ?? {}).some(estMur))
   const racines = [...new Set(blocs.flatMap((b) => b.files.map((g) => g.split('/')[0])))].sort(parUnitesDeCode)
   for (const r of racines) assert.doesNotMatch(r, /[*?{]/, `un mur vise \`${r}\` : la marche ne sait pas nommer cette racine`)
   return racines
+    .filter((r) => existsSync(join(racine, r)))
     .flatMap((r) => listerArbre(join(racine, r), { descendre: (rel) => !/(^|\/)(node_modules|\.git)$/.test(rel) }).map((rel) => `${r}/${rel}`))
     .filter(armeParUnMur)
 }
