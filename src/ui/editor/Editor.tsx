@@ -27,7 +27,8 @@ import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../../data/schemas/defs-scenes/projet';
-import { type NarratifBlock, emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { publierEditeur } from '../../state/editeurBridge';
 import {

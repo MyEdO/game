@@ -4,7 +4,7 @@ import couches from './couchesLint.mjs'
 
 /** Les murs qu'une directive au site peut éteindre (#2724) ; tout autre mur, et toute règle native de
  *  restriction, n'en admet aucune : `scripts/corpus/guards/directivesMurs.test.mjs`. */
-export const MURS_EXEMPTABLES_AU_SITE = Object.freeze(['marques', 'conteneur', 'purete-imports', 'ordre-total', 'ordre-total-imports', 'ordre-total-locale'].map((nom) => `murs/${nom}`))
+export const MURS_EXEMPTABLES_AU_SITE = Object.freeze(['marques', 'conteneur', 'ordre-total', 'ordre-total-imports', 'ordre-total-locale'].map((nom) => `murs/${nom}`))
 
 export default {
   meta: { name: 'murs' },

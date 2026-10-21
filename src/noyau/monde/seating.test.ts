@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, type Scene, type SceneEntity, type WallSeg } from './scene';
-import { DIR8_ORDER, type Dir8 } from './dir8';
+import { DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import { assignSeat, pruneSeatAssignments, releaseSeat, seatIsOccupiable, seatPoseOf, seatSlotsOf, type SeatOccupant } from './seating';
 
 /** Meuble de référence du catalogue app-owned : 4 places cardinales, ancres à ±0,43 case, assise 0,49 m. */

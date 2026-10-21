@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { presetPnjById } from './campaignData';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { emptyScene } from '../noyau/monde/scene';
 import { applyEffects } from '../noyau/combatEffects';
 import type { Combatant } from '../engine/types';

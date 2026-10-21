@@ -37,7 +37,7 @@ import type { Get, Set } from './flowTypes';
 import type { PlayerText } from '../i18n/playerText';
 
 import type { CrewRoleRoll } from './pendings';
-import { rotateDir8, DIR8_DELTA } from './monde/dir8';
+import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { footprintTiles, footprintN } from './monde/footprint';
 import { placeCombatant } from './monde/spawn';

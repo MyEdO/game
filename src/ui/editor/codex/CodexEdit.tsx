@@ -48,7 +48,7 @@ import { apparenceSuivante } from '../../../gameIso/rig/parts/cosmetic';
 import { CreaturePreview } from '../../compendium/CreaturePreview';
 import { porteurDApercu } from '../../compendium/apercuPorteur';
 import type { EntityAppearance } from '../../../engine/authoringAppearance';
-import { type Flow, type TriggeredEffect } from '../../../noyau/monde/flow';
+import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
 import { effectOnSchema, effectTriggerSchema } from '../../../data/schemas/grammaire/mecanique';
 import type { ManeuverDef, ManeuverMeasure } from '../../../data';

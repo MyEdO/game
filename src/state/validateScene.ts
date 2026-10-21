@@ -1,4 +1,6 @@
-import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene, type Effect } from '../noyau/monde/scene';
+import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene } from '../noyau/monde/scene';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
 import { isRoomZone } from '../noyau/monde/rooms';
 import { footprintTiles, sizeFootprint } from '../noyau/monde/footprint';
@@ -8,7 +10,6 @@ import { realFloorAt } from '../noyau/sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
-import { type Flow } from '../noyau/monde/flow';
 import { type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from '../engine/flowCore';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
 import { byId, stakeSpeaks, matieresDe } from '../data';
@@ -28,7 +29,6 @@ import { allMusicDefs } from '../audio/music';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from '../noyau/planDefects';
 import { seatAssignmentDefects } from '../noyau/monde/seating';
 import { memoByRefDeps } from '../noyau/monde/sceneMemo';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {

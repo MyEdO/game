@@ -17,7 +17,7 @@ import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très
 import { TEMPO } from './monde/tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
 import { programmer } from './plateforme';
-import { facingToward, DIR8_ORDER, type Dir8 } from './monde/dir8';
+import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
 import {
@@ -270,7 +270,8 @@ import { runCombatFlow, routeTriggeredTest, bandeTriggeredTest, rollFrozenOppose
 // Sauvegardes post-touche en registre `HitModifier` ordonné (noyau/combat/hitModifiers, module FEUILLE).
 import { runHitModifiers, toucheSauvee } from './combat/hitModifiers'; // usage interne (applyAttackResult + applyCast : SITE UNIQUE des sauvegardes de touche)
 import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, gratuitesRestantes, MELEE_MANEUVER_KINDS, rollManeuverAttacker, maneuverAttackerDifficulty, resolveManeuver, availableFreeAttackOps, resolveBattement, battementEligible, resolveDistraire, distraireEligible, distraireAttackValue, distraireDefenseValue } from './combatManeuvers';
-import { testFlow, type Flow } from './monde/flow';
+import { testFlow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { runCascadeImmediate, rollTableStep, poserCurseurCascade, lireEnSeuil, pushStep, type TableStepDef, type CascadeApplier } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';

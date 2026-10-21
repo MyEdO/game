@@ -5,9 +5,8 @@
  * Fonctions PURES ; le rendu les lit par `useIdentites` (`src/ui/useIdentites.ts`).
  */
 import { findSpeciesById } from '../../data';
-import { motifEnMot } from '../../data/schemas/defs-scenes/narratif';
+import { motifEnMot, type NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import type { RaceKey, Sexe } from '../../data/schemas/grammaire/valeurs';
-import type { NarratifBlock } from './campaignNarratif';
 
 /** Le couple figé d'un état `heros`. */
 export interface CoupleDIdentite { readonly espece: RaceKey; readonly sexe: Sexe }

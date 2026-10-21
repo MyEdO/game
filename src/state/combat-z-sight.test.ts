@@ -9,7 +9,8 @@ import { describe, it, expect } from 'vitest';
 import { lineOfSightCover } from '../noyau/monde/lineOfSight';
 import { computeVisible, type LightField } from '../noyau/monde/vision';
 import { computeStateVisible } from '../noyau/visionState';
-import { Scene, SceneEntity, WallSeg, type Terrain } from '../noyau/monde/scene';
+import { Scene, SceneEntity, WallSeg } from '../noyau/monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import type { Combatant } from '../engine/types';
 
 function scene(w: number, h: number, tiles?: Record<string, string>, walls?: WallSeg[], entities: SceneEntity[] = []): Scene {

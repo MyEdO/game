@@ -6,7 +6,7 @@
  */
 import { useState } from 'react';
 import { Dialogue, DialogueNode, DialogueChoice } from '../../noyau/monde/scene';
-import { type Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { Ctx } from './EffectList';
 import { Icon } from '../Icon';

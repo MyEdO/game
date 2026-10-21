@@ -68,7 +68,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { freeYaw, type ActorCapsule, type Dims, type Rot } from '../../geometry/iso';
 import { hauteurDe, type LectureDArete, type Scene } from '../../noyau/monde/scene';
-import { DIR8_DELTA, DIR8_ORDER, type Dir8 } from '../../noyau/monde/dir8';
+import { DIR8_DELTA, DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
 import { pxPerM } from '../backends/webgl/worldTris';

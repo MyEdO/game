@@ -9,7 +9,7 @@
  *  2. L'ARBITRAGE `setTime`. Les deux variantes de même discriminant sont FUSIONNÉES en une entrée
  *     `{phase?, hour?, minute?}` gardée par un XOR STRICT — aucun loosening : ce test tient les
  *     quatre coins (phase seule, heure seule/avec minute, les deux, aucun).
- *  3. L'ÉQUIVALENCE DE TYPE. `Effect` est désormais COMPOSÉ des infers ; rien n'empêche un infer de
+ *  3. L'ÉQUIVALENCE DE TYPE. `Effect` est COMPOSÉ des infers ; rien n'empêche un infer de
  *     retomber à `any` (auquel cas tout compilerait, muet). Les contrats ci-dessous sont gatés par
  *     `npm run typecheck` — jamais par `vitest --typecheck`, FAUX VERT mesuré sur `expectTypeOf`.
  *  4. LA LIAISON AU MOTEUR. Comparer un infer à `Extract<Effect, …>` ne prouve RIEN pour les champs
@@ -28,8 +28,8 @@ import {
   effectSchema, sceneFlowSchema, setFlagSchema, setObjectiveSchema, delayedEffectSchema,
   petitePriereSchema, setTimeSchema, pursuitFoeSchema, massBattleSpecSchema, favorLevelSchema,
   crewHireSchema,
+  type Effect, type DelayedEffect, type PetitePriere,
 } from './effets';
-import type { Effect, DelayedEffect, PetitePriere } from '../../../noyau/monde/scene';
 import type { Flow } from '../../../engine/flowCore';
 import type { PursuitFoeRef } from '../../../noyau/pursuitFlow';
 import type { MassBattleSpec } from '../../../engine/massBattle';

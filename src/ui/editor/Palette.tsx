@@ -10,7 +10,8 @@
  * l'INSPECTEUR, qui tient une instance, qui l'annonce au cap RÉEL (`Inspector.tsx`).
  */
 import { useState, type ReactNode } from 'react';
-import { DEFAULT_TERRAIN, sceneMetresPerTile, type Scene, type Terrain } from '../../noyau/monde/scene';
+import { DEFAULT_TERRAIN, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP, empreinteDuProp } from '../../data/props.types';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';

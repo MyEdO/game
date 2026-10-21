@@ -1,9 +1,8 @@
 /** La ligne d'une zone de `COUCHES` : ce qu'elle importe librement (`'*'` : toutes), ce qu'elle ne lit
- *  qu'en type, et ses arêtes transitoires (arcs de type) avec la sous-issue qui les retire. */
+ *  qu'en type, et ses portes. */
 export interface Couche {
   readonly importe: readonly string[] | '*';
   readonly types?: readonly string[];
-  readonly transitoire?: Readonly<Record<string, { readonly issue: string }>>;
   /** Pour une zone importée, le seul module qu'elle en lit (chemin relatif à la racine). */
   readonly portes?: Readonly<Record<string, string>>;
 }
@@ -21,7 +20,7 @@ export function fermeture(de: string, vers: string, typeSeul: boolean): null | '
 /** `z` est-il une zone de la table ? Clé PROPRE seulement. */
 export function estZone(z: unknown): z is string;
 
-/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type, arêtes transitoires comprises. */
+/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type. */
 export function ouvertes(de: string): { libres: string[]; enType: string[] };
 
 /** La porte que la zone `de` impose vers `vers` et que l'arc vers `cibleRel` manque, `null` sinon. */

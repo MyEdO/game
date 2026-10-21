@@ -1,4 +1,4 @@
-import { libelleEffet } from '../data/schemas/defs-scenes/effets';
+import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
@@ -53,12 +53,12 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney } from '../engine/money';
 import { distributeCredit, drainGroup, condCtx } from './bourseFlow';
-import { Effect, groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
+import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
 import { placeCombatant } from './monde/spawn';
 import { refuserGeste } from './refusVisible';
-import { type Flow, flowFromEffects, testFlow } from './monde/flow';
+import { flowFromEffects, testFlow } from './monde/flow';
 import { type FlowTest, type EffectOp, type Condition, flowEffects, evalCondition, leafOpsCtx, EMPTY_FLOW, spellOps } from '../engine/flowCore';
 import { inRect, combatantsWithinRadius } from './monde/combatGeometry';
 import { removeEntity } from './combatPlacement';

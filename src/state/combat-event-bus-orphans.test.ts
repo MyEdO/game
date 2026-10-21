@@ -11,7 +11,7 @@ import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from '../noyau/monde/flow';
+import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import type { EffectTrigger } from '../engine/flowCore';
 import { resetCadence } from '../engine/cadence';
 

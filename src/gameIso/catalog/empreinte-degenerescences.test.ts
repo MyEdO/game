@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { props } from '../../data';
 import { empreinteDeriveeDuProp, type PropData } from '../../data/props.types';
-import { DIR4_ORDER } from '../../noyau/monde/dir8';
+import { DIR4_ORDER } from '../../geometry/dir8';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { emptyScene, isWalkable, sceneMetresPerTile } from '../../noyau/monde/scene';
 

@@ -13,7 +13,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CampaignOpeningScreen } from './CampaignOpeningScreen';
 import { useGame } from '../state/store';
-import type { OuvertureBlock } from '../noyau/monde/campaignNarratif';
+import type { OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

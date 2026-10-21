@@ -19,7 +19,7 @@ import { ISO_PX_PER_M } from '../../iso';
 import { VIEWS, project, facingView } from '../../rig/facing';
 import { povView } from '../../pov/camera';
 import { ENT_H_M, PROP_H_M, BB_W, BB_H } from '../../pov/billboardCore';
-import { DIR8_ORDER } from '../../../noyau/monde/dir8';
+import { DIR8_ORDER } from '../../../geometry/dir8';
 import { TW, type Rot } from '../../../geometry/iso';
 
 describe('taille monde — convention `jeu` du moteur + presets de comparaison de planche (#1160)', () => {

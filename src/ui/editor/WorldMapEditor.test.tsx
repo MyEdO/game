@@ -25,7 +25,8 @@ import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 import { EFFECT_LABEL } from './EffectList';
 import { emptyWorldMap, type WorldMap, type MapPlace, type MapRoute } from '../../noyau/worldMap';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { lieuxServices, navalPorts } from '../../data';
 import { TRAVEL_DEFAULTS } from '../../engine/travel';
 

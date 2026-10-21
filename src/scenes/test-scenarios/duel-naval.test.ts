@@ -6,7 +6,7 @@ import { targetArc, headingToBear } from '../../noyau/monde/fireArc';
 import { bearingPostes, mostArmedSide } from '../../noyau/monde/shipBattery';
 import { maneuverShip, shipManeuverParams } from '../../noyau/shipManeuver';
 import { refusPersonneNePeutTenter } from '../../engine/skills';
-import { facingToward, DIR8_ORDER } from '../../noyau/monde/dir8';
+import { facingToward, DIR8_ORDER } from '../../geometry/dir8';
 import { isMerScene, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { chebyshev } from '../../engine/grid';
 import { runEnemyAI, checkBattleOver } from '../../noyau/combatFlow';

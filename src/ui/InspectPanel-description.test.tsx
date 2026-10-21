@@ -28,7 +28,7 @@ import { Inspector } from './editor/Inspector';
 import { addEnemyMember } from '../noyau/sceneEdit';
 import { placeEntity } from './editor/editorState';
 import { emptyScene } from '../noyau/monde/scene';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { DELAI_APPUI_LONG } from './useLongPress';

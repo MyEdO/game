@@ -11,7 +11,7 @@ import { walkFlow } from '../../engine/flowCore';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import { scenario } from './documents-edo';
 import type { Dialogue } from '../../noyau/monde/scene';
-import type { Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 
 const paquet = paquetDuJeu(diligenceCampaign).narratif.documents;
 

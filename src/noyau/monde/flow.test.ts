@@ -3,10 +3,8 @@
  * + aplatissage des branches `if`/`seq`/`do`. L'exécution interactive (`test`) est testée via le store.
  */
 import { describe, it, expect } from 'vitest';
-import type { Effect } from './scene';
-import {
-  flowFromEffects, type Flow,
-} from './flow';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
+import { flowFromEffects } from './flow';
 import { evalCondition, flattenFlow, flowHasTest, EMPTY_FLOW, conditionCtx, type Condition } from '../../engine/flowCore';
 import { createHero } from '../../engine/character';
 

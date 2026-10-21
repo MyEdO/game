@@ -29,7 +29,7 @@ import { isOptionalNote } from '../../engine/statEntry';
 import { effectiveEntry } from '../../engine/variants';
 import { facesDuDe, fourchette } from '../../engine/tables';
 import { spellEffectOps } from '../../engine/flowCore';
-import type { Flow, TriggeredEffect } from '../../noyau/monde/flow';
+import type { Flow, TriggeredEffect } from '../../data/schemas/defs-scenes/effets';
 import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET } from '../../data/schemas/_cles-de-dataset.generated';
 import { replier } from '../../lib/ordre.mjs';

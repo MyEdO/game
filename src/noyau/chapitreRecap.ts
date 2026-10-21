@@ -9,7 +9,7 @@
 import type { Combatant } from '../engine/types';
 import { evalCondition } from '../engine/flowCore';
 import type { RecapLine } from './recapLine';
-import type { ClotureBlock } from './monde/campaignNarratif';
+import type { ClotureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Objective } from './etat';
 import { condCtx } from './bourseFlow';

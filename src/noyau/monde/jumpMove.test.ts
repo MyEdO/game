@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain, type Effect } from './scene';
-import { type Flow } from './flow';
+import { emptyScene, type Scene } from './scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { flowEffects } from '../../engine/flowCore';
 import { planJump } from './jumpMove';
 import { testDeRegle } from '../../engine/reglesChiffrees';

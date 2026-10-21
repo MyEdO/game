@@ -17,7 +17,7 @@ import { useGame } from './store';
 import { scenesDuRegistre } from '../noyau/monde/registreDesScenes';
 import { atteignables, partagesDeLEtat } from './partage.testkit';
 import { gelerProfond } from '../lib/gelerProfond';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { desDuTest, desEnSuite } from '../engine/dice.testkit';
 
 const geler = memoByRef((s: Scene) => s);

@@ -8,7 +8,7 @@ import { findCreatureById, trappingDesObjetsPuisDuCatalogue, type CreatureData }
 import { memoByRef } from './sceneMemo';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { TrappingResolver } from '../../engine/items';
-import type { DocumentNarratif, Indice, NarratifBlock, PresetPnj } from './campaignNarratif';
+import type { DocumentNarratif, Indice, NarratifBlock, PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
 
 /** Le narratif résolu : celui de la partie (`campaignNarratif`, `null` hors campagne) ou celui du projet édité. */

@@ -15,7 +15,8 @@ import { SessionEndModal } from './SessionEndModal';
 import { useGame } from '../state/store';
 import { applyEffects } from '../noyau/combatEffects';
 import type { ChapterRecap } from '../noyau/chapitreRecap';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Combatant } from '../engine/types';
 
 beforeAll(() => {

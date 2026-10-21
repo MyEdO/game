@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyEffects } from '../noyau/combatEffects';
 import { hasCondition } from '../engine/conditions';
-import type { Effect } from '../noyau/monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
 
 const hero = (id: string, current: number): Combatant =>

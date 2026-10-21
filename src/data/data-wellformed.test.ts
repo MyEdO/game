@@ -53,7 +53,7 @@ const COMPARE_OPS = new Set(['>=', '<=', '==', '<', '>', '!=']);
 // `TrappingData.consumable`) qui ne matchent pas ce motif → naturellement hors périmètre du verrou.
 const INDEX_SRC = readFileSync(fileURLToPath(new URL('index.ts', import.meta.url)), 'utf8');
 const TRIGGERED_EFFECT_FIELDS = new Set(
-  [...INDEX_SRC.matchAll(/(\w+)\?:\s*import\('\.\.\/(?:noyau\/monde\/flow|engine\/flowCore)'\)\.TriggeredEffect\[\]/g)].map((m) => m[1]),
+  [...INDEX_SRC.matchAll(/(\w+)\?:\s*(?:import\('\.\.\/engine\/flowCore'\)\.)?TriggeredEffect(?:<\w+>)?\[\]/g)].map((m) => m[1]),
 );
 
 // Fichier DIALECTE compilé (cf. en-tête) : exclu de la famille Formule.

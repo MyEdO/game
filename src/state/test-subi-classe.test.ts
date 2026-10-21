@@ -22,7 +22,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { GameOp, OpsCtx } from '../engine/ops';
-import { type Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
 
 const get = useGame.getState;

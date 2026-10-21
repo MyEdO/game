@@ -1,7 +1,8 @@
 import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 

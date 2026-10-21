@@ -15,7 +15,7 @@ import { evalCondition } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { makeRNG } from '../engine/dice';
 import type { Combatant, Weapon } from '../engine/types';
-import type { Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
   id: 'c', label: 'C', kind: 'enemy',

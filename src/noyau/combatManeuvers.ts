@@ -15,7 +15,7 @@
  */
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState, Jeu } from './etat';
-import { facingToward } from './monde/dir8';
+import { facingToward } from '../geometry/dir8';
 import { Combatant, type Difficulty, CHAR_LABELS } from '../engine/types';
 import { battleRng } from './battleRng';
 import { evLines } from './combatLog';

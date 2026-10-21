@@ -9,7 +9,7 @@ import { CHAR_KEYS } from '../../engine/types';
 import { useGame } from '../../state/store';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { OPTIONAL_RULES, setRule, resetRule } from '../../engine/policy';
-import { type Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { walkFlow, type Condition, type EffectOp } from '../../engine/flowCore';
 import type { GameOp, Formula } from '../../engine/ops';
 

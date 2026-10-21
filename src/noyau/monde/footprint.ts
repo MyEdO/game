@@ -15,7 +15,7 @@
  */
 import { findPropById } from '../../data';
 import { empreinteDuProp, offsetAncre } from '../../data/props.types';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
 import type { Pt } from './path';

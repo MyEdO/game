@@ -15,7 +15,7 @@
  */
 import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import type { Jeu } from '../etat';
 
 /**

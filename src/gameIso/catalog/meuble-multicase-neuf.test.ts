@@ -3,7 +3,7 @@ import { props } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { empreinteDuProp, validatePropCatalog, type PropData } from '../../data/props.types';
 import { decorEnCase, decorEnCaseEtage } from '../../noyau/monde/decorIndex';
-import { DIR4_ORDER, type Dir4 } from '../../noyau/monde/dir8';
+import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { losClear, tileBlocksSight } from '../../noyau/monde/lineOfSight';
 import { emptyScene, isWalkable, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';

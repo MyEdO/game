@@ -3,7 +3,7 @@
  * (#495, #2724).
  */
 import type { Condition, CompareSubject, PartySelector, TemporalCondition } from '../../../engine/flowCore';
-import type { NarratifBlock } from '../../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS } from '../../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../../../data/schemas/defs/maneuvers';

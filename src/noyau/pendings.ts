@@ -8,9 +8,9 @@ import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './monde/path';
-import type { Dir8 } from './monde/dir8';
-import type { Effect, Dialogue } from './monde/scene';
-import type { Flow } from './monde/flow';
+import type { Dir8 } from '../geometry/dir8';
+import type { Dialogue } from './monde/scene';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { GameOp, OpsCtx, OpsCtxGele, PairedSense } from '../engine/ops';
 import type { TestResult, OpposedResult, EchecSansJet, JetPose } from '../engine/tests';
 import type { AttackResult, DefenseMode, DifficultyComposition, ModLine, RollBreakdown } from '../engine/combat';
@@ -2347,7 +2347,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
   /** HALTE de voyage : la finalisation REPREND la route (continueTravelAfterNight). */
   travelHalt?: boolean;
   /** Cascade de PEUR de FIN de Round (combat) : à sa fermeture, le store ré-appelle `resolveRoundBoundary`
-   *  pour enchaîner sur la pause de début de Round (la Peur est désormais marquée testée ce Round). */
+   *  pour enchaîner sur la pause de début de Round (la Peur est marquée testée ce Round). */
   roundBoundary?: boolean;
   /** Cascade de FIN DE COMBAT (Tests de maladie et `influences-corruptrices` des héros survivants, LDB 18/19/20)
    *  ouverte AVANT l'écran de victoire : à sa fermeture, le store enchaîne sur `finishCombatEnd` (writeback

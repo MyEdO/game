@@ -14,7 +14,7 @@ import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { trappings, type TrappingData } from '../../data';
 import { dansLaSousListe, idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
-import type { Effect } from '../../noyau/monde/scene';
+import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 
 beforeAll(() => {

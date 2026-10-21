@@ -5,7 +5,7 @@ import { ScreenMeta } from './ScreenMeta';
 import { SceneBackdrop } from './SceneBackdrop';
 import { Row } from './Layout';
 import type { Money } from '../engine/money';
-import type { AmbianceCadre } from '../noyau/monde/campaignNarratif';
+import type { AmbianceCadre } from '../data/schemas/defs-scenes/narratif';
 
 /**
  * ScreenShell — LA coquille UNIQUE des écrans plein-champ (carte du monde, port/escale, marché,

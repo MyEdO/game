@@ -22,7 +22,7 @@ import { Pt } from './path';
 import { chebyshev } from '../../engine/grid';
 import { findLightLevelById, findTraitById, findPropById, findTrappingById } from '../../data';
 import { empreinteDuProp, rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { memoByRef } from './sceneMemo';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de

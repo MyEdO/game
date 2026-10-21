@@ -7,7 +7,7 @@
  * adaptateurs plats `whenFlag/whenWindow/buildWhen` (qui n'exprimaient que « flag ET créneau »).
  */
 import type { Condition, ActorRef, ActorField, CompareOp, PartySelector, TemporalCondition } from '../../engine/flowCore';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { HIT_LOCATION_LABELS, type HitLocation } from '../../engine/types';
 import { libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { etatsAdmettant, valeursDeclarees } from '../../data/schemas/defs-scenes/formes-d-etat';

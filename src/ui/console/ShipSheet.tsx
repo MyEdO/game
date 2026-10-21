@@ -14,7 +14,7 @@ import { postesToStations } from '../../state/stations';
 import { posteAnchor } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
 import type { Combatant, NavalTraitRef } from '../../engine/types';
-import type { Dir8 } from '../../noyau/monde/dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { Icon } from '../Icon';
 import { Prose } from '../Prose';
 import { Tabs } from '../composites/Tabs';

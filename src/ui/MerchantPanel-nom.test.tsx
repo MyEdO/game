@@ -7,8 +7,8 @@ import { MerchantPanel } from './MerchantPanel';
 import { useGame } from '../state/store';
 import { placeEntity } from './editor/editorState';
 import { emptyScene } from '../noyau/monde/scene';
-import { creatureLabel } from '../data';
-import { MERCHANTS } from '../noyau/monde/merchants/archetypes';
+import { creatureLabel, findMerchantArchetypeById } from '../data';
+import { garanti } from '../lib/garanti';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -35,7 +35,7 @@ describe('MerchantPanel — nom du marchand (#1463 S3)', () => {
     document.body.appendChild(container);
     root = createRoot(container);
     act(() => { root!.render(<MerchantPanel />); });
-    expect(MERCHANTS.armurier.label).not.toBe(creatureLabel('humain'));
+    expect(garanti(findMerchantArchetypeById('armurier'), 'armurier', 'archétype de marchand').label).not.toBe(creatureLabel('humain'));
     expect(container.querySelector('.dlg-speaker')?.textContent).toBe(creatureLabel('humain'));
   });
 });

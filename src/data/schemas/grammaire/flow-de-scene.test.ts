@@ -3,7 +3,7 @@
  *
  * `flowSchema` est `Flow<EffectOp>` : sa feuille `do` porte un `EffectOp` (`{ type: 'ops', ops }`),
  * le vocabulaire du MOTEUR. Le Flow de scène est `Flow<Effect>` : sa feuille porte l'union `Effect`
- * de `noyau/monde/scene.ts` (`startCombat`, `transition`, `journal`…). Réutiliser le premier pour valider
+ * de `defs-scenes/effets.ts` (`startCombat`, `transition`, `journal`…). Réutiliser le premier pour valider
  * le second rejetterait TOUTES les feuilles authorées — ce test le mesure sur la donnée réelle, pour
  * que le lot T3-b compose un `sceneFlowSchema` propre au lieu de recycler celui de la grammaire.
  * La `Condition`, elle, est bien PARTAGÉE (même algèbre des deux côtés).

@@ -1,6 +1,6 @@
 import { REFERENCES_NARRATIVES, type CleDeRegistreNarratif } from '../../data/schemas/defs-scenes/registres-narratifs';
 import { etatDeclare, valeurDEtat, type EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { nomDePreset } from '../../noyau/monde/resolveursDuNarratif';
 
 /** Clé d'une référence narrative (`REFERENCES_NARRATIVES`). */

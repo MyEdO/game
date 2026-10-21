@@ -1,8 +1,8 @@
-import { type Flow } from '../../noyau/monde/flow';
 import { flowEffects, EMPTY_FLOW } from '../../engine/flowCore';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { validateScene } from '../../state/validateScene';
-import { isWalkable, layerTiles, type Effect } from '../../noyau/monde/scene';
+import { isWalkable, layerTiles } from '../../noyau/monde/scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { pathTo } from '../../noyau/monde/path';
 import { useGame } from '../../state/store';
 import { applyEffects } from '../../noyau/combatEffects';
@@ -11,7 +11,7 @@ import { scenario } from './opera';
 const scenarioConstruit = scenario.construire();
 
 /**
- * La salle est désormais COMPILÉE depuis un `MapSpec` par `buildScene` (headless-editor) : la grille
+ * La salle est COMPILÉE depuis un `MapSpec` par `buildScene` (headless-editor) : la grille
  * reste authorée en ASCII (une par étage), la logique d'intrigue vit dans `triggers`/`dialogues`, et le
  * roster de la rencontre optionnelle est attaché à la scène produite. Ce bloc verrouille l'ÉQUIVALENCE
  * de la Scene produite : dimensions/couches/tuiles/hauteurs/entités attendues, comme l'ancienne plomberie

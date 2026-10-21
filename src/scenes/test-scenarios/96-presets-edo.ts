@@ -2,7 +2,8 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock, type PresetPnj } from '../../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock, PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
 

@@ -30,7 +30,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { simpleTriggeredTestStep, withDerivedStake } from '../noyau/combat/triggeredTest';
 import { effectSourcesOf } from '../noyau/triggeredEffects';
-import { type Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { noeudsDeTest, KIND_PAR_FICHIER } from './noeudsDeTest.testkit';
 import { resolveStake, findById, combatStakeRef, regles, type StakeRef } from '../data';

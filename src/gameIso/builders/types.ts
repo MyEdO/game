@@ -14,7 +14,7 @@
 import type { CellSide, FacadeFeature, SceneEntity, WallSide } from '../../noyau/monde/scene';
 export type { CellSide };
 import type { Combatant } from '../../engine/types';
-import type { Dir4, Dir8 } from '../../noyau/monde/dir8';
+import type { Dir4, Dir8 } from '../../geometry/dir8';
 import type { SeatPose } from '../../noyau/monde/seating';
 import type { MaterialRef } from '../../data/materials.types';
 

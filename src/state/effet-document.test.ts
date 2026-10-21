@@ -7,9 +7,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useGame } from './store';
 import { runFlow, applyEffects } from '../noyau/combatEffects';
-import type { Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 
 const narratif: NarratifBlock = {
   ...emptyNarratif(),

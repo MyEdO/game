@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { applyEffects, fireScheduledEffects } from '../noyau/combatEffects';
-import { flowFromEffects, type Flow } from '../noyau/monde/flow';
-import type { Effect } from '../noyau/monde/scene';
+import { flowFromEffects } from '../noyau/monde/flow';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 
 /** Harnais minimal {get,set} : applyEffects/fireScheduledEffects ne touchent que flags/scheduledEffects
  *  pour des effets `setFlag` (pas de combat, butin ni journal). */

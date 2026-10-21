@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, setTileCollapsed, surfaceDAtterrissage, type Scene, type Terrain } from '../noyau/monde/scene';
+import { emptyScene, setTileCollapsed, surfaceDAtterrissage, type Scene } from '../noyau/monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 
 /**
  * `surfaceDAtterrissage` (LDB 15 l.82) : la plus haute surface MARCHABLE, toutes couches, dont la

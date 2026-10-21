@@ -21,7 +21,7 @@ import { createHero } from '../../engine/character';
 import type { Combatant } from '../../engine/types';
 import * as sceneMeshes from '../backends/webgl/sceneMeshes';
 import { actorPoseKey, type ActorPose, type BillboardSubject } from '../backends/webgl/sceneMeshes';
-import type { Dir8 } from '../../noyau/monde/dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import type { Dims } from '../../geometry/iso';
 import { discCapPath } from '../builders/dynamicMarks';
 import { MondeDeCampagne } from './MondeDeCampagne';

@@ -451,7 +451,7 @@
           "files": [
             "merchants.json"
           ],
-          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `MERCHANTS` (`noyau/monde/merchants/archetypes.ts`) indexe ce registre"
+          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `merchantArchetypeById` (`data/index.ts`) indexe ce registre"
         },
         {
           "files": [
@@ -540,7 +540,7 @@
     {
       "id": "campagne",
       "label": "Contenu de campagne / interlude / rencontres",
-      "note": "Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/noyau/monde/campaignNarratif.ts`, #765) est EMBARQUÉ dans le JSON du projet, jamais dans `src/data` global : ses `narratif.objets` réutilisent le schéma `TrappingData` global (`src/data/index.ts`), et ses `presetsPnj.base` RÉFÉRENCENT une créature globale par id (`findCreatureById`) — jamais une copie.",
+      "note": "Le **bloc `narratif`** d'un paquet de campagne schema 3 (`NarratifBlock`, `src/data/schemas/defs-scenes/narratif.ts`, #765) est EMBARQUÉ dans le JSON du projet, jamais dans `src/data` global : ses `narratif.objets` réutilisent le schéma `TrappingData` global (`src/data/index.ts`), et ses `presetsPnj.base` RÉFÉRENCENT une créature globale par id (`findCreatureById`) — jamais une copie.",
       "entrees": [
         {
           "files": [

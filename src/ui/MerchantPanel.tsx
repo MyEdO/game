@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useGame } from '../state/store';
-import { findTrappingById, findVehicleById, weaponGroupLabel, merchantFamilies, type QualityRef } from '../data/index';
+import { findTrappingById, findVehicleById, weaponGroupLabel, merchantFamilies, findMerchantArchetypeById, type QualityRef } from '../data/index';
 import { priceToMoney, fromBrass, toBrass, canAfford, add as moneyAdd, type Money } from '../engine/money';
 import { craftPriceFactor } from '../engine/qualities/craftEconomy';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
@@ -20,7 +20,6 @@ import { partyMoneyTotal } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { SceneEntity } from '../noyau/monde/scene';
-import { MERCHANTS } from '../noyau/monde/merchants/archetypes';
 import { Coins } from './Coins';
 import { NumberField } from './NumberField';
 import { Prose, mdToText } from './Prose';
@@ -754,7 +753,7 @@ export function MerchantPanel() {
   const searchAvailability = useGame((s) => s.searchAvailability);
   if (!merchant) return null;
   const speakerEnt = scene?.entities.find((e) => e.id === merchant.entityId);
-  const arch = MERCHANTS[merchant.archetype];
+  const arch = findMerchantArchetypeById(merchant.archetype);
   const speakerName = (speakerEnt && nomDEntite(speakerEnt, presetPnjById)) ?? arch?.label;
   return (
     <MerchantPanelView

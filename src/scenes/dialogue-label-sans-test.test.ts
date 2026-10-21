@@ -30,7 +30,7 @@ import { mesurerLibellesDeReponse } from '../../scripts/guards/lib/dialogueLabel
 import { avisLibelleRecopie, validateScene } from '../state/validateScene';
 import { testScenarios } from './test-scenarios';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
-import type { Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 
 /** Le vocabulaire que la garde ne redéclare pas : il vient de SA source. */
 const VOC = { carac: CHAR_LABELS, difficultes: DIFFICULTY_LABELS, monnaie: { formater: formatMoney, epeler: spellMoney } };

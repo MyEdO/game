@@ -6,7 +6,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 
 import { testScene } from '../../scenes/test-fixture';
-import type { Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
 

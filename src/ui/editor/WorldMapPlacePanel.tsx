@@ -13,7 +13,7 @@ import { MapCanvas } from '../MapCanvas';
 import { planChrome } from '../PlanChrome';
 import { VB_W, VB_H } from '../worldMapViewport';
 import { Scene } from '../../noyau/monde/scene';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { type MapPlace, type PlacePoi, resolvePortRef, placeServices, poiIcon } from '../../noyau/worldMap';
 import { LAND_CARGO_ENTRIES, LAND_RICHESSE_ROWS, type LandMarketProfile } from '../../engine/landCargo';
 import { cargoes, CARGO_ENTRIES, isEchangeable, type CargoEntry, type PortProfile } from '../../engine/seaVoyage';

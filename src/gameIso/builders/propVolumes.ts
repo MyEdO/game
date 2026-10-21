@@ -23,7 +23,7 @@
  * pour la carte d'ombre au lieu de le re-dériver du centre de la carte.
  */
 import { polygonesDePrimitive, rotatePropLocal, type PropData } from '../../data/props.types';
-import type { Dir4 } from '../../noyau/monde/dir8';
+import type { Dir4 } from '../../geometry/dir8';
 import type { Face, GP } from './types';
 
 /** ANCRAGE d'une recette dans le monde : le point (fractionnaire, en cases) où son origine locale se

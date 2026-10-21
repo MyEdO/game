@@ -17,7 +17,7 @@
 import { terrains } from '../../../data/index';
 import { memoParVersion } from '../../../data/versionDataset';
 import type { TerrainDef } from '../../../data/terrains.types';
-import type { Terrain } from '../scene';
+import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 
 
 const indexVivant = memoParVersion('terrains', () =>

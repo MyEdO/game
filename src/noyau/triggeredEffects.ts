@@ -11,7 +11,7 @@
  */
 import { type Combatant, type Weapon, type HitLocation, type Difficulty, type EffectSource } from '../engine/types';
 import type { Get, Set as SetFn } from './flowTypes';
-import { type TriggeredEffect, type Flow } from './monde/flow';
+import type { TriggeredEffect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { OpsCtx, GameOp } from '../engine/ops';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { resolveQualities } from '../engine/qualities/dispatch';

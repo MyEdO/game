@@ -14,7 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import { branchCertainOps, branchBlockingEntity, stableCondVerdict, combatConditionCtx } from '../../noyau/combat/flowEval';
 import { etats, spells } from '../../data';
-import type { Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Combatant, TalentInstance } from '../../engine/types';
 
 const C = (over: Partial<Combatant> = {}): Combatant =>

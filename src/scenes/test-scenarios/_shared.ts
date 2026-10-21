@@ -1,7 +1,8 @@
 import { Combatant, type SkillInstance } from '../../engine/types';
 import { byId } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
-import { Scene, Terrain } from '../../noyau/monde/scene';
+import { Scene } from '../../noyau/monde/scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ContenuDeScenario, LancementDeScenario } from '../../noyau/lancementDeScenario';
 import type { IconIdGenerated } from '../../data/icones.generated';
 import { buildEncounters, type AuthoredEncounter } from '../../noyau/monde/encounterAuthoring';

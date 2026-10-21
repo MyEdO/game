@@ -15,7 +15,7 @@
  */
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
 import { isConsumable, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
-import { type Flow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { evalCondition, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
 import { condCtx } from './bourseFlow';
 import { flowTestGated } from './combat/flowEval';

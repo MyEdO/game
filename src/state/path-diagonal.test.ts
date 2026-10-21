@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain, type WallSeg } from '../noyau/monde/scene';
+import { emptyScene, type Scene, type WallSeg } from '../noyau/monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { pathTo, walkNeighbors, reachable } from '../noyau/monde/path';
 
 /**

@@ -39,7 +39,8 @@
 import { describe, expect, it } from 'vitest';
 import { bakeWorldGeometry } from './sceneMeshes';
 import { parseProject } from '../../../noyau/worldMap';
-import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity, type Terrain } from '../../../noyau/monde/scene';
+import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../noyau/monde/scene';
+import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 import { putLayer } from '../../../noyau/sceneEdit';
 import { perimeterWallSegs } from '../../../state/sceneEdit.testkit';
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';

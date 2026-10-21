@@ -1,15 +1,15 @@
 /** Fondation pure de l’éditeur : outils, calques, sélection et mutations de scène. */
-import { Scene, SceneEntity, SceneEffectZone, Terrain, WallSide, ZoneArea } from '../../noyau/monde/scene';
+import { Scene, SceneEntity, SceneEffectZone, WallSide, ZoneArea } from '../../noyau/monde/scene';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { Pt as ScenePt } from '../../noyau/monde/path';
-import { type Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { walkFlow } from '../../engine/flowCore';
 import { nextEntityId } from '../../lib/entityId';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { findCreatureById } from '../../data';
 import { propRefPatch } from './propDefaults';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
-import { entityKindSchema } from '../../data/schemas/defs-scenes/scene';
+import { entityKindSchema, type Terrain } from '../../data/schemas/defs-scenes/scene';
 import { type Rect, type Pt, type EffectZoneSeed, canonEdge, edgeWallState, rectFrom, entityAt, addEntity, editEntity, moveEntityTo, removeEntity } from '../../noyau/sceneEdit';
 
 export {

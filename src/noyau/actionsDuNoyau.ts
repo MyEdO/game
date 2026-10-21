@@ -7,7 +7,7 @@ import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { OvercastAxis } from '../engine/overcast';
-import type { Flow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { IndiceAffiché } from './monde/clues';
 import type { HealMode } from '../engine/healing';
@@ -22,7 +22,7 @@ import type { RestLodging, RestFood } from './restFlow';
 import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
-import type { NarratifBlock } from './monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
 
 /** Les actions de JEU (#2817 D5) : tout hôte les porte ; aucune action d'interface. */

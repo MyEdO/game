@@ -29,7 +29,7 @@ import { smokeOf, captureMoveSnapshot, formationDeCombat, moveEnv } from './mond
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { emitCombatEvent } from './combatEvents';
 import { turnEconomyStamp } from './endTurnGuard';
-import { type Flow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre, coupFerme } from './targetingHolder';
@@ -88,7 +88,7 @@ import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
-import { facingToward } from './monde/dir8';
+import { facingToward } from '../geometry/dir8';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
 import { resolveVolley } from '../engine/volley';
 import type { ShipManeuverParticipant } from './pendings';

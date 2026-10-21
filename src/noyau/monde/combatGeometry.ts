@@ -5,7 +5,7 @@
  */
 import type { BattleState } from '../etat';
 import type { Combatant } from '../../engine/types';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { Scene, isWalkable } from './scene';
 import { Pt, MoveEnv, tileKey, climbTraverseFor, walkComponentsFrom, walkComponentAt } from './path';
 import { footprintTiles, footprintN, occupiesTile } from './footprint';

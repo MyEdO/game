@@ -11,10 +11,11 @@ import type { Sel } from './editorState';
 import { validateScene } from '../../state/validateScene';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { MISSING_TONE } from '../../gameIso/rig/viewArt';
-import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign } from '../../scenes/campaign';
 import { parseProject } from '../../noyau/worldMap';
-import { type Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { flowEffects, racinesDeFlow } from '../../engine/flowCore';
 import { choisirDansMenu, menuDe } from './AddMenu.testkit';
 

@@ -16,7 +16,7 @@ import { resolveCrewTestByRoles, type CrewAssignment, type CrewTestResult } from
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { type RNG } from '../../engine/dice';
 import type { Combatant, ShipPoste, FireArc } from '../../engine/types';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 
 export interface BatteryPlan {
   /** Le bord (bordée) qui PORTE sur la cible — l'arc où tombe la cible (proue/tribord/poupe/bâbord). */

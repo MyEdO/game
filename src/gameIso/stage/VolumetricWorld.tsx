@@ -20,7 +20,7 @@ import { useMemo, useState, type MutableRefObject } from 'react';
 import { useGame } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import { hauteurDe, type Scene } from '../../noyau/monde/scene';
-import type { Dir8 } from '../../noyau/monde/dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import type { LightSource } from '../../noyau/monde/vision';
 import type { Dims } from '../../geometry/iso';
 import { walkGlideM, type WalkTrack } from '../fx/walkPose';

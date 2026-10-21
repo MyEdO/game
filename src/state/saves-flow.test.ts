@@ -28,7 +28,7 @@ import { testScene } from '../scenes/test-fixture';
 import { emptyScene } from '../noyau/monde/scene';
 import { pruneSeatAssignments } from '../noyau/monde/seating';
 import { capDuGroupe, poserCapDuGroupe } from '../noyau/monde/combatants';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import { entityBlockedAt } from '../noyau/monde/sceneRules';
 import { phaseDeChute } from '../noyau/fallMove';
 import type { PendingFall } from '../noyau/pendings';

@@ -6,10 +6,10 @@
  * Chaque fonction renvoie une NOUVELLE Scène (immuable). `editorState.ts` les RÉ-EXPORTE : les câblages
  * du canvas (couplés UI/gameIso) y restent. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, Terrain, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, SceneRoofDefaults } from './monde/scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, Scene, SceneEntity, SceneEffectZone, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
-import type { Dir8 } from './monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { nextEntityId } from '../lib/entityId';
 import { findTrappingById, findCreatureById } from '../data';
@@ -29,7 +29,7 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { typeNonNomme } from '../data/schemas/defs-scenes/scene';
+import { typeNonNomme, type Terrain, type SceneRoofDefaults } from '../data/schemas/defs-scenes/scene';
 import { buildingRoofMaterial } from './monde/buildings';
 import { decorEnCaseEtage } from './monde/decorIndex';
 

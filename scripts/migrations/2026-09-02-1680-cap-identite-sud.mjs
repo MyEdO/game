@@ -80,7 +80,7 @@ const CAP_IDENTITE = 'S';
  * `2026-08-28-l1b-12a-entite-type.mjs`.
  */
 
-/** Les 8 caps en ordre horaire — copie LOCALE de `DIR8_ORDER` (`src/noyau/monde/dir8.ts`) : un script `.mjs`
+/** Les 8 caps en ordre horaire — copie LOCALE de `DIR8_ORDER` (`src/geometry/dir8.ts`) : un script `.mjs`
  *  ne peut pas importer le module TS, et la liste est vérifiée contre lui par le typecheck du projet. */
 const DIR8_ORDER = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
 /** Demi-tour d'un cap : 4 crans de 45°. */

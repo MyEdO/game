@@ -6,9 +6,9 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createHero } from '../../engine/character';
-import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
+import { emptyNarratif } from './campaignNarratif';
 import { identitesDe, identitesResolues, nommer } from './identites';
-import { narratifSchema } from '../../data/schemas/defs-scenes/narratif';
+import { narratifSchema, type NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { emptyScene } from './scene';
 import { useGame } from '../../state/store';
 import { runFlow } from '../combatEffects';

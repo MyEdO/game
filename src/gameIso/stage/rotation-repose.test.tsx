@@ -18,7 +18,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
-import type { Dir8 } from '../../noyau/monde/dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { createHero } from '../../engine/character';
 import type { Rot } from '../../geometry/iso';
 import type { BillboardPropEl } from '../builders/types';

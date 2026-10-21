@@ -19,7 +19,7 @@ import { enginArtOf } from '../src/gameIso/rig/engin/composeEngin';
 import { ENGIN_ARTS } from '../src/gameIso/rig/engin/_registry.generated';
 import { PROPS, propSvg, propViewSvg } from '../src/gameIso/catalog/decor/index';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import type { Dir8 } from '../src/noyau/monde/dir8';
+import type { Dir8 } from '../src/geometry/dir8';
 import type { Rot } from '../src/geometry/iso';
 
 const ROTS: Rot[] = [0, 1, 2, 3];

@@ -4,7 +4,9 @@ import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from '../noyau/comba
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { hasCondition } from '../engine/conditions';
-import { emptyScene, isWalkable, type Effect, type Scene, type Terrain } from '../noyau/monde/scene';
+import { emptyScene, isWalkable, type Scene } from '../noyau/monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { validateScene } from './validateScene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { draineCascade } from './cascade.testkit';

@@ -4,13 +4,13 @@ import { ast, analyserCorpus } from '../../../../scripts/guards/lib/dialecte.mjs
  *
  * POURQUOI ce test existe : `effectSchema` est OBLIGÉ de s'annoter `z.ZodType<Effect>` (le `z.lazy`
  * de la récursion mutuelle avec `sceneFlowSchema` empêche l'inférence), et cette annotation est
- * SATISFAITE par une SOUS-union — un schéma qui n'énumère que 55 des 58 variantes reste vert au
+ * SATISFAITE par une SOUS-union — un schéma qui omet trois variantes reste vert au
  * typecheck ET au test d'infer, tout en REFUSANT au runtime les 3 variantes manquantes. Un effet
  * ajouté à `effets.ts` et à l'union manuscrite, mais oublié dans la liste d'options, ne casse RIEN
  * — jusqu'à ce qu'un document authoré le pose.
  *
  * Le contrat tenu ici est une ÉGALITÉ D'ENSEMBLE, mesurée des DEUX côtés du pont :
- * — côté TYPE : les membres de l'union manuscrite `Effect` (`src/noyau/monde/scene.ts`), lus à l'AST —
+ * — côté TYPE : les membres de l'union manuscrite `Effect` (`effets.ts`), lus à l'AST —
  *   composition mince de `z.infer<typeof xSchema>` + 3 corps manuscrits (`DelayedEffect`,
  *   `PetitePriere`, `EffectOp`). Le discriminant d'un membre `z.infer` est relu à l'AST du schéma
  *   NOMMÉ (`effets.ts`), celui d'un corps manuscrit à l'AST de sa déclaration — jamais une liste
@@ -39,7 +39,6 @@ import * as ts from 'typescript/unstable/ast';
 import { effectSchema } from './effets';
 import { defDe, enfantsDe, ouverts } from '../grammaire/descente';
 
-const SCENE = fileURLToPath(new URL('../../../noyau/monde/scene.ts', import.meta.url));
 const EFFETS = fileURLToPath(new URL('./effets.ts', import.meta.url));
 const MECANIQUE = fileURLToPath(new URL('../grammaire/mecanique.ts', import.meta.url));
 /** Modules où vit un schéma composé par un membre `z.infer<…>` de l'union `Effect`. */
@@ -119,10 +118,10 @@ function litterauxDesSchemas(modules: readonly Module[] = contenusDesModules()):
 
 /** Les `type` de l'union manuscrite `Effect`, lus à l'AST. Un membre non résolu sort sous une clé
  *  `<…>` PARLANTE : il ferait rougir l'égalité au lieu de disparaître en silence. */
-function typesDuType(texteScene?: string): string[] {
+function typesDuType(texteUnion?: string): string[] {
   const schemas = litterauxDesSchemas();
-  const manuscrits = new Map([...corpsManuscrits(SCENE), ...corpsManuscrits(FLOW_CORE)]);
-  const sf = texteScene ? ast({ rel: SCENE, text: texteScene })! : source(SCENE);
+  const manuscrits = new Map([...corpsManuscrits(EFFETS), ...corpsManuscrits(FLOW_CORE)]);
+  const sf = texteUnion ? ast({ rel: EFFETS, text: texteUnion })! : source(EFFETS);
   const types: string[] = [];
   sf.forEachChild((n) => {
     if (!ts.isTypeAliasDeclaration(n) || n.name.text !== 'Effect') return;
@@ -207,17 +206,16 @@ describe('`effectSchema` — verrou d\'union : les discriminants du SCHÉMA == c
   });
 
   it('un membre dont le SCHÉMA n’est plus résolu sort NOMMÉ, jamais en silence (preuve de câblage)', () => {
-    const brut = readFileSync(SCENE, 'utf8');
-    // La sonde vise un membre de l'UNION `Effect` : `noyau/monde/scene.ts` compose aussi les FORMES de la
-    // scène en `z.infer` (`defs-scenes/scene.ts`), qui ne sont pas des effets et que ce verrou ne
-    // mesure pas. Le premier `z.infer` du fichier n'est donc pas forcément un membre d'`Effect`.
+    const brut = readFileSync(EFFETS, 'utf8');
+    // La sonde vise un membre de l'UNION `Effect` : la mutation porte sur le SEUL bloc de l'union, jamais
+    // sur une autre occurrence du même `z.infer` dans le module.
     const bloc = /export type Effect =[\s\S]*?;\n/.exec(brut);
-    expect(bloc, 'union `Effect` introuvable dans `noyau/monde/scene.ts` : la sonde ne mesure plus rien.').not.toBeNull();
+    expect(bloc, 'union `Effect` introuvable dans `effets.ts` : la sonde ne mesure plus rien.').not.toBeNull();
     const premier = /z\.infer<typeof (\w+)>/.exec(bloc![0]);
     expect(premier, 'aucun membre `z.infer<typeof …>` dans `Effect` : la sonde ne mesure plus rien.').not.toBeNull();
 
     const nom = premier![1];
-    const mute = brut.replace(`z.infer<typeof ${nom}>`, `z.infer<typeof ${nom}Ailleurs>`);
+    const mute = brut.replace(bloc![0], bloc![0].replace(`z.infer<typeof ${nom}>`, `z.infer<typeof ${nom}Ailleurs>`));
     expect(mute, 'la mutation n’a rien changé — la sonde serait vacueuse.').not.toBe(brut);
 
     // Un symbole de schéma qui disparaît ne doit PAS s'évaporer de l'union (le verrou deviendrait

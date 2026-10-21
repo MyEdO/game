@@ -55,7 +55,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
 
 ## Narratif — frontière référence ⟂ narratif
 
-Le bloc `narratif` (`src/noyau/monde/campaignNarratif.ts`) vit au NIVEAU PROJET, frère de `scenes`/`worldMap`
+Le bloc `narratif` (`src/data/schemas/defs-scenes/narratif.ts`) vit au NIVEAU PROJET, frère de `scenes`/`worldMap`
 (champs, bridge `presetId`, éditeur : **`docs/campagne-authoring.md` §10ter**). Le contenu de RÉFÉRENCE
 (créature, possession, compétence, sort…) vit dans `src/data` (`docs/donnees.md`) ; le contenu NARRATIF
 (affaires, indices, méchants, objets d'intrigue) est EMBARQUÉ dans `narratif` et RÉFÉRENCE la règle

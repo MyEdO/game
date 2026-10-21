@@ -11,7 +11,7 @@ import { hasWeaponGroupSkill } from '../../engine/combat';
 import { exposedCrew } from '../../engine/shipCritical';
 import { isOutOfAction } from '../../engine/conditions';
 import { combatDistance, footprintN } from './footprint';
-import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from './dir8';
+import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
 import { isWalkable, type Scene } from './scene';
 import { findFreeTile } from './combatGeometry';
 import type { Combatant, ShipPoste, ShipDeck, FireArc } from '../../engine/types';

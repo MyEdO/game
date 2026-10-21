@@ -26,9 +26,9 @@ import { payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bour
 import { bourseOf } from '../engine/bourse';
 import { actorStatus } from '../engine/social';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, type TrappingData } from '../data/index';
-import { MERCHANTS } from './monde/merchants/archetypes';
-import type { UniteAchetable } from './monde/merchants/types';
+import { findTrappingById, trappingsInstanciables, findVehicleById, findCreatureById, vehicles, creatures, combatStakeRef, findMerchantArchetypeById, type TrappingData } from '../data/index';
+import type { MerchantArchetypeDef } from '../data/merchants.types';
+import type { UniteAchetable } from '../data/merchants.types';
 import { FLOWS } from './rollFlowSpecs';
 import { startCascade } from './cascade';
 import { freeCons, openPartyTest } from './rollSeam';
@@ -190,7 +190,7 @@ function stockTraceLine(l: StockLine): string {
  *  ou MJ via cascade, #273 dernier volet) ne change JAMAIS ces valeurs, seule leur SURFACE varie. */
 function computeFreshStockLines(
   get: Get,
-  ent: SceneEntity | undefined, arch: (typeof MERCHANTS)[string], entityId: string, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
+  ent: SceneEntity | undefined, arch: MerchantArchetypeDef, entityId: string, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): { stock: { id: string; qty: number }[]; tested: StockLine[] } {
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
@@ -231,7 +231,7 @@ function persistStock(set: Set, entityId: string, stock: { id: string; qty: numb
  *  par l'ouverture (`openMerchant`) et la recherche active (`searchAvailability`). Retourne le stock tiré. */
 function rollFreshStock(
   get: Get, set: Set,
-  entityId: string, ent: SceneEntity | undefined, arch: (typeof MERCHANTS)[string], settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
+  entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): { id: string; qty: number }[] {
   const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
   if (tested.length) get().log(t('mf.marketRoll', { settlement, lignes: tested.map((l) => t('mf.stockLine', { label: l.label, qty: l.qty })).join(', ') }));
@@ -255,7 +255,7 @@ function openStockRevealCascade(
   get: Get, set: Set,
   entityId: string, archetype: string, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean, resaleRate: number, buyMarkup: number, backdrop?: string,
 ): void {
-  const arch = MERCHANTS[archetype];
+  const arch = findMerchantArchetypeById(archetype);
   // #331 réserve A-bis : PRÉ-POSE le tirage article par article dans `outcome` AVANT validation — la
   // modale d'affichage ne montrait QUE l'en-tête + « Terminer ». Le tirage est SEEDÉ déterministe
   // (`computeFreshStockLines`), donc ces lignes affichées == celles que l'applier recompose/persiste.
@@ -281,7 +281,7 @@ function openStockRevealCascade(
  *  n'en porte aucun et joue les défauts d'archétype nus. SOURCE UNIQUE du calcul d'ouverture, réutilisée
  *  par les deux entrées — aucune n'est un fork de l'autre. */
 function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, ent?: SceneEntity, backdrop?: string): void {
-  const arch = MERCHANTS[archetype];
+  const arch = findMerchantArchetypeById(archetype);
   if (!arch) { get().log(t('mf.archetypeUnknown', { archetype })); return; }
   const settlement: Settlement = ent?.merchant?.settlement ?? arch.settlement;
   const resaleRate = ent?.merchant?.resaleRate ?? arch.resaleRate;
@@ -335,7 +335,7 @@ function finalizeSearchAvailability(get: Get, set: Set, entityId: string, restoc
   const m = get().merchant;
   if (!m || m.entityId !== entityId) return;
   const ent = get().scene?.entities.find((e) => e.id === entityId);
-  const arch = MERCHANTS[m.archetype];
+  const arch = findMerchantArchetypeById(m.archetype);
   if (!arch) return;
   if (get().net.gmSeat != null) {
     openStockRevealCascade(get, set, entityId, m.archetype, m.settlement, now, restockPeriod, gossipDay, m.resaleRate, m.buyMarkup ?? 1, m.backdrop);
@@ -355,7 +355,7 @@ export function searchAvailability(get: Get, set: Set): void {
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
   const marketMode = marketRule(ent, 'marketMode') as string;
   if (marketMode === 'sans-disponibilite' || marketMode === 'simplifie') return; // pas de Test de Disponibilité → rien à améliorer
-  const arch = MERCHANTS[m.archetype];
+  const arch = findMerchantArchetypeById(m.archetype);
   if (!arch) return;
   const restockPeriod = (ent?.merchant?.restockDays ?? arch.restockDays ?? 1) * MINUTES_PER_DAY;
   // Test de Ragot du groupe (Soutien LDB 12) — Intermédiaire (+0), le RAW ne chiffre pas la difficulté.
@@ -774,7 +774,7 @@ export function startBargain(get: Get, set: Set, mode: 'buy' | 'sell'): void {
   if (m.bargainLocked) return; // VERROU PARTAGÉ : a refusé/renié un marché (achat OU vente) → plus de négociation jusqu'au réassort
   if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
-  const arch = garanti(MERCHANTS[m.archetype], m.archetype, 'marchandage');
+  const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
   ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
 }
@@ -1004,7 +1004,7 @@ export const TABLES = {
       const entityId = String(meta.entityId ?? '');
       const archetype = String(meta.archetype ?? '');
       const ent = get().scene?.entities.find((e) => e.id === entityId);
-      const arch = MERCHANTS[archetype];
+      const arch = findMerchantArchetypeById(archetype);
       // `arch` (`meta.archetype`, sérialisé à l'ouverture) SUFFIT — un marchand de LIEU (#369, `openPlaceMerchant`)
       // n'a aucune `SceneEntity` de scène, `ent` reste alors `undefined` (overrides d'entité simplement absents).
       if (!arch) return {};

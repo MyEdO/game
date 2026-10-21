@@ -28,7 +28,7 @@ import {
 } from './dynamicMarks';
 import { CELL, TH, TW, type Dims } from '../../geometry/iso';
 import { wedgePath } from '../topoMarkers';
-import type { Dir8 } from '../../noyau/monde/dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { ENEMY_RING, HERO_RING, teamShape } from '../teamColors';
 import { combatantTokenScale } from '../sizeScale';
 import type { TokenEl } from './types';

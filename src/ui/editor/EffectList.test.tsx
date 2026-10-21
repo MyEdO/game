@@ -6,15 +6,15 @@ import { createRoot, type Root } from 'react-dom/client';
 import { EffectList, EffectFields, effectSummary, newEffect, EFFECT_MENU_GROUPS, EFFECT_LABEL, ctxDeCatalogue, effectCtxOf } from './EffectList';
 import { FlowEditor } from './FlowEditor';
 import { EMPTY_FLOW } from '../../engine/flowCore';
-import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { convertTo, memoriser } from './AddMenu';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
-import type { Effect } from '../../noyau/monde/scene';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { talents } from '../../data';
 import { DAY_PHASES } from '../../engine/clock';
-import { startMassBattleSchema } from '../../data/schemas/defs-scenes/effets';
+import { startMassBattleSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

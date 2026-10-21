@@ -9,7 +9,7 @@ import type { View } from '../../rig/facing';
 import { project } from '../../rig/facing';
 import { nearestView, MISSING_ART } from '../../rig/viewArt';
 import { warnMissing } from '../missing';
-import type { Dir8 } from '../../../noyau/monde/dir8';
+import type { Dir8 } from '../../../geometry/dir8';
 import type { Rot } from '../../../geometry/iso';
 import { PROP_DEFS } from './_registry.generated';
 

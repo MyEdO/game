@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
-import type { Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { Dialogue } from '../noyau/monde/scene';
 
 const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });

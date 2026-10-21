@@ -10,7 +10,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { bourseOf } from '../engine/bourse';
 import { ACTION_CANDIDATES } from '../noyau/actionRegistry';
 import { resetRule, setRule } from '../engine/policy';
-import type { Effect } from '../noyau/monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
 
 // #2312 : un effet de jeu joué en combat écrit le combattant ET le héros du groupe (`ecrireActeur`).

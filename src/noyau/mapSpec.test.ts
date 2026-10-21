@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { buildScene, type MapSpec } from './mapSpec';
-import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass, type Terrain } from './monde/scene';
+import { layerTiles, isWalkable, wallBetween, setStructureDown, heightAt, tileAt, type BuildingMass } from './monde/scene';
 import { pathTo, reachable, walkNeighbors } from './monde/path';
 import { edgeWallState } from '../ui/editor/editorState';
 import { sceneZoneTiles } from './monde/zones';
 import { scenario as zonesPieces } from '../scenes/test-scenarios/zones-pieces';
 import { buildVitrineScene, vitrineSpec } from '../scenes/vitrine-batiments';
 import { perimeterEdges } from '../state/sceneEdit.testkit';
-import { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { PENTE_TOIT_DEG, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { builtTerrains, groundTerrains } from './planDefects';
 import { tousLesTerrains } from './monde/terrain';
 const zonesPiecesConstruit = zonesPieces.construire();

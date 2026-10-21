@@ -1,10 +1,10 @@
 import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
 /**
- * EFFETS DE SCÈNE — les 57 variantes de l'union `Effect` (`src/noyau/monde/scene.ts`) en zod, plus le
- * `Flow<Effect>` de scène. Avec la feuille `ops` (`EffectOp`, possédée par la grammaire), l'union
- * compte 58 membres — le compte que porte le doc généré `docs/campagne-effects.md`. C'est la DÉFINITION : `noyau/monde/scene.ts` en dérive ses alias par
- * `z.infer` ; seules les deux variantes qui portent un `Flow` (`delayedEffect`, `petitePriere`)
- * gardent un corps manuscrit, parce qu'`Effect` et `Flow<Effect>` sont MUTUELLEMENT récursifs et
+ * EFFETS DE SCÈNE — les variantes de l'union `Effect` en zod, plus le `Flow` de scène (`Flow<Effect>`).
+ * Avec la feuille `ops` (`EffectOp`, possédée par le moteur), l'union porte le compte de membres
+ * du doc généré `docs/campagne-effects.md`. C'est la DÉFINITION : l'union `Effect`
+ * ci-dessous compose ses variantes par `z.infer` ; seules les deux variantes qui portent un `Flow`
+ * (`delayedEffect`, `petitePriere`) gardent un corps manuscrit, parce qu'`Effect` et `Flow<Effect>` sont MUTUELLEMENT récursifs et
  * qu'une récursion mutuelle en deux `discriminatedUnion` inférés ne compile pas (TS7022) : le
  * montage qui tient est `z.ZodType<T> = z.lazy(…)`, où le type manuscrit est l'ANNOTATION.
  *
@@ -23,8 +23,8 @@ import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
-import type { Effect } from '../../../noyau/monde/scene';
-import type { Flow } from '../../../engine/flowCore';
+import type { EffectOp, Flow as CoreFlow, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
+import type { ScheduleSpec } from '../../../engine/clock';
 import { dataLabel } from '../../index';
 import type { PlayerText } from '../../../i18n/playerText';
 
@@ -94,8 +94,8 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
 }), { allyName: { label: "nom des alliés" , texte: { regime: "designation"} }, enemyName: { label: "nom des ennemis" , texte: { regime: "designation"} }, allyMight: { label: "puissance alliée" }, enemyMight: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, allyMod: { label: "modificateur allié" } }), 'massBattle.terrain');
 
 /** `ScheduleSpec` (`engine/clock.ts`) — échéance d'horloge, résolue par `scheduleAt` (source unique
- *  de `delayedEffect` ET `setObjective`). Étalée en SHAPE : les deux variantes qui la portent sont
- *  des INTERSECTIONS `& ScheduleSpec` côté manuscrit. */
+ *  de `delayedEffect` ET `setObjective`). Étalée en SHAPE : `DelayedEffect` (manuscrit, ci-dessous) la
+ *  porte en INTERSECTION `& ScheduleSpec`. */
 export const scheduleMeta = { afterMinutes: { label: 'délai en minutes' }, afterDays: { label: 'délai en jours' }, atDate: { label: 'date' }, atHour: { label: 'heure' }, atMinute: { label: 'minute' } };
 export const scheduleShape = {
   afterMinutes: z.number().optional(),
@@ -587,10 +587,94 @@ export const petitePriereSchema = z.strictObject({
   },
 });
 
+/** Effet PROGRAMMÉ (Lot 0, étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
+ *  elle porte un `Flow`, donc elle est MUTUELLEMENT récursive avec l'union `Effect`, et ce
+ *  corps est l'ANNOTATION de `delayedEffectSchema`. */
+export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: string } & ScheduleSpec;
+
+/** « Petites Prières » — seconde variante récursive (son `reward` est un `Flow`) ; ANNOTE
+ *  `petitePriereSchema`. */
+export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
+
+/** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE. Spécialise le `Flow<E>`
+ *  générique de `engine/flowCore`. */
+export type Flow = CoreFlow<Effect>;
+
+/** Effet DÉCLENCHÉ de scène : son `flow` peut porter tout `Effect` (≠ `EffectOp`, défaut du noyau).
+ *  Spécialise le `TriggeredEffect<E>` générique de `engine/flowCore`. */
+export type TriggeredEffect = CoreTriggeredEffect<Effect>;
+
 // ── Les deux unions récursives ──────────────────────────────────────────────────────────────────
 
-/** `Effect` (`noyau/monde/scene.ts`) — l'union des 59 variantes. ANNOTÉE par le type manuscrit : la
- *  récursion mutuelle avec `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
+/**
+ * Union des variantes d'effet de scène + la feuille `ops`. Chaque variante est le
+ * `z.infer` de son schéma ci-dessus, hors `DelayedEffect`/`PetitePriere` (manuscrites). `EffectOp`
+ * (`type:'ops'`) est le membre POSSÉDÉ par le moteur (feuille par défaut du `Flow<E>` générique).
+ */
+export type Effect =
+  | z.infer<typeof setFlagSchema>
+  | z.infer<typeof poserEtatSchema>
+  | z.infer<typeof designerHerosSchema>
+  | z.infer<typeof setObjectiveSchema>
+  | z.infer<typeof clearObjectiveSchema>
+  | z.infer<typeof giveTrappingSchema>
+  | z.infer<typeof givePossessionSchema>
+  | z.infer<typeof giveMoneySchema>
+  | z.infer<typeof giveXpSchema>
+  | z.infer<typeof startCombatSchema>
+  | z.infer<typeof startMassBattleSchema>
+  | z.infer<typeof transitionSchema>
+  | z.infer<typeof transitionBackSchema>
+  | z.infer<typeof startDialogueSchema>
+  | z.infer<typeof journalSchema>
+  | z.infer<typeof documentSchema>
+  | z.infer<typeof revealClueSchema>
+  | z.infer<typeof discreditClueSchema>
+  | z.infer<typeof extendedTestSchema>
+  | z.infer<typeof forceDoorSchema>
+  | z.infer<typeof setTimeSchema>
+  | DelayedEffect
+  | z.infer<typeof openMerchantSchema>
+  | z.infer<typeof openPortSchema>
+  | z.infer<typeof medicalAidSchema>
+  | z.infer<typeof restoreFortuneSchema>
+  | z.infer<typeof restSchema>
+  | z.infer<typeof mealPartySchema>
+  | z.infer<typeof inflictNightmaresSchema>
+  | z.infer<typeof ambitionLostSchema>
+  | z.infer<typeof inflictPsychologySchema>
+  | z.infer<typeof inflictDiseaseSchema>
+  | z.infer<typeof inflictHungerSchema>
+  | z.infer<typeof inflictThirstSchema>
+  | z.infer<typeof exposureNightSchema>
+  | z.infer<typeof inflictTraumaSchema>
+  | EffectOp
+  | z.infer<typeof zoneBlastSchema>
+  | z.infer<typeof fallSchema>
+  | z.infer<typeof setLightSchema>
+  | z.infer<typeof setDoorSchema>
+  | z.infer<typeof moveEntitySchema>
+  | z.infer<typeof playSfxSchema>
+  | z.infer<typeof giveSinSchema>
+  | z.infer<typeof corruptionExposureSchema>
+  | z.infer<typeof waterExposureSchema>
+  | z.infer<typeof learnSpellSchema>
+  | z.infer<typeof castSpellSchema>
+  | PetitePriere
+  | z.infer<typeof sessionEndSchema>
+  | z.infer<typeof openCharacterCreatorSchema>
+  | z.infer<typeof interludeSchema>
+  | z.infer<typeof grantFavorSchema>
+  | z.infer<typeof startPursuitSchema>
+  | z.infer<typeof openTavernGamesSchema>
+  | z.infer<typeof openWorldMapSchema>
+  | z.infer<typeof setVesselSchema>
+  | z.infer<typeof adjustManannSchema>
+  | z.infer<typeof adjustVesselSchema>
+  | z.infer<typeof endDialogueSchema>;
+
+/** `Effect` — l'union des variantes. ANNOTÉE par le type manuscrit : la récursion mutuelle avec
+ *  `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
  *
  *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il
  *  dit la FORME d'un Effet, pas le vocabulaire d'une scène. Ce qu'un Effet de SCÈNE peut viser se
@@ -665,7 +749,7 @@ export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
 /** `Flow<Effect>` (`engine/flowCore.ts`) — le MÊME arbre acyclique seq/do/if/test/choice que le
  *  `flowSchema` de la grammaire, mais dont la feuille `do` est l'union `Effect` de scène (et non le
  *  seul `EffectOp` mécanique). */
-export const sceneFlowSchema: z.ZodType<Flow<Effect>> = z.lazy(() =>
+export const sceneFlowSchema: z.ZodType<Flow> = z.lazy(() =>
   z.discriminatedUnion('kind', [
     nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(sceneFlowSchema) }), { kind: { label: "type"  }, steps: { label: "étape" } }),
     nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectSchema }), { kind: { label: "type"  }, effect: { label: "effet" } }),

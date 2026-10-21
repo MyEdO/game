@@ -6,8 +6,6 @@
 // `src/` (entrée de l'hôte web, tests transverses). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
-//  - `transitoire` : un arc de TYPE d'aujourd'hui contraire à la cible, de zone à zone, avec la sous-issue
-//    qui le retire. La sous-issue retire sa ligne.
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type.
 // Toute autre zone lui est fermée, même pour un type.
 
@@ -23,7 +21,7 @@ export const COUCHES = Object.freeze({
   geometry: { importe: [] },
   i18n: { importe: [] },
   engine: { importe: ['data', ...FEUILLES] },
-  data: { importe: ['engine', ...FEUILLES], transitoire: { noyau: { issue: '#2884' } } },
+  data: { importe: ['engine', ...FEUILLES] },
   noyau: { importe: ['engine', 'data', ...FEUILLES] },
   hoteTexte: { importe: ['noyau', 'scenes', ...FEUILLES], portes: { noyau: SURFACE_DU_NOYAU } },
   scenes: { importe: ['noyau', 'data', 'engine', ...FEUILLES] },
@@ -39,12 +37,11 @@ export const COUCHES = Object.freeze({
 /** `z` est-il une zone de la table ? Clé PROPRE seulement : `constructor` ou `__proto__` n'en sont pas. */
 export const estZone = (z) => typeof z === 'string' && Object.hasOwn(COUCHES, z);
 
-/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type, arêtes transitoires
- *  comprises. */
+/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type. */
 export function ouvertes(de) {
-  const { importe, types = [], transitoire = {} } = COUCHES[de];
+  const { importe, types = [] } = COUCHES[de];
   const libres = importe === '*' ? Object.keys(COUCHES).filter((z) => z !== de) : [...importe];
-  return { libres, enType: [...types, ...Object.keys(transitoire)] };
+  return { libres, enType: [...types] };
 }
 
 /** Le verdict d'un arc de la zone `de` vers la zone `vers` : `null` s'il est ouvert, sinon ce qui le
@@ -53,8 +50,7 @@ export function fermeture(de, vers, typeSeul) {
   if (!estZone(de) || de === vers) return null;
   const zone = COUCHES[de];
   if (zone.importe === '*' || zone.importe.includes(vers)) return null;
-  const typeOuvert = Boolean(zone.transitoire && Object.hasOwn(zone.transitoire, vers)) || (zone.types ?? []).includes(vers);
-  if (typeOuvert) return typeSeul ? null : 'execution';
+  if ((zone.types ?? []).includes(vers)) return typeSeul ? null : 'execution';
   return 'type';
 }
 
