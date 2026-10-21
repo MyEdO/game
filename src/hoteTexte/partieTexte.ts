@@ -7,9 +7,10 @@
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import {
-  creerPartie, etatInitialDuJeu, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, ACTIONS,
+  creerPartie, etatInitialDuJeu, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, portalsForParty, ACTIONS,
   type ActionRunCtx, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
+import { ecartALaForme, estObjet, signature, type ParametreDeVerbe } from './formes';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 
@@ -43,7 +44,31 @@ const valider = (condition: unknown, message: string): void => {
   if (!condition) throw new ErreurDeGeste('validation', message);
 };
 
-const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Les entités qu'un argument désigne par son `id`, par type de paramètre : l'hôte complète l'objet depuis le lecteur
+ *  du noyau (une porte par `portalsForParty`). */
+const DESIGNABLES: Readonly<Partial<Record<string, (etat: Jeu) => readonly { id: string }[]>>> = {
+  RoomPortal: (etat) => (etat.scene ? portalsForParty(etat.scene, etat.partyPos) : []),
+};
+
+/** Les arguments d'un verbe, contrôlés contre ses paramètres : un id d'entité désignable est complété, `null` omet un
+ *  paramètre optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
+export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknown[], parametres: readonly ParametreDeVerbe[]): unknown[] {
+  valider(args.length <= parametres.length, `${verbe} : ${parametres.length} argument(s) au plus (${signature(verbe, parametres)})`);
+  for (const p of parametres.slice(args.length)) valider(p.optionnel, `${verbe} : l’argument ${p.nom} manque (${signature(verbe, parametres)})`);
+  return args.map((brut, i) => {
+    const p = parametres[i];
+    // JSON n'a pas d'`undefined` : `null` omet un paramètre optionnel, pour en poser un suivant.
+    if (brut === null && p.optionnel) return brut;
+    const designables = DESIGNABLES[p.forme.genre === 'objet' ? p.forme.type : ''];
+    const v = designables && typeof brut === 'string' ? designables(etat).find((e) => e.id === brut) : brut;
+    valider(v !== undefined, `${verbe} : aucun ${p.type} d’id ${String(brut)} ici`);
+    const ecart = ecartALaForme(v, p.forme, p.nom);
+    valider(!ecart, `${verbe} : ${ecart} (${signature(verbe, parametres)})`);
+    return v;
+  });
+}
+
 
 /** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse. */
 export function nouvelEntete(scenario: string, options: { graine?: number; cadence?: string; desFixes?: boolean; regles?: Record<string, unknown> }): Entete {
@@ -171,6 +196,10 @@ function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
  *  erreur de validation. Rend les lignes de journal du geste. */
 export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
   const intention = intentionDuGeste(r.partie.etat(), geste);
+  // Le moteur mute en place (combattants, scène) : l'empreinte se prend AVANT l'appel, jamais sur l'état d'avant relu après.
+  const avant = r.partie.etat();
+  const faitsAvant = empreinteDesFaits(avant);
+  const refusAvant = avant.refus?.nonce;
   let resultat: ResultatDeLAppel;
   try {
     resultat = r.partie.envoyer(intention);
@@ -179,6 +208,10 @@ export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
   }
   if (resultat.issue === 'hors-allowlist') throw new ErreurDeGeste('validation', `${intention.type} hors de l’allowlist d’un siège`);
   if (resultat.issue === 'refusee') throw new ErreurDeGeste('permission', `${intention.type} refusée au siège ${'siege' in geste ? String(geste.siege) : '—'}`);
+  // Un geste a un effet s'il change les FAITS ou programme une suite ; un événement émis seul (`move_blocked`) informe.
+  if (!resultat.evenements.some((e) => e.type === 'programme') && empreinteDesFaits(r.partie.etat()) === faitsAvant) {
+    throw new ErreurDeGeste('regle', `${intention.type} sans effet${ceQueDitLeJeu(refusAvant, r.partie.etat(), resultat)}`);
+  }
   const debut = r.journal.length;
   r.gestes.push(geste);
   absorber(r, resultat, r.gestes.length);
@@ -214,13 +247,31 @@ export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee
   }
 }
 
-/** L'empreinte de l'état : FNV-1a 32 bits de ses données (fonctions et `Map` exclues), pour comparer deux rejeux. */
+/** L'empreinte de l'état : FNV-1a 32 bits de ses données (fonctions exclues, `Map` et `Set` par leurs entrées), pour
+ *  comparer deux rejeux. */
 export function empreinte(etat: Jeu): string {
-  const texte = JSON.stringify(etat, (_cle, v: unknown) => (typeof v === 'function' || v instanceof Map ? undefined : v));
+  const texte = JSON.stringify(etat, (_cle, v: unknown) => (typeof v === 'function' ? undefined : v instanceof Map || v instanceof Set ? [...v] : v));
   let h = 0x811c9dc5;
   for (let i = 0; i < texte.length; i++) {
     h ^= texte.charCodeAt(i);
     h = Math.imul(h, 0x01000193) >>> 0;
   }
   return h.toString(16).padStart(8, '0');
+}
+
+/** Les champs qui DISENT sans être un fait de jeu : le journal de la partie et le refus opposé au geste
+ *  (`refusVisible.ts`). Un geste qui ne change qu'eux n'a rien changé à la partie. */
+const PAROLE = ['journal', 'refus'] as const satisfies readonly (keyof Jeu)[];
+
+/** L'empreinte des FAITS de l'état : l'état sans sa parole (`PAROLE`). */
+const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...Object.fromEntries(PAROLE.map((cle) => [cle, null])) });
+
+/** Ce que le jeu a dit d'un geste sans effet : le refus neuf, sinon les lignes du journal de la partie, sinon les événements
+ *  informatifs émis (`move_blocked`). */
+function ceQueDitLeJeu(refusAvant: number | undefined, apres: Jeu, resultat: ResultatDeLAppel): string {
+  if (apres.refus && apres.refus.nonce !== refusAvant) return ` : ${apres.refus.texte}`;
+  const dites = resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+  if (dites.length) return ` : ${dites.join(' ')}`;
+  const emis = resultat.evenements.flatMap((e) => (e.type === 'emis' ? [e.evt] : []));
+  return emis.length ? ` : ${[...new Set(emis)].join(', ')}` : '';
 }

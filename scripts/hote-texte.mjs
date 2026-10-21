@@ -3,7 +3,8 @@
 // Le module runner de Vite charge, dans UN graphe de modules, le gel du catalogue (`src/data/overrides.ts`) puis
 // l'entrée de l'hôte (`src/hoteTexte/cli.ts`), avec le greffon `proseSource()` : la même porte que la suite du noyau
 // (`vitest.noyau.config.ts`), et `import.meta.env.DEV` vrai. Le lanceur prête le disque à l'entrée, écrit sa sortie et
-// rend son code. Coût mesuré d'un appel : `docs/hote-texte.md`.
+// rend son code ; les paramètres des verbes que `jouer` contrôle sont une cible de code (`src/hoteTexte/verbes.generated.ts`,
+// `npm run gen`). Coût mesuré d'un appel : `docs/hote-texte.md`.
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'

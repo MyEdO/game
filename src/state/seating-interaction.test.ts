@@ -12,6 +12,7 @@ import { flowFromEffects } from '../noyau/monde/flow';
 import { interactionHalos } from '../gameIso/builders/interactHalos';
 import type { BillboardPropEl } from '../gameIso/builders/types';
 import type { Combatant } from '../engine/types';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -199,7 +200,7 @@ describe('marcher, c’est se lever — et le déplacement-puis-assise arrive su
     poser(ABORD_NORD);
     useGame.getState().interactEntity(PROP);
     expect(poseDuMeneur()).not.toBeNull();
-    useGame.getState().moveParty({ x: 5, y: 3 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 5, y: 3 });
     expect(poseDuMeneur()).toBeNull();
     expect(useGame.getState().partyPos).toMatchObject({ x: 5, y: 3 });
   });
@@ -207,18 +208,18 @@ describe('marcher, c’est se lever — et le déplacement-puis-assise arrive su
   it('une scène SANS assise ne produit aucun delta de scène au déplacement', () => {
     poser({ x: 0, y: 0 });
     const avant = useGame.getState().scene!;
-    useGame.getState().moveParty({ x: 1, y: 0 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 1, y: 0 });
     expect(useGame.getState().scene).toBe(avant);
   });
 
   it('pendingInteract armé sur un meuble à places se consomme À L’ARRIVÉE sur l’abord', () => {
     poser({ x: 5, y: 2 });
     useGame.getState().setPendingInteract({ id: PROP, at: ABORD_NORD });
-    useGame.getState().moveParty({ x: 5, y: 3 }); // hors de tout abord : rien ne se déclenche
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 5, y: 3 }); // hors de tout abord : rien ne se déclenche
     expect(useGame.getState().pendingInteract).toMatchObject({ id: PROP });
     expect(poseDuMeneur()).toBeNull();
 
-    useGame.getState().moveParty(ABORD_NORD); // sur l'abord → assise automatique
+    poserLeGroupe(useGame.getState, useGame.setState, ABORD_NORD); // sur l'abord → assise automatique
     expect(useGame.getState().pendingInteract).toBeNull();
     expect(poseDuMeneur()).toMatchObject({ slotId: 'place-1' });
   });
@@ -236,11 +237,11 @@ describe('marcher, c’est se lever — et le déplacement-puis-assise arrive su
     expect(abords, 'la case croisée ne doit pas être un abord, sinon le test ne mord pas').not.toContain(`${CROISEE.x},${CROISEE.y}`);
 
     useGame.getState().setPendingInteract({ id: PROP, at: ABORD_NORD });
-    useGame.getState().moveParty(CROISEE);
+    poserLeGroupe(useGame.getState, useGame.setState, CROISEE);
     expect(useGame.getState().pendingInteract, 'le pending survit au passage').toMatchObject({ id: PROP });
     expect(journalEntier(), 'aucun refus d’assise en passant').not.toContain('Vous devez rejoindre la place');
 
-    useGame.getState().moveParty(ABORD_NORD);
+    poserLeGroupe(useGame.getState, useGame.setState, ABORD_NORD);
     expect(poseDuMeneur(), 'un seul geste : le meneur est assis à l’arrivée').toMatchObject({ slotId: 'place-1' });
   });
 

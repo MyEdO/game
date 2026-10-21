@@ -901,7 +901,7 @@ export function createCombatSlice(get: Get, set: Set) {
 
     battleClickTile: (pt: Pt, opts?: TileClickOpts) => {
       const { battle, scene } = get();
-      if (!battle || !scene || battle.over) return;
+      if (!battle || !scene || battle.over || !coupFerme(get())) return; // coup ouvert : le champ attend sa fenêtre
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout et vaut
@@ -1054,6 +1054,7 @@ export function createCombatSlice(get: Get, set: Set) {
         get().preemptRangedShot(aiming, id);
         return;
       }
+      if (!coupFerme(get())) return; // coup ouvert (`coupFerme`) : le champ attend sa fenêtre ; `combatantClickActs` le lit
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout, et vaut

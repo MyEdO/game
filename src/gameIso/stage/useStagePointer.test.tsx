@@ -630,14 +630,12 @@ describe('useStagePointer — picking exploration', () => {
     scene.layers[0].tiles[1 + 1 * 8] = 'herbe';
     scene.layers[0].tiles[3 + 1 * 8] = 'herbe';
     const hero = heroSauteur();
-    const moveParty = vi.fn((pos: { x: number; y: number; z?: number }) => useGame.setState({ partyPos: pos }));
     useGame.setState({
       scene,
       mode: 'exploration',
       partyPos: { x: 1, y: 1 },
       party: [hero],
       dialogue: null,
-      moveParty,
     });
     const emitted: { id: string; path: { x: number; y: number }[] }[] = [];
     unsubs.push(bus.on(EVT.ANIM_MOVE, (payload) => emitted.push(payload)));
@@ -666,7 +664,7 @@ describe('useStagePointer — picking exploration', () => {
     pointer!.handlers.onPointerUp(event);
 
     expect(emitted).toEqual([{ id: 'hero', path: [{ x: 1, y: 1 }, { x: 3, y: 1 }] }]);
-    expect(moveParty).toHaveBeenCalledOnce();
+    // Le saut POSE le groupe (`poserLeGroupe`) : l'atterrissage, en un seul segment.
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 1 });
   });
 });

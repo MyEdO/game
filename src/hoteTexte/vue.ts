@@ -6,8 +6,8 @@
  */
 import {
   activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, effectiveArmourAt, actionGate, etatDeLaBarre,
-  validTargets, endTurnArmed, portalsForParty, stepInteraction, LOCALISATIONS_DE_COUP, ACTIONS,
-  type Combatant, type Jeu, type Offre,
+  validTargets, endTurnArmed, portalsForParty, stepInteraction, porteesDuTour, tileFromKey, LOCALISATIONS_DE_COUP, ACTIONS,
+  type Combatant, type Jeu, type Offre, type Pt,
 } from '../noyau/index';
 import { offresDeLaBarre, ErreurDeGeste, type LigneNumerotee } from './partieTexte';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -17,7 +17,7 @@ import { coupeAuMot } from '../lib/coupeAuMot.mjs';
  *  chaque liste de la vue a son nombre d'éléments au plus, le reste se dit « +N ». */
 export const BORNES = {
   largeur: 160,
-  lignes: { vue: 15, reponse: 12, offres: 16, carte: 16, journal: 16, fiche: 8, nouvelle: 16 },
+  lignes: { vue: 15, reponse: 12, offres: 16, carte: 16, journal: 16, fiche: 8, nouvelle: 16, cases: 10, scenarios: 16, erreur: 16 },
   json: 12_000,
   /** Combattants listés par la vue après l'actif et ses engagés. */
   autresEnVue: 5,
@@ -26,8 +26,11 @@ export const BORNES = {
   ciblesEnVue: 8,
   /** Lignes de journal d'une réponse. */
   journalEnReponse: 8,
-  /** Éléments d'une page de `journal`, `carte` et `offres` (`--depuis`). */
+  /** Éléments d'une page de `journal`, `carte`, `offres` et `scenarios` (`--depuis`). */
   page: 15,
+  /** Cases d'une page de `cases` (`--depuis`), et cases par ligne. */
+  cases: 60,
+  casesParLigne: 10,
 } as const;
 
 export type Commande = keyof typeof BORNES.lignes;
@@ -35,10 +38,11 @@ export type Commande = keyof typeof BORNES.lignes;
 /** Les caractères au plus d'une sortie texte : ses lignes au plus, chacune à la largeur, avec sa fin de ligne. */
 export const caracteresAuPlus = (commande: Commande): number => BORNES.lignes[commande] * (BORNES.largeur + 1);
 
-/** Une sortie texte bornée : chaque ligne coupée au mot à la largeur (`coupeAuMot`), et au-delà du nombre de lignes de la commande, la
- *  dernière dit combien il en manque. */
-export function borner(lignes: readonly string[], commande: Commande): string[] {
+/** Une sortie texte bornée : un saut de ligne interne coupe une ligne en deux, chaque ligne est coupée au mot à la largeur
+ *  (`coupeAuMot`), et au-delà du nombre de lignes de la commande, la dernière dit combien il en manque. */
+export function borner(entrees: readonly string[], commande: Commande): string[] {
   const max = BORNES.lignes[commande];
+  const lignes = entrees.flatMap((l) => l.split('\n'));
   const gardees = lignes.length > max ? [...lignes.slice(0, max - 1), `+${lignes.length - max + 1} lignes`] : lignes;
   return gardees.map((l) => coupeAuMot(l, BORNES.largeur));
 }
@@ -59,6 +63,24 @@ export interface CombattantProjete {
   horsCombat: boolean;
 }
 
+/** Une ligne d'un jet lancé : qui, le jet, le d100, la valeur cible, le DR et le verdict. */
+export interface LigneDeJet {
+  qui: string;
+  jet: string;
+  d100: number;
+  cible: number;
+  dr: number;
+  reussi: boolean;
+}
+
+/** Une entité de la scène en exploration : id, genre, nom, case. */
+export interface EntiteProjetee {
+  id: string;
+  genre: string;
+  nom: string | null;
+  pos: [x: number, y: number];
+}
+
 /** Une offre ouverte de la vue : l'action, ses candidats ouverts comptés, son coût. */
 export interface OffreEnVue {
   id: string;
@@ -77,8 +99,15 @@ export interface Projection {
     tours: number;
     fin: 'victory' | 'defeat' | null;
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
-    /** La fenêtre qui tient la main ; pour la cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
-    fenetre: { cle: string; proprietaire: string | null; verbes: string[]; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+    /** La fenêtre qui tient la main, ses verbes et l'id que ses verbes prennent en premier argument (`pid`) ; pour la
+     *  cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
+    fenetre: { cle: string; proprietaire: string | null; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+    /** Le jet de coup lancé, en attente de confirmation (`pendingAttack`, `pendingDefense` : `result`), chaque ligne lue
+     *  telle que la fenêtre du web la montre, et le DR net du Test opposé (`netSL`), qu'une rangée de défense seule
+     *  porte (`null` sans elle). */
+    jet: { lignes: LigneDeJet[]; dr: number | null } | null;
+    /** L'aperçu du premier clic du champ (`battle.preview`), que le second confirme. */
+    apercu: { genre: string; vers: string; cout: number | null } | null;
     /** La barre de l'actif (`etatDeLaBarre`) : `ouverte`, ou fermée avec sa raison. */
     barre: string;
     intention: string | null;
@@ -89,7 +118,13 @@ export interface Projection {
     /** L'actif, ses engagés, puis au plus `BORNES.autresEnVue` autres, par distance croissante. */
     voisins: { liste: CombattantProjete[]; enPlus: number };
   };
-  exploration: null | { groupe: [x: number, y: number]; heros: string[]; portails: { id: string; genre: string; vers: [x: number, y: number] }[] };
+  exploration: null | {
+    groupe: [x: number, y: number];
+    heros: string[];
+    portails: { id: string; genre: string; vers: [x: number, y: number] }[];
+    /** Les entités de la scène (`scene.entities`) : décors, PNJ, objets. */
+    entites: { liste: EntiteProjetee[]; enPlus: number };
+  };
   refus: { texte: string; nonce: number } | null;
   journal: number;
 }
@@ -156,6 +191,32 @@ function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
 
 const tranche = <T>(liste: readonly T[], n: number): { liste: T[]; enPlus: number } => ({ liste: liste.slice(0, n), enPlus: Math.max(0, liste.length - n) });
 
+/** Les jets de coup en attente de confirmation : le pending, son attaquant et sa cible (`AttackResult`). */
+const COUPS_EN_ATTENTE = [
+  (etat: Jeu) => etat.pendingAttack && { result: etat.pendingAttack.result, de: etat.pendingAttack.attackerId, contre: etat.pendingAttack.targetId },
+  (etat: Jeu) => etat.pendingDefense && { result: etat.pendingDefense.result, de: etat.pendingDefense.attackerId, contre: etat.pendingDefense.defenderId },
+] as const;
+
+/** Le jet de coup lancé, en attente de confirmation : la ligne de l'attaquant, celle du défenseur au Test opposé. */
+function jetEnAttente(etat: Jeu): NonNullable<Projection['combat']>['jet'] {
+  for (const lire of COUPS_EN_ATTENTE) {
+    const coup = lire(etat);
+    if (!coup?.result) continue;
+    const r = coup.result;
+    const lignes = ([[coup.de, r.attackerDetail], [coup.contre, r.defenderDetail]] as const).flatMap(([id, d]) =>
+      d ? [{ qui: nomDe(etat, id) ?? id, jet: d.label, d100: d.roll, cible: d.target, dr: d.sl, reussi: d.success }] : []);
+    return { lignes, dr: r.defenderDetail ? r.netSL : null };
+  }
+  return null;
+}
+
+/** L'aperçu du premier clic : son genre, sa case ou sa cible, son coût. */
+function apercuDe(etat: Jeu): NonNullable<Projection['combat']>['apercu'] {
+  const a = etat.battle?.preview;
+  if (!a) return null;
+  return { genre: a.kind, vers: 'targetId' in a ? a.targetId : pos([a.tile.x, a.tile.y]), cout: 'cost' in a ? a.cost : null };
+}
+
 /** La projection de l'état après `pas` gestes, sur un journal de `journal` lignes. */
 export function projeter(etat: Jeu, pas: number, journal: number): Projection {
   const b = etat.battle;
@@ -178,7 +239,9 @@ export function projeter(etat: Jeu, pas: number, journal: number): Projection {
           tours: b.order.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
-          fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], ...etapeDe(etat, fenetre.cle) } : null,
+          fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(etat, fenetre.cle) } : null,
+          jet: jetEnAttente(etat),
+          apercu: apercuDe(etat),
           barre: barre.forme === 'ouverte' ? 'ouverte' : `${barre.forme} : ${barre.raison}`,
           intention: etat.localIntent?.actionId ?? null,
           finDeTourArmee: endTurnArmed(b),
@@ -193,6 +256,7 @@ export function projeter(etat: Jeu, pas: number, journal: number): Projection {
           groupe: [etat.partyPos.x, etat.partyPos.y],
           heros: etat.party.map((h) => h.label),
           portails: portalsForParty(etat.scene, etat.partyPos).slice(0, BORNES.page).map((p) => ({ id: p.id, genre: p.kind, vers: [p.to.x, p.to.y] })),
+          entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y] })), BORNES.page),
         },
     refus: etat.refus,
     journal,
@@ -224,8 +288,38 @@ function enteteDeCombat(p: Projection): string {
 const ligneDeFenetre = (f: NonNullable<NonNullable<Projection['combat']>['fenetre']>): string => {
   const e = f.etape;
   const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${e.choix.length ? ` [${e.choix.join(' | ')}]` : ''}` : '';
-  return `fenêtre ${f.cle} (à ${f.proprietaire ?? 'l’hôte'})${etape}${f.verbes.length ? ` : ${f.verbes.join(', ')}` : ''}`;
+  return `fenêtre ${f.cle} (à ${f.proprietaire ?? 'l’hôte'})${etape}`;
 };
+
+/** Un texte replié à la largeur, au mot, jamais coupé : une ligne de plus (en retrait) quand la largeur est atteinte ;
+ *  un saut de ligne interne commence une ligne. Un mot plus large que la ligne reste entier, `borner` le coupe. */
+export function replier(texte: string): string[] {
+  return texte.split('\n').flatMap((paragraphe) => {
+    const lignes: string[] = [];
+    let ligne = '';
+    for (const mot of paragraphe.split(' ')) {
+      const suite = ligne ? `${ligne} ${mot}` : mot;
+      if (suite.length > BORNES.largeur && ligne.trim()) {
+        lignes.push(ligne);
+        ligne = `  ${mot}`;
+      } else ligne = suite;
+    }
+    return [...lignes, ligne];
+  });
+}
+
+/** Les verbes de la fenêtre, repliés, et l'id que leurs paramètres `pid` attendent. */
+const ligneDeVerbes = (f: NonNullable<NonNullable<Projection['combat']>['fenetre']>): string[] =>
+  f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.join(', ')}`) : [];
+
+const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
+
+/** Le jet lancé : chaque ligne (d100 sur la cible, DR, verdict), puis le DR net du Test opposé. */
+const ligneDeJet = (j: NonNullable<NonNullable<Projection['combat']>['jet']>): string =>
+  `jet : ${j.lignes.map((l) => `${l.qui} ${l.jet} ${l.d100}/${l.cible} DR ${signe(l.dr)} ${l.reussi ? 'réussi' : 'raté'}`).join(' · ')}${j.dr === null ? '' : ` · DR net ${signe(j.dr)}`}`;
+
+const ligneDApercu = (a: NonNullable<NonNullable<Projection['combat']>['apercu']>): string =>
+  `aperçu : ${a.genre} → ${a.vers}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
 
 const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}`;
 
@@ -235,7 +329,9 @@ export function rendreLaVue(p: Projection): string[] {
   if (p.combat) {
     const c = p.combat;
     lignes.push(enteteDeCombat(p));
-    if (c.fenetre) lignes.push(ligneDeFenetre(c.fenetre));
+    if (c.fenetre) lignes.push(ligneDeFenetre(c.fenetre), ...ligneDeVerbes(c.fenetre));
+    if (c.jet) lignes.push(ligneDeJet(c.jet));
+    if (c.apercu) lignes.push(ligneDApercu(c.apercu));
     if (c.intention || c.finDeTourArmee) lignes.push([c.intention && `intention armée : ${c.intention}`, c.finDeTourArmee && 'fin de tour armée'].filter(Boolean).join(' · '));
     for (const x of c.voisins.liste.filter((v) => v.id !== c.actif?.id)) lignes.push(ligneDeCombattant(x));
     lignes.push(...enPlus(c.voisins.enPlus, 'autres (`carte`)'));
@@ -249,7 +345,7 @@ export function rendreLaVue(p: Projection): string[] {
     if (p.exploration) {
       lignes.push(`groupe ${pos(p.exploration.groupe)} : ${p.exploration.heros.join(', ')}`);
       const portails = p.exploration.portails;
-      lignes.push(`portails : ${portails.length ? portails.map((x) => `${x.genre}${pos(x.vers)}`).join(' · ') : 'aucun'}`);
+      lignes.push(`portails : ${portails.length ? portails.map((x) => `${x.id} ${x.genre}${pos(x.vers)}`).join(' · ') : 'aucun'}`);
     }
   }
   if (p.refus) lignes.push(`dernier refus (#${p.refus.nonce}) : ${p.refus.texte}`);
@@ -268,9 +364,26 @@ function page<T>(liste: readonly T[], depuis: number | undefined, defaut: 'debut
 }
 
 /** Le journal : une page, les dernières lignes, ou celles depuis `depuis`. */
-export function rendreLeJournal(journal: readonly LigneNumerotee[], depuis?: number): string[] {
-  const { elements, suite } = page(journal, depuis, 'fin', (k) => `journal --depuis ${k}`);
-  const lignes = elements.map((l) => `${l.n} [pas ${l.pas}] ${texteDe(l)}`);
+export function rendreLeJournal(journal: readonly LigneNumerotee[], depuis?: number, ligne = 0): string[] {
+  const { elements } = page(journal, depuis, 'fin', () => '');
+  const place = BORNES.lignes.journal - 1;
+  // Une entrée à saut de ligne prend plusieurs lignes : la page s'arrête avant de déborder, la suite comprise. Une entrée
+  // plus haute que la page se lit seule, page après page de ses lignes (`--ligne`).
+  const lignes: string[] = [];
+  let hauteur = 0;
+  for (const [i, l] of elements.entries()) {
+    const texte = `${l.n} [pas ${l.pas}] ${texteDe(l)}`.split('\n').slice(i === 0 ? ligne : 0);
+    if (i === 0 && texte.length > place) {
+      const vues = texte.slice(0, place - 1);
+      const reste = texte.length - vues.length;
+      return borner([...vues, `+${reste} lignes de l’entrée ${l.n} : \`journal --depuis ${l.n} --ligne ${ligne + vues.length}\``], 'journal');
+    }
+    if (hauteur + texte.length > place) break;
+    lignes.push(texte.join('\n'));
+    hauteur += texte.length;
+  }
+  const k = (elements[0]?.n ?? 0) + lignes.length;
+  const suite = k < journal.length ? [`+${journal.length - k} : \`journal --depuis ${k}\``] : [];
   return borner(lignes.length ? [...lignes, ...suite] : ['journal vide'], 'journal');
 }
 
@@ -288,13 +401,17 @@ function condenser(lignes: readonly LigneNumerotee[]): { n: number; texte: strin
   return sortie.map((s) => ({ n: s.n, texte: s.plus ? `${s.texte} (+${s.plus})` : s.texte }));
 }
 
-/** Le delta de deux projections : les champs de la vue qui ont bougé, en une ou deux lignes. */
+/** Le delta de deux projections : les champs de la vue qui ont bougé. L'en-tête, la fenêtre et ses verbes, le jet et
+ *  l'aperçu ont chacun leur ligne ; l'intention, la fin de tour et les combattants qui ont bougé tiennent en une. */
 function delta(avant: Projection, apres: Projection): string[] {
+  const lignes: string[] = [];
   const items: string[] = [];
   const ca = avant.combat;
   const cb = apres.combat;
-  if (cb && (!ca || enteteDeCombat({ ...avant, pas: 0 }) !== enteteDeCombat({ ...apres, pas: 0 }))) items.push(enteteDeCombat(apres));
-  if (cb && JSON.stringify(ca?.fenetre) !== JSON.stringify(cb.fenetre)) items.push(cb.fenetre ? ligneDeFenetre(cb.fenetre) : 'fenêtre fermée');
+  if (cb && (!ca || enteteDeCombat({ ...avant, pas: 0 }) !== enteteDeCombat({ ...apres, pas: 0 }))) lignes.push(enteteDeCombat(apres));
+  if (cb && JSON.stringify(ca?.fenetre) !== JSON.stringify(cb.fenetre)) lignes.push(...(cb.fenetre ? [ligneDeFenetre(cb.fenetre), ...ligneDeVerbes(cb.fenetre)] : ['fenêtre fermée']));
+  if (cb?.jet && JSON.stringify(ca?.jet) !== JSON.stringify(cb.jet)) lignes.push(ligneDeJet(cb.jet));
+  if (cb?.apercu && JSON.stringify(ca?.apercu) !== JSON.stringify(cb.apercu)) lignes.push(ligneDApercu(cb.apercu));
   if (cb && ca?.intention !== cb.intention) items.push(`intention : ${cb.intention ?? 'aucune'}`);
   if (cb && ca?.finDeTourArmee !== cb.finDeTourArmee) items.push(cb.finDeTourArmee ? 'fin de tour armée' : 'fin de tour désarmée');
   if (ca && cb) {
@@ -310,21 +427,28 @@ function delta(avant: Projection, apres: Projection): string[] {
       if (bouge.length) items.push(`${c.id} ${bouge.join(' ')}`);
     }
   }
-  if (!cb && JSON.stringify(avant.exploration) !== JSON.stringify(apres.exploration)) items.push(rendreLaVue(apres).slice(0, 2).join(' · '));
-  if (!items.length) return [];
-  const [premier, ...reste] = items;
-  return reste.length ? [`Δ ${premier}`, `Δ ${reste.join(' · ')}`] : [`Δ ${premier}`];
+  if (!cb && JSON.stringify(avant.exploration) !== JSON.stringify(apres.exploration)) lignes.push(...rendreLaVue(apres).slice(0, 2));
+  if (items.length) lignes.push(items.join(' · '));
+  return lignes.map((l) => `Δ ${l}`);
 }
 
-/** La réponse à un geste appliqué (`BORNES.lignes.reponse`) : l'issue, le delta (≤ 2), au plus
- *  `BORNES.journalEnReponse` lignes de journal, la suite. */
+/** La réponse à un geste appliqué (`BORNES.lignes.reponse`) : l'issue, le delta (`delta`, une ligne par champ qui a
+ *  bougé), puis le journal dans la place qui reste, au plus `BORNES.journalEnReponse` lignes, et la suite. */
 export function rendreLaReponse(geste: string, avant: Projection, apres: Projection, lignes: readonly LigneNumerotee[], reprises: number): string[] {
   const refusNeuf = apres.refus && apres.refus.nonce !== avant.refus?.nonce ? ` · refus : ${apres.refus.texte}` : '';
   const sortie = [`${geste} : appliqué${reprises ? ` · ${reprises} jeton${reprises > 1 ? 's' : ''} repris` : ''}${refusNeuf}`, ...delta(avant, apres)];
   const condensees = condenser(lignes);
-  const n = BORNES.journalEnReponse;
-  sortie.push(...condensees.slice(0, n).map((l) => `  ${l.n}  ${l.texte}`));
-  if (condensees.length > n) sortie.push(`  +${condensees.length - n} lignes : \`journal --depuis ${condensees[n].n}\``);
+  // Le journal prend les lignes que l'issue et le delta laissent, la suite comprise ; une entrée à saut de ligne en compte plusieurs.
+  const place = Math.min(BORNES.journalEnReponse, BORNES.lignes.reponse - sortie.flatMap((l) => l.split('\n')).length - 1);
+  let prises = 0;
+  let k = 0;
+  for (; k < condensees.length; k++) {
+    const hauteur = condensees[k].texte.split('\n').length;
+    if (prises + hauteur > place) break;
+    sortie.push(`  ${condensees[k].n}  ${condensees[k].texte}`);
+    prises += hauteur;
+  }
+  if (k < condensees.length) sortie.push(`  +${condensees.length - k} lignes : \`journal --depuis ${condensees[k].n}\``);
   return borner(sortie, 'reponse');
 }
 
@@ -379,9 +503,46 @@ export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: Combat
   return { combattants: elements, suite };
 }
 
-/** La carte (`BORNES.lignes.carte`) ; hors combat, la vue. */
+/** La carte (`BORNES.lignes.carte`) : en combat, les combattants ; en exploration, le groupe, puis les entités de la
+ *  scène (`scene.entities`) ; par page (`--depuis`). */
 export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string[] {
-  if (!p.combat) return rendreLaVue(p);
+  if (!p.combat) {
+    const entites = etat.scene?.entities ?? [];
+    const { elements, suite } = page(entites, depuis, 'debut', (k) => `carte --depuis ${k}`);
+    const tete = p.exploration ? [`groupe ${pos(p.exploration.groupe)} · ${entites.length} entité(s)`] : ['aucune scène'];
+    return borner([...tete, ...elements.map((e) => `  ${e.id} · ${e.kind}${e.label ? ` · ${e.label}` : ''} · ${pos([e.pos.x, e.pos.y])}`), ...suite], 'carte');
+  }
   const { combattants, suite } = pageDeLaCarte(etat, depuis);
   return borner([...combattants.map((c) => `${c.id === p.combat!.actif?.id ? '> ' : '  '}${ligneDeCombattant(c)}`), ...suite], 'carte');
+}
+
+/** Les cases que le champ peint au tour de l'actif (`porteesDuTour`, le lecteur de sa surbrillance), par zone et par
+ *  coût, une page de `BORNES.cases` cases (`--depuis`). Hors combat, ou hors du tour du joueur : aucune. */
+export function casesAtteignables(etat: Jeu, monTour: boolean): { zone: string; case: Pt; cout: number }[] {
+  if (!etat.battle) return [];
+  const portees = porteesDuTour(() => etat, monTour);
+  return (Object.entries(portees) as [string, Map<string, number>][]).flatMap(([zone, cases]) =>
+    [...cases].map(([cle, cout]) => ({ zone, case: tileFromKey(cle), cout })).sort((a, b) => a.cout - b.cout || a.case.y - b.case.y || a.case.x - b.case.x));
+}
+
+/** `cases` (`BORNES.lignes.cases`) : une ligne par zone et par tranche de `BORNES.casesParLigne` cases, « (x,y)·coût ». */
+export function rendreLesCases(cases: readonly { zone: string; case: Pt; cout: number }[], depuis?: number): string[] {
+  if (!cases.length) return ['aucune case atteignable (hors combat, ou hors du tour d’un héros de ce siège)'];
+  const debut = Math.max(0, depuis ?? 0);
+  const pageDeCases = cases.slice(debut, debut + BORNES.cases);
+  const lignes: string[] = [];
+  for (let i = 0; i < pageDeCases.length;) {
+    const zone = pageDeCases[i].zone;
+    const tranche: typeof pageDeCases = [];
+    while (i < pageDeCases.length && pageDeCases[i].zone === zone && tranche.length < BORNES.casesParLigne) tranche.push(pageDeCases[i++]);
+    lignes.push(`${zone} : ${tranche.map((c) => `${pos([c.case.x, c.case.y])}·${c.cout}`).join(' ')}`);
+  }
+  const k = debut + pageDeCases.length;
+  return borner([...lignes, ...(k < cases.length ? [`+${cases.length - k} : \`cases --depuis ${k}\``] : [])], 'cases');
+}
+
+/** `scenarios` (`BORNES.lignes.scenarios`) : l'id à passer à `nouvelle`, puis le titre, par page (`--depuis`). */
+export function rendreLesScenarios(scenarios: readonly { id: string; title: string }[], depuis?: number): string[] {
+  const { elements, suite } = page(scenarios, depuis, 'debut', (k) => `scenarios --depuis ${k}`);
+  return borner([...elements.map((sc) => `${sc.id} · ${sc.title}`), ...suite], 'scenarios');
 }

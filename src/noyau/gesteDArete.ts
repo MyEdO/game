@@ -30,6 +30,7 @@ import { bus, EVT } from './bus';
 import { refuserGeste } from './refusVisible';
 import { hasAutoClimb, hasClimbFullSpeed } from '../engine/traits/dispatch';
 import { planClimb } from './monde/climbMove';
+import { poserLeGroupe } from './marcheDuGroupe';
 import { climbMovementCost } from '../engine/movement';
 import { ev } from './combatLog';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -148,7 +149,7 @@ export function gestesDeplacantsOuverts(s: Jeu): boolean {
  * chute pleine (`metresRetenus`) sans Test, `effectiveMetres` du Test sinon ; à 0 m ou moins, AUCUN Dégât
  * (bypass EXPLICITE : `applyFall(c,0,rng)` ne garantit PAS 0 dégât seul, cf. son d10). Le Test TENTÉ
  * consomme l'Action (LDB 13 l.86-88, patron `climbAcross` « surface »). Exploration : le PAS du groupe
- * (`moveParty`, ses déclencheurs) d'abord, puis une chute par tombant ; combat : le seul tombant.
+ * (`poserLeGroupe`, ses déclencheurs) d'abord, puis une chute par tombant ; combat : le seul tombant.
  */
 function settleFall(get: Get, set: Set, p: PendingFall): void {
   const { scene, mode, battle } = get();
@@ -172,7 +173,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
     }
     return;
   }
-  get().moveParty({ ...p.to });
+  poserLeGroupe(get, set, { ...p.to });
   // Les 1d10 de TOUS les tombants s'ouvrent ENSEMBLE (`ouvrirChute`, patron de l'Effet `fall` à plusieurs
   // cibles et de `collapseStructure`) : la séquence compte d'emblée chaque dé de la chute.
   for (const { c, m } of chutes) {
@@ -227,7 +228,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       if (plan.kind === 'impossible') return void refuserGeste(get, set, t('climb.tooHard', { name: mover.label }));
       if (!isWalkable(scene, to.x, to.y, to.z ?? 0)) return void refuserGeste(get, set, t('climb.sommetInaccessible', { name: mover.label }));
       if (!battle) {
-        get().moveParty(to); // monte (optimiste) ; l'échec du Test fera chuter au pied via l'Effet `fall`
+        poserLeGroupe(get, set, to); // monte (optimiste) ; l'échec du Test fera chuter au pied via l'Effet `fall`
         if (plan.kind === 'test') jouerFlowEntier(runFlow(get, set, plan.flow));
         return;
       }
@@ -319,7 +320,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       if (plan.kind !== 'enjamber') return void refuserGeste(get, set, t(plan.kind === 'none' ? REFUS_FRANCHISSEMENT[plan.raison] : 'franchir.refus.pasDePlainPied'));
       if (!battle) {
         bus.emit(EVT.ANIM_MOVE, { id: mover.id, path: [verdict.case, plan.to] });
-        get().moveParty(plan.to);
+        poserLeGroupe(get, set, plan.to);
         return;
       }
       const cout = 1 + mouvementDeLAllege(plan.allege, sceneMetresPerTile(scene));

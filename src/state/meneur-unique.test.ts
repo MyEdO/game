@@ -18,6 +18,7 @@ import { actorPoseKey, partyActorPose } from '../gameIso/backends/webgl/sceneMes
 import { bus, EVT } from '../noyau/bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -103,7 +104,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
 
   it('MARCHE : `moveParty` oriente le cap du groupe le long du pas', () => {
     useGame.setState({ facing: {}, partyPos: { x: 5, y: 5 } });
-    useGame.getState().moveParty({ x: 6, y: 5 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 6, y: 5 });
     expect(capDuGroupe(useGame.getState())).toBe('E');
   });
 
@@ -111,7 +112,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     // Case LIBRE (la table occupe (5,5)) : le pas doit être SERVI, pas refusé — sans quoi le test
     // serait vert pour la mauvaise raison.
     useGame.setState({ facing: poserCapDuGroupe({}, 'N'), partyPos: { x: 2, y: 2 } });
-    useGame.getState().moveParty({ x: 2, y: 2 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 2 });
     expect(useGame.getState().partyPos).toMatchObject({ x: 2, y: 2 });
     expect(capDuGroupe(useGame.getState())).toBe('N');
   });
@@ -224,7 +225,7 @@ describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du
 
   it('MARCHE : le pas oriente ce que le quad dessine', () => {
     poser([hero('a', 12), hero('b', 12)], scèneDeTaverne(), { x: 2, y: 2 });
-    useGame.getState().moveParty({ x: 3, y: 2 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 3, y: 2 });
     expect(rendu().pose.facing, 'un pas vers l’est').toBe('E');
     expect(rendu().capLuParLeDisque).toBe('E');
   });

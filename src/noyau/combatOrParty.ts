@@ -24,6 +24,7 @@ import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
 import type { SeaWind } from '../engine/domainAttributes';
 import { inBattleId } from './monde/combatants';
+import { coupFerme } from './targetingHolder';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
  *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe. */
@@ -84,6 +85,7 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
     const target = inBattleId(battle, combatant.id);
     return !!shooter && !!target && target.kind !== shooter.kind && !isOutOfAction(target);
   }
+  if (!coupFerme(get())) return false; // coup ouvert : le champ attend sa fenêtre (`battleClickEntity`)
   const active = inBattleId(battle, battle.order[battle.turn]);
   if (!active) return false;
   const mode = currentTargetingMode(get);

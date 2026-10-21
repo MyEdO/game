@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 /**
  * Déplacement d'exploration z-aware : le groupe peut fouler une case d'une couche SUPÉRIEURE (tablier
@@ -25,17 +26,17 @@ describe('exploration z-aware : moveParty', () => {
   );
 
   it('foule une case de tablier (plancher, 4 m) → partyPos porte z=1', () => {
-    useGame.getState().moveParty({ x: 1, y: 1, z: 1 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 1, y: 1, z: 1 });
     expect(useGame.getState().partyPos).toEqual({ x: 1, y: 1, z: 1 });
   });
 
   it('refuse une case « vide » d’étage (rien à fouler)', () => {
-    useGame.getState().moveParty({ x: 2, y: 2, z: 1 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 2, z: 1 });
     expect(useGame.getState().partyPos).toEqual({ x: 0, y: 0 }); // inchangé
   });
 
   it('un déplacement au SOL reste byte-identique (partyPos sans z)', () => {
-    useGame.getState().moveParty({ x: 3, y: 3 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 3, y: 3 });
     expect(useGame.getState().partyPos).toEqual({ x: 3, y: 3 });
   });
 });

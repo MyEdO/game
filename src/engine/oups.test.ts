@@ -59,8 +59,8 @@ describe('rollOups (Tableau des Oups !)', () => {
     }
     expect(sawMisfire).toBe(true);
   });
-  it("parité #365 : le label Incident de Tir vit dans oups.json, byte-identique à l'ancien code en dur", () => {
-    expect(oupsMisfire().label).toBe('Incident de Tir ! L’arme explose dans votre main (Dégâts au Bras principal, arme détruite).');
+  it("l'Incident de Tir vit dans oups.json, hors de la table d100 (son libellé : src/data/oups-verbatim.test.ts)", () => {
+    expect(oupsMisfire().kind).toBe('misfire');
     expect(oupsTable()).toHaveLength(7); // la table d100 = 7 bandes, le misfire en est exclu (filtré hors table)
   });
   it("arme non à poudre : jamais de misfire", () => {
