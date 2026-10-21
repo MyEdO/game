@@ -26,12 +26,9 @@ import { TableRollLine } from './RollLine';
 import { testBreakdown, testPending, opposedLines } from './breakdown';
 import type { ModLine } from '../engine/combat';
 import { Icon } from './Icon';
-import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl, specDeEtape } from '../noyau/cascade';
-import { formatDice } from '../engine/dice';
+import { stepInteraction, stepReady, secondReadOf, tableStepDef, tableStepNaturalRange, naturalRollForTableRow, liveTableDecl } from '../noyau/cascade';
 import { fourchette } from '../engine/tables';
 import { estJete, refusSansJet, cibleMesuree, type EchecSansJet } from '../engine/tests';
-import { formatWardSave } from '../engine/traits/dispatch';
-import { t } from '../i18n';
 import { opposedAttackerLabel } from '../noyau/rollSeam';
 import { useOwns } from './ownership';
 import { sequenceAbandonEtatOf } from '../noyau/sequenceCore';
@@ -39,12 +36,13 @@ import { SequencePanel } from './SequencePanel';
 import { stepForcedDie } from './forcedDieRow';
 import { opposedResponded } from './opposedFrozen';
 import { frozenOpposedRow, tableRow, witnessRow, buildRollRow, type BuiltRollRow } from './rollRowBuild';
-import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant, SeuilDeSauvegarde } from '../noyau/pendings';
+import type { CascadeStep, CascadeRollStep, CascadeRoll, BatchParticipant } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import { buildParticipantRows, rollAllUnrolledRows, rangeeSansJet } from './buildParticipantRows';
 import { Prose, mdToText } from './Prose';
 import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
+import { libelleDuDe, lectureDuTotal, libelleDuSeuil, libelleDeTable, libelleDuJetFige } from '../noyau/jetsEnVue';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
@@ -60,13 +58,6 @@ export function jetStepPresentable(step: CascadeStep, actor: Combatant | undefin
  *  key »). Site UNIQUE de la clé, partagé par la pile figée et la rangée batch courante. */
 export const witnessRowKey = (stepId: string, participantId?: string): string =>
   participantId != null ? `${stepId}:${participantId}` : stepId;
-
-/** GRAPHIE UNIQUE du seuil d'un dé (#1508) : le Trait à son Indice, et sa PROVENANCE quand une zone
- *  l'octroie (« Protection (6+) du Dôme »). Dite AVANT le lancer, dans la cellule centrale de la
- *  rangée — celle qui, sur une rangée de Test, porte le « contre quoi » (`RollCalc`) — comme APRÈS
- *  le lancer (`totalLabel`, qui la préfixe du total et de sa comparaison). Une seule écriture. */
-export const seuilLabel = (seuil: SeuilDeSauvegarde): string =>
-  `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.wardFromDome') : ''}`;
 
 /** Sous-titre d'étape — SOURCE UNIQUE des six branches de la cascade (table / affichage riche /
  *  affichage / choix / batch / jet) : la POSITION dans la séquence, et elle seule. Le libellé de
@@ -243,27 +234,15 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // DÉ NU (#1508) : MÊME rangée, même anatomie — le libellé dit ce qui se tire et avec quels dés,
     // le « résultat » est le TOTAL avec son unité. Aucune primitive neuve : c'est un tirage.
     const d = s.de?.result;
-    if (d) return <TableRollLine table={dieLineLabel(s)} roll={d.roll} die={d.total} mod={s.de!.mod ?? 0} result={totalLabel(s, d.total)} />;
+    if (d) return <TableRollLine table={libelleDuDe(s)} roll={d.roll} die={d.total} mod={s.de!.mod ?? 0} result={lectureDuTotal(s, d.total)} />;
     const r = s.table?.result;
     if (!r) return undefined;
     return (
       <TableRollLine
-        table={tableLineLabel(tableStepDef(s.table!.tableId)?.label, s.label, p.title)}
+        table={tableLineLabel(libelleDeTable(s), s.label, p.title)}
         roll={r.roll} die={r.die} mod={s.table!.mod ?? 0} result={r.lines[0] ?? ''}
       />
     );
-  };
-  /** Libellé de la rangée d'un DÉ NU : ce qui se tire ET les dés qui le tirent (« Hauteur de chute
-   *  (2d10) ») — sans table à nommer, c'est l'étape et son `DiceSpec` qui disent le tirage. */
-  const dieLineLabel = (s: CascadeStep): string => `${s.label ?? ''} (${formatDice(specDeEtape(s.de!))})`.trim();
-  /** Le TOTAL du dé, dit dans la LECTURE de l'étape (#1508) : nue, c'est la valeur qui fait la
-   *  conséquence, avec son unité déclarée (« 13 m ») ; EN SEUIL (`cascade.lireEnSeuil`), c'est le total
-   *  confronté à l'Indice, à la graphie unique du seuil (« 8 ≥ Protection (6+) ») et avec sa PROVENANCE
-   *  quand une zone l'octroie. MÊME rangée de tirage dans les deux cas. */
-  const totalLabel = (s: CascadeStep, total: number): string => {
-    const seuil = s.de?.seuil;
-    if (seuil) return `${total} ${total >= seuil.indice ? '≥' : '<'} ${seuilLabel(seuil)}`;
-    return s.de?.unite ? `${total} ${s.de.unite}` : String(total);
   };
   const rowOf = (s: CascadeStep): PanelRow | null => {
     const a = actorOf(s);
@@ -429,7 +408,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         // l'affichait « Intermédiaire » par défaut tant qu'elle ne voyageait pas). Base NUE de
         // l'attaquant (`aT.base`) pour que le modificateur de Difficulté se lise sur la ligne.
         ...opposedLines([{
-          label: oppTestLabel ? `${opp.attackerName} — ${oppTestLabel}` : opp.attackerName,
+          label: libelleDuJetFige(opp),
           base: opp.aT.base ?? opp.aT.target,
           r: { roll: opp.aT.roll, target: opp.aT.target, sl: opp.aT.sl, success: opp.aT.success },
         }], opp.difficulty)[0],
@@ -552,7 +531,6 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // standard, la rangée `TableRollLine` annonce SUR QUOI on tire (le résultat s'y inscrira). Le tirage
   // naturel reste le DÉFAUT : les affordances de pose (#942 L3) s'ajoutent, ne remplacent rien.
   if (interaction === 'table') {
-    const def = tableStepDef(cur.table!.tableId);
     const aff = affordancesDuDe(cur);
     const tableActions: RollAction[] = [
       { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tableRoll(cur.id), when: 'pre' },
@@ -564,7 +542,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length })}
         rolled={false}
         rows={aff.rows}
-        extra={<TableRollLine table={tableLineLabel(def?.label, cur.label, modalTitle)} />}
+        extra={<TableRollLine table={tableLineLabel(libelleDeTable(cur), cur.label, modalTitle)} />}
         setup={aff.lines}
         actions={tableActions}
         disableEscClose
@@ -592,7 +570,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         subtitle={stepSubtitle({ cursor: p.cursor, total: p.participants.length }, porteurZ1(cur))}
         rolled={false}
         rows={aff.rows}
-        extra={<TableRollLine table={dieLineLabel(cur)} result={cur.de?.seuil ? `≥ ${seuilLabel(cur.de.seuil)}` : undefined} />}
+        extra={<TableRollLine table={libelleDuDe(cur)} result={cur.de?.seuil ? `≥ ${libelleDuSeuil(cur.de.seuil)}` : undefined} />}
         actions={dieActions}
         disableEscClose
         embedded={embedded} etape={etape}
@@ -647,7 +625,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
            contenu de l'étape résolue — c'est le verdict, il ne se cherche pas sous une grille. */
         extra={tbl ? (
           <>
-            <TableRollLine table={tableLineLabel(tableStepDef(cur.table!.tableId)?.label, cur.label, modalTitle)} roll={tbl.roll} die={tbl.die} mod={cur.table!.mod ?? 0} result={tbl.lines[0] ?? ''} />
+            <TableRollLine table={tableLineLabel(libelleDeTable(cur), cur.label, modalTitle)} roll={tbl.roll} die={tbl.die} mod={cur.table!.mod ?? 0} result={tbl.lines[0] ?? ''} />
             {tbl.lines.slice(1).map((l, i) => <p key={i} className="modal-log">{l}</p>)}
             {aff.lines}
           </>
@@ -726,7 +704,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         // sachant où en est la partie) — même tableau de marque que les fenêtres de jet.
         extra={tblChoix ? (
           <>
-            <TableRollLine table={tableLineLabel(tableStepDef(cur.table!.tableId)?.label, cur.label, modalTitle)} roll={tblChoix.roll} die={tblChoix.die} mod={cur.table!.mod ?? 0} result={tblChoix.lines[0] ?? ''} />
+            <TableRollLine table={tableLineLabel(libelleDeTable(cur), cur.label, modalTitle)} roll={tblChoix.roll} die={tblChoix.die} mod={cur.table!.mod ?? 0} result={tblChoix.lines[0] ?? ''} />
             {aff.lines}
             <SequencePanel />
           </>

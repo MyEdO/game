@@ -20,7 +20,7 @@ import { SURFACE_DU_NOYAU } from './couches.mjs'
 
 /** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure` : la surface du noyau, le registre des
  *  scénarios de test dont il construit le lancement, et l'entrée de l'hôte texte (#2898). */
-export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', 'src/hoteTexte/cli.ts'])
+export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', 'src/hoteTexte/serveur.ts'])
 
 /** Les zones de `src/` qu'aucun module de la fermeture ne charge. */
 export const ZONES_D_HOTE = Object.freeze(['state', 'ui', 'gameIso', 'web', 'net', 'audio'])

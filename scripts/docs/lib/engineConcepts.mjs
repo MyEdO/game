@@ -128,6 +128,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/seaVoyage.ts', 'Voyage en mer'],
   ['src/engine/seaWeather.ts', 'Météo maritime'],
   ['src/engine/session.ts', 'Session de jeu'],
+  ['src/engine/sequences.ts', "Séquences d'ids : compteurs remis à zéro par une partie neuve"],
   ['src/engine/shipBuild.ts', 'Construction de navire'],
   ['src/engine/shipCritical.ts', 'Coups Critiques de navire'],
   ['src/engine/shipMelee.ts', 'Combat naval au contact'],

@@ -10,6 +10,7 @@ import { combatValueModParts } from '../engine/combat';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeReload } from '../noyau/flowOutcomes';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /** Vue pure de la modale de rechargement (testable sans store). */
 export function ReloadModalView({
@@ -51,8 +52,8 @@ export function ReloadModalView({
     actor,
     row: {
       combatant: actor,
-      d: rolled ? testBreakdown('Projectiles', base, { roll: pr.roll!, ...cibleMesuree(pr), sl: pr.sl, success: pr.success }, pr.difficulty, mods) : undefined,
-      pending: testPending('Projectiles', base, cibleMesuree(pr), pr.difficulty, mods),
+      d: rolled ? testBreakdown(libelleDeTest('projectiles'), base, { roll: pr.roll!, ...cibleMesuree(pr), sl: pr.sl, success: pr.success }, pr.difficulty, mods) : undefined,
+      pending: testPending(libelleDeTest('projectiles'), base, cibleMesuree(pr), pr.difficulty, mods),
     },
     rerolled: !!pr.rerolled,
     onRoll,

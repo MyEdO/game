@@ -445,11 +445,12 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
-src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable en ligne de commande, sans store
+src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
                             (`portes` de `COUCHES`), plus `scenes` et les feuilles. `partieTexte.ts` (fichier de
-                            partie, rejeu, jetons, erreurs), `vue.ts` (projection et rendus bornés), `cli.ts`
-                            (commandes) ; lancé par `scripts/hote-texte.mjs`.
+                            partie, rejeu, jetons, erreurs), `vue.ts` (projection et rendus bornés), `outils.ts`
+                            (les trois outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
+                            `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;

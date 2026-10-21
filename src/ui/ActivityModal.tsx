@@ -8,6 +8,7 @@ import { activityById, activityModLines } from '../engine/activities';
 import { describeActivity } from '../noyau/flowOutcomes';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
+import { libelleDePuissance } from '../noyau/jetsEnVue';
 
 /**
  * Jet d'Activité (LDB 23 interlude / ADE II 8 BATAILLE de masse) : même coquille `RollShell` que
@@ -112,7 +113,7 @@ export function ActivityModal() {
     rows.push(witnessRow({
       key: 'enemy',
       // La Difficulté de l'opposition est celle DÉCLARÉE par le flux, à défaut Intermédiaire (LDB 12 l.166).
-      row: opposedLines([{ label: `${enemyName} · Puissance`, base: enemyBase, r: enemyT, mods: holdMods.length ? holdMods : undefined }], pa.difficulty)[0],
+      row: opposedLines([{ label: libelleDePuissance(enemyName), base: enemyBase, r: enemyT, mods: holdMods.length ? holdMods : undefined }], pa.difficulty)[0],
     }));
   }
   // Vainqueur du Test opposé : le PJ TIENT (`pa.success`) → rangée 0 accentuée, sinon l'ennemi (rangée 1).

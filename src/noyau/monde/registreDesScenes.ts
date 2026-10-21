@@ -23,7 +23,8 @@ export function resetSceneRegistry(): void {
   for (const k of Object.keys(sceneRegistry)) delete sceneRegistry[k];
 }
 
-/** TEST-ONLY (#2097) : les scènes du registre, sources de donnée de la garde de partage. */
+/** Les scènes du registre : celles qu'une transition rejoint (`sceneDuRegistre`), la désignation d'une scène
+ *  (`DESIGNATIONS`, `designations.ts`) et la garde de partage (#2097). */
 export function scenesDuRegistre(): Scene[] {
   return Object.values(sceneRegistry);
 }

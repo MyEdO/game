@@ -5,6 +5,9 @@ import type { Pt } from './monde/path';
 import type { PendingFall, TombantParticipant } from './pendings';
 import { rule } from '../engine/policy';
 import { climbMovementCost } from '../engine/movement';
+import { t } from '../i18n';
+import { actorIn } from './monde/combatants';
+import type { Jeu } from './etat';
 
 /**
  * FRANCHISSEMENT d'une arête par un GESTE — planificateur UNIQUE de la chute VOLONTAIRE « à dessein »
@@ -116,6 +119,26 @@ export function metresRetenus(p: PendingFall, part: TombantParticipant): number 
  *  qu'une rangée n'a pas déclaré ses DEUX axes — le Test (`attempt`) et, quand la suspension est offerte,
  *  la hauteur (`suspendre`) —, `'roll'` ensuite. */
 export function phaseDeChute(p: PendingFall): 'choice' | 'roll' {
-  const offerte = p.suspendu !== undefined;
-  return p.participants.some((x) => x.attempt === null || (offerte && x.suspendre == null)) ? 'choice' : 'roll';
+  return p.participants.some((x) => doitDeclarer(p, x)) ? 'choice' : 'roll';
+}
+
+const doitDeclarer = (p: PendingFall, x: TombantParticipant): boolean => x.attempt === null || (p.suspendu !== undefined && x.suspendre == null);
+
+/** Les rangées DUES d'une chute, dans l'ordre de sa phase (`phaseDeChute`) : celles qui n'ont pas déclaré, puis celles
+ *  qui tentent le Test sans l'avoir jeté. */
+export const rangeesDuesDeChute = (p: PendingFall): TombantParticipant[] =>
+  p.participants.filter((x) => (phaseDeChute(p) === 'choice' ? doitDeclarer(p, x) : x.attempt === true && !x.result));
+
+/** Les tombants `rangees`, chacun nommé avec l'id que prennent les verbes de la chute : « Nom (id), … ». */
+export const tombantsNommes = (s: Jeu, rangees: readonly TombantParticipant[]): string =>
+  rangees.map((x) => `${actorIn(s, x.id)?.label ?? x.id} (${x.id})`).join(', ');
+
+/** Le refus d'un geste qui résout la chute avant son heure : ce qui reste à déclarer (et s'il se suspend d'abord,
+ *  quand la croisée l'offre) ou à jeter ; `null` quand rien n'est dû. */
+export function refusDesRangeesDues(s: Jeu, p: PendingFall): string | null {
+  const dues = rangeesDuesDeChute(p);
+  if (!dues.length) return null;
+  const tombants = tombantsNommes(s, dues);
+  if (phaseDeChute(p) === 'roll') return t('fall.refus.jetsDus', { tombants });
+  return t(p.suspendu === undefined ? 'fall.refus.declarationsDues' : 'fall.refus.declarationsDuesSuspendu', { tombants });
 }

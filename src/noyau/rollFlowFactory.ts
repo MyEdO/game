@@ -20,6 +20,7 @@
  * `roll-modal-invariant.test.ts` continue de vérifier.
  */
 import type { Jeu } from './etat';
+import { refuserGeste } from './refusVisible';
 import type { Combatant, Difficulty } from '../engine/types';
 import { canReroll } from '../engine/fortune';
 import { availableResistance, markResistanceUsed, resistanceForcedSL, resistanceImproves } from '../engine/menace';
@@ -213,7 +214,15 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * ABSENT ⇒ MONO : le pending EST le slot unique (`pid` ignoré par les handlers). Une SEULE fabrique
    * pour les deux — le mono est le cas dégénéré N=1 (plus de `makeMultiRollFlow` recopié).
    */
-  multi?: { slots: (p: P) => Slot[]; idOf: (slot: Slot) => string; replace: (p: P, slots: Slot[]) => P };
+  multi?: {
+    slots: (p: P) => Slot[];
+    idOf: (slot: Slot) => string;
+    replace: (p: P, slots: Slot[]) => P;
+    /** Flux SÉQUENTIEL : le refus du slot `pid` qui ne se joue pas maintenant, `null` s'il se joue. Un verbe refusé
+     *  le dit (`refuserGeste`) et ne fait rien ; une lecture (`reverseAvailable`) n'en écrit rien. Absent : tout slot
+     *  se joue. */
+    refusDuSlot?: (s: Jeu, pid: string) => string | null;
+  };
   /** Le jet a-t-il déjà été lancé ? (`slot.result != null` / `slot.roll != null`). */
   rolled: (slot: Slot) => boolean;
   /** L'acteur qui dépense Chance/Résilience. `undefined` → l'action de dépense est ignorée. */
@@ -537,13 +546,18 @@ function opDarkPact<P extends PendingBase>(
 export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P, Ctx = void>(spec: RollFlowSpec<P, Slot, Ctx>): RollFlowHandlers {
   const pendingOf = (s: Jeu) => s[spec.key] as P | null | undefined;
   const touch = spec.touch ?? touchActors;
-  const locate = (set: Set, get: Get, p: P, pid?: string): { slot: Slot; commit: Commit<Slot> } | null => {
+  const locate = (set: Set, get: Get, p: P, pid?: string, lecture = false): { slot: Slot; commit: Commit<Slot> } | null => {
     if (!spec.multi) {
       const slot = p as unknown as Slot;
       return { slot, commit: (patch, opts) => set({
         [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
         ...(opts?.touch ? touch(get()) : {}),
       } as PatchDeFlux) };
+    }
+    const refus = pid != null ? spec.multi.refusDuSlot?.(get(), pid) : null;
+    if (refus) {
+      if (!lecture) refuserGeste(get, set, refus);
+      return null;
     }
     const slots = spec.multi.slots(p);
     const slot = pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0];
@@ -785,7 +799,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     reverseAvailable(get, set, pid) {
       if (!spec.reverse) return false;
       const s = get(); const p = pendingOf(s); if (!p) return false;
-      const loc = locate(set, get, p, pid); if (!loc || passive(loc.slot, s, get, p)) return false;
+      const loc = locate(set, get, p, pid, true); if (!loc || passive(loc.slot, s, get, p)) return false;
       if (!spec.rolled(loc.slot)) return false;
       const actor = spec.actor(s, loc.slot, p); if (!actor) return false;
       const cur = spec.reverse.current(loc.slot); if (!cur) return false;
@@ -795,7 +809,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     reversePreview(get, set, pid) {
       if (!spec.reverse) return null;
       const s = get(); const p = pendingOf(s); if (!p) return null;
-      const loc = locate(set, get, p, pid); if (!loc || passive(loc.slot, s, get, p)) return null;
+      const loc = locate(set, get, p, pid, true); if (!loc || passive(loc.slot, s, get, p)) return null;
       if (!spec.rolled(loc.slot)) return null;
       const actor = spec.actor(s, loc.slot, p); if (!actor) return null;
       const cur = spec.reverse.current(loc.slot); if (!cur) return null;

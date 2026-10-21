@@ -9,7 +9,7 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
  * registre et la `.meta()` au `.extend`, la composition se fait donc ICI via `extra`.
  */
 import { z } from 'zod';
-import './locale-fr';
+import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
 import { idsVivants } from './idsVivants';

@@ -1,18 +1,20 @@
 /** Marche du groupe en exploration : pas, pivot, pas relatif au regard, saut et porte. */
-import { groupePosable, toggleDoorIn } from './monde/scene';
+import { groupePosable, toggleDoorIn, type Scene } from './monde/scene';
 import { releaseSeat, RANG_MENEUR, memeCase } from './monde/seating';
 import { poserCapDuGroupe, meneurDuMonde, capDuGroupe } from './monde/combatants';
 import { facingToward, rotateDir8 } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { checkTriggers, jouerFlowEntier, runFlow } from './combatEffects';
-import { mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';
+import { exploreMovePlan, mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';
 import { atterrissagesDeSaut, walkNeighbors, type Pt } from './monde/path';
 import { planJump } from './monde/jumpMove';
+import { chebyshev } from '../engine/grid';
 import { refuserGeste } from './refusVisible';
 import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { RoomPortal } from './monde/roomPortals';
 
 /** Le pas du groupe vers `pt` est-il une MARCHE : une case voisine à pied de la sienne (`walkNeighbors`, la
  *  connectivité du pathfinder) ? La garde du verbe `moveParty`, que l'écran lit avant d'animer un pas. */
@@ -54,12 +56,38 @@ export function poserLeGroupe(get: Get, set: Set, pt: Pt): boolean {
   return true;
 }
 
+/** Le pas `i` d'un chemin du groupe : un saut quand il franchit plus d'une case, sinon un pas de marche. */
+export const gesteDuPas = (chemin: readonly Pt[], i: number): { verbe: 'sauter'; args: [readonly Pt[], number] } | { verbe: 'moveParty'; args: [Pt] } =>
+  chebyshev(chemin[i], chemin[i - 1]) > 1 ? { verbe: 'sauter', args: [chemin, i] } : { verbe: 'moveParty', args: [chemin[i]] };
+
+/** Le chemin se marche-t-il de bout en bout : chaque pas un saut (`gesteDuPas`), ou une case voisine à pied
+ *  (`walkNeighbors`) ? Un chemin du pathfinder peut emprunter ce que la marche ne joue pas (nage, escalade). */
+export const cheminMarchable = (scene: Scene, chemin: readonly Pt[]): boolean =>
+  chemin.every((p, i) => i === 0 || gesteDuPas(chemin, i).verbe === 'sauter' || walkNeighbors(scene, chemin[i - 1]).some((n) => memeCase(n, p)));
+
+/** Le pas `i` d'une marche du groupe sur `chemin`, dans la scène `sceneId`, s'il se joue encore (`gesteDuPas`) : le
+ *  groupe explore cette scène, hors dialogue, depuis la case d'avant, et le pas passe sa garde (`pasDuGroupe`) ; un saut
+ *  se garde lui-même. `null` : la marche s'arrête. La garde de la marche de l'écran et de `marcherVers`. */
+export function pasDeLaMarche(s: Pick<Jeu, 'mode' | 'dialogue' | 'scene' | 'partyPos'>, sceneId: string, chemin: readonly Pt[], i: number): ReturnType<typeof gesteDuPas> | null {
+  if (s.mode !== 'exploration' || s.dialogue || s.scene?.id !== sceneId || i >= chemin.length || !memeCase(s.partyPos, chemin[i - 1])) return null;
+  const pas = gesteDuPas(chemin, i);
+  return pas.verbe === 'sauter' || pasDuGroupe(s, chemin[i]) ? pas : null;
+}
+
+/** L'accès s'actionne-t-il ? En combat tout battant (un passage n'en a pas), en exploration la porte fermée seule :
+ *  un accès ouvert se franchit en marchant. */
+export const porteActionnable = (mode: Jeu['mode'], portail: Pick<RoomPortal, 'kind'>): boolean =>
+  mode === 'battle' ? portail.kind !== 'passage' : mode === 'exploration' && portail.kind === 'door-closed';
+
 export function creerActionsDeMarche(get: Get, set: Set) {
   return {
     moveParty: (pt) => {
       const etat = get();
       if (!etat.scene || etat.mode !== 'exploration') return;
-      if (!pasDuGroupe(etat, pt)) return void refuserGeste(get, set, t('marche.horsDePas'));
+      if (!pasDuGroupe(etat, pt)) {
+        const etage = walkNeighbors(etat.scene, etat.partyPos).find((n) => n.x === pt.x && n.y === pt.y);
+        return void refuserGeste(get, set, etage ? t('marche.autreEtage', { z: etage.z ?? 0 }) : t('marche.horsDePas'));
+      }
       poserLeGroupe(get, set, pt);
     },
     pivotParty: (turn) => {
@@ -84,6 +112,20 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       // Un pas ≠ avant ne doit pas tourner le regard : `moveParty` a posé le cap du groupe le long du
       // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
       if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
+    },
+    marcherVers: (pt) => {
+      const s = get();
+      const plan = s.scene && s.mode === 'exploration' ? exploreMovePlan(s.scene, s.partyPos, pt, optionsDeCheminDuGroupe(s.party)) : null;
+      const fin = plan?.path[plan.path.length - 1];
+      const arrive = !!fin && fin.x === pt.x && fin.y === pt.y && (pt.z === undefined || (fin.z ?? 0) === pt.z);
+      if (!s.scene || !plan || plan.path.length < 2 || !arrive || !cheminMarchable(s.scene, plan.path)) return void refuserGeste(get, set, t('marche.aucunChemin', { x: pt.x, y: pt.y }));
+      for (let i = 1; ; i++) {
+        const pas = pasDeLaMarche(get(), s.scene.id, plan.path, i);
+        if (!pas) return;
+        if (pas.verbe === 'sauter') {
+          if (!get().sauter(...pas.args)) return;
+        } else get().moveParty(...pas.args);
+      }
     },
     sauter: (chemin, indice) => {
       const { scene, mode, partyPos, party } = get();
@@ -121,8 +163,10 @@ export function creerActionsDeMarche(get: Get, set: Set) {
     actionnerLaPorte: (portail) => {
       const { scene, mode, dialogue } = get();
       if (dialogue || !scene) return false;
-      const actionnable = mode === 'battle' ? portail.kind !== 'passage' : mode === 'exploration' && portail.kind === 'door-closed';
-      if (!actionnable) return false;
+      if (!porteActionnable(mode, portail)) {
+        if (mode === 'exploration') refuserGeste(get, set, t('porte.refus.ouverte'));
+        return false;
+      }
       set({ scene: toggleDoorIn(scene, portail.edge.x, portail.edge.y, portail.edge.side, portail.z) });
       bus.emit(EVT.SCENE_DIRTY);
       return true;

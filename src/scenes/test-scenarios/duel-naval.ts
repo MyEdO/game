@@ -5,6 +5,7 @@ import type { AuthoredShipPoste } from '../../engine/types';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
+import { sequence } from '../../engine/sequences';
 
 // Banc du MODÈLE DEUX-ÉCHELLES couche MER (MDG 13-14, plan combat-naval-modele §1bis) : DEUX jetons-coques sur
 // l'eau ouverte à ~150 m (portée LONGUE du canon, MDG 12 l.401 → 15 cases à 10 m/case), l'équipage ABSTRAIT
@@ -12,10 +13,10 @@ import type { TestScenario } from './_shared';
 // la coque adverse est pilotée par l'IA de coque (`runShipAI` : manœuvre pour aligner sa bordée, puis feu). L'approche
 // se JOUE sur plusieurs Rounds (M du navire en Distance-points/Round, 1 point = 1 case à cette échelle).
 
-let ammoSeq = 0;
+const prochaineMunition = sequence();
 function ammo(trappingId: string, qty: number) {
   const base = itemFromTrappingById(trappingId)!;
-  return { ...base, uid: `duel-ammo-${trappingId}-${++ammoSeq}`, qty };
+  return { ...base, uid: `duel-ammo-${trappingId}-${prochaineMunition.suivant()}`, qty };
 }
 /** Poste d'artillerie ARMÉ (coffre à boulets, MDG 12 l.410-424). L'équipage abstrait le sert d'office à la Mer. */
 function canon(side: 'tribord' | 'babord' | 'proue' | 'poupe'): AuthoredShipPoste {

@@ -579,11 +579,16 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
  * qu'aucune route ne tranche.
  */
 function repliUniversel(s: Jeu, seat: number): boolean {
+  const main = quiTientLaMain(s);
+  return main === '*' || seatOwns(s, seat, main);
+}
+
+/** QUI TIENT LA MAIN au repli universel : le concerné de la modale ouverte ('*' = tous), sinon le combattant actif ;
+ *  `undefined` : personne (hors combat, aucune modale), donc l'hôte. */
+export function quiTientLaMain(s: Jeu): string | undefined {
   const owner = modalOwnerOf(s);
-  if (owner === '*') return true;
-  if (owner !== null) return seatOwns(s, seat, owner);
-  const activeId = s.battle ? s.battle.order[s.battle.turn] : undefined;
-  return seatOwns(s, seat, activeId);
+  if (owner !== null) return owner;
+  return s.battle ? s.battle.order[s.battle.turn] : undefined;
 }
 
 /** L'HÔTE accepte-t-il cet intent de `seat` ? UNE décision : la route de l'intent si elle TRANCHE

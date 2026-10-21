@@ -47,7 +47,7 @@ const EXEMPTES = new Map<string, string>([
   ['src/state/devtools.ts|c?.label ?? \'—\'', OUTILLAGE],
   ['src/state/devtools.ts|here?.label ?? \'?\'', OUTILLAGE],
   ['src/noyau/triggeredEffects.ts|eff.flow.test.label ?? \'Réaction\'', AUTHORE],
-  ['src/ui/CascadeModal.tsx|s.label ?? \'\'', AUTHORE],
+  ['src/noyau/jetsEnVue.ts|s.label ?? \'\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|r.label ?? \'\'', AUTHORE],
   ['src/ui/CascadeModal.tsx|cur.label ?? \'\'', AUTHORE],
   ['src/ui/console/CombatConsole.tsx|setWeapon?.label ?? \'Mains nues\'', SANS_ARME],

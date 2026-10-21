@@ -43,12 +43,15 @@ const EXTS = ['.ts', '.tsx', '.mjs', '.mts', '.js'];
  *    s'auto-mesurer le rendrait rouge par construction ;
  *  - `scripts/ops/board.mjs` et son test — `description` y est le champ OBLIGATOIRE de
  *    `ProjectV2SingleSelectFieldOptionInput` (API GraphQL GitHub, forme introspectée le 2026-09-15) :
- *    l'outil projette l'état des chantiers sur un Project, il ne produit aucun document de scène.
+ *    l'outil projette l'état des chantiers sur un Project, il ne produit aucun document de scène ;
+ *  - `src/hoteTexte/outils.ts` — `description` y est le champ de l'outil MCP que le SDK
+ *    (`@modelcontextprotocol/sdk`, `registerTool`) inscrit : l'hôte texte ne produit aucun document de scène.
  */
 const NOMS_EXEMPTS = new Set([
   'src/data/scene-prose-graphie-guard.test.ts',
   'scripts/ops/board.mjs',
   'scripts/ops/board.test.mjs',
+  'src/hoteTexte/outils.ts',
 ]);
 const estExempt = (rel: string): boolean => NOMS_EXEMPTS.has(rel);
 

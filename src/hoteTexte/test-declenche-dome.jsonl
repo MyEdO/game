@@ -2,7 +2,7 @@
 {"type":"confirmRoundStart","args":[]}
 {"offre":"course"}
 {"type":"battleClickTile","args":[{"x":6,"y":5}]}
-{"offre":"attaque","ctx":{"targetId":"enemy-enc-dome-1"}}
+{"offre":"attaque"}
 {"type":"battleClickEntity","args":["enemy-enc-dome-1"]}
 {"type":"attackRoll","args":[]}
 {"type":"attackSetForcedRoll","args":[11]}

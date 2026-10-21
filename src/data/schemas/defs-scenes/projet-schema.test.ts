@@ -66,7 +66,7 @@ const fautes = (valeur: unknown, schema: typeof projetSchema | typeof narratifSc
 /**
  * Chemin + CODE d'issue + la donnée que l'issue NOMME (clé en trop, options attendues, borne). C'est
  * la forme STABLE d'un refus de la dépendance : le `message`, lui, appartient à la locale FR
- * (`grammaire/locale-fr.ts`) et rote à chaque montée de zod. `fautes` reste la porte des messages
+ * (`src/lib/zodEnFrancais.ts`) et rote à chaque montée de zod. `fautes` reste la porte des messages
  * MAISON, que le dépôt écrit et tient.
  */
 const fautesCodees = (valeur: unknown, schema: typeof projetSchema = projetSchema) => {

@@ -14,7 +14,7 @@ import { detenteur } from '../detenteur.testkit';
 const TEMOINS: Record<(typeof ENTREES_FERMEES)[number], readonly string[]> = {
   [SURFACE_DU_NOYAU]: ['src/noyau/partie.ts', 'src/engine/combat.ts'],
   'src/scenes/test-scenarios/index.ts': ['src/scenes/test-scenarios/_shared.ts', 'src/scenes/campaign.ts', 'src/noyau/worldMap.ts'],
-  'src/hoteTexte/cli.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
+  'src/hoteTexte/serveur.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', 'src/hoteTexte/outils.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
 };
 
 describe.each(ENTREES_FERMEES)('%s : sa fermeture d’exécution ne charge aucun hôte', (depart) => {

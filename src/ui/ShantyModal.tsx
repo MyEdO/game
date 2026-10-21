@@ -8,6 +8,7 @@ import { OptionChooser } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale de CHANSON DE MARIN (Talent, MDG 09 l.32-40) : le pré-jet est un MENU (OptionChooser) des
@@ -38,8 +39,8 @@ export function ShantyModal() {
     actor: singer,
     row: {
       combatant: singer,
-      d: r ? testBreakdown('Divertissement (Chant)', value, r, 'intermediaire') : undefined,
-      pending: testPending('Divertissement (Chant)', value, undefined, 'intermediaire'),
+      d: r ? testBreakdown(libelleDeTest('chant'), value, r, 'intermediaire') : undefined,
+      pending: testPending(libelleDeTest('chant'), value, undefined, 'intermediaire'),
     },
     onRoll: roll,
     rerolled: !!p.rerolled,

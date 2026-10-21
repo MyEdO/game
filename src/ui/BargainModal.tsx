@@ -10,6 +10,7 @@ import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuil
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeBargain } from '../noyau/flowOutcomes';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /** Vue pure de la modale de Marchandage (Test OPPOSÉ, testable sans store). */
 export function BargainModalView({
@@ -53,8 +54,8 @@ export function BargainModalView({
   // accentué, Difficulté DÉCLARÉE UNE fois pour l'opposition (LDB 12 l.166). Le Marchandage du marchand
   // reste OPAQUE → `mask:'value'` (portrait + dé + DR, sans base/cible).
   const [playerLine, merchantLine] = opposedLines([
-    { label: 'Marchandage', base: pb.playerBase, r: pb.roll, target: pb.playerSkill, mods: playerMods },
-    { label: 'Marchandage', base: pb.opposant.valeur, r: rolled ? pb.merchantRoll : undefined, mask: 'value' },
+    { label: libelleDeTest('marchandage'), base: pb.playerBase, r: pb.roll, target: pb.playerSkill, mods: playerMods },
+    { label: libelleDeTest('marchandage'), base: pb.opposant.valeur, r: rolled ? pb.merchantRoll : undefined, mask: 'value' },
   ]);
   const playerD = playerLine.d;
   const merchantD = merchantLine.d ?? null;

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "hote-texte": {
+      "command": "node",
+      "args": ["scripts/hote-texte.mjs"]
+    }
+  }
+}

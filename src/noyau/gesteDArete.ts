@@ -12,8 +12,8 @@ import type { Jeu, BattleState } from './etat';
 import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
 import type { MsgKey } from '../i18n';
-import type { CapaciteArete } from './aretes';
-import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, phaseDeChute, mouvementDeLAllege } from './fallMove';
+import { caseOpposee, type AreteUtilisable, type CapaciteArete } from './aretes';
+import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, refusDesRangeesDues, tombantsNommes, mouvementDeLAllege } from './fallMove';
 import { sceneMetresPerTile, type Scene, isWalkable, heightAt } from './monde/scene';
 import { inBattleId, meneurDeboutDuMonde, estDebout } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -37,11 +37,35 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { rule } from '../engine/policy';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import type { Get, Set } from './flowTypes';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { ActionsDuNoyau, GesteDuNoyau } from './actionsDuNoyau';
 
-/** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat. */
-export const GESTES_DEPLACANTS = ['escalade', 'chute', 'fenetre'] as const satisfies readonly CapaciteArete[];
-export type GesteDeplacant = (typeof GESTES_DEPLACANTS)[number];
+/** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat —, et le verbe de chacune : il va
+ *  de l'ancrage à la case d'en face (`caseOpposee`). */
+const VERBE_DU_GESTE_DEPLACANT = { escalade: 'climbAcross', chute: 'fallAcross', fenetre: 'windowAcross' } as const satisfies Partial<Record<CapaciteArete, keyof ActionsDuNoyau>>;
+export type GesteDeplacant = keyof typeof VERBE_DU_GESTE_DEPLACANT;
+
+/** Le geste d'un dénivelé : son verbe, de l'ancrage à la case d'en face. */
+export type GesteDeDenivele = { verbe: (typeof VERBE_DU_GESTE_DEPLACANT)[GesteDeplacant]; args: [de: Pt, vers: Pt] };
+
+const estDeplacant = (c: CapaciteArete): c is GesteDeplacant => Object.prototype.hasOwnProperty.call(VERBE_DU_GESTE_DEPLACANT, c);
+
+/** Le geste d'une arête qui déplace le mobile, `null` pour une autre capacité. */
+export const gesteDeDenivele = (a: AreteUtilisable): GesteDeDenivele | null =>
+  estDeplacant(a.capacite) ? { verbe: VERBE_DU_GESTE_DEPLACANT[a.capacite], args: [a.ancrage, caseOpposee(a)] } : null;
+
+/** Le geste qu'une arête offre, en verbe du noyau : un dénivelé (`gesteDeDenivele`), l'accès qu'on actionne
+ *  (`actionnerLaPorte`), la structure qu'on frappe par le clic de son Combattant (`battleClickEntity`). */
+export function gesteDeLArete(a: AreteUtilisable): GesteDuNoyau | null {
+  const denivele = gesteDeDenivele(a);
+  if (denivele) return denivele;
+  if (a.portail) return { verbe: 'actionnerLaPorte', args: [a.portail] };
+  return a.cid ? { verbe: 'battleClickEntity', args: [a.cid] } : null;
+}
+
+/** Les arêtes offertes : un geste déplaçant n'est offert que si le mobile peut le jouer maintenant (`ouverts`,
+ *  `gestesDeplacantsOuverts`). */
+export const aretesOffertes = (aretes: readonly AreteUtilisable[], ouverts: boolean): AreteUtilisable[] =>
+  ouverts ? [...aretes] : aretes.filter((a) => !estDeplacant(a.capacite));
 
 export type RefusGeste = { refus: MsgKey; vars: Record<string, string | number> };
 export type VerdictGeste = { mobile: Combatant; case: Pt } | RefusGeste;
@@ -288,11 +312,11 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       const p = get().pendingFall;
       if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
       const part = p.participants.find((x) => x.id === tombantId);
-      if (!part) return void refuserGeste(get, set, t('fall.refus.horsDuSaut'));
+      if (!part) return void refuserGeste(get, set, t('fall.refus.horsDuSaut', { id: tombantId, tombants: tombantsNommes(get(), p.participants.filter((x) => x.interactive)) }));
       if (part.attempt !== null) return void refuserGeste(get, set, t('fall.refus.dejaDeclare'));
       // Axe HAUTEUR (EDO 01 l.231) : déclaré avec le saut quand la suspension est offerte, jamais sinon.
       const offerte = p.suspendu !== undefined;
-      if (offerte !== (suspendre !== undefined)) return void refuserGeste(get, set, t('fall.refus.axeHauteur'));
+      if (offerte !== (suspendre !== undefined)) return void refuserGeste(get, set, t(offerte ? 'fall.refus.suspensionOfferte' : 'fall.refus.axeHauteur'));
       if (attempt) {
         const refus = refusDuTestDeChute(get(), tombantId);
         if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
@@ -308,7 +332,9 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
     },
     fallConfirm: () => {
       const p = get().pendingFall;
-      if (!p || phaseDeChute(p) !== 'roll' || p.participants.some((x) => x.attempt && !x.result)) return;
+      if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
+      const refus = refusDesRangeesDues(get(), p);
+      if (refus) return void refuserGeste(get, set, refus);
       settleFall(get, set, p);
     },
     fallCancel: () => set({ pendingFall: null }),

@@ -15,7 +15,8 @@
  */
 import { entitesEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { estUtilisable } from '../../noyau/monde/usable';
-import { caseOpposee, type AreteUtilisable, type CapaciteArete } from '../../noyau/aretes';
+import { gesteDeDenivele, type GesteDeDenivele } from '../../noyau/gesteDArete';
+import type { AreteUtilisable, CapaciteArete } from '../../noyau/aretes';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import type { Pt } from '../../noyau/monde/path';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
@@ -33,13 +34,11 @@ export const entiteDuGeste = (sc: Scene, v: Verdict, t: Pt): SceneEntity | undef
 };
 
 /** Les verbes que le porteur du geste tend à la table : franchir un seuil (marche différée, ouverture
- *  d'un battant — il vit dans le hook, qui tient le survol et le pas à pas), grimper, sauter, enjamber,
- *  frapper. */
+ *  d'un battant — il vit dans le hook, qui tient le survol et le pas à pas), jouer un dénivelé (le verbe du
+ *  noyau que `noyau/gesteDArete.ts:gesteDeDenivele` nomme), frapper. */
 export interface VerbesArete {
   franchir: (portail: RoomPortal) => void;
-  grimper: (de: Pt, vers: Pt) => void;
-  sauter: (de: Pt, vers: Pt) => void;
-  enjamber: (de: Pt, vers: Pt) => void;
+  deniveler: (geste: GesteDeDenivele) => void;
   /** Le clic du Combattant-structure `cid` — celui d'un jeton, rien d'autre : le porteur consulte la
    *  porte partagée (`noyau/combatOrParty.ts:combatantClickActs`) ; si elle refuse, le clic ne fait
    *  rien (l'inspection est le geste SECONDAIRE du jeton) ; sinon l'aperçu puis le commit sont ceux du
@@ -47,9 +46,11 @@ export interface VerbesArete {
   frapper: (cid: string) => void;
 }
 
-/** Dénivelé : le geste part de l'ancrage et va à la case d'en face (`noyau/aretes.ts:caseOpposee`). */
-const traverser = (arete: AreteUtilisable, verbe: (de: Pt, vers: Pt) => void) =>
-  verbe(arete.ancrage, caseOpposee(arete));
+/** Dénivelé : le geste que le noyau nomme, de l'ancrage à la case d'en face. */
+const traverser = (arete: AreteUtilisable, { deniveler }: VerbesArete) => {
+  const geste = gesteDeDenivele(arete);
+  if (geste) deniveler(geste);
+};
 
 /** Ce qu'une capacité fait d'un clic : son RÉGIME d'armement et son geste. */
 interface GesteArete {
@@ -71,9 +72,9 @@ interface GesteArete {
  */
 const GESTES: Readonly<Record<CapaciteArete, GesteArete>> = {
   porte: { armeParSurvol: true, jouer: (arete, { franchir }) => { if (arete.portail) franchir(arete.portail); } },
-  escalade: { armeParSurvol: true, jouer: (arete, { grimper }) => traverser(arete, grimper) },
-  chute: { armeParSurvol: true, jouer: (arete, { sauter }) => traverser(arete, sauter) },
-  fenetre: { armeParSurvol: true, jouer: (arete, { enjamber }) => traverser(arete, enjamber) },
+  escalade: { armeParSurvol: true, jouer: traverser },
+  chute: { armeParSurvol: true, jouer: traverser },
+  fenetre: { armeParSurvol: true, jouer: traverser },
   structure: { armeParSurvol: false, jouer: (arete, { frapper }) => { if (arete.cid) frapper(arete.cid); } },
 };
 

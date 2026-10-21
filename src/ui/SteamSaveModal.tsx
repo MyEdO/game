@@ -6,6 +6,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Sauvegarde d'Initiative d'une PANNE DE VAPEUR « Fuite de vapeur » (MDG 12 l.326-328) : la personne qui
@@ -29,8 +30,8 @@ export function SteamSaveModal() {
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
     row: rolled
-      ? { combatant: actor, d: testBreakdown('Initiative', p.skillValue, { roll: p.roll!, ...cibleMesuree(p), sl: p.sl, success: p.success }, p.difficulty) }
-      : { combatant: actor, pending: testPending('Initiative', p.skillValue, cibleMesuree(p), p.difficulty) },
+      ? { combatant: actor, d: testBreakdown(libelleDeTest('initiative'), p.skillValue, { roll: p.roll!, ...cibleMesuree(p), sl: p.sl, success: p.success }, p.difficulty) }
+      : { combatant: actor, pending: testPending(libelleDeTest('initiative'), p.skillValue, cibleMesuree(p), p.difficulty) },
     onRoll: roll,
     rerolled: !!p.rerolled,
     onReroll: reroll,

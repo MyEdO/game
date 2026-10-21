@@ -7,6 +7,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { Icon } from './Icon';
 import { ev } from '../noyau/combatLog';
 import { resultLine, freeCons } from '../noyau/rollSeam';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale de Dissipation permanente (LDB 46 l.158-162 : Test étendu de Langue (Magick) → NI). « Lancer »
@@ -40,8 +41,8 @@ export function DispelModal() {
     actor: caster,
     row: {
       combatant: caster,
-      d: r ? testBreakdown('Langue (Magick)', base, r, undefined, supMods) : undefined,
-      pending: testPending('Langue (Magick)', base, undefined, undefined, supMods),
+      d: r ? testBreakdown(libelleDeTest('langue-magick'), base, r, undefined, supMods) : undefined,
+      pending: testPending(libelleDeTest('langue-magick'), base, undefined, undefined, supMods),
     },
     onRoll: roll,
     rerolled: !!pd.rerolled,

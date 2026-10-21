@@ -26,10 +26,11 @@ import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qua
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
+import { sequence } from './sequences';
 
-let uidCounter = 0;
+const prochainUid = sequence();
 export function newUid(): string {
-  return `it-${++uidCounter}`;
+  return `it-${prochainUid.suivant()}`;
 }
 
 /** Convention d'AFFICHAGE des Dégâts (spec → chaîne) : la SEULE fonction qui décide « +BF » vs « +N »
