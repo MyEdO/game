@@ -8,6 +8,7 @@ import { useGame } from '../../state/store';
 import { routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../campaign';
+import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 const barge = paquetDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!);
 const CAP = 'sel-cap-donne';
@@ -34,12 +35,12 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
     useGame.getState().acquitterOuverture();
     const carte = get().worldMap!;
 
-    useGame.getState().moveParty({ x: 2, y: 4 }); // un pas dans le sable : le départ s'énonce, pas le cap
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 4 }); // un pas dans le sable : le départ s'énonce, pas le cap
     expect(get().flags[CAP]).toBeFalsy();
     expect(visiblePlaces(carte, ctx()).map((p) => p.id)).toEqual(['quai-du-sel']);
     expect(routesFrom(carte, 'quai-du-sel', ctx())).toEqual([]);
 
-    useGame.getState().moveParty({ x: 2, y: 5 }); // les planches d'embarquement
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 5 }); // les planches d'embarquement
     expect(get().flags[CAP]).toBe(true);
     expect(visiblePlaces(carte, ctx()).map((p) => p.id)).toEqual(['quai-du-sel', 'ilot-du-sel']);
     expect(routesFrom(carte, 'quai-du-sel', ctx()).map((r) => r.id)).toEqual(['route-quai-ilot']);
@@ -47,7 +48,7 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
 
   it('ARRIVER ne suffit pas : le drapeau d’accostage se pose au premier PAS sur l’îlot, et le récap s’arme là', () => {
     useGame.getState().acquitterOuverture();
-    useGame.getState().moveParty({ x: 2, y: 5 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 5 });
 
     useGame.getState().transitionTo('barge-du-sel-ilot');
 
@@ -66,7 +67,7 @@ describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, su
     expect(get().flags[ACCOSTE]).toBeFalsy();
     expect(get().pendingChapterRecap).toBeNull();
 
-    useGame.getState().moveParty({ x: 3, y: 2 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 3, y: 2 });
     expect(get().flags[ACCOSTE]).toBe(true);
 
     const recap = get().pendingChapterRecap!;

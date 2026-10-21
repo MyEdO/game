@@ -11,6 +11,7 @@ import { bourseOf } from '../../engine/bourse';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import { lancerCampagne, campagneDuJeu, areneCampaign } from '../campaign';
 import { presetPnjById } from '../../state/campaignData';
+import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 /** Évalue la Condition `when` d'un choix contre l'état VIVANT (source unique evalCondition). */
 const condOk = (when: Condition) => evalCondition(when, { flags: useGame.getState().flags, gameTime: 0 });
@@ -46,7 +47,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   it('entrer sur le sol (dans le rect du trigger) DÉCLENCHE la rencontre', () => {
     useGame.getState().setParty(makeShowcaseParty());
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
-    useGame.getState().moveParty({ x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
     expect(useGame.getState().battle).not.toBeNull();
   });
 

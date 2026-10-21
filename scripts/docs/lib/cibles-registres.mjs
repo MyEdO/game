@@ -361,3 +361,6 @@ export const SORTIES_DES_ESPACES = {
 export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out ? [r.idUnion.out] : [])]), SORTIE_ART, ...Object.values(SORTIES_DES_ESPACES)];
 
 export const SORTIE_FORMATS = 'src/state/formats.generated.ts'
+
+/** La cible de `scripts/gen-verbes.mjs` : les paramètres des verbes de la partie, que l'hôte texte lit. */
+export const SORTIE_VERBES = 'src/hoteTexte/verbes.generated.ts'

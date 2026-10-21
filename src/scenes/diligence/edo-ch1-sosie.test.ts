@@ -16,6 +16,7 @@ import { evalCondition } from '../../engine/flowCore';
 import { condCtx } from '../../noyau/bourseFlow';
 import { snapshotSave } from '../../state/saves';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
+import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const SOSIE = 'campagne-sosie-heros';
@@ -27,7 +28,7 @@ beforeEach(() => {
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   get().acquitterOuverture();
   get().transitionTo('route-principale-virage');
-  get().moveParty({ x: 36, y: 3 });
+  poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
   get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
 });
 
@@ -85,7 +86,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
     get().loadProject({ scenes: paquet.scenes, entryId: paquet.scenes[0].id, worldMap: paquet.worldMap, narratif: paquet.narratif, projet: { id: paquet.id } });
     get().acquitterOuverture();
     get().transitionTo('route-principale-virage');
-    get().moveParty({ x: 36, y: 3 });
+    poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     get().designerHerosChoisir('h-9');
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);

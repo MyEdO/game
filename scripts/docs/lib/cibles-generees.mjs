@@ -1,6 +1,6 @@
 import { correspondGlob } from '../../guards/lib/lister.mjs'
 import { MOTIF_CATALOGUES } from '../../raw/motif-catalogues.mjs'
-import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS } from './cibles-registres.mjs'
+import { SORTIES as SORTIES_DU_REGISTRE, SORTIE_FORMATS as SORTIE_DES_FORMATS, SORTIE_VERBES as SORTIE_DES_VERBES } from './cibles-registres.mjs'
 
 /** `{ runner, script, targets }` — `runner` = 'node' | 'tsx' ; `targets` = fichiers ÉCRITS
  *  EN ENTIER (glob toléré), jamais commités (`ciblesPures`).
@@ -14,6 +14,7 @@ export const ciblesLitterales = (cibles) => cibles.filter((cible) => !cible.incl
 export const GENERATORS = [
   { runner: 'node', script: 'scripts/gen-registry.mjs', targets: SORTIES_DU_REGISTRE },
   { runner: 'node', script: 'scripts/gen-formats.mjs', targets: [SORTIE_DES_FORMATS] },
+  { runner: 'node', script: 'scripts/gen-verbes.mjs', targets: [SORTIE_DES_VERBES] },
   { runner: 'node', script: 'scripts/raw/build-atlas-index.mjs', targets: ['docs/raw/atlas.generated.md'] },
   { runner: 'node', script: 'scripts/raw/build-catalogs.mjs', targets: [MOTIF_CATALOGUES] },
   { runner: 'node', script: 'scripts/raw/build-implemente.mjs', targets: ['docs/raw/implemente.generated.md'] },

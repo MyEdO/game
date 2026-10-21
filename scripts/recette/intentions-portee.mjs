@@ -20,7 +20,7 @@
 //   4. Échap annule ; re-clic de la case annule ;
 //   5. un clic-ennemi SANS intention reste une attaque normale (non-régression).
 // Sortie : exit 1 au premier défaut (liste complète imprimée), exit 0 si tout passe.
-import { DOSSIER_CAPTURES, validerDossierCaptures, appelerWfrp, geste, clic, SURFACE_CARTE, openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, piloterCombat, finDuTour } from './lib.mjs';
+import { DOSSIER_CAPTURES, validerDossierCaptures, appelerWfrp, geste, clic, SURFACE_CARTE, openApp, evaluate, sleep, shot, cliquerPremierOffert, consoleGuard, frapperTouche, cliquerAction, resoudreModales, piloterCombat, finDuTour, waitFor, ATTENTE_ECHUE } from './lib.mjs';
 import { enteteArbre } from '../guards/lib/enteteArbre.mjs';
 import { demarrer } from './setup.mjs';
 import { chebyshev } from '../../src/engine/grid.ts';
@@ -201,7 +201,8 @@ async function main() {
     await shot(session, 'intention-charge-overlay', args.out);
     await appelerWfrp(session, 'panTo', cible.pos);
     await cliquerCase(session, cible.pos);
-    await sleep(900);
+    // La Charge ouvre sa fenêtre après sa marche, dont la durée suit le rendu : on attend la fenêtre, pas une durée.
+    await waitFor(session, '!!window.__wfrp.store.getState().pendingAttack').catch((err) => { if (err.code !== ATTENTE_ECHUE) throw err; });
     e = await etat(session);
     dire(!!e.pendingAttack && e.pendingAttack.charge, 'le clic-ennemi sous intention lance la CHARGE réelle');
     dire(e.intent === null, 'l’intention de Charge se dissout au commit');

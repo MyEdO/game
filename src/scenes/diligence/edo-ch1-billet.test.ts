@@ -23,6 +23,7 @@ import { skillBaseValue } from '../../engine/skills';
 import { pnjAuPreset } from '../../noyau/monde/sceneNpc';
 import { draineCascade } from '../../state/cascade.testkit';
 import { presetPnjById } from '../../state/campaignData';
+import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;
@@ -43,7 +44,7 @@ function aBord(): void {
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
   get().acquitterOuverture();
-  get().moveParty({ x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.test.ts`)
+  poserLeGroupe(get, useGame.setState, { x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.test.ts`)
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
   expect(get().flags['edo-ch1-depart']).toBe(true);
 }
@@ -60,7 +61,7 @@ function arriver(lieu: string): void {
 /** Au virage : le corps de Kastor se fouille, le sosie se désigne (EDO 02 l.91), les Documents 3 et 4
  *  se lisent (l.93-95), puis `edo-ch1-corps-kastor-fouille` ouvre le tronçon 2. */
 function fouillerLeCorps(): void {
-  get().moveParty({ x: 36, y: 3 });
+  poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
   get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
   get().designerHerosChoisir(get().party[0].id);
   while (get().document) get().closeDocument();

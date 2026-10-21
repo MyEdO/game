@@ -4,7 +4,11 @@
  *  - les commandes (`COMMANDES`, src/hoteTexte/cli.ts) ;
  *  - les bornes de sortie (`BORNES`, src/hoteTexte/vue.ts) ;
  *  - les catégories d'erreur (`CategorieDErreur`) et le plafond de reprises (`PLAFOND_DE_REPRISES`),
- *    src/hoteTexte/partieTexte.ts.
+ *    src/hoteTexte/partieTexte.ts ;
+ *  - les verbes de la partie et la forme de leurs arguments, lus du type du noyau par le vérificateur
+ *    (`verbesDeLaPartie`, scripts/docs/lib/verbesDeLaPartie.mjs), écrits par `parametresEcrits` (src/hoteTexte/formes.ts) :
+ *    la même lecture que celle de la cible de code `src/hoteTexte/verbes.generated.ts` (scripts/gen-verbes.mjs), qui
+ *    contrôle les arguments de `jouer`.
  * La part ÉDITORIALE (la provenance de chaque champ de la projection, l'usage par un agent, le fichier de partie, la politique des jetons, les budgets de temps
  * mesurés) vit ICI, en dur — patron « éditorial EN DUR dans le générateur » de build-reprise.mjs.
  *
@@ -15,6 +19,8 @@
 import { readFileSync } from 'node:fs'
 import { ast, typescript } from '../guards/lib/dialecte.mjs'
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+import { verbesDeLaPartie } from './lib/verbesDeLaPartie.mjs'
+import { parametresEcrits } from '../../src/hoteTexte/formes.ts'
 
 const OUTIL = 'build-hote-texte'
 const OUT = 'docs/hote-texte.md'
@@ -64,6 +70,11 @@ const PROVENANCE = [
   ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
   ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
   ['combat.fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
+  ['combat.fenetre.verbes, combat.fenetre.pid', 'fenetreDuJeu : le drive de la politique (JET_AUTO, MODAL_DEFS), les verbes du flux de jet (FLOW_VERBS), ceux de l’interaction d’étape, les clôtures de la cascade ; pid = l’id de l’étape courante'],
+  ['combat.jet', 'pendingAttack.result, pendingDefense.result : attackerDetail, defenderDetail (les rangées de la fenêtre du web) et netSL'],
+  ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
+  ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
+  ['exploration.entites, carte hors combat', 'Scene.entities'],
   ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
   ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
   ['combat.cibles', 'validTargets'],
@@ -94,9 +105,9 @@ const cellule = (s) => String(s).replaceAll('|', '\\|')
 
 /** Le cas de chaque catégorie d'erreur (prose fixe), vérifié contre l'union du code. */
 const CAS_D_ERREUR = {
-  validation: 'commande, option ou JSON illisible ; scénario, offre ou verbe inconnu ; intention hors de l’allowlist d’un siège ; verbe qui lève ; ligne du fichier qui ne se rejoue plus',
+  validation: 'commande, option ou JSON illisible ; scénario, offre ou verbe inconnu ; argument d’une forme fausse, en trop ou manquant (contrôlé contre le type du verbe) ; id d’entité désignée introuvable ; intention hors de l’allowlist d’un siège ; verbe qui lève ; ligne du fichier qui ne se rejoue plus',
   permission: 'intention de siège refusée : le siège ne possède pas ce combattant',
-  regle: 'barre non ouverte (`etatDeLaBarre`, avec sa raison) ; offre que l’énumérateur ne rend pas (gate de pertinence, aucun candidat) ; offre fermée (`actionGate`, avec sa raison)',
+  regle: 'barre non ouverte (`etatDeLaBarre`, avec sa raison) ; offre que l’énumérateur ne rend pas (gate de pertinence, aucun candidat) ; offre fermée (`actionGate`, avec sa raison) ; geste sans effet : ni fait de la partie changé, ni suite programmée (avec le refus, la ligne de journal ou l’événement qu’il a reçus)',
 }
 
 /** Les budgets de temps mesurés (prose fixe, datée) : le coût d'un appel et celui du rejeu par scénario. */
@@ -112,6 +123,7 @@ function rendu() {
   const bornes = constante(VUE, 'BORNES')
   const categories = unionDeChaines(COEUR, 'CategorieDErreur')
   const plafond = constante(COEUR, 'PLAFOND_DE_REPRISES')
+  const verbes = verbesDeLaPartie()
   const sansCas = categories.filter((c) => !CAS_D_ERREUR[c])
   if (sansCas.length) abandon(`catégorie(s) d'erreur sans cas décrit : ${sansCas.join(', ')}`)
   const enTrop = Object.keys(CAS_D_ERREUR).filter((c) => !categories.includes(c))
@@ -125,16 +137,20 @@ function rendu() {
   out += `**Périmètre mesuré / angles morts** — ce doc lit, par l'AST TypeScript, les constantes de l'hôte (commandes, bornes, catégories d'erreur, plafond de reprises). Il ne mesure NI que la vue respecte ses bornes (le test \`src/hoteTexte/bornes.hors-store.test.ts\` le fait), NI que chaque lecteur de la provenance est bien celui qu'appelle la projection (la table est écrite dans ce générateur), NI les budgets de temps, qui sont des mesures datées.\n\n`
   out += `## Usage par un agent\n\nUne commande par appel ; chaque appel rejoue le fichier de partie, puis répond.\n\n`
   out += '```bash\n'
+  out += 'npm run -s hote-texte -- scenarios\n'
   out += 'npm run -s hote-texte -- --partie <fichier.jsonl> nouvelle dome --graine 7\n'
   out += 'npm run -s hote-texte -- --partie <fichier.jsonl> jouer confirmRoundStart\n'
   out += 'npm run -s hote-texte -- --partie <fichier.jsonl> vue\n'
   out += 'npm run -s hote-texte -- --partie <fichier.jsonl> offre charge\n'
   out += 'npm run -s hote-texte -- --partie <fichier.jsonl> jouer battleClickEntity \'["enemy-enc-dome-1"]\'\n'
+  out += 'npm run -s hote-texte -- --partie <fichier.jsonl> jouer attackRoll\n'
+  out += 'npm run -s hote-texte -- --partie <fichier.jsonl> jouer attackSetForcedRoll \'[11]\'\n'
+  out += 'npm run -s hote-texte -- --partie <fichier.jsonl> jouer battleClickTile \'[{"x":3,"y":6}]\'\n'
   out += '```\n\n'
   out += `| Commande | Rendu |\n|---|---|\n`
   for (const [forme, rendu] of commandes) out += `| \`${cellule(forme)}\` | ${cellule(rendu)} |\n`
-  out += `\n\`--json\` vaut pour toutes les commandes : la sortie est la projection (\`Projection\`, \`${VUE}\`) et l'empreinte de l'état, bornée comme le texte, jamais les payloads bruts des événements. Une offre (\`offre\`) est une entrée de l'énumérateur du registre (\`offresDeLActif\`), celui que lit la barre de la console ; \`ctx\` porte les paramètres de la case (\`targetId\`, \`spellId\`, \`attackId\`…), \`offres <id>\` les montre. Un verbe brut (\`jouer\`) sert aux fenêtres (\`attackRoll\`, \`defenseConfirm\`…), à la cascade (\`cascadeNext\`, \`cascadeChoose\`), à la pause de Round (\`confirmRoundStart\`) et aux clics du champ (\`battleClickTile\`, \`battleClickEntity\`) ; la ligne « fenêtre » de la vue nomme les verbes de la fenêtre qui tient la main.\n\n`
-  out += `Le clic implicite du champ suit le modèle du web : un premier \`battleClickEntity\` ou \`battleClickTile\` pose l'aperçu, le second le confirme. Une offre qui arme une intention (\`charge\`, \`course\`, \`attaque\`) se lit à la ligne « intention armée » de la vue ; le clic suivant la commet.\n\n`
+  out += `\n\`--json\` vaut pour toutes les commandes : la sortie est la projection (\`Projection\`, \`${VUE}\`) et l'empreinte de l'état, bornée comme le texte, jamais les payloads bruts des événements. Une offre (\`offre\`) est une entrée de l'énumérateur du registre (\`offresDeLActif\`), celui que lit la barre de la console ; \`ctx\` porte les paramètres de la case (\`targetId\`, \`spellId\`, \`attackId\`…), \`offres <id>\` les montre. Un verbe brut (\`jouer\`) sert aux fenêtres (\`attackRoll\`, \`defenseConfirm\`…), à la cascade (\`cascadeNext\`, \`cascadeChoose\`), à la pause de Round (\`confirmRoundStart\`) et aux clics du champ (\`battleClickTile\`, \`battleClickEntity\`) ; la ligne « verbes » de la vue nomme les verbes de la fenêtre qui tient la main, à chaque étape de cascade comprise, et l'id d'étape que leur paramètre \`pid\` attend (« verbes (pid cons-deviation-…) : cascadeTableRoll, … »). Le scénario se nomme par son id (\`scenarios\` les liste), pas par le nom de son fichier ; toutes ses scènes sont chargées au lancement, et \`transitionTo\` mène de l'une à l'autre.\n\n`
+  out += `Le clic implicite du champ suit le modèle du web : un premier \`battleClickEntity\` ou \`battleClickTile\` pose l'aperçu, le second le confirme. Une offre qui arme une intention (\`charge\`, \`course\`, \`attaque\`) se lit à la ligne « intention armée » de la vue ; le clic suivant la commet. L'aperçu d'un premier clic se lit à la ligne « aperçu » ; \`cases\` liste les cases que le champ peint au tour de l'actif, avec leur coût. Un jet lancé et pas encore confirmé se lit à la ligne « jet » : pour chaque rangée, le d100 sur la valeur cible, son DR et son verdict, puis le DR net du Test opposé, avant \`attackConfirm\` ou \`defenseConfirm\`. Un dé se pose APRÈS le jet (\`attackRoll\`, puis \`attackSetForcedRoll [n]\`), sous \`--des-fixes\`.\n\n`
 
   out += `## Le fichier de partie\n\nLe fichier JSONL est la vérité de la partie. Sa première ligne est l'en-tête :\n\n`
   out += '```json\n'
@@ -147,9 +163,12 @@ function rendu() {
   out += `## Les erreurs\n\nUne erreur sort en \`erreur <catégorie> : <message>\` (en JSON : \`{"erreur":{"categorie","message"}}\`), avec le code de sortie 1, et le fichier reste intact.\n\n`
   out += `| Catégorie | Cas |\n|---|---|\n`
   for (const c of categories) out += `| \`${c}\` | ${cellule(CAS_D_ERREUR[c])} |\n`
-  out += `\nUn geste appliqué que le noyau refuse au joueur pose un refus (\`refus\`) : la réponse le dit (« refus : … »), la vue garde le dernier, et le geste s'écrit. Un refus neuf se lit au changement de son \`nonce\`.\n\n`
+  out += `\nUn geste qui ne change aucun fait de la partie et ne programme aucune suite (un jeton de la plateforme) est SANS EFFET : erreur \`regle\`, avec le refus, la ligne de journal ou l'événement informatif que le noyau lui a opposés (« sauter sans effet : Saut refusé : … », « stepPartyRelative sans effet : move_blocked »), et rien ne s'écrit. Un événement émis seul (\`move_blocked\`, un son) informe, il n'est pas un effet. Sous un coup ouvert (son jet en attente, \`coupFerme\`), un clic du champ est sans effet : le noyau le refuse, l'écran lit la même garde (\`combatantClickActs\`). \`moveParty\` est un PAS : vers une case voisine à pied (\`pasDuGroupe\`), sinon « Pas refusé ». Le journal de la partie et le refus du geste disent, ils ne sont pas des faits : un geste qui ne change qu'eux est sans effet. Un geste qui change la partie ET pose un refus s'écrit ; la réponse dit le refus (« refus : … »), la vue garde le dernier, un refus neuf se lit au changement de son \`nonce\`.\n\n`
 
-  out += `## Provenance de la vue\n\nAucune règle ne se calcule dans l'hôte : chaque champ est un lecteur de la surface du noyau, ou un champ de l'état lu tel quel.\n\n`
+  out += `## Les verbes et leurs arguments\n\nLes arguments de \`jouer\` sont un tableau JSON, contrôlés contre le TYPE du verbe, celui que \`Partie.envoyer\` accepte (\`ActionsDuNoyau\`, \`src/noyau/actionsDuNoyau.ts\`), que la cible de code \`src/hoteTexte/verbes.generated.ts\` porte (\`npm run gen\`) : un argument d'une forme fausse, en trop ou manquant lève \`validation\`, avec la signature du verbe. Un point s'écrit \`{"x":3,"y":6}\`, jamais \`[3,6]\`. \`null\` omet un argument optionnel pour en poser un suivant (\`transitionTo '["test-revisit-reserve",null,{"x":1,"y":1}]'\`). Une porte (\`RoomPortal\`) se désigne par son id, celui de la ligne « portails » de la vue : l'hôte complète l'objet. Dans la table, \`?\` marque un argument optionnel ; un objet montre ses champs au premier niveau, le nom de son type au-delà (une fiche entière, \`Combatant\` ou \`Scene\`, ne contrôle que d'être un objet ; un id de catalogue, que d'être une chaîne) ; \`pid\` est l'id de l'étape ou de la rangée que la ligne « verbes » de la vue donne.\n\n`
+  out += `| Verbe | Arguments |\n|---|---|\n`
+  for (const [verbe, parametres] of Object.entries(verbes)) out += `| \`${verbe}\` | \`${cellule(parametresEcrits(parametres))}\` |\n`
+  out += `\n## Provenance de la vue\n\nAucune règle ne se calcule dans l'hôte : chaque champ est un lecteur de la surface du noyau, ou un champ de l'état lu tel quel.\n\n`
   out += `| Champ | Lecteur |\n|---|---|\n`
   for (const [champ, lecteur] of PROVENANCE) out += `| \`${cellule(champ)}\` | ${cellule(lecteur)} |\n`
 
@@ -159,7 +178,7 @@ function rendu() {
   out += `\n- \`--json\` : ${milliers(bornes.json)} caractères au plus ; ses listes sont celles de la vue, comptées au-delà.\n`
   out += `- La vue liste l'actif, ses engagés, puis ${bornes.autresEnVue} autres combattants au plus, par distance ; ${bornes.offresEnVue} offres ouvertes au plus (une par action, ses candidats comptés) ; ${bornes.ciblesEnVue} cibles au plus.\n`
   out += `- Une réponse montre ${bornes.journalEnReponse} lignes de journal au plus, puis « +N lignes : \`journal --depuis k\` » ; un tour de l'IA tient en une ligne.\n`
-  out += `- \`journal\`, \`carte\` et \`offres\` se lisent par pages de ${bornes.page}, \`--depuis k\`.\n\n`
+  out += `- \`journal\`, \`carte\`, \`offres\` et \`scenarios\` se lisent par pages de ${bornes.page}, \`--depuis k\` ; \`cases\` par pages de ${bornes.cases} cases, ${bornes.casesParLigne} par ligne. Une entrée du journal plus haute que la page se lit seule, par ses lignes (\`journal --depuis k --ligne m\`). Une liste de verbes se replie sur plusieurs lignes ; une erreur est bornée comme toute sortie.\n\n`
 
   out += `## Budgets de temps\n\n| Mesure | Budget |\n|---|---|\n`
   for (const [mesure, budget] of BUDGETS_DE_TEMPS) out += `| ${mesure} | ${budget} |\n`
@@ -172,8 +191,8 @@ function rendu() {
     path: OUT,
     staleMsg: `docs:hote-texte — ${OUT} est PÉRIMÉ (diverge de ${CLI}, ${VUE} ou ${COEUR}).`,
     rerunMsg: '  → relancer `npm run docs:hote-texte` (dérivé jamais commité, #2203).',
-    okMsg: `docs:hote-texte — OK (${OUT} à jour, ${commandes.length} commandes)`,
-    writeMsg: `${OUT} — ${commandes.length} commandes, ${PROVENANCE.length} champs, ${categories.length} catégories d'erreur.`,
+    okMsg: `docs:hote-texte — OK (${OUT} à jour, ${commandes.length} commandes, ${Object.keys(verbes).length} verbes)`,
+    writeMsg: `${OUT} — ${commandes.length} commandes, ${Object.keys(verbes).length} verbes, ${PROVENANCE.length} champs, ${categories.length} catégories d'erreur.`,
   }
 }
 

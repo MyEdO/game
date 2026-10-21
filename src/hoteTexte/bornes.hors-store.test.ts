@@ -5,12 +5,13 @@
  * mémoire, telles qu'un agent les tape.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { executer, type Disque } from './cli';
 import { BORNES, caracteresAuPlus, type Commande } from './vue';
 
-/** Une table : un disque en mémoire et l'appel d'une commande sur son fichier de partie. */
-function table() {
-  const fichiers = new Map<string, string>();
+/** Une table : un disque en mémoire, son fichier de partie posé à `texte`, et l'appel d'une commande sur ce fichier. */
+function table(texte?: string) {
+  const fichiers = new Map<string, string>(texte === undefined ? [] : [['partie.jsonl', texte]]);
   const disque: Disque = {
     lire: (chemin) => fichiers.get(chemin) ?? null,
     ecrire: (chemin, texte) => void fichiers.set(chemin, texte),
@@ -47,10 +48,41 @@ describe.each(['ecuries-clayonnage', 'siege-enceinte'])('les bornes de sortie su
     tientSesBornes('carte', 'carte', appel('carte'));
     tientSesBornes('carte --depuis 15', 'carte', appel('carte', '--depuis', '15'));
     tientSesBornes('journal', 'journal', appel('journal'));
+    tientSesBornes('cases', 'cases', appel('cases'));
+    jsonBorne('cases --json', appel('cases', '--json'));
     const actif = (JSON.parse(appel('vue', '--json').texte) as { projection: { combat: { actif: { id: string } } } }).projection.combat.actif.id;
     tientSesBornes('fiche', 'fiche', appel('fiche', actif));
     for (const commande of ['vue', 'offres', 'carte', 'journal']) jsonBorne(`${commande} --json`, appel(commande, '--json'));
     tientSesBornes('offre end-turn', 'reponse', appel('offre', 'end-turn'));
     jsonBorne('offre end-turn --json', appel('offre', 'end-turn', '--json'));
+  });
+});
+
+describe('les bornes des sorties de l’exploration, des scénarios et du journal', () => {
+  it('`scenarios`, `carte` et `vue` en exploration tiennent leurs bornes', { timeout: 120_000 }, () => {
+    const appel = table();
+    tientSesBornes('scenarios', 'scenarios', appel('scenarios'));
+    tientSesBornes('scenarios --depuis 15', 'scenarios', appel('scenarios', '--depuis', '15'));
+    jsonBorne('scenarios --json', appel('scenarios', '--json'));
+    tientSesBornes('nouvelle', 'nouvelle', appel('nouvelle', 'fenetre-ecuries'));
+    tientSesBornes('carte', 'carte', appel('carte'));
+    tientSesBornes('vue', 'vue', appel('vue'));
+    jsonBorne('carte --json', appel('carte', '--json'));
+  });
+  it('une erreur tient ses bornes, sur les verbes aux types les plus larges (`startCombat`, `setParty`)', { timeout: 120_000 }, () => {
+    const appel = table();
+    expect(appel('nouvelle', 'dome').code).toBe(0);
+    for (const argv of [['jouer', 'startCombat', '[1]'], ['jouer', 'setParty', '[1]'], ['jouer', 'partyAddHero', '[1]']]) {
+      const sortie = appel(...argv);
+      expect(sortie.code, sortie.texte).toBe(1);
+      const lignes = sortie.texte.trimEnd().split('\n');
+      expect(lignes.length, argv.join(' ')).toBeLessThanOrEqual(BORNES.lignes.erreur);
+      expect(Math.max(...lignes.map((l) => l.length)), `${argv.join(' ')} : la ligne la plus longue`).toBeLessThanOrEqual(BORNES.largeur);
+      expect(sortie.texte, `${argv.join(' ')} : l’erreur se replie, elle n’est pas coupée`).not.toMatch(/…$/m);
+    }
+  });
+  it('le journal d’une défaite, aux entrées à saut de ligne, tient ses bornes page par page (`defaite-dome.jsonl`)', { timeout: 240_000 }, () => {
+    const appel = table(readFileSync(new URL('./defaite-dome.jsonl', import.meta.url), 'utf8'));
+    for (const depuis of ['0', '15', '30', '45', '60']) tientSesBornes(`journal --depuis ${depuis}`, 'journal', appel('journal', '--depuis', depuis));
   });
 });

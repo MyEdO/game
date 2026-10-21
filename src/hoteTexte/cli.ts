@@ -3,8 +3,11 @@
  * (`scripts/hote-texte.mjs`) la charge par le module runner de Vite et lui passe le disque (`Disque`) ; elle rend le
  * texte à écrire et le code de sortie. Doc généré : `npm run docs:hote-texte` (`COMMANDES`).
  */
-import { ErreurDeGeste, empreinte, jouerUnGeste, ligneDuFichier, lireGeste, lireLeFichier, nouvelEntete, offresDeLaBarre, rejouer, type Geste, type PartieRejouee } from './partieTexte';
-import { BORNES, borner, offresListees, pageDeLaCarte, projeter, rendreLaCarte, rendreLaFiche, rendreLaReponse, rendreLaVue, rendreLeJournal, rendreLesOffres } from './vue';
+import { argumentsDuVerbe, ErreurDeGeste, empreinte, jouerUnGeste, ligneDuFichier, lireGeste, lireLeFichier, nouvelEntete, offresDeLaBarre, rejouer, type Geste, type PartieRejouee } from './partieTexte';
+import { VERBES } from './verbes.generated';
+import { BORNES, borner, casesAtteignables, replier, offresListees, pageDeLaCarte, projeter, rendreLaCarte, rendreLaFiche, rendreLaReponse, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesOffres, rendreLesScenarios } from './vue';
+import { etatDeLaBarre } from '../noyau/index';
+import { testScenarios } from '../scenes/test-scenarios';
 
 /** Le disque que le lanceur prête : lire un fichier (`null` s'il n'existe pas), l'écrire, y ajouter. */
 export interface Disque {
@@ -19,19 +22,21 @@ export interface Sortie {
   code: 0 | 1;
 }
 
-const OPTIONS_A_VALEUR = new Set(['--partie', '--graine', '--siege', '--depuis', '--cadence']);
+const OPTIONS_A_VALEUR = new Set(['--partie', '--graine', '--siege', '--depuis', '--ligne', '--cadence']);
 const DRAPEAUX = new Set(['--json', '--des-fixes', '--toutes']);
 
 /** Les commandes, leur forme et ce qu'elles rendent (doc généré). */
 export const COMMANDES: readonly (readonly [forme: string, rendu: string])[] = [
+  ['scenarios [--depuis k]', 'les ids de scénario que `nouvelle` accepte, et leur titre, par page (sans `--partie`)'],
   ['nouvelle <scenario> [--graine N] [--cadence manuel|rapide|auto] [--des-fixes]', 'écrit l’en-tête d’une partie neuve, rend la vue'],
   ['offre <actionId> [ctx JSON]', 'joue une offre de l’énumérateur (jouerLOffre), l’écrit au fichier, rend la réponse'],
-  ['jouer <type> [args JSON] [--siege n]', 'envoie un verbe de la partie, l’écrit au fichier, rend la réponse'],
+  ['jouer <type> [args JSON] [--siege n]', 'envoie un verbe de la partie (arguments contrôlés contre son type), l’écrit au fichier s’il change la partie, rend la réponse'],
   ['vue', 'la projection : actif, fenêtre, voisins, offres ouvertes, cibles'],
   ['offres [<actionId>] [--toutes] [--depuis k]', 'les offres ouvertes, ou toutes avec la raison des fermées ; pour un id, ses candidats et leur ctx'],
-  ['carte [--depuis k]', 'les combattants, l’actif d’abord, par page'],
+  ['carte [--depuis k]', 'en combat, les combattants, l’actif d’abord ; en exploration, les entités de la scène ; par page'],
+  ['cases [--depuis k]', 'les cases que le champ peint au tour de l’actif (marche, course armée, intention armée), avec leur coût, par page'],
   ['fiche <id>', 'la fiche d’un combattant, armure en PA par localisation'],
-  ['journal [--depuis k]', 'le journal de la partie, par page'],
+  ['journal [--depuis k] [--ligne m]', 'le journal de la partie, par page ; une entrée plus haute que la page, par ses lignes'],
 ];
 
 const USAGE = ['usage : npm run hote-texte -- --partie <fichier.jsonl> <commande> [--json]', ...COMMANDES.map(([forme]) => `  ${forme}`), 'doc : npm run docs:hote-texte'].join('\n');
@@ -90,6 +95,10 @@ function executerSansErreur(argv: readonly string[], disque: Disque): { lignes: 
   const { positionnels, options, drapeaux } = analyser(argv);
   const [commande, ...reste] = positionnels;
   if (!commande) return { lignes: [USAGE], json: { usage: USAGE } };
+  if (commande === 'scenarios') {
+    const depuis = entier(options.get('--depuis'), '--depuis') ?? 0;
+    return { lignes: rendreLesScenarios(testScenarios, depuis), json: { scenarios: testScenarios.slice(depuis, depuis + BORNES.page).map((sc) => sc.id), enPlus: Math.max(0, testScenarios.length - depuis - BORNES.page) } };
+  }
   const chemin = options.get('--partie');
   if (!chemin) throw new ErreurDeGeste('validation', `--partie <fichier.jsonl> attendu\n${USAGE}`);
 
@@ -103,7 +112,7 @@ function executerSansErreur(argv: readonly string[], disque: Disque): { lignes: 
       return { lignes: borner([`partie neuve : ${scenario}, graine ${entete.graine}, cadence ${entete.cadence}`, ...rendreLaVue(p)], 'nouvelle'), json: { projection: p, empreinte: empreinte(r.partie.etat()) } };
     });
   }
-  return avecLaPartie(ouvrir(disque, chemin), (r) => commandeSurLaPartie(r, commande, reste, options, drapeaux, disque, chemin));
+  return avecLaPartie(ouvrir(disque, chemin), (r) => commandeSurLaPartie(r, { commande, reste, options, drapeaux }, disque, chemin));
 }
 
 /** Rend `faire(r)`, puis ferme la partie : le contexte JS reste libre pour la suivante. */
@@ -116,14 +125,30 @@ function avecLaPartie<T>(r: PartieRejouee, faire: (r: PartieRejouee) => T): T {
 }
 
 /** Une commande sur la partie rejouée. */
-function commandeSurLaPartie(r: PartieRejouee, commande: string, reste: readonly string[], options: Map<string, string>, drapeaux: Set<string>, disque: Disque, chemin: string): { lignes: string[]; json: unknown } {
+interface CommandeAnalysee {
+  commande: string;
+  reste: readonly string[];
+  options: Map<string, string>;
+  drapeaux: Set<string>;
+}
+
+/** Le geste d'une commande, ses arguments contrôlés contre le type du verbe (`argumentsDuVerbe`, `VERBES`). */
+function gesteControle(r: PartieRejouee, commande: string, reste: readonly string[], options: Map<string, string>): Geste {
+  const geste = gesteDe(commande, reste, options);
+  if ('offre' in geste) return geste;
+  const parametres = Object.prototype.hasOwnProperty.call(VERBES, geste.type) ? VERBES[geste.type] : null;
+  if (!parametres) throw new ErreurDeGeste('validation', `verbe inconnu : ${geste.type}`);
+  return { ...geste, args: argumentsDuVerbe(r.partie.etat(), geste.type, geste.args, parametres) };
+}
+
+function commandeSurLaPartie(r: PartieRejouee, { commande, reste, options, drapeaux }: CommandeAnalysee, disque: Disque, chemin: string): { lignes: string[]; json: unknown } {
   const etat = () => r.partie.etat();
   const depuis = entier(options.get('--depuis'), '--depuis');
   const projection = () => projeter(etat(), r.gestes.length, r.journal.length);
   switch (commande) {
     case 'offre':
     case 'jouer': {
-      const geste = gesteDe(commande, reste, options);
+      const geste = gesteControle(r, commande, reste, options);
       const avant = projection();
       const lignes = jouerUnGeste(r, geste);
       disque.ajouter(chemin, ligneDuFichier(geste));
@@ -151,8 +176,13 @@ function commandeSurLaPartie(r: PartieRejouee, commande: string, reste: readonly
       const { combattants, suite } = pageDeLaCarte(etat(), depuis);
       return { lignes: rendreLaCarte(etat(), p, depuis), json: { combattants, suite, exploration: p.exploration } };
     }
+    case 'cases': {
+      const cases = casesAtteignables(etat(), etatDeLaBarre(etat()).forme === 'ouverte');
+      const debut = Math.max(0, depuis ?? 0);
+      return { lignes: rendreLesCases(cases, depuis), json: { cases: cases.slice(debut, debut + BORNES.cases), enPlus: Math.max(0, cases.length - debut - BORNES.cases) } };
+    }
     case 'journal': {
-      const lignes = rendreLeJournal(r.journal, depuis);
+      const lignes = rendreLeJournal(r.journal, depuis, entier(options.get('--ligne'), '--ligne') ?? 0);
       return { lignes, json: { journal: lignes } };
     }
     case 'offres': {
@@ -170,7 +200,8 @@ function commandeSurLaPartie(r: PartieRejouee, commande: string, reste: readonly
   }
 }
 
-/** Exécute une commande. Une erreur structurée sort en `erreur <catégorie> : <message>`, code 1, et rien n'est écrit. */
+/** Exécute une commande. Une erreur structurée sort en `erreur <catégorie> : <message>`, bornée comme toute sortie, code 1, et
+ *  rien n'est écrit. */
 export function executer(argv: readonly string[], disque: Disque): Sortie {
   const enJson = argv.includes('--json');
   try {
@@ -178,7 +209,7 @@ export function executer(argv: readonly string[], disque: Disque): Sortie {
     return { texte: `${enJson ? JSON.stringify(donnees) : lignes.join('\n')}\n`, code: 0 };
   } catch (erreur) {
     if (!(erreur instanceof ErreurDeGeste)) throw erreur;
-    const texte = enJson ? JSON.stringify({ erreur: { categorie: erreur.categorie, message: erreur.message } }) : `erreur ${erreur.categorie} : ${erreur.message}`;
+    const texte = enJson ? JSON.stringify({ erreur: { categorie: erreur.categorie, message: erreur.message } }) : borner(replier(`erreur ${erreur.categorie} : ${erreur.message}`), 'erreur').join('\n');
     return { texte: `${texte}\n`, code: 1 };
   }
 }

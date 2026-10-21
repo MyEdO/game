@@ -15,7 +15,7 @@
  * l'id de la PORTÉE que le champ doit peindre ; le code de cette portée vit ici, jamais en JSON.
  */
 import type { Get } from './flowTypes';
-import { computeChargeReach, displayedReach } from './combatFlow';
+import { computeChargeReach, computeRunReach, displayedReach } from './combatFlow';
 import { findActionById } from '../data/index';
 import { unSiegeAgit } from './netOwnership';
 
@@ -76,6 +76,17 @@ export const PORTEE_COURSE = 'portee-course';
  *  Source UNIQUE du verdict, lue par le champ (peinture) comme par le clic (commit). */
 export function courseArmee(get: Get): boolean {
   return armedIntentPortee(get) === PORTEE_COURSE;
+}
+
+/** Les PORTÉES que le champ peint au tour du joueur (`gameIso/stage/highlightLayer.tsx`) et qu'un hôte lit : la
+ *  Marche (`displayedReach`), la zone de Course quand elle est armée (`computeRunReach`), et celle de l'intention armée
+ *  (`intentReach`). Vides hors de son tour. */
+export function porteesDuTour(get: Get, monTour: boolean): { marche: Map<string, number>; course: Map<string, number>; intention: Map<string, number> } {
+  return {
+    marche: monTour ? displayedReach(get) : new Map(),
+    course: monTour && courseArmee(get) ? computeRunReach(get) : new Map(),
+    intention: monTour && get().localIntent ? intentReach(get) : new Map(),
+  };
 }
 
 /** Même verdict pour l'APPROCHE vers un ennemi (Charge) : le clic-ennemi ne s'approche plus tout seul,

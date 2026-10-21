@@ -39,6 +39,7 @@ import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow
 import { t } from '../i18n';
 import { makeRNG } from '../engine/dice';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 /** Seede la Bourse d'un héros (défaut 'h', bénéficiaire des tests marchand) — la monnaie est portée par
  *  chaque héros (SOCLE POSSESSIONS §8, #531), donc un montant de test s'installe via `creditBourse`. */
@@ -1515,7 +1516,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     scene.triggers.push({ id: 't-xp', rect: { x: 2, y: 0, w: 1, h: 1 }, once: true, flow: flowFromEffects([{ type: 'giveXp', amount: 100 }]) });
     useGame.setState({ party: [a, b] });
     useGame.getState().startScene(scene);
-    useGame.getState().moveParty({ x: 2, y: 0 }); // entre dans la zone du trigger
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 0 }); // entre dans la zone du trigger
     const st = useGame.getState();
     expect(st.party.find((h) => h.id === 'a')!.xp).toBe(100);
     expect(st.party.find((h) => h.id === 'b')!.xp).toBe(150);
@@ -1804,11 +1805,11 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
   it('moveParty arrivant SUR la case d’arrivée armée déclenche la fouille et purge pendingInteract', () => {
     armedScene();
     useGame.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
-    useGame.getState().moveParty({ x: 1, y: 0 }); // encore loin → pas de fouille
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 1, y: 0 }); // encore loin → pas de fouille
     expect(useGame.getState().pendingInteract).toMatchObject({ id: 'cadavre' });
     expect(partyMoneyTotal(useGame.getState).gold).toBe(0);
 
-    useGame.getState().moveParty({ x: 4, y: 0 }); // case d'arrivée du plan → fouille auto
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 4, y: 0 }); // case d'arrivée du plan → fouille auto
     expect(useGame.getState().pendingInteract).toBeNull();
     expect(partyMoneyTotal(useGame.getState).gold).toBe(3);
   });
@@ -1817,11 +1818,11 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     armedScene();
     // Plan : rejoindre (4,1) — (4,0), croisée en route, est adjacente au cadavre SANS être l'arrivée.
     useGame.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 1 } });
-    useGame.getState().moveParty({ x: 4, y: 0 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 4, y: 0 });
     expect(useGame.getState().pendingInteract, 'le pending survit au passage').toMatchObject({ id: 'cadavre' });
     expect(partyMoneyTotal(useGame.getState).gold, 'rien n’a été fouillé en passant').toBe(0);
 
-    useGame.getState().moveParty({ x: 4, y: 1 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 4, y: 1 });
     expect(useGame.getState().pendingInteract).toBeNull();
     expect(partyMoneyTotal(useGame.getState).gold).toBe(3);
   });
@@ -1835,7 +1836,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     expect(resetFields('combatStart'), 'le cadre PURGE ce champ').toHaveProperty('pendingInteract', null);
     useGame.setState({ ...resetFields('combatStart') }); // ce que `startCombat` applique
     expect(useGame.getState().pendingInteract).toBeNull();
-    useGame.getState().moveParty({ x: 4, y: 0 }); // la case armée : plus rien ne s'y déclenche
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 4, y: 0 }); // la case armée : plus rien ne s'y déclenche
     expect(partyMoneyTotal(useGame.getState).gold).toBe(0);
   });
 
@@ -1843,7 +1844,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
     armedScene();
     useGame.getState().setPendingInteract({ id: 'cadavre', at: { x: 4, y: 0 } });
     useGame.getState().setPendingInteract(null);
-    useGame.getState().moveParty({ x: 4, y: 0 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 4, y: 0 });
     expect(partyMoneyTotal(useGame.getState).gold).toBe(0);
   });
 });
