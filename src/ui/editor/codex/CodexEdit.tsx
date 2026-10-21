@@ -64,7 +64,7 @@ import type { TraitInstance, OptionalEntry } from '../../../engine/statEntry';
 import { isSwarm } from '../../../engine/traits/dispatch';
 import type { DomainData } from '../../../data';
 import type { CharKey, Difficulty } from '../../../engine/types';
-import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS } from '../../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../engine/disease';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, TrappingRef, TalentTest, SpecEntry, WaterExposureData, WaterExposureModifier } from '../../../data';
@@ -753,7 +753,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
           <div className="ed-field">
             <span>passifs conditionnés à la VISIBILITÉ de la lésion (Vers du Reik −10 Soc si visible, MSRC 16 l.140) — actifs seulement si la localisation tirée est cochée ci-dessous</span>
             <GameOpEditor ops={(entry.visiblePassive as GameOp[] | undefined) ?? []} onChange={(ops) => edit('visiblePassive', ops.length ? ops : undefined)} />
-            <EnsembleDeCases nom="Localisations visibles" options={(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const).map((loc) => [loc, HIT_LOCATION_LABELS[loc]] as const)}
+            <EnsembleDeCases nom="Localisations visibles" options={LOCALISATIONS_DE_COUP.map((loc) => [loc, HIT_LOCATION_LABELS[loc]] as const)}
               value={entry.visibleLocations as string[] | undefined} facultatif={admetLAbsence(noeudDe('visibleLocations')) ?? true}
               onChange={(next) => edit('visibleLocations', next)} />
           </div>

@@ -7,7 +7,7 @@ import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './composites/Tabs';
 import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, formeResolue } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
-import { ItemInstance, Combatant, CharKey, CHAR_KEYS } from '../engine/types';
+import { ItemInstance, Combatant, CharKey, CHAR_KEYS, LOCALISATIONS_DE_COUP } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { baseWithTalents } from '../engine/talentEffects';
 import { refKey, parseRefKey } from '../engine/careerSlots';
@@ -45,7 +45,7 @@ import { Icon } from './Icon';
 import { EffectChips } from './EffectChips';
 import { combatantFlags } from '../gameIso/effectIcons';
 import { sheetAlarms, alarmsFingerprint } from './sheetAlarms';
-import { EtatPanel, ZONE_ORDER, zoneAnchor, zoneAfflictions } from './EtatPanel';
+import { EtatPanel, zoneAnchor, zoneAfflictions } from './EtatPanel';
 import { FigTile, type ZoneBadgeSpec } from './FigTile';
 import { LifeBar } from './LifeBar';
 import { woundsTone, encumbranceTone } from './gaugeTones';
@@ -58,7 +58,7 @@ import { Row } from './Layout';
  *  RÉELLES (`hero.armour`, couches rigide+Flexible+mutations déjà cumulées) — `sang` si une pièce
  *  portée à cette zone est ENTAMÉE (`damageTaken > 0`), `or` si PA > 0, `dim` sinon (vide). */
 function possessionsZoneBadges(hero: Combatant): ZoneBadgeSpec[] {
-  return ZONE_ORDER.map((loc) => {
+  return LOCALISATIONS_DE_COUP.map((loc) => {
     const pa = hero.armour[loc] ?? 0;
     const entamee = (hero.items ?? []).some((it) => it.kind === 'armor' && it.equipped && (it.locs ?? []).includes(loc) && (it.damageTaken ?? 0) > 0);
     return {

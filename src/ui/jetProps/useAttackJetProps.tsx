@@ -15,7 +15,7 @@ import { itemCapability } from '../../engine/capabilities';
 import { objetSourceDeLArme } from '../../engine/weaponLoad';
 import { attackModesFor, offHandPenalty } from '../../engine/combatFeatures/dispatch';
 import { modDeRegle } from '../../engine/reglesChiffrees';
-import { CritLocationPicker } from '../ForcedRollPicker';
+import { CritLocationPicker, LOCALISATIONS_A_L_ECRAN } from '../ForcedRollPicker';
 import { DeterminationButton } from '../DeterminationButton';
 import { CodexRef } from '../compendium/CodexRef';
 import { RollShell, type RollAction } from '../RollShell';
@@ -34,7 +34,6 @@ export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): 
   return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'defense.appliquer'), onClick: confirm, when: 'post' };
 }
 
-const LOCS: HitLocation[] = ['tete', 'corps', 'brasD', 'brasG', 'jambeD', 'jambeG'];
 
 /** Fiche Codex du NOM du jet d'attaque — MÊME source que son libellé (`attackTestLabel`) : une
  *  Résolution alternative déclarée par l'arme pointe la Caractéristique qui résout, sinon la
@@ -251,7 +250,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
                 onChange={(e) => setLocation((e.target.value as HitLocation) || null)}
               >
                 <option value="">Au hasard</option>
-                {LOCS.map((l) => (
+                {LOCALISATIONS_A_L_ECRAN.map((l) => (
                   <option key={l} value={l}>{locationLabel(l, target.bodyShape)} (-20)</option>
                 ))}
               </select>

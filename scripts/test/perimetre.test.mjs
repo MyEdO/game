@@ -12,7 +12,7 @@ import { envDeDepotForge } from '../guards/lib/depotGabarit.mjs'
 import { VITEST_DE_PARTIE } from './vitestDePartie.testkit.mjs'
 import { fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { sitesDuDepot } from '../guards/lib/gitHorsHote.mjs'
-import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
+import { REPLI_FACTEUR_CI, REPLI_SURCOUT_MS, SURCOUTS, apprendre, argumentsDuNoyau, suiteDuNoyauALancer, executerLancements, principal, ligneDeRelance, argumentsVitest, bilanDuLancement, paquetsDeLancement, ordreDuLanceur, planDuLancement, texteDuReel, derivationBornee, ecrireLesMesures, entreeDuCli, estimationsDe, facteursCi, lintDesTouches, nomDuMemo, paliersDe, perimetreDuDepot, planDExecution, planDuPerimetre, rapportDuLancement, surcoutObserve, texteDeLEchec, texteDeLEstimation, texteDuMur } from './perimetre.mjs'
 import { exportsTouches, signalDe, versionDesMemosDeDerivation } from './perimetreDerivation.mjs'
 import { memosDe } from '../guards/lib/memosDAnalyse.mjs'
 import { lireArguments } from './argumentsPerimetre.mjs'
@@ -891,6 +891,17 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
   assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'vitest', code: 1, echecs: ['src/a.test.ts'], args: [] }, { famille: 'vitest', code: 1, echecs: [], args: [] }], lint: vert, appelLint }),
     'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm test -- src/a.test.ts'
     + ' — rouge sans fichier nommé : vitest : 1 lancement(s) rouge(s) sans fichier en échec rapporté')
+})
+
+test('suite du noyau (#2817) : un fichier de src/ touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {
+  const post = ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'src/state/x.hors-store.test.ts', 'src/noyau/partie.ts', 'scripts/a.mjs']
+  assert.deepEqual(suiteDuNoyauALancer(['src/noyau/partie.ts'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier du noyau qui n’est pas un test lance la suite')
+  assert.deepEqual(suiteDuNoyauALancer(['src/data/supprime.json'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier de src/ supprimé compte')
+  assert.deepEqual(suiteDuNoyauALancer(['scripts/a.mjs'], post), [], 'hors de src/, la suite ne se lance pas')
+  const args = argumentsDuNoyau(['src/noyau/partie.hors-store.test.ts'])
+  assert.deepEqual(args, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', 'vitest.noyau.config.ts', 'src/noyau/partie.hors-store.test.ts'])
+  assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'noyau', code: 1, echecs: [], args }], lint: { code: 0, defauts: [] }, appelLint: () => ['oxlint'] }),
+    'rouge — relancer les SEULS fichiers en échec, puis un dernier test:perimetre : npm run test:noyau -- src/noyau/partie.hors-store.test.ts')
 })
 
 /** Le lancement `principal` du dépôt `racine` sur son dernier commit, sous la plateforme `platform` (celle du

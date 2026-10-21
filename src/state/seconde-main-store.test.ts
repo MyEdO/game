@@ -18,6 +18,7 @@ import { rollShipCritical } from '../engine/shipCritical';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const ARM = (pa: number) => ({ tete: pa, brasG: pa, brasD: pa, corps: pa, jambeG: pa, jambeD: pa });
@@ -35,7 +36,7 @@ const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1,
 const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;
 const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const piece = (qualites: string[], pa: number): ItemInstance =>
-  ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
+  ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...LOCALISATIONS_DE_COUP], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 
 const GRAINE = 11;
 

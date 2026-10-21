@@ -854,6 +854,7 @@ const ATTENDU = {
     "scripts/test/perimetre.mjs",
     "scripts/test/verrou.mjs",
   ],
+  'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
   'server:typecheck': [],
 }
 

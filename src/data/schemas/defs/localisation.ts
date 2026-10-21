@@ -2,14 +2,13 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 13 l.137-145 ; LDB 76 l.15-29 ; MDG 13 ; MSRC 7. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { plageSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { hitLocationSchema, plageSchema, sourceRefSchema } from '../grammaire/valeurs';
 
 export const file = 'localisation.json';
 // Les 3 familles de table sont des CLÉS FIXES du document, donc des CHAMPS : `config`, jamais un
 // `record` à clés libres (#1467 L1b V-FLIP-CONFIG).
 export const famille = 'config';
 
-const hitLocation = z.enum(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD']);
 const shipLocation = z.enum([
   'equipage',
   'avirons',
@@ -21,7 +20,7 @@ const shipLocation = z.enum([
   'superstructure',
 ]);
 
-const bodyLocEntry = nommerChamps(z.strictObject({ ...plageSchema.shape, loc: hitLocation }), { ...metaDesChamps(plageSchema, { exigees: true }), loc: { label: 'localisation' } });
+const bodyLocEntry = nommerChamps(z.strictObject({ ...plageSchema.shape, loc: hitLocationSchema }), { ...metaDesChamps(plageSchema, { exigees: true }), loc: { label: 'localisation' } });
 const shipLocEntry = nommerChamps(z.strictObject({
   ...plageSchema.shape,
   avirons: shipLocation,

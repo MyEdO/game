@@ -123,6 +123,8 @@ jobs:
         run: npm run test:ops
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:runner
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run test:noyau
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run deps:unused
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}

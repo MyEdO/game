@@ -320,8 +320,17 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `EVT.ARRIVEE_EN_SCENE`), `marcheDuGroupe.ts` (pas, saut, porte),
                             `interactionsDExploration.ts` (offres, assise, fouille), `conversation.ts`,
                             `testsDeScene.ts`, `issueDeCombat.ts`, `campagne.ts` (indices, documents, héros
-                            désignés), `orientation.ts`, `horloge.ts`, `journal.ts`. Aucune réexportation : chaque importeur
-                            nomme le module qui déclare (garde `scripts/guards/lib/reexportations.mjs`).
+                            désignés), `orientation.ts`, `horloge.ts`, `journal.ts` ; `fabriquesDuNoyau.ts`
+                            (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie.
+                            `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
+                            n'est pas le web ; chaque `envoyer`/`reprendre` rend `{ issue, evenements,
+                            journal }`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
+                            réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
+                            (garde `scripts/guards/lib/reexportations.mjs`). Sa fermeture d'exécution
+                            n'atteint aucun hôte (`scripts/guards/lib/fermetureDuNoyau.mjs`). Les tests
+                            `*.hors-store.test.ts` jouent dans la suite du noyau (`npm run test:noyau`,
+                            `vitest.noyau.config.ts`), sans le store, que la suite principale exclut
+                            (`MOTIF_HORS_STORE`, `scripts/guards/lib/racinesDeLaSuite.mjs`).
   pendings.ts                 types Pending*
   combatLog.ts                CombatEvent/CombatEventKind + CombatTone/toneOf/isImportantEvent/
                               lastEventTone (#161 : cadence des beats, `gameIso/combatNarration` les
@@ -425,10 +434,12 @@ src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, co
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions
-                            d'adaptateur (vue, caméra/zoom, fiche, coop, saves) ; il étale les fabriques
-                            d'actions du noyau, remet son interface à l'entrée en scène
-                            (`EVT.ARRIVEE_EN_SCENE`) et importe pour leur effet les modules à inscription
-                            (#2817 D2).
+                            d'adaptateur (vue, caméra/zoom, fiche, coop, saves) ; il étale les actions
+                            du noyau (`creerActionsDuNoyau`), branche le jeu (`brancherLeJeu`), ensemence le
+                            RNG de bataille, pose la plateforme web, abonne le tick auto, la transition du
+                            jeu (`transitionDuJeu`) et la péremption du curseur, remet son interface à
+                            l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`) et ouvre le créateur sur
+                            `EVT.HEROS_A_CREER` (#2817 D7).
   viewLevel.ts                override DEBUG de l'étage AFFICHÉ (`__wfrp.viewLevel(z)`, #161 : ex-
                               `gameIso/viewLevel.ts`) — SOURCE dans `state`, lu par l'hôte du monde
                               (`gameIso/stage/MondeDeCampagne`)

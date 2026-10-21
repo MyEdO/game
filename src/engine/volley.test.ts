@@ -7,6 +7,7 @@ import { setRule, resetRule } from './policy';
 import type { RNG } from './dice';
 import type { Combatant, ShipPoste } from './types';
 import { deFixe } from './dice.testkit';
+import { LOCALISATIONS_DE_COUP } from './types';
 
 const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: { current: 10, max: 10, base: 10 }, items: [], ...over }) as unknown as Combatant;
@@ -176,7 +177,7 @@ describe('resolveVolley — une CRÉATURE ciblée encaisse comme sous un tir ord
 
   it('localisation corporelle, Blessures = Dégâts − BE − PA, Percutante ajoute le dé des unités', () => {
     const r = volee([poste(['g1'], 14, PERCUTANTE)], pirate(), 3, true, [gunner('g1')], fixed(34));
-    expect(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD']).toContain(r[0].coup.location);
+    expect(LOCALISATIONS_DE_COUP).toContain(r[0].coup.location);
     expect(r[0].coup.damage).toBe(14 + 3 + 4); // Percutante : unités de 34
     expect(r[0].coup.woundsLost).toBe(14 + 3 + 4 - 3 - PA); // BE 3, PA 2 à toute localisation
     expect(r[0].coup.critical).toBe(false);

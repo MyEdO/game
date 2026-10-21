@@ -14,8 +14,9 @@ import { isOutOfAction } from '../engine/conditions';
 import { setRule, resetRule } from '../engine/policy';
 import { bus, EVT } from '../noyau/bus';
 import { draineCascade, type ChoisitCle } from './cascade.testkit';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
-const LIEUX = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const;
+const LIEUX = LOCALISATIONS_DE_COUP;
 const harnois = (): ItemInstance =>
   ({ uid: 'harnois', name: 'Harnois', kind: 'armor', equipped: true, pa: 3, locs: [...LIEUX], qualities: [] } as unknown as ItemInstance);
 

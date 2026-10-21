@@ -38,9 +38,10 @@ import { listerArbre } from '../../../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.mjs';
 import type { ItemInstance } from '../../../engine/types';
 import type { PartArt } from './types';
+import { LOCALISATIONS_DE_COUP } from '../../../engine/types';
 
 const RIG = resolve(__dirname, '..');
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const LOCS = LOCALISATIONS_DE_COUP;
 const GLOBAUX = new Set([...defsGlobaux().matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
 const DEFINITION = /<(linear|radial)Gradient\b[^>]*\bid="([^"]+)"[^>]*>.*?<\/\1Gradient>/gs;
 const SURCHARGES: (Appearance['colors'] | undefined)[] = [

@@ -17,7 +17,6 @@ import { transitionDuJeu } from '../noyau/transitionDuJeu';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { meneurDuMonde } from '../noyau/monde/combatants';
-import { buildRollFlowActions, creerActionsDuJetDActivite } from '../noyau/rollFlowSpecs';
 import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
 import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
 import { rosterUpdate } from './roster';
@@ -25,48 +24,13 @@ import { planifierLeTickAuto } from '../noyau/combatAuto';
 import type { Scene } from '../noyau/monde/scene';
 import { exploreStepDest } from '../noyau/monde/exploreNav';
 import { bus, EVT } from '../noyau/bus';
-import { createCombatSlice } from '../noyau/combatSlice';
 import { brancherLeJeu } from '../noyau/branchement';
+import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
 import { graineDEntropie } from '../web/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { etatInitialDuJeu, type CampaignDoc, type Ecran, type Jeu } from '../noyau/etat';
-import { creerActionsDOrientation } from '../noyau/orientation';
-import { creerActionsDeManoeuvre } from '../noyau/shipManeuver';
-import { creerActionsDuChapitre } from '../noyau/chapitreRecap';
-import { creerActionsDeCampagne } from '../noyau/campagne';
-import { creerActionsDeVision } from '../noyau/visionState';
-import { creerActionsDEntreeEnScene } from '../noyau/entreeEnScene';
-import { creerActionsDInterlude } from '../noyau/interludeFlow';
-import { creerActionsDeBatailleDeMasse } from '../noyau/massBattleFlow';
-import { creerActionsDesFaveurs } from '../noyau/favorFlow';
-import { creerActionsDuGroupe } from '../noyau/partyFlow';
-import { creerActionsDesPossessions } from '../noyau/possessionsFlow';
-import { creerActionsDeMarche } from '../noyau/marcheDuGroupe';
-import { creerActionsDeFranchissement } from '../noyau/gesteDArete';
-import { creerActionsDInteraction } from '../noyau/interactionsDExploration';
-import { creerActionsDeConversation } from '../noyau/conversation';
-import { creerActionsDuMarchand } from '../noyau/merchantFlow';
-import { creerActionsDeTaverne } from '../noyau/tavernFlow';
-import { creerActionsDesDes, seedBattleRng } from '../noyau/battleRng';
-import { creerActionsDIssueDeCombat } from '../noyau/issueDeCombat';
-import { creerActionsDuMedecin } from '../noyau/medicFlow';
-import { creerActionsDuRepos } from '../noyau/restFlow';
-import { creerActionsDeLEquipage } from '../noyau/shipCrew';
-import { creerActionsDesConsommables } from '../noyau/consumableFlow';
-import { creerActionsDesTestsDeScene } from '../noyau/testsDeScene';
-import { creerActionsDuLotDEtal } from '../noyau/etalLotFlow';
-import { creerActionsDeCorruption } from '../noyau/corruptionFlow';
-import { creerActionsDuJournal } from '../noyau/journal';
-import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from '../noyau/horloge';
-import { creerActionsDuVoyage } from '../noyau/travelFlow';
-import { creerActionsDesPostesDeVoyage } from '../noyau/travelPostes';
-import { creerActionsDuBillet } from '../noyau/billetFlow';
-import { creerActionsDuPort } from '../noyau/portFlow';
-import { creerActionsDuVoyageEnMer } from '../noyau/seaVoyageFlow';
-import { creerActionsDuMarcheTerrestre } from '../noyau/landMarketFlow';
-import { creerActionsDeLAuberge } from '../noyau/innFlow';
-import { creerActionsDesActivitesEnMer } from '../noyau/seaActivities';
+import { seedBattleRng } from '../noyau/battleRng';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Onglets de la fiche de personnage (`CharacterSheet.tsx`) — id STABLE, jamais un libellé. */
@@ -284,48 +248,8 @@ function remettreLAdaptateur(neuve: boolean): void {
 }
 
 export const useGame = create<GameState>((set, get) => ({
-  ...createCombatSlice(get, set),
+  ...creerActionsDuNoyau(get, set),
   ...creerActionsDuCurseur(get, set),
-  // Les délégués de jet (mono et multi), dérivés de `FLOW_WIRING`.
-  ...buildRollFlowActions(get, set),
-  ...creerActionsDuJetDActivite(get, set),
-  ...creerActionsDOrientation(get, set),
-  ...creerActionsDeManoeuvre(get, set),
-  ...creerActionsDuChapitre(get, set),
-  ...creerActionsDeCampagne(get, set),
-  ...creerActionsDeVision(get, set),
-  ...creerActionsDEntreeEnScene(get, set),
-  ...creerActionsDInterlude(get, set),
-  ...creerActionsDeBatailleDeMasse(get, set),
-  ...creerActionsDesFaveurs(get, set),
-  ...creerActionsDuGroupe(get, set),
-  ...creerActionsDesPossessions(get, set),
-  ...creerActionsDeMarche(get, set),
-  ...creerActionsDeFranchissement(get, set),
-  ...creerActionsDInteraction(get, set),
-  ...creerActionsDeConversation(get, set),
-  ...creerActionsDuMarchand(get, set),
-  ...creerActionsDeTaverne(get, set),
-  ...creerActionsDesDes(get, set),
-  ...creerActionsDIssueDeCombat(get, set),
-  ...creerActionsDuMedecin(get, set),
-  ...creerActionsDuRepos(get, set),
-  ...creerActionsDeLEquipage(get, set),
-  ...creerActionsDesConsommables(get, set),
-  ...creerActionsDesTestsDeScene(get, set),
-  ...creerActionsDuLotDEtal(get, set),
-  ...creerActionsDeCorruption(get, set),
-  ...creerActionsDuJournal(get, set),
-  ...creerActionsDAvanceeDHorloge(get, set),
-  ...creerActionsDHorloge(get, set),
-  ...creerActionsDuVoyage(get, set),
-  ...creerActionsDesPostesDeVoyage(get, set),
-  ...creerActionsDuBillet(get, set),
-  ...creerActionsDuPort(get, set),
-  ...creerActionsDuVoyageEnMer(get, set),
-  ...creerActionsDuMarcheTerrestre(get, set),
-  ...creerActionsDeLAuberge(get, set),
-  ...creerActionsDesActivitesEnMer(get, set),
   ...etatInitialDuJeu(),
   ...etatInitialDeLAdaptateur(),
   keyOverrides: loadKeyOverrides(),

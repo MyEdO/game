@@ -22,10 +22,11 @@ import { VIEWS } from '../../facing';
 import { viewEntries } from '../../viewArt';
 import { tokensOf } from '../../palette';
 import { gammeDe } from '../../../../data/palette.types';
+import { LOCALISATIONS_DE_COUP } from '../../../../engine/types';
 
 const ESPECES = (JSON.parse(readFileSync(resolve(__dirname, '../../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
 const SENTINELLE = '#123457';
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const LOCS = LOCALISATIONS_DE_COUP;
 const vues = (a: PartArt | null) => viewEntries(a).map(([, s]) => s);
 
 /** Clés candidates d'une palette : sans jeton `@clé` dans `art`, hors base dont un rôle est déclaré. */

@@ -26,6 +26,7 @@ import { draineCascade } from './cascade.testkit';
 import { t as tr } from '../i18n';
 import { avecLesTables } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 
@@ -78,7 +79,7 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
   const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
   const mailles = (): Partial<Combatant> => ({
     armour: uniformArmour(4),
-    items: [{ uid: 'mail', name: 'Cotte de mailles', kind: 'armor', equipped: true, pa: 4, locs: ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'], subType: 'mailles', qualities: [] } as never],
+    items: [{ uid: 'mail', name: 'Cotte de mailles', kind: 'armor', equipped: true, pa: 4, locs: [...LOCALISATIONS_DE_COUP], subType: 'mailles', qualities: [] } as never],
   });
   /** Les voies de la fenêtre ouverte par l'Incantation critique du Projectile `spell` sur le héros `t`. */
   const voies = (t: Combatant, spell: never) => {

@@ -46,6 +46,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         journal: scene.startMessage ? [scene.startMessage.texte] : [],
         campaignNarratif: narratif ?? null,
       });
+      if (scene.startMessage) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte: scene.startMessage.texte });
       bus.emit(EVT.ARRIVEE_EN_SCENE, { sceneId: scene.id, neuve: true });
       // Semis des Possessions de dotation (#617/#618) — ICI, jamais `loadGame` (qui restaure
       // `data.possessions` de la save) : `startScene` est le SEUL seam qui repart d'un registre
