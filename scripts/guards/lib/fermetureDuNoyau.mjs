@@ -1,8 +1,9 @@
 // FERMETURE DE LA SURFACE DU NOYAU (#2817 D9, épique #2882) — définition UNIQUE de la mesure, lue par la garde
 // `src/noyau/surface-fermeture-guard.test.ts`.
 //
-// Question : ce qu'un hôte externe importe (`ENTREES_FERMEES` : la surface `src/noyau/index.ts`, et les scénarios
-// de test qu'il lance, #2898) charge-t-il à l'EXÉCUTION un module d'un hôte web ou d'interface ? Réponse
+// Question : ce qu'un hôte externe importe (`ENTREES_FERMEES` : la surface `src/noyau/index.ts`, les scénarios
+// de test qu'il lance, et l'entrée de l'hôte texte, #2898) charge-t-il à l'EXÉCUTION un module d'un hôte web ou
+// d'interface ? Réponse
 // attendue : aucun fichier de `ZONES_D_HOTE`, aucun paquet de `PAQUETS_D_HOTE`.
 // La table `COUCHES` (`couches.mjs`) ne l'implique pas : `data` importe `scenes` en valeur, et `scenes` importe
 // `state` (arêtes transitoires de #2884) ; la fermeture se MESURE donc ici.
@@ -14,13 +15,11 @@ import { resolve, sep } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
 import { clotureDImports } from './importGraph.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
+import { SURFACE_DU_NOYAU } from './couches.mjs'
 
-/** La surface du noyau. */
-export const SURFACE_DU_NOYAU = 'src/noyau/index.ts'
-
-/** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure` : la surface du noyau, et le registre des
- *  scénarios de test dont il construit le lancement (#2898). */
-export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'])
+/** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure` : la surface du noyau, le registre des
+ *  scénarios de test dont il construit le lancement, et l'entrée de l'hôte texte (#2898). */
+export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', 'src/hoteTexte/cli.ts'])
 
 /** Les zones de `src/` qu'aucun module de la fermeture ne charge. */
 export const ZONES_D_HOTE = Object.freeze(['state', 'ui', 'gameIso', 'web', 'net', 'audio'])

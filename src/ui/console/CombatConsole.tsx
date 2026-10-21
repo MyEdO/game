@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState, type ComponentProps, type ReactN
 import { nomDuSiege } from '../../state/netFlow';
 import { useGame } from '../../state/store';
 import type { BattleState, ShootingStanceKey } from '../../noyau/etat';
-import { movementRemaining } from '../../noyau/mount';
+import { mouvementDuTour } from '../../noyau/mount';
 import type { Combatant, Weapon, WeaponLoadout } from '../../engine/types';
 import { hasMeaningfulOption } from '../../noyau/turnEconomy';
 import { actionPrise, wastesAction, endTurnArmed } from '../../noyau/endTurnGuard';
@@ -10,34 +10,27 @@ import { advantageCapFor } from '../../engine/advantage';
 import { attackWeapon } from '../../engine/combat';
 import { activeCombatant, previewResourceDelta, STANCE_BLOCK } from '../../noyau/combatFlow';
 import { availableAttacks } from '../../noyau/combatManeuvers';
-import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
+import type { ManeuverDef } from '../../data/index';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
-import { actionGate, runAction, currentInterludeAction, offresDuRegistre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
+import { actionGate, runAction, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
 import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
 import { t } from '../../i18n';
-import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, weaponFromItem, isUnarmed } from '../../engine/items';
+import { loadedAmmo, compatibleAmmo, loadoutLabel, activeLoadout, weaponFromItem } from '../../engine/items';
 import { weaponLoaded, reloadProgressOf } from '../../engine/weaponLoad';
-import { canPushback } from '../../engine/qualities/dispatch';
-import { hasBattement, hasDistraire, knownShanties } from '../../engine/combatFeatures/dispatch';
-import { dispellableSpellsOn } from '../../engine/dispel';
+import { knownShanties } from '../../engine/combatFeatures/dispatch';
+import type { DispellableSpell } from '../../engine/dispel';
 import { PanneauParametre, type ParamOption } from '../PanneauParametre';
 import { useLongPress } from '../useLongPress';
 import { ReadyRow } from '../ReadyRow';
 import { SpectatorChip } from '../SpectatorChip';
 import { spectatorSeatOfModal } from '../ownership';
-import { actorHasSkill, possesses } from '../../engine/skills';
-import { HEAL_SKILL, healableTargets } from '../../engine/healing';
 import { canTakeAction, isActionLocked, isOutOfAction, raisonRefusDetermination } from '../../engine/conditions';
-import { isEngaged } from '../../engine/engagement';
-import { isFrenzied, isFrenzyCapable } from '../../engine/psychology';
-import { hasWaterContainer, waterSprayCandidates } from '../../engine/suffocation';
-import { canAidTeam } from '../../noyau/monde/commandTeam';
-import { shipOfCrew } from '../../noyau/monde/shipPostes';
+import { isFrenzied } from '../../engine/psychology';
 import { quartIndex } from '../../noyau/shipCrew';
-import { isVehicle, estNavire } from '../../engine/coque';
+import { isVehicle } from '../../engine/coque';
 import { controlsCombatant } from '../../noyau/netOwnership';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { combatDistance } from '../../noyau/monde/footprint';
@@ -619,20 +612,19 @@ export function CombatConsole() {
     ) : null;
   }
 
-  // POSSESSION de l'acteur actif — prédicat UNIQUE des affordances de tour (`controlsCombatant`, déjà
-  // siège-aware : héros d'un autre siège, Auto-combat, ennemi conduit par le MJ). Il n'y a donc AUCUNE
-  // clause de mode de partie ici : en coop, celui qui tient l'actif voit sa console VIVRE, les autres la
-  // lisent. Et un VÉHICULE contrôlé (coque, échelle Mer) est un acteur comme un autre : ses cases sont
-  // les cases navales du registre, dans la MÊME travée.
-  const controlled = controlsCombatant(useGame.getState(), active);
+  // ÉTAT DE LA BARRE — verdict UNIQUE du noyau (`etatDeLaBarre`, lu aussi par l'hôte texte) : la possession de
+  // l'actif (`controlsCombatant`, déjà siège-aware : héros d'un autre siège, Auto-combat, ennemi conduit par le
+  // MJ) et la pause de Round, où personne n'agit. Il n'y a donc AUCUNE clause de mode de partie ici : en coop,
+  // celui qui tient l'actif voit sa console VIVRE, les autres la lisent. Et un VÉHICULE contrôlé (coque, échelle
+  // Mer) est un acteur comme un autre : ses cases sont les cases navales du registre, dans la MÊME travée.
+  const barre = etatDeLaBarre(useGame.getState());
   const vehicule = isVehicle(active);
-  const navire = estNavire(active); // MDG 14
   /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
    *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
    *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
    *  garde sa géométrie, mais son CONTENU devient un médaillon. Aucune case n'est grisée : il n'y a
-   *  plus de case. Le prédicat de possession est l'unique `controlsCombatant` — aucun cas de kind. */
-  const spectatrice = !controlled || !!pendingRoundStart;
+   *  plus de case. Le verdict est l'unique `etatDeLaBarre` — aucun cas de kind. */
+  const spectatrice = barre.forme === 'spectatrice';
   // LECTURE : les cases de la forme complète sont inertes sous un bandeau d'interlude (spec zone 7).
   const live = !phase;
   // ON VISE — source UNIQUE de la mise en sourdine des infobulles de règle de la console (`ConsoleCell`,
@@ -650,11 +642,10 @@ export function CombatConsole() {
       : null;
 
   const frenzied = isFrenzied(active);
-  // Ressources du Tour EN COURS : `movementRemaining`/`battle.movementUsed`/`battle.acted` portent
+  // Ressources du Tour EN COURS : `mouvementDuTour`/`battle.acted` portent
   // l'acteur actif quel qu'il soit — l'arche affiche donc la valeur réelle du moteur pour un ennemi
   // comme pour un héros (spec zone 7 : mêmes cases, inertes).
-  const moveLeft = movementRemaining(battle, active);
-  const moveMax = moveLeft + battle.movementUsed;
+  const { restant: moveLeft, total: moveMax } = mouvementDuTour(battle, active);
   const actMax = 1 + (isFrenzied(active) ? 1 : 0);
   const actAvail = actionPrise(battle, pendingCleave) ? 0 : 1;
   const heroIdx = party.findIndex((h) => h.id === active.id);
@@ -683,11 +674,14 @@ export function CombatConsole() {
    *  dit qui le couvre. */
   const candidatsDe = (args?: ActionRunCtx): string[] =>
     Object.values(args ?? {}).filter((v): v is string => typeof v === 'string');
-  /** LES OFFRES de la surface des gestes secondaires, par PORTEUR — socle PARTAGÉ avec les pastilles
-   *  du champ (`noyau/actionRegistry.offresDuRegistre`). L'identité d'un candidat n'est plus DEVINÉE ici (`id ?? uid`) :
-   *  l'enveloppe de sélecteur du registre la DÉCLARE, et une alvéole a seulement à se reconnaître dans
-   *  ses propres paramètres. */
-  const offres2e = offresDuRegistre('geste-secondaire', { active, battle, netMode: net.mode });
+  /** LES OFFRES DE L'ACTIF — l'énumération UNIQUE du registre (`offresDeLActif`, #2911), lue aussi par les pastilles
+   *  du champ et l'hôte texte. Une case n'existe que si l'énumérateur l'offre (`offreDesignee`) : la PERTINENCE
+   *  (en selle, à la barre, sur un navire…) est un gate du registre, jamais un prédicat de la console. La console
+   *  ne décide que de l'ORDRE, du site et de l'habillage. */
+  const offres = offresDeLActif({ active, battle, netMode: net.mode, state: useGame.getState() });
+  /** Les gestes secondaires, par PORTEUR : l'identité d'un candidat est DÉCLARÉE par l'enveloppe de sélecteur du
+   *  registre, et une alvéole a seulement à se reconnaître dans ses propres paramètres. */
+  const offres2e = offresParPorteur(offres, 'geste-secondaire');
   /** GESTES SECONDAIRES d'une alvéole — RENDEUR UNIQUE (aucun id d'action ici), appelé pour TOUTE
    *  case : les entrées `surface: 'geste-secondaire'` dont l'`hote` est l'entrée de la case et dont la
    *  population couvre l'un de ses candidats. Chacune EST une entrée du registre habillée par
@@ -727,7 +721,7 @@ export function CombatConsole() {
       ouvre?: () => void } = {},
   ): Cell | undefined => {
     const def = findActionById(actionId);
-    if (!def) return undefined;
+    if (!def || !offreDesignee(offres, actionId, over.args)) return undefined;
     // Le verdict porte sur CETTE case, donc sur SES paramètres (`args`) : une entrée rendue N fois —
     // une par Compétence d'Avantage — s'ouvre ou se ferme par candidat, sur la même mesure que le
     // dispatcher. Les gates de règle pure les ignorent.
@@ -825,24 +819,10 @@ export function CombatConsole() {
     const raison = live && frenzied && choix.length >= 2 ? t('agate.frenzyOnly') : undefined;
     return [{ w, ammo, choix, choisissable, raison, options }];
   });
-  const canPush = active.weapons.some((w) => w.type === 'melee' && canPushback(w));
   // G5 — postures de tir ARMÉES : elles ne s'allument que tant qu'elles ont un effet (le MÊME prédicat
   // que le gate de la case et que le versement dans le `PendingAttack`) — une posture périmée ne se
   // peint pas. La case, elle, reste TOUJOURS dessinée : elle se grise et dit pourquoi.
   const posture = (key: ShootingStanceKey) => !!battle.stances?.[active.id]?.[key] && !STANCE_BLOCK[key](battle, active);
-  // Armes DU SET au poing, lues par `uid` : c'est le set qui dit ce qui est TENU (arbitrage #1348
-  // « ARBITRAGE SET STRICT », `docs/plans/2026-08-16-spec-hud-combat.md` ; dérivation `recomputeLoadout`,
-  // `engine/items.ts`). Sans set (statbloc de créature), le set est l'arsenal réel de la bête, Mains nues
-  // écartées par le prédicat canonique `isUnarmed` (`items.ts:178`, marqueur `builtinId`).
-  const setWeapons = heldSet
-    ? [heldSet.main, heldSet.off].filter((u): u is string => !!u).map((uid) => active.weapons.find((w) => w.uid === uid)).filter((w): w is Weapon => !!w)
-    : active.weapons.filter((w) => !isUnarmed(w));
-  // G2 Charge — `LDB 15 l.35-37` / `LDB 13 l.90` (fiche `regles/charger`) : elle ne se DÉDUIT que
-  // d'un set qui ouvre un corps à corps — arme de mêlée DU set, ou set MAINS NUES (aucune arme portée).
-  // Un set de tir pur ne la déduit pas. AUCUNE PERTE DE DROIT : ce prédicat ne règle que le REMPLISSAGE
-  // par défaut de la travée ; la Charge reste un geste par défaut de la grille de capacités et sera
-  // posable en case libre (lot placement).
-  const chargeDeduite = setWeapons.length === 0 || setWeapons.some((w) => w.type === 'melee');
   const consumables = (active.items ?? []).filter(isConsumable);
   // Consommables GROUPÉS par MODÈLE — plusieurs potions identiques = une case à compteur ×N. La clé de
   // regroupement est l'id STABLE de catalogue (`trappingId`, `items.ts:240`), jamais le libellé
@@ -856,16 +836,6 @@ export function CombatConsole() {
       return acc;
     }, {}),
   );
-  const healTargets = possesses(active, HEAL_SKILL)
-    ? healableTargets(active, battle.combatants.filter((c) => c.kind === active.kind), { adjacency: true })
-    : [];
-
-  // Aspersion d'eau (`water`) : le contenant est au sac, les cibles sont les alliés qui suffoquent.
-  const waterTargets = hasWaterContainer(active)
-    ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind))
-    : [];
-  // Barre d'un navire : le porteur sert-il un poste de gouverne ? (source unique `shipOfCrew`)
-  const atHelm = controlled ? shipOfCrew(battle.combatants, active.id) : undefined;
   // Tâches d'équipage PARALLÈLES de la coque (elles ne dépensent pas l'Action du navire, donc aucun gate
   // du registre ne les ferme) : le SITE dit si elles ont un objet — un chanteur apte dont le quart n'a pas
   // eu sa chanson (MDG 09 l.32-40), une pièce déchargée dont le chef reste libre ce Round.
@@ -887,54 +857,50 @@ export function CombatConsole() {
   const deduced: (Cell | undefined)[] = [
     // G1 — attaque de l'arme du set (entrée `attaque`). L'icône et le nom suivent l'ARME réelle
     // (`ItemIcon`, même routage d'art que la vignette de set) et le foyer de règle est la POSSESSION.
-    // Une COQUE n'a ni arme tenue ni poing (`isVehicle`, `engine/vehicle.ts:22`) : la case d'attaque du
-    // set ne lui est pas pertinente — ce que le navire offre, ce sont ses Tests d'équipage (plus bas).
-    vehicule
-      ? undefined
-      : setWeapon
+    // Une COQUE n'a ni arme tenue ni poing : la case d'attaque du set ne lui est pas pertinente (gate
+    // `fantassin`) — ce que le navire offre, ce sont ses Tests d'équipage (plus bas).
+    setWeapon
         ? cellFor('attaque', 'arme', { icon: <ItemIcon item={setWeapon} />, label: setWeapon.label, rule: setWeapon.trappingId ? { category: 'trappings', id: setWeapon.trappingId } : undefined, args: { attackId: 'arme' } })
         : cellFor('attaque', 'arme', { icon: icon('melee/grapple'), label: 'Mains nues', rule: { category: 'trappings', id: 'mains-nues' }, args: { attackId: 'arme' } }),
     // G4 — Recharger : le porteur de l'état est l'ARME (progression du Test étendu), et c'est ELLE
     // que le dispatcher reçoit.
-    rechargeables.length > 0
-      ? cellFor('reload', 'arme', {
+    cellFor('reload', 'arme', {
           label: `Recharger${reloadProg ? ` ${reloadProg}/${rechargeables[0].reload}` : ''}`,
           on: needsReload,
           off: busy || !needsReload || frenzied,
-          args: { weaponUid: rechargeables[0].uid },
+          args: { weaponUid: rechargeables[0]?.uid },
           ouvre: rechargeChoisissable ? () => setRechargeOuverte((v) => !v) : undefined,
-        })
-      : undefined,
-    // G2 — Charge (bouton d'intention : portée M×2 visible avant le clic). Le verdict d'offre vient
-    // du registre (`charge-possible`), le verbatim de l'infobulle de sa fiche.
-    chargeDeduite && !vehicule ? cellFor('charge', 'geste') : undefined,
+        }),
+    // G2 — Charge (bouton d'intention : portée M×2 visible avant le clic). Sa pertinence (un set qui ouvre un
+    // corps à corps, `set-de-melee`) et son verdict d'offre (`charge-possible`) viennent du registre.
+    cellFor('charge', 'geste'),
     // G3 — Viser
-    rangedWs.length > 0 ? cellFor('aim', 'arme', { label: active.aiming ? 'En joue' : 'Viser', on: !!active.aiming, off: busy || !!active.aiming || frenzied }) : undefined,
+    cellFor('aim', 'arme', { label: active.aiming ? 'En joue' : 'Viser', on: !!active.aiming, off: busy || !!active.aiming || frenzied }),
     // G6 — geste d'ARME : la jauge est l'ARSENAL tenu (`canPushback`). L'Empoignade n'en est PAS un
     // (LDB 14 l.155, l.159) : elle reste à la modale d'attaque à mains nues (`useAttackJetProps.tsx:96`).
-    canPush ? cellFor('pushback', 'geste', { on: !!active.pushbackMode }) : undefined,
+    cellFor('pushback', 'geste', { on: !!active.pushbackMode }),
     // G5 — postures de tir PRÉ-ARMÉES (`battle.stances`, spec §1a G5) : les cases portent le choix, la
     // fenêtre de jet n'en garde que l'affichage. Bascule (re-clic = désarmer), gate en texte visible.
     // Les DEUX cases existent dès qu'une arme de tir est au poing — « Dans le tas » se grise hors
     // contexte (aucun groupe serré), elle ne disparaît pas. Géométrie de la travée : arbitrage #1434.
-    rangedWs.length > 0 ? cellFor('posture-tir', 'arme', { on: posture('heldGround'), off: busy }) : undefined,
-    rangedWs.length > 0 ? cellFor('posture-tas', 'arme', { on: posture('intoCrowd'), off: busy }) : undefined,
+    cellFor('posture-tir', 'arme', { on: posture('heldGround'), off: busy }),
+    cellFor('posture-tas', 'arme', { on: posture('intoCrowd'), off: busy }),
     // G6bis — gestes d'ÉTAT du porteur (surface `geste-d-etat` du registre, spec §1a) : ce que sa
     // SITUATION ouvre — en selle, à une pièce servie, à la barre — jamais ce que son arme offre.
-    active.mountId ? cellFor('dismount', 'geste', { off: actionVerrouillee }) : undefined,
-    active.mannedPoste ? cellFor('leave-poste', 'geste', { off: busy }) : undefined,
-    // La barre : le BARREUR la tient (`atHelm`), et la COQUE elle-même quand c'est SON tour — même case,
-    // mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1363`).
-    atHelm || navire ? cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }) : undefined,
+    cellFor('dismount', 'geste', { off: actionVerrouillee }),
+    cellFor('leave-poste', 'geste', { off: busy }),
+    // La barre : le BARREUR la tient, et la COQUE elle-même quand c'est SON tour (gate `a-la-barre`) — même
+    // case, mêmes arguments (`battleShipManeuver` accepte l'un ou l'autre, `combatSlice.ts:1363`).
+    cellFor('maneuver-ship', 'geste', { off: busy, args: { crewId: active.id } }),
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. Bordée et Rude épreuve dépensent l'Action du navire
-    // (gate `navire-action`) ; chant et recharge sont des tâches parallèles (gate `toujours`), donc leur
+    // (gate `navire-action`) ; chant et recharge sont des tâches parallèles (pertinence seule : `navire`, `vehicule`), donc leur
     // disponibilité RÉELLE est une restriction de SITE : sans chanteur / sans pièce déchargée, case inerte.
     // Recharge : LDB 62 l.335 ; bordée, Rude épreuve, chant : MDG 14.
-    navire ? cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }) : undefined,
-    navire ? cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }) : undefined,
-    navire ? cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }) : undefined,
-    vehicule ? cellFor('ship-reload', 'geste', { off: !reloadable, args: { shipId: active.id, posteUid: reloadable?.item.uid } }) : undefined,
+    cellFor('battery', 'attaque', { off: (active.postes ?? []).length === 0 }),
+    cellFor('crew-test-rude-epreuve', 'geste', { args: { shipId: active.id, crewTestId: 'rude-epreuve' } }),
+    cellFor('sing-shanty', 'geste', { off: !canSing, args: { shipId: active.id } }),
+    cellFor('ship-reload', 'geste', { off: !reloadable, args: { shipId: active.id, posteUid: reloadable?.item.uid } }),
   ];
   // ADRESSE FIXE — chaque case d'une zone rend ce que le PORTEUR y a posé (`active.barre`), et à
   // défaut le pré-remplissage déduit (`dispositionDeduite`). Une case laissée vide RESTE à sa place :
@@ -970,10 +936,8 @@ export function CombatConsole() {
         args: { itemUid: g.uids[0] },
       });
     }),
-    healTargets.length > 0
-      ? cellFor('heal', 'geste', { key: 'q-soigner', off: busy || frenzied })
-      : undefined,
-    waterTargets.length > 0 ? cellFor('water', 'geste', { off: busy || frenzied }) : undefined,
+    cellFor('heal', 'geste', { key: 'q-soigner', off: busy || frenzied }),
+    cellFor('water', 'geste', { off: busy || frenzied }),
   ];
   const quick = placer('accesRapide', rapides.filter((c): c is Cell => !!c));
 
@@ -983,25 +947,24 @@ export function CombatConsole() {
   // raison visible (gate `avantage-sous-plafond`, `actionRegistry.ts`) — le refus se voit, il ne
   // fait pas disparaître l'affordance (spec HUD § ARBITRAGE 2026-08-19).
   const advSkills = ACTION_CANDIDATES['competences-avantage']({ active, battle, netMode: net.mode }) as { skillId: string; cap: number }[];
-  const canDispel = actorHasSkill(active, 'langue', 'magick');
-  const dispellable = canDispel ? dispellableSpellsOn(battle.combatants) : [];
+  const dispellable = ACTION_CANDIDATES['sorts-dissipables']({ active, battle, netMode: net.mode }) as DispellableSpell[];
   // Test étendu EN COURS : le DR déjà cumulé et le NI à atteindre. Le NI se relit au Sort ENCORE
   // ACTIF (`dispellable`) — jamais une copie stockée : un Sort qui s'est éteint entre-temps n'a plus
   // de progression à montrer.
   const dispelCible = active.dispel && dispellable.find((d) => d.spellId === active.dispel!.spellId && d.casterId === active.dispel!.spellCasterId);
   const dispelProg = dispelCible ? { total: active.dispel!.total, ni: dispelCible.ni } : null;
-  // L'attaque d'ARME n'a rien à faire dans la grille de capacités : elle EST le geste du conduit (travée
-  // gauche). Le tri se lit au DISCRIMINANT `kind` de `AttackOption` (union `AttackKind`), jamais à l'id.
-  const attacks = availableAttacks(active, battle).filter((a) => a.kind !== 'arme');
+  // L'habillage des attaques de trait ; le registre dit laquelle est offerte, et par quelle entrée
+  // (`attaques-de-trait`, `attaques-de-zone`).
+  const attacks = availableAttacks(active, battle);
   const spells = (active.spells ?? []).map((id) => findSpellById(id)).filter((s): s is NonNullable<typeof s> => !!s);
-  const selfManeuvers = selfManeuversOf(active).filter((m) => selfManeuverApplicable(active, m));
+  const selfManeuvers = ACTION_CANDIDATES['manoeuvres-sur-soi']({ active, battle, netMode: net.mode }) as ManeuverDef[];
   // Les REMÈDES dont l'État est porté — lecture du registre (`remedesPertinents`).
   const remedes = remedesPertinents(gateCtx);
 
   const candidates: Cell[] = [
     cellFor('course', 'mouvement'),
     cellFor('mouvement', 'mouvement'),
-    isEngaged(active) ? cellFor('disengage', 'mouvement') : undefined,
+    cellFor('disengage', 'mouvement'),
     cellFor('defend', 'defense', { off: busy }),
     // Une Compétence porte l'icône de SA caractéristique (source unique `charIcon`) : six alvéoles
     // d'Avantage ne partagent plus le même glyphe. UNE entrée de registre (`gain-advantage`), N cases.
@@ -1015,14 +978,14 @@ export function CombatConsole() {
         args: { skillId: s.skillId },
       }),
     ),
-    hasBattement(active) ? cellFor('battement', 'avantage', { off: busy }) : undefined,
-    hasDistraire(active) ? cellFor('distraire', 'avantage', { off: busy }) : undefined,
+    cellFor('battement', 'avantage', { off: busy }),
+    cellFor('distraire', 'avantage', { off: busy }),
     // REMÈDES D'ÉTAT — une case par entrée de remède dont l'État est porté ; la famille se lit au COÛT
     // déclaré, l'ordre est celui de la donnée. Un remède hors d'atteinte garde sa case, fermée, avec sa
     // raison (verrou de l'État — `LDB 18 l.15`).
     ...remedes.map((def) => cellFor(def.id, def.coutAction === 'mouvement' ? 'mouvement' : 'geste')),
-    isFrenzyCapable(active) && !isFrenzied(active) ? cellFor('frenzy', 'geste') : undefined,
-    canAidTeam(active, battle.combatants) ? cellFor('aid-team', 'geste', { off: busy }) : undefined,
+    cellFor('frenzy', 'geste'),
+    cellFor('aid-team', 'geste', { off: busy }),
     // DÉTERMINATION — deux des trois dépenses (LDB 17 l.59-60) sont des alvéoles, comme toute action :
     // leurs dispatchers sont DIRECTS (`battleResolvePsychImmune`/`battleResolveIgnoreCrit` dépensent le
     // point au clic), il n'y a donc plus rien à ARMER. La 3ᵉ (« Retirez un État », l.61) vit sur la
@@ -1034,22 +997,22 @@ export function CombatConsole() {
     // se choisit au panneau-paramètre ci-dessous. La PROGRESSION du Test étendu (le cumul de DR vers
     // le NI, `active.dispel.total`) se lit sur l'alvéole : c'est le seul endroit où le joueur voit
     // qu'un Sort est déjà entamé — et par combien.
-    dispellable.length > 0
-      ? cellFor('dispel', 'magie', {
-          label: `${findActionById(ACTION_DISSIPER)!.label}${dispelProg ? ` ${dispelProg.total}/${dispelProg.ni}` : ''}`,
-          off: busy || frenzied,
-        })
-      : undefined,
+    cellFor('dispel', 'magie', {
+      label: `${findActionById(ACTION_DISSIPER)!.label}${dispelProg ? ` ${dispelProg.total}/${dispelProg.ni}` : ''}`,
+      off: busy || frenzied,
+    }),
     ...selfManeuvers.map((m) =>
       cellFor('self-maneuver', 'geste', { key: `self-${m.id}`, label: m.label, rule: { category: 'maneuvers', id: m.id }, off: busy, args: { maneuverId: m.id } }),
     ),
     // Attaques de trait : adossées au conduit (elles se paient en crans d'Avantage). Une attaque de
-    // ZONE immédiate (Hurlement) part par `maneuver-area` ; les autres ARMENT le clic (`select-attack`).
-    ...attacks.map((a) => {
+    // ZONE immédiate (Hurlement) part par `maneuver-area` ; les autres ARMENT le clic (`select-attack`) —
+    // l'énumérateur offre chacune par la seule entrée qui la porte.
+    ...attacks.flatMap((a) => {
       const habillage = { key: `attaque-${a.id}`, icon: icon(a.icon), label: a.label, rule: { category: 'traits', id: a.id } as CodexTarget, adv: a.cost?.advantage ?? 0, mouv: !!a.cost?.movement, off: busy };
-      return a.targeting === 'zone'
-        ? cellFor('maneuver-area', 'attaque', { ...habillage, args: { attackKind: a.kind } })
-        : cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } });
+      return [
+        cellFor('maneuver-area', 'attaque', { ...habillage, args: { attackKind: a.kind } }),
+        cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } }),
+      ];
     }),
     // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `cast-spell`, `armed: 'cast'`) et
     // porte ses GESTES SECONDAIRES (Focaliser : clic droit / appui long / touche Menu / RB). La
@@ -1211,7 +1174,7 @@ export function CombatConsole() {
         aucune case. */}
     <div className="combat-console" data-forme={spectatrice ? 'spectatrice' : 'complete'} onContextMenu={avalerMenuNatif}>
       {phase && !ouverture && <PhaseBanner {...phase} adresse={spectatrice ? 'spectatrice' : 'pont'} />}
-      {!phase && !controlled && (
+      {!phase && spectatrice && (
         <div className="cc-phase skin-bois" data-phase={spectatrice ? 'spectatrice' : 'pont'}>
           {siegeDistant !== null ? (
             <SpectatorChip label={nomDuSiege(net, siegeDistant)} action={`joue ${active.label}…`} />

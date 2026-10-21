@@ -6,7 +6,7 @@
 // un pont. Une instruction de PREMIER NIVEAU est un site si c'est un `export … from '…'` (nommé, `*` ou
 // `* as ns`), ou un `export { … }` sans source dont un nom au moins est une liaison IMPORTÉE du module.
 // Corpus : les zones de `ZONES_A_ZERO`, `src/state/` et `src/noyau/`, en `.ts`/`.tsx`, hors suites Vitest, kits de test et déclarations (`.d.ts`). Garde
-// ABSOLUE, sans liste : la seule porte admise est `PORTE_DU_NOYAU`, la surface du noyau pour un hôte (#2817 D9) ; les
+// ABSOLUE, sans liste : la seule porte admise est `SURFACE_DU_NOYAU` (`couches.mjs`), la surface du noyau pour un hôte (#2817 D9) ; les
 // autres dossiers de `src/` relèvent de la vague 7 de #2882.
 //
 // ANGLES MORTS : une réexportation EN VALEUR (`export const x = importe`) et un `export default` d'une
@@ -14,6 +14,7 @@
 import { analyserCorpus, typescript } from './dialecte.mjs'
 import { estKitDeTest } from './fichierVitest.mjs'
 import { readCorpus } from './sourceCorpus.mjs'
+import { SURFACE_DU_NOYAU } from './couches.mjs'
 
 /** Les dossiers où toute réexportation est refusée. */
 const ZONES_A_ZERO = Object.freeze(['src/state/', 'src/noyau/'])
@@ -21,12 +22,9 @@ const ZONES_A_ZERO = Object.freeze(['src/state/', 'src/noyau/'])
 /** `rel` est-il sous une zone à zéro ? PURE. @param {string} rel @returns {boolean} */
 export const enZoneAZero = (rel) => ZONES_A_ZERO.some((dossier) => rel.startsWith(dossier))
 
-/** Le seul module des zones à zéro qui réexporte : la surface du noyau (#2817 D9). */
-export const PORTE_DU_NOYAU = 'src/noyau/index.ts'
-
-/** Une réexportation de `rel` est-elle refusée : sous une zone à zéro, hors de `PORTE_DU_NOYAU` ? PURE.
+/** Une réexportation de `rel` est-elle refusée : sous une zone à zéro, hors de la surface du noyau (`SURFACE_DU_NOYAU`, seul module qui réexporte) ? PURE.
  *  @param {string} rel @returns {boolean} */
-export const estRefusee = (rel) => enZoneAZero(rel) && rel !== PORTE_DU_NOYAU
+export const estRefusee = (rel) => enZoneAZero(rel) && rel !== SURFACE_DU_NOYAU
 
 /** Le corpus mesuré par défaut : la production des zones à zéro (`readCorpus`, hors suites et déclarations), hors kits. */
 const corpusMesure = () => readCorpus(ZONES_A_ZERO.map((dossier) => dossier.slice(0, -1))).filter((f) => !estKitDeTest(f.rel))

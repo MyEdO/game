@@ -279,6 +279,13 @@ export function movementRemaining(battle: BattleState, c: Combatant): number {
   return Math.max(0, budget - (battle.movementUsed ?? 0));
 }
 
+/** Le Mouvement du Tour EN COURS, tel que la jauge le montre (#2898) : ce qui reste (`movementRemaining`) et le
+ *  budget du Tour, le parcouru compris. Lu par la console et par l'hôte texte. */
+export function mouvementDuTour(battle: BattleState, c: Combatant): { restant: number; total: number } {
+  const restant = movementRemaining(battle, c);
+  return { restant, total: restant + (battle.movementUsed ?? 0) };
+}
+
 /** Ce combattant peut-il (encore) se déplacer librement ce Tour ? Mouvement décomposable, mais NON entrelacé
  *  avec l'Action (règle maison) : interdit une fois l'Action prise SI du Mouvement a déjà été parcouru avant
  *  elle (pas de « Mouvement → Action → Mouvement »). Faire « Action puis Mouvement » reste permis. */

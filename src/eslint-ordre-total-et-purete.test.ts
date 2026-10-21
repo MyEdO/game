@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { creerBancLint, lintFixtures, selectionnerMessages, configPourFichier } from '../scripts/guards/lib/lint.testkit.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { COUCHES, estZone, fermeture } from '../scripts/guards/lib/couches.mjs';
+import { COUCHES, estZone, fermeture, porteManquee } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).
@@ -98,9 +98,25 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['data', 'noyau', true, null], // transitoire de type (#2884)
       ['data', 'noyau', false, 'execution'],
       ['web', 'state', false, 'type'], // fermé
+      ['hoteTexte', 'noyau', false, null], // importe (par sa porte)
+      ['hoteTexte', 'scenes', false, null],
+      ['hoteTexte', 'engine', true, 'type'], // fermé (#2898)
+      ['hoteTexte', 'state', true, 'type'],
+      ['noyau', 'hoteTexte', false, 'type'],
     ];
     expect(oracle.map(([de, vers, t]) => fermeture(de, vers, t))).toEqual(oracle.map(([, , , v]) => v));
     expect(['constructor', '__proto__', 'toString', 'hasOwnProperty'].filter(estZone)).toEqual([]);
+    const portes: [de: string, vers: string, cible: string, verdict: string | null][] = [
+      ['hoteTexte', 'noyau', 'src/noyau/index.ts', null],
+      ['hoteTexte', 'noyau', 'src/noyau/index', null],
+      ['hoteTexte', 'noyau', 'src/noyau', null],
+      ['hoteTexte', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
+      ['hoteTexte', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
+      ['hoteTexte', 'scenes', 'src/scenes/x.ts', null], // aucune porte vers `scenes`
+      ['scenes', 'noyau', 'src/noyau/combatFlow.ts', null], // aucune porte pour `scenes`
+      ['constructor', 'noyau', 'src/noyau/x.ts', null],
+    ];
+    expect(portes.map(([de, vers, cible]) => porteManquee(de, vers, cible))).toEqual(portes.map(([, , , v]) => v));
   });
 
   it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les deux murs, dans chaque dialecte', () => {
@@ -124,13 +140,38 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
           if (vers === de) continue;
           for (const p of [specifieur(rel, vers), `@/${vers}/x`, `/src/${vers}/x`]) {
             for (const f of FORMES) {
-              const attendu = fermeture(de, vers, f.type) === null ? 'passe' : REGLE;
+              const attendu = fermeture(de, vers, f.type) === null && porteManquee(de, vers, `src/${vers}/x`) === null ? 'passe' : REGLE;
               cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath: voisin(rel, cas.length), code: f.code(p) } });
             }
           }
         }
       }
     }
+    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE]);
+    expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
+  });
+
+  it('PORTES : une zone à porte ne lit la zone importée que par sa porte, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 60_000 }, () => {
+    const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
+    const aPortes = (Object.entries(COUCHES) as [string, { portes?: Record<string, string> }][]).filter(([, c]) => c.portes);
+    for (const [de, { portes = {} }] of aPortes) {
+      for (const rel of sondes(de)) {
+        const remonte = '../'.repeat(rel.split('/').length - 2);
+        for (const [vers, porte] of Object.entries(portes)) {
+          const cheminDePorte = porte.slice('src/'.length).replace(/\.ts$/, '');
+          const specs: [string, string][] = [
+            [`${remonte}${cheminDePorte}`, 'passe'], [`${remonte}${vers}`, 'passe'], [`@/${cheminDePorte}.ts`, 'passe'], [`/src/${cheminDePorte}`, 'passe'],
+            [`${remonte}${vers}/combatFlow`, REGLE], [`@/${vers}/monde/index`, REGLE], [`/src/${vers}/etat.ts`, REGLE],
+          ];
+          for (const [p, attendu] of specs) {
+            for (const f of FORMES.filter((x) => x.nom !== 'import.meta.glob')) {
+              cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath: voisin(rel, cas.length), code: f.code(p) } });
+            }
+          }
+        }
+      }
+    }
+    expect(cas.length, 'aucune zone à porte : le banc ne mesure rien').toBeGreaterThan(0);
     const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE]);
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });

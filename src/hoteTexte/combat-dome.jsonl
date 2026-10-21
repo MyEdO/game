@@ -1,0 +1,9 @@
+{"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}
+{"type":"confirmRoundStart","args":[]}
+{"offre":"end-turn"}
+{"offre":"end-turn"}
+{"offre":"end-turn"}
+{"offre":"end-turn"}
+{"type":"defenseRoll","args":[]}
+{"type":"defenseConfirm","args":[]}
+{"type":"confirmRoundStart","args":[]}

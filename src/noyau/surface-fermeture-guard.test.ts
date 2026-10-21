@@ -1,11 +1,12 @@
 /**
  * CE QU'UN HÔTE EXTERNE IMPORTE NE CHARGE AUCUN HÔTE (#2817 D9, #2898, épique #2882) : la fermeture d'exécution de
- * chaque entrée de `ENTREES_FERMEES` (la surface `src/noyau/index.ts`, les scénarios de test qu'un hôte lance)
- * n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`, `audio`, ni `react`. La mesure vit dans
+ * chaque entrée de `ENTREES_FERMEES` (la surface `src/noyau/index.ts`, les scénarios de test qu'un hôte lance, l'entrée
+ * de l'hôte texte) n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`, `audio`, ni `react`. La mesure vit dans
  * `scripts/guards/lib/fermetureDuNoyau.mjs`, qui dit pourquoi la table `COUCHES` ne l'implique pas.
  */
 import { beforeAll, describe, it, expect } from 'vitest';
-import { mesure as mesurer, paquetDe, ENTREES_FERMEES, SURFACE_DU_NOYAU } from '../../scripts/guards/lib/fermetureDuNoyau.mjs';
+import { mesure as mesurer, paquetDe, ENTREES_FERMEES } from '../../scripts/guards/lib/fermetureDuNoyau.mjs';
+import { SURFACE_DU_NOYAU } from '../../scripts/guards/lib/couches.mjs';
 import { detenteur } from '../detenteur.testkit';
 
 /** Les témoins d'une lecture vivante, par entrée : sans eux, une lecture cassée rendrait la garde verte en ne
@@ -13,6 +14,7 @@ import { detenteur } from '../detenteur.testkit';
 const TEMOINS: Record<(typeof ENTREES_FERMEES)[number], readonly string[]> = {
   [SURFACE_DU_NOYAU]: ['src/noyau/partie.ts', 'src/engine/combat.ts'],
   'src/scenes/test-scenarios/index.ts': ['src/scenes/test-scenarios/_shared.ts', 'src/scenes/campaign.ts', 'src/noyau/worldMap.ts'],
+  'src/hoteTexte/cli.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
 };
 
 describe.each(ENTREES_FERMEES)('%s : sa fermeture d’exécution ne charge aucun hôte', (depart) => {

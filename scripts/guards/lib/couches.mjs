@@ -8,7 +8,12 @@
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
 //  - `transitoire` : une arête d'aujourd'hui contraire à la cible, de zone à zone, avec la sous-issue qui
 //    la retire, et `types: true` quand l'arête n'est qu'un arc de type. La sous-issue retire sa ligne.
+//  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type.
 // Toute autre zone lui est fermée, même pour un type.
+
+/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, l'entrée de la fermeture
+ *  (`fermetureDuNoyau.mjs`), le seul module de `src/noyau/` qui réexporte (`reexportations.mjs`). */
+export const SURFACE_DU_NOYAU = 'src/noyau/index.ts';
 
 const FEUILLES = Object.freeze(['lib', 'geometry', 'i18n']);
 const AMONT_DE_LA_PRESENTATION = Object.freeze(['state', 'noyau', 'web', 'scenes', 'data', 'engine', 'net', 'audio', ...FEUILLES]);
@@ -28,6 +33,7 @@ export const COUCHES = Object.freeze({
     },
   },
   noyau: { importe: ['engine', 'data', ...FEUILLES] },
+  hoteTexte: { importe: ['noyau', 'scenes', ...FEUILLES], portes: { noyau: SURFACE_DU_NOYAU } },
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     transitoire: { state: { issue: '#2884' }, ui: { issue: '#2884', types: true } },
@@ -65,4 +71,16 @@ export function fermeture(de, vers, typeSeul) {
   const typeOuvert = Boolean(transitoire) || (zone.types ?? []).includes(vers);
   if (typeOuvert) return typeSeul ? null : 'execution';
   return 'type';
+}
+
+/** Le module d'un chemin RELATIF à la racine, sans extension de script ni `index` final : `src/noyau/index.ts`,
+ *  `src/noyau/index` et `src/noyau` désignent le même module. PURE. */
+const moduleDe = (rel) => rel.replace(/\.(?:[cm]?[jt]sx?)$/, '').replace(/\/index$/, '');
+
+/** La porte que la zone `de` impose vers la zone `vers` quand l'arc vise `cibleRel` (chemin relatif à la racine) :
+ *  `null` si `de` n'en déclare aucune vers `vers` ou si l'arc la passe, sinon le module de la porte. */
+export function porteManquee(de, vers, cibleRel) {
+  const porte = estZone(de) && COUCHES[de].portes ? COUCHES[de].portes[vers] : undefined;
+  if (porte === undefined || moduleDe(cibleRel) === moduleDe(porte)) return null;
+  return porte;
 }

@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  creerPartie, etatInitialDuJeu, activeCombatant, actionGate, endTurnArmed, offresDuRegistre,
+  creerPartie, etatInitialDuJeu, activeCombatant, actionGate, endTurnArmed, offresDeLActif, offresParPorteur,
   type ActionCtx, type EntreesDeLaPartie, type Jeton, type Partie, type ResultatDeLAppel,
 } from './index';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
@@ -97,11 +97,12 @@ describe('les lecteurs de la vue', () => {
     }
   });
 
-  it('`offresDuRegistre` n’offre rien sans candidat, même quand le prédicat d’offre est ouvert', () => {
+  it('`offresDeLActif` n’offre rien sans candidat, même quand le prédicat d’offre est ouvert', () => {
     const partie = auTourDUnHeros();
     try {
       const ctx = { ...contexte(partie), state: partie.etat() };
-      const offertes = (surface: Parameters<typeof offresDuRegistre>[0]) => offresDuRegistre(surface, ctx).flatMap((g) => g.offres.map((o) => o.actionId));
+      const offres = offresDeLActif(ctx);
+      const offertes = (surface: Parameters<typeof offresParPorteur>[1]) => offres.filter((o) => o.def.surface === surface).map((o) => o.actionId);
       expect(actionGate('reload', ctx).ok, 'témoin : le prédicat de Recharger est fermé').toBe(true);
       expect(offertes('deduite-du-set'), 'Recharger est offert sans munition à charger').not.toContain('reload');
       expect(offertes('pastille-entite'), 'témoin : le champ n’offre plus ses gestes').toEqual(expect.arrayContaining(['mount', 'pickup']));

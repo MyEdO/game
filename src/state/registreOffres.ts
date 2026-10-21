@@ -1,5 +1,5 @@
 /**
- * LES OFFRES DU REGISTRE À L'ÉCRAN (#1411 P2-C) : la projection d'une offre (`offresDuRegistre`,
+ * LES OFFRES DU REGISTRE À L'ÉCRAN (#1411 P2-C) : la projection d'une offre (`offresDeLActif`,
  * `noyau/actionRegistry.ts`) dans l'invariant d'affichage de la pastille, et les pastilles d'entité de l'instant.
  */
 import type { GameState } from './store';
@@ -10,7 +10,7 @@ import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from './campaignData';
 import { controlsActive } from '../noyau/netOwnership';
 import type { OffreRendue, OffresRenduesParPorteur } from './offreRendue';
-import { offresDuRegistre, runAction, type Offre } from '../noyau/actionRegistry';
+import { offresDeLActif, offresParPorteur, runAction, type Offre } from '../noyau/actionRegistry';
 
 /** PROJECTION d'une offre du registre dans l'invariant d'affichage de la pastille (`OffreRendue`) :
  *  la surface n'y lit plus ni `ActionDef` ni arguments de dispatch, et l'engagement est refermé sur
@@ -35,7 +35,7 @@ export function entityGestes(state: GameState): OffresRenduesParPorteur[] {
   if (!battle || battle.over || !controlsActive(state)) return [];
   const active = activeCombatant(battle);
   if (!active) return [];
-  return offresDuRegistre('pastille-entite', { active, battle, netMode: state.net.mode, state }).map((g) => ({
+  return offresParPorteur(offresDeLActif({ active, battle, netMode: state.net.mode, state }), 'pastille-entite').map((g) => ({
     porteurId: g.porteurId,
     // Le nom du porteur à l'écran : le combattant qui le porte, ou l'entité de scène (un tas au sol).
     porteurLabel: actorIn(state, g.porteurId)?.label ?? state.scene?.entities.filter((e) => e.id === g.porteurId).map((e) => nomDEntite(e, presetPnjById))[0],
