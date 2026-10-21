@@ -870,11 +870,15 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
   return terme ? `le terme \`{${terme}}\` est tiré au jet, or cette quantité se lit avant tout jet (portée, cibles, zone, bonus de DR, modificateur de Test affiché). Emploie un littéral, une caractéristique ou un \`{rule}\` éditable.` : undefined;
 };
 
+/** Le terme « bonus de caractéristique » de la grammaire d'une quantité, que composent aussi les champs
+ *  qui n'admettent que lui (`max` d'un Talent). */
+export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
+
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */
 const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<unknown>[] => [
   z.number(),
-  nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } }),
+  termeBonusDe,
   nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }),
   ...(avecJet ? [
     nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }),

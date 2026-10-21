@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 05 l.484 */
 import { z } from 'zod';
-import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
+import { charKeySchema, combatFeatureSchema, sizeCategorySchema, specsSchema, specsSourceSchema, termeBonusDe } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { conditionSchema, mecaniqueDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
@@ -65,7 +65,7 @@ const doc = document(
   'talents',
   famille,
   {
-    max: z.union([z.number(), nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: 'Bonus de caractéristique' } }), z.null()]),
+    max: z.union([z.number(), termeBonusDe, z.null()]),
     test: talentTestSchema.nullable(),
     specs: specsSchema.optional(),
     size: sizeCategorySchema.optional(),

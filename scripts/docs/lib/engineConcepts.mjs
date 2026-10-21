@@ -56,6 +56,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/crewedWeapon.ts', "Arme d'équipe, poste d'artillerie"],
   ['src/engine/critical.ts', 'Coups Critiques (tables, localisation)'],
   ['src/engine/dice.ts', 'Dés : tirage, expressions'],
+  ['src/engine/dice.testkit.ts', 'Dés : harnais de test (dés semés, imposés ou interdits)'],
   ['src/engine/disease.ts', 'Maladies : contraction, symptômes, guérison'],
   ['src/engine/suspension.ts', "Suspension d'une source passive (à durée)"],
   ['src/engine/dispel.ts', 'Dissipation de magie'],
