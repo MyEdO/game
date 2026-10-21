@@ -92,6 +92,13 @@ export function coupFerme(s: Partial<Jeu>): boolean {
   return (!cur || !!cur.committed || sansCorps(s, cur)) && seq.participants.slice(seq.cursor + 1).every((p) => p.committed);
 }
 
+/** Le champ de combat attend-il sa fenêtre ? Vrai quand le coup est ouvert (`coupFerme`) et qu'aucune
+ *  zone n'est en pose (`zoneEnPose`) : la pose d'une zone EST le geste de carte de la fenêtre. Lu par
+ *  `battleClickTile`, `battleClickEntity` et `combatantClickActs`. */
+export function champAttendSaFenetre(s: Partial<Jeu>): boolean {
+  return !coupFerme(s) && !zoneEnPose({ pendingCast: s.pendingCast ?? null, pendingSiegeAim: s.pendingSiegeAim ?? null });
+}
+
 /** Les `pending*` dont la désignation de cible vit SUR LA CARTE — les détenteurs hors-modale
  *  ci-dessus, plus `pendingCast` dont la POSSESSION reste à sa fenêtre (cf. `targetingHolder`) mais
  *  dont le geste de ciblage, lui, est un geste de carte. ÉNUMÉRATION RUNTIME : un pending de

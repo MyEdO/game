@@ -13,6 +13,7 @@ import {
 import { ecartALaForme, estObjet, signature, type ParametreDeVerbe } from './formes';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
+import { tableTotale } from '../lib/tableTotale';
 
 const CADENCES = ['manuel', 'rapide', 'auto'] as const;
 
@@ -249,7 +250,7 @@ export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee
 
 /** L'empreinte de l'état : FNV-1a 32 bits de ses données (fonctions exclues, `Map` et `Set` par leurs entrées), pour
  *  comparer deux rejeux. */
-export function empreinte(etat: Jeu): string {
+export function empreinte(etat: object): string {
   const texte = JSON.stringify(etat, (_cle, v: unknown) => (typeof v === 'function' ? undefined : v instanceof Map || v instanceof Set ? [...v] : v));
   let h = 0x811c9dc5;
   for (let i = 0; i < texte.length; i++) {
@@ -264,7 +265,7 @@ export function empreinte(etat: Jeu): string {
 const PAROLE = ['journal', 'refus'] as const satisfies readonly (keyof Jeu)[];
 
 /** L'empreinte des FAITS de l'état : l'état sans sa parole (`PAROLE`). */
-const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...Object.fromEntries(PAROLE.map((cle) => [cle, null])) });
+const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...tableTotale(PAROLE, () => null) });
 
 /** Ce que le jeu a dit d'un geste sans effet : le refus neuf, sinon les lignes du journal de la partie, sinon les événements
  *  informatifs émis (`move_blocked`). */
