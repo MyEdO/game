@@ -12,7 +12,7 @@
  */
 import { hash32, seedStream } from '../../data/hash';
 import { ACCENT_FRAC, BLOCK_INSET_M } from './expand';
-import type { DetailRecipe } from './types';
+import type { DetailRecipe } from '../../data/materials.types';
 
 /** Section `courses` d'une recette, dépliée pour une PÉRIODE (et non pour une face). */
 export type Courses = NonNullable<DetailRecipe['courses']>;

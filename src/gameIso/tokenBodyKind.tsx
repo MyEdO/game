@@ -16,7 +16,8 @@ import { combatantRender, entityRender, sceneEntityForRender } from './sizeScale
 import { useGame } from '../state/store';
 import { entitySprite } from './sprites';
 import { poseRig, RigSprite, useCompositionRig } from './rig/composeRig';
-import { defaultAppearance, type Appearance } from './rig/appearance';
+import { defaultAppearance } from './rig/appearance';
+import type { Appearance } from '../engine/authoringAppearance';
 import { equipPorte, type EquipCtx } from './rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from './rig/parts/combatantVisuals';
 import { groundStateOf } from './groundPose';

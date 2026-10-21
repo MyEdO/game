@@ -504,7 +504,7 @@ export type Variant = {
 };
 
 /**
- * Recette de détail de surface (`DetailRecipe`, `src/gameIso/detail/types.ts`) — portée par le champ
+ * Recette de détail de surface (`DetailRecipe`, `src/data/materials.types.ts`) — portée par le champ
  * optionnel `detail` de 2 datasets d'apparence (`materials.json` — domaines `roof` et `relief` — et
  * `structureAppearance.json`). Reflet STRICT de l'interface TS (mêmes sous-objets/champs requis).
  */
@@ -612,7 +612,7 @@ export const sizeCategorySchema = enumNomme({
  *  chaque surcharge de palette du rig (`buildTokenMap`/`tableDObjet`, #1903). */
 export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexadécimale « #rrggbb » attendue');
 
-/** SURCHARGE de palette persistée (`Palette`, `src/gameIso/rig/palette.ts`) : clés dans `SLOTS`, valeurs
+/** SURCHARGE de palette persistée (`Palette`, `src/engine/authoringAppearance.ts`) : clés dans `SLOTS`, valeurs
  *  `couleurHexSchema` (#1903). `buildTokenMap` ne lit une surcharge que sur une base : une clé de rôle
  *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, `skin` d'objet, d'op et
  *  d'effet de scène. */

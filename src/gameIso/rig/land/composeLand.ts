@@ -15,7 +15,7 @@ import { rotOf, type BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette } from '../palette';
+import type { Palette } from '../../../engine/authoringAppearance';
 import { groundedBody } from '../staticBody';
 import { nearestView, orientedArtOr, type ViewArt } from '../viewArt';
 import { LAND_DEFAULT } from './artkit';

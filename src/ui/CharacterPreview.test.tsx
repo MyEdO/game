@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CharacterPreview } from './CharacterPreview';
-import type { Appearance } from '../gameIso/rig/appearance';
+import type { Appearance } from '../engine/authoringAppearance';
 import { asRigSpeciesId } from '../gameIso/rig/appearance';
 import { pregen, PREGEN } from '../data/pregens';
 

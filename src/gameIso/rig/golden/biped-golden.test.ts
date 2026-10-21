@@ -19,7 +19,7 @@ import { weaponFromId } from '../../../engine/creatureEquip';
 import { resolveSpecies } from '../bodyPlan';
 import { slugId } from '../../../data/slug';
 import { VIEWS } from '../facing';
-import type { Appearance } from '../appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
 import { bouclierDeDessin, equipDe, type EquipCtx } from '../parts/equipment';
 

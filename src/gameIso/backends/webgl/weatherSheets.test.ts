@@ -9,7 +9,7 @@ import { brumeSheetGeometry, buildBrumeSheets, openSkyRuns, retainBrumeSheets } 
 import { sceneGroundSpan } from './weatherParticles';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
 import { isSheltered, shelterField } from '../../builders/roofs';
-import type { WeatherBrumeDef } from '../../catalog/ambiance';
+import type { WeatherBrumeDef } from '../../../data/ambiance.types';
 
 const BRUME: WeatherBrumeDef = {
   color: '#aab4bd',

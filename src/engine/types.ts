@@ -1853,7 +1853,7 @@ export interface Combatant {
   grapplingWith?: string[];
   /** Apparence visuelle RÉSOLUE (cosmétique, ignorée par le moteur ; lue directement par le rendu pour
    *  un PJ rendu depuis son propre inventaire). Référence de TYPE seulement → élidée à la compilation. */
-  appearance?: import('../gameIso/rig/appearance').Appearance;
+  appearance?: import('./authoringAppearance').Appearance;
   /** Override d'apparence d'AUTHORING BRUT (cosmétique) porté depuis la scène au spawn (#187) : figé
    *  PARESSEUSEMENT par le rig (`enemyRigProfile`) au premier rendu, jamais dans `state`. */
   appearanceOverride?: import('./authoringAppearance').EntityAppearance;

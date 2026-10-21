@@ -3,7 +3,7 @@ import { resolveRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
 import { SLOT_LAYER } from './bones';
 import { APPEARANCE_ELEMENTS } from './parts/elements';
-import type { Appearance } from './appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
 
 const NO_EQUIP = { weapons: [], armour: [] };

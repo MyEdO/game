@@ -1,4 +1,4 @@
-import type { Slot } from '../bones';
+import type { Slot } from '../../../engine/authoringAppearance';
 import { viewOrFront, type Part, type PartArt } from './types';
 import type { View } from '../facing';
 import { declaredView, mapViews } from '../viewArt';

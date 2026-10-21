@@ -20,7 +20,7 @@ import { Resvg } from '@resvg/resvg-js';
 import { resolveRig, type ResolvedBone } from '../../src/gameIso/rig/composeRig';
 import { bonesToSvg } from '../../src/gameIso/rig/renderBones';
 import { TENUE_DEFS } from '../../src/gameIso/rig/parts/tenues/_registry.generated';
-import type { Appearance } from '../../src/gameIso/rig/appearance';
+import type { Appearance } from '../../src/engine/authoringAppearance';
 import type { BoneId } from '../../src/gameIso/rig/bones';
 import type { View } from '../../src/gameIso/rig/facing';
 

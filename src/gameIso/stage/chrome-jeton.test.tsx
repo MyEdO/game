@@ -39,7 +39,7 @@ import { billboardHeightM, CONVENTION } from '../backends/webgl/billboardMath';
 import { ISO_PX_PER_M } from '../iso';
 import { tileCenter, type Dims } from '../../geometry/iso';
 import { GROUND_Y, bodyHeight } from '../rig/composeRig';
-import type { Appearance } from '../rig/appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { contactShadow } from '../backends/webgl/sceneMeshes';
 import type { BillboardSubject } from '../backends/webgl/sceneMeshes';
 

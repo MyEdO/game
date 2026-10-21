@@ -89,7 +89,7 @@ import { EntityRef, EntityChoice, cleDAvancement, SkillChip, TalentChip } from '
 import { raceSkillSection, raceTalentSection, type CodexSection } from '../compendium/registry';
 import { CharStatsGrid } from '../CharStatsGrid';
 import { GameOpChips } from '../GameOpChips';
-import type { Appearance } from '../../gameIso/rig/appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { apparenceSuivante } from '../../gameIso/rig/parts/cosmetic';
 import { bodyHeight } from '../../gameIso/rig/composeRig';
 import { hash32 } from '../../data/hash';

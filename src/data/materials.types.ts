@@ -10,10 +10,81 @@
  * l'union DISCRIMINÉE ci-dessous : le handle de la fabrique scelle ses nœuds (`z.infer` vaut
  * `unknown`), aucun type n'est dérivé du schéma. Les trois types nommés que les catalogues de rendu
  * consomment sont les trois membres de cette union, servis par `Extract` sur `domain`.
+ *
+ * Il porte aussi, pour que `src/data` n'importe rien du rendu ni du noyau (#2884) : `DetailRecipe` et
+ * `MaterialRef`, que les données d'apparence composent et que le rendu consomme ; `Grade`, le lien
+ * vertical entre deux surfaces, que `PARTS_RELIEF` compose et que le noyau lit pour le déplacement
+ * (`gradeBetween`, `src/noyau/monde/relief.ts`).
  */
-import type { DetailRecipe } from '../gameIso/detail/types';
-import type { MaterialRef } from '../gameIso/builders/types';
-import type { Grade } from '../noyau/monde/relief';
+
+/**
+ * Recette de DÉTAIL de surface — appareillage de pierre, bardeaux, colombage,
+ * plinthes/arases, mouchetis. DONNÉE PURE portée par les defs d'apparence (`StructureAppearanceDef`,
+ * `RoofMaterialDef`, `ReliefMaterialDef`, `TerrainDef`) via leur champ optionnel `detail`.
+ *
+ * `expandRecipe` (`gameIso/detail/expand.ts`) déplie la recette en primitives UV en ESPACE DE FACE [0,1]² (+ mètres pour
+ * les épaisseurs), consommées par DEUX peintres : `gameIso/authoring/detailSvg.ts` (SVG d'authoring)
+ * et `gameIso/backends/webgl/faceBake.ts` (cuisson par face du rendu
+ * volumique) ; le tracé de PÉRIODE (`gameIso/detail/courses.ts`) a les mêmes trois consommateurs
+ * (`gameIso/authoring/detailSvg`, `gameIso/backends/webgl/periodTexture.ts`). Chaque peintre rasterise à sa
+ * résolution, les vues retombent sur le MÊME détail parce que le seed est dérivé de l'identité MONDE
+ * (`hash32`, jamais stocké).
+ *
+ * Convention UV : u ∈ [0,1] le long de la face (gauche→droite), v ∈ [0,1] du HAUT (0) vers le BAS (1).
+ * Les dimensions physiques (`hM`, `jointW`, `wM`, `rM`…) sont en MÈTRES : l'expansion les convertit en
+ * fractions via la taille réelle de la face (`faceWM`/`faceHM`), donc une même recette produit des
+ * pierres de même taille sur un mur de 2 m et un rempart de 6 m.
+ */
+export interface DetailRecipe {
+  /** Rangs horizontaux (assises de pierre, bardeaux, planches). */
+  courses?: {
+    /** Hauteur d'un rang (m). */
+    hM: number;
+    /** Couleur du joint (lignes de rangs + verticales entre blocs). */
+    joint: string;
+    /** Épaisseur du joint (m) — rendue par le backend, pas convertie en UV. */
+    jointW: number;
+    /** Décalage horizontal des blocs d'un rang sur l'autre (appareillage), en fraction de la
+     *  largeur moyenne de bloc [0,1]. Sans effet si `blockWM` absent. */
+    stagger?: number;
+    /** Largeur de pierre min/max (m) ; absent = rang CONTINU (bardeau/planche, pas de blocs). */
+    blockWM?: [number, number];
+    /** Amplitude (m) du tremblé des lignes de joint (bornes de rangs) — borné, jamais d'inversion. */
+    edgeWobble?: number;
+    /** Variation de teinte par bloc ∈ [0,1] — le backend module la couleur de face par `shade`. */
+    paletteVar?: number;
+  };
+  /** Bandes horizontales pleines (plinthe, arase, bandeau) : `atV` = CENTRE de la bande ∈ [0,1]
+   *  (0 = haut de la face, 1 = bas), `hM` = hauteur (m). */
+  bands?: { atV: number; hM: number; color: string }[];
+  /** Colombage : poteaux verticaux tous les `postEveryM` mètres + écharpes en X ou en V par travée. */
+  timber?: { postEveryM: number; braces?: 'X' | 'V'; wM: number; color: string };
+  /** Mouchetis (lichen, salissure, silex) : densité par m², rayon (m) min/max, palette tirée au seed.
+   *  `vBias` > 0 tasse les taches vers le BAS de la face (usure/salissure au pied ; 0 = uniforme). */
+  speckle?: { perM2: number; rM: [number, number]; colors: string[]; vBias?: number };
+  /** Touffes d'herbe / brins (sol) : densité par m², hauteur de brin (m) min/max, palette tirée au seed. */
+  tufts?: { perM2: number; hM: [number, number]; colors: string[] };
+  /** Variance de TEINTE de la surface entière ∈ [0,1] par unité de seed (tuile/face) — tue l'uniformité
+   *  d'un aplat répété : le backend module le fill de base par `shade(base, 1 ± tintVar)`. */
+  tintVar?: number;
+  /** Portée de l'IDENTITÉ du seed — dit à l'APPELANT quoi hasher (le seed n'est jamais stocké) :
+   *  'edge' = par arête de mur (x,y,z,side), 'tile' = par tuile (x,y,z), 'instance' = par instance
+   *  (bâtiment/structure entière : même détail sur toutes ses faces). */
+  seedScope: 'edge' | 'tile' | 'instance';
+}
+
+/** Référence de MATÉRIAU (donnée JSON) — jamais une couleur. `part` distingue les faces d'un même
+ *  matériau qui se dessinent différemment (falaise/rampe/tablier/pilier de relief, wedge de terrain).
+ *  L'orientation d'une face (sol/paroi/pente) est dérivée par chaque backend depuis `domain`+`part`
+ *  (et `side`), pas stockée. */
+export interface MaterialRef {
+  domain: 'terrain' | 'relief' | 'structure' | 'roof' | 'prop';
+  id: string;
+  part?: string;
+}
+
+/** Nature du lien vertical entre deux surfaces voisines (`gradeBetween`, `src/noyau/monde/relief.ts`). */
+export type Grade = 'flat' | 'ramp' | 'cliff';
 
 /**
  * PARTIES de relief — le vocabulaire des `MaterialRef.part` que le builder de sols ÉMET pour une face
@@ -35,7 +106,7 @@ export type PartRelief = (typeof PARTS_RELIEF)[number];
 
 /**
  * Domaines de matière que CE dataset porte — SOUS-ENSEMBLE des domaines de `MaterialRef`
- * (`src/gameIso/builders/types.ts`), vérifié PAR CONSTRUCTION : `satisfies` refuse à la compilation
+ * (ci-dessus), vérifié PAR CONSTRUCTION : `satisfies` refuse à la compilation
  * un domaine que le pivot du rendu ne déclare pas. Les deux domaines restants sont hors du dataset et
  * le disent nommément dans `materials-identite.test.ts` : `terrain` porte le sien (`terrains.json`,
  * #1690), `structure` un dataset d'apparence composite qui RÉFÉRENCE des matières.

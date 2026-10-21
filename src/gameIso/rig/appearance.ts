@@ -1,19 +1,9 @@
-import type { Slot } from './bones';
 import type { Combatant } from '../../engine/types';
 import { hashSeed } from '../../engine/dice';
 import { rigSpeciesId, species, raceAppearance, vehicles, siegeEngines } from '../../data';
 import { creatureSpeciesOptions } from './creatures';
 import { SWARM_FORMS } from './swarm/forms';
-import type { MonsterParts } from './parts/monstrous';
-import type { Palette } from './palette';
-import type { Sexe } from '../../data/schemas/grammaire/valeurs';
-
-/** Vocabulaire (marque NOMINALE, #406) : id RIG (slug d'espèce `species.json`, id de créature/race/
- *  véhicule/affût-de-siège) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
- *  monnaie : un littéral `string` (dont un `.label`) n'est plus assignable à `Appearance.species`
- *  (échec STRUCTUREL). Deux producteurs sanctionnés : `rigSpeciesId` (pont rules→rig) et
- *  `asRigSpeciesId` (validation d'un id déjà RIG). */
-export type RigSpeciesId = string & { readonly __rigSpeciesId: unique symbol };
+import type { Appearance, RigSpeciesId } from '../../engine/authoringAppearance';
 
 /** Vocabulaire CANONIQUE des ids d'espèce rig — DÉRIVÉ des 6 registres qui en produisent un, jamais
  *  authoré : espèces jouables, defs de créature, races d'apparence, formes de nuée (plan swarm),
@@ -39,23 +29,6 @@ export function asRigSpeciesId(id: string): RigSpeciesId {
   if (import.meta.env?.DEV && !rigSpeciesVocab().has(id))
     throw new Error(`[appearance] espèce « ${id} » hors vocabulaire rig (species.json ∪ defs rig ∪ raceAppearance ∪ formes de nuée ∪ véhicules ∪ siegeRig) — donnée à corriger.`);
   return id as RigSpeciesId;
-}
-
-/** Descripteur d'apparence COSMÉTIQUE (type pur ; l'engine ne le lit jamais). */
-export interface Appearance {
-  species: RigSpeciesId;
-  gabarit?: string;                                 // id de carrure résolu (sinon dérivé de l'espèce)
-  sex: Sexe;
-  build: number;                                   // 0..1
-  legs?: number;                                   // multiplicateur de longueur de jambes (mutation Court sur pattes)
-  faceFlip?: boolean;                              // visage retourné tête en bas (mutation Visage inversé)
-  eyes?: { G?: string; D?: string };               // remplacement d'œil EN PLACE (art centré, cf. parts/eyes.ts)
-  parts?: Partial<Record<Slot, number>>;           // overrides éditeur (index dans le pool par slot)
-  hairstyle?: string;                              // coiffure IMPOSÉE par id stable (hairstyles/defs) — prime sur parts.cheveux/seed ; sinon tirage sexe+ordre
-  monster?: MonsterParts;                          // parts monstrueux par slot (mutant modulaire)
-  features?: string[];                             // CLÉS du catalogue d'éléments (parts/elements.ts) — traits ADDITIFS (queue, cornes, crocs…)
-  colors?: Palette;                                // personnalisation couleur (peau/cheveux/vêtements)
-  seed?: number;
 }
 
 /** Apparence par défaut dérivée d'un Combatant (espèce + seed stable sur l'id). `appearance.species`

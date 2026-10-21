@@ -16,7 +16,7 @@ import { TIMBER_V0, TIMBER_V1, expandRecipe } from '../../detail/expand';
 import { ISO_PX_PER_M } from '../../iso';
 import { structureAppearances } from '../../../data';
 import { parseHex, srgbToLinear } from '../../shade';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 
 /** La def d'apparence à COLOMBAGE de la donnée — la cuisson tire d'elle sa couleur de bois. */
 const BOIS = structureAppearances.find((d) => d.id === 'mur-en-bois')!;

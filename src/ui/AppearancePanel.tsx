@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { RigSprite, useCompositionRig } from '../gameIso/rig/composeRig';
-import type { Appearance, RigSpeciesId } from '../gameIso/rig/appearance';
+import type { Appearance, RigSpeciesId } from '../engine/authoringAppearance';
 import type { EquipCtx } from '../gameIso/rig/parts/equipment';
 import { apparenceSuivante } from '../gameIso/rig/parts/cosmetic';
 import { ColorPalettePickers } from './ColorPalettePickers';

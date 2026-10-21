@@ -130,6 +130,12 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
+                            VUES TS de dataset (`<dataset>.types.ts`) : elles portent aussi les types
+                            que la donnée compose, pour que `src/data` n'importe rien de `src/gameIso`
+                            (#2884) — `materials.types.ts` (`DetailRecipe`, `MaterialRef` lus par le
+                            rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
+                            `structureAppearance.types.ts` (`StructureAppearanceDef`, `WALL_PARTS`),
+                            `ambiance.types.ts` (`AmbianceDef`, `Visibility`)
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
                               `defs-scenes/<nom>.ts`) qui DÉCLARE son document par la fabrique
                               `document()` (`grammaire/document.ts`) : enveloppe commune posée par la
@@ -253,6 +259,9 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
                             navigateur ; un tirage prend le `RNG` que l'appelant nomme, une quantité
                             lue avant le jet est une `FormuleSansTirage` évaluée sans RNG.
   types.ts                    Caractéristiques, Combatant, Weapon, ItemInstance, Difficulty…
+  authoringAppearance.ts      types d'APPARENCE (`EntityAppearance` authorée, `Appearance` résolue,
+                              `RigSpeciesId`, `Slot`, `MonsterParts`, `Palette`) : portés par le
+                              Combatant, résolus par `gameIso/rig` (#187, #2884)
   tests.ts                    Tests & Degrés de Réussite (DR), tests opposés.
                               **INVARIANT — `base` = le Niveau de Compétence NU (Caractéristique +
                               Augmentations, LDB 09 l.17), PARTOUT.** Tout modificateur (Avantage,
@@ -548,8 +557,9 @@ src/gameIso/                Rendu du monde. Le moteur est le monde VOLUMIQUE thr
   pov/                      première personne : le MÊME monde volumique regardé à hauteur d'œil —
                             SurcouchePov.tsx n'en porte que les voiles d'écran
                             + camera.ts (caméra et brume) + billboardCore.ts
-  detail/                   détail de surface en DONNÉE (`DetailRecipe`, `expandRecipe` → primitives UV
-                            seedées) — même recette cuite par le monde et posée en pattern par le SVG
+  detail/                   détail de surface : `expandRecipe` déplie la `DetailRecipe` (donnée,
+                            `src/data/materials.types.ts`) en primitives UV seedées — même recette
+                            cuite par le monde et posée en pattern par le SVG
   iso.ts                    dérivés MÉTRIQUES de la projection (WALL_H_M, isoPxToM — besoin du monde,
                             via noyau/monde/relief) ; la projection elle-même (Dims, tileCenter, diamondPath,
                             screenToTile, stageSize…) vit dans `src/geometry/iso.ts` (#161)

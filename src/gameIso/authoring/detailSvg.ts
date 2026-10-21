@@ -29,7 +29,7 @@ import {
   type CourseLine,
   type CourseVertical,
 } from '../detail/courses';
-import type { DetailRecipe } from '../detail/types';
+import type { DetailRecipe } from '../../data/materials.types';
 import { shade, ao, spec } from '../shade';
 import { isSquareView, type Dims } from '../../geometry/iso';
 import { ISO_PX_PER_M } from '../iso';

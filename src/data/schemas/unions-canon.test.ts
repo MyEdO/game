@@ -130,9 +130,9 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    * autres chevauchent celui-ci par exactement deux noms (`pluie`, `neige`) :
    *  - la météo de SCÈNE `'clair'|'pluie'|'brouillard'|'neige'|'tempete'` (`noyau/monde/scene.ts:345`,
    *    `defs-scenes/scene.ts:510`, ses lecteurs `engine/exposure.ts:42`, `defs/ambiance.ts`,
-   *    `gameIso/catalog/ambiance.ts`, `gameIso/stage/weather-portes.test.tsx`) — AUTRE axe, migration
+   *    `data/ambiance.types.ts` (`WeatherFxId`), `gameIso/stage/weather-portes.test.tsx`) — AUTRE axe, migration
    *    possédée par #1585 ; une garde de CE canon qui la rougirait accuserait un innocent ;
-   *  - les particules de RENDU `'pluie'|'averse'|'neige'` (`gameIso/catalog/ambiance.ts:57`).
+   *  - les particules de RENDU `'pluie'|'averse'|'neige'` (`WeatherFxDef.particles`, `data/ambiance.types.ts`).
    * Restent, sur le vrai axe : le FOYER (le `z.enum` lui-même, `defs/weather.ts`, déclaré `foyer` comme
    * `communs.ts` l'est pour l'arête) et les deux narrowings RAW de `stageExposureDifficulty` (EDOC 8 l.90, modéré
    * pluie/neige vs extrême diluvienne/blizzard) — un `case` sur une valeur DÉJÀ typée `Weather` n'est

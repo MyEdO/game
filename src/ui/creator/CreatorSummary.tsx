@@ -21,7 +21,7 @@ import { CSSProperties, useMemo } from 'react';
 import { CHAR_KEYS, CharKey, Combatant } from '../../engine/types';
 import { effectiveChar } from '../../engine/characteristics';
 import { Coins } from '../Coins';
-import type { Appearance } from '../../gameIso/rig/appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { CharacterPreview } from '../CharacterPreview';
 import { Icon } from '../Icon';
 import { CharStatsGrid } from '../CharStatsGrid';

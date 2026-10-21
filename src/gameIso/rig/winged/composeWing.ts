@@ -9,7 +9,7 @@ import type { BonePose } from '../poses';
 import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
-import type { Palette } from '../palette';
+import type { Palette } from '../../../engine/authoringAppearance';
 import { resolveQuadFromProps, quadPropsWithHarnais } from '../quadruped/composeQuad';
 import { QUAD_REST, quadWalkPose, quadBitePose, quadLeapPose, quadFlinchPose, QUAD_DEATH } from '../quadruped/quadPose';
 import { quadAttackPose } from '../anim/creatureAttackPoses';

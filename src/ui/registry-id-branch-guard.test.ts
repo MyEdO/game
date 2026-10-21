@@ -452,7 +452,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
       .replace('type Os }', 'type BoneId as Os }');
     expect(rules(renomme, 'src/gameIso/rig/fixture.ts')).toEqual([]);
     // …et un autre type du module importé SOUS le nom `BoneId` ne l'est pas.
-    const usurpe = shadow.replace('type BoneId = string;', "import { type Slot as BoneId } from '../gameIso/rig/bones';");
+    const usurpe = shadow.replace('type BoneId = string;', "import { type Skeleton as BoneId } from '../gameIso/rig/bones';");
     expect(rules(usurpe, 'src/state/fixture.ts')).toEqual(['id-membership']);
 
     // MÊME forme, annotée par un type d'IDENTITÉ DE REGISTRE : `ConditionId` (`src/engine/types.ts`) est

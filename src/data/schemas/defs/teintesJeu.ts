@@ -15,7 +15,7 @@
  *
  * COMMENT ÉTENDRE (une « famille de teinte » de plus). 1) Ajouter l'entrée au JSON sous l'un des
  * préfixes ci-dessous (`zone-`, `bande-`, `signal-`, `or-`, `editeur-`, `anneau-`, `equipe-`, `identite-heros-`) ;
- * 2) l'inscrire dans `TEINTE_KEYS` (recopie gardée par la parité, cf. plus bas) ; 3) l'exposer par la
+ * 2) l'inscrire dans `TEINTE_KEYS` (liste UNIQUE des ids, cf. plus bas) ; 3) l'exposer par la
  * façade qui la sert. Un nouveau préfixe se déclare dans `GROUPES_SURBRILLANCE` ou `GROUPES_IDENTITE` :
  * une clé hors `TEINTE_KEYS` est refusée au sceau (clés FERMÉES), et la parité des `TEINTE_KEYS` avec
  * les préfixes déclarés est mesurée par `src/gameIso/highlightTints.test.ts`.
@@ -38,10 +38,9 @@ import { couleurHexSchema } from '../grammaire/valeurs';
 export const file = 'teintesJeu.json';
 export const famille = 'record';
 
-/** Ids admis — RECOPIE de ce que servent les deux façades (`src/gameIso/highlightTints.ts` et
- *  `src/gameIso/teamColors.ts`) : `src/data` ne dépend jamais RUNTIME de `src/gameIso`
- *  (pureté de couche, `scripts/guards/lib/couches.mjs`). La parité des deux listes est gardée par
- *  `src/gameIso/highlightTints.test.ts` (patron `WALL_PART_KEYS` ⇄ `relief.test.ts`). */
+/** Ids admis — liste UNIQUE : les trois façades (`src/gameIso/highlightTints.ts`, `src/gameIso/teamColors.ts`,
+ *  `src/gameIso/backends/webgl/calageProps.ts`) lisent `teintesJeu` par `TeinteId`, et
+ *  `src/gameIso/highlightTints.test.ts` mesure que chaque id a sa façade. */
 export const TEINTE_KEYS = [
   // Surbrillances de TERRAIN — tapis de cases posés sous les pions.
   'zone-marche', 'zone-course', 'zone-intention', 'zone-fumee', 'zone-feu',

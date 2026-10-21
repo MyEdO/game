@@ -63,7 +63,7 @@ import { emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
 import { findSpeciesById, findTalentById, specPoolOf, careers, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
-import type { Appearance } from '../../gameIso/rig/appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 
 export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
 

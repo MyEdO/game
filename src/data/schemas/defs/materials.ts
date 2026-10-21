@@ -5,7 +5,7 @@
  * celles de relief.
  *
  * Le champ de charge `domain` porte l'identité : ses valeurs sont celles de `MaterialRef.domain`
- * (`src/gameIso/builders/types.ts`), servies par `DOMAINES_MATIERE`, qui les tient sous `satisfies`.
+ * (`src/data/materials.types.ts`), servies par `DOMAINES_MATIERE`, qui les tient sous `satisfies`.
  *
  * UNE SEULE FORME D'ENTRÉE, la disjonction portée par un REFINE ⟺ (`affinerEntree`, patron
  * `defs/oups.ts`) : toutes les clés de charge sont déclarées `.optional()`, et le refine (1) EXIGE

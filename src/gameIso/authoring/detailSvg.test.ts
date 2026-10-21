@@ -14,7 +14,7 @@ import {
 } from './detailSvg';
 import { hash32 } from '../../data/hash';
 import { terrainGradientId } from '../catalog/terrain';
-import type { DetailRecipe } from '../detail/types';
+import type { DetailRecipe } from '../../data/materials.types';
 import type { Dims } from '../../geometry/iso';
 
 /**

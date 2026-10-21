@@ -26,7 +26,7 @@ import * as THREE from 'three';
 import { PRIORITE_FOND, queueBakeTask } from './atlasBake';
 import { expandRecipe, TIMBER_V0, TIMBER_V1 } from '../../detail/expand';
 import { periodTextureData, teinteRatio, PERIOD_PX_PER_M } from './periodTexture';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 
 /** Ce qu'il faut d'une surface pour la cuire : sa couleur de base, sa recette et la PART de mur qu'elle
  *  habille (`TIMBERED_PARTS` en décide). Sous-ensemble de `FaceSurface` (`faceColors.ts`) élargi à la

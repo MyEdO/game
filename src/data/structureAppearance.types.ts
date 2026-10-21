@@ -1,8 +1,8 @@
-/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), consommée par l'iso (walls.ts) ET le POV
- *  (geometry.ts). Donnée pure (`src/data/structureAppearance.json`), découplée de `StructureData` (règles).
+/** Apparence PARTAGÉE d'une structure d'arête (mur/porte), consommée par l'iso (`gameIso/builders/walls.ts`)
+ *  ET le volumique (`gameIso/backends/webgl/`). Donnée pure (`src/data/structureAppearance.json`), découplée de `StructureData` (règles).
  *  Couleurs : hex ou var CSS (`var(--struct-*)`, base.css). L'iso dérive l'ombrage par orientation via
  *  `shade()` à partir des couleurs de base ci-dessous ; le POV les teinte par la lumière. */
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from './materials.types';
 
 export interface StructureAppearanceDef {
   id: string;
@@ -44,7 +44,7 @@ export interface StructureAppearanceDef {
    *  `jut` = SAILLIE par CÔTÉ d'une partie posée devant de la matière pleine (épaisseur totale =
    *  épaisseur du mur + 2×`jut`) ; `thick` = épaisseur TOTALE d'une partie qui BOUCHE une ouverture
    *  (rien derrière elle ; 0 = plan unique au médian). Absent = les défauts par partie de
-   *  `catalog/structures/index.ts`. */
+   *  `gameIso/catalog/structures/index.ts`. */
   relief?: {
     jut?: Partial<Record<WallPart, number>>;
     thick?: Partial<Record<WallPart, number>>;
@@ -53,9 +53,9 @@ export interface StructureAppearanceDef {
   };
 }
 
-/** Parties NOMMÉES d'un mur assemblé par le builder du pivot (`builders/walls`) — LISTE RUNTIME dont
+/** Parties NOMMÉES d'un mur assemblé par le builder du pivot (`gameIso/builders/walls.ts`) — LISTE RUNTIME dont
  *  l'union `WallPart` dérive : le `switch` de `wallPartRelief` s'y mesure (garde d'exhaustivité), et le
- *  schéma de `structureAppearance.json` y contraint les clés de `relief`. Chaque backend résout la
+ *  schéma de `structureAppearance.json` (`schemas/defs/structureAppearance.ts`) y contraint les clés de `relief`. Chaque backend résout la
  *  couleur de BASE d'une partie via `wallPartColor` puis applique SA lumière (orientation iso / tint POV). */
 export const WALL_PARTS = [
   'face', 'poteau', 'couronnement', 'panneau', 'moulure', 'plinthe', // panneau bois encadré

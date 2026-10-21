@@ -10,7 +10,7 @@ import { coursesPeriod, coursesPeriodM, coursesKey, patternWM, N_VARIANTS } from
 import { facadeStructureAppearance } from '../../catalog/facades';
 import { wallPartColor } from '../../catalog/structures';
 import { matieresDe } from '../../../data';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 
 /** Une recette d'appareillage RÉELLE, lue dans la DONNÉE : le mur de pierre (`structureAppearance.json`). */
 const APP = facadeStructureAppearance('mur-en-pierre');

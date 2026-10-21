@@ -2,7 +2,8 @@
  * LA politique de visibilité, testée dans SA couche : `visibilityOf` ne connaît ni caméra, ni renderer,
  * ni teinte — les trois rendus (couleur de sommet three, voile CSS de l'iso, lumière d'ambiance POV) en
  * sont des APPLICATIONS, testées chez eux. Ce fichier tient la table de vérité et la FEUILLE (le module
- * ne doit rien importer : c'est ce qui lui permet d'être partagé par les trois sans les coupler).
+ * n'importe rien à l'exécution, et son seul type vient d'une feuille de types de la donnée,
+ * `src/data/ambiance.types.ts`, #2884 : c'est ce qui lui permet d'être partagé par les trois sans les coupler).
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -40,13 +41,17 @@ describe('visibilityOf — LA politique, sans caméra ni renderer', () => {
 
 describe('FEUILLE — la loi partagée ne dépend de personne', () => {
   const SRC = readFileSync(new URL('./visibility.ts', import.meta.url), 'utf8');
+  const TYPES = readFileSync(new URL('../data/ambiance.types.ts', import.meta.url), 'utf8');
 
-  it('`visibility.ts` n’a AUCUN import (ni statique, ni `require`, ni dynamique)', () => {
-    // Angle mort ASSUMÉ : lecture TEXTUELLE du source, pas du graphe de modules — la garde vaut pour ce
-    // fichier seul, exactement comme celle de `gameIso/stage/projection.test.ts`.
-    expect(SRC.match(/^import\s/gm)).toBeNull();
-    expect(SRC).not.toMatch(/\brequire\(/);
-    expect(SRC).not.toMatch(/\bimport\(/);
-    expect(SRC).not.toMatch(/^export .* from /m);
+  it('`visibility.ts` n’importe que le TYPE `Visibility`, d’une feuille de types qui n’importe rien', () => {
+    // Angle mort ASSUMÉ : lecture TEXTUELLE des deux sources, pas du graphe de modules — la garde vaut pour
+    // ces deux fichiers seuls, exactement comme celle de `gameIso/stage/projection.test.ts`.
+    expect(SRC.match(/^import\s.*$/gm)).toEqual(["import type { Visibility } from '../data/ambiance.types';"]);
+    expect(TYPES.match(/^import\s/gm)).toBeNull();
+    for (const src of [SRC, TYPES]) {
+      expect(src).not.toMatch(/\brequire\(/);
+      expect(src).not.toMatch(/\bimport\(/);
+      expect(src).not.toMatch(/^export .* from /m);
+    }
   });
 });

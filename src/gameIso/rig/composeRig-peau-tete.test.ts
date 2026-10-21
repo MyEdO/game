@@ -5,7 +5,8 @@
 import { describe, it, expect } from 'vitest';
 import { resolveRig } from './composeRig';
 import { bonesToSvg } from './renderBones';
-import { asRigSpeciesId, type Appearance } from './appearance';
+import { asRigSpeciesId } from './appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { VIEWS, type View } from './facing';
 const GNOME_LEZARD: Appearance = { species: asRigSpeciesId('gnome'), sex: 'M', build: 0.5, seed: 1, monster: { tete: 'lezard' } };
 

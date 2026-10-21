@@ -7,6 +7,8 @@
  * PORTEUSE (marchabilité / combat / chute), plus cosmétique.
  */
 
+import type { Grade } from '../../data/materials.types';
+
 /**
  * Référence ÉCRAN : un « niveau » de lift (= `iso.LEVEL_H` px à l'écran) représente 4 m de hauteur
  * réelle. Choix de RENDU (pas une règle) : préserve l'aspect existant — un étage `z=1` montait de
@@ -35,9 +37,6 @@ export const metricToLift = (metres: number): number => metres / METRES_PER_LEVE
  * `OPTIONAL_RULES` (réservé aux règles de JEU éditables) ; source unique ICI, retoucher = un seul geste.
  */
 export const STEP_MAX_M = 1.0;
-
-/** Nature du lien vertical entre deux surfaces voisines. */
-export type Grade = 'flat' | 'ramp' | 'cliff';
 
 /**
  * Classe le lien entre deux surfaces 4-voisines selon |Δhauteur| (mètres) :

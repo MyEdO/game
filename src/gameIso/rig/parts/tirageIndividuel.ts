@@ -1,4 +1,5 @@
-import { SLOTS, type Palette, type Slot } from '../palette';
+import { SLOTS, type Slot } from '../palette';
+import type { Palette } from '../../../engine/authoringAppearance';
 
 /**
  * Tirage INDIVIDUEL déterministe dans les plages d'une race (`raceAppearance.json`, champ

@@ -7,9 +7,8 @@
  * Ajouter une créature = créer UN fichier ici, puis `npm run gen` (auto en dev/build).
  */
 import type { QuadProps } from '../quadruped/quadSkeleton';
-import type { MonsterParts } from '../parts/monstrous';
+import type { MonsterParts, Palette } from '../../../engine/authoringAppearance';
 import type { RaceFeature } from '../races/types';
-import type { Palette } from '../palette';
 import type { SerpentProps } from '../serpentine/composeSerpent';
 import type { SpiderProps } from '../arachnid/composeSpider';
 import type { BirdProps } from '../avian/composeBird';

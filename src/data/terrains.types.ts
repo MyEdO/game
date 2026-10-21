@@ -10,7 +10,7 @@
  * scelle ses nœuds (`z.infer` vaut `unknown`), aucun type n'est dérivé du schéma — la vue TS est
  * déclarée ici, comme `materials.types.ts`.
  */
-import type { DetailRecipe } from '../gameIso/detail/types';
+import type { DetailRecipe } from './materials.types';
 
 /** Un ARRÊT de la rampe de dégradé : offset en pourcentage (`0%`, `45%`, `100%`) → couleur `#rrggbb`.
  *  Record et non liste de paires : un offset ne se répète pas sur une rampe, et l'atelier édite un

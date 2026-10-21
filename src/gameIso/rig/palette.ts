@@ -14,11 +14,9 @@ import { mapViews } from './viewArt';
 import { SLOTS, PORTEUR, ROLES_DE_GAMME, gammeDe, gammes, type Gamme, type RoleDeGamme, type Slot } from '../../data/palette.types';
 import { CLES, COUCHE_DEFAUT, SUIVEUSES, propagerSuiveuses, type BaseDeTable, type BasePorteur } from './clesDePalette';
 import { parseHex, toHex, shade, LUMA_709 } from '../shade';
+import type { Palette } from '../../engine/authoringAppearance';
 
 export { SLOTS, type Slot };
-
-/** Surcharge du joueur, par clé recoloriable. Tout est optionnel. */
-export type Palette = { [K in Slot]?: string };
 
 /** Dérivation de chaque rôle de la gamme depuis sa base : facteur de `shade` et signe de ΔL. */
 const DERIVATION_DE_ROLE = { ombre: [0.78, -1], lumiere: [1.18, 1] } as const satisfies Record<RoleDeGamme, readonly [facteur: number, signe: -1 | 1]>;

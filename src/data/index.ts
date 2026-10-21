@@ -3,10 +3,9 @@
  * écran 'dataEditor'). Les *.json de ce dossier sont la SOURCE CANONIQUE app-owned, curée à la main :
  * aucune migration ne les régénère.
  */
-import type { EntityAppearance } from '../engine/authoringAppearance';
+import type { EntityAppearance, RigSpeciesId } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
-import type { RigSpeciesId } from '../gameIso/rig/appearance';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
@@ -2509,7 +2508,7 @@ export const structures = structuresJson as StructureData[];
 const structureParId = indexParId('structures', structures);
 export const findStructureById: (id: string) => StructureData | undefined = structureParId;
 /** Apparence de RENDU des structures (murs/portes) — donnée pure, découplée des règles ci-dessus. */
-export const structureAppearances = structureAppearanceJson as import('../gameIso/catalog/structures/types').StructureAppearanceDef[];
+export const structureAppearances = structureAppearanceJson as import('./structureAppearance.types').StructureAppearanceDef[];
 
 /** Combat de masse / Puissance de Bataille (ADE II 8, l.13-321) — 5 tables verbatim NICHÉES dans
  *  UN seul fichier (`mass-battle.json`, pas un tableau plat par table) : exposées ICI (facade) pour que
@@ -2565,7 +2564,7 @@ export const matierePlan = (): RoofMaterialDef => {
 };
 
 /** AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/filtre d'étage) — donnée pure. */
-export const ambiance = ambianceJson as import('../gameIso/catalog/ambiance').AmbianceDef;
+export const ambiance = ambianceJson as import('./ambiance.types').AmbianceDef;
 
 /** TEINTES DE JEU du terrain (surbrillances tactiques + identité d'unité), `id → #rrggbb` — donnée
  *  pure, servie aux peintres par les deux façades `gameIso/highlightTints.ts` et
