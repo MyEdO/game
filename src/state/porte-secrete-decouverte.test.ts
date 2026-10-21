@@ -10,6 +10,7 @@ import { testScene } from '../scenes/test-fixture';
 import { setDoorSchema } from '../data/schemas/defs-scenes/effets';
 import { idDeTriggerDePorte, triggersDePortesSecretes } from '../noyau/monde/decouvertePorteSecrete';
 import { t } from '../i18n';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 /**
  * DÉCOUVRIR une porte secrète à l'APPROCHE (#700) — `EDO 08 l.404`, `EDO 07 l.263`, `LDB 09 l.399`,
@@ -54,7 +55,7 @@ function explorer(scene: Scene, pos: { x: number; y: number }, lightLevel = 1) {
   useGame.getState().startScene(scene);
   useGame.setState({ partyPos: pos, lightLevel });
 }
-const marcher = (x: number, y: number) => useGame.getState().moveParty({ x, y });
+const marcher = (x: number, y: number) => poserLeGroupe(useGame.getState, useGame.setState, { x, y });
 
 describe('porte secrète — découverte à l’approche', () => {
   afterEach(() => resetRule('porte-secrete-rayon-m'));

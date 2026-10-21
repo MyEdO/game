@@ -9,6 +9,7 @@ import { reachableCells } from '../../state/mapQC';
 import { useGame } from '../../state/store';
 import { avanceEtapeCascade } from '../../state/cascade.testkit';
 import { scenario } from './23-fenetre-ecuries';
+import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 /**
  * « La fenêtre sur les écuries » : la croisée d'étage (EDO 01 l.229-231) et la porte secrète du bureau
@@ -63,7 +64,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     expect(startOf(scene)).toEqual({ x: 7, y: 6, z: 1 });
     expect(useGame.getState().pendingTest).toBeNull();
     useGame.setState({ partyPos: { x: 1, y: 3, z: 1 } });
-    useGame.getState().moveParty({ x: 2, y: 2, z: 1 });
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 2, y: 2, z: 1 });
     const pt = useGame.getState().pendingTest!;
     expect(pt.skillId).toBe('perception');
     expect(pt.difficulty).toBe('complexe');

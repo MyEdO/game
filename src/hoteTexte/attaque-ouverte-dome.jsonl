@@ -1,0 +1,6 @@
+{"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":true}
+{"type":"confirmRoundStart","args":[]}
+{"offre":"charge"}
+{"type":"battleClickEntity","args":["enemy-enc-dome-1"]}
+{"type":"attackRoll","args":[]}
+{"type":"attackSetForcedRoll","args":[11]}

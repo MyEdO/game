@@ -235,6 +235,12 @@ function jumpNeighbors(scene: Scene, p: Pt, jump: number, blocked: Set<string>, 
   return out;
 }
 
+/** Les atterrissages de SAUT depuis `depart` (`jumpNeighbors`), sous les mêmes contraintes que `pathTo` : la garde
+ *  d'un saut demandé hors du pathfinder (`marcheDuGroupe.sauter`). */
+export function atterrissagesDeSaut(scene: Scene, depart: Pt, env: MoveEnv): Pt[] {
+  return jumpNeighbors(scene, depart, env.jump ?? 0, env.blocked, env.foot ?? 1, wallEdges(scene), env.swim);
+}
+
 /**
  * L'empreinte N×N ancrée en (x, y, z) (coin NO) tient-elle ? Toutes ses tuiles (au même étage)
  * doivent être walkable (terrain/bâtiment) ET non bloquées. Pour `foot=1`, vérifie juste la tuile.

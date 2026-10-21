@@ -9,10 +9,10 @@ import type { GameState } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import type { PendingAttack, PendingCleave, PendingDualStrike, PendingCast } from '../../noyau/pendings';
 import { Combatant } from '../../engine/types';
-import { crowdEligible, eligibleAttackTargetIds, displayedReach, computeRunReach } from '../../noyau/combatFlow';
+import { crowdEligible, eligibleAttackTargetIds } from '../../noyau/combatFlow';
 import { hasFreeWeaponAttack } from '../../noyau/combatManeuvers';
 import { currentTargetingMode } from '../../noyau/targetingModes';
-import { armedIntentPortee, courseArmee, intentReach, PORTEE_ARME, type LocalIntent } from '../../noyau/localIntent';
+import { armedIntentPortee, porteesDuTour, PORTEE_ARME, type LocalIntent } from '../../noyau/localIntent';
 import { controlsCombatant } from '../../noyau/netOwnership';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { attackWeapon } from '../../engine/combat';
@@ -46,17 +46,18 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
   // COOP : le tour du héros d'un AUTRE joueur s'affiche comme un tour ennemi — aucune affordance
   // (ni grille de déplacement, ni anneaux de cible, ni aperçu) ; teintes d'équipe/zones restent.
   // (Plus AUCUN indicateur de distance au sol — la portée se lit au survol : réticule = cible valide.)
+  const portees = porteesDuTour(get, myTurn);
   const view: HighlightsView = {
     myTurn,
-    walkReach: myTurn ? displayedReach(get) : new Map<string, number>(),
+    walkReach: portees.marche,
     // ZONE DE COURSE : peinte SEULEMENT quand la Course est ARMÉE (spec HUD § ARBITRAGE 2026-08-19,
     // « par défaut seule la zone de déplacement est affichée »). C'est aussi l'affichage de cette
     // intention-là : `INTENT_REACH['portee-course']` délègue ICI plutôt que de peindre une 2ᵉ fois la
     // même vérité en nature `intent` (même patron que la portée d'ARME → `rangeBandSource`).
-    runReach: myTurn && courseArmee(get) ? computeRunReach(get) : new Map<string, number>(),
+    runReach: portees.course,
     // INTENTION armée depuis l'interface : sa portée est LOCALE au client (hors `battle`) et ne
     // s'affiche qu'à son tour, comme toute affordance (spec HUD zone 4).
-    intentReach: myTurn && localIntent ? intentReach(get) : new Map<string, number>(),
+    intentReach: portees.intention,
     activeId: activeC?.id ?? null,
     // Anneaux d'attaque (R4) : en mode neutre (attaque implicite), tant que l'Action est disponible
     // (ou attaque libre de Frénésie).

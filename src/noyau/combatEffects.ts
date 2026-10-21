@@ -83,6 +83,7 @@ import { dataLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks } from './combat/advantagePool';
+import { poserLeGroupe } from './marcheDuGroupe';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -193,7 +194,7 @@ export function flowRestant(entId: string, action: { id: string; flow: Flow }, f
 }
 
 /** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
- *  vient d'ENTRER. Seul appelant : le pas d'exploration (`moveParty`) — ni le combat, ni l'entrée de scène
+ *  vient d'ENTRER. Seul appelant : la pose du groupe en exploration (`poserLeGroupe`) — ni le combat, ni l'entrée de scène
  *  (`transitionTo`/`startScene`) sans premier pas ne jouent un déclencheur. */
 export function checkTriggers(get: Get, set: SetFn) {
   const { scene, partyPos, flags } = get();
@@ -1557,12 +1558,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const m = Math.max(0, e.metres);
       // `to` ramène le faller au PIED (chute → il retombe en bas, LDB 15) : le GROUPE hors combat, ou
       // les combattants nommés en combat (escalade ratée → hisse annulée par `placeCombatant`).
-      // Hors combat, l'atterrissage du groupe est un PAS : `moveParty` (déclencheurs, cap du groupe).
+      // Hors combat, l'atterrissage du groupe est une POSE : `poserLeGroupe` (déclencheurs, cap du groupe).
       // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
       const sc = env.get().scene;
       if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.fallAtterrissageRefuse'));
       if (e.to && env.get().battle && sc) for (const c of targets) placeCombatant(c, sc, e.to);
-      if (e.to && !env.get().battle) env.get().moveParty(e.to);
+      if (e.to && !env.get().battle) poserLeGroupe(env.get, env.set, e.to);
       if (targets.length) {
         env.set(touchActors(env.get()));
         env.log(t('eff.fallOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));

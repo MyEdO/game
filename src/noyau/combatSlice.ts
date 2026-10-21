@@ -32,7 +32,7 @@ import { turnEconomyStamp } from './endTurnGuard';
 import { type Flow } from './monde/flow';
 import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
-import { coupFerme } from './targetingHolder';
+import { champAttendSaFenetre, coupFerme } from './targetingHolder';
 import { mountMovement, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
@@ -901,7 +901,7 @@ export function createCombatSlice(get: Get, set: Set) {
 
     battleClickTile: (pt: Pt, opts?: TileClickOpts) => {
       const { battle, scene } = get();
-      if (!battle || !scene || battle.over) return;
+      if (!battle || !scene || battle.over || champAttendSaFenetre(get())) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout et vaut
@@ -1054,6 +1054,7 @@ export function createCombatSlice(get: Get, set: Set) {
         get().preemptRangedShot(aiming, id);
         return;
       }
+      if (champAttendSaFenetre(get())) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout, et vaut

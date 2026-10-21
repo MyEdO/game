@@ -17,6 +17,7 @@ import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
 import { draineCascade } from '../state/cascade.testkit';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -58,7 +59,7 @@ function aBord(): void {
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
   get().acquitterOuverture();
-  get().moveParty({ x: 13, y: 31 });
+  poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
   expect(get().worldMapOpen).toBe(true);
 }
@@ -79,7 +80,7 @@ describe('billet de la diligence — chemin du joueur', () => {
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
     get().acquitterOuverture();
-    get().moveParty({ x: 13, y: 31 });
+    poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
     get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
     expect(get().worldMapOpen).toBe(true);
 
@@ -125,7 +126,7 @@ describe('billet de la diligence — chemin du joueur', () => {
     expect(get().billetEnMain?.routesRestantes).toEqual([T2]);
     draineCascade(get);
     if (get().travelRecap) get().dismissTravelRecap();
-    get().moveParty({ x: 36, y: 3 });
+    poserLeGroupe(get, useGame.setState, { x: 36, y: 3 });
     get().jouerAction('cadavre-kastor-lieberung', 'fouiller');
     get().designerHerosChoisir(get().party[0].id);
     // EDO 02 l.93-95 : les Documents 3 et 4 se lisent, puis la fouille reprend sa suite.

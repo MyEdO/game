@@ -17,3 +17,15 @@ test('#2898 les bornes du doc sont celles de `BORNES`, et chaque catégorie d’
   for (const [, commande, n] of lignes.matchAll(/(\w+): (\d+)/g)) assert.match(texte, new RegExp(`\\| \`${commande}\` \\| ${n} \\|`), `borne absente : ${commande}`)
   for (const categorie of ['validation', 'permission', 'regle']) assert.match(texte, new RegExp(`\\| \`${categorie}\` \\| `), `catégorie absente : ${categorie}`)
 })
+
+/** Le poids du doc, et la largeur d'une ligne de sa table des verbes : un type s'y écrit par son nom, jamais déplié. */
+const DOC_AU_PLUS = 50_000
+const LIGNE_DE_VERBE_AU_PLUS = 400
+
+test('#2898 le doc reste court : sous son poids, chaque ligne de la table des verbes sous sa largeur', () => {
+  assert.ok(texte.length <= DOC_AU_PLUS, `docs/hote-texte.md pèse ${texte.length} caractères`)
+  const verbes = texte.split('\n').filter((l) => /^\| `[a-z]\w*` \| `/.test(l))
+  assert.ok(verbes.length > 500, `témoin : la table des verbes se lit (${verbes.length})`)
+  const longues = verbes.filter((l) => l.length > LIGNE_DE_VERBE_AU_PLUS).map((l) => `${/^\| `(\w+)`/.exec(l)[1]} (${l.length})`)
+  assert.deepEqual(longues, [])
+})

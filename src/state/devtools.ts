@@ -78,6 +78,7 @@ import { estAbsent } from '../noyau/monde/terrain';
 import { sceneToAscii } from './sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { routeDistanceLabel } from '../engine/travel';
 import { mirrorPools } from '../engine/advantagePool';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
@@ -907,7 +908,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** Place le groupe sur la case d'une entité/coord (déclenche portes, triggers, fouilles au pas).
-     *  Vérifie APRÈS coup que `partyPos` a réellement atteint la cible (#793) — `moveParty` peut ne
+     *  Vérifie APRÈS coup que `partyPos` a réellement atteint la cible (#793) — `poserLeGroupe` peut ne
      *  PAS bouger le groupe (case bloquée/inatteignable) sans lever d'erreur ; un faux `✓` piège
      *  toute recette qui s'y fie. Position RÉELLE relue via `g()` (pas `pt`) dans les deux messages. */
     goto: (idOrXY: string | { x: number; y: number; z?: number }) => {
@@ -915,7 +916,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const ent = typeof idOrXY === 'string' ? find(idOrXY) : null;
       const pt = typeof idOrXY === 'string' ? (ent ? { x: ent.pos.x, y: ent.pos.y, z: ent.z } : undefined) : idOrXY;
       if (!pt) return `✗ cible introuvable`;
-      g().moveParty({ ...pt });
+      poserLeGroupe(g, useGame.setState, { ...pt });
       const after = g().partyPos;
       const reached = after.x === pt.x && after.y === pt.y && (pt.z == null || (after.z ?? 0) === pt.z);
       if (!reached) return `✗ bloqué/inatteignable (${pt.x},${pt.y}${pt.z ? `,z${pt.z}` : ''}) — groupe resté en (${after.x},${after.y}${after.z ? `,z${after.z}` : ''})`;

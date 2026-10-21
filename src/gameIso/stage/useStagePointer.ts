@@ -23,7 +23,8 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useGame } from '../../state/store';
 import { entityBlockedAt } from '../../noyau/monde/sceneRules';
 import { ficheDEntite, sceneNpc } from '../../noyau/monde/sceneNpc';
-import { walkNeighbors, type Pt } from '../../noyau/monde/path';
+import type { Pt } from '../../noyau/monde/path';
+import { pasDuGroupe } from '../../noyau/marcheDuGroupe';
 import { chebyshev } from '../../engine/grid';
 import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
@@ -234,11 +235,8 @@ export function useStagePointer({
         setTimeout(step, STEP_MS);
         return;
       }
-      const stillConnected = walkNeighbors(currentScene, prev).some((neighbor) =>
-        neighbor.x === cur.x
-        && neighbor.y === cur.y
-        && (neighbor.z ?? 0) === (cur.z ?? 0));
-      if (!stillConnected) {
+      // La garde du pas est celle du verbe (`pasDuGroupe`, noyau) : une porte qui s'est refermée coupe la marche.
+      if (!pasDuGroupe(st, cur)) {
         movingRef.current = false;
         return;
       }

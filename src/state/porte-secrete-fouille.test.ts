@@ -6,6 +6,7 @@ import { createHero } from '../engine/character';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
+import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 
 /**
  * FOUILLER LA PIÈCE (#700) — second déclencheur de la découverte d'une porte secrète : `EDO 08 l.404`,
@@ -101,7 +102,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
 
   it('porte déjà tentée à l’approche → Fouiller ne la reprend pas', () => {
     explorer(plan([A]), { x: 3, y: 2 });
-    useGame.getState().moveParty({ x: 4, y: 2 }); // zone d'approche de A
+    poserLeGroupe(useGame.getState, useGame.setState, { x: 4, y: 2 }); // zone d'approche de A
     expect(useGame.getState().pendingTest?.difficulty).toBe('complexe');
     resoudre(false);
     fouiller();
