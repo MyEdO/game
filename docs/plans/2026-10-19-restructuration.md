@@ -97,7 +97,8 @@ valeur et type séparés), recoupée par une lecture indépendante et par un jug
 | `state` | adaptateur du store web : pose le résultat du noyau, sélecteurs, persistance | tout ce qui précède | non |
 | `ui` + `gameIso` | hôte web, une zone de présentation à deux dossiers | tout ce qui précède | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
-| `hotes/godot` (neuf, hors `src/`) | hôte Godot : projet et pont TypeScript | `src/noyau/index.ts` seul | — |
+| `hote` (neuf, vague 6) | module commun aux hôtes externes : validation des arguments, scénario par id, jetons programmés, projection | `noyau` par sa porte `src/noyau/index.ts`, `scenes`, feuilles | oui |
+| `hoteTexte`, `hotes` (`hotes/`, hors `src/`) | hôte texte (MCP) ; hôte Godot : projet et pont TypeScript | les droits de `hote`, et `hote` | oui |
 
 `noyau/monde/` (le schéma de scène et son modèle exécutable, la géométrie des pions, le chemin, la
 ligne de vue, les zones) est un dossier de lecture, pas une zone : `COUCHES` ne le distingue pas du
@@ -132,9 +133,11 @@ d'aujourd'hui contraires à cette règle sont des arêtes transitoires (§3.2).
   `scripts/guards/lib/interneLint.mjs`), refuse un fichier de `src/` dont la zone n'est pas dans
   `COUCHES` : créer `src/foo/` demande d'écrire sa ligne.
 - **Une entrée unique pour les hôtes externes.** `src/noyau/index.ts` naît avec la première fonction
-  qu'un hôte externe appelle (l'attaque, vague 3) et reste la seule surface qu'un fichier de
-  `hotes/**` importe : un mur lexical, sans liste, écrit à la vague 6, refuse hors de `src/` tout arc
-  vers `src/noyau/**` autre que cette entrée. Les zones de `src/` importent les modules du noyau selon
+  qu'un hôte externe appelle (l'attaque, vague 3) et reste la seule surface du noyau qu'un hôte
+  externe importe. Amendé à la vague 6 (plan `docs/plans/2026-10-21-vague6-hote-godot.md`, B7) : ce
+  n'est pas un mur lexical à part mais une ligne de `COUCHES`. `hotes` est une zone de la table, au
+  dossier `hotes/`, et les hôtes externes (`hoteTexte`, `hotes`) partagent une seule ligne de droits,
+  celle du module commun `hote` plus `hote` lui-même ; la porte du noyau y est `src/noyau/index.ts`. Les zones de `src/` importent les modules du noyau selon
   `COUCHES`, sans porte : une porte réexposerait quelque 400 symboles à 258 importeurs, tous dans des
   zones qui ne survivent pas à la bascule sauf `scenes`. Il n'y a pas de `noyau/interne/`.
 - **Des registres fermés.** Dans le noyau, un registre est une table statique typée par une union
@@ -170,6 +173,9 @@ Le Compendium, l'atelier de cartes et les galeries de contrôle restent-ils web 
 partent-ils aussi dans Godot ? Posée à Clément le 2026-10-19, qui a répondu : « Je ne serais répondre à
 ta question ni ce que cela implique ». Elle revient, avec des exemples concrets, avant la vague 6 ;
 aucune séparation de `src/ui` n'est prévue d'ici là. Les vagues 1 à 5 n'en dépendent pas.
+Posée de nouveau à laurent le 2026-10-21 sur une carte ; il a choisi « Plus tard », dont la
+conséquence affichée est : « On migre d'abord l'écran de jeu, et on tranche quand le premier écran
+Godot tourne. » La vague 6 n'en dépend pas.
 
 ## 4. Vagues
 
@@ -219,9 +225,9 @@ que les vagues 2 et 3 découvrent (1.6) ; exploration par sous-agent en lecture 
    `src/scenes/test-scenarios/_shared.ts:6`) sont rapatriés ; `scenes → state`, `audio → state`, `audio → noyau` et `data → noyau`
    sortent de la table. Après la fusion de #2797 (Taverne), qui touche le schéma de scène.
 6. **Vague 6, hôte Godot dans le dépôt.** `hotes/godot/` reprend le projet et le pont de `poc/godot`,
-   sous CI (typecheck et tests du pont) ; le pont n'importe que `src/noyau/index.ts`, ce que tient
-   un mur lexical neuf (hors de `src/`, tout arc vers `src/noyau/**` autre que l'entrée est refusé) ;
-   ses sept copies de
+   sous CI (typecheck et tests du pont) ; le pont n'importe du noyau que `src/noyau/index.ts`, ce
+   que tient la ligne `hotes` de `COUCHES` (§3.2, amendée) ; il partage avec l'hôte texte le module
+   commun `src/hote/` ; GDScript ne garde ni IA, ni chemin, ni carte ; ses sept copies de
    `src/state` sont supprimées, et ce qu'il prend à `rollSeam` et `ui/difficultyText` passe par le
    noyau (coordination avec #2724 et #2778). La suite (écrans un par un) appartient à #2794.
 7. **Vague 7, solde.** `src/state` ne contient plus de règle ; `COUCHES` égale la cible ; compte final
