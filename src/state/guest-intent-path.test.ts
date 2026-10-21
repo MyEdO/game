@@ -59,7 +59,7 @@ describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’a
 
   it('battleBattement (ouvreur exposé par #1017) : le siège du héros OUVRE réellement le jet', () => {
     setup();
-    expect(applyIntent(1, 'battleBattement', [])).toBe('appliqué');
+    expect(applyIntent(1, 'battleBattement', [])).toBe('appliquee');
     const pb = useGame.getState().pendingBattement;
     expect(pb, 'le pending est POSÉ (avant le socle : null, en silence)').toBeTruthy();
     expect(pb!.attackerId).toBe('h2');
@@ -68,13 +68,13 @@ describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’a
 
   it('battleDisengage (intent HISTORIQUE) : la classe entière est fermée, pas le seul Battement', () => {
     setup();
-    expect(applyIntent(1, 'battleDisengage', [])).toBe('appliqué');
+    expect(applyIntent(1, 'battleDisengage', [])).toBe('appliquee');
     expect(useGame.getState().pendingDisengage, 'le Désengagement s’ouvre aussi pour l’invité').toBeTruthy();
   });
 
   it('siège NON possesseur : l’intent est REFUSÉ en amont, et rien ne bouge', () => {
     setup();
-    expect(applyIntent(2, 'battleBattement', [])).toBe('refusé');
+    expect(applyIntent(2, 'battleBattement', [])).toBe('refusee');
     expect(useGame.getState().pendingBattement).toBeNull();
   });
 
@@ -83,7 +83,7 @@ describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’a
     useGame.getState().battleBattement(); // appel DIRECT (clic de l'hôte sur son propre écran)
     expect(useGame.getState().pendingBattement, 'l’hôte n’ouvre pas le jet d’un héros distant').toBeNull();
     // …et le contexte est bien retombé après l'intent précédent (aucune fuite entre gestes).
-    expect(applyIntent(1, 'battleBattement', [])).toBe('appliqué');
+    expect(applyIntent(1, 'battleBattement', [])).toBe('appliquee');
     expect(useGame.getState().pendingBattement).toBeTruthy();
     useGame.setState({ pendingBattement: null });
     useGame.getState().battleBattement();
@@ -111,7 +111,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   it('hors possession : le refus va au journal, en libellé joueur', () => {
     setup();
     useGame.setState({ journal: [] });
-    expect(applyIntent(2, 'battleBattement', [])).toBe('refusé');
+    expect(applyIntent(2, 'battleBattement', [])).toBe('refusee');
     expect(useGame.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
   });
 
@@ -122,14 +122,14 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
 
   it('composition : `partyAddHero` prend le siège du transport, jamais celui des args', () => {
     hoteEtUnInvite();
-    expect(applyIntent(1, 'partyAddHero', [pregen('g1'), undefined, 0])).toBe('appliqué');
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1'), undefined, 0])).toBe('appliquee');
     expect(useGame.getState().net.ownership.g1, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
   });
 
   it('composition : `partyReplaceHero` aussi', () => {
     hoteEtUnInvite();
-    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliqué');
-    expect(applyIntent(1, 'partyReplaceHero', ['g1', pregen('g2'), 0])).toBe('appliqué');
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyReplaceHero', ['g1', pregen('g2'), 0])).toBe('appliquee');
     expect(useGame.getState().net.ownership.g2, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
   });
 });
