@@ -3,7 +3,7 @@ import { byId } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene, Terrain } from '../../noyau/monde/scene';
 import type { ContenuDeScenario, LancementDeScenario } from '../../noyau/lancementDeScenario';
-import type { IconId } from '../../ui/icons';
+import type { IconIdGenerated } from '../../data/icones.generated';
 import { buildEncounters, type AuthoredEncounter } from '../../noyau/monde/encounterAuthoring';
 import { buildScene } from '../../noyau/mapSpec';
 
@@ -40,7 +40,7 @@ export const SCENARIO_SECTIONS = [
   { key: 'scenarios', label: 'Scénarios complets', icon: 'nav/campaign' },
   { key: 'naval', label: 'Naval', icon: 'scenario/naval' },
   { key: 'rendu', label: 'Rendu', icon: 'scenario/gallery' },
-] as const satisfies readonly { key: string; label: string; icon: IconId }[];
+] as const satisfies readonly { key: string; label: string; icon: IconIdGenerated }[];
 
 export type ScenarioCategory = (typeof SCENARIO_SECTIONS)[number]['key'];
 
@@ -51,7 +51,7 @@ export interface TestScenario {
   id: string;
   order: number; // tri d'affichage dans la section
   category: ScenarioCategory; // section du menu
-  icon: IconId; // icône de carte (registre src/ui/icons, famille scenario/*)
+  icon: IconIdGenerated; // icône de carte (registre src/ui/icons, famille scenario/*)
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »

@@ -8,7 +8,7 @@ import { Scene } from '../noyau/monde/scene';
 import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
 import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
-import type { GameState } from '../state/store';
+import type { Jeu } from '../noyau/etat';
 import type { Get } from '../noyau/flowTypes';
 import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
@@ -40,7 +40,7 @@ export function paquetDuJeu(c: BuiltinCampaign): Omit<ProjectDoc, 'schema'> {
 /** La campagne LANCÉE depuis une campagne du jeu (`setPendingCampaign`), SOURCE UNIQUE de tout site
  *  qui la joue (picker de `PartyScreen`, bibliothèque de campagnes, `__wfrp.campaign`). Son paquet
  *  passe la porte à l'appel (`paquetDuJeu`). */
-export function campagneDuJeu(c: BuiltinCampaign): NonNullable<GameState['pendingCampaign']> {
+export function campagneDuJeu(c: BuiltinCampaign): NonNullable<Jeu['pendingCampaign']> {
   const { id, label, scenes, worldMap, activeAxes, narratif } = paquetDuJeu(c);
   return {
     id: c.id,
@@ -56,7 +56,7 @@ export function campagneDuJeu(c: BuiltinCampaign): NonNullable<GameState['pendin
 
 /** La campagne que lance « Lancer » : celle choisie (`pendingCampaign`), et sans choix (`null`)
  *  l'Arène, lancée par `campagneDuJeu` comme toute campagne du jeu. Un refus lève `ProjetRefuse`. */
-export function campagneALancer(choisie: GameState['pendingCampaign']): NonNullable<GameState['pendingCampaign']> {
+export function campagneALancer(choisie: Jeu['pendingCampaign']): NonNullable<Jeu['pendingCampaign']> {
   return choisie ?? campagneDuJeu(areneCampaign);
 }
 
@@ -64,8 +64,8 @@ export function campagneALancer(choisie: GameState['pendingCampaign']): NonNulla
  *  (`PartyScreen`), du repli de défaite (`CampaignView`) et de `__wfrp.campaign` ; `sceneId` remplace
  *  sa scène d'entrée. Rend le refus de la porte énoncé au joueur (`playerEntryError`, `noyau/worldMap.ts`), `null` quand
  *  la campagne est chargée. */
-export function lancerCampagne(get: Get, choisie: GameState['pendingCampaign'], sceneId?: string): string | null {
-  let lancee: NonNullable<GameState['pendingCampaign']>;
+export function lancerCampagne(get: Get, choisie: Jeu['pendingCampaign'], sceneId?: string): string | null {
+  let lancee: NonNullable<Jeu['pendingCampaign']>;
   try {
     lancee = campagneALancer(choisie);
   } catch (err) {

@@ -6,8 +6,8 @@
 // `src/` (entrée de l'hôte web, tests transverses). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
-//  - `transitoire` : une arête d'aujourd'hui contraire à la cible, de zone à zone, avec la sous-issue qui
-//    la retire, et `types: true` quand l'arête n'est qu'un arc de type. La sous-issue retire sa ligne.
+//  - `transitoire` : un arc de TYPE d'aujourd'hui contraire à la cible, de zone à zone, avec la sous-issue
+//    qui le retire. La sous-issue retire sa ligne.
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type.
 // Toute autre zone lui est fermée, même pour un type.
 
@@ -22,25 +22,20 @@ export const COUCHES = Object.freeze({
   lib: { importe: [] },
   geometry: { importe: [] },
   i18n: { importe: [] },
-  engine: { importe: ['data', ...FEUILLES], transitoire: { gameIso: { issue: '#2884', types: true } } },
+  engine: { importe: ['data', ...FEUILLES], transitoire: { gameIso: { issue: '#2884' } } },
   data: {
     importe: ['engine', ...FEUILLES],
     transitoire: {
-      state: { issue: '#2884', types: true },
-      noyau: { issue: '#2884', types: true },
-      gameIso: { issue: '#2884', types: true },
-      scenes: { issue: '#2884' },
+      noyau: { issue: '#2884' },
+      gameIso: { issue: '#2884' },
     },
   },
   noyau: { importe: ['engine', 'data', ...FEUILLES] },
   hoteTexte: { importe: ['noyau', 'scenes', ...FEUILLES], portes: { noyau: SURFACE_DU_NOYAU } },
-  scenes: {
-    importe: ['noyau', 'data', 'engine', ...FEUILLES],
-    transitoire: { state: { issue: '#2884' }, ui: { issue: '#2884', types: true } },
-  },
+  scenes: { importe: ['noyau', 'data', 'engine', ...FEUILLES] },
   net: { importe: [...FEUILLES] },
   web: { importe: [...FEUILLES] },
-  audio: { importe: ['web', ...FEUILLES], transitoire: { state: { issue: '#2884' }, noyau: { issue: '#2884' } } },
+  audio: { importe: ['web', ...FEUILLES] },
   state: { importe: ['noyau', 'web', 'engine', 'data', 'scenes', 'net', 'audio', ...FEUILLES], types: ['ui'] },
   ui: { importe: ['gameIso', ...AMONT_DE_LA_PRESENTATION] },
   gameIso: { importe: ['ui', ...AMONT_DE_LA_PRESENTATION] },
@@ -55,9 +50,7 @@ export const estZone = (z) => typeof z === 'string' && Object.hasOwn(COUCHES, z)
 export function ouvertes(de) {
   const { importe, types = [], transitoire = {} } = COUCHES[de];
   const libres = importe === '*' ? Object.keys(COUCHES).filter((z) => z !== de) : [...importe];
-  const enType = [...types];
-  for (const [vers, arete] of Object.entries(transitoire)) (arete.types ? enType : libres).push(vers);
-  return { libres, enType };
+  return { libres, enType: [...types, ...Object.keys(transitoire)] };
 }
 
 /** Le verdict d'un arc de la zone `de` vers la zone `vers` : `null` s'il est ouvert, sinon ce qui le
@@ -66,9 +59,7 @@ export function fermeture(de, vers, typeSeul) {
   if (!estZone(de) || de === vers) return null;
   const zone = COUCHES[de];
   if (zone.importe === '*' || zone.importe.includes(vers)) return null;
-  const transitoire = zone.transitoire && Object.hasOwn(zone.transitoire, vers) ? zone.transitoire[vers] : undefined;
-  if (transitoire && !transitoire.types) return null;
-  const typeOuvert = Boolean(transitoire) || (zone.types ?? []).includes(vers);
+  const typeOuvert = Boolean(zone.transitoire && Object.hasOwn(zone.transitoire, vers)) || (zone.types ?? []).includes(vers);
   if (typeOuvert) return typeSeul ? null : 'execution';
   return 'type';
 }

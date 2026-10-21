@@ -4,17 +4,17 @@
  * DÉJÀ été validé par la porte CI (`schema-contract.test.ts`) : aucun coût runtime.
  * En dev, une édition à la main d'un document qui diverge de son schéma zod fait
  * remonter un message champ-par-champ (`validateDataset`) dès le démarrage — même contrat que la CI et que
- * la sauvegarde Codex, servi par la SOURCE UNIQUE `schemas/validate.ts`.
+ * la sauvegarde Codex, servi par la SOURCE UNIQUE `data/schemas/validate.ts`.
  */
-import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from './data/schemas/validate';
 
 /** Documents des DEUX racines lus en FORME DISQUE (`?raw` : le texte du fichier, hors `transform`).
  *  Le plugin `wfrp:prose-source` MATÉRIALISE la prose adressée dans le module JSON servi à
  *  l'application — catalogues comme projets livrés —, or `desc` et `descRef` sont EXCLUSIFS au
  *  schéma : c'est le disque que le schéma décrit. */
 const DISQUE = {
-  'src/data': import.meta.glob('./*.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
-  'src/scenes': import.meta.glob('../scenes/**/*-projet.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+  'src/data': import.meta.glob('./data/*.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
+  'src/scenes': import.meta.glob('./scenes/**/*-projet.json', { eager: true, query: '?raw', import: 'default' }) as Record<string, string>,
 };
 
 const parses = (textes: Record<string, string>): Record<string, unknown> =>
@@ -23,7 +23,7 @@ const parses = (textes: Record<string, string>): Record<string, unknown> =>
 /** Tous les documents des DEUX racines, parsés (clé = chemin relatif au module). */
 const RAW = { 'src/data': parses(DISQUE['src/data']), 'src/scenes': parses(DISQUE['src/scenes']) };
 /** Préfixe de clé `import.meta.glob` par racine — `SchemaDef.file` est relatif à SA racine. */
-const PREFIXE = { 'src/data': './', 'src/scenes': '../scenes/' } as const;
+const PREFIXE = { 'src/data': './data/', 'src/scenes': './scenes/' } as const;
 
 /** Valide chaque document registré contre son schéma ; log champ-par-champ + throw au premier invalide. */
 export function validateDataOnLoad(): void {

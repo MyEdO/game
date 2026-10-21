@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './ui/App';
-import { initAudioWiring } from './audio/wiring';
+import { initAudioWiring } from './state/audioWiring';
 import { installErrorCollector, setErrorContextProvider, wfrpErrorsApi } from './ui/errorCollector';
 import { useGame, initCombatAuto } from './state/store';
 import { initLibrary } from './state/projectLibrary';
@@ -32,7 +32,7 @@ if (import.meta.env.DEV) Promise.all([import('./state/devtools'), import('./ui/u
 
 // DEV uniquement : contrat de donnée (#176) — plante au démarrage si un src/data/*.json hand-édité
 // diverge de son schéma zod (SCHEMA_DEFS). En prod, le JSON a déjà passé la porte CI : zéro coût runtime.
-if (import.meta.env.DEV) import('./data/dev-validate').then((m) => m.validateDataOnLoad());
+if (import.meta.env.DEV) import('./dev-validate').then((m) => m.validateDataOnLoad());
 
 // DEV uniquement : le seam des datasets GÈLE les entrées du catalogue à son chargement (#2097).
 if (import.meta.env.DEV) import('./data/overrides');
