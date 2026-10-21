@@ -6,6 +6,7 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
  * fichier ne compose que la RÉFÉRENCE (`refOuSpec`).
  */
 import { tableTotale } from '../../../lib/tableTotale';
+import type { Dir8 } from '../../../geometry/dir8';
 import { z } from 'zod';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -132,9 +133,9 @@ export const chaosAlignSchema = enumNomme({
 export const exposureLevelSchema = enumNomme({ mineure: 'mineure', moderee: 'modérée', majeure: 'majeure' });
 
 /**
- * `Dir8` (`src/noyau/monde/dir8.ts`) — orientation MONDE à huit aires, UNE déclaration pour les deux nœuds
+ * `Dir8` (`src/geometry/dir8.ts`) — orientation MONDE à huit aires, UNE déclaration pour les deux nœuds
  * qui la portent : `entities[].facing` d'une Scène (`defs-scenes/scene.ts`) et le cap d'une place assise
- * de décor (`defs/props.ts`).
+ * de décor (`defs/props.ts`). Ses clés sont celles de `Dir8`, exigées par le compilateur.
  */
 export const dir8Schema = enumNomme({
   N: 'Nord',
@@ -145,7 +146,7 @@ export const dir8Schema = enumNomme({
   SO: 'Sud-Ouest',
   O: 'Ouest',
   NO: 'Nord-Ouest',
-});
+} satisfies Record<Dir8, string>);
 
 /**
  * Disponibilité (`Availability`, `src/engine/types.ts`) — le schéma DÉRIVE du tuple canon au lieu de

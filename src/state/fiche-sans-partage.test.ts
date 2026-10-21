@@ -6,7 +6,7 @@ import { memoByRef } from '../noyau/monde/sceneMemo';
 import { atteignables, objetsDuCatalogue } from './partage.testkit';
 import { useGame } from './store';
 import type { Scene } from '../noyau/monde/scene';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { presetPnjById } from './campaignData';
 
 // #2097

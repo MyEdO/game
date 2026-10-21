@@ -11,8 +11,7 @@ import { COUCHES, estZone, fermeture, porteManquee } from '../scripts/guards/lib
  * Les zones de `src/` et leurs sens d'import se disent UNE fois, dans `COUCHES`
  * (`scripts/guards/lib/couches.mjs`), et se jouent par la gate `lint` (`murs/purete-imports`,
  * `murs/zone`). Ce banc lit cette table, ne la recopie pas, et MESURE la config RÉSOLUE :
- *  1. CONTRAT de la table — chaque zone nommée existe, chaque arête transitoire cite sa sous-issue, et
- *     `fermeture` rend, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
+ *  1. CONTRAT de la table — chaque zone nommée existe, et `fermeture` rend, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
  *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les deux murs ;
  *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, depuis
  *     des fichiers réels de la zone, par chemin relatif, par alias `@/` et par chemin `/src/…` : la
@@ -66,11 +65,10 @@ const specifieur = (rel: string, vers: string) => `${'../'.repeat(rel.split('/')
 const voisin = (rel: string, i: number) => rel.replace(/(\.[^.]+)$/, `-couche-${i}$1`);
 
 describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE (#1709, #2882)', () => {
-  it('CONTRAT : chaque zone nommée est déclarée, chaque arête transitoire cite sa sous-issue', () => {
-    for (const [zone, { importe, types = [], transitoire = {} }] of Object.entries(COUCHES) as [string, { importe: '*' | string[]; types?: string[]; transitoire?: Record<string, { issue: string }> }][]) {
-      const nommees = [...(importe === '*' ? [] : importe), ...types, ...Object.keys(transitoire)];
+  it('CONTRAT : chaque zone nommée est déclarée', () => {
+    for (const [zone, { importe, types = [] }] of Object.entries(COUCHES)) {
+      const nommees = [...(importe === '*' ? [] : importe), ...types];
       for (const z of nommees) expect(ZONES, `${zone} nomme ${z}`).toContain(z);
-      for (const [vers, { issue }] of Object.entries(transitoire)) expect(issue, `${zone} → ${vers}`).toMatch(/^#\d+$/);
     }
   });
 
@@ -100,8 +98,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['noyau', 'web', false, 'type'], // fermé
       ['engine', 'noyau', false, 'type'],
       ['scenes', 'noyau', false, null], // importe
-      ['data', 'noyau', true, null], // transitoire de type (#2884)
-      ['data', 'noyau', false, 'execution'],
+      ['data', 'noyau', true, 'type'], // fermé (#2884)
+      ['data', 'noyau', false, 'type'],
       ['web', 'state', false, 'type'], // fermé
       ['hoteTexte', 'noyau', false, null], // importe (par sa porte)
       ['hoteTexte', 'scenes', false, null],

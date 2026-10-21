@@ -16,7 +16,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { chebyshev } from '../engine/grid';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SpellData } from '../data';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };

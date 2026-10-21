@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
-import { wallSegSchema } from '../data/schemas/defs-scenes/scene';
+import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { placeCombatant } from '../noyau/monde/spawn';

@@ -36,7 +36,7 @@
  */
 import { findPropById } from '../../data';
 import { caseDe, cransDepuisCapIdentite, placesLocalesDuProp } from '../../data/props.types';
-import { DIR8_DELTA, DIR8_ORDER, rotateDir8, type Dir8 } from './dir8';
+import { DIR8_DELTA, DIR8_ORDER, rotateDir8, type Dir8 } from '../../geometry/dir8';
 import { PARTY_MAX } from './combatants';
 import { heightAt, isWalkable, sceneMetresPerTile, wallBetween, type Scene, type SceneEntity } from './scene';
 import { memoByRef } from './sceneMemo';

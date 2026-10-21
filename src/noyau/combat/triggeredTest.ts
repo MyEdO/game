@@ -28,7 +28,7 @@ import { type OpsCtx, nomDeSource } from '../../engine/ops';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import type { CharKey, Combatant, Difficulty, EffectSource } from '../../engine/types';
 import { derivedStake, testSkillLabel } from '../../data';
-import { type Flow } from '../monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { type FlowTest, type ConditionCtx, evalCondition, flowHasImpureOp, flowHasOpADe, flowHasTest, poserEnjeu, resolveTestDifficulty, EMPTY_FLOW } from '../../engine/flowCore';
 import { condCtx } from '../bourseFlow';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './flowEval';

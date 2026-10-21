@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FlowEditor } from './FlowEditor';
-import { type Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';

@@ -7,7 +7,7 @@ import { findPropById, props } from '../../data';
 import { capVolumique } from '../../data/props.types';
 import { missingPropSvg, propSvg } from '../catalog/decor';
 import { estPropVolumique, type BillboardPropEl, type PropEl, type VolumePropEl } from './types';
-import type { Dir8 } from '../../noyau/monde/dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import { buildRoofs, fieldHeightAt, nappeKey, resolveNappes, ROOF_SLOPE_M } from './roofs';
 
 /** Le décor BILLBOARD d'une sortie de builder : un décor VOLUMIQUE n'a ni empreinte de billboard, ni

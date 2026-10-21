@@ -13,7 +13,8 @@ import { snapshotSave } from './saves';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 
 function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant {
   return {

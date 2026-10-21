@@ -9,8 +9,8 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { NarratifEditor, type ProjetEdite } from './NarratifEditor';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock } from '../../noyau/monde/campaignNarratif';
-import { narratifSchema } from '../../data/schemas/defs-scenes/narratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import { narratifSchema, type NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { charAbr, creatures } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 

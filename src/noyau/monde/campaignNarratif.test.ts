@@ -7,7 +7,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { exigerUnRefus, parseProject } from '../worldMap';
-import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
+import { emptyNarratif } from './campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { emptyScene } from './scene';
 
 // ids RÉELS de la règle globale (`src/data`) — base de preset valide + cible de collision.

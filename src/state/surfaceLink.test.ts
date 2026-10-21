@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, surfaceLink, heightAt, type Scene, type Terrain } from '../noyau/monde/scene';
+import { emptyScene, surfaceLink, heightAt, type Scene } from '../noyau/monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { gradeBetween, isWalkableGrade, verticalTiles, metricToLift, STEP_MAX_M, METRES_PER_LEVEL } from '../noyau/monde/relief';
 
 /**

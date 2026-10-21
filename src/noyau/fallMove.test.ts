@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { emptyScene, type Scene, type Terrain } from './monde/scene';
+import { emptyScene, type Scene } from './monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { planFranchissement, mouvementDeLAllege } from './fallMove';
 import { pathTo } from './monde/path';
 

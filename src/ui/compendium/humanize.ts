@@ -13,7 +13,7 @@
  * `charAbr`/`traitLabelById`/`groupLabel`/`psychologyLabel`/`symptomLabel`/`creatureLabel`), jamais une
  * table id→label parallèle. PUR (structure → string) — testable sans DOM.
  */
-import type { Flow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';

@@ -85,7 +85,7 @@ function rendu() {
   return {
     out,
     path,
-    staleMsg: `docs:sorts — ${path} est PÉRIMÉ (diverge de src/data spells / src/engine/spellspec / src/noyau/monde/flow).`,
+    staleMsg: `docs:sorts — ${path} est PÉRIMÉ (diverge de src/data spells / src/engine/spellspec).`,
     rerunMsg: '  → relancer `npm run docs:sorts` (dérivé jamais commité, #2203).',
     okMsg: `docs:sorts — OK (${path} à jour, ${summary})`,
     writeMsg: `${path} : ${summary}`,

@@ -70,7 +70,7 @@ import { entitySize } from '../../../noyau/monde/spawn';
 import { sizeFootprint } from '../../../noyau/monde/footprint';
 import { VIEWS, type View } from '../../rig/facing';
 import type { Rot } from '../../../geometry/iso';
-import type { Dir8 } from '../../../noyau/monde/dir8';
+import type { Dir8 } from '../../../geometry/dir8';
 import { doorIsOpen, heightAt, porteAuteur, porteEnJeu, structureIsDown, tuilesEffondreesSignature, type LectureDArete, type Scene, type SceneEntity, type WallSide } from '../../../noyau/monde/scene';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { PERCABLE_ATTRIBUT } from './percageLocal';

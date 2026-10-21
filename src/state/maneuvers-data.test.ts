@@ -12,7 +12,7 @@ import { maneuvers, findManeuverById } from '../data';
 import { setDataset } from '../data/overrides';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
-import type { TriggeredEffect } from '../noyau/monde/flow';
+import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
   id: 'c', label: 'C', kind: 'enemy',

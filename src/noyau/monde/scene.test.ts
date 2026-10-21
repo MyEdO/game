@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, tileAt, heightAt, surfaceLink, layerTiles, normalizeAmbiance, isIndoor } from './scene';
 import { evalCondition } from '../../engine/flowCore';
-import type { Scene, Terrain } from './scene';
+import type { Scene } from './scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 
 describe('evalCondition flag — conditions de flag (triggers + dialogues, source unique)', () => {
   const ok = (expr: string, flags: Record<string, boolean>) => evalCondition({ kind: 'flag', expr }, { flags, gameTime: 0 });

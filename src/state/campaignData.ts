@@ -1,7 +1,7 @@
 // Lecture de la couche de campagne CHARGÉE dans le store (#767), pour les lecteurs d'`ui` et de `gameIso` :
 // le narratif de la partie (`state.campaignNarratif`, posé par `loadProject`) passé aux résolveurs de
 // `./resolveursDuNarratif`, qui prennent leur narratif en argument (#2817).
-import type { NarratifBlock, PresetPnj } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock, PresetPnj } from '../data/schemas/defs-scenes/narratif';
 import { presetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 // Import de `useGame` au top-level mais lu UNIQUEMENT dans les fonctions (usage runtime différé) :
 // le cycle store → campaignData → store ne se résout que par la liaison vivante ESM.

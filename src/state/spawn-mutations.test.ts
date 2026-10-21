@@ -14,7 +14,7 @@ import { resolvePresetCreature } from '../noyau/monde/resolveursDuNarratif';
 import { presetPnjById } from './campaignData';
 import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { parseProject } from '../noyau/worldMap';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { Scene } from '../noyau/monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
 import { creatures, findTalentById, findTraitById } from '../data';

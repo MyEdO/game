@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DIR4_ORDER, type Dir4, type Dir8 } from '../../noyau/monde/dir8';
+import { DIR4_ORDER, type Dir4, type Dir8 } from '../../geometry/dir8';
 import { findPropById } from '../../data';
 import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../data/props.types';
 import { polyNormal } from '../backends/webgl/worldTris';

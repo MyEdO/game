@@ -10,7 +10,9 @@
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
-import type { Effect, Scene } from './monde/scene';
+import type { Scene } from './monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { z } from 'zod';
 import type { refusRouteSchema } from '../data/schemas/defs-scenes/worldmap';
 import { garanti } from '../lib/garanti';
@@ -537,7 +539,6 @@ export function declutterPositions(
 // `{ type: 'projet', id, label, versionContenu, scenes, worldMap?, narratif }` (paquet de campagne
 // auto-suffisant, #765 ; enveloppe PLATE depuis #1467 L1b, posée par la fabrique `document()` depuis
 // #1552). Aucun numéro de forme : `projetSchema` est le contrôle de format (#2404).
-import { type NarratifBlock } from './monde/campaignNarratif';
 import { validerFormeVivante, rapportDeFautes, lieuDe, cheminLisible, type Faute, type RefusDeFormeVivante } from '../data/schemas/validate';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
@@ -574,7 +575,7 @@ export interface ProjectDoc extends ProjectIdentite {
    *  ce lot (#417). */
   activeAxes?: string[];
   /** Bloc NARRATIF embarqué (#765) : affaires, indices, presets de PNJ, objets de la campagne —
-   *  référence la règle globale PAR ID, jamais réinjecté dans `src/data` (`campaignNarratif.ts`). */
+   *  référence la règle globale PAR ID, jamais réinjecté dans `src/data` (`data/schemas/defs-scenes/narratif.ts`). */
   narratif: NarratifBlock;
 }
 

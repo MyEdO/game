@@ -21,7 +21,7 @@ import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';
 import { gpToWorld } from '../backends/webgl/worldTris';
 import { pointLightWrites, FLAME_LIFT_M } from './stagePointLights';
-import type { Dir4 } from '../../noyau/monde/dir8';
+import type { Dir4 } from '../../geometry/dir8';
 
 /** Tolérance du contrat, en mètres — « la lampe est au foyer », pas « la lampe est à peu près là ». */
 const TOLERANCE_M = 0.1;

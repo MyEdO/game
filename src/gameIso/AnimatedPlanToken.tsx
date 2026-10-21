@@ -1,7 +1,7 @@
 import { bonesToSvg } from './rig/renderBones';
 import { usePlanAnim } from './usePlanAnim';
 import { planOptsForRecord, type BodyPlanId } from './rig/bodyPlan';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 
 /**

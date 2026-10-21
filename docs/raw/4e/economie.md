@@ -394,7 +394,7 @@ Couverture confirmée des refs `LDB XX l.YY` dans le code :
 
 **Fichiers engine** : `src/engine/disponibilite.ts`, `src/engine/bargain.ts`, `src/engine/appraisal.ts`, `src/engine/qualities/craftEconomy.ts`
 
-**Orchestration store** : `src/noyau/merchantFlow.ts`, `src/noyau/rollFlowSpecs.ts` (flows `bargain`/`appraise`), `src/noyau/monde/merchants/` (archétypes)
+**Orchestration store** : `src/noyau/merchantFlow.ts`, `src/noyau/rollFlowSpecs.ts` (flows `bargain`/`appraise`), archétypes indexés par `findMerchantArchetypeById` (`src/data/index.ts`), typés par `src/data/merchants.types.ts`
 
 **UI** : `src/ui/MerchantPanel.tsx`, `src/ui/BargainModal.tsx`, `src/ui/AppraiseModal.tsx`
 

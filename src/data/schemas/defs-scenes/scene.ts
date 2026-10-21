@@ -8,8 +8,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
  * ici, alors que le type manuscrit les déclare requises : un document ancien n'en porte pas.
  *
  * `Effect` et son `Flow` vivent dans `./effets.ts` (les 59 variantes) ; le vocabulaire feuille
- * partagé avec elles vit dans `./communs.ts`. Import de TYPE seul depuis `src/state` — aucun import
- * runtime de la couche state.
+ * partagé avec elles vit dans `./communs.ts`.
  *
  * Une scène est un DOCUMENT EMBARQUÉ du document de projet : elle S'ANNONCE dans la donnée
  * (`type: 'scene'`) et le schéma l'EXIGE (#1552) — même régime que le statbloc embarqué
@@ -35,7 +34,15 @@ import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
 import type { OptionalEntry } from '../../../engine/statEntry';
 
-/** `Dir8` (`noyau/monde/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
+/** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
+ *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
+export type Terrain = string & {};
+
+/** Marque de TYPE d'une valeur GELÉE : ce qu'une migration REJOUE, jamais la semence du jour —
+ *  distinguable au checker par son alias, sans nom de symbole ni de fichier (#1789). */
+export type Fige<T> = T & { readonly __fige?: undefined };
+
+/** `Dir8` (`geometry/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
 export { dir8Schema };
 /** Rectangle de zone/déclencheur — `z` = étage (défaut 0). */
@@ -315,6 +322,8 @@ const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief'
 export const reliefDefaultsSchema = nommerChamps(z.strictObject(
   tableTotale(PARTS_RELIEF, () => matiereReliefSchema),
 ), { cliff: { label: 'falaise', texte: { regime: 'technique', usage: 'id de matière du relief' } }, ramp: { label: 'rampe', texte: { regime: 'technique', usage: 'id de matière du relief' } }, deck: { label: 'tablier', texte: { regime: 'technique', usage: 'id de matière du relief' } }, pilier: { label: 'pilier', texte: { regime: 'technique', usage: 'id de matière du relief' } } });
+/** `Scene.reliefDefaults` — la matière de chaque PARTIE de relief (#1691), clés = `PARTS_RELIEF`. */
+export type ReliefDefaults = z.infer<typeof reliefDefaultsSchema>;
 /**
  * AMBIANCE d'une scène — dedans/dehors, ce qui décide si l'éclairage suit l'horloge du monde.
  * Source UNIQUE de la liste : le champ `Scene.ambiance` ci-dessous ET la semence d'une scène neuve
@@ -352,6 +361,8 @@ export const sceneRoofDefaultsSchema = nommerChamps(z.strictObject({
    *  pente à la portée (#947). */
   riseMaxStoreys: z.number().int().min(1),
 }), { material: { label: "matériau" , texte: { regime: "technique"} }, pitchDeg: { label: "pente en degrés" }, riseMaxStoreys: { label: "élévation maximale" } });
+/** `Scene.roofDefaults` — matière, pente de référence et borne de comble de la scène (#1715). */
+export type SceneRoofDefaults = z.infer<typeof sceneRoofDefaultsSchema>;
 /** MASSE de bâtiment (#823, remplace `RoofSection` authoré à la main) : l'INTENTION, jamais la
  *  géométrie du toit — `gameIso/builders/roofs.ts` DÉRIVE pans/faîte/noues/croupes par une formule
  *  UNIQUE (`hauteur(case) = hauteurÉgout + distance(case, bord de la masse) × métresParCase ×

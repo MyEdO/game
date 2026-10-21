@@ -6,7 +6,7 @@ import { useGame } from '../../state/store';
 import { emptyScene } from '../../noyau/monde/scene';
 import type { Combatant } from '../../engine/types';
 import type { Dims } from '../../geometry/iso';
-import { DIR8_DELTA, type Dir8 } from '../../noyau/monde/dir8';
+import { DIR8_DELTA, type Dir8 } from '../../geometry/dir8';
 import { TokenChromeOverlay } from './TokenChromeOverlay';
 import { tokenChrome, type TokenChromeMark } from '../builders/tokenChrome';
 import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';

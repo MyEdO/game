@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Scene } from '../../noyau/monde/scene';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { effectCtxOf } from './EffectList';
 import { WorldMap, MapPlace, MapRoute, emptyWorldMap, placeById, type MapRouteTrace, type Praticabilite } from '../../noyau/worldMap';
 import { TravelMode, TRAVEL_DEFAULTS } from '../../engine/travel';

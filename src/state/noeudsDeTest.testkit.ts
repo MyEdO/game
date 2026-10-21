@@ -25,7 +25,7 @@ import type { Combatant, EffectSource, EffectSourceKind } from '../engine/types'
 import { contractDisease, tickDisease } from '../engine/disease';
 import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import type { GameState } from './store';
-import type { Flow } from '../noyau/monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { FlowTest } from '../engine/flowCore';
 import type { Get } from '../noyau/flowTypes';
 import type { CascadeStep } from '../noyau/pendings';

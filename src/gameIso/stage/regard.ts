@@ -8,7 +8,7 @@
  * textures posent la MÊME question au même endroit.
  */
 import type { Rot } from '../../geometry/iso';
-import { DIR8_ORDER, type Dir8 } from '../../noyau/monde/dir8';
+import { DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import type { BillboardCamera } from '../backends/webgl/billboardMath';
 import type { BillboardSubject } from '../backends/webgl/sceneMeshes';
 import { dir8Basis } from '../pov/camera';

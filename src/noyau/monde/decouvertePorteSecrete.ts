@@ -1,12 +1,20 @@
 import { flowStakeRef } from '../../data';
 import { rule } from '../../engine/policy';
 import { t } from '../../i18n';
-import { flowFromEffects, testFlow, type Flow } from './flow';
+import { flowFromEffects, testFlow } from './flow';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import {
-  casesDeFace, porteMasquee, porteTentee, sceneMetresPerTile, secretAuteur,
-  type Effect, type FaceDArete, type Scene, type Trigger, type WallSeg,
+  casesDeFace,
+  porteMasquee,
+  porteTentee,
+  sceneMetresPerTile,
+  secretAuteur,
+  type FaceDArete,
+  type Scene,
+  type Trigger,
+  type WallSeg,
 } from './scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { rayonEnCases } from './vision';
 import type { RoomFocus } from './rooms';
 

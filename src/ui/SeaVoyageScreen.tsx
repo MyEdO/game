@@ -5,7 +5,7 @@ import { MultiRollList } from './MultiRollList';
 import { RecapLineList } from './RecapLine';
 import { ParchmentCard } from './ParchmentCard';
 import { Icon } from './Icon';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import { type SeaWindForceId, windAspect } from '../engine/seaWeather';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { windDirectionSchema } from '../data/schemas/defs-scenes/worldmap';

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { rotateDir8, DIR8_DELTA } from '../noyau/monde/dir8';
+import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { inFireArc, targetArc } from '../noyau/monde/fireArc';
 import { useGame } from './store';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';

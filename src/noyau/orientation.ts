@@ -1,5 +1,5 @@
 /** Orientation des combattants et du groupe (`facing`, données MONDE `Dir8`). */
-import { facingToward, type Dir8 } from './monde/dir8';
+import { facingToward, type Dir8 } from '../geometry/dir8';
 import { Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import type { Get, Set } from './flowTypes';

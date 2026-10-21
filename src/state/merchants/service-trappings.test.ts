@@ -6,10 +6,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../store';
 import { emptyScene } from '../../noyau/monde/scene';
-import { trappings, trappingsInstanciables, findTrappingById, MERCHANT_ARCHETYPES } from '../../data';
+import { trappings, trappingsInstanciables, findTrappingById, MERCHANT_ARCHETYPES, findMerchantArchetypeById } from '../../data';
 import { dansLaSousListe } from '../../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../../data/schemas/grammaire/sousListes';
-import { MERCHANTS } from '../../noyau/monde/merchants/archetypes';
 import { schema as merchantsSchema } from '../../data/schemas/defs/merchants';
 import type { Combatant } from '../../engine/types';
 
@@ -49,7 +48,7 @@ describe('stock marchand — lit la vue', () => {
   });
 
   it('repas-auberge (objet) reste au curated de la Tavernière', () => {
-    expect(MERCHANTS.taverniere.curated).toContain('repas-auberge');
+    expect(findMerchantArchetypeById('taverniere')?.curated).toContain('repas-auberge');
   });
 });
 

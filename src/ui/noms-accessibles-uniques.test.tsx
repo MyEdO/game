@@ -12,7 +12,8 @@ import { createRoot, type Root } from 'react-dom/client';
 
 import { NarratifEditor, type ProjetEdite } from './editor/NarratifEditor';
 import { CodexEdit } from './editor/codex/CodexEdit';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { creatures } from '../data';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
 import { defautsDeNoms, nomAccessible } from './nomsAccessibles.testkit';

@@ -12,7 +12,7 @@ import { ListRow } from './ListRow';
 import { SourceBadge, sourceAffichee } from './SourceBadge';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
-import type { Affaire, DocumentNarratif, Indice, IndiceStade } from '../noyau/monde/campaignNarratif';
+import type { Affaire, DocumentNarratif, Indice, IndiceStade } from '../data/schemas/defs-scenes/narratif';
 import { affichageDe, estNouveauPour, type ClueState, type IndiceAffiché } from '../noyau/monde/clues';
 import { Row, Stack } from './Layout';
 import { porteurDuNarratif } from './porteurDeProjet';

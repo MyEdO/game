@@ -1,5 +1,6 @@
-import { Scene, Effect, heightAt, surfaceDAtterrissage } from './scene';
-import { type Flow, flowFromEffects, testFlow } from './flow';
+import { Scene, heightAt, surfaceDAtterrissage } from './scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
+import { flowFromEffects, testFlow } from './flow';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Pt } from './path';
 import { jumpNeedsTest } from '../../engine/movement';

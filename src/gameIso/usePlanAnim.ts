@@ -4,7 +4,7 @@ import { useGame } from '../state/store';
 import { hasLeap } from '../engine/traits/dispatch';
 import { planById, type BodyPlanId, type BodyPlan, type WingState } from './rig/bodyPlan';
 import { project, type View } from './rig/facing';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import { walkMs } from '../geometry/walk';
 import { isTileVisible } from './viewport';
 import type { GroundState } from './groundPose';

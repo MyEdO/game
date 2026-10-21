@@ -3,8 +3,8 @@
  * chemin de la valeur fautive, par la porte du narratif (`narratifSchema`).
  */
 import { describe, it, expect } from 'vitest';
-import { narratifSchema } from './narratif';
-import { emptyNarratif, type NarratifBlock } from '../../../noyau/monde/campaignNarratif';
+import { narratifSchema, type NarratifBlock } from './narratif';
+import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 
 const P27 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.114-125' };
 const L127 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.127' };

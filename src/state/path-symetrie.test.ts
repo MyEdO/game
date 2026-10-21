@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
-import { emptyScene, isWalkable, type Scene, type Terrain, type WallSeg } from '../noyau/monde/scene';
+import { emptyScene, isWalkable, type Scene, type WallSeg } from '../noyau/monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { walkNeighbors, type Pt } from '../noyau/monde/path';
 
 /**

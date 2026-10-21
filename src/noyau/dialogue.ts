@@ -16,7 +16,7 @@ import type { CharKey, Difficulty } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';
 import { evalCondition, flowTestGateOpen, resolveTestDifficulty, type ConditionCtx } from '../engine/flowCore';
-import type { Flow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { Dialogue } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { EtatDialogue } from './pendings';

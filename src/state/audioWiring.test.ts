@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { brancherLesSons, musicSelectionOf, type MusicStateSlice } from './audioWiring';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
-import type { Effect } from '../noyau/monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 
 const at = (over: Partial<MusicStateSlice>): MusicStateSlice => ({
   screen: 'campaign',

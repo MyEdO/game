@@ -7,7 +7,7 @@ import type { Rot } from '../geometry/iso';
 import { propSvg } from './catalog/decor';
 import { MISSING_GRADIENT, terrainGradientId, terrainStopsOrdonnes } from './catalog/terrain';
 import { MISSING_TONE, MISSING_TONE_DARK } from './catalog/missing';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import type { EntityKind } from '../noyau/monde/scene';
 import { tousLesTerrains } from '../noyau/monde/terrain';
 import { type TerrainDef } from '../data/terrains.types';

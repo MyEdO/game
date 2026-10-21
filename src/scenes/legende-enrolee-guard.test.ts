@@ -16,7 +16,7 @@ import { ficheDEntite } from '../noyau/monde/sceneNpc';
 import { useGame } from '../state/store';
 import { testScenarios } from './test-scenarios';
 import type { Scene } from '../noyau/monde/scene';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { presetPnjById } from '../state/campaignData';
 
 const EXEMPTES = new Map<string, string>([

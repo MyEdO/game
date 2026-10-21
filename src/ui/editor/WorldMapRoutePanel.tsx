@@ -12,7 +12,7 @@ import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { Scene } from '../../noyau/monde/scene';
 import { type WorldMap, type MapRoute, type MapRouteTrace, type Praticabilite, type RouteBillet, placeById } from '../../noyau/worldMap';
-import type { PresetPnj } from '../../noyau/monde/campaignNarratif';
+import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import type { VehicleData } from '../../engine/types';
 import { ProvenanceDeValeur } from './ProvenanceDeValeur';
 import { type TravelMode, TRAVEL_DEFAULTS, travelVehicles, travelModeLabels, travelModeIcon } from '../../engine/travel';

@@ -16,7 +16,7 @@ import { atterrissagesDeSaut, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
 import { flowEffects } from '../engine/flowCore';
 import { t } from '../i18n';
-import type { Effect } from './monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 

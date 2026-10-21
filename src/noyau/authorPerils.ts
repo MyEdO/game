@@ -6,7 +6,7 @@
  *
  * Ce que ce module remplace : deux boucles `for (peril of route.perils) { if (d100 > chancePct)
  * continue; … }` qui roulaient leur dé en silence — un dé de MONDE que le siège qui possède
- * l'environnement ne voyait jamais. Chaque péril est désormais UNE étape (`worldStep`, évaluation
+ * l'environnement ne voyait jamais. Chaque péril est UNE étape (`worldStep`, évaluation
  * `'seuil'` : `dé ≤ chancePct`, ni bande ni DR — un pourcentage d'auteur n'est pas un Test), donc
  * posable sous « Dés fixés » et TRACÉE au journal qu'elle se déclenche ou non.
  *
@@ -25,7 +25,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { MapRoute } from './worldMap';
-import type { Effect } from './monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { BuiltCascadeStep } from './stepBrand';
 import { worldStep, freeCons } from './rollSeam';
 import { dataLabel } from '../data';

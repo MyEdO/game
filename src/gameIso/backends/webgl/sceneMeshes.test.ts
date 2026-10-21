@@ -67,7 +67,8 @@ import { scenario as pontVitrine } from '../../../scenes/test-scenarios/pont-vit
 import { scenario as diligence } from '../../../scenes/test-scenarios/diligence';
 import { buildOperaFloorplan } from '../../../scenes/opera/floorplan';
 import { buildVitrineScene } from '../../../scenes/vitrine-batiments';
-import { emptyScene, sceneMetresPerTile, type Scene, type Terrain } from '../../../noyau/monde/scene';
+import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
+import type { Terrain } from '../../../data/schemas/defs-scenes/scene';
 import { PROPS, propSvg } from '../../catalog/decor';
 import { AMBIANCE, ambianceLuminance } from '../../catalog/ambiance';
 import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';

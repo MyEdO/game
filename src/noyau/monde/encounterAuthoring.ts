@@ -11,11 +11,11 @@
  */
 import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow } from './flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { OptionalEntry } from '../../engine/statEntry';
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
 import type { SkillRef } from '../../data';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import type { ThreatTier } from '../../engine/advantagePool';
 
 /** Un ennemi authoré NOMME sa fiche (`AuMoinsUnPorteurDeFiche`, #1882) : `ref`, `statblock` ou `presetId`

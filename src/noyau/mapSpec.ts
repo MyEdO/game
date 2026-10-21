@@ -30,7 +30,6 @@
 import type {
   Scene,
   SceneEntity,
-  Terrain,
   SceneEffectZone,
   Trigger,
   Dialogue,
@@ -55,17 +54,17 @@ import { defautsDeCompilation } from '../data';
 // PLAGE de pente : la source UNIQUE est le schéma de scène, qui en borne DÉJÀ le parse
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
 // silence de la porte qui refuse une scène authorée.
-import { PENTE_TOIT_DEG, sceneSchema, wallSegSchema } from '../data/schemas/defs-scenes/scene';
+import { PENTE_TOIT_DEG, sceneSchema, wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 // SOLS NUS : la primitive PARTAGÉE de l'audit de plan (`terrains.json › built`, complément) — la CLI
 // `map:check` (famille `etage-sans-appui`) et cette porte jugent le même appui sur le même ensemble.
 import { groundTerrains } from './planDefects';
 import { estAbsent, terrainAbsent } from './monde/terrain';
 import { planStairFlight, applyStairFlight } from './stairFlight';
-import type { Flow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { FireArc } from '../engine/types';
 import type { ThreatTier } from '../engine/advantagePool';
-import type { Dir8 } from './monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import { parseAsciiRows, parseWalledAscii, scanMarkers, walledRowsOf } from './monde/asciiMap';
 import { buildEncounter, type AuthoredEnemy } from './monde/encounterAuthoring';
 import { chebyshev } from '../engine/grid';

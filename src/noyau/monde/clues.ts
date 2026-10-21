@@ -1,7 +1,7 @@
 // Mécanique MAISON du carnet d'enquête (#670) — aucune règle RAW : le livre ne définit aucun
-// système de carnet, seulement de la prose d'enquête. `Indice`/`Affaire` (données, `campaignNarratif.ts`)
+// système de carnet, seulement de la prose d'enquête. `Indice`/`Affaire` (données, `data/schemas/defs-scenes/narratif.ts`)
 // restent la SOURCE ; ce module ne porte que l'ÉTAT RUNTIME (quel stade est atteint, statut, épingle, nouveauté).
-import type { Indice } from './campaignNarratif';
+import type { Indice } from '../../data/schemas/defs-scenes/narratif';
 
 /** État runtime d'un indice révélé au carnet. Absent de `Jeu.clues` = indice CACHÉ. */
 export interface ClueState {

@@ -37,7 +37,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 
 ## 2. Navire de campagne (`state.vessel`)
 
-Câblé par des **Effects** (`src/noyau/monde/scene.ts`), jamais en dur :
+Câblé par des **Effects** (`src/data/schemas/defs-scenes/effets.ts`), jamais en dur :
 
 - `setVessel` — POSE/REMPLACE le navire de campagne (`vehicleId`, `name`, `morale`, `hullCurrent`/
   `hullMax`, `saboteurDR`, `crew`). REMPLACE tout `state.vessel` : un second `setVessel` efface Humeur de
@@ -325,7 +325,7 @@ donne `executeAt <= now` : ce n'est PAS une erreur — l'effet/l'objectif tire a
 ## 10ter. Bloc narratif (`narratif`, paquet auto-suffisant #765)
 
 Un paquet de campagne porte un bloc `narratif` (frère de `scenes`/`worldMap`, au NIVEAU
-projet — jamais per-scène), typé `NarratifBlock` (`src/noyau/monde/campaignNarratif.ts`) :
+projet — jamais per-scène), typé `NarratifBlock` (`src/data/schemas/defs-scenes/narratif.ts`) :
 
 ```
 narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; objets: TrappingData[];
@@ -456,7 +456,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
 Deux clés OPTIONNELLES du bloc narratif encadrent un chapitre. Absentes, la campagne démarre
 directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet existant n'est touché.
 
-- **`ouverture`** (`OuvertureBlock`, `src/noyau/monde/campaignNarratif.ts`) : `surtitre?`, `titre`,
+- **`ouverture`** (`OuvertureBlock`, `src/data/schemas/defs-scenes/narratif.ts`) : `surtitre?`, `titre`,
   `sousTitre?`, `chapitre?`, `pitch` (Markdown), `source?`, `ambiance?` (`veillee` | `parchemin`,
   défaut `veillee`). `loadProject` la pose dans `pendingOuverture` **après** `startScene` (qui remet
   l'état à l'init) ; `CampaignView` monte alors `CampaignOpeningScreen` par-dessus la vue. Le `pitch`

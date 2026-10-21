@@ -1,4 +1,4 @@
-import type { Settlement } from '../../../engine/disponibilite';
+import type { Settlement } from '../engine/disponibilite';
 
 /** Catégorie d'unité ACHETABLE chez un marchand (#619) : le navire n'en est pas (#748). */
 export type UniteAchetable = 'bete' | 'vehicule-terrestre';

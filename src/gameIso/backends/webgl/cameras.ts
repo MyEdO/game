@@ -19,7 +19,7 @@
 import { Box3, Matrix4, OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { CELL, TH, TW, type ProjKind, type Rot } from '../../../geometry/iso';
 import type { Scene } from '../../../noyau/monde/scene';
-import type { Dir8 } from '../../../noyau/monde/dir8';
+import type { Dir8 } from '../../../geometry/dir8';
 import { FOV_X, NEAR, makeCamera } from '../../pov/camera';
 import { pxPerM } from './worldTris';
 import { ISO_PX_PER_M } from '../../iso';

@@ -8,11 +8,27 @@ import type { JSX } from 'react';
  */
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode, type RefObject } from 'react';
 import {
-  Scene, SceneEntity, Trigger, SceneEffectZone, WallSeg, type ActionAuthoree,
-  type ArchitecturePart, type ArchitectureStorey, type FacadeSection, type BuildingMass, type RoofDefaults,
-  type ArchitectureRect, type SceneStationAnchor, type ReliefDefaults, type FaceDArete, type WallSecret, isDescriptiveZone, porteAuteur, sceneMetresPerTile,
+  Scene,
+  SceneEntity,
+  Trigger,
+  SceneEffectZone,
+  WallSeg,
+  type ActionAuthoree,
+  type ArchitecturePart,
+  type ArchitectureStorey,
+  type FacadeSection,
+  type BuildingMass,
+  type RoofDefaults,
+  type ArchitectureRect,
+  type SceneStationAnchor,
+  type FaceDArete,
+  type WallSecret,
+  isDescriptiveZone,
+  porteAuteur,
+  sceneMetresPerTile,
   secretAuteur,
 } from '../../noyau/monde/scene';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { isRoomZone } from '../../noyau/monde/rooms';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
@@ -23,7 +39,6 @@ import { useClesDeRangees } from '../useClesDeRangees';
 import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../noyau/worldMap';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
@@ -32,15 +47,14 @@ import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
 import { PROPS } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../gameIso/catalog/facades';
-import { MERCHANTS } from '../../noyau/monde/merchants/archetypes';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../audio/music';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines } from '../../data';
+import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, refEstVolumique, siegeEngines, MERCHANT_ARCHETYPES } from '../../data';
 import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEffective, TypeNonNomme } from '../../noyau/sceneEdit';
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
-import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
+import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
  *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
@@ -72,7 +86,7 @@ import { nextEntityId } from '../../lib/entityId';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
-import { estCardinal, type Dir8 } from '../../noyau/monde/dir8';
+import { estCardinal, type Dir8 } from '../../geometry/dir8';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { Row, Stack } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
@@ -1566,7 +1580,7 @@ function EntityPanel({
               Marchand (archétype)
               <select value={ent.merchant?.archetype ?? ''} onChange={(e) => updateSel({ merchant: e.target.value ? { ...ent.merchant, archetype: e.target.value } : undefined })}>
                 <option value="">— aucun —</option>
-                {Object.values(MERCHANTS).map((a) => (
+                {MERCHANT_ARCHETYPES.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.label}
                   </option>

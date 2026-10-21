@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { reponsesDuNoeud, testAnnonce, ouvrirDialogue } from './dialogue';
 import { conditionCtx } from '../engine/flowCore';
-import type { Flow } from './monde/flow';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { Dialogue, DialogueNode } from './monde/scene';
 import type { Jeu } from './etat';
 import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './monde/dialogueHistory';

@@ -3,7 +3,7 @@ import { resolveWeaponArea, areaTargets, type AreaHit } from './combatArea';
 import { useGame } from '../state/store';
 import { seedBattleRng, battleRng } from './battleRng';
 import type { Combatant, Weapon } from '../engine/types';
-import type { TriggeredEffect } from './monde/flow';
+import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 
 /**
  * Résolveur d'aire UNIQUE (Tir de zone / Explosion) — tests déterministes (RNG seedé). On monte un `battle`

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { propFootTiles } from '../../noyau/monde/footprint';
-import type { Dir4 } from '../../noyau/monde/dir8';
+import type { Dir4 } from '../../geometry/dir8';
 import type { Dims } from '../../geometry/iso';
 import { poseFromDims, worldToScreen } from './projection';
 import { resoudrePixel, type CadreDePick, type EtatDePick, type Verdict } from './pickResolve';

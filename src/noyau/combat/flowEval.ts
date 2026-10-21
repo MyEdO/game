@@ -14,7 +14,7 @@ import { immunityTypes } from '../../engine/traits/dispatch';
 import { groupMatch } from '../../engine/groups';
 import { applyOps, type GameOp, type OpsCtx } from '../../engine/ops';
 import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition, type ConditionCtx, type FlowTest, flowTestGateOpen, flowHasTest } from '../../engine/flowCore';
-import { type Flow } from '../monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 
 
 /** `ConditionCtx` de combat construit d'un combattant + de l'`OpsCtx` de la touche/du Round (géométrie

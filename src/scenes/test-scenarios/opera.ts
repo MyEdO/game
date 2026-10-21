@@ -4,7 +4,8 @@ import type { CustomStatblock } from '../../engine/statblock';
 import type { MapSpec } from '../../noyau/mapSpec';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
-import { flowFromEffects, testFlow, type Flow } from '../../noyau/monde/flow';
+import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 
 // Profil des deux étudiants saboteurs : de jeunes civils paniqués, vifs mais fragiles (pas de combattants).
 const ETUDIANT: CustomStatblock = { type: 'statblock',

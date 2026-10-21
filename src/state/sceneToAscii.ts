@@ -19,7 +19,8 @@
  * grilles/legend/wallLegend/zoneLegend/relief dans le fichier `*.ascii.ts` + `*.ts` d'origine.
  */
 import { tableTotale } from '../lib/tableTotale';
-import type { Scene, SceneEffectZone, Terrain, WallOverlay, WallSeg } from '../noyau/monde/scene';
+import type { Scene, SceneEffectZone, WallOverlay, WallSeg } from '../noyau/monde/scene';
+import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from '../noyau/monde/scene';
 import { sceneZoneTiles } from '../noyau/monde/zones';
 import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from '../noyau/monde/terrain';

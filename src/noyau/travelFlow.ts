@@ -117,7 +117,7 @@ export interface TravelRecapDay {
  *  d10) : le combat ne démarre qu'à l'ACQUITTEMENT du recap — d'abord comprendre ce qui arrive,
  *  ensuite se battre. Fermer la modale (bouton/Échap) DÉCLENCHE la suite : pas d'évitement. */
 export type TravelThen =
-  | { kind: 'effects'; effects: import('./monde/scene').Effect[] }
+  | { kind: 'effects'; effects: import('../data/schemas/defs-scenes/effets').Effect[] }
   | { kind: 'ambush'; scene: string; entry?: string; encounter: string; noSurprise: boolean };
 
 /** Récapitulatif d'un segment de voyage — la résolution étant SYNCHRONE (l'horloge saute en

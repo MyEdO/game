@@ -117,7 +117,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(path|path-[a-z-]+|dir8|sceneMemo|relief|wallIndex|decorIndex|bus|visibility|viewLevel|entreeEnScene)(\.test)?\.tsx?$`),
     categorie: 'moteur-generique',
     raison: 'Pathfinding sur grille, orientation 8 directions, mémoïsation de scène, relief, index spatiaux, bus d\'évènements ; politique de visibilité et étage affiché consommés par les seuls rendus ; rendez-vous de fin de cuisson du monde.',
-    preuve: 'src/noyau/monde/path.ts:1-5 ; src/state/visibility.ts:2 (importeur : gameIso/backends/webgl/visibilityTint seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
+    preuve: 'src/noyau/monde/path.ts:1-5 ; src/geometry/dir8.ts:2 ; src/state/visibility.ts:2 (importeur : gameIso/backends/webgl/visibilityTint seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(poste|advancement|stations)(\.test)?\.ts$`),
@@ -161,7 +161,7 @@ export const REGLES = Object.freeze([
     categorie: 'douteux',
     famille: 'cadre-fenetre',
     raison: 'Modale, coquille d\'écran et carte parchemin : Window/Popup/Panel de moteur fournissent le mécanisme, mais leur squelette est lié à WFRP (bandeau sujet-combattant, engine/types, monnaie, narratif de campagne).',
-    preuve: 'src/ui/Modal.tsx:1 imports ../engine/types, ./ModalSubject ; src/ui/ScreenShell.tsx imports ../engine/money, ../noyau/monde/campaignNarratif',
+    preuve: 'src/ui/Modal.tsx:1 imports ../engine/types, ./ModalSubject ; src/ui/ScreenShell.tsx:7-8 imports ../engine/money, ../data/schemas/defs-scenes/narratif',
   },
   {
     motif: new RegExp(String.raw`^src/ui/compendium/CodexRef[.-]|^src/ui/styles/codex-ref\.css$`),

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif, resolvePresetCreature } from './resolveursDuNarratif';
-import { emptyNarratif, type NarratifBlock } from './campaignNarratif';
+import { emptyNarratif } from './campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { findCreatureById } from '../../data';
 
 /** Un narratif de projet passé en ARGUMENT (#2817) : aucun store n'est chargé ni importé ici. */

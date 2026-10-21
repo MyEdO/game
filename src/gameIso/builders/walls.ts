@@ -21,7 +21,7 @@ import type { StructureAppearanceDef, WallPart } from '../../data/structureAppea
 import { facadeWallFeatureAppearance } from '../catalog/facades';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../../noyau/monde/relief';
-import { DIR4_ORDER, type Dir4 } from '../../noyau/monde/dir8';
+import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import type { Face, GP, WallEl } from './types';
 import type { FloorView } from './floors';
 import {

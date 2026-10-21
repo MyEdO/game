@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { facingView, screenDir, project, type Dir8 } from './facing';
+import { facingView, screenDir, project } from './facing';
+import type { Dir8 } from '../../geometry/dir8';
 
 describe('facingView', () => {
   it('vers le bas → front, vers le haut → back', () => {

@@ -6,7 +6,7 @@ import { weaponRest, hasShieldEquipped } from './rig/anim/weaponClips';
 import { rigAttackDef, rigDefenseDef, rigHitDef, rigWalkDef, type RigSelectCtx } from './rig/anim/actorAnimSelect';
 import { armePrincipale, type EquipCtx } from './rig/parts/equipment';
 import { project, type View } from './rig/facing';
-import type { Dir8 } from '../noyau/monde/dir8';
+import type { Dir8 } from '../geometry/dir8';
 import type { Clip } from './rig/anim/clips';
 import type { Pose } from './rig/poses';
 import { walkMs } from '../geometry/walk';

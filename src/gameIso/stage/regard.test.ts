@@ -7,7 +7,7 @@
  * décor peint au cap quitté sur la moitié des changements de cap.
  */
 import { describe, expect, it } from 'vitest';
-import { DIR8_ORDER, type Dir8 } from '../../noyau/monde/dir8';
+import { DIR8_ORDER, type Dir8 } from '../../geometry/dir8';
 import type { Rot } from '../../geometry/iso';
 import { billboardView } from '../backends/webgl/billboardMath';
 import type { View } from '../rig/facing';

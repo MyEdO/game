@@ -4,7 +4,7 @@ import { applyEffects, fireScheduledEffects } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import { scheduleAt, dayIndex, toDate, fromDate, MINUTES_PER_DAY, minutesUntilNext } from '../engine/clock';
-import type { Effect } from '../noyau/monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 
 /**
  * #668 — extension de `delayedEffect`/`setObjective` au JOUR/DATE ABSOLU (`ScheduleSpec`,

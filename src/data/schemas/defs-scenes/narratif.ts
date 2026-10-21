@@ -1,7 +1,7 @@
 import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 /**
- * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : `src/noyau/monde/campaignNarratif.ts`
- * en dérive ses types par `z.infer`.
+ * Schéma zod du bloc NARRATIF embarqué d'un projet (#765) — la DÉFINITION : ses types (`NarratifBlock`
+ * et frères, en fin de module) en dérivent par `z.infer`.
  *
  * Frontière RÉFÉRENCE vs NARRATIF : le narratif est EMBARQUÉ dans le document de campagne et
  * RÉFÉRENCE la règle globale (`src/data`) PAR ID — jamais copiée, jamais réinjectée. L'invariant
@@ -294,7 +294,7 @@ const formeNarratif = nommerChamps(z.strictObject({
   ecartes: listeCle(ecartSchema, 'entree').optional(),
 }), { affaires: { label: "affaires" }, indices: { label: "indices" }, presetsPnj: { label: "PNJ précomposés" }, objets: { label: "objets" , texte: { regime: "atelier",usage: "objets embarqués typés au catalogue, onglet en lecture seule"} }, documents: { label: "documents" }, etats: { label: "états de campagne" }, ouverture: { label: "ouverture" }, cloture: { label: "clôture" }, ecartes: { label: "écarts" } });
 
-/** `NarratifBlock` (`noyau/monde/campaignNarratif.ts`) — forme + sémantique. */
+/** `NarratifBlock` (fin de module) — forme + sémantique. */
 export const narratifSchema = formeNarratif.superRefine(raffineNarratif);
 
 nommerNoeud(indiceSchema, { element: 'indice' });
@@ -303,3 +303,18 @@ nommerNoeud(presetPnjSchema, { element: 'PNJ' });
 nommerNoeud(documentNarratifSchema, { element: 'document' });
 nommerNoeud(etatNarratifSchema, { element: 'état' });
 nommerNoeud(valeurDEtatSchema, { element: 'valeur' });
+
+export type IndiceStade = z.infer<typeof indiceStadeSchema>;
+export type DocumentNarratif = z.infer<typeof documentNarratifSchema>;
+export type Indice = z.infer<typeof indiceSchema>;
+export type Affaire = z.infer<typeof affaireSchema>;
+export type PresetPnj = z.infer<typeof presetPnjSchema>;
+export type EtatNarratif = z.infer<typeof etatNarratifSchema>;
+/** Entrée de fiche de dossier de chapitre écartée par l'adaptation, avec son motif (#2290). */
+export type EcartDeFiche = z.infer<typeof ecartSchema>;
+export type OuvertureBlock = z.infer<typeof ouvertureSchema>;
+/** AMBIANCE d'un cadre de campagne (#717) — strate de matière lue par les tokens `--amb-*`
+ *  (`styles/base.css`), portée en `data-ambiance` par la coquille d'écran. */
+export type AmbianceCadre = NonNullable<OuvertureBlock['ambiance']>;
+export type ClotureBlock = z.infer<typeof clotureSchema>;
+export type NarratifBlock = z.infer<typeof narratifSchema>;

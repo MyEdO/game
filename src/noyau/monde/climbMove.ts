@@ -1,5 +1,6 @@
-import { Scene, Effect, WallSeg, heightAt, climbEdgeBetween } from './scene';
-import { type Flow, flowFromEffects } from './flow';
+import { Scene, WallSeg, heightAt, climbEdgeBetween } from './scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
+import { flowFromEffects } from './flow';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Pt } from './path';
 import { surfaceClimbImpossible } from '../../engine/movement';

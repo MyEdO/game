@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { revealClue, discreditClue, togglePin, marquerVus, estNouveauPour, affichageDe, type ClueState, type IndiceAffiché } from './clues';
-import { emptyNarratif, type Indice, type NarratifBlock } from './campaignNarratif';
+import { emptyNarratif } from './campaignNarratif';
+import type { Indice, NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { useGame } from '../../state/store';
 import { applyEffects } from '../combatEffects';
 import { emptyScene } from './scene';

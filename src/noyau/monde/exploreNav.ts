@@ -4,7 +4,7 @@ import { pathTo, walkNeighbors, type MoveEnv, type Pt } from './path';
 import { portalsForParty } from './roomPortals';
 import { memeCase, placesJouables, seatSlotsOf } from './seating';
 import { estUtilisable } from './usable';
-import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from './dir8';
+import { DIR8_ORDER, DIR8_DELTA, type Dir8 } from '../../geometry/dir8';
 import { chebyshev } from '../../engine/grid';
 import { maxJumpTiles, slowestMovement } from '../../engine/movement';
 import { niMortNiATerre } from './combatants';

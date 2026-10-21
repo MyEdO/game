@@ -4,14 +4,13 @@ import {
   setDoorOpen, setDoorRevealed, wallBetween, wallIsOpen, type Scene, type WallSeg,
 } from '../noyau/monde/scene';
 import { wallSegSchema } from '../data/schemas/defs-scenes/scene';
-import { setDoorSchema } from '../data/schemas/defs-scenes/effets';
+import { setDoorSchema, type Effect } from '../data/schemas/defs-scenes/effets';
 import { roomPortals } from '../noyau/monde/roomPortals';
 import { buildScene } from '../noyau/mapSpec';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import type { Effect } from '../noyau/monde/scene';
 
 /**
  * PORTE SECRÈTE — `EDO 08 l.404` (« Cette porte ne peut être découverte qu'après la réussite d'un Test

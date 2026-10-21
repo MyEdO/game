@@ -16,7 +16,7 @@ import { METRES_PER_LEVEL, metricToLift } from '../../../noyau/monde/relief';
 import { buildScene } from '../../../noyau/mapSpec';
 import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte';
 import { sceneMetresPerTile } from '../../../noyau/monde/scene';
-import { DIR8_ORDER } from '../../../noyau/monde/dir8';
+import { DIR8_ORDER } from '../../../geometry/dir8';
 import { VH, VW, makeCamera, project } from '../../pov/camera';
 import { pxPerM } from './worldTris';
 import { ISO_PX_PER_M } from '../../iso';

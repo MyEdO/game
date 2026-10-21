@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, type Scene, type SceneEntity } from './scene';
-import type { Flow } from './flow';
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { aPorteeDe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, exploreStepDest, spawnFacing } from './exploreNav';
 import { chebyshev } from '../../engine/grid';
 import { seatSlotsOf } from './seating';

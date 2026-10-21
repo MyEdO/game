@@ -81,9 +81,8 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 Zones de `src/` (#2882, plan `docs/plans/2026-10-19-restructuration.md`) : un dossier de premier niveau
 de `src/` est une zone, et les fichiers posés à même `src/` forment la zone `racine`. La table `COUCHES`
 (`scripts/guards/lib/couches.mjs`) est la seule source des zones et de leurs sens d'import : par zone,
-ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), ses arêtes transitoires
-(des arcs de type), chacune avec la sous-issue qui la retire, et ses portes : pour une zone importée, le seul module qu'elle
-en lit (`portes`). Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
+ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), et ses portes : pour une
+zone importée, le seul module qu'elle en lit (`portes`). Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
 `murs/zone` refuse un fichier de `src/` dont la zone n'a pas de ligne, et `murs/purete-imports` refuse,
 hors tests, un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de
 `scripts/guards/lib/arcsDImport.mjs`. Banc : `src/eslint-ordre-total-et-purete.test.ts`.
@@ -254,6 +253,10 @@ src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (
                             ses dérivés qui ont besoin du MONDE (WALL_H_M/isoPxToM, via noyau/monde/relief).
                             `walk.ts` : interpolation temporelle le long d'un chemin (walkMs/walkXY,
                             STEP_MS) — cadence l'attente de fin de marche AVANT résolution de combat.
+                            `dir8.ts` : Dir8 (8 caps grille) et son sous-ensemble cardinal Dir4 +
+                            géométrie associée : rotateDir8, DIR8_DELTA, facingToward (#161, #2884 : la
+                            géométrie de cap grille n'est ni du rendu ni du monde ; `data`, `noyau`, `ui` et
+                            `gameIso` l'importent, ce dernier pour l'orientation écran).
 src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/sans-hote`,
                             `oxlint.config.mjs`) : ni entropie, ni horloge murale, ni service du
                             navigateur ; un tirage prend le `RNG` que l'appelant nomme, une quantité
@@ -400,37 +403,36 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`).
-  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 41 types exportés,
-                            dont 26 `z.infer` des schémas de `data/schemas/defs-scenes/` et 1 COMPOSÉ : l'union `Effect`
-                            (57 `z.infer` de `defs-scenes/effets.ts` + `DelayedEffect`/`PetitePriere`/
-                            `EffectOp` = 60 membres). Restent 14 MANUSCRITS : `Scene`, `SceneEntity`,
+  monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
+                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 10
+                            MANUSCRITS : `Scene`, `SceneEntity`,
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
-                            `SceneEffectZone` (corps du document), `DelayedEffect`, `PetitePriere`
-                            (annotations du `z.lazy`), `Layer` (l'infer du schéma dont `tiles` est
-                            ÉLARGI à l'alias ci-dessous : `idDe('terrain')` brande l'id qu'il rend, et
-                            l'authoring TS n'est pas parsé), `WallOverlay` (ce qu'un char de légende
-                            d'arête ÉCRIT sur une arête : `structure`/`appearance`), `LectureDArete`
-                            (lecture `auteur`/`jeu` d'une arête, `porteSelon`), `Atterrissage` (où l'on
-                            atterrit en quittant une surface, `surfaceDAtterrissage`),
-                            `Terrain`, `CellSide` (alias primitifs), `Fige` (marque de type d'une
-                            valeur GELÉE : ce qu'une migration rejoue, jamais la semence du jour).
-                            Comptes
+                            `SceneEffectZone` (corps du document), `Layer` (l'infer du schéma dont `tiles`
+                            est ÉLARGI à l'alias de terrain de `defs-scenes/scene.ts` : `idDe('terrain')`
+                            brande l'id qu'il rend, et l'authoring TS n'est pas parsé), `WallOverlay` (ce
+                            qu'un char de légende d'arête ÉCRIT sur une arête : `structure`/`appearance`),
+                            `LectureDArete` (lecture `auteur`/`jeu` d'une arête, `porteSelon`),
+                            `Atterrissage` (où l'on atterrit en quittant une surface,
+                            `surfaceDAtterrissage`), `CellSide` (alias primitif). Comptes
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
+                            Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
+                            ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
+                            `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults`, `SceneRoofDefaults`
+                            et `Fige` (marque de type d'une valeur GELÉE : ce qu'une migration rejoue,
+                            jamais la semence du jour) dans `defs-scenes/scene.ts`.
                             `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
-                            au foyer des caps (`noyau/monde/dir8.ts`)
-  monde/dir8.ts               Dir8 (8 caps grille) + géométrie associée : rotateDir8, DIR8_DELTA,
-                              facingToward (#161 : ex-`gameIso/rig/facing.ts` — la géométrie de cap grille
-                              n'est pas du rendu, `gameIso` la ré-importe pour l'orientation écran)
+                            au foyer des caps (`geometry/dir8.ts`)
   monde/seating.ts            ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
                               (places déclarées par le TYPE de décor → abord EFFECTIF, jamais partagé
                               avec une autre place de la scène), `seatIsOccupiable`/`seatPoseOf`,
                               `assignSeat`/`releaseSeat` et l'élagage (`pruneSeatAssignments`,
                               `releaseUnavailableSeats`). PUR : aucun store, aucun rendu, aucun `gameIso`
-  monde/campaignNarratif.ts SCHÉMA du bloc NARRATIF d'un paquet de campagne (#765) : `NarratifBlock`
-                            = `{affaires, indices, presetsPnj, objets, documents}` (registres déclarés UNE fois,
-                            `REGISTRES_NARRATIFS`), EMBARQUÉ dans le JSON du projet, jamais copié dans `src/data`
-                            global (`narratifSchema` refuse toute collision d'id).
+  monde/campaignNarratif.ts NARRATIF VIDE d'un paquet de campagne (#765) : `emptyNarratif` pose une liste vide par
+                            registre (`REGISTRES_NARRATIFS`). Le bloc (`NarratifBlock` et ses types frères) vit
+                            avec son schéma, `data/schemas/defs-scenes/narratif.ts` : EMBARQUÉ dans le JSON du
+                            projet, jamais copié dans `src/data` global (`narratifSchema` refuse toute
+                            collision d'id).
   monde/resolveursDuNarratif.ts COUTURE UNIQUE de résolution de la couche de campagne (#767, #2817), sans store : chaque
                             résolveur prend son narratif en ARGUMENT (celui de la partie, `campaignNarratif`, ou celui du
                             projet édité) et lit par id STABLE. `presetDuNarratif`/`indiceDuNarratif`/`documentDuNarratif`

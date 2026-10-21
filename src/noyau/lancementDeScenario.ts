@@ -11,7 +11,7 @@ import type { MassBattleSpec } from '../engine/massBattle';
 import type { Money } from '../engine/money';
 import type { Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
-import type { NarratifBlock } from './monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { CampaignVessel } from './etat';
 import type { Get, Set } from './flowTypes';
 import { creditBourse } from './bourseFlow';

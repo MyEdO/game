@@ -42,8 +42,7 @@
  * le repère est dans la donnée, pas dans la tête de l'auteur. Matérialisé par
  * `builders/propVolumes.test.ts`.
  */
-// eslint-disable-next-line murs/purete-imports -- #1506 : `DIR8_ORDER`/`estCardinal` sont des VALEURS du module FEUILLE `noyau/monde/dir8` (zéro import, donc aucune contamination de graphe #421) — l'inversion de couche est tracée par ce ticket, et VISIBLE à son site.
-import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../noyau/monde/dir8';
+import { DIR8_ORDER, estCardinal, type Dir4, type Dir8 } from '../geometry/dir8';
 import type { PropMaterialData } from './materials.types';
 
 /**
@@ -96,10 +95,10 @@ export function rotatePropLocal(x: number, y: number, facing: Dir8): [number, nu
 /**
  * LE CAP DE CE DÉCOR EST-IL ADMIS ? Règle de décor, écrite UNE fois : un décor dont le type porte une
  * recette volumique ne prend qu'un cap CARDINAL (#1680 ligne 3) ; un billboard prend les huit, et une
- * entité sans cap n'en discute pas. Vit ici parce que ses deux lecteurs sont de part et d'autre de la
- * frontière des schémas — le SCHÉMA de scène (`schemas/defs-scenes/scene.ts`, refus au parse) et le
- * VALIDATEUR (`state/validateScene.ts`, signalement à l'éditeur) — et que `src/data` ne peut pas
- * dépendre de `src/state` (règle 3, #421 ; ce module est la seule couture tracée, #1506). PURE.
+ * entité sans cap n'en discute pas. Vit en `src/data` parce que son premier lecteur est le SCHÉMA de
+ * scène (`schemas/defs-scenes/scene.ts`, refus au parse, que `state/validateScene.ts` nomme à
+ * l'éditeur) ; ses autres lecteurs — `capVolumique` ci-dessus et `ui/editor/propDefaults.ts` —
+ * dépendent de `src/data`, jamais l'inverse (règle 3, #421). PURE.
  */
 export const capDecorAdmis = (estVolumique: boolean, facing: Dir8 | undefined): boolean =>
   !estVolumique || !facing || estCardinal(facing);

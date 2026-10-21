@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { useGame } from './store';
 import { emptyScene, type Scene, type WallClimb } from '../noyau/monde/scene';
-import { rotateDir8 } from '../noyau/monde/dir8';
+import { rotateDir8 } from '../geometry/dir8';
 import { seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
 import { CAP_GROUPE, capDuGroupe, meneurDuMonde, poserCapDuGroupe } from '../noyau/monde/combatants';
 import { sceneLightSources } from '../noyau/visionState';

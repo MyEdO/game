@@ -8,56 +8,31 @@
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Flow } from './flow';
-import type { EffectOp } from '../../engine/flowCore';
-import { type ScheduleSpec } from '../../engine/clock';
-// Les FORMES des 57 variantes d'`Effect` vivent en zod (`data/schemas/defs-scenes/effets.ts`) ;
-// l'union ci-dessous les compose par `z.infer`. Import de TYPE seul — aucun cycle runtime.
+import type { Flow } from '../../data/schemas/defs-scenes/effets';
+// Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
+// optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
+// seul — aucun cycle runtime.
 import type { z } from 'zod';
+import type { ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
 import type {
-  setFlagSchema, poserEtatSchema, designerHerosSchema, setObjectiveSchema, clearObjectiveSchema, giveTrappingSchema, givePossessionSchema,
-  giveMoneySchema, giveXpSchema, startCombatSchema, startMassBattleSchema, transitionSchema,
-  transitionBackSchema, startDialogueSchema, journalSchema, documentSchema, revealClueSchema,
-  discreditClueSchema, forceDoorSchema, setTimeSchema, openMerchantSchema,
-  openPortSchema, medicalAidSchema, restoreFortuneSchema, restSchema, mealPartySchema,
-  inflictNightmaresSchema, ambitionLostSchema, inflictPsychologySchema, inflictDiseaseSchema,
-  inflictHungerSchema, inflictThirstSchema, exposureNightSchema, inflictTraumaSchema,
-  zoneBlastSchema, fallSchema, setLightSchema, setDoorSchema, moveEntitySchema, playSfxSchema,
-  giveSinSchema, corruptionExposureSchema, waterExposureSchema, learnSpellSchema, castSpellSchema,
-  sessionEndSchema, openCharacterCreatorSchema, interludeSchema, grantFavorSchema,
-  startPursuitSchema, openTavernGamesSchema, openWorldMapSchema, setVesselSchema,
-  adjustManannSchema, adjustVesselSchema, endDialogueSchema,
-} from '../../data/schemas/defs-scenes/effets';
-import type { extendedTestSchema } from '../../data/schemas/grammaire/mecanique';
-// Idem pour les FORMES de la scène elle-même : le schéma zod (`data/schemas/defs-scenes/scene.ts`)
-// les DÉCLARE — champs, optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment.
-import type {
-  architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
+  ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
-  facadeSectionSchema, layerSchema, reliefDefaultsSchema, roofDefaultsSchema, sceneRoofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
+  facadeSectionSchema, layerSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
   victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 // Seul import runtime de ce module vers `src/data` : l'opacité d'une arête est une propriété de sa
-// STRUCTURE, lue au dataset — même couture que `lineOfSight.ts`. `data/index.ts` ne dépend du noyau
-// qu'en TYPE, donc pas de cycle.
+// STRUCTURE, lue au dataset — même couture que `lineOfSight.ts`. `src/data` n'importe pas le noyau
+// (`scripts/guards/lib/couches.mjs`), donc pas de cycle.
 import { findStructureById, semencesDeScene } from '../../data';
-import type { Dir8 } from './dir8';
+import type { Dir8 } from '../../geometry/dir8';
 import type { Pt } from './path';
 import { terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
 import { gradeBetween, metricToLift, STEP_MAX_M } from './relief';
 import type { Grade } from '../../data/materials.types';
 import { aretesA } from './wallIndex';
-
-/** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
- *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
-export type Terrain = string & {};
-
-/** Marque de TYPE d'une valeur GELÉE : ce qu'une migration REJOUE, jamais la semence du jour —
- *  distinguable au checker par son alias, sans nom de symbole ni de fichier (#1789). */
-export type Fige<T> = T & { readonly __fige?: undefined };
 
 export type EntityKind = z.infer<typeof entityKindSchema>;
 
@@ -138,7 +113,7 @@ export interface SceneEntity {
    *  `tone` (#1245, L4) : id d'un `lightTones` — APPARENCE seule (couleur/intensité/vacillement),
    *  résolue au bord du rendu, hérité du type de prop s'il n'est pas posé ici ; absent = `flamme`. */
   light?: { radiusM: number; tone?: string };
-  /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `noyau/monde/merchants/archetypes`).
+  /** Marchand (#2) : ce PNJ ouvre un panneau d'achat/vente (référence un archétype de `MERCHANT_ARCHETYPES`, `data/index.ts`).
    *  `settlement`/`resaleRate`/`buyMarkup` surchargent l'archétype pour cette entité (prix paramétrables :
    *  resaleRate = rachat à la vente, buyMarkup = majoration à l'achat). */
   /** OVERRIDES par-entité des 3 règles maison Marché (LDB 59/60, `market-guild`/`market-mode`/
@@ -205,89 +180,7 @@ export type FacadeFeature = z.infer<typeof facadeFeatureSchema>;
 export type FacadeSection = z.infer<typeof facadeSectionSchema>;
 export type BuildingMass = z.infer<typeof buildingMassSchema>;
 export type RoofDefaults = z.infer<typeof roofDefaultsSchema>;
-/** `Scene.roofDefaults` — matière, pente de référence et borne de comble de la scène (#1715). */
-export type SceneRoofDefaults = z.infer<typeof sceneRoofDefaultsSchema>;
-/** `Scene.reliefDefaults` — la matière de chaque PARTIE de relief (#1691), clés = `PARTS_RELIEF`. */
-export type ReliefDefaults = z.infer<typeof reliefDefaultsSchema>;
 export type ArchitectureBody = z.infer<typeof architectureBodySchema>;
-
-/** Effet PROGRAMMÉ (Lot 0, étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
- *  elle porte un `Flow<Effect>`, donc elle est MUTUELLEMENT récursive avec l'union ci-dessous, et
- *  ce corps est l'ANNOTATION de `delayedEffectSchema` (`data/schemas/defs-scenes/effets.ts`, où
- *  vivent sa mécanique et ses réfs). */
-export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: string } & ScheduleSpec;
-
-/** « Petites Prières » — seconde variante récursive (son `reward` est un `Flow<Effect>`) ; ANNOTE
- *  `petitePriereSchema` (`data/schemas/defs-scenes/effets.ts`). */
-export type PetitePriere = { type: 'petitePriere'; heroId?: string; reward: Flow };
-
-/**
- * Union des 59 variantes d'effet de scène + la feuille `ops` = 60 membres. La FORME de chaque
- * variante — champs, optionalités, mécanique, réfs RAW — vit dans
- * `src/data/schemas/defs-scenes/effets.ts` ; ici on ne compose que les noms. `EffectOp`
- * (`type:'ops'`) est le membre POSSÉDÉ par le moteur (feuille par défaut du `Flow<E>` générique).
- */
-export type Effect =
-  | z.infer<typeof setFlagSchema>
-  | z.infer<typeof poserEtatSchema>
-  | z.infer<typeof designerHerosSchema>
-  | z.infer<typeof setObjectiveSchema>
-  | z.infer<typeof clearObjectiveSchema>
-  | z.infer<typeof giveTrappingSchema>
-  | z.infer<typeof givePossessionSchema>
-  | z.infer<typeof giveMoneySchema>
-  | z.infer<typeof giveXpSchema>
-  | z.infer<typeof startCombatSchema>
-  | z.infer<typeof startMassBattleSchema>
-  | z.infer<typeof transitionSchema>
-  | z.infer<typeof transitionBackSchema>
-  | z.infer<typeof startDialogueSchema>
-  | z.infer<typeof journalSchema>
-  | z.infer<typeof documentSchema>
-  | z.infer<typeof revealClueSchema>
-  | z.infer<typeof discreditClueSchema>
-  | z.infer<typeof extendedTestSchema>
-  | z.infer<typeof forceDoorSchema>
-  | z.infer<typeof setTimeSchema>
-  | DelayedEffect
-  | z.infer<typeof openMerchantSchema>
-  | z.infer<typeof openPortSchema>
-  | z.infer<typeof medicalAidSchema>
-  | z.infer<typeof restoreFortuneSchema>
-  | z.infer<typeof restSchema>
-  | z.infer<typeof mealPartySchema>
-  | z.infer<typeof inflictNightmaresSchema>
-  | z.infer<typeof ambitionLostSchema>
-  | z.infer<typeof inflictPsychologySchema>
-  | z.infer<typeof inflictDiseaseSchema>
-  | z.infer<typeof inflictHungerSchema>
-  | z.infer<typeof inflictThirstSchema>
-  | z.infer<typeof exposureNightSchema>
-  | z.infer<typeof inflictTraumaSchema>
-  | EffectOp
-  | z.infer<typeof zoneBlastSchema>
-  | z.infer<typeof fallSchema>
-  | z.infer<typeof setLightSchema>
-  | z.infer<typeof setDoorSchema>
-  | z.infer<typeof moveEntitySchema>
-  | z.infer<typeof playSfxSchema>
-  | z.infer<typeof giveSinSchema>
-  | z.infer<typeof corruptionExposureSchema>
-  | z.infer<typeof waterExposureSchema>
-  | z.infer<typeof learnSpellSchema>
-  | z.infer<typeof castSpellSchema>
-  | PetitePriere
-  | z.infer<typeof sessionEndSchema>
-  | z.infer<typeof openCharacterCreatorSchema>
-  | z.infer<typeof interludeSchema>
-  | z.infer<typeof grantFavorSchema>
-  | z.infer<typeof startPursuitSchema>
-  | z.infer<typeof openTavernGamesSchema>
-  | z.infer<typeof openWorldMapSchema>
-  | z.infer<typeof setVesselSchema>
-  | z.infer<typeof adjustManannSchema>
-  | z.infer<typeof adjustVesselSchema>
-  | z.infer<typeof endDialogueSchema>;
 
 export type DialogueChoice = z.infer<typeof dialogueChoiceSchema>;
 
@@ -309,8 +202,7 @@ export function speakerEntity(
 
 export type Trigger = z.infer<typeof triggerSchema>;
 
-// Évaluation des conditions (flag/temporelle) : SOURCE UNIQUE `evalCondition` (src/noyau/monde/flow.ts).
-// Les anciens `condMet`/`temporalConditionMet` ont fondu dedans (algèbre de Conditions unifiée).
+// Évaluation des conditions (flag/temporelle) : SOURCE UNIQUE `evalCondition` (`engine/flowCore.ts`).
 
 export type EncounterMember = z.infer<typeof encounterMemberSchema>;
 
@@ -394,7 +286,7 @@ export interface Scene {
   metresPerTile?: number;
   /** Décor : 'interieur' (éclairé en permanence, l'horloge ne l'assombrit pas) vs 'exterieur'
    *  (jour/nuit = horloge). Absent = extérieur. */
-  ambiance?: 'interieur' | 'exterieur';
+  ambiance?: z.infer<typeof ambianceSchema>;
   /** Classification écologique de la Scène (éditable) — lue par les attributs de Domaine liés à
    *  l'environnement (LDB 48 l.690 : la Vie/Ghyran gagne +10 à Incanter/Focaliser en zone rurale ou
    *  sauvage). Absent = non spécifié (aucun bonus d'environnement). */
@@ -620,7 +512,7 @@ export function surfaceDAtterrissage(scene: Scene, x: number, y: number, hauteur
 
 /** ARÊTE cardinale d'une case, côté MONDE (N = vers y−1, E = vers x+1…) : QUEL des quatre bords d'une
  *  case porte une chose (mur, porte, paroi de relief, wedge, pan de toit). Distinct de `Dir4`
- *  (`noyau/monde/dir8.ts`), qui est un CAP — une direction de déplacement ou d'orientation. Même cardinal,
+ *  (`geometry/dir8.ts`), qui est un CAP — une direction de déplacement ou d'orientation. Même cardinal,
  *  deux concepts : on ne « tourne » pas vers une arête, on ne pose pas un mur sur un cap. */
 export type CellSide = 'N' | 'E' | 'S' | 'O';
 

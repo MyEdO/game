@@ -7,7 +7,7 @@ import { buildPropVolumes } from '../gameIso/builders/propVolumes';
 import { estPropVolumique } from '../gameIso/builders/types';
 import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { seatSlotsOf } from '../noyau/monde/seating';
-import type { Dir4 } from '../noyau/monde/dir8';
+import type { Dir4 } from '../geometry/dir8';
 
 /**
  * L'ANCRE D'UNE PLACE EST CELLE DU DÉCOR (#1509 L5′).

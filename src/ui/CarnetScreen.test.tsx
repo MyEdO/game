@@ -8,7 +8,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CarnetScreen } from './CarnetScreen';
 import { useGame } from '../state/store';
 import { bookAbr } from '../data';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { revealClue, type ClueState } from '../noyau/monde/clues';
 import { t } from '../i18n';
 

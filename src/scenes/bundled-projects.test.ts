@@ -10,13 +10,12 @@ import { parseProject, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { validateScene } from '../state/validateScene';
 import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
-import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById } from '../data';
+import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById, merchantArchetypeById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
-import { MERCHANTS } from '../noyau/monde/merchants/archetypes';
 import { rigSpeciesVocab } from '../gameIso/rig/appearance';
 import { TENUE_BY_ID } from '../gameIso/rig/parts/tenues';
-import type { Effect } from '../noyau/monde/scene';
-import { flowFromEffects, type Flow } from '../noyau/monde/flow';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import { flowFromEffects } from '../noyau/monde/flow';
 import { carriedFlows, racinesDeFlow, walkFlow } from '../engine/flowCore';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { coDescendre, type PointDeDonnee } from '../data/schemas/grammaire/descente';
@@ -187,12 +186,12 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(fautifs).toEqual([]);
   });
 
-  /** Un marchand d'auteur pointe un ARCHÉTYPE du registre (`noyau/monde/merchants/archetypes.ts`) — sinon son stock est vide. */
+  /** Un marchand d'auteur pointe un ARCHÉTYPE du registre (`MERCHANT_ARCHETYPES`, `data/index.ts`) — sinon son stock est vide. */
   it.each(bundledFiles.map((f) => [f] as const))('%s : tout marchand référence un archétype RÉEL du registre', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs = doc.scenes.flatMap((sc) =>
       sc.entities
-        .filter((e) => e.merchant?.archetype && !MERCHANTS[e.merchant.archetype])
+        .filter((e) => e.merchant?.archetype && !merchantArchetypeById.has(e.merchant.archetype))
         .map((e) => `${sc.id}:${e.id} archétype « ${e.merchant!.archetype} »`),
     );
     expect(fautifs).toEqual([]);

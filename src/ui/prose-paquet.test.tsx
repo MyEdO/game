@@ -12,7 +12,8 @@ import { useGame } from '../state/store';
 import { runFlow } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
-import { emptyNarratif, type NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { Prose } from './Prose';
 import { DocumentModal } from './DocumentModal';
 

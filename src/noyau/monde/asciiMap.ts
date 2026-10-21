@@ -1,4 +1,5 @@
-import type { Terrain, WallOverlay, WallSeg } from './scene';
+import type { WallOverlay, WallSeg } from './scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import { wallOverlayOf } from './scene';
 import { terrainWalkable, terrainsAvecGlyphe } from './terrain';
 import { FOND_ECRIT, GRAMMAIRE_ASCII } from '../../data/schemas/grammaire/carte-ascii';

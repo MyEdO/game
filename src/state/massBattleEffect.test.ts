@@ -3,7 +3,7 @@ import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
 import { pregenParty, PREGEN } from '../data/pregens';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from '../noyau/combatEffects';
-import type { Effect } from '../noyau/monde/scene';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { armyMight, armyStartMight, nomDArmee } from '../noyau/massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
 

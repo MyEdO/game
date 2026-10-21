@@ -9,7 +9,8 @@
  * que la loi de dégagement découvre l'espace du groupe. Éditer la carte = éditer l'ASCII (+ ce `relief`
  * si l'élévation change).
  */
-import type { Scene, Terrain, WallOverlay } from '../../noyau/monde/scene';
+import type { Scene, WallOverlay } from '../../noyau/monde/scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import { buildScene, type MapSpec } from '../../noyau/mapSpec';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { parseWalledAscii, walledRowsOf, zonesFromSeeds, type ZoneSeed } from '../../noyau/monde/asciiMap';

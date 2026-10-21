@@ -6,7 +6,7 @@
  *  bibliothèque (`campagneDeLEntree`, `state/projectLibrary.ts`). */
 import { Scene } from '../noyau/monde/scene';
 import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
-import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
 import type { Jeu } from '../noyau/etat';
 import type { Get } from '../noyau/flowTypes';

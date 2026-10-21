@@ -5,8 +5,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { makeRNG } from '../../engine/dice';
 import { rollStock, type CatalogItem } from '../../engine/disponibilite';
-import { trappings } from '../../data';
-import { MERCHANTS } from '../../noyau/monde/merchants/archetypes';
+import { trappings, findMerchantArchetypeById } from '../../data';
+import { garanti } from '../../lib/garanti';
 import { useGame } from '../store';
 import { emptyScene } from '../../noyau/monde/scene';
 import { setRule, resetRule } from '../../engine/policy';
@@ -14,14 +14,14 @@ import type { Combatant } from '../../engine/types';
 
 describe('#220 — archétype avitailleur (registre)', () => {
   it('est chargé au registre avec son étiquette et sa catégorie', () => {
-    expect(MERCHANTS.avitailleur).toMatchObject({ label: 'Avitailleur', settlement: 'ville', resaleRate: 0.5, bargainSkill: 40 });
-    expect(MERCHANTS.avitailleur.category.subTypes).toEqual(
+    expect(findMerchantArchetypeById('avitailleur')).toMatchObject({ label: 'Avitailleur', settlement: 'ville', resaleRate: 0.5, bargainSkill: 40 });
+    expect(findMerchantArchetypeById('avitailleur')?.category.subTypes).toEqual(
       expect.arrayContaining(['nourriture-boisson-et-hebergement', 'possessions-diverses', 'munition-de-siege']),
     );
   });
 
   it('le curated est exhaustif : eau douce + pièces de navire + munitions navales + rations de mer', () => {
-    expect(MERCHANTS.avitailleur.curated).toEqual(
+    expect(findMerchantArchetypeById('avitailleur')?.curated).toEqual(
       expect.arrayContaining([
         'tonneau-d-eau-douce',
         'pieces-detachees-de-navire',
@@ -35,7 +35,7 @@ describe('#220 — archétype avitailleur (registre)', () => {
   });
 
   it('le stock tiré (rollStock, RNG seedé) garantit l\'eau douce et les pièces détachées de navire', () => {
-    const arch = MERCHANTS.avitailleur;
+    const arch = garanti(findMerchantArchetypeById('avitailleur'), 'avitailleur', 'archétype de marchand');
     const cat: CatalogItem[] = trappings
       .filter((t) => !arch.category.categories && t.subType != null && arch.category.subTypes!.includes(t.subType))
       .map((t) => ({ id: t.id, label: t.label, availability: (t.availability as CatalogItem['availability']) ?? null }));
@@ -52,7 +52,7 @@ describe('#220 — archétype avitailleur (registre)', () => {
 });
 
 /**
- * Le contrat `curated` (« Articles garantis en stock […] Disponibilité ignorée », `merchants/types.ts`)
+ * Le contrat `curated` (« Articles garantis en stock […] Disponibilité ignorée », `data/merchants.types.ts`)
  * vaut pour TOUT mode de marché : le mode simplifié / sans-Disponibilité passe par `fullStock`, qui
  * excluait les Exotiques SANS regarder le `curated` — l'Avitailleur perdait sa mitraille (Exotique).
  */
@@ -70,7 +70,7 @@ describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `openMe
 
   for (const mode of ['simplifie', 'sans-disponibilite'] as const) {
     it(`mode « ${mode} » : la mitraille (Exotique, curatée par l’avitailleur) reste en stock`, () => {
-      expect(MERCHANTS.avitailleur.curated).toContain('mitraille-et-poudre');
+      expect(findMerchantArchetypeById('avitailleur')?.curated).toContain('mitraille-et-poudre');
       expect(trappings.find((t) => t.id === 'mitraille-et-poudre')!.availability).toBe('Exotique');
       useGame.setState({ party: [hero()], scene: sceneWithAvitailleur(mode) });
       useGame.getState().openMerchant('pnj');

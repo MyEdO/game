@@ -2,7 +2,7 @@
 import { groupePosable, toggleDoorIn, type Scene } from './monde/scene';
 import { releaseSeat, RANG_MENEUR, memeCase } from './monde/seating';
 import { poserCapDuGroupe, meneurDuMonde, capDuGroupe } from './monde/combatants';
-import { facingToward, rotateDir8 } from './monde/dir8';
+import { facingToward, rotateDir8 } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { checkTriggers, jouerFlowEntier, runFlow } from './combatEffects';
 import { exploreMovePlan, mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';

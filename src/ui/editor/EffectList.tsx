@@ -10,7 +10,8 @@ import type { JSX } from 'react';
  * `applyEffects`).
  */
 import { tableTotale } from '../../lib/tableTotale';
-import { Effect, EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
+import { EncounterDef, Dialogue, Scene } from '../../noyau/monde/scene';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { Icon } from '../Icon';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
@@ -18,7 +19,7 @@ import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../.
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
 import { useId, useMemo } from 'react';
-import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
+import { giveTrappingSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -30,7 +31,6 @@ import { RefField, RefNarrativeField, SOURCE_NARRATIVE } from '../compendium/ref
 import { entreesDeStades, libelleDEtat, libelleDeStade, libelleNarratif, type CleDeReferenceNarrative } from '../compendium/libellesNarratifs';
 import { etatsAdmettant, valeursDeclarees, type UsageDEtat } from '../../data/schemas/defs-scenes/formes-d-etat';
 import { REFERENCES_NARRATIVES } from '../../data/schemas/defs-scenes/registres-narratifs';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { NumberField } from '../NumberField';

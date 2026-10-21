@@ -23,7 +23,7 @@ import { buildingFeatures } from '../../noyau/monde/buildings';
 import { facadeFeatureViz } from '../catalog/facades';
 import { WALL_H_M } from '../iso';
 import { capVolumique, empreinteDuProp } from '../../data/props.types';
-import type { Dir4, Dir8 } from '../../noyau/monde/dir8';
+import type { Dir4, Dir8 } from '../../geometry/dir8';
 import { edgeKey, fieldHeightAt, nappeKey, resolveNappes, WALL_NB, type RoofField, type RoofShapeSpec } from './roofs';
 import type { FloorView } from './floors';
 import type { PropEl, OrigineDecor } from './types';

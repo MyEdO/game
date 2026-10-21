@@ -1,25 +1,9 @@
 /**
- * FLOW (modèle du monde du noyau) — fine instanciation du NOYAU PUR `engine/flowCore`. Le modèle (Flow/Condition/
- * FlowTest/TriggeredEffect), l'évaluation des Conditions et tous les helpers PURS vivent désormais en
- * `engine/` (cf. #8 : le moteur ne doit JAMAIS importer `state` — règle 3). Ici on ne fait qu'INSTANCIER
- * la FEUILLE générique `Flow<E>` / `TriggeredEffect<E>` avec l'union `Effect` complète (transition,
- * startCombat, startDialogue… — irréductiblement du monde) : c'est le Flow de SCÈNE/campagne.
- *
- * Condition/FlowTest/EffectOp/evalCondition/conditionCtx/les walkers s'importent de `engine/flowCore` ;
- * ce module ne déclare que les deux alias qui spécialisent `Flow`/`TriggeredEffect` sur `Effect` et
- * les deux builders fixés sur `Effect`.
+ * Builders du Flow de SCÈNE (`data/schemas/defs-scenes/effets.ts` : `Flow`), fixés sur l'union `Effect`
+ * — versions spécialisées des builders génériques `<E>` de `engine/flowCore`.
  */
-import type { Effect } from './scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { flowFromEffects as coreFlowFromEffects, testFlow as coreTestFlow, type FlowTest } from '../../engine/flowCore';
-
-
-/** Flow de SCÈNE/campagne : la feuille `do` porte l'union `Effect` COMPLÈTE (transition/startCombat/
- *  startDialogue/journal… — state). Spécialise le `Flow<E>` générique du noyau engine. */
-export type Flow = import('../../engine/flowCore').Flow<Effect>;
-
-/** Effet DÉCLENCHÉ de scène : son `flow` peut porter tout `Effect` (≠ `EffectOp` engine-pur, défaut du
- *  noyau). Spécialise le `TriggeredEffect<E>` générique du noyau engine. */
-export type TriggeredEffect = import('../../engine/flowCore').TriggeredEffect<Effect>;
 
 /** Builder FIXÉ sur `Effect` (≠ version générique `<E>` de `engine/flowCore`). Côté state,
  *  les littéraux d'effets de SCÈNE (giveXp/journal/startDialogue…) sont vérifiés CONTEXTUELLEMENT contre

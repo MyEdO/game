@@ -9,7 +9,7 @@ import { useRef } from 'react';
 import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../noyau/monde/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../noyau/worldMap';
-import type { NarratifBlock } from '../../noyau/monde/campaignNarratif';
+import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';

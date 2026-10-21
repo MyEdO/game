@@ -49,9 +49,8 @@ import {
   clearEffectZoneCarve,
 } from './editorState';
 import type { Sel } from './editorState';
-import { type Flow } from '../../noyau/monde/flow';
 import { EMPTY_FLOW } from '../../engine/flowCore';
-import type { Effect } from '../../noyau/monde/scene';
+import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 
