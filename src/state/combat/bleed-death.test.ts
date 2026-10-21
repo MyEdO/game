@@ -5,7 +5,7 @@ import { resolveRoundBoundary } from '../../noyau/combatFlow';
 import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { ev } from '../../noyau/combatLog';
-import { addCondition, stacks, COND } from '../../engine/conditions';
+import { addCondition, hasCondition, loseWounds, stacks, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 
@@ -54,11 +54,12 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     resolveRoundBoundary(useGame.getState, useGame.setState);
   }
 
-  /** Porteur éligible au jet : 0 PB ET Inconscient (#1595 c.6240485441). */
+  /** Porteur de `n` Hémorragique amené à 0 PB par un coup : la règle le rend Inconscient (LDB 16 l.105). */
   function saigneInconscient(c: Combatant, n: number) {
-    c.wounds = { current: 0, max: c.wounds.max };
-    addCondition(c, COND.inconscient, 1);
+    c.wounds = { current: 3, max: c.wounds.max };
     addCondition(c, COND.hemorragique, n);
+    loseWounds(c, 10);
+    expect(hasCondition(c, COND.inconscient), 'Inconscient posé par la règle, pas par la fixture').toBe(true);
   }
 
   it('ennemi : jet ≤ 10×pions → mort finalisée (annonce différée + onSlain)', () => {
@@ -71,14 +72,34 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     expect(useGame.getState().pendingFateSave).toBeNull(); // un ennemi n'a pas de Destin
   });
 
-  it('porteur CONSCIENT à 1 PB : aucun jet, aucune mort (jet ≤ 10×pions ignoré)', () => {
+  it('porteur CONSCIENT qui garde des PB après le saignement : aucun jet, aucune mort (jet ≤ 10×pions ignoré)', () => {
     const { E } = setup();
     seedBattleRng(7);
-    E.wounds = { current: 1, max: 20 };
+    E.wounds = { current: 5, max: 20 };
     addCondition(E, COND.hemorragique, 3);
     endRound();
     const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
+    expect(e.wounds.current).toBe(2);
     expect(e.dead).toBeFalsy();
+  });
+
+  it('porteur de 2 Hémorragique amené à 0 PAR LE SAIGNEMENT : Inconscient, puis jet de mort le même Round', () => {
+    const { E } = setup();
+    seedBattleRng(7); // 1ᵉʳ d100 ≤ 20 → mort
+    E.wounds = { current: 2, max: 20 };
+    addCondition(E, COND.hemorragique, 2);
+    endRound();
+    const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
+    expect(hasCondition(e, COND.inconscient)).toBe(true);
+    expect(e.dead).toBe(true);
+  });
+
+  it('jet de mort survécu : il se lit au journal', () => {
+    const { E } = setup();
+    seedBattleRng(1); // 1ᵉʳ d100 > 30, non-double → survie
+    saigneInconscient(E, 3);
+    endRound();
+    expect(useGame.getState().battle!.log.some((l) => /survit à l'hémorragie/.test(l.text))).toBe(true);
   });
 
   it('coagulation : un DOUBLE retire 1 pion d’Hémorragique (pas de mort)', () => {

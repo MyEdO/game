@@ -291,6 +291,7 @@ export const fr = {
   'cond.lastWoundExhausted': '{name} est Exténué (dernière plaie refermée).',
   'cond.coagulate': '{name} : une plaie coagule ({roll}, double) — un État Hémorragique en moins.',
   'cond.bleedDeath': "{name} succombe à l'hémorragie ({roll} ≤ {threshold}).",
+  'cond.bleedSurvive': "{name} survit à l'hémorragie ({roll} > {threshold}).",
   'cond.nightmareNone': "{name} dort d'un sommeil sans rêve.",
   'cond.nightmare': '{name} est en proie à de terribles cauchemars (Calme +40 raté) et gagne Exténué.',
   'cond.unconscious': '{name} perd connaissance (0 PB depuis {rounds} Rounds).',

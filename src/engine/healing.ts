@@ -5,7 +5,7 @@
  */
 import { Combatant, type Difficulty } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
-import { loseWounds, addCondition, removeCondition, hasCondition, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions } from './conditions';
+import { loseWounds, addCondition, removeCondition, reprendreConnaissance, recoveredStacks, hasSurgeryLockedCondition, syncDerivedConditions } from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
 import { isAstoundingFailure } from './tests';
@@ -163,10 +163,7 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   const log = customLog ? customLog(healed) : (healed > 0
     ? [t('heal.gain', { name: target.label, n: healed, cur: target.wounds.current, max: target.wounds.max })]
     : [t('heal.lodgedBlocks', { name: target.label })]);
-  if (wake && target.wounds.current > 0 && hasCondition(target, 'inconscient')) {
-    removeCondition(target, 'inconscient', condStacks(target, 'inconscient')); // reprend connaissance (LDB 18 l.15)
-    log.push(t('heal.awake', { name: target.label }));
-  }
+  if (wake && target.wounds.current > 0 && reprendreConnaissance(target)) log.push(t('heal.awake', { name: target.label }));
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
