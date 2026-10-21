@@ -81,7 +81,7 @@ function mesurerSousVerrou({ numero, dossier, sansFetch, json, fs, pid, maintena
   const avant = relire(cible, fs)
   const precedente = lireMesure(avant)
   const vues = new Map((precedente?.ok ? precedente.mesure.anomalies : []).map((a) => [`${a.genre}\u0000${a.cle}`, a.vueDepuis]))
-  const { vu, profil } = mesureProfilee({ ...mesure, portee, sansFetch, commandeSansFetch: `npm run ops:suivi -- ${numero} --mesurer --sans-fetch` })
+  const { vu, profil } = mesureProfilee({ ...mesure, portee, sansFetch, maintenant, commandeSansFetch: `npm run ops:suivi -- ${numero} --mesurer --sans-fetch` })
   const date = maintenant.toISOString()
   const document = {
     version: 1, epique: numero, date, sansFetch, portee, ok: vu.ok, refus: vu.ok ? null : String(vu.refus),

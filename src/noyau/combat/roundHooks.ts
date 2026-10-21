@@ -11,7 +11,7 @@ import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
 import { testValue } from '../../engine/skills';
 import { bonus, effectiveChar, refreshWounds } from '../../engine/characteristics';
-import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, stacks, endOfRound, hasCondition, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
+import { addCondition, isOutOfAction, COND, tickDeath, bleedDeathRoll, poserInconscientDeSaignement, stacks, endOfRound, pendingPlusExtensions, resolvePlusExtension } from '../../engine/conditions';
 import { suffocationTick } from '../../engine/suffocation';
 import { tickTraumaEscalation } from '../../engine/trauma';
 import { clearPsychOf, refreshAllDefendedPsych } from '../../engine/psychology';
@@ -60,7 +60,7 @@ function aaBleedUnconsciousDue(c: Combatant): boolean {
  *  Partagée par le hook (ENNEMIS/auto) et l'applier de cascade (HÉROS). Renvoie la ligne d'échec, ou `null`. */
 function aaBleedUnconsciousApply(c: Combatant, success: boolean): string | null {
   if (success) return null; // reste conscient (À Terre)
-  addCondition(c, COND.inconscient);
+  poserInconscientDeSaignement(c);
   return t('cond.aaBleedUnconscious', { name: c.label });
 }
 /** Seuil de la règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est
@@ -408,11 +408,9 @@ export const TABLES = {
         // LDB 16 l.105 ; AA 07 l.7 ; #1595 c.6240485441
         const doomed: { id: string; deathLine: string }[] = [];
         for (const c of battle.combatants) {
-          const eligible = !c.dead && !c.outOfRencontre && c.wounds.current <= 0 && hasCondition(c, COND.inconscient) && stacks(c, COND.hemorragique) > 0;
-          if (!eligible) continue;
           const bd = bleedDeathRoll(c, battleRng());
           if (bd.died) doomed.push({ id: c.id, deathLine: bd.log[0] }); // annonce différée (après le jet de Destin)
-          else bd.log.forEach((l) => sink(l, c)); // coagulation (double) : retrait + éventuel Exténué, visible de suite
+          else bd.log.forEach((l) => sink(l, c)); // survie ou coagulation (double : retrait + éventuel Exténué), visible de suite
         }
         battle.bleedDoomed = doomed.length ? doomed : undefined;
       },

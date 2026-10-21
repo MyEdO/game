@@ -938,7 +938,8 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { ba
  */
 export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: string[] } {
   const n = stacks(c, COND.hemorragique);
-  if (n <= 0) return { died: false, log: [] };
+  const eligible = !c.dead && !c.outOfRencontre && n > 0 && hasCondition(c, COND.inconscient); // AA 07 l.7 ; LDB 16 l.105 ; #2915
+  if (!eligible) return { died: false, log: [] };
   const r = d100(rng);
   if (isDoubleRoll(r)) {
     removeCondition(c, COND.hemorragique, 1); // coagulation (le double prime sur la mort)
@@ -947,7 +948,7 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
     return { died: false, log };
   }
   if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: c.label, roll: r, threshold: 10 * n })] };
-  return { died: false, log: [] };
+  return { died: false, log: [t('cond.bleedSurvive', { name: c.label, roll: r, threshold: 10 * n })] };
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
@@ -1017,11 +1018,31 @@ export function inDeathCondition(c: Combatant): boolean {
   return hasCondition(c, COND.inconscient) && c.wounds.current <= 0 && (c.criticalWounds ?? 0) > be;
 }
 
-/** À 0 PB : gagne l'État À Terre (LDB 18 l.15). À appeler quand un coup non-critique amène à 0.
+/** À 0 PB : gagne l'État À Terre (LDB 18 l.15) ; porteur d'Hémorragique, l'Inconscient (LDB 16 l.105),
+ *  sauf en variante Aux Armes, qui le soumet à un Test (AA 07 l.5, hook `aa-bleed-unconscious`).
  *  Un objet inanimé (Structure, coque, affût) ne tombe jamais À Terre : AA 10 l.114, MDG 13 l.656. */
 export function applyZeroWounds(c: Combatant): void {
   if (isInanimate(c)) return;
   if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
+  if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
+}
+
+/** Reprendre connaissance (LDB 18 l.15) : retire l'Inconscient, sauf verrou (LDB 16 l.105). Vrai si le porteur
+ *  s'est réveillé. SOURCE UNIQUE du réveil par les PB (soin `applyHealWounds`, repos `restDay`). */
+export function reprendreConnaissance(c: Combatant): boolean {
+  const inc = c.conditions.find((x) => x.id === COND.inconscient);
+  if (!inc || isConditionLocked(inc, c)) return false;
+  removeCondition(c, COND.inconscient, inc.value);
+  return true;
+}
+
+/** Verrou de l'Inconscient d'un porteur d'Hémorragique : LDB 16 l.105 ; AA 07 l.7. */
+const VERROU_DU_SAIGNEMENT: ConditionLocks = { lockedUntil: { kind: 'compare', subject: { who: 'target', condition: COND.hemorragique }, op: '==', value: 0 } };
+
+/** Inconscient par la perte de sang, verrouillé tant qu'un État Hémorragique reste : LDB 16 l.105 ; AA 07 l.5, l.7.
+ *  Partagé par la pose à 0 PB (`applyZeroWounds`) et l'échec du Test d'AA (`aa-bleed-unconscious`). */
+export function poserInconscientDeSaignement(c: Combatant): void {
+  addCondition(c, COND.inconscient, 1, undefined, undefined, undefined, undefined, VERROU_DU_SAIGNEMENT);
 }
 
 /**

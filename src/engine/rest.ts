@@ -30,7 +30,7 @@ import { RNG } from './dice';
 import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
 import { testValue } from './skills';
-import { removeCondition, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
+import { removeCondition, reprendreConnaissance, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
 import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
@@ -180,7 +180,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   let wokeUp = false;
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;
-    if (hasCondition(c, 'inconscient')) { removeCondition(c, 'inconscient', stacks(c, 'inconscient')); wokeUp = true; }
+    wokeUp = reprendreConnaissance(c);
     if (hasCondition(c, 'a-terre')) removeCondition(c, 'a-terre', stacks(c, 'a-terre'));
   }
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
