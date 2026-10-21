@@ -19,7 +19,7 @@ import { openAttackCascade, maybeOpenDefense } from '../noyau/combatFlow';
 import { intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { jetOwnedIntents } from '../noyau/flowVerbs';
-import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
+import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from '../noyau/intentionsDeSiege';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';

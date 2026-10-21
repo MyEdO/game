@@ -67,7 +67,7 @@ function resumedHostSession() {
   const onCampaign = vi.fn(() => { received.push('campaign'); });
   const applyIntent = vi.fn();
   const host = new HostSession({
-    build: 'test', allow: new Set(['battleEndTurn']), applyIntent,
+    build: 'test', applyIntent,
     getSnapshot: () => ({ ...snapshot }), extraJoinMessages: () => [campaign],
   });
   const guest = new GuestSession({ build: 'test', label: 'Anna', applySnapshot, onCampaign });

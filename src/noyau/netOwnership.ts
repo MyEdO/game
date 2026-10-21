@@ -105,7 +105,7 @@ export function quorumAtteint(s: Pick<Jeu, 'party' | 'net'>, readyBySeat: Record
 /**
  * SIÈGE AGISSANT (#1017) — quel siège joue le geste EN COURS. Normalement `net.mySeat` (le joueur
  * devant l'écran) ; mais l'HÔTE exécute aussi les gestes des AUTRES sièges quand il applique un
- * intent reçu (`netFlow.applyIntent`), et il les exécute DANS SON PROPRE store. Sans ce contexte,
+ * intent reçu (`appliquerLIntentionDUnSiege`), et il les exécute DANS SON PROPRE store. Sans ce contexte,
  * toute garde d'action bâtie sur « le siège local possède-t-il ce combattant ? » (les ~30
  * `controlsCombatant` de `combatSlice`, dont `battleBattement`/`battleDisengage`) répondait NON
  * chez l'hôte pour le héros d'un invité : l'intent était accepté par `intentAllowedFor` puis
@@ -136,7 +136,7 @@ export function unSiegeAgit(): boolean {
 
 /** Le siège au nom duquel on décide MAINTENANT : celui qui agit s'il y en a un, sinon le siège local.
  *  Exporté pour les gestes qui MARQUENT leur siège dans l'état partagé (demande de pause de Round) :
- *  le siège vient du TRANSPORT (`withActingSeat`, posé par `netFlow.applyIntent`), jamais des arguments
+ *  le siège vient du TRANSPORT (`withActingSeat`, posé par `appliquerLIntentionDUnSiege`), jamais des arguments
  *  de l'émetteur — un siège ne peut donc marquer ni démarquer que lui-même. */
 export function decidingSeat(s: Jeu): number {
   return actingSeat ?? s.net.mySeat;
@@ -559,7 +559,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ...(['chooseDialogue', 'closeDialogue', 'interactEntity', 'designerHerosChoisir'] as const).map(
       (a) => [a, {
         rule: (s: Jeu, seat: number) => seat === (s.net.gmSeat ?? 0),
-        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `HostSession` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal ; `closeDialogue` : aucun)',
+        horsAllowlist: 'DÉFENSE EN PROFONDEUR — deux barrières indépendantes : `appliquerLIntentionDUnSiege` filtre `GUEST_INTENTS` AVANT toute possession (l’intent n’atteint pas cette règle), et cette règle refuse par elle-même tout siège autre que le MJ/hôte, sans dépendre du filtre amont. Le geste vit à l’écran d’EXPLORATION, miroir de l’hôte en V1 (émetteurs mesurés : `chooseDialogue` DialogueBox et les touches `dialogue-choice-N` (keybindings), `interactEntity` useStagePointer, `designerHerosChoisir` DesignationHerosModal ; `closeDialogue` : aucun)',
       }] as readonly [string, Route],
     ),
   ],

@@ -2312,7 +2312,7 @@ export const fr = {
   'medic.interrupted': "{healer} interrompt l'opération — le travail est à refaire.",
 
   // ── #1318 V8c₄ — COOP EN LIGNE (`state/netFlow.ts`, `coop.*` — le namespace du salon, déjà posé).
-  'coop.intentRefused': 'Action réseau refusée ({action}) : pas le propriétaire.',
+  'coop.intentRefused': 'Action refusée : elle ne revient pas au joueur qui l’a demandée.',
   'coop.hostLinkLost': 'Connexion au service coop perdue — session terminée.',
   'coop.alreadyInSession': 'Déjà en session.',
   'coop.badCode': 'Code invalide — 6 caractères.',

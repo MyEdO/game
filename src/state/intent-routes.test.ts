@@ -17,7 +17,7 @@ import { join } from 'node:path';
 import { ROUTES, buildRoutes, type Route } from '../noyau/netOwnership';
 import { jetOwnedIntents, participantOwnedIntents } from '../noyau/flowVerbs';
 import { horsModalOwnedIntents } from '../noyau/modalArbiter';
-import { GUEST_INTENTS, INTERLUDE_INTENTS, PARTY_INTENTS } from './intents';
+import { GUEST_INTENTS, INTERLUDE_INTENTS, PARTY_INTENTS } from '../noyau/intentionsDeSiege';
 
 const JET = Object.keys(jetOwnedIntents());
 const PART = participantOwnedIntents();

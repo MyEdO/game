@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { buildRollFlowActions } from '../noyau/rollFlowSpecs';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
-import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from './intents';
+import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from '../noyau/intentionsDeSiege';
 import type { Get, Set as SetFn } from '../noyau/flowTypes';
 
 /**
  * Garde de la SOURCE UNIQUE `FLOW_VERBS` (axe B) : prouve que les 3 miroirs d'un flux de jet — le TYPE
  * (`RollFlowActionsMap`, vérifié par `tsc` via `GameState extends`), le RUNTIME (`buildRollFlowActions`)
- * et les INTENTS coop (`state/intents.ts`) — restent alignés sur la table. Le type est garanti par la
+ * et les INTENTS coop (`noyau/intentionsDeSiege.ts`) — restent alignés sur la table. Le type est garanti par la
  * compilation ; ce test couvre le runtime et la surface invité, dans les DEUX sens : tout verbe d'un
  * flux MONO est un intent (#1017 — surface dérivée de la possession, sans marqueur à poser), tout
  * verbe d'un flux MULTI `coop` aussi (résolutions comprises), aucun verbe d'un multi non-coop ne l'est, et aucun
@@ -94,7 +94,7 @@ describe('câblage des flux de jet — source unique FLOW_VERBS', () => {
   });
 
   /** Les actions de `resolution` d'un flux MULTI sont DÉRIVÉES (#1050) : un flux multi n'écrit aucune
-   *  ligne dans `state/intents.ts`. */
+   *  ligne dans `noyau/intentionsDeSiege.ts`. */
   it('resolution : chaque flux MULTI coop expose ses actions de clôture (dérivées, jamais recopiées)', () => {
     const manquantes: string[] = [];
     for (const [, w] of ENTRIES) {

@@ -579,8 +579,10 @@ src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arè
                             une édition à l'éditeur est écrasée au prochain `generate`, ou refusée par cette garde.
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
                             + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
-src/state/intents.ts        Allowlist coop du store : la classe de chaque action (invité, hôte, local,
-                            interne), lue par `netFlow.ts` pour enrober les intents de l'invité.
+src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
+                            local, interne), `GUEST_INTENTS` que `netFlow.ts` enrobe chez l'invité, et
+                            `appliquerLIntentionDUnSiege`, seul point d'entrée d'une intention chez l'hôte.
+src/state/intents.ts        Classe coop des actions de l'adaptateur web (local, hôte, interne).
 src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios de TEST et les GÉNÉRATEURS (un
                             paquet de campagne MANUSCRIT pose sa carte à l'éditeur, skill `creer-une-map`)
                             plutôt que poser les tuiles une à une. `parseAsciiRows(rows,
@@ -592,7 +594,7 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
                             puis scanner leurs positions.
 src/net/                    Coop en ligne (relay WebSocket) : relay.ts (RelayClient heartbeat/backoff,
                             RoomHost = un Transport virtuel par siège, RoomGuest), session.ts (hôte-
-                            autoritaire : intents allowlist + snapshots), protocol.ts, compress.ts
+                            autoritaire : intents remis avec le siège du transport + snapshots), protocol.ts, compress.ts
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
                             relance le handshake, puis reçoit campagne et snapshot autoritaire frais.

@@ -161,7 +161,7 @@ describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans l
   });
 
   /** Hôte qui a ARMÉ la Course sur le héros, puis l'a confié au siège 1 : le clic de ce siège
-   *  s'exécute chez lui, sous `withActingSeat`, comme `netFlow.applyIntent`. */
+   *  s'exécute chez lui, sous `withActingSeat`, comme `appliquerLIntentionDUnSiege`. */
   function hoteArmeHerosConfie() {
     const net0 = get().net;
     const { H } = setup();

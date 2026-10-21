@@ -212,6 +212,7 @@
       "src/net/relay.ts",
       "src/net/session.ts",
       "src/state/intents.ts",
+      "src/noyau/intentionsDeSiege.ts",
       "src/ui/CoopLobby.tsx",
       "src/ui/CoopPanels.tsx"
     ],

@@ -6,15 +6,16 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
-import type { GameState } from './store';
+import type { Jeu } from '../noyau/etat';
 import type { FLOW_VERBS } from '../noyau/flowVerbs';
 import {
-  CLASSE_DES_ACTIONS, GUEST_INTENTS, PARTY_INTENTS, INTERLUDE_INTENTS, sanitizeIntentArgs,
+  CLASSE_DES_ACTIONS_DU_NOYAU, GUEST_INTENTS, PARTY_INTENTS, INTERLUDE_INTENTS,
   type ActionManuscrite, type ClasseCoop, type Ouverture, type TableDesClasses,
-} from './intents';
+} from '../noyau/intentionsDeSiege';
+import { CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR, sanitizeIntentArgs, type TableDeLAdaptateur } from './intents';
 
 describe('#2724 — table TOTALE des classes coop : une action non classée ne compile pas', () => {
-  type EtatAvecActionNeuve = GameState & { actionNeuve: (id: string) => void; champNeuf: number };
+  type EtatAvecActionNeuve = Jeu & { actionNeuve: (id: string) => void; champNeuf: number };
 
   it('la table réelle, privée de l’action neuve, ne satisfait plus le type total', () => {
     const sansClasse = (t: TableDesClasses): TableDesClasses<EtatAvecActionNeuve> =>
@@ -24,6 +25,15 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
     const table = { battleEndTurn: 'invité' } as TableDesClasses;
     expect(sansClasse(table)).toBe(table);
     expect(classee(table).actionNeuve).toBe('interne');
+  });
+
+  it('la table de l’adaptateur aussi : une action sans classe, ou classée `invité`, ne compile pas', () => {
+    const { autoSave, ...sansAutoSave } = CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR;
+    // @ts-expect-error — `autoSave` n'a pas de classe
+    const privee: TableDeLAdaptateur = sansAutoSave;
+    // @ts-expect-error — l'allowlist ne compte que des actions du noyau
+    const invitee: TableDeLAdaptateur = { ...CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR, saveGame: 'invité' };
+    expect([autoSave, privee.setZoom, invitee.saveGame]).toEqual(['interne', 'local', 'invité']);
   });
 
   it('seules les actions MANUSCRITES s’écrivent : ni champ d’état, ni délégué ou résolution de flux', () => {
@@ -40,7 +50,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
   });
 
   it('une action `<prefix><Maj>…` d’un flux de jet est `invité` (#1017, #1050)', () => {
-    type EtatAvecActionDeFlux = GameState & { attackSetFoo: (x: number) => void; castSetBar: () => void };
+    type EtatAvecActionDeFlux = Jeu & { attackSetFoo: (x: number) => void; castSetBar: () => void };
     const avec = (t: TableDesClasses, c: 'hôte' | 'local'): TableDesClasses<EtatAvecActionDeFlux> => ({
       ...t,
       // @ts-expect-error — action d'un flux exposé hors surface invité
@@ -66,7 +76,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
   it('les actions d’un flux multi SANS `coop` n’ont pas de classe dérivée : elles s’écrivent', () => {
     type FluxNonCoop = typeof FLOW_VERBS & { faux: { kind: 'multi'; pidIsActor: true; verbs: readonly ['roll']; resolution: readonly ['fauxConfirm'] } };
     type FluxCoop = typeof FLOW_VERBS & { faux: { kind: 'multi'; pidIsActor: true; coop: true; verbs: readonly ['roll']; resolution: readonly ['fauxConfirm'] } };
-    type EtatAvecFlux = GameState & { fauxRoll: (pid: string) => void; fauxConfirm: () => void };
+    type EtatAvecFlux = Jeu & { fauxRoll: (pid: string) => void; fauxConfirm: () => void };
     const delegue: ActionManuscrite<EtatAvecFlux, FluxNonCoop> = 'fauxRoll';
     const resolution: ActionManuscrite<EtatAvecFlux, FluxNonCoop> = 'fauxConfirm';
     // @ts-expect-error — en `coop: true`, le délégué est dérivé
@@ -76,7 +86,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
 
   it('un délégué ou une `resolution` d’un flux multi SANS `coop` prend une classe LIBRE, mais en prend une', () => {
     type FluxNonCoop = typeof FLOW_VERBS & { faux: { kind: 'multi'; pidIsActor: true; verbs: readonly ['roll']; resolution: readonly ['fauxConfirm'] } };
-    type EtatAvecFlux = GameState & { fauxRoll: (pid: string) => void; fauxConfirm: () => void; fauxSetBar: () => void };
+    type EtatAvecFlux = Jeu & { fauxRoll: (pid: string) => void; fauxConfirm: () => void; fauxSetBar: () => void };
     const t = { battleEndTurn: 'invité' } as TableDesClasses;
     const hote: TableDesClasses<EtatAvecFlux, FluxNonCoop> = { ...t, fauxRoll: 'hôte', fauxConfirm: 'interne', fauxSetBar: 'invité' };
     // @ts-expect-error — hors délégué et `resolution`, une action `<prefix><Maj>…` reste `invité`
@@ -129,7 +139,7 @@ describe('#1050 (a) — une action émise par un écran n’est jamais `interne`
     const etat = useGame.getState() as unknown as Record<string, unknown>;
     const actions = new Set(Object.keys(etat).filter((k) => typeof etat[k] === 'function'));
     const emises = emissionsDe(readCorpus(['src/ui', 'src/gameIso']).map(({ rel, text }) => ({ rel, texte: text })), actions);
-    const classes = Object.entries(CLASSE_DES_ACTIONS) as [string, ClasseCoop][];
+    const classes = Object.entries({ ...CLASSE_DES_ACTIONS_DU_NOYAU, ...CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR }) as [string, ClasseCoop][];
     const internesEmises = classes.filter(([a, c]) => c === 'interne' && emises.has(a)).map(([a]) => `${a} (${emises.get(a)})`);
     expect(internesEmises, 'action `interne` émise par un écran : chez l’invité elle s’exécute EN LOCAL puis meurt au snapshot').toEqual([]);
     const ecransMuets = classes.filter(([a, c]) => (c === 'hôte' || c === 'local') && !emises.has(a)).map(([a]) => a);

@@ -29,7 +29,7 @@ import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, jetOwnedIntents, participantOwnedIntents, flowActionName, type JetOwnerRef } from '../noyau/flowVerbs';
 import { intentAllowedFor, seatInfluences } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
-import { GUEST_INTENTS } from './intents';
+import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import type { GameState } from './store';
 import { cascadeDeTest } from './cascade.testkit';
 import { PENDING_BY_JET, type HostJet } from '../noyau/slotsDeJet';

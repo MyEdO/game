@@ -22,11 +22,11 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { initialFields } from '../noyau/stateFields';
-import { intentAllowedFor, withActingSeat, ROUTES } from '../noyau/netOwnership';
+import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { jetOwnedIntents, participantOwnedIntents } from '../noyau/flowVerbs';
 import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from '../noyau/modalArbiter';
-import { GUEST_INTENTS } from './intents';
+import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { ACTIONS } from '../data/index';
 import { KEYBINDINGS } from './clavier/keybindings';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -67,14 +67,8 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   return { h2, h3, e1, e2 };
 }
 
-/** REJOUE `netFlow.applyIntent` (allowlist côté transport + possession + appel AU NOM du siège). */
-function applyIntent(seat: number, action: string, args: unknown[] = []): 'hors-allowlist' | 'refusé' | 'appliqué' {
-  if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
-  if (!intentAllowedFor(useGame.getState(), seat, action, args)) return 'refusé';
-  const fn = (useGame.getState() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(seat, () => (fn as (...a: unknown[]) => void)(...args));
-  return 'appliqué';
-}
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
 const reset = () => useGame.setState({ ...initialFields(), battle: null, net: NET0, party: [] });
 
@@ -90,10 +84,10 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
   it('balayage sous fateSave : l’ATTAQUANT clique et enchaîne ; la victime et l’hôte sont refusés', () => {
     setup();
     useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'battleClickEntity', ['e2']), 'la victime pilotait le balayage d’autrui').toBe('refusé');
-    expect(applyIntent(0, 'battleClickEntity', ['e2']), 'l’hôte n’est pas le porteur du balayage').toBe('refusé');
+    expect(applyIntent(2, 'battleClickEntity', ['e2']), 'la victime pilotait le balayage d’autrui').toBe('refusee');
+    expect(applyIntent(0, 'battleClickEntity', ['e2']), 'l’hôte n’est pas le porteur du balayage').toBe('refusee');
     expect(useGame.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliqué');
+    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
     const pa = useGame.getState().pendingAttack;
     expect(pa?.attackerId, 'l’attaquant était REFUSÉ : personne ne poursuivait le balayage').toBe('h2');
     expect(pa?.targetId).toBe('e2');
@@ -103,16 +97,16 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
   it('témoin SANS fateSave : le clic de l’attaquant passait déjà (le repli tombait juste)', () => {
     setup();
     useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 } });
-    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliqué');
+    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
     expect(useGame.getState().pendingAttack?.cleave).toBe(true);
   });
 
   it('2ᵉ frappe sous fateSave : le clic appartient à l’attaquant, jamais à la victime', () => {
     setup();
     useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'battleClickEntity', ['e2'])).toBe('refusé');
+    expect(applyIntent(2, 'battleClickEntity', ['e2'])).toBe('refusee');
     expect(useGame.getState().pendingAttack).toBeNull();
-    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliqué');
+    expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
     const pa = useGame.getState().pendingAttack;
     expect(pa?.dualSecond).toBe(true);
     expect(pa?.weaponUid).toBe('o');
@@ -121,9 +115,9 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
   it('pilonnage indirect (`pendingSiegeAim`) : le clic-CASE appartient à l’ARTILLEUR (AA 10)', () => {
     setup();
     useGame.setState({ pendingSiegeAim: { gunnerId: 'h2', weaponUid: 'm', radius: 1, rangeTiles: null }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('refusé');
+    expect(applyIntent(2, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('refusee');
     expect(useGame.getState().pendingSiegeAim, 'la victime posait le point d’impact de l’artilleur').not.toBeNull();
-    expect(applyIntent(1, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('appliqué');
+    expect(applyIntent(1, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('appliquee');
     expect(useGame.getState().pendingSiegeAim, 'l’artilleur pose son impact (le placeur se referme)').toBeNull();
   });
 
@@ -191,32 +185,32 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
   it('cleaveEnd (bouton « Terminer » de la barre) : seul l’attaquant clôt le balayage', () => {
     setup();
     useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'cleaveEnd', [])).toBe('refusé');
+    expect(applyIntent(2, 'cleaveEnd', [])).toBe('refusee');
     expect(useGame.getState().pendingCleave).not.toBeNull();
-    expect(applyIntent(1, 'cleaveEnd', [])).toBe('appliqué');
+    expect(applyIntent(1, 'cleaveEnd', [])).toBe('appliquee');
     expect(useGame.getState().pendingCleave).toBeNull();
   });
 
   it('dualStrikeSkip (bouton « Renoncer ») : seul l’attaquant renonce à sa 2ᵉ frappe', () => {
     setup();
     useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'dualStrikeSkip', [])).toBe('refusé');
+    expect(applyIntent(2, 'dualStrikeSkip', [])).toBe('refusee');
     expect(useGame.getState().pendingDualStrike).not.toBeNull();
-    expect(applyIntent(1, 'dualStrikeSkip', [])).toBe('appliqué');
+    expect(applyIntent(1, 'dualStrikeSkip', [])).toBe('appliquee');
     expect(useGame.getState().pendingDualStrike).toBeNull();
   });
 
   it('cleaveAttack/dualStrikeAttack (aucun émetteur d’UI) sont routés QUAND MÊME sur le porteur', () => {
     setup();
     useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
-    expect(applyIntent(2, 'cleaveAttack', ['e2'])).toBe('refusé');
-    expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('appliqué');
+    expect(applyIntent(2, 'cleaveAttack', ['e2'])).toBe('refusee');
+    expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('appliquee');
     expect(useGame.getState().pendingAttack?.cleave).toBe(true);
   });
 
   it('fenêtre FERMÉE : le geste terminal est inerte, aucun siège ne le prend', () => {
     setup();
-    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'cleaveEnd', [])).toBe('refusé');
+    for (const seat of [0, 1, 2]) expect(applyIntent(seat, 'cleaveEnd', [])).toBe('refusee');
   });
 
   it('NON-RÉGRESSION SOLO : « Terminer »/« Renoncer » marchent hors coop', () => {
@@ -238,9 +232,9 @@ describe('#1016 — pause de début de Round (`turn: -1`) : la FENÊTRE est à t
     useGame.setState({ pendingRoundStart: { round: 2 } });
     const b = useGame.getState().battle!;
     useGame.setState({ battle: { ...b, order: ['e1', 'h2', 'e2', 'h3'] } });
-    expect(applyIntent(2, 'roundStartPromote', ['h2'])).toBe('refusé');
+    expect(applyIntent(2, 'roundStartPromote', ['h2'])).toBe('refusee');
     expect(useGame.getState().battle!.order[0], 'un autre siège dépensait la Chance de h2').toBe('e1');
-    expect(applyIntent(1, 'roundStartPromote', ['h2']), 'sans route, AUCUN siège invité ne promeut (pas de combattant actif)').toBe('appliqué');
+    expect(applyIntent(1, 'roundStartPromote', ['h2']), 'sans route, AUCUN siège invité ne promeut (pas de combattant actif)').toBe('appliquee');
     expect(useGame.getState().battle!.order[0]).toBe('h2');
     expect(useGame.getState().battle!.combatants.find((c) => c.id === 'h2')!.fortune).toBe(1);
   });
@@ -248,10 +242,10 @@ describe('#1016 — pause de début de Round (`turn: -1`) : la FENÊTRE est à t
   it('confirmRoundStart : lancé par l’HÔTE (unanimité du ready-check), refusé aux invités', () => {
     setup({}, -1);
     useGame.setState({ pendingRoundStart: { round: 2 } });
-    expect(applyIntent(1, 'confirmRoundStart', [])).toBe('refusé');
-    expect(applyIntent(2, 'confirmRoundStart', [])).toBe('refusé');
+    expect(applyIntent(1, 'confirmRoundStart', [])).toBe('refusee');
+    expect(applyIntent(2, 'confirmRoundStart', [])).toBe('refusee');
     expect(useGame.getState().pendingRoundStart, 'un invité lançait le Round pour les autres').not.toBeNull();
-    expect(applyIntent(0, 'confirmRoundStart', [])).toBe('appliqué');
+    expect(applyIntent(0, 'confirmRoundStart', [])).toBe('appliquee');
     expect(useGame.getState().pendingRoundStart).toBeNull();
   });
 
