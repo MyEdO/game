@@ -1879,7 +1879,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Navigation', label: libelleEffet('setVessel'), icon: 'travel/anchor',
     make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: MORALE_BASE }),
     apply: (e, env) => {
-      // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ScenarioConstruit.vessel`,
+      // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ContenuDeScenario.vessel`,
       // mais authorable. Moral neuf par défaut (MORALE_BASE) ; coque intacte sauf `hull*` authoré.
       const v = findVehicleById(e.vehicleId);
       if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op

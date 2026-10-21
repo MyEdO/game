@@ -2,7 +2,7 @@ import type { Combatant, CharKey, HitLocation } from '../engine/types';
 import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
-import type { BattleActionMode } from './actionRegistry';
+import type { ActionRunCtx, BattleActionMode } from './actionRegistry';
 import type { AttackKind } from '../engine/creatureAttacks';
 import type { BattleClickOpts, TileClickOpts } from './targetingModes';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -40,6 +40,9 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   dispelSelectCarrier: (carrierId: string | null) => void;
   /** Arme (id d'action) ou dissout (`null`) l'intention locale. Re-armer la MÊME la dissout. */
   battleArmIntent: (actionId: string | null) => void;
+  /** Joue l'offre `actionId` du registre par sa porte unique (`runAction`), pour un hôte qui parle en
+   *  intentions (#2898). */
+  jouerLOffre: (actionId: string, ctx?: ActionRunCtx) => void;
   /** « Prendre la route » : ferme l'ouverture et BORNE le chapitre (instantané PX/vivants/date). */
   acquitterOuverture: () => void;
   /** « Terminer la séance » : ferme le récap et re-borne le chapitre suivant. */

@@ -323,11 +323,14 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             désignés), `orientation.ts`, `horloge.ts`, `journal.ts` ; `fabriquesDuNoyau.ts`
                             (`creerActionsDuNoyau`) les compose, pour le store comme pour la partie.
                             `partie.ts` (`creerPartie`, #2817 D9) : le propriétaire de l'état d'un hôte qui
-                            n'est pas le web ; chaque `envoyer`/`reprendre` rend `{ issue, evenements,
-                            journal }`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
+                            n'est pas le web ; chaque `envoyer`/`lancer`/`reprendre` rend `{ issue,
+                            evenements, journal }`. `lancementDeScenario.ts` (#2898) : le lancement d'un
+                            scénario de test et sa séquence unique, jouée par la partie et par
+                            `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
-                            (garde `scripts/guards/lib/reexportations.mjs`). Sa fermeture d'exécution
-                            n'atteint aucun hôte (`scripts/guards/lib/fermetureDuNoyau.mjs`). Les tests
+                            (garde `scripts/guards/lib/reexportations.mjs`). Sa fermeture d'exécution, et
+                            celle des scénarios de test, n'atteint aucun hôte
+                            (`scripts/guards/lib/fermetureDuNoyau.mjs`). Les tests
                             `*.hors-store.test.ts` jouent dans la suite du noyau (`npm run test:noyau`,
                             `vitest.noyau.config.ts`), sans le store, que la suite principale exclut
                             (`MOTIF_HORS_STORE`, `scripts/guards/lib/racinesDeLaSuite.mjs`).

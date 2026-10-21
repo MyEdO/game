@@ -1,23 +1,29 @@
 /**
- * LA SURFACE DU NOYAU NE CHARGE AUCUN HÔTE (#2817 D9, épique #2882) : la fermeture d'exécution de
- * `src/noyau/index.ts` n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`, `audio`, ni `react`. La mesure vit
- * dans `scripts/guards/lib/fermetureDuNoyau.mjs`, qui dit pourquoi la table `COUCHES` ne l'implique pas.
+ * CE QU'UN HÔTE EXTERNE IMPORTE NE CHARGE AUCUN HÔTE (#2817 D9, #2898, épique #2882) : la fermeture d'exécution de
+ * chaque entrée de `ENTREES_FERMEES` (la surface `src/noyau/index.ts`, les scénarios de test qu'un hôte lance)
+ * n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`, `audio`, ni `react`. La mesure vit dans
+ * `scripts/guards/lib/fermetureDuNoyau.mjs`, qui dit pourquoi la table `COUCHES` ne l'implique pas.
  */
 import { beforeAll, describe, it, expect } from 'vitest';
-import { mesure as mesurer, paquetDe, SURFACE_DU_NOYAU } from '../../scripts/guards/lib/fermetureDuNoyau.mjs';
+import { mesure as mesurer, paquetDe, ENTREES_FERMEES, SURFACE_DU_NOYAU } from '../../scripts/guards/lib/fermetureDuNoyau.mjs';
 import { detenteur } from '../detenteur.testkit';
 
-const mesure = detenteur(() => mesurer());
+/** Les témoins d'une lecture vivante, par entrée : sans eux, une lecture cassée rendrait la garde verte en ne
+ *  lisant plus rien. */
+const TEMOINS: Record<(typeof ENTREES_FERMEES)[number], readonly string[]> = {
+  [SURFACE_DU_NOYAU]: ['src/noyau/partie.ts', 'src/engine/combat.ts'],
+  'src/scenes/test-scenarios/index.ts': ['src/scenes/test-scenarios/_shared.ts', 'src/scenes/campaign.ts', 'src/noyau/worldMap.ts'],
+};
 
-describe('surface du noyau : sa fermeture d’exécution ne charge aucun hôte', () => {
+describe.each(ENTREES_FERMEES)('%s : sa fermeture d’exécution ne charge aucun hôte', (depart) => {
+  const mesure = detenteur(() => mesurer({ depart }));
   beforeAll(() => { mesure(); }, 120_000);
 
   it('aucun module d’une zone d’hôte, aucun paquet d’hôte', () => {
-    // Sans ces témoins, une lecture cassée rendrait la garde verte en ne lisant plus rien.
-    expect(mesure().modules, 'la fermeture ne part plus de la surface').toEqual(expect.arrayContaining([SURFACE_DU_NOYAU, 'src/noyau/partie.ts', 'src/engine/combat.ts']));
+    expect(mesure().modules, 'la fermeture ne part plus de son entrée').toEqual(expect.arrayContaining([depart, ...TEMOINS[depart]]));
     expect(mesure().paquets, 'les paquets de la fermeture ne se lisent plus').toContain('zod');
     const fautes = mesure().fautes.map((f) => f.chaine.join(' → '));
-    expect(fautes, `La surface du noyau charge un hôte — couper l'arc fautif :\n  ${fautes.join('\n  ')}`).toEqual([]);
+    expect(fautes, `${depart} charge un hôte — couper l'arc fautif :\n  ${fautes.join('\n  ')}`).toEqual([]);
   });
 });
 

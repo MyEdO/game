@@ -134,7 +134,8 @@ import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from '../noyau/bourseFlow';
-import { demarrerScenario, poserScenario } from './scenarioFlow';
+import { poserScenario } from './scenarioFlow';
+import { demarrerLeLancement } from '../noyau/lancementDeScenario';
 import { t, deElide } from '../i18n';
 import { diamondCorners, tileEdge, type Dims } from '../geometry/iso';
 import { chebyshev } from '../engine/grid';
@@ -675,7 +676,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // La MÉMOIRE d'onglet ne retient qu'un lancement qui a passé les deux refus : mémoriser avant le
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
     rememberScenario(seed != null ? { id: sc.id, seed } : { id: sc.id });
-    demarrerScenario(g, useGame.setState, sc, construit);
+    demarrerLeLancement(g, useGame.setState, construit);
     if (g().pendingRoundStart) g().confirmRoundStart();
     if (construit.massBattle) return `✓ bataille de masse « ${sc.title} » lancée${g().interlude ? ' (préparation dans le menu d\'interlude)' : ''}`;
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;

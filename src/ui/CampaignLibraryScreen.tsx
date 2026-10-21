@@ -5,10 +5,10 @@ import { Icon } from './Icon';
 import { ListRow } from './ListRow';
 import { useGame } from '../state/store';
 import { downloadText, fileSlug } from '../web/fileIo';
-import { parseProject, documentDeProjet, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
+import { parseProject, documentDeProjet, ProjetRefuse, playerEntryError, refusJoueur, messageDeRefusJoueur, type ProjectDoc } from '../noyau/worldMap';
 import {
-  projectsLoad, projectSave, projetDeLEntree, projectRemove, nomDeProjet, campagneDeLEntree, playerEntryError, refusJoueur, IMPORT_FORME_DEPOT,
-  messageDeRefusJoueur, MARQUE_AUTRE_FORMAT, estRefusee,
+  projectsLoad, projectSave, projetDeLEntree, projectRemove, nomDeProjet, campagneDeLEntree, IMPORT_FORME_DEPOT,
+  MARQUE_AUTRE_FORMAT, estRefusee,
   type SavedProject,
   type EntreeListee,
   type EntreeEcrite,

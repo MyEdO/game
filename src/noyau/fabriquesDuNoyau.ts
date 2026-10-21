@@ -7,6 +7,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { buildRollFlowActions, creerActionsDuJetDActivite } from './rollFlowSpecs';
 import { createCombatSlice } from './combatSlice';
+import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { creerActionsDuChapitre } from './chapitreRecap';
@@ -49,6 +50,7 @@ import { creerActionsDesActivitesEnMer } from './seaActivities';
 export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): ActionsDuNoyau {
   return {
     ...createCombatSlice(get, set),
+    ...creerActionsDuRegistre(get),
     // Les délégués de jet (mono et multi), dérivés de `FLOW_WIRING`.
     ...buildRollFlowActions(get, set),
     ...creerActionsDuJetDActivite(get, set),

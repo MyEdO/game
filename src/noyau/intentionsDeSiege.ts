@@ -279,6 +279,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ interne : aucun écran ne l'émet ═══
   // ── Armement d'intention au clavier (registre `state/clavier/keybindings.ts`) ─────────────────────
   battleArmIntent: 'interne',
+  // ── La porte des offres en intention (`creerActionsDuRegistre`, #2898) : un hôte sans siège ──────────
+  jouerLOffre: 'interne',
   // ── Machinerie d'hôte : scène, temps, groupe, combat, IA, journal ─────────────────────────────
   startScene: 'interne', setParty: 'interne', seedRng: 'interne', log: 'interne', avancerLHorloge: 'interne', advanceTime: 'interne',
   resumeCadence: 'interne', moveParty: 'interne', stepPartyRelative: 'interne',

@@ -18,6 +18,7 @@ import { poserLaPlateforme, retirerLaPlateforme, type Jeton } from './plateforme
 import { transitionDuJeu } from './transitionDuJeu';
 import { planifierLeTickAuto } from './combatAuto';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from './intentionsDeSiege';
+import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
 import { bus, EVT } from './bus';
 import { seedBattleRng } from './battleRng';
 import { loadRuleOverrides } from '../engine/policy';
@@ -67,6 +68,9 @@ export interface ResultatDeLAppel {
 export interface Partie {
   etat: Get;
   envoyer: (intention: Intention) => ResultatDeLAppel;
+  /** Lance un scénario construit par l'hôte (`lancerLeScenario`), comme tout appel : ce que le lancement émet
+   *  et écrit revient dans SON résultat. */
+  lancer: (lancement: LancementDeScenario) => ResultatDeLAppel;
   reprendre: (jeton: Jeton) => ResultatDeLAppel;
   fermer: () => void;
 }
@@ -159,6 +163,10 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     envoyer: (intention) => appeler('envoyer', () => {
       if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
       (etat[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
+      return 'appliquee';
+    }),
+    lancer: (lancement) => appeler('lancer', () => {
+      lancerLeScenario(get, set, lancement);
       return 'appliquee';
     }),
     reprendre: (jeton) => appeler('reprendre', () => {

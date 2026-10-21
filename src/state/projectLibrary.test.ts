@@ -8,7 +8,6 @@ import {
   __resetLibraryForTest,
   SavedProject,
   campagneDeLEntree,
-  playerEntryError,
   estRefusee,
   projetDeLEntree,
   savedProjectSchema,
@@ -17,7 +16,7 @@ import { mesurerCheminsNommes } from '../../scripts/guards/lib/cheminsNommes.mts
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, brancherOuvertures } from '../web/indexedDb.testkit';
 import { Scene, emptyScene } from '../noyau/monde/scene';
-import { ProjetRefuse } from '../noyau/worldMap';
+import { ProjetRefuse, playerEntryError } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 
