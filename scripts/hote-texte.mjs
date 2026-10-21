@@ -11,14 +11,11 @@ import { runnerImport } from 'vite'
 import { proseSource } from './source/prose-source-plugin.mjs'
 
 const RACINE = fileURLToPath(new URL('..', import.meta.url))
-const ENTREE = 'virtual:hote-texte'
+const ENTREE = '\0virtual:hote-texte'
 
 /** Le module d'entrée : le gel du catalogue, PUIS l'hôte (ordre d'évaluation des imports). */
-const entree = {
-  name: 'hote-texte-entree',
-  resolveId: (id) => (id === ENTREE ? `\0${ENTREE}` : null),
-  load: (id) => (id === `\0${ENTREE}` ? "import '/src/data/overrides.ts';\nexport { executer } from '/src/hoteTexte/cli.ts';\n" : null),
-}
+const MODULES_VIRTUELS = new Map([[ENTREE, "import '/src/data/overrides.ts';\nexport { executer } from '/src/hoteTexte/cli.ts';\n"]])
+const entree = { name: 'hote-texte-entree', load: (id) => MODULES_VIRTUELS.get(id) ?? null }
 
 const { module } = await runnerImport(ENTREE, {
   root: RACINE,

@@ -1,4 +1,4 @@
-{"version":1,"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}
+{"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}
 {"type":"confirmRoundStart","args":[]}
 {"offre":"end-turn"}
 {"offre":"end-turn"}

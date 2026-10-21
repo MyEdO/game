@@ -13,14 +13,10 @@ import {
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 
-/** La version du format ; un fichier d'une autre version se refuse. */
-export const VERSION_DU_FORMAT = 1;
-
 const CADENCES = ['manuel', 'rapide', 'auto'] as const;
 
 /** L'en-tête du fichier : le scénario lancé et les entrées de la partie (D8). */
 export interface Entete {
-  version: typeof VERSION_DU_FORMAT;
   scenario: string;
   graine: number;
   regles: Record<string, unknown>;
@@ -56,7 +52,7 @@ export function nouvelEntete(scenario: string, options: { graine?: number; caden
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
   const cadence = options.cadence ?? 'manuel';
   valider((CADENCES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCES.join(', ')})`);
-  return { version: VERSION_DU_FORMAT, scenario, graine, regles: options.regles ?? {}, cadence: cadence as Entete['cadence'], desFixes: options.desFixes ?? false };
+  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Entete['cadence'], desFixes: options.desFixes ?? false };
 }
 
 /** Lit un geste écrit (une ligne JSON), ou lève une erreur de validation. */
@@ -86,7 +82,7 @@ export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] 
     }
   });
   const [tete, ...reste] = json;
-  valider(estObjet(tete) && tete.version === VERSION_DU_FORMAT, `en-tête : version ${VERSION_DU_FORMAT} attendue`);
+  valider(estObjet(tete), 'en-tête : objet JSON attendu');
   const e = tete as Record<string, unknown>;
   const entete = nouvelEntete(String(e.scenario), { graine: e.graine as number, cadence: e.cadence as string, desFixes: e.desFixes === true, regles: estObjet(e.regles) ? e.regles : {} });
   return { entete, gestes: reste.map(lireGeste) };

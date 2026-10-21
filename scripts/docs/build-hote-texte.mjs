@@ -3,10 +3,9 @@
  * La part FACTUELLE est DÉRIVÉE du code, par l'AST TypeScript, fail-fast si une constante disparaît :
  *  - les commandes (`COMMANDES`, src/hoteTexte/cli.ts) ;
  *  - les bornes de sortie (`BORNES`, src/hoteTexte/vue.ts) ;
- *  - la provenance de chaque champ de la projection (`PROVENANCE`, src/hoteTexte/vue.ts) ;
- *  - les catégories d'erreur (`CategorieDErreur`), la version du format (`VERSION_DU_FORMAT`) et le plafond de
- *    reprises (`PLAFOND_DE_REPRISES`), src/hoteTexte/partieTexte.ts.
- * La part ÉDITORIALE (l'usage par un agent, le fichier de partie, la politique des jetons, les budgets de temps
+ *  - les catégories d'erreur (`CategorieDErreur`) et le plafond de reprises (`PLAFOND_DE_REPRISES`),
+ *    src/hoteTexte/partieTexte.ts.
+ * La part ÉDITORIALE (la provenance de chaque champ de la projection, l'usage par un agent, le fichier de partie, la politique des jetons, les budgets de temps
  * mesurés) vit ICI, en dur — patron « éditorial EN DUR dans le générateur » de build-reprise.mjs.
  *
  * Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
@@ -56,6 +55,24 @@ function litteral(noeud, ou) {
 }
 
 /** La valeur littérale de la constante `nom` de `rel`. */
+/** La PROVENANCE de chaque champ de la projection (`projeter`, src/hoteTexte/vue.ts) : le lecteur du noyau qui le rend. */
+const PROVENANCE = [
+  ['combat.round, combat.tour, combat.fin', 'battle.round, battle.turn, battle.over'],
+  ['combat.actif', 'activeCombatant'],
+  ['combat.actif.mouvement', 'mouvementDuTour (le restant et le total que la jauge de la console montre)'],
+  ['combat.actif.action', 'battle.acted'],
+  ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
+  ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
+  ['combat.fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
+  ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
+  ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
+  ['combat.cibles', 'validTargets'],
+  ['combat.finDeTourArmee', 'endTurnArmed'],
+  ['exploration.portails', 'portalsForParty'],
+  ['fiche : armure', 'effectiveArmourAt, par LOCALISATIONS_DE_COUP'],
+  ['refus', 'Jeu.refus (texte et nonce)'],
+]
+
 function constante(rel, nom) {
   const d = declarations(rel).get(nom)
   if (!d?.initializer) abandon(`constante \`${nom}\` introuvable dans ${rel} (renommée/supprimée ?)`)
@@ -93,9 +110,7 @@ const BUDGETS_DE_TEMPS = [
 function rendu() {
   const commandes = constante(CLI, 'COMMANDES')
   const bornes = constante(VUE, 'BORNES')
-  const provenance = constante(VUE, 'PROVENANCE')
   const categories = unionDeChaines(COEUR, 'CategorieDErreur')
-  const version = constante(COEUR, 'VERSION_DU_FORMAT')
   const plafond = constante(COEUR, 'PLAFOND_DE_REPRISES')
   const sansCas = categories.filter((c) => !CAS_D_ERREUR[c])
   if (sansCas.length) abandon(`catégorie(s) d'erreur sans cas décrit : ${sansCas.join(', ')}`)
@@ -104,10 +119,10 @@ function rendu() {
 
   let out = `# Hôte texte : recetter une règle sans navigateur\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-hote-texte.mjs\` (\`npm run docs:hote-texte\`) — NE PAS ÉDITER À LA MAIN.\n`
-  out += `> Sources : \`COMMANDES\` (\`${CLI}\`), \`BORNES\` et \`PROVENANCE\` (\`${VUE}\`), \`CategorieDErreur\` (\`${COEUR}\`).\n\n`
+  out += `> Sources : \`COMMANDES\` (\`${CLI}\`), \`BORNES\` (\`${VUE}\`), \`CategorieDErreur\` (\`${COEUR}\`).\n\n`
   out += `L'hôte texte (#2898, « Hôte texte du noyau : une partie pilotable sans interface graphique, pour la recette par agent ») joue une partie du noyau en ligne de commande, sans store, sans écran et sans navigateur. Un agent y déroule un combat d'un scénario de test et confronte chaque nombre au livre ; la même partie se rejoue sous CI. Il n'importe que la surface du noyau (\`src/noyau/index.ts\`), les scénarios de test (\`src/scenes/\`) et les feuilles : la ligne \`hoteTexte\` de la table \`COUCHES\` (\`scripts/guards/lib/couches.mjs\`) le tient, sa porte vers le noyau comprise, et la garde \`src/noyau/surface-fermeture-guard.test.ts\` mesure que sa fermeture n'atteint ni \`state\`, ni \`ui\`, ni \`gameIso\`, ni \`web\`.\n\n`
 
-  out += `**Périmètre mesuré / angles morts** — ce doc lit, par l'AST TypeScript, les constantes de l'hôte (commandes, bornes, provenance, catégories d'erreur, version, plafond de reprises). Il ne mesure NI que la vue respecte ses bornes (le test \`src/hoteTexte/bornes.hors-store.test.ts\` le fait), NI que chaque lecteur de la provenance est bien celui qu'appelle la projection (la table est écrite à côté de \`projeter\`), NI les budgets de temps, qui sont des mesures datées.\n\n`
+  out += `**Périmètre mesuré / angles morts** — ce doc lit, par l'AST TypeScript, les constantes de l'hôte (commandes, bornes, catégories d'erreur, plafond de reprises). Il ne mesure NI que la vue respecte ses bornes (le test \`src/hoteTexte/bornes.hors-store.test.ts\` le fait), NI que chaque lecteur de la provenance est bien celui qu'appelle la projection (la table est écrite dans ce générateur), NI les budgets de temps, qui sont des mesures datées.\n\n`
   out += `## Usage par un agent\n\nUne commande par appel ; chaque appel rejoue le fichier de partie, puis répond.\n\n`
   out += '```bash\n'
   out += 'npm run -s hote-texte -- --partie <fichier.jsonl> nouvelle dome --graine 7\n'
@@ -121,9 +136,9 @@ function rendu() {
   out += `\n\`--json\` vaut pour toutes les commandes : la sortie est la projection (\`Projection\`, \`${VUE}\`) et l'empreinte de l'état, bornée comme le texte, jamais les payloads bruts des événements. Une offre (\`offre\`) est une entrée de l'énumérateur du registre (\`offresDeLActif\`), celui que lit la barre de la console ; \`ctx\` porte les paramètres de la case (\`targetId\`, \`spellId\`, \`attackId\`…), \`offres <id>\` les montre. Un verbe brut (\`jouer\`) sert aux fenêtres (\`attackRoll\`, \`defenseConfirm\`…), à la cascade (\`cascadeNext\`, \`cascadeChoose\`), à la pause de Round (\`confirmRoundStart\`) et aux clics du champ (\`battleClickTile\`, \`battleClickEntity\`) ; la ligne « fenêtre » de la vue nomme les verbes de la fenêtre qui tient la main.\n\n`
   out += `Le clic implicite du champ suit le modèle du web : un premier \`battleClickEntity\` ou \`battleClickTile\` pose l'aperçu, le second le confirme. Une offre qui arme une intention (\`charge\`, \`course\`, \`attaque\`) se lit à la ligne « intention armée » de la vue ; le clic suivant la commet.\n\n`
 
-  out += `## Le fichier de partie\n\nLe fichier JSONL est la vérité de la partie. Sa première ligne est l'en-tête, en version ${version} du format :\n\n`
+  out += `## Le fichier de partie\n\nLe fichier JSONL est la vérité de la partie. Sa première ligne est l'en-tête :\n\n`
   out += '```json\n'
-  out += `{"version":${version},"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}\n`
+  out += `{"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}\n`
   out += '```\n\n'
   out += `\`regles\` sont les règles maison chargées à la création de la partie ; les règles du scénario se posent ensuite, au lancement. Chaque ligne suivante est un geste appliqué : \`{"offre":"charge","ctx":{…}}\` ou \`{"type":"attackRoll","args":[],"siege":0}\`. Un geste en erreur ne s'écrit pas. Le fichier se relit, se copie et se tronque à la main : la partie est ce qu'il rejoue. Exemple committé, rejoué sous CI : \`src/hoteTexte/combat-dome.jsonl\`.\n\n`
 
@@ -136,7 +151,7 @@ function rendu() {
 
   out += `## Provenance de la vue\n\nAucune règle ne se calcule dans l'hôte : chaque champ est un lecteur de la surface du noyau, ou un champ de l'état lu tel quel.\n\n`
   out += `| Champ | Lecteur |\n|---|---|\n`
-  for (const [champ, lecteur] of provenance) out += `| \`${cellule(champ)}\` | ${cellule(lecteur)} |\n`
+  for (const [champ, lecteur] of PROVENANCE) out += `| \`${cellule(champ)}\` | ${cellule(lecteur)} |\n`
 
   out += `\n## Bornes\n\nToute ligne tient en ${bornes.largeur} caractères au plus ; au-delà de ses lignes, une sortie dit « +N lignes ». Les caractères au plus d'une sortie texte valent ses lignes × ${bornes.largeur + 1} (\`caracteresAuPlus\`).\n\n`
   out += `| Sortie | Lignes au plus |\n|---|---|\n`
@@ -158,7 +173,7 @@ function rendu() {
     staleMsg: `docs:hote-texte — ${OUT} est PÉRIMÉ (diverge de ${CLI}, ${VUE} ou ${COEUR}).`,
     rerunMsg: '  → relancer `npm run docs:hote-texte` (dérivé jamais commité, #2203).',
     okMsg: `docs:hote-texte — OK (${OUT} à jour, ${commandes.length} commandes)`,
-    writeMsg: `${OUT} — ${commandes.length} commandes, ${provenance.length} champs, ${categories.length} catégories d'erreur.`,
+    writeMsg: `${OUT} — ${commandes.length} commandes, ${PROVENANCE.length} champs, ${categories.length} catégories d'erreur.`,
   }
 }
 

@@ -222,7 +222,7 @@ export const STRUCTURES_CIBLES = [
  *  du document), `strate` = la strate de la grammaire (#1463), `lot` = qui l'éteint. */
 export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "actions.json", champ: "armed", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "actions.json", champ: "gate", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
+  { concept: "reference", dataset: "actions.json", champ: "gate", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "actions.json", champ: "hote", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "actions.json", champ: "mode", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "activities.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },

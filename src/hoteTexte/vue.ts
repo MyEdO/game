@@ -1,7 +1,7 @@
 /**
  * LA VUE DE L'HÔTE TEXTE (#2898, plan v3 « La forme ») : la PROJECTION de l'état, lue champ par champ par les
  * lecteurs de la surface du noyau (`../noyau/index`), et ses rendus bornés en lignes et en caractères (`BORNES`). Aucune
- * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (`PROVENANCE`). Doc
+ * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (provenance : `scripts/docs/build-hote-texte.mjs`). Doc
  * généré : `npm run docs:hote-texte`.
  */
 import {
@@ -10,6 +10,7 @@ import {
   type Combatant, type Jeu, type Offre,
 } from '../noyau/index';
 import { offresDeLaBarre, ErreurDeGeste, type LigneNumerotee } from './partieTexte';
+import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
 /** Les bornes de chaque sortie (#2898, M2) : toute ligne tient en `largeur` caractères ; chaque commande a son nombre
  *  de lignes au plus, donc ses caractères au plus (`caracteresAuPlus`) ; la sortie `--json` a son plafond de caractères ;
@@ -34,32 +35,13 @@ export type Commande = keyof typeof BORNES.lignes;
 /** Les caractères au plus d'une sortie texte : ses lignes au plus, chacune à la largeur, avec sa fin de ligne. */
 export const caracteresAuPlus = (commande: Commande): number => BORNES.lignes[commande] * (BORNES.largeur + 1);
 
-/** Une sortie texte bornée : chaque ligne coupée à la largeur, et au-delà du nombre de lignes de la commande, la
+/** Une sortie texte bornée : chaque ligne coupée au mot à la largeur (`coupeAuMot`), et au-delà du nombre de lignes de la commande, la
  *  dernière dit combien il en manque. */
 export function borner(lignes: readonly string[], commande: Commande): string[] {
   const max = BORNES.lignes[commande];
-  const coupe = (l: string) => (l.length > BORNES.largeur ? `${l.slice(0, BORNES.largeur - 1)}…` : l);
   const gardees = lignes.length > max ? [...lignes.slice(0, max - 1), `+${lignes.length - max + 1} lignes`] : lignes;
-  return gardees.map(coupe);
+  return gardees.map((l) => coupeAuMot(l, BORNES.largeur));
 }
-
-/** La PROVENANCE de chaque champ de la projection : le lecteur du noyau qui le rend (doc généré). */
-export const PROVENANCE: readonly (readonly [champ: string, lecteur: string])[] = [
-  ['combat.round, combat.tour, combat.fin', 'battle.round, battle.turn, battle.over'],
-  ['combat.actif', 'activeCombatant'],
-  ['combat.actif.mouvement', 'mouvementDuTour (le restant et le total que la jauge de la console montre)'],
-  ['combat.actif.action', 'battle.acted'],
-  ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
-  ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
-  ['combat.fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
-  ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
-  ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
-  ['combat.cibles', 'validTargets'],
-  ['combat.finDeTourArmee', 'endTurnArmed'],
-  ['exploration.portails', 'portalsForParty'],
-  ['fiche : armure', 'effectiveArmourAt, par LOCALISATIONS_DE_COUP'],
-  ['refus', 'Jeu.refus (texte et nonce)'],
-];
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
