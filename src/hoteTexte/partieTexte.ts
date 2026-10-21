@@ -7,22 +7,21 @@
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import {
-  creerPartie, etatInitialDuJeu, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, portalsForParty, ACTIONS,
-  type ActionRunCtx, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
+  creerPartie, etatInitialDuJeu, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, portalsForParty, ACTIONS, CADENCE_MODES,
+  type ActionRunCtx, type Cadence, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { ecartALaForme, estObjet, signature, type ParametreDeVerbe } from './formes';
+import { appelEcrit } from './outils';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 import { tableTotale } from '../lib/tableTotale';
-
-const CADENCES = ['manuel', 'rapide', 'auto'] as const;
 
 /** L'en-tête du fichier : le scénario lancé et les entrées de la partie (D8). */
 export interface Entete {
   scenario: string;
   graine: number;
   regles: Record<string, unknown>;
-  cadence: (typeof CADENCES)[number];
+  cadence: Cadence;
   desFixes: boolean;
 }
 
@@ -77,8 +76,8 @@ export function nouvelEntete(scenario: string, options: { graine?: number; caden
   const graine = options.graine ?? 1;
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
   const cadence = options.cadence ?? 'manuel';
-  valider((CADENCES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCES.join(', ')})`);
-  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Entete['cadence'], desFixes: options.desFixes ?? false };
+  valider((CADENCE_MODES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCE_MODES.join(', ')})`);
+  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Cadence, desFixes: options.desFixes ?? false };
 }
 
 /** Lit un geste écrit (une ligne JSON), ou lève une erreur de validation. */
@@ -99,7 +98,7 @@ export function lireGeste(v: unknown): Geste {
 /** Le texte d'un fichier : l'en-tête, puis les gestes. */
 export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] } {
   const lignes = texte.split('\n').filter((l) => l.trim() !== '');
-  valider(lignes.length > 0, 'fichier de partie vide : `nouvelle <scenario>` d’abord');
+  valider(lignes.length > 0, `fichier de partie vide : ${appelEcrit('nouvelle')} d’abord`);
   const json = lignes.map((l, i) => {
     try {
       return JSON.parse(l) as unknown;
@@ -166,7 +165,7 @@ function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): vo
  *  (`etatDeLaBarre`, le verdict que lit aussi la console). */
 export function offresDeLaBarre(etat: Jeu): Offre[] {
   const barre = etatDeLaBarre(etat);
-  if (barre.forme !== 'ouverte') throw new ErreurDeGeste('regle', `aucune offre : ${barre.raison} (\`vue\`)`);
+  if (barre.forme !== 'ouverte') throw new ErreurDeGeste('regle', `aucune offre : ${barre.raison} (${appelEcrit('lire', { quoi: 'vue' })})`);
   return offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, state: etat });
 }
 
@@ -175,14 +174,14 @@ export function offresDeLaBarre(etat: Jeu): Offre[] {
  *  arguments du geste) ; un verbe inconnu est une erreur de validation. */
 function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
   if ('offre' in geste) {
-    valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre} (\`offres --toutes\`)`);
+    valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre} (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`);
     const offres = offresDeLaBarre(etat);
     const barre = etatDeLaBarre(etat);
     const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, args: geste.ctx } : undefined;
     if (!offreDesignee(offres, geste.offre, geste.ctx)) {
       const pertinence = ctx ? actionGate(geste.offre, ctx) : undefined;
       const raison = pertinence && !pertinence.ok ? pertinence.reason : offres.some((o) => o.actionId === geste.offre) ? 'aucun candidat ne correspond au contexte' : 'aucun candidat';
-      throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${raison} (\`offres ${geste.offre}\`)`);
+      throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${raison} (${appelEcrit('lire', { quoi: 'offres', id: geste.offre })})`);
     }
     const gate = actionGate(geste.offre, ctx!);
     if (!gate.ok) throw new ErreurDeGeste('regle', `${geste.offre} fermée : ${gate.reason ?? 'sans raison'}`);

@@ -3,7 +3,7 @@
 // (src/noyau/actionsDuNoyau.ts, `RollFlowActionsMap` dérivé compris) est un verbe, et la signature de son appel
 // donne ses paramètres. Le vérificateur de types résout chaque paramètre en une FORME JSON (`Forme`,
 // src/hoteTexte/formes.ts) : la même lecture sert la table du doc (scripts/docs/build-hote-texte.mjs) et la
-// validation des arguments de `jouer` (scripts/hote-texte.mjs la prête à l'hôte). Aucune forme écrite à la main.
+// validation des arguments de `jouer` (src/hoteTexte/verbes.generated.ts, scripts/gen-verbes.mjs). Aucune forme écrite à la main.
 import path from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { SignatureKind, SymbolFlags, TypeFlags } from 'typescript/unstable/sync'

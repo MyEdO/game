@@ -10,27 +10,31 @@ import {
   type Combatant, type Jeu, type Offre, type Pt,
 } from '../noyau/index';
 import { offresDeLaBarre, ErreurDeGeste, type LigneNumerotee } from './partieTexte';
+import { signature, type ParametreDeVerbe } from './formes';
+import { VERBES } from './verbes.generated';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+import { appelEcrit } from './outils';
 
 /** Les bornes de chaque sortie (#2898, M2) : toute ligne tient en `largeur` caractères ; chaque commande a son nombre
- *  de lignes au plus, donc ses caractères au plus (`caracteresAuPlus`) ; la sortie `--json` a son plafond de caractères ;
+ *  de lignes au plus, donc ses caractères au plus (`caracteresAuPlus`) ;
  *  chaque liste de la vue a son nombre d'éléments au plus, le reste se dit « +N ». */
 export const BORNES = {
   largeur: 160,
-  lignes: { vue: 15, reponse: 12, offres: 16, carte: 16, journal: 16, fiche: 8, nouvelle: 16, cases: 10, scenarios: 16, erreur: 16 },
-  json: 12_000,
+  lignes: { vue: 15, jouer: 28, offres: 16, carte: 16, journal: 16, fiche: 8, nouvelle: 16, cases: 10, verbes: 16, erreur: 16 },
   /** Combattants listés par la vue après l'actif et ses engagés. */
   autresEnVue: 5,
   /** Offres ouvertes que la vue nomme (une par action, ses candidats comptés). */
   offresEnVue: 12,
   ciblesEnVue: 8,
-  /** Lignes de journal d'une réponse. */
+  /** Lignes de journal d'une réponse de `jouer`. */
   journalEnReponse: 8,
-  /** Éléments d'une page de `journal`, `carte`, `offres` et `scenarios` (`--depuis`). */
+  /** Éléments d'une page de `journal`, `carte` et `offres` (`depuis`). */
   page: 15,
-  /** Cases d'une page de `cases` (`--depuis`), et cases par ligne. */
+  /** Cases d'une page de `cases` (`depuis`), et cases par ligne. */
   cases: 60,
   casesParLigne: 10,
+  /** Noms d'une page de `verbes` (`depuis`). */
+  verbesParPage: 80,
 } as const;
 
 export type Commande = keyof typeof BORNES.lignes;
@@ -97,7 +101,7 @@ export interface Projection {
     round: number;
     tour: number;
     tours: number;
-    fin: 'victory' | 'defeat' | null;
+    fin: NonNullable<Jeu['battle']>['over'];
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
     /** La fenêtre qui tient la main, ses verbes et l'id que ses verbes prennent en premier argument (`pid`) ; pour la
      *  cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
@@ -160,12 +164,9 @@ function combattantsTries(etat: Jeu): CombattantProjete[] {
   return b.combatants.map((c) => combattant(c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
 }
 
-/** L'étape courante de la cascade, quand c'est elle qui tient la main. */
-function etapeDe(etat: Jeu, cle: string) {
-  const pc = etat.pendingCascade;
-  const step = cle === 'cascade' && pc ? pc.participants[pc.cursor] : undefined;
-  return step ? { etape: { id: step.id, genre: step.kind, interaction: stepInteraction(step), choix: (step.options ?? []).map((o) => o.key) } } : {};
-}
+/** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix. */
+const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
+  f.etape ? { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key) } } : {};
 
 /** Les offres de l'actif, ou `null` quand la barre n'est pas ouverte. */
 function offresSiOuverte(etat: Jeu): Offre[] | null {
@@ -239,7 +240,7 @@ export function projeter(etat: Jeu, pas: number, journal: number): Projection {
           tours: b.order.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
-          fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(etat, fenetre.cle) } : null,
+          fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
           jet: jetEnAttente(etat),
           apercu: apercuDe(etat),
           barre: barre.forme === 'ouverte' ? 'ouverte' : `${barre.forme} : ${barre.raison}`,
@@ -308,9 +309,10 @@ export function replier(texte: string): string[] {
   });
 }
 
-/** Les verbes de la fenêtre, repliés, et l'id que leurs paramètres `pid` attendent. */
+/** Les verbes de la fenêtre, chacun par sa signature (`VERBES`, lus du type du noyau), repliés, et l'id que leurs
+ *  paramètres `pid` attendent. */
 const ligneDeVerbes = (f: NonNullable<NonNullable<Projection['combat']>['fenetre']>): string[] =>
-  f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.join(', ')}`) : [];
+  f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : [];
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
@@ -334,10 +336,10 @@ export function rendreLaVue(p: Projection): string[] {
     if (c.apercu) lignes.push(ligneDApercu(c.apercu));
     if (c.intention || c.finDeTourArmee) lignes.push([c.intention && `intention armée : ${c.intention}`, c.finDeTourArmee && 'fin de tour armée'].filter(Boolean).join(' · '));
     for (const x of c.voisins.liste.filter((v) => v.id !== c.actif?.id)) lignes.push(ligneDeCombattant(x));
-    lignes.push(...enPlus(c.voisins.enPlus, 'autres (`carte`)'));
+    lignes.push(...enPlus(c.voisins.enPlus, `autres (${appelEcrit('lire', { quoi: 'carte' })})`));
     if (c.offres) {
       const liste = c.offres.liste.map(libelleDOffre);
-      lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, '(`offres`)')].join(' · ') : 'aucune offre légale'}`);
+      lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
     } else if (!c.fin) lignes.push(`barre ${c.barre}`);
   } else {
@@ -360,7 +362,7 @@ function page<T>(liste: readonly T[], depuis: number | undefined, defaut: 'debut
   const debut = Math.max(0, depuis ?? (defaut === 'fin' ? liste.length - BORNES.page : 0));
   const elements = liste.slice(debut, debut + BORNES.page);
   const k = debut + elements.length;
-  return { elements, suite: k < liste.length ? [`+${liste.length - k} : \`${suite(k)}\``] : [] };
+  return { elements, suite: k < liste.length ? [`+${liste.length - k} : ${suite(k)}`] : [] };
 }
 
 /** Le journal : une page, les dernières lignes, ou celles depuis `depuis`. */
@@ -368,7 +370,7 @@ export function rendreLeJournal(journal: readonly LigneNumerotee[], depuis?: num
   const { elements } = page(journal, depuis, 'fin', () => '');
   const place = BORNES.lignes.journal - 1;
   // Une entrée à saut de ligne prend plusieurs lignes : la page s'arrête avant de déborder, la suite comprise. Une entrée
-  // plus haute que la page se lit seule, page après page de ses lignes (`--ligne`).
+  // plus haute que la page se lit seule, page après page de ses lignes (`ligne`).
   const lignes: string[] = [];
   let hauteur = 0;
   for (const [i, l] of elements.entries()) {
@@ -376,14 +378,14 @@ export function rendreLeJournal(journal: readonly LigneNumerotee[], depuis?: num
     if (i === 0 && texte.length > place) {
       const vues = texte.slice(0, place - 1);
       const reste = texte.length - vues.length;
-      return borner([...vues, `+${reste} lignes de l’entrée ${l.n} : \`journal --depuis ${l.n} --ligne ${ligne + vues.length}\``], 'journal');
+      return borner([...vues, `+${reste} lignes de l’entrée ${l.n} : ${appelEcrit('lire', { quoi: 'journal', depuis: l.n, ligne: ligne + vues.length })}`], 'journal');
     }
     if (hauteur + texte.length > place) break;
     lignes.push(texte.join('\n'));
     hauteur += texte.length;
   }
   const k = (elements[0]?.n ?? 0) + lignes.length;
-  const suite = k < journal.length ? [`+${journal.length - k} : \`journal --depuis ${k}\``] : [];
+  const suite = k < journal.length ? [`+${journal.length - k} : ${appelEcrit('lire', { quoi: 'journal', depuis: k })}`] : [];
   return borner(lignes.length ? [...lignes, ...suite] : ['journal vide'], 'journal');
 }
 
@@ -401,45 +403,13 @@ function condenser(lignes: readonly LigneNumerotee[]): { n: number; texte: strin
   return sortie.map((s) => ({ n: s.n, texte: s.plus ? `${s.texte} (+${s.plus})` : s.texte }));
 }
 
-/** Le delta de deux projections : les champs de la vue qui ont bougé. L'en-tête, la fenêtre et ses verbes, le jet et
- *  l'aperçu ont chacun leur ligne ; l'intention, la fin de tour et les combattants qui ont bougé tiennent en une. */
-function delta(avant: Projection, apres: Projection): string[] {
-  const lignes: string[] = [];
-  const items: string[] = [];
-  const ca = avant.combat;
-  const cb = apres.combat;
-  if (cb && (!ca || enteteDeCombat({ ...avant, pas: 0 }) !== enteteDeCombat({ ...apres, pas: 0 }))) lignes.push(enteteDeCombat(apres));
-  if (cb && JSON.stringify(ca?.fenetre) !== JSON.stringify(cb.fenetre)) lignes.push(...(cb.fenetre ? [ligneDeFenetre(cb.fenetre), ...ligneDeVerbes(cb.fenetre)] : ['fenêtre fermée']));
-  if (cb?.jet && JSON.stringify(ca?.jet) !== JSON.stringify(cb.jet)) lignes.push(ligneDeJet(cb.jet));
-  if (cb?.apercu && JSON.stringify(ca?.apercu) !== JSON.stringify(cb.apercu)) lignes.push(ligneDApercu(cb.apercu));
-  if (cb && ca?.intention !== cb.intention) items.push(`intention : ${cb.intention ?? 'aucune'}`);
-  if (cb && ca?.finDeTourArmee !== cb.finDeTourArmee) items.push(cb.finDeTourArmee ? 'fin de tour armée' : 'fin de tour désarmée');
-  if (ca && cb) {
-    const avants = new Map(ca.voisins.liste.map((c) => [c.id, c]));
-    for (const c of cb.voisins.liste) {
-      const a = avants.get(c.id);
-      if (!a || c.id === cb.actif?.id) continue;
-      const bouge: string[] = [];
-      if (a.pb[0] !== c.pb[0]) bouge.push(`PB ${a.pb[0]}→${c.pb[0]}`);
-      if (pos(a.pos) !== pos(c.pos)) bouge.push(pos(c.pos));
-      if (a.etats.join() !== c.etats.join()) bouge.push(`[${c.etats.join(', ')}]`);
-      if (a.horsCombat !== c.horsCombat) bouge.push('hors combat');
-      if (bouge.length) items.push(`${c.id} ${bouge.join(' ')}`);
-    }
-  }
-  if (!cb && JSON.stringify(avant.exploration) !== JSON.stringify(apres.exploration)) lignes.push(...rendreLaVue(apres).slice(0, 2));
-  if (items.length) lignes.push(items.join(' · '));
-  return lignes.map((l) => `Δ ${l}`);
-}
-
-/** La réponse à un geste appliqué (`BORNES.lignes.reponse`) : l'issue, le delta (`delta`, une ligne par champ qui a
- *  bougé), puis le journal dans la place qui reste, au plus `BORNES.journalEnReponse` lignes, et la suite. */
-export function rendreLaReponse(geste: string, avant: Projection, apres: Projection, lignes: readonly LigneNumerotee[], reprises: number): string[] {
-  const refusNeuf = apres.refus && apres.refus.nonce !== avant.refus?.nonce ? ` · refus : ${apres.refus.texte}` : '';
-  const sortie = [`${geste} : appliqué${reprises ? ` · ${reprises} jeton${reprises > 1 ? 's' : ''} repris` : ''}${refusNeuf}`, ...delta(avant, apres)];
+/** La réponse à `jouer` (`BORNES.lignes.jouer`) : l'issue de la suite, son journal condensé dans la place que l'issue et
+ *  la vue laissent, au plus `BORNES.journalEnReponse` lignes, et la suite, puis la vue d'après. */
+export function rendreLaSuite(issue: readonly string[], lignes: readonly LigneNumerotee[], vue: readonly string[]): string[] {
+  const sortie = [...issue];
   const condensees = condenser(lignes);
-  // Le journal prend les lignes que l'issue et le delta laissent, la suite comprise ; une entrée à saut de ligne en compte plusieurs.
-  const place = Math.min(BORNES.journalEnReponse, BORNES.lignes.reponse - sortie.flatMap((l) => l.split('\n')).length - 1);
+  // Une entrée à saut de ligne compte plusieurs lignes ; la suite du journal en prend une.
+  const place = Math.min(BORNES.journalEnReponse, BORNES.lignes.jouer - issue.flatMap((l) => l.split('\n')).length - vue.length - 1);
   let prises = 0;
   let k = 0;
   for (; k < condensees.length; k++) {
@@ -448,17 +418,32 @@ export function rendreLaReponse(geste: string, avant: Projection, apres: Project
     sortie.push(`  ${condensees[k].n}  ${condensees[k].texte}`);
     prises += hauteur;
   }
-  if (k < condensees.length) sortie.push(`  +${condensees.length - k} lignes : \`journal --depuis ${condensees[k].n}\``);
-  return borner(sortie, 'reponse');
+  if (k < condensees.length) sortie.push(`  +${condensees.length - k} lignes : ${appelEcrit('lire', { quoi: 'journal', depuis: condensees[k].n })}`);
+  return borner([...sortie, ...vue], 'jouer');
 }
 
-/** Les offres que liste `offres` : les ouvertes, ou toutes (`--toutes`) ; pour un id, les siennes. */
-export function offresListees(offres: readonly Offre[], options: { id?: string; toutes: boolean }): Offre[] {
+/** `verbes` (`BORNES.lignes.verbes`) : la signature du verbe `id` ; sinon les verbes dont le nom contient `id` (tous sans
+ *  `id`), par page de `BORNES.verbesParPage` (`depuis`). */
+export function rendreLesVerbes(verbes: Readonly<Record<string, readonly ParametreDeVerbe[]>>, id?: string, depuis?: number): string[] {
+  if (id && Object.prototype.hasOwnProperty.call(verbes, id)) return borner(replier(signature(id, verbes[id])), 'verbes');
+  const noms = Object.keys(verbes).filter((v) => !id || v.toLowerCase().includes(id.toLowerCase()));
+  if (!noms.length) return [`aucun verbe ne contient « ${id} » (${appelEcrit('lire', { quoi: 'verbes' })} les liste)`];
+  const debut = Math.max(0, depuis ?? 0);
+  const pageDeNoms = noms.slice(debut, debut + BORNES.verbesParPage);
+  const k = debut + pageDeNoms.length;
+  const suite = k < noms.length ? [`+${noms.length - k} : ${appelEcrit('lire', { quoi: 'verbes', id, depuis: k })}`] : [];
+  const tete = noms.length === 1 ? [] : [`${noms.length} verbes ; la signature d’un verbe : ${appelEcrit('lire', { quoi: 'verbes', id: pageDeNoms[0] })}`];
+  const corps = noms.length === 1 ? replier(signature(noms[0], verbes[noms[0]])) : replier(pageDeNoms.join(', '));
+  return borner([...tete, ...corps, ...suite], 'verbes');
+}
+
+/** Les offres que liste `offres` : les ouvertes, ou toutes (`toutes`) ; pour un id, les siennes. */
+function offresListees(offres: readonly Offre[], options: { id?: string; toutes: boolean }): Offre[] {
   return offres.filter((o) => (!options.id || o.actionId === options.id) && (options.toutes || o.gate.ok));
 }
 
-/** Les offres de l'actif, une par ligne, en pages (`--depuis`) : ouvertes, ou fermées comprises avec leur raison
- *  (`--toutes`) ; pour un id, ses candidats et leurs arguments, ou la raison de l'absence (le gate de pertinence). */
+/** Les offres de l'actif, une par ligne, en pages (`depuis`) : ouvertes, ou fermées comprises avec leur raison
+ *  (`toutes`) ; pour un id, ses candidats et leurs arguments, ou la raison de l'absence (le gate de pertinence). */
 export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { id?: string; toutes: boolean; depuis?: number }): string[] {
   const choisies = offresListees(offres, options);
   if (!choisies.length) {
@@ -467,10 +452,9 @@ export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { 
       ? actionGate(options.id, { active: barre.active, battle: barre.battle, netMode: etat.net.mode })
       : undefined;
     const raison = pertinence && !pertinence.ok ? ` : ${pertinence.reason}` : '';
-    return [`aucune offre${options.id ? ` ${options.id}` : options.toutes ? '' : ' ouverte (`offres --toutes`)'}${raison}`];
+    return [`aucune offre${options.id ? ` ${options.id}` : options.toutes ? '' : ` ouverte (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`}${raison}`];
   }
-  const drapeaux = `${options.id ? ` ${options.id}` : ''}${options.toutes ? ' --toutes' : ''}`;
-  const { elements, suite } = page(choisies, options.depuis, 'debut', (k) => `offres${drapeaux} --depuis ${k}`);
+  const { elements, suite } = page(choisies, options.depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'offres', id: options.id, toutes: options.toutes || undefined, depuis: k }));
   const lignes = elements.map((o) => {
     const tete = `${o.actionId}${o.candidat ? `[${o.candidat}]` : ''} → ${o.cost ?? '—'}`;
     const args = options.id && Object.keys(o.args).length ? ` · ctx ${JSON.stringify(o.args)}` : '';
@@ -497,18 +481,18 @@ export function rendreLaFiche(etat: Jeu, id: string): string[] | null {
   ], 'fiche');
 }
 
-/** Une page de la carte : les combattants, l'actif d'abord, puis ses engagés, puis par distance (`--depuis`). */
+/** Une page de la carte : les combattants, l'actif d'abord, puis ses engagés, puis par distance (`depuis`). */
 export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: CombattantProjete[]; suite: string[] } {
-  const { elements, suite } = page(combattantsTries(etat), depuis, 'debut', (k) => `carte --depuis ${k}`);
+  const { elements, suite } = page(combattantsTries(etat), depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'carte', depuis: k }));
   return { combattants: elements, suite };
 }
 
 /** La carte (`BORNES.lignes.carte`) : en combat, les combattants ; en exploration, le groupe, puis les entités de la
- *  scène (`scene.entities`) ; par page (`--depuis`). */
+ *  scène (`scene.entities`) ; par page (`depuis`). */
 export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string[] {
   if (!p.combat) {
     const entites = etat.scene?.entities ?? [];
-    const { elements, suite } = page(entites, depuis, 'debut', (k) => `carte --depuis ${k}`);
+    const { elements, suite } = page(entites, depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'carte', depuis: k }));
     const tete = p.exploration ? [`groupe ${pos(p.exploration.groupe)} · ${entites.length} entité(s)`] : ['aucune scène'];
     return borner([...tete, ...elements.map((e) => `  ${e.id} · ${e.kind}${e.label ? ` · ${e.label}` : ''} · ${pos([e.pos.x, e.pos.y])}`), ...suite], 'carte');
   }
@@ -517,7 +501,7 @@ export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string
 }
 
 /** Les cases que le champ peint au tour de l'actif (`porteesDuTour`, le lecteur de sa surbrillance), par zone et par
- *  coût, une page de `BORNES.cases` cases (`--depuis`). Hors combat, ou hors du tour du joueur : aucune. */
+ *  coût, une page de `BORNES.cases` cases (`depuis`). Hors combat, ou hors du tour du joueur : aucune. */
 export function casesAtteignables(etat: Jeu, monTour: boolean): { zone: string; case: Pt; cout: number }[] {
   if (!etat.battle) return [];
   const portees = porteesDuTour(() => etat, monTour);
@@ -538,11 +522,5 @@ export function rendreLesCases(cases: readonly { zone: string; case: Pt; cout: n
     lignes.push(`${zone} : ${tranche.map((c) => `${pos([c.case.x, c.case.y])}·${c.cout}`).join(' ')}`);
   }
   const k = debut + pageDeCases.length;
-  return borner([...lignes, ...(k < cases.length ? [`+${cases.length - k} : \`cases --depuis ${k}\``] : [])], 'cases');
-}
-
-/** `scenarios` (`BORNES.lignes.scenarios`) : l'id à passer à `nouvelle`, puis le titre, par page (`--depuis`). */
-export function rendreLesScenarios(scenarios: readonly { id: string; title: string }[], depuis?: number): string[] {
-  const { elements, suite } = page(scenarios, depuis, 'debut', (k) => `scenarios --depuis ${k}`);
-  return borner([...elements.map((sc) => `${sc.id} · ${sc.title}`), ...suite], 'scenarios');
+  return borner([...lignes, ...(k < cases.length ? [`+${cases.length - k} : ${appelEcrit('lire', { quoi: 'cases', depuis: k })}`] : [])], 'cases');
 }

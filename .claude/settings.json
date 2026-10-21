@@ -1,5 +1,6 @@
 {
   "claudeMdExcludes": ["**/Foundry/CLAUDE.md"],
+  "enabledMcpjsonServers": ["hote-texte"],
   "permissions": {
     "allow": [
       "Bash(npm run:*)",
@@ -17,7 +18,10 @@
       "mcp__lean-ctx__ctx_tree",
       "mcp__Claude_Browser__read_network_requests",
       "mcp__Claude_Browser__preview_logs",
-      "mcp__ccd_session_mgmt__list_events"
+      "mcp__ccd_session_mgmt__list_events",
+      "mcp__hote-texte__nouvelle",
+      "mcp__hote-texte__lire",
+      "mcp__hote-texte__jouer"
     ],
     "ask": [
       "Bash(*gh workflow run*)",

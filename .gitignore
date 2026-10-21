@@ -135,3 +135,6 @@ __pycache__/
 
 # Cache incrémental de tsc (artefact de build)
 *.tsbuildinfo
+
+# Parties de l’hôte texte (#2898 lot D) : `.hote-texte/<nom>.jsonl`, écrites par son serveur MCP.
+/.hote-texte/

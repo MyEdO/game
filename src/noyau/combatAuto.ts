@@ -19,7 +19,7 @@ import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, pendingOuvert, HORS_MODAL, type AutoPolicy, type HorsModalDef } from './modalArbiter';
+import { pickActiveModalKey, modalOwnerOf, autoPolicyOf, pendingOuvert, HORS_MODAL, MODAL_DEFS, type AutoPolicy, type HorsModalDef } from './modalArbiter';
 import { stepInteraction } from './cascade';
 import { FLOW_VERBS, flowActionName, type FlowKey } from './flowVerbs';
 import { influencesLocally } from './netOwnership';
@@ -28,6 +28,7 @@ import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
+import { sequence } from '../engine/sequences';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -67,13 +68,17 @@ const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { verbes:
   affichage: { verbes: [], pid: false },
 };
 
-/** La fenêtre qui tient la main : sa clé, son propriétaire, ses verbes, et l'id que ses verbes prennent en premier
- *  argument (`pid`, l'étape de cascade courante). */
+/** Les clés que `fenetreDuJeu` peut rendre : chaque modale (`MODAL_DEFS`), puis chaque situation hors modale (`HORS_MODAL`). */
+export const CLES_DE_FENETRE: readonly string[] = [...MODAL_DEFS.map((d) => d.key), ...HORS_MODAL.map((d) => d.key)];
+
+/** La fenêtre qui tient la main : sa clé, son propriétaire, ses verbes, l'id que ses verbes prennent en premier
+ *  argument (`pid`, l'étape de cascade courante), et l'étape de cascade courante quand la cascade tient la main. */
 interface FenetreDuJeu {
   cle: string;
   proprietaire: string | undefined;
   verbes: readonly string[];
   pid?: string;
+  etape?: CascadeStep;
 }
 
 /** La FENÊTRE qui tient la main (#2898), pour un hôte qui la nomme au joueur : la modale élue (`pickActiveModalKey`),
@@ -82,7 +87,8 @@ interface FenetreDuJeu {
  *  verbes de son flux (`FLUX_DU_JET`), ou le drive de la fenêtre réactive ouverte dans l'étape (`STEP_WINDOW_AUTO`) ;
  *  toute autre étape et le bilan, les verbes de son interaction (`VERBES_D_INTERACTION`) puis les clôtures de la
  *  cascade (`FLOW_VERBS.cascade.resolution`) ; sinon la première situation `HORS_MODAL` ouverte (`pendingOuvert`)
- *  qui tient la main, avec ses `intents` ou ses `verbes`. `null` : rien ne tient la main. */
+ *  qui tient la main, avec ses `intents` ou ses `verbes`. L'étape de cascade courante est rendue avec la cascade.
+ *  `null` : rien ne tient la main. */
 export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
   const cle = pickActiveModalKey(s);
   if (cle) {
@@ -91,14 +97,14 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     const etape = pc?.participants[pc.cursor];
     if (pc && !etape?.jet) {
       const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : { verbes: [], pid: false };
-      return { cle, proprietaire, verbes: [...parInteraction.verbes, ...FLOW_VERBS.cascade.resolution], ...(etape && parInteraction.pid ? { pid: etape.id } : {}) };
+      return { cle, proprietaire, verbes: [...parInteraction.verbes, ...FLOW_VERBS.cascade.resolution], ...(etape && parInteraction.pid ? { pid: etape.id } : {}), ...(etape ? { etape } : {}) };
     }
     const jet = etape?.jet;
     const pol = jet ? JET_AUTO[jet] : autoPolicyOf(s);
     const reactive = jet ? STEP_WINDOW_AUTO.find((w) => w.rows(s)) : undefined;
     const drive = reactive ? reactive.drive : pol?.mode === 'self' ? pol.drive : pol?.mode === 'choice' ? (pol.autoDrive ?? []) : [];
     const flux = jet ? FLUX_DU_JET[jet] : null;
-    return { cle, proprietaire, verbes: [...new Set([...drive, ...(flux ? verbesDuFlux(flux) : [])])] };
+    return { cle, proprietaire, verbes: [...new Set([...drive, ...(flux ? verbesDuFlux(flux) : [])])], ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   return hors ? { cle: hors.key, proprietaire: hors.owner(s), verbes: hors.intents ?? hors.verbes ?? [] } : null;
@@ -149,7 +155,7 @@ function stepWindowDrive(s: Jeu): readonly (keyof Jeu)[] | typeof ATTENDRE | nul
 }
 
 /** Jeton anti-ré-entrance / double-advance : chaque séquence lancée invalide les précédentes. */
-let gen = 0;
+const generations = sequence();
 
 /**
  * Le SIÈGE LOCAL possède-t-il la modale active ? MÊME routage que la validation d'intent
@@ -166,10 +172,10 @@ function ownerLocal(s: Jeu): boolean {
 
 /** Enchaîne les actions `drive` (roll → confirm…) sur des ticks espacés, puis re-tick pour la suite. */
 function driveSelf(get: Get, set: Set, drive: readonly (keyof Jeu)[]): void {
-  const myGen = ++gen;
+  const myGen = generations.suivant();
   let i = 0;
   const step = () => {
-    if (myGen !== gen) return;                 // supersédé par un tick plus récent
+    if (myGen !== generations.courant()) return;                 // supersédé par un tick plus récent
     if (!ownerLocal(get())) return;
     if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
     const fn = get()[drive[i++]] as undefined | (() => void);

@@ -1,5 +1,5 @@
 /** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure`. */
-export const ENTREES_FERMEES: readonly ['src/noyau/index.ts', 'src/scenes/test-scenarios/index.ts', 'src/hoteTexte/cli.ts'];
+export const ENTREES_FERMEES: readonly ['src/noyau/index.ts', 'src/scenes/test-scenarios/index.ts', 'src/hoteTexte/serveur.ts'];
 /** Les zones de `src/` qu'aucun module de la fermeture ne charge. */
 export const ZONES_D_HOTE: readonly string[];
 /** Les paquets qu'aucun module de la fermeture ne charge. */

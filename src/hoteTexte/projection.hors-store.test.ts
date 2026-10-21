@@ -67,10 +67,10 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(f.etape?.interaction, 'témoin : l’étape courante est un tirage sur table').toBe('table');
       expect(f.pid).toBe(f.etape!.id);
       expect(f.verbes).toEqual(expect.arrayContaining(['cascadeTableRoll', 'cascadeTableSetForcedRoll', 'cascadeNext']));
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll, cascadeTableSetForcedRoll`);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll(pid: chaine) · cascadeTableSetForcedRoll(pid: chaine, roll: nombre)`);
     });
   });
-  it('l’étape-jet d’un Test déclenché (`test-declenche-dome.jsonl`) : la vue rend TOUS ses verbes, repliés à la largeur', { timeout: 240_000 }, () => {
+  it('l’étape-jet d’un Test déclenché (`test-declenche-dome.jsonl`) : la vue rend TOUS ses verbes par leur signature, repliés à la largeur', { timeout: 240_000 }, () => {
     aLaFixture('test-declenche-dome.jsonl', (r) => {
       const p = projeter(r.partie.etat(), r.gestes.length, r.journal.length);
       const f = p.combat!.fenetre!;
@@ -78,7 +78,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       const vue = rendreLaVue(p);
       expect(vue.some((l) => l.endsWith('…')), 'une ligne de la vue est coupée').toBe(false);
       expect(Math.max(...vue.map((l) => l.length))).toBeLessThanOrEqual(BORNES.largeur);
-      const lus = vue.join(' ').split(/[\s,:]+/);
+      const lus = vue.join(' ').split(/[\s,:·(]+/);
       expect(f.verbes.filter((v) => !lus.includes(v)), 'des verbes de la fenêtre manquent à la vue').toEqual([]);
     });
   });
@@ -137,14 +137,14 @@ describe('le journal', () => {
       expect(log, 'le journal du combat et ses lignes captées divergent').toHaveLength(textes.length);
     });
   });
-  it('une entrée plus haute que la page se lit seule, par ses lignes (`--ligne`), jusqu’à la dernière', () => {
+  it('une entrée plus haute que la page se lit seule, par ses lignes (`ligne`), jusqu’à la dernière', () => {
     const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', texte }, differee: false });
     const haute = Array.from({ length: 20 }, (_, i) => `l${i}`).join('\n');
     const journal = [entree(0, 'A'), entree(1, haute), entree(2, 'C')];
-    expect(rendreLeJournal(journal, 0)).toEqual(['0 [pas 1] A', '+2 : `journal --depuis 1`']);
+    expect(rendreLeJournal(journal, 0)).toEqual(['0 [pas 1] A', '+2 : `lire {"quoi":"journal","depuis":1}`']);
     const premiere = rendreLeJournal(journal, 1);
     expect(premiere[0]).toBe('1 [pas 1] l0');
-    const suite = /`journal --depuis 1 --ligne (\d+)`$/.exec(premiere[premiere.length - 1]);
+    const suite = /`lire \{"quoi":"journal","depuis":1,"ligne":(\d+)\}`$/.exec(premiere[premiere.length - 1]);
     expect(suite, premiere.join('\n')).not.toBeNull();
     const m = Number(suite![1]);
     expect(premiere.slice(0, -1).map((l) => l.replace(/^1 \[pas 1\] /, ''))).toEqual(haute.split('\n').slice(0, m));

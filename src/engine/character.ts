@@ -43,6 +43,7 @@ import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSki
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { sequence } from './sequences';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -290,7 +291,7 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   id?: string;
 }
 
-let heroCounter = 0;
+const prochainHeros = sequence();
 
 export function rollCharacteristics(sp: SpeciesData, rng: RNG): Characteristics {
   const chars = {} as Characteristics;
@@ -418,9 +419,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const fate = fateBase.fate + split.fate;
   const resilience = fateBase.resilience + split.resilience;
 
-  heroCounter += 1;
+  const numero = prochainHeros.suivant();
   const hero: Combatant = {
-    id: opts.id ?? `hero-${heroCounter}`,
+    id: opts.id ?? `hero-${numero}`,
     label: opts.label,
     kind: 'hero',
     species: opts.speciesId,
