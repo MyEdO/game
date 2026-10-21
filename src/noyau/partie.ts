@@ -24,6 +24,7 @@ import { seedBattleRng } from './battleRng';
 import { loadRuleOverrides } from '../engine/policy';
 import { setCadence, type Cadence } from '../engine/cadence';
 import { setDesFixes } from '../engine/fixedDie';
+import { remettreLesSequencesAZero } from '../engine/sequences';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -121,6 +122,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   let etat: Jeu = { ...etatInitial, ...creerActionsDuNoyau(get, set) };
 
   brancherLeJeu(get, set, tablesDuJeu());
+  remettreLesSequencesAZero();
   seedBattleRng(entrees.graine);
   loadRuleOverrides(entrees.reglesMaison);
   setCadence(entrees.cadence);

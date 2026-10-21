@@ -143,7 +143,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
     g().fallAcross(chambre, rue);
     g().fallChoose(A, false);
     expect(g().pendingFall!.participants.find((x) => x.id === A)!.attempt).toBeNull();
-    expect(journalise()).toMatch(/se suspendre ou non se déclare avec le saut/);
+    expect(journalise()).toMatch(/ce saut offre de se suspendre d’abord ; la déclaration dit si le tombant se suspend/);
   });
 
   it('A se suspend (chute de 2 m), B saute de toute la hauteur (4 m)', () => {

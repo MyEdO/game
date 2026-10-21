@@ -6,7 +6,7 @@
 // vitest et le navigateur. Le chemin de la fiche porte le livre et le chapitre : aucun champ ne les
 // répète, ni rien de ce qui s'en dérive.
 import { z } from 'zod';
-import '../schemas/grammaire/locale-fr.ts';
+import '../../lib/zodEnFrancais.ts';
 import { tableTotale } from '../../lib/tableTotale.ts';
 
 const MEDIAS = ['scene-jouee', 'dialogue', 'interlude', 'resume', 'coupe'] as const;

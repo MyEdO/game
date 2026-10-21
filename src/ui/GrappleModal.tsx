@@ -10,6 +10,7 @@ import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { Icon } from './Icon';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale « Empoignade » (LDB 14 l.161) — Test OPPOSÉ de FORCE sur `RollShell` (opposé = 2 rangées) :
@@ -46,8 +47,8 @@ export function GrappleModal() {
   // (LDB 12 l.166 ; jet de combat, LDB 13 l.118).
   // Modificateurs NOMMÉS (Avantage, États, météo) : même source que celle que roule `rollGrappleForce`.
   const [foeLine, actorLine] = opposedLines([
-    { label: 'Force', base: effectiveChar(foe, 'force'), r: pd.atk, mods: baseTestModLines(foe, 'force', GRAPPLE_TEST_CTX) },
-    { label: 'Force', base: effectiveChar(actor, 'force'), r: pd.def, mods: baseTestModLines(actor, 'force', GRAPPLE_TEST_CTX) },
+    { label: libelleDeTest('force'), base: effectiveChar(foe, 'force'), r: pd.atk, mods: baseTestModLines(foe, 'force', GRAPPLE_TEST_CTX) },
+    { label: libelleDeTest('force'), base: effectiveChar(actor, 'force'), r: pd.def, mods: baseTestModLines(actor, 'force', GRAPPLE_TEST_CTX) },
   ]);
   // Rangée TÉMOIN : Force du foe, figée à l'ouverture (jamais relancée) — MASQUÉE tant que l'acteur
   // n'a pas répondu (#990 : `pd.def` est SA réponse ; le calendrier est celui de tous les jets figés).

@@ -7,6 +7,7 @@ import { buildParticipantRows } from './buildParticipantRows';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale « Enfoncer une porte à PLUSIEURS » (EDO Appendice 2) — flux MULTI PARALLÈLE, pendant exact
@@ -41,8 +42,8 @@ export function ForceDoorModal() {
     row: (_part, actor, res) => {
       const val = testValue(actor, 'corps-a-corps');
       return res
-        ? { combatant: actor, d: testBreakdown('Bagarre', val, { roll: res.roll, target: res.target, sl: res.sl }) }
-        : { combatant: actor, pending: testPending('Bagarre', val) };
+        ? { combatant: actor, d: testBreakdown(libelleDeTest('bagarre'), val, { roll: res.roll, target: res.target, sl: res.sl }) }
+        : { combatant: actor, pending: testPending(libelleDeTest('bagarre'), val) };
     },
     note: (_part, _actor, res) => <div className={`cs-outcome ${res.damage > 0 ? 'ok-text' : 'muted'}`}>{resultLine(freeCons([res.damage > 0 ? `−${res.damage} Blessure${res.damage > 1 ? 's' : ''}` : 'Rebondit (0 dégât)']))}</div>,
   });

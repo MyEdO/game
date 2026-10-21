@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { defenseDodgeMods } from '../noyau/combatFlow';
-import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
+import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { defenseValue, defenseBaseValue, defenseValueModParts, combatValue, defenseModifiers, baseTestModLines, weaponSkillId } from '../engine/combat';
 import { valeurDecomposee } from '../engine/skills';
@@ -21,6 +21,7 @@ import { Icon } from './Icon';
 import { optionValue, opposedLines, testBreakdown, testPending } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
+import { libelleDeTest, libelleDuTestNomme } from '../noyau/jetsEnVue';
 
 /** Enjeu servi par chaque fenêtre du Désengagement. */
 const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'disengage-choice', esquive: 'disengage-esquive', fuir: 'disengage-fuir' };
@@ -134,7 +135,7 @@ export function DisengageModal() {
     const isBackstab = (id: string) => id === bs?.id;
     // Le Test du fuyard (fiche `fuite`) : sa ligne AVANT le jet comme après, par les mêmes primitives.
     const ligneDuTest = (test: NonNullable<typeof toucheSlot>['test'], r: typeof jet) => {
-      const label = refLabel('skills', test.skill);
+      const label = libelleDuTestNomme(test);
       const { base, mods } = valeurDecomposee(mover, test);
       return r ? { d: testBreakdown(label, base, r, test.difficulty, mods) } : { pending: testPending(label, base, undefined, test.difficulty, mods) };
     };
@@ -145,7 +146,7 @@ export function DisengageModal() {
       onDarkPact: fleeDarkPact,
       onForce: fleeForce,
       row: (part, actor) => (isBackstab(part.id)
-        ? { combatant: actor, d: res?.attackerDetail ? { ...res.attackerDetail, label: 'Corps à corps (dans le dos)' } : undefined }
+        ? { combatant: actor, d: res?.attackerDetail ? { ...res.attackerDetail, label: libelleDeTest('dans-le-dos') } : undefined }
         : { combatant: actor, ...(toucheSlot ? ligneDuTest(toucheSlot.test, jet) : {}) }),
       // Issue courte sous la ligne du coup : « Touché · N Blessure(s) » / « Manqué ».
       note: (part) => (isBackstab(part.id) && res
@@ -186,8 +187,8 @@ export function DisengageModal() {
   // le Corps à corps « brut » du foe (`rollDisengageAttack`), `defenseModifiers` pour l'Esquive du mover
   // (`rollMeleeDefender`) — jamais un +N anonyme dans la cible.
   const [foeLine, moverLine] = opposedLines([
-    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
-    { label: 'Esquive', base: defenseBaseValue(mover, 'esquive'), r: pd.def, mods: [...defenseValueModParts(mover, 'esquive'), ...defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))] },
+    { label: libelleDeTest('corps-a-corps'), base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: libelleDeTest('esquive'), base: defenseBaseValue(mover, 'esquive'), r: pd.def, mods: [...defenseValueModParts(mover, 'esquive'), ...defenseModifiers(mover, 'esquive', defenseDodgeMods(useGame.getState(), mover))] },
   ]);
   // Rangée [0] = TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) —
   // même calendrier de découverte que les autres jets figés (#990 : `pd.def` = la réponse du mover).

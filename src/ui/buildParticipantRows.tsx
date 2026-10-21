@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Stack } from './Layout';
 import type { Combatant } from '../engine/types';
-import { refLabel, findCrewRoleById } from '../data';
+import { findCrewRoleById } from '../data';
 import type { PanelRowData } from './RollPanel';
 import { participantRow, type BuiltRollRow } from './rollRowBuild';
 import { refusSansJet, easeDifficulty, type EchecSansJet } from '../engine/tests';
@@ -9,6 +9,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { ShipManeuverParticipant } from '../noyau/pendings';
 import { crewRoleValue, crewRoleTestMods } from '../engine/crewMorale';
 import { testBreakdown, testPending } from './breakdown';
+import { libelleDeRangee, libelleDeRole } from '../noyau/jetsEnVue';
 
 /**
  * SOURCE UNIQUE des rangées-participants d'une modale MULTI (#328) : `CascadeModal` batch,
@@ -95,7 +96,7 @@ export function buildParticipantRows<P extends ParticipantRow>(
     // Compétence lancée, DÉRIVÉE de la paire `{skillId, spec}` par le résolveur canonique (« Voile
     // (Chaland) »). Le producteur ne fournit plus de libellé libre : un `part.label` ne peut plus
     // faire passer un RÔLE (« Timonier ») pour la Compétence (#1117).
-    const skillLabel = part.skillId ? refLabel('skills', { id: part.skillId, spec: part.spec }) : undefined;
+    const skillLabel = libelleDeRangee(part);
     const panelRow0 = bundle.row(part, actor, res);
     const panelRow = skillLabel
       ? {
@@ -138,7 +139,7 @@ export function crewRoleRow(part: ShipManeuverParticipant, actor: Combatant, res
   const role = findCrewRoleById(part.roleId);
   if (!role) return { combatant: actor };
   const rv = crewRoleValue(actor, role, part.navigation, part.sense);
-  const label = `${role.label}${part.essential ? ' ★' : ''}`;
+  const label = libelleDeRole(part);
   const difficulty = part.cumul ? easeDifficulty('intermediaire', -2) : undefined;
   if (rv.refus != null) return { combatant: actor, note: rv.refus };
   const mods = crewRoleTestMods(actor, role, part.navigation, part.sense);

@@ -9,6 +9,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeFocus } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale de Focalisation (LDB — Test étendu de Focalisation) : « Lancer » accumule du DR vers le NI,
@@ -42,8 +43,8 @@ export function FocusModal() {
     actor: caster,
     row: {
       combatant: caster,
-      d: r ? testBreakdown('Focalisation', castingValue(caster, 'focalisation'), { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.dr > 0 }, undefined, windsMods) : undefined,
-      pending: testPending('Focalisation', castingValue(caster, 'focalisation'), undefined, undefined, battle?.windsOfMagic?.revealed ? windsMods : undefined),
+      d: r ? testBreakdown(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), { roll: r.roll, target: r.target, sl: r.sl ?? r.dr, success: r.dr > 0 }, undefined, windsMods) : undefined,
+      pending: testPending(libelleDeTest('focalisation'), castingValue(caster, 'focalisation'), undefined, undefined, battle?.windsOfMagic?.revealed ? windsMods : undefined),
     },
     onRoll: roll,
     rerolled: !!pf.rerolled,

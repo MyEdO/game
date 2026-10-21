@@ -3,7 +3,9 @@
 // (src/noyau/actionsDuNoyau.ts, `RollFlowActionsMap` dérivé compris) est un verbe, et la signature de son appel
 // donne ses paramètres. Le vérificateur de types résout chaque paramètre en une FORME JSON (`Forme`,
 // src/hoteTexte/formes.ts) : la même lecture sert la table du doc (scripts/docs/build-hote-texte.mjs) et la
-// validation des arguments de `jouer` (scripts/hote-texte.mjs la prête à l'hôte). Aucune forme écrite à la main.
+// validation des arguments de `jouer` (src/hoteTexte/verbes.generated.ts, scripts/gen-verbes.mjs). Aucune forme écrite à la main.
+// Un paramètre (ou un champ) dont la DÉCLARATION nomme une clé de `DESIGNATIONS` (src/noyau/designations.ts) porte
+// ce nom et son mot dans sa forme (`designe`) : un alias de `string` ne survit pas au type résolu, il se lit au nœud déclaré.
 import path from 'node:path'
 import * as ts from 'typescript/unstable/ast'
 import { SignatureKind, SymbolFlags, TypeFlags } from 'typescript/unstable/sync'
@@ -12,6 +14,8 @@ import { parUnitesDeCode } from '../../guards/lib/lister.mjs'
 
 const SOURCE = 'src/noyau/actionsDuNoyau.ts'
 const INTERFACE = 'ActionsDuNoyau'
+const SOURCE_DESIGNATIONS = 'src/noyau/designations.ts'
+const TABLE_DESIGNATIONS = 'DESIGNATIONS'
 /** Profondeur de résolution d'un objet : au-delà, l'objet ne contrôle que d'être un objet (`champs: null`). */
 const PROFONDEUR = 1
 /** Nombre de littéraux au-delà duquel une union de littéraux (un id du catalogue) se contrôle par son genre primitif :
@@ -33,7 +37,47 @@ function nomDuType(checker, type) {
   return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : 'objet'
 }
 
-function forme(checker, type, profondeur) {
+/** Le nœud de type DÉCLARÉ d'un symbole (paramètre, champ), s'il en a un. */
+const typeDeclare = (symbole) => symbole.valueDeclaration?.resolve()?.type
+
+/** Les désignations de la table `DESIGNATIONS`, lues à son source : le nom de chaque entrée et son `mot` littéral. */
+function nomsDesignes(session, racine) {
+  const fichier = path.resolve(racine, SOURCE_DESIGNATIONS).replaceAll('\\', '/')
+  const sf = session.program.getSourceFile(fichier)
+  if (!sf) throw new Error(`verbesDeLaPartie : ${SOURCE_DESIGNATIONS} hors du programme de ${SOURCE}`)
+  let table
+  sf.forEachChild((n) => {
+    if (ts.isVariableStatement(n)) for (const d of n.declarationList.declarations) if (ts.isIdentifier(d.name) && d.name.text === TABLE_DESIGNATIONS) table = d
+  })
+  if (!table) throw new Error(`verbesDeLaPartie : table \`${TABLE_DESIGNATIONS}\` introuvable dans ${SOURCE_DESIGNATIONS}`)
+  const objet = ts.isSatisfiesExpression(table.initializer) ? table.initializer.expression : table.initializer
+  if (!ts.isObjectLiteralExpression(objet)) throw new Error(`verbesDeLaPartie : \`${TABLE_DESIGNATIONS}\` n'est pas un objet littéral`)
+  return new Map(objet.properties.filter(ts.isPropertyAssignment).map((p) => {
+    const champ = ts.isObjectLiteralExpression(p.initializer) && p.initializer.properties.find((c) => ts.isPropertyAssignment(c) && ts.isIdentifier(c.name) && c.name.text === 'mot')
+    if (!champ || !ts.isStringLiteral(champ.initializer)) throw new Error(`verbesDeLaPartie : \`${TABLE_DESIGNATIONS}.${p.name.text}\` sans \`mot\` littéral`)
+    return [p.name.text, champ.initializer.text]
+  }))
+}
+
+/** La forme `f` annotée du nom de désignation que son nœud déclaré écrit : une référence à une clé de la table sur
+ *  une chaîne ou un objet, à travers parenthèses, `readonly`, tableaux et unions. */
+function designee(f, noeud, designes) {
+  if (!noeud) return f
+  if (ts.isParenthesizedTypeNode(noeud) || ts.isTypeOperatorNode(noeud)) return designee(f, noeud.type, designes)
+  if (ts.isArrayTypeNode(noeud)) return f.genre === 'tableau' ? { ...f, element: designee(f.element, noeud.elementType, designes) } : f
+  if (ts.isTypeReferenceNode(noeud)) {
+    const nom = ts.isIdentifier(noeud.typeName) ? noeud.typeName.text : null
+    return nom && designes.has(nom) && (f.genre === 'chaine' || f.genre === 'objet') ? { ...f, designe: { cle: nom, mot: designes.get(nom) } } : f
+  }
+  if (ts.isUnionTypeNode(noeud)) {
+    const designants = noeud.types.filter((t) => designee({ genre: 'chaine' }, t, designes).designe)
+    if (designants.length !== 1) return f
+    return f.genre === 'union' ? { ...f, membres: f.membres.map((m) => designee(m, designants[0], designes)) } : designee(f, designants[0], designes)
+  }
+  return f
+}
+
+function forme(checker, type, profondeur, designes) {
   const f = type.flags
   if (f & (TypeFlags.Any | TypeFlags.Unknown)) return { genre: 'libre', type: nomDuType(checker, type) }
   if (f & TypeFlags.StringLiteral) return { genre: 'litteral', valeur: type.value }
@@ -45,7 +89,7 @@ function forme(checker, type, profondeur) {
   if (f & TypeFlags.Null) return { genre: 'null' }
   if (f & (TypeFlags.Undefined | TypeFlags.Void)) return { genre: 'absent' }
   if (type.isUnionType()) {
-    const membres = type.getTypes().map((t) => forme(checker, t, profondeur))
+    const membres = type.getTypes().map((t) => forme(checker, t, profondeur, designes))
     // `boolean` est l'union `true | false` : il se lit d'un mot.
     const booleens = membres.filter((m) => m.genre === 'litteral' && typeof m.valeur === 'boolean').length
     const reste = booleens === 2 ? [{ genre: 'booleen' }, ...membres.filter((m) => !(m.genre === 'litteral' && typeof m.valeur === 'boolean'))] : membres
@@ -62,7 +106,7 @@ function forme(checker, type, profondeur) {
   }
   if (checker.isArrayType(type) || checker.isTupleType(type)) {
     const [element] = type.isTypeReference() ? checker.getTypeArguments(type) : []
-    return { genre: 'tableau', element: element ? forme(checker, element, profondeur) : { genre: 'libre', type: '?' } }
+    return { genre: 'tableau', element: element ? forme(checker, element, profondeur, designes) : { genre: 'libre', type: '?' } }
   }
   if (f & TypeFlags.Object) {
     if (checker.getSignaturesOfType(type, SignatureKind.Call).length) return { genre: 'libre', type: nomDuType(checker, type) }
@@ -71,7 +115,7 @@ function forme(checker, type, profondeur) {
     const champs = proprietes.map((p) => ({
       nom: p.name,
       optionnel: !!(p.flags & SymbolFlags.Optional),
-      forme: sansAbsent(forme(checker, checker.getTypeOfSymbol(p), profondeur + 1)),
+      forme: designee(sansAbsent(forme(checker, checker.getTypeOfSymbol(p), profondeur + 1, designes)), typeDeclare(p), designes),
     }))
     return { genre: 'objet', type: nomDuType(checker, type), champs }
   }
@@ -99,6 +143,7 @@ export function verbesDeLaPartie(racine = process.cwd(), noms = null) {
     sf.forEachChild((n) => { if (ts.isInterfaceDeclaration(n) && n.name.text === INTERFACE) decl = n })
     if (!decl) throw new Error(`verbesDeLaPartie : interface \`${INTERFACE}\` introuvable dans ${SOURCE}`)
     const { checker } = session
+    const designes = nomsDesignes(session, racine)
     const verbes = {}
     for (const p of checker.getPropertiesOfType(checker.getTypeAtLocation(decl.name))) {
       if (noms && !noms.includes(p.name)) continue
@@ -106,8 +151,8 @@ export function verbesDeLaPartie(racine = process.cwd(), noms = null) {
       if (!signature) continue
       verbes[p.name] = signature.getParameters().map((q) => {
         const type = checker.getTypeOfSymbol(q)
-        const f = forme(checker, type, 0)
-        return { nom: q.name, optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(f), type: nomDuType(checker, type), forme: sansAbsent(f) }
+        const f = forme(checker, type, 0, designes)
+        return { nom: q.name, optionnel: !!(q.flags & SymbolFlags.Optional) || admetAbsent(f), type: nomDuType(checker, type), forme: designee(sansAbsent(f), typeDeclare(q), designes) }
       })
     }
     return Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b)))

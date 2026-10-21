@@ -78,14 +78,14 @@ export function courseArmee(get: Get): boolean {
   return armedIntentPortee(get) === PORTEE_COURSE;
 }
 
-/** Les PORTÉES que le champ peint au tour du joueur (`gameIso/stage/highlightLayer.tsx`) et qu'un hôte lit : la
- *  Marche (`displayedReach`), la zone de Course quand elle est armée (`computeRunReach`), et celle de l'intention armée
- *  (`intentReach`). Vides hors de son tour. */
-export function porteesDuTour(get: Get, monTour: boolean): { marche: Map<string, number>; course: Map<string, number>; intention: Map<string, number> } {
+/** Les PORTÉES que le champ peint au tour du joueur (`gameIso/stage/highlightLayer.tsx`) et qu'un hôte lit, l'armée
+ *  d'abord : celle de l'intention armée (`intentReach`), la zone de Course quand elle est armée (`computeRunReach`), puis
+ *  la Marche (`displayedReach`). Vides hors de son tour. */
+export function porteesDuTour(get: Get, monTour: boolean): { intention: Map<string, number>; course: Map<string, number>; marche: Map<string, number> } {
   return {
-    marche: monTour ? displayedReach(get) : new Map(),
-    course: monTour && courseArmee(get) ? computeRunReach(get) : new Map(),
     intention: monTour && get().localIntent ? intentReach(get) : new Map(),
+    course: monTour && courseArmee(get) ? computeRunReach(get) : new Map(),
+    marche: monTour ? displayedReach(get) : new Map(),
   };
 }
 

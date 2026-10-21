@@ -965,7 +965,7 @@ function construire(regimes: Regimes) {
       const res = payload.safeParse(v);
       // L'issue du payload est REPORTÉE TELLE QUELLE, seul son `message` est préfixé du nom de l'op :
       // aplatir son `code` en `'custom'` forcerait un consommateur à trier les refus d'op par leur
-      // PHRASE — donc par la locale (`grammaire/locale-fr.ts`), qui n'est pas un contrat.
+      // PHRASE — donc par la locale (`src/lib/zodEnFrancais.ts`), qui n'est pas un contrat.
       if (!res.success) for (const issue of res.error.issues) ctx.addIssue({ ...issue, message: `GameOp « ${v.op} » : ${issue.message}` });
       return;
     }

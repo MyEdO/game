@@ -11,6 +11,7 @@ import { ev } from '../../noyau/combatLog';
 import { describeTest, amazingTestLabel } from '../../noyau/flowOutcomes';
 import { rule } from '../../engine/policy';
 import { CodexRef } from '../compendium/CodexRef';
+import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
@@ -40,7 +41,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const rolled = pt.roll != null;
   const actor = party.find((c) => c.id === pt.actorId);
   const multi = !rolled && !!pt.candidates && pt.candidates.length > 1;
-  const skillLabel = pt.skill ?? pt.label;
+  const skillLabel = libelleDuTestDeScene(pt);
   // LIGNE MONTÉE : la base NUE (LDB 09 l.17) et TOUTES les lignes nommées — Soutien (LDB 12), États,
   // Encombrement, séquelles, passifs, outil, malus psy (LDB 21), Statut (LDB 08), météo maritime
   // (MDG 13) — sont montées à l'OUVERTURE par le monteur canonique (`rollSeam.rollStep`) et

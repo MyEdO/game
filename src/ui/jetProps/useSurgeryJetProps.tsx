@@ -6,6 +6,7 @@ import { buildRollRow, type BuiltRollRow } from '../rollRowBuild';
 import { testValueSplit, testBreakdown, testPending } from '../breakdown';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
+import { libelleDeTest } from '../../noyau/jetsEnVue';
 
 /**
  * Jet d'UNE passe de Chirurgie (Test ÉTENDU influençable), données de la coquille — calque `useHealJetProps` :
@@ -38,8 +39,8 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
     actor: surgeon,
     row: {
       combatant: surgeon,
-      d: rolled ? testBreakdown('Guérison', base, { roll: ps.roll!, ...cibleMesuree(ps), sl: ps.sl, success: ps.success }, ps.difficulty, supMods) : undefined,
-      pending: testPending('Guérison', base, cibleMesuree(ps), ps.difficulty, supMods),
+      d: rolled ? testBreakdown(libelleDeTest('guerison'), base, { roll: ps.roll!, ...cibleMesuree(ps), sl: ps.sl, success: ps.success }, ps.difficulty, supMods) : undefined,
+      pending: testPending(libelleDeTest('guerison'), base, cibleMesuree(ps), ps.difficulty, supMods),
     },
     rerolled: !!ps.rerolled,
     onRoll: roll,

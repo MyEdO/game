@@ -22,7 +22,8 @@ import { roll, d100, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import type { CascadeStep, CascadeStepMeta, PendingCascade, ReprisePilote, RowSurface, CascadeRoll, BatchParticipant, CascadeAggregate, CascadeSecondRead, CascadeDeDecl, CascadeDeTirage, CascadeDeResult, CascadeTableDecl, CascadeTableResult, OpposedRowFreeze, StepEvaluation, SeuilDeSauvegarde } from './pendings';
 import { formatWardSave } from '../engine/traits/dispatch';
-import { t } from '../i18n';
+import { t, type MsgKey } from '../i18n';
+import { refuserGeste } from './refusVisible';
 import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -720,35 +721,77 @@ function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean
   return out;
 }
 
-/** Pose le choix du joueur sur l'étape « choix » COURANTE (valide que `key ∈ options`). Analogue de
+type InteractionDEtape = ReturnType<typeof stepInteraction>;
+
+/** Ce qu'attend une étape, par son interaction : le nom qu'un refus donne à l'étape attendue. */
+const ATTENTE_DE_L_ETAPE: Record<InteractionDEtape, MsgKey> = {
+  jet: 'cascade.attend.jet', table: 'cascade.attend.table', de: 'cascade.attend.de', batch: 'cascade.attend.batch',
+  quantite: 'cascade.attend.quantite', choix: 'cascade.attend.choix', affichage: 'cascade.attend.affichage',
+};
+
+/**
+ * GARDE D'ÉTAPE des verbes d'étape (`cascadeChoose`, `cascadeAmount`, `cascadeTableRoll`, `cascadeDieRoll` et leurs
+ * poses de dé) : un verbe joue l'étape COURANTE (`stepId`) dans l'interaction qu'il sert (`sert`, ordre de
+ * `stepInteraction`), ou, pour une re-pose de dé (`repose`), une étape dont ce dé est déjà tombé. Rend le refus qui
+ * nomme l'étape attendue et ce qu'elle attend, `null` si l'étape est servie.
+ */
+function refusDEtape(p: PendingCascade | null | undefined, stepId: string, sert: InteractionDEtape, repose?: (cur: CascadeStep) => boolean): string | null {
+  if (!p) return t('cascade.refus.aucuneSequence');
+  const cur = p.participants[p.cursor];
+  if (!cur) return t('cascade.refus.bilan');
+  const attendue = { etape: cur.label ?? cur.id, id: cur.id, attendu: t(ATTENTE_DE_L_ETAPE[stepInteraction(cur)]) };
+  if (cur.id !== stepId) return t('cascade.refus.autreEtape', { pid: stepId, ...attendue });
+  if (stepInteraction(cur) !== sert && !repose?.(cur)) return t('cascade.refus.pasCetteInteraction', { ...attendue, sert: t(ATTENTE_DE_L_ETAPE[sert]) });
+  return null;
+}
+
+/** L'étape servie (`refusDEtape`), ou `null` après avoir refusé le geste (`refuserGeste`). */
+function etapeServie(get: Get, set: Set, stepId: string, sert: InteractionDEtape, repose?: (cur: CascadeStep) => boolean): CascadeStep | null {
+  const p = get().pendingCascade;
+  const refus = refusDEtape(p, stepId, sert, repose);
+  if (refus) {
+    refuserGeste(get, set, refus);
+    return null;
+  }
+  return p!.participants[p!.cursor];
+}
+
+/** Le refus du jet de l'étape `stepId` (`refusDEtape`), `null` s'il se joue maintenant. Garde des verbes du flux `cascade`. */
+export const refusDuJetDEtape = (s: Pick<Jeu, 'pendingCascade'>, stepId: string): string | null => refusDEtape(s.pendingCascade, stepId, 'jet');
+
+/** Remplace l'étape COURANTE de la séquence. */
+function poserLaCourante(get: Get, set: Set, etape: CascadeStep): void {
+  const p = get().pendingCascade!;
+  set({ pendingCascade: { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? etape : x)) } });
+}
+
+/** Pose le choix du joueur sur l'étape « choix » COURANTE (`etapeServie`, `key ∈ options`). Analogue de
  *  `cascadeRoll` côté jet : prépare l'étape ; la VALIDATION (conséquence) reste à `advanceCascade`. */
 export function setCascadeChoice(get: Get, set: Set, stepId: string, key: string): void {
-  const p = get().pendingCascade;
-  if (!p) return;
-  const cur = p.participants[p.cursor];
-  if (!cur || cur.id !== stepId) return;
-  if (!cur.options?.some((o) => o.key === key)) return;
-  set({ pendingCascade: { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? { ...x, chosen: key } : x)) } });
+  const cur = etapeServie(get, set, stepId, 'choix');
+  if (!cur) return;
+  if (!cur.options?.some((o) => o.key === key)) {
+    refuserGeste(get, set, t('cascade.refus.choixInconnu', { cle: key, etape: cur.label ?? cur.id, voies: (cur.options ?? []).map((o) => o.key).join(', ') }));
+    return;
+  }
+  poserLaCourante(get, set, { ...cur, chosen: key });
 }
 
 /** Pose le NOMBRE saisi sur l'étape « quantité » COURANTE — jumeau exact de `setCascadeChoice` : la
  *  valeur est ramenée dans la plage DÉCLARÉE par l'étape (`clampStepAmount`, site unique de la borne),
  *  jamais crue telle quelle ; la VALIDATION (conséquence) reste à `advanceCascade`. */
 export function setCascadeAmount(get: Get, set: Set, stepId: string, n: number): void {
-  const p = get().pendingCascade;
-  if (!p) return;
-  const cur = p.participants[p.cursor];
-  if (!cur || cur.id !== stepId || !cur.quantity) return;
-  const amount = clampStepAmount(cur.quantity, n);
-  set({ pendingCascade: { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? { ...x, amount } : x)) } });
+  const cur = etapeServie(get, set, stepId, 'quantite');
+  if (!cur?.quantity) return;
+  poserLaCourante(get, set, { ...cur, amount: clampStepAmount(cur.quantity, n) });
 }
 
 /** Tire la TABLE de l'étape COURANTE (interaction `'table'`) — SEAM d'état, analogue de
  *  `setCascadeChoice`/`cascadeRoll` : pose `table.result` via le résolveur UNIQUE (`rollTableStep`,
- *  RNG de bataille) ; la VALIDATION (conséquence) reste à `advanceCascade`. No-op si l'étape n'est pas
- *  celle visée, n'a pas de table, ou est déjà tirée (un dé ne se relance pas en douce). */
+ *  RNG de bataille) ; la VALIDATION (conséquence) reste à `advanceCascade`. Refusé si l'étape n'est pas
+ *  celle visée ou n'attend pas son tirage, déjà tombé compris (un dé ne se relance pas en douce). */
 export function rollCascadeTable(get: Get, set: Set, stepId: string): void {
-  poseSurCourante(get, set, stepId, (s, cur) => {
+  poseSurCourante(get, set, stepId, 'table', false, (s, cur) => {
     if (!cur.table || cur.table.result) return null;
     // La déclaration RÉSOLUE (modificateur vivant versé) est celle qui tire ET celle qu'on POSE sur
     // l'étape : le `mod` qui a servi reste lisible (rangée + conséquence) au lieu d'être recalculé.
@@ -758,10 +801,10 @@ export function rollCascadeTable(get: Get, set: Set, stepId: string): void {
 }
 
 /** Tire le DÉ NU de l'étape COURANTE (interaction `'de'`, #1508) — JUMEAU EXACT de `rollCascadeTable`
- *  ci-dessus, au même goulot (`poseSurCourante`) : seule la LECTURE du dé change. No-op si l'étape
- *  n'est pas celle visée, n'a pas de dé, ou est déjà tirée (un dé ne se relance pas en douce). */
+ *  ci-dessus, au même goulot (`poseSurCourante`) : seule la LECTURE du dé change. Refusé si l'étape
+ *  n'est pas celle visée ou n'attend pas son dé, déjà tombé compris (un dé ne se relance pas en douce). */
 export function rollCascadeDe(get: Get, set: Set, stepId: string): void {
-  poseSurCourante(get, set, stepId, (s, cur) => {
+  poseSurCourante(get, set, stepId, 'de', false, (s, cur) => {
     if (!cur.de || cur.de.result) return null;
     const de = liveDeDecl(s, cur);
     return deStepResolved(cur, de, roulerDe(de, specDeEtape(de), battleRng()));
@@ -785,19 +828,16 @@ export function deStepResolved(step: CascadeStep, decl: CascadeDeDecl, result: C
 }
 
 /**
- * GOULOT UNIQUE des quatre poseurs de dé d'étape (tirage naturel / dé posé × dé nu / table) : garde de
- * curseur (l'étape visée est bien la COURANTE), lecture de l'état, écriture du slot. `resoudre` rend
- * l'étape RÉSOLUE, ou `null` quand rien n'est à poser (dé déjà tombé, étape sans dé, étape committée)
- * — un no-op y est un refus NOMMÉ par son poseur, jamais une écriture à vide.
+ * GOULOT UNIQUE des quatre poseurs de dé d'étape (tirage naturel / dé posé × dé nu / table) : garde d'étape
+ * (`etapeServie` : l'étape visée est la COURANTE et attend ce dé, `sert` ; une pose, `repose`, re-pose aussi un dé
+ * déjà tombé), lecture de l'état, écriture du slot. `resoudre` rend l'étape RÉSOLUE, ou `null` quand rien n'est à poser
+ * (dé déjà tombé, étape committée) — un no-op y est un refus NOMMÉ par son poseur, jamais une écriture à vide.
  */
-function poseSurCourante(get: Get, set: Set, stepId: string, resoudre: (s: Jeu, cur: CascadeStep) => CascadeStep | null): void {
-  const p = get().pendingCascade;
-  if (!p) return;
-  const cur = p.participants[p.cursor];
-  if (!cur || cur.id !== stepId) return;
+function poseSurCourante(get: Get, set: Set, stepId: string, sert: 'table' | 'de', repose: boolean, resoudre: (s: Jeu, cur: CascadeStep) => CascadeStep | null): void {
+  const cur = etapeServie(get, set, stepId, sert, (c) => repose && !!c[sert]?.result);
+  if (!cur) return;
   const resolue = resoudre(get(), cur);
-  if (!resolue) return;
-  set({ pendingCascade: { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? resolue : x)) } });
+  if (resolue) poserLaCourante(get, set, resolue);
 }
 
 /** Faces du dé d'un tirage sur table — vue de `tableSpec` pour les appelants qui ne veulent que les
@@ -857,7 +897,7 @@ function clampTableNatural(decl: CascadeTableDecl, roll: number): number {
  * curseur qui avance ferme la fenêtre (`cur.id !== stepId`).
  */
 export function setCascadeTableForcedRoll(get: Get, set: Set, stepId: string, roll: number): void {
-  poseSurCourante(get, set, stepId, (s, cur) => {
+  poseSurCourante(get, set, stepId, 'table', true, (s, cur) => {
     if (!cur.table || cur.committed) return null;
     const live = liveTableDecl(s, cur);
     const table: CascadeTableDecl = { ...live, forcedRoll: clampTableNatural(live, roll) };
@@ -870,7 +910,7 @@ export function setCascadeTableForcedRoll(get: Get, set: Set, stepId: string, ro
  *  courante) : seule la borne change (`plageNaturelle` des dés déclarés, sans plage de table à
  *  intersecter) et la lecture reste nue. */
 export function setCascadeDeForcedRoll(get: Get, set: Set, stepId: string, roll: number): void {
-  poseSurCourante(get, set, stepId, (s, cur) => {
+  poseSurCourante(get, set, stepId, 'de', true, (s, cur) => {
     if (!cur.de || cur.committed) return null;
     const live = liveDeDecl(s, cur);
     const spec = specDeEtape(live);

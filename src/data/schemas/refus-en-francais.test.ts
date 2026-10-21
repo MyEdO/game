@@ -1,7 +1,7 @@
 /**
  * LANGUE des refus de schéma (#1588) — règle 4 : l'écran est en français, et un refus de schéma EST
  * ce que l'auteur lit quand le Compendium ou l'éditeur rejettent sa saisie. La carte d'erreurs FR de
- * zod est posée UNE fois (`grammaire/locale-fr.ts`).
+ * zod est posée UNE fois (`src/lib/zodEnFrancais.ts`).
  *
  * Trois volets, chacun sur le chemin RÉEL de son cas :
  *  - la porte par FICHIER (`validateDataset`) — le refus que le Compendium rend au save ;
@@ -66,7 +66,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
    * comme atteinte (`sourceALExecution`, `scripts/guards/lib/importGraph.mjs`).
    */
   it('GARDE — tout fichier de production de `src/**` important zod en VALEUR atteint la locale', { timeout: 30_000 }, () => {
-    const LOCALE = 'src/data/schemas/grammaire/locale-fr.ts';
+    const LOCALE = 'src/lib/zodEnFrancais.ts';
     const ZOD_EN_VALEUR = /\bfrom\s*['"]zod['"]|\bimport\s*['"]zod['"]/;
 
     const porteurs = listerArbre('src', {

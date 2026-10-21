@@ -7,22 +7,21 @@
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import {
-  creerPartie, etatInitialDuJeu, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, portalsForParty, ACTIONS,
-  type ActionRunCtx, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
+  creerPartie, etatInitialDuJeu, argsAvecVerdictLocal, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, runAction, quiTientLaMain, siegeDe, porteurParId, ACTIONS, CADENCE_MODES, DESIGNATIONS,
+  type ActionRunCtx, type Cadence, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
-import { ecartALaForme, estObjet, signature, type ParametreDeVerbe } from './formes';
+import { lireALaForme, estObjet, signature, type Designes, type ParametreDeVerbe } from './formes';
+import { appelEcrit } from './outils';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 import { tableTotale } from '../lib/tableTotale';
-
-const CADENCES = ['manuel', 'rapide', 'auto'] as const;
 
 /** L'en-tête du fichier : le scénario lancé et les entrées de la partie (D8). */
 export interface Entete {
   scenario: string;
   graine: number;
   regles: Record<string, unknown>;
-  cadence: (typeof CADENCES)[number];
+  cadence: Cadence;
   desFixes: boolean;
 }
 
@@ -46,14 +45,13 @@ const valider = (condition: unknown, message: string): void => {
 };
 
 
-/** Les entités qu'un argument désigne par son `id`, par type de paramètre : l'hôte complète l'objet depuis le lecteur
- *  du noyau (une porte par `portalsForParty`). */
-const DESIGNABLES: Readonly<Partial<Record<string, (etat: Jeu) => readonly { id: string }[]>>> = {
-  RoomPortal: (etat) => (etat.scene ? portalsForParty(etat.scene, etat.partyPos) : []),
-};
+/** Ce que l'état désigne, lu par la table du noyau (`DESIGNATIONS`). */
+const designesDe = (etat: Jeu): Designes => (cle) =>
+  cle in DESIGNATIONS ? DESIGNATIONS[cle as keyof typeof DESIGNATIONS].lire(etat) : undefined;
 
-/** Les arguments d'un verbe, contrôlés contre ses paramètres : un id d'entité désignable est complété, `null` omet un
- *  paramètre optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
+/** Les arguments d'un verbe, lus à leurs paramètres (`lireALaForme`) : un id que l'état ne désigne pas lève une erreur
+ *  de validation qui nomme les ids valides, un objet désigné par son id est complété, `null` omet un paramètre
+ *  optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
 export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknown[], parametres: readonly ParametreDeVerbe[]): unknown[] {
   valider(args.length <= parametres.length, `${verbe} : ${parametres.length} argument(s) au plus (${signature(verbe, parametres)})`);
   for (const p of parametres.slice(args.length)) valider(p.optionnel, `${verbe} : l’argument ${p.nom} manque (${signature(verbe, parametres)})`);
@@ -61,12 +59,9 @@ export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknow
     const p = parametres[i];
     // JSON n'a pas d'`undefined` : `null` omet un paramètre optionnel, pour en poser un suivant.
     if (brut === null && p.optionnel) return brut;
-    const designables = DESIGNABLES[p.forme.genre === 'objet' ? p.forme.type : ''];
-    const v = designables && typeof brut === 'string' ? designables(etat).find((e) => e.id === brut) : brut;
-    valider(v !== undefined, `${verbe} : aucun ${p.type} d’id ${String(brut)} ici`);
-    const ecart = ecartALaForme(v, p.forme, p.nom);
-    valider(!ecart, `${verbe} : ${ecart} (${signature(verbe, parametres)})`);
-    return v;
+    const lu = lireALaForme(brut, p.forme, p.nom, designesDe(etat));
+    if ('ecart' in lu) throw new ErreurDeGeste('validation', `${verbe} : ${lu.ecart} (${signature(verbe, parametres)})`);
+    return lu.valeur;
   });
 }
 
@@ -77,8 +72,8 @@ export function nouvelEntete(scenario: string, options: { graine?: number; caden
   const graine = options.graine ?? 1;
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
   const cadence = options.cadence ?? 'manuel';
-  valider((CADENCES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCES.join(', ')})`);
-  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Entete['cadence'], desFixes: options.desFixes ?? false };
+  valider((CADENCE_MODES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCE_MODES.join(', ')})`);
+  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Cadence, desFixes: options.desFixes ?? false };
 }
 
 /** Lit un geste écrit (une ligne JSON), ou lève une erreur de validation. */
@@ -99,7 +94,7 @@ export function lireGeste(v: unknown): Geste {
 /** Le texte d'un fichier : l'en-tête, puis les gestes. */
 export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] } {
   const lignes = texte.split('\n').filter((l) => l.trim() !== '');
-  valider(lignes.length > 0, 'fichier de partie vide : `nouvelle <scenario>` d’abord');
+  valider(lignes.length > 0, `fichier de partie vide : ${appelEcrit('nouvelle')} d’abord`);
   const json = lignes.map((l, i) => {
     try {
       return JSON.parse(l) as unknown;
@@ -166,30 +161,81 @@ function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): vo
  *  (`etatDeLaBarre`, le verdict que lit aussi la console). */
 export function offresDeLaBarre(etat: Jeu): Offre[] {
   const barre = etatDeLaBarre(etat);
-  if (barre.forme !== 'ouverte') throw new ErreurDeGeste('regle', `aucune offre : ${barre.raison} (\`vue\`)`);
+  if (barre.forme !== 'ouverte') throw new ErreurDeGeste('regle', `aucune offre : ${barre.raison} (${appelEcrit('lire', { quoi: 'vue' })})`);
   return offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, state: etat });
+}
+
+/** La sonde : elle répond à toute lecture et à tout appel par elle-même, et se convertit en `0`. */
+const SONDE: unknown = new Proxy(function sonde() {}, {
+  get: (_cible, cle) => (cle === Symbol.toPrimitive ? () => 0 : SONDE),
+  apply: () => SONDE,
+});
+
+/** Les champs du contexte qu'une offre lit : ceux que sa porte (`runAction`) lit en se jouant sur la sonde, une fois
+ *  chaque champ présent, une fois chaque champ absent ; la sonde ne joue rien. Une porte que la sonde fait lever ne
+ *  dit pas ce qu'elle lit : `null`, et son contexte ne se contrôle pas. */
+function champsLusParLOffre(actionId: string): Set<string> | null {
+  const lus = new Set<string>();
+  try {
+    for (const valeur of [SONDE, undefined]) {
+      const ctx = new Proxy({}, {
+        get: (_cible, cle) => {
+          if (typeof cle === 'string') lus.add(cle);
+          return valeur;
+        },
+      });
+      runAction(actionId, () => SONDE as Jeu, ctx as ActionRunCtx);
+    }
+  } catch {
+    return null;
+  }
+  return lus;
+}
+
+/** Un champ du contexte d'une offre que ni elle ni ses candidats ne lisent lève une erreur de validation, qui nomme les
+ *  champs acceptés ; pour une offre qui arme une intention, la cible se choisit après elle. */
+function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offres: readonly Offre[]): void {
+  const lus = champsLusParLOffre(offre);
+  if (!lus) return;
+  const acceptes = new Set([...lus, ...offres.flatMap((o) => (o.actionId === offre ? Object.keys(o.args) : []))]);
+  const ignores = Object.keys(ctx ?? {}).filter((k) => !acceptes.has(k));
+  if (!ignores.length) return;
+  const cible = ACTIONS.find((a) => a.id === offre)?.intent ? ' ; la cible de cette offre se choisit après elle, par le clic de son combattant' : '';
+  throw new ErreurDeGeste('validation', `${offre} ne lit pas ${ignores.join(', ')} du contexte (champs acceptés : ${[...acceptes].join(', ') || 'aucun'})${cible} (${appelEcrit('lire', { quoi: 'offres', id: offre })})`);
 }
 
 /** L'intention d'un geste, contrôlée. Une offre que l'énumérateur ne rend pas, ou qu'aucun candidat ne désigne
  *  (`offreDesignee`), est une erreur de règle avec la raison du registre ; une offre fermée aussi (`actionGate`, sur les
- *  arguments du geste) ; un verbe inconnu est une erreur de validation. */
+ *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) et un verbe inconnu sont
+ *  des erreurs de validation. Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
+ *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
 function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
   if ('offre' in geste) {
-    valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre} (\`offres --toutes\`)`);
+    valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre} (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`);
     const offres = offresDeLaBarre(etat);
+    controlerLeContexte(geste.offre, geste.ctx, offres);
     const barre = etatDeLaBarre(etat);
     const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, args: geste.ctx } : undefined;
     if (!offreDesignee(offres, geste.offre, geste.ctx)) {
       const pertinence = ctx ? actionGate(geste.offre, ctx) : undefined;
       const raison = pertinence && !pertinence.ok ? pertinence.reason : offres.some((o) => o.actionId === geste.offre) ? 'aucun candidat ne correspond au contexte' : 'aucun candidat';
-      throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${raison} (\`offres ${geste.offre}\`)`);
+      throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${raison} (${appelEcrit('lire', { quoi: 'offres', id: geste.offre })})`);
     }
     const gate = actionGate(geste.offre, ctx!);
     if (!gate.ok) throw new ErreurDeGeste('regle', `${geste.offre} fermée : ${gate.reason ?? 'sans raison'}`);
     return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
   }
   valider(typeof (etat as unknown as Record<string, unknown>)[geste.type] === 'function', `verbe inconnu : ${geste.type}`);
-  return { type: geste.type, args: geste.args, ...(geste.siege === undefined ? {} : { siege: geste.siege }) } as Intention;
+  if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
+  return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
+}
+
+/** Qui tient la main (`quiTientLaMain`) et le siège qui le joue (`siegeDe`) : ce qui rendrait le geste permis. */
+function laMain(etat: Jeu): string {
+  const main = quiTientLaMain(etat);
+  if (main === '*') return 'la fenêtre est à tous les sièges';
+  const nom = main && porteurParId(etat, main)?.label;
+  return `la main est à ${nom ?? main ?? 'l’hôte'}, siège ${siegeDe(etat, main)}`;
 }
 
 /** Joue un geste sur la partie rejouée : l'intention contrôlée, envoyée, ses jetons repris. L'issue de la partie fait
@@ -208,7 +254,7 @@ export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
     throw new ErreurDeGeste('validation', `${intention.type} a levé : ${erreur instanceof Error ? erreur.message : String(erreur)}`);
   }
   if (resultat.issue === 'hors-allowlist') throw new ErreurDeGeste('validation', `${intention.type} hors de l’allowlist d’un siège`);
-  if (resultat.issue === 'refusee') throw new ErreurDeGeste('permission', `${intention.type} refusée au siège ${'siege' in geste ? String(geste.siege) : '—'}`);
+  if (resultat.issue === 'refusee') throw new ErreurDeGeste('permission', `${intention.type} refusée au siège ${'siege' in geste ? String(geste.siege) : '—'} : ${laMain(avant)}`);
   // Un geste a un effet s'il change les FAITS ou programme une suite ; un événement émis seul (`move_blocked`) informe.
   if (!resultat.evenements.some((e) => e.type === 'programme') && empreinteDesFaits(r.partie.etat()) === faitsAvant) {
     throw new ErreurDeGeste('regle', `${intention.type} sans effet${ceQueDitLeJeu(refusAvant, r.partie.etat(), resultat)}`);

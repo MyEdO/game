@@ -131,6 +131,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",

@@ -1,6 +1,6 @@
 import { useGame, type GameState } from '../state/store';
 import { useShallow } from 'zustand/react/shallow';
-import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
+import { flowStakeRef, type FlowStakeId } from '../data';
 import type { TombantParticipant } from '../noyau/pendings';
 import { metresRetenus, phaseDeChute } from '../noyau/fallMove';
 import { valeurDecomposee } from '../engine/skills';
@@ -14,6 +14,7 @@ import { resultLine, freeCons } from '../noyau/rollSeam';
 import { refusDuTestDeChute, refusDeLaSuspension, type RefusGeste } from '../noyau/gesteDArete';
 import type { RollSegOption } from './OptionChooser';
 import { t } from '../i18n';
+import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 
 /** Enjeu servi par chaque phase de la chute. */
 const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
@@ -58,7 +59,7 @@ export function FallModal() {
   if (!p) return null;
   const pool = battle?.combatants ?? party;
   const phase = phaseDeChute(p);
-  const competence = refLabel('skills', p.test.skill);
+  const competence = libelleDuTestNomme(p.test);
 
   const rangee = (part: TombantParticipant): BuiltRollRow[] => {
     const c = pool.find((x) => x.id === part.id);

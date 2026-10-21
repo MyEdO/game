@@ -1,7 +1,7 @@
 import { cibleMesuree } from '../engine/tests';
 import { useGame } from '../state/store';
 import { type PendingAppraise } from '../noyau/pendings';
-import { flowStakeRef, refLabel, type FlowStakeId } from '../data';
+import { flowStakeRef, type FlowStakeId } from '../data';
 import type { Combatant } from '../engine/types';
 import { influencesLocally } from '../noyau/netOwnership';
 import { RollShell, type RollAction } from './RollShell';
@@ -11,6 +11,7 @@ import { APPRAISE_SKILL } from '../noyau/merchantFlow';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeAppraise } from '../noyau/flowOutcomes';
+import { libelleDEvaluation } from '../noyau/jetsEnVue';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
 const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };
@@ -45,7 +46,7 @@ export function AppraiseModalView({
   const rolled = pa.roll != null;
   const detect = pa.mode === 'detect';
   // Repli aligné sur le flux (`openAppraise`) : le libellé vient du REGISTRE par id stable.
-  const skill = pa.skillLabel ?? refLabel('skills', { id: APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill });
+  const skill = libelleDEvaluation(pa);
   // Soutien du groupe (LDB 12) et composantes de la valeur de Test (États, séquelles, passifs,
   // effets — #1178) : lignes de mod NOMMÉES, base rebasée sur le Niveau de Compétence nu (LDB 09 l.17).
   // La Compétence testée vient de la SOURCE UNIQUE du flux (`APPRAISE_SKILL`), par id.

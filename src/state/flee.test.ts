@@ -290,6 +290,10 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     // …par l'applicateur CANONIQUE d'attaque (événement de journal 'attack'), pas par un chemin parallèle.
     expect(useGame.getState().battle!.log.some((e) => e.kind === 'attack' && e.actorId === E2.id)).toBe(true);
     expect(live(E1.id).engagedWith).toEqual([]); // fuite complétée
+    // Lancés et clos dans le même geste, aucune rangée ne les a montrés : le journal porte leurs dés.
+    const textes = useGame.getState().battle!.log.map((e) => e.text);
+    expect(textes.some((l) => l.startsWith(`${E2.label} — Corps à corps (dans le dos) : `) && /\d+\/\d+ → .* \(DR [+-]\d+\)\.$/.test(l)), 'le coup dans le dos').toBe(true);
+    expect(textes.some((l) => l.startsWith(`${E1.label} — `) && /\d+\/\d+ → .* \(DR [+-]\d+\)\.$/.test(l)), 'le Test `fuite`').toBe(true);
   });
 
   // LDB 14 l.9 ; LDB 85 l.362.

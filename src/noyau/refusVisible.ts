@@ -20,6 +20,7 @@
  * surface visible de ce contexte. Jamais de no-op silencieux.
  */
 import type { Get, Set } from './flowTypes';
+import { sequence } from '../engine/sequences';
 
 /** Le refus AFFICHÉ (un seul à la fois : le dernier geste refusé). */
 export interface RefusIHM {
@@ -28,7 +29,7 @@ export interface RefusIHM {
   nonce: number;
 }
 
-let compteur = 0;
+const nonces = sequence();
 
 /**
  * Refuse le geste courant EN LE DISANT. Renvoie `true` (le refus a été prononcé) pour que les sites
@@ -40,7 +41,7 @@ export function refuserGeste(get: Get, set: Set, texte: string): boolean {
     get().log(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
     return true;
   }
-  set({ refus: { texte, nonce: ++compteur } });
+  set({ refus: { texte, nonce: nonces.suivant() } });
   return true;
 }
 

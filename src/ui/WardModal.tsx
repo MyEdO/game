@@ -8,6 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeWard } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale de la Bénédiction de Protection (LDB 41 l.142) : « Les ennemis doivent effectuer un Test de
@@ -35,8 +36,8 @@ export function WardModal() {
     actor: attacker,
     row: {
       combatant: attacker,
-      d: r ? testBreakdown('Force Mentale', fm.base, r, 'accessible', fm.mods) : undefined,
-      pending: testPending('Force Mentale', fm.base, undefined, 'accessible', fm.mods),
+      d: r ? testBreakdown(libelleDeTest('force-mentale'), fm.base, r, 'accessible', fm.mods) : undefined,
+      pending: testPending(libelleDeTest('force-mentale'), fm.base, undefined, 'accessible', fm.mods),
     },
     onRoll: roll,
     rerolled: !!pw.rerolled,

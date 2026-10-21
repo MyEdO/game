@@ -27,7 +27,7 @@ import { computeStateVisibleAndLight, sceneLightSources } from '../../noyau/visi
 import { capDuGroupe, meneurDuMonde } from '../../noyau/monde/combatants';
 import { detenteurDuCiblage } from '../../noyau/targetingHolder';
 import { controlsActive, controlsCombatant } from '../../noyau/netOwnership';
-import { GESTES_DEPLACANTS, gestesDeplacantsOuverts } from '../../noyau/gesteDArete';
+import { aretesOffertes, gestesDeplacantsOuverts } from '../../noyau/gesteDArete';
 import { Dims, capsuleCenter } from '../../geometry/iso';
 import { etageActif, getViewZ, subscribeViewZ } from '../../state/viewLevel';
 import { setStageFrame } from './spritePicker';
@@ -611,8 +611,7 @@ function CorpsDuMonde() {
   const aretes = useMemo(
     () => {
       if (!scene) return [];
-      return aretesUtilisables({ scene, visible, controleur: doorCtrls[0] ?? null, activeZ, battle: combatBattle })
-        .filter((a) => gestesOuverts || !(GESTES_DEPLACANTS as readonly string[]).includes(a.capacite));
+      return aretesOffertes(aretesUtilisables({ scene, visible, controleur: doorCtrls[0] ?? null, activeZ, battle: combatBattle }), gestesOuverts);
     },
     [scene, visible, activeZ, doorCtrls, combatBattle, gestesOuverts],
   );

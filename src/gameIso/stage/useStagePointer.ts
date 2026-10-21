@@ -24,8 +24,7 @@ import { useGame } from '../../state/store';
 import { entityBlockedAt } from '../../noyau/monde/sceneRules';
 import { ficheDEntite, sceneNpc } from '../../noyau/monde/sceneNpc';
 import type { Pt } from '../../noyau/monde/path';
-import { pasDuGroupe } from '../../noyau/marcheDuGroupe';
-import { chebyshev } from '../../engine/grid';
+import { pasDeLaMarche, porteActionnable } from '../../noyau/marcheDuGroupe';
 import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
 import { meneurDuMonde } from '../../noyau/monde/combatants';
@@ -212,20 +211,15 @@ export function useStagePointer({
     let i = 1;
     const step = () => {
       const st = useGame.getState();
-      const currentScene = st.scene;
-      if (st.mode !== 'exploration' || st.dialogue || !currentScene || currentScene.id !== sceneId || i >= path.length) {
+      // La garde du pas est celle de la marche du noyau (`pasDeLaMarche`) : une porte qui s'est refermée coupe la marche.
+      const pas = pasDeLaMarche(st, sceneId, path, i);
+      if (!pas) {
         movingRef.current = false;
         return;
       }
       const prev = st.partyPos;
-      const expectedPrev = path[i - 1];
-      if (prev.x !== expectedPrev.x || prev.y !== expectedPrev.y || (prev.z ?? 0) !== (expectedPrev.z ?? 0)) {
-        movingRef.current = false;
-        return;
-      }
       const cur = path[i];
-      const dist = chebyshev(cur, prev);
-      if (dist > 1) {
+      if (pas.verbe === 'sauter') {
         // SAUT par-dessus un gouffre (`sauter`) : la marche ne reprend que si le saut la laisse continuer.
         if (!st.sauter(path, i)) {
           movingRef.current = false;
@@ -233,11 +227,6 @@ export function useStagePointer({
         }
         i++;
         setTimeout(step, STEP_MS);
-        return;
-      }
-      // La garde du pas est celle du verbe (`pasDuGroupe`, noyau) : une porte qui s'est refermée coupe la marche.
-      if (!pasDuGroupe(st, cur)) {
-        movingRef.current = false;
         return;
       }
       if (partyLeader) bus.emit(EVT.ANIM_MOVE, { id: partyLeader.id, path: [prev, cur] });
@@ -251,8 +240,8 @@ export function useStagePointer({
   const activatePortal = (portal: RoomPortal) => {
     const st = useGame.getState();
     if (st.dialogue || !st.scene) return;
-    if (st.actionnerLaPorte(portal)) {
-      setAreteSurvolee(null);
+    if (porteActionnable(st.mode, portal)) {
+      if (st.actionnerLaPorte(portal)) setAreteSurvolee(null);
       return;
     }
     if (st.mode !== 'exploration') return;
@@ -266,13 +255,11 @@ export function useStagePointer({
   };
 
   /** Les VERBES que la table des gestes appelle (`stage/geste.ts`) : le franchissement vit ici, parce
-   *  qu'il tient le survol et la marche pas à pas ; grimper et sauter sont des verbes du store, suivis
-   *  du battement de scène que les peintres d'arête émettaient. */
+   *  qu'il tient le survol et la marche pas à pas ; un dénivelé joue le verbe du store que le noyau nomme,
+   *  suivi du battement de scène que les peintres d'arête émettaient. */
   const verbes: VerbesArete = {
     franchir: activatePortal,
-    grimper: (de, vers) => { useGame.getState().climbAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
-    sauter: (de, vers) => { useGame.getState().fallAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
-    enjamber: (de, vers) => { useGame.getState().windowAcross(de, vers); bus.emit(EVT.SCENE_DIRTY); },
+    deniveler: ({ verbe, args }) => { useGame.getState()[verbe](...args); bus.emit(EVT.SCENE_DIRTY); },
     // FRAPPER une structure : le MUR est un Combattant (`noyau/combatSlice.ts`, `cid`), son geste est
     // donc EXACTEMENT celui d'un jeton ennemi sous le rayon (`performClick` ci-dessous) — MÊME porte
     // partagée (`noyau/combatOrParty.ts:combatantClickActs`, source unique des 3 surfaces). Elle

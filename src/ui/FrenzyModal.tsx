@@ -8,6 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeFrenzy } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale d'entrée en Frénésie (LDB 21 l.31) : « Lancer » jette le Test de Force Mentale,
@@ -34,8 +35,8 @@ export function FrenzyModal() {
     actor: c,
     row: {
       combatant: c,
-      d: r ? testBreakdown('Force Mentale', base, r, undefined, mods) : undefined,
-      pending: testPending('Force Mentale', base, undefined, undefined, mods),
+      d: r ? testBreakdown(libelleDeTest('force-mentale'), base, r, undefined, mods) : undefined,
+      pending: testPending(libelleDeTest('force-mentale'), base, undefined, undefined, mods),
     },
     rerolled: !!pf.rerolled,
     onRoll: roll,

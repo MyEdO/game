@@ -22,7 +22,7 @@
  * d'élément qui est une feuille `idDe` (une RÉFÉRENCE) n'en ouvre jamais.
  */
 import { z } from 'zod';
-import './locale-fr';
+import '../../../lib/zodEnFrancais';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
 import { baseDe, cleDesSpecs, cleNichee, estPrefixeDeSuite, idsDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type FiltreDEspace } from './cle-d-espace';
 import { estFeuilleDId } from './ref';

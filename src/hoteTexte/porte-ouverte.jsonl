@@ -1,0 +1,3 @@
+{"scenario":"porte-close","graine":1,"regles":{},"cadence":"manuel","desFixes":false}
+{"type":"actionnerLaPorte","args":[{"id":"0:2,1:E:exterior:reduit","z":0,"edge":{"x":2,"y":1,"side":"E"},"fromZoneId":null,"toZoneId":"reduit","kind":"door-closed","exterior":true,"from":{"x":2,"y":1},"to":{"x":3,"y":1}}]}
+{"type":"moveParty","args":[{"x":2,"y":1}]}

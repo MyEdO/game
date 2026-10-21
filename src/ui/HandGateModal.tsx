@@ -6,6 +6,7 @@ import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Test de Dextérité (+20) PAR ACTION de « Main ensanglantée » (Aux Armes bras 46-50, l.2569) : interposé
@@ -34,8 +35,8 @@ export function HandGateModal() {
     actor,
     row: {
       combatant: actor,
-      d: rolled ? testBreakdown('Dextérité', dex.base, { roll: pg.roll!, ...cibleMesuree(pg), sl: pg.sl, success: pg.success }, pg.difficulty, dex.mods) : undefined,
-      pending: testPending('Dextérité', dex.base, cibleMesuree(pg), pg.difficulty, dex.mods),
+      d: rolled ? testBreakdown(libelleDeTest('dexterite'), dex.base, { roll: pg.roll!, ...cibleMesuree(pg), sl: pg.sl, success: pg.success }, pg.difficulty, dex.mods) : undefined,
+      pending: testPending(libelleDeTest('dexterite'), dex.base, cibleMesuree(pg), pg.difficulty, dex.mods),
     },
     rerolled: !!pg.rerolled,
     onRoll: roll,

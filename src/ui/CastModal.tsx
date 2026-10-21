@@ -28,6 +28,7 @@ import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
 import { QtyStepper } from './QtyStepper';
 import { Row, Stack, grow } from './Layout';
+import { libelleDeTest, libelleDIncantation, libelleDOppositionDeSort } from '../noyau/jetsEnVue';
 
 /** Marque du pluriel FR, accordée sur la VALEUR (patron `plural(n)` des modales de navire) : le
  *  raccourci « (s) » du code laissait l'écran écrire « 1 pas … RESTANT(S) ». */
@@ -158,7 +159,7 @@ export function CastModal() {
   const preview = previewCast(caster, spell, { missile: pc.missile, focused: pc.focused, winds: winds?.revealed ? winds : null, ctx: castCtx });
   // POST-jet : les Vents sont révélés par le jet lui-même (LDB 46 l.179-190) — même aperçu, winds inclus.
   const previewRolled = previewCast(caster, spell, { missile: pc.missile, focused: pc.focused, winds, ctx: castCtx });
-  const castLabel = isPrayer ? 'Prière' : `Incantation / NI ${ni}`; // le jet reste Langue (Magick) ; un Projectile magique ne change que Localisation/Dégâts post-réussite
+  const castLabel = libelleDIncantation(pc.spellId); // le jet reste Langue (Magick) ; un Projectile magique ne change que Localisation/Dégâts post-réussite
   // Rangée du lanceur : son cycle d'influence (Lancer/Chance/+1 DR/Pacte/Résilience, sélecteur de dé)
   // appartient au siège qui PILOTE le lanceur — `influencesLocally` (#1005) ; un lanceur ENNEMI (IA, ou
   // MJ d'un AUTRE siège) rend donc une rangée TÉMOIN : portrait, jet et verdict restent lisibles, aucune
@@ -429,7 +430,7 @@ export function CastModal() {
                 const actor = pool.find((c) => c.id === part.id);
                 if (!actor) return null;
                 const r = part.result;
-                const lab = pcs.char ?? pcs.skill ?? 'Opposition';
+                const lab = libelleDOppositionDeSort(pcs);
                 // Test OPPOSÉ : la cible oppose son Test à Difficulté Intermédiaire — ce que roule le
                 // résolveur `castOpposition` (LDB 12 l.166).
                 const [oppLine] = opposedLines([{ label: lab, base: testValue(actor, pcs.skill, pcs.char), r: r?.oppose }]);
@@ -505,7 +506,7 @@ export function CastModal() {
                 const lance = counterspellRolls(st, csp, part);
                 // Contre-sort OPPOSÉ à l'incantation : Difficulté Intermédiaire — ce que roule
                 // `resolveCounterspell` (LDB 12 l.166 ; LDB 46 l.156).
-                const [counterLine] = opposedLines([{ label: 'Langue (Magick)', base: val, r: r?.counter, mods: mods ? [mods] : undefined }]);
+                const [counterLine] = opposedLines([{ label: libelleDeTest('langue-magick'), base: val, r: r?.counter, mods: mods ? [mods] : undefined }]);
                 const row = r
                   ? { combatant: actor, d: counterLine.d }
                   : { combatant: actor, pending: counterLine.pending };

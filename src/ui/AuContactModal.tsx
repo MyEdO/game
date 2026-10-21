@@ -11,6 +11,7 @@ import { ev } from '../noyau/combatLog';
 import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /** Enjeu servi par chaque fenêtre d'Au contact. */
 const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-roll', choice: 'au-contact-choice' };
@@ -51,8 +52,8 @@ export function AuContactModal() {
   // Les modificateurs du jet (Avantage, États, météo) sont NOMMÉS sur la ligne — même source que celle
   // que roule `rollDisengageAttack` (`baseTestMods`) : aucun +N anonyme dans la cible.
   const [foeLine, moverLine] = opposedLines([
-    { label: 'Corps à corps', base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
-    { label: 'Corps à corps', base: combatValue(mover, 'melee'), r: pd.def, mods: baseTestModLines(mover, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: libelleDeTest('corps-a-corps'), base: combatValue(foe, 'melee'), r: pd.atk, mods: baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
+    { label: libelleDeTest('corps-a-corps'), base: combatValue(mover, 'melee'), r: pd.def, mods: baseTestModLines(mover, 'capacite-de-combat', { skill: weaponSkillId('melee') }) },
   ]);
   // Rangée TÉMOIN : Corps à corps du foe, figé à l'ouverture (jamais relancé, aucun bouton) — MASQUÉ
   // tant que le mover n'a pas répondu (#990 : `pd.def` est SA réponse).

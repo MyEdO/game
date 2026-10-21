@@ -4,7 +4,7 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { exposureLevelSchema, NATURES_D_INFLUENCE } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { valeurDecomposee, valeurDuTest } from '../engine/skills';
-import { flowStakeRef, libelleOuAbsence, refLabel, type FlowStakeId } from '../data';
+import { flowStakeRef, libelleOuAbsence, type FlowStakeId } from '../data';
 import type { ExposureLevel } from '../engine/corruption';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
@@ -14,6 +14,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeCorruption } from '../noyau/flowOutcomes';
+import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 
 /** Enjeu servi par chaque niveau d'exposition (le seuil a le sien). */
 const CORRUPTION_STAKE: Record<ExposureLevel, FlowStakeId> = { mineure: 'corruption-mineure', moderee: 'corruption-moderee', majeure: 'corruption-majeure' };
@@ -50,7 +51,7 @@ export function CorruptionModal() {
   // Pré-jet (audit M6) : `pc.target` n'existe qu'après resolve → base réelle du Test affichée
   // AVANT le jet (même parité que les autres flux).
   const { base, mods } = hero ? valeurDecomposee(hero, pc.test) : { base: 0, mods: [] };
-  const skillLabel = refLabel('skills', pc.test.skill);
+  const skillLabel = libelleDuTestNomme(pc.test);
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor: hero,
@@ -94,7 +95,7 @@ export function CorruptionModal() {
               groupLabel="Compétence"
               options={NATURES_D_INFLUENCE.map((cle) => {
                 const test = testDeRegle('influences-corruptrices', cle);
-                return { key: cle, label: refLabel('skills', test.skill), value: valeurDuTest(hero, test), selected: pc.nature === cle, title: test.label, onSelect: () => setNature(cle) };
+                return { key: cle, label: libelleDuTestNomme(test), value: valeurDuTest(hero, test), selected: pc.nature === cle, title: test.label, onSelect: () => setNature(cle) };
               })}
             />
           </div>
