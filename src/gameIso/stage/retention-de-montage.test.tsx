@@ -28,7 +28,7 @@ import { idsDeLActeur } from '../backends/webgl/sceneMeshes';
 vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(12, 12);
+const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const TINT: TintAt = () => 1;
 const KEEP: KeepEl = () => true;

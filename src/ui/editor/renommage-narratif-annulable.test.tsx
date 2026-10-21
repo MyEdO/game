@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 const relais = (): Scene => ({
-  ...emptyScene(4, 4),
+  ...emptyScene('scene-test', 4, 4),
   id: 'relais',
   label: 'Le relais',
   triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'document', documentId: 'document-1' } } }],

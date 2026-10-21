@@ -15,7 +15,7 @@ import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import type { Warning } from '../../state/validateScene';
-import { nextEntityId } from '../../noyau/monde/entityId';
+import { nextEntityId } from '../../lib/entityId';
 import { removeMember, patchMember, flowEffectCount } from './editorState';
 import { LayerChip, sceneLayerZs } from './LayerField';
 import { effectCtxOf, Ctx } from './EffectList';

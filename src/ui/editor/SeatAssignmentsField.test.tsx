@@ -14,7 +14,7 @@ afterEach(demonterRacines);
 
 /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
 function sceneWithTableAndNpc(): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.entities = [
     { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
     { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 }, label: 'Aubergiste' },

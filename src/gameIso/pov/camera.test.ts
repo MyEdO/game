@@ -27,7 +27,7 @@ import { type Dir8 } from '../rig/facing';
 
 // — Fabrique de caméra de test : scène plate (herbe, height 0), groupe au centre regardant Nord.
 function flatScene(): Scene {
-  const s = emptyScene(20, 20);
+  const s = emptyScene('scene-test', 20, 20);
   s.layers = [{ z: 0, tiles: new Array(20 * 20).fill('sol') }]; // marchable, height absent = 0
   return s;
 }

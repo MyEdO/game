@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { setRule, resetRule } from '../engine/policy';
@@ -26,13 +27,12 @@ function negociateur(): Combatant {
 
 /** Ouvre l'armurier ambulant (Marchandage 45) et marchande la VENTE, d100 imposés (joueur, marchand). */
 function marchanderLaVente(joueur: number, marchand: number): void {
-  const sc = emptyScene(4, 4); sc.id = 'm';
+  const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
   sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } } as never);
   set({ party: [negociateur()], scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().openMerchant('pnj');
   get().startBargain('sell');
-  const q = [joueur, marchand];
-  vi.spyOn(Math, 'random').mockImplementation(() => ((q.shift() ?? 1) - 0.5) / 100);
+  imposerLesD100(joueur, marchand);
   get().bargainRoll();
 }
 

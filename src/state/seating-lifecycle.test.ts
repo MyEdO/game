@@ -25,7 +25,7 @@ const place = (rang: number): SeatOccupant => ({ kind: 'party', rang });
 const poseDe = (rang: number) => seatPoseOf(useGame.getState().scene!, place(rang));
 
 function scèneDeTaverne(id: string): Scene {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   s.id = id;
   s.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } });
   return s;
@@ -73,7 +73,7 @@ describe('composition du groupe — le corps qui sort quitte sa place', () => {
 describe('transition de scène — une scène quittée ne garde pas un héros absent', () => {
   it('le groupe entier est levé AVANT la capture de mutation : le revisit ne rassoit personne', () => {
     const a = scèneDeTaverne('scene-a');
-    const b = emptyScene(8, 8);
+    const b = emptyScene('scene-test', 8, 8);
     b.id = 'scene-b';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     useGame.setState({ party: [hero('h')], battle: null, journal: [] });

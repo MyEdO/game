@@ -5,6 +5,7 @@
  * « Payer et partir » → débit du groupe. L'estimation de l'écran et le débit du flux lisent la même offre.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
+import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { WorldMapView } from './WorldMapView';
@@ -101,8 +102,7 @@ describe('billet de la diligence — chemin du joueur', () => {
     expect(pb.opposant.label).toBe('Gunnar et Hultz');
     expect(document.body.textContent).toContain('Marchander le billet');
     // Le joueur réussit d'un Degré (cible − 10), Gunnar et Hultz font 27 sur 27 : victoire nette < 6 DR.
-    const des = [pb.playerSkill - 10, 27];
-    vi.spyOn(Math, 'random').mockImplementation(() => ((des.shift() ?? 1) - 0.5) / 100);
+    imposerLesD100(pb.playerSkill - 10, 27);
     await cliquer(bouton('Lancer'));
     vi.restoreAllMocks();
     await cliquer(bouton('Conclure'));

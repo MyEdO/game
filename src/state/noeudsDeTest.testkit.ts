@@ -110,7 +110,7 @@ export function groupeDeQuatre(): Combatant[] {
  *  aucun repos ouvert, entretien à jour — la nuit suivante en traite exactement UN jour. */
 /** Le lieu où le groupe se tient hors combat — une nuit de repos s'y passe (`sceneLieu`). */
 function lieuDuDecor(): Scene {
-  const s = emptyScene(5, 5);
+  const s = emptyScene('scene-test', 5, 5);
   s.id = 'decor-hors-combat';
   s.label = 'Campement';
   return s;

@@ -55,6 +55,7 @@ import { hullNavalTraits } from '../engine/navalTraits';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
+import { desEnSuite } from '../engine/dice.testkit';
 
 /**
  * VOYAGE MARITIME (7b) — la traversée jour par jour sur le navire de campagne (MDG 13/15), pilotée
@@ -78,7 +79,7 @@ function freshState() {
   seedBattleRng(1); // déterminisme (suite isolate:false) : jour 1 navigable → le Test de Progression se joue
   useGame.setState({
     party: makePregens().slice(0, 3),
-    scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
     travelPlan: null,
@@ -469,7 +470,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     const timonier = { ...b, skills: [{ id: 'voile', spec: 'cogue', characteristic: 'dexterite', advances: 30 }], traumas: [] };
     useGame.setState({
       party: [vigie, timonier],
-      scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+      scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
       worldMap: lighthouseMap,
       travelPlan: null,
@@ -694,10 +695,10 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
   };
 
   function portScene(id: string, nom: string): Scene {
-    const s = emptyScene(2, 2); s.id = id; s.label = nom; return s;
+    const s = emptyScene('scene-test', 2, 2); s.id = id; s.label = nom; return s;
   }
   function abordageScene(): Scene {
-    const s = emptyScene(10, 10); s.id = 'ls-abordage'; s.label = 'Abordage';
+    const s = emptyScene('scene-test', 10, 10); s.id = 'ls-abordage'; s.label = 'Abordage';
     const enc = buildEncounter({ id: 'enc-abordage', enemies: [{ statblock: { type: 'statblock', label: 'Écumeur', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
     s.entities.push(...enc.entities); s.encounters = [enc.encounter];
     return s;
@@ -848,7 +849,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
   });
 
   it('un péril d’auteur `startCombat` INTERROMPT la traversée (comme l’embuscade)', () => {
-    const krakenScene = emptyScene(10, 10); krakenScene.id = 'port-a'; krakenScene.label = 'Mer';
+    const krakenScene = emptyScene('scene-test', 10, 10); krakenScene.id = 'port-a'; krakenScene.label = 'Mer';
     const enc = buildEncounter({ id: 'enc-kraken', enemies: [{ statblock: { type: 'statblock', label: 'Kraken', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
     krakenScene.entities.push(...enc.entities); krakenScene.encounters = [enc.encounter];
     const combatPeril: WorldMap = {
@@ -973,9 +974,9 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     ],
     routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est', ambush: { scene: 'ls-abordage', encounter: 'enc-abordage', at: 0.5 } }],
   };
-  function portScene(id: string, nom: string): Scene { const s = emptyScene(2, 2); s.id = id; s.label = nom; return s; }
+  function portScene(id: string, nom: string): Scene { const s = emptyScene('scene-test', 2, 2); s.id = id; s.label = nom; return s; }
   function abordageScene(): Scene {
-    const s = emptyScene(10, 10); s.id = 'ls-abordage'; s.label = 'Abordage';
+    const s = emptyScene('scene-test', 10, 10); s.id = 'ls-abordage'; s.label = 'Abordage';
     const enc = buildEncounter({ id: 'enc-abordage', enemies: [{ statblock: { type: 'statblock', label: 'Écumeur', char: { 'capacite-de-combat': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, B: 8 } }, pos: { x: 5, y: 5 } }] });
     s.entities.push(...enc.entities); s.encounters = [enc.encounter];
     return s;
@@ -1231,10 +1232,7 @@ describe('services portuaires (#30)', () => {
 describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MDG 15 l.246)', () => {
   beforeEach(freshState);
 
-  const seq = (...vals: number[]): RNG => {
-    let i = 0;
-    return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-  };
+  const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
   // Humeur de Manann neutre (mod 0) + 2d10 = 1+1 = 2 → « Prêtre de Manann » (min 2 max 2, sea-events.json).
   // Puis 2d10 = 3+4 (heures, sans effet ici), puis 1d10 = 7 (coût en CO).
@@ -1287,10 +1285,7 @@ describe('Prêtre de Manann — CHOIX joueur, pas paiement automatique (#132, MD
 describe('Port désert & Embrigadement — #150 (resolvePortArrival appelé APRÈS purge de travelPlan)', () => {
   beforeEach(freshState);
 
-  const seq = (...vals: number[]): RNG => {
-    let i = 0;
-    return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-  };
+  const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
   it('Port désert (min 5 max 5, sea-events.json) applique bien son delta d’Humeur — ship résolu depuis `vessel`, PAS `travelPlan` (déjà `null` ici, cf. accostage)', () => {
     expect(get().travelPlan).toBeNull(); // reproduit exactement le contexte du bug : plan déjà purgé
@@ -1320,10 +1315,7 @@ describe('Port désert & Embrigadement — #150 (resolvePortArrival appelé APR�
 describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MDG 15 l.245 : « Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement [Embrigadement] n\'a pas lieu »)', () => {
   beforeEach(freshState);
 
-  const seq = (...vals: number[]): RNG => {
-    let i = 0;
-    return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-  };
+  const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
   function moodMinus1() {
     set({ vessel: { ...get().vessel!, manann: { score: -1, applied: [] } } }); // mod −1 → roll min 1 atteignable (Embrigadement)

@@ -50,7 +50,7 @@ function décor(id: string, ref: string, x: number): SceneEntity {
 
 /** Scène de 6×6 portant les `n` premières recettes volumiques de `REFS_VOLUMIQUES`, une instance chacune. */
 function scèneAvec(n: number): Scene {
-  const scene = emptyScene(6, 6);
+  const scene = emptyScene('scene-test', 6, 6);
   for (let i = 0; i < n; i++) scene.entities.push(décor(`vol-${i}`, REFS_VOLUMIQUES[i], i));
   return scene;
 }

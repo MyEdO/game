@@ -2,8 +2,9 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { MORALE_BASE, MORALE_FACTORS, MORALE_BANDS, moraleBand, recalcMorale, resolveCrewTest, tickShipMorale, payChoices, payChoiceCostBrass, isPayChoice, findMoraleFactor } from './crewMorale';
 import { setDataset } from '../data/overrides';
 import { makeRNG, type RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] }; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 /** Seed des facteurs (restauré après chaque test qui édite la donnée). */
 const FACTORS_SEED = structuredClone(MORALE_FACTORS);
 

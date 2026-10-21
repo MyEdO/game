@@ -55,7 +55,7 @@ brancherArdoise();
 /** Une scène de CLOISONS : des murs sur arêtes, aucune masse — le masque n'a donc rien à dégager, et
  *  « tous les sols de l'étage » y est une affirmation vérifiable. */
 function scèneDeCloisons(): Scene {
-  const scene = { ...emptyScene(10, 10), ambiance: 'exterieur' as const };
+  const scene = { ...emptyScene('scene-test', 10, 10), ambiance: 'exterieur' as const };
   scene.walls = [
     { x: 2, y: 2, side: 'N' }, { x: 3, y: 2, side: 'N' }, { x: 2, y: 2, side: 'E' },
     { x: 5, y: 6, side: 'N' }, { x: 6, y: 6, side: 'E' },

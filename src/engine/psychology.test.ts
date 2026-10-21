@@ -3,6 +3,7 @@ import { parsePsychTraits, peurTerreurFromSize, resolvePeurTest, resolveTerreurT
 import { makeRNG } from './dice';
 import { setRule, resetRule } from './policy';
 import type { Combatant } from './types';
+import { deFixe } from './dice.testkit';
 
 describe('Psychologie (pur)', () => {
   it('parsePsychTraits : « Peur N » / « Terreur N » / Immunité', () => {
@@ -109,7 +110,7 @@ describe('Psychologie (pur)', () => {
 
 describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTATIVE)', () => {
   // RNG fixe (un d100 constant) — fail (roll 100) / success (roll 1), déterministe.
-  const fixed = (n: number) => ({ int: () => n } as ReturnType<typeof makeRNG>);
+  const fixed = deFixe;
   const mk = (p: Partial<Combatant> = {}): Combatant => ({
     id: 's', name: 'S', kind: 'hero',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },

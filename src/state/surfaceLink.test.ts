@@ -13,7 +13,7 @@ import { gradeBetween, isWalkableGrade, verticalTiles, metricToLift, STEP_MAX_M,
 /** Scène 1 rangée (largeur w) avec un tableau `height` explicite sur la couche de base. */
 function ridge(heights: number[]): Scene {
   const w = heights.length;
-  const s = emptyScene(w, 1);
+  const s = emptyScene('scene-test', w, 1);
   s.layers[0].height = [...heights];
   return s;
 }
@@ -70,7 +70,7 @@ describe('surfaceLink — même couche (hauteurs croissantes le long d’une cr�
 describe('surfaceLink — CROSS-COUCHE : le grade vient des hauteurs, PAS de l’index z', () => {
   /** Couche 0 (herbe) + couche 1 (plancher sur une case), chacune avec sa hauteur métrique. */
   function twoLayer(h0: number, h1: number): Scene {
-    const s = emptyScene(2, 1);
+    const s = emptyScene('scene-test', 2, 1);
     s.layers[0].height = [h0, h0];
     const tiles = new Array(2).fill('vide') as Terrain[];
     tiles[1] = 'plancher';

@@ -8,6 +8,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep, CascadeRoll } from '../noyau/pendings';
 import { fixtureText } from '../i18n/fixtureText';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
@@ -44,7 +45,7 @@ const stepOfKind = (kind: string): CascadeStep | undefined =>
 
 beforeEach(() => {
   seedBattleRng(1);
-  useGame.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null, pendingRest: null, scene: emptyScene(10, 10) });
+  useGame.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10) });
 });
 
 describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet tissé', () => {
@@ -84,7 +85,7 @@ describe('#253 — FAIM du bilan : étape de cascade influençable, pas un jet t
 
 describe('#253 — CONTAGION de promiscuité : étape de cascade influençable', () => {
   it('un compagnon contagieux → jet de Contraction DIFFÉRÉ pour le sain, Chance proposable, contracté 1×', () => {
-    const sick = contractDisease('verole-urticante', { int: () => 1 }, { incubation: 0, duration: 5 })!;
+    const sick = contractDisease('verole-urticante', deFixe(1), { incubation: 0, duration: 5 })!;
     const a = hero({ id: 'A', label: 'Malade', diseases: [sick] });
     expect(contagiousDiseases(a).length).toBe(1); // garde : la maladie est bien active + contagieuse (l.206)
     const b = hero({ id: 'B', label: 'Sain', fortune: 2 });
@@ -186,7 +187,7 @@ describe("#253 — AVANCE D'HORLOGE (advanceTime) : bilan en cascade influençab
 
 describe('#253 — EXPOSITION de campement : étape de cascade influençable', () => {
   it('nuit de pluie dehors sans abri → jets d’Exposition DIFFÉRÉS, Chance proposable', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'pluie'; // difficile → Tests d'Exposition ; aucune compétence Survie → pas d'abri, jets directs
     const a = hero({ id: 'A', label: 'Transi', fortune: 2 });
     useGame.setState({ party: [a], scene: sc });

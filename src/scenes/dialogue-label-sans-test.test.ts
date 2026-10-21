@@ -141,7 +141,7 @@ describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propr
 describe('#1869 — le MÊME masque à la validation de scène rendue à l’éditeur (tout contenu est éditable)', () => {
   /** Projet JOUET, tel que l'éditeur le valide : une scène, un dialogue qu'une entité ouvre, une réponse. */
   const projet = (label: string): Scene[] => [{
-    ...emptyScene(),
+    ...emptyScene('scene-test'),
     id: 'jouet',
     entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'd' }],
     dialogues: [{ id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ label, flow: fluxDeTest() as Flow }] }] }],

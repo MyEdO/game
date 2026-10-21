@@ -14,7 +14,7 @@ const MELEE: Weapon = { label: 'Griffes', type: 'melee', damage: { plusBF: true,
 // Plateau (y 0-1, h=4 m) séparé du sol (y 2-4, h=0 m) par une falaise ; seule l'arête N de (2,2) (entre
 // (2,1) et (2,2)) est grimpable — chemin OBLIGÉ vers le plateau.
 function cliffScene(): Scene {
-  const s = emptyScene(5, 5);
+  const s = emptyScene('scene-test', 5, 5);
   const w = 5, h = 5;
   const height = new Array(w * h).fill(0) as number[];
   for (let y = 0; y <= 1; y++) for (let x = 0; x < w; x++) height[y * w + x] = 4;

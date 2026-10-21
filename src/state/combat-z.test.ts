@@ -35,7 +35,7 @@ describe('occupied — un bloqueur n’occupe que SON étage (clé z-aware)', ()
 
 describe('placeCombatant — (re)stampe pos.h depuis le relief de la scène', () => {
   function reliefScene(): Scene {
-    const s = emptyScene(3, 3); // z0 herbe, 0 m
+    const s = emptyScene('scene-test', 3, 3); // z0 herbe, 0 m
     const w = 3;
     const z1 = new Array(w * 3).fill('vide') as Terrain[];
     const h1 = new Array(w * 3).fill(0) as number[];

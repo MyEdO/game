@@ -418,7 +418,7 @@ describe('buildHero — bout en bout', () => {
     const apparence = { sex: 'F' as const, build: 0.3, seed: 42, hairstyle: coiffureF, colors: { cheveux: '#aa3300' } };
     const hero = buildHero({ ...d, apparence }, 'h-apparence');
     expect(hero.appearance).toEqual({ ...apparence, species: rigSpeciesId(d.speciesId) });
-    expect(draftFromHero(hero).apparence).toEqual(apparence);
+    expect(draftFromHero(hero, 7).apparence).toEqual(apparence);
   });
   it('héros conforme : PX bonus, Augmentations, libellés résolus, désignations posées', () => {
     let d = readyDraft();

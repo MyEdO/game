@@ -25,7 +25,7 @@ afterEach(() => {
 
 describe('MerchantPanel — nom du marchand (#1463 S3)', () => {
   it('un marchand POSÉ à l’éditeur sans libellé se nomme de sa fiche, pas de son archétype', () => {
-    const pose = placeEntity(emptyScene(4, 4), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
+    const pose = placeEntity(emptyScene('scene-test', 4, 4), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
     useGame.setState({
       scene: pose.scene, party: [],

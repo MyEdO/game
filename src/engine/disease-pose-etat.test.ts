@@ -15,8 +15,9 @@ import { symptoms } from '../data';
 import { setDataset } from '../data/overrides';
 import { stacks } from './conditions';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] }; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 const ignore: UpkeepDeferTest = () => {};
 
 const cobaye = (over: Partial<Combatant> = {}): Combatant =>

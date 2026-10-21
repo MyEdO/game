@@ -8,6 +8,7 @@ const tk = (k: 'dechirure' | 'fracture', s: 'mineur' | 'majeur', loc: HitLocatio
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { applyOps } from '../engine/ops';
 import type { Combatant } from '../engine/types';
+import { deFixe, desDuTest } from '../engine/dice.testkit';
 
 /**
  * #T3 — Cascade RAW d'horloge (`noyau/upkeep.ts`) : ce que le passage du temps déclenche sur les
@@ -34,7 +35,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
   });
 
   it('une maladie en incubation progresse quand le temps passe SANS repos (advanceTime)', () => {
-    const c = hero({ diseases: [contractDisease('infection-mineure', { int: () => 1 }, { incubation: 2, duration: 5 })!] });
+    const c = hero({ diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 2, duration: 5 })!] });
     useGame.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0 });
     useGame.getState().advanceTime(2 * MINUTES_PER_DAY); // 2 jours d'aventure, personne ne dort
     const dz = useGame.getState().party[0].diseases![0];
@@ -62,7 +63,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
   });
 
   it('anti-double-comptage : une nuit de repos = UN seul jour de maladie décompté', () => {
-    const c = hero({ diseases: [contractDisease('infection-mineure', { int: () => 1 }, { incubation: 0, duration: 6 })!] });
+    const c = hero({ diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
     useGame.setState({ party: [c], gameTime: 12 * 60, lastUpkeepDay: 0 });
     useGame.getState().restParty(); // dort jusqu'à l'aube → 1 franchissement de jour
     expect(useGame.getState().party[0].diseases![0].minutesLeft).toBe(5 * MINUTES_PER_DAY); // 6 − 1 jour, PAS − 2
@@ -81,7 +82,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     const t0 = 12 * 60;
     const c = hero({});
     // Buff posé comme le ferait applyCast pour une durée « 1 heure » : durée d horloge (untilTime, sans sentinelle).
-    applyOps(c, [{ op: 'charMod', char: 'force', mod: 10 }], {
+    applyOps(c, [{ op: 'charMod', char: 'force', mod: 10 }], { rng: desDuTest,
       label: 'Tour de force', defaultUntilTime: t0 + 60,
     });
     useGame.setState({ party: [c], gameTime: t0, lastUpkeepDay: 0 });

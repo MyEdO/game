@@ -18,7 +18,7 @@ const masse = (patch: Partial<BuildingMass> = {}): BuildingMass => ({
 });
 
 const sceneAvec = (masses: BuildingMass[], w = 12): Scene => {
-  const scene = emptyScene(w, w);
+  const scene = emptyScene('scene-test', w, w);
   scene.architecture = [{ id: 'corps', label: 'Corps', style: 'maison', storeys: [], facades: [], masses }];
   return scene;
 };
@@ -89,7 +89,7 @@ describe('Couvert bâti — `sectionId` suit l’égout qui ARRÊTE, pas le nive
   /** `basse` est sur une butte (son égout est le plus HAUT), `haute` est déclarée AVANT elle et se
    *  tient dans le creux. Elles partagent la colonne (3,0). */
   function scèneÀButte(): Scene {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     const { w } = scene.dimensions;
     // Butte de 4 m sous les colonnes 0-1 seulement : la colonne PARTAGÉE (3,0) reste au niveau 0.
     scene.layers[0].height = Array.from({ length: w * w }, (_, i) => ((i % w) <= 1 ? 4 : 0));

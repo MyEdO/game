@@ -22,7 +22,7 @@ import seaCargoJson from '../data/sea-cargo.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte } from './tables';
 import type { DeDeTable } from '../data/schemas/grammaire/valeurs';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, roll as rollDice, type RNG, defaultRNG } from './dice';
+import { d10, roll as rollDice, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -174,7 +174,7 @@ export const MANANN_BASE: ManannMood = { score: EVENTS.manann.base, applied: [] 
 
 /** Applique un facteur d'Humeur (id du tableau EFFET SUR L'HUMEUR DE MANANN) : roule ses dés signés,
  *  UNE seule fois par navire (l.85) — déjà appliqué → no-op. PUR (nouvel état). */
-export function applyManannFactor(mood: ManannMood, factorId: string, rng: RNG = defaultRNG): { mood: ManannMood; delta: number; label?: string } {
+export function applyManannFactor(mood: ManannMood, factorId: string, rng: RNG): { mood: ManannMood; delta: number; label?: string } {
   const f = findManannFactor(factorId);
   if (!f || mood.applied.includes(factorId)) return { mood, delta: 0 };
   const delta = f.effect.sign * (f.effect.flat + (f.effect.d10 > 0 ? rollDice(f.effect.d10, 10, rng) : 0));
@@ -191,7 +191,7 @@ export function addManann(mood: ManannMood, delta: number): ManannMood {
 
 /** Nombre de jours en mer avant le PROCHAIN événement de bord : « Tous les 1d10 jours » (l.89, l.15 —
  *  les jours ne doivent pas être consécutifs : le compteur se suspend au port, l.19). PUR. */
-export function rollDaysToNextEvent(rng: RNG = defaultRNG): number {
+export function rollDaysToNextEvent(rng: RNG): number {
   return d10(rng);
 }
 
@@ -202,7 +202,7 @@ export const seaBoardEventById = (idOrKind: string): SeaEventDef | undefined =>
 
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) : 2d10, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */
-export function rollPortEvent(manannScore: number, rng: RNG = defaultRNG): { roll: number; hours: number; event: SeaEventDef } {
+export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: SeaEventDef } {
   const mod = manannScore < 0 ? -EVENTS.manann.portEventMod : manannScore > 0 ? EVENTS.manann.portEventMod : 0;
   const roll = d10(rng) + d10(rng) + mod;
   return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };
@@ -216,7 +216,7 @@ export function rollPortEvent(manannScore: number, rng: RNG = defaultRNG): { rol
  *  (`findTableEntry`). `manannScore` : Humeur de Manann du navire (sa dizaine SIGNÉE est le mod, l.26).
  *  PUR (RNG injecté). */
 export function resolveFastVoyage(
-  crewDR: number, manannScore: number, weeksAtSea: number, rng: RNG = defaultRNG,
+  crewDR: number, manannScore: number, weeksAtSea: number, rng: RNG,
 ): { roll: number; manannTens: number; result: number; palier: FastVoyagePalier } {
   const roll = d10(rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
@@ -244,14 +244,14 @@ export interface PortProfile {
 }
 
 /** Cargaison ALÉATOIRE de la saison (l.402-418) : d100 dans la colonne saisonnière (tableau MARITIME). PUR. */
-export function rollRandomCargo(season: Season, rng: RNG = defaultRNG): CargoDef {
+export function rollRandomCargo(season: Season, rng: RNG): CargoDef {
   return rollSeasonalCargo([...cargoes()], season, rng);
 }
 
 /** Enc DISPONIBLE d'une cargaison à l'achat (l.323-331) : « additionnez la Taille et la Richesse du
  *  Lieu à tout Surplus de cette cargaison et multipliez le résultat par 1d10 × 10. Si le d10 donne
  *  un 1 … aucune cargaison de ce type ». PUR. */
-export function rollCargoAvailability(port: PortProfile, cargoId: string, rng: RNG = defaultRNG): { d: number; enc: number } {
+export function rollCargoAvailability(port: PortProfile, cargoId: string, rng: RNG): { d: number; enc: number } {
   const d = d10(rng);
   if (d === 1) return { d, enc: 0 };
   const surplus = port.surplus?.[cargoId] ?? 0;
@@ -260,7 +260,7 @@ export function rollCargoAvailability(port: PortProfile, cargoId: string, rng: R
 
 /** Compétence Marchandage d'un commerçant pris au hasard (l.337 : 3d10+40 ; deux 10+ → Négociateur.
  *  Marienburg/Lothern l.349 : 3d10+55 ; un 10 suffit). PUR. */
-export function rollMerchantSkill(cosmopolite: boolean, rng: RNG = defaultRNG): { value: number; negotiator: boolean } {
+export function rollMerchantSkill(cosmopolite: boolean, rng: RNG): { value: number; negotiator: boolean } {
   const spec = cosmopolite ? CARGO.buy.bigPortSkill : CARGO.buy.merchantSkill;
   const dice = Array.from({ length: spec.d10 }, () => d10(rng));
   const tens = dice.filter((d) => d >= 10).length;
@@ -272,7 +272,7 @@ export function rollMerchantSkill(cosmopolite: boolean, rng: RNG = defaultRNG): 
  *  ne décide jamais du surfaçage — whitelist `src/engine/**` du garde #274). `merchantValue` est la
  *  valeur NUE du marchand (archétype tiré par `rollMerchantSkill`, aucun modificateur) : elle se pose
  *  telle quelle en grandeur de départage à DR égal (LDB 12 l.160). */
-export function rollMerchantOpposition(merchantValue: number, rng: RNG = defaultRNG): TestResult {
+export function rollMerchantOpposition(merchantValue: number, rng: RNG): TestResult {
   return { ...rollTest(merchantValue, 'intermediaire', rng), base: merchantValue };
 }
 

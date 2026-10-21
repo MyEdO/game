@@ -21,7 +21,7 @@
  */
 import { Combatant } from './types';
 import type { Possession } from './possession';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { rollTest, testDetail } from './tests';
 import { testValue } from './skills';
 import { addCondition } from './conditions';
@@ -238,7 +238,7 @@ export function applyForcedMarch(c: Combatant, success: boolean): { line: string
 
 /** Marche forcée (LDB 51 l.195) : voyager plus de `hoursPerDay` heures ce jour → Test de Résistance,
  *  échec = +1 Exténué (+1 de plus si Surchargé/Encombré, p.293). Mute `c` ; null = mort. */
-export function forcedMarchTest(c: Combatant, rng: RNG = defaultRNG): ForcedMarchResult | null {
+export function forcedMarchTest(c: Combatant, rng: RNG): ForcedMarchResult | null {
   if (c.dead) return null;
   const base = forcedMarchTarget(c);
   const tr = rollTest(base, 'intermediaire', rng);

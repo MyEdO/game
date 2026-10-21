@@ -35,6 +35,7 @@ import type { PendingFall } from '../noyau/pendings';
 import { findPropById, findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
+import { desDuTest } from '../engine/dice.testkit';
 
 /** Porteur minimal : `stampCriticalEscalation` ne lit que ses séquelles. */
 const hero38 = (): Combatant => ({ id: 'h', label: 'H', kind: 'hero', conditions: [], skills: [], traumas: [] } as unknown as Combatant);
@@ -207,7 +208,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(places).toEqual(['place-1', 'place-2', 'place-3', 'place-4']);
 
     // LE DÉFAUT, mesuré sur le chemin réel : ce que ferait le chargement si la version laissait passer.
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     scene.entities = [
       { id: 'table-1', kind: 'prop', ref: 'table-ronde-4-tabourets', pos: { x: 5, y: 5 }, usable: { assise: true } },
       { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 6 } },
@@ -245,7 +246,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(phaseDeChute(courante)).toBe('choice');
   });
   it('l’empreinte d’un décor à recette TOURNE avec son cap (#1509)', () => {
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     scene.entities = [{ id: 'table-1', kind: 'prop', ref: 'table-2x1', pos: { x: 5, y: 5 }, facing: 'E' }] as typeof scene.entities;
     expect(entityBlockedAt(scene, 5, 6, 0), 'au cap E la table occupe la case au SUD').toBe(true);
     expect(entityBlockedAt(scene, 6, 5, 0), 'au cap E la case à l’EST est libre').toBe(false);
@@ -258,7 +259,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const lumiere = spellEffectOps(findSpellById('lumiere')!.effects).find((o) => o.op === 'light')!;
     expect((lumiere as unknown as Record<string, unknown>).radiusTiles, 'graphie en cases ressuscitée').toBeUndefined();
     const porteur = hero38();
-    applyOps(porteur, [lumiere], { label: 'Lumière' });
+    applyOps(porteur, [lumiere], { rng: desDuTest, label: 'Lumière' });
     const effet = (porteur.activeEffects ?? []).find((e) => e.light)!;
     expect(effet.light!.radiusM, 'la forme PERSISTÉE porte les mètres du folio (LDB 74 l.58)').toBe(20);
     expect((effet.light as unknown as Record<string, unknown>).radiusTiles).toBeUndefined();

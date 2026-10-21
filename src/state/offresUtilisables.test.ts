@@ -14,7 +14,7 @@ import { useGame, type GameState } from './store';
 const TABLE = 'table-ronde-4-tabourets';
 
 function poser(entities: SceneEntity[], partyPos = { x: 5, y: 6 }): Scene {
-  const sc = emptyScene(12, 12);
+  const sc = emptyScene('scene-test', 12, 12);
   sc.entities = entities;
   useGame.setState({ scene: sc, mode: 'exploration', partyPos, dialogue: null, flags: {} } as Partial<GameState>);
   return sc;

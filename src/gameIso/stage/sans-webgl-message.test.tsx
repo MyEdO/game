@@ -53,7 +53,7 @@ afterEach(() => {
 
 /** Monte l'écran de jeu avec la fabrique donnée et rend ce que le joueur a sous les yeux. */
 function monter(fabrique: (canvas: HTMLCanvasElement) => StageRenderer): HTMLDivElement {
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   scene.walls = [{ x: 3, y: 3, side: 'E' }];
   useGame.setState({
     scene,

@@ -10,13 +10,11 @@ import {
   CHUTE_SELLE_M,
   STIRRUP_FREE_DR,
 } from './mountedManeuvers';
+import { desEnSuite } from './dice.testkit';
 
 /** RNG SCRIPTÉ : rend les jets dans l'ordre exact où les résolveurs les consomment (aucun clamp — un
  *  jet de trop ou de moins rend `undefined` et fait échouer le test, ce qui EST le contrat mesuré). */
-const script = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: () => vals[i++] };
-};
+const script = (...vals: number[]): RNG => desEnSuite(vals);
 
 describe('« ON NE S\'ARRÊTE PAS ! » — embarquement en mouvement (EDOC 07 l.326-330)', () => {
   it('Difficulté : Intermédiaire à vitesse égale, Difficile (−20) depuis l\'arrêt', () => {

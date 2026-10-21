@@ -26,7 +26,7 @@ import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
 
-const scene = emptyScene(8, 8);
+const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
 const pose = (c: Combatant, seat?: SeatPose): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S', ...(seat ? { seat } : {}) });
 const sujet = (p: ActorPose): BillboardSubject => actorBillboards([p], scene, mpt)[0];

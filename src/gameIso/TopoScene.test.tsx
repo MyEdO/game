@@ -27,7 +27,7 @@ function station(over: Partial<Station> = {}): Station {
 describe('TopoScene — smoke SSR', () => {
   it('rend un <svg> top-down + un marqueur de station en zone cliquable (role=button, badge)', () => {
     const html = renderToStaticMarkup(
-      <TopoScene scene={emptyScene(3, 3)} stations={[station()]} selectedStationId="s1" onSelectStation={() => {}} />,
+      <TopoScene scene={emptyScene('scene-test', 3, 3)} stations={[station()]} selectedStationId="s1" onSelectStation={() => {}} />,
     );
     expect(html).toContain('class="topo-scene"');
     expect(html).toContain('class="topo-station"');
@@ -44,7 +44,7 @@ describe('TopoScene — smoke SSR', () => {
 describe('TopoScene — le plan ne montre QU’UN étage', () => {
   /** Deux planchers, UN SEUL mur, au REZ. En vue du dessus un mur bois se trace en `stroke-width="8"`. */
   function twoStoreys() {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.layers.push({ z: 1, tiles: new Array(16).fill('herbe') });
     s.walls = [{ x: 1, y: 1, side: 'N' }];
     return s;

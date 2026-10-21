@@ -8,6 +8,7 @@ import { MINUTES_PER_DAY } from './clock';
 import type { Combatant } from './types';
 import { porteEntretien, applique } from './upkeepPorte.testkit';
 import type { GameOp } from './ops';
+import { desDuTest } from './dice.testkit';
 
 /** Pénalité aux TESTS d'une Caractéristique due aux maladies actives (LDB 20 l.151-176 : « pénalité […] à
  *  tous vos Tests ») — lit les `testMod{char}` passifs des symptômes. */
@@ -95,7 +96,7 @@ describe('Vérole Urticante — immunité après guérison (l.97)', () => {
     // Le Test de fin part à la porte ; l'issue est INJECTÉE (réussite) → guérison + immunité.
     const { specs, defer } = porteEntretien();
     tickDisease(c, 2 * MINUTES_PER_DAY, makeRNG(3), defer);
-    for (const s of specs) applique(c, s, { success: true });
+    for (const s of specs) applique(c, s, { success: true }, desDuTest);
     expect(c.diseases).toEqual([]);
     expect(c.diseaseImmunities).toContain('verole-urticante');
     const log = rollContraction(c, 'verole-urticante', 0, 'tresDifficile', makeRNG(4)); // Test impossible à réussir
@@ -115,7 +116,7 @@ describe('gangrène — progression journalière (l.135+)', () => {
     expect(gangrenes.length, 'un Test par journée pleine').toBe(3);
     expect(gangrenes[0].test, 'la porte sait ce qui est testé').toEqual({ skill: 'resistance' });
     expect(gangrenes[0].difficulty).toBe('accessible');
-    const log = gangrenes.flatMap((s) => applique(c, s, { success: false }));
+    const log = gangrenes.flatMap((s) => applique(c, s, { success: false }, desDuTest));
     expect(log.some((l) => /Gangrène a gagné/.test(l))).toBe(true);
     expect(c.diseases![0].gangreneLost).toBe(true);
   });

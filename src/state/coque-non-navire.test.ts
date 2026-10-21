@@ -17,7 +17,7 @@ const cogue = (id = 'nav', pos = { x: 5, y: 5 }): Combatant => spawnEnemy({ ref:
 const poser = (combatants: Combatant[], over: Record<string, unknown> = {}): void => {
   useGame.setState({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [] } as never,
-    party: [], scene: emptyScene(20, 20), travelPlan: null, facing: {}, vessel: null, journal: [], ...over,
+    party: [], scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null, journal: [], ...over,
   } as never);
 };
 

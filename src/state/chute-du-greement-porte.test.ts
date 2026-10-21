@@ -15,6 +15,7 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * #1657 B3-2b-c — LA COQUE SUIT LE COUP JUSQU'À LA CHUTE.
@@ -53,7 +54,7 @@ const noeudMatBrise = () => rollShipCritical('greement', makeRNG(1), 10, SHIP_CR
 function aBord(party: Combatant[], coque: Combatant): void {
   useGame.setState({
     party,
-    scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, travelRecap: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
     gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -71,7 +72,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     const party = [{ ...gabier, shipStation: 'greement' }, { ...vigie, shipStation: 'nid-de-pie' }];
     aBord(party, coque);
 
-    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { label: 'Mât brisé', hull: coque });
+    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { rng: desDuTest, label: 'Mât brisé', hull: coque });
     expect(bande, 'aucune bande : le Test d’Athlétisme est resté silencieux').toBeTruthy();
     expect(bande!.participants!.map((p) => p.id)).toEqual(party.map((h) => h.id));
     expect(bande!.meta!.hullId, 'sans cet id, la branche d’échec n’a plus de Taille de bateau').toBe(coque.id);
@@ -84,7 +85,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     const [gabier, vigie] = makePregens().slice(0, 2);
     const party = [{ ...gabier, shipStation: 'greement' }, { ...vigie, shipStation: 'nid-de-pie' }];
     aBord(party, coque);
-    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { label: 'Mât brisé', hull: coque })!;
+    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { rng: desDuTest, label: 'Mât brisé', hull: coque })!;
     const pvAvant = new Map(get().party.map((h) => [h.id, h.wounds.current]));
 
     const rates: CascadeStep = {
@@ -126,7 +127,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     const coque = coqueMoyenne();
     const party = makePregens().slice(0, 2).map((h) => ({ ...h, shipStation: 'greement' }));
     aBord(party, coque);
-    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { label: 'Mât brisé', hull: coque })!;
+    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-chute', { rng: desDuTest, label: 'Mât brisé', hull: coque })!;
     const reussies: CascadeStep = {
       ...bande,
       participants: bande.participants!.map((p) => ({
@@ -152,7 +153,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
       },
     } as never);
 
-    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-combat', { label: 'Mât brisé', hull: coque })!;
+    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-combat', { rng: desDuTest, label: 'Mât brisé', hull: coque })!;
     expect(bande.meta!.hullId).toBe(coque.id);
     const rates: CascadeStep = {
       ...bande,
@@ -180,7 +181,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     const coque = coqueMoyenne();
     const party = makePregens().slice(0, 1).map((h) => ({ ...h, shipStation: 'greement' }));
     aBord(party, coque);
-    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-disparue', { label: 'Mât brisé', hull: coque })!;
+    const bande = bandeTriggeredTest(get, set, party, noeudMatBrise(), 'sonde-disparue', { rng: desDuTest, label: 'Mât brisé', hull: coque })!;
     const pvAvant = get().party[0].wounds.current;
 
     useGame.setState({ travelPlan: null, battle: null } as never); // le voyage s'achève, la coque sort de l'état
@@ -218,7 +219,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
     // tient. La chute doit donc l'ATTEINDRE — un porteur en jeu n'encaisse pas dans le vide.
     set({ battle: { combatants: [...party, gabier, coque], log: [], round: 1, turn: 0, over: false } } as never);
 
-    const bande = bandeTriggeredTest(get, set, [...party, gabier], noeudMatBrise(), 'sonde-inline', { label: 'Mât brisé', hull: coque });
+    const bande = bandeTriggeredTest(get, set, [...party, gabier], noeudMatBrise(), 'sonde-inline', { rng: desDuTest, label: 'Mât brisé', hull: coque });
     expect(bande!.participants!.map((p) => p.id), 'le PNJ ne prend PAS de rangée').toEqual(party.map((h) => h.id));
     // #1508 : la voie inline ANNONCE elle aussi son dé. Aucun siège ne tient ce PNJ → le socle le tire
     // d'office, et la HAUTEUR ouverte est celle de SA coque (Moyenne = 2d10 m, MDG 13 l.684) : c'est là

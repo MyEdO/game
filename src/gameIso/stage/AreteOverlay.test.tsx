@@ -26,7 +26,7 @@ const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
  *  comme le côté sud. */
 type Acces = 'passage' | 'sortie' | 'fermee';
 function scèneDePièces(acces: readonly Acces[]): Scene {
-  const s = emptyScene(dims.w, dims.h);
+  const s = emptyScene('scene-test', dims.w, dims.h);
   s.effectZones = [piece('room-a', 1, 1), piece('room-b', 2, 1), piece('room-c', 0, 1)];
   s.walls = [
     ...cloisons(1, 1, ['S', ...(acces.includes('passage') ? [] : ['E' as const])]),
@@ -47,7 +47,7 @@ const projete = (acces: readonly Acces[], visible: string[]): readonly AreteProj
 /** Scène 5×4 : une arête grimpable en (1,1,E), la case d'en face (2,1) 4 m plus haut — le mobile s'y
  *  tient (même scène que celle du dériveur, `noyau/aretes.test.ts`). */
 function scèneGrimpable(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   const h = new Array(5 * 4).fill(0) as number[];
   h[1 * 5 + 2] = 4;
   s.layers[0].height = h;
@@ -58,7 +58,7 @@ function scèneGrimpable(): Scene {
 /** Scène 5×4 : une CORNICHE — toute la rangée y=0 à 4 m, le reste au sol, sans arête `climb`. Depuis
  *  (2,0), seul le cardinal SUD descend. */
 function scèneDeFalaise(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   const h = new Array(5 * 4).fill(0) as number[];
   for (let x = 0; x < 5; x += 1) h[x] = 4;
   s.layers[0].height = h;

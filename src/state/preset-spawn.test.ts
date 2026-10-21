@@ -39,7 +39,7 @@ function hero(): Combatant {
 
 /** Scène : heroStart + une entité PNJ portée par `presetId`, enrôlée dans une rencontre. */
 function presetScene(id = 'sc-preset'): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.id = id;
   s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   s.entities.push({ id: 'pnj-1', kind: 'personnage', pos: { x: 3, y: 3 }, presetId: 'pnj-test' });

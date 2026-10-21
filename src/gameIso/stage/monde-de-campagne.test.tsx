@@ -53,7 +53,7 @@ describe('MondeDeCampagne — stabilité de propEls entre deux rendus sans chang
   });
 
   it('un second rendu sans changement de scène/position/pièce/étage/rotation ne rappelle pas buildProps', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     // Zone descriptive INTÉRIEURE (aucun onCross/perRound/crossTest/barrier/blocksLoS) englobant la
     // position du groupe : `roomFocus` devient non-null → `cutawayAllies` VAUT `visualAllies` (au lieu
     // d'`undefined`), le chemin exact où l'instabilité de référence de #817 se propageait à `propEls`.
@@ -103,7 +103,7 @@ describe('MondeDeCampagne — accès de pièce recalculés à la case, pas à l�
   });
 
   it('un rendu de plus sans changement de case ne rappelle pas portalsForParty — un pas le rappelle', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     useGame.setState({
       scene,
       mode: 'exploration',
@@ -151,7 +151,7 @@ describe('MondeDeCampagne — les positions alliées atteignent la loi de dégag
   });
 
   it('clearedSpace reçoit les positions alliées, étage compris — jamais la scène seule', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     useGame.setState({
       scene,
       mode: 'exploration',
@@ -176,7 +176,7 @@ describe('MondeDeCampagne — les positions alliées atteignent la loi de dégag
   /** #950 — la VUE du groupe atteint la même loi : sans elle, aucune nappe ne serait régie par la
    *  vision et les toitures des corps voisins se peindraient par-dessus l'intérieur. */
   it('clearedSpace reçoit aussi les cases VUES par le groupe', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     useGame.setState({
       scene,
       mode: 'exploration',
@@ -224,7 +224,7 @@ describe('MondeDeCampagne — la vue du dessus isole l’étage actif (#892)', (
 
   /** Auberge à deux planchers, avec un décor au REZ et un autre à l'ÉTAGE. */
   function twoStoreyScene() {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.layers.push({ z: 1, tiles: new Array(36).fill('herbe') });
     // Un décor de TERRAIN par étage (`bois` → overlay `arbre`) : la population que `buildProps` filtre
     // par l'étage demandé.
@@ -317,7 +317,7 @@ describe('MondeDeCampagne — la caméra vise le milieu de la capsule du sujet',
   }
 
   function mount(partyPos: { x: number; y: number; z?: number }, height?: number[]) {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     if (height) scene.layers.push({ z: 1, tiles: new Array(36).fill('planches'), height });
     useGame.setState({
       scene,
@@ -375,7 +375,7 @@ describe('MondeDeCampagne — le faîteau volumique se lève AVEC son toit (#162
   });
 
   function chapelle() {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.architecture = [{
       id: 'corps-chapelle',
       style: 'chapelle',
@@ -466,7 +466,7 @@ describe('MondeDeCampagne — un étage peint montre son décor, les deux voies 
   /** GALERIE : un rez et un étage, le groupe au REZ, et à l'ÉTAGE un décor de chaque voie. Aucune
    *  architecture, donc aucune nappe à lever : ce que l'écran retranche ne vient que de l'étage. */
   function galerie(): Scene {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.layers.push({ z: 1, tiles: new Array(36).fill('planches') });
     scene.entities = [
       { id: 'lustre', kind: 'prop', pos: { x: 3, y: 3 }, z: 1, ref: REF_VOLUME, facing: 'S' },

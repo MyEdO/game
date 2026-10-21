@@ -7,11 +7,11 @@
  *  - un échec laisse le porteur sujet (la source RESTE détectée par fearSourceFor).
  */
 import { describe, it, expect } from 'vitest';
-import type { RNG } from './dice';
 import { resolvePeurTest, resolveTerreurTest, fearSourceFor, sansPeurVs } from './psychology';
 import type { Combatant } from './types';
+import { deFixe } from './dice.testkit';
 
-const rngOf = (roll: number): RNG => ({ int: () => roll });
+const rngOf = deFixe;
 const mk = (o: Partial<Combatant> = {}): Combatant => ({
   id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
   characteristics: { 'force-mentale': 35 } as Combatant['characteristics'], psychState: [], psychTraits: [], groups: [],

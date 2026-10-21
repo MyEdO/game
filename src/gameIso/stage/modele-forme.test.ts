@@ -166,7 +166,7 @@ describe('#1300 — la famille se lit sur la normale que la loi d’orientation 
   });
 
   it('la scène VIDE — que des dalles de sol — est modelée en HORIZONTALE d’un bout à l’autre', () => {
-    const scene = { ...emptyScene(4, 4), ambiance: 'interieur' } as Scene;
+    const scene = { ...emptyScene('scene-test', 4, 4), ambiance: 'interieur' } as Scene;
     const baked = cuire(scene, sceneMetresPerTile(scene));
     expect(baked.shades.length).toBeGreaterThan(0);
     expect([...new Set(baked.shades)]).toEqual([AMBIANCE.faceShade.haut]);
@@ -208,7 +208,7 @@ describe('#1300 — le CÂBLAGE : le facteur arrive dans la couleur de sommet', 
 });
 
 describe('#1300 — la PORTE du soleil est CONTINUE (aucune marche au lever)', () => {
-  const dehors = (): Scene => ({ ...emptyScene(6, 6), ambiance: 'exterieur' });
+  const dehors = (): Scene => ({ ...emptyScene('scene-test', 6, 6), ambiance: 'exterieur' });
 
   it('sur 24 h SANS exclusion, le RAPPORT mur/sol ne saute jamais', () => {
     // La grandeur mesurée est le RAPPORT de ce que rend un mur à ce que rend le sol à côté : le facteur
@@ -237,7 +237,7 @@ describe('#1300 — la PORTE du soleil est CONTINUE (aucune marche au lever)', (
   });
 
   it('un INTÉRIEUR n’a jamais de soleil : son modelé est PLEIN à toute heure', () => {
-    const dedans = (): Scene => ({ ...emptyScene(6, 6), ambiance: 'interieur' });
+    const dedans = (): Scene => ({ ...emptyScene('scene-test', 6, 6), ambiance: 'interieur' });
     for (const t of [0, 6 * 60, 12 * 60, 18 * 60, 23 * 60]) {
       const s = stageLightScalars({ scene: dedans(), gameTime: t, lightLevel: null });
       expect([t, s.fade, shadeSousSoleil(0.58, s.fade)]).toEqual([t, 0, 0.58]);

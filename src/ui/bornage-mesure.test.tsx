@@ -200,7 +200,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
   it('Chute volontaire forcée AVANT le jet : la cible est bornée et mesurée', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.characteristics = { ...hero.characteristics, agilite: 150 };
-    const s = emptyScene(4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
+    const s = emptyScene('scene-test', 4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });
     g().fallChoose(hero.id, true);

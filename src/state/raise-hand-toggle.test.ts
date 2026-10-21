@@ -23,7 +23,7 @@ function combat(mode: 'local' | 'host' | 'guest' = 'host') {
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   useGame.setState({
-    party: [h], scene: emptyScene(),
+    party: [h], scene: emptyScene('scene-test'),
     net: { ...useGame.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0 }, seatNames: { 0: 'L’hôte' } },
     battle: {
       combatants: [h], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 3,

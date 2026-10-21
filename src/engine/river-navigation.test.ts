@@ -12,6 +12,7 @@ import {
 } from './riverNavigation';
 import { rollShipCritical } from './shipCritical';
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
+import { deMax, deMin } from './dice.testkit';
 
 /**
  * NAVIGATION FLUVIALE — couche PURE de MSRC 7 (« Navigation fluviale »). Tables VERBATIM du chapitre,
@@ -19,8 +20,8 @@ import { RIVER_CRIT_SET } from '../data/shipCriticals';
  */
 
 /** RNG constant : renvoie toujours la borne haute (d100 → 100, d10 → 10) ou basse (→ 1). */
-const hi: RNG = { int: (_min, max) => max };
-const lo: RNG = { int: (min) => min };
+const hi: RNG = deMax;
+const lo: RNG = deMin;
 
 describe('Table des vents (MSRC 7 l.21-33)', () => {
   it('force + direction tirées sur 1d10 chacun (bandes VERBATIM)', () => {

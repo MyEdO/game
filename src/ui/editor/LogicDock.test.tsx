@@ -11,7 +11,7 @@ import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 const SCENE = { cibles: CIBLES_D_EFFET_DE_SCENE };
 
 function dock(overrides: Partial<Parameters<typeof LogicDock>[0]>) {
-  const scene = emptyScene(10, 10);
+  const scene = emptyScene('scene-test', 10, 10);
   return (
     <LogicDock
       scene={scene}
@@ -40,7 +40,7 @@ function dock(overrides: Partial<Parameters<typeof LogicDock>[0]>) {
 
 describe('LogicDock — onglet Rencontres (remplace la modale EncountersEditor)', () => {
   it('affiche les récompenses de victoire (onVictory) de la rencontre sélectionnée', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.encounters = [{ id: 'e1', members: [], onVictory: flowFromEffects([{ type: 'giveXp', amount: 20 }]) }];
     const html = renderToStaticMarkup(dock({ scene, tab: 'encounters', encSel: 'e1' }));
     expect(html).toContain('À la victoire'); // section de récompenses
@@ -52,7 +52,7 @@ describe('LogicDock — onglet Rencontres (remplace la modale EncountersEditor)'
   it('le select d’arête de la condition « détruire une structure » offre EXACTEMENT les côtés du canon', () => {
     // Les `<option>` sont DÉRIVÉES de `wallSideSchema.options` (#1440) : sans contrat positif, un canon
     // vidé rendrait un select MUET sans qu'aucun rouge ne sorte.
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.encounters = [{ id: 'e1', members: [], victoryCondition: { type: 'destroyStructure', edge: { x: 2, y: 3, side: '\\' } } }];
     const html = renderToStaticMarkup(dock({ scene, tab: 'encounters', encSel: 'e1' }));
     const bloc = html.slice(html.indexOf('Arête'));
@@ -64,7 +64,7 @@ describe('LogicDock — onglet Rencontres (remplace la modale EncountersEditor)'
 
 describe('LogicDock — onglet Triggers (master-détail, édition LIVE)', () => {
   it('liste les triggers et édite le sélectionné (rect + condition + effets)', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.triggers = [
       { id: 'trig-porte', rect: { x: 1, y: 2, w: 3, h: 1 }, once: true, when: { kind: 'flag', expr: 'cle' }, flow: flowFromEffects([{ type: 'journal', desc: 'La porte grince' }]) },
     ];
@@ -77,7 +77,7 @@ describe('LogicDock — onglet Triggers (master-détail, édition LIVE)', () => 
 
 describe('LogicDock — onglet Dialogues (master-détail de nœuds)', () => {
   it('affiche le détail du dialogue sélectionné, un nœud à la fois', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.dialogues = [
       {
         id: 'dlg-forgeron',

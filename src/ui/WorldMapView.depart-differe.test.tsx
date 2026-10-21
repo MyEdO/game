@@ -16,7 +16,7 @@ import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 
 /** La scène de l'auberge, d'où part la route. */
-const auberge = () => ({ ...emptyScene(5, 5), id: 's-auberge', label: 'La Diligence' });
+const auberge = () => ({ ...emptyScene('s-auberge', 5, 5), label: 'La Diligence' });
 
 const marcheur = () => [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 2533 })];
 

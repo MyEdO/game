@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { entierDEntropie } from '../web/entropie';
 
 /**
  * Roulis de dés — PRIMITIVE UNIQUE (#396, arbitrage user 2026-07-13/14 : « ça se lance, avec des
@@ -35,7 +36,7 @@ const TICK_SCHEDULE_MS = [60, 60, 65, 75, 90, 110, 135, 165];
  *  ABSENT à `landed` (score encore inconnu de l'appelant) → `null` : AUCUN chiffre ne s'affiche
  *  plutôt que de figer la dernière valeur ALÉATOIRE du tumble (qui contredirait le score réel). */
 function useTumbleDigit(landed: boolean, real: number | null): number | null {
-  const [digit, setDigit] = useState(() => Math.floor(Math.random() * 10));
+  const [digit, setDigit] = useState(() => entierDEntropie(10));
   useEffect(() => {
     if (landed) return;
     let cancelled = false;
@@ -43,7 +44,7 @@ function useTumbleDigit(landed: boolean, real: number | null): number | null {
     let i = 0;
     const tick = () => {
       if (cancelled) return;
-      setDigit(Math.floor(Math.random() * 10));
+      setDigit(entierDEntropie(10));
       const delay = TICK_SCHEDULE_MS[Math.min(i, TICK_SCHEDULE_MS.length - 1)];
       i += 1;
       timer = window.setTimeout(tick, delay);

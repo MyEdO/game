@@ -27,7 +27,7 @@ function setup(muleCargo: CargoLot[], cartCargo: CargoLot[]) {
   ];
   useGame.setState({
     party, vessel: null, worldMap: map, possessions,
-    scene: { ...emptyScene(2, 2), id: 'halte', label: 'Halte', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('halte', 2, 2), label: 'Halte', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, journal: [],
   } as never);
 }

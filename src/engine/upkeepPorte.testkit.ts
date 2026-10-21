@@ -12,7 +12,6 @@
  */
 import type { Combatant, UpkeepDeferTest } from './types';
 import type { RNG } from './dice';
-import { defaultRNG } from './dice';
 import { applyOps, type GameOp } from './ops';
 import { applyDiseaseGangrene } from './disease';
 import { applyDiseaseEnd } from './rest';
@@ -31,7 +30,7 @@ export function applique(
   c: Combatant,
   spec: SpecEntretien,
   res: { success: boolean; sl?: number },
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): string[] {
   const sl = res.sl ?? 0;
   const meta = spec.meta ?? {};

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { rollDrivingMishap, mishapCausesCrash, drivingAccidentDamage } from './drivingMishap';
-import type { RNG } from './dice';
+import { deFixe } from './dice.testkit';
 
-const fixed = (roll: number): RNG => ({ int: () => roll });
+const fixed = deFixe;
 
 describe('Accidents de Conduite d’attelage EN SCÈNE (LDB 09 l.140-149)', () => {
   it('1d10 mappe la table : 1→Harnais, 4→Cahots, 7→Roue brisée, 10→Essieu', () => {

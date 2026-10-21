@@ -9,13 +9,13 @@ export const MURS_EXEMPTABLES_AU_SITE = Object.freeze(['marques', 'conteneur', '
 export default {
   meta: { name: 'murs' },
   rules: Object.fromEntries([
-    ...['marques', 'conteneur', 'dialecte', 'ordre-total', 'ordre-total-locale', 'mod-sans-regle', 'minuteries-appel', 'console-sans-title', 'clavier-global', 'echap', 'clavier-positions', 'datalist', 'roles-composites']
+    ...['marques', 'conteneur', 'dialecte', 'ordre-total', 'ordre-total-locale', 'mod-sans-regle', 'minuteries-appel', 'console-sans-title', 'clavier-global', 'echap', 'clavier-positions', 'datalist', 'roles-composites', 'sans-hote-syntaxe']
       .map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
     ...['ordre-total-imports', 'canal-issue', 'atelier', 'minuteries-import', 'echap-import']
       .map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
-    ...['stockage-web', 'minuteries-hote', 'alea-serveur']
+    ...['stockage-web', 'minuteries-hote', 'alea-serveur', 'entropie', 'sans-hote']
       .map((nom) => [nom, builtinRules.get('no-restricted-properties')]),
-    ...['stockage-web-global', 'minuteries']
+    ...['stockage-web-global', 'minuteries', 'sans-hote-globale']
       .map((nom) => [nom, builtinRules.get('no-restricted-globals')]),
     ['interne', interne],
     ['purete-imports', couches.purete],

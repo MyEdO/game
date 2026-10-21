@@ -20,7 +20,7 @@ import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
 
-const scene = emptyScene(8, 8);
+const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
 
 function combat(): { H: Combatant; E: Combatant } {

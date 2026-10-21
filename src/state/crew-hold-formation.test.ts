@@ -41,7 +41,7 @@ const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   }) as unknown as Combatant;
 
 const input = (enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput => ({
-  enemy, heroes, scene: emptyScene(20, 20),
+  enemy, heroes, scene: emptyScene('scene-test', 20, 20),
   blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)),
   movement: enemy.movement as number, spells: [], ...extra,
 });

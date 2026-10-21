@@ -12,6 +12,7 @@ import { testScene } from '../../scenes/test-fixture';
 import { resetCadence, setCadence } from '../../engine/cadence';
 import { runCombatHooks } from '../../noyau/combatHooks';
 import { cleDeFixture } from '../../noyau/noyau.testkit';
+import { deFixe } from '../../engine/dice.testkit';
 
 /**
  * Jets d'upkeep de fin de Round concernant un HÉROS → étapes de CASCADE influençable (Mâchoires
@@ -149,7 +150,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     addCondition(H, COND.sonne, 1);
     addCondition(H, COND.extenue, 1); // DÉJÀ Exténué
     // Résolution INLINE (hors cascade) avec un jet réussi forcé → on isole le caveat sur l’Exténué.
-    fireConditionEffects(useGame.getState, H, 'onRoundEnd', { rng: { int: () => 1 } as never });
+    fireConditionEffects(useGame.getState, H, 'onRoundEnd', { rng: deFixe(1) as never });
     expect(hasCondition(H, COND.sonne)).toBe(false); // Sonné vaincu
     expect(stacks(H, COND.extenue)).toBe(1);         // PAS de 2ᵉ Exténué (caveat `if all[sonne<=0, extenue<=0]`)
   });
@@ -162,7 +163,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(H.wounds.current).toBe(hpBefore);              // endOfRound seul : rien
     // Sans `set` (= entretien HORS COMBAT) : le dispatcher applique les dégâts PUIS résout le Test inline.
     // RNG forcé à l'ÉCHEC (jet 99) → la Résistance rate, le poison persiste : on isole les dégâts.
-    fireConditionEffects(useGame.getState, H, 'onRoundEnd', { rng: { int: () => 99 } as never });
+    fireConditionEffects(useGame.getState, H, 'onRoundEnd', { rng: deFixe(99) as never });
     expect(H.wounds.current).toBe(hpBefore - 2);          // 2 Blessures subies (Empoisonné×2), dégâts data-driven
     expect(stacks(H, COND.empoisonne)).toBe(2);           // Résistance ratée → aucun pion retiré
     expect(hasCondition(H, COND.extenue)).toBe(false);    // poison non vidé → pas d'Exténué

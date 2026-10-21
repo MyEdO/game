@@ -42,7 +42,7 @@ const enVigueur = () => identitesResolues(get());
 
 /** Charge le paquet, pose le groupe, puis désigne `heroId` par l'Effet `designerHeros`. */
 function designer(party: ReturnType<typeof heros>[], heroId?: string) {
-  const s = emptyScene(4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
+  const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   useGame.setState({ campaignNarratif: null, scene: null, etats: {}, identitesFigees: {}, pendingDesignationHeros: null, net: { ...get().net, mode: 'local' } });
   get().loadProject({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
   useGame.setState({ party });

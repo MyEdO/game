@@ -129,7 +129,7 @@ describe('__wfrp — observation du dialogue et panoramique #1561', () => {
       }
     });
     vi.stubGlobal('requestAnimationFrame', (fn: FrameRequestCallback) => { fn(0); return 1; });
-    useGame.setState({ scene: emptyScene(8, 8), camRot: 0, camEdge: false, camPan: { x: 10, y: 20 } });
+    useGame.setState({ scene: emptyScene('scene-test', 8, 8), camRot: 0, camEdge: false, camPan: { x: 10, y: 20 } });
     poserPan(40, 70);
     const c = await monter(<svg className="iso-stage"><g style={{ opacity: 1 }} /></svg>);
     const svg = c.querySelector('svg')!;
@@ -185,7 +185,7 @@ describe('__wfrp — observation du dialogue et panoramique #1561', () => {
         return { x: m.a * this.x + m.c * this.y + m.e, y: m.b * this.x + m.d * this.y + m.f };
       }
     });
-    useGame.setState({ scene: emptyScene(8, 8), camRot: 0, camEdge: false, camPan: { x: 10, y: 20 } });
+    useGame.setState({ scene: emptyScene('scene-test', 8, 8), camRot: 0, camEdge: false, camPan: { x: 10, y: 20 } });
     poserPan(40, 70);
     const c = await monter(<svg className="iso-stage"><g style={{ opacity: 1 }} /></svg>);
     const svg = c.querySelector('svg')!;
@@ -256,7 +256,7 @@ describe('__wfrp.areteScreenPos — le trait de prise du peintre, au pixel (#230
 
   it('stage non monté, ou hors scène : refus nommés', () => {
     expect(buildApi().areteScreenPos(0, 0, 0, 'N')).toBe('✗ aucune scène');
-    useGame.setState({ scene: emptyScene(4, 4) });
+    useGame.setState({ scene: emptyScene('scene-test', 4, 4) });
     expect(buildApi().areteScreenPos(0, 0, 0, 'N')).toMatch(/^✗ stage non monté/);
   });
 });
@@ -280,7 +280,7 @@ describe('__wfrp.editorWorldMap — le brouillon de carte du monde, par le pont 
       ],
     };
     expect(await api.projectSave(entree)).toMatch(/^✓/);
-    await monter(<Editor initialScene={emptyScene(4, 4)} />);
+    await monter(<Editor initialScene={emptyScene('scene-test', 4, 4)} />);
     let ouvert: unknown;
     await act(async () => { ouvert = await api.editorOpen('carte-recette'); });
     expect(ouvert).toMatch(/^✓/);
@@ -312,7 +312,7 @@ describe('__wfrp.editorWorldMap — le brouillon de carte du monde, par le pont 
   });
 
   it('projet sans carte du monde : `null`', async () => {
-    await monter(<Editor initialScene={emptyScene(4, 4)} />);
+    await monter(<Editor initialScene={emptyScene('scene-test', 4, 4)} />);
     expect(await buildApi().editorWorldMap()).toBeNull();
   });
 });
@@ -324,7 +324,7 @@ describe('__wfrp.editorAreteScreenPos — viser une arête au pixel dans le cane
   it('rend le point ÉCRAN du milieu de l’arête, que l’outil murs résout en CETTE arête', async () => {
     const m = { a: 2, b: 0, c: 0, d: 2, e: 10, f: 20 };
     SVGSVGElement.prototype.getScreenCTM = () => m as DOMMatrix;
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     await monter(<Editor initialScene={scene} />);
     const pos = await buildApi().editorAreteScreenPos(2, 3, 0, 'S');
     if (typeof pos === 'string') throw new Error(pos);

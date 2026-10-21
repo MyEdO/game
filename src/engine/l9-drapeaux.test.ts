@@ -7,14 +7,14 @@ import { addCondition, hasCondition, combatTestPenalty, testStatePenalty, endOfR
 import { resolveCritique } from './critical';
 import { findSpell } from '../data';
 import { spellOps } from './flowCore';
+import { desDuTest, desEnSuite } from './dice.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');
 
 /** RNG scripté : renvoie les valeurs dans l'ordre (padding 5). */
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] ?? 5 } as RNG;
+  return desEnSuite(values, { ensuite: 5 });
 }
 
 function mk(over: Partial<Combatant> = {}): Combatant {
@@ -74,7 +74,7 @@ describe("Endurance de l'anachorète — « ne subit aucune pénalité causée p
   });
   it("op ignoreStatePenalties : pose l'effet actif à la durée du sort + journal", () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { label: 'Endurance de l’anachorète', defaultDurationRounds: 3 });
+    const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { rng: desDuTest, label: 'Endurance de l’anachorète', defaultDurationRounds: 3 });
     expect(c.activeEffects?.[0]).toMatchObject({ label: 'Endurance de l’anachorète', ignoreStatePenalties: true, duration: { scale: 'rounds', left: 3 } });
     expect(lines.join(' ')).toMatch(/pénalité d'État|pénalités d'État/i);
   });
@@ -88,7 +88,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w', label: 'Sorcier' });
     const target = mk({ id: 't', label: 'Cible' });
     addCondition(target, 'a-terre');
-    applyOps(target, [{ op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' }], { caster, label: 'Sommeil' });
+    applyOps(target, [{ op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' }], { rng: desDuTest, caster, label: 'Sommeil' });
     expect(hasCondition(target, 'inconscient')).toBe(true);
     expect(target.conditions.find((x) => x.id === 'inconscient')?.roundsLeft).toBe(4); // BFM 40 → 4
   });
@@ -98,7 +98,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     applyOps(target, [
       { op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' },
       { op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' },
-    ], { caster, label: 'Sommeil' });
+    ], { rng: desDuTest, caster, label: 'Sommeil' });
     expect(hasCondition(target, 'inconscient')).toBe(false);
     expect(hasCondition(target, 'a-terre')).toBe(true);
   });
@@ -106,7 +106,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w' });
     const target = mk({ id: 't' });
     addCondition(target, 'a-terre');
-    applyOps(target, [{ op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' }], { caster, label: 'Sommeil' });
+    applyOps(target, [{ op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' }], { rng: desDuTest, caster, label: 'Sommeil' });
     expect(target.conditions.filter((x) => x.id === 'a-terre')).toHaveLength(1);
     expect(target.conditions.find((x) => x.id === 'a-terre')?.value).toBe(1);
   });
@@ -137,7 +137,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
       psychTraits: [{ type: 'animosite', cible: 'Elfes' }, { type: 'phobie', cible: 'Serpents', indice: 1 }],
       psychState: [{ type: 'animosite', cible: 'Elfes', active: true }],
     });
-    const lines = applyOps(c, [{ op: 'suppressPsych' }], { label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 });
+    const lines = applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume pour un esprit blessé', defaultDurationRounds: 9999, defaultUntilTime: 120 });
     expect(c.psychTraits).toEqual([]);
     expect(c.psychState).toEqual([]);
     const eff = c.activeEffects?.find((e) => e.suppressedPsych);
@@ -147,15 +147,15 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
   });
   it('expiration en fin de Round : les Traits psy suspendus sont restitués', () => {
     const c = mk({ psychTraits: [{ type: 'haine', cible: 'Skavens' }] });
-    applyOps(c, [{ op: 'suppressPsych' }], { label: 'Baume', defaultDurationRounds: 1 });
+    applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 1 });
     expect(c.psychTraits).toEqual([]);
-    endOfRound(c); // l'effet expire (1 round) → restitution
+    endOfRound(c, desDuTest); // l'effet expire (1 round) → restitution
     expect(c.psychTraits).toEqual([{ type: 'haine', cible: 'Skavens' }]);
     expect(c.activeEffects?.some((e) => e.suppressedPsych)).toBe(false);
   });
   it('cible sans Trait psy : journal honnête, pas d’effet porteur', () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'suppressPsych' }], { label: 'Baume', defaultDurationRounds: 3 });
+    const lines = applyOps(c, [{ op: 'suppressPsych' }], { rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 });
     expect(c.activeEffects?.some((e) => e.suppressedPsych) ?? false).toBe(false);
     expect(lines.join(' ')).toMatch(/aucun Trait/i);
   });
@@ -169,7 +169,7 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
     const priest = mk({ id: 'p', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 } as Combatant['characteristics'] });
     applyOps(priest, [
       { op: 'castWard', radius: { bonusOf: 'sociabilite' }, mod: -20, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
-    ], { caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 4 });
+    ], { rng: desDuTest, caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 4 });
     const eff = priest.activeEffects?.find((e) => e.castWard);
     expect(eff?.castWard?.radiusMeters).toBe(4 + 2 * 4); // BSoc 4 + 2 paliers (+2 DR) × BSoc
     expect(eff?.duration).toEqual({ scale: "rounds", left: 4 });
@@ -178,7 +178,7 @@ describe("N'écoutez point la Sorcière — « −20 aux Tests de Langue (Magick
     const priest = mk({ id: 'p', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 } as Combatant['characteristics'] });
     applyOps(priest, [
       { op: 'castWard', radius: { bonusOf: 'sociabilite' }, mod: -20, perSL: { every: 2, radiusFormula: { bonusOf: 'sociabilite' } } },
-    ], { caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 0 });
+    ], { rng: desDuTest, caster: priest, label: 'N’écoutez point la Sorcière', defaultDurationRounds: 4, sl: 0 });
     expect(priest.activeEffects?.find((e) => e.castWard)?.castWard?.radiusMeters).toBe(4);
   });
 });
@@ -189,13 +189,13 @@ describe('Putréfaction — « le cuir se racornit (perdant 1 PA à 1 Localisati
   } as unknown as ItemInstance);
   it('endommage de 1 PA une pièce de cuir portée (et re-dérive l’armure)', () => {
     const c = mk({ items: [leather()] });
-    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { label: 'Putréfaction' });
+    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { rng: desDuTest, label: 'Putréfaction' });
     expect(c.items![0].damageTaken).toBe(1);
     expect(lines.join(' ')).toMatch(/racornit|pourrit/i);
   });
   it('sans cuir porté : rien d’endommagé, journal honnête', () => {
     const c = mk();
-    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { label: 'Putréfaction' });
+    const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { rng: desDuTest, label: 'Putréfaction' });
     expect(lines.join(' ')).toMatch(/pas de cuir|aucun cuir/i);
   });
 });

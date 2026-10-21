@@ -3,6 +3,8 @@ import { fireTriggers, freeAttackSourcesOf, effectSourcesOf } from '../noyau/tri
 import { flowHasFreeAttack } from '../engine/flowCore';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
+import { type RNG } from '../engine/dice';
+import { deSelonLaPlage, desDuTest } from '../engine/dice.testkit';
 
 /**
  * DISPATCHER UNIQUE des effets déclenchés (principe : « peu importe le KIND — Trait, Talent, Atout, État,
@@ -22,12 +24,12 @@ const mk = (over: Partial<Combatant> = {}): Combatant => ({
 }) as unknown as Combatant;
 
 const get = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
-const fire = (c: Combatant, rng?: { int: (min: number, max: number) => number }) =>
-  fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', rng ? { rng: rng as never } : {});
+const fire = (c: Combatant, rng: RNG = desDuTest) =>
+  fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onRoundEnd', { rng });
 // rng DÉTERMINISTE : d10 bas (dégâts d'En Flammes contrôlés) MAIS d100 = 100 → le Test de Calme de
 // récupération du Brisé (joué au MÊME onRoundEnd dès qu'un Brisé est présent) ÉCHOUE — on n'observe ainsi
 // QUE l'effet testé (Bestial), sans le bruit de la récupération du Brisé.
-const noRecover = (d10 = 1) => ({ int: (_min: number, max: number) => (max <= 10 ? d10 : max) });
+const noRecover = (d10 = 1) => deSelonLaPlage((_min, max) => (max <= 10 ? d10 : max));
 
 describe('Dispatcher unique — Traits ET États réagissent au même Trigger, sans chemin par-kind', () => {
   it('TRAIT Bestial (LDB 85) : En Flammes en fin de Round → gagne Brisé (effet de DONNÉE, plus de hook)', () => {
@@ -74,11 +76,11 @@ describe('Horloge — un TRAIT et une MUTATION passent par le MÊME dispatcher, 
 
   it('le MÊME appel `fireTriggers` sert les deux kinds — `onDayStart` la Mutation, `onWake` le Trait', () => {
     const c = doubleporteur();
-    fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onDayStart', {});
+    fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onDayStart', { rng: desDuTest });
     expect((c.traits ?? []).filter((t) => t.id === 'haine')).toHaveLength(1); // effet de MUTATION (donnée)
     expect(hasCondition(c, COND.extenue)).toBe(false);                       // le Trait ne réagit pas à ce trigger
 
-    fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onWake', {});
+    fireTriggers((get as (c: Combatant) => unknown)(c) as never, c, 'onWake', { rng: desDuTest });
     expect(hasCondition(c, COND.extenue)).toBe(true);                        // effet de TRAIT (donnée), MÊME fonction
   });
 });

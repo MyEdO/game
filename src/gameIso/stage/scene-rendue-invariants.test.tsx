@@ -58,7 +58,7 @@ const coffre = {
 } as unknown as SceneEntity;
 
 function scèneAvecCoffre(): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   return { ...s, entities: [...s.entities, coffre] };
 }
 

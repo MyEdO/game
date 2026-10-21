@@ -39,7 +39,7 @@ brancherArdoise();
 /** Pose une scène jouable au store — `interieur` bascule le MILIEU (c'est `isIndoor` qui tranche). */
 function poser(ambiance: Scene['ambiance']): Scene {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-  const scene = emptyScene(12, 12);
+  const scene = emptyScene('scene-test', 12, 12);
   scene.ambiance = ambiance;
   useGame.setState({
     screen: 'campaign', mode: 'exploration', party: [hero], scene,

@@ -77,7 +77,7 @@ brancherArdoise();
 /** État de combat (les deux Engagés) ou d'exploration (le groupe sur sa case). */
 function étatDe(mode: 'battle' | 'exploration'): Record<string, unknown> {
   return {
-    scene: emptyScene(10, 10),
+    scene: emptyScene('scene-test', 10, 10),
     mode,
     partyPos: { x: 6, y: 6 },
     party: [hero('h1', { x: 6, y: 6 })],
@@ -308,7 +308,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
   });
 
   it('ANNEAUX D’ÉQUIPE : un par combattant posté, au rayon de la FORMULE et au pointillé de son équipe', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     const mpt = sceneMetresPerTile(scene);
     const combat = combatEngagé();
     const [h1, e1] = combat.combatants;
@@ -328,7 +328,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
 
   it('HORS COMBAT, le jeton de GROUPE porte lui aussi son anneau', () => {
     monter('exploration');
-    const mpt = sceneMetresPerTile(emptyScene(10, 10));
+    const mpt = sceneMetresPerTile(emptyScene('scene-test', 10, 10));
     expect(anneaux([{ x: 6 * mpt, z: 6 * mpt, rM: rayonGroupe(mpt) }])[0].cordes).toBeGreaterThan(0);
   });
 
@@ -337,7 +337,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
     // de cette hypothèse : le jeton de groupe dit « le groupe est ici », pas « à quelle équipe ».
     const escorte = [{ ...hero('h1', { x: 6, y: 6 }), kind: 'npc' } as unknown as Combatant];
     monter('exploration', { party: escorte });
-    const mpt = sceneMetresPerTile(emptyScene(10, 10));
+    const mpt = sceneMetresPerTile(emptyScene('scene-test', 10, 10));
     const rK = teamRingRadiusK(PARTY_TOKEN_BASE);
     const lot = anneaux([{ x: 6 * mpt, z: 6 * mpt, rM: rK * mpt }])[0];
     // trait PLEIN : un chapelet pointillé en compterait bien moins

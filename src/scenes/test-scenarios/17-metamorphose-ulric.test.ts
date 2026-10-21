@@ -14,7 +14,7 @@ import { scenario } from './17-metamorphose-ulric';
 import type { Combatant } from '../../engine/types';
 const scenarioConstruit = scenario.construire();
 
-const scene = emptyScene(16, 16);
+const scene = emptyScene('scene-test', 16, 16);
 const hero = (): Combatant => ({
   id: 'h', name: 'h', kind: 'hero', pos: { x: 6, y: 5 },
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },

@@ -19,7 +19,7 @@ import { effectSchema, libelleEffet } from '../defs-scenes/effets';
 import { placeServiceSchema } from '../defs-scenes/worldmap';
 
 const sceneJouet = () => {
-  const scene = emptyScene(4, 4);
+  const scene = emptyScene('scene-test', 4, 4);
   scene.id = 'scene-jouet';
   scene.entities.push({ id: 'départ', kind: 'heroStart', pos: { x: 1, y: 1 } });
   return scene;

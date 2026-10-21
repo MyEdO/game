@@ -202,7 +202,7 @@ describe('AUTHORING verrouillé par CONSTRUCTION — le schéma refuse la carte 
     label: 'Fixture de gating',
     versionContenu: 1,
     maison: 'fixture de test',
-    scenes: [{ ...emptyScene(3, 3), id: 's-auberge', label: 's-auberge' }],
+    scenes: [{ ...emptyScene('s-auberge', 3, 3), label: 's-auberge' }],
     worldMap: map,
     narratif: emptyNarratif(),
   }) as unknown;
@@ -276,7 +276,7 @@ describe('`refus` — raison JOUEUR transportée jusqu’au consommateur (rendue
       label: 'Fixture de gating',
       versionContenu: 1,
       maison: 'fixture de test',
-      scenes: [{ ...emptyScene(3, 3), id: 's-auberge', label: 's-auberge' }],
+      scenes: [{ ...emptyScene('s-auberge', 3, 3), label: 's-auberge' }],
       worldMap: carteGatee,
       narratif: emptyNarratif(),
     };

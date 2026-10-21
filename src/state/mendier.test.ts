@@ -445,10 +445,8 @@ describe('Vue d’acteur — `visiblePassive` ne balaie qu’à la LECTURE, et u
 /**
  * Un modificateur de Test d'Activité est AFFICHÉ avant l'engagement (ligne de pré-jet du volet) : la
  * valeur montrée EST celle qui s'applique. Un terme tiré au jet (`{dice}`, `{rolled}`) rendrait
- * l'écran menteur — le parse le REFUSE, nominativement, sur la donnée réelle mutée.
- *
- * MUTATION : retirer la boucle `testMods` du `superRefine` de `schemas/defs/activities.ts` — la
- * donnée dopée passe et les deux `expect` de refus tombent.
+ * l'écran menteur — la grammaire du champ (`formuleSansTirageSchema`) le REFUSE, nominativement, sur
+ * la donnée réelle mutée, au chemin de l'Activité.
  */
 describe('`testMods.mod` est DÉTERMINISTE — garde de DONNÉE (#1612)', () => {
   const REELLES = JSON.parse(readFileSync(join(ROOT, 'src/data/activities.json'), 'utf8')) as Record<string, unknown>[];
@@ -468,9 +466,8 @@ describe('`testMods.mod` est DÉTERMINISTE — garde de DONNÉE (#1612)', () => 
     const r = activitiesSchema.safeParse(dope({ dice: { n: 1, sides: 10 } }));
     expect(r.success).toBe(false);
     if (!r.success) {
-      const message = r.error.issues.map((i) => i.message).join('\n');
-      expect(message).toContain('{dice}');
-      expect(message).toContain(String(REELLES[CIBLE].id));
+      expect(r.error.issues.map((i) => i.message).join('\n')).toContain('{dice}');
+      expect(r.error.issues[0].path.slice(0, 2), 'le refus porte au chemin de l’Activité').toEqual([CIBLE, 'testMods']);
     }
   });
 

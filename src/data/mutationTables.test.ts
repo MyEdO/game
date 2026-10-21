@@ -8,11 +8,12 @@ import mutationTables from './mutationTables.json';
 import mutations from './mutations.json';
 import { rollMutation } from './mutations';
 import type { RNG } from '../engine/dice';
+import { desEnSuite } from '../engine/dice.testkit';
 
 const IDS = new Set((mutations as { id: string }[]).map((m) => m.id));
 
 /** RNG scriptée : `int()` renvoie les valeurs fournies dans l'ordre (ignore min/max → d100 direct). */
-const scripted = (vals: number[]): RNG => { let i = 0; return { int: () => vals[i++ % vals.length] }; };
+const scripted = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 
 describe('mutationTables — tables de Corruption d100', () => {
   for (const t of mutationTables as { id: string; ranges: { min: number; max: number; mutation: string }[] }[]) {

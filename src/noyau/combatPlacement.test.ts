@@ -12,7 +12,7 @@ import { mk, battle } from '../state/pionsEtages.testkit';
 
 describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
   function twoLayerScene(): Scene {
-    const s = emptyScene(10, 10); // z0 : tout 'herbe' (marchable)
+    const s = emptyScene('scene-test', 10, 10); // z0 : tout 'herbe' (marchable)
     const z1 = new Array(10 * 10).fill('herbe') as Terrain[];
     z1[5 * 10 + 6] = 'mur'; // (6,5) infranchissable à l'étage 1
     s.layers.push({ z: 1, tiles: z1 });
@@ -42,7 +42,7 @@ describe('pushBackTiles — la poussée glisse sur SON étage (#802)', () => {
 
 describe('displaceSmaller — ne dégage que sur SON étage (#802)', () => {
   it('un plus petit au même (x,y) mais à un AUTRE étage n’est PAS déplacé ; celui du MÊME étage l’est', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     const mover = mk('m', 5, 5, undefined, { size: 'grande' }); // empreinte 2×2 au sol
     const sameFloor = mk('s', 5, 5, undefined, { size: 'petite' });
     const upperFloor = mk('u', 5, 5, 1, { size: 'petite' });

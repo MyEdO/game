@@ -55,7 +55,7 @@ function setBattle(combatants: Combatant[], party: Combatant[] = []): void {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ battle, mode: 'battle', scene: emptyScene(), gameTime: 720, party, journal: [], pendingCascade: null, suspendedCascades: [], pendingFateSave: null, pendingLogQueue: [] });
+  useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party, journal: [], pendingCascade: null, suspendedCascades: [], pendingFateSave: null, pendingLogQueue: [] });
 }
 
 /** L'étape COURANTE de la séquence en vol (celle que la fenêtre servirait). */

@@ -10,7 +10,7 @@ import type { Dims } from '../../../geometry/iso';
 const DIMS: Dims = { w: 6, h: 6 }; // iso (view non défini)
 
 function sceneWith(seg: WallSeg): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   s.walls = [seg];
   return s;
 }

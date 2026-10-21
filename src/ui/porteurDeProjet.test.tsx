@@ -62,7 +62,7 @@ const narratif: NarratifBlock = {
 };
 
 function sceneDuTest(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   s.id = 'scene-porteur';
   s.label = 'Scène';
   s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
@@ -153,7 +153,7 @@ describe('L’id du projet est celui du DOCUMENT, par chaque voie de lancement',
       container = document.createElement('div');
       document.body.appendChild(container);
       root = createRoot(container);
-      await act(async () => { root!.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'brouillon' }} />); });
+      await act(async () => { root!.render(<Editor initialScene={emptyScene('brouillon', 4, 4)} />); });
       let verdict: unknown = '';
       await act(async () => { verdict = await buildApi().editorOpen(barge.id); });
       expect(String(verdict)).toMatch(/^✓/);

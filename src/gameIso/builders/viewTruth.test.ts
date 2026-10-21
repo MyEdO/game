@@ -17,7 +17,7 @@ import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../../n
  */
 
 const sceneWith = (walls: WallSeg[]): Scene => {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   s.walls = walls;
   return s;
 };
@@ -26,14 +26,14 @@ const mass = (id: string, x: number, y: number, w: number, h: number): BuildingM
   id, z: 0, footprint: [{ x, y, w, h }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile',
 });
 const sceneWithMasses = (...masses: BuildingMass[]): Scene => {
-  const s = emptyScene(20, 20);
+  const s = emptyScene('scene-test', 20, 20);
   s.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses }];
   return s;
 };
 
 /** Scène 4×4 avec un BLOC PLEIN (terrain `mur`) en (1,1) — la vérité « perçu » des sols s'y joue. */
 function sceneWithBlock(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   s.layers[0].tiles = new Array(16).fill('plancher');
   s.layers[0].tiles[1 * 4 + 1] = 'mur';
   return s;

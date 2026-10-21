@@ -32,7 +32,7 @@ const VIEW = { activeZ: 0, viewZ: null, top: false };
 
 describe('buildTokens — figurants (PNJ d’ambiance)', () => {
   const scene = () => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.entities = [
       { id: 'f1', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 } },
       { id: 'f2', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, combat: { hiddenUntilCombat: true } }, // embuscade
@@ -93,7 +93,7 @@ describe('buildTokens — figurants (PNJ d’ambiance)', () => {
 });
 
 describe('buildTokens — combattants', () => {
-  const scene6 = () => emptyScene(6, 6);
+  const scene6 = () => emptyScene('scene-test', 6, 6);
 
   it('émet les combattants placés, coupe un ENNEMI hors-vue mais jamais un héros', () => {
     const s = scene6();
@@ -177,7 +177,7 @@ describe('buildTokens — combattants', () => {
    *  marchable : ce n'est PAS un surplomb (`isOverhang` faux) — c'était le trou #1567 (le plancher
    *  peint, la garnison coupée : défenseurs ET pièces d'artillerie servies). */
   const rempart = () => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.layers[0] = { ...s.layers[0], tiles: s.layers[0].tiles.map((t, i) => (i === 2 * 6 + 2 ? 'mur' : t)) };
     const tiles = new Array(36).fill('vide');
     tiles[2 * 6 + 2] = 'pierre';

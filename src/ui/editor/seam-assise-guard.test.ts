@@ -214,7 +214,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
 
     /** Table ronde attablée en (2,2) ; colonne x≥6 murée, avec un recoin d'UNE case en (7,7). */
     function hostile(): Scene {
-      const s = emptyScene(10, 10);
+      const s = emptyScene('scene-test', 10, 10);
       const tiles: string[] = new Array(100).fill('plancher');
       for (let y = 0; y < 10; y++) for (let x = 6; x < 10; x++) tiles[y * 10 + x] = 'mur';
       tiles[7 * 10 + 7] = 'plancher';

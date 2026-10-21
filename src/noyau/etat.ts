@@ -27,7 +27,6 @@ import type { PendingCouncil } from './shipCrew';
 import type { Scene, VictoryCondition } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { Pt } from './monde/path';
-import { emptyWorldMap } from './worldMap';
 import { initialFields } from './stateFields';
 import type { NarratifBlock, OuvertureBlock } from './monde/campaignNarratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
@@ -649,7 +648,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     possessions: [],
     tradeRumours: [],
     landMarket: null,
-    worldMap: emptyWorldMap(),
+    worldMap: null,
     worldMapOpen: false,
     travelPlan: null,
     billetEnMain: null,

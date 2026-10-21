@@ -8,6 +8,7 @@ import { rollMutation } from '../data/mutations';
 import { hasCondition } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { deFixe, desDuTest } from '../engine/dice.testkit';
 
 // ---------------------------------------------------------------------------
 // Tentacule épais (LDB 19) → trait Tentacules (LDB 85 l.405) : arme naturelle +
@@ -15,14 +16,14 @@ import type { Combatant } from '../engine/types';
 // Créature (Dégâts = Bonus de Force, LDB 85 l.35).
 // ---------------------------------------------------------------------------
 
-const mutTentacule = () => rollMutation('physique', { int: () => 38 }); // Tentacule épais
-const mutCornes = () => rollMutation('physique', { int: () => 83 }); // Cornes asymétriques
+const mutTentacule = () => rollMutation('physique', deFixe(38)); // Tentacule épais
+const mutCornes = () => rollMutation('physique', deFixe(83)); // Cornes asymétriques
 
 describe('armes naturelles de mutation (recomputeLoadout)', () => {
   it('trait Tentacules → arme Tentacule (+BF) ; Cornes asymétriques → arme Cornes (+BF)', () => {
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    attachMutation(hero, mutTentacule());
-    attachMutation(hero, mutCornes());
+    attachMutation(hero, mutTentacule(), desDuTest);
+    attachMutation(hero, mutCornes(), desDuTest);
     recomputeLoadout(hero);
     const t = hero.weapons.find((w) => w.uid === 'nat-tentacule');
     expect(t?.label).toBe('Tentacule');
@@ -69,7 +70,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
     E.wounds = { current: 30, max: 30, base: 30 } as Combatant['wounds'];
     E.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
     if (withTentacle) {
-      attachMutation(H, mutTentacule());
+      attachMutation(H, mutTentacule(), desDuTest);
       recomputeLoadout(H);
     }
     const turn = b.order.indexOf(H.id);

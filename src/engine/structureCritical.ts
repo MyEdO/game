@@ -12,7 +12,7 @@
  * Les effets sur les PERSONNES présentes sur/sous la Structure (débris = Bonus d'Endurance, Tests
  * d'Athlétisme, perte de couvert) sont RENDUS verbatim en `note` (la boucle de combat connaît occupants/couvert).
  */
-import { d100, type RNG, defaultRNG } from './dice';
+import { d100, type RNG } from './dice';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import type { GameOp } from './ops';
@@ -41,7 +41,7 @@ export const tableDesCritiquesDeStructure = memoParVersion('structureCriticals',
 
 /** Résout un Critique de Structure (AA 10 l.112-127) : tire le d100 sur `STRUCTURE_CRITICALS`, dérive les
  *  Blessures supplémentaires en `GameOp` et le drapeau d'Effondrement. `forcedRoll` = d100 imposé (tests). PUR. */
-export function rollStructureCritical(rng: RNG = defaultRNG, forcedRoll?: number): StructureCriticalResolved {
+export function rollStructureCritical(rng: RNG, forcedRoll?: number): StructureCriticalResolved {
   const roll = forcedRoll ?? d100(rng);
   const entry = findTableEntry(tableDesCritiquesDeStructure(), roll);
   const extra = entry.wounds ?? 0;

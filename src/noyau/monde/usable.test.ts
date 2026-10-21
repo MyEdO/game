@@ -19,7 +19,7 @@ import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 const TABLE = 'table-ronde-4-tabourets';
 
 function scene(entities: SceneEntity[]): Scene {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   s.entities = entities;
   return s;
 }

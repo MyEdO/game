@@ -12,6 +12,7 @@ import { skillCharacteristicById } from '../engine/character';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { inexplique, soutienDe } from './cascade.testkit';
 import { resolveStake } from '../data';
+import { deMin } from '../engine/dice.testkit';
 
 /**
  * EMBRIGADEMENT — recouvrement d'équipage (MDG 15 l.245, #164). La perte de 2d10 marins est persistée,
@@ -26,13 +27,13 @@ const set = useGame.setState.bind(useGame);
 
 // Tous les d10 → 1 (quel que soit l'index) : événement de port min 1 (Embrigadement, avec Humeur −1),
 // lostCrew 2d10 = 2, ransomCO 2d10 = 2, failExtraLostCrew 1d10 = 1.
-const ones: RNG = { int: (min) => min };
+const ones: RNG = deMin;
 
 function fresh() {
   seedBattleRng(1);
   useGame.setState({
     party: makePregens().slice(0, 3),
-    scene: { ...emptyScene(2, 2), id: 'port', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     pendingCascade: null,
     // Humeur de Manann −1 : place le tirage 2d10=2 sur l'événement n°1 (Embrigadement).

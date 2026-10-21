@@ -41,8 +41,8 @@ const NUIT = 23 * 60;
 const BOITE = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(20, 4, 20));
 
 const dehors = (northDeg?: number): Scene =>
-  setNorthDeg({ ...emptyScene(6, 6), ambiance: 'exterieur' }, northDeg);
-const dedans = (): Scene => ({ ...emptyScene(6, 6), ambiance: 'interieur' });
+  setNorthDeg({ ...emptyScene('scene-test', 6, 6), ambiance: 'exterieur' }, northDeg);
+const dedans = (): Scene => ({ ...emptyScene('scene-test', 6, 6), ambiance: 'interieur' });
 
 const scalaires = (scene: Scene, gameTime: number, lightLevel: number | null = null) =>
   stageLightScalars({ scene, gameTime, lightLevel });

@@ -19,7 +19,7 @@ function voidTile(s: Scene, w: number, x: number, y: number) {
 
 describe('path — 8-connexe (déplacement diagonal)', () => {
   it('walkNeighbors sur sol ouvert renvoie 8 voisins (4 cardinaux + 4 diagonaux)', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     const keys = new Set(walkNeighbors(s, { x: 2, y: 2 }).map(key));
     for (const k of ['3,2,0', '1,2,0', '2,3,0', '2,1,0']) expect(keys.has(k)).toBe(true); // cardinaux
     for (const k of ['3,3,0', '3,1,0', '1,3,0', '1,1,0']) expect(keys.has(k)).toBe(true); // diagonaux
@@ -27,13 +27,13 @@ describe('path — 8-connexe (déplacement diagonal)', () => {
   });
 
   it('pathTo prend le raccourci diagonal : (0,0)→(3,3) = 4 cases (Chebyshev), pas 7 (Manhattan)', () => {
-    const path = pathTo(emptyScene(5, 5), { x: 0, y: 0 }, { x: 3, y: 3 }, NO_BLOCK);
+    const path = pathTo(emptyScene('scene-test', 5, 5), { x: 0, y: 0 }, { x: 3, y: 3 }, NO_BLOCK);
     expect(path).not.toBeNull();
     expect(path!.length).toBe(4); // départ + 3 pas diagonaux
   });
 
   it('reachable : la diagonale coûte 1 pas (distance = Chebyshev)', () => {
-    const dist = reachable(emptyScene(7, 7), { x: 3, y: 3 }, 2, NO_BLOCK);
+    const dist = reachable(emptyScene('scene-test', 7, 7), { x: 3, y: 3 }, 2, NO_BLOCK);
     expect(dist.get('4,4')).toBe(1); // diagonale adjacente = 1 pas
     expect(dist.get('5,5')).toBe(2); // 2 diagonales = 2 pas
     expect(dist.get('5,3')).toBe(2); // et le cardinal à 2 reste 2
@@ -42,7 +42,7 @@ describe('path — 8-connexe (déplacement diagonal)', () => {
 
 describe('path — garde anti coupe-de-coin', () => {
   it('une seule orthogonale flanquante VIDE suffit à interdire la diagonale', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     voidTile(s, 3, 2, 1); // orthogonale (2,1) vide → interdit la diagonale (1,1)→(2,0) et (1,1)→(2,2)
     const keys = new Set(walkNeighbors(s, { x: 1, y: 1 }).map(key));
     expect(keys.has('2,0,0')).toBe(false);
@@ -51,7 +51,7 @@ describe('path — garde anti coupe-de-coin', () => {
   });
 
   it('un MUR sur une arête flanquante bloque la diagonale (coin de mur)', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     s.walls = [{ x: 1, y: 1, side: 'E' } as WallSeg]; // arête E de (1,1) : entre (1,1) et (2,1)
     const keys = new Set(walkNeighbors(s, { x: 1, y: 1 }).map(key));
     expect(keys.has('2,1,0')).toBe(false); // le cardinal E est muré
@@ -61,7 +61,7 @@ describe('path — garde anti coupe-de-coin', () => {
   });
 
   it("un MUR sur l'arête de la case CIBLE (2e jambe du L) bloque aussi la diagonale", () => {
-    const s = emptyScene(4, 3);
+    const s = emptyScene('scene-test', 4, 3);
     // D=(2,1) : arête N (entre (2,0)-(2,1)) et arête O (entre (1,1)-(2,1)) murées — les DEUX jambes
     // depuis p=(1,0) sont ouvertes en 1re jambe (A=(2,0), B=(1,1) libres depuis p), seule la 2e jambe
     // (flanc→cible) est murée : sans le fix, la diagonale (1,0)→(2,1) fuit à tort par ce coin.
@@ -80,7 +80,7 @@ describe('path — garde anti coupe-de-coin', () => {
     // tablier z1 à hauteur 0 (identique au sol) → `surfaceLink` flat, la diagonale z0→z1 serait sinon
     // praticable. L'arête A→D (2e jambe) n'est murée QU'à z=1 (la couche CIBLE), jamais à z=0 : le garde
     // pré-#790 (évalué au seul z de DÉPART) ne la voit pas et laisse fuir la diagonale vers D@z1.
-    const s = emptyScene(4, 3);
+    const s = emptyScene('scene-test', 4, 3);
     const w = 4;
     const z1 = new Array(w * 3).fill('vide') as Terrain[];
     z1[1 * w + 2] = 'plancher'; // D=(2,1) walkable sur z1, hauteur 0 (défaut) = flat depuis z0
@@ -94,7 +94,7 @@ describe('path — garde anti coupe-de-coin', () => {
   });
 
   it('une pièce close par arêtes murées a des coins étanches (aucune fuite diagonale)', () => {
-    const s = emptyScene(3, 3);
+    const s = emptyScene('scene-test', 3, 3);
     // Cellule (1,1) totalement close par 4 arêtes murées (N/E/S/O) — un mur d'arête PUR, aucun
     // terrain `mur`. Depuis chaque coin extérieur en diagonale, les DEUX jambes du L sont coupées
     // par l'arête posée sur la case cible : aucune fuite en diagonale à travers le coin.

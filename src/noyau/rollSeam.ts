@@ -63,7 +63,7 @@ import { resoluSousOrdres } from './voyageCadence';
 import { conditionLabel, dataLabel, testSkillLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
 import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
-import { defaultRNG, type RNG, type DiceSpec } from '../engine/dice';
+import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
 
@@ -1983,8 +1983,8 @@ export function rollSansPilote(
   get: Get,
   actor: Combatant | undefined,
   value: number,
-  difficulty: Difficulty = 'intermediaire',
-  rng: RNG = defaultRNG,
+  difficulty: Difficulty,
+  rng: RNG,
   modifier = 0,
 ): TestResult {
   if (actor && surfaceOf(get, actor.id)) {

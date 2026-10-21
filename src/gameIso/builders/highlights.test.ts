@@ -21,7 +21,7 @@ const VIEW: HighlightsView = {
 };
 
 describe('buildHighlights — surbrillances sémantiques (clés historiques stables)', () => {
-  const scene = () => emptyScene(6, 6);
+  const scene = () => emptyScene('scene-test', 6, 6);
 
   it('grilles de Marche/Course : clés z-aware, la Course exclut les cases déjà en Marche', () => {
     const b = { combatants: [], zones: [] } as unknown as BattleState;
@@ -103,7 +103,7 @@ describe('rangeBandTone — teinte dérivée du SIGNE de rangeBandModifier', () 
 });
 
 describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSource)', () => {
-  const carte = () => emptyScene(40, 40);
+  const carte = () => emptyScene('scene-test', 40, 40);
   const horsCarte = (e: HighlightEl, w: number, h: number) => e.cell.x < 0 || e.cell.y < 0 || e.cell.x >= w || e.cell.y >= h;
 
   it('colore les cases autour du tireur selon la bande de portée (bonus/neutre/malus), rien au-delà de la portée max', () => {
@@ -130,7 +130,7 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
 
   it('un tireur au BORD ne peint que le quart de bandes qui tombe sur la carte', () => {
     const b = { combatants: [], zones: [] } as unknown as BattleState;
-    const els = buildHighlights(emptyScene(6, 6), b, { ...VIEW, rangeBandSource: { pos: { x: 5, y: 5 }, rangeM: 20 } });
+    const els = buildHighlights(emptyScene('scene-test', 6, 6), b, { ...VIEW, rangeBandSource: { pos: { x: 5, y: 5 }, rangeM: 20 } });
     const rb = els.filter((e) => e.kind === 'rangeBand');
     expect(rb.filter((e) => horsCarte(e, 6, 6))).toHaveLength(0);
     expect(rb).toHaveLength(36);
@@ -140,14 +140,14 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
     // Grande créature (empreinte 2×2) au coin bas-droit : 3 des 4 cases tombent hors carte.
     const g = cbt('g1', 'enemy', { x: 5, y: 5 }, { size: 'grande' } as Partial<Combatant>);
     const b = { combatants: [g], zones: [] } as unknown as BattleState;
-    const els = buildHighlights(emptyScene(6, 6), b, VIEW);
+    const els = buildHighlights(emptyScene('scene-test', 6, 6), b, VIEW);
     expect(els.filter((e) => horsCarte(e, 6, 6))).toHaveLength(0);
     expect(els.map((e) => e.key)).toEqual(['ttg1-0-0']);
   });
 
   it('rangeBandSource absent : aucun élément rangeBand', () => {
     const b = { combatants: [], zones: [] } as unknown as BattleState;
-    const els = buildHighlights(emptyScene(6, 6), b, VIEW);
+    const els = buildHighlights(emptyScene('scene-test', 6, 6), b, VIEW);
     expect(els.some((e) => e.kind === 'rangeBand')).toBe(false);
   });
 });

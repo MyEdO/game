@@ -18,7 +18,7 @@ import { lineOfSightCover } from '../noyau/monde/lineOfSight';
 
 /** Une scène nue portant le seul décor mesuré, au centre. */
 const scèneAvec = (ref: string, at: { x: number; y: number }): Scene => {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   s.entities = [{ id: 'd1', kind: 'prop', ref, pos: at } as SceneEntity];
   return s;
 };

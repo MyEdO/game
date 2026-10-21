@@ -14,12 +14,13 @@ import { emptyScene } from '../noyau/monde/scene';
 import { draineCascade } from './cascade.testkit';
 import { stepInteraction } from '../noyau/cascade';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { desDuTest } from '../engine/dice.testkit';
 
 // « Écailles épineuses » (EDO App.2 l.196 : « Ce PA ne peut pas être utilisé pour la Déviation Critique »)
 // — la DONNÉE réelle de mutations.json, pour que ce test casse si le drapeau `noDeviation` disparaît.
 // Posée par `attachMutation`, la couture du jeu (#2097).
 const avecEcailles = (c: Combatant): Combatant => {
-  attachMutation(c, mutationById('ecailles-epineuses')!);
+  attachMutation(c, mutationById('ecailles-epineuses')!, desDuTest);
   return c;
 };
 
@@ -52,7 +53,7 @@ function setBattle(combatants: Combatant[]): BattleState {
   } as unknown as BattleState;
   // Siège MJ REMIS À ZÉRO à chaque mise en place : la TENUE décide qui tranche la Déviation (#1426), un
   // test qui pose `gmSeat` ne doit pas la léguer au suivant.
-  useGame.setState({ battle, mode: 'battle', scene: emptyScene(), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null,
+  useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   return battle;
 }

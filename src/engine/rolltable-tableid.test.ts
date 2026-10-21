@@ -4,6 +4,7 @@ import { removeActiveEffects } from './conditions';
 import { attachMutation } from './corruption';
 import { rollMutation } from '../data/mutations';
 import type { Combatant } from './types';
+import { deFixe, desDuTest } from './dice.testkit';
 
 /**
  * Op `rollTable` variante `tableId` (dé-stub Allure démoniaque, EDOC 13) + multiplicité `extraRollsPerStep`
@@ -22,7 +23,7 @@ const dummy = (p: Partial<Combatant> = {}): Combatant =>
   } as Combatant);
 
 /** RNG figé au dé `n` (int() renvoie `n`, tous appels). */
-const fixed = (n: number) => ({ int: () => n });
+const fixed = deFixe;
 
 describe('op rollTable — variante tableId (tables.json)', () => {
   it('résout la table référencée et applique les ops de la rangée (Nurgle 3 = Démoniaque (7))', () => {
@@ -130,7 +131,7 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
 
   it('chemin CORRUPTION (attachMutation direct) reste PERMANENT : aucun effet porteur, jamais détaché', () => {
     const c = dummy();
-    attachMutation(c, rollMutation('edoc-phys-nurgle', fixed(4)));
+    attachMutation(c, rollMutation('edoc-phys-nurgle', fixed(4)), desDuTest);
     expect((c.mutations ?? []).some((m) => m.id === 'sang-acide')).toBe(true);
     expect((c.activeEffects ?? []).some((e) => e.grantedMutation)).toBe(false); // permanent : pas de porteur
     removeActiveEffects(c, () => true); // aucune expiration ne l'atteint

@@ -13,6 +13,7 @@ import { findMutationById, findTraitById, findSpellById } from '../data';
 import { triggeredEffectSchema } from '../data/schemas/grammaire/mecanique';
 import type { Combatant } from '../engine/types';
 import type { Mutation } from '../engine/corruption';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * HORLOGE de campagne comme cycle d'effets DÉCLENCHÉS (`onDayStart`/`onWake`) — le jumeau hors-combat
@@ -206,7 +207,7 @@ describe('Effets de mutation lus AU REGISTRE (jamais sur l’instance)', () => {
     h.mutations = [mutInstance(HAINE_SPORADIQUE)]; // instance nue : aucun `effects` porté
     set({ party: [h] });
 
-    const lines = fireClockTriggers(get, 'onDayStart');
+    const lines = fireClockTriggers(get, 'onDayStart', { rng: desDuTest });
 
     expect(lines.some((l) => l.includes('gagne le Trait'))).toBe(true);
     expect(findMutationById(HAINE_SPORADIQUE)?.effects?.[0].trigger).toBe('onDayStart');
@@ -219,7 +220,7 @@ describe('Effets de mutation lus AU REGISTRE (jamais sur l’instance)', () => {
     }), makeRNG(1));
     set({ party: [h] });
 
-    expect(fireClockTriggers(get, 'onDayStart')).toEqual([]);
+    expect(fireClockTriggers(get, 'onDayStart', { rng: desDuTest })).toEqual([]);
     expect(haineTraits(get().party[0])).toHaveLength(0);
   });
 });

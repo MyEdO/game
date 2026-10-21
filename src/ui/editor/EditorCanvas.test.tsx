@@ -87,7 +87,7 @@ describe('EditorCanvas — panoramique (clic-milieu / Espace + glisser)', () => 
       document.body.appendChild(container);
       const root: Root = createRoot(container);
       await act(async () => {
-        root.render(<EditorCanvas scene={emptyScene()} view={view as never} {...baseProps()} />);
+        root.render(<EditorCanvas scene={emptyScene('scene-test')} view={view as never} {...baseProps()} />);
       });
 
       const svg = container.querySelector('svg.editor-iso') as SVGSVGElement;
@@ -145,7 +145,7 @@ describe('EditorCanvas — pelure d’oignon des TOITS (#835 FU-2)', () => {
   /** Deux masses superposées : une au rez (`z:0`), une à l'étage (`z:1`). Le libellé du plan étiqueté
    *  sert de sonde — il porte le nom du corps, donc l'identité de la masse rendue. */
   function sceneWithTwoRoofs() {
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     const etage: string[] = new Array(144).fill('vide');
     for (let y = BEFFROI.y; y < BEFFROI.y + BEFFROI.h; y++)
       for (let x = BEFFROI.x; x < BEFFROI.x + BEFFROI.w; x++) etage[y * 12 + x] = 'plancher';
@@ -277,7 +277,7 @@ describe('EditorCanvas — mise en évidence d’un défaut de plan (`planFocus`
   /** Rend le canevas sur une scène à deux étages et rapporte l'annotation posée : losanges allumés,
    *  segments d'arête, et la nature du défaut portée par le groupe. */
   async function renderFocus(planFocus: PlanDefectAt | null, currentLayer = 0) {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     scene.layers = [
       { z: 0, tiles: new Array(100).fill('herbe') },
       { z: 1, tiles: new Array(100).fill('plancher') },
@@ -343,7 +343,7 @@ describe('EditorCanvas — pinceau d’EMPRISE de zone (outil `zoneTiles`)', () 
   /** Scène à DEUX zones : « galerie » (3×3 pleine) et « cave », témoin qui ne doit jamais bouger. */
   function sceneDeuxZones(): Scene {
     return {
-      ...emptyScene(12, 12),
+      ...emptyScene('scene-test', 12, 12),
       effectZones: [
         { id: 'galerie', label: 'Galerie', area: { kind: 'rect', x: 1, y: 1, w: 3, h: 3 } },
         { id: 'cave', label: 'Cave', area: { kind: 'rect', x: 8, y: 8, w: 2, h: 2 } },
@@ -485,7 +485,7 @@ describe('EditorCanvas — une zone se dessine par ses CASES, jamais par son rec
    *  les deux familles rendent sur deux calques distincts et doivent suivre la MÊME vérité d'emprise. */
   function sceneDeuxFamilles(tiles?: { x: number; y: number }[]): Scene {
     return {
-      ...emptyScene(12, 12),
+      ...emptyScene('scene-test', 12, 12),
       effectZones: [
         { id: 'galerie', label: 'Galerie', area: { kind: 'rect', x: 1, y: 1, w: 3, h: 3 }, ...(tiles ? { tiles } : {}) },
         {
@@ -608,7 +608,7 @@ describe('EditorCanvas — contour de sélection d’un décor multi-case', () =
     ['S', [{ x: 3, y: 3 }, { x: 4, y: 3 }]],
     ['E', [{ x: 3, y: 3 }, { x: 3, y: 4 }]],
   ] as const)('cap %s : le contour couvre les cases de l’empreinte tournée', async (facing, attendues) => {
-    const scene: Scene = emptyScene(8, 8);
+    const scene: Scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: 'table-2x1', facing }];
     const view = {
       rot: 0 as const,

@@ -115,7 +115,7 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
 const projet = (): Record<string, unknown> => ({
   type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(),
-  scenes: [{ ...emptyScene(4, 4), id: 's1', label: 'Salle du banc', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le tonneau', ref: 'tonneau' }] }],
+  scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle du banc', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le tonneau', ref: 'tonneau' }] }],
 });
 const decorSansType = (doc: Record<string, unknown>) => ({
   ...doc,
@@ -272,7 +272,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   it('reprise d’une sauvegarde locale au contenu fautif : le titre dit la scène d’un autre format, la faute vit au détail seulement (#2404)', () => {
     let erreur: unknown;
     try {
-      parseSceneDeProjet({ ...emptyScene(4, 4), id: 's1', label: 'Salle', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 } }] });
+      parseSceneDeProjet({ ...emptyScene('s1', 4, 4), label: 'Salle', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 } }] });
     } catch (e) {
       erreur = e;
     }
@@ -292,7 +292,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   );
 
   it('reprise d’une sauvegarde locale en forme DISQUE (prose adressée sans son texte) : la scène d’un autre format, jamais l’import d’un fichier', () => {
-    const sc = emptyScene(4, 4);
+    const sc = emptyScene('scene-test', 4, 4);
     sc.id = 's1';
     sc.label = 'Salle';
     sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], descRef: { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] } }] }] as Scene['dialogues'];

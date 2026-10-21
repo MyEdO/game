@@ -25,7 +25,7 @@ const POS = { x: 5, y: 5 };
 const dimsDe = (scene: Scene): Dims => ({ w: scene.dimensions.w, h: scene.dimensions.h, rot: 0, view: 'iso' });
 
 function sceneAvecTable(facing: Dir4, z = 0): Scene {
-  const s = emptyScene(14, 14);
+  const s = emptyScene('scene-test', 14, 14);
   s.entities = [{ id: ID, kind: 'prop', pos: { ...POS }, ref: REF, facing, ...(z ? { z } : {}) } as SceneEntity];
   return s;
 }

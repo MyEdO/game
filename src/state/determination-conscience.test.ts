@@ -33,8 +33,9 @@ import { determinationWindowId } from '../noyau/combatSlice';
 import { rule, setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
+import { desDuTest, desEnSuite } from '../engine/dice.testkit';
 
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] }; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 
 const malade = (): Combatant => {
   const c = {
@@ -258,7 +259,7 @@ describe('KO à 0 PB + Fièvre (Grave) : un seul pion, et la dépense réveille 
 describe('la fenêtre de Détermination est celle que l’op PORTEUSE déclare (LDB 20 l.170 / LDB 16 l.117)', () => {
   it('Fièvre (Grave) : fenêtre d’HORLOGE, minutes prises à la règle maison', () => {
     const h = malade();
-    expect(fenetreDetermination(h, 'inconscient', 10_000)).toEqual({
+    expect(fenetreDetermination(h, 'inconscient', 10_000, desDuTest)).toEqual({
       scale: 'clock', until: 10_000 + (rule('maladie-conscience-determination-minutes') as number),
     });
   });
@@ -269,7 +270,7 @@ describe('la fenêtre de Détermination est celle que l’op PORTEUSE déclare (
     const h = malade();
     setRule('maladie-conscience-determination-minutes', 7);
     try {
-      expect(fenetreDetermination(h, 'inconscient', 10_000)).toEqual({ scale: 'clock', until: 10_007 });
+      expect(fenetreDetermination(h, 'inconscient', 10_000, desDuTest)).toEqual({ scale: 'clock', until: 10_007 });
     } finally {
       resetRule('maladie-conscience-determination-minutes');
     }
@@ -280,7 +281,7 @@ describe('la fenêtre de Détermination est celle que l’op PORTEUSE déclare (
     const c = { id: 'x', label: 'Cobaye', conditions: [], activeEffects: [] } as unknown as Combatant;
     addCondition(c, 'sonne');
     c.conditions[0].derivedFrom = { stacks: 1, src: { category: 'symptoms', id: 'convulsions' } };
-    expect(fenetreDetermination(c, 'sonne', 10_000)).toEqual({ scale: 'rounds', left: 1 });
+    expect(fenetreDetermination(c, 'sonne', 10_000, desDuTest)).toEqual({ scale: 'rounds', left: 1 });
   });
 
   /** LDB 20 l.188 : le Malaise déclare `resolveWindow: 'none'` → aucune fenêtre, la dépense est refusée. */
@@ -289,7 +290,7 @@ describe('la fenêtre de Détermination est celle que l’op PORTEUSE déclare (
       diseases: [contractDisease('infection-mineure', seq([1]), { incubation: 0, duration: 5 })!] } as unknown as Combatant;
     syncDerivedConditions(c);
     expect(derivedStacks(c, 'extenue'), 'le Malaise ne porte pas l’Exténué').toBe(1);
-    expect(fenetreDetermination(c, 'extenue', 10_000)).toBeUndefined();
+    expect(fenetreDetermination(c, 'extenue', 10_000, desDuTest)).toBeUndefined();
     expect(raisonRefusDetermination(c, 'extenue')).toContain('Malaise');
   });
 });

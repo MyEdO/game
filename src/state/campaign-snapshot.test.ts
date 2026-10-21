@@ -35,7 +35,7 @@ function fakeStorage(): Storage {
 
 /** Scène minimale (heroStart) chargeable par le chemin RÉEL (`loadProject`/`transitionTo`). */
 function scene(id: string): Scene {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   s.id = id;
   s.label = id;
   s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });

@@ -11,7 +11,7 @@ import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from './monde/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { nextEntityId } from './monde/entityId';
+import { nextEntityId } from '../lib/entityId';
 import { findTrappingById, findCreatureById } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
 import { stairFlightCells, interiorCells } from './planDefects';

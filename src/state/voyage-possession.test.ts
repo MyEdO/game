@@ -39,11 +39,12 @@ import { setRule, resetRule } from '../engine/policy';
 import { setCadence, resetCadence, cadenceAuto } from '../engine/cadence';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap, MapRouteTrace } from '../noyau/worldMap';
+import { deMin } from '../engine/dice.testkit';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 const NET0 = useGame.getState().net;
-const ones: RNG = { int: (min) => min };
+const ones: RNG = deMin;
 const etapes = () => get().pendingCascade?.participants ?? [];
 const parKind = (k: string) => etapes().find((s) => s.kind === k);
 
@@ -79,7 +80,7 @@ function fraisMer(): void {
   seedBattleRng(1);
   useGame.setState({
     party: makePregens().slice(0, 3),
-    scene: { ...emptyScene(2, 2), id: 'port-a', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null,
     pendingCrewTest: null, pendingRest: null, pendingCascade: null, suspendedCascades: [],
     gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -133,7 +134,7 @@ function fraisPort(): void {
   seedBattleRng(1);
   useGame.setState({
     party: makePregens().slice(0, 3),
-    scene: { ...emptyScene(2, 2), id: 'port', label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, pendingCascade: null, suspendedCascades: [],
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, manann: { score: -1, applied: [] } },
     journal: [],

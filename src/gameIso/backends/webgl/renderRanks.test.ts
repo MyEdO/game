@@ -65,7 +65,7 @@ describe('renderRanks — les familles MONTÉES portent leur rang', () => {
   it('semis de pluie : rang `pluie` ; nappes de brume : rang `nappe`, au-dessus de lui', () => {
     const semis = buildPrecipMesh(makeWeatherField(PLUIE, AIRE, 's'));
     expect(semis.renderOrder).toBe(RENDER_ORDER.pluie);
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     const nappes = buildBrumeSheets(retainBrumeSheets(null, scene, sceneMetresPerTile(scene), BRUME).plan, BRUME);
     expect(nappes.length).toBe(2);
     for (const n of nappes) expect(n.renderOrder).toBe(RENDER_ORDER.nappe);

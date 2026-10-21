@@ -73,7 +73,7 @@ describe('Scénario « La fenêtre sur les écuries »', () => {
     useGame.setState({ party: scenario.construire().party });
     useGame.getState().startScene(scene);
     expect(useGame.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
-    useGame.getState().startScene({ ...emptyScene(), id: 'depart-sans-etage' });
+    useGame.getState().startScene(emptyScene('depart-sans-etage'));
     useGame.getState().transitionTo(scene.id);
     expect(useGame.getState().partyPos).toEqual({ x: 7, y: 6, z: 1 });
   });

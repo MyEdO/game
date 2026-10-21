@@ -33,7 +33,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   it('TRAIT Toile : à la touche, la victime gagne Empêtré (Force d’évasion = Force de l’attaquant)', () => {
     const spider = mk({ id: 'sp', traits: [{ id: 'toile', value: 40 }] }); // l'Indice est descriptif ; l'effet est en donnée
     const prey = mk({ id: 'pr' });
-    fireTriggers(noBattle(), spider, 'onHit', { victim: prey });
+    fireTriggers(noBattle(), spider, 'onHit', { rng: desDuTest, victim: prey });
     expect(empetre(prey)?.value).toBe(1);
     expect(empetre(prey)?.escapeStrength).toBe(spider.characteristics.force); // {charOf:'force'} résolu vs l’attaquant
   });
@@ -42,7 +42,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const knight = mk({ id: 'kn' });
     const foe = mk({ id: 'fo' });
     const weapon: Weapon = { label: 'Fléau à chaîne', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'immobilisante' }] } as Weapon;
-    fireTriggers(noBattle(), knight, 'onHit', { victim: foe, weapon });
+    fireTriggers(noBattle(), knight, 'onHit', { rng: desDuTest, victim: foe, weapon });
     expect(empetre(foe)?.value).toBe(1);
   });
 
@@ -51,9 +51,9 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const foe = mk({ id: 'fo' });
     const weapon: Weapon = { label: 'Hache de Taillade', type: 'melee', damage: { plusBF: true, flat: 6 }, qualities: [{ id: 'taillade' }] } as Weapon;
     const hemo = (c: Combatant) => c.conditions.find((x) => x.id === 'hemorragique');
-    fireTriggers(noBattle(), knight, 'onHit', { victim: foe, weapon }); // touche simple → RIEN (Taillade ne déclenche que sur Critique)
+    fireTriggers(noBattle(), knight, 'onHit', { rng: desDuTest, victim: foe, weapon }); // touche simple → RIEN (Taillade ne déclenche que sur Critique)
     expect(hemo(foe)).toBeUndefined();
-    fireTriggers(noBattle(), knight, 'onCrit', { victim: foe, weapon }); // Critique → Hémorragique, via le MÊME dispatcher data-driven
+    fireTriggers(noBattle(), knight, 'onCrit', { rng: desDuTest, victim: foe, weapon }); // Critique → Hémorragique, via le MÊME dispatcher data-driven
     expect(hemo(foe)?.value).toBe(1);
   });
 
@@ -88,7 +88,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       no: { kind: 'seq', steps: [] },
     } as Flow;
     expect(
-      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime }),
+      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { rng: desDuTest, victim: victime }),
       'un Test enfoui sous un `choice` a été traversé en SILENCE — aucune branche jouée, aucune levée.',
     ).toThrow(/routeur cadence-aware/);
     expect(victime.conditions, 'la cible a subi une conséquence alors qu’aucun jet n’a été joué.').toEqual([]);
@@ -108,7 +108,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       ],
     } as Flow;
     porteur.advantage = 5;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victim', flow }], 'onCrit', { victim: victime });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victim', flow }], 'onCrit', { rng: desDuTest, victim: victime });
     expect(victime.conditions.find((c) => c.id === 'hemorragique')?.value, 'l’État automatique du Critique manque, ou le choix a été joué GRATUITEMENT.').toBe(1);
     expect(porteur.advantage, 'un Avantage a été dépensé sans que personne n’ait choisi.').toBe(5);
   });
@@ -118,26 +118,26 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const foe = mk({ id: 'fo' });
     const logee = (c: Combatant) => c.conditions.find((x) => x.id === 'munition-logee');
     const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
-    fireTriggers(noBattle(), archer, 'onCrit', { victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' });
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' });
     expect(logee(foe)?.value).toBe(1);
-    fireTriggers(noBattle(), archer, 'onCrit', { victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' }); // 2e flèche → empile
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' }); // 2e flèche → empile
     expect(logee(foe)?.value).toBe(2);
     const lance: Weapon = { label: 'Lance de Taillade empaleuse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
     const melee = mk({ id: 'me' });
-    fireTriggers(noBattle(), archer, 'onCrit', { victim: melee, weapon: lance, attackType: 'melee', origine: 'coup-critique' });
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: melee, weapon: lance, attackType: 'melee', origine: 'coup-critique' });
     expect(logee(melee)).toBeUndefined(); // « Si l'empalement vient d'une arme à DISTANCE » — mêlée = rien
   });
 
   it('déjà Empêtré → pas de re-application (unlessCondition)', () => {
     const spider = mk({ traits: [{ id: 'toile' }] });
     const prey = mk({ conditions: [{ id: 'empetre', value: 2 }] });
-    fireTriggers(noBattle(), spider, 'onHit', { victim: prey });
+    fireTriggers(noBattle(), spider, 'onHit', { rng: desDuTest, victim: prey });
     expect(empetre(prey)?.value).toBe(2); // inchangé
   });
 
   it('TRAIT Nerveux : déclencheur onStartled (magie/bruit) → +3 Brisé sur soi', () => {
     const skittish = mk({ traits: [{ id: 'nerveux' }] });
-    fireTriggers(noBattle(), skittish, 'onStartled', {});
+    fireTriggers(noBattle(), skittish, 'onStartled', { rng: desDuTest });
     expect(skittish.conditions.find((c) => c.id === 'brise')?.value).toBe(3);
   });
 
@@ -158,14 +158,14 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const vampire = mk({ id: 'vp', traits: [{ id: 'vampirique' }], wounds: { current: 10, max: 30 } });
     const prey = mk({ id: 'pr' });
     // onHit d'une Morsure ayant infligé 6 PB → lifeSteal 1/1 sur l'attaquant (ctx.caster).
-    fireTriggers(noBattle(), vampire, 'onHit', { victim: prey, attackKind: 'morsure', woundsDealt: 6 });
+    fireTriggers(noBattle(), vampire, 'onHit', { rng: desDuTest, victim: prey, attackKind: 'morsure', woundsDealt: 6 });
     expect(vampire.wounds.current).toBe(16); // 10 + 6, plafonné au max (30)
   });
 
   it('TRAIT Vampirique : un coup d’ARME (≠ Morsure) ne draine PAS (Condition attackKind)', () => {
     const vampire = mk({ id: 'vp', traits: [{ id: 'vampirique' }], wounds: { current: 10, max: 30 } });
     const prey = mk({ id: 'pr' });
-    fireTriggers(noBattle(), vampire, 'onHit', { victim: prey, attackKind: 'arme', woundsDealt: 6 });
+    fireTriggers(noBattle(), vampire, 'onHit', { rng: desDuTest, victim: prey, attackKind: 'arme', woundsDealt: 6 });
     expect(vampire.wounds.current).toBe(10); // attackKind ≠ 'morsure' → branche then non prise
   });
 
@@ -355,21 +355,21 @@ describe('onOwnTestFailed — Crampes abdominales (MSRC 16 l.152-158)', () => {
   it('palier « Impressionnant » (DR ≤ −4) → Sonné + Test de FM raté → À Terre (résolu INLINE)', () => {
     const c = withCrampes();
     // rng FM raté (jet haut) : le sous-Test se résout inline, sa branche fail pose À Terre.
-    fireOwnTestFailed(noBattle(), c, { sl: -4, rng: { int: () => 98 } });
+    fireOwnTestFailed(noBattle(), c, { sl: -4, rng: deFixe(98) });
     expect(cond(c, 'sonne')?.value).toBe(1);
     expect(cond(c, 'a-terre')?.value).toBe(1);
   });
 
   it('palier « Impressionnant » — Test de FM RÉUSSI → pas d’À Terre (branche success vide)', () => {
     const c = withCrampes();
-    fireOwnTestFailed(noBattle(), c, { sl: -4, rng: { int: () => 1 } }); // jet bas → réussite
+    fireOwnTestFailed(noBattle(), c, { sl: -4, rng: deFixe(1) }); // jet bas → réussite
     expect(cond(c, 'sonne')?.value).toBe(1);
     expect(cond(c, 'a-terre')).toBeUndefined();
   });
 
   it('palier « Stupéfiant » (DR ≤ −6) : les trois paliers tirent cumulativement (« ou pire »)', () => {
     const c = withCrampes();
-    fireOwnTestFailed(noBattle(), c, { sl: -6, rng: { int: () => 98 } }); // FM raté
+    fireOwnTestFailed(noBattle(), c, { sl: -6, rng: deFixe(98) }); // FM raté
     expect(cond(c, 'sonne')?.value).toBe(1);
     expect(cond(c, 'a-terre')?.value).toBe(1);
     expect(cond(c, 'inconscient')?.value).toBe(1);
@@ -379,7 +379,7 @@ describe('onOwnTestFailed — Crampes abdominales (MSRC 16 l.152-158)', () => {
     const c = withCrampes();
     // Le FM raté a un DR très négatif (cible basse ≈ FM−20) : sans garde, il ré-émettrait onOwnTestFailed
     // et empilerait un 2ᵉ Sonné. La garde de ré-entrance le bloque → Sonné reste à 1 pion.
-    fireOwnTestFailed(noBattle(), c, { sl: -4, rng: { int: () => 99 } });
+    fireOwnTestFailed(noBattle(), c, { sl: -4, rng: deFixe(99) });
     expect(cond(c, 'sonne')?.value).toBe(1);
   });
 });
@@ -412,7 +412,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     seedBattleRng(1);
     const { H } = combat();
     addCrampes(H);
-    fireOwnTestFailed(useGame.getState, H, { sl: -4, set: useGame.setState });
+    fireOwnTestFailed(useGame.getState, H, { rng: desDuTest, sl: -4, set: useGame.setState });
     expect(hasCondition(H, 'sonne')).toBe(true);   // palier 1 inline
     expect(hasCondition(H, 'a-terre')).toBe(false); // palier 2 DIFFÉRÉ en cascade (pas résolu inline)
     const step = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'triggeredTest');
@@ -425,7 +425,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     const { H } = combat();
     H.characteristics['force-mentale'] = 1; // FM minimale → le Test de FM échoue à coup sûr
     addCrampes(H);
-    fireOwnTestFailed(useGame.getState, H, { sl: -4, set: useGame.setState });
+    fireOwnTestFailed(useGame.getState, H, { rng: desDuTest, sl: -4, set: useGame.setState });
     const before = cond(H, 'sonne')?.value ?? 0;
     useGame.getState().cascadeResolveAll(); // résout le FM (échec) → À Terre, PAS un 2ᵉ Sonné
     const H2 = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
@@ -438,7 +438,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     const { E } = combat();
     E.characteristics['force-mentale'] = 1; // FM minimale → échec inline → À Terre
     addCrampes(E);
-    fireOwnTestFailed(useGame.getState, E, { sl: -4, set: useGame.setState });
+    fireOwnTestFailed(useGame.getState, E, { rng: desDuTest, sl: -4, set: useGame.setState });
     expect(useGame.getState().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest')).toBeFalsy();
     expect(hasCondition(E, 'a-terre')).toBe(true); // résolu inline (PNJ)
   });
@@ -463,6 +463,7 @@ import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
 import { cascadeDeTest } from './cascade.testkit';
+import { deFixe, desDuTest } from '../engine/dice.testkit';
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ pendingCascade: null, battle: null, pendingLogQueue: [] }); });
@@ -505,7 +506,7 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
 });
 
 describe('Test déclenché INLINE : la pénalité d’État lit la Compétence testée (LDB 16 l.35)', () => {
-  const de20 = { int: () => 20 };
+  const de20 = deFixe(20);
   const issue = (victimeATerre: boolean) => {
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });

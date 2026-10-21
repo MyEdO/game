@@ -72,7 +72,7 @@ afterEach(async () => {
 });
 
 const scenePlate = (id: string): Scene => {
-  const s = emptyScene(6, 6);
+  const s = emptyScene('scene-test', 6, 6);
   s.id = id;
   s.label = id;
   return s;

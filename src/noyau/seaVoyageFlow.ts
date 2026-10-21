@@ -1979,7 +1979,7 @@ function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): vo
   if (!coup.testFlow) return;
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
   pushStep(set, (index) => bandeTriggeredTest(
-    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { label: crit.label, hull: coque },
+    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { rng: battleRng(), label: crit.label, hull: coque },
   ), 'travelDay');
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
@@ -2011,7 +2011,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
   switch (event.kind) {
     case 'usure': {
       if (!ship) break;
-      const w = num('wounds', rollDice(1, 10, rng)) || rollDice(1, 10, rng);
+      const w = event.params?.wounds != null ? num('wounds') : rollDice(1, 10, rng);
       damageVesselHull(get, set, ship, w);
       tell(get, set, [`${ship.label} perd ${w} Blessures (usure).`]);
       break;

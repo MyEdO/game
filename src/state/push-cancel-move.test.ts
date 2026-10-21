@@ -42,7 +42,7 @@ function pushSetup() {
     combatants, order: [chef.id], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   };
-  useGame.setState({ party: [chef], mode: 'battle', battle, scene: emptyScene(20, 20) });
+  useGame.setState({ party: [chef], mode: 'battle', battle, scene: emptyScene('scene-test', 20, 20) });
   return { chef, hull, s1, s2 };
 }
 

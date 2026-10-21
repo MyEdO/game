@@ -37,7 +37,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant => ({
 
 /** Les SCÈNES portent un autre nom que les LIEUX de la carte : la halte ne doit nommer aucune scène. */
 function scene(id: string, label: string, weather?: Scene['weather']): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   s.id = id;
   s.label = label;
   if (weather) s.weather = weather;

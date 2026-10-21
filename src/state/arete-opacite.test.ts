@@ -21,7 +21,7 @@ import { refsInLine } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 
 /** Scène 3×3 avec UNE arête `E` en (0,1) — l'arête qui sépare (0,1) de (1,1). */
 const sceneAvec = (seg: Partial<WallSeg>): Scene => {
-  const s = emptyScene(3, 3);
+  const s = emptyScene('scene-test', 3, 3);
   return { ...s, walls: [{ x: 0, y: 1, side: 'E', ...seg } as WallSeg] };
 };
 const ARETE = (s: Scene): WallSeg => s.walls![0];
@@ -46,7 +46,7 @@ describe('areteOcculte — la liste de CE QUI LAISSE VOIR est nominative et sour
   it('toutes les AUTRES Structures occultent — aucune n’est muette par omission de lecture', () => {
     const occultantes = structures.filter((s) => s.occulte !== false);
     expect(occultantes.length).toBe(structures.length - 2);
-    for (const s of occultantes) expect(areteOcculte(emptyScene(1, 1), { x: 0, y: 0, side: 'E', structure: s.id } as WallSeg)).toBe(true);
+    for (const s of occultantes) expect(areteOcculte(emptyScene('scene-test', 1, 1), { x: 0, y: 0, side: 'E', structure: s.id } as WallSeg)).toBe(true);
   });
 });
 

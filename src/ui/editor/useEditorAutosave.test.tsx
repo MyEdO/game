@@ -66,7 +66,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   it('écrit une sauvegarde débattue après un changement de scène (pas à chaque frappe)', async () => {
     vi.useFakeTimers();
     try {
-      const scene = { ...emptyScene(), id: 'scene-x', label: 'v1' };
+      const scene = { ...emptyScene('scene-x'), label: 'v1' };
       await act(async () => {
         root.render(<Harness scene={scene} onRecovered={() => {}} />);
       });
@@ -89,8 +89,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('propose une RESTAURATION (jamais un écrasement silencieux) quand une sauvegarde plus récente diverge de la scène chargée', async () => {
-    await autosaveSave({ sceneId: 'scene-y', scene: { ...emptyScene(), id: 'scene-y', label: 'récupérée' }, savedAt: 999 });
-    const scene = { ...emptyScene(), id: 'scene-y', label: 'source (non sauvegardée)' };
+    await autosaveSave({ sceneId: 'scene-y', scene: { ...emptyScene('scene-y'), label: 'récupérée' }, savedAt: 999 });
+    const scene = { ...emptyScene('scene-y'), label: 'source (non sauvegardée)' };
     let recovered: Scene | null = null;
     await act(async () => {
       root.render(<Harness scene={scene} onRecovered={(s) => { recovered = s; }} />);
@@ -116,11 +116,11 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('une scène au format courant qui enfreint le schéma de scène est ÉCARTÉE et nommée : rien à restaurer', async () => {
-    const { type: _muet, ...muette } = { ...emptyScene(), id: 'scene-muette', label: 'muette' };
+    const { type: _muet, ...muette } = { ...emptyScene('scene-muette'), label: 'muette' };
     await autosaveSave({ sceneId: 'scene-muette', scene: muette as Scene, savedAt: 999 });
     let recovered: Scene | null = null;
     await act(async () => {
-      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-muette', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+      root.render(<Harness scene={{ ...emptyScene('scene-muette'), label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
     });
     await act(async () => { await flush(); });
     const r = probe().recovery;
@@ -140,7 +140,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
     Object.defineProperty(piege, 'scene', { enumerable: true, get() { throw new Error('faute du jeu'); } });
     sauvegardes.set('scene-faute', piege);
     try {
-      const scene = { ...emptyScene(), id: 'scene-faute', label: 'v1' };
+      const scene = { ...emptyScene('scene-faute'), label: 'v1' };
       await act(async () => {
         root.render(<Harness scene={scene} onRecovered={() => {}} />);
       });
@@ -168,13 +168,13 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
 
   it('une scène qui cite un sort FUSIONNÉ (« alarme », #1897) est REFUSÉE, jamais remappée : rien à restaurer (#2404)', async () => {
     const ancienne = {
-      ...emptyScene(), id: 'scene-alarme', label: 'crypte',
+      ...emptyScene('scene-test'), id: 'scene-alarme', label: 'crypte',
       entities: [{ id: 'sorcier', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: { type: 'statblock', label: 'Sorcier', char: {}, spells: ['alarme'] } }],
     } as unknown as Scene;
     sauvegardes.set('scene-alarme', { sceneId: 'scene-alarme', scene: ancienne, savedAt: 999 });
     let recovered: Scene | null = null;
     await act(async () => {
-      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-alarme', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+      root.render(<Harness scene={{ ...emptyScene('scene-alarme'), label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
     });
     await act(async () => { await flush(); });
     const r = probe().recovery;
@@ -184,11 +184,11 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('un enregistrement d’un AUTRE format est AFFICHÉ refusé et reste au magasin : seul « Ignorer et supprimer » le retire', async () => {
-    const { label: _l, ...sansLabel } = { ...emptyScene(), id: 'scene-ancienne', label: 'ancienne' };
+    const { label: _l, ...sansLabel } = { ...emptyScene('scene-ancienne'), label: 'ancienne' };
     sauvegardes.set('scene-ancienne', { sceneId: 'scene-ancienne', scene: { ...sansLabel, nom: 'ancienne' } as unknown as Scene, savedAt: 999 });
     let recovered: Scene | null = null;
     await act(async () => {
-      root.render(<Harness scene={{ ...emptyScene(), id: 'scene-ancienne', label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
+      root.render(<Harness scene={{ ...emptyScene('scene-ancienne'), label: 'en cours' }} onRecovered={(s) => { recovered = s; }} />);
     });
     await act(async () => { await flush(); });
     const r = probe().recovery;
@@ -201,8 +201,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('sous StrictMode (le montage RÉEL, `src/main.tsx`) : la reprise de la scène chargée au montage est PROPOSÉE, et l’écriture débattue reprend une fois tranchée', async () => {
-    await autosaveSave({ sceneId: 'scene-strict', scene: { ...emptyScene(), id: 'scene-strict', label: 'récupérée' }, savedAt: 999 });
-    const scene = { ...emptyScene(), id: 'scene-strict', label: 'chargée' };
+    await autosaveSave({ sceneId: 'scene-strict', scene: { ...emptyScene('scene-strict'), label: 'récupérée' }, savedAt: 999 });
+    const scene = { ...emptyScene('scene-strict'), label: 'chargée' };
     await act(async () => {
       root.render(<StrictMode><Harness scene={scene} onRecovered={() => {}} /></StrictMode>);
     });
@@ -218,8 +218,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('ignorer une reprise proposée supprime la sauvegarde locale et ne restaure rien', async () => {
-    await autosaveSave({ sceneId: 'scene-z', scene: { ...emptyScene(), id: 'scene-z', label: 'ancienne' }, savedAt: 1 });
-    const scene = { ...emptyScene(), id: 'scene-z', label: 'actuelle' };
+    await autosaveSave({ sceneId: 'scene-z', scene: { ...emptyScene('scene-z'), label: 'ancienne' }, savedAt: 1 });
+    const scene = { ...emptyScene('scene-z'), label: 'actuelle' };
     let recovered: Scene | null = null;
     await act(async () => {
       root.render(<Harness scene={scene} onRecovered={(s) => { recovered = s; }} />);
@@ -235,7 +235,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('deux scènes identiques (aucune divergence) ne proposent pas de reprise', async () => {
-    const scene: Scene = { ...emptyScene(), id: 'scene-w', label: 'même contenu' };
+    const scene: Scene = { ...emptyScene('scene-w'), label: 'même contenu' };
     await autosaveSave({ sceneId: 'scene-w', scene, savedAt: 1 });
     await act(async () => {
       root.render(<Harness scene={scene} onRecovered={() => {}} />);
@@ -247,8 +247,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   });
 
   it('#834 pt. A — masquer la proposition (`hide`, l’équivalent d’Échap) ne détruit RIEN : elle revient avec `show`', async () => {
-    await autosaveSave({ sceneId: 'scene-hide', scene: { ...emptyScene(), id: 'scene-hide', label: 'récupérée' }, savedAt: 999 });
-    const scene = { ...emptyScene(), id: 'scene-hide', label: 'chargée' };
+    await autosaveSave({ sceneId: 'scene-hide', scene: { ...emptyScene('scene-hide'), label: 'récupérée' }, savedAt: 999 });
+    const scene = { ...emptyScene('scene-hide'), label: 'chargée' };
     await act(async () => {
       root.render(<Harness scene={scene} onRecovered={() => {}} />);
     });
@@ -277,8 +277,8 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   it('#834 audit-2 DÉFAUT 1 — hide() ne gèle plus l’écriture : le travail fait APRÈS un hide est protégé', async () => {
     vi.useFakeTimers();
     try {
-      await autosaveSave({ sceneId: 'scene-hide-work', scene: { ...emptyScene(), id: 'scene-hide-work', label: 'vieille-recup' }, savedAt: 999 });
-      const scene = { ...emptyScene(), id: 'scene-hide-work', label: 'chargée' };
+      await autosaveSave({ sceneId: 'scene-hide-work', scene: { ...emptyScene('scene-hide-work'), label: 'vieille-recup' }, savedAt: 999 });
+      const scene = { ...emptyScene('scene-hide-work'), label: 'chargée' };
       await act(async () => {
         root.render(<Harness scene={scene} onRecovered={() => {}} />);
       });
@@ -308,7 +308,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   it('#834 audit-2 DÉFAUT 3 — une bascule de scène ÉCRIT la scène QUITTÉE avant de vérifier la nouvelle', async () => {
     vi.useFakeTimers();
     try {
-      const sceneA = { ...emptyScene(), id: 'scene-switch-a', label: 'v0' };
+      const sceneA = { ...emptyScene('scene-switch-a'), label: 'v0' };
       await act(async () => {
         root.render(<Harness scene={sceneA} onRecovered={() => {}} />);
       });
@@ -321,7 +321,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
         root.render(<Harness scene={sceneADirty} onRecovered={() => {}} />);
       });
       // AUCUNE pause de 1,5 s ici — la bascule survient AVANT que la débattue n'ait écrit A.
-      const sceneB = { ...emptyScene(), id: 'scene-switch-b', label: 'B' };
+      const sceneB = { ...emptyScene('scene-switch-b'), label: 'B' };
       await act(async () => {
         root.render(<Harness scene={sceneB} onRecovered={() => {}} />);
       });
@@ -335,7 +335,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   it('#834 pt. C — un tracé CONTINU (jamais 1,5 s de pause) écrit quand même, plafonné par MAX_WAIT_MS', async () => {
     vi.useFakeTimers();
     try {
-      const scene = { ...emptyScene(), id: 'scene-continu', label: 'v0' };
+      const scene = { ...emptyScene('scene-continu'), label: 'v0' };
       await act(async () => {
         root.render(<Harness scene={scene} onRecovered={() => {}} />);
       });
@@ -362,7 +362,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   it('#834 pt. C — flush au DÉMONTAGE : un crash de rendu ne jette pas la modification en attente', async () => {
     vi.useFakeTimers();
     try {
-      const scene = { ...emptyScene(), id: 'scene-unmount', label: 'v0' };
+      const scene = { ...emptyScene('scene-unmount'), label: 'v0' };
       await act(async () => {
         root.render(<Harness scene={scene} onRecovered={() => {}} />);
       });
@@ -389,7 +389,7 @@ describe('useEditorAutosave — filet de crash de l’éditeur', () => {
   it('#834 pt. C — flush sur `pagehide` : fermeture d’onglet/navigation, pas d’attente de 1,5 s', async () => {
     vi.useFakeTimers();
     try {
-      const scene = { ...emptyScene(), id: 'scene-pagehide', label: 'v0' };
+      const scene = { ...emptyScene('scene-pagehide'), label: 'v0' };
       await act(async () => {
         root.render(<Harness scene={scene} onRecovered={() => {}} />);
       });

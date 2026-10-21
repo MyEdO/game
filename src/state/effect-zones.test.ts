@@ -15,8 +15,9 @@ import {
 } from '../noyau/monde/zones';
 import { occupied } from '../noyau/monde/combatGeometry';
 import type { BattleState } from '../noyau/etat';
+import { deFixe } from '../engine/dice.testkit';
 
-const rng: RNG = { int: () => 5 } as RNG;
+const rng: RNG = deFixe(5) as RNG;
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return {

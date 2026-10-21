@@ -8,15 +8,13 @@ import type { RNG } from './dice';
 import { baseTestModLines } from './combat';
 import type { Combatant } from './types';
 import { setRule, resetRule } from './policy';
+import { desEnSuite } from './dice.testkit';
 
 /** Somme des lignes du canal Précipitations (MDG 13 l.185-200). */
 const precipMod = (...a: Parameters<typeof precipitationTestMods>): number => precipitationTestMods(...a).reduce((s, m) => s + m.value, 0);
 
 /** RNG scripté : rend la file de valeurs (clampée au domaine demandé). */
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 describe('rollSeaWeather — MÉTÉO DE LA MER DES GRIFFES (MDG 13 l.164-181)', () => {
   it('1d10 par aspect, été sans modificateur : 1 → Aucune/Caniculaire/Dégagé/Calme plat', () => {

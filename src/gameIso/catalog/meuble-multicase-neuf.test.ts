@@ -67,7 +67,7 @@ const NEUF = {
 
 const POS = { x: 5, y: 5 };
 const scèneAu = (facing: Dir4): Scene => {
-  const s = emptyScene(14, 14);
+  const s = emptyScene('scene-test', 14, 14);
   s.entities = [{ id: 'banquette-1', kind: 'prop', pos: POS, ref: ID, facing, usable: { assise: true } }];
   return s;
 };

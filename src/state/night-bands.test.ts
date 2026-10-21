@@ -36,6 +36,7 @@ import { type BuiltCascadeStep } from '../noyau/stepBrand';
 import { nightStakeRef } from '../data';
 import { cascadeDeTest } from './cascade.testkit';
 import type { GenreDEtape } from '../noyau/tablesPosees';
+import { deFixe } from '../engine/dice.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -74,7 +75,7 @@ beforeEach(() => {
   seedBattleRng(1);
   set({
     battle: null, pendingCascade: null, suspendedCascades: [], deferredUpkeepQueue: [],
-    pendingRest: null, pendingVictory: null, journal: [], scene: emptyScene(6, 6),
+    pendingRest: null, pendingVictory: null, journal: [], scene: emptyScene('scene-test', 6, 6),
     gameTime: 0, lastUpkeepDay: 0, lastNightDay: 0,
   } as never);
 });
@@ -290,8 +291,8 @@ describe('une bande par MALADIE', () => {
   });
 
   it('CHEMIN RÉEL : un compagnon contagieux ouvre UNE fenêtre de Contagion, une rangée par héros sain', () => {
-    const sick = contractDisease('verole-urticante', { int: () => 1 } as never, { incubation: 0, duration: 5 })!;
-    set({ party: [h('m1', { diseases: [sick] }), h('s1'), h('s2')], scene: emptyScene(6, 6) } as never);
+    const sick = contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!;
+    set({ party: [h('m1', { diseases: [sick] }), h('s1'), h('s2')], scene: emptyScene('scene-test', 6, 6) } as never);
     get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     for (const id of ['m1', 's1', 's2']) get().restSet(id, { food: 'rien' });
     get().restSleep();

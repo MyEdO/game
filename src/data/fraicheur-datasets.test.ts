@@ -40,12 +40,12 @@ import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine
 import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
 import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
-import type { RNG } from '../engine/dice';
 import { knownTraitId, traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
 import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
 import { worldBakeDeps } from '../gameIso/backends/webgl/sceneMeshes';
+import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];
 const POSSESSIONS_LIVREES = [...trappings];
@@ -66,7 +66,6 @@ const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite']: ReturnType<typeof datasetObject<K>> };
 /** Un dé qui rend toujours `n` : le cran de vent se force (seuil 1, puis « forcir »). */
-const deFixe = (n: number): RNG => ({ int: () => n });
 
 afterEach(() => {
   for (const k of Object.keys(LISTES_LIVREES) as (keyof typeof LISTES_LIVREES)[]) setDataset(k, structuredClone(LISTES_LIVREES[k]) as never);
@@ -113,7 +112,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // La scène pose un décor VOLUMIQUE : `worldBakeDeps` y lit sa RECETTE (`propRecipeDeps`), donc la
     // fraîcheur se MESURE sur la dep elle-même — pas seulement sur l'identité rendue par l'accesseur.
     // L'édition porte donc sur ce qui CUIT (la recette) : un libellé seul ne recuit rien, par dessein.
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
     const mpt = sceneMetresPerTile(scene);
     const depsAvant = worldBakeDeps(scene, mpt);
@@ -135,7 +134,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // Contrepartie du cas précédent : il assère qu'une dep CHANGE, ce qui ne vaut que si toute
     // édition ne les fait pas toutes changer. Ici l'édition ne touche QUE le libellé — la recette
     // (`volume`) garde son identité —, et le read-set doit être identique élément par élément.
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
     const mpt = sceneMetresPerTile(scene);
     const depsAvant = worldBakeDeps(scene, mpt);

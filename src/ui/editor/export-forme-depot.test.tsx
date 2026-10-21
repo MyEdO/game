@@ -54,7 +54,7 @@ async function monter(): Promise<void> {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  await act(async () => { root!.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'brouillon' }} />); });
+  await act(async () => { root!.render(<Editor initialScene={emptyScene('brouillon', 4, 4)} />); });
 }
 
 async function ouvrir(campagne: BuiltinCampaign = diligenceCampaign): Promise<void> {

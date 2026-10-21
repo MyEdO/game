@@ -75,7 +75,7 @@ describe('FLOWS.test — isDouble PROPAGÉ du jet jusqu’au pendingTest', () =>
   it('après testRoll, pendingTest.isDouble est cohérent avec isDoubleRoll(roll), et vrai au moins une fois', () => {
     const h = hero({});
     let sawDouble = false;
-    // Le jet du flux `test` utilise le RNG par défaut (non seedé) ; on répète jusqu'à voir un double
+    // Le jet du flux `test` tire sur `battleRng` ; on répète jusqu'à voir un double
     // (garanti statistiquement) et on vérifie la cohérence à CHAQUE itération.
     for (let i = 0; i < 400; i++) {
       useGame.setState({ party: [h], pendingTest: basePending() });

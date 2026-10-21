@@ -35,7 +35,7 @@ let root: Root | undefined;
 
 /** Paquet chargé, naine désignée sosie par l'Effet `designerHeros`. */
 function charger(mode: 'local' | 'guest' = 'local') {
-  const s = emptyScene(4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
+  const s = emptyScene('scene-test', 4, 4); s.id = 'sc'; s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
   useGame.setState({ campaignNarratif: null, party: [], scene: null, document: null, flags: {}, etats: {}, identitesFigees: {}, net: { ...get().net, mode: 'local' } });
   get().loadProject({ scenes: [s], entryId: 'sc', narratif, projet: null });
   useGame.setState({ party: [heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')] });

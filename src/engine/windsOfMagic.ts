@@ -14,7 +14,7 @@
  * `src/noyau/combatFlow.ts` (`windsOfMagicAtCombatStart`) et `src/noyau/combat/roundHooks.ts`.
  */
 import type { RNG } from './dice';
-import { defaultRNG, d10 } from './dice';
+import { d10 } from './dice';
 import { findTableEntry } from './tables';
 import type { Combatant } from './types';
 import type { ModLine } from './combat';
@@ -43,7 +43,7 @@ export function windsModLine(winds: WindsRoll | null | undefined): ModLine | nul
 }
 
 /** Tirage de la force des Vents (1d10 sur le Tableau, LDB 46 l.183-190). */
-export function rollWindsOfMagic(rng: RNG = defaultRNG): WindsRoll {
+export function rollWindsOfMagic(rng: RNG): WindsRoll {
   const roll = d10(rng);
   return { roll, mod: windsModFromRoll(roll) };
 }

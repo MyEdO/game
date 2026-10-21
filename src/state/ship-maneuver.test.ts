@@ -235,7 +235,7 @@ describe('shipAdvance (action store) — avance coque + équipage le long du cap
 
   it('clampe aux bornes de scène : coque près du bord → moved < cases, équipage translaté du même moved', () => {
     const m1 = sailor('m1', { x: 4, y: 5 });
-    useGame.setState({ battle: { combatants: [hull({ crewIds: ['m1'] }), m1], order: ['ship'], turn: 0 } as never, facing: { ship: 'E' }, scene: emptyScene(7, 10) });
+    useGame.setState({ battle: { combatants: [hull({ crewIds: ['m1'] }), m1], order: ['ship'], turn: 0 } as never, facing: { ship: 'E' }, scene: emptyScene('scene-test', 7, 10) });
     expect(useGame.getState().shipAdvance('ship', 5)).toBe(1); // bord est à x=6 → 1 seule case dispo depuis x=5
     const b = useGame.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'ship')!.pos).toEqual({ x: 6, y: 5 });

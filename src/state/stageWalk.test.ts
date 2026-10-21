@@ -21,7 +21,7 @@ const get = useGame.getState;
 
 /** Couloir marchable 10×10, groupe au centre, vue iso au cran d'ouverture. */
 function poserScene(): void {
-  const sc = emptyScene(10, 10);
+  const sc = emptyScene('scene-test', 10, 10);
   sc.id = 'marche-tenue';
   sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 5, y: 5 } });
   get().startScene(sc);
@@ -210,7 +210,7 @@ describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt
 describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transition', () => {
   /** Scène de départ : un trigger sur la case atteinte au 1ᵉʳ pas transitionne vers `dest`. */
   function scenePiegee(id: string, dest: string) {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.id = id;
     sc.label = id;
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 5, y: 5 } });
@@ -219,7 +219,7 @@ describe('FRONTIÈRE DE SCÈNE — une marche tenue ne traverse pas la transitio
   }
 
   function sceneArrivee(id: string) {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.id = id;
     sc.label = id;
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 8, y: 8 } });

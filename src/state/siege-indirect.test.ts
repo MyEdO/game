@@ -8,6 +8,7 @@ import { useGame } from './store';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { BattleState } from '../noyau/etat';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * PILONNAGE INDIRECT (« Viser une CASE ») — AA 10 l.169-171 / ADE II : une pièce à TIR INDIRECT (mortier,
@@ -80,7 +81,7 @@ describe('(a) Viser une CASE VIDE entourée — toutes les cibles du rayon subis
 
     const w1 = e1.wounds.current, w2 = e2.wounds.current, w3 = e3.wounds.current, wf = far.wounds.current;
     const hit: AreaHit = { attacker: chef, weapon: w, damage: 12, location: 'corps', distanceTiles: 10, center };
-    const { lines } = resolveWeaponArea(get, set, hit, areaTargets(combatants, 2));
+    const { lines } = resolveWeaponArea(get, set, hit, areaTargets(combatants, 2), desDuTest);
     expect(lines.length).toBeGreaterThan(0);
     expect(e1.wounds.current).toBeLessThan(w1);
     expect(e2.wounds.current).toBeLessThan(w2);
@@ -103,7 +104,7 @@ describe('(b) Viser une case déserte — aucune victime, pas de crash', () => {
 
     const wf = far.wounds.current;
     const hit: AreaHit = { attacker: chef, weapon: w, damage: 12, location: 'corps', distanceTiles: 30, center: { x: 30, y: 30 } };
-    expect(() => resolveWeaponArea(get, set, hit, areaTargets(combatants, 2))).not.toThrow();
+    expect(() => resolveWeaponArea(get, set, hit, areaTargets(combatants, 2), desDuTest)).not.toThrow();
     expect(far.wounds.current).toBe(wf); // hors rayon → intact
   });
 });
@@ -126,7 +127,7 @@ describe('(c) Non-régression tir direct — centre absent ⇒ aire centrée sur
 
     const wa = a.wounds.current, wb = b.wounds.current, wf = far.wounds.current;
     const hit: AreaHit = { attacker: chef, primaryTarget: cible, weapon: w, damage: 12, location: 'corps', distanceTiles: 10 };
-    const { lines } = resolveWeaponArea(get, set, hit, areaTargets(combatants, 2));
+    const { lines } = resolveWeaponArea(get, set, hit, areaTargets(combatants, 2), desDuTest);
     expect(lines.length).toBeGreaterThan(0);
     expect(a.wounds.current).toBeLessThan(wa);
     expect(b.wounds.current).toBeLessThan(wb);

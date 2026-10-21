@@ -34,7 +34,7 @@ function palette(tool: Tool) {
   const noop = () => undefined;
   const rendre = (t: Tool) => montage.rendre(
     <Palette
-      scene={emptyScene(8, 8)} tool={t} setTool={(n) => { outils.push(n); rendre(n); }}
+      scene={emptyScene('scene-test', 8, 8)} tool={t} setTool={(n) => { outils.push(n); rendre(n); }}
       brush={1} setBrush={noop} terrainRect={false} setTerrainRect={noop}
       encTarget="" setEncTarget={noop} encRef="" setEncRef={noop} enemyCreatures={BESTIAIRE}
       currentLayer={0} stairRun={[]} onStairApply={noop} onStairClear={noop}
@@ -77,7 +77,7 @@ describe('Palette — « Poser un personnage » choisit une FICHE du bestiaire',
 });
 
 function inspecteur(entity: SceneEntity) {
-  const scene: Scene = { ...emptyScene(4, 4), entities: [entity] };
+  const scene: Scene = { ...emptyScene('scene-test', 4, 4), entities: [entity] };
   let latest = scene;
   const montage = monterRacine(null);
   const rendre = (s: Scene) => montage.rendre(

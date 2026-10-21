@@ -56,7 +56,7 @@ import { sceneZoneTiles } from '../../noyau/monde/zones';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 
 function sceneWith(): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   s.entities = [
     { id: 'perso-0', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } },
     { id: 'enemy-0', kind: 'personnage', pos: { x: 1, y: 8 }, ref: 'mutant', combat: { hiddenUntilCombat: true } },
@@ -77,7 +77,7 @@ function sceneWith(): Scene {
 
 function sceneWithArchitecture(): Scene {
   return {
-    ...emptyScene(10, 10),
+    ...emptyScene('scene-test', 10, 10),
     architecture: [{
       id: 'corps',
       style: 'maison',
@@ -95,7 +95,7 @@ function architecturePart(scene: Scene, sel: Extract<Sel, { type: 'architectureP
 
 describe('editorState — architecture', () => {
   it('crée des volumes architecturaux avec ids stables', () => {
-    const body = addArchitectureBody(emptyScene(10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     const part = addArchitecturePart(body.scene, body.id, 'z0', { x: 1, y: 1, w: 2, h: 2 });
     if (!part) throw new Error('part architecturale absente');
     const facade = addFacadeSection(part.scene, body.id, { x: 1, y: 2, side: 'N' }, 'mur-a-ossature-en-bois');
@@ -110,7 +110,7 @@ describe('editorState — architecture', () => {
   });
 
   it('retourne null pour un corps ou étage périmé', () => {
-    const scene = emptyScene(10, 10);
+    const scene = emptyScene('scene-test', 10, 10);
     expect(addArchitecturePart(scene, 'absent', 'z0', { x: 0, y: 0, w: 1, h: 1 })).toBeNull();
     expect(addFacadeSection(scene, 'absent', { x: 0, y: 0, side: 'N' }, 'mur')).toBeNull();
     expect(addBuildingMass(scene, 'absent', { x: 0, y: 0, w: 1, h: 1 }, 1)).toBeNull();
@@ -163,7 +163,7 @@ describe('editorState — architecture', () => {
 
 describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimables au clic', () => {
   it('addArchitectureStorey ajoute un étage frais sans toucher le premier (z0)', () => {
-    const body = addArchitectureBody(emptyScene(10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     const out = addArchitectureStorey(body.scene, body.id, 1);
     if (!out) throw new Error('étage absent');
     const storeys = out.scene.architecture?.[0]?.storeys;
@@ -174,7 +174,7 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   });
 
   it('addArchitectureStorey renvoie null pour un corps périmé', () => {
-    expect(addArchitectureStorey(emptyScene(10, 10), 'absent', 1)).toBeNull();
+    expect(addArchitectureStorey(emptyScene('scene-test', 10, 10), 'absent', 1)).toBeNull();
   });
 
   it('hitAt sélectionne le CORPS actif quand aucune feuille n’est sous le clic (aucun mode architecture ⇒ inchangé)', () => {
@@ -197,7 +197,7 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   });
 
   it('deleteSel(architectureStorey) retire l’étage, mais protège le DERNIER étage du corps', () => {
-    const body = addArchitectureBody(emptyScene(10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     const withStorey = addArchitectureStorey(body.scene, body.id, 1);
     if (!withStorey) throw new Error('étage absent');
     const removed = deleteSel(withStorey.scene, { type: 'architectureStorey', bodyId: body.id, id: withStorey.id });
@@ -208,7 +208,7 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   });
 
   it('le scénario auparavant impossible : créer → sélectionner au clic → ajouter un étage → supprimer', () => {
-    const created = addArchitectureBody(emptyScene(10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const created = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
     // Sélection au CANEVAS (clic dans le vide, corps actif = celui créé — comme le fait EditorCanvas) :
     // à l'étage z0 du corps flambant neuf, le clic désigne son unique étage.
     const pickedStorey = hitAt(created.scene, { x: 4, y: 4 }, DEFAULT_LAYERS, 0, created.id);
@@ -226,7 +226,7 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   });
 
   it('WallSeg.window s’écrit via patchWall et survit à un aller-retour JSON (sauvegarde/chargement)', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     const withWall = { ...scene, walls: [{ x: 2, y: 2, side: 'N' as const }] };
     const patched = patchWall(withWall, 2, 2, 'N', 0, { window: true });
     expect(patched.walls).toEqual([{ x: 2, y: 2, side: 'N', window: true }]);
@@ -235,7 +235,7 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
   });
 
   it('paintCrenellated marque `Layer.crenellated` et survit à un aller-retour JSON', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     const painted = paintCrenellated(scene, { x: 2, y: 3 }, 'mur-en-pierre', 1, 0);
     expect(painted.layers[0].crenellated?.[3 * 6 + 2]).toBe('mur-en-pierre');
     const roundTripped = JSON.parse(JSON.stringify(painted)) as Scene;
@@ -326,15 +326,15 @@ describe('editorState — deleteSel', () => {
 
 describe('editorState — peinture', () => {
   it('paintTiles peint un carré 3×3 clampé', () => {
-    const out = paintTiles(emptyScene(10, 10), { x: 0, y: 0 }, 'eau', 3);
+    const out = paintTiles(emptyScene('scene-test', 10, 10), { x: 0, y: 0 }, 'eau', 3);
     expect(out.layers[0].tiles.filter((t) => t === 'eau')).toHaveLength(4); // coin : 2×2 visibles
   });
   it('fillTerrainRect remplit le rectangle', () => {
-    const out = fillTerrainRect(emptyScene(10, 10), { x: 2, y: 2, w: 3, h: 2 }, 'eau');
+    const out = fillTerrainRect(emptyScene('scene-test', 10, 10), { x: 2, y: 2, w: 3, h: 2 }, 'eau');
     expect(out.layers[0].tiles.filter((t) => t === 'eau')).toHaveLength(6);
   });
   it('peint sur la COUCHE demandée (z)', () => {
-    const s = addLayer(emptyScene(4, 4), 1);
+    const s = addLayer(emptyScene('scene-test', 4, 4), 1);
     const out = fillTerrainRect(s, { x: 1, y: 1, w: 2, h: 2 }, 'plancher', 1);
     expect(out.layers[1].tiles.filter((t) => t === 'plancher')).toHaveLength(4);
     expect(out.layers[0].tiles.every((t) => t === 'herbe')).toBe(true); // sol intact
@@ -343,31 +343,31 @@ describe('editorState — peinture', () => {
 
 describe('editorState — couches (multi-niveaux)', () => {
   it('addLayer ajoute une couche « vide », triée par z ; idempotent', () => {
-    const s1 = addLayer(emptyScene(4, 4), 1);
+    const s1 = addLayer(emptyScene('scene-test', 4, 4), 1);
     expect(s1.layers.map((l) => l.z)).toEqual([0, 1]);
     expect(s1.layers[1].tiles.length).toBe(16);
     expect(s1.layers[1].tiles.every((t) => t === 'vide')).toBe(true); // grille transparente à construire
     expect(addLayer(s1, 1)).toBe(s1); // no-op si déjà présente
     // insérée dans l'ordre des z même posée à l'envers
-    expect(addLayer(addLayer(emptyScene(4, 4), 2), 1).layers.map((l) => l.z)).toEqual([0, 1, 2]);
+    expect(addLayer(addLayer(emptyScene('scene-test', 4, 4), 2), 1).layers.map((l) => l.z)).toEqual([0, 1, 2]);
   });
   it('removeLayer retire une couche mais protège le sol (z=0) et la dernière couche', () => {
-    const s = addLayer(emptyScene(4, 4), 1);
+    const s = addLayer(emptyScene('scene-test', 4, 4), 1);
     expect(removeLayer(s, 1).layers.map((l) => l.z)).toEqual([0]);
     expect(removeLayer(s, 0)).toBe(s); // sol protégé (jamais de scène sans couche de base)
-    expect(removeLayer(emptyScene(4, 4), 0).layers.length).toBe(1); // dernière protégée
+    expect(removeLayer(emptyScene('scene-test', 4, 4), 0).layers.length).toBe(1); // dernière protégée
   });
 });
 
 describe('editorState — hauteur métrique (paintHeight)', () => {
   it('écrit layer.height en MÈTRES (crée le tableau, 0 ailleurs)', () => {
-    const s = paintHeight(emptyScene(4, 4), { x: 1, y: 1 }, 4, 1, 0);
+    const s = paintHeight(emptyScene('scene-test', 4, 4), { x: 1, y: 1 }, 4, 1, 0);
     expect(s.layers[0].height).toBeDefined();
     expect(s.layers[0].height![1 * 4 + 1]).toBe(4); // +4 m (toit) sur la case peinte
     expect(s.layers[0].height![0]).toBe(0); // 0 mètre ailleurs
   });
   it('peint la hauteur sur la COUCHE demandée (z), couche de base intacte', () => {
-    const s = paintHeight(addLayer(emptyScene(4, 4), 1), { x: 2, y: 2 }, 3, 1, 1);
+    const s = paintHeight(addLayer(emptyScene('scene-test', 4, 4), 1), { x: 2, y: 2 }, 3, 1, 1);
     expect(s.layers[1].height![2 * 4 + 2]).toBe(3);
     expect(s.layers[0].height).toBeUndefined(); // sol jamais touché
   });
@@ -375,13 +375,13 @@ describe('editorState — hauteur métrique (paintHeight)', () => {
 
 describe('editorState — pose', () => {
   it('placeEntity : pose DIRECTE d’un décor précis avec ses défauts de catalogue', () => {
-    const { scene, id } = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 });
+    const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
     expect(ent.ref).toBe('tonneau');
     expect(ent.kind).toBe('prop');
   });
   it('placeEntity : le personnage posé NOMME la fiche élue — `ref`, aucun nom recopié (sa fiche le nomme), apparence dérivée (#1882)', () => {
-    const { scene, id } = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
+    const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
     expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain' });
     expect(ent).not.toHaveProperty('label');
@@ -390,23 +390,23 @@ describe('editorState — pose', () => {
     expect(validateScene([scene]).filter((w) => w.scope === 'entity' && w.level === 'error')).toEqual([]);
   });
   it('placeEntity : une fiche hors bestiaire est refusée en la nommant (un libellé n’est pas un id)', () => {
-    expect(() => placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))
+    expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))
       .toThrow(/« Humain » n'est pas une fiche du bestiaire/);
   });
   it('placeEntity : pose sur l’étage courant (z), absent au sol', () => {
-    const ground = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 0);
+    const ground = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 0);
     expect(ground.scene.entities.find((e) => e.id === ground.id)!.z).toBeUndefined();
-    const upper = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 2);
+    const upper = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 2);
     expect(upper.scene.entities.find((e) => e.id === upper.id)!.z).toBe(2);
   });
   it('addTrigger / addRestZone créent au bon endroit', () => {
-    const t = addTrigger(emptyScene(10, 10), { x: 1, y: 1, w: 2, h: 2 });
+    const t = addTrigger(emptyScene('scene-test', 10, 10), { x: 1, y: 1, w: 2, h: 2 });
     expect(t.scene.triggers[0].id).toBe(t.id);
-    const z = addRestZone(emptyScene(10, 10), { x: 0, y: 0, w: 2, h: 2 });
+    const z = addRestZone(emptyScene('scene-test', 10, 10), { x: 0, y: 0, w: 2, h: 2 });
     expect(z.scene.restZones![z.idx].places.camp).toBe(true);
   });
   it('addEnemyMember : pose une entité-personnage CACHÉE + l’enrôle (rencontre créée si absente)', () => {
-    const r = addEnemyMember(emptyScene(10, 10), '', 'mutant', { x: 3, y: 3 });
+    const r = addEnemyMember(emptyScene('scene-test', 10, 10), '', 'mutant', { x: 3, y: 3 });
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
     expect(ent).toMatchObject({ kind: 'personnage', ref: 'mutant', pos: { x: 3, y: 3 }, combat: { hiddenUntilCombat: true } });
     expect(r.scene.encounters[0].members).toEqual([{ entityId: r.entityId }]);
@@ -415,16 +415,16 @@ describe('editorState — pose', () => {
     expect(r2.scene.encounters[0].members).toHaveLength(2);
   });
   it('addEnemyMember : `ref` est un ID qui RÉSOUT, le libellé se DÉRIVE de la créature (jamais la clé)', () => {
-    const r = addEnemyMember(emptyScene(10, 10), '', 'villageois', { x: 1, y: 1 });
+    const r = addEnemyMember(emptyScene('scene-test', 10, 10), '', 'villageois', { x: 1, y: 1 });
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
     expect(findCreatureById(ent.ref)).toBeDefined();
     expect(ent).not.toHaveProperty('label');
     expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('villageois'));
     // Un LIBELLÉ passé à la place d'un id est refusé net — le résolveur valide, il ne normalise pas.
-    expect(() => addEnemyMember(emptyScene(10, 10), '', 'Villageois', { x: 2, y: 2 })).toThrow(/id de créature/);
+    expect(() => addEnemyMember(emptyScene('scene-test', 10, 10), '', 'Villageois', { x: 2, y: 2 })).toThrow(/id de créature/);
   });
   it('addMember / removeMember : enrôle puis retire une entité existante (sans la supprimer)', () => {
-    let s = emptyScene(10, 10);
+    let s = emptyScene('scene-test', 10, 10);
     s = { ...s, entities: [{ id: 'p1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } }], encounters: [{ id: 'enc-0', members: [] }] };
     s = addMember(s, 'enc-0', 'p1').scene;
     expect(s.encounters[0].members).toEqual([{ entityId: 'p1' }]);
@@ -449,7 +449,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 
   it('placeEmplacement : pose un personnage COMPLET (ref source + poste équipage vide, apparence DÉRIVÉE)', () => {
-    const out = placeEmplacement(emptyScene(10, 10), 'baliste', { x: 3, y: 3 })!;
+    const out = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 3, y: 3 })!;
     const ent = out.scene.entities.find((e) => e.id === out.id)!;
     expect(ent.kind).toBe('personnage'); // seul kind enrôlable → spawn en Combattant
     expect(ent.label).toBe('Baliste');
@@ -463,18 +463,18 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 
   it('placeEmplacement : trapping sans art d’affût (siegeRig) → null (pas d’entité fantôme)', () => {
-    expect(placeEmplacement(emptyScene(10, 10), 'dague', { x: 1, y: 1 })).toBeNull(); // arme normale, pas un engin
-    expect(placeEmplacement(emptyScene(10, 10), 'engin-inexistant', { x: 1, y: 1 })).toBeNull(); // id inconnu
+    expect(placeEmplacement(emptyScene('scene-test', 10, 10), 'dague', { x: 1, y: 1 })).toBeNull(); // arme normale, pas un engin
+    expect(placeEmplacement(emptyScene('scene-test', 10, 10), 'engin-inexistant', { x: 1, y: 1 })).toBeNull(); // id inconnu
   });
 
   it('placeEmplacement : pose sur l’étage courant (z), absent au sol', () => {
-    expect(placeEmplacement(emptyScene(10, 10), 'baliste', { x: 1, y: 1 }, 0)!.scene.entities[0].z).toBeUndefined();
-    const up = placeEmplacement(emptyScene(10, 10), 'baliste', { x: 1, y: 1 }, 2)!;
+    expect(placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 1, y: 1 }, 0)!.scene.entities[0].z).toBeUndefined();
+    const up = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 1, y: 1 }, 2)!;
     expect(up.scene.entities.find((e) => e.id === up.id)!.z).toBe(2);
   });
 
   it('setPosteCrew : peuple crewIds DANS L’ORDRE (chef = crewIds[0]) ; réordonner change le chef', () => {
-    let s = placeEmplacement(emptyScene(10, 10), 'baliste', { x: 3, y: 3 })!.scene;
+    let s = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 3, y: 3 })!.scene;
     const id = s.entities[0].id;
     s = setPosteCrew(s, id, ['g1', 'g2']);
     expect(s.entities[0].postes![0].crewIds).toEqual(['g1', 'g2']);
@@ -483,7 +483,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 
   it('setPosteSide : pose puis RETIRE `side` (directionnel ↔ omni — clé absente, pas juste undefined)', () => {
-    let s = placeEmplacement(emptyScene(10, 10), 'baliste', { x: 3, y: 3 })!.scene;
+    let s = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 3, y: 3 })!.scene;
     const id = s.entities[0].id;
     s = setPosteSide(s, id, 'tribord');
     expect(s.entities[0].postes![0].side).toBe('tribord');
@@ -493,7 +493,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 
   it('setPosteEngine : change l’engin (trappingId + libellé + ref), apparence DÉRIVÉE de la ref, équipage conservé', () => {
-    let s = placeEmplacement(emptyScene(10, 10), 'baliste', { x: 3, y: 3 })!.scene;
+    let s = placeEmplacement(emptyScene('scene-test', 10, 10), 'baliste', { x: 3, y: 3 })!.scene;
     const id = s.entities[0].id;
     s = setPosteCrew(s, id, ['g1']);
     s = setPosteEngine(s, id, 'mortier');
@@ -509,7 +509,7 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
   });
 
   it('les mutations de poste sont des no-op sur une entité SANS poste', () => {
-    const s = placeEntity(emptyScene(10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 }).scene;
+    const s = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 }).scene;
     const id = s.entities[0].id;
     expect(setPosteCrew(s, id, ['x']).entities[0].postes).toBeUndefined();
     expect(setPosteSide(s, id, 'proue').entities[0].postes).toBeUndefined();
@@ -518,14 +518,14 @@ describe('editorState — emplacement de siège (postes authorés à l’éditeu
 
 describe('editorState — points d’entrée (manque du POC comblé)', () => {
   it('placeEntry pose entree-0 puis un nom libre suivant', () => {
-    const a = placeEntry(emptyScene(10, 10), { x: 1, y: 1 });
+    const a = placeEntry(emptyScene('scene-test', 10, 10), { x: 1, y: 1 });
     expect(a.id).toBe('entree-0');
     const b = placeEntry(a.scene, { x: 2, y: 2 });
     expect(b.id).toBe('entree-1');
     expect(Object.keys(b.scene.entryPoints!)).toHaveLength(2);
   });
   it('placeEntry pose l’étage z (défaut 0, omis si nul), survit à un aller-retour JSON (#835 FU-5)', () => {
-    const a = placeEntry(emptyScene(10, 10), { x: 1, y: 1 });
+    const a = placeEntry(emptyScene('scene-test', 10, 10), { x: 1, y: 1 });
     expect(a.scene.entryPoints!['entree-0'].z).toBeUndefined(); // z=0 : champ omis, pas z:0 explicite
     const b = placeEntry(a.scene, { x: 2, y: 2 }, 1);
     expect(b.scene.entryPoints!['entree-1']).toEqual({ x: 2, y: 2, z: 1 });
@@ -533,7 +533,7 @@ describe('editorState — points d’entrée (manque du POC comblé)', () => {
     expect(roundTripped.entryPoints!['entree-1'].z).toBe(1);
   });
   it('hitAt/moveSel respectent l’étage d’un point d’entrée (#835 FU-5)', () => {
-    const s = placeEntry(emptyScene(10, 10), { x: 3, y: 3 }, 1).scene;
+    const s = placeEntry(emptyScene('scene-test', 10, 10), { x: 3, y: 3 }, 1).scene;
     expect(hitAt(s, { x: 3, y: 3 }, DEFAULT_LAYERS, 0)).toBeNull(); // couche 0 : rien à cette case
     expect(hitAt(s, { x: 3, y: 3 }, DEFAULT_LAYERS, 1)).toEqual({ type: 'entry', id: 'entree-0' });
     const moved = moveSel(s, { type: 'entry', id: 'entree-0' }, { x: 5, y: 5 });
@@ -612,7 +612,7 @@ describe('paintEffectZone — pinceau d\'emprise de zone', () => {
   /** Deux zones DISJOINTES : la peinture de l'une ne doit jamais déborder sur l'autre. */
   function sceneDeuxZones(): Scene {
     return {
-      ...emptyScene(12, 12),
+      ...emptyScene('scene-test', 12, 12),
       effectZones: [
         { id: 'galerie', label: 'Galerie', area: { kind: 'rect', x: 1, y: 1, w: 3, h: 3 } },
         { id: 'cave', label: 'Cave', area: { kind: 'rect', x: 6, y: 6, w: 2, h: 2 } },
@@ -710,7 +710,7 @@ describe('flowEffectCount — l’atelier annonce les effets de TOUTE profondeur
 describe('éditeur — les places assises suivent le geste, atomiquement', () => {
   /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
   function attablee(): Scene {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     s.entities = [
       { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
       { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 }, label: 'Aubergiste' },
@@ -720,7 +720,7 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
   }
 
   it('changer la ref vers un décor VOLUMIQUE fait retomber un cap refusé au cap d’identité : le geste ne crée pas de faute (C2)', () => {
-    const s = emptyScene(8, 8);
+    const s = emptyScene('scene-test', 8, 8);
     s.entities = [{ id: 'p3', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'brasero', facing: 'NE' }];
     expect(validateScene([s]).filter((w) => w.refId === 'p3')).toEqual([]);
     const apres = changePropRef(s, 'p3', 'tonneau');
@@ -765,7 +765,7 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
   });
 
   it('un geste sur une scène SANS assise ne fabrique aucun champ', () => {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets' }];
     expect(deleteSel(s, { type: 'entity', id: 'table-1' }).seatAssignments).toBeUndefined();
   });
@@ -782,7 +782,7 @@ describe('canevas — un décor de deux cases se désigne par chacune d’elles'
   const REF = 'table-2x1';
   /** `table-2x1` occupe 2 cases en N/S et 1×2 en E/O — à l'échelle par DÉFAUT de la scène. */
   const salle = (facing: 'S' | 'E'): Scene => {
-    const s = emptyScene(10, 10);
+    const s = emptyScene('scene-test', 10, 10);
     s.entities = [{ id: 'table', kind: 'prop', pos: { x: 3, y: 3 }, ref: REF, facing }];
     return s;
   };

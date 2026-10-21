@@ -8,6 +8,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import { recomputeLoadout } from '../engine/items';
 import type { RNG } from '../engine/dice';
+import { desEnSuite } from '../engine/dice.testkit';
 
 /**
  * #38 — BRANCHEMENTS runtime du système ALTERNATIF de Blessures d'Aux Armes (`combat-aa-blessures=aa`).
@@ -17,10 +18,7 @@ import type { RNG } from '../engine/dice';
  *  - un Coup Critique sur DOUBLE s'applique même s'il RESTE des Blessures (AA 07 l.29 ≡ LDB 13 l.183) ;
  *  - la mort par accumulation (AA 07 l.73) route par `aaDeathByCriticalCount` en mode AA.
  */
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (over: Partial<Combatant> = {}): Combatant =>

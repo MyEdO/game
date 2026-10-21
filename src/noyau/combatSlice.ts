@@ -377,7 +377,7 @@ function retireEtatParDetermination(c: Combatant, conditionName: string, now: nu
   const soigne = soinDeDetermination(c, conditionName);
   if (soigne > 0) applyHealWounds(c, soigne, { skillCheck: false, wake: false, log: () => [] });
   const src = c.conditions.find((x) => x.id === conditionName)?.derivedFrom?.src;
-  const fenetre = src ? fenetreDetermination(c, conditionName, now) : undefined;
+  const fenetre = src ? fenetreDetermination(c, conditionName, now, battleRng()) : undefined;
   if (src && fenetre) {
     // GRANULAIRE (#1695) : « Retirez un État » (LDB 17 l.61) — une source qui en porte PLUSIEURS
     // (Transmutation de Chamon : Aveuglé, Assourdi, Sonné) ne perd que celui que la dépense vise.
@@ -2072,7 +2072,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!a) return;
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines = sr.struggleDamage != null
-        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { caster: a })
+        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { rng: battleRng(), caster: a })
         : [];
       const removed = recoveredStacks(sr.netSL, stacks(a, sr.state), sr.success); // 1 + DR, borné
       if (removed > 0) removeCondition(a, sr.state, removed);

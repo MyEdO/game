@@ -75,7 +75,7 @@ describe('places POSÉES — chaque place tient l’ancre de SON décor (scène 
     const w = 20;
     const h = 12;
     return {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       id: 'fixture-places',
       layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }],
       entities: POSES.map((p) => ({ id: p.id, kind: 'prop', ref: p.ref, pos: { ...p.pos }, facing: p.facing } as SceneEntity)),
@@ -158,7 +158,7 @@ describe('meuble à places de DEUX cases — l’ancre des places EST celle de l
 
   const prop = findPropById(REF) as PropData;
   const scene = (facing: Dir4): Scene => ({
-    ...emptyScene(12, 12),
+    ...emptyScene('scene-test', 12, 12),
     metresPerTile: MPT,
     entities: [{ id: ID, kind: 'prop', pos: { ...POS }, ref: REF, facing } as SceneEntity],
   });

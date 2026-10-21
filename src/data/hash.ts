@@ -1,6 +1,6 @@
 /**
  * Hash 32 bits déterministe (FNV-1a) + flux pseudo-aléatoire semé — PURS, stables inter-plateformes
- * (arithmétique entière 32 bits via `Math.imul`, zéro état de module, zéro `Math.random`).
+ * (arithmétique entière 32 bits via `Math.imul`, zéro état de module, zéro entropie).
  *
  * INVARIANT (Lot 0 rendu) : le seed d'un détail de surface est TOUJOURS dérivé de l'identité MONDE de
  * l'élément — ex. `hash32('wall', x, y, z, side)` selon le `seedScope` de la recette — et JAMAIS

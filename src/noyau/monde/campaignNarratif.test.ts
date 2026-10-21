@@ -13,7 +13,7 @@ import { emptyScene } from './scene';
 // ids RÉELS de la règle globale (`src/data`) — base de preset valide + cible de collision.
 const GLOBAL_CREATURE = 'humain';
 
-const scene = { ...emptyScene(3, 3), id: 's1', label: 'Le quai' };
+const scene = { ...emptyScene('s1', 3, 3), label: 'Le quai' };
 
 /** L'identité est REQUISE depuis #1552 : sans elle la porte refuse, et ce n'est plus le narratif qu'on
  *  mesurerait. Une `identite` d'appelant la REMPLACE (les cas d'identité de ce fichier). */

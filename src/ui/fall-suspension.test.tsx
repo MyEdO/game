@@ -42,7 +42,7 @@ const option = (texte: string): HTMLElement | undefined => [...host.querySelecto
 function monter(suspendu: number | undefined, battle: Record<string, unknown> | null): void {
   useGame.setState({
     mode: battle ? 'battle' : 'exploration',
-    scene: emptyScene(4, 4),
+    scene: emptyScene('scene-test', 4, 4),
     battle: battle ? { combatants: [sauteur], order: [sauteur.id], turn: 0, acted: false, over: null, ...battle } : null,
     party: [sauteur],
     pendingFall: {
@@ -78,7 +78,7 @@ describe('chute volontaire — l’axe « se suspendre d’abord »', () => {
   it('chaque option DÉCLARE sa donnée typée : « se lâcher » suspend sans Test, « Sauter » saute sans suspension', () => {
     const second = { ...sauteur, id: 'T', name: 'T', label: 'T' } as Combatant;
     useGame.setState({
-      mode: 'exploration', scene: emptyScene(4, 4), battle: null, party: [sauteur, second],
+      mode: 'exploration', scene: emptyScene('scene-test', 4, 4), battle: null, party: [sauteur, second],
       pendingFall: {
         test: testDeRegle('chute', 'tenter'),
         to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, allege: 1, suspendu: 2,

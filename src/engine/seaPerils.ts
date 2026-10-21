@@ -18,7 +18,7 @@
  * un jet unique « sans prévenir ») — cf. rapport #444.
  */
 import seaPerilsJson from '../data/sea-perils.json';
-import { type RNG, defaultRNG } from './dice';
+import { type RNG } from './dice';
 import type { CharKey, Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ShipSize } from '../data';
@@ -72,7 +72,7 @@ export const findWhirlpool = (id: string): WhirlpoolDef | undefined => DATA.tour
 
 /** Tire le péril RENCONTRÉ lors d'une collision (Iceberg/Débris marins/Rocher/Bas-fonds) — pondéré par
  *  `SeaHazardDef.weight` (#444, MAISON : le RAW MDG 13 l.475-499 ne fixe aucune fréquence relative). PUR. */
-export function pickSeaHazard(rng: RNG = defaultRNG): SeaHazardDef {
+export function pickSeaHazard(rng: RNG): SeaHazardDef {
   const weights = DATA.hazards.map((h) => Math.max(0, h.weight ?? 1));
   const total = weights.reduce((s, w) => s + w, 0) || 1;
   let r = rng.int(1, total);

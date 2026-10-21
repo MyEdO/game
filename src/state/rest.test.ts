@@ -10,6 +10,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { dayPhase, MINUTES_PER_DAY } from '../engine/clock';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
+import { deFixe } from '../engine/dice.testkit';
 
 const hero = (p: Partial<Combatant>): Combatant =>
   ({
@@ -23,39 +24,39 @@ const hero = (p: Partial<Combatant>): Combatant =>
 describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)', () => {
   it('retire TOUS les États Exténué (cadence « nuit complète »)', () => {
     const c = hero({ conditions: [{ id: 'extenue', value: 2 }] });
-    restRecovery(c, { int: () => 1 });
+    restRecovery(c, deFixe(1));
     expect(hasCondition(c, 'extenue')).toBe(false);
   });
 
   it('soigne des Blessures : Test Résistance +20 réussi (DR+BE, volet a) ET +BE de la journée (volet b)', () => {
     const c = hero({ wounds: { current: 4, max: 20 } }); // E 40 → BE 4
     // Résistance Accessible (+20) : cible 60 ; jet 30 → réussite DR=3 → volet a = 3+4 = 7 ; volet b = +4.
-    restRecovery(c, { int: () => 30 });
+    restRecovery(c, deFixe(30));
     expect(c.wounds.current).toBe(15); // 4 + 7 (volet a) + 4 (volet b)
   });
 
   it('Résistance ratée → seul le +BE de la journée soigne (volet b, inconditionnel)', () => {
     const c = hero({ wounds: { current: 4, max: 20 } });
-    restRecovery(c, { int: () => 95 }); // 95 > 60 → Test raté → volet a = 0
+    restRecovery(c, deFixe(95)); // 95 > 60 → Test raté → volet a = 0
     expect(c.wounds.current).toBe(8); // 4 + 4 (volet b uniquement)
   });
 
   it('repos de plusieurs jours : volet a + volet b cumulés CHAQUE jour (LDB 18 l.296)', () => {
     const c = hero({ wounds: { current: 0, max: 100 } }); // E 40 → BE 4 ; pas de plafond
-    restRecovery(c, { int: () => 30 }, 3); // 3 jours, chaque jour Résistance réussie (DR 3)
+    restRecovery(c, deFixe(30), 3); // 3 jours, chaque jour Résistance réussie (DR 3)
     expect(c.wounds.current).toBe(33); // 3 × (volet a 7 + volet b 4)
   });
 
   it('cauchemars : un héros marqué qui échoue regagne l’Exténué malgré le repos (l’ironie du trauma)', () => {
     const c = hero({ nightmares: true, conditions: [{ id: 'extenue', value: 1 }] });
-    const fail: RNG = { int: () => 90 }; // Calme +40 : cible 75 ; 90 > 75 → échec
+    const fail: RNG = deFixe(90); // Calme +40 : cible 75 ; 90 > 75 → échec
     restRecovery(c, fail);
     expect(stacks(c, 'extenue')).toBe(1); // l’ancien dissipé, un nouveau gagné
   });
 
   it('un héros Inconscient soigné > 0 PB reprend connaissance (LDB 18 l.15)', () => {
     const c = hero({ wounds: { current: 0, max: 12 }, conditions: [{ id: 'inconscient', value: 1 }], roundsAtZero: 3 });
-    restRecovery(c, { int: () => 30 }); // Résistance réussie → soigne 7 PB (>0)
+    restRecovery(c, deFixe(30)); // Résistance réussie → soigne 7 PB (>0)
     expect(c.wounds.current).toBeGreaterThan(0);
     expect(hasCondition(c, 'inconscient')).toBe(false);
     expect(c.roundsAtZero).toBe(0);
@@ -63,7 +64,7 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
 
   it('un héros Hémorragique ne trouve pas le repos (LDB 16 l.105) — pas de récup, pas de mort', () => {
     const c = hero({ conditions: [{ id: 'hemorragique', value: 1 }, { id: 'extenue', value: 1 }], fate: 0 });
-    const log = restRecovery(c, { int: () => 1 });
+    const log = restRecovery(c, deFixe(1));
     expect(log.join(' ')).toMatch(/ne trouve pas le repos/);
     expect(hasCondition(c, 'extenue')).toBe(true); // pas dissipé (repos refusé)
     expect(c.dead).not.toBe(true); // restRecovery ne tue pas
@@ -71,7 +72,7 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
 
   it('un héros À Terre soigné au réveil se relève (≥1 PB)', () => {
     const c = hero({ wounds: { current: 0, max: 12 }, conditions: [{ id: 'a-terre', value: 1 }] });
-    restRecovery(c, { int: () => 30 }); // Résistance réussie → soigne, >0 PB
+    restRecovery(c, deFixe(30)); // Résistance réussie → soigne, >0 PB
     expect(c.wounds.current).toBeGreaterThan(0);
     expect(hasCondition(c, 'a-terre')).toBe(false);
   });
@@ -81,39 +82,39 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
 
   it('un mort ne se repose pas', () => {
     const c = hero({ dead: true, conditions: [{ id: 'extenue', value: 1 }] });
-    restRecovery(c, { int: () => 1 });
+    restRecovery(c, deFixe(1));
     expect(hasCondition(c, 'extenue')).toBe(true);
   });
 
   it('maladie : l’incubation se déclare à l’entretien quotidien et le malaise impose un Exténué « collant » (LDB 20 l.188)', () => {
     // Infection Mineure : incubation 1 j, durée 5 j. E 40 → blessé Accessible (cible 60) réussi avec d100=10.
-    const c = hero({ wounds: { current: 12, max: 12 }, diseases: [contractDisease('infection-mineure', { int: () => 1 }, { incubation: 1, duration: 5 })!] });
-    dailyDiseaseUpkeep(c, { int: () => 10 }, () => {}); // jour 1 (cascade #T3) → symptômes déclarés → +1 Exténué (malaise)
+    const c = hero({ wounds: { current: 12, max: 12 }, diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 1, duration: 5 })!] });
+    dailyDiseaseUpkeep(c, deFixe(10), () => {}); // jour 1 (cascade #T3) → symptômes déclarés → +1 Exténué (malaise)
     expect(c.diseases![0].phase).toBe('active');
     expect(stacks(c, 'extenue')).toBe(1);
-    restRecovery(c, { int: () => 10 }); // la nuit de sommeil ne dissipe PAS l'Exténué du malaise
+    restRecovery(c, deFixe(10)); // la nuit de sommeil ne dissipe PAS l'Exténué du malaise
     expect(stacks(c, 'extenue')).toBe(1);
   });
 
   it('maladie : les soins d’un soignant raccourcissent la durée (−1 j/jour en plus, LDB 09-Compétences)', () => {
-    const cared = hero({ wounds: { current: 12, max: 12 }, diseases: [contractDisease('infection-mineure', { int: () => 1 }, { incubation: 0, duration: 6 })!] });
-    const alone = hero({ wounds: { current: 12, max: 12 }, diseases: [contractDisease('infection-mineure', { int: () => 1 }, { incubation: 0, duration: 6 })!] });
-    dailyDiseaseUpkeep(cared, { int: () => 10 }, () => {}, true);  // soigné : tick naturel −1 + soins −1
-    dailyDiseaseUpkeep(alone, { int: () => 10 }, () => {}, false); // seul : tick naturel −1
+    const cared = hero({ wounds: { current: 12, max: 12 }, diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
+    const alone = hero({ wounds: { current: 12, max: 12 }, diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
+    dailyDiseaseUpkeep(cared, deFixe(10), () => {}, true);  // soigné : tick naturel −1 + soins −1
+    dailyDiseaseUpkeep(alone, deFixe(10), () => {}, false); // seul : tick naturel −1
     expect(cared.diseases![0].minutesLeft).toBe(alone.diseases![0].minutesLeft - MINUTES_PER_DAY);
   });
 
   it('munition Empaleuse logée bloque la récupération naturelle (LDB 62 l.250, plafonné SOURCE UNIQUE `applyHealWounds`)', () => {
     const c = hero({ wounds: { current: 8, max: 12 }, conditions: [{ id: 'munition-logee', value: 1 }] }); // E 40 → BE 4
-    restRecovery(c, { int: () => 30 }); // Résistance réussie : volet a 7 + volet b 4 = 11 SANS plafond → 19 (>max)
+    restRecovery(c, deFixe(30)); // Résistance réussie : volet a 7 + volet b 4 = 11 SANS plafond → 19 (>max)
     expect(c.wounds.current).toBe(11); // plafonné à max(12) − 1 munition logée
   });
 
   it('maladie : un symptôme « blessé » bloque la guérison d’1 PB (LDB 20 l.110)', () => {
     const base = hero({ wounds: { current: 4, max: 20 } }); // E 40 → BE 4 ; sans maladie
-    restRecovery(base, { int: () => 30 });
-    const sick = hero({ wounds: { current: 4, max: 20 }, diseases: [contractDisease('infection-mineure', { int: () => 1 }, { incubation: 0, duration: 5 })!] });
-    restRecovery(sick, { int: () => 30 }); // blessé Accessible réussi (d100=30 ≤ 60) → pas de Blessure Purulente
+    restRecovery(base, deFixe(30));
+    const sick = hero({ wounds: { current: 4, max: 20 }, diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 5 })!] });
+    restRecovery(sick, deFixe(30)); // blessé Accessible réussi (d100=30 ≤ 60) → pas de Blessure Purulente
     expect(sick.wounds.current).toBe(base.wounds.current - 1); // exactement 1 PB de moins (1 symptôme « blessé »)
   });
 });

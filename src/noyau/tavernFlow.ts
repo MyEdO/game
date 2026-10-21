@@ -1633,7 +1633,7 @@ function campsSansFiche(ctx: SequenceCloseCtx<TavernPayload>, manche: TavernGame
   const tour = (camp: 'player' | 'opponent') => manche === camp ? seq.params.rounds?.winner ?? []
     : groupAdvantage() ? [] : manche === 'tie' ? DECROISSANCE_DU_TOUR : PERTE_DU_TOUR;
   const lire = (camp: 'player' | 'opponent', fiche: Combatant | undefined): number =>
-    avantageDeCampSansFiche(p.advantage?.[camp] ?? 0, tour(camp), fiche ? advantageCapFor(fiche) : advantageCap(), fiche);
+    avantageDeCampSansFiche(p.advantage?.[camp] ?? 0, tour(camp), fiche ? advantageCapFor(fiche) : advantageCap(), battleRng(), fiche);
   return { ...p, advantage: { [CAMP_PLAYER]: lire(CAMP_PLAYER, undefined), [CAMP_OPPONENT]: lire(CAMP_OPPONENT, tavernActor(ctx.get, p.opponentId)) } };
 }
 

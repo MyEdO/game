@@ -15,7 +15,7 @@
  *    personnage bascule dans le Chaos — hors-jeu définitif).
  */
 import { Combatant, HitLocation, type EffectSource } from './types';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { bonus, effectiveChar } from './characteristics';
 import { talentCorruptionThreshold } from './combatFeatures/dispatch';
 import { findTableEntry } from './tables';
@@ -204,7 +204,7 @@ function resoudrePlancher(c: Combatant, op: GameOp): GameOp {
  *  que l'op homonyme de `applyOps`, permanent (aucun `ActiveEffect` porteur — une mutation n'expire
  *  jamais). `grantTalent` : `acquerirTalent` (engine/careerSlots.ts), les passifs d'une mutation ne passant
  *  pas par `applyOps`. Rend l'instance attachée. */
-export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG = defaultRNG): Mutation {
+export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutation {
   const m = structuredClone(tiree); // #2097
   if (m.passive) m.passive = m.passive.map((op) => resoudrePlancher(c, op));
   const talentsAcquis: RefDesignee[] = [];

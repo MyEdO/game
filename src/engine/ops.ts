@@ -13,7 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
-import { RNG, defaultRNG, roll, type DiceSpec, rollDice } from './dice';
+import { RNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
 import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
@@ -87,14 +87,24 @@ import type { PlayerText } from '../i18n/playerText';
 // Formules
 // ---------------------------------------------------------------------------
 
-/** Quantité résolue à l'application : littéral, « (Bonus de X) », « (X) », dés, ou la VALEUR du jet
- *  d'une op `rollThreshold` (`{rolled}` — Régénération « récupère [le dé] PB »). */
-export type Formula =
+/** Termes dont la valeur ne se connaît qu'AU jet : les dés, la VALEUR du jet d'une op `rollThreshold`
+ *  (`{rolled}` — Régénération « récupère [le dé] PB »), les DR du Test courant. */
+export type TermeDeJet =
+  | { dice: DiceSpec }
+  | { rolled: true }
+  /** DR (Degrés de Réussite) du Test COURANT (`ctx.sl`) — le terme qui manquait pour authorer une
+   *  quantité ÉCHELONNÉE par la marge sans passer par `perSL` (qui n'exprime qu'un pas linéaire ajouté à
+   *  un socle). Mendier : « un nombre de sous de cuivre égal à votre Bonus de Sociabilité x DR par heure »
+   *  (LDB 09 l.97) s'écrit `{times:{of:{times:{of:{bonusOf:'sociabilite'},factor:{sl:true}}},factor:{rule:…}}}`.
+   *  Hors contexte de Test (aucun `ctx.sl`) : 0, jamais NaN. */
+  | { sl: true };
+
+/** La grammaire d'une quantité, paramétrée par les termes de jet qu'elle admet (`J`). */
+type FormuleDe<J> =
   | number
   | { bonusOf: CharKey }
   | { charOf: CharKey }
-  | { dice: DiceSpec }
-  | { rolled: true }
+  | J
   /** INDICE de l'attaque NATURELLE en cours (« Morsure +10 », « Souffle +15 ») — injecté par le
    *  résolveur de manœuvre (`ctx.indice`). Permet d'authorer les Dégâts « Indice » d'une manœuvre en
    *  GameOp : `wounds { amount: {indiceOf:true}, ignoreTB:false, ignoreAP:false }`. 0 hors contexte. */
@@ -110,20 +120,14 @@ export type Formula =
    *  Condition `woundsDealt`. Absorption « Toute attaque qui touche la créature inflige une quantité ÉGALE
    *  de Dégâts à la victime absorbée » (EDO 11 l.222) : `wounds { amount: { woundsDealt: true } }`. 0 hors contexte. */
   | { woundsDealt: true }
-  /** DR (Degrés de Réussite) du Test COURANT (`ctx.sl`) — le terme qui manquait pour authorer une
-   *  quantité ÉCHELONNÉE par la marge sans passer par `perSL` (qui n'exprime qu'un pas linéaire ajouté à
-   *  un socle). Mendier : « un nombre de sous de cuivre égal à votre Bonus de Sociabilité x DR par heure »
-   *  (LDB 09 l.97) s'écrit `{times:{of:{times:{of:{bonusOf:'sociabilite'},factor:{sl:true}}},factor:{rule:…}}}`.
-   *  Hors contexte de Test (aucun `ctx.sl`) : 0, jamais NaN. */
-  | { sl: true }
   /** SOMME de termes (composition) — « 1d10 + (pions − 1) » des Dégâts d'En Flammes (LDB 16 l.84). Permet
    *  d'authorer une formule composée sans coder en dur l'addition au moteur. Récursif. */
-  | { sum: Formula[] }
+  | { sum: FormuleDe<J>[] }
   /** FACTEUR multiplicatif (« 1d10 × 10 minutes » — Mystracine/Mandragore, LDB 71 l.33/35) : résout `of`
    *  puis multiplie par `factor`. NB : `10d10` n'est PAS équivalent (distribution différente) — fidélité RAW.
    *  `factor` est lui-même une `Formula` : le PRODUIT DE DEUX FORMULES (« (Force Mentale) × 1d10 minutes »,
    *  VDM 05 — Contact doré) s'écrit `{times:{of:{charOf:'force-mentale'}, factor:{dice:{n:1,sides:10}}}}`. */
-  | { times: { of: Formula; factor: Formula } }
+  | { times: { of: FormuleDe<J>; factor: FormuleDe<J> } }
   /** VALEUR d'une RÈGLE OPTIONNELLE du registre (`src/data/reglesOptionnelles.json`, lue par
    *  `rule(id)`) — terme GÉNÉRAL : toute quantité qu'un livre ne chiffre pas (`maison`) reste ÉDITABLE
    *  au panneau in-game au lieu d'être figée dans le moteur. Une règle non numérique (ou inconnue) vaut
@@ -133,37 +137,53 @@ export type Formula =
    *  qui la reçoit : « inutilisable pour 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »
    *  (`AA 07 l.113`, `LDB 18 l.88`) s'écrit `{minimum:1, of:{sum:[…]}}`. Récursif. `minimum` nomme CE
    *  concept seul — `atLeast` est déjà le seuil d'un palier (`rollThreshold`) et d'une Condition. */
-  | { minimum: number; of: Formula };
+  | { minimum: number; of: FormuleDe<J> };
 
-/** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
- *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
- *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
-export function resolveFormula(f: Formula, ref: Combatant, rng: RNG = defaultRNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
+/** Quantité résolue à l'application : littéral, « (Bonus de X) », « (X) », dés, terme de jet. */
+export type Formula = FormuleDe<TermeDeJet>;
+
+/** Quantité LUE AVANT tout jet — portée, cibles et zone d'un Sort, bonus de DR, modificateur de Test
+ *  affiché : aucun terme de jet n'y entre (#2817), son évaluation (`valeurSansTirage`) ne tire rien. */
+export type FormuleSansTirage = FormuleDe<never>;
+
+/** Évaluation commune des deux grammaires : `jet` résout le terme de jet que `J` admet. */
+function evaluer<J>(f: FormuleDe<J>, ref: Combatant, jet: (t: J) => number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number): number {
   if (typeof f === 'number') return f;
   if (typeof f !== 'object' || f === null) return 0; // formule malformée (donnée invalide) → 0, jamais un crash en plein combat
+  const sous = (g: FormuleDe<J>): number => evaluer(g, ref, jet, indice, stacks, gap, woundsDealt);
   if ('bonusOf' in f) return bonus(effectiveChar(ref, f.bonusOf));
   if ('charOf' in f) return effectiveChar(ref, f.charOf);
-  if ('rolled' in f) return rolled ?? 0;
   if ('indiceOf' in f) return indice ?? 0;
   if ('stacks' in f) return stacks ?? 0;
   if ('engagedAdvantageGap' in f) return gap ?? 0;
   if ('woundsDealt' in f) return woundsDealt ?? 0;
-  if ('sl' in f) return sl ?? 0;
   if ('rule' in f) { const v = rule(f.rule); return typeof v === 'number' && Number.isFinite(v) ? v : 0; }
-  if ('minimum' in f) return Math.max(f.minimum, resolveFormula(f.of, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl));
-  if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + resolveFormula(term, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl), 0);
-  if ('times' in f) return resolveFormula(f.times.of, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl) * resolveFormula(f.times.factor, ref, rng, rolled, indice, stacks, gap, woundsDealt, sl);
-  return rollDice(f.dice, rng);
+  if ('minimum' in f) return Math.max(f.minimum, sous(f.of));
+  if ('sum' in f) return f.sum.reduce<number>((acc, term) => acc + sous(term), 0);
+  if ('times' in f) return sous(f.times.of) * sous(f.times.factor);
+  return jet(f as J);
+}
+
+/** Résout une formule contre son référent (`ref`) — RNG seedable pour les dés. `rolled` = valeur du
+ *  jet courant d'un `rollThreshold` (injectée par l'op ; 0 hors de ce contexte) ; `indice` = Indice
+ *  de l'attaque naturelle d'une manœuvre (`{indiceOf}`, 0 hors contexte). */
+export function resolveFormula(f: Formula, ref: Combatant, rng: RNG, rolled?: number, indice?: number, stacks?: number, gap?: number, woundsDealt?: number, sl?: number): number {
+  return evaluer<TermeDeJet>(f, ref, (t) => ('rolled' in t ? rolled ?? 0 : 'sl' in t ? sl ?? 0 : rollDice(t.dice, rng)), indice, stacks, gap, woundsDealt);
+}
+
+/** Valeur d'une quantité lue avant tout jet, contre son référent : aucun RNG, aucun terme de jet. */
+export function valeurSansTirage(f: FormuleSansTirage, ref: Combatant): number {
+  return evaluer<never>(f, ref, (t) => t);
 }
 
 /** L'Avantage d'un CAMP SANS FICHE (habitué, figurants) après des ops DÉCLARÉES : seul le vocabulaire
  *  d'Avantage s'y lit (`gainAdvantage`, `spendAdvantage`), par les primitives d'`engine/advantage`. Toute
  *  autre op lève : elle n'a aucun porteur où tomber (#2333). */
-export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], plafond: number, ref?: Combatant): number {
+export function avantageDeCampSansFiche(avant: number, ops: readonly GameOp[], plafond: number, rng: RNG, ref?: Combatant): number {
   return ops.reduce((n, o) => {
     if (o.op === 'gainAdvantage') {
       if (typeof o.amount !== 'number' && !ref) throw new Error(`[avantage de camp] formule d'Avantage sans fiche où la résoudre (#2333)`);
-      return avantageApresGain(n, Math.max(0, typeof o.amount === 'number' ? o.amount : resolveFormula(o.amount, ref!)), plafond);
+      return avantageApresGain(n, Math.max(0, typeof o.amount === 'number' ? o.amount : resolveFormula(o.amount, ref!, rng)), plafond);
     }
     if (o.op === 'spendAdvantage') return avantageApresPerte(n, o.amount);
     throw new Error(`[avantage de camp] op « ${o.op} » hors du vocabulaire d'Avantage d'un camp sans fiche (#2333)`);
@@ -208,7 +228,7 @@ export type ResolveWindow =
   | { scale: 'clock'; minutes: Formula };
 
 /** Résout la fenêtre ci-dessus en `Duration` — `undefined` = REFUS (`'none'`). PURE (`now` injecté). */
-export function resolveWindowDuration(w: ResolveWindow | undefined, ref: Combatant, now: number, rng: RNG = defaultRNG): Duration | undefined {
+export function resolveWindowDuration(w: ResolveWindow | undefined, ref: Combatant, now: number, rng: RNG): Duration | undefined {
   if (w === undefined) return { scale: 'rounds', left: 1 };
   if (w === 'none') return undefined;
   if (w.scale === 'rounds') return { scale: 'rounds', left: resolveFormula(w.left, ref, rng) };
@@ -266,7 +286,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
-      if (op.op === 'skillDRBonus' && matches(op.skill)) n += resolveFormula(op.bonus, c);
+      if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
     }
   }
   // Séquelles (`c.traumas`) : leurs ops passives, `kind` = `passiveKind` de la fiche, sinon DÉRIVÉ par
@@ -274,11 +294,11 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // donc annulable par Détermination/Insensible/prothèse. Les cicatrices sociales (LDB 18 l.61 et l.72)
   // portent `passiveKind: "intrinseque"` : liste d'annulateurs VIDE, leur DR survit à la Détermination.
   // Une séquelle à `skillDRBonus` SANS `passiveKind` tomberait, elle, en `douleur` (annulée par Insensible).
-  for (const m of traumaPassiveMods(c)) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += resolveFormula(m.op.bonus, c);
+  for (const m of traumaPassiveMods(c)) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Auras (Aura de Dhar : +1 DR Focalisation/Langue (Magick) aux sorciers et démons du dieu à portée,
   // camp indifférent) — `aura.passive` projeté dans `auraMods` par le hook `recompute-auras`. Sommé
   // (le DR cumule), comme les passifs de trait.
-  for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += resolveFormula(m.op.bonus, c);
+  for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Effets ACTIFS temporisés (op `skillDRBonus` exécutée — chanson de marin « Jacques Bret », MDG 09 l.228).
   for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
   // Objets POSSÉDÉS : leur `passive` skillDRBonus (Boussole : « Les Tests d'Orientation bénéficient de
@@ -287,7 +307,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // gatés porté/tenu via `passiveMods`.
   for (const it of c.items ?? []) {
     if (!it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += resolveFormula(op.bonus, c);
+    for (const op of findTrappingById(it.trappingId)?.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
   }
   return n;
 }
@@ -344,10 +364,10 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
   let n = 0;
   for (const t of c.traits ?? []) {
     for (const op of findTraitById(t.id)?.passive ?? []) {
-      if (op.op === 'charDRBonus' && op.char === char) n += resolveFormula(op.bonus, c);
+      if (op.op === 'charDRBonus' && op.char === char) n += valeurSansTirage(op.bonus, c);
     }
   }
-  for (const m of c.auraMods ?? []) if (m.op.op === 'charDRBonus' && m.op.char === char) n += resolveFormula(m.op.bonus, c);
+  for (const m of c.auraMods ?? []) if (m.op.op === 'charDRBonus' && m.op.char === char) n += valeurSansTirage(m.op.bonus, c);
   for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.char === char) n += b.bonus;
   return n;
 }
@@ -988,12 +1008,12 @@ export type GameOp =
    *  un TYPE de Test d'équipage (`crew-test-types.json`) agnostique de la compétence (une Poursuite se
    *  court à la Voile OU aux avirons) ; `testType` est lu par `navalTestTypeDR`, JAMAIS par `skillDRBonus`
    *  (personnage) ni `navalSkillTestDR` (coque). */
-  | { op: 'skillDRBonus'; skill: RefDesignee; bonus: Formula; testType?: never }
-  | { op: 'skillDRBonus'; testType: string; bonus: Formula; skill?: never }
+  | { op: 'skillDRBonus'; skill: RefDesignee; bonus: FormuleSansTirage; testType?: never }
+  | { op: 'skillDRBonus'; testType: string; bonus: FormuleSansTirage; skill?: never }
   /** +N DR aux Tests d'une CARACTÉRISTIQUE (chanson « Camarades d'équipage » : +1 DR sur tout Test de
    *  Sociabilité, MDG 09 l.236) — variante par carac de `skillDRBonus`. Exécutée → `ActiveEffect.drBonus`
    *  temporisé ; lisible aussi en PASSIF (trait/aura). Consommée par `charDRBonusOf` sur un Test RÉUSSI. */
-  | { op: 'charDRBonus'; char: CharKey; bonus: Formula }
+  | { op: 'charDRBonus'; char: CharKey; bonus: FormuleSansTirage }
   /** Modificateur aux Tests INDIVIDUELS composant un TEST D'ÉQUIPAGE (MDG 14) — chanson « Naviguons
    *  tous ensemble » : « +10 sur les Tests individuels de chaque membre d'équipage impliqué dans un Test
    *  d'équipage » (MDG 09 l.224). Exécutée → `ActiveEffect.crewTestMod`, lu par `crewRoleValue`
@@ -1017,7 +1037,7 @@ export type GameOp =
    *  trait (`TraitInstance.value`) ou niveau du talent (`times`) — négatif = réduction. PASSIF, lu par
    *  `traitSpellDRMod`/`talentSpellDRMod` (engine/magic) au calcul du DR du Sort CONTRE cette cible
    *  (Dégâts du Projectile, `ctx.sl` des Flows, zone, NI par cible). Inerte dans `applyOps`. */
-  | { op: 'incomingSpellDRMod'; amount: Formula }
+  | { op: 'incomingSpellDRMod'; amount: FormuleSansTirage }
   /** +N au Bonus de Force employé aux DÉGÂTS (Frénésie : +1 « grâce à votre férocité », LDB 21 l.33). PASSIF,
    *  sommé par `damageSBBonus` et injecté dans `sb` au calcul des dégâts (combat.ts) — AVANT le `max` du Tueur
    *  et `effectiveWeaponDamage` (une arme à dégâts FIXES n'en profite donc pas). Inerte dans `applyOps`. */
@@ -1211,7 +1231,7 @@ export interface PassiveMod {
 }
 
 export interface OpsCtx {
-  rng?: RNG;
+  rng: RNG;
   /** Référent des formules « (Bonus de X) » (le lanceur d'un sort) ; défaut : la cible. */
   caster?: Combatant;
   /** Équipage d'une COQUE (`crewIds` résolus en Combattants) — pour les ops de navire : `removeShipPoste`
@@ -1675,7 +1695,7 @@ export function gelerOpsCtx(ctx: OpsCtx): OpsCtxGele {
  * PÉRIMÈTRE COURANT : seule l'op `fall` déclare ses dés (`DES_DUNE_OP`). Les 134 `{dice}` authored des
  * autres ops tirent encore sous `applyOps` — même dette, mêmes trains T3-T6.
  */
-export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: OpsCtx = {}): DemandeDe[] {
+export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: OpsCtx): DemandeDe[] {
   return ops.flatMap((o, rang) => desDeclaresDe(o, target, ctx)
     .map((d) => ({ cle: cleDeDe(rang, d.champ), spec: d.spec, libelle: d.libelle, ...(d.unite ? { unite: d.unite } : {}) })));
 }
@@ -1685,10 +1705,10 @@ export function demandesDeDes(ops: readonly GameOp[], target: Combatant, ctx: Op
  * source sont appliqués individuellement mais journalisés en UNE ligne (format
  * historique de l'incantation). Renvoie les lignes de journal ; `ctx.surLigne` les reçoit avec leur rang.
  */
-export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx = {}): string[] {
+export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): string[] {
   const ops = structuredClone(opsRecues); // #2097
   const source = structuredClone(ctx.source); // #2097
-  const rng = ctx.rng ?? defaultRNG;
+  const rng = ctx.rng;
   const ref = ctx.caster ?? target;
   const lines: string[] = [];
   const debuts: number[] = [];

@@ -18,6 +18,7 @@ import { scenesDuRegistre } from '../noyau/monde/registreDesScenes';
 import { atteignables, partagesDeLEtat } from './partage.testkit';
 import { gelerProfond } from '../lib/gelerProfond';
 import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
+import { desDuTest, desEnSuite } from '../engine/dice.testkit';
 
 const geler = memoByRef((s: Scene) => s);
 const VIERGE = JSON.stringify(useGame.getInitialState());
@@ -33,14 +34,14 @@ const ecritDansLaDonnee = (e: unknown): boolean =>
 const partagesDe = (c: unknown, sources: readonly unknown[] = []) => partagesDeLEtat({ c }, sources);
 
 /** Un dé constant : chaque tirage rend `v`, borné à l'intervalle demandé. */
-const deConstant = (v: number): RNG => ({ int: (a, b) => Math.min(b, Math.max(a, v)) });
+const deConstant = (v: number): RNG => desEnSuite([v], { boucle: true, borne: true });
 
 const enJeu = (c: Combatant): Combatant => ({ ...c, pos: { x: 1, y: 1 } });
 
 describe('coutures donnée → état (#2097)', () => {
   it('A — un effet `giveTrapping` d’une scène gelée : l’objet reçu n’atteint pas la scène', () => {
     const eff = { type: 'giveTrapping', trappingId: 'dague', skin: { metal: '#7faaff' } };
-    const scene = { ...emptyScene(4, 4), id: 'partage-a', triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'do', effect: eff } }] } as unknown as Scene;
+    const scene = { ...emptyScene('partage-a', 4, 4), triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'do', effect: eff } }] } as unknown as Scene;
     geler(scene);
     const gele = (scene as unknown as { triggers: { flow: { effect: typeof eff } }[] }).triggers[0].flow.effect;
     expect(Object.isFrozen(gele.skin)).toBe(true);
@@ -106,12 +107,12 @@ describe('coutures donnée → état (#2097)', () => {
       { op: 'grantWeapon', label: 'Lame de zone', damage: 3, skin: { metal: '#ff0000' } },
       { op: 'perRound', ops: [{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }] },
     ];
-    const scene = { ...emptyScene(4, 4), id: 'partage-d', effectZones: [{ id: 'z', tiles: [{ x: 1, y: 1 }], onCross }] } as unknown as Scene;
+    const scene = { ...emptyScene('partage-d', 4, 4), effectZones: [{ id: 'z', tiles: [{ x: 1, y: 1 }], onCross }] } as unknown as Scene;
     geler(scene);
     const gelees = (scene as unknown as { effectZones: { onCross: GameOp[] }[] }).effectZones[0].onCross;
     expect(Object.isFrozen(gelees)).toBe(true);
     const c = enJeu(pregen(PREGEN.soldat));
-    for (const op of gelees) applyOps(c, [op], { source: SOURCE, defaultDurationRounds: 3 });
+    for (const op of gelees) applyOps(c, [op], { rng: desDuTest, source: SOURCE, defaultDurationRounds: 3 });
     expect(c.items!.some((i) => i.label === 'Lame de zone')).toBe(true);
     expect(partagesDe(c, [scene])).toEqual([]);
   });
@@ -125,7 +126,7 @@ describe('coutures donnée → état (#2097)', () => {
     cible.id = 'cible';
     cible.pos = { x: 2, y: 1 };
     const battle = { combatants: [src, cible], order: ['src', 'cible'], turn: 0, round: 1, log: [], over: null };
-    useGame.setState({ scene: emptyScene(6, 6), battle } as never);
+    useGame.setState({ scene: emptyScene('scene-test', 6, 6), battle } as never);
     combatHooksOf('onRoundEnd').find((h) => h.id === 'recompute-auras')!.run({ get: useGame.getState, set: useGame.setState, battle } as never);
     expect(cible.auraMods?.length).toBeGreaterThan(0);
     expect(partagesDe(cible)).toEqual([]);

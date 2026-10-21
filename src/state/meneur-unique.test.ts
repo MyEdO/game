@@ -49,7 +49,7 @@ const A_INCONSCIENT = (talents?: { talentId: string; times: number }[]) =>
 const capPov = () => { const s = useGame.getState(); return s.povActive ? capDuGroupe(s) : null; };
 
 function scèneDeTaverne(): Scene {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   s.id = 'taverne';
   s.entities = [
     { id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } },
@@ -60,7 +60,7 @@ function scèneDeTaverne(): Scene {
 
 /** Falaise de 4 m entre le pied (2,1) et le sommet (2,0) ; l'arête N de (2,1) porte la grimpe. */
 function scèneDeFalaise(climb: WallClimb): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const h = new Array(4 * 4).fill(0) as number[];
   h[0 * 4 + 2] = 4;
   s.layers[0].height = h;

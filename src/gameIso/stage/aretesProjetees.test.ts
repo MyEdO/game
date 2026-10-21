@@ -22,7 +22,7 @@ const dims: Dims = { w: 5, h: 4, rot: 0, view: 'iso' };
  *  (3,3,E), et un accès de pièce en (0,1,E) — passage entre la pièce (1,1), murée au nord et au sud,
  *  et la pièce (0,1). */
 function scèneAuxQuatreCapacités(): Scene {
-  const s = emptyScene(dims.w, dims.h);
+  const s = emptyScene('scene-test', dims.w, dims.h);
   const h = new Array(dims.w * dims.h).fill(0) as number[];
   h[1 * dims.w + 2] = 4;
   s.layers[0].height = h;

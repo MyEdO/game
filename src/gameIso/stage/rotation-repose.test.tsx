@@ -44,7 +44,7 @@ import { pxPerM } from '../backends/webgl/worldTris';
 vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(12, 12);
+const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];

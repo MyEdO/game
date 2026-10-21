@@ -6,7 +6,7 @@
  * « Tableau des Obsessions » pour fixer leur Cible. Données dans `obsessions.json` (taguées source +
  * folio) ; tirage 2d10 (`rollExpr`) + lookup partagé `findTableEntry`.
  */
-import { RNG, defaultRNG, rollExpr } from '../engine/dice';
+import { RNG, rollExpr } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import obsessionsJson from './obsessions.json';
 
@@ -31,6 +31,6 @@ export const OBSESSIONS: readonly ObsessionEntry[] = FILE.entries;
 export const OBSESSIONS_SOURCE = FILE.source;
 
 /** Tire une Cible sur le Tableau des Obsessions (2d10), RNG seedable. Renvoie le libellé. */
-export function rollObsession(rng: RNG = defaultRNG): string {
+export function rollObsession(rng: RNG): string {
   return findTableEntry(OBSESSIONS as ObsessionEntry[], rollExpr('2d10', rng)).label;
 }

@@ -29,7 +29,7 @@ const piege = (x: number, y: number): Scene['triggers'][number] =>
 /** 4×3 : la chambre (1,1) à la couche 1 (4 m), murée sur trois côtés ; croisée E de (1,1) couche 1
  *  sur la rue (2,1) au rez. */
 function etage(crossable = true): Scene {
-  const s = emptyScene(4, 3);
+  const s = emptyScene('scene-test', 4, 3);
   const tiles = new Array(12).fill('vide') as Terrain[];
   tiles[1 * 4 + 1] = s.layers[0].tiles[0];
   const height = new Array(12).fill(0) as number[];
@@ -45,7 +45,7 @@ function etage(crossable = true): Scene {
 
 /** 4×3 de plain-pied : croisée E de (1,1) sur (2,1), d'allège `allege` m. */
 function plainPied(crossable = true, allege = 1): Scene {
-  const s = emptyScene(4, 3);
+  const s = emptyScene('scene-test', 4, 3);
   s.walls = [{ x: 1, y: 1, side: 'E', window: true, ...(crossable ? { crossable: true, allege } : {}) }];
   s.triggers = [piege(2, 1)];
   return s;

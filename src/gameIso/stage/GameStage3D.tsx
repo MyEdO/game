@@ -1350,7 +1350,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
       ombresARefaire.current = false;
     }
     // CHUTE : les particules avancent à la cadence RÉELLE de la frame, ici et nulle part
-    // ailleurs — aucun rendu React, aucune allocation, aucun `Math.random`. Le pas est BORNÉ : un
+    // ailleurs — aucun rendu React, aucune allocation, aucune entropie. Le pas est BORNÉ : un
     // onglet revenu au premier plan reprend l'averse, il ne la téléporte pas d'un bout à l'autre.
     // Seule la TRANSLATION de chaque instance se réécrit ; la base (orientation × taille) est commune
     // au semis et ne se reconstruit qu'au changement d'axe de caméra.

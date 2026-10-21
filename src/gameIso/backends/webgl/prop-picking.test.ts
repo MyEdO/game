@@ -18,7 +18,7 @@ const CAMERA = new OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
 CAMERA.updateMatrixWorld(true);
 const NDC = { x: 0, y: 0 };
 
-const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene(8, 8), entities });
+const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 const volumeEntity = (id: string): SceneEntity =>
   ({ id, kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' }) as SceneEntity;
 /** Un décor encore BILLBOARD, DÉRIVÉ du catalogue : la vague volumique (#1343) convertit les refs lot

@@ -117,7 +117,7 @@ export interface WeatherField {
    *  matrices ne refait la base que de celles qui viennent d'en changer (`writePrecipMatrices`). */
   ecrete: Uint8Array;
   /** Flux pseudo-aléatoire SEEDÉ du champ : le recyclage y puise, donc un même seed rejoue la même
-   *  averse — aucun `Math.random` sur le chemin de rendu. */
+   *  averse — aucune entropie sur le chemin de rendu. */
   rng: () => number;
 }
 

@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { combatOrder } from '../noyau/combatSetup';
 import { isPassengerInBattle } from '../noyau/monde/shipPostes';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 // PASSAGER = membre d'ÉQUIPAGE d'une coque, à l'échelle MER : le navire agit en UNITÉ (MDG 14 l.39) → pas de
 // tour propre. Une MONTURE n'est PAS un passager : RAW « Combat monté » (LDB 14 l.182) — « une monture sans le
 // Trait Nerveux est un autre combattant à part entière, et peut effectuer sa propre Action » → elle GARDE son tour
 // (la désynchro monture/cavalier est un bug de synchro de POSITION, pas de tour).
 const mk = (id: string, initiative: number, extra: Partial<Combatant> = {}): Combatant =>
-  ({ id, name: id, initiative, weapons: [], ...extra }) as unknown as Combatant;
+  ({ id, name: id, initiative, characteristics: { initiative, agilite: 30 }, weapons: [], ...extra }) as unknown as Combatant;
 
 const hull = mk('ship', 50, { bodyShape: 'vehicule', crewIds: ['c1', 'c2'] });
 const c1 = mk('c1', 90); // équipage (Initiative haute, mais passager à la Mer)
@@ -34,17 +35,17 @@ describe('Passager au combat — équipage de navire SEULEMENT (la monture garde
 
   it('échelle MER : l\'équipage sort de l\'ordre ; la MONTURE et le cavalier gardent leur tour', () => {
     // Triés par Initiative : rider 70 > horse 60 > hull 50 > eship 40 (c1/c2 équipage EXCLUS ; horse INCLUS)
-    expect(combatOrder(all, true)).toEqual(['rider', 'horse', 'ship', 'eship']);
+    expect(combatOrder(all, true, desDuTest)).toEqual(['rider', 'horse', 'ship', 'eship']);
   });
 
   it('person-scale : tout le monde garde son tour (équipage ET monture)', () => {
     // c1 90 > c2 80 > rider 70 > horse 60 > hull 50 > eship 40
-    expect(combatOrder(all, false)).toEqual(['c1', 'c2', 'rider', 'horse', 'ship', 'eship']);
+    expect(combatOrder(all, false, desDuTest)).toEqual(['c1', 'c2', 'rider', 'horse', 'ship', 'eship']);
   });
 
-  it('rétro-compat : sans navire, l\'ordre est inchangé à toute échelle (pur tri d\'Initiative)', () => {
+  it('sans navire : l\'ordre est le pur tri d\'Initiative à toute échelle', () => {
     const plain = [mk('a', 30), mk('b', 50), mk('c', 40)];
-    expect(combatOrder(plain, true)).toEqual(['b', 'c', 'a']);
-    expect(combatOrder(plain, false)).toEqual(['b', 'c', 'a']);
+    expect(combatOrder(plain, true, desDuTest)).toEqual(['b', 'c', 'a']);
+    expect(combatOrder(plain, false, desDuTest)).toEqual(['b', 'c', 'a']);
   });
 });

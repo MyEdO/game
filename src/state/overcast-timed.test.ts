@@ -13,6 +13,7 @@ import { addTimedCondition, addCondition, endOfRound, hasCondition } from '../en
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
+import { desDuTest } from '../engine/dice.testkit';
 
 const okRes = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
 
@@ -57,7 +58,7 @@ describe('États à durée (ConditionInstance.roundsLeft)', () => {
 describe('États récurrents (« un par Round »)', () => {
   it('op condition.perRound : ré-appliqué chaque fin de Round pendant la durée du sort', () => {
     const c = pair().ally;
-    applyOps(c, [{ op: 'condition', id: 'hemorragique', perRound: true }], { label: 'Malédiction', defaultDurationRounds: 2 });
+    applyOps(c, [{ op: 'condition', id: 'hemorragique', perRound: true }], { rng: desDuTest, label: 'Malédiction', defaultDurationRounds: 2 });
     expect(hasCondition(c, 'hemorragique')).toBe(false); // récurrent : agit en fin de Round
     endOfRound(c, makeRNG(1));
     // fin de Round 1 : +1 Hémorragique (le saignement immédiat tick aussi via endOfRound → PB)
@@ -74,7 +75,7 @@ describe('États récurrents (« un par Round »)', () => {
     c.items = [];
     // Durée 1 Round portée à 3 par Surincantation de Durée → 3 Rations (1 par Round actif).
     applyOps(c, [{ op: 'perRound', ops: [{ op: 'giveTrapping', custom: 'Ration (1 jour)' }] }],
-      { label: 'Récolte de Rhya', defaultDurationRounds: 3 });
+      { rng: desDuTest, label: 'Récolte de Rhya', defaultDurationRounds: 3 });
     expect((c.items ?? []).filter((it) => /^ration/i.test(it.label)).length).toBe(0); // rien à l'incantation
     endOfRound(c, makeRNG(1));
     endOfRound(c, makeRNG(1));

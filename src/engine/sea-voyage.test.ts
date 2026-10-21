@@ -6,11 +6,9 @@ import {
   cargoTotalEnc, removeCargo, resolveFastVoyage, type PortProfile,
 } from './seaVoyage';
 import type { RNG } from './dice';
+import { desDuTest, desEnSuite } from './dice.testkit';
 
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 const salzenmund: PortProfile = {
   taille: 4, richesse: 4,
@@ -91,8 +89,8 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
   it('prix de base par saison ; le Vin roule 3d10 CO (l.429/436)', () => {
     const ble = rollRandomCargo('printemps', seq(3));
     expect(ble.id).toBe('cereales');
-    expect(cargoBasePrice(ble, 'printemps')).toBe(2);
-    expect(cargoBasePrice(ble, 'automne')).toBe(0.5);
+    expect(cargoBasePrice(ble, 'printemps', desDuTest)).toBe(2);
+    expect(cargoBasePrice(ble, 'automne', desDuTest)).toBe(0.5);
     const vin = rollRandomCargo('ete', seq(50));
     expect(cargoBasePrice(vin, 'ete', seq(4, 5, 6))).toBe(15);
   });

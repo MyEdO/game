@@ -14,6 +14,7 @@ import { CRITIQUE_DOCS, critiqueTable, type JeuDeCritique } from '../data/critic
 import { findTableEntryIndex } from './tables';
 import locJson from '../data/localisation.json';
 import type { Combatant, HitLocation } from './types';
+import { desDuTest, desEnSuite } from './dice.testkit';
 
 /**
  * Blessures critiques par Localisation — UN lecteur, DEUX jeux (#1657 B2a, #1682) : le Livre de base
@@ -24,8 +25,7 @@ import type { Combatant, HitLocation } from './types';
 
 /** RNG scripté : renvoie les valeurs dans l'ordre, bornées au domaine demandé. */
 function seq(...values: number[]): RNG {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, values[i++])) };
+  return desEnSuite(values, { borne: true });
 }
 
 const cible = (E = 30): Combatant =>
@@ -217,7 +217,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
   it('Doigt sectionné : l’op POSE la plaie chirurgicale et la séquelle, quel que soit le sort du Test (l.121)', () => {
     const [, perte] = flowEtapes(resolveCritique('ldb', cible(30), 'brasD', seq(83)).testFlow);
     const c = cible(30);
-    applyOps(c, opsDe(perte), {});
+    applyOps(c, opsDe(perte), { rng: desDuTest });
     expect(c.traumas!.some((t) => t.needsSurgery && t.label.startsWith('Amputation'))).toBe(true);
     expect(c.traumas!.some((t) => t.traumaId === 'doigt-ampute')).toBe(true);
   });
@@ -236,7 +236,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
   it('« Pied sectionné » : l’op pose la plaie chirurgicale ET la séquelle permanente de mobilité', () => {
     const [, perte] = flowEtapes(resolveCritique('ldb', cible(30), 'jambeD', seq(95)).testFlow); // 94-96
     const c = cible(30);
-    applyOps(c, opsDe(perte), {});
+    applyOps(c, opsDe(perte), { rng: desDuTest });
     expect(c.traumas!.some((t) => t.needsSurgery)).toBe(true);
     expect(c.traumas!.some((t) => t.ops?.some((o) => o.op === 'moveScale') && !t.needsSurgery)).toBe(true);
   });
@@ -244,7 +244,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
   it('la séquelle permanente survit à la Chirurgie (le membre reste absent)', () => {
     const [, perte] = flowEtapes(resolveCritique('ldb', cible(30), 'jambeD', seq(95)).testFlow);
     const c = cible(30);
-    applyOps(c, opsDe(perte), {});
+    applyOps(c, opsDe(perte), { rng: desDuTest });
     c.criticalWounds = 1;
     removeSurgicalTrauma(c); // opère la plaie chirurgicale
     expect(c.traumas!.some((t) => t.needsSurgery)).toBe(false); // plaie réparée
@@ -296,7 +296,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
     const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
     const c = cible(30);
     c.traumas = r.traumas;
-    applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { sl: -2 });
+    applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { rng: desDuTest, sl: -2 });
     const orteil = c.traumas!.find((t) => t.traumaId === 'orteil-ampute')!;
     expect(orteil.count).toBe(3); // 1 + 2 DR
     expect(orteil.ops).toContainEqual({ op: 'charMod', char: 'agilite', mod: -3 });
@@ -456,7 +456,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
   });
 
   it('« Pied écrasé » (l.180) : le Test GATE la perte — `amputer` est DANS `fail`, échelonné par DR', () => {
-    const r = resolveCritique('aa', cible(), 'jambeD', seq(50), { overkill: 6 }); // 50 + 60 → 110
+    const r = resolveCritique('aa', cible(), 'jambeD', seq(50, 5), { overkill: 6 }); // 50 + 60 → 110 ; 5 = jours avant l'échéance de la séquelle
     expect(r.label).toBe('Pied écrasé');
     const n = noeudDeTest(r.testFlow);                         // un seul nœud : la perte est dans SA branche
     expect(n.test.difficulty).toBe('accessible');
@@ -468,10 +468,10 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
   });
 
   it('« Pied écrasé » : sur un DR INJECTÉ de −3, l’op retire 1 + 3 = 4 orteils (l.180)', () => {
-    const n = noeudDeTest(resolveCritique('aa', cible(), 'jambeD', seq(50), { overkill: 6 }).testFlow);
+    const n = noeudDeTest(resolveCritique('aa', cible(), 'jambeD', seq(50, 5), { overkill: 6 }).testFlow);
     const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
     const c = cible();
-    applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { sl: -3 });
+    applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { rng: desDuTest, sl: -3 });
     expect(c.traumas!.find((t) => t.traumaId === 'orteil-ampute')!.count).toBe(4);
     expect(c.traumas!.some((t) => t.needsSurgery)).toBe(true);  // la plaie chirurgicale suit la séquelle
   });
@@ -509,7 +509,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     const c = cible();
     c.traumas = r.traumas;                                   // ce qu'`applyCriticalToTarget` pose avant la porte
     const [, perte] = flowEtapes(r.testFlow);
-    applyOps(c, opsDe(perte), {});                           // ce que la porte applique en jouant le nœud
+    applyOps(c, opsDe(perte), { rng: desDuTest });                           // ce que la porte applique en jouant le nœud
     const plaies = c.traumas!.filter((t) => t.needsSurgery && t.label === 'Amputation');
     expect(plaies).toHaveLength(1);
     expect(plaies[0].perRound, 'l’escalade a été perdue à l’application').toEqual({ versTraumaId: 'doigt-ampute' });

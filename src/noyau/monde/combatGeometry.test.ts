@@ -52,12 +52,12 @@ describe('occupied — bloqueurs ET barrières séparés par étage (#799)', () 
 
 describe('findFreeTile — Z-AWARE, replie sur les couches supérieures (#802)', () => {
   it('sol (z=0) libre → renvoie une case SANS z (byte-identique à l’ancien comportement)', () => {
-    const scene = emptyScene(3, 3); // tout 'herbe'
+    const scene = emptyScene('scene-test', 3, 3); // tout 'herbe'
     expect(findFreeTile(scene)).toEqual({ x: 0, y: 0 });
   });
 
   it('sol totalement bloqué, étage 1 libre → replie sur l’étage 1 (z posé)', () => {
-    const scene = emptyScene(3, 3);
+    const scene = emptyScene('scene-test', 3, 3);
     scene.layers[0].tiles = new Array(9).fill('mur') as Terrain[];
     scene.layers.push({ z: 1, tiles: new Array(9).fill('herbe') as Terrain[] });
     expect(findFreeTile(scene)).toEqual({ x: 0, y: 0, z: 1 });

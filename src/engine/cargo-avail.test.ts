@@ -28,11 +28,9 @@ import { describe, it, expect } from 'vitest';
 import { rollSeasonalCargo, type CargoDef } from './cargo';
 import { cargoes } from './seaVoyage';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
-const seq = (...vals: number[]): RNG => {
-  let i = 0;
-  return { int: (min, max) => Math.min(max, Math.max(min, vals[i++ % vals.length])) };
-};
+const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 /** Deux cargaisons NUES, dont les fourchettes laissent 41–100 sans couverture. */
 const trouee: CargoDef[] = [

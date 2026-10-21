@@ -4,7 +4,7 @@
  * pièce, et l'appelant fait naître chaque coup (`toucheAuJetPose`, MDG 12 l.375, EDOC 07 l.332) sur la cible
  * vivante, juste avant de l'appliquer par la couture du coup (`applyAttackResult`).
  */
-import { d100, type RNG, defaultRNG } from './dice';
+import { d100, type RNG } from './dice';
 import type { RollBreakdown } from './combat';
 import { attackDRAdjust } from './qualities/dispatch';
 import { mannedPosteWeapon, loadedAmmo, weaponWithAmmo } from './items';
@@ -37,7 +37,7 @@ export interface VolleyShot {
  */
 export function resolveVolley(
   firingShip: Combatant, postes: ShipPoste[], dr: number, success: boolean,
-  crew: Combatant[], rng: RNG = defaultRNG,
+  crew: Combatant[], rng: RNG,
   opts: { merScale?: boolean } = {},
 ): VolleyShot[] {
   const byId = new Map(crew.map((c) => [c.id, c] as const));

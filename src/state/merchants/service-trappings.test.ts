@@ -19,7 +19,7 @@ const hero = (): Combatant =>
   ({ id: 'h', name: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} }) as unknown as Combatant;
 
 const sceneWithTaverniere = () => {
-  const sc = emptyScene(4, 4);
+  const sc = emptyScene('scene-test', 4, 4);
   sc.id = 'm';
   sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'taverniere' } });
   return sc;

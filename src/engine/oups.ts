@@ -3,7 +3,7 @@
  * combat ÉCHOUÉ dont le d100 est un double (miroir du Critique = double réussi). Déclenche le
  * Tableau des Oups !, ou un Incident de Tir (arme à Poudre noire + jet pair → explosion, l.56-57).
  */
-import { d100, RNG, defaultRNG, type DiceSpec } from './dice';
+import { d100, RNG, type DiceSpec } from './dice';
 import { findTableEntry } from './tables';
 import { isDoubleRoll } from './tests';
 import { Combatant, Weapon } from './types';
@@ -42,7 +42,7 @@ function isFirearm(w: Weapon | undefined): boolean {
 }
 
 /** Tire sur le Tableau des Oups ! ; Incident de Tir prioritaire (arme à poudre + jet PAIR). */
-export function rollOups(weapon: Weapon | undefined, rng: RNG = defaultRNG): OupsResolved {
+export function rollOups(weapon: Weapon | undefined, rng: RNG): OupsResolved {
   const roll = d100(rng);
   if (isFirearm(weapon) && roll % 2 === 0) {
     return { roll, kind: 'misfire', label: oupsMisfire().label };

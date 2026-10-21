@@ -10,10 +10,10 @@ import { createHero } from '../engine/character';
 import { woundsFromHit } from '../engine/woundsCalc';
 import { testScene } from '../scenes/test-fixture';
 import type { Scene } from '../noyau/monde/scene';
-import type { RNG } from '../engine/dice';
 import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
+import { deFixe } from '../engine/dice.testkit';
 
 /**
  * Le Critique ne dépend pas de la perte de Blessures : LDB 13 l.183, LDB 13 l.161 (dépassement) ; AA 07 l.25, MDG 13 l.656,
@@ -34,7 +34,7 @@ const coque = (end: number, blindage = 0): Combatant => ({ id: 'target', label: 
   characteristics: chars(end), wounds: { current: 90, max: 90, base: 90 }, advantage: 0, conditions: [], weapons: [], armour: { ...SANS_PA, corps: blindage }, skills: [], talents: [], crewIds: [] }) as unknown as Combatant;
 const mer = () => ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 10, layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 /** Le d100 du canonnier : 44, un double réussi. */
-const fixe = (n: number): RNG => ({ int: () => n }) as unknown as RNG;
+const fixe = deFixe;
 
 function bordeeSur(cible: Combatant, graine: number) {
   seedBattleRng(graine);

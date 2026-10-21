@@ -5,6 +5,7 @@ import { nightmareCheck, hasCondition } from '../engine/conditions';
 import { testValue } from '../engine/skills';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
+import { deFixe } from '../engine/dice.testkit';
 
 const hero = (p: Partial<Combatant>): Combatant =>
   ({
@@ -18,13 +19,13 @@ const hero = (p: Partial<Combatant>): Combatant =>
 describe('nightmareCheck (LDB 21 l.95)', () => {
   it('Calme Facile +40 raté → Exténué', () => {
     const c = hero({ characteristics: { 'force-mentale': 35 } as never });
-    const fail: RNG = { int: () => 90 }; // 90 > (35+40=75) → échec
+    const fail: RNG = deFixe(90); // 90 > (35+40=75) → échec
     nightmareCheck(c, testValue(c, 'calme'), fail); // LDB 21 l.95 — Test de Calme, valeur de la porte
     expect(hasCondition(c, 'extenue')).toBe(true);
   });
   it('Calme réussi → pas d’Exténué', () => {
     const c = hero({ characteristics: { 'force-mentale': 35 } as never });
-    const ok: RNG = { int: () => 20 }; // 20 ≤ 75 → réussite
+    const ok: RNG = deFixe(20); // 20 ≤ 75 → réussite
     nightmareCheck(c, testValue(c, 'calme'), ok);
     expect(hasCondition(c, 'extenue')).toBe(false);
   });

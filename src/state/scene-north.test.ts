@@ -18,7 +18,7 @@ import { exportSave, importSave, snapshotSave } from './saves';
 import { FORMAT_SAVE } from './formats.generated';
 
 describe('setNorthDeg — un cap, pas un compteur', () => {
-  const base = () => emptyScene(6, 6);
+  const base = () => emptyScene('scene-test', 6, 6);
 
   it('ramène toute valeur dans [0,360[ et retire le champ pour ce qui n’est pas un angle', () => {
     const nord = (v: number | undefined) => setNorthDeg(base(), v).northDeg;
@@ -46,7 +46,7 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
   const etat = (scene: Scene) => ({ scene, gameTime: 9 * 60 });
 
   it('round-trip export → import : `northDeg` survit à l’octet près', () => {
-    const scene = setNorthDeg(emptyScene(5, 5), 90);
+    const scene = setNorthDeg(emptyScene('scene-test', 5, 5), 90);
     const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
     if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);
@@ -55,7 +55,7 @@ describe('Sauvegarde — le nord authoré voyage, son absence ne casse rien', ()
   });
 
   it('une scène SANS le champ se sauve et se relit, nord implicite', () => {
-    const scene = emptyScene(5, 5);
+    const scene = emptyScene('scene-test', 5, 5);
     const save = snapshotSave(etat(scene), etat(scene), '2512-01-01T00:00:00Z');
     const relu = importSave(exportSave(save));
     if (typeof relu === 'string') throw new Error(`save refusée : ${relu}`);

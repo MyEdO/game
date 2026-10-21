@@ -20,7 +20,7 @@ import { type Flow } from '../monde/flow';
 /** `ConditionCtx` de combat construit d'un combattant + de l'`OpsCtx` de la touche/du Round (géométrie
  *  d'arène, sl/location/woundsDealt…). Pour les résolveurs INLINE sans `ExecCtx` (resolveInlineFlowTest /
  *  l'évaluation d'un `gate`). `target` = le combattant qui jette ; `caster` = le porteur (ctx.caster). */
-export function combatConditionCtx(c: Combatant, ctx: OpsCtx): ConditionCtx {
+export function combatConditionCtx(c: Combatant, ctx: Omit<OpsCtx, 'rng'>): ConditionCtx {
   return {
     flags: {}, gameTime: ctx.now ?? 0, party: [c], sl: ctx.sl,
     location: ctx.location, woundsDealt: ctx.woundsDealt, engagedAdvantageGap: ctx.engagedAdvantageGap, engagedAdvantageLead: ctx.engagedAdvantageLead,

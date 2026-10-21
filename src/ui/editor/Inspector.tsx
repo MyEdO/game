@@ -68,7 +68,7 @@ import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
 import type { IconIdInput } from '../icons';
-import { nextEntityId } from '../../noyau/monde/entityId';
+import { nextEntityId } from '../../lib/entityId';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';

@@ -30,7 +30,7 @@ import { BB_W, BB_H } from '../../pov/billboardCore';
 import { subjectQuad } from './billboardMath';
 import { MISSING_TONE } from '../../rig/viewArt';
 
-const scene = emptyScene(6, 6);
+const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
 const VIEW = { activeZ: 0, viewZ: null, top: false };
 const allVisible = (s: Scene) => {

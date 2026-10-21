@@ -6,7 +6,7 @@
  * TABLEAUX (cargaisons, prix) diffèrent → ils vivent dans le module propre à chaque livre, ces
  * briques-ci (modèle de lot, tirage saisonnier, prix de base, Marchandage) NE SONT PAS dupliquées.
  */
-import { d100, rollDice, type DiceSpec, type RNG, defaultRNG } from './dice';
+import { d100, rollDice, type DiceSpec, type RNG } from './dice';
 import { findTableEntryIndex } from './tables';
 import type { Season } from './travelStages';
 
@@ -77,7 +77,7 @@ export function unresolvedCargoIds(ids: readonly string[] | undefined, resolve: 
  *  invariant de la DONNÉE, gardé au parse par le refine de `src/data/schemas/defs/sea-cargo.ts` et
  *  `src/data/schemas/defs/land-cargo.ts` ; un jet que rien ne couvre est donc une ANOMALIE NOMMÉE, jamais
  *  le repli muet de `findTableEntry` sur la dernière cargaison du catalogue. */
-export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG = defaultRNG): CargoDef {
+export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG): CargoDef {
   const r = d100(rng);
   const i = findTableEntryIndex(cargoes.map((c) => c.avail[season]), r);
   if (i < 0) {
@@ -90,7 +90,7 @@ export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG 
 
 /** Prix de BASE d'une cargaison (CO par 10 points d'Encombrement) pour la saison (MSRC 13 l.80-90, MDG 15
  *  l.420-436). Prix « à dés » (Vin maritime 3d10) tiré une fois à l'achat et NOTÉ. PUR (RNG injecté). */
-export function cargoBasePrice(cargo: CargoDef, season: Season, rng: RNG = defaultRNG): number {
+export function cargoBasePrice(cargo: CargoDef, season: Season, rng: RNG): number {
   if ('dice' in cargo.price) return rollDice(cargo.price.dice, rng);
   return cargo.price[season];
 }

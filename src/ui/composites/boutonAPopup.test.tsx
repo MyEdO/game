@@ -38,7 +38,7 @@ function Clavier() {
 }
 
 function monterBarre(surcharges: Partial<Parameters<typeof EditorToolbar>[0]> = {}) {
-  const scene = emptyScene();
+  const scene = emptyScene('scene-test');
   const props: Parameters<typeof EditorToolbar>[0] = {
     onBack: vi.fn(), projectName: 'Banc', onNew: vi.fn(), onOpen: vi.fn(), onSave: vi.fn(), onImport: vi.fn(),
     onExport: vi.fn(), onExportAscii: vi.fn(), onAdvanced: vi.fn(), undo: vi.fn(), redo: vi.fn(),

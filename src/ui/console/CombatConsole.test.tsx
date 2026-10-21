@@ -1727,7 +1727,7 @@ describe('CombatConsole — les cases sont des ENTRÉES du registre (branchement
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     h.resolve = 2;
-    act(() => { useGame.setState({ scene: emptyScene(20, 20) }); });
+    act(() => { useGame.setState({ scene: emptyScene('scene-test', 20, 20) }); });
     monter(h, { foes: [foe('e1', 9, 9)] });
     act(() => caseAction('resolve-psych-immune')!.click());
     // Effet MOTEUR observable : un point parti, l'immunité posée, et AUCUN mode d'action armé.
@@ -2345,7 +2345,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     const h = hero('h1', 'Gunnar');
     monter(h, { foes: [foe('e1', 9, 9)] });
     // La scène est requise par `battleSelectAction` (le désarmement lit `{ battle, scene }`).
-    act(() => { useGame.setState({ scene: emptyScene(), battle: { ...useGame.getState().battle!, action: 'battery' } }); });
+    act(() => { useGame.setState({ scene: emptyScene('scene-test'), battle: { ...useGame.getState().battle!, action: 'battery' } }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Bordée');
     const b = sortie('battery-cancel');
     expect(b, 'la sortie « Annuler » de l’interlude bordée doit être à l’écran').not.toBeNull();
@@ -2406,7 +2406,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     const ship = navire();
     act(() => {
       useGame.setState({
-        party: [crew], scene: emptyScene(20, 20),
+        party: [crew], scene: emptyScene('scene-test', 20, 20),
         battle: {
           combatants: [ship, crew], order: [ship.id, crew.id], baseOrder: [ship.id, crew.id], turn: 0, round: 1,
           action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -2480,7 +2480,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     ship.postes = [{ ...poste(), loaded: true } as ShipPoste];
     act(() => {
       useGame.setState({
-        party: [crew], scene: emptyScene(20, 20),
+        party: [crew], scene: emptyScene('scene-test', 20, 20),
         battle: {
           combatants: [ship, crew], order: [ship.id, crew.id], baseOrder: [ship.id, crew.id], turn: 0, round: 1,
           action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -2525,7 +2525,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     const b = hero('h2', 'Rolf');
     act(() => {
       useGame.setState({
-        party: [a, b], scene: emptyScene(20, 20),
+        party: [a, b], scene: emptyScene('scene-test', 20, 20),
         net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 } },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn, round: 1,
@@ -2593,7 +2593,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
   const options = () => [...(panneau()?.querySelectorAll('button') ?? [])];
 
   // `battleSelectAction` (l'armement du mode) exige une SCÈNE : sans elle, la case cliquée n'arme rien.
-  beforeEach(() => { useGame.setState({ scene: emptyScene() }); });
+  beforeEach(() => { useGame.setState({ scene: emptyScene('scene-test') }); });
   afterEach(() => { useGame.setState({ dispelCarrierId: null, pendingDispel: null, battle: null }); });
 
   it('l’alvéole Dissiper existe dès qu’un Sort permanent est en jeu, et le clic ARME le mode', () => {
@@ -2823,7 +2823,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 describe('CombatConsole — annuler le déplacement, sur la gouttière de Mouvement', () => {
   const geste = () => host.querySelector('.cc-gutter-move [data-action="undo-move"]') as HTMLButtonElement | null;
 
-  beforeEach(() => { useGame.setState({ scene: emptyScene(20, 20) }); });
+  beforeEach(() => { useGame.setState({ scene: emptyScene('scene-test', 20, 20) }); });
 
   it('Mouvement dépensé SANS segment restaurable (relevé) : AUCUN geste — pas de bouton mort', () => {
     const h = hero('h1', 'Gunnar');
@@ -2990,7 +2990,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
   }
 
   it('Soigner : la case s’allume quand `battle.action` vaut l’`armed` de son entrée, et le re-clic désarme', () => {
-    act(() => { useGame.setState({ scene: emptyScene() }); }); // `battleSelectAction` lit { battle, scene }
+    act(() => { useGame.setState({ scene: emptyScene('scene-test') }); }); // `battleSelectAction` lit { battle, scene }
     monter(soigneur());
     const armed = findActionById('heal')!.armed;
     expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('heal');
@@ -3207,7 +3207,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
     const b = hero('h2', 'Rolf');
     act(() => {
       useGame.setState({
-        party: [a, b], scene: emptyScene(20, 20),
+        party: [a, b], scene: emptyScene('scene-test', 20, 20),
         net: { ...useGame.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0, h2: 1 }, seatNames: mode === 'local' ? {} : { 0: 'L’hôte', 1: 'Rolf' } },
         pendingRoundStart: { round },
         battle: {
@@ -3275,7 +3275,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
     const b = hero('h2', 'Rolf');
     act(() => {
       useGame.setState({
-        party: [a, b], scene: emptyScene(20, 20),
+        party: [a, b], scene: emptyScene('scene-test', 20, 20),
         net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn, round: 1,

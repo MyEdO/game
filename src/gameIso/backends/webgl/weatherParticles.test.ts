@@ -40,7 +40,7 @@ const masse = (patch: Partial<BuildingMass> = {}): BuildingMass => ({
 });
 
 const sceneAvecToit = (masses: BuildingMass[]): Scene => {
-  const scene = emptyScene(12, 12);
+  const scene = emptyScene('scene-test', 12, 12);
   scene.weather = 'pluie';
   scene.architecture = [{ id: 'corps', label: 'Corps', style: 'maison', storeys: [], facades: [], masses }];
   return scene;
@@ -257,7 +257,7 @@ describe('Semis de précipitation — matrices d’instance (#1176 P2-6)', () =>
 describe('Semis de précipitation — la DENSITÉ AU SOL ne dépend pas du bâti (#1176 P2-6)', () => {
   /** Une carte de 16×16 (assez large pour tenir une halle ET une rue loin d'elle). */
   const carte = (masses: BuildingMass[]): Scene => {
-    const scene = emptyScene(16, 16);
+    const scene = emptyScene('scene-test', 16, 16);
     scene.weather = 'pluie';
     scene.architecture = [{ id: 'corps', label: 'Corps', style: 'maison', storeys: [], facades: [], masses }];
     return scene;

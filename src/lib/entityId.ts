@@ -1,6 +1,6 @@
 /**
  * Id d'entité STABLE et UNIQUE : `${kind}-${n}` (n base36, plus petit entier libre absent de
- * `taken`). Remplace `${kind}-${Date.now().toString(36)}` (collisions même-ms / duplication / import). PUR.
+ * `taken`). PUR.
  */
 export function nextEntityId(kind: string, taken: Iterable<string>): string {
   const set = taken instanceof Set ? taken : new Set(taken);

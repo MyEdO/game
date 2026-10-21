@@ -4,6 +4,7 @@ import { applyOps } from './ops';
 import { makeRNG } from './dice';
 import type { RNG } from './dice';
 import type { Combatant } from './types';
+import { deFixe, desDuTest } from './dice.testkit';
 
 const C = (over: Partial<Combatant>): Combatant =>
   ({ id: 'c', name: 'C', kind: 'hero', conditions: [], skills: [], characteristics: { endurance: 90 }, wounds: { current: 20, max: 20 }, advantage: 3, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over } as unknown as Combatant);
@@ -23,7 +24,7 @@ describe('Finitions d\'États (LDB 16)', () => {
 
   it('testMod (Malédiction de malchance −10) : stacke par-dessus l\'État, hors non-cumul/ignoreState', () => {
     const c = C({ conditions: [] });
-    applyOps(c, [{ op: 'testMod', amount: -10 }], { label: 'Malédiction de malchance', defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'testMod', amount: -10 }], { rng: desDuTest, label: 'Malédiction de malchance', defaultDurationRounds: 9999 });
     expect(testStatePenalty(c)).toBe(-10); // tests hors combat
     expect(combatTestPenalty(c)).toBe(-10); // tests de combat
     addCondition(c, 'sonne'); // État −10 → STACKE avec le −10 du Sort (sources distinctes)
@@ -51,7 +52,7 @@ describe('Finitions d\'États (LDB 16)', () => {
 
   it('Hémorragique : coagulation (double) du dernier État → 1 Exténué (l.109)', () => {
     const c = C({ conditions: [{ id: 'hemorragique', value: 1 }] });
-    const dbl: RNG = { int: () => 11 }; // jet 11 = double → coagule
+    const dbl: RNG = deFixe(11); // jet 11 = double → coagule
     const out = bleedDeathRoll(c, dbl);
     expect(out.died).toBe(false);
     expect(hasCondition(c, 'hemorragique')).toBe(false);

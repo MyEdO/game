@@ -223,7 +223,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     // livrée n'entre ici : renommer un PNJ d'une campagne ne doit rougir aucun test.
     const GUERISON = 60;
     const infirmerie: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       id: 'fixture-infirmerie',
       entities: [{
         id: 'soigneur', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Frère Anselm',

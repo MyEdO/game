@@ -49,7 +49,7 @@ let conteneur: HTMLDivElement | null = null;
 brancherArdoise();
 
 function scèneCoiffée(): Scene {
-  const scene = { ...emptyScene(12, 12), ambiance: 'exterieur' as const };
+  const scene = { ...emptyScene('scene-test', 12, 12), ambiance: 'exterieur' as const };
   scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }

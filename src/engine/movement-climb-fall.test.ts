@@ -4,10 +4,10 @@ import {
   pursuitOutcome, pursuitMoveBonus, pursuitLaggard, npcSacrificeChoice, npcPursuerChoice,
   PURSUIT_ESCAPE_DISTANCE, type PursuitRunner,
 } from './pursuit';
-import type { RNG } from './dice';
+import { deFixe } from './dice.testkit';
 
 /** RNG d100 → `roll` (le reste des int() renvoie `roll` aussi ; escalade/chute n'utilisent qu'un d100). */
-const fixed = (roll: number): RNG => ({ int: () => roll });
+const fixed = deFixe;
 
 describe('Escalade (LDB 15 l.53-57)', () => {
   it('échelle sans Test : ½ vitesse → M mètres avec le Mouvement du Round', () => {

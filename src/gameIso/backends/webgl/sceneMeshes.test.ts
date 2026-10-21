@@ -730,7 +730,7 @@ describe('OMBRE DE CONTACT — ancrée sous les pieds', () => {
  * cadavre un socle ×1,6 plus large que celui du vivant identique à côté, et centré sur ses pieds.
  */
 describe('OMBRE DE CONTACT — le socle se dimensionne sur le SUJET, jamais sur sa boîte d’art', () => {
-  const scèneNue = emptyScene(6, 6);
+  const scèneNue = emptyScene('scene-test', 6, 6);
   const mptNu = sceneMetresPerTile(scèneNue);
 
   const acteur = (patch: Partial<Combatant> = {}): Combatant =>
@@ -827,7 +827,7 @@ describe('ATTRIBUTS d’UV — les deux jeux voyagent dans LA géométrie fusion
 describe('TEINTE de sommet — la variance par case est CUITE dans `color`', () => {
   /** Une nappe plate d'herbe : un albédo quasi unique, donc toute nuance résiduelle vient de la
    *  variance de teinte par case (le sol d'herbe porte `tintVar` en donnée). */
-  const nappe = emptyScene(8, 8);
+  const nappe = emptyScene('scene-test', 8, 8);
 
   /** Couleurs distinctes des sommets, arrondies au 1/10000. */
   const teintes = (g: THREE.BufferGeometry) => {
@@ -1043,7 +1043,7 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
  * survivant sur un banc de douze décors).
  */
 describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identité (#1396)', () => {
-  const scèneRepose = emptyScene(8, 8);
+  const scèneRepose = emptyScene('scene-test', 8, 8);
   const mptRepose = sceneMetresPerTile(scèneRepose);
   const combattant = (): Combatant =>
     ({
@@ -1100,7 +1100,7 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
  */
 describe('GROUPES DE SURFACE — un décor à recette se groupe par MATÉRIAU', () => {
   const scèneMeuble = () => {
-    const s = emptyScene(8, 8);
+    const s = emptyScene('scene-test', 8, 8);
     s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' }] as typeof s.entities;
     return s;
   };

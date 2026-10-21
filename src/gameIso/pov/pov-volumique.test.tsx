@@ -61,7 +61,7 @@ const TOIT: BuildingMass = {
 };
 
 function scèneCouverte(): Scene {
-  const scene = emptyScene(12, 12);
+  const scene = emptyScene('scene-test', 12, 12);
   scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }

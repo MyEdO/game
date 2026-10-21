@@ -6,7 +6,7 @@
  * (`noyau/sceneEdit`) dans un ORDRE FIXE — aucune logique ad hoc, chaque section = un appel de primitive.
  *
  * ORDRE DE COMPILATION (verrouillé par `mapSpec.test.ts`) :
- *   1. base       : `emptyScene(w,h)` + scalaires directs (id/nom/… comme les SceneProps de l'éditeur),
+ *   1. base       : `emptyScene(id,w,h)` + scalaires directs (id/nom/… comme les SceneProps de l'éditeur),
  *                   `metresPerTile`/`ambientLight`/`flags` via leurs primitives.
  *   2. terrain    : scan des marqueurs (`scanMarkers`) puis parse ASCII (`parseAsciiRows`) par étage,
  *                   posé via `putLayer`. Marqueurs nettoyés → base propre. Les grilles `walled` (box-drawing)
@@ -643,8 +643,7 @@ export function buildScene(spec: MapSpec): Scene {
   const [w, h] = spec.size;
 
   // 1. base + scalaires
-  let s = emptyScene(w, h);
-  s.id = spec.id;
+  let s = emptyScene(spec.id, w, h);
   s.label = spec.label;
   if (spec.desc !== undefined) s.desc = spec.desc;
   if (spec.ambiance !== undefined) s.ambiance = spec.ambiance;

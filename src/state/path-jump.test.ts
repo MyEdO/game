@@ -9,7 +9,7 @@ import { pathTo } from '../noyau/monde/path';
  * `jump=0` (défaut) = aucun saut → strictement l'ancien comportement (non-régression).
  */
 function chasm(width: number, gapCols: number[]): Scene {
-  const s = emptyScene(width, 3); // tout « herbe » (marchable)
+  const s = emptyScene('scene-test', width, 3); // tout « herbe » (marchable)
   const t = s.layers[0].tiles as Terrain[];
   for (const gx of gapCols) for (let y = 0; y < 3; y++) t[y * width + gx] = 'vide'; // colonne-gouffre infranchissable à pied
   return s;
@@ -35,7 +35,7 @@ describe('path — saut par-dessus un gouffre', () => {
   });
 
   it('non-régression : sur terrain plein, jump>0 donne le même chemin que jump=0', () => {
-    const s = emptyScene(5, 5);
+    const s = emptyScene('scene-test', 5, 5);
     const a = pathTo(s, { x: 0, y: 0 }, { x: 3, y: 0 }, { blocked: empty, jump: 0 });
     const b = pathTo(s, { x: 0, y: 0 }, { x: 3, y: 0 }, { blocked: empty, jump: 3 });
     expect(b).toEqual(a); // aucun saut déclenché quand on peut marcher

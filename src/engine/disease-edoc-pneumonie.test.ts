@@ -9,12 +9,13 @@ import { applyOps } from './ops';
 import { syncDerivedConditions } from './conditions';
 import { spellOps } from './flowCore';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
+import { desDuTest, desEnSuite } from './dice.testkit';
+
 /** La porte, quand le Test différé n'est pas le sujet du test. */const ignore: UpkeepDeferTest = () => {};
 
 /** RNG scripté : renvoie les valeurs dans l'ordre. */
 function seq(values: number[]): RNG {
-  let i = 0;
-  return { int: () => values[i++] };
+  return desEnSuite(values);
 }
 
 const hero = (p: Partial<Combatant>): Combatant =>
@@ -68,7 +69,7 @@ describe('Pneumonie : le Test de Résistance quotidien (EDOC 08 l.104-108)', () 
     const jour = (success: boolean) => {
       const { specs, defer } = porteEntretien();
       tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-      for (const s of specs) applique(c, s, { success });
+      for (const s of specs) applique(c, s, { success }, desDuTest);
     };
     jour(false);
     expect(fievre(c).severity).toBe('grave');
@@ -82,7 +83,7 @@ describe('Pneumonie : le Test de Résistance quotidien (EDOC 08 l.104-108)', () 
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    for (const s of specs) applique(c, s, { success: true }); // issue INJECTÉE : réussite
+    for (const s of specs) applique(c, s, { success: true }, desDuTest); // issue INJECTÉE : réussite
     expect(fievre(c).severity).toBeUndefined();
     expect(symptomIds(c)).toEqual(['fievre', 'malaise', 'touxEternuements']);
   });
@@ -91,7 +92,7 @@ describe('Pneumonie : le Test de Résistance quotidien (EDOC 08 l.104-108)', () 
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
     const { specs, defer } = porteEntretien();
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
-    for (const s of specs) applique(c, s, { success: false });
+    for (const s of specs) applique(c, s, { success: false }, desDuTest);
     expect(fievre(c).severity).toBe('grave');
     expect(diseaseDefs()['pneumonie'].symptoms.find((s) => s.symptomId === 'fievre')!.severity).toBeUndefined();
   });

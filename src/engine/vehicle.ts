@@ -14,7 +14,7 @@
  * couture d'AFFICHAGE qui traverse le moteur, jamais un second canal de résolution.
  */
 import { Combatant, VehicleData, type Difficulty } from './types';
-import { RNG, defaultRNG, parseDice, d10 } from './dice';
+import { RNG, parseDice, d10 } from './dice';
 import { applyOps } from './ops';
 import { inanimateCombatant } from './inanimate';
 import { rollVehicleProblem, type TravelTableEntry } from './travelTables';
@@ -43,7 +43,7 @@ export interface VehicleProblemResult {
 
 /** Tire un Problème de véhicule (d100) et APPLIQUE ses Dégâts à la coque (`applyOps`), si la cellule en
  *  porte (`vehicleWounds`, ex. « 1d10 »/« 2d10 »). RAW : modifiés par le Bonus d'Endurance, minimum 1. */
-export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG = defaultRNG): VehicleProblemResult {
+export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG): VehicleProblemResult {
   const entry = rollVehicleProblem(roll);
   const lines = [`Problème de véhicule — ${entry.label}.`];
   if (entry.vehicleWounds) {
@@ -65,7 +65,7 @@ export interface VehicleRepairParams {
   outils: boolean;
   installations: boolean;
   difficulty?: Difficulty;
-  rng?: RNG;
+  rng: RNG;
 }
 
 export interface VehicleRepairResult {
@@ -94,8 +94,8 @@ export function repairVehicleAttempt(p: VehicleRepairParams): VehicleRepairResul
   if (!p.materiaux || !p.outils || !p.installations) {
     return { possible: false, restaure: 0, heures: 0, degatsRestants: p.degatsSubis };
   }
-  const test = rollTest(p.valeurMetier, p.difficulty ?? 'intermediaire', p.rng ?? defaultRNG);
-  const restaure = test.success ? Math.min(p.degatsSubis, d10(p.rng ?? defaultRNG) + test.sl) : 0;
+  const test = rollTest(p.valeurMetier, p.difficulty ?? 'intermediaire', p.rng);
+  const restaure = test.success ? Math.min(p.degatsSubis, d10(p.rng) + test.sl) : 0;
   return { possible: true, test, restaure, heures: 1, degatsRestants: p.degatsSubis - restaure };
 }
 
@@ -150,7 +150,7 @@ export function forcedPaceModifier(kmDejaCourus = 0): number {
  * l'appellent, aucune ne rejoue le `rollTest` à la main. PUR : RNG injecté, aucun État posé (les ids
  * sont RENDUS, l'appelant les applique).
  */
-export function forcedPaceBeastCheck(a: ForcedPaceAnimal, rng: RNG = defaultRNG): ForcedPaceAnimalOutcome {
+export function forcedPaceBeastCheck(a: ForcedPaceAnimal, rng: RNG): ForcedPaceAnimalOutcome {
   const resistance = rollTest(a.valeurResistance, 'intermediaire', rng);
   const etats: string[] = [];
   if (!resistance.success) etats.push(COND.extenue);
@@ -173,9 +173,9 @@ export function forcedPaceCheck(p: {
   /** Kilomètres DÉJÀ parcourus au pas de course avant celui-ci. */
   kmDejaCourus?: number;
   animaux: ForcedPaceAnimal[];
-  rng?: RNG;
+  rng: RNG;
 }): ForcedPaceResult {
-  const rng = p.rng ?? defaultRNG;
+  const rng = p.rng;
   const modificateur = forcedPaceModifier(p.kmDejaCourus);
   const conduite = rollTest(p.valeurConduite, 'intermediaire', rng, modificateur);
   if (conduite.success) return { conduite, modificateur, retourAuPas: false, animaux: [] };

@@ -22,6 +22,7 @@ import { IconField, BackdropField, RefSelect } from './worldMapPickers';
 import { WhenEditor } from './ConditionEditor';
 import { CouvreField } from './CouvreField';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/defs-scenes/worldmap';
+import { idDEntropie } from '../../web/entropie';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
 const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];
@@ -336,7 +337,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                   type="button"
                   className="btn small"
                   onClick={() => {
-                    const id = `poi-${Date.now().toString(36)}`;
+                    const id = idDEntropie('poi');
                     const p: PlacePoi = { id, label: 'Nouveau point', pos: { x: 50, y: 50 } };
                     updPlace(place.id, { poi: [...poiList, p] });
                     setPoiSel(id);

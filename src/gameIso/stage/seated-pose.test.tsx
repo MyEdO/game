@@ -28,7 +28,7 @@ const PROP = 'table-1';
 
 /** Table en (2,2) cap N ; le PNJ attablé à l'EST, sa `pos` étant son abord (2+1, 2). */
 function scèneAttablée(assis: boolean, species = 'humain'): Scene {
-  const s = emptyScene(8, 8);
+  const s = emptyScene('scene-test', 8, 8);
   s.entities = [
     { id: PROP, kind: 'prop', pos: { x: 2, y: 2 }, ref: TABLE, facing: 'N', usable: { assise: true } },
     { id: 'f1', kind: 'personnage', ref: 'humain', pos: { x: 3, y: 2 }, facing: 'S', appearance: { species } },
@@ -37,7 +37,7 @@ function scèneAttablée(assis: boolean, species = 'humain'): Scene {
   return s;
 }
 
-const mpt = sceneMetresPerTile(emptyScene(8, 8));
+const mpt = sceneMetresPerTile(emptyScene('scene-test', 8, 8));
 const toutVisible = (s: Scene) => {
   const v = new Set<string>();
   for (let y = 0; y < s.dimensions.h; y++) for (let x = 0; x < s.dimensions.w; x++) v.add(`${x},${y},0`);

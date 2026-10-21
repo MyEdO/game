@@ -13,7 +13,7 @@
  * Sans consommateur à ce jour : ces résolveurs sont offerts au flux de scène qui les composera.
  */
 import { COND } from './conditions';
-import { defaultRNG, type RNG } from './dice';
+import { type RNG } from './dice';
 import { extendedTestStep, rollTest, opposedTest, type OpposedResult, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { Allure } from './mountTravel';
@@ -32,7 +32,7 @@ export interface BoardingParams {
   valeurAthletisme: number;
   /** Le saut part d'une position immobile (EDOC 07 l.330). */
   depuisArret?: boolean;
-  rng?: RNG;
+  rng: RNG;
 }
 
 export interface BoardingResult {
@@ -46,7 +46,7 @@ export interface BoardingResult {
 
 /** Sauter sur un VÉHICULE en mouvement — EDOC 07 l.328. Échec : la cible est manquée, chute de 2 m. */
 export function boardMovingVehicle(p: BoardingParams): BoardingResult {
-  const athletisme = rollTest(p.valeurAthletisme, boardingDifficulty(p.depuisArret), p.rng ?? defaultRNG);
+  const athletisme = rollTest(p.valeurAthletisme, boardingDifficulty(p.depuisArret), p.rng);
   return athletisme.success ? { athletisme, aBord: true } : { athletisme, aBord: false, chuteM: CHUTE_SELLE_M };
 }
 
@@ -89,7 +89,7 @@ export interface BoardMountResult extends BoardingResult {
  *    monture reste à son cavalier et le sauteur, qui n'a pas pris la selle, chute de 2 m.
  */
 export function boardMovingMount(p: BoardMountParams): BoardMountResult {
-  const rng = p.rng ?? defaultRNG;
+  const rng = p.rng;
   const athletisme = rollTest(p.valeurAthletisme, boardingDifficulty(p.depuisArret), rng);
   if (!athletisme.success) return { athletisme, aBord: false, chuteM: CHUTE_SELLE_M };
 
@@ -154,9 +154,9 @@ export function resolveDraggedByStirrup(p: {
   valeurEsquive: number;
   allure: DragAllure;
   mouvementMonture: number;
-  rng?: RNG;
+  rng: RNG;
 }): DraggedByStirrupResult {
-  const esquive = rollTest(p.valeurEsquive, 'intermediaire', p.rng ?? defaultRNG);
+  const esquive = rollTest(p.valeurEsquive, 'intermediaire', p.rng);
   if (esquive.success) {
     return { esquive, piedPris: false, etats: [], degatsParRound: 0, liberationOuverte: false };
   }
@@ -177,7 +177,7 @@ export function resolveDraggedByStirrup(p: {
 export function freeFootFromStirrupStep(
   prevDR: number,
   valeurAthletisme: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): { test: TestResult; total: number; done: boolean } {
   const test = rollTest(valeurAthletisme, 'intermediaire', rng);
   return { test, ...extendedTestStep(prevDR, test, STIRRUP_FREE_DR) };
@@ -190,7 +190,7 @@ export function freeFootFromStirrupStep(
 export function cutStirrupStrap(
   valeurCC: number,
   armeTranchanteEnMain: boolean,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): { test?: TestResult; tranche: boolean } {
   if (!armeTranchanteEnMain) return { tranche: false };
   const test = rollTest(valeurCC, 'tresDifficile', rng);

@@ -22,6 +22,7 @@ import {
 } from './overcast';
 import { domains, findEffectTableById } from '../data';
 import miscastJson from '../data/miscast.json';
+import { deFixe } from './dice.testkit';
 
 const RULE = 'magic-vdm-incantation';
 
@@ -74,7 +75,7 @@ describe('Tableaux des Incantations Imparfaites — `VDM 02 l.218-263`', () => {
   });
 
   /** Jet figé sur 88 : la rangée 86-90 de la table Mineure VDM (« Marqué par la Magie »). */
-  const rngOn88 = (): RNG => ({ int: () => 88 });
+  const rngOn88 = (): RNG => (deFixe(88));
 
   it('option OFF : 88 tire « Double problème » (table du Livre de base)', () => {
     expect(rollMiscast('mineure', rngOn88()).label).toBe('Double problème');

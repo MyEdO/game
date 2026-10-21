@@ -11,7 +11,7 @@ function sceneWithRooms(
   walls: WallSeg[] = [],
   labels: readonly [string, string] = ['Salle orientale', 'Salle occidentale'],
 ): Scene {
-  const scene = emptyScene(5, 4);
+  const scene = emptyScene('scene-test', 5, 4);
   scene.effectZones = [
     {
       id: 'room-a',
@@ -31,7 +31,7 @@ function sceneWithRooms(
 }
 
 function sceneWithExteriorDoors(closed = false): Scene {
-  const scene = emptyScene(8, 3);
+  const scene = emptyScene('scene-test', 8, 3);
   scene.layers[0].tiles.fill('vide');
   for (const [x, y] of [[0, 1], [1, 1], [5, 1], [6, 1]] as const) {
     scene.layers[0].tiles[x + y * 8] = 'herbe';
@@ -161,7 +161,7 @@ describe('roomPortals — graphe dérivé des pièces', () => {
   });
 
   it('produit une sortie extérieure seulement vers une cellule mécaniquement franchissable', () => {
-    const scene = emptyScene(4, 4);
+    const scene = emptyScene('scene-test', 4, 4);
     scene.effectZones = [{
       id: 'room-a',
       label: 'Salle',

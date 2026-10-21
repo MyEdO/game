@@ -8,7 +8,7 @@ import { METRES_PER_LEVEL } from '../noyau/monde/relief';
 import type { WorldMap, MapPlace } from '../noyau/worldMap';
 
 function base() {
-  const s = emptyScene(5, 5);
+  const s = emptyScene('scene-test', 5, 5);
   s.id = 'A';
   return s;
 }

@@ -35,7 +35,7 @@
  * lui-même les dégâts (via `loseWounds`).
  */
 import { Combatant, CharKey, ItemInstance, UpkeepDeferTest } from './types';
-import { RNG, defaultRNG, d10 } from './dice';
+import { RNG, d10 } from './dice';
 import { rollTest } from './tests';
 import { hasActiveFlag } from './activeFlags';
 import { itemCapability } from './capabilities';
@@ -164,7 +164,7 @@ export interface FoodUpkeepResult {
  * + 1d10 Dégâts réduits du BE, min 1). Mute `c.hunger` ; renvoie le journal + les Dégâts à appliquer
  * (via `loseWounds` par l'appelant). Partagé avec `dailyFoodUpkeep` (roll eager) — zéro duplication.
  */
-export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: RNG = defaultRNG): { log: string[]; damage: number } {
+export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: string[]; damage: number } {
   const h: HungerState = c.hunger ?? { days: 0, tests: 0, failures: 0 };
   h.tests += 1;
   const log: string[] = [];
@@ -187,7 +187,7 @@ export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: R
  * avec la pénalité cumulative (−10 × Tests déjà tentés, LDB 18 l.338) pour qu'il devienne une ÉTAPE
  * influençable (résolue par `applyFaimTest`). Sans `deferTest` (contextes eager), le jet est roulé ici.
  */
-export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: RNG = defaultRNG, deferTest?: UpkeepDeferTest): FoodUpkeepResult {
+export function dailyFoodUpkeep(c: Combatant, resVal: number, be: number, rng: RNG, deferTest?: UpkeepDeferTest): FoodUpkeepResult {
   const res: FoodUpkeepResult = { ate: false, rationConsumed: false, damage: 0, log: [] };
   if (c.dead) return res;
   // Sustentation magique (Graisse de la terre, LDB 48 : « n'a pas besoin de manger ou de boire ») :
@@ -268,7 +268,7 @@ export interface WaterUpkeepResult {
  * échec applique les pénalités (LDB 18 l.340 : 1ᵉʳ → −10 Int/FM/Soc ; 2ᵉ+ → −10 le reste + 1d10 Dégâts réduits
  * du BE, min 1). Mute `c.thirst` ; renvoie le journal + les Dégâts. Miroir de `applyFaimTest`.
  */
-export function applySoifTest(c: Combatant, success: boolean, be: number, rng: RNG = defaultRNG): { log: string[]; damage: number } {
+export function applySoifTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: string[]; damage: number } {
   const s: ThirstState = c.thirst ?? { days: 0, tests: 0, failures: 0 };
   s.tests += 1;
   const log: string[] = [];
@@ -292,7 +292,7 @@ export function applySoifTest(c: Combatant, success: boolean, be: number, rng: R
  * Tests, LDB 18 l.338). `deferTest` : le Test devient une ÉTAPE de cascade (résolu par `applySoifTest`).
  * Mute `c.thirst`. `resVal`/`be` passés par l'appelant (cycle d'import, cf. en-tête).
  */
-export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number, be: number, rng: RNG = defaultRNG, deferTest?: UpkeepDeferTest): WaterUpkeepResult {
+export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number, be: number, rng: RNG, deferTest?: UpkeepDeferTest): WaterUpkeepResult {
   const res: WaterUpkeepResult = { drank: false, damage: 0, log: [] };
   if (c.dead) return res;
   // Sustentation magique (Graisse de la terre, LDB 48 : « n'a pas besoin de manger ou de BOIRE ») :

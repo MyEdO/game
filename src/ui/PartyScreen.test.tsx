@@ -427,7 +427,7 @@ describe('PartyScreen — « Choisir » une campagne : construite par sa fabriqu
       id: 'proj-axes', label: 'Campagne à axes', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: {
         type: 'projet', id: 'proj-axes', label: 'Campagne à axes', versionContenu: 1,
-        maison: 'fixture de test', scenes: [{ ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' }],
+        maison: 'fixture de test', scenes: [{ ...emptyScene('scene-a', 4, 4), label: 'Salle A' }],
         narratif: emptyNarratif(), activeAxes: axes.map((a) => a.id),
       },
     } as unknown as SavedProject;

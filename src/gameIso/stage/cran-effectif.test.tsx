@@ -115,7 +115,7 @@ describe('MondeDeCampagne — le cran effectif ALIMENTE le dégagement, et ne re
 
   /** Scène minimale PORTEUSE DE MUR : sans arête, aucune façade ne se juge. */
   function monterVolumique(): void {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.walls = [{ x: 3, y: 3, side: 'E' }];
     useGame.setState({
       scene,

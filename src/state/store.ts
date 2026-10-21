@@ -27,6 +27,7 @@ import { exploreStepDest } from '../noyau/monde/exploreNav';
 import { bus, EVT } from '../noyau/bus';
 import { createCombatSlice } from '../noyau/combatSlice';
 import { brancherLeJeu } from '../noyau/branchement';
+import { graineDEntropie } from '../web/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { etatInitialDuJeu, type CampaignDoc, type Ecran, type Jeu } from '../noyau/etat';
@@ -47,7 +48,7 @@ import { creerActionsDInteraction } from '../noyau/interactionsDExploration';
 import { creerActionsDeConversation } from '../noyau/conversation';
 import { creerActionsDuMarchand } from '../noyau/merchantFlow';
 import { creerActionsDeTaverne } from '../noyau/tavernFlow';
-import { creerActionsDesDes } from '../noyau/battleRng';
+import { creerActionsDesDes, seedBattleRng } from '../noyau/battleRng';
 import { creerActionsDIssueDeCombat } from '../noyau/issueDeCombat';
 import { creerActionsDuMedecin } from '../noyau/medicFlow';
 import { creerActionsDuRepos } from '../noyau/restFlow';
@@ -433,6 +434,9 @@ export const useGame = create<GameState>((set, get) => ({
 
 // Le jeu branché sur son propriétaire, le store (#2889, D7).
 brancherLeJeu(useGame.getState, useGame.setState, tablesDuJeu());
+
+// Les dés de la partie, semés d'entropie par l'hôte (#2817, D8).
+seedBattleRng(graineDEntropie());
 
 // Plateforme web du noyau (#2817, D6) : ses appels différés passent par le registre tracé de
 // `web/minuteries` (#405, #415), son héros persisté par le roster. Son jeton est l'id du timer tracé :

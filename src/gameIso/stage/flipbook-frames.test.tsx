@@ -265,7 +265,7 @@ describe('Écrivain de frames — deux écritures, aucune péremption (#1176 L3)
 // ————————————————————————————————————————————————————————————————
 
 describe('Palier de cuisson — la sous-résolution mesurée du rapport de pixels (#1328)', () => {
-  const MPT = sceneMetresPerTile(emptyScene(8, 8));
+  const MPT = sceneMetresPerTile(emptyScene('scene-test', 8, 8));
   const HAUTEUR_M = 2.3; // un personnage debout, convention `jeu`
 
   it('MESURE : à zoom MAX, un quad couvre `min(2, dpr)` fois plus de pixels que sa texture n’en porte', () => {
@@ -317,7 +317,7 @@ describe('Palier de cuisson — la sous-résolution mesurée du rapport de pixel
 // ————————————————————————————————————————————————————————————————
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(10, 10);
+const SCENE: Scene = emptyScene('scene-test', 10, 10);
 const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view: 'iso' };
 const AFFINE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 };
 /** Le MÊME cadre au zoom maximal — celui sur lequel le palier de cuisson est taillé (`rasterPxHeight`). */

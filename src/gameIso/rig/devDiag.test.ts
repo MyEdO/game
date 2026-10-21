@@ -54,7 +54,7 @@ describe('diagnostics de rendu — une fois par sujet, jamais par frame (#936)',
   // Collision de clés : sans sujet posé, TOUS les personnages sans réf partagent la même clé (vide) et
   // un seul parle — 12 défauts sur 13 muets à la mesure. La clé porte donc `<scène>/<idEntité>`.
   it('13 personnages SANS réf d’une même scène → 13 [bodyPlan] (aucun sujet avalé par le premier)', () => {
-    useGame.setState({ scene: { ...emptyScene(), id: 'scene-a' } });
+    useGame.setState({ scene: emptyScene('scene-a') });
     for (let i = 0; i < 13; i++) tokenBodyKind({ kind: 'sceneEntity', ent: ent(`muet-${i}`) });
     const dits = err.mock.calls.map((c) => String(c[0])).filter((m) => m.startsWith('[bodyPlan]'));
     expect(dits).toHaveLength(13);
@@ -62,9 +62,9 @@ describe('diagnostics de rendu — une fois par sujet, jamais par frame (#936)',
   });
 
   it('le MÊME id d’entité dans DEUX scènes → 2 [bodyPlan] (les ids ne sont uniques que par scène)', () => {
-    useGame.setState({ scene: { ...emptyScene(), id: 'echeance' } });
+    useGame.setState({ scene: emptyScene('echeance') });
     tokenBodyKind({ kind: 'sceneEntity', ent: ent('aubergiste') });
-    useGame.setState({ scene: { ...emptyScene(), id: 'marche-equipement' } });
+    useGame.setState({ scene: emptyScene('marche-equipement') });
     tokenBodyKind({ kind: 'sceneEntity', ent: ent('aubergiste') });
     expect(err.mock.calls.map((c) => String(c[0])).filter((m) => m.startsWith('[bodyPlan]'))).toHaveLength(2);
   });

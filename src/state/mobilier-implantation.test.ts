@@ -33,7 +33,7 @@ interface Boite { x0: number; x1: number; y0: number; y1: number; h0: number; h1
 
 /** Scène-fixture : plain-pied de plancher, sans mur, aux dimensions demandées. */
 function salle(w = 20, h = 16): Scene {
-  return { ...emptyScene(w, h), id: 'fixture-mobilier', layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }] };
+  return { ...emptyScene('fixture-mobilier', w, h), layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }] };
 }
 
 /** Pose un meuble : ancre, réf de catalogue, cap. */

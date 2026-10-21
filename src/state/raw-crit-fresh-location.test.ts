@@ -83,7 +83,7 @@ describe('#43.2 Critique de défense opposée — HÉROS blindé : étape de dé
       combatants: [h], order: ['T'], baseOrder: ['T'], turn: 0, round: 1, action: null,
       selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
-    useGame.setState({ battle, mode: 'battle', scene: emptyScene(), gameTime: 720, pendingCascade: null, pendingFateSave: null });
+    useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, pendingCascade: null, pendingFateSave: null });
     applyOpposedCritical(useGame.getState, useGame.setState, h, 11, {}, []);
     const dev = useGame.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation')?.deviation;
     expect(dev?.mode).toBe('self'); // suspendu : choix Dévier/Subir

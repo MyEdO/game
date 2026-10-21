@@ -6,6 +6,7 @@ import { crewTestSuccess } from './crewMorale';
 import { setRule, resetRule } from './policy';
 import type { RNG } from './dice';
 import type { Combatant, ShipPoste } from './types';
+import { deFixe } from './dice.testkit';
 
 const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
   ({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: { current: 10, max: 10, base: 10 }, items: [], ...over }) as unknown as Combatant;
@@ -22,7 +23,7 @@ const hull = (E: number, armourCorps = 0, wounds = 90): Combatant =>
 /** Coque À PROFIL NAVAL (`profilNavalDe`) : la cogue du schéma `vehicles`. */
 const navire = (wounds: number, blindage = 0): Combatant => ({ ...hull(40, blindage, wounds), creatureId: 'cogue' }) as Combatant;
 
-const fixed = (n: number): RNG => ({ int: () => n }) as unknown as RNG;
+const fixed = deFixe;
 
 /** La volée, puis chaque coup né de son jet sur `cible`, comme `jouerLesTirsDeBordee` le fait naître. */
 const volee = (postes: ShipPoste[], cible: Combatant, dr: number, success: boolean, crew: Combatant[], rng: RNG) =>

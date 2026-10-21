@@ -41,7 +41,7 @@ function poser(combatants: Combatant[], gmSeat?: number): void {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   useGame.setState({
-    battle, mode: 'battle', scene: emptyScene(20, 20), party: combatants.filter((c) => c.kind === 'hero'), facing: {}, vessel: null,
+    battle, mode: 'battle', scene: emptyScene('scene-test', 20, 20), party: combatants.filter((c) => c.kind === 'hero'), facing: {}, vessel: null,
     journal: [], pendingCascade: null, suspendedCascades: [], pendingFateSave: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat },
   } as never);

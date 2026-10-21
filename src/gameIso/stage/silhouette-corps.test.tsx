@@ -41,7 +41,7 @@ import type { BattleState } from '../../noyau/etat';
 vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(10, 10);
+const SCENE: Scene = emptyScene('scene-test', 10, 10);
 const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view: 'iso' };
 const AFFINE: StageFrame = { mode: 'plateau', dims: DIMS, cam: { x: 0, y: 0 }, zoom: 1 };
 const POV: StageFrame = { mode: 'pov', partyPos: { x: 2, y: 2, z: 0 }, facing: 'S', indoor: false, cid: 'h1' };

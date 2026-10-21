@@ -102,7 +102,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
    * de la case posée). Le littéral `2` d'avant peignait 2 cases de 10 m, soit un disque de 40 m.
    */
   it('gabarit de ZONE : 4 m = 2 cases à 2 m/case, 0 case à 10 m/case', () => {
-    const mptTerre = sceneMetresPerTile(emptyScene(1, 1));
+    const mptTerre = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
     expect([mptTerre, zoneRadiusTilesAt(4, 0, mptTerre)]).toEqual([2, 2]);
     expect(zoneRadiusTilesAt(4, 0, 10)).toBe(0);
     // La Surincantation « +Zone » agrandit le MÊME gabarit métrique : elle suit l'échelle elle aussi.

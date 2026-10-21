@@ -29,7 +29,7 @@ const TOIT: BuildingMass = {
 };
 
 function scèneCouverte(): Scene {
-  const scene = emptyScene(12, 12);
+  const scene = emptyScene('scene-test', 12, 12);
   scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }
@@ -40,7 +40,7 @@ const nappesDe = (scene: Scene, def = BRUME) =>
 
 describe('weatherSheets — les nappes ne couvrent QUE le ciel ouvert', () => {
   it('carte NUE : une bande pleine par rangée (la fusion, pas un quad par case)', () => {
-    const scene = emptyScene(12, 12);
+    const scene = emptyScene('scene-test', 12, 12);
     const runs = openSkyRuns(scene);
     expect(runs.length).toBe(12);
     for (const r of runs) expect([r.x0, r.x1]).toEqual([0, 11]);
@@ -58,7 +58,7 @@ describe('weatherSheets — les nappes ne couvrent QUE le ciel ouvert', () => {
   });
 
   it('aucune colonne ouverte (bâti partout) : AUCUNE nappe montée', () => {
-    const scene = emptyScene(4, 4);
+    const scene = emptyScene('scene-test', 4, 4);
     scene.architecture = [{
       id: 'bloc', label: 'Bloc', style: 'maison', storeys: [], facades: [],
       masses: [{ ...TOIT, id: 'toit-bloc', footprint: [{ x: 0, y: 0, w: 4, h: 4 }] }],
@@ -70,7 +70,7 @@ describe('weatherSheets — les nappes ne couvrent QUE le ciel ouvert', () => {
 
 describe('weatherSheets — cotes et matière', () => {
   it('une nappe PAR couche, à la cote de la donnée AU-DESSUS du sol le plus bas', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     const { groundM } = sceneGroundSpan(scene);
     const nappes = nappesDe(scene);
     expect(nappes.length).toBe(3);
@@ -84,7 +84,7 @@ describe('weatherSheets — cotes et matière', () => {
   });
 
   it('le relief déplace TOUTES les nappes du même cran (cote au sol le plus BAS)', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.layers[0].height = new Array(36).fill(3);
     const nappes = nappesDe(scene);
     const y = (m: THREE.Mesh) => (m.geometry.getAttribute('position') as THREE.BufferAttribute).getY(0);
@@ -93,7 +93,7 @@ describe('weatherSheets — cotes et matière', () => {
   });
 
   it('la géométrie couvre l’emprise MÉTRIQUE des bandes, deux triangles chacune', () => {
-    const mpt = sceneMetresPerTile(emptyScene(4, 4));
+    const mpt = sceneMetresPerTile(emptyScene('scene-test', 4, 4));
     const geo = brumeSheetGeometry([{ y: 2, x0: 1, x1: 3 }], mpt, 5);
     const pos = geo.getAttribute('position');
     expect(pos.count).toBe(6); // 2 triangles
@@ -106,7 +106,7 @@ describe('weatherSheets — cotes et matière', () => {
   });
 
   it('matériau : translucide à l’alpha de la donnée, sans écriture de profondeur, NON embrumé', () => {
-    const nappes = nappesDe(emptyScene(4, 4));
+    const nappes = nappesDe(emptyScene('scene-test', 4, 4));
     const mat = nappes[0].material as THREE.MeshBasicMaterial;
     expect(mat.transparent).toBe(true);
     expect(mat.opacity).toBe(BRUME.layers[0].alpha);
@@ -153,7 +153,7 @@ describe('weatherSheets — le plan est RETENU, pas rebâti (#1247)', () => {
   });
 
   it('le RELIEF entre dans le plan : une couche réécrite rebâtit (la cote des nappes en dépend)', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     const slot = retainBrumeSheets(null, scene, mptDe(scene), BRUME);
     const surButte = { ...scene, layers: [{ ...scene.layers[0], height: new Array(36).fill(4) }] };
     const neuf = retainBrumeSheets(slot, surButte, mptDe(scene), BRUME);

@@ -1509,7 +1509,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
   it('Effet giveXp : octroie les PX à TOUT le groupe (via trigger)', () => {
     const a = mkHero({ id: 'a', xp: 0 });
     const b = mkHero({ id: 'b', xp: 50 });
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'xp-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.triggers.push({ id: 't-xp', rect: { x: 2, y: 0, w: 1, h: 1 }, once: true, flow: flowFromEffects([{ type: 'giveXp', amount: 100 }]) });
@@ -1528,7 +1528,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
   const looter = (): Combatant => ({ id: 'a', label: 'A', xp: 0, wounds: { current: 12, max: 12 }, conditions: [] }) as unknown as Combatant;
 
   it('fouiller un prop interactif applique les Effets, laisse le corps en place, et ne se refait pas', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'fouille-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({
@@ -1581,7 +1581,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
   });
 
   it('prop consommable (butin) : fenêtre de loot (attribution + restes au 1er héros) + disparition (consume)', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'loot-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Coffre', usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([{ type: 'giveTrapping', custom: 'Fiole' }, { type: 'giveTrapping', custom: 'Lettre' }]) }] } });
@@ -1625,7 +1625,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
         talents: [],
         movement: 4,
       }) as unknown as Combatant;
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'gt-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({
@@ -1650,7 +1650,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
   });
 
   it('#800 — une entité posée à même (x,y) mais sur un AUTRE étage (z) n’est pas interactible', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'z-blind-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({
@@ -1686,7 +1686,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
 
   /** Décor à N actions authorées, posé adjacent au groupe. */
   function poser(actions: ActionAuthoree[]) {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'gestes-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Coffre', usable: { actions } });
@@ -1792,7 +1792,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
   const looter = (): Combatant => ({ id: 'a', label: 'A', xp: 0, wounds: { current: 12, max: 12 }, conditions: [] }) as unknown as Combatant;
 
   function armedScene() {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.id = 'mti-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'cadavre', kind: 'prop', pos: { x: 5, y: 0 }, label: 'Cadavre', usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveMoney', montant: { gold: 3 } }]) }] } });
@@ -1856,7 +1856,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
       weapons: [], armour: {}, items: [], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }], talents: [], movement: 4, ...over }) as unknown as Combatant;
 
   function lootScene() {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.id = 'pl-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({
@@ -2221,7 +2221,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     hero.items = hero.items ?? [];
     hero.pos = { x: 0, y: 0 };
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.id = 'pickup-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({
@@ -2308,7 +2308,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
       combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene(8, 8) });
+    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
     return { H, E };
   }
 
@@ -2498,7 +2498,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
       combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene(8, 8) });
+    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
     return { H, E };
   }
 
@@ -2541,7 +2541,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
       combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene(8, 8) });
+    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8) });
     return { H, E };
   }
 
@@ -2630,7 +2630,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
       combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 99, movedPreAction: false, acted: false, log: [], over: null,
     };
-    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene(8, 8), pendingReload: null, pendingAttack: null });
+    useGame.setState({ party: [H], mode: 'battle', battle, scene: emptyScene('scene-test', 8, 8), pendingReload: null, pendingAttack: null });
     return { H, E };
   }
 
@@ -3071,7 +3071,7 @@ describe('stepPartyDir — pas clavier BLOQUÉ (#792) : silence remplacé par MO
   beforeEach(() => reset());
 
   it("mur droit devant : le pas n'a pas bougé le groupe ET a émis MOVE_BLOCKED (pas de rabattement latéral silencieux)", () => {
-    const scene = emptyScene(8, 8);
+    const scene = emptyScene('scene-test', 8, 8);
     scene.id = 'stepdir-scene';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 4, y: 4 } });
     const idx = (x: number, y: number) => y * 8 + x;
@@ -3095,7 +3095,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
   const lead = { id: 'lead', label: 'L', xp: 0 } as unknown as Combatant;
 
   it('startScene : heroStart au bord sud SANS facing → le groupe regarde le contenu (N, pas le vide POV)', () => {
-    const sc = emptyScene(21, 20);
+    const sc = emptyScene('scene-test', 21, 20);
     sc.id = 'sud';
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 10, y: 19 } });
     useGame.getState().setParty([lead]);
@@ -3104,7 +3104,7 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
   });
 
   it('startScene : heroStart AVEC facing authoré → respecté tel quel', () => {
-    const sc = emptyScene(21, 20);
+    const sc = emptyScene('scene-test', 21, 20);
     sc.id = 'authore';
     sc.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 10, y: 19 }, facing: 'O' });
     useGame.getState().setParty([lead]);
@@ -3113,9 +3113,9 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
   });
 
   it("transitionTo : par point d'entrée nommé → cap recalculé vers le contenu de la NOUVELLE carte (l'authoré du heroStart ne s'applique pas : on ne spawne pas dessus)", () => {
-    const a = emptyScene(5, 5);
+    const a = emptyScene('scene-test', 5, 5);
     a.id = 'a';
-    const b = emptyScene(7, 7);
+    const b = emptyScene('scene-test', 7, 7);
     b.id = 'b';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 3 }, facing: 'O' });
     b.entryPoints = { porte: { x: 3, y: 6 } }; // bord sud de b
@@ -3127,9 +3127,9 @@ describe("Orientation du GROUPE à l'entrée de scène (spawnFacing / heroStart 
   });
 
   it('transitionTo : sans entrée nommée → spawn au heroStart, facing authoré respecté', () => {
-    const a = emptyScene(5, 5);
+    const a = emptyScene('scene-test', 5, 5);
     a.id = 'a2';
-    const b = emptyScene(7, 7);
+    const b = emptyScene('scene-test', 7, 7);
     b.id = 'b2';
     b.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 3, y: 6 }, facing: 'NE' });
     useGame.getState().setParty([lead]);
@@ -3161,7 +3161,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('fouiller (exploration) avance le temps de TIME_COST.search, une seule fois', () => {
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'fouille-temps';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     scene.entities.push({ id: 'cadavre', kind: 'prop', pos: { x: 1, y: 0 }, label: 'Cadavre', usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([{ type: 'giveMoney', montant: { gold: 1 } }]) }] } });
@@ -3234,7 +3234,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     });
 
     // 2) Démarrage d’une nouvelle partie/scénario.
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'neuve';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     useGame.getState().setParty([{ id: 'h', label: 'H', xp: 0 } as unknown as Combatant]);
@@ -3274,7 +3274,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
     expect(init, 'la fiche ouverte reste un état de l’écran').toHaveProperty('inspectId', null);
     useGame.getState().setInspectId('h');
     expect(useGame.getState().inspectId).toBe('h');
-    const scene = emptyScene(6, 6);
+    const scene = emptyScene('scene-test', 6, 6);
     scene.id = 'neuve2';
     scene.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
     useGame.getState().setParty([{ id: 'h', label: 'H', xp: 0 } as unknown as Combatant]);
@@ -3308,7 +3308,7 @@ describe('Marchand — openMerchant / buyItem / vente au panier (#2)', () => {
   beforeEach(() => reset());
   const hero = (): Combatant => ({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
   const merchantScene = () => {
-    const sc = emptyScene(4, 4); sc.id = 'm';
+    const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
     sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } });
     return sc;
   };
@@ -3725,7 +3725,7 @@ describe('viewMode (vue du dessus)', () => {
 
   it('startScene PRÉSERVE viewMode (préférence de vue, comme zoom/camRot)', () => {
     useGame.setState({ viewMode: 'top' });
-    useGame.getState().startScene(emptyScene());
+    useGame.getState().startScene(emptyScene('scene-test'));
     expect(useGame.getState().viewMode).toBe('top');
   });
 });
@@ -3735,7 +3735,7 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   afterEach(() => { resetRule('market-mode'); resetRule('market-guild'); });
   const hero = (): Combatant => ({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: { current: 10, max: 10 }, conditions: [], weapons: [], armour: {} } as unknown as Combatant);
   const merchantScene = () => {
-    const sc = emptyScene(4, 4); sc.id = 'm';
+    const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
     sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } });
     return sc;
   };

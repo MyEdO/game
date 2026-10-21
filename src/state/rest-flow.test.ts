@@ -99,7 +99,7 @@ beforeEach(() => {
   seedBattleRng(1);
   useGame.setState({
     party: [hero(), hero({ id: 'h2', label: 'Bruno', items: [ration('r1')] })],
-    battle: null, pendingRest: null, scene: emptyScene(10, 10),
+    battle: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10),
   });
   setGroupPurse({ gold: 2, silver: 0, brass: 0 }); // bourse de bande = 2 CO (480 sc)
 });
@@ -153,7 +153,7 @@ describe('openRest / choix par héros', () => {
   });
 
   it('campement sous la pluie sans tente : ABRI raté → l’Exposition est INSÉRÉE (2 VAGUES, 2 campeurs par vague)', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'pluie'; // difficile → 2 Tests/nuit si pas d'abri
     useGame.setState({ scene: sc });
     useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
@@ -207,7 +207,7 @@ describe('openRest / choix par héros', () => {
   });
 
   it('avec une TENTE dans le paquetage : pas d’Exposition par nuit difficile (note de campement au journal)', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'pluie';
     useGame.setState({ scene: sc });
     useGame.getState().party[1].items!.push({ uid: 't', label: 'Tente', trappingId: 'tente', kind: 'misc', qualities: [], enc: 2, equipped: false } as ItemInstance);
@@ -227,7 +227,7 @@ describe('régression T-bourse (#531, buildNightCascade) — gages débités CET
     const solo = hero({ id: 'h1', label: 'Hilda', wounds: { current: 12, max: 12 }, items: [ration('r1')] }); // PB plein → needsRecoveryRoll=false
     addCondition(solo, 'extenue', 1);
     useGame.setState({
-      party: [solo], battle: null, pendingRest: null, scene: emptyScene(10, 10),
+      party: [solo], battle: null, pendingRest: null, scene: emptyScene('scene-test', 10, 10),
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
       gameTime: 6 * MINUTES_PER_DAY + 6 * 60, lastUpkeepDay: 6, // veille d'un franchissement de semaine (MDG 14)
     });
@@ -256,7 +256,7 @@ describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
   });
 
   it('nuit à bord sous la tempête : ABRITÉ (aucune étape d’Exposition), la récupération a bien lieu', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.weather = 'tempete'; // extrême à terre — mais on est à bord (hamacs, abrité)
     useGame.setState({ scene: sc });
     useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { bord: true } });
@@ -300,7 +300,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
 
   it('2 nuits d’affilée sans ration : CHAQUE nuit est SA PROPRE cascade influençable, non pré-résolue', () => {
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 1, tests: 0, failures: 0 } });
-    useGame.setState({ party: [starving], scene: emptyScene(10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
+    useGame.setState({ party: [starving], scene: emptyScene('scene-test', 10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
     useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 }); // days>1 → repos multi-jours authoré (op `rest`)
     useGame.getState().restSet('h1', { food: 'rien' });
     useGame.getState().restSleep();
@@ -330,7 +330,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
 
   it('escalade CUMULATIVE de la Faim PORTÉE d’une nuit à l’autre (compteur persisté sur le héros)', () => {
     const starving = hero({ id: 'h1', label: 'Hilda', hunger: { days: 0, tests: 0, failures: 0 } });
-    useGame.setState({ party: [starving], scene: emptyScene(10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
+    useGame.setState({ party: [starving], scene: emptyScene('scene-test', 10, 10), pendingRest: null }); // camp (gratuit) → aucune bourse à semer
     useGame.getState().openRest({ lieu: fixtureText('Ici'), places: { camp: true }, days: 4 });
     useGame.getState().restSet('h1', { food: 'rien' });
     useGame.getState().restSleep();
@@ -345,7 +345,7 @@ describe('repos MULTI-JOURS (#347) — chaîne de cascades nuit-par-nuit, jamais
 
 describe('restPlacesHere — offre paramétrable sur la ZONE', () => {
   it('zone de repos prioritaire sur la scène ; scène sans rien = camp ; tout à false = interdit', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.rest = { camp: true };
     sc.restZones = [{ rect: { x: 0, y: 0, w: 3, h: 3 }, places: { auberge: true }, quality: 'pietre' }];
     // Dans la zone (0-2) : l'auberge piètre du quartier.
@@ -360,7 +360,7 @@ describe('restPlacesHere — offre paramétrable sur la ZONE', () => {
   });
 
   it('#803 — zone de repos au rez (z absent/0) inactive quand le groupe campe à l’étage 1', () => {
-    const sc = emptyScene(10, 10);
+    const sc = emptyScene('scene-test', 10, 10);
     sc.rest = { camp: true };
     sc.restZones = [{ rect: { x: 0, y: 0, w: 3, h: 3 }, places: { auberge: true }, quality: 'pietre' }];
     const rez = restPlacesHere({ scene: sc, partyPos: { x: 1, y: 1, z: 0 } } as never);

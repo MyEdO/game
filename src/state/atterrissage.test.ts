@@ -8,7 +8,7 @@ import { emptyScene, setTileCollapsed, surfaceDAtterrissage, type Scene, type Te
 
 /** 3×3 ; couche 0 au sol (0 m) ; couche 1 = un tablier de pont à 3 m sur la seule case (1,1). */
 function pontScene(): Scene {
-  const s = emptyScene(3, 3);
+  const s = emptyScene('scene-test', 3, 3);
   const tiles = new Array(9).fill('vide') as Terrain[];
   tiles[1 * 3 + 1] = s.layers[0].tiles[0];
   const height = new Array(9).fill(0) as number[];

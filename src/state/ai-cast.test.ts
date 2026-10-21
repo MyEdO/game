@@ -71,7 +71,7 @@ describe('opValue / spellActionValue — un sort de dégâts vaut des Blessures,
 // chooseEnemyAction — décisions de sort (cast / castArea / focus), via spells: CastableSpell[]
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
-  const scene = emptyScene(16, 16);
+  const scene = emptyScene('scene-test', 16, 16);
   function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
     return {
       id, label: id, kind, pos, wounds: { current: 10, max: 10 }, weapons: [MELEE],

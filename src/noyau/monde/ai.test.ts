@@ -42,7 +42,7 @@ function mk(
   } as Combatant;
 }
 
-const scene = emptyScene(12, 12);
+const scene = emptyScene('scene-test', 12, 12);
 
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
   return {

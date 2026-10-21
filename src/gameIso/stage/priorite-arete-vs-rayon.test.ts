@@ -138,7 +138,7 @@ const FIXTURE: Scene = buildScene({
 /** Une salle 6×6 : deux pièces d'une case, (2,2) et (3,2), et la porte de leur arête (2,2,E) — le seul
  *  accès de la première, murée ailleurs ; `portail` est celui que la scène en dérive. */
 function scèneÀUnePorte(): { scene: Scene; portail: RoomPortal } {
-  const scene = emptyScene(6, 6);
+  const scene = emptyScene('scene-test', 6, 6);
   scene.effectZones = [piece('a', 2, 2), piece('b', 3, 2)];
   scene.walls = [...cloisons(2, 2, ['N', 'S', 'O']), { x: 2, y: 2, side: 'E', door: true }];
   const portail = roomPortals(scene).find((p) => p.fromZoneId === 'a' && p.toZoneId === 'b');

@@ -13,7 +13,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import { seedBattleRng } from '../noyau/battleRng';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from '../noyau/combat/triggeredTest';
 import { flowTestGated, combatConditionCtx } from '../noyau/combat/flowEval';
 import { pushCombatStep } from '../noyau/combatEffects';
@@ -51,11 +51,10 @@ const consequenceSurLeSujet = (): string => JSON.stringify({
   scheduledEffects: get().scheduledEffects,
   flags: get().flags,
   cascade: get().pendingCascade?.participants.map((p) => p.kind),
-// Les identifiants d'objet et de configuration d'armes sont MINTÉS par des compteurs de module
-// (`newUid`, `newLoadoutId`, `engine/items.ts`) : deux décors successifs n'en portent jamais les mêmes. C'est une
-// IDENTITÉ, pas une conséquence — on la neutralise, sinon deux courses du MÊME site différeraient
-// toujours et le témoin ne mesurerait rien.
-}).replace(/\b(it|lo)-\d+\b/g, '$1-#');
+// Les identifiants d'objet sont MINTÉS par un compteur de module (`newUid`, `engine/items.ts`) : deux
+// décors successifs n'en portent jamais les mêmes. C'est une IDENTITÉ, pas une conséquence — on la
+// neutralise, sinon deux courses du MÊME site différeraient toujours et le témoin ne mesurerait rien.
+}).replace(/\bit-\d+\b/g, 'it-#');
 
 /** Hauteur du journal. Une conséquence peut n'exister QUE là (op `narrative`) : le contrat positif la
  *  compte, et le témoin à branches vides annule la ligne que la résolution du jet y écrit de toute façon. */
@@ -134,7 +133,7 @@ type Jouee = { jouee: boolean; poses: readonly string[] };
  *  Le SUJET reçoit ce que le nœud PRÉSUPPOSE, lu dans sa donnée : les Groupes que ses `onlyGroups`
  *  exigent (Test ou op) et les États que ses ops `removeCondition` retirent. */
 function preparerPorte(n: Noeud): { opsCtx: OpsCtx; poses: readonly string[] } {
-  const opsCtx: OpsCtx = { label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
+  const opsCtx: OpsCtx = { rng: battleRng(), label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
   const ops = [...opsDesBranches(n.node.success), ...opsDesBranches(n.node.fail)];
   const groupes = [...(n.node.test.onlyGroups ?? []), ...ops.flatMap((o) => (o as { onlyGroups?: string[] }).onlyGroups ?? [])];
   const aRetirer = ops.flatMap((o) => (o.op === 'removeCondition' ? [o.id] : []));

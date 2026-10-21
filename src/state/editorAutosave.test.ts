@@ -41,7 +41,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
   });
 
   it('aller-retour : sauvegarde puis relecture de la MÊME scène (round-trip)', async () => {
-    const scene = { ...emptyScene(), id: 'scene-a', label: 'Auberge' };
+    const scene = { ...emptyScene('scene-a'), label: 'Auberge' };
     await autosaveSave({ sceneId: scene.id, scene, savedAt: 123 });
     const rec = await repris('scene-a');
     expect(rec.scene.label).toBe('Auberge');
@@ -49,7 +49,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
   });
 
   it('ré-enregistrer la même scène écrase la version précédente (upsert par id)', async () => {
-    const scene = { ...emptyScene(), id: 'scene-a' };
+    const scene = emptyScene('scene-a');
     await autosaveSave({ sceneId: scene.id, scene: { ...scene, label: 'v1' }, savedAt: 1 });
     await autosaveSave({ sceneId: scene.id, scene: { ...scene, label: 'v2' }, savedAt: 2 });
     expect(sauvegardes().size).toBe(1);
@@ -57,22 +57,22 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
   });
 
   it('autosaveDelete retire la sauvegarde — plus rien à relire ensuite', async () => {
-    const scene = { ...emptyScene(), id: 'scene-a' };
+    const scene = emptyScene('scene-a');
     await autosaveSave({ sceneId: scene.id, scene, savedAt: 1 });
     await autosaveDelete('scene-a');
     expect(await autosaveLoad('scene-a')).toBeNull();
   });
 
   it('scènes distinctes = entrées distinctes (keyé par sceneId, jamais un slot unique)', async () => {
-    await autosaveSave({ sceneId: 'scene-a', scene: { ...emptyScene(), id: 'scene-a', label: 'A' }, savedAt: 1 });
-    await autosaveSave({ sceneId: 'scene-b', scene: { ...emptyScene(), id: 'scene-b', label: 'B' }, savedAt: 1 });
+    await autosaveSave({ sceneId: 'scene-a', scene: { ...emptyScene('scene-a'), label: 'A' }, savedAt: 1 });
+    await autosaveSave({ sceneId: 'scene-b', scene: { ...emptyScene('scene-b'), label: 'B' }, savedAt: 1 });
     expect((await repris('scene-a')).scene.label).toBe('A');
     expect((await repris('scene-b')).scene.label).toBe('B');
   });
 
   it('lecture/écriture best-effort : une base dont toute requête échoue ne fait jamais throw', async () => {
     bases.base(NOM).panne = () => new DOMException('boom', 'UnknownError');
-    await expect(autosaveSave({ sceneId: 'x', scene: emptyScene(), savedAt: 1 })).resolves.toBeUndefined();
+    await expect(autosaveSave({ sceneId: 'x', scene: emptyScene('scene-test'), savedAt: 1 })).resolves.toBeUndefined();
     await expect(autosaveLoad('x')).resolves.toBeNull();
     await expect(autosaveDelete('x')).resolves.toBeUndefined();
   });
@@ -82,7 +82,7 @@ describe('editorAutosave — filet local de crash de l’éditeur', () => {
     const fautesLues = (lu: RepriseLocale | null) => (lu && !lu.ok ? lu.refus.fautes.map((f) => `${cheminLisible(f.lieu)} : ${f.message}`) : null);
     /** Ce que rend la relecture d'une scène au format COURANT portant `scene`. */
     const relu = async (scene: object) => {
-      sauvegardes().set('s', { sceneId: 's', scene: { ...emptyScene(), id: 's', ...scene }, savedAt: 7 });
+      sauvegardes().set('s', { sceneId: 's', scene: { ...emptyScene('s'), ...scene }, savedAt: 7 });
       return autosaveLoad('s');
     };
 
@@ -105,7 +105,7 @@ describe('`wfrp4-editor-autosave` — déclarée (#2404)', () => {
   it('une base neuve, créée `autosave` keyé sceneId, passe sauvegarde, reprise, suppression', async () => {
     bases = brancherBasesSimulees();
     const base = bases.base(NOM);
-    await autosaveSave({ sceneId: 's1', scene: { ...emptyScene(), id: 's1' }, savedAt: 5 });
+    await autosaveSave({ sceneId: 's1', scene: emptyScene('s1'), savedAt: 5 });
     expect(base.magasins.get('autosave')?.keyPath).toBe('sceneId');
     expect((await repris('s1')).savedAt).toBe(5);
     await autosaveDelete('s1');
@@ -120,12 +120,12 @@ describe('editorAutosave — un enregistrement d’une autre forme est REFUSÉ, 
   });
 
   it('l’écriture ne porte aucun numéro de forme', async () => {
-    await autosaveSave({ sceneId: 's', scene: { ...emptyScene(), id: 's' }, savedAt: 1 });
+    await autosaveSave({ sceneId: 's', scene: emptyScene('s'), savedAt: 1 });
     expect(Object.keys(sauvegardes().get('s') as EditorAutosaveRecord).sort()).toEqual(['savedAt', 'scene', 'sceneId']);
   });
 
   it('une scène d’une forme antérieure (`nom` pour `label`) : refus `schema` AFFICHÉ, l’enregistrement reste au magasin', async () => {
-    const { label: _l, ...sansLabel } = { ...emptyScene(), id: 'ancienne', label: 'Salle' };
+    const { label: _l, ...sansLabel } = { ...emptyScene('ancienne'), label: 'Salle' };
     const brut = { sceneId: 'ancienne', scene: { ...sansLabel, nom: 'Salle' } as unknown as Scene, savedAt: 3 };
     sauvegardes().set('ancienne', brut);
     const lu = await autosaveLoad('ancienne');

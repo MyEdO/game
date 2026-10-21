@@ -40,7 +40,7 @@ import { exposedCrew } from '../engine/shipCritical';
 import { combatantsWithinRadius } from './monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
 import { t as tr, type MsgKey } from '../i18n';
-import { RNG, defaultRNG } from '../engine/dice';
+import { RNG } from '../engine/dice';
 import type { Pt } from './monde/path';
 
 /** Contexte d'une touche à résoudre en aire — commun au tir individuel, à la bordée ET au pilonnage
@@ -138,7 +138,7 @@ function hitSecondary(
  * NE re-jette AUCUN jet de toucher (RAW : un nuage de projectiles / un souffle ne re-teste pas).
  */
 export function resolveWeaponArea(
-  get: Get, set: SetFn, hit: AreaHit, targetsFor: (indice: number) => AreaTargets, rng: RNG = defaultRNG,
+  get: Get, set: SetFn, hit: AreaHit, targetsFor: (indice: number) => AreaTargets, rng: RNG,
 ): { lines: string[] } {
   const lines: string[] = [];
   const { primaryTarget: target, weapon } = hit;

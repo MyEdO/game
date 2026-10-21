@@ -67,6 +67,6 @@ describe('semences-de-scene.json — le schéma refuse une semence qui mentirait
     // `idDe('lightLevel')`, qui ne connaît aucun `auto`) ; côté SCÈNE le défaut reste ÉCRIT, pour que
     // l’inspecteur affiche la valeur réellement effective au lieu d’un vide à deviner.
     expect(semencesDeScene.ambientLight, 'la semence livrée ne doit nommer AUCUN palier').toBeUndefined();
-    expect(emptyScene().ambientLight).toBe('auto');
+    expect(emptyScene('scene-test').ambientLight).toBe('auto');
   });
 });

@@ -24,7 +24,7 @@ const foe = (id: string, over: Partial<Combatant> = {}): Combatant =>
 function mountBattle(combatants: Combatant[]) {
   seedBattleRng(1);
   useGame.setState({ battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], zones: [] } as never,
-    scene: { ...emptyScene(10, 10), id: 's', label: 's' },
+    scene: { ...emptyScene('s', 10, 10), label: 's' },
     party: [], facing: {}, pendingShipBattery: null });
   return () => useGame.getState();
 }

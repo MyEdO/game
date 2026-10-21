@@ -35,7 +35,7 @@ const placesDeGroupe = () =>
 
 /** Attable les `rangs` demandés par la primitive RÉELLE (`assignSeat`), puis entre en scène. */
 function attable(rangs: number[], party: Combatant[]): void {
-  let sc: Scene = emptyScene(12, 12);
+  let sc: Scene = emptyScene('scene-test', 12, 12);
   sc.id = 'taverne';
   sc.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } });
   for (const rang of rangs) {

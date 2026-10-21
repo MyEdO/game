@@ -11,7 +11,7 @@ import { validateScene } from '../state/validateScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
 
-const scene = (id: string): Scene => ({ ...emptyScene(3, 3), id, label: id });
+const scene = (id: string): Scene => ({ ...emptyScene('scene-test', 3, 3), id, label: id });
 
 /** Un document de projet au format courant, ses scènes et ses champs en plus fournis par le cas. */
 const projet = (scenes: unknown[], plus: Record<string, unknown> = {}) => ({

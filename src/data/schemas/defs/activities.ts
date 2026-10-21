@@ -8,7 +8,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { blocageDeLivraison, charKeySchema, difficultySchema, enumNomme, formulaSchema, formuleSansTirageSchema, foyerDeRegleSchema, moneyPartialSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { conditionSchema, gameOpSchema, stageOutcomeSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 
@@ -19,29 +19,6 @@ export const famille = 'entite';
 // Compétence (Punchausen, AA 12 l.45-49) — absente, la voie retombe sur `difficulty` de l'Activité.
 const voieDeCompetenceSchema = refOuSpec('skill', { difficulty: nommerNoeud(difficultySchema.optional(), { nom: 'difficulté' }) });
 
-/** Termes de `Formula` dont la valeur ne se connaît QU'AU jet. Un modificateur de Test d'Activité est
- *  affiché AVANT l'engagement (`activityTestMod` → volet d'Activité, ligne de pré-jet) : la valeur
- *  montrée est celle qui s'applique. Le parse les REFUSE sur `testMods[].mod`, nominativement — `sl`
- *  (les DR du Test COURANT) n'est pas davantage connu avant l'engagement. */
-const TERMES_ALEATOIRES = ['dice', 'rolled', 'sl'] as const;
-
-/** Premier terme aléatoire rencontré dans une `Formula` (les seules imbrications du dialecte :
- *  `sum[]`, `times.of`, `times.factor`), ou `null`. PURE. */
-const termeAleatoire = (f: unknown): string | null => {
-  if (f == null || typeof f !== 'object') return null;
-  const o = f as Record<string, unknown>;
-  const direct = TERMES_ALEATOIRES.find((t) => t in o);
-  if (direct) return direct;
-  if (Array.isArray(o.sum)) {
-    for (const terme of o.sum) {
-      const trouve = termeAleatoire(terme);
-      if (trouve) return trouve;
-    }
-  }
-  const times = o.times as { of?: unknown; factor?: unknown } | undefined;
-  if (times) return termeAleatoire(times.of) ?? termeAleatoire(times.factor);
-  return null;
-};
 
 const activityContextSchema = enumNomme({
   interlude: 'Entre deux aventures',
@@ -136,11 +113,12 @@ const doc = document(
     freeSkill: z.array(refOuSpec('skill')).min(1).optional(),
     extended: nommerChamps(z.strictObject({ drPerStage: z.number() }), { drPerStage: { label: "DR par étape" } }).optional(),
     failExtenue: z.boolean().optional(),
-    /** Modificateurs de SITUATION du Test (miroir de `ActivityDef.testMods`) : quantité `Formula` — donc
-     *  un `{rule}` éditable — éventuellement gatée par une `Condition` sur l'acteur. */
+    /** Modificateurs de SITUATION du Test (miroir de `ActivityDef.testMods`) : quantité AFFICHÉE avant
+     *  l'engagement, donc sans terme de jet (`formuleSansTirageSchema`) — un `{rule}` éditable pour ce
+     *  que le livre ne chiffre pas —, éventuellement gatée par une `Condition` sur l'acteur. */
     testMods: z.array(nommerChamps(z.strictObject({
       when: conditionSchema.optional(),
-      mod: formulaSchema,
+      mod: formuleSansTirageSchema,
       label: z.string().optional(),
     }), { when: { label: "condition" }, mod: { label: "modificateur" }, label: { label: "nom" } })).optional(),
     /** Dés de MONDE après le Test (miroir de `ActivityDef.worldRolls`). */
@@ -304,16 +282,6 @@ const doc = document(
         }
         if (a.stakeForm && !a.stake) {
           ctx.addIssue({ code: 'custom', message: `${a.id} : forme d’enjeu déclarée sans enjeu` });
-        }
-        for (const m of (v as { testMods?: { mod?: unknown; label?: string }[] }).testMods ?? []) {
-          const terme = termeAleatoire(m.mod);
-          if (terme) {
-            ctx.addIssue({
-              code: 'custom',
-              path: ['testMods'],
-              message: `${a.id} : testMods${m.label ? ` « ${m.label} »` : ''} — le terme \`{${terme}}\` est tiré au jet, or un modificateur de Test est AFFICHÉ avant l'engagement. Emploie un littéral ou un \`{rule}\` éditable.`,
-            });
-          }
         }
       }),
   },

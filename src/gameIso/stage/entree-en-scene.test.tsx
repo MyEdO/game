@@ -50,7 +50,7 @@ vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 const TAILLE = { w: 800, h: 600 };
 /** Carte LARGE : le rayon d'entrée se compte en mètres, il faut de la place pour poser un décor
  *  franchement au-delà (une carte de 12 cases n'en offrirait pas). */
-const SCENE: Scene = emptyScene(40, 40);
+const SCENE: Scene = emptyScene('scene-test', 40, 40);
 const MPT = sceneMetresPerTile(SCENE);
 /** Le GROUPE, au milieu de la carte — l'origine des distances de proximité. */
 const GROUPE = { x: 20, y: 20 };

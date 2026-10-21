@@ -3,6 +3,7 @@ import { resolveMelee, issueAuJet, hitLocationByShape, reverseRoll } from './com
 import { t } from '../i18n';
 import { locationLabel, type Combatant, type Weapon } from './types';
 import type { RNG } from './dice';
+import { desEnSuite } from './dice.testkit';
 
 /** Le `log` né au jet est l'issue au jet : LDB 18 l.53, l.55 ; AA 07 l.32. */
 
@@ -14,7 +15,7 @@ const combattant = (id: string): Combatant => ({
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
   bodyShape: 'humanoide', size: 'moyenne', pos: { x: 0, y: 0 },
 }) as unknown as Combatant;
-const des = (...d: number[]): RNG => { let i = 0; return { int: () => d[i++] } as unknown as RNG; };
+const des = (...d: number[]): RNG => desEnSuite(d);
 
 describe('le log né au jet est la ligne de `issueAuJet`', () => {
   it('double 22, Localisation relancée au d100 5 : la Tête, jamais le Bras gauche de l’inversion', () => {

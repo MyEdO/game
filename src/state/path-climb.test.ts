@@ -8,7 +8,7 @@ import { pathTo, reachable, climbTraverseFor } from '../noyau/monde/path';
  * arête `climb` reste infranchissable au pathing (mur plein + falaise), comme avant #504.
  */
 function cliffScene(climb: WallClimb): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const w = 4;
   const h = new Array(w * 4).fill(0) as number[];
   h[0 * w + 2] = 4; // (2,0) sommet à 4 m
@@ -60,7 +60,7 @@ describe('pathing — Grimpant (traverse)', () => {
   });
 
   it('non-régression : scène sans mur climb, reachable/pathTo inchangés avec ou sans traverse', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     const withTraverse = reachable(s, { x: 0, y: 0 }, 5, { blocked: empty, traverse: { climb: true, climbFullSpeed: true } });
     const without = reachable(s, { x: 0, y: 0 }, 5, { blocked: empty });
     expect([...withTraverse.entries()].sort()).toEqual([...without.entries()].sort());

@@ -36,6 +36,7 @@ import { applyOps } from './ops';
 import { gameOpSchema, CHAMPS_EXCLUS_DE_CARRIED } from '../data/schemas/grammaire/mecanique';
 import { entree as spellEntreeSchema } from '../data/schemas/defs/spells';
 import type { Combatant, ActiveEffect } from './types';
+import { deFixe, desDuTest } from './dice.testkit';
 
 const CHAMON = 'transmutation-de-chamon';
 const ETATS = ['aveugle', 'assourdi', 'sonne'] as const;
@@ -59,7 +60,7 @@ function setBattle(combatants: Combatant[]): void {
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  useGame.setState({ battle, mode: 'battle', scene: emptyScene(), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
+  useGame.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
 }
 
 const cr = (): CastResult => ({ cast: true, roll: 44, target: 60, sl: 0, isCritical: false, isFumble: false, log: '' });
@@ -241,7 +242,7 @@ describe('Détermination sur un État PORTÉ — « Retirez un État » (LDB 17 
     const c = vue(cible.id);
     // Un passif NON-État porté par le MÊME Sort (canal `ActiveEffect.passive`, #1695).
     c.activeEffects!.push({ label: 'Transmutation de Chamon', bonus: 0, duration: { scale: 'rounds', left: 3 }, sourceSpellId: CHAMON, passive: [{ op: 'skillMod', skill: { id: 'escalade' }, mod: -10 }] });
-    const fenetre = fenetreDetermination(c, 'sonne', 0)!;
+    const fenetre = fenetreDetermination(c, 'sonne', 0, desDuTest)!;
     suspendSource(c, SRC, fenetre, 'Détermination (conscience)', 'determination-conscience:sonne', 'sonne');
     syncDerivedConditions(c);
     expect(stacks(c, 'sonne')).toBe(0);
@@ -311,7 +312,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
 
   it('« carried » sans DURÉE de contexte ne pose RIEN, et le dit au journal', () => {
     const c = mk('hero', 'seul');
-    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { rng: { int: () => 1 } });
+    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { rng: deFixe(1) });
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
     expect(lines.join(' | ')).toContain('« carried » exige une source à DURÉE');

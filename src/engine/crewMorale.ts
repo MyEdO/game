@@ -17,7 +17,7 @@
 import crewMoraleJson from '../data/crew-morale.json';
 import { findTableEntry, tableOuverte, type BandeOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { rollExpr, type RNG, defaultRNG } from './dice';
+import { rollExpr, type RNG } from './dice';
 import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
 import { bestForSkills, refusNePeutTenter } from './skills';
 import type { PlayerText } from '../i18n/playerText';
@@ -90,7 +90,7 @@ export interface MoraleRecalc {
  * Recalcul HEBDOMADAIRE du Moral (MDG 14) : chaque facteur ACTIF (référencé par `id`) roule son
  * effet en dés signés et fait MONTER ou DESCENDRE le Moral courant. PUR (RNG injecté pour le déterminisme).
  */
-export function recalcMorale(current: number, activeFactorIds: string[], rng: RNG = defaultRNG): MoraleRecalc {
+export function recalcMorale(current: number, activeFactorIds: string[], rng: RNG): MoraleRecalc {
   let delta = 0;
   const rolls: { id: string; label: string; rolled: number }[] = [];
   const lines: string[] = [];
@@ -202,7 +202,7 @@ export function resolveCrewTest(
   contributors: CrewContributor[],
   difficulty: Difficulty,
   moraleScore: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   extraDR = 0,
 ): CrewTestResult {
   const contributions = contributors.map((c) => {
@@ -290,7 +290,7 @@ export interface ShipMoraleState {
  * (jour ÷ 7), sur le modèle de `lastUpkeepDay`. PUR — prêt à être appelé par l'entretien quotidien quand
  * un navire vit dans l'état de campagne. Renvoie un nouvel état (jamais muté en place).
  */
-export function tickShipMorale(state: ShipMoraleState, currentDay: number, rng: RNG = defaultRNG): { state: ShipMoraleState; recalced: boolean; lines: string[] } {
+export function tickShipMorale(state: ShipMoraleState, currentDay: number, rng: RNG): { state: ShipMoraleState; recalced: boolean; lines: string[] } {
   const week = Math.floor(currentDay / 7);
   if (week <= state.lastMoraleWeek) return { state, recalced: false, lines: [] };
   const r = recalcMorale(state.score, state.factors, rng);
@@ -403,7 +403,7 @@ export function resolveCrewTestByRoles(
   difficulty: Difficulty,
   moraleScore: number,
   navigation: RefDesignee,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   opts: { understaffed?: boolean; extraDR?: number } = {},
 ): CrewTestResult {
   const essentialRole = findCrewTestTypeById(testTypeId)?.essential;

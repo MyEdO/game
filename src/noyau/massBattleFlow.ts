@@ -82,7 +82,7 @@ function makeArmy(name: string, startMight: number): MassBattleArmy {
 function armyWithMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
   if (delta === 0) return a;
   const combatant = cloneArmyCombatant(a.combatant);
-  applyOps(combatant, [delta > 0 ? { op: 'heal', amount: delta } : { op: 'wounds', amount: -delta }]);
+  applyOps(combatant, [delta > 0 ? { op: 'heal', amount: delta } : { op: 'wounds', amount: -delta }], { rng: battleRng() });
   return { ...a, combatant };
 }
 
@@ -792,7 +792,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
       if (heal > 0) {
         // HÉROS (pas la coque) : `applyOps` direct sur un clone, comme `armyWithMightDelta` ci-dessus.
         const healed = { ...hero, wounds: { ...hero.wounds } };
-        applyOps(healed, [{ op: 'heal', amount: heal }]);
+        applyOps(healed, [{ op: 'heal', amount: heal }], { rng: battleRng() });
         set((s) => ecrireActeur(s, hero.id, (h) => ({ ...h, wounds: { ...healed.wounds } })));
         lines.push(t('mbf.rallyHeal', { name: hero.label, heal, dr: pa.sl, be }));
       } else {

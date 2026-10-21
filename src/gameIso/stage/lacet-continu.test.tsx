@@ -46,7 +46,7 @@ function sommetsSurbrillance(tile: { x: number; y: number }, dims: Dims): { x: n
 /** Deux pièces d'une case, (4,3) et (5,3), et la porte FERMÉE de leur arête (4,3,E) : le seul accès
  *  de la première, murée ailleurs. */
 function scèneÀUnePorte(dims: Dims): Scene {
-  const s = emptyScene(dims.w, dims.h);
+  const s = emptyScene('scene-test', dims.w, dims.h);
   s.effectZones = [piece('room-a', 4, 3), piece('room-b', 5, 3)];
   s.walls = [...cloisons(4, 3, ['N', 'S', 'O']), { x: 4, y: 3, side: 'E', door: true, closed: true }];
   return s;

@@ -54,7 +54,7 @@ describe('garde `flowTestEngineRoll` — le critère sépare la FABRIQUE du ROUL
     const sites = scan([
       'function mkTest(t: NestedTest): Flow {',
       '  const test: FlowTest = { skill: t.skill, difficulty: t.difficulty };',
-      '  rollTest(0, t.difficulty, defaultRNG);',
+      '  rollTest(0, t.difficulty, rng);',
       "  return { kind: 'test', test: poserEnjeu(test, stake), success: EMPTY_FLOW, fail: doOps(t.onFail) };",
       '}',
     ].join('\n'));

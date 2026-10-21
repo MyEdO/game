@@ -25,7 +25,7 @@ export type ClockTrigger = Extract<EffectTrigger, 'onDayStart' | 'onWake'>;
  * déclencheur (coût nul pour la quasi-totalité des héros — patron `fireOwnTestFailed`).
  * Renvoie les lignes produites, que l'appelant range dans le bilan du jour.
  */
-export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng?: RNG; set?: SetFn } = {}): string[] {
+export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng: RNG; set?: SetFn }): string[] {
   const lines: string[] = [];
   for (const h of get().party) {
     if (h.dead) continue;

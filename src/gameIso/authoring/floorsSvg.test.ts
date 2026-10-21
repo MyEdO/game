@@ -15,7 +15,7 @@ import { terrainGradientId } from '../catalog/terrain';
 const dims: Dims = { w: 4, h: 4 };
 
 function withHeight(): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   s.layers[0].tiles = new Array(16).fill('plancher');
   s.layers[0].height = new Array(16).fill(0);
   return s;
@@ -29,20 +29,20 @@ const elAt = (scene: Scene, x: number, y: number, z = 0, activeZ = 0): FloorEl =
 
 describe('floorSvg — losange de base', () => {
   it('tuile plate = un losange au tracé écran de diamondPath ; herbe = VARIANTE de teinte par tuile (matériaux v2)', () => {
-    const s = emptyScene(4, 4); // herbe partout
+    const s = emptyScene('scene-test', 4, 4); // herbe partout
     const svg = floorSvg(elAt(s, 1, 1), dims);
     expect(svg).toMatch(new RegExp(`^<path d="${diamondPath(1, 1, dims).replace(/([().])/g, '\\$1')}" fill="url\\(#${terrainGradientId('herbe')}-v[0-3]\\)" stroke="rgba\\(0,0,0,0.16\\)"/>$`));
     expect(floorSvg(elAt(s, 1, 1), dims)).toBe(svg); // variante stable (hash du monde)
   });
 
   it('LOD 0 (fills plats) : le dégradé de BASE du terrain, sans variante', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     const svg = floorSvg(elAt(s, 1, 1), dims, { zoom: 0.4 });
     expect(svg).toBe(`<path d="${diamondPath(1, 1, dims)}" fill="url(#${terrainGradientId('herbe')})" stroke="rgba(0,0,0,0.16)"/>`);
   });
 
   it('le losange démarre toujours au coin ÉCRAN haut (ordre stable aux 4 rotations)', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     for (const rot of [0, 1, 2, 3] as const) {
       const d: Dims = { ...dims, rot };
       expect(floorSvg(elAt(s, 1, 1), d)).toContain(`d="${diamondPath(1, 1, d)}"`);
@@ -50,7 +50,7 @@ describe('floorSvg — losange de base', () => {
   });
 
   it('terrain APPAREILLÉ (pavés) : surcouche de joints CONTINUE du plan du sol en LOD ≥ 1, pas en LOD 0', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     s.layers[0].tiles = new Array(16).fill('pave');
     const svg = floorSvg(elAt(s, 1, 1), dims);
     expect(svg).toMatch(/fill="url\(#dt-[a-z0-9]+-0-g\)"/); // motif de sol (axe 'g'), étiqueté par projection
@@ -84,7 +84,7 @@ describe('floorSvg — parois de relief', () => {
 
 describe('floorDepth — profondeur de tri', () => {
   it('sol = depth de sa case − 0.5 (sous les objets de SA case, interclassé par position écran)', () => {
-    const s = emptyScene(4, 4);
+    const s = emptyScene('scene-test', 4, 4);
     for (const rot of [0, 1, 2, 3] as const) {
       const d: Dims = { ...dims, rot };
       expect(floorDepth(elAt(s, 2, 1), d)).toBe(depth(2, 1, d, 0) - 0.5);
@@ -109,7 +109,7 @@ describe('floorSvg — le wedge de raccord SUIT la rotation caméra', () => {
   ] as const)
     for (const rot of [0, 1, 2, 3] as const)
       it(`voisin ${nb.dir}, cran ${rot} : l'arête du wedge pointe vers le voisin`, () => {
-        const s = emptyScene(3, 3); // tout herbe
+        const s = emptyScene('scene-test', 3, 3); // tout herbe
         s.layers[0].tiles[(1 + nb.dy) * 3 + (1 + nb.dx)] = 'pave'; // un seul voisin de plus haute priorité
         const d: Dims = { w: 3, h: 3, rot };
         const mid = outerEdgeMid(floorSvg(elAt(s, 1, 1), d));

@@ -12,17 +12,18 @@
  */
 import type { Combatant } from '../../engine/types';
 import { applyOps } from '../../engine/ops';
+import { battleRng } from '../battleRng';
 
 /** Inflige `amount` Dégâts de coque (valeur finale, ignore BE+PA) au Combattant-coque. Mute `hull` en
  *  place ; renvoie le journal `applyOps`. */
 export function damageHull(hull: Combatant, amount: number): string[] {
   if (amount <= 0) return [];
-  return applyOps(hull, [{ op: 'wounds', amount, ignoreTB: true, ignoreAP: true }]);
+  return applyOps(hull, [{ op: 'wounds', amount, ignoreTB: true, ignoreAP: true }], { rng: battleRng() });
 }
 
 /** Restaure `amount` Blessures de coque (plafonné au max) au Combattant-coque. Mute `hull` en place ;
  *  renvoie le journal `applyOps`. */
 export function healHull(hull: Combatant, amount: number): string[] {
   if (amount <= 0) return [];
-  return applyOps(hull, [{ op: 'heal', amount }]);
+  return applyOps(hull, [{ op: 'heal', amount }], { rng: battleRng() });
 }

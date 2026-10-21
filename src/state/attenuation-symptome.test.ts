@@ -19,8 +19,9 @@ import { purgeClockEffects } from '../noyau/upkeep';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
+import { desEnSuite } from '../engine/dice.testkit';
 
-const seq = (values: number[]): RNG => { let i = 0; return { int: () => values[i++] }; };
+const seq = (values: number[]): RNG => desEnSuite(values);
 
 /** Un fiévreux (Grave) : la Fièvre lui porte l'État Inconscient (LDB 20 l.170). */
 const fievreux = (): Combatant => {

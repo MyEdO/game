@@ -52,7 +52,7 @@ beforeAll(() => {
 afterAll(() => setStageRendererFactory(null));
 
 const scenePluie = (): Scene => {
-  const scene = emptyScene(8, 8);
+  const scene = emptyScene('scene-test', 8, 8);
   scene.weather = 'pluie';
   scene.ambiance = 'exterieur';
   return scene;

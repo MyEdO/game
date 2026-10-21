@@ -55,7 +55,7 @@ function pointerEvent(x: number, y: number) {
 /** Scène 5×4 : une arête grimpable en (1,1,E) — le mobile se tient en (1,1), la case d'en face (2,1)
  *  est 4 m plus haut. */
 function scèneGrimpable(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   const h = new Array(5 * 4).fill(0) as number[];
   h[1 * 5 + 2] = 4;
   s.layers[0].height = h;
@@ -66,7 +66,7 @@ function scèneGrimpable(): Scene {
 /** Scène 5×4 : une CORNICHE — toute la rangée y=0 à 4 m, le reste au sol, sans arête `climb`. Depuis
  *  (2,0), seul le cardinal SUD descend. */
 function scèneDeFalaise(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   const h = new Array(5 * 4).fill(0) as number[];
   for (let x = 0; x < 5; x += 1) h[x] = 4;
   s.layers[0].height = h;

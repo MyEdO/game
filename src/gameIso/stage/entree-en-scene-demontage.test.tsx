@@ -45,7 +45,7 @@ import {
 vi.setConfig({ testTimeout: PLAFOND_ATTENTE_MS + 10_000 });
 
 const TAILLE = { w: 800, h: 600 };
-const SCENE: Scene = emptyScene(40, 40);
+const SCENE: Scene = emptyScene('scene-test', 40, 40);
 const MPT = sceneMetresPerTile(SCENE);
 /** Le GROUPE au milieu de la carte : les décors posés à côté de lui sont DANS le rayon d'entrée
  *  (`AMBIANCE.entreeEnScene.rayonM`), donc ce sont eux qui tiennent le voile levé. */

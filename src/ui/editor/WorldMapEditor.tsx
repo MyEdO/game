@@ -12,6 +12,7 @@ import { planChrome } from '../PlanChrome';
 import { NumberField } from '../NumberField';
 import { WorldMapPlacePanel } from './WorldMapPlacePanel';
 import { WorldMapRoutePanel } from './WorldMapRoutePanel';
+import { idDEntropie } from '../../web/entropie';
 
 /**
  * Éditeur de la CARTE DU MONDE (#T2 Voyage) — overlay plein écran de l'éditeur de niveau.
@@ -36,7 +37,8 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
   activeAxes?: string[];
   setActiveAxes?: (ids: string[] | undefined) => void;
 }) {
-  const m: WorldMap = map ?? emptyWorldMap();
+  const [carteNeuve] = useState(() => emptyWorldMap(idDEntropie('carte')));
+  const m: WorldMap = map ?? carteNeuve;
   const [sel, setSel] = useState<{ kind: 'place' | 'route'; id: string } | null>(null);
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -67,7 +69,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
       pos = { x: Math.min(96, pos.x + 8), y: pos.y };
     }
     const p: MapPlace = {
-      id: `lieu-${Date.now().toString(36)}`,
+      id: idDEntropie('lieu'),
       label: 'Nouveau lieu',
       pos,
       scene: scenes[0]?.id ?? '',
@@ -81,7 +83,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
       // Mode liaison : 2ᵉ lieu cliqué → route (si elle n'existe pas déjà).
       const exists = m.routes.some((r) => (r.a === linkFrom && r.b === id) || (r.a === id && r.b === linkFrom));
       if (!exists) {
-        const route: MapRoute = { id: `route-${Date.now().toString(36)}`, a: linkFrom, b: id, km: 10, modes: ['pied'] };
+        const route: MapRoute = { id: idDEntropie('trajet'), a: linkFrom, b: id, km: 10, modes: ['pied'] };
         upd({ routes: [...m.routes, route] });
         setSel({ kind: 'route', id: route.id });
       }

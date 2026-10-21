@@ -7,7 +7,7 @@
 import { Combatant, type Difficulty, type EffectSource } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
-import { RNG, defaultRNG } from './dice';
+import { RNG } from './dice';
 import { rollTest, evaluateTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
@@ -396,7 +396,7 @@ export function isFrenzied(c: Combatant): boolean {
 }
 
 /** Test de Force Mentale pour entrer en Frénésie (LDB 21 l.31). Succès → on entre. */
-export function resolveFrenzyEntry(fm: number, rng: RNG = defaultRNG): JetPose {
+export function resolveFrenzyEntry(fm: number, rng: RNG): JetPose {
   return jetPose(rollTest(fm, 'intermediaire', rng));
 }
 
@@ -414,7 +414,7 @@ export function resolvePeurTest(
   calme: number,
   indice: number,
   prevDR: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   coldBlooded = false, // À sang-froid (LDB 85 l.13) : inverse un Test de FM raté
   sansPeur = false,
 ): { dr: number; calmeDR: number; vaincue: boolean; roll: number; target: number; sl: number; success: boolean } {
@@ -484,7 +484,7 @@ export function targetedTrigger(self: Combatant, visible: Combatant[]): { type: 
 
 /** Test de Psychologie SIMPLE (Calme, Intermédiaire +0) d'un trait ciblé (LDB 21) : succès = résisté.
  *  Binaire (pas de Test étendu) — contrairement à la Peur. */
-export function resolveCalmeSimple(calme: number, rng: RNG = defaultRNG): { success: boolean; roll: number; sl: number; target: number } {
+export function resolveCalmeSimple(calme: number, rng: RNG): { success: boolean; roll: number; sl: number; target: number } {
   const t = rollTest(calme, 'intermediaire', rng);
   return { success: t.success, roll: t.roll, sl: t.sl, target: t.target };
 }
@@ -620,7 +620,7 @@ export function gainPhobieIfThreshold(
 export function animositeOrHaine(
   c: Combatant,
   cible: string,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait; replacesAnimosite?: boolean } | null {
   if (!rule('psych-acquisition-optional')) return null;
   const test = resolveCalmeSimple(calmeValue(c), rng); // Calme Intermédiaire (+0)
@@ -637,7 +637,7 @@ export function animositeOrHaine(
  *  résolution + le Trait `trauma` à poser sur un échec. Réussite (ou règle éteinte) → aucun Trait. */
 export function traumaOnImpossibleAmbition(
   c: Combatant,
-  rng: RNG = defaultRNG,
+  rng: RNG,
 ): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait } | null {
   if (!rule('psych-acquisition-optional')) return null;
   const t = rollTest(calmeValue(c), 'accessible', rng); // Calme Accessible (+20)
@@ -652,7 +652,7 @@ export function traumaOnImpossibleAmbition(
 export function resolveTerreurTest(
   calme: number,
   indice: number,
-  rng: RNG = defaultRNG,
+  rng: RNG,
   coldBlooded = false, // À sang-froid (LDB 85 l.13) : inverse un Test de FM raté
   sansPeur = false,
 ): { success: boolean; brise: number; devientPeur: number; roll: number; target: number; sl: number } {

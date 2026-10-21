@@ -89,8 +89,8 @@ describe('sunJeu — la course du soleil de JEU (heure × nord de la scène)', (
 });
 
 describe('sceneSun — la porte de la scène (intérieur, nord authoré)', () => {
-  const dehors = (northDeg?: number): Scene => ({ ...emptyScene(4, 4), ambiance: 'exterieur', northDeg });
-  const dedans = (): Scene => ({ ...emptyScene(4, 4), ambiance: 'interieur' });
+  const dehors = (northDeg?: number): Scene => ({ ...emptyScene('scene-test', 4, 4), ambiance: 'exterieur', northDeg });
+  const dedans = (): Scene => ({ ...emptyScene('scene-test', 4, 4), ambiance: 'interieur' });
 
   it('un INTÉRIEUR n’a pas de soleil direct, à aucune heure', () => {
     expect([h(5), h(9), h(12), h(18)].map((m) => sceneSun(dedans(), m))).toEqual([null, null, null, null]);

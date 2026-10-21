@@ -23,7 +23,7 @@ function deuxHeros(ordre: 'AB' | 'BA' = 'AB', turn = 0): { A: Combatant; B: Comb
     combatants: [A, B, E], order: ordre === 'AB' ? [A.id, B.id, E.id] : [B.id, A.id], turn, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   };
-  useGame.setState({ party: [A, B], mode: 'battle', battle, scene: emptyScene(20, 20), pendingRoundStart: null });
+  useGame.setState({ party: [A, B], mode: 'battle', battle, scene: emptyScene('scene-test', 20, 20), pendingRoundStart: null });
   return { A, B };
 }
 

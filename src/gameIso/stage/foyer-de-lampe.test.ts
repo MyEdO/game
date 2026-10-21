@@ -31,7 +31,7 @@ const CAPS: Dir4[] = ['N', 'E', 'S', 'O'];
 /** Scène d'épreuve : UN décor, posé au milieu, au cap demandé. Sol plat (`herbe`), donc `heightAt` = 0
  *  partout — la hauteur mesurée est bien celle du foyer, pas celle du relief. */
 function sceneAvec(ref: string, facing: Dir4, pos = { x: 5, y: 4 }): Scene {
-  const s = emptyScene(12, 9);
+  const s = emptyScene('scene-test', 12, 9);
   s.entities = [{ id: 'src-1', kind: 'prop', ref, pos, facing }];
   return s;
 }

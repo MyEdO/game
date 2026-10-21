@@ -13,7 +13,7 @@
  */
 import type { Jeu } from './etat';
 import { battleRng } from './battleRng';
-import { d100, deMonde, roll as rollDice } from '../engine/dice';
+import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
 import { INTERLUDE_EVENTS, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
@@ -1071,7 +1071,7 @@ function falseQualities(item: { kind: string; qualities: QualityInstance[]; subT
     .map((q) => q.label);
   const out: string[] = [];
   while (out.length < count && pool.length) {
-    const i = (d100(battleRng()) - 1) % pool.length; // tirage registre (biais négligeable — pur cosmétique)
+    const i = rollDice(1, pool.length, battleRng()) - 1;
     out.push(pool.splice(i, 1)[0]);
   }
   return out;
@@ -1308,7 +1308,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
     deposited = Math.max(0, Math.floor((deposited * (100 + st.fx.bankPct)) / 100));
     lines.push(msg('if.eventBankPct', { pct: st.fx.bankPct, event: eventLabelOf(st) }));
   }
-  const r = kind === 'invest' ? Math.max(1, Math.min(10, rate ?? d100(battleRng()) % 10 + 1)) : 0;
+  const r = kind === 'invest' ? Math.max(1, Math.min(10, rate ?? d10(battleRng()))) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   set({ bank: [...(get().bank ?? []), { heroId, kind, brass: deposited, rate: r }] });
   const itl = get().interlude!;

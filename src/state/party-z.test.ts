@@ -9,7 +9,7 @@ import { emptyScene, type Scene, type Terrain } from '../noyau/monde/scene';
  * La hauteur métrique de la surface n'empêche pas de la fouler — seule sa marchabilité compte.
  */
 function twoLayerScene(): Scene {
-  const s = emptyScene(4, 4); // couche 0 : herbe marchable, 0 m
+  const s = emptyScene('scene-test', 4, 4); // couche 0 : herbe marchable, 0 m
   const w = 4;
   const z1 = new Array(w * 4).fill('vide') as Terrain[];
   const h1 = new Array(w * 4).fill(0) as number[];

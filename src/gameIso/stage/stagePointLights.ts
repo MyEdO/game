@@ -212,7 +212,7 @@ function graine(srcId: string): number {
 /**
  * VACILLEMENT (#1245, L4) — le facteur par lequel l'intensité d'une lampe est multipliée à l'instant
  * `tSec`, pour une source `srcId`. DÉTERMINISTE par construction : deux sinus de fréquences
- * incommensurables (`hz` et `hz × PHI`), déphasés par le hachage de l'id — aucun `Math.random`, donc
+ * incommensurables (`hz` et `hz × PHI`), déphasés par le hachage de l'id — aucune entropie, donc
  * la même seconde de jeu rend deux fois la même image, et deux clients d'une partie coop voient le
  * MÊME feu.
  *

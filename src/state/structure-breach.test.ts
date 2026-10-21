@@ -20,7 +20,7 @@ const STRUCT_ID = 'porte-de-ville';
 /** Scène 3×1 (cases (0,0)(1,0)(2,0)) avec une arête sur le E de (0,0) — séparant (0,0) de (1,0). Le
  *  contenu de l'arête (structure intacte / porte) est passé par l'appelant. */
 function sceneWithEdge(seg: WallSeg): Scene {
-  return { ...emptyScene(3, 1), walls: [seg] };
+  return { ...emptyScene('scene-test', 3, 1), walls: [seg] };
 }
 
 /** Un viewer à (0,0) voit-il (1,0) ? Scène pleinement éclairée (ambient 1) → seule l'occlusion d'arête

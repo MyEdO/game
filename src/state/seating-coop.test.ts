@@ -27,7 +27,7 @@ const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap
 
 /** Table à 4 places dont TROIS sont déjà tenues : « nord » est la DERNIÈRE, sous les pieds du groupe. */
 function derniereePlaceLibre(): void {
-  const s = emptyScene(12, 12);
+  const s = emptyScene('scene-test', 12, 12);
   s.id = 'taverne-coop';
   s.entities = [
     { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } },

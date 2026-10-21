@@ -31,7 +31,7 @@ import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
 import { findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, d100, rollExpr, type RNG, defaultRNG } from './dice';
+import { d10, d100, rollExpr, type RNG } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
@@ -94,7 +94,7 @@ export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections
 // ── Vent (l.21-41) ───────────────────────────────────────────────────────────────────────────────
 
 /** Tire la force et la direction du vent en début de voyage (l.21 : « Lancez 2d10 … force et direction »). PUR. */
-export function rollRiverWind(rng: RNG = defaultRNG): { force: RiverWindForceId; dir: RiverWindDirId } {
+export function rollRiverWind(rng: RNG): { force: RiverWindForceId; dir: RiverWindDirId } {
   return {
     force: findTableEntry(DATA.windForces, d10(rng)).id as RiverWindForceId,
     dir: findTableEntry(DATA.windDirections, d10(rng)).id as RiverWindDirId,
@@ -102,12 +102,12 @@ export function rollRiverWind(rng: RNG = defaultRNG): { force: RiverWindForceId;
 }
 
 /** UNE mise à jour de la force du vent (l.21). PUR. */
-export function tickRiverWind(current: RiverWindForceId, rng: RNG = defaultRNG): RiverWindForceId {
+export function tickRiverWind(current: RiverWindForceId, rng: RNG): RiverWindForceId {
   return basculesDeForce(riverForces(), current, DATA.windTickThreshold, 1, () => d10(rng));
 }
 
 /** Nombre de crans de force appliqués sur une JOURNÉE (4 tirages, l.21). PUR. */
-export function tickRiverWindDay(current: RiverWindForceId, rng: RNG = defaultRNG): RiverWindForceId {
+export function tickRiverWindDay(current: RiverWindForceId, rng: RNG): RiverWindForceId {
   return basculesDeForce(riverForces(), current, DATA.windTickThreshold, DATA.windTicksPerDay, () => d10(rng));
 }
 
@@ -227,7 +227,7 @@ export interface RiverImpact {
 
 /** Résout l'IMPACT sur un rocher / des eaux peu profondes (l.138-144) : Dégâts fixes à la coque, puis
  *  d100 de percée et d100 d'échouage selon les chances RAW. PUR (RNG injecté). */
-export function resolveRiverImpact(onHit: NonNullable<RiverPerilDef['onHit']>, rng: RNG = defaultRNG): RiverImpact {
+export function resolveRiverImpact(onHit: NonNullable<RiverPerilDef['onHit']>, rng: RNG): RiverImpact {
   return {
     hullDamage: onHit.hullDamage,
     holed: onHit.holeChancePct != null && d100(rng) <= onHit.holeChancePct,
@@ -236,14 +236,14 @@ export function resolveRiverImpact(onHit: NonNullable<RiverPerilDef['onHit']>, r
 }
 
 /** Endurance & Blessures d'un barrage de débris (l.128 : « Endurance de 1d10 × 10 et 2d10 de Blessures »). PUR. */
-export function rollBarrage(obstacle: NonNullable<RiverPerilDef['obstacle']>, rng: RNG = defaultRNG): { endurance: number; wounds: number } {
+export function rollBarrage(obstacle: NonNullable<RiverPerilDef['obstacle']>, rng: RNG): { endurance: number; wounds: number } {
   return { endurance: rollExpr(obstacle.endurance, rng) * obstacle.enduranceMult, wounds: rollExpr(obstacle.wounds, rng) };
 }
 
 /** Déblayage à la main d'un barrage (l.128 : « il faut déblayer 3d10 objets. Chaque élément a 4d10 Points
  *  d'Encombrement ») : `objects` éléments tirés, Encombrement TOTAL halé, converti en HEURES par le débit
  *  maison `encPerHour` (l.128, règle stricte 7 — plancher 1 h). PUR (RNG injecté). */
-export function rollBarrageClearing(clear: NonNullable<RiverPerilDef['clear']>, rng: RNG = defaultRNG): { objects: number; enc: number; hours: number } {
+export function rollBarrageClearing(clear: NonNullable<RiverPerilDef['clear']>, rng: RNG): { objects: number; enc: number; hours: number } {
   const objects = rollExpr(clear.objects, rng);
   let enc = 0;
   for (let i = 0; i < objects; i++) enc += rollExpr(clear.encPerObject, rng);

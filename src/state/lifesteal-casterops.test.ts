@@ -6,6 +6,7 @@ import { findSpell } from '../data';
 import { applyOps } from '../engine/ops';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * Champs de SpellSpec B4 : `lifeSteal` (Projectile drainant — le lanceur récupère une fraction des
@@ -51,7 +52,7 @@ describe('zone de soin (op:heal) — Sang de la Terre', () => {
     const caster = pregen(PREGEN.sorcier); // BFM connu via ses caracs
     const victim = { ...caster, id: 'v', label: 'V', wounds: { current: 5, max: 30 } } as Combatant;
     const bfm = Math.floor(caster.characteristics['force-mentale'] / 10);
-    const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { caster, label: 'Sang de la Terre' });
+    const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { rng: desDuTest, caster, label: 'Sang de la Terre' });
     expect(victim.wounds.current).toBe(5 + bfm);
     expect(log.join(' ')).toContain('regagne');
   });

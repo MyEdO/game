@@ -4,6 +4,7 @@ import { hasCondition, COND } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../noyau/monde/flow';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * Démoniaque — bannissement « à la mort » (LDB 85 l.98 : « son âme retourne dans les Royaumes du Chaos,
@@ -61,10 +62,10 @@ describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voya
     };
     const g = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
     const ranged = alive({ id: 'r' });
-    applyTriggeredEffects((g as (c: Combatant) => unknown)(ranged) as never, ranged, [eff], 'onWoundLoss', { attackType: 'ranged' });
+    applyTriggeredEffects((g as (c: Combatant) => unknown)(ranged) as never, ranged, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'ranged' });
     expect(hasCondition(ranged, COND.sonne)).toBe(false); // type ≠ → ignoré
     const melee = alive({ id: 'm' });
-    applyTriggeredEffects((g as (c: Combatant) => unknown)(melee) as never, melee, [eff], 'onWoundLoss', { attackType: 'melee' });
+    applyTriggeredEffects((g as (c: Combatant) => unknown)(melee) as never, melee, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'melee' });
     expect(hasCondition(melee, COND.sonne)).toBe(true); // type = → réagit
   });
 });

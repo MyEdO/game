@@ -15,7 +15,7 @@ import { pathTo, reachable, walkNeighbors, tileKey, tileFromKey } from '../noyau
  * à 4 m (dernière marche à 3 m ↔ tablier à 4 m = ramp). Sinon le tablier reste une falaise (4 m d'un coup).
  */
 function twoLayer(withRamp: boolean): Scene {
-  const s = emptyScene(4, 4);
+  const s = emptyScene('scene-test', 4, 4);
   const w = 4;
   const z1 = new Array(w * 4).fill('vide') as Terrain[];
   const h1 = new Array(w * 4).fill(0) as number[];
@@ -61,13 +61,13 @@ describe('path — traversée verticale par RAMPE (surfaceLink)', () => {
 
 describe('path — non-régression à z=0 (clés « x,y » sans suffixe)', () => {
   it('reachable garde les clés 2D pour une scène mono-couche', () => {
-    const reach = reachable(emptyScene(4, 4), { x: 0, y: 0 }, 10, { blocked: new Set<string>() });
+    const reach = reachable(emptyScene('scene-test', 4, 4), { x: 0, y: 0 }, 10, { blocked: new Set<string>() });
     expect(reach.has('3,3')).toBe(true); // atteignable (Manhattan 6 ≤ 10)
     expect([...reach.keys()].every((k) => k.split(',').length === 2)).toBe(true); // jamais « x,y,0 »
   });
 
   it('pathTo rend un chemin 2D au sol', () => {
-    const path = pathTo(emptyScene(4, 4), { x: 0, y: 0 }, { x: 3, y: 0 }, { blocked: new Set<string>() });
+    const path = pathTo(emptyScene('scene-test', 4, 4), { x: 0, y: 0 }, { x: 3, y: 0 }, { blocked: new Set<string>() });
     expect(path).not.toBeNull();
     expect(path!.map((p) => p.x)).toEqual([0, 1, 2, 3]);
     expect(path!.every((p) => (p.z ?? 0) === 0)).toBe(true);

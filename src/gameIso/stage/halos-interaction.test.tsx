@@ -69,7 +69,7 @@ const marchand = {
 } as unknown as SceneEntity;
 
 function scèneAvecCoffre(): Scene {
-  const s = emptyScene(10, 10);
+  const s = emptyScene('scene-test', 10, 10);
   return { ...s, entities: [...s.entities, coffre, marchand] };
 }
 
@@ -163,7 +163,7 @@ describe('Halos d’interaction — le monde volumique peint l’affordance (#11
 
   it('le halo volumique est au PIED de son porteur, au rayon que la loi de halo demande', () => {
     monter({}, true);
-    const mpt = sceneMetresPerTile(emptyScene(10, 10));
+    const mpt = sceneMetresPerTile(emptyScene('scene-test', 10, 10));
     const m = new THREE.Matrix4();
     const pos = new THREE.Vector3();
     const pieds = [coffre.pos, marchand.pos!].map((c) => ({ x: c.x * mpt, z: c.y * mpt }));
@@ -214,7 +214,7 @@ describe('Halos d’interaction — le monde volumique peint l’affordance (#11
 
 // ── PULSATION PAR FRAME ────────────────────────────────────────────────────────────────────────────
 
-const SCENE_NUE: Scene = emptyScene(10, 10);
+const SCENE_NUE: Scene = emptyScene('scene-test', 10, 10);
 const DIMS: Dims = { w: SCENE_NUE.dimensions.w, h: SCENE_NUE.dimensions.h, rot: 0, view: 'iso' };
 const HALOS: readonly InteractHalo[] = [
   { id: 'coffre', cell: { x: 3, y: 4, z: 0 }, n: 1, scaleK: 1, bodyTopFrac: 1, span: { w: 1, h: 1 }, centre: { x: 3, y: 4 }, echelle: { x: 1, y: 1 }, etat: 'revele', visible: true },

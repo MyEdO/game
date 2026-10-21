@@ -106,7 +106,7 @@ function Inspecteur({ initiale, sel0 }: { initiale: Scene; sel0: Sel }) {
 
 describe('inspecteur — un porteur renommé garde la saisie de ses champs (#1993)', () => {
   const zones: Scene = {
-    ...emptyScene(8, 8),
+    ...emptyScene('scene-test', 8, 8),
     effectZones: [
       { id: 'piege-a', label: 'Piège A', area: { kind: 'rect', x: 0, y: 0, w: 2, h: 2 }, onCross: [opJson(1)] },
       { id: 'piege-b', label: 'Piège B', area: { kind: 'rect', x: 4, y: 4, w: 2, h: 2 }, onCross: [opJson(2)] },
@@ -130,7 +130,7 @@ describe('inspecteur — un porteur renommé garde la saisie de ses champs (#199
   } as SceneEntity);
 
   it('action authorée : renommer l’id garde le JSON en cours de saisie ; un autre décor ne le reçoit pas', () => {
-    monter(<Inspecteur initiale={{ ...emptyScene(8, 8), entities: [decor('d1', 1), decor('d2', 2)] }} sel0={{ type: 'entity', id: 'd1' }} />);
+    monter(<Inspecteur initiale={{ ...emptyScene('scene-test', 8, 8), entities: [decor('d1', 1), decor('d2', 2)] }} sel0={{ type: 'entity', id: 'd1' }} />);
     saisir(jsons()[0], BROUILLON);
     renommerAuBlur(champSousLibelle('Identifiant (logique'), 'fouiller-renomme');
     expect(sceneVue.entities[0].usable?.actions?.[0].id, 'le renommage n’a pas été appliqué').toBe('fouiller-renomme');
@@ -169,7 +169,7 @@ describe('panneau Logique — un porteur renommé garde la saisie de ses champs 
   const trigger = (id: string, amount: number) => ({ id, rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: fluxJson(amount) });
 
   it('trigger : renommer l’id garde le JSON en saisie ; un autre trigger ne le reçoit pas', () => {
-    monter(<Dock initiale={{ ...emptyScene(8, 8), triggers: [trigger('t1', 1), trigger('t2', 2)] }} onglet="triggers" trig0="t1" />);
+    monter(<Dock initiale={{ ...emptyScene('scene-test', 8, 8), triggers: [trigger('t1', 1), trigger('t2', 2)] }} onglet="triggers" trig0="t1" />);
     saisir(jsons()[0], BROUILLON);
     saisir(champSousLibelle('Id'), 't1-renomme');
     expect(sceneVue.triggers[0].id).toBe('t1-renomme');
@@ -188,7 +188,7 @@ describe('panneau Logique — un porteur renommé garde la saisie de ses champs 
   });
 
   it('dialogue : renommer l’id du dialogue, puis du nœud, garde le JSON en saisie', () => {
-    monter(<Dock initiale={{ ...emptyScene(8, 8), dialogues: [dialogue('d1', 1), dialogue('d2', 2)] }} onglet="dialogues" dlg0="d1" />);
+    monter(<Dock initiale={{ ...emptyScene('scene-test', 8, 8), dialogues: [dialogue('d1', 1), dialogue('d2', 2)] }} onglet="dialogues" dlg0="d1" />);
     saisir(jsons()[0], BROUILLON);
     saisir(champSousLibelle('Id du dialogue'), 'd1-renomme');
     expect(sceneVue.dialogues[0].id).toBe('d1-renomme');
@@ -203,7 +203,7 @@ describe('panneau Logique — un porteur renommé garde la saisie de ses champs 
   });
 
   it('nœud de dialogue : un autre nœud ne reçoit pas le JSON en saisie du précédent', () => {
-    monter(<Dock initiale={{ ...emptyScene(8, 8), dialogues: [dialogue('d1', 1)] }} onglet="dialogues" dlg0="d1" />);
+    monter(<Dock initiale={{ ...emptyScene('scene-test', 8, 8), dialogues: [dialogue('d1', 1)] }} onglet="dialogues" dlg0="d1" />);
     saisir(jsons()[0], BROUILLON);
     const n2 = [...container.querySelectorAll<HTMLElement>('.dlg-nodes .listrow, .dlg-nodes [role="button"], .dlg-nodes button')]
       .find((x) => x.textContent?.includes('n2') && x.textContent?.includes('deux'));

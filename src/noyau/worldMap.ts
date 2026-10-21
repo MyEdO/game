@@ -216,8 +216,9 @@ export interface WorldMap {
   routes: MapRoute[];
 }
 
-export function emptyWorldMap(): WorldMap {
-  return { id: `carte-${Date.now()}`, label: 'Carte du monde', places: [], routes: [] };
+/** Carte neuve ; l'`id` vient de l'appelant, que l'hôte forge unique (`idDEntropie`, #2817). */
+export function emptyWorldMap(id: string): WorldMap {
+  return { id, label: 'Carte du monde', places: [], routes: [] };
 }
 
 /**
@@ -470,7 +471,7 @@ export function otherEnd(route: MapRoute, placeId: string): string {
 /** Point de rendu d'un lieu : id + position en unités du viewBox de la carte (x 0..100, y 0..64). */
 export interface RenderPoint { id: string; x: number; y: number }
 
-/** Hash déterministe d'un id → angle de séparation stable (aucun Math.random : la carte ne « bouge »
+/** Hash déterministe d'un id → angle de séparation stable (aucune entropie : la carte ne « bouge »
  *  pas d'un rendu à l'autre, même contrainte que `routeCurve` côté vue). */
 function hashAngle(id: string): number {
   let h = 0;

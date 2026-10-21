@@ -60,7 +60,7 @@ const FRAPPEUR: Pt = { x: 0, y: 3, z: 0 };
 
 /** Scène 5×4 : une fortification d'arête en (1,1,E) — la scène du banc 1b-0. */
 function scèneFortifiée(): Scene {
-  const s = emptyScene(5, 4);
+  const s = emptyScene('scene-test', 5, 4);
   s.walls = [{ x: 1, y: 1, side: 'E', structure: 'mur-a-ossature-en-bois' }];
   return s;
 }

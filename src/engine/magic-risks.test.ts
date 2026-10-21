@@ -11,6 +11,7 @@ import { setRule, resetRule } from './policy';
 import {
   resolveFocus, castingValue, armourCastDRPenalty, resolveCasting, focusSkillFor,
 } from './magic';
+import { deSelonLaPlage } from './dice.testkit';
 
 function wiz(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -52,7 +53,7 @@ describe('Focalisation — maladresse élargie (l.140)', () => {
     // FM 45 + 10 → valeur 55. roll 90 (échec, finit par 0) → fumble ; roll 87 (échec) → non.
     const c = wiz();
     // On force les jets via un RNG stub.
-    const rngFor = (roll: number) => ({ int: (lo: number, hi: number) => (hi === 100 ? roll : lo), next: () => 0.5 }) as never;
+    const rngFor = (roll: number) => deSelonLaPlage((lo, hi) => (hi === 100 ? roll : lo));
     const f90 = resolveFocus(c, SORT_FEU, rngFor(90));
     expect(f90.isFumble).toBe(true);
     const f87 = resolveFocus(c, SORT_FEU, rngFor(87));
@@ -103,7 +104,7 @@ describe('« Repousser les Vents » — armure portée (LDB 46 l.150-152)', () =
   it('le DR d\'incantation est réduit par l\'armure (succès conservé)', () => {
     // Valeur 60 (Int 50 + 10) ; jet 10 → DR +5 ; armure 2 PA → DR +3.
     const c = wiz({ items: [mailles] });
-    const rngFor = (roll: number) => ({ int: (lo: number, hi: number) => (hi === 100 ? roll : lo), next: () => 0.5 }) as never;
+    const rngFor = (roll: number) => deSelonLaPlage((lo, hi) => (hi === 100 ? roll : lo));
     const res = resolveCasting(c, SORT_COMMUN, rngFor(10));
     expect(res.sl).toBe(3);
     expect(res.cast).toBe(true); // DR 3 ≥ NI 2

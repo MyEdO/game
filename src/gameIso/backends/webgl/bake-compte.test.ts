@@ -77,7 +77,7 @@ function couche(scene: Scene, z: number, rects: { x: number; y: number; w: numbe
 
 /** UNE salle close, plain-pied, SANS aucune entité : le plancher de comparaison. */
 function salleNue(): Scene {
-  const sc = couche({ ...emptyScene(SIZE, SIZE), id: 'fixture-salle-nue' }, 0, [SALLE]);
+  const sc = couche(emptyScene('fixture-salle-nue', SIZE, SIZE), 0, [SALLE]);
   sc.walls = perimeterWallSegs([SALLE]);
   sc.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }];
   return sc;

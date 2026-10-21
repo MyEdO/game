@@ -25,6 +25,7 @@ import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
+import { nextEntityId } from '../lib/entityId';
 
 let uidCounter = 0;
 export function newUid(): string {
@@ -853,7 +854,6 @@ export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
   return poste;
 }
 
-let loadoutCounter = 0;
 /** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas : le 1er = meilleure arme de
  *  mêlée (+ bouclier/2e arme à 1 main en secondaire), le 2nd = 1re arme à distance (sinon vide).
  *  Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`), pas stocké. */
@@ -863,25 +863,27 @@ export function ensureDefaultLoadout(c: Combatant): void {
   const melee = items.filter((i) => i.kind === 'melee');
   const ranged = items.filter((i) => i.kind === 'ranged');
 
-  const set1: WeaponLoadout = { id: `lo-${++loadoutCounter}` };
+  const set1: WeaponLoadout = { id: newLoadoutId(c) };
   if (melee.length) {
     const main = [...melee].sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0];
     set1.main = main.uid;
     if (mainsDuPorteur(c, main) === 1) set1.off = melee.find((i) => i.uid !== main.uid && mainsDuPorteur(c, i) === 1)?.uid;
   }
-  const set2: WeaponLoadout = { id: `lo-${++loadoutCounter}`, main: ranged[0]?.uid };
+  const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
   c.loadouts = [set1, set2];
   c.activeLoadoutId = (set1.main ? set1 : set2.main ? set2 : set1).id;
 }
 
-/** Id de loadout unique (réutilise le compteur d'ensureDefaultLoadout). */
-export function newLoadoutId(): string {
-  return `lo-${++loadoutCounter}`;
+const PREFIXE_DE_SET = 'lo';
+
+/** Id d'un set d'armes neuf de `c` : libre parmi les ids de SES sets (`nextEntityId`). PUR. */
+export function newLoadoutId(c: Combatant): string {
+  return nextEntityId(PREFIXE_DE_SET, (c.loadouts ?? []).map((l) => l.id));
 }
 
 /** Crée un loadout vide, le rend actif, et renvoie son id. */
 export function loadoutCreate(c: Combatant): string {
-  const id = newLoadoutId();
+  const id = newLoadoutId(c);
   c.loadouts = [...(c.loadouts ?? []), { id }];
   c.activeLoadoutId = id;
   return id;

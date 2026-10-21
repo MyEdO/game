@@ -310,7 +310,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     versionContenu: 1,
     maison: 'fixture de test',
     narratif: emptyNarratif(),
-    scenes: [{ ...emptyScene(4, 4), id: 'fixture-scene', label: 'Fixture' }],
+    scenes: [{ ...emptyScene('fixture-scene', 4, 4), label: 'Fixture' }],
     ...identite,
   });
   /** Le refus de la porte pour ce document, ou `null` s'il passe. */
@@ -345,7 +345,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     return {
       ...ENVELOPPE({ id: 'fixture-architecture' }),
       scenes: [{
-        ...emptyScene(6, 6),
+        ...emptyScene('scene-test', 6, 6),
         id: 'fixture-scene',
         label: 'Fixture',
         architecture: styles.map((style, i) => ({
@@ -525,7 +525,7 @@ describe('provenance locale, références présentes résolubles et régime docu
   const ADAPTE = { adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } };
   const NU = { desc: 'Réplique maison.' };
   const paquet = (node: Record<string, unknown>, journal: Record<string, unknown>, source: typeof SOURCE | null = SOURCE): DocDeProvenance => {
-    const sc = emptyScene(4, 4);
+    const sc = emptyScene('scene-test', 4, 4);
     sc.id = 'sc';
     sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...node }] }];
     sc.triggers = [{ id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'journal', ...journal }]) }];

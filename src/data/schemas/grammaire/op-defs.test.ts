@@ -8,6 +8,7 @@ import { applyOps, messageRecurrenceHorloge, SELF_REF } from '../../../engine/op
 import { ARG_TEMPLATE, INDICE_TEMPLATE } from '../../../engine/flowCore';
 import { champsDOpASlot } from '../../../../scripts/docs/lib/slots-registre.mjs';
 import type { Combatant } from '../../../engine/types';
+import { desDuTest } from '../../../engine/dice.testkit';
 
 describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', () => {
   it('chaque famille garde les slots directs et confie les opérations imbriquées à leur propre entrée', () => {
@@ -56,7 +57,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(() => applyOps(
       { id: 'c', label: 'Cobaye', kind: 'hero', characteristics: {}, wounds: { current: 5, max: 5 }, advantage: 0, conditions: [], movement: 4, weapons: [], armour: {}, skills: [], talents: [] } as unknown as Combatant,
       [{ op: 'condition', id: 'inconscient', perRound: true, durationHours: 1 }],
-      {},
+      { rng: desDuTest },
     ), 'le PARSE et l’APPLICATION disent le même refus').toThrow(messageRecurrenceHorloge('inconscient'));
   });
 

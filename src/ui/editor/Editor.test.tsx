@@ -134,7 +134,7 @@ describe('Editor v2 — scènes du projet : la suppression garde l’ordre (#199
     document.body.appendChild(container);
     const root: Root = createRoot(container);
     await act(async () => {
-      root.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'a', label: 'A' }} />);
+      root.render(<Editor initialScene={{ ...emptyScene('a', 4, 4), label: 'A' }} />);
     });
     const dupliquer = () => boutonParTitre(container, 'Dupliquer la scène active');
     const retirer = () => boutonParTitre(container, 'Retirer la scène active du projet');
@@ -175,7 +175,7 @@ describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (
     const base = brancherBasesSimulees().amorcer(BIBLIOTHEQUE, { projects: { keyPath: 'id' } });
     const { container, rendre } = monterRacine(null);
     const cite: Scene = {
-      ...emptyScene(4, 4), id: 'a', label: 'A',
+      ...emptyScene('scene-test', 4, 4), id: 'a', label: 'A',
       triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'document', documentId: 'document-1' } } }],
     };
     await act(async () => { rendre(<Editor initialScene={cite} />); });
@@ -298,7 +298,7 @@ describe('Editor v2 — authoring architectural', () => {
     // zones intérieures que l'emprise recouvre (#823), plus un champ authoré à filtrer par étage.
   ] as const)('filtre les pièces révélées sur le z de la %s sélectionnée', (_label, sel, allowed, forbidden) => {
     const scene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       effectZones: [
         { id: 'salle-bas', label: 'Salle basse', presentation: 'interior', z: 0, area: { kind: 'rect', x: 0, y: 0, w: 1, h: 1 } },
         { id: 'salle-haut', label: 'Salle haute', presentation: 'interior', z: 1, area: { kind: 'rect', x: 0, y: 0, w: 1, h: 1 } },
@@ -354,7 +354,7 @@ describe('Editor v2 — authoring architectural', () => {
 
   it('ouvre dans l’inspecteur la section ciblée par un warning de feature', async () => {
     const initialScene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       architecture: [{
         id: 'corps',
         style: 'maison',
@@ -427,7 +427,7 @@ describe('Editor v2 — authoring architectural', () => {
       { x: 0, y: 1, side: 'E' }, { x: 2, y: 1, side: 'E' },
     ];
     const initialScene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       layers: [{ z: 0, tiles }],
       walls,
       effectZones: [{
@@ -482,7 +482,7 @@ describe('Editor v2 — authoring architectural', () => {
 
   it('crée un corps, une masse de toiture, et édite son emprise', async () => {
     const initialScene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       effectZones: [{
         id: 'salle',
         label: 'Salle commune',
@@ -545,9 +545,9 @@ describe('Editor v2 — authoring architectural', () => {
 
   it('applique l’étage actif aux parties, façades et toitures puis crée une feature', async () => {
     const initialScene: Scene = {
-      ...emptyScene(8, 8),
+      ...emptyScene('scene-test', 8, 8),
       layers: [
-        emptyScene(8, 8).layers[0],
+        emptyScene('scene-test', 8, 8).layers[0],
         { z: 1, tiles: new Array(64).fill('vide') },
       ],
       architecture: [{
@@ -694,8 +694,8 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
   });
 
   it('Échap sur la modale de reprise ne détruit PAS la sauvegarde locale, et la proposition peut revenir (pt. A)', async () => {
-    const initialScene: Scene = { ...emptyScene(4, 4), id: 'scene-escape-test', label: 'chargée' };
-    await autosaveSave({ sceneId: 'scene-escape-test', scene: { ...emptyScene(4, 4), id: 'scene-escape-test', label: 'récupérée' }, savedAt: 999 });
+    const initialScene: Scene = { ...emptyScene('scene-escape-test', 4, 4), label: 'chargée' };
+    await autosaveSave({ sceneId: 'scene-escape-test', scene: { ...emptyScene('scene-escape-test', 4, 4), label: 'récupérée' }, savedAt: 999 });
 
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -728,8 +728,8 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
   });
 
   it('#834 audit-2 DÉFAUT 5 — une restauration reste ANNULABLE (Ctrl+Z), jamais l’action par défaut visuelle', async () => {
-    const initialScene: Scene = { ...emptyScene(4, 4), id: 'scene-restore-undo', label: 'avant-restore' };
-    await autosaveSave({ sceneId: 'scene-restore-undo', scene: { ...emptyScene(4, 4), id: 'scene-restore-undo', label: 'apres-restore' }, savedAt: 999 });
+    const initialScene: Scene = { ...emptyScene('scene-restore-undo', 4, 4), label: 'avant-restore' };
+    await autosaveSave({ sceneId: 'scene-restore-undo', scene: { ...emptyScene('scene-restore-undo', 4, 4), label: 'apres-restore' }, savedAt: 999 });
 
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -766,7 +766,7 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 
   it('#834 audit-2 DÉFAUTS 4/6 — « Enregistrer » purge le filet de TOUTES les scènes du projet, mais RIEN si le succès est DÉGRADÉ', async () => {
 
-    const initialScene: Scene = { ...emptyScene(4, 4), id: 'scene-purge-a', label: 'A' };
+    const initialScene: Scene = { ...emptyScene('scene-purge-a', 4, 4), label: 'A' };
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root: Root = createRoot(container);
@@ -783,8 +783,8 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
     const sceneBId = activeSelect.value;
     expect(sceneBId).not.toBe('scene-purge-a');
 
-    await autosaveSave({ sceneId: 'scene-purge-a', scene: { ...emptyScene(4, 4), id: 'scene-purge-a' }, savedAt: 1 });
-    await autosaveSave({ sceneId: sceneBId, scene: { ...emptyScene(4, 4), id: sceneBId }, savedAt: 1 });
+    await autosaveSave({ sceneId: 'scene-purge-a', scene: emptyScene('scene-purge-a', 4, 4), savedAt: 1 });
+    await autosaveSave({ sceneId: sceneBId, scene: { ...emptyScene('scene-test', 4, 4), id: sceneBId }, savedAt: 1 });
     expect(sauvegardes().has('scene-purge-a')).toBe(true);
     expect(sauvegardes().has(sceneBId)).toBe(true);
 
@@ -800,7 +800,7 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
 
     // DÉFAUT 6 : un succès DÉGRADÉ (IndexedDB en échec, miroir localStorage seul) ne purge RIEN.
     bases.base(BIBLIOTHEQUE).panne = (q) => (q.geste === 'put' ? new DOMException('IndexedDB indisponible (simulé)', 'UnknownError') : null);
-    await autosaveSave({ sceneId: 'scene-purge-a', scene: { ...emptyScene(4, 4), id: 'scene-purge-a' }, savedAt: 2 });
+    await autosaveSave({ sceneId: 'scene-purge-a', scene: emptyScene('scene-purge-a', 4, 4), savedAt: 2 });
     await act(async () => { saveBtn.click(); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
     expect(sauvegardes().has('scene-purge-a')).toBe(true);
@@ -812,10 +812,10 @@ describe('Editor v2 — sauvegarde locale de secours (#834 audit)', () => {
   });
 
   it('le message de reprise n’affirme PLUS une fraîcheur relative jamais vérifiée (pt. B)', async () => {
-    const initialScene: Scene = { ...emptyScene(4, 4), id: 'scene-msg-test', label: 'chargée' };
+    const initialScene: Scene = { ...emptyScene('scene-msg-test', 4, 4), label: 'chargée' };
     // Enregistrement PLUS ANCIEN que « maintenant » : la mécanique ne compare aucune date au chargement
     // — le message ne doit donc rien affirmer sur une fraîcheur relative qu'elle n'a pas vérifiée.
-    await autosaveSave({ sceneId: 'scene-msg-test', scene: { ...emptyScene(4, 4), id: 'scene-msg-test', label: 'ancienne' }, savedAt: 1 });
+    await autosaveSave({ sceneId: 'scene-msg-test', scene: { ...emptyScene('scene-msg-test', 4, 4), label: 'ancienne' }, savedAt: 1 });
 
     const container = document.createElement('div');
     document.body.appendChild(container);
@@ -909,7 +909,7 @@ describe('Editor v2 — le défaut mis en évidence est VIVANT (re-résolution c
   function planTemoin(zoneW: number): Scene {
     const w = 6, h = 2;
     return {
-      ...emptyScene(w, h),
+      ...emptyScene('scene-test', w, h),
       layers: [{ z: 0, tiles: new Array(w * h).fill('route') }],
       walls: [
         { x: 0, y: 0, side: 'N' }, { x: 1, y: 0, side: 'N' }, { x: 2, y: 0, side: 'N' },
@@ -969,7 +969,7 @@ describe('Editor v2 — le document ÉCRIT s’ouvre sur son identité (`id`, `t
     document.body.appendChild(container);
     const root: Root = createRoot(container);
     await act(async () => {
-      root.render(<Editor initialScene={{ ...emptyScene(4, 4), id: 'scene-ordre', label: 'Ordre' }} />);
+      root.render(<Editor initialScene={{ ...emptyScene('scene-ordre', 4, 4), label: 'Ordre' }} />);
     });
 
     const byText = (label: string) => Array.from(container.querySelectorAll('button')).find((b) => b.textContent?.includes(label))!;
@@ -1008,7 +1008,7 @@ describe('Editor v2 — le calque d’un autre format, retiré au chargement, es
     const contenu = bases.base('wfrp4-trace-layers').magasins.get('layers')!.contenu;
     for (const [cle, v] of contenu) contenu.set(cle, { ...(v as object), version: 'autre-format' });
     const { container, rendre } = monterRacine(null);
-    await act(async () => { rendre(<Editor initialScene={{ ...emptyScene(4, 4), id: 'scene-calque', label: 'Calque' }} />); });
+    await act(async () => { rendre(<Editor initialScene={{ ...emptyScene('scene-calque', 4, 4), label: 'Calque' }} />); });
     await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
     const temoin = container.querySelector('.trace-layer-panel [role="alert"] p.chip.tone-danger.chip-phrase');
     expect(temoin?.textContent, 'le témoin rendu par `ChipDeRefus`').toBe('Calque de cet étage d’un autre format : il a été retiré.');

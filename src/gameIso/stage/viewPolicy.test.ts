@@ -21,7 +21,7 @@ import { viewPolicy } from './viewPolicy';
 const MIDI = 12 * 60;
 const NUIT = 23 * 60;
 const BOITE = new THREE.Box3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(20, 4, 20));
-const dehors = (): Scene => setNorthDeg({ ...emptyScene(6, 6), ambiance: 'exterieur' }, 0);
+const dehors = (): Scene => setNorthDeg({ ...emptyScene('scene-test', 6, 6), ambiance: 'exterieur' }, 0);
 
 describe('viewPolicy — un regard, ses verdicts de style', () => {
   it('PLATEAU ISO : tout se montre — toits, soleil, nappes, précipitations, murs PEINTS, sans grille', () => {

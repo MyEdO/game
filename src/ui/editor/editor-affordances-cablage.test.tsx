@@ -85,7 +85,7 @@ function mount(scene: Scene, sel: Sel) {
 /** Une salle intérieure de 4×4 au rez : le PLANCHER RÉEL dont la toiture se dérive (#829/#881). */
 function sceneAvecCorps(): Scene {
   return encloseRect({
-    ...emptyScene(12, 12),
+    ...emptyScene('scene-test', 12, 12),
     architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
   }, { x: 1, y: 1, w: 4, h: 4 });
 }
@@ -277,7 +277,7 @@ describe('Inspecteur — l’INTENTION de toiture atteint le rendu (#829/#841)',
 
 describe('Inspecteur — une ANCRE de bataille posée est RÉSOLUE par son consommateur (#841)', () => {
   it('le picker propose des Scènes du CATALOGUE, et l’ancre produit une Station à sa position', async () => {
-    const h = mount(emptyScene(22, 16), null);
+    const h = mount(emptyScene('scene-test', 22, 16), null);
     await h.mount();
 
     const addAnchor = Array.from(h.container.querySelectorAll('button'))
@@ -309,7 +309,7 @@ describe('Inspecteur — une zone d’effet RONDE s’auteure au clic (`ZoneArea
   it('forme « disque » + rayon → `sceneZonesToBattle` sème un disque CENTRÉ, pas le rectangle d’origine', async () => {
     const h = mount(
       {
-        ...emptyScene(20, 20),
+        ...emptyScene('scene-test', 20, 20),
         effectZones: [{
           id: 'ward', label: 'Cercle de ward',
           area: { kind: 'rect', x: 2, y: 2, w: 2, h: 2 },
@@ -341,7 +341,7 @@ describe('Inspecteur — la NATURE d’une zone atteint le PLAN (#881)', () => {
    *  que NOMMER et déclarer ce qui reste à ciel ouvert. */
   const sceneAvecCour = (): Scene => ({
     ...encloseRect({
-      ...emptyScene(12, 12),
+      ...emptyScene('scene-test', 12, 12),
       architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
     }, { x: 1, y: 1, w: 6, h: 6 }),
     effectZones: [{ id: 'cour', label: 'Cour', area: { kind: 'rect', x: 3, y: 3, w: 2, h: 2 }, z: 0, presentation: 'interior' }],
@@ -391,7 +391,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
   it('le sens choisi ARME le pinceau sur l’id STABLE de la zone ; peindre atteint le moteur', async () => {
     const h = mount(
       {
-        ...emptyScene(12, 12),
+        ...emptyScene('scene-test', 12, 12),
         effectZones: [{
           id: 'salle', label: 'Salle',
           area: { kind: 'rect', x: 1, y: 1, w: 3, h: 3 },
@@ -422,7 +422,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
   it('« Rétablir l’emprise pleine » dissout la découpe portée par le document', async () => {
     const h = mount(
       {
-        ...emptyScene(12, 12),
+        ...emptyScene('scene-test', 12, 12),
         effectZones: [{
           id: 'salle', label: 'Salle',
           area: { kind: 'rect', x: 1, y: 1, w: 3, h: 3 },
@@ -444,7 +444,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
   it('déplacer la boîte EMPORTE la découpe (l’emprise reste la forme dessinée par l’auteur)', async () => {
     const h = mount(
       {
-        ...emptyScene(12, 12),
+        ...emptyScene('scene-test', 12, 12),
         effectZones: [{
           id: 'salle', label: 'Salle',
           area: { kind: 'rect', x: 1, y: 1, w: 2, h: 2 },
@@ -470,7 +470,7 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
 /** Une arête de façade portant un pignon, sans position ni largeur authorées (défauts du rendu). */
 function sceneFacade(): Scene {
   return {
-    ...emptyScene(10, 10),
+    ...emptyScene('scene-test', 10, 10),
     walls: [{ x: 3, y: 3, side: 'N' }],
     architecture: [{
       id: 'corps', style: 'taverne', storeys: [{ id: 'rez', z: 0, parts: [], roomZoneIds: [] }],
@@ -520,7 +520,7 @@ function sceneNavale(): Scene {
     { id: 'marin', kind: 'personnage', ref: 'garde-du-village', pos: { x: 6, y: 4 }, label: 'Marin' },
   ];
   return {
-    ...emptyScene(14, 14),
+    ...emptyScene('scene-test', 14, 14),
     entities,
     encounters: [{ id: 'abordage', members: [{ entityId: 'coque' }, { entityId: 'marin', side: 'ally' }] }],
   };
@@ -614,7 +614,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
 // ── Scene.flags (#855 — `setSceneFlags` contrôlé par un drapeau posé à l'inspecteur) ──
 describe('SceneProps — un drapeau de départ posé à l’inspecteur atteint `evalCondition` (#855)', () => {
   it('poser puis retirer le drapeau fait basculer le lecteur de conditions vrai puis faux', async () => {
-    const h = mount(emptyScene(6, 6), null);
+    const h = mount(emptyScene('scene-test', 6, 6), null);
     await h.mount();
 
     const lit = (flags: Record<string, boolean>) =>

@@ -37,6 +37,7 @@ import etats from '../data/etats.json';
 import talents from '../data/talents.json';
 import spells from '../data/spells.json';
 import shipCrits from '../data/ship-criticals.json';
+import { desDuTest } from '../engine/dice.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -144,7 +145,7 @@ function noeudDeSortACaster(): NoeudTest {
 /** Une scène JOUET portant la feuille à valider sous un déclencheur — le chemin d'un contenu authoré.
  *  Les 4 projets LIVRÉS sont tenus au même contrat par `scenes/bundled-projects.test.ts` (zéro erreur). */
 function sceneAvecFeuille(effet: Effect): Scene {
-  const s = emptyScene(5, 5);
+  const s = emptyScene('scene-test', 5, 5);
   s.id = 'sonde-1874';
   s.triggers.push({ id: 't-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([effet]) });
   return s;
@@ -159,7 +160,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     const sujet = decor();
     const rangee = rangeeSonneSurLaCible();
     const avant = lesAutres(sujet.id);
-    routeTriggeredTest(get, set, sujet, sujet, rangee.test, { label: rangee.label });
+    routeTriggeredTest(get, set, sujet, sujet, rangee.test, { rng: desDuTest, label: rangee.label });
     expect(get().pendingTest!.actorId, 'la modale s’ouvre chez le sujet').toBe('h3');
     acquitter({ success: false, sl: -3 });
     expect(etatsDe('h3')).toContain('sonne');
@@ -172,7 +173,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     const sujet = decor();
     const rangee = rangeeSonneSurLaCible();
     const avant = lesAutres(sujet.id);
-    routeTriggeredTest(get, set, sujet, sujet, rangee.test, { label: rangee.label });
+    routeTriggeredTest(get, set, sujet, sujet, rangee.test, { rng: desDuTest, label: rangee.label });
     allerRetourJSON(); // aucune closure ne survit : tout ce que la reprise lit est SÉRIALISÉ
     acquitter({ success: false, sl: -3 });
     expect(etatsDe('h3')).toContain('sonne');
@@ -187,7 +188,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     decor();
     set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, conditions: [{ id: 'sonne', value: 3 }] } : c)) as never });
     const sujet = heros('h3');
-    routeTriggeredTest(get, set, sujet, sujet, node, { label: 'Résistance au Sonné' });
+    routeTriggeredTest(get, set, sujet, sujet, node, { rng: desDuTest, label: 'Résistance au Sonné' });
     acquitter({ success: true, sl: 0 });
     expect(heros('h3').conditions!.find((c) => c.id === 'sonne')!.value).toBe(2);
     expect(etatsDe('h3')).not.toContain('extenue');
@@ -195,7 +196,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     decor();
     set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, conditions: [{ id: 'sonne', value: 3 }] } : c)) as never });
     const avant = lesAutres('h3');
-    routeTriggeredTest(get, set, heros('h3'), heros('h3'), node, { label: 'Résistance au Sonné' });
+    routeTriggeredTest(get, set, heros('h3'), heros('h3'), node, { rng: desDuTest, label: 'Résistance au Sonné' });
     acquitter({ success: true, sl: 2 });
     expect(etatsDe('h3'), 'DR 2 : les 3 Sonné partent et Exténué se pose').toEqual(['extenue']);
     expect(lesAutres('h3')).toBe(avant);
@@ -206,7 +207,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     decor();
     set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, conditions: [{ id: 'sonne', value: 2 }] } : c)) as never });
     const avant = lesAutres('h3');
-    routeTriggeredTest(get, set, heros('h3'), heros('h3'), node, { label: 'Mâchoires d’acier' });
+    routeTriggeredTest(get, set, heros('h3'), heros('h3'), node, { rng: desDuTest, label: 'Mâchoires d’acier' });
     acquitter({ success: true, sl: 0 });
     expect(heros('h3').conditions!.find((c) => c.id === 'sonne')!.value, 'le porteur = le sujet').toBe(1);
     expect(lesAutres('h3')).toBe(avant);
@@ -215,7 +216,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
   it('T4b — sujet h3, LANCEUR h4 : la feuille `on:caster` atteint le lanceur, pas le sujet', () => {
     const node = noeudDeSortACaster();
     const sujet = decor();
-    routeTriggeredTest(get, set, sujet, heros('h4'), node, { label: 'Sort déclenché' });
+    routeTriggeredTest(get, set, sujet, heros('h4'), node, { rng: desDuTest, label: 'Sort déclenché' });
     allerRetourJSON();
     acquitter({ success: false, sl: -1 });
     const dit = ligneDeLaConsequence();
@@ -228,7 +229,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // perd pas parce que le porteur a quitté l'état.
     const node = noeudDeSortACaster();
     const sujet = decor();
-    routeTriggeredTest(get, set, sujet, heros('h4'), node, { label: 'Sort déclenché' });
+    routeTriggeredTest(get, set, sujet, heros('h4'), node, { rng: desDuTest, label: 'Sort déclenché' });
     set({ party: get().party.filter((c) => c.id !== 'h4') as never }); // le lanceur a quitté le groupe
     acquitter({ success: false, sl: -1 });
     expect(ligneDeLaConsequence(), 'lanceur introuvable → le SUJET porte la conséquence').toContain('H3');
@@ -241,7 +242,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
       .find((n) => noeudsTest(n.fail).length > 0 || noeudsTest(n.success).length > 0)!;
     expect(node, 'aucun nœud de sort à Test imbriqué — le scan a glissé').toBeTruthy();
     const sujet = decor();
-    routeTriggeredTest(get, set, sujet, heros('h4'), node, { label: 'Sort à second jet', source: sourceDuSort(node) });
+    routeTriggeredTest(get, set, sujet, heros('h4'), node, { rng: desDuTest, label: 'Sort à second jet', source: sourceDuSort(node) });
     allerRetourJSON();
     acquitter({ success: false, sl: -1 });
     const pc = get().pendingCascade;
@@ -260,7 +261,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     expect(node, 'aucun nœud de sort à `choice` en branche — le scan a glissé').toBeTruthy();
     const brancheChoice = node.fail?.kind === 'choice';
     const sujet = decor();
-    routeTriggeredTest(get, set, sujet, sujet, node, { label: 'Sort à choix' });
+    routeTriggeredTest(get, set, sujet, sujet, node, { rng: desDuTest, label: 'Sort à choix' });
     acquitter({ success: !brancheChoice, sl: brancheChoice ? -1 : 1 });
     const pc = get().pendingCascade;
     expect(pc, 'le `choice` de branche doit ouvrir sa cascade').toBeTruthy();
@@ -270,7 +271,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
   it('T8 — sujet MORT entre l’ouverture et la reprise : la branche n’est PAS jouée, et la perte se DIT', () => {
     const sujet = decor();
     const rangee = rangeeSonneSurLaCible();
-    routeTriggeredTest(get, set, sujet, sujet, rangee.test, { label: rangee.label });
+    routeTriggeredTest(get, set, sujet, sujet, rangee.test, { rng: desDuTest, label: rangee.label });
     set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, dead: true } : c)) as never });
     const avant = JSON.stringify(get().party);
     acquitter({ success: false, sl: -3 });
@@ -287,7 +288,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
       fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'corruptionExposure', easeSteps: 1 }] } },
     } as unknown as NoeudTest;
     const sujet = decor();
-    routeTriggeredTest(get, set, sujet, sujet, node, { label: 'Source nommée' });
+    routeTriggeredTest(get, set, sujet, sujet, node, { rng: desDuTest, label: 'Source nommée' });
     allerRetourJSON();
     acquitter({ success: false, sl: -1 });
     const poses = (heros('h3').activeEffects ?? []).filter((e) => e.corruptionEase);
@@ -302,7 +303,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
       .tables.greement.map((r) => r.crewHit?.test).find((t) => t && JSON.stringify(t).includes('"fall"'))!;
     expect(node, 'aucun nœud de Critique de coque à branche `fall` — le scan a glissé').toBeTruthy();
     const sujet = decor();
-    routeTriggeredTest(get, set, sujet, sujet, node, { label: 'Critique de coque' });
+    routeTriggeredTest(get, set, sujet, sujet, node, { rng: desDuTest, label: 'Critique de coque' });
     expect(get().pendingTest!.subi, 'aucun `hull` n’entre dans le marqueur').toEqual({ label: 'Critique de coque' });
     expect(() => acquitter({ success: false, sl: -2 })).toThrow(/fall/);
   });

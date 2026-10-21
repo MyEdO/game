@@ -144,7 +144,7 @@ describe('Cuisson du monde — rétention par CONTENU, read-set gardé champ par
  */
 describe('Cuisson du monde — l’état RUNTIME des arêtes recuit, un flag sans lecteur non', () => {
   const aretes = (): Scene => {
-    const s = emptyScene(6, 6);
+    const s = emptyScene('scene-test', 6, 6);
     s.walls = [
       { x: 1, y: 1, side: 'E', door: true, closed: true },
       { x: 3, y: 1, side: 'E', door: true, closed: true, secret: { difficulty: 'complexe', face: 'les-deux' } },
@@ -335,7 +335,7 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
   const [DEF_A, DEF_B] = props.filter((p) => p.volume).map((p) => p.id);
 
   const salle = (defs: readonly string[], parDef: number): Scene => {
-    const scene = emptyScene(40, 40);
+    const scene = emptyScene('scene-test', 40, 40);
     scene.entities = defs.flatMap((ref, d) => Array.from({ length: parDef }, (_, i) => ({
       id: `p-${d}-${i}`, kind: 'prop', ref, pos: { x: i % 40, y: (d + Math.floor(i / 40)) % 40 },
     }))) as Scene['entities'];
@@ -398,7 +398,7 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
    *  de la même tuile n'a qu'UNE couverture à surveiller. Sans ce contrat, le dédoublonnage du décor
    *  aurait été une correction de SITE là où le juge a nommé une règle de TAILLE du read-set. */
   const toits = (n: number): Scene => {
-    const scene = emptyScene(40, 40);
+    const scene = emptyScene('scene-test', 40, 40);
     const couverture = matieresDe('roof')[0].id;
     scene.architecture = Array.from({ length: n }, (_, i) => ({
       id: `corps-${i}`, kind: 'batiment', footprint: [{ x: i % 20, y: Math.floor(i / 20) }],

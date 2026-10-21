@@ -33,6 +33,7 @@ import type { EffectOp } from '../engine/flowCore';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { InterruptionDePeril } from '../noyau/tablesPosees';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,
@@ -74,7 +75,7 @@ describe('(i) le moteur DEMANDE ses dés — `demandesDeDes` sur les ops RÉELLE
   const ops = opsDeChute();
 
   it('un gabier sur une coque MOYENNE : DEUX dés — la hauteur (2d10 m) puis les Dégâts (1d10)', () => {
-    const d = demandesDeDes(ops, marin('gabier', { shipStation: 'greement' } as Partial<Combatant>), { hull: coque() });
+    const d = demandesDeDes(ops, marin('gabier', { shipStation: 'greement' } as Partial<Combatant>), { rng: desDuTest, hull: coque() });
     expect(d.map((x) => x.cle)).toEqual([cleDeDe(0, 'hauteur'), cleDeDe(0, 'degats')]);
     expect(d[0].spec, 'MDG 13 l.687 : Moyenne à Grande → 2d10 mètres').toEqual({ n: 2, sides: 10 });
     expect(d[0].unite).toBe('m');
@@ -83,13 +84,13 @@ describe('(i) le moteur DEMANDE ses dés — `demandesDeDes` sur les ops RÉELLE
   });
 
   it('depuis le NID-DE-PIE la hauteur est un ENTIER (25 m) : UN seul dé, celui des Dégâts', () => {
-    const d = demandesDeDes(ops, marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>), { hull: coque() });
+    const d = demandesDeDes(ops, marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>), { rng: desDuTest, hull: coque() });
     expect(d.map((x) => x.cle)).toEqual([cleDeDe(0, 'degats')]);
   });
 
   it('ÉNUMÉRATION PURE : aucune Blessure posée, aucun État — rien n’est joué en la demandant', () => {
     const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
-    demandesDeDes(ops, gabier, { hull: coque() });
+    demandesDeDes(ops, gabier, { rng: desDuTest, hull: coque() });
     expect(gabier.wounds.current).toBe(200);
     expect(gabier.conditions).toEqual([]);
   });
@@ -134,7 +135,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     });
   });
 
-  const ouvrir = () => applyLeafOps(useGame.getState, useGame.setState, gabier(), feuille(opsDeChute()), { hull: coque() });
+  const ouvrir = () => applyLeafOps(useGame.getState, useGame.setState, gabier(), feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
 
   it('rien n’est encaissé à l’application : la porte ouvre la HAUTEUR d’abord', () => {
     expect(ouvrir(), 'la feuille est DIFFÉRÉE : elle n’a pas de journal, elle n’est pas encore jouée').toBe(OPS_DIFFEREES);
@@ -181,7 +182,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   it('depuis le NID-DE-PIE (hauteur entière), UNE seule étape suffit', () => {
     useGame.setState({ party: [marin('vigie', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const vigie = useGame.getState().party[0];
-    applyLeafOps(useGame.getState, useGame.setState, vigie, feuille(opsDeChute()), { hull: coque() });
+    applyLeafOps(useGame.getState, useGame.setState, vigie, feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
     const st = useGame.getState().pendingCascade!.participants[0];
     expect(st.de!.spec).toEqual({ n: 1, sides: 10 });
     useGame.getState().cascadeDieSetForcedRoll(st.id, 6);
@@ -208,7 +209,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     });
     useGame.getState().seedRng(21);
     const matelot = useGame.getState().party[0];
-    applyLeafOps(useGame.getState, useGame.setState, matelot, feuille(opsDeChute()), { hull: coque() });
+    applyLeafOps(useGame.getState, useGame.setState, matelot, feuille(opsDeChute()), { rng: desDuTest, hull: coque() });
     const st = useGame.getState().pendingCascade!.participants[0];
     expect(st.de!.result, 'aucun siège ne le tient : le socle le tire à l’ouverture').not.toBeNull();
     expect(draineCascade(useGame.getState)).toContain('opsDe');
@@ -228,7 +229,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
         marin('B', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
     const par = (id: string) => useGame.getState().party.find((c) => c.id === id)!;
-    const CTX = { hull: coque(), now: 1000 }; // MÊME instant de jeu pour les deux feuilles
+    const CTX = { rng: desDuTest, hull: coque(), now: 1000 }; // MÊME instant de jeu pour les deux feuilles
     applyLeafOps(useGame.getState, useGame.setState, par('A'), feuille(opsDeChute()), CTX);
     applyLeafOps(useGame.getState, useGame.setState, par('B'), feuille(opsDeChute()), CTX);
     expect(useGame.getState().pendingCascade!.participants.map((s) => s.actorId)).toEqual(['A', 'B']);
@@ -428,7 +429,7 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('porte', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const parLaPorte = useGame.getState().party[0];
-    applyLeafOps(useGame.getState, useGame.setState, parLaPorte, feuille(ops()), CTX());
+    applyLeafOps(useGame.getState, useGame.setState, parLaPorte, feuille(ops()), { rng: makeRNG(4), ...CTX() });
     const st = useGame.getState().pendingCascade!.participants[0];
     useGame.getState().cascadeDieSetForcedRoll(st.id, 5);
     useGame.getState().cascadeNext();
@@ -458,8 +459,8 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = useGame.getState().party[0];
-    expect(demandesDeDes(imbriquee(), gabier, { hull: coque() }), 'niveau 1 : rien à annoncer').toEqual([]);
-    applyLeafOps(useGame.getState, useGame.setState, gabier, feuille(imbriquee()), { hull: coque() });
+    expect(demandesDeDes(imbriquee(), gabier, { rng: desDuTest, hull: coque() }), 'niveau 1 : rien à annoncer').toEqual([]);
+    applyLeafOps(useGame.getState, useGame.setState, gabier, feuille(imbriquee()), { rng: desDuTest, hull: coque() });
     expect(useGame.getState().pendingCascade, 'aucune étape de dé — la dette est ICI').toBeNull();
     expect(useGame.getState().party[0].wounds.current, 'les deux dés sont tombés sous `applyOps`').toBeLessThan(200);
   });
@@ -470,7 +471,7 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
     useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
       party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = useGame.getState().party[0];
-    expect(() => applyLeafOps(useGame.getState, useGame.setState, gabier, feuille(opsDeChute()), {
+    expect(() => applyLeafOps(useGame.getState, useGame.setState, gabier, feuille(opsDeChute()), { rng: desDuTest,
       hull: coque(), onCondition: () => {},
     })).toThrow(/onCondition/);
   });
@@ -550,7 +551,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     const d = dialogueDUnSaut();
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
-      scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
+      scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
@@ -573,7 +574,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     } as unknown as Dialogue;
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
-      scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
+      scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       scheduledEffects: [{ executeAt: 1003, flow: DIT('événement programmé') }],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
@@ -595,7 +596,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     const rect = { x: 0, y: 0, w: 3, h: 3 };
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], flags: {}, scheduledEffects: [],
-      scene: { ...emptyScene(), triggers: [
+      scene: { ...emptyScene('scene-test'), triggers: [
         { id: 't1', rect, once: true, flow: CHUTE },
         { id: 't2', rect, once: true, flow: DIT('second déclencheur') },
       ] } as never,
@@ -616,7 +617,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     const d = dialogueDeDeuxSauts();
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
-      scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
+      scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
@@ -704,7 +705,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     const d = dialogueDeDeuxSauts();
     useGame.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null,
-      scene: { ...emptyScene(), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
+      scene: { ...emptyScene('scene-test'), dialogues: [d] } as never, gameTime: 1000, party: [marinBlesse('h1')],
       screen: 'campaign', dialogue: ouvrirDialogue({ dialogueHistory: [] }, d),
     });
     useGame.getState().chooseDialogue(0);
@@ -940,7 +941,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   const ouvrirLaBande = (victimes: Combatant[], purpose: 'combat' | 'travelDay'): void => {
     const { test, label } = noeudCrewHit();
     const bande = (index: number) => bandeTriggeredTest(
-      useGame.getState, useGame.setState, victimes, test, `crew-hit-${index}`, { label, hull: coqueMoyenne() },
+      useGame.getState, useGame.setState, victimes, test, `crew-hit-${index}`, { rng: desDuTest, label, hull: coqueMoyenne() },
     );
     if (purpose === 'combat') pushCombatStep(useGame.setState, bande);
     else pushStep(useGame.setState, bande, 'travelDay');
@@ -1110,13 +1111,13 @@ describe('(xiv) OP `fall` SANS TABLE : le refus est NOMMÉ, jamais un silence', 
   const victime = (): Combatant => marin('ott', { shipStation: 'greement' } as Partial<Combatant>);
 
   it('`demandesDeDes` LÈVE en nommant la table et son fichier', () => {
-    expect(() => demandesDeDes(sansTable(), victime(), {})).toThrow(/table de hauteur inconnue/);
-    expect(() => demandesDeDes(sansTable(), victime(), {})).toThrow(/ship-criticals\.json/);
+    expect(() => demandesDeDes(sansTable(), victime(), { rng: desDuTest })).toThrow(/table de hauteur inconnue/);
+    expect(() => demandesDeDes(sansTable(), victime(), { rng: desDuTest })).toThrow(/ship-criticals\.json/);
   });
 
   it('`applyOps` LÈVE de la même façon — aucune Blessure posée à moitié', () => {
     const c = victime();
-    expect(() => applyOps(c, sansTable(), {})).toThrow(/table de hauteur inconnue/);
+    expect(() => applyOps(c, sansTable(), { rng: desDuTest })).toThrow(/table de hauteur inconnue/);
     expect(c.wounds.current, 'rien n’a été appliqué avant le refus').toBe(200);
   });
 });
@@ -1133,14 +1134,14 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
 
   it('`runPureFlowLines` LÈVE en nommant la porte', () => {
     const c = victime();
-    expect(() => runPureFlowLines(c, c, flowFall(), { hull: coque() })).toThrow(/op à DÉ|porte/);
+    expect(() => runPureFlowLines(c, c, flowFall(), { rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
     expect(c.wounds.current, 'rien n’a été appliqué avant le refus').toBe(200);
   });
 
   it('un `fall` ENFOUI dans une `seq` lève aussi — le walker inspecte tout l’arbre', () => {
     const c = victime();
     const seq = { kind: 'seq', steps: [{ kind: 'seq', steps: [flowFall()] }] } as unknown as Flow;
-    expect(() => runPureFlowLines(c, c, seq, { hull: coque() })).toThrow(/op à DÉ|porte/);
+    expect(() => runPureFlowLines(c, c, seq, { rng: desDuTest, hull: coque() })).toThrow(/op à DÉ|porte/);
   });
 });
 

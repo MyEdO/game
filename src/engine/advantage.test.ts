@@ -5,6 +5,7 @@ import type { Combatant } from './types';
 import { applyOps, avantageDeCampSansFiche } from './ops';
 import { TAVERN_GAMES } from './tavernGame';
 import { createHero } from './character';
+import { desDuTest } from './dice.testkit';
 
 const c = (advantage: number) => ({ advantage }) as Combatant;
 const ci = (advantage: number, I: number) =>
@@ -60,47 +61,47 @@ describe('ops d’Avantage — gain additif, complétion, perte totale', () => {
   it('`gainAdvantage` S’ADDITIONNE (NADJ 16 l.34, LDB 14 l.204-209) et s’arrête au plafond (l.198)', () => {
     setRule('combat-advantage-cap', 3);
     const h = heros();
-    for (let i = 0; i < 2; i++) applyOps(h, [{ op: 'gainAdvantage', amount: 1 }], { caster: h });
+    for (let i = 0; i < 2; i++) applyOps(h, [{ op: 'gainAdvantage', amount: 1 }], { rng: desDuTest, caster: h });
     expect(h.advantage).toBe(2);
-    applyOps(h, [{ op: 'gainAdvantage', amount: 5 }], { caster: h });
+    applyOps(h, [{ op: 'gainAdvantage', amount: 5 }], { rng: desDuTest, caster: h });
     expect(h.advantage).toBe(3);
   });
 
   it('`topUpAdvantage` COMPLÈTE jusqu’à `amount`, sans jamais retirer (MDG 16 l.11)', () => {
     const h = heros();
-    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { caster: h });
-    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { rng: desDuTest, caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { rng: desDuTest, caster: h });
     expect(h.advantage).toBe(2);
     h.advantage = 4;
-    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { caster: h });
+    applyOps(h, [{ op: 'topUpAdvantage', amount: 2 }], { rng: desDuTest, caster: h });
     expect(h.advantage).toBe(4);
   });
 
   it('`spendAdvantage` sans `amount` fait perdre TOUS les Avantages (LDB 14 l.219)', () => {
     const h = heros();
     h.advantage = 4;
-    applyOps(h, [{ op: 'spendAdvantage' }], { caster: h });
+    applyOps(h, [{ op: 'spendAdvantage' }], { rng: desDuTest, caster: h });
     expect(h.advantage).toBe(0);
   });
 });
 
 describe('avantageDeCampSansFiche — l’Avantage d’un camp sans fiche (#2333)', () => {
   it('lit le vocabulaire d’Avantage par les primitives : gain plafonné, perte totale ou de 1, plancher 0', () => {
-    expect(avantageDeCampSansFiche(1, [{ op: 'gainAdvantage', amount: 1 }], 3)).toBe(2);
-    expect(avantageDeCampSansFiche(2, [{ op: 'gainAdvantage', amount: 5 }], 3), 'plafond').toBe(3);
-    expect(avantageDeCampSansFiche(3, [{ op: 'spendAdvantage' }], 3), 'tout').toBe(0);
-    expect(avantageDeCampSansFiche(2, [{ op: 'spendAdvantage', amount: 1 }], 3)).toBe(1);
-    expect(avantageDeCampSansFiche(0, [{ op: 'spendAdvantage', amount: 1 }], 3), 'plancher').toBe(0);
+    expect(avantageDeCampSansFiche(1, [{ op: 'gainAdvantage', amount: 1 }], 3, desDuTest)).toBe(2);
+    expect(avantageDeCampSansFiche(2, [{ op: 'gainAdvantage', amount: 5 }], 3, desDuTest), 'plafond').toBe(3);
+    expect(avantageDeCampSansFiche(3, [{ op: 'spendAdvantage' }], 3, desDuTest), 'tout').toBe(0);
+    expect(avantageDeCampSansFiche(2, [{ op: 'spendAdvantage', amount: 1 }], 3, desDuTest)).toBe(1);
+    expect(avantageDeCampSansFiche(0, [{ op: 'spendAdvantage', amount: 1 }], 3, desDuTest), 'plancher').toBe(0);
   });
 
   it('une op hors du vocabulaire d’Avantage LÈVE, nommée', () => {
-    expect(() => avantageDeCampSansFiche(0, [{ op: 'topUpAdvantage', amount: 1 }], 3)).toThrow(/topUpAdvantage/);
+    expect(() => avantageDeCampSansFiche(0, [{ op: 'topUpAdvantage', amount: 1 }], 3, desDuTest)).toThrow(/topUpAdvantage/);
   });
 
   it('chaque `roundOps.winner` des jeux de taverne est lisible par lui', () => {
     for (const g of TAVERN_GAMES) {
       if (!g.roundOps?.winner) continue;
-      expect(() => avantageDeCampSansFiche(0, g.roundOps!.winner!, 10), g.id).not.toThrow();
+      expect(() => avantageDeCampSansFiche(0, g.roundOps!.winner!, 10, desDuTest), g.id).not.toThrow();
     }
   });
 });

@@ -571,7 +571,7 @@ describe('NarratifEditor — une entrée désignée par le projet : retrait refu
   });
   /** Une scène qui désigne chaque registre : un déclencheur (document, indice + stade) et un PNJ à preset. */
   const salle = (): Scene => ({
-    ...emptyScene(4, 4),
+    ...emptyScene('scene-test', 4, 4),
     id: 'salle',
     label: 'Le relais',
     entities: [{ id: 'kastor', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'pnj-kastor' }],
@@ -640,7 +640,7 @@ describe('NarratifEditor — onglet États de campagne (#2539)', () => {
     etats: [{ id: 'issue', label: 'Issue', source: { book: 'ennemi-dans-l-ombre', page: 17, note: 'EDO 01 l.241' }, forme: { kind: 'enum', valeurs: [{ id: 'relache', label: 'Relâché' }, { id: 'condamne', label: 'Condamné' }] } }],
   });
   const tribunal = (): Scene => ({
-    ...emptyScene(4, 4),
+    ...emptyScene('scene-test', 4, 4),
     id: 'tribunal',
     label: 'Le tribunal',
     triggers: [{

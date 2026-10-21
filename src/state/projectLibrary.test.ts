@@ -501,7 +501,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
 describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la porte (#1343)', () => {
   const narratif = emptyNarratif();
-  const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
+  const scene = { ...emptyScene('scene-a', 4, 4), label: 'Salle A' };
 
   it('entrée d’un AUTRE format (scène sans `reliefDefaults`) : ProjetRefuse de cause `schema`, jamais migrée', () => {
     const { reliefDefaults: _r, ...sceneAncienne } = scene;
@@ -616,7 +616,7 @@ describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#240
 
 describe('estRefusee — le refus au GESTE, témoin de la bibliothèque lu par chaque écran (#2404)', () => {
   const narratif = emptyNarratif();
-  const scene = { ...emptyScene(4, 4), id: 'scene-a', label: 'Salle A' };
+  const scene = { ...emptyScene('scene-a', 4, 4), label: 'Salle A' };
   const entree = (id: string, startSceneId: string, scenes: unknown[]) => ({
     id, label: id, startSceneId, savedAt: 1, published: true,
     project: { type: 'projet', id, label: id, versionContenu: 1, maison: 'fixture de test', scenes, narratif },

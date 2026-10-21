@@ -5,6 +5,7 @@ import type { Scene } from '../noyau/monde/scene';
 import { gameOpSchema, OPS_NON_TYPEES } from '../data/schemas/grammaire/mecanique';
 import { spells } from '../data';
 import { atteignables, cheminsVersLeCatalogue } from './partage.testkit';
+import { desDuTest } from '../engine/dice.testkit';
 
 /**
  * Moteur d'invocation (SpellSpec.summon) : la créature entre en combat dans le camp du lanceur,
@@ -50,7 +51,7 @@ describe('applySummon', () => {
   it('Réanimation : invoque BFM + DR créatures alliées, placées et insérées dans l’ordre', () => {
     const c = caster(); // BFM = 4
     const h = harness(c, battle([c]));
-    const lines = applySummon(h.get, h.set, c, { ref: 'zombie', count: { bonusOf: 'force-mentale' }, countPerSL: { every: 1, amount: 1 }, allyOfCaster: true, despawnIfCasterDown: true }, { sl: 2, rounds: null, label: 'Réanimation' });
+    const lines = applySummon(h.get, h.set, c, { ref: 'zombie', count: { bonusOf: 'force-mentale' }, countPerSL: { every: 1, amount: 1 }, allyOfCaster: true, despawnIfCasterDown: true }, { rng: desDuTest, sl: 2, rounds: null, label: 'Réanimation' });
     const summons = h.state().battle.combatants.filter((x: Combatant) => x.summon);
     expect(summons.length).toBe(4 + 2); // BFM(4) + DR(2)
     expect(summons.every((s: Combatant) => s.kind === 'hero')).toBe(true); // camp du lanceur héros
@@ -65,7 +66,7 @@ describe('applySummon', () => {
   it('summon hostile : camp opposé au lanceur', () => {
     const c = caster();
     const h = harness(c, battle([c]));
-    applySummon(h.get, h.set, c, { ref: 'sanguinaire-de-khorne', count: 1, allyOfCaster: false }, { rounds: 3, label: 'Déchirer l’Aethyr' });
+    applySummon(h.get, h.set, c, { ref: 'sanguinaire-de-khorne', count: 1, allyOfCaster: false }, { rng: desDuTest, rounds: 3, label: 'Déchirer l’Aethyr' });
     const s = h.state().battle.combatants.find((x: Combatant) => x.summon);
     expect(s.kind).toBe('enemy'); // hostile à un lanceur héros
   });
@@ -76,13 +77,13 @@ describe('applySummon', () => {
   it('opts.spellId → marque summon.spellId (Unicité) ; sans → undefined', () => {
     const c1 = caster();
     const h1 = harness(c1, battle([c1]));
-    applySummon(h1.get, h1.set, c1, { ref: 'loup', count: 1, allyOfCaster: true }, { rounds: 2, label: 'Hurlement du loup', spellId: 'hurlement-du-loup' });
+    applySummon(h1.get, h1.set, c1, { ref: 'loup', count: 1, allyOfCaster: true }, { rng: desDuTest, rounds: 2, label: 'Hurlement du loup', spellId: 'hurlement-du-loup' });
     const withId = h1.state().battle.combatants.find((x: Combatant) => x.summon);
     expect(withId.summon.spellId).toBe('hurlement-du-loup');
 
     const c2 = caster();
     const h2 = harness(c2, battle([c2]));
-    applySummon(h2.get, h2.set, c2, { ref: 'loup', count: 1, allyOfCaster: true }, { rounds: 2, label: 'Hurlement du loup' });
+    applySummon(h2.get, h2.set, c2, { ref: 'loup', count: 1, allyOfCaster: true }, { rng: desDuTest, rounds: 2, label: 'Hurlement du loup' });
     const noId = h2.state().battle.combatants.find((x: Combatant) => x.summon);
     expect(noId.summon.spellId).toBeUndefined();
   });
@@ -90,7 +91,7 @@ describe('applySummon', () => {
   it('lanceur posé sur un chemin de ronde (z1) → invoque SUR z1, pas au sol (#802)', () => {
     const c = caster({ pos: { x: 5, y: 5, z: 1 } });
     const h = harness(c, battle([c]), sceneWithRampart());
-    applySummon(h.get, h.set, c, { ref: 'loup', count: 1, allyOfCaster: true }, { rounds: 2, label: 'Hurlement du loup' });
+    applySummon(h.get, h.set, c, { ref: 'loup', count: 1, allyOfCaster: true }, { rng: desDuTest, rounds: 2, label: 'Hurlement du loup' });
     const s = h.state().battle.combatants.find((x: Combatant) => x.summon);
     expect(s.pos.z).toBe(1);
   });
@@ -100,7 +101,7 @@ describe('purgeExpiredSummons', () => {
   it('dissipe à l’expiration de durée (round ≥ expiresAtRound)', () => {
     const c = caster();
     const h = harness(c, battle([c], 1));
-    applySummon(h.get, h.set, c, { ref: 'loup', count: 1, allyOfCaster: true }, { rounds: 2, label: 'Hurlement du loup' }); // expiresAtRound = 1 + 2 = 3
+    applySummon(h.get, h.set, c, { ref: 'loup', count: 1, allyOfCaster: true }, { rng: desDuTest, rounds: 2, label: 'Hurlement du loup' }); // expiresAtRound = 1 + 2 = 3
     const b = h.state().battle;
     expect(purgeExpiredSummons(b, 2)).toHaveLength(0); // pas encore
     const gone = purgeExpiredSummons(b, 3); // round 3 ≥ 3 → dissipe
@@ -112,7 +113,7 @@ describe('purgeExpiredSummons', () => {
   it('minion lié : s’effondre si le lanceur tombe (despawnIfSummonerDown)', () => {
     const c = caster();
     const h = harness(c, battle([c], 1));
-    applySummon(h.get, h.set, c, { ref: 'squelette', count: 2, allyOfCaster: true, despawnIfCasterDown: true }, { rounds: null, label: 'Relever les morts' });
+    applySummon(h.get, h.set, c, { ref: 'squelette', count: 2, allyOfCaster: true, despawnIfCasterDown: true }, { rng: desDuTest, rounds: null, label: 'Relever les morts' });
     const b = h.state().battle;
     expect(purgeExpiredSummons(b, 5)).toHaveLength(0); // lanceur debout, pas d'expiration de durée
     c.conditions = [{ id: 'inconscient', value: 1 }]; // le sorcier tombe
@@ -152,7 +153,7 @@ describe('invocation à traits surchargés : aucun objet du catalogue partagé (
     const fautes = invocations.flatMap(({ op, chemin }) => {
       const c = caster();
       const h = harness(c, battle([c]));
-      applySummon(h.get, h.set, c, op, { rounds: null });
+      applySummon(h.get, h.set, c, op, { rng: desDuTest, rounds: null });
       return h.state().battle.combatants.filter((x: Combatant) => x.summon)
         .flatMap((x: Combatant) => cheminsVersLeCatalogue(x, `${chemin} → ${x.id}`));
     });

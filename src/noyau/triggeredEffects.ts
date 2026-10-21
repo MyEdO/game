@@ -36,7 +36,7 @@ import { activeSymptoms } from '../engine/disease';
 import { difficultyFromLabel, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
-import { RNG, defaultRNG } from '../engine/dice';
+import { RNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { routeTriggeredTest } from './combat/triggeredTest';
 
@@ -221,7 +221,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
 
 /** Contexte d'application d'effets déclenchés. `margin` (marge d'un Test opposé) alimente les échelles
  *  `valuePerSL` via `ctx.sl` ; `woundsDealt` alimente le Vol de vie (op `lifeSteal`). */
-export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng?: RNG; margin?: number; woundsDealt?: number;
+export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; margin?: number; woundsDealt?: number;
   /** Indice de l'attaque naturelle d'une MANŒUVRE — alimente les Formula `{indiceOf}` (Dégâts en GameOp). */
   indice?: number;
   /** Nombre de PIONS de l'État qui déclenche un `effects: onRoundEnd` — alimente les Formula `{stacks:'self'}`
@@ -314,7 +314,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const base = rawCombatTestBase(c, ft.skill?.id, ft.characteristic, ft.skill?.spec);
   const difficulty: Difficulty = resolveTestDifficulty(ft, cc);
   const skillLabel = testSkillLabel({ skill: ft.skill, char: ft.characteristic }) ?? 'Test';
-  const rng = ctx.rng ?? defaultRNG;
+  const rng = ctx.rng;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.success : flow.fail;
   const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
@@ -381,10 +381,10 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
  *  Un effet dont le Flow est un nœud `test` ET pour lequel `ctx.set` est fourni (hook
  *  `onGainCondition`) est ROUTÉ vers la voie cadence-aware (jamais la branche succès silencieuse). */
 export function applyTriggeredEffects(
-  get: Get, actor: Combatant, effects: TriggeredEffect[], trigger: EffectTrigger, ctx: TriggerCtx = {},
+  get: Get, actor: Combatant, effects: TriggeredEffect[], trigger: EffectTrigger, ctx: TriggerCtx,
 ): string[] {
   const lines: string[] = [];
-  const rng = ctx.rng ?? defaultRNG;
+  const rng = ctx.rng;
   // Valeur RELATIONNELLE de combat calculée UNE fois pour le porteur (battle-aware) : écart d'Avantage
   // avec ses adversaires Engagés (Instable, LDB 85 l.177). Voyage dans l'opsCtx → Formula/Condition.
   const gap = ctx.engagedAdvantageGap ?? engagedAdvantageGap(get, actor);
@@ -466,7 +466,7 @@ export function applyTriggeredEffects(
  * l'AJOUTER ICI, jamais un nouveau chemin de dispatch. (Effets propres à une MANŒUVRE = scoped à son
  * profil via `maneuverEffectsOf`.)
  */
-export function fireTriggers(get: Get, actor: Combatant, trigger: EffectTrigger, ctx: TriggerCtx = {}): string[] {
+export function fireTriggers(get: Get, actor: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
   const lines = applyTriggeredEffects(get, actor, effectsOf(actor, ctx.weapon), trigger, ctx);
   lines.push(...fireConditionEffects(get, actor, trigger, ctx)); // États dispatchés EXACTEMENT comme Traits
   lines.push(...firePsychEffects(get, actor, trigger, ctx)); // états PSY (Frénésie…) — MÊME folding générique
@@ -494,7 +494,7 @@ export function resetOwnTestFailedGuard(): void { firingOwnTestFailed = false; }
  * PNJ → inline) ; `set` absent (hors combat, inline) ⇒ sous-Test inline. La ré-entrance tient dans les deux
  * cadences (drapeau module pour l'inline synchrone + tampon `noOwnTestFailed` sur l'étape de cascade).
  */
-export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { sl: number; rng?: RNG; set?: SetFn }): string[] {
+export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { sl: number; rng: RNG; set?: SetFn }): string[] {
   if (firingOwnTestFailed) return []; // ré-entrance SYNCHRONE (sous-Test inline du palier 2) → jamais de ré-émission
   const a = typeof actor === 'string' ? actorIn(get(), actor) : actor;
   if (!a) return [];
@@ -529,7 +529,7 @@ function fireStatusEffects(
  * Chaque État est joué avec `ctx.stacks = ses pions`, RÉDUITS d'une capacité de la cible s'il le déclare
  * (Hémorragique − Endurci `bleedIgnore`, LDB 10 — générique, jamais par-nom). Inerte sans `effects`.
  */
-export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx = {}): string[] {
+export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
   return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c).filter((s) => s.key.startsWith('cond:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
 }
 
@@ -538,7 +538,7 @@ export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrig
  * `onTurnStart` → fin + Exténué, LDB 21 l.35). MÊME cœur que les États (`fireStatusEffects`) ; la donnée
  * vit dans `psychology.json`. Inerte tant que `psychState` ne porte aucun type doté d'`effects`.
  */
-export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx = {}): string[] {
+export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
   return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c).filter((s) => s.key.startsWith('psy:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
 }
 
