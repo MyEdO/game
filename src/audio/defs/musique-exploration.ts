@@ -5,5 +5,5 @@ export const sound: SoundDef = {
   id: 'musique-exploration',
   files: ['musique-exploration.mp3'],
   volume: 0.45,
-  music: { contexts: ['menu', 'exploration'] },
+  music: { contexts: ['exploration'] },
 };

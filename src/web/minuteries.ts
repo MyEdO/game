@@ -1,7 +1,7 @@
 /**
  * Registre des timers RÉELS tracés de `state/`, `noyau/`, `lib/` et `web/` : beats de cadence de COMBAT
  * (IA/enchaînement de tour/auto-résolution) ET timers hors combat (cascade différée
- * portFlow/tavernFlow, coop netFlow, délai d'ouverture IndexedDB). `combatFlow`/`combatDirector`/`combatAuto` chorégraphient leurs beats (TEMPO) par
+ * portFlow/tavernFlow, coop netFlow, délai d'ouverture IndexedDB, pas sonores de `state/audioWiring.ts`). `combatFlow`/`combatDirector`/`combatAuto` chorégraphient leurs beats (TEMPO) par
  * `programmer` (`src/noyau/plateforme.ts`), que la plateforme web relaie à `scheduleCombatTimer` : de
  * VRAIS `setTimeout` qui mutent `battle` (et tirent `battleRng`) à leur échéance. Un test SYNCHRONE
  * qui arme un tel timer sans laisser le temps réel s'écouler le laisse EN VOL ; sous `isolate:false`
@@ -29,7 +29,7 @@ function track(fn: () => void, delay: number): ReturnType<typeof setTimeout> {
 export const scheduleCombatTimer = track;
 
 /** Timer hors combat (ouverture de cascade différée portFlow/tavernFlow, coop netFlow, délai
- *  d'ouverture IndexedDB). */
+ *  d'ouverture IndexedDB, pas sonores de `state/audioWiring.ts`). */
 export const scheduleFlowTimer = track;
 
 /** Le timer tracé `id` est-il encore en vol (ni tiré, ni annulé) ? */

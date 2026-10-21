@@ -30,7 +30,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    `worldMap.places[].scene` doit pointer un id du tableau `scenes` ; deux routes entre les mêmes lieux
    sont permises (seul `id` est une clé) et le moteur ne force PAS le sens : nommer `-aller`/`-retour`.
 5. **Validé par ce qui le lit, AUCUN test nominatif sur le paquet livré.** `parseProject`
-   (`src/noyau/worldMap.ts`) refuse un document mal formé ; au démarrage en DEV, `src/data/dev-validate.ts`
+   (`src/noyau/worldMap.ts`) refuse un document mal formé ; au démarrage en DEV, `src/dev-validate.ts`
    le confronte à son schéma. `src/scenes/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
    au GLOB : `parseProject` sans lever, identité valide, apparence et nom résolus, aucune `error` de
    `validateScene` (`src/state/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus

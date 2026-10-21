@@ -1325,7 +1325,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   playSfx: {
     group: 'Narration', label: libelleEffet('playSfx'), icon: 'audio/volume',
     make: () => ({ type: 'playSfx', id: '' }),
-    // Le son est un ÉVÉNEMENT (`EVT.SFX`) que l'hôte joue (`audio/wiring`). Coop : `applyEffects`
+    // Le son est un ÉVÉNEMENT (`EVT.SFX`) que l'hôte joue (`state/audioWiring`). Coop : `applyEffects`
     // tourne côté HÔTE, le son ponctuel scripté ne sonne donc que chez lui.
     apply: (e) => { bus.emit(EVT.SFX, { id: e.id }); },
   },

@@ -67,7 +67,7 @@ describe('Effet moveEntity (#701)', () => {
 });
 
 describe('Effet playSfx (#701)', () => {
-  it('émet `EVT.SFX` avec l\'id du son, que l\'hôte joue (`audio/wiring`)', () => {
+  it('émet `EVT.SFX` avec l\'id du son, que l\'hôte joue (`state/audioWiring`)', () => {
     const recus: unknown[] = [];
     const off = bus.on(EVT.SFX, (p) => recus.push(p));
     try {

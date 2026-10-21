@@ -21,7 +21,7 @@
  * du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`), à chaque porte de
  * `validateDataset` (`data/schemas/validate.ts`) : les tests (`data/schema-contract.test.ts`,
  * `data/pregens.test.ts`), la sauvegarde du Compendium (`ui/editor/codex/CodexEdit.tsx`, `save`) et le
- * boot DEV (`main.tsx` → `data/dev-validate.ts`).
+ * boot DEV (`main.tsx` → `dev-validate.ts`).
  *
  * La GRAMMAIRE (familles, tirage sous un talent d'espèce) vit dans CE module : `deFamille` et
  * `tirageSous` répondent aux questions de famille, et le lint `murs/marques` refuse ailleurs un préfixe
