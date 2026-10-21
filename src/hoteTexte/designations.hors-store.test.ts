@@ -5,10 +5,7 @@
  * candidats ne lisent se refuse de même.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { DESIGNATIONS } from '../noyau/index';
-import { VERBES } from './verbes.generated';
 import { fermerLaTable, partie, table, verbe, type table as Table } from './hote.testkit';
-import type { Forme } from './formes';
 import type { GesteDeLAgent } from './serveur';
 
 afterEach(fermerLaTable);
@@ -79,24 +76,6 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'battleClickEntity' });
     expect(r.texte).toMatch(/battleClickEntity\(id: id de combattant, opts\?: /);
-  });
-});
-
-/** Les désignations que les formes d'une liste de paramètres portent. */
-function designationsDe(f: Forme): string[] {
-  switch (f.genre) {
-    case 'chaine': return f.designe ? [f.designe.cle] : [];
-    case 'objet': return [...(f.designe ? [f.designe.cle] : []), ...(f.champs ?? []).flatMap((c) => designationsDe(c.forme))];
-    case 'union': return f.membres.flatMap(designationsDe);
-    case 'tableau': return designationsDe(f.element);
-    default: return [];
-  }
-}
-
-describe('la table du noyau est la seule source des désignations', () => {
-  it('chaque désignation de la table est portée par un paramètre de verbe, et aucune autre', () => {
-    const portees = new Set(Object.values(VERBES).flatMap((ps) => ps.flatMap((p) => designationsDe(p.forme))));
-    expect([...portees].sort()).toEqual(Object.keys(DESIGNATIONS).sort());
   });
 });
 

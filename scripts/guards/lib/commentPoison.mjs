@@ -16,13 +16,15 @@ import { fileURLToPath } from 'node:url';
 import { allAbbrAlternation } from '../../raw/_lib.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
 import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
+import { RACINES_PRESENTES } from './racinesPresentes.mjs';
 
 /** PÉRIMÈTRE DES GARDES — SOURCE UNIQUE des trois portes anti-poison (suite Vitest, pre-commit, hook
  *  au stylo) et du corpus des gardes qui balaient l'arbre (`corpusDesGardes`). Un fichier hors de ce
  *  périmètre n'est lu par aucune ; un fichier dedans l'est par toutes, tests compris (le poison écrit
- *  dans un test est du poison). */
+ *  dans un test est du poison). Ses racines : `scripts`, et chaque racine des zones que l'arbre porte
+ *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`). */
 export const PERIMETRE_DES_GARDES = Object.freeze({
-  racines: Object.freeze(['src', 'scripts']),
+  racines: Object.freeze([...RACINES_PRESENTES, 'scripts']),
   extensions: Object.freeze(['.ts', '.tsx', '.mts', '.mjs']),
   tests: true,
 });

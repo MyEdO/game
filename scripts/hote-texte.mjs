@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // LANCEUR DE L'HÔTE TEXTE (#2898 lot D) : un serveur MCP sur stdio, `npm run -s hote-texte`, déclaré aux sessions du dépôt
-// par `.mcp.json`. Le module runner de Vite charge, dans UN graphe de modules, le gel du catalogue (`src/data/overrides.ts`)
-// puis l'hôte (`src/hoteTexte/serveur.ts`), avec le greffon `proseSource()` : la même porte que la suite du noyau
-// (`vitest.noyau.config.ts`), et `import.meta.env.DEV` vrai. Les outils, leur description et leur schéma viennent de
+// par `.mcp.json`. Le module runner de Vite charge, dans UN graphe de modules, l'entrée d'hôte (`entreeDHote`,
+// `scripts/entree-d-hote.mjs` : le gel du catalogue puis l'hôte, `src/hoteTexte/serveur.ts`, avec le greffon
+// `proseSource()`), et `import.meta.env.DEV` vrai. Les outils, leur description et leur schéma viennent de
 // `src/hoteTexte/outils.ts` ; les scénarios et les cadences, du graphe chargé. Le lanceur prête le disque à l'hôte et
 // garde stdout au protocole : toute écriture de console part sur stderr. Une partie est un fichier de `.hote-texte/`, tenu par
 // un seul serveur à la fois. Doc : `npm run docs:hote-texte`.
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { runnerImport } from 'vite'
-import { proseSource } from './source/prose-source-plugin.mjs'
+import { entreeDHote } from './entree-d-hote.mjs'
 import { estPidVivantDepuis } from './guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from './test/identiteMesuree.mjs'
 import { DOSSIER_DES_PARTIES, INSTRUCTIONS, outils } from '../src/hoteTexte/outils.ts'
@@ -23,22 +23,17 @@ for (const niveau of ['log', 'info', 'debug']) console[niveau] = console.error
 const RACINE = fileURLToPath(new URL('..', import.meta.url))
 // Le corpus `Source/` se lit depuis la racine du dépôt, d'où que le serveur soit lancé.
 process.chdir(RACINE)
-const ENTREE = '\0virtual:hote-texte'
-
-/** Le module d'entrée : le gel du catalogue, PUIS l'hôte (ordre d'évaluation des imports). */
-const MODULES_VIRTUELS = new Map([[ENTREE, [
-  "import '/src/data/overrides.ts';",
+const entree = entreeDHote('hote-texte', [
   "export { creerHote } from '/src/hoteTexte/serveur.ts';",
   "export { testScenarios } from '/src/scenes/test-scenarios/index.ts';",
   "export { CADENCE_MODES } from '/src/noyau/index.ts';",
-].join('\n')]])
-const entree = { name: 'hote-texte-entree', load: (id) => MODULES_VIRTUELS.get(id) ?? null }
+])
 
-const { module } = await runnerImport(ENTREE, {
+const { module } = await runnerImport(entree.id, {
   root: RACINE,
   configFile: false,
   logLevel: 'silent',
-  plugins: [proseSource(), entree],
+  plugins: entree.greffons,
   server: { fs: { strict: false } },
 })
 

@@ -145,6 +145,10 @@ test('moduleHorsCouche : `src/ui/styles/`, ou la zone du `fichier` hors de `src/
   assert.equal(moduleHorsCouche('src/ui/RollShell.tsx', 'src/ui/RollShell.css'), true)
   assert.equal(moduleHorsCouche('src/gameIso/stage/GameStage3D.tsx', 'src/state/anim.css'), true)
   assert.equal(moduleHorsCouche('src/gameIso/stage/GameStage3D.tsx', 'src/gameIso/anim.ts'), true)
+  // La zone est celle de `COUCHES` (#2928) : un dossier hors `src/`, et rien pour `racine` ni hors des zones.
+  assert.equal(moduleHorsCouche('hotes/godot/pont/pont.ts', 'hotes/pont.css'), false)
+  assert.equal(moduleHorsCouche('src/main.tsx', 'src/main.css'), true)
+  assert.equal(moduleHorsCouche('scripts/x.mjs', 'scripts/x.css'), true)
 })
 
 // ── Partition et ventilation (#1806) ─────────────────────────────────────────────────────────────

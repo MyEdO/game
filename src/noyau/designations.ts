@@ -3,7 +3,7 @@
  * (`DESIGNATIONS`) qui, pour chaque nom d'alias, donne son nom en mots et lit dans l'état les ids valides, ou les objets désignés par leur
  * `id`. Les paramètres d'`ActionsDuNoyau` (`actionsDuNoyau.ts`, `rollFlowSpecs.ts`) portent ces alias ; le générateur
  * des verbes (`scripts/docs/lib/verbesDeLaPartie.mjs`) lit le NOM de l'alias écrit dans la déclaration du paramètre,
- * pour les seules clés de cette table, et l'hôte texte (`src/hoteTexte/partieTexte.ts`) refuse un id que la table ne
+ * pour les seules clés de cette table, et un hôte (`argumentsDuVerbe`, `src/hote/partie.ts`) refuse un id que la table ne
  * rend pas. Un genre neuf : un alias et une entrée ici, rien dans l'hôte.
  */
 import type { EtatDeJeu } from './etat';

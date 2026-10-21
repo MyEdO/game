@@ -1,8 +1,8 @@
 /**
- * LES FORMES DES ARGUMENTS DE L'HÔTE TEXTE (#2898 lot C) : la forme JSON d'un paramètre de verbe, lue du TYPE du noyau
- * par `scripts/docs/lib/verbesDeLaPartie.mjs`, sa lecture contrôlée (`lireALaForme`) et son écriture (`formeEcrite`,
- * `signature`). Module feuille, sans import : le générateur du doc (`scripts/docs/build-hote-texte.mjs`) l'écrit par la
- * même lecture que l'hôte.
+ * LES FORMES DES ARGUMENTS D'UN VERBE (#2898 lot C, #2928), communes aux hôtes du noyau : la forme JSON d'un paramètre
+ * de verbe, lue du TYPE du noyau par `scripts/docs/lib/verbesDeLaPartie.mjs`, sa lecture contrôlée (`lireALaForme`) et
+ * son écriture (`formeEcrite`, `signature`). Module feuille, sans import : le générateur du doc
+ * (`scripts/docs/build-hote-texte.mjs`) l'écrit par la même lecture que l'hôte.
  */
 
 export const estObjet = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);

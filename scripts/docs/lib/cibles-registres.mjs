@@ -362,5 +362,5 @@ export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out 
 
 export const SORTIE_FORMATS = 'src/state/formats.generated.ts'
 
-/** La cible de `scripts/gen-verbes.mjs` : les paramètres des verbes de la partie, que l'hôte texte lit. */
-export const SORTIE_VERBES = 'src/hoteTexte/verbes.generated.ts'
+/** La cible de `scripts/gen-verbes.mjs` : les paramètres des verbes de la partie, que les hôtes du noyau lisent. */
+export const SORTIE_VERBES = 'src/hote/verbes.generated.ts'

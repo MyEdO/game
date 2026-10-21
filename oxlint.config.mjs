@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import { fileURLToPath } from 'node:url';
+import { RACINES_DES_ZONES } from './scripts/guards/lib/couches.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation)$/';
 const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText`/`AdresseDeCreation` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), ou par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`).';
@@ -155,6 +156,10 @@ const GLOBS_GENERATEURS = [
 ];
 
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
+
+/** Le code des zones de `COUCHES` (#2882, #2928) : `src/`, et les hôtes externes (`hotes/`). */
+const CODE_DES_ZONES = RACINES_DES_ZONES.map((r) => `${r}/**`);
+const TS_DES_ZONES = RACINES_DES_ZONES.flatMap((r) => [`${r}/**/*.ts`, `${r}/**/*.tsx`]);
 
 const SOURCE_DES_MINUTERIES = 'src/web/minuteries.ts';
 const MINUTERIES = ['setTimeout', 'setInterval'];
@@ -521,16 +526,16 @@ export const BLOCS_LINT = [
     },
   },
   {
-
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
+    // #2928
+    files: TS_DES_ZONES,
     rules: {
       'murs/marques': ['error', ...VERROU_MARQUES],
     },
   },
   {
-
-    files: ['src/**/*.ts', 'src/**/*.tsx'],
-    excludeFiles: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    // #2928
+    files: TS_DES_ZONES,
+    excludeFiles: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
       'murs/conteneur': ['error', ...VERROU_CONTENEUR],
     },
@@ -604,7 +609,7 @@ export const BLOCS_LINT = [
   },
   {
 
-    files: [...GLOBS_GENERATEURS, 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    files: [...GLOBS_GENERATEURS, ...RACINES_DES_ZONES.flatMap((r) => [`${r}/**/*.test.ts`, `${r}/**/*.test.tsx`])],
     excludeFiles: SOURCE_DU_MUR,
     rules: REGLES_MARCHE,
   },
@@ -615,14 +620,14 @@ export const BLOCS_LINT = [
     rules: REGLES_LOCALE,
   },
   {
-    // #2882
-    files: ['src/**'],
-    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    // #2882, #2928
+    files: CODE_DES_ZONES,
+    excludeFiles: ['**/*.test.*', '**/*.bench.*'],
     rules: { 'murs/purete-imports': 'error' },
   },
   {
-    // #2882
-    files: ['src/**'],
+    // #2882, #2928
+    files: CODE_DES_ZONES,
     rules: { 'murs/zone': 'error' },
   },
   {
@@ -637,9 +642,9 @@ export const BLOCS_LINT = [
     },
   },
   {
-    // #2817
-    files: ['src/**'],
-    excludeFiles: ['src/web/entropie.ts', 'src/**/*.test.*', 'src/**/*.bench.*'],
+    // #2817, #2928
+    files: CODE_DES_ZONES,
+    excludeFiles: ['src/web/entropie.ts', '**/*.test.*', '**/*.bench.*'],
     rules: { 'murs/entropie': ['error', ...VERROU_ENTROPIE] },
   },
   {
@@ -653,14 +658,14 @@ export const BLOCS_LINT = [
     },
   },
   {
-    // #2724
-    files: ['src/**', 'scripts/**'],
+    // #2724, #2928
+    files: [...CODE_DES_ZONES, 'scripts/**'],
     rules: { 'murs/interne': 'error' },
   },
   {
-    // #1897, #2724
-    files: ['src/**'],
-    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*'],
+    // #1897, #2724, #2928
+    files: CODE_DES_ZONES,
+    excludeFiles: ['**/*.test.*', '**/*.bench.*'],
     rules: {
       'murs/stockage-web': ['error', ...STOCKAGES_WEB.map((property) => ({ property, message: MSG_STOCKAGE_WEB }))],
       'murs/stockage-web-global': ['error', ...STOCKAGES_WEB.map((name) => ({ name, message: MSG_STOCKAGE_WEB }))],

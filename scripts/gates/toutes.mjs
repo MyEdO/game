@@ -55,6 +55,7 @@ import { lanceUnGesteLourd, verrouGestesLourds } from '../test/verrouGestesLourd
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { CACHE_FRAICHEUR } from '../docs/lib/cache-fraicheur.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
+import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
@@ -85,8 +86,12 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  */
 const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rmdirSync) et relierFichierGit (writeFileSync exclusif) ne s'appellent que depuis retirerWorktree ; cette gate ne retire aucun worktree du dépôt réel, les bancs de retrait utilisent leurs dépôts jetables ; etatDuDemiRetire n'écrit que sous mkdtempSync d'os.tmpdir(), effacé par rmSync en finally. "
 
+/** Le code des zones que l'arbre porte (`RACINES_PRESENTES`, #2928) : une gate qui lit `src/` lit chaque racine des
+ *  zones présente, et la première racine posée y entre sans geste. */
+const DOSSIERS_DES_ZONES = RACINES_PRESENTES.map((r) => `${r}/`)
+
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
-const LIT_DES_AUDITS = ['src/', 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+const LIT_DES_AUDITS = [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
 
 export const ECRIT_LU = {
   'agents:check': {
@@ -118,7 +123,7 @@ export const ECRIT_LU = {
         'node_modules/ est gitignoré et reste hors des clés de contenu, mais les gates natives lisent ce SDK',
     },
     lit: [
-      '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
+      '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', ...DOSSIERS_DES_ZONES, 'Source/',
       'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
       'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts', 'vitest.noyau.config.ts', '.mcp.json',
     ],
@@ -222,7 +227,7 @@ export const ECRIT_LU = {
   },
   'comptes:plage': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'la porte des collections à compte (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
       '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
@@ -245,7 +250,7 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
@@ -320,16 +325,16 @@ export const ECRIT_LU = {
   },
   'test:noyau': {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
     raison: RETRAIT_WORKTREE_FERME +
-      'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` de src/noyau et src/hoteTexte, sans le store, ' +
+      'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` du noyau et de ses hôtes (`HOTES_DU_NOYAU`), sans le store, ' +
       'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
       'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
   },
   'test:docs': {
     ecrit: [],
     lit: [
-      'docs/', 'src/', '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
+      'docs/', ...DOSSIERS_DES_ZONES, '.claude/memory/', 'scripts/docs/', 'scripts/guards/lib/', 'scripts/test/partition.mjs',
       'scripts/lancer-local.mjs', 'scripts/outillage-local.mjs', 'scripts/port-dev.mjs', 'CLAUDE.md', 'AGENTS.md',
       'scripts/etape-profilee.mjs',
       'scripts/git-hooks/', 'scripts/hooks/',
@@ -380,7 +385,7 @@ export const ECRIT_LU = {
   'deps:unused': {
     ecrit: [],
     lit: [
-      'src/', 'scripts/', 'server/', 'docs/', 'Source/', 'package.json', 'knip.json', 'knip-exports-baseline.json',
+      ...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', 'package.json', 'knip.json', 'knip-exports-baseline.json',
       'tsconfig.json', 'vite.config.ts', 'oxlint.config.mjs', 'index.html', '.gitignore', 'CLAUDE.md',
     ],
     raison:
@@ -397,14 +402,14 @@ export const ECRIT_LU = {
   },
   typecheck: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', 'tsconfig.json', 'package.json', 'vite.config.ts'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'tsconfig.json', 'package.json', 'vite.config.ts'],
     raison:
       '`tsc --noEmit --incremental false` : aucune sortie, aucun `.tsbuildinfo` ; LIT package.json et ' +
       'vite.config.ts (mesurés à la sonde, hors des deux racines de `include`)',
   },
   lint: {
     ecrit: [],
-    lit: ['src/', 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
     raison:
       'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et les ' +
       'modules de code sélectionnés, dont .claude/workflows/ : lecture du code et découverte native ' +
@@ -419,7 +424,7 @@ export const ECRIT_LU = {
         'le rendu diffère (`ecrireDoc`, scripts/docs/lib/ecriture-derives.mjs) — `toutes.mjs` joue ' +
         '`npm run gen` avant toute gate, donc il ne reste rien à écrire',
     },
-    lit: ['src/', 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],
+    lit: [...DOSSIERS_DES_ZONES, 'server/src/', 'scripts/', 'docs/', 'Source/', '.gitattributes', 'vite.config.ts'],
     raison:
       'LIT scripts/ EN ENTIER, pas les seules racines `scripts/` de son `include` (racinesDeLaSuite.mjs) : ' +
       'les tests de `src/` IMPORTENT les porteurs de garde (`git grep "from \'../../scripts/"` : guards/lib, source, ' +
@@ -458,7 +463,7 @@ export const ECRIT_LU = {
         'il ne salit pas l’arbre. `ecrit` le dirait CHEVAUCHANT `vite.config.ts` (recouvrement par PRÉFIXE), ' +
         'que `test` et `typecheck` lisent depuis d’autres lanes : ce serait un faux conflit',
     },
-    lit: ['src/', 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html', CACHE_FRAICHEUR],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'vite.config.ts', 'package.json', 'index.html', CACHE_FRAICHEUR],
     raison: RETRAIT_WORKTREE_FERME +
       '`gen && vite build` : le typage est jugé par la gate `typecheck` (step `npm run typecheck` de ci.yml, avant `build`), ' +
       '`build` juge que le bundle se construit, et `dist/` n’est lu par aucune gate ; LIT tsconfig.json ' +
@@ -485,7 +490,7 @@ export const ECRIT_LU = {
         'les cibles de CODE sont produites AVANT toute gate (`npm run gen`, ci-dessous) : `ecrireOuVerifier` ' +
         'ne réécrit pas un rendu identique',
     },
-    lit: ['docs/', 'src/', 'scripts/', 'Source/', '.claude/memory/', CACHE_FRAICHEUR],
+    lit: ['docs/', ...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', '.claude/memory/', CACHE_FRAICHEUR],
     raison:
       'chaque générateur de `GENERATORS` joué en écriture, puis les vérificateurs purs ; LIT Source/ ' +
       '(catalogues et rapports d’Atlas) et .claude/memory/ parce que `build-doctrines.mjs` dérive ' +
@@ -525,7 +530,7 @@ export const ECRIT_LU = {
         'le banc ne la passe que sur un Atlas JETABLE d’os.tmpdir() (`avecAtlasFixture`) dont il donne le ' +
         '`rawDir` — les pages du dépôt ne sont jamais écrites',
     },
-    lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', 'src/', '.claude/agents/'],
+    lit: ['docs/raw/', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/', 'scripts/port-dev.mjs', 'Source/', ...DOSSIERS_DES_ZONES, '.claude/agents/'],
     raison: RETRAIT_WORKTREE_FERME +
       'les lecteurs des cibles pures atteignent build-all.mjs, fraicheur-docs.mjs, enregistreur-lectures.mjs et journal.mjs ; ' +
       'les lecteurs RAW appellent rendreCible/renduDe, sans passer par executerLesGenerateurs ou genererCode, ' +
@@ -564,7 +569,7 @@ export const ECRIT_LU = {
   },
   'raw:check-code-refs': {
     ecrit: [],
-    lit: ['docs/raw/', 'src/', 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', ...DOSSIERS_DES_ZONES, 'Source/', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
       'aucune écriture dans l’arbre : `ecritureJsonAtomique.mjs`, `renommageResilient.mjs` et `test/verrou.mjs`, ACQUIS (#2603) par ' +
       '`build-implemente.mjs` → `ecriture-derives.mjs` → `ecrivain-derives.mjs` (l’écrivain unique des dérivés), n’écrivent ' +

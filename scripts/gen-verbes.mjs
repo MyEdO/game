@@ -1,7 +1,7 @@
 // scripts/gen-verbes.mjs — LES VERBES DE LA PARTIE et leurs paramètres (#2898 lot C), dérivés du TYPE que
 // `Partie.envoyer` accepte (`verbesDeLaPartie`) : une cible de CODE de `GENERATORS` (scripts/docs/build-all.mjs),
-// `src/hoteTexte/verbes.generated.ts`, jamais commitée. L'hôte texte y lit les paramètres que `jouer` contrôle ; le doc
-// `docs/hote-texte.md` écrit sa table par la même lecture.
+// `src/hote/verbes.generated.ts`, jamais commitée. Les hôtes du noyau y lisent les paramètres qu'ils contrôlent
+// (`argumentsDuVerbe`, src/hote/partie.ts) ; le doc `docs/hote-texte.md` écrit sa table par la même lecture.
 //
 //   node scripts/gen-verbes.mjs            écrit la cible
 //   node scripts/gen-verbes.mjs --check    compare sans écrire

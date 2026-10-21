@@ -7,6 +7,7 @@ import { DOCUMENTAIRE, gatesSautables } from '../../gates/classerPush.mjs'
 import { gatesDeCi } from '../../gates/gatesDeCi.mjs'
 import { corpusParGate, inerte } from '../../gates/ecrivainsAtteints.mjs'
 import { ECRIT_LU } from '../../gates/toutes.mjs'
+import { RACINES_PRESENTES } from '../../guards/lib/racinesPresentes.mjs'
 import { gitDeLArbreReel } from '../../test/gitDeBanc.mjs'
 import { jetonNomme } from '../../test/lib/bancClasserPush.mjs'
 
@@ -54,9 +55,9 @@ test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’ell
 // gate peut ne rien lire de documentaire alors que `src/` le lirait à l'exécution — le classement
 // lui-même serait faux, pas seulement le `lit` d'une gate.
 
-/** Les sources de `src/` et `server/src/` SUIVIES par git, hors bancs de test. */
+/** Les sources des racines des zones (`RACINES_PRESENTES`, #2928) et de `server/src/` SUIVIES par git, hors bancs de test. */
 function sourcesDeProduction() {
-  return gitDeLArbreReel(RACINE)('ls-files', '--', 'src', 'server/src')
+  return gitDeLArbreReel(RACINE)('ls-files', '--', ...RACINES_PRESENTES, 'server/src')
     .split('\n')
     .map((l) => l.trim())
     .filter((f) => /\.(ts|tsx|mts|js|jsx)$/.test(f) && !f.includes('.test.'))

@@ -17,6 +17,7 @@
 // CONTRAT partagé avec le cliquet (xx) : `reglesCss` rend le MÊME `{ selecteurs, corps }` qu'avant
 // la réécriture, enrichi de `media`.
 
+import { dossierDe, estZone, zoneDe } from './couches.mjs';
 import { SUFFIXE_SUITE } from './fichierVitest.mjs';
 
 /** Feuilles PARTAGÉES de `src/ui/styles/` : aucune primitive ne les possède, aucun module d'écran
@@ -32,19 +33,18 @@ export const FEUILLES_PARTAGEES = [
 /** Couche des modules de style de `src/ui`. */
 export const RACINE_DES_MODULES = 'src/ui/styles/';
 
-/** Zone d'un chemin : ses deux premiers segments (`src/ui/`, `src/gameIso/`). */
-const zoneDe = (chemin) => `${String(chemin).split('/').slice(0, 2).join('/')}/`;
-
 /**
  * Un module de primitive vit dans `RACINE_DES_MODULES`, ou — pour une primitive qui n'habite pas
- * `src/ui` — dans la ZONE de son `fichier` (#1806 A3). Tout autre chemin sort de la couche.
+ * `src/ui` — dans le dossier de la ZONE de son `fichier` (`zoneDe`, #1806 A3), `racine` exceptée : elle
+ * n'a pas de dossier à elle. Tout autre chemin sort de la couche.
  * @param {string} fichier @param {string} css @returns {boolean}
  */
 export function moduleHorsCouche(fichier, css) {
   if (!String(css).endsWith('.css')) return true;
   if (String(css).startsWith(RACINE_DES_MODULES)) return false;
-  const zone = zoneDe(fichier);
-  return zone === 'src/ui/' || !String(css).startsWith(zone);
+  const z = zoneDe(String(fichier));
+  const zone = estZone(z) && z !== 'racine' ? `${dossierDe(z)}/` : null;
+  return zone === null || zone === 'src/ui/' || !String(css).startsWith(zone);
 }
 
 /** At-rules dont le corps ne porte PAS de sélecteurs : leur bloc entier est sauté. */
