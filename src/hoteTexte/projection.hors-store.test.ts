@@ -70,8 +70,8 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toContain(`verbes (pid ${f.pid}) : cascadeTableRoll, cascadeTableSetForcedRoll`);
     });
   });
-  it('l’étape-jet d’un Test déclenché (`defaite-dome.jsonl`, 66 lignes) : la vue rend TOUS ses verbes, repliés à la largeur', { timeout: 240_000 }, () => {
-    aLaFixture('defaite-dome.jsonl', (r) => {
+  it('l’étape-jet d’un Test déclenché (`test-declenche-dome.jsonl`) : la vue rend TOUS ses verbes, repliés à la largeur', { timeout: 240_000 }, () => {
+    aLaFixture('test-declenche-dome.jsonl', (r) => {
       const p = projeter(r.partie.etat(), r.gestes.length, r.journal.length);
       const f = p.combat!.fenetre!;
       expect(f.verbes.length, 'témoin : une étape aux verbes nombreux').toBeGreaterThan(8);
@@ -80,7 +80,7 @@ describe('la fenêtre nomme ses verbes, et le pid qu’ils attendent, à chaque 
       expect(Math.max(...vue.map((l) => l.length))).toBeLessThanOrEqual(BORNES.largeur);
       const lus = vue.join(' ').split(/[\s,:]+/);
       expect(f.verbes.filter((v) => !lus.includes(v)), 'des verbes de la fenêtre manquent à la vue').toEqual([]);
-    }, 66);
+    });
   });
   it('l’étape-jet d’attaque nomme la pose du dé de son flux (`attackSetForcedRoll`)', { timeout: 120_000 }, () => {
     auPremierTour('dome', (r) => {
