@@ -20,9 +20,9 @@ const LIEUX = LOCALISATIONS_DE_COUP;
 const harnois = (): ItemInstance =>
   ({ uid: 'harnois', name: 'Harnois', kind: 'armor', equipped: true, pa: 3, locs: [...LIEUX], qualities: [] } as unknown as ItemInstance);
 
-/** Graines du battleRng : le Critique subi par H2 la tue (244), ou la laisse en vie (2). */
+/** Graines du battleRng : le Critique subi par H2 la tue (244), ou la laisse en vie et en action (3). */
 const SEED_LETAL = 244;
-const SEED_NON_LETAL = 2;
+const SEED_NON_LETAL = 3;
 
 /** H1 tuée d'un coup par E, qui prend sa case : H2 et H3 au contact, H3 encore au contact depuis la case de H2. Toutes à 1 PB, tenues Surprises. */
 function monte() {

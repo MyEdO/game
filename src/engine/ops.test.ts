@@ -162,7 +162,7 @@ describe('applyOps — opérations unitaires', () => {
     expect(c.wounds.current).toBe(0);
     expect(c.advantage).toBe(0);
     expect(c.conditions.some((x) => x.id === 'a-terre')).toBe(true);
-    expect(lines[0]).toMatch(/subit 5 Blessure/);
+    expect(lines[0], 'le journal compte les Blessures réellement perdues (#2915)').toMatch(/subit 3 Blessure/);
   });
 
   it('wounds extraAP : PA situationnels du coup déduits AVEC les PA de Localisation (poupe/Bélier de collision)', () => {

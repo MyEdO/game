@@ -6640,11 +6640,17 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // `bandStep`) comme ceux venus de la file, qui est elle-même typée à la marque (#1262 V2) — la dernière
   // ouverture de combat par littéral passe donc par la porte.
   if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'condition/bleeding', purpose: 'combat', steps, combatEndBoundary: true });
-  // La BORNE porte sur la cascade RÉELLEMENT ouverte : un Test d'amputation surfacé peut l'avoir ouverte
-  // à lui seul (`startCascade` renonce sur `steps` vide). Sans elle, sa fermeture rappellerait
-  // `openCombatEndCascade` et rejouerait l'Exposition à la Corruption, dont le Degré n'est pas un marqueur.
+  // Un Test d'amputation surfacé peut l'avoir ouverte à lui seul (`startCascade` renonce sur `steps` vide).
+  // Sans la borne, sa fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la
+  // Corruption, dont le Degré n'est pas un marqueur.
+  bornerLaSequenceOuverte(get, set, 'combatEndBoundary');
+}
+
+/** La BORNE de dénouement porte sur la séquence RÉELLEMENT ouverte, quels que soient son `purpose` et le site
+ *  qui l'a ouverte (`startCascade` renonce sur `steps` vide, une révélation a pu l'ouvrir seule). */
+function bornerLaSequenceOuverte(get: Get, set: SetFn, borne: 'combatEndBoundary' | 'roundBoundary'): void {
   const ouverte = get().pendingCascade;
-  if (ouverte && ouverte.purpose === 'combat' && !ouverte.combatEndBoundary) set({ pendingCascade: { ...ouverte, combatEndBoundary: true } });
+  if (ouverte && !ouverte[borne]) set({ pendingCascade: { ...ouverte, [borne]: true } });
 }
 
 /**
@@ -7217,7 +7223,10 @@ export function advanceTurn(get: Get, set: SetFn) {
       // Unique porte (#316) : le site MÉTIER émet via le bus ; les boucles internes `fireTriggers`
       // (roundHooks, bus-owned) restent la machinerie du bus. Sans `audience`/`self` → diffusion data
       // vide ici : STRICTEMENT équivalent à l'ancien `runCombatHooks('onRoundEnd', …)`.
+      const debout = new Set(battle.combatants.filter((c) => !isOutOfAction(c)).map((c) => c.id));
       emitCombatEvent('onRoundEnd', { triggerCtx: { rng: battleRng() }, get, set, battle, sink: tickLine });
+      // Tombé pendant l'entretien (saignement à 0 PB, LDB 16 l.105) : même ligne que sur le chemin du coup.
+      for (const c of battle.combatants) if (debout.has(c.id) && !c.dead && isOutOfAction(c)) tickLine(tr('cf.outOfAction', { name: c.label }), c);
       if (heroRoundLines.length) pushReveal(set, { kind: 'round', title: tr('cf.roundEndTitle', { n: round - 1 }), lines: heroRoundLines, severity: 'minor' }); // (entretien HÉROS — fermé au clic, #1270)
       // Maniement de deux armes : le −10 défensif expire au DÉBUT du prochain Tour de son porteur. Si ce
       // porteur est order[0] (il rejoue en premier), c'est ICI (le franchissement de Round) que son Tour démarre.
@@ -7680,7 +7689,8 @@ export function openRoundStartPsych(get: Get, set: SetFn): void {
  * DÉTERMINISTEment par le collecteur via le `sink` ci-dessous (journal de combat).
  */
 export function openRoundEndCascade(get: Get, set: SetFn): void {
-  if (roundCascadeBlocked(get)) return;
+  const battle = get().battle;
+  if (!battle || battle.over || get().pendingFateSave) return; // une séquence en vol n'interdit rien : doctrine du slot (`startCascade`)
   const upkeepLines: { line: string; id?: string }[] = [];
   const sink = (line: string, c?: Combatant) => upkeepLines.push({ line, id: c?.id });
   const steps: BuiltCascadeStep[] = [];
@@ -7706,8 +7716,10 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
     const b = get().battle!;
     set({ battle: { ...b, log: [...b.log, ...upkeepLines.map((u) => ev('condition', u.line, u.id))] } });
   }
-  if (!steps.length) return;
-  openSequence(get, set, { title: tr('step.finDeRound'), icon: 'time/clock', purpose: 'combat', steps, roundBoundary: true });
+  // Séquence d'accueil : celle en vol, quel que soit son `purpose` (doctrine de `revealPurpose`), jamais parquée.
+  if (steps.length) openSequence(get, set, { title: tr('step.finDeRound'), icon: 'time/clock', purpose: revealPurpose('combat', false)(get()), steps, roundBoundary: true });
+  // Une révélation d'entretien du franchissement a pu l'ouvrir seule : sa fermeture ouvre le Round (#2916).
+  bornerLaSequenceOuverte(get, set, 'roundBoundary');
 }
 
 /**

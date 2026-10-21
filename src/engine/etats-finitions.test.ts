@@ -51,7 +51,7 @@ describe('Finitions d\'États (LDB 16)', () => {
   });
 
   it('Hémorragique : coagulation (double) du dernier État → 1 Exténué (l.109)', () => {
-    const c = C({ conditions: [{ id: 'hemorragique', value: 1 }] });
+    const c = C({ wounds: { current: 0, max: 20 }, conditions: [{ id: 'hemorragique', value: 1 }, { id: 'inconscient', value: 1 }] }); // porteur éligible : LDB 16 l.105
     const dbl: RNG = deFixe(11); // jet 11 = double → coagule
     const out = bleedDeathRoll(c, dbl);
     expect(out.died).toBe(false);

@@ -1766,7 +1766,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (o.weaponHit && ctx.weapon) {
           const n = woundsFromHit(ctx.weapon, target, ctx.location ?? 'corps', raw, o.extraAP ?? 0, o.min ?? 1, ctx.caster?.size);
           ctx.woundsDealt = loseWounds(target, n); // PB réellement perdus (drain/Vol de vie suivant)
-          lines.push(t('op.wounds', { name: target.label, n, mitig: '' }));
+          if (ctx.woundsDealt > 0) lines.push(t('op.wounds', { name: target.label, n: ctx.woundsDealt, mitig: '' })); // LDB 16 l.105
           break;
         }
         // Défaut : ignore BE+PA. `ignoreTB:false` → déduit le Bonus d'Endurance ; `ignoreAP:false` → déduit les PA.
@@ -1783,7 +1783,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // (`lifeSteal`) soigne « le même nombre » que la victime a effectivement perdu (Absorption EDO 11 l.222).
         ctx.woundsDealt = loseWounds(target, n); // perte centralisée (−Avantage + À Terre à 0)
         const mitig = o.ignoreTB === false || o.ignoreAP === false ? ` (${o.ignoreAP === false ? t('op.frag.apHit') : t('op.frag.apIgnored')}, ${o.ignoreTB === false ? t('op.frag.beDeduced') : t('op.frag.beIgnored')})` : t('op.frag.mitigNone');
-        lines.push(t('op.wounds', { name: target.label, n, mitig }));
+        if (ctx.woundsDealt > 0) lines.push(t('op.wounds', { name: target.label, n: ctx.woundsDealt, mitig })); // LDB 16 l.105
         break;
       }
       case 'heal': {
