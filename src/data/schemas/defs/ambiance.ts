@@ -2,7 +2,7 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `ambiance.json` — AMBIANCE de rendu partagée iso ⇄ POV (ciel/brumes/vignette/voile chaud/
  * filtre d'étage), consommée comme `AmbianceDef` (objet RACINE unique, PAS un tableau) —
- * `src/gameIso/catalog/ambiance.ts`.
+ * `src/data/ambiance.types.ts`, lue par `src/gameIso/catalog/ambiance.ts`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';

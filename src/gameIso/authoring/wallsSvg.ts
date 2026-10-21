@@ -10,7 +10,8 @@
 import { CELL, depth, diamondPath, isSquareView, tileCenter, type Dims } from '../../geometry/iso';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { metricToLift } from '../../noyau/monde/relief';
-import { wallPartColor, windowLit, type StructureAppearanceDef, type WallPart } from '../catalog/structures';
+import { wallPartColor, windowLit } from '../catalog/structures';
+import type { StructureAppearanceDef, WallPart } from '../../data/structureAppearance.types';
 import { facadeStructureAppearance } from '../catalog/facades';
 import { shade, spec, SIDE_N, SIDE_LIT, POST_CAP, POST_BASE } from '../shade';
 import { detailOf, coursesOverlaySvg, timberOverlaySvg, verticalAccentsSvg, projTag, type DetailOpts } from './detailSvg';

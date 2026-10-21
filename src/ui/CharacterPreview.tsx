@@ -16,7 +16,8 @@
 import { memo, useMemo } from 'react';
 import type { Combatant } from '../engine/types';
 import { RigSprite, GROUND_Y, bodyHeight, useCompositionRig } from '../gameIso/rig/composeRig';
-import { defaultAppearance, type Appearance } from '../gameIso/rig/appearance';
+import { defaultAppearance } from '../gameIso/rig/appearance';
+import type { Appearance } from '../engine/authoringAppearance';
 import { equipPorte, type EquipCtx } from '../gameIso/rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../gameIso/rig/parts/combatantVisuals';
 import { useVersionDesDatasets } from './useVersionDesDatasets';

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { BONE_IDS, SLOT_BONES, SLOT_LAYER, type Slot } from './bones';
+import { BONE_IDS, SLOT_BONES, SLOT_LAYER } from './bones';
+import type { Slot } from '../../engine/authoringAppearance';
 
 describe('bones registry', () => {
   it('chaque slot pointe vers des os connus', () => {

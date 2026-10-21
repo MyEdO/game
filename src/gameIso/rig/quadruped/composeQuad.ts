@@ -7,7 +7,8 @@ import type { ResolvedBone } from '../composeRig';
 import type { BodyPlan } from '../bodyPlan';
 import type { View } from '../facing';
 import { worldTransformsG, type Matrix } from '../kinematics';
-import { buildTokenMap, applyTokenMap, type Palette } from '../palette';
+import { buildTokenMap, applyTokenMap } from '../palette';
+import type { Palette } from '../../../engine/authoringAppearance';
 import {
   QUAD_SPECIES, buildQuadSkeleton, groundQuad, quadSkeletonForView,
   type QBone, type QuadBoneId, type QuadDecoValue, type QuadProps,

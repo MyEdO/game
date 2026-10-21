@@ -1,3 +1,5 @@
+import type { Slot } from '../../engine/authoringAppearance';
+
 /** Os du squelette humanoïde (boîte locale 120×150, pieds en (60,150)). */
 export type BoneId =
   | 'bassin' | 'torse' | 'cou' | 'tete'
@@ -31,12 +33,6 @@ export interface Bone {
 }
 
 export type Skeleton = Record<BoneId, Bone>;
-
-/** Parts visuelles interchangeables. */
-export type Slot =
-  | 'visage' | 'cheveux' | 'cou'
-  | 'tete' | 'bras' | 'avantBras' | 'torse' | 'jambes' | 'pied' | 'main'
-  | 'arme' | 'bouclier';
 
 /** Os porteur(s) d'un slot. Le 2e os d'une paire (…D) est rendu en miroir. */
 export const SLOT_BONES: Record<Slot, BoneId[]> = {

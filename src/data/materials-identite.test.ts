@@ -10,7 +10,7 @@ import { terrains } from './index';
 /**
  * IDENTITÉ D'UNE MATIÈRE DU MONDE (#1686) — l'identité est le couple (DOMAINE, id), et l'id est
  * UNIQUE dans TOUT le document `materials.json`, dont le périmètre est `prop`, `roof`, `relief`.
- * `MaterialRef.domain` en déclare CINQ (`src/gameIso/builders/types.ts:34` : terrain, relief,
+ * `MaterialRef.domain` en déclare CINQ (`src/data/materials.types.ts` : terrain, relief,
  * structure, roof, prop) ; les deux autres portent chacun SON dataset — `terrain` a le sien
  * (`terrains.json`, #1690 : règle et rendu dans la même entrée), `structure` un dataset d'apparence
  * (`structureAppearance.json`), un composite qui RÉFÉRENCE des matières. Leurs collisions d'id VIVANTES sont mesurées et tenues au cliquet en fin de fichier,
@@ -99,7 +99,7 @@ describe('collisions d’id sur les CINQ domaines — cliquet décroissant', () 
   };
 
   it('les domaines mesurés sont EXACTEMENT ceux que `MaterialRef.domain` déclare', () => {
-    const source = readFileSync('src/gameIso/builders/types.ts', 'utf8');
+    const source = readFileSync('src/data/materials.types.ts', 'utf8');
     const union = /domain:\s*((?:'[a-z]+'\s*\|\s*)*'[a-z]+')/.exec(source);
     expect(union, '`MaterialRef.domain` ne se lit plus comme une union de littéraux').not.toBeNull();
     const declares = [...union![1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]).sort();

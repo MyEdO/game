@@ -4,7 +4,7 @@ import { isCapeItem, isShieldItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { armeDeDessin, armourPart, bouclierDeDessin, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { viewOrFront } from '../gameIso/rig/parts/types';
-import type { Slot } from '../gameIso/rig/bones';
+import type { Slot } from '../engine/authoringAppearance';
 import { defsGlobaux } from '../gameIso/sprites';
 import { Icon } from './Icon';
 import { useVersionDesDatasets } from './useVersionDesDatasets';

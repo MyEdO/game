@@ -47,7 +47,8 @@ import type { Dir8 } from './dir8';
 import type { Pt } from './path';
 import { terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
-import { type Grade, gradeBetween, metricToLift, STEP_MAX_M } from './relief';
+import { gradeBetween, metricToLift, STEP_MAX_M } from './relief';
+import type { Grade } from '../../data/materials.types';
 import { aretesA } from './wallIndex';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias

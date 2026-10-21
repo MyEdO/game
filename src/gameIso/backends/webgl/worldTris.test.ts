@@ -29,16 +29,8 @@ import {
   type WorldPoly,
 } from './worldTris';
 import { faceDepthM, faceDepthOf } from './faceRelief';
-import {
-  uprightCrossM,
-  UPRIGHT_OVERHANG_M,
-  UPRIGHT_WIDTH_M,
-  WALL_MATTER_M,
-  wallMatterM,
-  wallPartRelief,
-  type StructureAppearanceDef,
-  type WallPart,
-} from '../../catalog/structures';
+import { uprightCrossM, UPRIGHT_OVERHANG_M, UPRIGHT_WIDTH_M, WALL_MATTER_M, wallMatterM, wallPartRelief } from '../../catalog/structures';
+import type { StructureAppearanceDef, WallPart } from '../../../data/structureAppearance.types';
 import { buildFloors } from '../../builders/floors';
 import { buildWalls } from '../../builders/walls';
 import { buildRoofs } from '../../builders/roofs';

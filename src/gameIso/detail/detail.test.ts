@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { hash32, seedStream } from '../../data/hash';
 import { expandRecipe, type DetailExpansion } from './expand';
-import type { DetailRecipe } from './types';
+import type { DetailRecipe } from '../../data/materials.types';
 
 /** Recette type « appareillage de pierre » (celle ancrée dans structureAppearance.json). */
 const STONE: DetailRecipe = {

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { injuryOverlaysFor, injuryAppearance } from './injuries';
 import { traumaById } from '../../../engine/trauma';
 import type { Combatant, Trauma, ItemInstance } from '../../../engine/types';
-import type { Appearance } from '../appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 
 const mk = (traumas: Trauma[], items: ItemInstance[] = []): Combatant =>
   ({ id: 'h1', name: 'H', kind: 'hero', traumas, items }) as unknown as Combatant;

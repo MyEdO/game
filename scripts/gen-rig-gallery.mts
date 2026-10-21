@@ -7,7 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { RigSprite, rigComposition } from '../src/gameIso/rig/composeRig';
 import { defsGlobaux } from '../src/gameIso/sprites';
-import type { Appearance } from '../src/gameIso/rig/appearance';
+import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import { bouclierDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';

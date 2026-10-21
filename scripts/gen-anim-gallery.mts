@@ -13,7 +13,7 @@ import { addPose } from '../src/gameIso/rig/poses';
 import { weaponRest, weaponAttackClip, weaponParryClip } from '../src/gameIso/rig/anim/weaponClips';
 import { sampleClip, clipDuration, type Clip } from '../src/gameIso/rig/anim/clips';
 import { animatedRig, sampleTimes } from './_lib-anim-rig';
-import type { Appearance } from '../src/gameIso/rig/appearance';
+import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
 import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';

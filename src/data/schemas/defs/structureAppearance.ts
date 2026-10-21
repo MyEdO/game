@@ -1,39 +1,26 @@
 import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `structureAppearance.json` — apparence PARTAGÉE d'une structure d'arête (mur/porte),
- * consommée comme `StructureAppearanceDef[]` (`src/gameIso/catalog/structures/types.ts`). Chaque champ
+ * consommée comme `StructureAppearanceDef[]` (`src/data/structureAppearance.types.ts`). Chaque champ
  * est une COULEUR ou une mesure que le rendu lit par PARTIE de mur (`wallPartColor`).
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { detailRecipeSchema } from '../grammaire/valeurs';
+import { WALL_PARTS, type WallPart } from '../../structureAppearance.types';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';
-
-/** Parties de mur admises comme clés de `relief` — RECOPIE de `WALL_PARTS`
- *  (`src/gameIso/catalog/structures/types.ts`) : `src/data` ne dépend jamais RUNTIME de `src/gameIso`
- *  (pureté de couche, `scripts/guards/lib/couches.mjs`). La parité des deux listes est gardée par
- *  `src/gameIso/catalog/structures/relief.test.ts`. */
-export const WALL_PART_KEYS = [
-  'face', 'poteau', 'couronnement', 'panneau', 'moulure', 'plinthe',
-  'chambranle', 'jambage',
-  'vantail', 'vantail-planche', 'poignee',
-  'vitre', 'meneau',
-  'parapet', 'bande', 'arase', 'merlon',
-  'linteau', 'herse-barreau', 'herse-traverse', 'seuil',
-  'gravats', 'gravats-tas',
-] as const;
 
 /** Parties SURCHARGEABLES par `relief.jut`/`relief.thick` : les 16 parties des familles `saillie` et
  *  `traversant`. Les 7 parties de la famille `matiere` (`face, poteau, couronnement, jambage, parapet,
  *  arase, merlon`) en sont ABSENTES : leur volume EST celui du mur (`wallPartDepthM` rend `wallM` sans
  *  lire la surcharge) — c'est `relief.wallM` qui règle celui-là, pour toutes à la fois. Les y admettre
  *  au schéma promettait une surcharge qui n'agit sur rien. */
-export const RELIEF_PART_KEYS = WALL_PART_KEYS.filter(
+export const RELIEF_PART_KEYS = WALL_PARTS.filter(
   (k) => !(['face', 'poteau', 'couronnement', 'jambage', 'parapet', 'arase', 'merlon'] as readonly string[]).includes(k),
-) as Exclude<(typeof WALL_PART_KEYS)[number], 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon'>[];
+) as Exclude<WallPart, 'face' | 'poteau' | 'couronnement' | 'jambage' | 'parapet' | 'arase' | 'merlon'>[];
 
 /** Profondeur (m) par partie, toutes optionnelles, AUCUNE clé étrangère (`strictObject`). */
 const reliefParPartie = nommerChamps(z.strictObject(

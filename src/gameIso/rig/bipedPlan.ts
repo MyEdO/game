@@ -6,7 +6,7 @@
 import type { BonePose } from './poses';
 import type { BodyPlan, ResolveOpts } from './bodyPlan';
 import type { View } from './facing';
-import type { Appearance } from './appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
 import type { EquipCtx } from './parts/equipment';
 import { resolveRig, type ResolvedBone } from './composeRig';

@@ -117,7 +117,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(path|path-[a-z-]+|dir8|sceneMemo|relief|wallIndex|decorIndex|bus|visibility|viewLevel|entreeEnScene)(\.test)?\.tsx?$`),
     categorie: 'moteur-generique',
     raison: 'Pathfinding sur grille, orientation 8 directions, mémoïsation de scène, relief, index spatiaux, bus d\'évènements ; politique de visibilité et étage affiché consommés par les seuls rendus ; rendez-vous de fin de cuisson du monde.',
-    preuve: 'src/noyau/monde/path.ts:1-5 ; src/state/visibility.ts:2 (importeurs : gameIso/backends, gameIso/catalog seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
+    preuve: 'src/noyau/monde/path.ts:1-5 ; src/state/visibility.ts:2 (importeur : gameIso/backends/webgl/visibilityTint seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(poste|advancement|stations)(\.test)?\.ts$`),

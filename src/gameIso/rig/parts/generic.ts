@@ -1,4 +1,4 @@
-import type { Slot } from '../bones';
+import type { Slot } from '../../../engine/authoringAppearance';
 import type { PartArt } from './types';
 
 /** Fallback neutre par slot (le rig rend toujours quelque chose pour les vêtements). */

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RigSprite, rigComposition } from './composeRig';
-import type { Appearance } from './appearance';
+import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
 import { equipDe } from './parts/equipment';
 import type { EquipCtx } from './parts/equipment';

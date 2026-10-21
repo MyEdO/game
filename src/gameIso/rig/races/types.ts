@@ -1,6 +1,7 @@
 import type { BoneId } from '../bones';
 import type { View } from '../facing';
-import type { PaletteDeclaree, Palette } from '../palette';
+import type { PaletteDeclaree } from '../palette';
+import type { Palette } from '../../../engine/authoringAppearance';
 import type { GabaritDef } from '../gabarits/types';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 

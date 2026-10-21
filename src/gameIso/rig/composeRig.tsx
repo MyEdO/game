@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { BONE_IDS, SLOT_BONES, SLOT_LAYER, splitPartBehind, type BoneId, type Skeleton, type Slot, type RigOverlay } from './bones';
+import { BONE_IDS, SLOT_BONES, SLOT_LAYER, splitPartBehind, type BoneId, type Skeleton, type RigOverlay } from './bones';
 import { baseSkeleton, applyBuild, referenceSkeleton, groundSkeleton, profileNarrow, baseSpeciesOf } from './skeletons';
 import { bipedDef } from './creatures';
 import { gabaritById } from './gabarits';
@@ -7,7 +7,7 @@ import { raceById, racePalette } from './races';
 import type { RaceFeature } from './races';
 import { worldTransforms, toSvg, apply, type Matrix } from './kinematics';
 import { addPose, type Pose } from './poses';
-import type { Appearance } from './appearance';
+import type { Appearance, Slot } from '../../engine/authoringAppearance';
 import { resolveParts } from './parts/resolve';
 import { COIFFURE_HORS_POOL, hairIndexById } from './parts/cosmetic';
 import { applyEyes, eyesArtFromKeys } from './parts/eyes';

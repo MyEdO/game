@@ -1,10 +1,10 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
-import { wallPartDepthM, wallPartRelief, WALL_PARTS, type WallPart, type WallPartRelief } from './index';
+import { wallPartDepthM, wallPartRelief, type WallPartRelief } from './index';
+import { WALL_PARTS, type WallPart, type StructureAppearanceDef } from '../../../data/structureAppearance.types';
 import { structureAppearance } from './index';
 import { FASCIA_THICK_M, roofFasciaThickM, roofMaterial } from '../roofs';
-import { WALL_PART_KEYS, RELIEF_PART_KEYS, schema } from '../../../data/schemas/defs/structureAppearance';
-import type { StructureAppearanceDef } from './types';
+import { RELIEF_PART_KEYS, schema } from '../../../data/schemas/defs/structureAppearance';
 
 /** CALIBRAGE épinglé du relief mince (#1176) — ce test garde les VALEURS, jamais la topologie :
  *  les comptes de triangles et de paires coplanaires (`worldTris.test.ts`) sont insensibles à une
@@ -109,10 +109,6 @@ describe('SCHÉMA de `structureAppearance.json` — les clés de relief sont CON
   const entree = (relief?: unknown) => [
     { id: 'x', type: 'structureAppearance', label: 'X', face: '#111', post: '#222', ...(relief ? { relief } : {}) },
   ];
-
-  it('la liste de clés du schéma est la MÊME que `WALL_PARTS` (recopie gardée, cf. pureté de src/data)', () => {
-    expect([...WALL_PART_KEYS]).toEqual([...WALL_PARTS]);
-  });
 
   it('les clés de `relief` sont EXACTEMENT les parties non-`matiere` — le schéma ne promet rien d’inerte', () => {
     const surchargeables = WALL_PARTS.filter((p) => wallPartRelief(p).famille !== 'matiere');

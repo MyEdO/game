@@ -9,7 +9,8 @@
  * de la FORME du volume (boîte centrée sur le plan médian, croix d'un montant).
  */
 import { facadeStructureAppearance } from '../../catalog/facades';
-import { uprightCrossM, wallMatterM, wallPartDepthM, type WallPart } from '../../catalog/structures';
+import { uprightCrossM, wallMatterM, wallPartDepthM } from '../../catalog/structures';
+import type { WallPart } from '../../../data/structureAppearance.types';
 import { roofFasciaThickM, roofMaterial } from '../../catalog/roofs';
 import type { FaceDepth } from './worldTris';
 import type { Face } from '../../builders/types';

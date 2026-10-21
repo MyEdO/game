@@ -29,14 +29,15 @@ import { AMBIANCE } from '../../catalog/ambiance';
 import { reliefMaterial } from '../../catalog/relief';
 import { roofMaterial } from '../../catalog/roofs';
 import { facadeStructureAppearance } from '../../catalog/facades';
-import { wallPartColor, type WallPart } from '../../catalog/structures';
+import { wallPartColor } from '../../catalog/structures';
+import type { WallPart } from '../../../data/structureAppearance.types';
 import { terrainDef } from '../../catalog/terrain';
 import { propMaterial } from '../../catalog/propMaterials';
 import { MISSING_TONE } from '../../catalog/missing';
 import { TINT_SPREAD } from '../../detail/expand';
 import { coursesPeriodM, groundPeriodM } from '../../detail/courses';
 import { hash32 } from '../../../data/hash';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 import type { Face } from '../../builders/types';
 import { SHADE_CYCLE, type ShadeFamily } from './worldTris';
 

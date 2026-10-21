@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 import { VIEWS } from '../facing';
-import type { MonsterParts } from '../parts/monstrous';
+import type { MonsterParts } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
 
 const SEED = 4;

@@ -16,7 +16,7 @@ import { seatRiderOnMount, mountedRest, harnaisDeMonture } from '../src/gameIso/
 import { planById, planOptsForRecord, resolveSpecies } from '../src/gameIso/rig/bodyPlan';
 import { sizeTokenScale } from '../src/gameIso/sizeScale';
 import { animatedRig, sampleTimes } from './_lib-anim-rig';
-import type { Appearance } from '../src/gameIso/rig/appearance';
+import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
 import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';

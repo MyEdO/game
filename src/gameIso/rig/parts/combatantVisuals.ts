@@ -9,9 +9,8 @@
  * morpho/peau/œil par `combatantAppearance` — `resolveRig` est inchangé.
  */
 import type { Combatant } from '../../../engine/types';
-import type { EntityAppearance } from '../../../engine/authoringAppearance';
+import type { EntityAppearance, Appearance } from '../../../engine/authoringAppearance';
 import type { RigOverlay } from '../bones';
-import type { Appearance } from '../appearance';
 import { feat as catalogFeatures, featureMorpho } from './elements';
 import { eyesArtFromKeys } from './eyes';
 import { injuryOverlaysFor, injuryAppearance } from './injuries';

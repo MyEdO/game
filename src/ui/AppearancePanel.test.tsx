@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppearancePanel } from './AppearancePanel';
-import { asRigSpeciesId, type Appearance } from '../gameIso/rig/appearance';
+import { asRigSpeciesId } from '../gameIso/rig/appearance';
+import type { Appearance } from '../engine/authoringAppearance';
 
 const app: Omit<Appearance, 'species'> = { sex: 'F', build: 0.4, seed: 2 };
 

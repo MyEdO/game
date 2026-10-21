@@ -24,7 +24,7 @@ import { spec as siegeSpec } from '../../../scenes/test-scenarios/siege-enceinte
 import { testScenarios } from '../../../scenes/test-scenarios';
 import { sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Dims } from '../../../geometry/iso';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 
 /**
  * ACCENTS DE SOL en instances : la PARITÉ STRUCTURELLE avec le semis de l'affine

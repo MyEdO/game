@@ -35,7 +35,8 @@ import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffectiv
 import { roofMaterial } from '../catalog/roofs';
 import { buildingsMeta } from '../../noyau/monde/buildings';
 import { facadeStructureAppearance, facadeWallFeatureAppearance } from '../catalog/facades';
-import { wallApp, type StructureAppearanceDef } from '../catalog/structures';
+import { wallApp } from '../catalog/structures';
+import type { StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { WALL_H_M, isoPxToM } from '../iso';
 import { roomTilesById, isRoomZone, occupiedRoomIds, roomTiles } from '../../noyau/monde/rooms';
 import { cutawayForSection, type ClearedSpace } from '../stage/architectureVisibility';

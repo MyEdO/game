@@ -7,7 +7,8 @@
  * du registre (brouillard, neige) porte une teinte plus claire que la scène et l'ÉCLAIRCIT en affine.
  */
 import { describe, expect, it } from 'vitest';
-import { ALBEDO_REF, AMBIANCE, METEO_SANS_EFFET, weatherLightScalars, type WeatherFxId } from './ambiance';
+import { ALBEDO_REF, AMBIANCE, METEO_SANS_EFFET, weatherLightScalars } from './ambiance';
+import type { WeatherFxId } from '../../data/ambiance.types';
 import { luminanceHex } from '../shade';
 
 const TYPES = ['pluie', 'brouillard', 'neige', 'tempete'] as const;

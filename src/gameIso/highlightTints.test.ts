@@ -48,9 +48,8 @@ import {
  * (`highlightTints.ts` pour les surbrillances, `teamColors.ts` pour l'identité d'unité,
  * `backends/webgl/calageProps.ts` pour le mode calage de l'éditeur). Ce fichier
  * garde les trois coutures de cette bascule :
- *  1. PARITÉ liste-de-clés du schéma ⇄ JSON réel ⇄ ce que les façades servent — `src/data` recopie
- *     `TEINTE_KEYS` faute de pouvoir importer `src/gameIso` (pureté de couche, `scripts/guards/lib/couches.mjs`), patron
- *     `WALL_PART_KEYS` ⇄ `relief.test.ts` ;
+ *  1. COUVERTURE : les clés du schéma (`TEINTE_KEYS`, liste unique) sont celles du JSON réel, et chacune
+ *     a sa façade ;
  *  2. ÉGALITÉ JSON ↔ vars CSS de repli homonymes de `src/ui/styles/base.css` (les feuilles de style
  *     les consomment encore) — `HIGHLIGHT_TINTS` est la projection `id → var` qui les apparie ;
  *  3. RÔLES DISJOINTS : aucun octet partagé entre une surbrillance transitoire et une identité
@@ -111,8 +110,8 @@ const RELAIS_EDITEUR: [string, TeinteId, string][] = [
   ['CALAGE_ARETES', 'editeur-calage-aretes', CALAGE_ARETES],
 ];
 
-describe('teintes de jeu — PARITÉ schéma ⇄ donnée ⇄ façades', () => {
-  it('la liste de clés du schéma est EXACTEMENT celle du JSON (recopie gardée, cf. pureté de src/data)', () => {
+describe('teintes de jeu — COUVERTURE schéma ⇄ donnée ⇄ façades', () => {
+  it('la liste de clés du schéma est EXACTEMENT celle du JSON', () => {
     expect([...TEINTE_KEYS].sort()).toEqual(Object.keys(teintesJeu).sort());
   });
 

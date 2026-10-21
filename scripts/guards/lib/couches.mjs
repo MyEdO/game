@@ -22,14 +22,8 @@ export const COUCHES = Object.freeze({
   lib: { importe: [] },
   geometry: { importe: [] },
   i18n: { importe: [] },
-  engine: { importe: ['data', ...FEUILLES], transitoire: { gameIso: { issue: '#2884' } } },
-  data: {
-    importe: ['engine', ...FEUILLES],
-    transitoire: {
-      noyau: { issue: '#2884' },
-      gameIso: { issue: '#2884' },
-    },
-  },
+  engine: { importe: ['data', ...FEUILLES] },
+  data: { importe: ['engine', ...FEUILLES], transitoire: { noyau: { issue: '#2884' } } },
   noyau: { importe: ['engine', 'data', ...FEUILLES] },
   hoteTexte: { importe: ['noyau', 'scenes', ...FEUILLES], portes: { noyau: SURFACE_DU_NOYAU } },
   scenes: { importe: ['noyau', 'data', 'engine', ...FEUILLES] },

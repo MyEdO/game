@@ -15,7 +15,7 @@ import { EYE_OPTIONS } from '../src/gameIso/rig/parts/eyes';
 import { idsPhysiques, mutationById } from '../src/data/mutations';
 import type { Mutation } from '../src/engine/corruption';
 import type { Combatant, Trauma } from '../src/engine/types';
-import type { Appearance } from '../src/gameIso/rig/appearance';
+import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { equipDe } from '../src/gameIso/rig/parts/equipment';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';

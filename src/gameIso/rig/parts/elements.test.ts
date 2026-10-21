@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
 import { feat, elementsOf } from './elements';
-import type { Appearance } from '../appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
 
 const NO_EQUIP = { weapons: [], armour: [] };

@@ -1,6 +1,6 @@
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
 import { formeResolue, isCapeItem, isShieldItem, type SourceDeForme } from '../../../engine/items';
-import type { Slot } from '../bones';
+import type { Slot } from '../../../engine/authoringAppearance';
 import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';

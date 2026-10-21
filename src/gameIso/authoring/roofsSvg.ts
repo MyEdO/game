@@ -33,7 +33,7 @@ import { hash32, seedStream } from '../../data/hash';
 import { matierePlan } from '../../data';
 import { ACCENT_FRAC, BLOCK_INSET_M, BLOCK_SHADE_K } from '../detail/expand';
 import { shade, mix } from '../shade';
-import type { DetailRecipe } from '../detail/types';
+import type { DetailRecipe } from '../../data/materials.types';
 import { projGP, type Pt2 } from './project';
 import { structureFaceSvg } from './wallsSvg';
 import { metricToLift } from '../../noyau/monde/relief';

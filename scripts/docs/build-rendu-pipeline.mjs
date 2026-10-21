@@ -3,8 +3,9 @@
  * N projections ».
  *
  * Part FACTUELLE, DÉRIVÉE à chaque génération :
- *  - le PIVOT : l'union `SceneEl` et les interfaces `GP`/`MaterialRef`/`Face`/`ElBase`/`ElStates`
- *    de `src/gameIso/builders/types.ts` (champs + 1re phrase de JSDoc) ;
+ *  - le PIVOT : l'union `SceneEl` et les interfaces `GP`/`Face`/`ElBase`/`ElStates` de
+ *    `src/gameIso/builders/types.ts`, et `MaterialRef` de `src/data/materials.types.ts` (champs + 1re
+ *    phrase de JSDoc) ;
  *  - les BUILDERS : les fonctions `build*` réellement exportées sous `src/gameIso/builders/`, avec
  *    leur type de sortie, leur site et leur JSDoc ;
  *  - l'ARBORESCENCE de `src/gameIso/` : nombre de modules directs par sous-dossier ;
@@ -34,7 +35,7 @@ function rendu() {
   const BUILDERS = `${ISO}/builders`
   const GARDE = `${ISO}/renderer-no-hardcoded-color.test.ts`
   const AMBIANCE = 'src/data/ambiance.json'
-  const DETAIL = `${ISO}/detail/types.ts`
+  const MATIERES = 'src/data/materials.types.ts'
 
   function abandon(msg) {
     console.error(`${OUTIL} — ${msg}`)
@@ -45,9 +46,11 @@ function rendu() {
     return p
   }
   const plat = (s) => s.replace(/\s+/g, ' ').trim().replaceAll('|', '\\|')
-  for (const p of [TYPES, BUILDERS, GARDE, AMBIANCE, DETAIL]) ancre(p, 'source du générateur')
+  for (const p of [TYPES, BUILDERS, GARDE, AMBIANCE, MATIERES]) ancre(p, 'source du générateur')
 
-  const { text: T_SRC, sf: T_SF } = loadSource(TYPES)
+  const PIVOT = { chemin: TYPES, ...loadSource(TYPES) }
+  const { sf: T_SF } = PIVOT
+  const M_SRC = { chemin: MATIERES, ...loadSource(MATIERES) }
   const ligne = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1
 
   // ── Le PIVOT : union `SceneEl` + les interfaces qui la composent ─────────────────────────────────
@@ -71,31 +74,31 @@ function rendu() {
     return { membres: ts.isUnionTypeNode(a.type) ? a.type.types.map((t) => plat(t.getText(T_SF))) : [plat(a.type.getText(T_SF))], l: ligne(T_SF, a.name.getStart(T_SF)) }
   })()
 
-  /** Champs d'une interface : nom (+ `?`), type aplati, 1re phrase de JSDoc. */
-  function champs(nom) {
+  /** Champs d'une interface du module `src` (le pivot par défaut) : nom (+ `?`), type aplati, 1re phrase de JSDoc. */
+  function champs(nom, { chemin, text, sf } = PIVOT) {
     let decl
-    T_SF.forEachChild((n) => {
+    sf.forEachChild((n) => {
       if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n
     })
-    if (!decl) abandon(`interface \`${nom}\` introuvable dans ${TYPES}`)
+    if (!decl) abandon(`interface \`${nom}\` introuvable dans ${chemin}`)
     const rows = []
     let prevEnd = decl.members.pos
     for (const m of decl.members) {
       if (!ts.isPropertySignatureDeclaration(m)) continue
-      const doc = jsdocBody(T_SRC.slice(prevEnd, m.getStart(T_SF)))
+      const doc = jsdocBody(text.slice(prevEnd, m.getStart(sf)))
       rows.push({
-        nom: m.name.getText(T_SF) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
-        type: m.type ? plat(m.type.getText(T_SF)) : '—',
+        nom: m.name.getText(sf) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''),
+        type: m.type ? plat(m.type.getText(sf)) : '—',
         role: doc ? plat(firstSentence(doc)) : null,
       })
       prevEnd = m.getEnd()
     }
-    if (!rows.length) abandon(`interface \`${nom}\` sans propriété lisible (${TYPES})`)
-    return { rows, l: ligne(T_SF, decl.name.getStart(T_SF)) }
+    if (!rows.length) abandon(`interface \`${nom}\` sans propriété lisible (${chemin})`)
+    return { rows, l: ligne(sf, decl.name.getStart(sf)) }
   }
 
   const GP = champs('GP')
-  const MATERIAL = champs('MaterialRef')
+  const MATERIAL = champs('MaterialRef', M_SRC)
   const FACE = champs('Face')
   const ELBASE = champs('ElBase')
   const ELSTATES = champs('ElStates')
@@ -103,7 +106,7 @@ function rendu() {
   /** Domaines de matériau — l'univers FERMÉ lu au champ `domain` de `MaterialRef`. */
   const DOMAINES = (() => {
     const d = MATERIAL.rows.find((r) => r.nom === 'domain' || r.nom === 'domain?')
-    if (!d) abandon(`\`MaterialRef\` n'expose plus de champ \`domain\` (${TYPES})`)
+    if (!d) abandon(`\`MaterialRef\` n'expose plus de champ \`domain\` (${MATIERES})`)
     const vals = [...d.type.matchAll(/'([\w-]+)'/g)].map((m) => m[1])
     if (!vals.length) abandon(`le champ \`domain\` de \`MaterialRef\` n'est plus une union de littéraux`)
     return vals
@@ -178,12 +181,12 @@ function rendu() {
   // ── DÉTAIL de surface : les sections d'une `DetailRecipe` ────────────────────────────────────────
 
   const RECETTE = (() => {
-    const { text, sf } = loadSource(DETAIL)
+    const { text, sf } = M_SRC
     let decl
     sf.forEachChild((n) => {
       if (ts.isInterfaceDeclaration(n) && n.name.text === 'DetailRecipe') decl = n
     })
-    if (!decl) abandon(`interface \`DetailRecipe\` introuvable dans ${DETAIL}`)
+    if (!decl) abandon(`interface \`DetailRecipe\` introuvable dans ${MATIERES}`)
     const rows = []
     let prevEnd = decl.members.pos
     for (const m of decl.members) {
@@ -192,7 +195,7 @@ function rendu() {
       rows.push({ nom: m.name.getText(sf) + (m.postfixToken?.kind === ts.SyntaxKind.QuestionToken ? '?' : ''), role: doc ? plat(firstSentence(doc)) : null })
       prevEnd = m.getEnd()
     }
-    if (!rows.length) abandon(`\`DetailRecipe\` sans section lisible (${DETAIL})`)
+    if (!rows.length) abandon(`\`DetailRecipe\` sans section lisible (${MATIERES})`)
     return { rows, l: ligne(sf, decl.name.getStart(sf)) }
   })()
 
@@ -280,8 +283,8 @@ function rendu() {
 > ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-rendu-pipeline.mjs\` (\`npm run docs:rendu-pipeline\`) — NE PAS ÉDITER À LA MAIN.
 
 **Périmètre mesuré / angles morts** — sont DÉRIVÉS à chaque génération : les ${SCENE_EL.membres.length} membres
-de \`SceneEl\` et les champs de \`GP\`/\`MaterialRef\`/\`Face\`/\`ElBase\`/\`ElStates\`
-(\`${TYPES}\`), les ${BUILDERS_MESURES.length} builders exportés sous \`${BUILDERS}/\` avec leur type
+de \`SceneEl\` et les champs de \`GP\`/\`Face\`/\`ElBase\`/\`ElStates\`
+(\`${TYPES}\`) et de \`MaterialRef\` (\`${MATIERES}\`), les ${BUILDERS_MESURES.length} builders exportés sous \`${BUILDERS}/\` avec leur type
 de sortie, les ${SOUS_DOSSIERS.length} sous-dossiers de \`${ISO}/\` et leur nombre de modules directs, les
 ${CLES_AMB.length} clés d'ambiance de \`${AMBIANCE}\`, les ${RECETTE.rows.length} sections d'une
 \`DetailRecipe\`, les ${APPENDICES.length} appendices du registre du rig avec leurs références par id, la
@@ -314,7 +317,7 @@ ${PROP_EL.membres.map((m) => `\`${m}\``).join(' | ')}.
 
 ${tableChamps(GP)}
 
-### \`MaterialRef\` — une RÉFÉRENCE de matériau, jamais une couleur
+### \`MaterialRef\` (\`${MATIERES}:${MATERIAL.l}\`) — une RÉFÉRENCE de matériau, jamais une couleur
 
 ${tableChamps(MATERIAL)}
 
@@ -361,7 +364,7 @@ Un **0** en « Référencé par » est une PISTE, pas une preuve de mort : la co
 \`${ISO}/\` (hors tests et hors registre) qui citent l'id — un id choisi en donnée de scène ou au Codex n'y
 apparaît pas. Ajouter un type d'appendice = déposer un def + \`npm run gen\` ; jamais un 4ᵉ mécanisme d'art.
 
-## 4. Détail de surface — la recette (\`${DETAIL}:${RECETTE.l}\`)
+## 4. Détail de surface — la recette (\`${MATIERES}:${RECETTE.l}\`)
 
 Une \`DetailRecipe\` est une donnée PURE portée par les defs d'apparence ; ses dimensions sont en
 mètres, et son dépliage en primitives UV est **déterministe au seed** — le SVG d'authoring et le

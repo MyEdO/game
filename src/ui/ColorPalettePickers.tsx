@@ -1,4 +1,4 @@
-import type { Palette } from '../gameIso/rig/palette';
+import type { Palette } from '../engine/authoringAppearance';
 import { defautDe, projectionEditeur } from '../gameIso/rig/clesDePalette';
 
 /** Emplacements de couleur exposés (ordre d'affichage) — HUMANOÏDE (héros/PNJ). */

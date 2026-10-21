@@ -30,7 +30,7 @@ import { roofMaterial } from '../../catalog/roofs';
 import { toitureEffective } from '../../../noyau/sceneEdit';
 import type { PropVertexRange } from './spriteRaycast';
 import { roofCourseStepM, variantOf } from '../../detail/courses';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 import type { PeriodKind } from './periodTexture';
 import { faceBakeKey, needsFaceBake } from './faceBake';
 import { facePoly, faceUvFrame, facesGeometry, orienterPoly, shadeFamily } from './worldTris';
@@ -48,7 +48,8 @@ import { poseRig, rigComposition, type RigComposition } from '../../rig/composeR
 import type { RigOverlay } from '../../rig/bones';
 import { entityRigProfileFor, enemyRigProfile, refOf, rendersFromOwnInventory } from '../../rig/enemyProfile';
 import { planById, planOptsForRecord, type RenderResolution, type ResolveOpts, type WingState } from '../../rig/bodyPlan';
-import { defaultAppearance, type Appearance } from '../../rig/appearance';
+import { defaultAppearance } from '../../rig/appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 import { armePrincipale, equipPorte, type EquipCtx } from '../../rig/parts/equipment';
 import { combatantAppearance, combatantOverlays } from '../../rig/parts/combatantVisuals';
 import { harnaisDeMonture, mountedRest, seatPlacement, seatRiderOnMount, seatedRest } from '../../rig/mountedRig';

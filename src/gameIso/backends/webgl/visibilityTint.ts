@@ -11,7 +11,8 @@
  * coordonnées ENTIÈRES et retrouve exactement la valeur discrète. Hors carte, l'échantillon se rabat
  * sur le bord du champ : le pourtour de la carte ne s'assombrit pas d'un dehors inconnu.
  */
-import { visibilityOf, type Visibility } from '../../../state/visibility';
+import { visibilityOf } from '../../../state/visibility';
+import type { Visibility } from '../../../data/ambiance.types';
 import { AMBIANCE } from '../../catalog/ambiance';
 import type { TintAt } from './sceneMeshes';
 

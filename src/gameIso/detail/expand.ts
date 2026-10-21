@@ -8,7 +8,7 @@
  * `seedStream(hash32(seed, section))` — ajouter/retirer une section à la recette ne décale pas les
  * tirages des autres (goldens stables par section).
  */
-import type { DetailRecipe } from './types';
+import type { DetailRecipe } from '../../data/materials.types';
 import { hash32, seedStream } from '../../data/hash';
 
 /** Rang horizontal [v0,v1] (assise/bardeau/planche). */

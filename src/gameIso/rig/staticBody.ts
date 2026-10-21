@@ -9,7 +9,8 @@
  */
 import type { ResolvedBone } from './composeRig';
 import { mul, rotate, translate, type Matrix } from './kinematics';
-import { buildTokenMap, applyTokenMap, type Palette, type PaletteDeclaree } from './palette';
+import { buildTokenMap, applyTokenMap, type PaletteDeclaree } from './palette';
+import type { Palette } from '../../engine/authoringAppearance';
 
 /** Ligne de SOL du repère de corps (= les 150px de l'ancrage aux pieds). Tout corps statique pose
  *  sa base ICI ⇒ pas de lévitation (le défaut historique de la coque, qui se posait à ~98). */

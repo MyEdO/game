@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { resolveRig } from '../../composeRig';
-import type { Appearance } from '../../appearance';
+import type { Appearance } from '../../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../../appearance';
 
 // Canal `TenueDef.overlays` (#pelisse-loup-blanc) : une tenue peut déclarer un calque

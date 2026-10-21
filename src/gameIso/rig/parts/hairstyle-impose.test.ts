@@ -3,7 +3,8 @@ import { resetDiagOnce } from '../devDiag';
 import { hairPool, hairIndexById, cosmeticPart, coiffureRetombee, COIFFURE_HORS_POOL } from './cosmetic';
 import { hairstylesForSex } from './hairstyles';
 import { resolveRig } from '../composeRig';
-import { asRigSpeciesId, type Appearance } from '../appearance';
+import { asRigSpeciesId } from '../appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 
 /**

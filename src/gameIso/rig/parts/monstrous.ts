@@ -10,6 +10,7 @@
  */
 import type { View } from '../facing';
 import type { BoneId, RigOverlay } from '../bones';
+import type { MonsterParts } from '../../../engine/authoringAppearance';
 import { viewOrFront, type PartArt } from './types';
 import { HEADS, ARMS, LEGS, HEAD_CORNES, HEAD_QUEUE } from './monster';
 import { WINGS } from './wings';
@@ -22,25 +23,6 @@ import { CROCS_ART } from './elements/defs/crocs';
 import { PLAIE_ART } from './elements/defs/plaie';
 import { VERRUES_ART } from './elements/defs/verrues';
 import { BRAS_ROUGE_ART, CUISSE_ROUGE_ART, STRIES_ART } from './elements/defs/membres-rouges';
-
-/** Sélection monstrueuse par slot (sur Appearance.monster). Tout est optionnel.
- *  Champs en `string` (libellés libres venant de la scène/éditeur) ; les lookups
- *  ci-dessous tolèrent une clé inconnue (→ ignorée). */
-export interface MonsterParts {
-  tete?: string;
-  brasG?: string;
-  brasD?: string;
-  jambes?: string;
-  cornes?: boolean;
-  queue?: boolean;
-  griffes?: boolean; // longues griffes aux mains (goule)
-  verrues?: boolean; // peau verruqueuse + ventre pâle (troll) — casse l'aplat « blob »
-  plaie?: boolean; // plaie de chair exposée (zombie)
-  cape?: boolean; // col de cape dressé en éventail + crocs (vampire)
-  membresRouges?: boolean; // bras/jambes rouge sang + stries au torse (démon bicolore)
-  /** ailes repliées dans le dos — true = emplumées (harpie) ; 'cuir' = membrane (furie, démon). */
-  ailes?: boolean | 'cuir';
-}
 
 export interface MonsterInjection {
   /** part par os (remplace la part normale de l'os) — orientée (front/back/profile). */

@@ -12,7 +12,8 @@ import {
   type PrecipArea,
 } from './weatherParticles';
 import { isSheltered, shelterField } from '../../builders/roofs';
-import { AMBIANCE, scenePrecip, type WeatherPrecipDef } from '../../catalog/ambiance';
+import { AMBIANCE, scenePrecip } from '../../catalog/ambiance';
+import type { WeatherPrecipDef } from '../../../data/ambiance.types';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from '../../../noyau/monde/scene';
 
 /**

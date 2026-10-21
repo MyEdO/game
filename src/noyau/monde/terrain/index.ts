@@ -158,9 +158,7 @@ export function terrainMatiere(id: string): string | undefined {
  *  volumique. Elle vit avec le dataset qu'elle interroge, au même titre que `terrainOverlayProp`.
  *
  *  Type par ACCÈS INDEXÉ sur `TerrainDef`, déjà importé ici : `DetailRecipe` vit dans
- *  `gameIso/detail/types.ts`, et la police de pureté state→gameIso (#161) ne refuse plus, depuis
- *  #1709, qu'une arête d'EXÉCUTION — un `import type` serait donc licite ; l'accès indexé économise
- *  seulement un second import. */
+ *  `src/data/materials.types.ts` ; l'accès indexé économise un second import. */
 export function terrainDetail(id: string): NonNullable<TerrainDef['detail']> | null {
   const d = indexDesTerrains()[id]?.detail;
   return d && (d.tufts || d.speckle) ? d : null;

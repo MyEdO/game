@@ -29,7 +29,7 @@ import { resolveQualities } from '../engine/qualities/dispatch';
 import { ColorPalettePickers } from './ColorPalettePickers';
 import { prefixOf } from './PossessionsRegistry';
 import { GatedAction } from './GatedAction';
-import type { Palette } from '../gameIso/rig/palette';
+import type { Palette } from '../engine/authoringAppearance';
 import { projectionEditeur } from '../gameIso/rig/clesDePalette';
 
 /** Raison UNIQUE du verrou d'équipement pendant un combat, partagée par les actions de sac. */

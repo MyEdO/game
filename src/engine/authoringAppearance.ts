@@ -1,15 +1,30 @@
 /**
- * Types d'APPARENCE d'authoring (sélections cosmétiques) — couche NEUTRE partagée : l'éditeur/scène
- * (`state`) les AUTHORE, le Combattant (`engine`, `Combatant.appearanceOverride`) les PORTE bruts, le
- * rig (`gameIso`) les RÉSOUT au rendu. Vivent ici (moteur) pour qu'aucun consommateur n'inverse les
- * couches (#187 : `Combatant` n'a plus à référencer `noyau/monde/scene` pour son override d'apparence).
- * Structurels purs (aucune valeur SVG/rendu) : les arts résolus vivent dans `gameIso/rig`.
+ * Types d'APPARENCE — couche NEUTRE partagée : l'éditeur/scène (`state`) AUTHORE `EntityAppearance`, le
+ * Combattant (`engine`) PORTE l'override brut (`Combatant.appearanceOverride`) et l'apparence résolue
+ * (`Combatant.appearance`), le rig (`gameIso`) les RÉSOUT au rendu. Vivent ici (moteur) pour qu'aucun
+ * consommateur n'inverse les couches (#187, #2884). Structurels purs (aucune valeur SVG/rendu) : les
+ * valeurs et les arts résolus vivent dans `gameIso/rig`.
  */
 
 import type { Sexe } from '../data/schemas/grammaire/valeurs';
+import type { Slot as CleDePalette } from '../data/palette.types';
 
-/** Parts monstrueuses par slot (mutant modulaire : tête/bras choisis comme un PJ).
- *  Type structurel (pas d'import rendu) ; les valeurs valides sont offertes par l'éditeur. */
+/** Vocabulaire (marque NOMINALE, #406) : id RIG (slug d'espèce `species.json`, id de créature/race/
+ *  véhicule/affût-de-siège) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
+ *  monnaie : un littéral `string` (dont un `.label`) n'est plus assignable à `Appearance.species`
+ *  (échec STRUCTUREL). Deux producteurs sanctionnés : `rigSpeciesId` (pont rules→rig, `src/data/index.ts`)
+ *  et `asRigSpeciesId` (validation d'un id déjà RIG, `gameIso/rig/appearance.ts`). */
+export type RigSpeciesId = string & { readonly __rigSpeciesId: unique symbol };
+
+/** Parts visuelles interchangeables du rig (os porteurs : `SLOT_BONES`, `gameIso/rig/bones.ts`). */
+export type Slot =
+  | 'visage' | 'cheveux' | 'cou'
+  | 'tete' | 'bras' | 'avantBras' | 'torse' | 'jambes' | 'pied' | 'main'
+  | 'arme' | 'bouclier';
+
+/** Parts monstrueuses AUTHORÉES par slot (mutant modulaire : tête/bras choisis comme un PJ) — la forme
+ *  de `entityAppearanceSchema.monster` (`data/schemas/grammaire/valeurs.ts`). Type structurel (pas
+ *  d'import rendu) ; les valeurs valides sont offertes par l'éditeur. */
 export interface MonsterPartsSel {
   tete?: string;       // 'chien' | 'lezard' | 'ogive' | 'minuscule' | …
   brasG?: string;      // 'tentacule' | 'griffe' | …
@@ -20,18 +35,22 @@ export interface MonsterPartsSel {
   ailes?: boolean;     // ailes emplumées repliées dans le dos (harpie, démon ailé)
 }
 
-/** Personnalisation couleur (emplacements sémantiques ; résolus par le rig). */
-export interface ColorsSel {
-  peau?: string;
-  cheveux?: string;
-  yeux?: string; // iris
-  vet1?: string; // vêtement principal
-  vet2?: string; // vêtement secondaire
-  cuir?: string;
-  metal?: string;
-  corps?: string; // pelage/robe des créatures (gabarits non-humains)
-  accent?: string; // détail vif (crête, marque)
+/** Sélection monstrueuse RÉSOLUE par slot (sur `Appearance.monster`) : la sélection authorée, plus les
+ *  parts que posent les defs de créature. Tout est optionnel. Les lookups du rig
+ *  (`gameIso/rig/parts/monstrous.ts`) tolèrent une clé inconnue (→ ignorée). */
+export interface MonsterParts extends Omit<MonsterPartsSel, 'ailes'> {
+  griffes?: boolean; // longues griffes aux mains (goule)
+  verrues?: boolean; // peau verruqueuse + ventre pâle (troll) — casse l'aplat « blob »
+  plaie?: boolean; // plaie de chair exposée (zombie)
+  cape?: boolean; // col de cape dressé en éventail + crocs (vampire)
+  membresRouges?: boolean; // bras/jambes rouge sang + stries au torse (démon bicolore)
+  /** ailes repliées dans le dos — true = emplumées (harpie) ; 'cuir' = membrane (furie, démon). */
+  ailes?: boolean | 'cuir';
 }
+
+/** Surcharge de couleur, par clé recoloriable de la palette du rig (`SLOTS`, `data/palette.types.ts`).
+ *  Tout est optionnel. */
+export type Palette = { [K in CleDePalette]?: string };
 
 /** Override d'apparence (sinon seed dérivé de l'id). */
 export interface EntityAppearance {
@@ -39,7 +58,7 @@ export interface EntityAppearance {
   /** Mutant modulaire : parts monstrueuses (rendu via le rig). */
   monster?: MonsterPartsSel;
   /** Personnalisation couleur (peau/cheveux/vêtements). */
-  colors?: ColorsSel;
+  colors?: Palette;
   /** Coiffure / visage épinglés (rig) : slot → index. */
   parts?: { cheveux?: number; visage?: number };
   /** Surcharges cosmétiques (sinon dérivées du seed). */
@@ -69,4 +88,21 @@ export interface EntityAppearance {
   /** Traits de corps ADDITIFS — clés du catalogue d'éléments (`parts/elements.ts` : queue, cornes,
    *  oreilles-pointues, crocs, écailles…). N'importe quel PNJ peut en porter (perso. réutilisable). */
   features?: string[];
+}
+
+/** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */
+export interface Appearance {
+  species: RigSpeciesId;
+  gabarit?: string;                                 // id de carrure résolu (sinon dérivé de l'espèce)
+  sex: Sexe;
+  build: number;                                   // 0..1
+  legs?: number;                                   // multiplicateur de longueur de jambes (mutation Court sur pattes)
+  faceFlip?: boolean;                              // visage retourné tête en bas (mutation Visage inversé)
+  eyes?: { G?: string; D?: string };               // remplacement d'œil EN PLACE (art centré, cf. parts/eyes.ts)
+  parts?: Partial<Record<Slot, number>>;           // overrides éditeur (index dans le pool par slot)
+  hairstyle?: string;                              // coiffure IMPOSÉE par id stable (hairstyles/defs) — prime sur parts.cheveux/seed ; sinon tirage sexe+ordre
+  monster?: MonsterParts;                          // parts monstrueux par slot (mutant modulaire)
+  features?: string[];                             // CLÉS du catalogue d'éléments (parts/elements.ts) — traits ADDITIFS (queue, cornes, crocs…)
+  colors?: Palette;                                // personnalisation couleur (peau/cheveux/vêtements)
+  seed?: number;
 }

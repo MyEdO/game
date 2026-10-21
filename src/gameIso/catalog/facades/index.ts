@@ -1,5 +1,6 @@
 import type { FacadeFeature } from '../../../noyau/monde/scene';
-import { structureAppearance, type StructureAppearanceDef } from '../structures';
+import { structureAppearance } from '../structures';
+import type { StructureAppearanceDef } from '../../../data/structureAppearance.types';
 import type { FacadeAppearanceDef, FacadeFeatureViz } from '../types';
 import { facade as aubergeRelaisImperiale } from './defs/auberge-relais-imperiale';
 import { facade as forge } from './defs/forge';

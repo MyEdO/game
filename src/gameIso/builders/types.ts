@@ -16,6 +16,7 @@ export type { CellSide };
 import type { Combatant } from '../../engine/types';
 import type { Dir4, Dir8 } from '../../noyau/monde/dir8';
 import type { SeatPose } from '../../noyau/monde/seating';
+import type { MaterialRef } from '../../data/materials.types';
 
 /** Point MONDE : (x,y) en unités de GRILLE continues (coins de case à ±0.5), `h` en MÈTRES.
  *  Jamais de rotation ni d'écran ici — backend affine : `tileCenter(x, y, dims, metricToLift(h))` ;
@@ -24,16 +25,6 @@ export interface GP {
   x: number;
   y: number;
   h: number;
-}
-
-/** Référence de MATÉRIAU (donnée JSON) — jamais une couleur. `part` distingue les faces d'un même
- *  matériau qui se dessinent différemment (falaise/rampe/tablier/pilier de relief, wedge de terrain).
- *  L'orientation d'une face (sol/paroi/pente) est dérivée par chaque backend depuis `domain`+`part`
- *  (et `side`), pas stockée. */
-export interface MaterialRef {
-  domain: 'terrain' | 'relief' | 'structure' | 'roof' | 'prop';
-  id: string;
-  part?: string;
 }
 
 export interface Face {

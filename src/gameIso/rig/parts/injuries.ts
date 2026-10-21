@@ -13,7 +13,7 @@
 import type { Combatant, Trauma } from '../../../engine/types';
 import { findTraumaFiche } from '../../../engine/trauma';
 import type { RigOverlay, BoneId } from '../bones';
-import type { Appearance } from '../appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 import { EYES } from './eyes';
 import { PROSTHESIS } from './prosthesis';
 

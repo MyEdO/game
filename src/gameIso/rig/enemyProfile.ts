@@ -6,19 +6,17 @@
  * Décisions : voir docs/superpowers/specs/2026-06-05-F1-ennemis-rig-design.md
  */
 import type { Combatant, ItemInstance, ArmourPoints, HitLocation } from '../../engine/types';
-import type { Appearance } from './appearance';
 import { equipDe, equipPorte, type EquipCtx } from './parts/equipment';
 import { emptyArmour } from '../../engine/items';
 import { renderWeaponsFromTraits, armourFromTraits, weaponFromId } from '../../engine/creatureEquip';
 import type { TraitList } from '../../engine/statEntry';
 import { eyesArtFromKeys } from './parts/eyes';
-import type { MonsterParts } from './parts/monstrous';
 import { hashSeed } from '../../engine/dice';
 import type { SceneEntity } from '../../noyau/monde/scene';
 import { bipedDef } from './creatures';
 import { resolveRender, type RenderResolution } from './bodyPlan';
 import { findCreatureById, isNamed, type CreatureData } from '../../data';
-import type { EntityAppearance } from '../../engine/authoringAppearance';
+import type { EntityAppearance, Appearance, MonsterParts } from '../../engine/authoringAppearance';
 import { raceById } from './races';
 import { baseSpeciesOf } from './skeletons';
 import { teintesTirees } from './parts/tirageIndividuel';

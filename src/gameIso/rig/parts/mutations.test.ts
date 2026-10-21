@@ -5,7 +5,7 @@ import { combatantOverlays, combatantAppearance } from './combatantVisuals';
 import { APPEARANCE_ELEMENTS } from './elements';
 import { resolveRig } from '../composeRig';
 import type { Combatant } from '../../../engine/types';
-import type { Appearance } from '../appearance';
+import type { Appearance } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
 
 const APP: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 };

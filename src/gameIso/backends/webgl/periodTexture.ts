@@ -32,7 +32,7 @@ import {
 } from '../../detail/courses';
 import { BLOCK_SHADE_K } from '../../detail/expand';
 import { parseHex, srgbToLinear } from '../../shade';
-import type { DetailRecipe } from '../../detail/types';
+import type { DetailRecipe } from '../../../data/materials.types';
 
 /** Les deux familles de période : appareillage VERTICAL (mur, pan de toit) et appareillage de SOL. */
 export type PeriodKind = 'wall' | 'ground';
