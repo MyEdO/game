@@ -59,4 +59,6 @@ export const EVT = {
   /** noyau → hôte : le groupe entre dans la scène {sceneId, neuve} — `neuve` pour une partie qui commence
    *  (`startScene`), faux pour un changement de scène (`transitionTo`) (#2817 D5). */
   ARRIVEE_EN_SCENE: 'arrivee_en_scene',
+  /** noyau → hôte : une ligne écrite au journal {texte}, par ses seuls écrivains (`log`, l'entrée en scène). */
+  LIGNE_AU_JOURNAL: 'ligne_au_journal',
 } as const;

@@ -18,9 +18,10 @@ import { SHIELD_DEFS } from './shields/_registry.generated';
 import { asRigSpeciesId } from '../appearance';
 import type { ItemInstance } from '../../../engine/types';
 import type { PartArt } from './types';
+import { LOCALISATIONS_DE_COUP } from '../../../engine/types';
 
 const HUMAIN = asRigSpeciesId('humain');
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const LOCS = LOCALISATIONS_DE_COUP;
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
 const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', forme, bouclier: false });
 const plaque = (skin?: Record<string, string>) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;

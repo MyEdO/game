@@ -76,7 +76,8 @@ export const CHAR_LABELS: Record<CharKey, string> = {
 export type Characteristics = Record<CharKey, number>;
 
 /** Localisations d'impact (Tableau de Localisation, Livre de base p. 159). */
-export type HitLocation = 'tete' | 'brasG' | 'brasD' | 'corps' | 'jambeG' | 'jambeD';
+export const LOCALISATIONS_DE_COUP = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const;
+export type HitLocation = (typeof LOCALISATIONS_DE_COUP)[number];
 
 export const HIT_LOCATION_LABELS: Record<HitLocation, PlayerText> = {
   tete: t('hitloc.tete'),

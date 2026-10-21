@@ -318,6 +318,14 @@ export const ECRIT_LU = {
       '`memosDAnalyse.mjs`, ne purge que le dossier de mémos de son appelant (node_modules/.cache/perimetre, ou un ' +
       '`mkdtempSync` d’os.tmpdir() des bancs)',
   },
+  'test:noyau': {
+    ecrit: [],
+    lit: ['src/', 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
+    raison:
+      'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` de src/noyau, sans le store, ' +
+      'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
+      'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
+  },
   'test:docs': {
     ecrit: [],
     lit: [

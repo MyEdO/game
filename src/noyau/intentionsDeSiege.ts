@@ -387,7 +387,7 @@ const ARGS_AU_SIEGE_DU_TRANSPORT: Partial<Record<ActionDeClasse<'invité'>, (arg
 };
 
 /** Sort d'une intention de siège : ignorée hors allowlist, refusée hors possession, sinon appliquée. */
-export type IssueDIntention = 'hors-allowlist' | 'refusé' | 'appliqué';
+export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
 
 /**
  * Intention d'un SIÈGE appliquée dans l'état du propriétaire (spec coop §4bis, #1017). Ordre :
@@ -402,11 +402,11 @@ export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: str
   if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
   if (!intentAllowedFor(get(), siege, action, [...args])) {
     get().log(t('coop.intentRefused'));
-    return 'refusé';
+    return 'refusee';
   }
   const reecriture = Object.prototype.hasOwnProperty.call(ARGS_AU_SIEGE_DU_TRANSPORT, action) ? ARGS_AU_SIEGE_DU_TRANSPORT[action as ActionDeClasse<'invité'>] : undefined;
   const argsDuSiege = reecriture?.(args, siege) ?? args;
   const fn = (get() as unknown as Record<string, unknown>)[action];
   if (typeof fn === 'function') withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...argsDuSiege));
-  return 'appliqué';
+  return 'appliquee';
 }

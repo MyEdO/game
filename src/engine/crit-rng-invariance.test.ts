@@ -5,6 +5,7 @@ import { resolveCritique } from './critical';
 import reference from './crit-rng-invariance.fixture.json';
 import type { Combatant, HitLocation } from './types';
 import type { JeuDeCritique } from '../data/criticals';
+import { LOCALISATIONS_DE_COUP } from './types';
 
 /**
  * INVARIANCE du flux de RNG des Blessures critiques (#1657, #1682).
@@ -55,7 +56,7 @@ function stable(v: unknown): unknown {
 
 const REFERENCE = reference as unknown as Record<string, unknown>;
 const DEPASSEMENT: Record<JeuDeCritique, number> = { ldb: 2, aa: 8 };
-const LOCS: HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
+const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 
 describe('invariance du RNG des Blessures critiques — référence figée AVANT la fusion des lecteurs', () => {
   it('la référence couvre bien 40 seeds × 6 Localisations × 2 jeux', () => {

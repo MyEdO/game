@@ -19,6 +19,7 @@
     "test": "node scripts/test/run.mjs",
     "test:runner": "node scripts/gates/testsSansEcriture.mjs test:runner",
     "test:watch": "node scripts/lancer-local.mjs vitest -- vitest",
+    "test:noyau": "node scripts/lancer-local.mjs vitest -- vitest run --config vitest.noyau.config.ts",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",
     "agents:sync": "node scripts/agents/compat-cli.mjs sync",
     "agents:check": "node scripts/agents/compat-cli.mjs check",

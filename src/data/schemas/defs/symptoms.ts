@@ -6,7 +6,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { flowSchema, gameOpSchema, noeudTest, triggeredEffectSchema } from '../grammaire/mecanique';
-import { difficultySchema } from '../grammaire/valeurs';
+import { difficultySchema, hitLocationSchema } from '../grammaire/valeurs';
 
 export const file = 'symptoms.json';
 export const famille = 'entite';
@@ -27,8 +27,6 @@ const symptomCapabilitiesSchema = nommerChamps(z.strictObject({
   endTest: { label: 'Test de fin' },
   persistentActive: { label: 'Actif en permanence' },
 });
-
-const hitLocationSchema = z.enum(['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD']);
 
 /** LDB 20 l.212 */
 const noeudDuCycle = noeudTest(flowSchema, { difficulteRequise: true, echecSeulServi: true });

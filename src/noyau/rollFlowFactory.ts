@@ -428,7 +428,7 @@ function opRoll<P extends PendingBase>(
 }
 
 /** Chance : relance d'un jet propre RATÉ (1× max), ou Bénédiction de Chance gratuite (LDB 12/41). */
-function opReroll<P extends PendingBase>(
+export function opReroll<P extends PendingBase>(
   slot: P, actor: Combatant | undefined, rolled: boolean, failed: boolean,
   reresolve: () => Partial<P> | null, get: Get, commit: Commit<P>,
 ): void {
@@ -447,7 +447,7 @@ function opReroll<P extends PendingBase>(
 }
 
 /** Chance « +1 DR » (LDB 17 l.24). */
-function opBonusSL<P extends PendingBase>(
+export function opBonusSL<P extends PendingBase>(
   actor: Combatant | undefined, rolled: boolean, allowed: boolean,
   derive: () => Partial<P> | null, commit: Commit<P>,
 ): void {

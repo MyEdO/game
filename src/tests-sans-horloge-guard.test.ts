@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { codeSeul } from '../scripts/guards/lib/codeSeul.mjs';
-import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
+import { RACINES_DE_LA_SUITE, estDeLaSuiteDuNoyau } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
 import { detenteur } from './detenteur.testkit';
 
@@ -13,9 +13,9 @@ import { detenteur } from './detenteur.testkit';
  * rapide qui a pourtant régressé. Ce que le contrat voulait dire se lit sur l'ARTEFACT (tampons,
  * `version` d'attribut, index, compteurs d'appels), qui est déterministe.
  *
- * PÉRIMÈTRE = LE CORPUS DE `npm test`, jamais une liste à nous : la suite (`fichiersDeLaSuite`,
- * `scripts/guards/lib/suiteVitest.mjs`, la définition des shards de la CI) est EXACTEMENT ce que la suite
- * joue, donc exactement ce dont la baseline ZÉRO parle — la garde ne porte AUCUNE liste de sites
+ * PÉRIMÈTRE = LE CORPUS DE `npm test` ET DE `npm run test:noyau`, jamais une liste à nous : les deux suites
+ * (`fichiersDeLaSuite`, `scripts/guards/lib/suiteVitest.mjs`, la définition des shards de la CI, et la suite du
+ * noyau par `estDeLaSuiteDuNoyau`) sont EXACTEMENT ce que la CI joue, donc exactement ce dont la baseline ZÉRO parle — la garde ne porte AUCUNE liste de sites
  * tolérés (une garde qui nomme ses tolérés valide des défauts). Un test que `npm test` ne joue pas
  * (les suites `node --test` de `scripts/**`, qui pilotent des processus et des sockets où un délai
  * peut être le sujet du contrat) sort du périmètre par la MÊME règle, sans énumération. La garde ne
@@ -30,17 +30,18 @@ import { detenteur } from './detenteur.testkit';
  */
 const GARDE = {
   question:
-    'Quel test joué par `npm test` lit une HORLOGE au lieu de prouver un contrat de travail ? ' +
+    'Quel test joué par `npm test` ou `npm run test:noyau` lit une HORLOGE au lieu de prouver un contrat de travail ? ' +
     'Réponse attendue : ' +
     'aucun — baseline ZÉRO, sans aucune liste de sites tolérés.',
   primitive:
     'La regex `HORLOGE` appliquée LIGNE À LIGNE à la vue CODE SEUL ' +
     '(`scripts/guards/lib/codeSeul.mjs`) des suites de `fichiersDeLaSuite` ' +
-    '(`scripts/guards/lib/suiteVitest.mjs`) et du harnais — aucun parcours de ' +
+    '(`scripts/guards/lib/suiteVitest.mjs`, suite principale et suite du noyau) et du harnais — aucun parcours de ' +
     'dossiers local, aucun blanchiment local : commentaires et littéraux de chaîne sont de la prose ' +
     'et de la donnée, seul le CODE est mesuré.',
   perimetre:
-    'Le corpus de `npm test`, la suite que jouent les shards de la CI (`suiteVitest.mjs`) — aucune ' +
+    'Le corpus de `npm test`, la suite que jouent les shards de la CI (`suiteVitest.mjs`), et celui de ' +
+    '`npm run test:noyau` — aucune ' +
     'liste de globs ici : fichiers de test ET le harnais `src/test-setup.ts` qui court avant chacun ' +
     'd’eux. Un test que `npm test` ne joue pas en sort par la même règle. Le code de PRODUCTION est ' +
     'hors périmètre : une boucle de rendu a le droit de dater ses images.',
@@ -54,7 +55,8 @@ const GARDE = {
       'en tête de `scripts/guards/lib/codeSeul.mjs`).',
     'Hors des `.test.ts(x)`, un seul fichier de harnais est scanné (`src/test-setup.ts`, le ' +
       '`setupFiles` de la config) : un autre harnais porté par un fichier sans ce nom ' +
-      '(`*.helpers.ts` d’un dossier de tests) n’est vu par aucun canal.',
+      '(`*.helpers.ts` d’un dossier de tests) n’est vu par aucun canal. Le `setupFiles` de la suite du noyau ' +
+      '(`vitest.noyau.config.ts`) est un module de PRODUCTION (`src/data/overrides.ts`), hors périmètre.',
   ],
   ticket: '#1788',
 } as const;
@@ -71,12 +73,14 @@ const HARNAIS = 'src/test-setup.ts';
 describe('tests-sans-horloge-guard : aucun test joué par `npm test` ne lit l’horloge', () => {
   const tests = detenteur(() => [
     ...fichiersDeLaSuite(),
+    ...fichiersDeLaSuite(undefined, { suite: estDeLaSuiteDuNoyau }),
     { rel: HARNAIS, text: readFileSync(fileURLToPath(new URL('./test-setup.ts', import.meta.url)), 'utf8') },
   ]);
 
   it('le corpus scanné est le RÉEL — sinon la garde mesurerait le vide', () => {
     expect(tests().length).toBeGreaterThan(100);
     expect(tests().map((f) => f.rel)).toContain('src/gameIso/backends/webgl/sceneTint.test.ts');
+    expect(tests().map((f) => f.rel), 'la suite du noyau est dans le corpus').toContain('src/noyau/partie.hors-store.test.ts');
     expect(tests().map((f) => f.rel), 'le HARNAIS est dans le corpus — sinon sa graine échappe à la garde')
       .toContain('src/test-setup.ts');
     for (const { dir } of RACINES_DE_LA_SUITE) {

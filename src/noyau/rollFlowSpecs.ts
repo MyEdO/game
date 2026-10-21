@@ -58,7 +58,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
  *  La Difficulté VOYAGE avec le résultat d'origine (`frozenDifficulty`) : ce re-jet n'a plus le
  *  contexte (distance, env, flanc/dos) qui l'a composée, et dépenser un point ne la change pas. */
-function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
+export function rederiveAttack(attacker: Combatant, target: Combatant, p: PendingAttack, atk2: TestResult, combatants?: Combatant[]): AttackResult {
   // L'arme FIGÉE au jet prime : `Combatant.weapons` ne porte que le loadout ACTIF, donc un uid seul
   // peut être introuvable et rendre la main à l'auto-choix (un tir au contact redeviendrait une frappe).
   const weapon = p.weapon ?? firedWeapon(attacker, target, p.weaponUid, combatants, p.harpoonRopeCut);

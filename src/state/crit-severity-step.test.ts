@@ -23,6 +23,7 @@ const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ??
 const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 /**
  * SÉVÉRITÉ d'une Blessure critique en SEAM (#942 L4) — le d100 du Tableau des Critiques (LDB 18) est
@@ -34,7 +35,7 @@ import { OPS_DIFFEREES } from '../noyau/combatEffects';
 
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] };
 
-const LOCS: HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
+const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 
 /** Combat de fixture : un héros (victime, sans PA — aucune offre de Déviation) et un ennemi attaquant. */
 function startFight(seed = 7) {

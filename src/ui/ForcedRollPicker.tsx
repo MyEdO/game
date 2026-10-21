@@ -1,4 +1,4 @@
-import type { HitLocation, BodyShape } from '../engine/types';
+import { LOCALISATIONS_DE_COUP, type HitLocation, type BodyShape } from '../engine/types';
 import { NumberField } from './NumberField';
 import { locationLabel } from '../engine/combat';
 import { maxForcedRoll } from '../engine/tests';
@@ -7,8 +7,9 @@ import { OptionChooser, type RollOption } from './OptionChooser';
 import { Icon } from './Icon';
 import { t } from '../i18n';
 
-/** Les 6 localisations d'un Coup Critique (ordre du tableau LDB). */
-const CRIT_LOCS: HitLocation[] = ['tete', 'corps', 'brasD', 'brasG', 'jambeD', 'jambeG'];
+const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
+/** Les 6 localisations dans l'ordre des modales de coup : la liste du moteur, permutée. */
+export const LOCALISATIONS_A_L_ECRAN: readonly HitLocation[] = [tete, corps, brasD, brasG, jambeD, jambeG];
 
 /**
  * Grille PARTAGÉE de la localisation d'un Coup Critique FORCÉ (RAW-2, LDB 17 l.68 : sur un Critique
@@ -22,7 +23,7 @@ export function CritLocationPicker({ current, onSet, shape = 'humanoide' }: {
   /** Forme du corps de la cible → libellés de localisation adaptés (patte/aile… vs bras/jambe). */
   shape?: BodyShape;
 }) {
-  const options: RollOption[] = CRIT_LOCS.map((l) => ({
+  const options: RollOption[] = LOCALISATIONS_A_L_ECRAN.map((l) => ({
     key: l, label: locationLabel(l, shape), selected: current === l, onSelect: () => onSet(l),
   }));
   return (

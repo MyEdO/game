@@ -13,6 +13,8 @@ import { RACINES_DE_LA_SUITE } from '../scripts/guards/lib/racinesDeLaSuite.mjs'
  * rouge en CI (repro 2026-07-28, `resolve-membre.test.ts`, 5 seeds `--sequence.shuffle` sur 5).
  * Un besoin de tenue/donnée fabriquée s'enregistre dans le REGISTRE lu à l'appel (patron
  * `withTenue` de `src/gameIso/rig/parts/resolve-membre.test.ts`), jamais par mock de module.
+ * Corpus : la seule suite à `isolate: false` (`fichiersDeLaSuite`) ; la suite du noyau
+ * (`vitest.noyau.config.ts`, `isolate: true`) n'en est pas, son graphe n'étant partagé par aucun fichier.
  *
  * PÉRIMÈTRE : le mock de MODULE, et lui seul. L'autre famille du graphe partagé — l'espion posé sur
  * un namespace de module ou sur un prototype `three` — est fermée PAR CONSTRUCTION par

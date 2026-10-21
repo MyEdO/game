@@ -13,6 +13,8 @@
 // lanceur les démarre, sur ses workers, plus le surcoût de lancement appris (`murSimule`, `ordreDuLanceur`,
 // `SURCOUTS`) ; le reste à la CI. Le mur nomme sa part estimée depuis la CI (`texteDuMur`).
 // Docs dérivés : `selectionDesGenerateurs`, joués en `--check` sous `--docs` seulement.
+// Suite du noyau (#2817) : la dérivation ne la voit pas (la suite principale l'exclut) ; dès qu'un fichier de `src/` est
+// touché, elle se joue ENTIÈRE par `npm run test:noyau` (`suiteDuNoyauALancer`, `MOTIF_HORS_STORE`).
 // Le graphe résout contre la post-image ∪ la base : l'importeur pendu vers un fichier SUPPRIMÉ reste lié.
 // Les spécificateurs non résolus, les lectures de module, leurs liaisons et leurs déclarations exportées se
 // mémoïsent par blob sous `CACHE` ; l'évaluation de chaque module, avec les réponses des requêtes qu'elle a
@@ -42,6 +44,7 @@ import { CONCURRENCE_SANS_PROFIL, lancerNodeMesure, profilsDuLancement } from '.
 import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
+import { estDeLaSuiteDuNoyau, SUITES_VITEST_DE_CI } from '../guards/lib/racinesDeLaSuite.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -383,6 +386,15 @@ export function workersDuLancement(env, regime) {
   return { vitest: maxWorkersMono(capaciteDuLanceur(env, regime).servis), node: Math.max(1, availableParallelism() - 1) }
 }
 
+/** Les arguments `node` du lancement de la suite du noyau (`npm run test:noyau`, `vitest.noyau.config.ts`) sur ses
+ *  `fichiers`. PURE. */
+export const argumentsDuNoyau = (fichiers) =>
+  ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', SUITES_VITEST_DE_CI['test:noyau'].config, ...fichiers]
+
+/** La suite du noyau à lancer (#2817) : ENTIÈRE, les tests du noyau de la post-image `post`, dès qu'un des fichiers
+ *  `touches` est sous `src/` (sa fermeture y vit) ; rien sinon. La dérivation ne la voit pas. PURE. */
+export const suiteDuNoyauALancer = (touches, post) => (touches.some((t) => t.startsWith('src/')) ? post.filter((t) => estDeLaSuiteDuNoyau(t)) : [])
+
 /** Les arguments `node` du lancement Vitest d'un paquet de tests : `run.mjs` sous le régime `regime` (`DRAPEAU_REGIME`),
  *  les reporters écrivant le rapport `sortie` (`reportersVitest`). PURE. */
 export const argumentsVitest = (paquet, sortie, regime) =>
@@ -417,8 +429,8 @@ export function bilanDuLancement(famille, murMs, { appris, workers: servis }, pl
 const fichierDuSite = (site) => /^(.+):\d+:\d+$/.exec(site)?.[1] ?? null
 
 /** La ligne de fin d'un run ROUGE (`code` non nul), `null` sur un run vert. Elle nomme la commande qui ne relance QUE
- *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'docs', code, echecs, args, refus? }`, chemins POSIX
- *  relatifs rapportés par `apprendre`) — `npm test -- <vitest>`, `node --test <node>` —, et l'appel du lint (`appelLint()`,
+ *  les fichiers en échec des `lancements` (`{ famille: 'vitest' | 'node' | 'noyau' | 'docs', code, echecs, args, refus? }`, chemins
+ *  POSIX relatifs rapportés par `apprendre`) — `npm test -- <vitest>`, `node --test <node>`, `npm run test:noyau -- <noyau>` —, et l'appel du lint (`appelLint()`,
  *  `appelDuLint`) sur les seuls fichiers que nomment les défauts du lint `lint` (`lintDesTouches`) ; et elle NOMME chaque
  *  refus d'admission (`refus`, posé sur `CODE_DIFFERE`) avec sa raison, puis chaque rouge sans fichier : lancement
  *  rouge muet, défaut de lint sans site (panne d'outillage), lint rouge sans défaut, docs dérivés rouges (leur
@@ -439,6 +451,7 @@ export function ligneDeRelance({ code, lancements, lint, appelLint }) {
   if (lintes.length) commandes.push(`${appelLint().join(' ')} ${liste(lintes)}`)
   for (const { site, message } of lint.defauts) if (fichierDuSite(site) === null) muets.push(`lint ${site} : ${message}`)
   if (lint.code !== 0 && !lint.defauts.length) muets.push('lint rouge, son rapport ne nomme aucun défaut')
+  for (const { args } of lancements.filter((l) => l.famille === 'noyau' && l.code !== 0 && !l.refus)) commandes.push(`npm run test:noyau -- ${liste(args.filter((a) => estDeLaSuiteDuNoyau(a)))}`)
   for (const { args } of lancements.filter((l) => l.famille === 'docs' && l.code !== 0 && !l.refus)) muets.push(`docs dérivés rouges : node ${args.map(citeArgument).join(' ')}`)
   const relancer = commandes.length ? [`relancer les SEULS fichiers en échec, puis un dernier test:perimetre : ${commandes.join(' ; ')}`] : []
   const nommer = muets.length ? [`rouge sans fichier nommé : ${muets.join(' ; ')}`] : []
@@ -568,6 +581,8 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
   for (const t of plan.aLaCI.filter((t) => GATES_D_AUDIT.includes(gateDe(t))))
     journal(`→ CI ${t} : audit du dépôt réel, gate ${gateDe(t)} (${texteDuLien(retenus.get(t))})`)
   journal(`lint : ${aLinter(touches, post).length} fichier(s) touché(s)${options.liste ? ' (non joué sous --liste)' : ''}`)
+  const noyau = suiteDuNoyauALancer(touches, post)
+  journal(`suite du noyau : ${noyau.length ? `entière (un fichier de src/ touché), ${noyau.length} fichier(s)` : 'aucun fichier de src/ touché'}${noyau.length ? ` : ${noyau.join(', ')}` : ''}${options.liste && noyau.length ? ' (non joué sous --liste)' : ''}`)
   const bilan = (joues, liste) => journal(ligneDeBilan({ joues, retenus, vitest, node, causes: plan.causes, liste }))
   if (options.liste) {
     bilan(new Set(plan.lances), true)
@@ -586,7 +601,8 @@ async function executerPerimetre(args, racine, { env, signal, retenir, platform 
       return { famille, sortie, args: famille === 'vitest' ? argumentsVitest(p, sortie, regime)
         : [...argumentsNode(sortie), ...p] }
     }),
-    ...(jouerDocs ? [{ famille: null, sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
+    ...(noyau.length ? [{ famille: null, nom: 'noyau', sortie: null, args: argumentsDuNoyau(noyau) }] : []),
+    ...(jouerDocs ? [{ famille: null, nom: 'docs', sortie: null, args: ['scripts/docs/build-all.mjs', '--check', '--only', ...docs.scripts] }] : []),
   ]
   const { code, reels, joues, fichiersJoues } = await executerLancements({ lancements, racine, node, env, signal, mesures, journal, retenir, cache, workers, code: lint.code, forcer: options.reacquerirMemoire, platform })
   for (const [famille, murMs] of Object.entries(reels))
@@ -609,7 +625,7 @@ export async function executerLancements({ lancements, racine, node, env, signal
   const reels = {}
   const joues = []
   const fichiersJoues = new Set()
-  for (const { famille, sortie, args } of lancements) {
+  for (const { famille, nom = 'docs', sortie, args } of lancements) {
     if (sortie) rmSync(sortie, { force: true })
     const debutDuLancement = performance.now()
     const fichiers = famille === 'node' ? args.filter((a) => node.includes(a)) : []
@@ -622,8 +638,8 @@ export async function executerLancements({ lancements, racine, node, env, signal
       retenir()
       const codeDuLancement = r.code || 1
       if (code === 0) code = codeDuLancement
-      joues.push({ famille: famille ?? 'docs', code: codeDuLancement, echecs: [], args })
-      journal(`clôture non confirmée : ${famille ?? 'docs'}, arrêt ${r.arret?.etat ?? 'aucun'}, code ${r.code} ; lancements interrompus, verrou et traces conservés`)
+      joues.push({ famille: famille ?? nom, code: codeDuLancement, echecs: [], args })
+      journal(`clôture non confirmée : ${famille ?? nom}, arrêt ${r.arret?.etat ?? 'aucun'}, code ${r.code} ; lancements interrompus, verrou et traces conservés`)
       diagnosticArret(r, journal, '')
       break
     }
@@ -631,15 +647,15 @@ export async function executerLancements({ lancements, racine, node, env, signal
     if (r.annulee || r.expiree || r.error) {
       const codeDuLancement = r.code || 1
       if (code === 0) code = codeDuLancement
-      joues.push({ famille: famille ?? 'docs', code: codeDuLancement, echecs: [], args })
-      journal(`lancement interrompu : ${famille ?? 'docs'} ; rapports conservés, aucun apprentissage`)
+      joues.push({ famille: famille ?? nom, code: codeDuLancement, echecs: [], args })
+      journal(`lancement interrompu : ${famille ?? nom} ; rapports conservés, aucun apprentissage`)
       diagnosticArret(r, journal, '')
       break
     }
     const codeDuLancement = r.code
     if (code === 0) code = codeDuLancement
     const refus = codeDuLancement === CODE_DIFFERE ? { refus: raisonDuRefus(r) } : {}
-    if (!famille) { joues.push({ famille: 'docs', code: codeDuLancement, echecs: [], args, ...refus }); continue }
+    if (!famille) { joues.push({ famille: nom, code: codeDuLancement, echecs: [], args, ...refus }); continue }
     reels[famille] = (reels[famille] ?? 0) + murMs
     const lecture = apprendre(racine, sortie, mesures, famille, famille === 'node' ? r.concurrence ?? null : workers[famille])
     for (const f of Object.keys(lecture.appris)) fichiersJoues.add(f)

@@ -17,6 +17,7 @@ import { testScene } from '../scenes/test-fixture';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 /** Le compte des Blessures critiques d'un coup, joué par le store : LDB 18 l.17, l.44, l.53 ; AA 07 l.36. */
 
@@ -81,7 +82,7 @@ function coupQuiDepasse(important: boolean, opts: Omit<Coup, 'important'> = {}) 
   return r;
 }
 
-const LOCS = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'] as const;
+const LOCS = LOCALISATIONS_DE_COUP;
 const piece = (qualites: string[], pa: number, locs: readonly string[] = LOCS): ItemInstance =>
   ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...locs], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 

@@ -14,6 +14,7 @@ import type { CoupDeTouche } from '../noyau/pendings';
 import { evaluateMissile } from '../engine/magic';
 import { findSpell } from '../data';
 import { makeRNG } from '../engine/dice';
+import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 /**
  * Un porteur TENU est consulté quand le Critique naît d'une sous-attaque (LDB 63 l.30) ; Surpris est
@@ -32,7 +33,7 @@ const mk = (kind: Combatant['kind'], id: string, p: Partial<Combatant> = {}): Co
   } as unknown as Combatant);
 /** Une pièce PORTÉE sur toutes les Localisations — la Déviation d'un héros la sacrifie (LDB 63 l.30). */
 const piece = (): ItemInstance =>
-  ({ uid: 'arm1', name: 'Maille', kind: 'armor', equipped: true, pa: 3, locs: ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'], qualities: [] } as unknown as ItemInstance);
+  ({ uid: 'arm1', name: 'Maille', kind: 'armor', equipped: true, pa: 3, locs: [...LOCALISATIONS_DE_COUP], qualities: [] } as unknown as ItemInstance);
 
 function poser(combatants: Combatant[], gmSeat?: number): void {
   const battle = {
@@ -213,7 +214,7 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
 });
 
 // ── Projectile Coup Critique sur la coque : la Localisation du marin (LDB 18 l.53, l.55 ; MDG 13 l.584) ──
-const LIEUX: readonly HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
+const LIEUX: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 /** Une pièce par Localisation : la Déviation n'entame que celle du lieu du Critique (LDB 63 l.30). */
 const piecesParLieu = (): ItemInstance[] =>
   LIEUX.map((l) => ({ uid: `pa-${l}`, name: 'Maille', kind: 'armor', equipped: true, pa: 3, locs: [l], qualities: [] } as unknown as ItemInstance));

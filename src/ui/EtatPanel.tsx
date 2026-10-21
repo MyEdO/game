@@ -15,8 +15,8 @@
  *
  * La bande de zones EN TÊTE du registre (`ZoneBand`, pt.4) est MORTE (lot « corps-index », arbitrage
  * user 2026-07-17) — doublon d'index : le CORPS de la colonne (`FigTile.zoneBadges`, composé par
- * `CharacterSheet.tsx`) porte ce résumé par Localisation. `zoneAfflictions`/`zoneAnchor`/
- * `ZONE_ORDER` restent exportés d'ICI (source unique du calcul) et alimentent ce badge ; l'ancre de
+ * `CharacterSheet.tsx`) porte ce résumé par Localisation. `zoneAfflictions`/`zoneAnchor`
+ * restent exportés d'ICI (source unique du calcul) et alimentent ce badge ; l'ancre de
  * la PREMIÈRE rangée Critiques/Séquelles par Localisation (posée dans le registre, `zoneAnchorFor`)
  * reste la cible de clic du badge. Liserés de gravité (sang/ambre/violet, pt.5) posés en attribut
  * `data-tone` sur la bande de section (`Section`) — jamais une classe par ton.
@@ -32,7 +32,7 @@ import { encumbrancePenalties } from '../engine/encumbrance';
 import { findCritEntrySuffered, critEntryCodexCategory, type CritTableKey } from '../engine/critical';
 import { corruptionThreshold } from '../engine/corruption';
 import { formatRemaining } from '../engine/disease';
-import { CHAR_LABELS, type ConditionInstance } from '../engine/types';
+import { CHAR_LABELS, LOCALISATIONS_DE_COUP, type ConditionInstance } from '../engine/types';
 import { chipNom, summarizeEffects } from '../gameIso/effectIcons';
 import { fortuneMax, resolveMax } from '../engine/talentEffects';
 import { diseaseLabel, findPsychologyById, symptomLabel, symptomInstanceLabel, mutationLabel } from '../data';
@@ -155,11 +155,6 @@ function critLocation(table: CritTableKey): HitLocation {
   return table === 'bras' ? 'brasG' : table === 'jambe' ? 'jambeG' : table;
 }
 
-/** Ordre canonique des 6 Localisations (`HitLocation`, `engine/types.ts`) — tête → bras → corps →
- *  jambes. Exporté : source unique de l'ordre, réutilisé par `CharacterSheet.tsx` (badges de la
- *  colonne). */
-export const ZONE_ORDER: HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
-
 /** Ancre de la PREMIÈRE rangée Critiques/Séquelles d'une Localisation dans le registre — cible de
  *  clic du badge de zone de la colonne (`FigTile.zoneBadges`, `CharacterSheet.tsx`). */
 export function zoneAnchor(loc: HitLocation): string {
@@ -186,7 +181,7 @@ export function zoneAfflictions(hero: Combatant): { loc: HitLocation; crit: numb
   for (const c of criticalEntriesOf(hero)) critByLoc.set(critLocation(c.table), (critByLoc.get(critLocation(c.table)) ?? 0) + c.count);
   const traumaByLoc = new Map<HitLocation, number>();
   for (const t of hero.traumas ?? []) traumaByLoc.set(t.location, (traumaByLoc.get(t.location) ?? 0) + (t.count ?? 1));
-  return ZONE_ORDER.filter((l) => (critByLoc.get(l) ?? 0) > 0 || (traumaByLoc.get(l) ?? 0) > 0).map((loc) => ({
+  return LOCALISATIONS_DE_COUP.filter((l) => (critByLoc.get(l) ?? 0) > 0 || (traumaByLoc.get(l) ?? 0) > 0).map((loc) => ({
     loc,
     crit: critByLoc.get(loc) ?? 0,
     trauma: traumaByLoc.get(loc) ?? 0,

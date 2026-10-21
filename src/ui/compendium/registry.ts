@@ -79,7 +79,7 @@ import { ACTIVITIES } from '../../engine/activities';
 import type { OutcomeBand } from '../../engine/activities';
 import { formatTrait, traitArgSkeleton } from '../../engine/traits/dispatch';
 import { resolveQualities } from '../../engine/qualities/dispatch';
-import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, type Combatant, type CharKey, type HitLocation } from '../../engine/types';
 import type { ResolveurDePreset } from '../../noyau/monde/resolveursDuNarratif';
 import type { Porteur } from '../liage';
 import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory } from '../../engine/size';
@@ -2689,7 +2689,8 @@ export function codexLookup(category: string, label: string): CodexItem | undefi
   return idx.exact.get(label) ?? idx.folded.get(label.toLowerCase());
 }
 
-const ARMOUR_LOCS: HitLocation[] = ['tete', 'corps', 'brasG', 'brasD', 'jambeG', 'jambeD'];
+const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
+const ARMOUR_LOCS: readonly HitLocation[] = [tete, corps, brasG, brasD, jambeG, jambeD];
 
 /** Statbloc d'un combattant VIVANT (valeurs réelles : carac, armes/armure dérivées, états déjà à
  *  part) en sections — MÊME rendu que la fiche Codex (CodexEntry/CodexSections). Sert l'inspection

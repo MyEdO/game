@@ -15,6 +15,7 @@ import { findTableEntryIndex } from './tables';
 import locJson from '../data/localisation.json';
 import type { Combatant, HitLocation } from './types';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { LOCALISATIONS_DE_COUP } from './types';
 
 /**
  * Blessures critiques par Localisation — UN lecteur, DEUX jeux (#1657 B2a, #1682) : le Livre de base
@@ -36,7 +37,7 @@ const cible = (E = 30): Combatant =>
     conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
   }) as unknown as Combatant;
 
-const LOCS: HitLocation[] = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
+const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 const JEUX: JeuDeCritique[] = ['ldb', 'aa'];
 
 /** Étapes d'un Flow rendu en `seq` (le nœud puis sa suite) — lecture NOMINATIVE, aucune forme supposée. */
