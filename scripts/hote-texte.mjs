@@ -13,6 +13,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { runnerImport } from 'vite'
 import { proseSource } from './source/prose-source-plugin.mjs'
+import { estPidVivantDepuis } from './guards/lib/pid.mjs'
+import { IDENTITE_MESUREE } from './test/identiteMesuree.mjs'
 import { DOSSIER_DES_PARTIES, INSTRUCTIONS, outils } from '../src/hoteTexte/outils.ts'
 import { z } from 'zod'
 
@@ -45,28 +47,21 @@ const DOSSIER = process.env.HOTE_TEXTE_PARTIES ?? join(RACINE, DOSSIER_DES_PARTI
 mkdirSync(DOSSIER, { recursive: true })
 const fichier = (nom) => join(DOSSIER, `${nom}.jsonl`)
 const verrou = (nom) => join(DOSSIER, `${nom}.verrou`)
-/** Les parties que ce processus tient : un verrou `<nom>.verrou`, créé exclusif (`wx`), porte son pid. */
+/** Les parties que ce processus tient : un verrou `<nom>.verrou`, créé exclusif (`wx`), porte son pid et sa naissance. */
 const tenues = new Set()
-const vivant = (pid) => {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch (e) {
-    return e.code === 'EPERM'
-  }
-}
-/** Prend la partie `nom` : `null`, ou qui la tient. Le verrou d'un processus mort se reprend. */
+/** Prend la partie `nom` : `null`, ou qui la tient. Le verrou d'un processus mort, ou d'un pid réutilisé depuis
+ *  (`estPidVivantDepuis`), se reprend. */
 function prendre(nom) {
   for (let essai = 0; essai < 2; essai++) {
     try {
-      writeFileSync(verrou(nom), String(process.pid), { flag: 'wx' })
+      writeFileSync(verrou(nom), JSON.stringify({ pid: process.pid, date: new Date().toISOString() }), { flag: 'wx' })
       tenues.add(nom)
       return null
     } catch (e) {
       if (e.code !== 'EEXIST') throw e
-      const pid = Number(readFileSync(verrou(nom), 'utf8'))
-      if (pid === process.pid) return null
-      if (vivant(pid)) return `le processus ${pid}, un autre serveur de l’hôte`
+      const lu = JSON.parse(readFileSync(verrou(nom), 'utf8'))
+      if (lu.pid === process.pid) return null
+      if (estPidVivantDepuis(lu.pid, Date.parse(lu.date), IDENTITE_MESUREE)) return `le processus ${lu.pid}, un autre serveur de l’hôte`
       rmSync(verrou(nom), { force: true })
     }
   }

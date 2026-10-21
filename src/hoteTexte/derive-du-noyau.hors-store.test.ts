@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { VERBES } from './verbes.generated';
 import { CLES_DE_FENETRE } from '../noyau/index';
 
@@ -21,7 +22,7 @@ const DOSSIER = new URL('./', import.meta.url);
 
 /** Les fichiers de code de l'hôte : ni test, ni table de test, ni cible générée. */
 const fichiersDeLHote = (): string[] =>
-  listerDossier(fileURLToPath(DOSSIER)).filter((f) => /\.ts$/.test(f) && !/\.(test|testkit|generated)\.ts$/.test(f));
+  listerDossier(fileURLToPath(DOSSIER)).filter((f) => /\.ts$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f));
 
 /** Les mots des chaînes d'un texte de code (littéraux entre apostrophes, guillemets ou accents graves), commentaires ôtés,
  *  chacun avec sa ligne. */
