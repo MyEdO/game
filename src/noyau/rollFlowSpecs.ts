@@ -31,7 +31,7 @@ import { campRestitue, campSpend } from './combat/advantagePool';
 import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
-import { metresRetenus, phaseDeChute, rangeesDuesDeChute } from './fallMove';
+import { metresRetenus, phaseDeChute, refusDesRangeesDues, tombantsNommes } from './fallMove';
 import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
@@ -503,9 +503,8 @@ function refusDuJetDeChute(s: Jeu, pid: string): string | null {
   const p = s.pendingFall;
   const part = p?.participants.find((x) => x.id === pid);
   if (!p || !part) return null;
-  const nom = (id: string): string => actorIn(s, id)?.label ?? id;
-  if (phaseDeChute(p) === 'choice') return t('fall.refus.declarationsDues', { noms: rangeesDuesDeChute(p).map((x) => nom(x.id)).join(', ') });
-  return part.attempt === true ? null : t('fall.refus.sansTest', { name: nom(pid) });
+  if (phaseDeChute(p) === 'choice') return refusDesRangeesDues(s, p);
+  return part.attempt === true ? null : t('fall.refus.sansTest', { tombant: tombantsNommes(s, [part]) });
 }
 
 export const FLOWS = {

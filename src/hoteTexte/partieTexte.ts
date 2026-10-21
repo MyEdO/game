@@ -7,7 +7,7 @@
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import {
-  creerPartie, etatInitialDuJeu, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, runAction, quiTientLaMain, siegeDe, porteurParId, ACTIONS, CADENCE_MODES, DESIGNATIONS,
+  creerPartie, etatInitialDuJeu, argsAvecVerdictLocal, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, runAction, quiTientLaMain, siegeDe, porteurParId, ACTIONS, CADENCE_MODES, DESIGNATIONS,
   type ActionRunCtx, type Cadence, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lireALaForme, estObjet, signature, type Designes, type ParametreDeVerbe } from './formes';
@@ -207,7 +207,8 @@ function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offre
 /** L'intention d'un geste, contrôlée. Une offre que l'énumérateur ne rend pas, ou qu'aucun candidat ne désigne
  *  (`offreDesignee`), est une erreur de règle avec la raison du registre ; une offre fermée aussi (`actionGate`, sur les
  *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) et un verbe inconnu sont
- *  des erreurs de validation. */
+ *  des erreurs de validation. Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
+ *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
 function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
   if ('offre' in geste) {
     valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre} (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`);
@@ -225,7 +226,8 @@ function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
     return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
   }
   valider(typeof (etat as unknown as Record<string, unknown>)[geste.type] === 'function', `verbe inconnu : ${geste.type}`);
-  return { type: geste.type, args: geste.args, ...(geste.siege === undefined ? {} : { siege: geste.siege }) } as Intention;
+  if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
+  return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
 }
 
 /** Qui tient la main (`quiTientLaMain`) et le siège qui le joue (`siegeDe`) : ce qui rendrait le geste permis. */

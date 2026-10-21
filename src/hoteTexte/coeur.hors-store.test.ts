@@ -222,4 +222,13 @@ describe('une réponse dit ce qui attendait le geste suivant, et qui tient la ma
     const t = partie('dome', verbe('confirmRoundStart'));
     refuse(t, { verbe: 'battleClickTile', args: [{ x: 3, y: 6 }], siege: 1 }, 'permission', /refusée au siège 1 : la main est à Ilyanwe la Voilée, siège 0/);
   });
+
+  it('un clic au nom du siège qui tient la main voit l’intention armée : son aperçu, puis la Charge au même clic', () => {
+    const t = partie('dome', verbe('confirmRoundStart'));
+    const clic = { verbe: 'battleClickEntity', args: ['enemy-enc-dome-1'], siege: 0 };
+    const apercu = t.jouer({ offre: 'charge' }, clic);
+    expect(apercu.erreur, apercu.texte).toBeNull();
+    expect(apercu.texte).toMatch(/^aperçu : charge → enemy-enc-dome-1 \(le même clic confirme\)$/m);
+    expect(t.jouer(clic).texte).toMatch(/Ilyanwe la Voilée charge Orc/);
+  });
 });

@@ -95,7 +95,7 @@ describe('fallAcross — exploration, un tombant', () => {
 
     g().fallAcross(top, foot);
     g().fallChoose('etranger', true);
-    expect(g().journal.slice(-1)[0], 'id hors des rangées').toBe(t('fall.refus.horsDuSaut'));
+    expect(g().journal.slice(-1)[0], 'id hors des rangées, les tombants nommés avec leur id').toMatch(new RegExp(`^Déclaration refusée : etranger ne prend pas part à ce saut ; tombants : .*\\(${H}\\)`));
 
     g().fallChoose(H, true);
     const declare = g().pendingFall;

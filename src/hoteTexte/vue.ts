@@ -504,13 +504,15 @@ export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: Combat
   return { combattants: elements, suite };
 }
 
-/** La carte (`BORNES.lignes.carte`) : en combat, les combattants ; en exploration, le groupe, puis les entités de la
- *  scène (`scene.entities`) ; par page (`depuis`). */
+/** La carte (`BORNES.lignes.carte`) : en combat, les combattants ; en exploration, le groupe et ses héros (leur id),
+ *  puis les entités de la scène (`scene.entities`) ; par page (`depuis`). */
 export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string[] {
   if (!p.combat) {
     const entites = etat.scene?.entities ?? [];
     const { elements, suite } = page(entites, depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'carte', depuis: k }));
-    const tete = p.exploration ? [`groupe ${pos(p.exploration.groupe)} · ${entites.length} entité(s)`] : ['aucune scène'];
+    const tete = p.exploration
+      ? [`groupe ${pos(p.exploration.groupe)} · ${etat.party.length} héros · ${entites.length} entité(s)`, ...etat.party.map((h) => `  ${h.id} · ${h.kind} · ${h.label}`)]
+      : ['aucune scène'];
     return borner([...tete, ...elements.map((e) => `  ${e.id} · ${e.kind}${e.label ? ` · ${e.label}` : ''} · ${pos([e.pos.x, e.pos.y])}`), ...suite], 'carte');
   }
   const { combattants, suite } = pageDeLaCarte(etat, depuis);

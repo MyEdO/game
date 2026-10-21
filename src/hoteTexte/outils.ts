@@ -82,7 +82,7 @@ export function outils({ scenarios, cadences }: Enumerations) {
         'Lit la partie sans la changer : rien ne s’écrit. `quoi` choisit la lecture :',
         'vue (l’actif, la fenêtre qui tient la main et la signature de ses verbes, le jet en attente, les offres, les cibles ; en exploration, le groupe, son étage, son cap et ses gestes prêts à jouer) ;',
         'offres (les offres ouvertes de l’actif ; `toutes` : les fermées avec leur raison ; `id` : les candidats d’une action et leur ctx ; en exploration, tous les gestes du groupe) ;',
-        'carte (les combattants, l’actif d’abord ; en exploration, les entités de la scène) ; cases (les cases atteignables au tour de l’actif, avec leur coût) ;',
+        'carte (les combattants, l’actif d’abord ; en exploration, les héros du groupe et leur id, puis les entités de la scène) ; cases (les cases atteignables au tour de l’actif, avec leur coût) ;',
         'fiche (la fiche du combattant `id`) ; journal (ses dernières lignes ; `depuis` k ; `ligne` m pour une entrée longue) ;',
         'verbes (la signature du verbe `id`, ou les verbes dont le nom contient `id` ; sans partie).',
         'Toute liste se lit par pages, `depuis` k ; une sortie dit l’appel qui donne la suite.',

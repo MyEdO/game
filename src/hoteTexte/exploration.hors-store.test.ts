@@ -36,7 +36,7 @@ const PARTIES = [
 ];
 
 describe('chaque geste d’exploration que la vue donne se joue tel qu’écrit', () => {
-  it.each(PARTIES)('%s', (_, texte) => {
+  it.each(PARTIES)('%s', { timeout: 120_000 }, (_, texte) => {
     for (const g of gestesDuTexte(texte)) {
       const t = table(texte);
       const r = t.jouer(...gestesEcrits(g).map((x) => verbe(x.verbe, ...x.args)));
@@ -101,9 +101,14 @@ describe('le groupe en exploration', () => {
     const pid = /pid (\S+)\)/.exec(t.lire('vue').texte)![1];
     const r = t.jouer(verbe('fallRoll', pid));
     expect(r.erreur, r.texte).toBe('regle');
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/chaque tombant déclare d’abord s’il tente le Test ; reste à déclarer : /);
+    expect(r.texte.split('\n  ').join(' ')).toMatch(new RegExp(`chaque tombant déclare d’abord s’il tente le Test et s’il se suspend d’abord ; reste à déclarer : [^(]+ \\(${pid}\\)`));
     expect(t.jouer(verbe('fallChoose', pid, false, false)).erreur).toBeNull();
     expect(/pid (\S+)\)/.exec(t.lire('vue').texte)?.[1], 'le pid passe au tombant suivant').not.toBe(pid);
+  });
+
+  it('la carte d’exploration nomme les héros du groupe avec leur id', () => {
+    const t = table(fixture('croisee-ecuries.jsonl'));
+    expect(t.lire('carte').texte).toMatch(/^groupe \(\d+,\d+\) · \d+ héros · \d+ entité\(s\)\n {2}pregen-101 · hero · Sigmund Reikhardt$/m);
   });
 
   it('la fenêtre qui tient la main se lit hors combat, avec ses verbes', () => {

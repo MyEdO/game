@@ -13,9 +13,9 @@ import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
 import type { MsgKey } from '../i18n';
 import { caseOpposee, type AreteUtilisable, type CapaciteArete } from './aretes';
-import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, phaseDeChute, rangeesDuesDeChute, mouvementDeLAllege } from './fallMove';
+import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, refusDesRangeesDues, tombantsNommes, mouvementDeLAllege } from './fallMove';
 import { sceneMetresPerTile, type Scene, isWalkable, heightAt } from './monde/scene';
-import { actorIn, inBattleId, meneurDeboutDuMonde, estDebout } from './monde/combatants';
+import { inBattleId, meneurDeboutDuMonde, estDebout } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { mobileDuTour, type RefusDuTour } from './combatFlow';
 import { isMount, isRider, movementRemaining } from './mount';
@@ -312,11 +312,11 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       const p = get().pendingFall;
       if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
       const part = p.participants.find((x) => x.id === tombantId);
-      if (!part) return void refuserGeste(get, set, t('fall.refus.horsDuSaut'));
+      if (!part) return void refuserGeste(get, set, t('fall.refus.horsDuSaut', { id: tombantId, tombants: tombantsNommes(get(), p.participants.filter((x) => x.interactive)) }));
       if (part.attempt !== null) return void refuserGeste(get, set, t('fall.refus.dejaDeclare'));
       // Axe HAUTEUR (EDO 01 l.231) : déclaré avec le saut quand la suspension est offerte, jamais sinon.
       const offerte = p.suspendu !== undefined;
-      if (offerte !== (suspendre !== undefined)) return void refuserGeste(get, set, t('fall.refus.axeHauteur'));
+      if (offerte !== (suspendre !== undefined)) return void refuserGeste(get, set, t(offerte ? 'fall.refus.suspensionOfferte' : 'fall.refus.axeHauteur'));
       if (attempt) {
         const refus = refusDuTestDeChute(get(), tombantId);
         if (refus) return void refuserGeste(get, set, t(refus.refus, refus.vars));
@@ -333,11 +333,8 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
     fallConfirm: () => {
       const p = get().pendingFall;
       if (!p) return void refuserGeste(get, set, t('fall.refus.aucunSaut'));
-      const dues = rangeesDuesDeChute(p);
-      if (dues.length) {
-        const noms = dues.map((x) => actorIn(get(), x.id)?.label ?? x.id).join(', ');
-        return void refuserGeste(get, set, t(phaseDeChute(p) === 'choice' ? 'fall.refus.declarationsDues' : 'fall.refus.jetsDus', { noms }));
-      }
+      const refus = refusDesRangeesDues(get(), p);
+      if (refus) return void refuserGeste(get, set, refus);
       settleFall(get, set, p);
     },
     fallCancel: () => set({ pendingFall: null }),

@@ -4,9 +4,13 @@
  * remise à zéro de `creerPartie`, et deux rejeux d'un fichier dans un processus n'y fabriquent plus les mêmes ids.
  */
 import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { remettreLesSequencesAZero, sequence } from './sequences';
+
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 describe('les séquences d’ids', () => {
   it('rendent l’entier suivant depuis 1, et repartent de 1 après la remise à zéro', () => {
@@ -17,9 +21,9 @@ describe('les séquences d’ids', () => {
   });
 
   it('aucun compteur numérique de premier niveau en `let` dans engine, noyau, data ni scenes', () => {
-    const fichiers = execFileSync('git', ['ls-files', 'src/engine', 'src/noyau', 'src/data', 'src/scenes'], { encoding: 'utf8' })
-      .split('\n').filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f));
-    const compteurs = fichiers.flatMap((f) => readFileSync(f, 'utf8').split('\n').flatMap((l, i) =>
+    const fichiers = ['src/engine', 'src/noyau', 'src/data', 'src/scenes'].flatMap((racine) =>
+      listerArbre(join(ROOT, racine)).map((r: string) => `${racine}/${r}`)).filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f));
+    const compteurs = fichiers.flatMap((f) => readFileSync(join(ROOT, f), 'utf8').split('\n').flatMap((l, i) =>
       (/^(export )?let \w+(\s*:\s*number)?\s*=\s*\d+\s*;/.test(l) ? [`${f}:${i + 1} ${l.trim()}`] : [])));
     expect(compteurs, 'un compteur de module se déclare par `sequence()` (src/engine/sequences.ts)').toEqual([]);
   });
