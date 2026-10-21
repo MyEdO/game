@@ -8,7 +8,7 @@ import { assignSeat } from './monde/seating';
 import type { Combatant } from '../engine/types';
 
 const hero = (id: string): Combatant =>
-  ({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
+  ({ id, label: id.toUpperCase(), kind: 'hero', wounds: { current: 12, max: 12 }, conditions: [], movement: 4 }) as unknown as Combatant;
 
 export const ALDO = hero('aldo');
 export const BRUNA = hero('bruna');
