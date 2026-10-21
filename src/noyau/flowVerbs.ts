@@ -2,7 +2,7 @@
  * SOURCE UNIQUE du câblage des flux de jet différé — table de DONNÉES PURE (aucun import runtime).
  *
  * Elle vit à part de `rollFlowSpecs.ts` parce que ses consommateurs ne veulent PAS le graphe du store :
- * `state/intents.ts` en DÉRIVE la surface d'intents invité, et `rollFlowSpecs` (donc `FLOWS`, donc le store)
+ * `noyau/intentionsDeSiege.ts` en DÉRIVE la surface d'intents invité, et `rollFlowSpecs` (donc `FLOWS`, donc le store)
  * n'est pas importable depuis là sans cycle d'initialisation. `rollFlowSpecs` la ré-exporte pour ses
  * propres consommateurs.
  *
@@ -150,7 +150,7 @@ export const flowActionName = (prefix: string, verb: string): string =>
 
 /**
  * Surface d'intents invité DÉRIVÉE de la table — aucun flux n'a de ligne à écrire dans
- * `state/intents.ts` :
+ * `noyau/intentionsDeSiege.ts` :
  *  - MONO : TOUS ses verbes, `resist` et `cancel` compris (#1017), PLUS ses actions de `resolution`.
  *    Le porteur d'un flux mono peut être le héros d'un autre siège ; la surface ne décide donc rien,
  *    elle suit la POSSESSION, seule garde de dépense (`netOwnership.intentAllowedFor` →

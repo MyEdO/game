@@ -1,7 +1,7 @@
 /**
  * Session coop — modèle HÔTE-AUTORITAIRE sur Transport injecté (transports du relay en prod,
  * FakeTransport en test). L'hôte est le SEUL à exécuter le store : les invités envoient des
- * intents (filtrés par allowlist), l'hôte les rejoue puis diffuse un snapshot d'état complet
+ * intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
  * (mêmes données JSON-sûres que la sauvegarde — cf. spec coop §3). Les sièges sont attribués
  * par la room (Durable Object) et injectés via `addGuest`.
  *
@@ -23,8 +23,6 @@ export class HostSession {
   constructor(
     private readonly opts: {
       build: string;
-      /** Actions de store qu'un invité a le droit de demander (le reste est ignoré). */
-      allow: ReadonlySet<string>;
       applyIntent: (action: string, args: unknown[], seat: number) => void;
       getSnapshot: () => Record<string, unknown>;
       /** Envoyés au handshake ENTRE hello et snapshot (ex. la campagne custom — spec v2 §5). */
@@ -61,7 +59,7 @@ export class HostSession {
       }
       if (!joined) return; // tout sauf hello avant le handshake : ignoré
       if (m.kind === 'intent') {
-        if (this.opts.allow.has(m.action)) this.opts.applyIntent(m.action, m.args, seat);
+        this.opts.applyIntent(m.action, m.args, seat);
         return;
       }
       if (m.kind === 'bye') transport.close();

@@ -8,7 +8,7 @@ import { engage, disengageFrom } from '../engine/engagement';
 import { mountUp } from '../noyau/mount';
 import { computeMoveReach, resolveMovement } from '../noyau/combatFlow';
 import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
-import { GUEST_INTENTS } from './intents';
+import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { planFranchissement, phaseDeChute } from '../noyau/fallMove';
 import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant } from '../noyau/gesteDArete';
 import { climbMovementCost } from '../engine/movement';

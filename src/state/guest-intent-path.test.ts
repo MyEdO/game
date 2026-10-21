@@ -9,17 +9,18 @@
  * `ownsLocal` — donc sur `net.mySeat`, qui vaut l'HÔTE pendant qu'il applique l'intent d'un AUTRE
  * siège. L'action refusait le geste d'un invité sur son PROPRE héros.
  *
- * Ce test exerce la chaîne telle que `netFlow.applyIntent` l'exécute (`withActingSeat`), sur DEUX
+ * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que `netFlow` appelle), sur DEUX
  * ouvreurs : `battleBattement` (exposé par #1017) et `battleDisengage` (exposé bien AVANT — il
  * souffrait du même mal, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
-import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
-import { GUEST_INTENTS } from './intents';
+import { appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { initialNet } from '../noyau/etat';
+import { makePregens } from '../data/pregens';
 import type { Combatant, Weapon } from '../engine/types';
 
 const NET0 = useGame.getState().net;
@@ -50,14 +51,8 @@ function setup(net: Record<string, unknown> = {}) {
   return { hero, enemy };
 }
 
-/** REJOUE `netFlow.applyIntent` (allowlist côté transport + possession + appel AU NOM du siège). */
-function applyIntent(seat: number, action: string, args: unknown[] = []): 'hors-allowlist' | 'refusé' | 'appliqué' {
-  if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
-  if (!intentAllowedFor(useGame.getState(), seat, action, args)) return 'refusé';
-  const fn = (useGame.getState() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(seat, () => (fn as (...a: unknown[]) => void)(...args));
-  return 'appliqué';
-}
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
 describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’allowlist', () => {
   beforeEach(() => { useGame.setState({ net: NET0, battle: null, pendingBattement: null, pendingDisengage: null }); });
@@ -99,5 +94,42 @@ describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’a
     setup({ mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     useGame.getState().battleBattement();
     expect(useGame.getState().pendingBattement).toBeTruthy();
+  });
+});
+
+describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du transport', () => {
+  beforeEach(() => { useGame.setState({ net: NET0, battle: null, pendingBattement: null, journal: [], party: [] }); });
+
+  it('hors allowlist : ignorée en silence, sans effet ni ligne de journal', () => {
+    setup();
+    useGame.setState({ journal: [] });
+    expect(applyIntent(1, 'setGmSeat', [1])).toBe('hors-allowlist');
+    expect(useGame.getState().net.gmSeat, 'l’action hors liste a atteint le store de l’hôte').toBeUndefined();
+    expect(useGame.getState().journal).toEqual([]);
+  });
+
+  it('hors possession : le refus va au journal, en libellé joueur', () => {
+    setup();
+    useGame.setState({ journal: [] });
+    expect(applyIntent(2, 'battleBattement', [])).toBe('refusé');
+    expect(useGame.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
+  });
+
+  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens()[0])), id, label: id });
+  const hoteEtUnInvite = () => useGame.setState({
+    party: [], journal: [], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
+  });
+
+  it('composition : `partyAddHero` prend le siège du transport, jamais celui des args', () => {
+    hoteEtUnInvite();
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1'), undefined, 0])).toBe('appliqué');
+    expect(useGame.getState().net.ownership.g1, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
+  });
+
+  it('composition : `partyReplaceHero` aussi', () => {
+    hoteEtUnInvite();
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliqué');
+    expect(applyIntent(1, 'partyReplaceHero', ['g1', pregen('g2'), 0])).toBe('appliqué');
+    expect(useGame.getState().net.ownership.g2, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
   });
 });

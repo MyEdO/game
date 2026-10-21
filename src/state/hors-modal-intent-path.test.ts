@@ -22,11 +22,11 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { initialFields } from '../noyau/stateFields';
-import { intentAllowedFor, withActingSeat, ROUTES } from '../noyau/netOwnership';
+import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { jetOwnedIntents, participantOwnedIntents } from '../noyau/flowVerbs';
 import { modalOwnerOf, HORS_MODAL, horsModalOwnedIntents } from '../noyau/modalArbiter';
-import { GUEST_INTENTS } from './intents';
+import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { ACTIONS } from '../data/index';
 import { KEYBINDINGS } from './clavier/keybindings';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -67,14 +67,8 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   return { h2, h3, e1, e2 };
 }
 
-/** REJOUE `netFlow.applyIntent` (allowlist côté transport + possession + appel AU NOM du siège). */
-function applyIntent(seat: number, action: string, args: unknown[] = []): 'hors-allowlist' | 'refusé' | 'appliqué' {
-  if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
-  if (!intentAllowedFor(useGame.getState(), seat, action, args)) return 'refusé';
-  const fn = (useGame.getState() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(seat, () => (fn as (...a: unknown[]) => void)(...args));
-  return 'appliqué';
-}
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
 const reset = () => useGame.setState({ ...initialFields(), battle: null, net: NET0, party: [] });
 

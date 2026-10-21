@@ -99,7 +99,7 @@ export function armChapterRecapIfDue(get: Get, set: SetFn): void {
 export function creerActionsDuChapitre(_get: Get, set: SetFn) {
   return {
     // Cadre de campagne et COOP (#717) : ces trois gestes vivent chez l'HÔTE (classe `hôte`,
-    // `state/intents.ts` `CLASSE_DES_ACTIONS`). Chez un invité ils sont INERTES — sans cette
+    // `noyau/intentionsDeSiege.ts` `CLASSE_DES_ACTIONS_DU_NOYAU`). Chez un invité ils sont INERTES — sans cette
     // garde le clic muterait l'état LOCAL puis mourrait au snapshot suivant de l'hôte, sans message.
     // L'écran, lui, reste visible : il porte son refus par `GatedAction` (`src/ui/GatedAction.tsx`).
     acquitterOuverture: () => set((s) => (s.net.mode === 'guest' ? {} : { pendingOuverture: null, chapitreDepuis: snapshotChapitre(s.party, s.gameTime) })),

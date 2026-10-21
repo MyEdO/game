@@ -1,7 +1,7 @@
 /**
  * Session coop — hôte-autoritaire sur transport injecté (ici FakeTransport, en prod les
- * transports du relay) : handshake hello (version), intents d'invité FILTRÉS par l'allowlist
- * puis rejoués chez l'hôte, snapshots diffusés à tous les sièges, déconnexions, reprise.
+ * transports du relay) : handshake hello (version), intents d'invité remis à l'hôte avec le siège
+ * du transport (le filtre est `noyau/intentionsDeSiege.appliquerLIntentionDUnSiege`), snapshots diffusés à tous les sièges, déconnexions, reprise.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { FakeTransport } from './transport';
@@ -21,7 +21,6 @@ const mkHost = () => {
   const onSeatClosed = vi.fn();
   const host = new HostSession({
     build: 'test',
-    allow: new Set(['battleEndTurn', 'battleClickEntity']),
     applyIntent,
     getSnapshot: () => ({ gameTime: 7 }),
     onSeatClosed,
@@ -43,13 +42,11 @@ describe('session coop (net/session)', () => {
     expect(host.seats[seat]?.label).toBe('Antoine');
   });
 
-  it('intent allowlisté → applyIntent(action, args, seat) ; non listé → ignoré', () => {
+  it('intent → applyIntent(action, args, seat), avec le siège du TRANSPORT', () => {
     const { host, applyIntent } = mkHost();
-    const { guest, seat } = wire(host);
+    const { guest, seat } = wire(host, 'Invité', 2);
     guest.sendIntent('battleEndTurn', []);
     expect(applyIntent).toHaveBeenCalledWith('battleEndTurn', [], seat);
-    guest.sendIntent('loadGame', [1]); // hors allowlist : jamais rejoué
-    expect(applyIntent).toHaveBeenCalledTimes(1);
   });
 
   it('broadcastSnapshot atteint TOUS les invités', () => {
@@ -139,7 +136,6 @@ describe('session coop (net/session)', () => {
     const order: string[] = [];
     const host = new HostSession({
       build: 'test',
-      allow: new Set(),
       applyIntent: vi.fn(),
       getSnapshot: () => ({ gameTime: 1 }),
       extraJoinMessages: () => [{ kind: 'campaign', label: 'P', scenes: [], startSceneId: 's', worldMap: null }],

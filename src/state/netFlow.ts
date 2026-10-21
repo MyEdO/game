@@ -23,8 +23,8 @@ import { registerScene, reposerPaquetDeCampagne } from '../noyau/monde/registreD
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
 import { HostSession, GuestSession } from '../net/session';
-import { GUEST_INTENTS, sanitizeIntentArgs } from './intents';
-import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
+import { sanitizeIntentArgs } from './intents';
+import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { argsAvecVerdictLocal } from '../noyau/localIntent';
 import { RoomGuest, RoomHost, relayHttpUrl } from '../net/relay';
 import type { NetMessage } from '../net/protocol';
@@ -231,24 +231,7 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
   roomHost = rh;
   host = new HostSession({
     build: FORMAT_SAVE,
-    allow: GUEST_INTENTS,
-    applyIntent: (action, args, seat) => {
-      // Validation de POSSESSION (spec §4bis) : un invité ne pilote que SES combattants —
-      // modale ouverte → seul son concerné agit ; sinon seul le propriétaire du tour actif.
-      if (!intentAllowedFor(useGame.getState(), seat, action, args)) {
-        get().log(t('coop.intentRefused', { action }));
-        return;
-      }
-      // Composition d'équipe : le siège vient du transport, jamais des args de l'invité.
-      // add = [hero, wealth, seat] ; replace = [oldId, hero, seat] → siège en 3ᵉ dans les deux cas.
-      if (action === 'partyAddHero' || action === 'partyReplaceHero') args = [args[0], args[1], seat];
-      const fn = (useGame.getState() as unknown as Record<string, unknown>)[action];
-      // SIÈGE AGISSANT (#1017) : l'action s'exécute dans le store de l'HÔTE, mais AU NOM du siège
-      // émetteur — sans quoi les gardes d'action bâties sur « le siège local possède-t-il ce
-      // combattant ? » (`controlsCombatant`, ~30 sites de `combatSlice`) refusent en silence le geste
-      // d'un invité sur SON propre héros. Couvre l'appel SYNCHRONE (cf. `withActingSeat`).
-      if (typeof fn === 'function') withActingSeat(seat, () => (fn as (...a: unknown[]) => void)(...args));
-    },
+    applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
     getSnapshot: () => netSnapshot(get),
     extraJoinMessages: () => campaignMessages(get),
     onSeatClosed: (seat) => netSeatClosed(get, set, seat),

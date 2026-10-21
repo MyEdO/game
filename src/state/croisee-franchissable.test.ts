@@ -7,7 +7,7 @@ import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascade.testkit';
 import { phaseDeChute } from '../noyau/fallMove';
 import { aretesUtilisables } from '../noyau/aretes';
-import { GUEST_INTENTS } from './intents';
+import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { finalizeBattle } from '../noyau/combatFlow';

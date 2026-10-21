@@ -16,8 +16,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { initialFields } from '../noyau/stateFields';
-import { intentAllowedFor, withActingSeat, seatInfluences } from '../noyau/netOwnership';
-import { GUEST_INTENTS } from './intents';
+import { intentAllowedFor, seatInfluences } from '../noyau/netOwnership';
+import { appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
 import { seedBattleRng } from '../noyau/battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant, Weapon } from '../engine/types';
@@ -62,14 +62,8 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   return { h2, h3, e1 };
 }
 
-/** REJOUE `netFlow.applyIntent` : allowlist côté transport, puis possession, puis appel AU NOM du siège. */
-function applyIntent(seat: number, action: string, args: unknown[] = []): 'hors-allowlist' | 'refusé' | 'appliqué' {
-  if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';
-  if (!intentAllowedFor(useGame.getState(), seat, action, args)) return 'refusé';
-  const fn = (useGame.getState() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(seat, () => (fn as (...a: unknown[]) => void)(...args));
-  return 'appliqué';
-}
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
 const reset = () => useGame.setState({ ...initialFields(), battle: null, net: NET0, party: [] });
 

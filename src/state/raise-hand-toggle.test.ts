@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { runAction, actionGate } from '../noyau/actionRegistry';
 import { ROUTES, intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
-import { GUEST_INTENTS } from './intents';
+import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';

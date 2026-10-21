@@ -1707,7 +1707,7 @@ try {
 | Jouer | hôte | tout le pilotage de MISE EN PLACE | `scenario`, `goto`, `fight`, `turn`, `combatEnd`… **depuis l'HÔTE uniquement** |
 
 ⚠ **Ne jamais mettre en place depuis l'invité** : `interceptGuestActions` (`src/state/netFlow.ts`)
-n'enrobe QUE les actions de l'allowlist (`GUEST_INTENTS`, `src/state/intents.ts`) — toute autre action
+n'enrobe QUE les actions de l'allowlist (`GUEST_INTENTS`, `src/noyau/intentionsDeSiege.ts`) — toute autre action
 (`setParty`, `startScene`, `scenario`…) s'exécute en LOCAL chez l'invité puis est écrasée au snapshot
 suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n'est pas un bug.
 
