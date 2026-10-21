@@ -1,7 +1,8 @@
 /**
- * CE QU'UN HÔTE EXTERNE IMPORTE NE CHARGE AUCUN HÔTE (#2817 D9, #2898, épique #2882) : la fermeture d'exécution de
- * chaque entrée de `ENTREES_FERMEES` (la surface `src/noyau/index.ts`, les scénarios de test qu'un hôte lance, l'entrée
- * de l'hôte texte) n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`, `audio`, ni `react`. La mesure vit dans
+ * CE QU'UN HÔTE EXTERNE IMPORTE NE CHARGE AUCUN HÔTE (#2817 D9, #2898, #2928, épique #2882) : la fermeture d'exécution
+ * de chaque entrée de `ENTREES_FERMEES` (la surface `src/noyau/index.ts`, les scénarios de test qu'un hôte lance, les
+ * modules du module commun des hôtes, l'entrée de l'hôte texte) n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`,
+ * `audio`, ni `react`. La mesure vit dans
  * `scripts/guards/lib/fermetureDuNoyau.mjs`, qui dit pourquoi la table `COUCHES` ne l'implique pas.
  */
 import { beforeAll, describe, it, expect } from 'vitest';
@@ -9,21 +10,31 @@ import { mesure as mesurer, paquetDe, ENTREES_FERMEES } from '../../scripts/guar
 import { SURFACE_DU_NOYAU } from '../../scripts/guards/lib/couches.mjs';
 import { detenteur } from '../detenteur.testkit';
 
-/** Les témoins d'une lecture vivante, par entrée : sans eux, une lecture cassée rendrait la garde verte en ne
- *  lisant plus rien. */
-const TEMOINS: Record<(typeof ENTREES_FERMEES)[number], readonly string[]> = {
+/** Les témoins d'une lecture vivante, par entrée qui importe : sans eux, une lecture cassée rendrait la garde verte en
+ *  ne lisant plus rien. Les entrées du commun des hôtes se lisent dans l'arbre, sans ligne ici : l'entrée de l'hôte
+ *  texte, qui les importe, témoigne de leur lecture. */
+const TEMOINS: Readonly<Partial<Record<string, readonly string[]>>> = {
   [SURFACE_DU_NOYAU]: ['src/noyau/partie.ts', 'src/engine/combat.ts'],
   'src/scenes/test-scenarios/index.ts': ['src/scenes/test-scenarios/_shared.ts', 'src/scenes/campaign.ts', 'src/noyau/worldMap.ts'],
-  'src/hoteTexte/serveur.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', 'src/hoteTexte/outils.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
+  'src/hoteTexte/serveur.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', 'src/hoteTexte/outils.ts', 'src/hote/partie.ts', 'src/hote/projection.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
 };
+
+it('les entrées : la surface, les scénarios, chaque module du commun des hôtes lu dans l’arbre, l’entrée de l’hôte texte', () => {
+  expect(ENTREES_FERMEES).toEqual(expect.arrayContaining(Object.keys(TEMOINS)));
+  expect(ENTREES_FERMEES.filter((e) => e.startsWith('src/hote/')), 'le commun des hôtes ne se lit plus').toEqual(expect.arrayContaining(['src/hote/formes.ts', 'src/hote/partie.ts', 'src/hote/projection.ts']));
+  expect(ENTREES_FERMEES.filter((e) => /\.(test|generated)\./.test(e)), 'ni suite ni module généré ignoré').toEqual([]);
+});
+
+it('les paquets de la fermeture se lisent (témoin : `zod`, depuis la surface)', () => {
+  expect(mesurer({ depart: SURFACE_DU_NOYAU }).paquets).toContain('zod');
+}, 120_000);
 
 describe.each(ENTREES_FERMEES)('%s : sa fermeture d’exécution ne charge aucun hôte', (depart) => {
   const mesure = detenteur(() => mesurer({ depart }));
   beforeAll(() => { mesure(); }, 120_000);
 
   it('aucun module d’une zone d’hôte, aucun paquet d’hôte', () => {
-    expect(mesure().modules, 'la fermeture ne part plus de son entrée').toEqual(expect.arrayContaining([depart, ...TEMOINS[depart]]));
-    expect(mesure().paquets, 'les paquets de la fermeture ne se lisent plus').toContain('zod');
+    expect(mesure().modules, 'la fermeture ne part plus de son entrée').toEqual(expect.arrayContaining([depart, ...(TEMOINS[depart] ?? [])]));
     const fautes = mesure().fautes.map((f) => f.chaine.join(' → '));
     expect(fautes, `${depart} charge un hôte — couper l'arc fautif :\n  ${fautes.join('\n  ')}`).toEqual([]);
   });

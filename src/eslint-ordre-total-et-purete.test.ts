@@ -1,20 +1,24 @@
 import { describe, it, expect } from 'vitest';
+import { existsSync } from 'node:fs';
+import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { creerBancLint, lintFixtures, selectionnerMessages, configPourFichier } from '../scripts/guards/lib/lint.testkit.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { COUCHES, estZone, fermeture, porteManquee } from '../scripts/guards/lib/couches.mjs';
+import { COUCHES, dossierDe, estZone, fermeture, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).
  *
- * Les zones de `src/` et leurs sens d'import se disent UNE fois, dans `COUCHES`
+ * Les zones du dépôt et leurs sens d'import se disent UNE fois, dans `COUCHES`
  * (`scripts/guards/lib/couches.mjs`), et se jouent par la gate `lint` (`murs/purete-imports`,
  * `murs/zone`). Ce banc lit cette table, ne la recopie pas, et MESURE la config RÉSOLUE :
- *  1. CONTRAT de la table — chaque zone nommée existe, et `fermeture` rend, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
- *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les deux murs ;
+ *  1. CONTRAT de la table — chaque zone nommée existe, le dossier de chaque zone est à elle (`zoneDe`), et `fermeture`
+ *     rend, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
+ *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les deux murs ; une zone dont
+ *     l'arbre ne porte pas le dossier se mesure sur des fixtures posées dans son dossier ;
  *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, depuis
- *     des fichiers réels de la zone, par chemin relatif, par alias `@/` et par chemin `/src/…` : la
+ *     des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`) et par chemin `/…` : la
  *     matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
  *  4. FERMETURE — un fichier d'une zone non déclarée est refusé, un fichier d'une zone déclarée passe.
  *
@@ -50,26 +54,46 @@ function verdicts(fixtures: { filePath: string; code: string }[], regles: readon
 
 /** Des fichiers RÉELS de la zone, tests exclus (ordre total de `readCorpus`, jamais un nom en dur) : le
  *  PREMIER, et un fichier de SOUS-DOSSIER quand la zone en a — un spécificateur de remontée `../../` ne
- *  se comporte pas comme à la racine de la zone. */
+ *  se comporte pas comme à la racine de la zone. Une zone dont le dossier, hors de `src/`, est absent de l'arbre : deux
+ *  fixtures de son dossier, à sa racine et en sous-dossier ; sous `src/`, un dossier absent ou sans fichier lève
+ *  (`readCorpus`) : une ligne sans dossier ne passe jamais sur des fixtures. */
 function sondes(zone: string): string[] {
-  const corpus = readCorpus([`src/${zone}`]);
-  expect(corpus.length, `src/${zone} : aucun fichier réel — la sonde ne mesure rien`).toBeGreaterThan(0);
-  const sousDossier = corpus.find((f) => f.rel.slice(zone.length + 5).includes('/'));
+  const dossier = dossierDe(zone);
+  if (!dossier.startsWith('src/') && !existsSync(new URL(`../${dossier}`, import.meta.url))) return [`${dossier}/zz-sonde.ts`, `${dossier}/zz-sous/sonde.ts`];
+  const corpus = readCorpus([dossier]);
+  const sousDossier = corpus.find((f) => f.rel.slice(dossier.length + 1).includes('/'));
   return sousDossier ? [corpus[0].rel, sousDossier.rel] : [corpus[0].rel];
 }
 
-/** Spécificateur relatif de `rel` vers `src/<vers>/x`. */
-const specifieur = (rel: string, vers: string) => `${'../'.repeat(rel.split('/').length - 2)}${vers}/x`;
+/** Spécificateur relatif de `rel` vers `cible` (chemins relatifs à la racine du dépôt). */
+const relatif = (rel: string, cible: string) => {
+  const p = posix.relative(posix.dirname(rel), cible);
+  return p.startsWith('.') ? p : `./${p}`;
+};
+
+/** L'alias `@/` de `cible`, `null` hors de `src/`. */
+const alias = (cible: string) => (cible.startsWith('src/') ? `@/${cible.slice('src/'.length)}` : null);
+
+/** Les spécificateurs de `rel` vers `<dossier de vers>/x` : relatif, alias `@/` quand la zone est sous `src/`, chemin `/…`. */
+const specifieurs = (rel: string, vers: string): string[] => {
+  const cible = `${dossierDe(vers)}/x`;
+  return [relatif(rel, cible), alias(cible), `/${cible}`].filter((p): p is string => p !== null);
+};
 
 /** Le chemin d'une fixture posée à côté du fichier réel `rel`. */
 const voisin = (rel: string, i: number) => rel.replace(/(\.[^.]+)$/, `-couche-${i}$1`);
 
 describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE (#1709, #2882)', () => {
-  it('CONTRAT : chaque zone nommée est déclarée', () => {
-    for (const [zone, { importe, types = [] }] of Object.entries(COUCHES)) {
-      const nommees = [...(importe === '*' ? [] : importe), ...types];
+  it('CONTRAT : chaque zone nommée est déclarée, et le dossier de chaque zone est à elle', () => {
+    for (const [zone, { importe, types = [], portes = {} }] of Object.entries(COUCHES) as [string, { importe: readonly string[] | '*'; types?: readonly string[]; portes?: Record<string, string> }][]) {
+      const nommees = [...(importe === '*' ? [] : importe), ...types, ...Object.keys(portes)];
       for (const z of nommees) expect(ZONES, `${zone} nomme ${z}`).toContain(z);
     }
+    expect(ZONES.map((z) => zoneDe(`${dossierDe(z)}/a/b.ts`)), 'la zone du dossier de chaque zone').toEqual(ZONES);
+    // Hors du dossier d'une zone, le nom de la zone ne la rend pas : `src/hotes/`, `src/racine/` sont des dossiers sans ligne.
+    expect(['src/a.ts', 'src/zz-inconnue/a.ts', 'src/hotes/a.ts', 'src/racine/a.ts', 'scripts/a.mjs', 'hoteX/a.ts'].map(zoneDe))
+      .toEqual(['racine', 'src/zz-inconnue', 'src/hotes', 'src/racine', null, null]);
+    for (const z of ['src/zz-inconnue', 'src/hotes', 'src/racine']) expect(estZone(z), z).toBe(false);
   });
 
   it('ORACLE : `fermeture` rend le verdict écrit à la main de chaque classe de ligne', () => {
@@ -106,6 +130,22 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hoteTexte', 'engine', true, 'type'], // fermé (#2898)
       ['hoteTexte', 'state', true, 'type'],
       ['noyau', 'hoteTexte', false, 'type'],
+      ['hote', 'noyau', false, null], // importe (par sa porte, #2928)
+      ['hote', 'scenes', false, null],
+      ['hote', 'engine', true, 'type'], // fermé
+      ['hote', 'hoteTexte', true, 'type'], // le module commun ne lit aucun hôte
+      ['hote', 'hotes', true, 'type'],
+      ['noyau', 'hote', true, 'type'],
+      ['hoteTexte', 'hote', false, null], // importe le module commun
+      ['hotes', 'hote', false, null],
+      ['hotes', 'noyau', false, null], // importe (par sa porte)
+      ['hotes', 'scenes', false, null],
+      ['hotes', 'engine', true, 'type'], // fermé (#2928 M4)
+      ['hotes', 'data', true, 'type'],
+      ['hotes', 'state', true, 'type'],
+      ['hotes', 'hoteTexte', true, 'type'],
+      ['hoteTexte', 'hotes', true, 'type'],
+      ['scenes', 'hote', true, 'type'],
     ];
     expect(oracle.map(([de, vers, t]) => fermeture(de, vers, t))).toEqual(oracle.map(([, , , v]) => v));
     expect(['constructor', '__proto__', 'toString', 'hasOwnProperty'].filter(estZone)).toEqual([]);
@@ -116,6 +156,10 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hoteTexte', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
       ['hoteTexte', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
       ['hoteTexte', 'scenes', 'src/scenes/x.ts', null], // aucune porte vers `scenes`
+      ['hotes', 'noyau', 'src/noyau/index.ts', null],
+      ['hotes', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
+      ['hote', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
+      ['hotes', 'hote', 'src/hote/projection.ts', null], // aucune porte vers `hote`
       ['scenes', 'noyau', 'src/noyau/combatFlow.ts', null], // aucune porte pour `scenes`
       ['constructor', 'noyau', 'src/noyau/x.ts', null],
     ];
@@ -141,9 +185,9 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       for (const rel of sondes(de)) {
         for (const vers of ZONES) {
           if (vers === de) continue;
-          for (const p of [specifieur(rel, vers), `@/${vers}/x`, `/src/${vers}/x`]) {
+          for (const p of specifieurs(rel, vers)) {
             for (const f of FORMES) {
-              const attendu = fermeture(de, vers, f.type) === null && porteManquee(de, vers, `src/${vers}/x`) === null ? 'passe' : REGLE;
+              const attendu = fermeture(de, vers, f.type) === null && porteManquee(de, vers, `${dossierDe(vers)}/x`) === null ? 'passe' : REGLE;
               cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath: voisin(rel, cas.length), code: f.code(p) } });
             }
           }
@@ -159,14 +203,14 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     const aPortes = (Object.entries(COUCHES) as [string, { portes?: Record<string, string> }][]).filter(([, c]) => c.portes);
     for (const [de, { portes = {} }] of aPortes) {
       for (const rel of sondes(de)) {
-        const remonte = '../'.repeat(rel.split('/').length - 2);
         for (const [vers, porte] of Object.entries(portes)) {
-          const cheminDePorte = porte.slice('src/'.length).replace(/\.ts$/, '');
-          const specs: [string, string][] = [
-            [`${remonte}${cheminDePorte}`, 'passe'], [`${remonte}${vers}`, 'passe'], [`@/${cheminDePorte}.ts`, 'passe'], [`/src/${cheminDePorte}`, 'passe'],
-            [`${remonte}${vers}/combatFlow`, REGLE], [`@/${vers}/monde/index`, REGLE], [`/src/${vers}/etat.ts`, REGLE],
+          const module = porte.replace(/\.ts$/, '');
+          const dossier = dossierDe(vers);
+          const specs: [string | null, string][] = [
+            [relatif(rel, module), 'passe'], [relatif(rel, dossier), 'passe'], [alias(porte), 'passe'], [`/${module}`, 'passe'],
+            [relatif(rel, `${dossier}/combatFlow`), REGLE], [alias(`${dossier}/monde/index`), REGLE], [`/${dossier}/etat.ts`, REGLE],
           ];
-          for (const [p, attendu] of specs) {
+          for (const [p, attendu] of specs.filter((s): s is [string, string] => s[0] !== null)) {
             for (const f of FORMES.filter((x) => x.nom !== 'import.meta.glob')) {
               cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath: voisin(rel, cas.length), code: f.code(p) } });
             }
@@ -182,6 +226,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
   it('FORMES : un test est hors du mur de couche, un import interne à la zone passe, la requête ne compte pas', () => {
     const [rel] = sondes('engine');
     const [data] = sondes('data');
+    const specifieur = (de: string, vers: string) => specifieurs(de, vers)[0];
     const obtenus = verdicts([
       { filePath: voisin(rel, 0).replace(/\.ts$/, '.test.ts'), code: `import { X } from '${specifieur(rel, 'ui')}';\nexport const a = X;\n` },
       { filePath: voisin(rel, 1), code: "import { rollD100 } from './dice';\nexport const a = rollD100;\n" },
@@ -201,8 +246,10 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       { filePath: 'src/zz-racine.ts', code: 'export const d = 1;\n' },
       { filePath: 'src/constructor/e.ts', code: 'export const e = 1;\n' },
       { filePath: 'src/toString/f.ts', code: "import { X } from '../ui/x';\nexport const f = X;\n" },
+      { filePath: 'src/hotes/g.ts', code: "import { X } from '../noyau/partie';\nexport const g = X;\n" },
+      { filePath: 'src/racine/h.ts', code: "import { X } from '../state/store';\nexport const h = X;\n" },
     ], ['murs/zone']);
-    expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone']);
+    expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone', 'murs/zone', 'murs/zone']);
   });
 });
 

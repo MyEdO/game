@@ -6,8 +6,9 @@
  * vérité : chaque geste appliqué s'y ajoute ; un fichier changé hors de l'hôte, ou une mémoire qu'un geste refusé a
  * touchée, se rejoue. Doc généré : `npm run docs:hote-texte`.
  */
-import { argumentsDuVerbe, ErreurDeGeste, empreinte, jouerUnGeste, ligneDuFichier, lireGeste, lireLeFichier, nouvelEntete, offresDeLaBarre, rejouer, type CategorieDErreur, type Geste, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { VERBES } from './verbes.generated';
+import { empreinte, jouerUnGeste, ligneDuFichier, lireGeste, lireLeFichier, nouvelEntete, offresDeLaBarre, rejouer, type Geste, type LigneNumerotee, type PartieRejouee } from './partieTexte';
+import { argumentsDuVerbe, ErreurDeGeste, type CategorieDErreur } from '../hote/partie';
+import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
 import { borner, casesAtteignables, enSuspens, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesGestes, rendreLesOffres, rendreLesVerbes, replier } from './vue';
 import { etatDeLaBarre, fenetreDuJeu, gestesDExploration } from '../noyau/index';

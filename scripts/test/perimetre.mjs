@@ -45,6 +45,7 @@ import { spawnBorne, diagnosticArret } from '../guards/lib/processusBorne.mjs'
 import { BACKOFFS_MS, attendreSync } from '../guards/lib/spawnResilient.mjs'
 import { CACHE, lireDuDisque, RANG_SETUP, RANG_TOOLCHAIN, depuisDTO } from './perimetreDerivation.mjs'
 import { estDeLaSuiteDuNoyau, SUITES_VITEST_DE_CI } from '../guards/lib/racinesDeLaSuite.mjs'
+import { RACINES_DES_ZONES } from '../guards/lib/couches.mjs'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -391,9 +392,10 @@ export function workersDuLancement(env, regime) {
 export const argumentsDuNoyau = (fichiers) =>
   ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', SUITES_VITEST_DE_CI['test:noyau'].config, ...fichiers]
 
-/** La suite du noyau à lancer (#2817) : ENTIÈRE, les tests du noyau de la post-image `post`, dès qu'un des fichiers
- *  `touches` est sous `src/` (sa fermeture y vit) ; rien sinon. La dérivation ne la voit pas. PURE. */
-export const suiteDuNoyauALancer = (touches, post) => (touches.some((t) => t.startsWith('src/')) ? post.filter((t) => estDeLaSuiteDuNoyau(t)) : [])
+/** La suite du noyau à lancer (#2817) : ENTIÈRE, les tests du noyau et de ses hôtes de la post-image `post`, dès qu'un
+ *  des fichiers `touches` est sous une racine des zones (`RACINES_DES_ZONES` : leur fermeture y vit) ; rien sinon. La
+ *  dérivation ne la voit pas. PURE. */
+export const suiteDuNoyauALancer = (touches, post) => (touches.some((t) => RACINES_DES_ZONES.some((r) => t.startsWith(`${r}/`))) ? post.filter((t) => estDeLaSuiteDuNoyau(t)) : [])
 
 /** Les arguments `node` du lancement Vitest d'un paquet de tests : `run.mjs` sous le régime `regime` (`DRAPEAU_REGIME`),
  *  les reporters écrivant le rapport `sortie` (`reportersVitest`). PURE. */

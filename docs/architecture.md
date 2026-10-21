@@ -78,14 +78,29 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 
 ## Arborescence
 
-Zones de `src/` (#2882, plan `docs/plans/2026-10-19-restructuration.md`) : un dossier de premier niveau
-de `src/` est une zone, et les fichiers posés à même `src/` forment la zone `racine`. La table `COUCHES`
-(`scripts/guards/lib/couches.mjs`) est la seule source des zones et de leurs sens d'import : par zone,
-ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), et ses portes : pour une
-zone importée, le seul module qu'elle en lit (`portes`). Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
-`murs/zone` refuse un fichier de `src/` dont la zone n'a pas de ligne, et `murs/purete-imports` refuse,
-hors tests, un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de
-`scripts/guards/lib/arcsDImport.mjs`. Banc : `src/eslint-ordre-total-et-purete.test.ts`.
+Zones du dépôt (#2882, #2928, plan `docs/plans/2026-10-19-restructuration.md`) : une zone est un dossier,
+`src/<zone>` sauf déclaration (`dossier`), et les fichiers posés à même `src/` forment la zone `racine`. La
+table `COUCHES` (`scripts/guards/lib/couches.mjs`) est la seule source des zones, de leurs dossiers
+(`dossierDe`, `zoneDe`) et de leurs sens d'import : par zone, ce qu'elle importe librement, ce qu'elle ne lit
+qu'en type (`import type`), et ses portes : pour une zone importée, le seul module qu'elle en lit (`portes`).
+Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) : `murs/zone` refuse un fichier de `src/` dont le
+dossier n'est celui d'aucune zone (un sous-dossier `hotes` ou `racine` de `src/` compris), et `murs/purete-imports` refuse, hors tests, un arc d'import qu'elle n'ouvre pas ou qui
+manque une porte, sur toutes les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, sous chaque racine
+des zones (`RACINES_DES_ZONES`). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le
+code des zones en dérivent : les murs d'oxlint, le périmètre des gardes et les lectures des gates
+(`RACINES_PRESENTES`, les racines que l'arbre porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour
+témoin `src/suites-jouees-guard.test.ts`, qui refuse aussi, sous ces racines, une suite qu'aucune suite
+Vitest ne joue.
+
+Hôtes du noyau (#2898, #2928) : une zone qui ne lit le noyau que par sa porte `src/noyau/index.ts`
+(`HOTES_DU_NOYAU`). Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
+feuilles ; un hôte (`hoteTexte`, `hotes`) a ces mêmes droits plus `hote`, lus d'une seule constante de
+`COUCHES` (`DROITS_DES_HOTES`). Les hôtes externes (le pont de Godot, #2928) forment la zone `hotes`, de
+dossier propre à la racine du dépôt : leur règle est sa ligne de la table, rien d'autre. `hote` (le
+commun, au singulier) et `hotes` (les hôtes externes, au pluriel) sont deux zones distinctes. Les tests
+`*.hors-store.test.ts` des hôtes jouent dans la suite du noyau (`MOTIF_HORS_STORE`) ; sous `hotes/`, c'est la
+seule suite jouée. La garde
+`src/hote/derive-du-noyau.hors-store.test.ts` refuse, dans leur code, un verbe ou une fenêtre nommé en dur.
 
 Convention `X/interne/` (#2724) : un fichier sous `X/interne/` n'est importable que depuis `X/`, et ne
 se réexporte jamais hors de `X/interne/` : la porte de `X/` expose des fonctions qu'elle écrit
@@ -445,11 +460,19 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             spawn de rencontre (`combatSlice` → `ficheDEntite` → `spawnEnemy` canal `{ presetCreature, presetId }`, `monde/spawn.ts` reste sans
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
+src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
+                            horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, le contrôle des
+                            arguments d'un verbe, le scénario de test par id et son lancement, la tenue des jetons
+                            programmés, numérotés : un jeton ne traverse pas JSON), `projection.ts` (la projection
+                            de l'état, chaque liste aux bornes de l'hôte), `formes.ts` (la forme JSON d'un paramètre
+                            de verbe), `verbes.generated.ts` (les paramètres des verbes, `scripts/gen-verbes.mjs`).
+                            Entrée d'un hôte servi par Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
-                            (`portes` de `COUCHES`), plus `scenes` et les feuilles. `partieTexte.ts` (fichier de
-                            partie, rejeu, jetons, erreurs), `vue.ts` (projection et rendus bornés), `outils.ts`
-                            (les trois outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
+                            (`portes` de `COUCHES`), plus `scenes`, le module commun `src/hote/` et les feuilles.
+                            `partieTexte.ts` (fichier de partie, rejeu, reprise des jetons sur une horloge
+                            virtuelle), `vue.ts` (projection à ses bornes et rendus bornés), `outils.ts` (les trois
+                            outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique

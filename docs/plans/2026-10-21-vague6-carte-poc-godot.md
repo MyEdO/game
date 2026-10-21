@@ -1,4 +1,7 @@
 # Carte vague 6 (#2882) : reprise de poc/godot en hotes/godot — lecture seule
+
+Ticket: #2928
+
 Base : origin/poc/godot = 3baf8483b (2026-10-19), non refetchée (fetch refusé par le hook ; ref locale existante). Merge-base avec l'arbre .wt-2884 (branche lot/2884-noyau, 780526c90) = 5a46fc12b (2026-10-18) ; 9 commits poc-only, 294 commits de main depuis. `hotes/` n'existe pas sur main.
 
 ## 1. Arborescence poc/ (tout sous poc/godot/, 10 071 234 o, ~79 fichiers)

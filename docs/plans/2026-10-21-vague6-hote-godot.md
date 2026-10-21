@@ -1,5 +1,7 @@
 # Vague 6 de l'épique #2882 : l'hôte Godot dans le dépôt (plan v2)
 
+Ticket: #2928
+
 Date : 2026-10-21. Carte : `docs/plans/2026-10-21-vague6-carte-poc-godot.md`, lecture de `origin/poc/godot` (3baf8483b). La v1 a été refusée par un juge neuf (huit bloquants, huit majeurs) ; la v2 les intègre, chaque correction citée par son repère (B1… M8).
 
 ## Qualification
@@ -61,5 +63,5 @@ Les écrans suivants dans Godot, la coquille commune des jets, l'art 3D (#2794) 
 
 - **6b1** : zones (`COUCHES` par dossier, `src/hote/`, `hotes`), banc des murs, oxlint, knip, périmètre des gardes, `MOTIF_HORS_STORE`, `ENTREES_FERMEES` ; module commun sorti de l'hôte texte (validation, scénario par id, numérotation des jetons, `projeter`) ; lanceur unique ; amendements de l'épique et de `docs/architecture.md`.
 - **6b2** : vue-données de la fenêtre d'attaque et `difficultyText` dans le noyau, lus par le web (oracle de conformance vert) ; exports morts de l'index retirés.
-- **6b3** : pont v2 (`hotes/godot/pont/`), contrat v2, tests hors store, étape CI du bundle.
+- **6b3** : pont v2 (`hotes/godot/pont/`), contrat v2, tests hors store, étape CI du bundle ; reportés de 6b1, faute de consommateur avant le pont : l'ouvreur commun de partie (`creerPartie`, scénario, lancement, tenue des jetons, pour `demarrer`), le `resolveId` du module virtuel pour le build Vite (`scripts/entree-d-hote.mjs`), les champs de projection mis en texte, la lecture d'un verbe et son refus « verbe inconnu » (`src/hoteTexte/serveur.ts`), la traduction de l'issue d'un appel en catégorie d'erreur (`src/hoteTexte/partieTexte.ts`) ; `hotes` entre dans `PERIMETRE_DES_GARDES` et les `lit` des gates avec son premier fichier (`RACINES_PRESENTES`).
 - **6c** : projet Godot v2, garde GDScript, sonde Godot en CI, recette du tour complet.

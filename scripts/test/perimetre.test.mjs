@@ -893,11 +893,13 @@ test('ligneDeRelance : chaque rouge SANS fichier nommé est nommé, à côté de
     + ' — rouge sans fichier nommé : vitest : 1 lancement(s) rouge(s) sans fichier en échec rapporté')
 })
 
-test('suite du noyau (#2817) : un fichier de src/ touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {
+test('suite du noyau (#2817, #2928) : un fichier d’une racine des zones touché la lance ENTIÈRE par `test:noyau`, et un rouge se relance sur elle', () => {
   const post = ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'src/state/x.hors-store.test.ts', 'src/noyau/partie.ts', 'scripts/a.mjs']
   assert.deepEqual(suiteDuNoyauALancer(['src/noyau/partie.ts'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier du noyau qui n’est pas un test lance la suite')
   assert.deepEqual(suiteDuNoyauALancer(['src/data/supprime.json'], post), ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts'], 'un fichier de src/ supprimé compte')
   assert.deepEqual(suiteDuNoyauALancer(['scripts/a.mjs'], post), [], 'hors de src/, la suite ne se lance pas')
+  assert.deepEqual(suiteDuNoyauALancer(['hotes/godot/pont/pont.ts'], [...post, 'hotes/godot/pont/pont.hors-store.test.ts']),
+    ['src/noyau/partie.hors-store.test.ts', 'src/noyau/b.hors-store.test.ts', 'hotes/godot/pont/pont.hors-store.test.ts'], 'un fichier d’un hôte externe (`hotes/`) la lance, ses tests compris')
   const args = argumentsDuNoyau(['src/noyau/partie.hors-store.test.ts'])
   assert.deepEqual(args, ['scripts/lancer-local.mjs', 'vitest', '--', 'vitest', 'run', '--config', 'vitest.noyau.config.ts', 'src/noyau/partie.hors-store.test.ts'])
   assert.equal(ligneDeRelance({ code: 1, lancements: [{ famille: 'noyau', code: 1, echecs: [], args }], lint: { code: 0, defauts: [] }, appelLint: () => ['oxlint'] }),

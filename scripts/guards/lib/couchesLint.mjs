@@ -5,27 +5,18 @@
 //    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte
 //    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`).
 // La zone d'une cible se lit sur son chemin NORMALISÉ sans disque (`cibleLexicale`, alias du dépôt et
-// chemin `/…` compris) : le premier segment sous `src/` s'il nomme une zone, `racine` pour un fichier
-// posé à même `src/`. Un paquet n'est pas jugé, ni un motif de glob `!…` ou dont la zone est un joker.
+// chemin `/…` compris), par `zoneDe` (`couches.mjs`). Un paquet n'est pas jugé, ni un motif de glob `!…` ou dont la
+// zone est un joker.
 
-import { posix as cheminPosix, relative } from 'node:path';
+import { relative } from 'node:path';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { visiteurDArcs } from './arcsDImport.mjs';
-import { estZone, fermeture, ouvertes, porteManquee } from './couches.mjs';
-
-/** La zone d'un chemin RELATIF à la racine du dépôt, `null` hors de `src/`. Un segment qui n'est pas une
- *  zone de la table rend son nom brut, pour que `murs/zone` le nomme. */
-export function zoneDe(rel) {
-  const segments = cheminPosix.normalize(posix(rel)).split('/');
-  if (segments[0] !== 'src' || segments.length < 2) return null;
-  if (segments.length === 2) return estZone(segments[1]) ? segments[1] : 'racine';
-  return segments[1];
-}
+import { dossierDe, estZone, fermeture, ouvertes, porteManquee, zoneDe } from './couches.mjs';
 
 const TABLE = 'la table `COUCHES` (`scripts/guards/lib/couches.mjs`)';
 
 /** Le nom d'une zone dans un message : `racine` n'est pas un dossier. */
-const nommer = (z) => (z === 'racine' ? 'un fichier posé à même `src/`' : `src/${z}`);
+const nommer = (z) => (z === 'racine' ? 'un fichier posé à même `src/`' : dossierDe(z));
 
 const zone = {
   meta: { type: 'problem' },
@@ -34,7 +25,7 @@ const zone = {
     return {
       Program: (node) => {
         if (z === null || estZone(z)) return;
-        context.report({ node, message: `Zone (#2882) : \`src/${z}/\` n’est pas une zone de ${TABLE} — rejoindre une zone existante, ou écrire la ligne de la nouvelle zone et ses sens d’import.` });
+        context.report({ node, message: `Zone (#2882) : \`${z}/\` n’est pas une zone de ${TABLE} — rejoindre une zone existante, ou écrire la ligne de la nouvelle zone et ses sens d’import.` });
       },
     };
   },

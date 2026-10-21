@@ -2,8 +2,8 @@
 // `Parameters<ActionsDuNoyau[K]>` (src/noyau/partie.ts), donc chaque membre de l'interface `ActionsDuNoyau`
 // (src/noyau/actionsDuNoyau.ts, `RollFlowActionsMap` dérivé compris) est un verbe, et la signature de son appel
 // donne ses paramètres. Le vérificateur de types résout chaque paramètre en une FORME JSON (`Forme`,
-// src/hoteTexte/formes.ts) : la même lecture sert la table du doc (scripts/docs/build-hote-texte.mjs) et la
-// validation des arguments de `jouer` (src/hoteTexte/verbes.generated.ts, scripts/gen-verbes.mjs). Aucune forme écrite à la main.
+// src/hote/formes.ts) : la même lecture sert la table du doc (scripts/docs/build-hote-texte.mjs) et la
+// validation des arguments d'un verbe (src/hote/verbes.generated.ts, scripts/gen-verbes.mjs). Aucune forme écrite à la main.
 // Un paramètre (ou un champ) dont la DÉCLARATION nomme une clé de `DESIGNATIONS` (src/noyau/designations.ts) porte
 // ce nom et son mot dans sa forme (`designe`) : un alias de `string` ne survit pas au type résolu, il se lit au nœud déclaré.
 import path from 'node:path'
@@ -133,7 +133,7 @@ function sansAbsent(f) {
 const admetAbsent = (f) => f.genre === 'absent' || (f.genre === 'union' && f.membres.some((m) => m.genre === 'absent'))
 
 /** Les verbes de la partie, par nom, ou les seuls `noms` : leurs paramètres, dans l'ordre de l'appel
- *  (`ParametreDeVerbe`, src/hoteTexte/formes.ts). */
+ *  (`ParametreDeVerbe`, src/hote/formes.ts). */
 export function verbesDeLaPartie(racine = process.cwd(), noms = null) {
   const fichier = path.resolve(racine, SOURCE).replaceAll('\\', '/')
   const session = repoProgram(racine, () => [fichier])

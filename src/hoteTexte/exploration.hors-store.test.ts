@@ -10,7 +10,7 @@ import { lireLeFichier, ligneDuFichier, nouvelEntete, rejouer } from './partieTe
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { gestesDExploration } from '../noyau/index';
 import { gestesEcrits } from './vue';
-import { estObjet } from './formes';
+import { estObjet } from '../hote/formes';
 import { testScenarios } from '../scenes/test-scenarios';
 
 afterEach(fermerLaTable);

@@ -1,7 +1,9 @@
 // Racines de la SUITE Vitest — source unique : `vite.config.ts` en tire `test.include` et `test.exclude`,
 // `vitest.noyau.config.ts` son `include` (`SUITES_VITEST_DE_CI`), `suiteVitest.mjs` en lit les fichiers. Module sans
-// dépendance du dépôt : les configs Vite et la garde Vitest d'avant import le chargent.
+// autre dépendance du dépôt que la table `COUCHES` (`couches.mjs`, sans dépendance) : les configs Vite et la garde
+// Vitest d'avant import le chargent.
 import picomatch from 'picomatch'
+import { HOTES_DU_NOYAU, dossierDe } from './couches.mjs'
 
 /** Une racine : `dir` = dossier, `exts` = extensions de ses suites, `motif` = glob de `test.include`. */
 const racine = (dir, exts) =>
@@ -19,9 +21,9 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
 ])
 
 /** Les tests HORS STORE (#2817) : joués par la seule suite du noyau (`vitest.noyau.config.ts`, `isolate: true`), sans
- *  le store ni le socle de test de la suite principale — ceux du noyau et ceux de son hôte texte (#2898). Un
- *  `*.hors-store.test.ts` posé hors de `src/noyau` et de `src/hoteTexte` n'est pas exclu : la suite principale le joue. */
-export const MOTIF_HORS_STORE = 'src/{noyau,hoteTexte}/**/*.hors-store.test.ts'
+ *  le store ni le socle de test de la suite principale — ceux du noyau et ceux de ses hôtes (`HOTES_DU_NOYAU`, #2898,
+ *  #2928). Un `*.hors-store.test.ts` posé hors de leurs dossiers n'est pas exclu : la suite principale le joue. */
+export const MOTIF_HORS_STORE = `{${['noyau', ...HOTES_DU_NOYAU].map(dossierDe).join(',')}}/**/*.hors-store.test.ts`
 
 /** Les suites Vitest qu'un step `npm run <nom>` de la CI joue hors de la suite principale : `config` = la config que
  *  lance le script `package.json` du même nom (`vitest run --config <config>`), `motif` = son `include`. La liste

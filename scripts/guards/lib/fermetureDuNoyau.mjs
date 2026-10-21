@@ -2,8 +2,8 @@
 // `src/noyau/surface-fermeture-guard.test.ts`.
 //
 // Question : ce qu'un hôte externe importe (`ENTREES_FERMEES` : la surface `src/noyau/index.ts`, les scénarios
-// de test qu'il lance, et l'entrée de l'hôte texte, #2898) charge-t-il à l'EXÉCUTION un module d'un hôte web ou
-// d'interface ? Réponse
+// de test qu'il lance, le module commun des hôtes `src/hote/`, #2928, et l'entrée de l'hôte texte, #2898) charge-t-il à
+// l'EXÉCUTION un module d'un hôte web ou d'interface ? Réponse
 // attendue : aucun fichier de `ZONES_D_HOTE`, aucun paquet de `PAQUETS_D_HOTE`.
 // La table `COUCHES` (`couches.mjs`) n'ouvre, en valeur, aucune zone d'hôte aux zones de la fermeture, mais n'en
 // répond pas seule : `murs/purete-imports` ne juge ni paquet ni les angles morts de son en-tête (`couchesLint.mjs`) ;
@@ -14,15 +14,24 @@
 // ANGLES MORTS : ceux de `clotureDImports` (spécificateur calculé, motif joker hors de la liste des fichiers).
 import { resolve, sep } from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { clotureDImports } from './importGraph.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
-import { SURFACE_DU_NOYAU } from './couches.mjs'
+import { SURFACE_DU_NOYAU, dossierDe, zoneDe } from './couches.mjs'
+import { estRetenu } from './sourceCorpus.mjs'
+
+/** Les modules du module commun des hôtes (#2928) : les fichiers de code (`estRetenu` : ni suite, ni banc, ni
+ *  déclaration) que l'arbre de travail de ce dépôt porte sous `dossierDe('hote')`, ignorés exclus. */
+const MODULES_DU_COMMUN = listerImage(depotDe(fileURLToPath(new URL('../../..', import.meta.url))), TRAVAIL, dossierDe('hote'))
+  .filter((rel) => estRetenu(rel))
+  .sort()
 
 /** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure` : la surface du noyau, le registre des
- *  scénarios de test dont il construit le lancement, et l'entrée de l'hôte texte (#2898). */
-export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', 'src/hoteTexte/serveur.ts'])
+ *  scénarios de test dont il construit le lancement, chaque module du module commun des hôtes, et l'entrée de l'hôte
+ *  texte (#2898). */
+export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', ...MODULES_DU_COMMUN, 'src/hoteTexte/serveur.ts'])
 
-/** Les zones de `src/` qu'aucun module de la fermeture ne charge. */
+/** Les zones qu'aucun module de la fermeture ne charge. */
 export const ZONES_D_HOTE = Object.freeze(['state', 'ui', 'gameIso', 'web', 'net', 'audio'])
 
 /** Les paquets qu'aucun module de la fermeture ne charge. */
@@ -33,12 +42,6 @@ export function paquetDe(spec) {
   if (spec.startsWith('.') || spec.startsWith('/') || spec.startsWith('@/') || spec.startsWith('node:')) return null
   const segments = spec.split('/')
   return spec.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0]
-}
-
-/** La zone de `src/` d'un chemin POSIX relatif, `null` hors de `src/`. PURE. */
-const zoneDe = (rel) => {
-  const segments = rel.split('/')
-  return segments[0] === 'src' && segments.length > 2 ? segments[1] : null
 }
 
 /** L'arbre de travail de `racine` (suivis et non suivis, hors ignorés et supprimés), en `arbre` de `clotureDImports`. */

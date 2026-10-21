@@ -1,15 +1,17 @@
 /**
- * L'HÔTE DÉRIVE DU NOYAU (#2898 lot D). laurent, 2026-10-21 13:06Z : « Ce qui est vital pour moi c est que si je modifie
- * le moteur, je n ai pas à toucher ni au mcp, ni à l hôte, sauf si je dois inventer des nouveaux tools ». Garde de classe :
- * aucune chaîne du code de l'hôte (`src/hoteTexte/`, hors tests et cibles générées) ne nomme un verbe de la partie
- * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; l'hôte les lit du noyau. Seule exception :
- * le verbe que l'outil `offre` porte, son entrée dans le noyau.
+ * LES HÔTES DÉRIVENT DU NOYAU (#2898 lot D, #2928). laurent, 2026-10-21 13:06Z : « Ce qui est vital pour moi c est que si
+ * je modifie le moteur, je n ai pas à toucher ni au mcp, ni à l hôte, sauf si je dois inventer des nouveaux tools ». Garde
+ * de classe : aucune chaîne du code d'un hôte du noyau (le dossier de chaque zone de `HOTES_DU_NOYAU`,
+ * `scripts/guards/lib/couches.mjs`, hors tests et cibles générées) ne nomme un verbe de la partie (`VERBES`, lus du type
+ * du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau. Seule exception : le verbe que le geste
+ * `offre` porte, son entrée dans le noyau.
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { HOTES_DU_NOYAU, dossierDe } from '../../scripts/guards/lib/couches.mjs';
 import { VERBES } from './verbes.generated';
 import { CLES_DE_FENETRE } from '../noyau/index';
 
@@ -18,11 +20,14 @@ const EXCEPTIONS: Readonly<Record<string, string>> = {
   jouerLOffre: 'l’entrée du noyau que le geste `offre` porte',
 };
 
-const DOSSIER = new URL('./', import.meta.url);
+const RACINE = new URL('../../', import.meta.url);
 
-/** Les fichiers de code de l'hôte : ni test, ni table de test, ni cible générée. */
-const fichiersDeLHote = (): string[] =>
-  listerDossier(fileURLToPath(DOSSIER)).filter((f) => /\.ts$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f));
+/** Les dossiers des hôtes que l'arbre porte. */
+const DOSSIERS = HOTES_DU_NOYAU.map(dossierDe).filter((d) => existsSync(new URL(d, RACINE)));
+
+/** Les fichiers de code des hôtes, relatifs à la racine du dépôt : ni test, ni table de test, ni cible générée. */
+const fichiersDesHotes = (): string[] =>
+  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.ts$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) && !/\.generated\.ts$/.test(f) }).map((f) => `${d}/${f}`));
 
 /** Les mots des chaînes d'un texte de code (littéraux entre apostrophes, guillemets ou accents graves), commentaires ôtés,
  *  chacun avec sa ligne. */
@@ -44,10 +49,13 @@ describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
     expect(mots.map((m) => m.mot)).not.toContain(autre);
   });
 
-  it('aucun fichier de code de l’hôte', () => {
+  it('aucun fichier de code d’un hôte', () => {
+    const fichiers = fichiersDesHotes();
+    for (const d of DOSSIERS) expect(fichiers.some((f) => f.startsWith(`${d}/`)), `témoin : la garde lit ${d}`).toBe(true);
+    expect(DOSSIERS, 'témoin : la garde lit le module commun et l’hôte texte').toEqual(expect.arrayContaining(['src/hote', 'src/hoteTexte']));
     const interdits = new Set([...Object.keys(VERBES), ...CLES_DE_FENETRE].filter((n) => !EXCEPTIONS[n]));
-    const trouves = fichiersDeLHote().flatMap((f) =>
-      motsDesChaines(readFileSync(new URL(f, DOSSIER), 'utf8')).flatMap(({ mot, ligne }) => (interdits.has(mot) ? [`src/hoteTexte/${f}:${ligne} ${mot}`] : [])));
+    const trouves = fichiers.flatMap((f) =>
+      motsDesChaines(readFileSync(new URL(f, RACINE), 'utf8')).flatMap(({ mot, ligne }) => (interdits.has(mot) ? [`${f}:${ligne} ${mot}`] : [])));
     expect(trouves, 'un verbe ou une fenêtre nommé en dur : le lire du noyau (`VERBES`, `fenetreDuJeu`)').toEqual([]);
   });
 });

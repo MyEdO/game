@@ -4,6 +4,7 @@
     "index.html",
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
+    "hotes/**/*.hors-store.test.ts",
     "scripts/**/*.{mjs,mts,ts}",
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
@@ -11,6 +12,7 @@
   ],
   "project": [
     "src/**/*.{ts,tsx}",
+    "hotes/**/*.{ts,tsx}",
     "scripts/**/*.{mjs,mts,ts}"
   ],
   "ignore": [

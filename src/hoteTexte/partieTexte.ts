@@ -7,13 +7,13 @@
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import {
-  creerPartie, etatInitialDuJeu, argsAvecVerdictLocal, actionGate, etatDeLaBarre, offresDeLActif, offreDesignee, runAction, quiTientLaMain, siegeDe, porteurParId, ACTIONS, CADENCE_MODES, DESIGNATIONS,
-  type ActionRunCtx, type Cadence, type Intention, type Jeton, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
+  creerPartie, etatInitialDuJeu, argsAvecVerdictLocal, actionGate, etatDeLaBarre, offreDesignee, runAction, quiTientLaMain, siegeDe, porteurParId, ACTIONS, CADENCE_MODES,
+  type ActionRunCtx, type Cadence, type Intention, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
-import { lireALaForme, estObjet, signature, type Designes, type ParametreDeVerbe } from './formes';
+import { estObjet } from '../hote/formes';
+import { ErreurDeGeste, lancerLeScenarioDeTest, scenarioDeTest, tenueDesJetons, valider } from '../hote/partie';
+import { offresDeLaBarreOuverte } from '../hote/projection';
 import { appelEcrit } from './outils';
-import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
-import { testScenarios } from '../scenes/test-scenarios';
 import { tableTotale } from '../lib/tableTotale';
 
 /** L'en-tête du fichier : le scénario lancé et les entrées de la partie (D8). */
@@ -30,45 +30,9 @@ export type Geste =
   | { offre: string; ctx?: ActionRunCtx }
   | { type: string; args: unknown[]; siege?: number };
 
-/** Les trois catégories d'erreur d'un geste (plan v3, « L'issue d'un geste »). */
-export type CategorieDErreur = 'validation' | 'permission' | 'regle';
-
-/** Une erreur structurée : sa catégorie et ce qui la dit. */
-export class ErreurDeGeste extends Error {
-  constructor(readonly categorie: CategorieDErreur, message: string) {
-    super(message);
-  }
-}
-
-const valider = (condition: unknown, message: string): void => {
-  if (!condition) throw new ErreurDeGeste('validation', message);
-};
-
-
-/** Ce que l'état désigne, lu par la table du noyau (`DESIGNATIONS`). */
-const designesDe = (etat: Jeu): Designes => (cle) =>
-  cle in DESIGNATIONS ? DESIGNATIONS[cle as keyof typeof DESIGNATIONS].lire(etat) : undefined;
-
-/** Les arguments d'un verbe, lus à leurs paramètres (`lireALaForme`) : un id que l'état ne désigne pas lève une erreur
- *  de validation qui nomme les ids valides, un objet désigné par son id est complété, `null` omet un paramètre
- *  optionnel, un argument de forme fausse, en trop ou manquant lève une erreur de validation. */
-export function argumentsDuVerbe(etat: Jeu, verbe: string, args: readonly unknown[], parametres: readonly ParametreDeVerbe[]): unknown[] {
-  valider(args.length <= parametres.length, `${verbe} : ${parametres.length} argument(s) au plus (${signature(verbe, parametres)})`);
-  for (const p of parametres.slice(args.length)) valider(p.optionnel, `${verbe} : l’argument ${p.nom} manque (${signature(verbe, parametres)})`);
-  return args.map((brut, i) => {
-    const p = parametres[i];
-    // JSON n'a pas d'`undefined` : `null` omet un paramètre optionnel, pour en poser un suivant.
-    if (brut === null && p.optionnel) return brut;
-    const lu = lireALaForme(brut, p.forme, p.nom, designesDe(etat));
-    if ('ecart' in lu) throw new ErreurDeGeste('validation', `${verbe} : ${lu.ecart} (${signature(verbe, parametres)})`);
-    return lu.valeur;
-  });
-}
-
-
 /** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse. */
 export function nouvelEntete(scenario: string, options: { graine?: number; cadence?: string; desFixes?: boolean; regles?: Record<string, unknown> }): Entete {
-  valider(testScenarios.some((s) => s.id === scenario), `scénario inconnu : ${scenario}`);
+  scenarioDeTest(scenario);
   const graine = options.graine ?? 1;
   valider(Number.isInteger(graine), `graine non entière : ${graine}`);
   const cadence = options.cadence ?? 'manuel';
@@ -135,24 +99,24 @@ export interface PartieRejouee {
 /** Le plafond de reprises après un appel : au-delà, la partie boucle. */
 const PLAFOND_DE_REPRISES = 100_000;
 
-/** Absorbe le résultat d'un appel : ses lignes au journal, puis la reprise de tous ses jetons, par échéance puis par
- *  ordre d'arrivée, sur une horloge virtuelle propre à l'appel. */
+/** Absorbe le résultat d'un appel : ses lignes au journal, puis la reprise de tous ses jetons (`tenueDesJetons`), par
+ *  échéance puis par ordre d'arrivée (leur numéro), sur une horloge virtuelle propre à l'appel. */
 function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): void {
-  const file: { jeton: Jeton; echeance: number; rang: number }[] = [];
+  const jetons = tenueDesJetons(r.partie);
+  const file: { id: number; echeance: number }[] = [];
   let horloge = 0;
-  let rang = 0;
   const lire = (res: ResultatDeLAppel, differee: boolean): void => {
     for (const ligne of res.journal) r.journal.push({ n: r.journal.length, pas, ligne, differee });
-    for (const e of res.evenements) if (e.type === 'programme') file.push({ jeton: e.jeton, echeance: horloge + e.delai, rang: rang++ });
+    for (const p of jetons.programmes(res)) file.push({ id: p.id, echeance: horloge + p.delai });
   };
   lire(resultat, false);
   let reprises = 0;
   for (; file.length; reprises++) {
     if (reprises >= PLAFOND_DE_REPRISES) throw new Error(`[hôte texte] plus de ${PLAFOND_DE_REPRISES} reprises après le pas ${pas} : la partie boucle`);
-    file.sort((a, b) => a.echeance - b.echeance || a.rang - b.rang);
-    const { jeton, echeance } = file.shift()!;
+    file.sort((a, b) => a.echeance - b.echeance || a.id - b.id);
+    const { id, echeance } = file.shift()!;
     horloge = echeance;
-    lire(r.partie.reprendre(jeton), true);
+    lire(jetons.reprendre(id), true);
   }
   r.reprises[pas] = reprises;
 }
@@ -162,7 +126,7 @@ function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): vo
 export function offresDeLaBarre(etat: Jeu): Offre[] {
   const barre = etatDeLaBarre(etat);
   if (barre.forme !== 'ouverte') throw new ErreurDeGeste('regle', `aucune offre : ${barre.raison} (${appelEcrit('lire', { quoi: 'vue' })})`);
-  return offresDeLActif({ active: barre.active, battle: barre.battle, netMode: etat.net.mode, state: etat });
+  return offresDeLaBarreOuverte(etat, barre);
 }
 
 /** La sonde : elle répond à toute lecture et à tout appel par elle-même, et se convertit en `0`. */
@@ -268,8 +232,7 @@ export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
 /** Rejoue un fichier : la partie ouverte sur l'en-tête, le scénario lancé, chaque geste rejoué. Une ligne qui ne se
  *  rejoue plus ferme la partie et lève, avec son rang (1 : l'en-tête, le lancement). */
 export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee {
-  const scenario = testScenarios.find((s) => s.id === entete.scenario);
-  valider(scenario, `scénario inconnu : ${entete.scenario}`);
+  const scenario = scenarioDeTest(entete.scenario);
   const heros = new Map<string, unknown>();
   const partie = creerPartie(etatInitialDuJeu(), {
     graine: entete.graine,
@@ -281,7 +244,7 @@ export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee
   const r: PartieRejouee = { partie, entete, gestes: [], journal: [], reprises: [] };
   let ligne = 1;
   try {
-    absorber(r, partie.lancer(lancementDuScenario(scenario!)), 0);
+    absorber(r, lancerLeScenarioDeTest(partie, scenario), 0);
     for (const geste of gestes) {
       ligne++;
       jouerUnGeste(r, geste);
