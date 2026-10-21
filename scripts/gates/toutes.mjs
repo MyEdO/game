@@ -120,7 +120,7 @@ export const ECRIT_LU = {
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', 'src/', 'Source/',
       'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
-      'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts',
+      'kill-pid.mjs', 'knip-exports-baseline.json', 'vite.config.ts', 'vitest.noyau.config.ts',
     ],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
@@ -321,7 +321,7 @@ export const ECRIT_LU = {
   'test:noyau': {
     ecrit: [],
     lit: ['src/', 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
-    raison:
+    raison: RETRAIT_WORKTREE_FERME +
       'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` de src/noyau, sans le store, ' +
       'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
       'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
