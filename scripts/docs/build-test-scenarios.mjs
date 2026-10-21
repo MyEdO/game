@@ -233,7 +233,7 @@ function rendu() {
     '',
     "La FICHE (`id`…`partyNote`, `autoCombat`, `money`, `rules`, `interludeWeeks`) ne lit aucun dataset ;",
     "tout ce qui se construit (groupe, scène, `extraScenes`, `worldMap`, `narratif`, `vessel`, `massBattle`)",
-    "sort de la fabrique `construire`, appelée à chaque lancement par `lancerScenario` (`src/state/scenarioFlow.ts`).",
+    "sort de la fabrique `construire`, appelée à chaque lancement par `lancementDuScenario` (`src/scenes/test-scenarios/_shared.ts`).",
     '',
     "`category` est une clé SANS emoji (`'combat' | 'magie' | 'creatures' | 'survie' | 'marche' |",
     "'scenarios' | 'naval' | 'rendu'`, `SCENARIO_SECTIONS` dans `_shared.ts`) — le libellé/icône de",

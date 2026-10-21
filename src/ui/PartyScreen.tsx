@@ -8,7 +8,8 @@ import { rosterLoad, rosterRemove, rosterAdd, rosterExport, rosterImport, takeRo
 import { PARTY_MAX } from '../noyau/monde/combatants';
 import { downloadText, fileSlug } from '../web/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { publishedProjects, campagneDeLEntree, playerEntryError } from '../state/projectLibrary';
+import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
+import { playerEntryError } from '../noyau/worldMap';
 import { Combatant } from '../engine/types';
 import { Money } from '../engine/money';
 import { axisScore, AXIS_QUALIFY_MIN } from '../engine/axes';

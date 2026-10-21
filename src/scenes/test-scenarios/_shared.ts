@@ -2,7 +2,7 @@ import { Combatant, type SkillInstance } from '../../engine/types';
 import { byId } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import { Scene, Terrain } from '../../noyau/monde/scene';
-import type { WorldMap } from '../../noyau/worldMap';
+import type { ContenuDeScenario, LancementDeScenario } from '../../noyau/lancementDeScenario';
 import type { IconId } from '../../ui/icons';
 import { buildEncounters, type AuthoredEncounter } from '../../noyau/monde/encounterAuthoring';
 import { buildScene } from '../../noyau/mapSpec';
@@ -44,29 +44,9 @@ export const SCENARIO_SECTIONS = [
 
 export type ScenarioCategory = (typeof SCENARIO_SECTIONS)[number]['key'];
 
-/** Ce qu'un scénario CONSTRUIT, à chaque appel de sa fabrique `construire`, sur les datasets VIVANTS
- *  (#1692) : rien de ce qui lit un dataset ne se calcule au niveau module d'un fichier de scénario. */
-export interface ScenarioConstruit {
-  party: Combatant[];
-  scene: Scene;
-  /** Scènes supplémentaires du scénario (destinations de voyage, intérieurs…) — chargées en projet. */
-  extraScenes?: Scene[];
-  /** Carte du monde du scénario (#T2 Voyage). */
-  worldMap?: WorldMap;
-  /** Bloc narratif du scénario (presets de PNJ/affaires/indices) — posé au chargement (`loadProject`)
-   *  pour que les `presetId` des entités de scène résolvent (#671). */
-  narratif?: import('../../noyau/monde/campaignNarratif').NarratifBlock;
-  /** Bataille de masse (ADE II 08) : amorce le sous-système de Puissance de Bataille après le chargement
-   *  de la scène (les Scènes de combat démarrent les rencontres de cette scène). */
-  massBattle?: import('../../engine/massBattle').MassBattleSpec;
-  /** Navire de campagne (MDG 13-15) posé au lancement, APRÈS le reset de scène (comme `money`) — pour
-   *  un scénario de voyage/combat maritime (appareillage sur `state.vessel`). */
-  vessel?: import('../../noyau/etat').CampaignVessel;
-}
-
 /** Un scénario de test = sa FICHE (valeurs qui ne lisent aucun dataset : menu, doc générée, lancement)
- *  + UNE fabrique, `construire`, qui rend tout son contenu construit. Lancé par `lancerScenario`
- *  (`src/state/scenarioFlow.ts`). */
+ *  + UNE fabrique, `construire`, qui rend tout son contenu construit. Lancé par son lancement
+ *  (`lancementDuScenario`), que joue la séquence du noyau (`noyau/lancementDeScenario.ts`). */
 export interface TestScenario {
   id: string;
   order: number; // tri d'affichage dans la section
@@ -75,7 +55,8 @@ export interface TestScenario {
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »
-  construire: () => ScenarioConstruit;
+  /** Rien de ce qui lit un dataset ne se calcule au niveau module d'un fichier de scénario (#1692). */
+  construire: () => ContenuDeScenario;
   autoCombat?: string; // id d'encounter → démarre le combat directement
   /** Bourse de départ (le lancement écrase la richesse par défaut) — ex. payer la diligence. */
   money?: { gold: number; silver: number; brass: number };
@@ -86,6 +67,12 @@ export interface TestScenario {
    *  d'Activités (max 3) qu'il alloue est CELUI dans lequel puise la préparation (ADE II 8 l.65).
    *  Sans lui, une `massBattle` démarre au Round 1 sans préparation. Valeur = nombre de semaines. */
   interludeWeeks?: number;
+}
+
+/** LE lancement d'un scénario (#2898), constructeur UNIQUE que partagent le web (`state/scenarioFlow.ts`) et tout
+ *  hôte du noyau : le contenu construit à neuf, et les réglages de la fiche. */
+export function lancementDuScenario(sc: TestScenario): LancementDeScenario {
+  return { ...sc.construire(), regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
 }
 
 /** Arène dégagée + point de départ des héros (base des scénarios de combat direct). Preset MINCE

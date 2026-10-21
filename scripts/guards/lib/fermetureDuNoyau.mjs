@@ -1,8 +1,9 @@
 // FERMETURE DE LA SURFACE DU NOYAU (#2817 D9, épique #2882) — définition UNIQUE de la mesure, lue par la garde
 // `src/noyau/surface-fermeture-guard.test.ts`.
 //
-// Question : la surface qu'un hôte externe importe (`src/noyau/index.ts`) charge-t-elle à l'EXÉCUTION un module d'un
-// hôte web ou d'interface ? Réponse attendue : aucun fichier de `ZONES_D_HOTE`, aucun paquet de `PAQUETS_D_HOTE`.
+// Question : ce qu'un hôte externe importe (`ENTREES_FERMEES` : la surface `src/noyau/index.ts`, et les scénarios
+// de test qu'il lance, #2898) charge-t-il à l'EXÉCUTION un module d'un hôte web ou d'interface ? Réponse
+// attendue : aucun fichier de `ZONES_D_HOTE`, aucun paquet de `PAQUETS_D_HOTE`.
 // La table `COUCHES` (`couches.mjs`) ne l'implique pas : `data` importe `scenes` en valeur, et `scenes` importe
 // `state` (arêtes transitoires de #2884) ; la fermeture se MESURE donc ici.
 // Primitive : `clotureDImports` (`importGraph.mjs`), arcs d'exécution seuls (`typesEffaces`), dynamiques et motifs
@@ -16,6 +17,10 @@ import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
 
 /** La surface du noyau. */
 export const SURFACE_DU_NOYAU = 'src/noyau/index.ts'
+
+/** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure` : la surface du noyau, et le registre des
+ *  scénarios de test dont il construit le lancement (#2898). */
+export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'])
 
 /** Les zones de `src/` qu'aucun module de la fermeture ne charge. */
 export const ZONES_D_HOTE = Object.freeze(['state', 'ui', 'gameIso', 'web', 'net', 'audio'])

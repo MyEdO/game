@@ -653,6 +653,44 @@ export function exigerUnRefus(err: unknown): asserts err is ProjetRefuse {
   if (!(err instanceof ProjetRefuse)) throw err;
 }
 
+/**
+ * Les gestes du JOUEUR sur une campagne de sa bibliothèque, chacun avec ce que son refus ÉNONCE : le
+ * geste qui a échoué, rien de plus — le départ d'une entrée peut manquer sans que son export échoue.
+ */
+const GESTES_DU_JOUEUR = {
+  jouer: 'cette campagne ne peut pas être jouée',
+  exporter: 'cette campagne ne peut pas être exportée',
+} as const;
+
+/** Geste du joueur sur une entrée de sa bibliothèque — union FERMÉE. */
+export type GesteDuJoueur = keyof typeof GESTES_DU_JOUEUR;
+
+/** Ce que dit au JOUEUR le refus du `geste` sur une campagne que la porte refuse. */
+export function messageDeRefusJoueur(geste: GesteDuJoueur): string {
+  return `${PROJET_AUTRE_FORMAT} : ${GESTES_DU_JOUEUR[geste]}.`;
+}
+
+/** Message à afficher au JOUEUR quand une campagne de SA bibliothèque ne passe plus la porte
+ *  `parseProject` au moment du `geste` — même frontière que `playerImportError`
+ *  (`ui/CampaignLibraryScreen.tsx`). SOURCE UNIQUE des écrans qui la jouent ou l'exportent. */
+export function playerEntryError(err: unknown, geste: GesteDuJoueur): string {
+  return refusJoueur(
+    err,
+    'Campagne de bibliothèque refusée :',
+    messageDeRefusJoueur(geste),
+  );
+}
+
+/** Le refus de la porte (`ProjetRefuse`) JOURNALISÉ (`console.error`, diagnostic) puis remplacé par un
+ *  message générique : le langage de schéma n'atteint jamais l'écran du joueur. Toute autre erreur
+ *  n'est pas un refus de la porte : elle remonte telle quelle (même règle que
+ *  `refusDeLaPorteDuProjet`, `ui/editor/ProjectModals.tsx`). */
+export function refusJoueur(err: unknown, diagnostic: string, generique: string): string {
+  exigerUnRefus(err);
+  console.error(diagnostic, err.message);
+  return generique;
+}
+
 /** Refus hors schéma : une seule faute, rapportée `Projet invalide : <faute>.` */
 export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | number)[], faute: string): ProjetRefuse {
   return new ProjetRefuse(cause, [{ chemin, lieu: lieuDe(projetSchema, undefined, chemin), message: faute, code: cause }], `Projet invalide : ${faute}.`);

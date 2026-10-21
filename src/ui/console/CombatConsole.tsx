@@ -13,8 +13,7 @@ import { availableAttacks } from '../../noyau/combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
-import { actionGate, runAction, currentInterludeAction, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
-import { offresDuRegistre } from '../../state/registreOffres';
+import { actionGate, runAction, currentInterludeAction, offresDuRegistre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ActionRunCtx } from '../../noyau/actionRegistry';
 import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
@@ -685,7 +684,7 @@ export function CombatConsole() {
   const candidatsDe = (args?: ActionRunCtx): string[] =>
     Object.values(args ?? {}).filter((v): v is string => typeof v === 'string');
   /** LES OFFRES de la surface des gestes secondaires, par PORTEUR — socle PARTAGÉ avec les pastilles
-   *  du champ (`state/registreOffres`). L'identité d'un candidat n'est plus DEVINÉE ici (`id ?? uid`) :
+   *  du champ (`noyau/actionRegistry.offresDuRegistre`). L'identité d'un candidat n'est plus DEVINÉE ici (`id ?? uid`) :
    *  l'enveloppe de sélecteur du registre la DÉCLARE, et une alvéole a seulement à se reconnaître dans
    *  ses propres paramètres. */
   const offres2e = offresDuRegistre('geste-secondaire', { active, battle, netMode: net.mode });

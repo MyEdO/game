@@ -5,12 +5,11 @@
  *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
  *  bibliothèque (`campagneDeLEntree`, `state/projectLibrary.ts`). */
 import { Scene } from '../noyau/monde/scene';
-import { WorldMap, parseProject, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
+import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
 import type { NarratifBlock } from '../noyau/monde/campaignNarratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
 import type { GameState } from '../state/store';
 import type { Get } from '../noyau/flowTypes';
-import { playerEntryError } from '../state/projectLibrary';
 import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
 import bargeDuSelProjet from './barge-du-sel/barge-du-sel-projet.json';
@@ -63,7 +62,7 @@ export function campagneALancer(choisie: GameState['pendingCampaign']): NonNulla
 
 /** LANCE la campagne `campagneALancer(choisie)` par `loadProject`, SOURCE UNIQUE de « Lancer »
  *  (`PartyScreen`), du repli de défaite (`CampaignView`) et de `__wfrp.campaign` ; `sceneId` remplace
- *  sa scène d'entrée. Rend le refus de la porte énoncé au joueur (`playerEntryError`), `null` quand
+ *  sa scène d'entrée. Rend le refus de la porte énoncé au joueur (`playerEntryError`, `noyau/worldMap.ts`), `null` quand
  *  la campagne est chargée. */
 export function lancerCampagne(get: Get, choisie: GameState['pendingCampaign'], sceneId?: string): string | null {
   let lancee: NonNullable<GameState['pendingCampaign']>;

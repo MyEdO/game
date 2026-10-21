@@ -8,7 +8,7 @@ import { useGame } from '../../state/store';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';
 import { findCreatureById } from '../../data';
 import type { SceneEntity } from '../../noyau/monde/scene';
-import type { ScenarioConstruit } from './_shared';
+import type { ContenuDeScenario } from '../../noyau/lancementDeScenario';
 import { presetPnjById } from '../../state/campaignData';
 
 /**
@@ -23,7 +23,7 @@ import { presetPnjById } from '../../state/campaignData';
  * Périmètre : la donnée de SCÉNARIO. Une entité dont la `ref` désigne un record de bestiaire existant
  * est rendue par le catalogue (`src/data/creatures.json`) — ce que ce record déclare relève de lui.
  */
-const persos = (c: ScenarioConstruit): SceneEntity[] =>
+const persos = (c: ContenuDeScenario): SceneEntity[] =>
   [c.scene, ...(c.extraScenes ?? [])].flatMap((sc) => sc.entities.filter((e) => e.kind === 'personnage'));
 
 /** L'apparence de cette entité est décidée par le SCÉNARIO (pas de record de bestiaire derrière la réf). */

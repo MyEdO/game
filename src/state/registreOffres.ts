@@ -1,19 +1,6 @@
 /**
- * CE QUE LE REGISTRE OFFRE, PAR PORTEUR (#1411 P2-C) — lecture UNIQUE du motif « entrée × sélecteur ×
- * candidat » du registre des actions, pour TOUTE surface qui offre PAR CANDIDAT :
- *  • `pastille-entite` — les gestes qu'une chose du champ ouvre (monter sur la MONTURE, servir/pousser
- *    la PIÈCE, ramasser le TAS), hors console : le geste vit sur ce qui l'offre (spec HUD zone 4) ;
- *  • `geste-secondaire` — le geste que l'alvéole d'une AUTRE entrée ouvre sur SON candidat (clic droit,
- *    appui long), rendu par la console.
- *
- * UNE seule lecture pour les deux : elles posaient la même question (« quelles entrées de cette surface
- * couvrent CE candidat, et avec quels arguments ? »), et la console y répondait en DEVINANT l'identité
- * du candidat (`o?.id ?? o?.uid`). Ici l'identité est DÉCLARÉE par l'enveloppe de sélecteur
- * (`ACTION_PORTEURS`) : aucune forme de candidat n'est reniflée, aucun id d'action n'est cité.
- *
- * Le verdict d'offre est celui du registre, évalué sur les ARGUMENTS mêmes du dispatch — une offre
- * refusée reste une offre (`gate.ok === false`), et sa surface la montre avec sa raison plutôt que de
- * l'escamoter (loi du refus visible, arbitrage 2026-08-19).
+ * LES OFFRES DU REGISTRE À L'ÉCRAN (#1411 P2-C) : la projection d'une offre (`offresDuRegistre`,
+ * `noyau/actionRegistry.ts`) dans l'invariant d'affichage de la pastille, et les pastilles d'entité de l'instant.
  */
 import type { GameState } from './store';
 import { useGame } from './store';
@@ -23,71 +10,7 @@ import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from './campaignData';
 import { controlsActive } from '../noyau/netOwnership';
 import type { OffreRendue, OffresRenduesParPorteur } from './offreRendue';
-import { ACTIONS, type ActionDef } from '../data/index';
-import {
-  ACTION_CANDIDATES,
-  ACTION_PORTEURS,
-  actionCostLabel,
-  actionGate,
-  runAction,
-  type ActionGate,
-  type ActionRunCtx,
-  type ActionSelectorCtx,
-} from '../noyau/actionRegistry';
-
-/** UNE offre : de quoi la peindre (libellé, icône, coût), la refuser avec sa raison (`gate`), et la
- *  commettre par la porte unique du registre (`actionId` + `args`). */
-export interface Offre {
-  actionId: string;
-  /** L'entrée elle-même — la surface y lit ce dont elle a besoin (`hote`, `armed`…) sans re-chercher. */
-  def: ActionDef;
-  /** Libellé de l'ACTION (« Monter », « Ramasser ») — ce que le joueur lit. */
-  label: string;
-  /** Nom du CANDIDAT quand un même porteur en offre plusieurs (une pièce parmi deux, un objet d'un tas). */
-  candidat?: string;
-  icon: string;
-  /** Coût dans l'économie du tour, en toutes lettres — `null` quand l'acte n'en prend aucun. */
-  cost: string | null;
-  args: ActionRunCtx;
-  gate: ActionGate;
-}
-
-/** Les offres d'une SURFACE, groupées par PORTEUR (l'identité déclarée du candidat). */
-export interface OffresParPorteur {
-  porteurId: string;
-  offres: Offre[];
-}
-
-/** Les offres de la surface `surface` dans le contexte `ctx`, groupées par porteur. Une entrée sans
- *  sélecteur, ou dont le sélecteur n'a pas de porteur déclaré, n'offre rien : elle ne peut désigner
- *  personne, et la garde `action-atteignabilite` refuse déjà ce cas. */
-export function offresDuRegistre(surface: ActionDef['surface'], ctx: ActionSelectorCtx): OffresParPorteur[] {
-  const parPorteur = new Map<string, OffresParPorteur>();
-  for (const def of ACTIONS) {
-    if (def.surface !== surface || !def.candidates) continue;
-    const selecteur = ACTION_CANDIDATES[def.candidates];
-    const porteur = ACTION_PORTEURS[def.candidates];
-    if (!selecteur || !porteur) continue;
-    for (const candidat of selecteur(ctx)) {
-      const p = porteur(candidat);
-      if (!p) continue;
-      const groupe = parPorteur.get(p.porteurId) ?? { porteurId: p.porteurId, offres: [] };
-      groupe.offres.push({
-        actionId: def.id,
-        def,
-        label: def.label,
-        candidat: p.label,
-        icon: def.icon,
-        cost: actionCostLabel(def),
-        // Le verdict porte sur CE candidat, sur les MÊMES arguments que le dispatcher recevra.
-        gate: actionGate(def.id, { ...ctx, args: p.args }),
-        args: p.args,
-      });
-      parPorteur.set(p.porteurId, groupe);
-    }
-  }
-  return [...parPorteur.values()];
-}
+import { offresDuRegistre, runAction, type Offre } from '../noyau/actionRegistry';
 
 /** PROJECTION d'une offre du registre dans l'invariant d'affichage de la pastille (`OffreRendue`) :
  *  la surface n'y lit plus ni `ActionDef` ni arguments de dispatch, et l'engagement est refermé sur
