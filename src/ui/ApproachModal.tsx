@@ -1,6 +1,5 @@
 import { useGame } from '../state/store';
 import { valeurDecomposee } from '../engine/skills';
-import { refLabel } from '../data';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { Icon } from './Icon';
@@ -8,6 +7,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeApproach } from '../noyau/flowOutcomes';
+import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 
 /**
  * Modale d'APPROCHE d'une source de Peur (LDB 21 l.27) : Test SEC de `pendingApproach.test` qui diffère le
@@ -28,7 +28,7 @@ export function ApproachModal() {
   if (!c) return null;
   const r = pa.result;
   const rolled = !!r;
-  const label = refLabel('skills', pa.test.skill);
+  const label = libelleDuTestNomme(pa.test);
   const { base, mods } = valeurDecomposee(c, pa.test);
 
   const actorRow: BuiltRollRow = buildRollRow({

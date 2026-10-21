@@ -1,7 +1,7 @@
 import { useGame } from '../state/store';
 import { valeurDecomposee } from '../engine/skills';
 import { cibleMesuree } from '../engine/tests';
-import { flowStakeRef, refLabel } from '../data';
+import { flowStakeRef } from '../data';
 import { RollShell, type RollAction } from './RollShell';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { testBreakdown, testPending } from './breakdown';
@@ -9,6 +9,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeRun } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
+import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 
 /**
  * Modale de Course (LDB 15 l.41) : « Lancer » jette le Test de `pendingRun.test`,
@@ -30,7 +31,7 @@ export function RunModal() {
   const c = battle.combatants.find((x) => x.id === pr.combatantId);
   if (!c) return null;
   const r = pr.result;
-  const skillLabel = refLabel('skills', pr.test.skill);
+  const skillLabel = libelleDuTestNomme(pr.test);
   const { base, mods } = valeurDecomposee(c, pr.test);
   const rolled = !!r;
 

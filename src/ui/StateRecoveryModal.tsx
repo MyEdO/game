@@ -10,6 +10,7 @@ import { ev } from '../noyau/combatLog';
 import { describeStateRecovery } from '../noyau/flowOutcomes';
 import { remedeDeLEtat } from '../noyau/actionRegistry';
 import { conditionLabel } from '../data';
+import { libelleDeForceAdverse } from '../noyau/jetsEnVue';
 
 /** Vue pure de la modale « se libérer » (Empêtré) / « se rouler » (En flammes). Testable sans store. */
 export function StateRecoveryModalView({
@@ -64,7 +65,7 @@ export function StateRecoveryModalView({
   const witness: BuiltRollRow | undefined = rolled && sr.opposition && sr.opponentRoll
     ? witnessRow({
         // La source oppose sa Force à Difficulté Intermédiaire — ce que roule le résolveur (LDB 12 l.166).
-        row: opposedLines([{ label: `${sr.opposition.label} — Force`, base: sr.opposition.value, r: sr.opponentRoll }])[0],
+        row: opposedLines([{ label: libelleDeForceAdverse(sr.opposition.label), base: sr.opposition.value, r: sr.opponentRoll }])[0],
       })
     : undefined;
 

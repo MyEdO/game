@@ -4,6 +4,7 @@ import { RollShell } from '../RollShell';
 import { TableRollLine } from '../RollLine';
 import { Icon } from '../Icon';
 import { drawRow } from '../rollRowBuild';
+import { libelleDeTest } from '../../noyau/jetsEnVue';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET de Maladresse (Tableau des Oups !,
@@ -35,7 +36,7 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
     // note du tirage est tout le rendu, et `rolled` s'y dérive de sa présence.
     rows: [
       drawRow({
-        row: { note: r ? <TableRollLine table="Tableau des Oups !" roll={r.roll} result={r.label} /> : undefined },
+        row: { note: r ? <TableRollLine table={libelleDeTest('oups')} roll={r.roll} result={r.label} /> : undefined },
         rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer sur le Tableau des Oups !</>,
         onRoll: roll,
         rollFrisson: true,

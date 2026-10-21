@@ -31,7 +31,7 @@ import { campRestitue, campSpend } from './combat/advantagePool';
 import { creatureAttacks } from '../engine/creatureAttacks';
 import { mountMovement, chargeDmgProxy } from './mount';
 import { sceneMetresPerTile } from './monde/scene';
-import { metresRetenus, phaseDeChute } from './fallMove';
+import { metresRetenus, phaseDeChute, rangeesDuesDeChute } from './fallMove';
 import { REDERIVATIONS, rederivePassiveAttack, resolveBackstabAttack, backstabWeapon, finishMelee, finishRanged, rollMeleeDefender, defaultParryWeapon, rollDisengageAttack, rollGrappleForce, combatValue, frozenDifficulty, type AttackResult, type DefenseSub } from '../engine/combat';
 import { runMovementBonus } from '../engine/combatFeatures/dispatch';
 import { rollTest, resolveOpposed, opposedBranchSuccess, bumpSL, type TestResult, evaluateTest, evaluateCombinedTest, bestForcedRoll, forcedTR, hydrateTR, cibleBrute, cibleDuTest, cibleMesuree, jetPose, type JetPose, estJete, refusSansJet, type EchecSansJet } from '../engine/tests';
@@ -39,7 +39,7 @@ import type { Difficulty } from '../engine/types';
 import { d100 } from '../engine/dice';
 import { resolveRun, resolveDeliberateFall, runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
-import { rollBatchParticipant, forceBatchParticipant, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
+import { refusDuJetDEtape, rollBatchParticipant, forceBatchParticipant, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape } from './cascade';
 import { rollLine } from './rollSeam';
 import { activityModLines } from '../engine/activities';
 import { testValue, valeurDuTest, effectiveSkillCharKey, skillBaseValue } from '../engine/skills';
@@ -496,6 +496,17 @@ const flatDie = <P extends PendingBase & { roll?: number | null; target?: number
  *  SOURCE UNIQUE du gate de DR du flux `test` : résolution, Chance, inversion ET acquittement
  *  (`store.resolveTest`, ajustement d'outil Pratique/Peu Fiable). */
 export const meetsRequiredSL = (requireSL: number, sl: number): boolean => (requireSL > 0 ? sl >= requireSL : true);
+
+/** Le refus du jet du tombant `pid` (`null` s'il se joue maintenant) : pas avant que chaque tombant ait déclaré
+ *  (`phaseDeChute`), ni pour qui saute sans Test. */
+function refusDuJetDeChute(s: Jeu, pid: string): string | null {
+  const p = s.pendingFall;
+  const part = p?.participants.find((x) => x.id === pid);
+  if (!p || !part) return null;
+  const nom = (id: string): string => actorIn(s, id)?.label ?? id;
+  if (phaseDeChute(p) === 'choice') return t('fall.refus.declarationsDues', { noms: rangeesDuesDeChute(p).map((x) => nom(x.id)).join(', ') });
+  return part.attempt === true ? null : t('fall.refus.sansTest', { name: nom(pid) });
+}
 
 export const FLOWS = {
   /**
@@ -988,7 +999,7 @@ export const FLOWS = {
    */
   cascade: makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
-    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }) },
+    multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape },
     rolled: (st) => !!st.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
     // ACCESSEUR DE DÉ de l'étape (une étape sans jet — `target` nul — n'en a pas). En Test OPPOSÉ,
@@ -1386,7 +1397,7 @@ export const FLOWS = {
    *  (`phaseDeChute`). */
   fall: makeRollFlow<PendingFall, TombantParticipant>({
     key: 'pendingFall',
-    multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }) },
+    multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDeChute },
     die: {
       read: (part) => pick4(part.result),
       write: (_s, part, _a, _g, tr, p) => ({ result: fallFromTest(tr, metresRetenus(p, part)) }),

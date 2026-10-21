@@ -8,6 +8,7 @@ import { Icon } from './Icon';
 import { OptionChooser, type RollSegOption } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { confirmerLeCoup } from './jetProps/useAttackJetProps';
+import { libelleDeManoeuvre } from '../noyau/jetsEnVue';
 
 /**
  * Modale de MANŒUVRE de créature (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85 - Traits de
@@ -39,7 +40,7 @@ export function ManeuverModal() {
   // Jet d'attaquant : CC (mêlée) ou CT (distance/zone) ; Vomi → Facile (+40) à courte distance (l.376).
   const stat = a.stat ?? 'capacite-de-tir';
   const base = combatValue(attacker, stat === 'capacite-de-combat' ? 'melee' : 'ranged');
-  const label = stat === 'capacite-de-combat' ? 'Capacité de Combat' : 'Capacité de Tir';
+  const label = libelleDeManoeuvre(attacker, pm.maneuverId);
   const difficulty = pm.kind === 'vomi' ? 'facile' : 'intermediaire'; // Vomi : +40 à courte distance (l.376)
   // Regard (Avantage variable, l.238) : sélecteur PRÉ-JET 1..Avantage → +N DR sur la marge.
   const variable = a.advantageMode === 'variable';

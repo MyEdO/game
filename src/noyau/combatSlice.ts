@@ -36,6 +36,8 @@ import { champAttendSaFenetre, coupFerme } from './targetingHolder';
 import { mountMovement, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
+import { traceLineOf, testTraceLabel } from '../engine/traceLine';
+import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
 import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest } from './combatEffects';
@@ -303,6 +305,20 @@ function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attack')) return;
   const apres = get().pendingCascade!;
   if (apres.cursor !== apres.participants.length - 1) get().cascadeNext();
+}
+
+/** Lignes de dé (`traceLineOf`) des jets d'une fuite lancés et clos dans le même geste : aucune rangée ne
+ *  les a montrés, le journal est leur seule surface. */
+function tracerLaFuite(get: Get, set: Set, mover: Combatant, foe: Combatant, jets: { dos: boolean; touche: boolean }): void {
+  const pd = get().pendingDisengage;
+  if (!pd) return;
+  const d = jets.dos ? fleeBackstab(pd)?.result?.attackerDetail : undefined;
+  const slot = jets.touche ? fleeTouche(pd) : undefined;
+  const jet = slot?.jet;
+  journaliser(get, set, [
+    ...(d ? [traceLineOf({ who: foe.label, label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success })] : []),
+    ...(slot && jet?.target != null ? [traceLineOf({ who: mover.label, label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success })] : []),
+  ], 'info', { actorId: mover.id });
 }
 
 /** Applique l'issue d'« Au Contact » (LDB 62 l.176) : pose/retire l'état au contact selon le choix du
@@ -720,6 +736,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!fleeBackstab(pdOpen)?.result) get().fleeRoll(foe.id);
       const pdRolled = get().pendingDisengage;
       if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().fleeRoll(mover.id);
+      tracerLaFuite(get, set, mover, foe, { dos: true, touche: true });
       get().fleeConfirm();
     },
     // ── « Fuir » — « Appliquer » : applique le coup dans le dos par l'applicateur CANONIQUE d'attaque
@@ -741,6 +758,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (fleeToucheDu(pd) && !toucheSlot?.jet) {
         if (!toucheSlot || toucheSlot.interactive) return; // le fuyard joué n'a pas encore lancé son Test `fuite`
         get().fleeRoll(mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
+        tracerLaFuite(get, set, mover, foe, { dos: false, touche: true });
         return get().fleeConfirm();
       }
       const seqBefore = get().pendingCascade;

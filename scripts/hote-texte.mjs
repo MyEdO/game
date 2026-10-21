@@ -14,6 +14,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { runnerImport } from 'vite'
 import { proseSource } from './source/prose-source-plugin.mjs'
 import { DOSSIER_DES_PARTIES, INSTRUCTIONS, outils } from '../src/hoteTexte/outils.ts'
+import { z } from 'zod'
 
 for (const niveau of ['log', 'info', 'debug']) console[niveau] = console.error
 
@@ -88,7 +89,7 @@ const hote = module.creerHote({
 const serveur = new McpServer({ name: 'hote-texte', version: '1.0.0' }, { instructions: INSTRUCTIONS })
 const definitions = outils({ scenarios: module.testScenarios.map((sc) => sc.id), cadences: [...module.CADENCE_MODES] })
 for (const [nom, { description, schema }] of Object.entries(definitions)) {
-  serveur.registerTool(nom, { description, inputSchema: schema }, (entrees) => {
+  serveur.registerTool(nom, { description, inputSchema: z.strictObject(schema) }, (entrees) => {
     const { texte, erreur } = hote[nom](entrees)
     return { content: [{ type: 'text', text: texte }], isError: erreur !== null }
   })

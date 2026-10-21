@@ -2,9 +2,11 @@
  * LES OUTILS DE L'HÔTE TEXTE (#2898 lot D) : le serveur MCP de l'hôte (`scripts/hote-texte.mjs`) en sert trois,
  * `nouvelle`, `lire` et `jouer`, décrits ici une seule fois : les instructions du serveur, la description de chaque outil
  * et le schéma de ses entrées. Module feuille (zod seul) : le lanceur les inscrit, le doc (`npm run docs:hote-texte`) les
- * écrit, et les valeurs que le noyau énumère (scénarios, cadences) y entrent par `outils`, jamais recopiées.
+ * écrit, et les valeurs que le noyau énumère (scénarios, cadences) y entrent par `outils`, jamais recopiées. Ses refus
+ * de schéma parlent français (`src/lib/zodEnFrancais.ts`).
  */
 import { z } from 'zod';
+import '../lib/zodEnFrancais.ts';
 
 /** Ce que `lire` sait rendre, une lecture par valeur de `quoi`. */
 export const LECTURES = ['vue', 'offres', 'carte', 'cases', 'fiche', 'journal', 'verbes'] as const;
@@ -22,10 +24,18 @@ export const NOM_DE_PARTIE = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 /** Les noms des trois outils. */
 export type NomDOutil = 'nouvelle' | 'lire' | 'jouer';
 
+/** Du JSON dont les éléments d'un tableau se séparent par une espace : une sortie le replie entre deux éléments. */
+const jsonAere = (v: unknown): string =>
+  Array.isArray(v)
+    ? `[${v.map(jsonAere).join(', ')}]`
+    : v !== null && typeof v === 'object'
+      ? `{${Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => `${JSON.stringify(k)}:${jsonAere(x)}`).join(',')}}`
+      : JSON.stringify(v);
+
 /** Un appel écrit tel qu'un agent le passe : `lire {"quoi":"journal","depuis":40}`. Les renvois des sorties l'emploient. */
 export const appelEcrit = (outil: NomDOutil, args: Record<string, unknown> = {}): string => {
   const presents = Object.fromEntries(Object.entries(args).filter(([, v]) => v !== undefined));
-  return `\`${outil}${Object.keys(presents).length ? ` ${JSON.stringify(presents)}` : ''}\``;
+  return `\`${outil}${Object.keys(presents).length ? ` ${jsonAere(presents)}` : ''}\``;
 };
 
 /** Les instructions du serveur, données une fois à l'ouverture de la session MCP. */
@@ -55,7 +65,7 @@ export function outils({ scenarios, cadences }: Enumerations) {
         `Commence une partie neuve d’un scénario de test, nommée \`partie\` : écrit l’en-tête de ${DOSSIER_DES_PARTIES}/<partie>.jsonl (il remplace une partie de ce nom) et rend la vue.`,
         '`scenario` : un id de la liste. `graine` : la graine des dés (1 par défaut). `cadence` : manuel par défaut, chaque jet attend son verbe.',
         '`desFixes` : chaque dé se pose à la main, APRÈS le jet, par le verbe de pose que la ligne « verbes » de la vue nomme. `regles` : les règles maison, {id: valeur}.',
-        'Exemple : {"partie":"dome-1","scenario":"dome","graine":7}.',
+        'Exemple : {"partie":"essai-1","scenario":"<id de la liste>","graine":7}.',
         'Ne sert pas à reprendre une partie : une partie existante se lit par `lire` et se joue par `jouer`, qui la rejouent depuis son fichier.',
       ].join('\n'),
       schema: {
@@ -70,13 +80,13 @@ export function outils({ scenarios, cadences }: Enumerations) {
     lire: {
       description: [
         'Lit la partie sans la changer : rien ne s’écrit. `quoi` choisit la lecture :',
-        'vue (l’actif, la fenêtre qui tient la main et la signature de ses verbes, le jet en attente, les offres, les cibles ; en exploration, le groupe et les portails) ;',
-        'offres (les offres ouvertes de l’actif ; `toutes` : les fermées avec leur raison ; `id` : les candidats d’une action et leur ctx) ;',
+        'vue (l’actif, la fenêtre qui tient la main et la signature de ses verbes, le jet en attente, les offres, les cibles ; en exploration, le groupe, son étage, son cap et ses gestes prêts à jouer) ;',
+        'offres (les offres ouvertes de l’actif ; `toutes` : les fermées avec leur raison ; `id` : les candidats d’une action et leur ctx ; en exploration, tous les gestes du groupe) ;',
         'carte (les combattants, l’actif d’abord ; en exploration, les entités de la scène) ; cases (les cases atteignables au tour de l’actif, avec leur coût) ;',
         'fiche (la fiche du combattant `id`) ; journal (ses dernières lignes ; `depuis` k ; `ligne` m pour une entrée longue) ;',
         'verbes (la signature du verbe `id`, ou les verbes dont le nom contient `id` ; sans partie).',
         'Toute liste se lit par pages, `depuis` k ; une sortie dit l’appel qui donne la suite.',
-        'Exemples : {"quoi":"vue"} ; {"quoi":"offres","id":"charge"} ; {"quoi":"verbes","id":"Roll"}.',
+        'Exemples : {"quoi":"vue"} ; {"quoi":"offres","id":"<id d’offre>"} ; {"quoi":"verbes","id":"Roll"}.',
         'Pour agir, `jouer` ; pour commencer, `nouvelle`.',
       ].join('\n'),
       schema: {
@@ -91,11 +101,12 @@ export function outils({ scenarios, cadences }: Enumerations) {
     jouer: {
       description: [
         'Joue une SUITE de gestes sur la partie, dans l’ordre ; chaque geste appliqué s’écrit au fichier. Un geste est :',
-        '- une offre de la barre de l’actif, {"offre":"charge","ctx":{…}} (ids : ligne « offres » de la vue ; candidats et ctx : `lire` {"quoi":"offres","id":…}) ;',
+        '- une offre de la barre de l’actif, {"offre":"<id d’offre>","ctx":{…}} (ids : ligne « offres » de la vue ; candidats et ctx : `lire` {"quoi":"offres","id":…}) ;',
         '- un verbe du noyau, {"verbe":"<nom>","args":[…],"siege":0} : la ligne « verbes » de la vue donne la signature de ceux de la fenêtre qui tient la main, et l’id d’étape (pid) qu’ils attendent ; tout autre verbe du noyau se joue aussi (`lire` {"quoi":"verbes","id":"<morceau>"}).',
-        '`args` est le tableau des arguments, contrôlé contre le type du verbe : un point s’écrit {"x":3,"y":6}, `null` saute un argument optionnel, une porte se désigne par son id. `siege` joue au nom d’un siège.',
+        '`args` est le tableau des arguments, contrôlé contre le type du verbe : un point s’écrit {"x":3,"y":6}, `null` saute un argument optionnel, une porte se désigne par son id. `siege` joue un verbe au nom d’un siège ; une offre se joue au nom de l’actif.',
         `Le premier geste refusé arrête la suite : rien de lui ne s’écrit, la réponse dit combien sont passés, et pourquoi. Une seule vue à la fin. Au plus ${GESTES_PAR_APPEL} gestes.`,
-        'Exemple, une Charge puis le jet de la fenêtre, son dé posé à 11, et sa confirmation : {"gestes":[{"offre":"charge"},{"verbe":"<jet>"},{"verbe":"<pose du dé>","args":[11]},{"verbe":"<confirmation>"}]}, chaque nom lu à la ligne « verbes ».',
+        'Une offre qui vise arme une intention : le clic du champ la commet sur sa cible (ligne « champ » de la vue, un id de la ligne « cibles » ou une case). Le premier clic d’une case montre l’aperçu, le même clic le confirme.',
+        'Exemple, une offre qui vise, sa cible, le jet de la fenêtre, son dé posé à 11, et sa confirmation : {"gestes":[{"offre":"<offre qui vise>"},{"verbe":"<clic du champ>","args":["<cible>"]},{"verbe":"<jet>"},{"verbe":"<pose du dé>","args":[11]},{"verbe":"<confirmation>"}]}, chaque nom lu aux lignes « offres », « champ », « cibles » et « verbes ».',
         'Pour lire sans agir, `lire`.',
       ].join('\n'),
       schema: {

@@ -283,7 +283,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   jouerLOffre: 'interne',
   // ── Machinerie d'hôte : scène, temps, groupe, combat, IA, journal ─────────────────────────────
   startScene: 'interne', setParty: 'interne', seedRng: 'interne', log: 'interne', avancerLHorloge: 'interne', advanceTime: 'interne',
-  resumeCadence: 'interne', moveParty: 'interne', stepPartyRelative: 'interne',
+  resumeCadence: 'interne', moveParty: 'interne', marcherVers: 'interne', stepPartyRelative: 'interne',
   sauter: 'interne', actionnerLaPorte: 'interne',
   pivotParty: 'interne', restParty: 'interne', setPendingInteract: 'interne', jouerAction: 'interne',
   interactEntity: 'interne', closeDialogue: 'interne', designerHerosOuvrir: 'interne', remettreDocument: 'interne',

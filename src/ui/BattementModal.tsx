@@ -11,6 +11,7 @@ import { ev } from '../noyau/combatLog';
 import { describeBattement } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { VsHeader } from './VsHeader';
+import { libelleDeTest } from '../noyau/jetsEnVue';
 
 /**
  * Modale de Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant
@@ -41,8 +42,8 @@ export function BattementModal() {
     actor: attacker,
     row: {
       combatant: attacker,
-      d: r ? testBreakdown('Corps à corps', combatValue(attacker, 'melee'), r) : undefined,
-      pending: testPending('Corps à corps', combatValue(attacker, 'melee')),
+      d: r ? testBreakdown(libelleDeTest('corps-a-corps'), combatValue(attacker, 'melee'), r) : undefined,
+      pending: testPending(libelleDeTest('corps-a-corps'), combatValue(attacker, 'melee')),
     },
     onRoll: roll,
     rerolled: !!pb.rerolled,

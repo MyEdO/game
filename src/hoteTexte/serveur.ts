@@ -9,8 +9,8 @@
 import { argumentsDuVerbe, ErreurDeGeste, empreinte, jouerUnGeste, ligneDuFichier, lireGeste, lireLeFichier, nouvelEntete, offresDeLaBarre, rejouer, type CategorieDErreur, type Geste, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { VERBES } from './verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
-import { borner, casesAtteignables, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesOffres, rendreLesVerbes, replier } from './vue';
-import { etatDeLaBarre, fenetreDuJeu } from '../noyau/index';
+import { borner, casesAtteignables, enSuspens, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesGestes, rendreLesOffres, rendreLesVerbes, replier } from './vue';
+import { etatDeLaBarre, fenetreDuJeu, gestesDExploration } from '../noyau/index';
 
 /** Le disque que le lanceur prête, par NOM de partie : lire son fichier (`null` s'il n'existe pas), l'écrire, y ajouter ;
  *  la prendre pour ce serveur (`null`, ou qui la tient déjà) et la rendre. */
@@ -157,6 +157,7 @@ export function creerHote(disque: Disque) {
       case 'journal':
         return rendu(rendreLeJournal(r.journal, depuis, e.ligne ?? 0));
       case 'offres': {
+        if (etat.mode === 'exploration') return rendu(rendreLesGestes(gestesDExploration(etat), depuis));
         const barre = etatDeLaBarre(etat);
         if (barre.forme !== 'ouverte') return rendu([`aucune offre : ${barre.raison}`]);
         return rendu(rendreLesOffres(etat, offresDeLaBarre(etat), { id, toutes: e.toutes ?? false, depuis }));
@@ -173,8 +174,10 @@ export function creerHote(disque: Disque) {
     const lignes: LigneNumerotee[] = [];
     let jetons = 0;
     let refus: ErreurDeGeste | null = null;
+    const leves: string[] = [];
     for (const brut of e.gestes) {
       const avant = empreinte(r.partie.etat());
+      const suspendus = enSuspens(r.partie.etat());
       try {
         const geste = gesteControle(r, brut);
         lignes.push(...jouerUnGeste(r, geste));
@@ -183,6 +186,8 @@ export function creerHote(disque: Disque) {
         ouverte!.texte += ligne;
         jetons += r.reprises[r.gestes.length];
         appliques.push(nomDuGeste(geste));
+        const restent = enSuspens(r.partie.etat());
+        leves.push(...suspendus.filter((x) => !restent.includes(x)));
       } catch (erreur) {
         if (!(erreur instanceof ErreurDeGeste)) throw erreur;
         refus = erreur;
@@ -200,7 +205,7 @@ export function creerHote(disque: Disque) {
     const total = e.gestes.length;
     const refusNeuf = etat.refus && etat.refus.nonce !== refusAvant ? ` · refus : ${etat.refus.texte}` : '';
     const issue = appliques.length
-      ? [`${appliques.length === total ? '' : `${appliques.length}/${total} `}appliqué${appliques.length > 1 ? 's' : ''} : ${appliques.join(' · ')}${jetons ? ` · ${jetons} jeton${jetons > 1 ? 's' : ''} repris` : ''}${refusNeuf}`]
+      ? [`${appliques.length === total ? '' : `${appliques.length}/${total} `}appliqué${appliques.length > 1 ? 's' : ''} : ${appliques.join(' · ')}${jetons ? ` · ${jetons} jeton${jetons > 1 ? 's' : ''} repris` : ''}${leves.length ? ` · levé : ${leves.join(', ')}` : ''}${refusNeuf}`]
       : [];
     const refuse = refus ? replier(`geste ${appliques.length + 1}/${total} refusé, rien de lui ne s’écrit : erreur ${refus.categorie} : ${refus.message}`) : [];
     return { texte: rendreLaSuite([...issue, ...refuse], lignes, rendreLaVue(p)).join('\n'), erreur: refus?.categorie ?? null };

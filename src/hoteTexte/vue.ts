@@ -6,11 +6,11 @@
  */
 import {
   activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, effectiveArmourAt, actionGate, etatDeLaBarre,
-  validTargets, endTurnArmed, portalsForParty, stepInteraction, porteesDuTour, tileFromKey, LOCALISATIONS_DE_COUP, ACTIONS,
-  type Combatant, type Jeu, type Offre, type Pt,
+  validTargets, endTurnArmed, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, CLICS_DU_CHAMP, stepInteraction, porteesDuTour, tileFromKey, LOCALISATIONS_DE_COUP, ACTIONS,
+  type Combatant, type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type Pt,
 } from '../noyau/index';
 import { offresDeLaBarre, ErreurDeGeste, type LigneNumerotee } from './partieTexte';
-import { signature, type ParametreDeVerbe } from './formes';
+import { ecritALaForme, signature, type ParametreDeVerbe } from './formes';
 import { VERBES } from './verbes.generated';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
@@ -26,6 +26,8 @@ export const BORNES = {
   /** Offres ouvertes que la vue nomme (une par action, ses candidats comptés). */
   offresEnVue: 12,
   ciblesEnVue: 8,
+  /** Gestes d'exploration que la vue donne prêts à jouer. */
+  gestesEnVue: 6,
   /** Lignes de journal d'une réponse de `jouer`. */
   journalEnReponse: 8,
   /** Éléments d'une page de `journal`, `carte` et `offres` (`depuis`). */
@@ -67,16 +69,6 @@ export interface CombattantProjete {
   horsCombat: boolean;
 }
 
-/** Une ligne d'un jet lancé : qui, le jet, le d100, la valeur cible, le DR et le verdict. */
-export interface LigneDeJet {
-  qui: string;
-  jet: string;
-  d100: number;
-  cible: number;
-  dr: number;
-  reussi: boolean;
-}
-
 /** Une entité de la scène en exploration : id, genre, nom, case. */
 export interface EntiteProjetee {
   id: string;
@@ -97,19 +89,17 @@ export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
   scene: { id: string; nom: string } | null;
+  /** La fenêtre qui tient la main, en combat comme hors combat, ses verbes et l'id que ses verbes prennent en premier
+   *  argument (`pid`) ; pour la cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
+  fenetre: { cle: string; proprietaire: string | null; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+  /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), jetés ou à jeter, et le DR net d'un Test opposé tranché. */
+  jets: JetEnVue[];
   combat: null | {
     round: number;
     tour: number;
     tours: number;
     fin: NonNullable<Jeu['battle']>['over'];
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
-    /** La fenêtre qui tient la main, ses verbes et l'id que ses verbes prennent en premier argument (`pid`) ; pour la
-     *  cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
-    fenetre: { cle: string; proprietaire: string | null; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
-    /** Le jet de coup lancé, en attente de confirmation (`pendingAttack`, `pendingDefense` : `result`), chaque ligne lue
-     *  telle que la fenêtre du web la montre, et le DR net du Test opposé (`netSL`), qu'une rangée de défense seule
-     *  porte (`null` sans elle). */
-    jet: { lignes: LigneDeJet[]; dr: number | null } | null;
     /** L'aperçu du premier clic du champ (`battle.preview`), que le second confirme. */
     apercu: { genre: string; vers: string; cout: number | null } | null;
     /** La barre de l'actif (`etatDeLaBarre`) : `ouverte`, ou fermée avec sa raison. */
@@ -123,9 +113,13 @@ export interface Projection {
     voisins: { liste: CombattantProjete[]; enPlus: number };
   };
   exploration: null | {
+    /** La case du groupe, son étage quand la scène en a plusieurs, son cap (`capDuGroupe`). */
     groupe: [x: number, y: number];
+    etage: number | null;
+    cap: string | null;
     heros: string[];
-    portails: { id: string; genre: string; vers: [x: number, y: number] }[];
+    /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
+    gestes: { liste: GesteDExploration[]; enPlus: number };
     /** Les entités de la scène (`scene.entities`) : décors, PNJ, objets. */
     entites: { liste: EntiteProjetee[]; enPlus: number };
   };
@@ -136,7 +130,7 @@ export interface Projection {
 const nomDe = (etat: Jeu, id: string | undefined | null): string | null => {
   if (id == null) return null;
   if (id === '*') return 'tous';
-  return etat.battle?.combatants.find((c) => c.id === id)?.label ?? etat.party.find((c) => c.id === id)?.label ?? id;
+  return porteurParId(etat, id)?.label ?? id;
 };
 
 function combattant(c: Combatant, actif: Combatant | undefined): CombattantProjete {
@@ -192,30 +186,22 @@ function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
 
 const tranche = <T>(liste: readonly T[], n: number): { liste: T[]; enPlus: number } => ({ liste: liste.slice(0, n), enPlus: Math.max(0, liste.length - n) });
 
-/** Les jets de coup en attente de confirmation : le pending, son attaquant et sa cible (`AttackResult`). */
-const COUPS_EN_ATTENTE = [
-  (etat: Jeu) => etat.pendingAttack && { result: etat.pendingAttack.result, de: etat.pendingAttack.attackerId, contre: etat.pendingAttack.targetId },
-  (etat: Jeu) => etat.pendingDefense && { result: etat.pendingDefense.result, de: etat.pendingDefense.attackerId, contre: etat.pendingDefense.defenderId },
-] as const;
-
-/** Le jet de coup lancé, en attente de confirmation : la ligne de l'attaquant, celle du défenseur au Test opposé. */
-function jetEnAttente(etat: Jeu): NonNullable<Projection['combat']>['jet'] {
-  for (const lire of COUPS_EN_ATTENTE) {
-    const coup = lire(etat);
-    if (!coup?.result) continue;
-    const r = coup.result;
-    const lignes = ([[coup.de, r.attackerDetail], [coup.contre, r.defenderDetail]] as const).flatMap(([id, d]) =>
-      d ? [{ qui: nomDe(etat, id) ?? id, jet: d.label, d100: d.roll, cible: d.target, dr: d.sl, reussi: d.success }] : []);
-    return { lignes, dr: r.defenderDetail ? r.netSL : null };
-  }
-  return null;
-}
-
 /** L'aperçu du premier clic : son genre, sa case ou sa cible, son coût. */
 function apercuDe(etat: Jeu): NonNullable<Projection['combat']>['apercu'] {
   const a = etat.battle?.preview;
   if (!a) return null;
   return { genre: a.kind, vers: 'targetId' in a ? a.targetId : pos([a.tile.x, a.tile.y]), cout: 'cost' in a ? a.cost : null };
+}
+
+/** Ce qui attend le geste suivant : l'intention armée, l'aperçu du premier clic, la fin de tour armée ; une réponse dit
+ *  ceux qu'un geste a levés. */
+export function enSuspens(etat: Jeu): string[] {
+  const a = apercuDe(etat);
+  return [
+    ...(etat.localIntent ? [`intention ${etat.localIntent.actionId}`] : []),
+    ...(a ? [`aperçu ${a.genre} → ${a.vers}`] : []),
+    ...(etat.battle && endTurnArmed(etat.battle) ? ['fin de tour armée'] : []),
+  ];
 }
 
 /** La projection de l'état après `pas` gestes, sur un journal de `journal` lignes. */
@@ -233,6 +219,8 @@ export function projeter(etat: Jeu, pas: number, journal: number): Projection {
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
+    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
+    jets: jetsEnVue(etat),
     combat: b
       ? {
           round: b.round,
@@ -240,8 +228,6 @@ export function projeter(etat: Jeu, pas: number, journal: number): Projection {
           tours: b.order.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
-          fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
-          jet: jetEnAttente(etat),
           apercu: apercuDe(etat),
           barre: barre.forme === 'ouverte' ? 'ouverte' : `${barre.forme} : ${barre.raison}`,
           intention: etat.localIntent?.actionId ?? null,
@@ -255,8 +241,10 @@ export function projeter(etat: Jeu, pas: number, journal: number): Projection {
       ? null
       : {
           groupe: [etat.partyPos.x, etat.partyPos.y],
+          etage: etat.scene.layers.length > 1 ? (etat.partyPos.z ?? 0) : null,
+          cap: capDuGroupe(etat),
           heros: etat.party.map((h) => h.label),
-          portails: portalsForParty(etat.scene, etat.partyPos).slice(0, BORNES.page).map((p) => ({ id: p.id, genre: p.kind, vers: [p.to.x, p.to.y] })),
+          gestes: tranche(gestesDExploration(etat), BORNES.gestesEnVue),
           entites: tranche(etat.scene.entities.map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y] })), BORNES.page),
         },
     refus: etat.refus,
@@ -286,7 +274,7 @@ function enteteDeCombat(p: Projection): string {
   return `R${c.round} tour ${c.tour}/${c.tours} · ${qui} · pas ${p.pas}`;
 }
 
-const ligneDeFenetre = (f: NonNullable<NonNullable<Projection['combat']>['fenetre']>): string => {
+const ligneDeFenetre = (f: NonNullable<Projection['fenetre']>): string => {
   const e = f.etape;
   const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${e.choix.length ? ` [${e.choix.join(' | ')}]` : ''}` : '';
   return `fenêtre ${f.cle} (à ${f.proprietaire ?? 'l’hôte'})${etape}`;
@@ -311,17 +299,35 @@ export function replier(texte: string): string[] {
 
 /** Les verbes de la fenêtre, chacun par sa signature (`VERBES`, lus du type du noyau), repliés, et l'id que leurs
  *  paramètres `pid` attendent. */
-const ligneDeVerbes = (f: NonNullable<NonNullable<Projection['combat']>['fenetre']>): string[] =>
+const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] =>
   f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : [];
 
 const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
-/** Le jet lancé : chaque ligne (d100 sur la cible, DR, verdict), puis le DR net du Test opposé. */
-const ligneDeJet = (j: NonNullable<NonNullable<Projection['combat']>['jet']>): string =>
-  `jet : ${j.lignes.map((l) => `${l.qui} ${l.jet} ${l.d100}/${l.cible} DR ${signe(l.dr)} ${l.reussi ? 'réussi' : 'raté'}`).join(' · ')}${j.dr === null ? '' : ` · DR net ${signe(j.dr)}`}`;
+/** Une ligne de jet : qui jette, quoi, puis le dé tombé (un Test : d100 sur la cible, DR, verdict ; une table : d100, la
+ *  valeur lue et sa ligne ; un dé : naturel, total et lecture), ou ce qu'il reste à jeter. */
+function texteDeLigneDeJet(l: LigneDeJet): string {
+  const qui = l.qui ? `${l.qui} ` : '';
+  switch (l.genre) {
+    case 'test': return `${qui}${l.test} ${l.jet ? `${l.jet.d100}/${l.cible ?? '—'} DR ${signe(l.jet.dr)} ${l.jet.reussi ? 'réussi' : 'raté'}` : `à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`}`;
+    case 'table': return `${qui}${l.table} ${l.jet ? `${l.jet.d100} (${l.jet.effectif}) : ${l.jet.ligne}` : 'à tirer'}`;
+    case 'de': return `${qui}${l.de} ${l.jet ? `${l.jet.naturel} → ${l.jet.total}${l.jet.lecture ? ` : ${l.jet.lecture}` : ''}` : 'à jeter'}`;
+  }
+}
+
+/** Les jets d'un flux : chaque ligne, puis le vainqueur et le DR net du Test opposé tranché. */
+const ligneDeJets = (j: JetEnVue): string[] => replier(`jet ${j.flux} : ${j.lignes.map(texteDeLigneDeJet).join(' · ')}${
+  j.oppose ? ` · ${j.oppose.gagnante === null ? 'égalité' : `gagne : ${j.lignes[j.oppose.gagnante]?.qui ?? `ligne ${j.oppose.gagnante + 1}`}`} · DR net ${signe(j.oppose.drNet)}` : ''}`);
 
 const ligneDApercu = (a: NonNullable<NonNullable<Projection['combat']>['apercu']>): string =>
   `aperçu : ${a.genre} → ${a.vers}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
+
+/** Les gestes d'un geste d'exploration tels que la vue les écrit : chaque argument à la forme de son paramètre. */
+export const gestesEcrits = (g: GesteDExploration): { verbe: string; args: unknown[] }[] =>
+  g.gestes.map(({ verbe, args }) => ({ verbe, args: args.map((a, i) => { const p = VERBES[verbe]?.[i]; return p ? ecritALaForme(a, p.forme) : a; }) }));
+
+/** Un geste d'exploration : son libellé et l'appel qui le joue. */
+export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: gestesEcrits(g) })}`);
 
 const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}`;
 
@@ -331,23 +337,27 @@ export function rendreLaVue(p: Projection): string[] {
   if (p.combat) {
     const c = p.combat;
     lignes.push(enteteDeCombat(p));
-    if (c.fenetre) lignes.push(ligneDeFenetre(c.fenetre), ...ligneDeVerbes(c.fenetre));
-    if (c.jet) lignes.push(ligneDeJet(c.jet));
+    if (p.fenetre) lignes.push(ligneDeFenetre(p.fenetre), ...ligneDeVerbes(p.fenetre));
+    lignes.push(...p.jets.flatMap(ligneDeJets));
     if (c.apercu) lignes.push(ligneDApercu(c.apercu));
-    if (c.intention || c.finDeTourArmee) lignes.push([c.intention && `intention armée : ${c.intention}`, c.finDeTourArmee && 'fin de tour armée'].filter(Boolean).join(' · '));
+    if (c.intention || c.finDeTourArmee) lignes.push([c.intention && `intention armée : ${c.intention} (un clic du champ la commet)`, c.finDeTourArmee && 'fin de tour armée (la même offre la confirme)'].filter(Boolean).join(' · '));
     for (const x of c.voisins.liste.filter((v) => v.id !== c.actif?.id)) lignes.push(ligneDeCombattant(x));
     lignes.push(...enPlus(c.voisins.enPlus, `autres (${appelEcrit('lire', { quoi: 'carte' })})`));
     if (c.offres) {
       const liste = c.offres.liste.map(libelleDOffre);
       lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
+      lignes.push(...replier(`champ : ${CLICS_DU_CHAMP.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
     } else if (!c.fin) lignes.push(`barre ${c.barre}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);
+    if (p.fenetre) lignes.push(ligneDeFenetre(p.fenetre), ...ligneDeVerbes(p.fenetre));
+    lignes.push(...p.jets.flatMap(ligneDeJets));
     if (p.exploration) {
-      lignes.push(`groupe ${pos(p.exploration.groupe)} : ${p.exploration.heros.join(', ')}`);
-      const portails = p.exploration.portails;
-      lignes.push(`portails : ${portails.length ? portails.map((x) => `${x.id} ${x.genre}${pos(x.vers)}`).join(' · ') : 'aucun'}`);
+      const x = p.exploration;
+      lignes.push(`groupe ${pos(x.groupe)}${x.etage === null ? '' : ` étage ${x.etage}`}${x.cap ? ` · cap ${x.cap}` : ''} : ${x.heros.join(', ')}`);
+      lignes.push(...(x.gestes.liste.length ? x.gestes.liste.flatMap(ligneDeGeste) : ['gestes : aucun depuis cette case']));
+      lignes.push(...enPlus(x.gestes.enPlus, `gestes (${appelEcrit('lire', { quoi: 'offres' })})`));
     }
   }
   if (p.refus) lignes.push(`dernier refus (#${p.refus.nonce}) : ${p.refus.texte}`);
@@ -463,10 +473,17 @@ export function rendreLesOffres(etat: Jeu, offres: readonly Offre[], options: { 
   return borner([...lignes, ...suite], 'offres');
 }
 
+/** Les gestes d'exploration du groupe, par pages, chacun prêt à jouer. */
+export function rendreLesGestes(gestes: readonly GesteDExploration[], depuis?: number): string[] {
+  if (!gestes.length) return ['aucun geste d’exploration depuis la case du groupe'];
+  const { elements, suite } = page(gestes, depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'offres', depuis: k }));
+  return borner([...elements.flatMap(ligneDeGeste), ...suite], 'offres');
+}
+
 /** La fiche d'un combattant (ou d'un héros hors combat) : ses champs de l'état, l'armure en PA par localisation
  *  (`effectiveArmourAt`). */
 export function rendreLaFiche(etat: Jeu, id: string): string[] | null {
-  const c = etat.battle?.combatants.find((x) => x.id === id) ?? etat.party.find((x) => x.id === id);
+  const c = porteurParId(etat, id);
   if (!c) return null;
   const ch = Object.entries(c.characteristics).map(([k, v]) => `${k} ${typeof v === 'number' ? v : JSON.stringify(v)}`).join(' · ');
   return borner([
@@ -509,7 +526,8 @@ export function casesAtteignables(etat: Jeu, monTour: boolean): { zone: string; 
     [...cases].map(([cle, cout]) => ({ zone, case: tileFromKey(cle), cout })).sort((a, b) => a.cout - b.cout || a.case.y - b.case.y || a.case.x - b.case.x));
 }
 
-/** `cases` (`BORNES.lignes.cases`) : une ligne par zone et par tranche de `BORNES.casesParLigne` cases, « (x,y)·coût ». */
+/** `cases` (`BORNES.lignes.cases`) : les zones et leur compte, puis une ligne par zone et par tranche de
+ *  `BORNES.casesParLigne` cases, « (x,y)·coût ». */
 export function rendreLesCases(cases: readonly { zone: string; case: Pt; cout: number }[], depuis?: number): string[] {
   if (!cases.length) return ['aucune case atteignable (hors combat, ou hors du tour d’un héros de ce siège)'];
   const debut = Math.max(0, depuis ?? 0);
@@ -522,5 +540,6 @@ export function rendreLesCases(cases: readonly { zone: string; case: Pt; cout: n
     lignes.push(`${zone} : ${tranche.map((c) => `${pos([c.case.x, c.case.y])}·${c.cout}`).join(' ')}`);
   }
   const k = debut + pageDeCases.length;
-  return borner([...lignes, ...(k < cases.length ? [`+${cases.length - k} : ${appelEcrit('lire', { quoi: 'cases', depuis: k })}`] : [])], 'cases');
+  const zones = [...new Set(cases.map((c) => c.zone))].map((z) => `${z} ${cases.filter((c) => c.zone === z).length}`);
+  return borner([`zones : ${zones.join(' · ')}`, ...lignes, ...(k < cases.length ? [`+${cases.length - k} : ${appelEcrit('lire', { quoi: 'cases', depuis: k })}`] : [])], 'cases');
 }

@@ -32,11 +32,16 @@ export function conduitParLeSiegeDuMonde(s: Jeu, combatantId: string | undefined
   return !!c && c.kind === 'enemy' && s.net.gmSeat != null;
 }
 
-/** Le siège possède-t-il ce combattant ? (héros non attribué → hôte, siège 0). */
+/** Le siège qui possède ce combattant (héros non attribué → hôte, siège 0). */
+export function siegeDe(s: Jeu, combatantId: string | undefined): number {
+  if (conduitParLeSiegeDuMonde(s, combatantId)) return worldSeat(s);
+  if (!combatantId) return 0;
+  return s.net.ownership[combatantId] ?? 0;
+}
+
+/** Le siège possède-t-il ce combattant ? */
 export function seatOwns(s: Jeu, seat: number, combatantId: string | undefined): boolean {
-  if (conduitParLeSiegeDuMonde(s, combatantId)) return seat === worldSeat(s);
-  if (!combatantId) return seat === 0;
-  return (s.net.ownership[combatantId] ?? 0) === seat;
+  return siegeDe(s, combatantId) === seat;
 }
 
 /**

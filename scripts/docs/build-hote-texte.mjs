@@ -65,7 +65,6 @@ function litteral(noeud, ou) {
   return abandon(`${ou} : expression non littérale (${ts.SyntaxKind[noeud.kind]})`)
 }
 
-/** La valeur littérale de la constante `nom` de `rel`. */
 /** La PROVENANCE de chaque champ de la projection (`projeter`, src/hoteTexte/vue.ts) : le lecteur du noyau qui le rend. */
 const PROVENANCE = [
   ['combat.round, combat.tour, combat.fin', 'battle.round, battle.turn, battle.over'],
@@ -74,9 +73,9 @@ const PROVENANCE = [
   ['combat.actif.action', 'battle.acted'],
   ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
   ['combat.voisins, carte : engagé', 'Combatant.engagedWith'],
-  ['combat.fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
-  ['combat.fenetre.verbes, combat.fenetre.pid', 'fenetreDuJeu : le drive de la politique (JET_AUTO, MODAL_DEFS), les verbes du flux de jet (FLOW_VERBS), ceux de l’interaction d’étape, les clôtures de la cascade ; pid = l’id de l’étape courante'],
-  ['combat.jet', 'pendingAttack.result, pendingDefense.result : attackerDetail, defenderDetail (les rangées de la fenêtre du web) et netSL'],
+  ['fenetre', 'fenetreDuJeu (et stepInteraction pour l’étape de cascade)'],
+  ['fenetre.verbes, fenetre.pid', 'fenetreDuJeu : le drive de la politique (JET_AUTO, MODAL_DEFS), les verbes du flux de jet (FLOW_VERBS), ceux de l’interaction d’étape, les clôtures de la cascade ; pid = l’id de l’étape courante'],
+  ['jets', 'jetsEnVue : les lignes de jet de la fenêtre (Test, table, dé), jetées ou à jeter, la gagnante et le DR net d’un Test opposé (netSL, le badge « DR net » du web)'],
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
   ['exploration.entites, carte hors combat', 'Scene.entities'],
@@ -84,11 +83,15 @@ const PROVENANCE = [
   ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
   ['combat.cibles', 'validTargets'],
   ['combat.finDeTourArmee', 'endTurnArmed'],
-  ['exploration.portails', 'portalsForParty'],
+  ['exploration.gestes, offres hors combat', 'gestesDExploration (aretesUtilisables offertes comme à l’écran, atterrissagesDeSaut, déclencheurs à transition, exploreMovePlan écrit par gesteDuPas)'],
+  ['exploration.etage, exploration.cap', 'partyPos.z, capDuGroupe'],
+  ['jouer : levé', 'Jeu.localIntent, battle.preview, endTurnArmed, lus avant et après chaque geste'],
+  ['erreur permission', 'quiTientLaMain, siegeDe'],
   ['fiche : armure', 'effectiveArmourAt, par LOCALISATIONS_DE_COUP'],
   ['refus', 'Jeu.refus (texte et nonce)'],
 ]
 
+/** La valeur littérale de la constante `nom` de `rel`. */
 function constante(rel, nom) {
   const d = declarations(rel).get(nom)
   if (!d?.initializer) abandon(`constante \`${nom}\` introuvable dans ${rel} (renommée/supprimée ?)`)
@@ -110,7 +113,7 @@ const cellule = (s) => String(s).replaceAll('|', '\\|')
 
 /** Le cas de chaque catégorie d'erreur (prose fixe), vérifié contre l'union du code. */
 const CAS_D_ERREUR = {
-  validation: 'aucune partie de ce nom, ou aucune ouverte ; offre ou verbe inconnu (le refus nomme les verbes de la fenêtre et les voisins de nom) ; argument d’une forme fausse, en trop ou manquant (contrôlé contre le type du verbe) ; id d’entité désignée introuvable ; intention hors de l’allowlist d’un siège ; verbe qui lève ; ligne du fichier qui ne se rejoue plus',
+  validation: 'aucune partie de ce nom, ou aucune ouverte ; offre ou verbe inconnu (le refus nomme les verbes de la fenêtre et les voisins de nom) ; argument d’une forme fausse, en trop ou manquant (contrôlé contre le type du verbe) ; id que l’état ne désigne pas (le refus nomme les ids valides) ; champ du contexte d’une offre que ni elle ni ses candidats ne lisent ; intention hors de l’allowlist d’un siège ; verbe qui lève ; ligne du fichier qui ne se rejoue plus',
   permission: 'intention de siège refusée : le siège ne possède pas ce combattant ; partie tenue par un autre serveur de l’hôte (le refus nomme son processus)',
   regle: 'barre non ouverte (`etatDeLaBarre`, avec sa raison) ; offre que l’énumérateur ne rend pas (gate de pertinence, aucun candidat) ; offre fermée (`actionGate`, avec sa raison) ; geste sans effet : ni fait de la partie changé, ni suite programmée (avec le refus, la ligne de journal ou l’événement qu’il a reçus)',
 }
@@ -163,13 +166,13 @@ function rendu() {
     out += '\n'
   }
   out += `Une réponse est un texte borné (\`content\`), rien d'autre : un client MCP qui reçoit des données structurées les montre à l'agent à la place du texte, hors de ses bornes (mesuré le 2026-10-21 sur Claude Code 2.1.306). Le texte lit la projection (\`Projection\`, \`${VUE}\`), jamais les payloads bruts des événements. Une réponse de \`jouer\` dit les gestes appliqués et les jetons repris, puis le journal de la suite, condensé, puis la vue d'après. Une offre (\`offre\`) est une entrée de l'énumérateur du registre (\`offresDeLActif\`), celui que lit la barre de la console ; \`ctx\` porte les paramètres de la case (\`targetId\`, \`spellId\`, \`attackId\`…), \`lire\` \`{"quoi":"offres","id":…}\` les montre. Un verbe sert aux fenêtres, à la cascade, à la pause de Round, aux clics du champ et à l'exploration : la ligne « verbes » de la vue donne la signature de ceux de la fenêtre qui tient la main, à chaque étape de cascade comprise, et l'id d'étape que leur paramètre \`pid\` attend. Le scénario se nomme par son id ; toutes ses scènes sont chargées au lancement.\n\n`
-  out += `Le clic implicite du champ suit le modèle du web : un premier clic sur une case ou une entité pose l'aperçu, le second le confirme. Une offre qui arme une intention (une Charge, une Course) se lit à la ligne « intention armée » de la vue ; le clic suivant la commet. L'aperçu d'un premier clic se lit à la ligne « aperçu » ; \`lire\` \`{"quoi":"cases"}\` liste les cases que le champ peint au tour de l'actif, avec leur coût. Un jet lancé et pas encore confirmé se lit à la ligne « jet » : pour chaque rangée, le d100 sur la valeur cible, son DR et son verdict, puis le DR net du Test opposé, avant sa confirmation. Sous \`desFixes\`, un dé se pose APRÈS le jet, par le verbe de pose de la fenêtre.\n\n`
+  out += `Le clic implicite du champ suit le modèle du web : un premier clic sur une case ou une entité pose l'aperçu, le second le confirme. Une offre qui arme une intention (une Charge, une Course) se lit à la ligne « intention armée » de la vue ; le clic suivant la commet. L'aperçu d'un premier clic se lit à la ligne « aperçu » ; \`lire\` \`{"quoi":"cases"}\` liste les cases que le champ peint au tour de l'actif, avec leur coût. Les jets de la fenêtre qui tient la main se lisent aux lignes « jet <flux> », en combat comme hors combat, avant comme après le dé : un Test donne le d100 sur la valeur cible, son DR et son verdict (« à jeter » avant le dé) ; une table, le d100, la valeur lue et sa ligne (« à tirer ») ; un dé, le naturel, le total et sa lecture ; un Test opposé tranché, la ligne gagnante et le DR net. Sous \`desFixes\`, un dé se pose APRÈS le jet, par le verbe de pose de la fenêtre.\n\n`
 
   out += `## Le fichier de partie\n\nUne partie est un fichier JSONL, \`${DOSSIER_DES_PARTIES}/<nom>.jsonl\` à la racine du dépôt (ignoré de git ; \`HOTE_TEXTE_PARTIES\` déplace le dossier). Il est la vérité de la partie. Sa première ligne est l'en-tête :\n\n`
   out += '```json\n'
   out += `{"scenario":"dome","graine":7,"regles":{},"cadence":"manuel","desFixes":false}\n`
   out += '```\n\n'
-  out += `\`regles\` sont les règles maison chargées à la création de la partie ; les règles du scénario se posent ensuite, au lancement. Chaque ligne suivante est un geste appliqué : \`{"offre":"charge","ctx":{…}}\`, ou un verbe \`{"type":"<verbe>","args":[…],"siege":0}\`. Un geste refusé ne s'écrit pas. Le fichier se relit, se copie et se tronque à la main : la partie est ce qu'il rejoue, et le serveur rejoue un fichier changé hors de lui. Un serveur tient la partie qu'il a ouverte (\`<nom>.verrou\`, son pid) : un second serveur se la voit refuser tant que le premier vit. Exemple committé, rejoué sous CI : \`src/hoteTexte/combat-dome.jsonl\`. Une partie neuve remet à zéro les séquences d'ids du moteur (\`src/engine/sequences.ts\`) : deux rejeux d'un fichier dans un même processus fabriquent les mêmes ids.\n\n`
+  out += `\`regles\` sont les règles maison chargées à la création de la partie ; les règles du scénario se posent ensuite, au lancement. Chaque ligne suivante est un geste appliqué : \`{"offre":"<id d’offre>","ctx":{…}}\`, ou un verbe \`{"type":"<verbe>","args":[…],"siege":0}\`. Un geste refusé ne s'écrit pas. Le fichier se relit, se copie et se tronque à la main : la partie est ce qu'il rejoue, et le serveur rejoue un fichier changé hors de lui. Un serveur tient la partie qu'il a ouverte (\`<nom>.verrou\`, son pid) : un second serveur se la voit refuser tant que le premier vit. Exemple committé, rejoué sous CI : \`src/hoteTexte/combat-dome.jsonl\`. Une partie neuve remet à zéro les séquences d'ids du moteur (\`src/engine/sequences.ts\`) : deux rejeux d'un fichier dans un même processus fabriquent les mêmes ids.\n\n`
 
   out += `## Les jetons\n\nLe noyau programme ses beats différés (tours de l'IA, tick de la cadence auto) par la plateforme de la partie. Après chaque geste, l'hôte reprend tous les jetons programmés, par échéance puis par ordre d'arrivée, sur une horloge virtuelle, jusqu'à ce qu'il n'en reste aucun ; ceux du lancement sont repris avant la première ligne. Une réponse dit combien de jetons ont été repris. Au-delà de ${milliers(plafond)} reprises après un même geste, l'hôte lève : la partie boucle.\n\n`
 
@@ -178,7 +181,8 @@ function rendu() {
   for (const c of categories) out += `| \`${c}\` | ${cellule(CAS_D_ERREUR[c])} |\n`
   out += `\nUn geste qui ne change aucun fait de la partie et ne programme aucune suite (un jeton de la plateforme) est SANS EFFET : erreur \`regle\`, avec le refus, la ligne de journal ou l'événement informatif que le noyau lui a opposés (« Saut refusé : … », \`move_blocked\`). Un événement émis seul (\`move_blocked\`, un son) informe, il n'est pas un effet. Sous un coup ouvert (son jet en attente, \`coupFerme\`), un clic du champ est sans effet : le noyau le refuse, l'écran lit la même garde (\`combatantClickActs\`). Le pas du groupe va vers une case voisine à pied (\`pasDuGroupe\`), sinon « Pas refusé ». Le journal de la partie et le refus du geste disent, ils ne sont pas des faits : un geste qui ne change qu'eux est sans effet. Un geste qui change la partie ET pose un refus s'écrit ; la réponse dit le refus (« refus : … »), la vue garde le dernier, un refus neuf se lit au changement de son \`nonce\`.\n\n`
 
-  out += `## Les verbes et leurs arguments\n\nLes arguments d'un verbe sont un tableau JSON, contrôlés contre le TYPE du verbe, celui que \`Partie.envoyer\` accepte (\`ActionsDuNoyau\`, \`src/noyau/actionsDuNoyau.ts\`), que la cible de code \`src/hoteTexte/verbes.generated.ts\` porte (\`npm run gen\`) : un argument d'une forme fausse, en trop ou manquant lève \`validation\`, avec la signature du verbe. Un point s'écrit \`{"x":3,"y":6}\`, jamais \`[3,6]\`. \`null\` omet un argument optionnel pour en poser un suivant. Une porte (\`RoomPortal\`) se désigne par son id, celui de la ligne « portails » de la vue : l'hôte complète l'objet. \`lire\` \`{"quoi":"verbes","id":"<verbe>"}\` donne une signature. Dans la table, \`?\` marque un argument optionnel ; un objet montre ses champs au premier niveau, le nom de son type au-delà (une fiche entière, \`Combatant\` ou \`Scene\`, ne contrôle que d'être un objet ; un id de catalogue, que d'être une chaîne) ; \`pid\` est l'id de l'étape ou de la rangée que la ligne « verbes » de la vue donne. Une suite de \`jouer\` compte ${GESTES_PAR_APPEL} gestes au plus.\n\n`
+  out += `## Ce que la vue donne prêt à jouer\n\nLa fenêtre qui tient la main se lit en combat comme hors combat, avec la signature de ses verbes. En exploration, la vue donne la case du groupe, son étage quand la scène en a plusieurs, son cap, puis chaque geste que le groupe peut jouer depuis sa case (\`gestesDExploration\` : les arêtes qu'il borde, les sauts, les accès et les sorties de scène, rejoints pas à pas), chacun écrit en appel de \`jouer\` à coller tel quel ; ${bornes.gestesEnVue} au plus, \`lire\` \`{"quoi":"offres"}\` les liste tous. Une réponse de \`jouer\` dit ce que ses gestes ont levé : une intention armée, un aperçu du premier clic, une fin de tour armée. Un refus de permission nomme qui tient la main et son siège (\`quiTientLaMain\`, \`siegeDe\`).\n\n`
+  out += `## Les verbes et leurs arguments\n\nLes arguments d'un verbe sont un tableau JSON, contrôlés contre le TYPE du verbe, celui que \`Partie.envoyer\` accepte (\`ActionsDuNoyau\`, \`src/noyau/actionsDuNoyau.ts\`), que la cible de code \`src/hoteTexte/verbes.generated.ts\` porte (\`npm run gen\`) : un argument d'une forme fausse, en trop ou manquant lève \`validation\`, avec la signature du verbe. Un point s'écrit \`{"x":3,"y":6}\`, jamais \`[3,6]\`. \`null\` omet un argument optionnel pour en poser un suivant. Un argument qui désigne un id (\`DESIGNATIONS\`, \`src/noyau/designations.ts\` : combattant, héros, scène, entité, étape, objet, porte) s'écrit par ce qu'il désigne (\`id de combattant\`) et se contrôle contre les ids de l'état ; une porte (\`RoomPortal\`) se désigne par son id : l'hôte complète l'objet, et la vue écrit ses gestes ainsi. \`lire\` \`{"quoi":"verbes","id":"<verbe>"}\` donne une signature. Dans la table, \`?\` marque un argument optionnel ; un objet montre ses champs au premier niveau, le nom de son type au-delà (une fiche entière, \`Combatant\` ou \`Scene\`, ne contrôle que d'être un objet ; un id de catalogue, que d'être une chaîne) ; \`pid\` est l'id de l'étape ou de la rangée que la ligne « verbes » de la vue donne. Une suite de \`jouer\` compte ${GESTES_PAR_APPEL} gestes au plus.\n\n`
   out += `| Verbe | Arguments |\n|---|---|\n`
   for (const [verbe, parametres] of Object.entries(verbes)) out += `| \`${verbe}\` | \`${cellule(parametresEcrits(parametres))}\` |\n`
   out += `\n## Provenance de la vue\n\nAucune règle ne se calcule dans l'hôte : chaque champ est un lecteur de la surface du noyau, ou un champ de l'état lu tel quel.\n\n`

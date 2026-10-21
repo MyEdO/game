@@ -49,7 +49,7 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
     refuse(partie('dome', verbe('confirmRoundStart')), geste, categorie, /./);
   });
   it('un verbe inconnu nomme les verbes de la fenêtre qui tient la main et ses voisins de nom', () => {
-    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; verbes de la fenêtre roundStart : confirmRoundStart, roundStartReady ; voisins : confirmRoundStart/);
+    refuse(partie('dome'), verbe('confirmRound'), 'validation', /verbe inconnu : confirmRound ; verbes de la fenêtre roundStart : confirmRoundStart, roundStartReady, roundStartPromote, armPreempt ; voisins : confirmRoundStart/);
   });
 });
 
@@ -122,8 +122,8 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
   it('cascadeNext sans cascade ouverte', { timeout: 120_000 }, () => {
     refuse(partie('dome', verbe('confirmRoundStart')), verbe('cascadeNext'), 'regle', /cascadeNext sans effet/);
   });
-  it('transitionTo vers une scène inconnue : la ligne du journal est la raison', { timeout: 120_000 }, () => {
-    refuse(partie('revisit'), verbe('transitionTo', 'nulle-part'), 'regle', /transitionTo sans effet : \(Scène « nulle-part » introuvable/);
+  it('une Dissipation sans Langue (Magick) ne dit sa raison qu’au journal : sans effet, la ligne du journal est la raison', { timeout: 120_000 }, () => {
+    refuse(partie('revisit'), verbe('oocDispelSpell', 'pregen-101', 'nulle-part', 'pregen-101'), 'regle', /oocDispelSpell sans effet : Il faut la compétence Langue \(Magick\)/);
   });
   it('un pas bloqué n’émet qu’un événement informatif : sans effet, l’événement est la raison', { timeout: 120_000 }, () => {
     const t = partie('pont-vitrine', verbe('stepPartyRelative', 'back'));
@@ -166,7 +166,7 @@ describe('`moveParty` est un PAS : la garde du verbe est celle du noyau (`pasDuG
   });
   it('une porte fermée s’ouvre par son id, puis le pas la franchit (« La porte close »)', { timeout: 120_000 }, () => {
     const t = partie('porte-close', verbe('moveParty', { x: 2, y: 1 }));
-    expect(t.lire('vue').texte).toMatch(/portails : 0:2,1:E:exterior:reduit door-closed\(3,1\)/);
+    expect(t.lire('vue').texte).toContain('Porte extérieure fermée : `jouer {"gestes":[{"verbe":"actionnerLaPorte","args":["0:2,1:E:exterior:reduit"]}]}`');
     refuse(t, verbe('moveParty', { x: 3, y: 1 }), 'regle', /Pas refusé/);
     const r = t.jouer(verbe('actionnerLaPorte', '0:2,1:E:exterior:reduit'), verbe('moveParty', { x: 3, y: 1 }));
     expect(r.erreur, r.texte).toBeNull();
@@ -186,13 +186,12 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
   });
   it('une porte se désigne par son id : l’hôte complète le `RoomPortal`, un id inconnu lève `validation`', { timeout: 120_000 }, () => {
     const t = partie('fenetre-ecuries');
-    expect(t.lire('vue').texte, 'témoin : la vue nomme la porte par son id').toMatch(/portails : 1:2,4:N:couloir:bureau door-open/);
     refuse(t, verbe('actionnerLaPorte', '1:2,4:N:couloir:bureau'), 'regle', /actionnerLaPorte sans effet/);
-    refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /aucun RoomPortal d’id door-open\(2,3\) ici/);
+    refuse(t, verbe('actionnerLaPorte', 'door-open(2,3)'), 'validation', /portail : "door-open\(2,3\)" n’est pas un id de porte \(valides : 1:2,4:N:couloir:bureau\)/);
   });
   it('`null` omet un argument optionnel pour poser le suivant', { timeout: 120_000 }, () => {
     const t = partie('revisit', verbe('transitionTo', 'test-revisit-couloir', null, { x: 1, y: 1 }));
-    expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir .*\ngroupe \(1,1\)/);
+    expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir [^]*\ngroupe \(1,1\)/);
   });
 });
 
@@ -208,5 +207,19 @@ describe('les verbes et les scènes', () => {
   it('toutes les scènes du scénario sont chargées : `transitionTo` mène à la scène sœur', { timeout: 120_000 }, () => {
     const t = partie('revisit', verbe('transitionTo', 'test-revisit-couloir'));
     expect(t.lire('vue').texte).toMatch(/^scène test-revisit-couloir « Le Couloir »/);
+  });
+});
+
+describe('une réponse dit ce qui attendait le geste suivant, et qui tient la main', () => {
+  it('l’aperçu du premier clic et la fin de tour armée que la fin du tour lève', () => {
+    const t = partie('dome', verbe('confirmRoundStart'));
+    const r = t.jouer(verbe('battleClickTile', { x: 3, y: 5 }), { offre: 'end-turn' }, { offre: 'end-turn' });
+    expect(r.erreur, r.texte).toBeNull();
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/levé : aperçu move → \(3,5\), fin de tour armée/);
+  });
+
+  it('un refus de permission nomme qui tient la main et son siège', () => {
+    const t = partie('dome', verbe('confirmRoundStart'));
+    refuse(t, { verbe: 'battleClickTile', args: [{ x: 3, y: 6 }], siege: 1 }, 'permission', /refusée au siège 1 : la main est à Ilyanwe la Voilée, siège 0/);
   });
 });

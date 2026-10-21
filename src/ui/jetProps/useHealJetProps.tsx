@@ -14,6 +14,7 @@ import { combatHealModes } from '../../engine/healing';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
 import { VsHeader } from '../VsHeader';
+import { libelleDeTest } from '../../noyau/jetsEnVue';
 
 /**
  * Flux de jet d'un SOIN (Guérison, LDB 09-Compétences) : « Lancer » → Chance (relance / +1 DR) →
@@ -65,8 +66,8 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     actor: healer,
     row: {
       combatant: healer,
-      d: rolled ? testBreakdown('Guérison', base, { roll: ph.roll!, ...cibleMesuree(ph), sl: ph.sl, success: ph.success }, ph.difficulty, supMods) : undefined,
-      pending: testPending('Guérison', base, cibleMesuree(ph), ph.difficulty, supMods),
+      d: rolled ? testBreakdown(libelleDeTest('guerison'), base, { roll: ph.roll!, ...cibleMesuree(ph), sl: ph.sl, success: ph.success }, ph.difficulty, supMods) : undefined,
+      pending: testPending(libelleDeTest('guerison'), base, cibleMesuree(ph), ph.difficulty, supMods),
     },
     rerolled: !!ph.rerolled,
     onRoll: roll,
