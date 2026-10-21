@@ -79,7 +79,12 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['engine', 'data', false, null], // importe
       ['engine', 'engine', false, null], // même zone
       ['racine', 'ui', false, null], // '*'
-      ['scenes', 'state', false, null], // transitoire en valeur
+      ['data', 'scenes', false, 'type'], // fermé (#2884)
+      ['audio', 'state', true, 'type'], // fermé (#2884)
+      ['audio', 'noyau', false, 'type'],
+      ['scenes', 'state', true, 'type'], // fermé (#2884)
+      ['scenes', 'ui', true, 'type'],
+      ['data', 'state', true, 'type'],
       ['engine', 'gameIso', true, null], // transitoire de type, arc de type
       ['engine', 'gameIso', false, 'execution'], // transitoire de type, arc de valeur
       ['state', 'ui', true, null], // `types`

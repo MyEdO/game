@@ -1,7 +1,7 @@
 /**
  * Les fiches de dossier de chapitre COMMITÉES (#2290), côté app : `docs/dossiers/<ABBR>/<NN>.json`, chacune
  * lue par `lireFicheDeDossier` (`src/data/source/dossier.ts`), la lecture que partage le chargeur Node
- * (`scripts/raw/lib/dossiers.mjs`). Chargement `import.meta.glob`, patron de `src/data/dev-validate.ts`.
+ * (`scripts/raw/lib/dossiers.mjs`). Chargement `import.meta.glob`, patron de `src/dev-validate.ts`.
  * Tout fichier sous la racine est lu : un fichier hors de la forme `<ABBR>/<NN>.json` LÈVE au chargement.
  */
 import { entreesDeLaFiche, lireFicheDeDossier, type EntreeNommee, type FicheLue } from './source/dossier';

@@ -81,8 +81,8 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 Zones de `src/` (#2882, plan `docs/plans/2026-10-19-restructuration.md`) : un dossier de premier niveau
 de `src/` est une zone, et les fichiers posés à même `src/` forment la zone `racine`. La table `COUCHES`
 (`scripts/guards/lib/couches.mjs`) est la seule source des zones et de leurs sens d'import : par zone,
-ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), ses arêtes transitoires,
-chacune avec la sous-issue qui la retire, et ses portes : pour une zone importée, le seul module qu'elle
+ce qu'elle importe librement, ce qu'elle ne lit qu'en type (`import type`), ses arêtes transitoires
+(des arcs de type), chacune avec la sous-issue qui la retire, et ses portes : pour une zone importée, le seul module qu'elle
 en lit (`portes`). Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) :
 `murs/zone` refuse un fichier de `src/` dont la zone n'a pas de ligne, et `murs/purete-imports` refuse,
 hors tests, un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de
@@ -441,6 +441,9 @@ src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable 
                             (les trois outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
+  audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
+                            de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;
+                            `src/audio/` garde le registre et la lecture.
   campaignData.ts           lecture de la couche CHARGÉE dans le store pour `ui` et `gameIso` : `presetPnjById` (le narratif
                             de la partie passé à `presetDuNarratif`), `etatsDeLaCampagne`.
   store.ts                  store Zustand : `GameState` = `Jeu` (`noyau/etat.ts`) + l'état et les actions

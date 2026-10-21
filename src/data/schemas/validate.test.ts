@@ -1,6 +1,6 @@
 /**
  * Point de validation partagé (#176) : `validateDataset`/`schemaForFile`/`validateDocument` — la SOURCE
- * UNIQUE utilisée par la sauvegarde Codex (`CodexEdit.save`), le chargement DEV (`dev-validate.ts`) et
+ * UNIQUE utilisée par la sauvegarde Codex (`CodexEdit.save`), le chargement DEV (`src/dev-validate.ts`) et
  * le contrat CI (`schema-contract.test.ts`). Le contrat CI couvre déjà « chaque JSON réel parse » ; ici
  * on verrouille le CONTRAT de la fonction : valide → null, invalide → message champ-par-champ, fichier
  * non registré → erreur NOMMANT le fichier et le registre à peupler (la porte est STRICTE : un document

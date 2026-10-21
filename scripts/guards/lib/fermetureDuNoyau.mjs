@@ -5,8 +5,9 @@
 // de test qu'il lance, et l'entrée de l'hôte texte, #2898) charge-t-il à l'EXÉCUTION un module d'un hôte web ou
 // d'interface ? Réponse
 // attendue : aucun fichier de `ZONES_D_HOTE`, aucun paquet de `PAQUETS_D_HOTE`.
-// La table `COUCHES` (`couches.mjs`) ne l'implique pas : `data` importe `scenes` en valeur, et `scenes` importe
-// `state` (arêtes transitoires de #2884) ; la fermeture se MESURE donc ici.
+// La table `COUCHES` (`couches.mjs`) n'ouvre, en valeur, aucune zone d'hôte aux zones de la fermeture, mais n'en
+// répond pas seule : `murs/purete-imports` ne juge ni paquet ni les angles morts de son en-tête (`couchesLint.mjs`) ;
+// la fermeture se MESURE donc ici.
 // Primitive : `clotureDImports` (`importGraph.mjs`), arcs d'exécution seuls (`typesEffaces`), dynamiques et motifs
 // d'`import.meta.glob` compris (contre la liste des fichiers de l'arbre de travail) ; les paquets se lisent sur les
 // spécificateurs NON RÉSOLUS de chaque module de la fermeture.
