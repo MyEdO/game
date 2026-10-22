@@ -1,4 +1,5 @@
-import { LOCALISATIONS_DE_COUP, type HitLocation, type BodyShape } from '../engine/types';
+import type { HitLocation, BodyShape } from '../engine/types';
+import { LOCALISATIONS_A_L_ECRAN } from '../noyau/fenetreDAttaque';
 import { NumberField } from './NumberField';
 import { locationLabel } from '../engine/combat';
 import { maxForcedRoll } from '../engine/tests';
@@ -6,10 +7,6 @@ import { FIXED_ROLL_MAX } from '../engine/fixedDie';
 import { OptionChooser, type RollOption } from './OptionChooser';
 import { Icon } from './Icon';
 import { t } from '../i18n';
-
-const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
-/** Les 6 localisations dans l'ordre des modales de coup : la liste du moteur, permutée. */
-export const LOCALISATIONS_A_L_ECRAN: readonly HitLocation[] = [tete, corps, brasD, brasG, jambeD, jambeG];
 
 /**
  * Grille PARTAGÉE de la localisation d'un Coup Critique FORCÉ (RAW-2, LDB 17 l.68 : sur un Critique

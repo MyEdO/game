@@ -15,11 +15,12 @@ import { readFileSync } from 'node:fs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { schema as characteristicsSchema } from './schemas/defs/characteristics';
 import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import type { RacineDocument } from './schemas/types';
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 const SCENES_DIR = fileURLToPath(new URL('../scenes/', import.meta.url));
 /** Dossier de chaque racine de documents — `SchemaDef.file` est relatif a SA racine. */
 const DIR_DE_RACINE: Record<RacineDocument, string> = { 'src/data': DATA_DIR, 'src/scenes': SCENES_DIR };
@@ -38,7 +39,7 @@ const PENDING = new Set<string>([]);
 describe('contrat de donnée — les documents des deux racines valident leur schéma zod', () => {
   for (const def of DEFS_DE_DOCUMENT) {
     it(`${def.root}/${def.file} valide ${def.schema === characteristicsSchema ? '(schéma characteristics)' : 'son schéma'}`, () => {
-      const raw = JSON.parse(readFileSync(`${DIR_DE_RACINE[def.root]}${def.file}`, 'utf8'));
+      const raw = JSON.parse(readFileSync(join(DIR_DE_RACINE[def.root], def.file), 'utf8'));
       expect(validateDataset(def.file, raw)).toBeNull();
     });
   }

@@ -33,18 +33,6 @@
     },
     {
       "famille": "URL",
-      "fichier": "src/data/schemas/grammaire/grammaire.test.ts",
-      "ref": "readFileSync : URL new URL(f, dossier)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
-      "fichier": "src/data/schemas/grammaire/grammaire.test.ts",
-      "ref": "readFileSync : URL new URL(fichier, RACINE)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
       "fichier": "src/gameIso/rig/quadruped/quad-socle-ratchet.test.ts",
       "ref": "listerDossier : URL new URL(`./${part}/defs`, import.meta.url)",
       "occurrence": 1

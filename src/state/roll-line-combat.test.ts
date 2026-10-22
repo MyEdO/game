@@ -605,10 +605,10 @@ describe('DIFFICULTÉ COMPOSÉE — contrat balayé sur tout le produit cartési
 
 /**
  * ÉTANCHÉITÉ du mot « Combinée » et du champ dérivé (#1153) — la Difficulté combinée est un fait
- * d'AFFICHAGE : le mot vit dans le catalogue i18n et l'UI, jamais dans le moteur ni l'état, et
- * l'échelle de la règle reste à NEUF crans (`LDB 14`, EDO App.2 comprise). Le modificateur combiné,
- * lui, est DÉRIVÉ par le monteur : aucun site ne peut le déclarer à l'entrée ni l'écrire en donnée.
- * STRUCTURELLE : elle lit les SOURCES, jamais une liste tenue à la main.
+ * d'AFFICHAGE : le mot vit dans le catalogue i18n et dans sa SEULE maison, `noyau/difficultyText.ts`, qui le
+ * met en mots pour tout hôte ; nulle part ailleurs, et l'échelle de la règle reste à NEUF crans (`LDB 14`, EDO
+ * App.2 comprise). Le modificateur combiné, lui, est DÉRIVÉ par le monteur : aucun site ne peut le déclarer à
+ * l'entrée ni l'écrire en donnée. STRUCTURELLE : elle lit les SOURCES, jamais une liste tenue à la main.
  */
 describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dérivé (#1153)', () => {
   it('l’échelle de Difficulté reste à NEUF crans — « combinee » n’en est pas un', () => {
@@ -618,23 +618,43 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
     expect(Object.keys(DIFFICULTY_LABELS)).not.toContain('combinee');
   });
 
-  /** Le mot est un fait d'AFFICHAGE : il vit dans le catalogue i18n et l'UI. Ce qui est interdit au
-   *  moteur et à l'état, c'est de le MANIPULER — un littéral de chaîne, une clé, un id. Le mot en
-   *  COMMENTAIRE reste légitime (il explique ce que l'affichage en fera) : le scan neutralise donc
-   *  les commentaires avant de chercher, et cherche accents ET casse confondus. */
-  it('le mot ne se MANIPULE ni dans `src/engine`, ni dans `src/state` — il est de l’affichage', () => {
-    const fichiers = readCorpus(['src/engine', 'src/state', 'src/noyau']);
-    expect(fichiers.length, 'le scan doit VOIR des fichiers — un scan cassé serait vert à vide').toBeGreaterThan(50);
-    const sansCommentaires = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-    // Les LITTÉRAUX de chaîne du code restant (simples, doubles, gabarits) — c'est là que le mot
-    // deviendrait une donnée de moteur.
-    const litteraux = (src: string): string[] => [...sansCommentaires(src).matchAll(/'([^'\\\n]*)'|"([^"\\\n]*)"|`([^`\\]*)`/g)]
-      .map((m) => m[1] ?? m[2] ?? m[3] ?? '');
-    const fuites = fichiers.filter((f) => litteraux(f.text).some((s) => /combin[ée]e/i.test(s)));
-    expect(fuites.map((f) => f.rel.slice('src/'.length))).toEqual([]);
-    // Le scan MORD : le même détecteur trouve le mot dans le catalogue i18n, sa seule maison.
-    const catalogue = readFileSync(resolve(__dirname, '../i18n/messages/fr.ts'), 'utf8');
-    expect(litteraux(catalogue).some((s) => /combin[ée]e/i.test(s)), 'sinon le détecteur ne mesure rien').toBe(true);
+  /** Ce qui est interdit hors de la maison et du catalogue, c'est de MANIPULER le mot : un littéral de
+   *  chaîne, une clé, un id. Le mot en COMMENTAIRE reste légitime (il explique ce que l'affichage en fera) :
+   *  le scan neutralise donc les commentaires avant de chercher. Les couches sans prose (`src/engine`,
+   *  `src/state`, `src/noyau`) refusent toute forme, accents et casse confondus ; ailleurs, le mot se cherche
+   *  comme libellé (« Combinée », « COMBINÉE ») ou comme clé/id sans accent (`difficulty.combinee`), car
+   *  l'adjectif minuscule accentué d'une prose (« tête combinée » d'un descriptif d'arme) n'est pas le mot de
+   *  la Difficulté. Les deux exemptions se nomment par chemin. */
+  const MAISON = 'src/noyau/difficultyText.ts';
+  const CATALOGUE = 'src/i18n/messages/fr.ts';
+  const COUCHES_SANS_PROSE = ['src/engine/', 'src/state/', 'src/noyau/'];
+  const sansCommentaires = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  // Les LITTÉRAUX de chaîne du code restant (simples, doubles, gabarits) — c'est là que le mot
+  // deviendrait une donnée.
+  const litteraux = (src: string): string[] => [...sansCommentaires(src).matchAll(/'([^'\\\n]*)'|"([^"\\\n]*)"|`([^`\\]*)`/g)]
+    .map((m) => m[1] ?? m[2] ?? m[3] ?? '');
+  const motifDe = (rel: string): RegExp =>
+    COUCHES_SANS_PROSE.some((c) => rel.startsWith(c)) ? /combin[ée]e/i : /combinee|Combin[ée]e|COMBIN[ÉE]E/;
+  const porteLeMot = (f: { rel: string; text: string }): boolean => litteraux(f.text).some((s) => motifDe(f.rel).test(s));
+  const fuit = (f: { rel: string; text: string }): boolean => f.rel !== MAISON && f.rel !== CATALOGUE && porteLeMot(f);
+
+  it('le mot ne se MANIPULE que dans sa maison, `noyau/difficultyText.ts`, et le catalogue i18n', () => {
+    const fichiers = readCorpus(['src']);
+    expect(fichiers.length, 'le scan doit VOIR des fichiers — un scan cassé serait vert à vide').toBeGreaterThan(1000);
+    expect(fichiers.filter(fuit).map((f) => f.rel)).toEqual([]);
+    // Le scan MORD : le même détecteur trouve le mot dans la maison et dans le catalogue, sinon il ne mesure rien.
+    expect(fichiers.filter(porteLeMot).map((f) => f.rel).sort()).toEqual([CATALOGUE, MAISON]);
+  });
+
+  it('le scan MORD sur toute forme dans les couches sans prose, et sur le libellé partout ailleurs', () => {
+    expect(fuit({ rel: 'src/noyau/sonde.ts', text: "const s = 'difficulté combinée (+10)';" })).toBe(true);
+    expect(fuit({ rel: 'src/engine/sonde.ts', text: "const s = 'CombinÉe';" })).toBe(true);
+    expect(fuit({ rel: 'src/state/sonde.ts', text: 'const s = `combinee`;' })).toBe(true);
+    expect(fuit({ rel: 'src/ui/sonde.tsx', text: "const s = 'Combinée (+10)';" })).toBe(true);
+    expect(fuit({ rel: 'src/ui/sonde.tsx', text: "const s = 'difficulty.combinee';" })).toBe(true);
+    expect(fuit({ rel: 'src/gameIso/sonde.ts', text: "const s = 'tête combinée';" })).toBe(false);
+    expect(fuit({ rel: 'src/noyau/sonde.ts', text: '// la Difficulté combinée' })).toBe(false);
+    expect(fuit({ rel: MAISON, text: "const s = 'combinée';" })).toBe(false);
   });
 
   it('`difficultyCombined` est DÉRIVÉ : absent de la déclaration d’entrée et de toute donnée', () => {

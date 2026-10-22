@@ -8,13 +8,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 // La balise HTML se DÉFINIT une seule fois, dans le module feuille du `Source/` : le volet E de
 // `prose-resolution.test.ts` juge la prose ADRESSÉE avec exactement ce prédicat.
 import { HTML_TAG } from './source/normalize.ts';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
 
 /** Chemins de toutes les strings contenant une balise HTML (chemin lisible → string fautive). */

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { auditDataset } from '../../scripts/guards/lib/citationCoverage.mjs';
 
 /**
@@ -21,7 +20,7 @@ import { auditDataset } from '../../scripts/guards/lib/citationCoverage.mjs';
  * (nouvelle donnée) — s'il s'effondre, c'est qu'une racine a avalé le dataset.
  */
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 
 /**
  * Datasets dont la racine est NUE et dont chaque sous-entrée porte sa propre citation — relevé au

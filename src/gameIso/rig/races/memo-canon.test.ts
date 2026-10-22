@@ -7,11 +7,11 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { raceById, RACES } from './index';
 import { DEFAULT_RACE_ID } from '../../../data';
 
-const SRC = readFileSync(fileURLToPath(new URL('./index.ts', import.meta.url)), 'utf8');
+const SRC = readFileSync(resolve(__dirname, 'index.ts'), 'utf8');
 
 describe('rig/races — mémoïsation par la primitive canonique (#1440)', () => {
   it('même race demandée deux fois → la MÊME `RaceDef` (aucune reconstruction)', () => {

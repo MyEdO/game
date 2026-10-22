@@ -8,6 +8,7 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { join, resolve } from 'node:path';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
 import { z } from 'zod';
 import merchantsJson from '../../merchants.json';
@@ -257,7 +258,7 @@ describe('document() — enveloppe posée par la fabrique', () => {
   it('`exclusiviteAdapteDe` : `adapteDe` refusé quand une entrée embarquée ADRESSE sa prose, la clé fautive nommée (#2206)', () => {
     const objet = z.strictObject({ fiche: (creaturePartielle as z.ZodType).optional(), adapteDe: sourceRefSchema.optional() });
     const schema = objet.superRefine(exclusiviteAdapteDe(objet));
-    const disque = JSON.parse(readFileSync(fileURLToPath(new URL('../../../scenes/diligence/diligence-projet.json', import.meta.url)), 'utf8')) as { narratif: { presetsPnj: { profil?: { descRef?: unknown } }[] } };
+    const disque = JSON.parse(readFileSync(resolve(__dirname, '../../../scenes/diligence/diligence-projet.json'), 'utf8')) as { narratif: { presetsPnj: { profil?: { descRef?: unknown } }[] } };
     const descRef = disque.narratif.presetsPnj.map((p) => p.profil?.descRef).find((r) => r !== undefined);
     const ko = schema.safeParse({ fiche: { descRef }, adapteDe: SOURCE_REELLE });
     expect(ko.error?.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
@@ -720,7 +721,7 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
  * refuser. Le témoin `AVEC` (entrée complète acceptée) accompagne chaque paire.
  */
 describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureur ne voit plus', () => {
-  const RACINE = new URL('../../', import.meta.url);
+  const RACINE = resolve(__dirname, '../..');
   const CLES = ['labelF', 'desc', 'source', 'alsoIn', 'maison', 'icon'] as const;
   type Cle = (typeof CLES)[number];
 
@@ -736,7 +737,7 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
   /** Dataset RÉEL complet (jamais une entrée isolée : `affinerDataset` peut exiger la liste entière —
    *  `names.json` refuse tout tableau qui n'a pas ses 7 races). */
   const dataset = (fichier: string): Record<string, unknown>[] | undefined => {
-    const brut = JSON.parse(readFileSync(new URL(fichier, RACINE), 'utf8')) as unknown;
+    const brut = JSON.parse(readFileSync(join(RACINE, fichier), 'utf8')) as unknown;
     return Array.isArray(brut) && brut.length ? (brut as Record<string, unknown>[]) : undefined;
   };
 
@@ -1372,7 +1373,7 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
   });
 
   it('les profils de preset du disque passent les verrous de la partielle de créature (#2206)', () => {
-    const disque = JSON.parse(readFileSync(fileURLToPath(new URL('../../../scenes/diligence/diligence-projet.json', import.meta.url)), 'utf8')) as { narratif: { presetsPnj: { id: string; profil?: unknown }[] } };
+    const disque = JSON.parse(readFileSync(resolve(__dirname, '../../../scenes/diligence/diligence-projet.json'), 'utf8')) as { narratif: { presetsPnj: { id: string; profil?: unknown }[] } };
     const profils = disque.narratif.presetsPnj.filter((p) => p.profil !== undefined);
     expect(profils.length).toBeGreaterThan(0);
     expect(profils.filter((p) => !creaturePartielle.safeParse(p.profil).success).map((p) => p.id)).toEqual([]);

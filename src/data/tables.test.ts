@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { fileURLToPath } from 'node:url';
 import { effectTables, findEffectTableById, mutationTables } from './index';
 import { TABLE_ORPHAN_RATCHET } from '../../scripts/guards/lib/tableConsumerStock.mjs';
 import { cleDeSite, ecartDuVolet, remedeNomme, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
@@ -15,7 +14,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stoc
  * contraintes XOR (`rows` ⊕ `tableId`) et la résolution des refs (`tableId` → tables.json ; `table` →
  * mutationTables.json) vivent ICI (jamais un tirage vers une table fantôme au runtime).
  */
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
 const effectIds = new Set(effectTables.map((t) => t.id));
 const mutationTableIds = new Set(mutationTables.map((t) => t.id));

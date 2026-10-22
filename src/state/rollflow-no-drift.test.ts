@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -23,11 +22,9 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * `evaluateTest(1, …)` dormait aussi dans `shipManeuver.forceCrewRole` ET dans la Détermination d'une
  * étape de cascade — d'où le scan LARGE (le recodage ne vit pas que dans rollFlowSpecs.ts).
  *
- * Portée assumée (comme `roll-modal-invariant.test.ts`) : scan statique — n'attrape pas une obfuscation
- * par variable. Le filet BEHAVIORAL exhaustif (piloter chaque `*ForceSuccess` sous Fast DR et exiger le
- * DR MAX) reste le complément à ajouter.
+ * Portée (comme `roll-modal-invariant.test.ts`) : scan statique, aveugle à une obfuscation par variable.
  */
-const NOYAU_DIR = fileURLToPath(new URL('../noyau/', import.meta.url));
+const REGISTRE_DES_FLUX = resolve(__dirname, '../noyau/rollFlowSpecs.ts');
 
 /** Toutes les occurrences `chemin:ligne` d'un motif dans le code de résolution (hors tests). */
 function scan(re: RegExp): string[] {
@@ -82,7 +79,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     // `isDouble` dans engine/tests.ts. Tout `isDoubleRoll(` ICI = un littéral recopié, TOUTE variante comprise
     // (source imbriquée `st.result.roll`, champs coercés `!!p.success`/`?? 0`) — que le scan par-signature ratait.
     // (Lire `result.isDouble` déjà posé reste OK : c'est un accès de champ, pas un appel à `isDoubleRoll`.)
-    const specs = readFileSync(join(NOYAU_DIR, 'rollFlowSpecs.ts'), 'utf8');
+    const specs = readFileSync(REGISTRE_DES_FLUX, 'utf8');
     const hits = specs.split('\n').flatMap((l, i) => (/isDoubleRoll\(/.test(l) ? [`rollFlowSpecs.ts:${i + 1}`] : []));
     expect(hits, `isDoubleRoll( dans le registre des flux (${hits.join(', ')}) — utilise hydrateTR(detail) ou forcedTR(roll,target,sl).`).toEqual([]);
   });
@@ -93,7 +90,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     // `forcedTR` a REJOINT la liste depuis le balayage « zéro copie » : les littéraux TestResult de réussite
     // forcée des flux opposés (attack/defense/counterspell/castOpposition/maneuver) passent par l'atome.
     // `hydrateTR` a REJOINT la liste depuis la fermeture de la ré-hydratation (`{ …, isDouble: isDoubleRoll(X.roll) }`).
-    const specs = readFileSync(join(NOYAU_DIR, 'rollFlowSpecs.ts'), 'utf8');
+    const specs = readFileSync(REGISTRE_DES_FLUX, 'utf8');
     for (const atom of ['bumpSL', 'bestForcedRoll', 'forcedTR', 'hydrateTR']) {
       expect(specs.includes(atom), `atome partagé « ${atom} » absent de rollFlowSpecs.ts — le système de jet a-t-il été contourné ?`).toBe(true);
     }

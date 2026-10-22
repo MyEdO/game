@@ -999,7 +999,7 @@ export function previewAttack(
 
 /** La Difficulté d'une attaque APERÇUE, telle que la modale du jet la dira — la DONNÉE (cran de
  *  l'échelle + modificateur combiné quand la composition ne tombe sur aucun cran), que l'affichage met
- *  en mots par l'unique `ui/difficultyText`. `undefined` sur un aperçu sans cible atteignable (hors
+ *  en mots par l'unique `noyau/difficultyText`. `undefined` sur un aperçu sans cible atteignable (hors
  *  portée / LdV coupée), où `previewAttack` ne compose aucune Difficulté. SOURCE UNIQUE de la question
  *  « que dira le jet de ce geste ? » : réticule au survol comme badge de l'aperçu tap-1. PUR. */
 export function difficultyOf(p: AttackPreview): DifficultyShown | undefined {
@@ -3631,7 +3631,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
 /** Le TIR IMMOBILE est-il armable ? Renvoie la RAISON du refus, `null` si armable.
  * PRÉDICAT UNIQUE de la posture (`LDB 14 l.70`) — TROIS lecteurs, aucun recodage : le gate du registre
  * d'actions (case de console), le store (`battleToggleStance`) et la fenêtre de jet
- * (`useAttackJetProps`). Il dit exactement ce que `attackEnv` mesure : seul un HÉROS a le choix (l'IA
+ * (`noyau/fenetreDAttaque`). Il dit exactement ce que `attackEnv` mesure : seul un HÉROS a le choix (l'IA
  * encaisse le −10 dès qu'elle a bougé, elle n'arbitre rien), et une fois le Mouvement du Tour entamé —
  * ou sans Mouvement à céder — la posture n'annule plus rien.
  * `weapon` = l'arme d'UN tir précis (fenêtre de jet) ; absente, la question est celle de l'ARSENAL

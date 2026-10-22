@@ -28,7 +28,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isValidFormula } from '../engine/ops';
 import { ICON_DEFS } from '../ui/icons';
@@ -37,12 +37,12 @@ import type { Flow } from '../engine/flowCore';
 import { ruleDef } from '../engine/policy';
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
 
 // --- Vocabulaire GameOp EXACT, extrait de l'union `GameOp` de engine/ops.ts (membres `| { op: '…'`) →
 //     jamais une liste maintenue à la main qui dériverait de l'union.
-const OPS_SRC = readFileSync(fileURLToPath(new URL('../engine/ops.ts', import.meta.url)), 'utf8');
+const OPS_SRC = readFileSync(resolve(__dirname, '../engine/ops.ts'), 'utf8');
 const KNOWN_OPS = new Set([...OPS_SRC.matchAll(/\|\s*\{\s*op:\s*'([^']+)'/g)].map((m) => m[1]));
 // Opérateurs de comparaison d'une Condition `compare`/`slThreshold`/… (engine/flowCore.ts `CompareOp`) :
 // un AUTRE espace de noms pour la clé `op`, TOUJOURS porté par un objet à `kind` → exclu du dispatch GameOp.
@@ -51,7 +51,7 @@ const COMPARE_OPS = new Set(['>=', '<=', '==', '<', '>', '!=']);
 // Champs `TriggeredEffect[]` du catalogue — EXTRAITS par regex de `data/index.ts` (jamais une liste de
 // familles à la main) : `effects`/`onHitEffects`… Distincts par TYPE des `Flow` simples (`SpellData.effects`,
 // `TrappingData.consumable`) qui ne matchent pas ce motif → naturellement hors périmètre du verrou.
-const INDEX_SRC = readFileSync(fileURLToPath(new URL('index.ts', import.meta.url)), 'utf8');
+const INDEX_SRC = readFileSync(resolve(__dirname, 'index.ts'), 'utf8');
 const TRIGGERED_EFFECT_FIELDS = new Set(
   [...INDEX_SRC.matchAll(/(\w+)\?:\s*(?:import\('\.\.\/engine\/flowCore'\)\.)?TriggeredEffect(?:<\w+>)?\[\]/g)].map((m) => m[1]),
 );

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { DATASET_KEYS, datasetEditable, datasetFile, datasetObject, datasetObjectSerializeRoot, datasetSerializeRoot, resetData } from './overrides';
 import { validateDataset } from './schemas/validate';
 import { serializeDataset } from './serialize';
@@ -82,7 +81,7 @@ describe('sauvegarde éditeur — chaque clé de dataset résout un fichier REGI
     // pipeline (fichier dérivé × racine sérialisée = disque), pas sur l'ordre des tests. `resetData`
     // est lui-même gardé par `overrides.test.ts` (restauration byte-parfaite).
     resetData();
-    const DIR = fileURLToPath(new URL('.', import.meta.url));
+    const DIR = __dirname;
     const divergents: string[] = [];
     for (const k of scannees()) {
       const fichier = datasetFile(k);

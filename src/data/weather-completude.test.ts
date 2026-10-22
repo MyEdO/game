@@ -13,7 +13,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { validateDataset } from './schemas/validate';
 import { weatherIdSchema } from './schemas/defs/weather';
 import { setDataset } from './overrides';
@@ -21,7 +20,7 @@ import { weatherConditions } from './index';
 import { weatherCondition } from '../engine/travelStages';
 import { weatherTestMods } from '../engine/weatherTestMod';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 /** Le document tel qu'il vit SUR DISQUE — immunisé aux mutations en mémoire d'un test antérieur du
  *  worker (`isolate: false`), qui rendraient le clone déjà amputé. */
 function disque(): { conditions: { id: string }[] } {

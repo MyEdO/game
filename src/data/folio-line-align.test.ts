@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import {
   FOLIO_LINE_ALIGN_NON_JUGEABLE,
@@ -45,7 +44,7 @@ import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stoc
  * dernier `it` de ce bloc empêche ce chiffre de dériver en silence.
  */
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 
 /** Couverture MESURÉE le 2026-10-14 (#1473, même mesure que `book-source-integrity.test.ts` et
  *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4480 entrées à `source:{book,page}`, dont 1319

@@ -223,7 +223,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/ui/jetProps/`),
     categorie: 'interface-wfrp',
     raison: 'Hooks qui composent les props des modales de jet à partir du store et du moteur.',
-    preuve: 'src/ui/jetProps/useAttackJetProps.tsx imports ../RollLine, ../../noyau/rollFlowSpecs',
+    preuve: 'src/ui/jetProps/useAttackJetProps.tsx imports ../../state/store, ../../noyau/fenetreDAttaque',
   },
   {
     motif: new RegExp(String.raw`^src/ui/[^/]+\.(ts|tsx)$`),

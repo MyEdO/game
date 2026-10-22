@@ -411,11 +411,11 @@ export interface RollFlowHandlers {
   reverse: (get: Get, set: Set, pid?: string) => void;
   /** Le verbe `reverse` est-il OFFERT (Talent ET/OU jeton applicable) ? Pure (aucune consommation) —
    *  pilote l'affichage du bouton « Inverser » dans la rangée d'influence. `false` sans `spec.reverse`. */
-  reverseAvailable: (get: Get, set: Set, pid?: string) => boolean;
+  reverseAvailable: (get: Get, pid?: string) => boolean;
   /** Prévisualisation PURE de l'issue de l'inversion (dé renversé, DR, succès) — rend le choix LISIBLE
    *  avant le clic. `null` sans `spec.reverse`, jet non lancé, ou aucune voie applicable (miroir de
    *  `reverseAvailable`, jamais appelé sans elle en pratique). */
-  reversePreview: (get: Get, set: Set, pid?: string) => { roll: number; sl: number; success: boolean } | null;
+  reversePreview: (get: Get, pid?: string) => { roll: number; sl: number; success: boolean } | null;
 }
 
 /**
@@ -546,7 +546,18 @@ function opDarkPact<P extends PendingBase>(
 export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P, Ctx = void>(spec: RollFlowSpec<P, Slot, Ctx>): RollFlowHandlers {
   const pendingOf = (s: Jeu) => s[spec.key] as P | null | undefined;
   const touch = spec.touch ?? touchActors;
-  const locate = (set: Set, get: Get, p: P, pid?: string, lecture = false): { slot: Slot; commit: Commit<Slot> } | null => {
+  /** Le SLOT ciblé, en LECTURE : un slot que le flux séquentiel refuse n'est pas lu, et rien ne s'écrit. */
+  const slotLu = (get: Get, p: P, pid?: string): Slot | null => {
+    if (!spec.multi) return p as unknown as Slot;
+    if (pid != null && spec.multi.refusDuSlot?.(get(), pid)) return null;
+    return slotDe(p, pid);
+  };
+  /** Le slot `pid` (le premier sans `pid`) d'un flux séquentiel, sans juger son refus. */
+  const slotDe = (p: P, pid?: string): Slot | null => {
+    const slots = spec.multi!.slots(p);
+    return (pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0]) ?? null;
+  };
+  const locate = (set: Set, get: Get, p: P, pid?: string): { slot: Slot; commit: Commit<Slot> } | null => {
     if (!spec.multi) {
       const slot = p as unknown as Slot;
       return { slot, commit: (patch, opts) => set({
@@ -556,12 +567,12 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     }
     const refus = pid != null ? spec.multi.refusDuSlot?.(get(), pid) : null;
     if (refus) {
-      if (!lecture) refuserGeste(get, set, refus);
+      refuserGeste(get, set, refus);
       return null;
     }
-    const slots = spec.multi.slots(p);
-    const slot = pid != null ? slots.find((x) => spec.multi!.idOf(x) === pid) : slots[0];
+    const slot = slotDe(p, pid);
     if (!slot) return null;
+    const slots = spec.multi.slots(p);
     return { slot, commit: (patch, opts) => set({
       [spec.key]: spec.multi!.replace(p, slots.map((x) => x === slot
         ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
@@ -796,24 +807,24 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const patch = spec.reverse.applyRoll(s, loc.slot, actor, get, applied, p); if (!patch) return;
       loc.commit(patch, { touch: true });
     },
-    reverseAvailable(get, set, pid) {
+    reverseAvailable(get, pid) {
       if (!spec.reverse) return false;
       const s = get(); const p = pendingOf(s); if (!p) return false;
-      const loc = locate(set, get, p, pid, true); if (!loc || passive(loc.slot, s, get, p)) return false;
-      if (!spec.rolled(loc.slot)) return false;
-      const actor = spec.actor(s, loc.slot, p); if (!actor) return false;
-      const cur = spec.reverse.current(loc.slot); if (!cur) return false;
-      const q = spec.reverse.skillOf(s, loc.slot, actor, get, p); if (!q) return false;
+      const slot = slotLu(get, p, pid); if (!slot || passive(slot, s, get, p)) return false;
+      if (!spec.rolled(slot)) return false;
+      const actor = spec.actor(s, slot, p); if (!actor) return false;
+      const cur = spec.reverse.current(slot); if (!cur) return false;
+      const q = spec.reverse.skillOf(s, slot, actor, get, p); if (!q) return false;
       return engineReverseAvailable(actor, q, cur.roll, cur.target);
     },
-    reversePreview(get, set, pid) {
+    reversePreview(get, pid) {
       if (!spec.reverse) return null;
       const s = get(); const p = pendingOf(s); if (!p) return null;
-      const loc = locate(set, get, p, pid, true); if (!loc || passive(loc.slot, s, get, p)) return null;
-      if (!spec.rolled(loc.slot)) return null;
-      const actor = spec.actor(s, loc.slot, p); if (!actor) return null;
-      const cur = spec.reverse.current(loc.slot); if (!cur) return null;
-      const q = spec.reverse.skillOf(s, loc.slot, actor, get, p); if (!q) return null;
+      const slot = slotLu(get, p, pid); if (!slot || passive(slot, s, get, p)) return null;
+      if (!spec.rolled(slot)) return null;
+      const actor = spec.actor(s, slot, p); if (!actor) return null;
+      const cur = spec.reverse.current(slot); if (!cur) return null;
+      const q = spec.reverse.skillOf(s, slot, actor, get, p); if (!q) return null;
       return engineReversePreview(actor, q, cur.roll, cur.target);
     },
   };

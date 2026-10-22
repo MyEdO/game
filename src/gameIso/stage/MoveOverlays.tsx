@@ -13,7 +13,7 @@ import { movePreviewEls } from './movePreview';
 import { GOLD_TINT } from '../highlightTints';
 import type { Combatant } from '../../engine/types';
 import type { DifficultyShown } from '../../engine/combat';
-import { difficultyShownText } from '../../ui/difficultyText';
+import { difficultyShownText } from '../../noyau/difficultyText';
 import type { BattleState } from '../../noyau/etat';
 import type { Pt } from '../../noyau/monde/path';
 
@@ -90,7 +90,7 @@ export function TapPreview({ battle, activeC, dims, liftOf, myTurn, difficulty }
   liftOf: (p: Pt) => number;
   myTurn: boolean;
   /** Difficulté que dira le jet de ce geste (`previewDifficultyOf`, résolue par l'appelant qui tient
-   *  le store — MÊME chemin que le réticule au survol), mise en mots par `ui/difficultyText`. */
+   *  le store — MÊME chemin que le réticule au survol), mise en mots par `noyau/difficultyText`. */
   difficulty?: DifficultyShown;
 }) {
   const pv = myTurn ? battle.preview : null;

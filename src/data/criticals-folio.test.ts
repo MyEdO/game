@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { makeChapterReader, parseLineCitation } from '../../scripts/guards/lib/folioLineAlign.mjs';
 import { critiqueDoc, type CritEntry, type CritTableKey, type JeuDeCritique } from './criticals';
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 const chapitres = makeChapterReader(JSON.parse(readFileSync(join(DATA_DIR, 'books.json'), 'utf8')));
 
 /**

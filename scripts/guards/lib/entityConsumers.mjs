@@ -130,8 +130,8 @@ export function orphelinesMesurees(dataDir, srcDir) {
  * @returns {import('./stockDeSites.mjs').RegenerationDeStock[]}
  */
 export function regenerations(sites = orphelinesMesurees(
-  fileURLToPath(new URL('../../../src/data', import.meta.url)),
-  fileURLToPath(new URL('../../../src', import.meta.url)),
+  join(dirname(fileURLToPath(import.meta.url)), '../../../src/data'),
+  join(dirname(fileURLToPath(import.meta.url)), '../../../src'),
 )) {
   return [{
     chemin: fileURLToPath(new URL('./entityOrphanStock.mjs', import.meta.url)),

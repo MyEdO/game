@@ -170,11 +170,17 @@ function opposeBinaire(
 
 const pool = (s: Jeu): readonly Combatant[] => s.battle?.combatants ?? s.party;
 
+/** Le Test opposé d'un coup tranché : la ligne 0 (l'attaquant) gagne quand le coup touche ; `null` sans jet de
+ *  défense. Lu par `lireCoup` et par la fenêtre d'attaque (`fenetreDAttaque`). */
+export function oppositionDuCoup(res: AttackResult): OppositionEnVue | null {
+  return res.defenderDetail ? { gagnante: res.hit ? 0 : 1, drNet: res.netSL } : null;
+}
+
 /** Coup d'attaque : la ligne de l'attaquant, celle du défenseur au Test opposé. */
 function lireCoup(flux: FlowKey, de: string, contre: string, res: AttackResult | null): JetEnVue | null {
   if (!res?.attackerDetail) return null;
   const lignes = [ligneDuDetail(de, res.attackerDetail), ...(res.defenderDetail ? [ligneDuDetail(contre, res.defenderDetail)] : [])];
-  return vue(flux, lignes, res.defenderDetail ? { gagnante: res.hit ? 0 : 1, drNet: res.netSL } : null);
+  return vue(flux, lignes, oppositionDuCoup(res));
 }
 
 /** Les rangées d'un flux multi dont le dé est jeté ou à jeter (une rangée refusée n'a pas de dé). */

@@ -198,7 +198,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
 const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
 
 /** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `attackRoll` la
- *  pose ; l'aperçu par l'expression de `useAttackJetProps`, puis l'application par `attackConfirm`. */
+ *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `attackConfirm`. */
 function devieePuisApplication(cas: 'tas' | 'melee') {
   useGame.getState().seedRng(3);
   const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });

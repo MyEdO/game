@@ -644,7 +644,7 @@ export interface DifficultyComposition {
 
 /** La Difficulté d'un jet réduite à ce qui la NOMME : le cran de l'échelle, plus le modificateur RÉEL
  *  quand la composition n'en atteint aucun. DÉRIVÉE de `DifficultyComposition` — même paire, mêmes noms
- *  de champs : ce que le moteur transporte est ce que l'affichage met en mots (`ui/difficultyText`). */
+ *  de champs : ce que le moteur transporte est ce que l'affichage met en mots (`noyau/difficultyText`). */
 export type DifficultyShown = Pick<DifficultyComposition, 'difficulty' | 'difficultyCombined'>;
 
 /**

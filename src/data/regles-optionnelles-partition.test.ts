@@ -2,10 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { fileURLToPath } from 'node:url';
 import reglesOptionnelles from './reglesOptionnelles.json';
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 
 /**
  * Garde-fou « une règle optionnelle est SOURCÉE ou MAISON, jamais les deux, jamais aucune »

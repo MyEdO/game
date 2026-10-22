@@ -35,7 +35,7 @@ describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `ski
     setup();
     expect(useGame.getState().pendingTest!.roll).toBe(82); // pas de flip silencieux
     expect(useGame.getState().pendingTest!.success).toBe(false);
-    expect(FLOWS.test.reverseAvailable(useGame.getState, useGame.setState)).toBe(true);
+    expect(FLOWS.test.reverseAvailable(useGame.getState)).toBe(true);
   });
 
   it('accepter (`testReverse`) : permute le dé, consomme le jeton, transforme l’échec en réussite', () => {
@@ -67,7 +67,7 @@ describe('flux `test` (LDB 23 l.218 « Observer une cible » — jeton sans `ski
 
   it('sans jeton/Talent applicable pour cette Compétence : non disponible, `testReverse` no-op', () => {
     setup({ skillId: 'commerage' }, false); // pas de jeton du tout
-    expect(FLOWS.test.reverseAvailable(useGame.getState, useGame.setState)).toBe(false);
+    expect(FLOWS.test.reverseAvailable(useGame.getState)).toBe(false);
     useGame.getState().testReverse();
     expect(useGame.getState().pendingTest!.roll).toBe(82); // inchangé
   });
@@ -105,7 +105,7 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
 
   it('jet raté + jeton `corps-a-corps` applicable : `reverseAvailable` OFFRE le verbe', () => {
     setup();
-    expect(FLOWS.attack.reverseAvailable(useGame.getState, useGame.setState)).toBe(true);
+    expect(FLOWS.attack.reverseAvailable(useGame.getState)).toBe(true);
   });
 
   it('PREUVE échoue sans la couture — sans appeler `attackReverse`, l’attaque reste ratée et le jeton intact (aucun automatisme)', () => {
@@ -139,7 +139,7 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
         } as never,
       },
     });
-    expect(FLOWS.attack.reverseAvailable(useGame.getState, useGame.setState)).toBe(false);
+    expect(FLOWS.attack.reverseAvailable(useGame.getState)).toBe(false);
     useGame.getState().attackReverse();
     expect(useGame.getState().pendingAttack!.result!.attackerDetail!.roll).toBe(82);
   });
@@ -169,7 +169,7 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
 
   it('jet raté + jeton `corps-a-corps` applicable : `reverseAvailable` OFFRE le verbe', () => {
     setup();
-    expect(FLOWS.defense.reverseAvailable(useGame.getState, useGame.setState)).toBe(true);
+    expect(FLOWS.defense.reverseAvailable(useGame.getState)).toBe(true);
   });
 
   it('accepter (`defenseReverse`) : permute le dé du défenseur, consomme le jeton, pare le coup', () => {
@@ -209,7 +209,7 @@ describe('Talent + jeton simultanément applicables (LDB 10 Sociable + LDB 23 l.
         requireSL: 0, target: 40, roll: 82, success: false, sl: -4,
       } as any,
     });
-    expect(FLOWS.test.reverseAvailable(useGame.getState, useGame.setState)).toBe(true);
+    expect(FLOWS.test.reverseAvailable(useGame.getState)).toBe(true);
     useGame.getState().testReverse();
     const pt = useGame.getState().pendingTest!;
     const expected = evaluateTest(reverseRoll(82), 40);
@@ -241,7 +241,7 @@ describe('Jeton sur un Test DÉJÀ réussi (LDB 23 l.209/218 — libre) : améli
         requireSL: 0, target, roll, success: true, sl: before.sl,
       } as any,
     });
-    expect(FLOWS.test.reverseAvailable(useGame.getState, useGame.setState)).toBe(true);
+    expect(FLOWS.test.reverseAvailable(useGame.getState)).toBe(true);
   });
 
   it('accepter (`testReverse`) : permute le dé, améliore le DR, le Test reste réussi', () => {

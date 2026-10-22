@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ModLine, RollBreakdown, RollMask, SecondReadLine } from '../engine/combat';
 import type { VerdictReason } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
-import { difficultyText } from './difficultyText';
+import { difficultyText } from '../noyau/difficultyText';
 import { Dice } from './Dice';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
@@ -10,6 +10,7 @@ import { codexLookupById } from './compendium/registry';
 import { RULE_REF, type ModProvenance } from '../engine/ruleRefs';
 import type { StakeRef } from '../data';
 import { actorIn } from '../noyau/monde/combatants';
+import type { RollLabelRef } from '../noyau/rollSeam';
 import { useGame, type GameState } from '../state/store';
 import { t } from '../i18n';
 
@@ -26,13 +27,6 @@ function difficultyValue(difficulty?: Difficulty, combined?: number): number {
  *  la chip le rend, et le popover du palier dérivé énumère sa composition avec la MÊME écriture. */
 function modText(m: ModLine): string {
   return `${m.value >= 0 ? '+' : '−'}${Math.abs(m.value)} ${m.label}`;
-}
-
-/** Cible Codex d'un texte de rangée (nom du jet) — identité STABLE, jamais un libellé de recherche. */
-export interface RollLabelRef {
-  category: string;
-  id: string;
-  label: string;
 }
 
 /** DÉCOUVRABILITÉ de la Difficulté : le glyphe vit DANS le déclencheur, À LA SUITE du texte — ce

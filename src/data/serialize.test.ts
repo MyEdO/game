@@ -6,11 +6,10 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { serializeDataset } from './serialize';
 
-const DIR = join(fileURLToPath(new URL('.', import.meta.url)));
+const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json'));
 
 describe('serializeDataset — round-trip byte-fidèle des datasets app-owned', () => {

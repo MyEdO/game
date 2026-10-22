@@ -9,7 +9,9 @@ import { codeSeul } from '../scripts/guards/lib/commentPoison.mjs';
  * `fileURLToPath(new URL('./styles/x.css', import.meta.url))` en environnement `node`
  * (patron de `src/ui/atelier-conformance.test.ts`) ; en environnement `jsdom`, `new URL(rel, base)`
  * est détourné vers la base du document, la résolution y passe donc par
- * `join(dirname(fileURLToPath(import.meta.url)), '..', 'styles', 'x.css')`.
+ * `join(dirname(fileURLToPath(import.meta.url)), '..', 'styles', 'x.css')`, ou `resolve(__dirname, …)` dans un test
+ * Vitest. Un `index` de `src/` ou son dossier ne se désigne pas par `new URL` : knip en ferait une entrée (garde
+ * `src/index-mesures-par-knip.test.ts`).
  *
  * PÉRIMÈTRE : `src/**` (`.ts`/`.tsx`) ET `scripts/**` (`.mjs`/`.mts`) — l'outillage tourne sur la CI
  * et dans les worktrees d'agents, un chemin de machine y meurt exactement pareil.

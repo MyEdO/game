@@ -7,7 +7,7 @@ import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../
 import { MAISON_SANS_SOURCE, MAISON_MASQUEES } from '../../scripts/guards/lib/integriteStock.mjs';
 import { SANS_LIVRE, SANS_PROVENANCE_EXIGEE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 const SCENES_DIR = fileURLToPath(new URL('../scenes', import.meta.url));
 const lire = (dir: string, f: string): unknown => JSON.parse(readFileSync(join(dir, f), 'utf8'));
 const jsons = (dir: string): string[] => listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') });

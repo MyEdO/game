@@ -5,11 +5,10 @@
  * plus long ne satisfasse un plus court (`river-criticals.json` ne compte pas pour `criticals.json`).
  */
 import { describe, it, expect } from 'vitest';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 /** `docs/donnees.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
 const ATLAS = await rendreCible('docs/donnees.md');
 

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { createHash } from 'node:crypto';
+import { join, resolve } from 'node:path';
 import { CODEX, depuisEnveloppe } from './registry';
 import { books } from '../../data';
 
@@ -36,7 +36,7 @@ import { books } from '../../data';
  * catégorie ; un écart VOULU (lot T3) se re-gèle avec sa raison dans le message de commit.
  */
 
-const DATA_DIR = fileURLToPath(new URL('../../data/', import.meta.url));
+const DATA_DIR = resolve(__dirname, '../../data');
 /** Les datasets de `src/data`, listés UNE fois — deux faits ci-dessous les relisent tous. */
 const DATASETS = listerDossier(DATA_DIR).filter((x) => x.endsWith('.json'));
 
@@ -567,7 +567,7 @@ describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
     const partiels: string[] = [];
     const orphelins: string[] = [];
     for (const f of DATASETS) {
-      for (const [n, arr] of tableauxIdentifies(JSON.parse(readFileSync(DATA_DIR + f, 'utf8'))).entries()) {
+      for (const [n, arr] of tableauxIdentifies(JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'))).entries()) {
         const ids = arr.map((e) => e.id as string);
         let etat: 'total' | 'partiel' | 'orphelin' = 'orphelin';
         for (const c of CODEX) {
@@ -627,7 +627,7 @@ describe('depuisEnveloppe — le défaut lui-même', () => {
     // dénoncerait ici avec le NOM de l’entrée muette.
     const muets: string[] = [];
     for (const f of DATASETS) {
-      for (const arr of tableauxIdentifies(JSON.parse(readFileSync(DATA_DIR + f, 'utf8')))) {
+      for (const arr of tableauxIdentifies(JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8')))) {
         const porteuses = arr.filter((e) => typeof e.maison === 'string' && e.maison.length > 0);
         if (!porteuses.length) continue;
         for (const c of CODEX) {
