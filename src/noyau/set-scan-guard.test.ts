@@ -140,7 +140,7 @@ const BASELINE = { totalCalls: 786, totalAdHocResets: 329 }; // +1 (#1117 L3 : `
 // attendre, quand cette étape est déjà dans le slot (poussée HORS application). Les étapes poussées
 // PENDANT une application n'y passent pas : elles sont annotées dans la fenêtre d'insertion
 // (`cascade.annoterEtapeDeLaFenetre`), sans `set`. `totalCalls` n'a donc plus de mou : le prochain
-// `set` de `src/state/*.ts` fera rougir ce test, ce qui est exactement son office.
+// `set` de `src/state/*.ts` ou de `src/noyau/**` fera rougir ce test, ce qui est exactement son office.
 // #1612 — 749 → 750 : le `set({ party: [...get().party] })` de l'APPLIER du dé de MONDE d'une Activité
 // (`activityWorldRolls.ts`, applier `ACTIVITY_WORLD_ROLL_KIND`). `applyOps` MUTE le
 // héros en place ; ce `set` est la seule ligne qui rende la mutation visible au store — MÊME patron,
@@ -205,7 +205,7 @@ const BASELINE = { totalCalls: 786, totalAdHocResets: 329 }; // +1 (#1117 L3 : `
 // neuf, la COUVERTURE s'élargit. `src/state/combat/` échappait au scan non récursif de `src/state/*.ts` ;
 // sous `src/noyau/**`, récursif, `combat/turnHooks.ts` (+6/0) et `combat/triggeredTest.ts` (+3/+2) comptent.
 // #2817 lot 3c2, les actions de jeu descendent au noyau — 710/290 → 792/329, MESURÉ (`runSetScan` : 709/290
-// à d9a045373, 792/329 sur l'arbre du lot ; le cliquet se RESSERRE du mou de 1). CLIQUET: src/state/set-scan-guard.test.ts
+// à d9a045373, 792/329 sur l'arbre du lot ; le cliquet se RESSERRE du mou de 1). CLIQUET: src/noyau/set-scan-guard.test.ts
 // +83/+39 — la COUVERTURE s'élargit : les set() des actions de `store.ts`, hors scan, comptent dans leurs
 // fabriques du noyau (`testsDeScene` 15/10, `gesteDArete` 7/4, `issueDeCombat` 7/4, `campagne` 6/3,
 // `conversation` 6/2, `entreeEnScene` 6/4, `interactionsDExploration` 6/1, `marcheDuGroupe` 6/2, `travelFlow`
@@ -213,7 +213,7 @@ const BASELINE = { totalCalls: 786, totalAdHocResets: 329 }; // +1 (#1117 L3 : `
 // `orientation` 2/0, `shipManeuver` 2/0, `shipCrew` +1/0, `journal` 1/0). Un seul set() neuf : la porte
 // (`marcheDuGroupe.actionnerLaPorte`) qu'écrivait `useStagePointer` par `useGame.setState`, non compté.
 // #2898 lot A, le lancement de scénario descend au noyau — 792/329 → 786/329, MESURÉ (`runSetScan` : 785/329 à
-// HEAD, 786/329 sur l'arbre du lot ; le cliquet se RESSERRE du mou de 7). CLIQUET: src/state/set-scan-guard.test.ts
+// HEAD, 786/329 sur l'arbre du lot ; le cliquet se RESSERRE du mou de 7). CLIQUET: src/noyau/set-scan-guard.test.ts
 // +1 — le `set({ vessel })` de `scenarioFlow.demarrerScenario` passe à `noyau/lancementDeScenario.demarrerLeLancement`
 // (solde nul), qui pose aussi `screen: 'campaign'` par `set` : `setScreen` est une action du store, pas du noyau.
 describe('garde-fou set() bruts des flows (agrégat)', () => {

@@ -100,7 +100,7 @@ function resolveursARng(ctx) {
  *
  * CONTRAT (#1788) : un appel écrit DANS une chaîne ou un commentaire n'est pas un nœud d'appel, le scan
  * ne le voit pas ; `detail` est la ligne de la vue CODE SEUL (`codeSeul.mjs`). Ce que ce contrat
- * garde est mesuré par les deux cas #1788 de `src/state/roll-seam-exclusivity-guard.test.ts`.
+ * garde est mesuré par les deux cas #1788 de `src/noyau/roll-seam-exclusivity-guard.test.ts`.
  * @param {string} relPath @param {string} contenu
  * @param {{ resolveurs: Record<string, string[]> | null }} [ctx] contexte du passage (`contexteDeScanRng`)
  * @returns {{ line: number, name: string, detail: string }[]}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * ANTI-DÉRIVE DU SYSTÈME DE JET — « tout passe par notre système » (fabrique + atomes PARTAGÉS).
@@ -15,7 +15,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * La fabrique `makeRollFlow` compose ces verbes ; un flux ne fournit que sa FORME (`resolve`/`lens`/
  * `bonus`/`caps`) — il ne doit JAMAIS RE-CODER la mécanique dans son closure.
  *
- * Ce garde SCANNE TOUT le code de résolution (src/state + src/engine, hors tests) et CASSE si une
+ * Ce garde SCANNE TOUT le code de résolution (src/state, src/noyau et src/engine, hors tests) et CASSE si une
  * signature de RE-CODAGE réapparaît. Il est né de dérives RÉELLES : une session parallèle a dé-lentillé
  * `activity` en recodant le dé forcé à `01` en dur (`evaluateTest(1, cible)` → DR MINIMAL en Fast DR)
  * et un `+1 DR` forçant `success:true` (le +1 DR de Chance n'écrit pas `success` — LDB 17 l.24, LDB 12 l.11) ; le même
@@ -24,7 +24,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  *
  * Portée (comme `roll-modal-invariant.test.ts`) : scan statique, aveugle à une obfuscation par variable.
  */
-const REGISTRE_DES_FLUX = resolve(__dirname, '../noyau/rollFlowSpecs.ts');
+const REGISTRE_DES_FLUX = resolve(__dirname, './noyau/rollFlowSpecs.ts');
 
 /** Toutes les occurrences `chemin:ligne` d'un motif dans le code de résolution (hors tests). */
 function scan(re: RegExp): string[] {

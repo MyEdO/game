@@ -1,5 +1,5 @@
 // STOCK NOMINATIF des PILOTES DE CASCADE RECOPIÉS dans un test (#1765) — consommé par
-// `src/state/pilote-cascade.test.ts`.
+// `src/noyau/pilote-cascade.test.ts`.
 //
 // Une ITÉRATION (boucle, callback d'itérateur, fonction nommée récursive) d'une suite ou d'un kit de test
 // (`fichierVitest.mjs`), tous dialectes (`EXTENSIONS_DE_SCRIPT`), qui lit `pendingCascade` et joue un

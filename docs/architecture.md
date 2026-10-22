@@ -82,15 +82,23 @@ Zones du dépôt (#2882, #2928, plan `docs/plans/2026-10-19-restructuration.md`)
 `src/<zone>` sauf déclaration (`dossier`), et les fichiers posés à même `src/` forment la zone `racine`. La
 table `COUCHES` (`scripts/guards/lib/couches.mjs`) est la seule source des zones, de leurs dossiers
 (`dossierDe`, `zoneDe`) et de leurs sens d'import : par zone, ce qu'elle importe librement, ce qu'elle ne lit
-qu'en type (`import type`), et ses portes : pour une zone importée, le seul module qu'elle en lit (`portes`).
-Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) : `murs/zone` refuse un fichier de `src/` dont le
-dossier n'est celui d'aucune zone (un sous-dossier `hotes` ou `racine` de `src/` compris), et `murs/purete-imports` refuse, hors tests, un arc d'import qu'elle n'ouvre pas ou qui
-manque une porte, sur toutes les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, sous chaque racine
-des zones (`RACINES_DES_ZONES`). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le
-code des zones en dérivent : les murs d'oxlint, le périmètre des gardes et les lectures des gates
-(`RACINES_PRESENTES`, les racines que l'arbre porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour
-témoin `src/suites-jouees-guard.test.ts`, qui refuse aussi, sous ces racines, une suite qu'aucune suite
-Vitest ne joue.
+qu'en type (`import type`), ses portes : pour une zone importée, le seul module qu'elle en lit (`portes`), et
+si elle survit à la bascule vers Godot (`survit`) : une telle zone n'ouvre que des zones qui survivent, ne
+charge aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), n'écrit aucun JSX et ne lit aucun module de code hors
+des zones, sauf, pour un script d'outillage de la zone (lancé par Node, jamais chargé par l'hôte), les modules que
+sa ligne déclare (`outillage`).
+Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
+(`RACINES_DES_ZONES`) : `murs/zone` refuse un fichier de `src/` dont le dossier n'est celui d'aucune zone (un
+sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, hors tests, un arc d'import
+qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`,
+un paquet de l'hôte web, du JSX ou un module de code hors des zones et hors de son `outillage` dans une zone qui
+survit, et un motif d'`import.meta.glob` dont le dossier de zone
+est un joker ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
+`murs/reexportation` refuse, en production de `src/state/` et `src/noyau/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
+du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
+(le batch générique de cascade et le domaine naval, #328). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le code des zones en dérivent :
+les murs d'oxlint, le périmètre des gardes et les lectures des gates (`RACINES_PRESENTES`, les racines que l'arbre
+porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour témoin `src/racines-des-zones-json-guard.test.ts`.
 
 Hôtes du noyau (#2898, #2928) : une zone qui ne lit le noyau que par sa porte `src/noyau/index.ts`
 (`HOTES_DU_NOYAU`). Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
@@ -357,9 +365,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             scénario de test et sa séquence unique, jouée par la partie et par
                             `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
-                            (garde `scripts/guards/lib/reexportations.mjs`). Sa fermeture d'exécution, et
-                            celle des scénarios de test, n'atteint aucun hôte
-                            (`scripts/guards/lib/fermetureDuNoyau.mjs`). Les tests
+                            (`murs/reexportation`). Le noyau, les scénarios et les hôtes survivent à la
+                            bascule (`survit`, `COUCHES`) : ils n'atteignent aucune zone de l'hôte web ni
+                            aucun de ses paquets. Les tests
                             `*.hors-store.test.ts` jouent dans la suite du noyau (`npm run test:noyau`,
                             `vitest.noyau.config.ts`), sans le store, que la suite principale exclut
                             (`MOTIF_HORS_STORE`, `scripts/guards/lib/racinesDeLaSuite.mjs`).

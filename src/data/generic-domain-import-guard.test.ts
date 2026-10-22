@@ -7,59 +7,22 @@ import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 
 // #329
 
-/**
- * Baseline gelée : `primitiveId -> nombre de cibles domaniales tolérées` (renvoi #329 par entrée).
- * VIDE, et elle le reste : un ORGANISME de domaine (panneau, plateau) se DÉCLARE au manifeste
- * (`nature: 'organisme'`) et sort du corpus mesuré — il n'entre pas ici en dette chiffrée, qui
- * rendrait le cliquet inerte sans le dire (#1806).
- */
-const BASELINES: Record<string, number> = {};
-
-/** `scanAllPrimitives` lit les fichiers via des chemins relatifs à la racine repo (cwd du runner).
- *  Scan de l'arbre RÉEL, donc mémoïsé PARESSEUSEMENT : les deux `it` du cliquet lisent le même
- *  résultat, et rien n'est payé à la collecte des tests. */
-let _findings: ReturnType<typeof scanAllPrimitives> | undefined;
+/** `scanAllPrimitives` lit les fichiers via des chemins relatifs à la racine repo (cwd du runner), sur
+ *  l'arbre RÉEL. ABSOLUE : un ORGANISME de domaine (panneau, plateau) se DÉCLARE au manifeste
+ *  (`nature: 'organisme'`) et sort du corpus mesuré, jamais en dette chiffrée (#1806). */
 function loadFindings() {
-  if (!_findings) {
-    const primitives = JSON.parse(readFileSync('src/data/primitives.manifest.json', 'utf8'));
-    const systemes = JSON.parse(readFileSync('src/data/systemes.manifest.json', 'utf8'));
-    _findings = scanAllPrimitives(primitives, systemes);
-  }
-  return _findings;
+  const primitives = JSON.parse(readFileSync('src/data/primitives.manifest.json', 'utf8'));
+  const systemes = JSON.parse(readFileSync('src/data/systemes.manifest.json', 'utf8'));
+  return scanAllPrimitives(primitives, systemes);
 }
 
-describe('garde-fou « le générique n’importe pas le domanial » (cliquet, #329)', () => {
-  it('aucune primitive de src/data/primitives.manifest.json ne dépasse sa baseline gelée', { timeout: 75_000 }, () => {
-    const findings = loadFindings();
-    const counts: Record<string, number> = {};
-    for (const f of findings) counts[f.primitiveId] = (counts[f.primitiveId] ?? 0) + 1;
-    const offenders: string[] = [];
-    for (const [primitiveId, n] of Object.entries(counts)) {
-      const baseline = BASELINES[primitiveId] ?? 0;
-      if (n > baseline) {
-        const detail = findings
-          .filter((f) => f.primitiveId === primitiveId)
-          .map((f) => `${f.fichier} → ${f.target} (système « ${f.systemId} »)`)
-          .join(', ');
-        offenders.push(`${primitiveId} : ${n} import(s) domanial(aux) (baseline gelée ${baseline}) — ${detail}`);
-      }
-    }
+describe('garde-fou « le générique n’importe pas le domanial » (#329)', () => {
+  it('aucune primitive de src/data/primitives.manifest.json n’importe un module de domaine', { timeout: 75_000 }, () => {
+    const offenders = loadFindings().map((f) => `${f.primitiveId} : ${f.fichier} → ${f.target} (système « ${f.systemId} »)`);
     expect(
       offenders,
       `Import de domaine dans une primitive GÉNÉRIQUE — corriger ses imports ou vérifier sa nature au manifeste :\n${offenders.join('\n')}`,
     ).toEqual([]);
-  });
-
-  it('CLIQUET : toute baseline devenue trop haute (primitive assainie) doit être ABAISSÉE', () => {
-    const findings = loadFindings();
-    const counts: Record<string, number> = {};
-    for (const f of findings) counts[f.primitiveId] = (counts[f.primitiveId] ?? 0) + 1;
-    const stale: string[] = [];
-    for (const [primitiveId, baseline] of Object.entries(BASELINES)) {
-      const n = counts[primitiveId] ?? 0;
-      if (n < baseline) stale.push(`${primitiveId} : baseline ${baseline}, réel ${n} — ABAISSER la baseline`);
-    }
-    expect(stale, 'Baseline(s) PÉRIMÉE(s) — abaisser ces entrées de BASELINES').toEqual([]);
   });
 
   /** BORNE de la déclaration `nature: 'organisme'` : sans elle, n'importe quelle entrée s'auto-

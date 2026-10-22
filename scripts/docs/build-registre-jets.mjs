@@ -4,7 +4,7 @@
 // Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 //
 // SOURCE UNIQUE : les listes (familles canoniques, stocks + justifications) vivent dans
-// `rollSeamWhitelist.mjs` et sont VÉRIFIÉES par `src/state/roll-seam-exclusivity-guard.test.ts` ;
+// `rollSeamWhitelist.mjs` et sont VÉRIFIÉES par `src/noyau/roll-seam-exclusivity-guard.test.ts` ;
 // les comptes affichés ici sont RE-MESURÉS par les mêmes scanners (`rollSeamExclusivity.mjs`) — un
 // compte de la doc ne peut pas diverger du compte du garde, il n'y a qu'un seul comptage.
 //
@@ -215,7 +215,7 @@ function rendu() {
   out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-registre-jets.mjs\` (\`npm run docs:registre-jets\`) — NE PAS ÉDITER À LA MAIN.\n`
   out += `> Source : le module de gardes \`scripts/guards/lib/rollSeamWhitelist.mjs\` (listes + justifications) et\n`
   out += `> \`scripts/guards/lib/rollSeamExclusivity.mjs\` (scanners AST). Les comptes ci-dessous sont ceux du garde\n`
-  out += `> \`src/state/roll-seam-exclusivity-guard.test.ts\` — un seul comptage, jamais deux.\n\n`
+  out += `> \`src/noyau/roll-seam-exclusivity-guard.test.ts\` — un seul comptage, jamais deux.\n\n`
 
   out += `## À quoi ça sert\n\n`
   out += `Répondre à « **par où passe ce jet ?** » sans relire les flux. Trois populations coexistent :\n`

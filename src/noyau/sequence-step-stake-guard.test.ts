@@ -2,12 +2,12 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 /**
  * CLIQUET AST DES ÉTAPES DE SÉQUENCE (#1279) — une étape de manche qui LANCE dit son ENJEU, et c'est
  * mesuré sur la FORME du programme, pas sur une baseline nominative. Jumeau structurel de
- * `cascade-step-stake-guard.test.ts` (qui scanne par expressions régulières tout `src/state`) : ici
+ * `cascade-step-stake-guard.test.ts` (qui scanne par expressions régulières `src/state`, `src/noyau` et `src/scenes`) : ici
  * le parcours est un ARBRE SYNTAXIQUE (API TypeScript), donc le scan voit la DÉCLARATION réelle —
  * un `stake` en dernière propriété, un raccourci, une propriété apportée par ÉPANDAGE ne le trompent
  * pas, et un littéral qui n'est pas le 1ᵉʳ argument d'un monteur ne l'excite pas.
  *
- * COUVERTURE, nommée (un détecteur ne mesure que sa couverture) : les fichiers de `src/state` qui
+ * COUVERTURE, nommée (un détecteur ne mesure que sa couverture) : les fichiers de `src/noyau` qui
  * DÉCLARENT une séquence (table `sequences`) — c'est-à-dire les FAMILLES de manches jouées par le
  * socle (`sequenceCore`). Une famille NEUVE entre donc dans la garde le jour où elle se déclare,
  * sans qu'aucune liste ne soit tenue à la main.

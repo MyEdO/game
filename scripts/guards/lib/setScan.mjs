@@ -1,7 +1,7 @@
 // Mécanique de la lentille « set() bruts des flows » (#321 lentille 3) : recense chaque
 // `set({...})`/`set((s) => ({...}))` posé dans `src/state/*.ts` et `src/noyau/**` (hors `store.ts` — actions
 // canoniques — et `stateFields.ts`, SOURCE du manifeste). Module ESM pur — consommé par le CLI
-// (`scripts/data/set-scan.mjs`) ET par la garde (`src/state/set-scan-guard.test.ts`).
+// (`scripts/data/set-scan.mjs`) ET par la garde (`src/noyau/set-scan-guard.test.ts`).
 //
 // Extraction PURE regex/scan de parenthèses (pas de parseur AST) — suffisant pour un COMPTE, pas
 // pour un refactor : les clés imbriquées profondes ne sont pas déroulées, seul le NIVEAU 1 de

@@ -17,8 +17,9 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  * n'ont jamais mesuré ce que le cliquet vise.
  *
  * Même parseur que `cascade-step-difficulty-guard` (commentaires et contenus de chaînes/gabarits
- * neutralisés avant le parcours d'accolades) — un invariant par fichier. Baseline NOMINATIVE et
- * DÉCROISSANTE : un site doté ABAISSE sa ligne.
+ * neutralisés avant le parcours d'accolades) — un invariant par fichier. Les étapes, les descripteurs
+ * littéraux et les `FlowTest` sont ABSOLUS ; seules les `RollRequest` gardent une baseline NOMINATIVE et
+ * DÉCROISSANTE (`BASELINE_REQ`) : un site doté ABAISSE sa ligne.
  */
 
 /** COUVERTURE des quatre scans : `src/state` et `src/noyau` (les flux) ET `src/scenes` (les Flows AUTHORÉS des
@@ -96,7 +97,7 @@ function hasTopLevelKey(lit: string, name: string): boolean {
 export function stepsWithoutStake(src: string): number[] {
   const s = strip(src);
   // Le scan lit des DÉCLARATIONS : un enjeu se pose au montage (`monoStep({ …, stake })`), jamais
-  // après coup — aucun site de `src/state`/`src/scenes` n'affecte `stake` sur une étape construite
+  // après coup — aucun site de `SCAN_ROOTS` n'affecte `stake` sur une étape construite
   // (mesuré : 0 occurrence de `.stake =`). La pose différée n'est donc pas un angle mort du scan.
   const lines: number[] = [];
   const seen = new Set<number>();
@@ -281,47 +282,13 @@ export function literalTestsWithoutStake(src: string): number[] {
   return lines;
 }
 
-/** Baseline NOMINATIVE de la 4ᵉ forme — stock mesuré le 2026-08-06 : 19 descripteurs de jet muets
- *  sur 11 fichiers, dont 7 que les trois scans précédents ne voyaient PAS ; 12 sur 8 fichiers depuis
- *  que les producteurs de `testFlow` sont dotés ; 4 sur 3 fichiers depuis que le HORS-COMBAT est doté
- *  (Test étendu, Commandant d'équipe, Avantage par Compétence, Ragot d'auberge, marché terrestre ×2,
- *  Chirurgie/rééducation, Recherche active, port ×3) ; 3 sur 2 depuis que la Prière d'un Présage dit
- *  le sien (#1262 V2 L6b) ; VIDE depuis que les Flows AUTHORÉS de scène ont leur forme d'enjeu
- *  (#1262 V2 L6c, `AuthoredStake`) — `src/state` ET `src/scenes` sont soldés pour cette forme.
- *  SUR-ENSEMBLE de `BASELINE_FLOW` (les arguments de `testFlow` ont la même forme), donc chaque
- *  fichier y compte au moins autant. Décroissante comme les autres : un site doté ABAISSE sa ligne. */
-const BASELINE_LITERAL: Record<string, number> = {};
-
-/** Baseline NOMINATIVE des `FlowTest` muets. `src/state` est SOLDÉ (vague 5) : ses 7 producteurs de
- *  Flow, joués par `runCombatFlow` OU `runFlow`, fournissent leur `FlowTest.stake` (Escalade et Saut →
- *  la fiche Chute ; Surprise → l'État Surpris ; Vigilance → le Talent ; Focalisation interrompue et
- *  Récolte → leur fiche ; Piège-lame → l'Atout qui la porte). VIDE depuis #1262 V2 L6c : les Flows
- *  AUTHORÉS des documents de scène ont leur forme d'enjeu (`AuthoredStake` — le texte voyage avec le
- *  document, arbitrage user 2026-08-12), et c'est `validateScene` qui les tient (structurel, il voit
- *  AUSSI les Flows des projets JSON que ce scan de sources ne lit pas). Ce scan garde ce que le
- *  validateur ne voit pas : un `testFlow` de source TS hors document validé. */
-const BASELINE_FLOW: Record<string, number> = {};
-
-/**
- * Baseline NOMINATIVE (fichier → étapes qui lancent, encore sans enjeu). VIDE depuis #1262 V2 L6b :
- * les 12 sites terrestres/maritimes qui restaient muets (périls de route ×2, attelage forcé ×2,
- * Exposition d'Étape, Natation du naufrage, Embrigadement ×2, Activités en mer ×2, Prière d'un
- * Présage) sont dotés, et la nuit de repos pose son enjeu À LA DÉCLARATION.
- *
- * CE QUE CE SCAN GARDE (le type ne l'attrape pas) : les étapes montées À LA MAIN, hors mint — un
- * littéral `{ kind, actorId, target, … }` que rien n'oblige à passer par `monoStep` (`shipwreck.ts`
- * en produit un). Baseline vide = tout site NEUF, minté ou manuscrit, rougit.
- */
-const BASELINE: Record<string, number> = {
-  // ÉTAPES À TABLE : le TYPE les tient (#1262 V2 L6, `TableSpec.stake` requis) — plus de baseline, plus
-  // de volet de scan (cf. `stepsWithoutStake`). L'enjeu posé à la construction DESCEND ensuite à la
-  // ligne jouée, `stakeAtTableRow` (`noyau/cascade.ts`).
-  // ÉTAPES MONO : le TYPE les tient aussi (#1262 V2 L6d, `MonoSpec.stake` requis) — plus de baseline,
-  // plus de volet `actor:` (cf. `stepsWithoutStake`). Les deux derniers relais génériques (les
-  // fabriques de `combat/triggeredTest.ts`) reçoivent l'enjeu DÉRIVÉ de l'entité porteuse quand la
-  // donnée n'en déclare pas ; la complétude de cette dérivation sur les 74 `FlowTest` de
-  // `src/data/*.json` est mesurée par `flowtest-derived-stake.test.ts`.
-};
+/** Les sites muets de `scan` dans le corpus, `fichier : lignes`. */
+function muets(scan: (src: string) => number[]): string[] {
+  return scanned().flatMap(({ file, src }) => {
+    const l = scan(src);
+    return l.length ? [`${keyOf(file)} : lignes ${l.join(', ')}`] : [];
+  });
+}
 
 describe('MORSURE du repérage de site — le délimiteur se REGARDE, il ne se consomme pas', () => {
   it('deux propriétés IMBRIQUÉES de même nom rendent DEUX sites', () => {
@@ -331,25 +298,19 @@ describe('MORSURE du repérage de site — le délimiteur se REGARDE, il ne se c
   });
 });
 
-describe('cliquet — une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
-  it('aucun site NEUF sans enjeu, et toute baseline assainie est ABAISSÉE', () => {
-    const counts: Record<string, number[]> = {};
-    for (const { file, src } of scanned()) {
-      const found = stepsWithoutStake(src);
-      if (found.length) counts[keyOf(file)] = found;
-    }
-    const over: string[] = [];
-    for (const [f, l] of Object.entries(counts)) {
-      const b = BASELINE[f] ?? 0;
-      if (l.length > b) over.push(`${f} : ${l.length} (baseline ${b}) — lignes ${l.join(', ')}`);
-    }
-    expect(over, ['Étape de cascade qui LANCE sans enjeu — le joueur doit savoir ce que le jet met en jeu (`stake`, résolu par `resolveStake`) :', ...over].join('\n')).toEqual([]);
-    const stale: string[] = [];
-    for (const [f, b] of Object.entries(BASELINE)) {
-      const n = counts[f]?.length ?? 0;
-      if (n < b) stale.push(`${f} : baseline ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, ['Baseline(s) PÉRIMÉE(s) :', ...stale].join('\n')).toEqual([]);
+describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
+  /**
+   * Les ÉTAPES (#1262 V2 L6b : les 12 derniers sites terrestres/maritimes sont dotés, la nuit de repos
+   * pose son enjeu À LA DÉCLARATION). Les étapes À TABLE et MONO, le TYPE les tient (`TableSpec.stake`,
+   * `MonoSpec.stake` requis, #1262 V2 L6 et L6d) ; l'enjeu posé à la construction DESCEND à la ligne
+   * jouée (`stakeAtTableRow`, `noyau/cascade.ts`), et les relais de `combat/triggeredTest.ts` reçoivent
+   * l'enjeu DÉRIVÉ de l'entité porteuse (`flowtest-derived-stake.test.ts`). CE QUE CE SCAN GARDE (le
+   * type ne l'attrape pas) : les étapes montées À LA MAIN, hors mint — un littéral
+   * `{ kind, actorId, target, … }` que rien n'oblige à passer par `monoStep`.
+   */
+  it('aucune étape sans enjeu', () => {
+    const vus = muets(stepsWithoutStake);
+    expect(vus, ['Étape de cascade qui LANCE sans enjeu — le joueur doit savoir ce que le jet met en jeu (`stake`, résolu par `resolveStake`) :', ...vus].join('\n')).toEqual([]);
   });
 
   it('aucune `RollRequest` NEUVE sans enjeu, et toute baseline soldée est ABAISSÉE', () => {
@@ -372,24 +333,11 @@ describe('cliquet — une étape de cascade qui LANCE dit son ENJEU (#1117)', ()
     expect(stale, ['Baseline(s) PÉRIMÉE(s) :', ...stale].join('\n')).toEqual([]);
   });
 
-  it('4ᵉ FORME : aucun DESCRIPTEUR de jet littéral neuf sans enjeu, et toute baseline soldée est ABAISSÉE', () => {
-    const counts: Record<string, number[]> = {};
-    for (const { file, src } of scanned()) {
-      const found = literalTestsWithoutStake(src);
-      if (found.length) counts[keyOf(file)] = found;
-    }
-    const over: string[] = [];
-    for (const [f, l] of Object.entries(counts)) {
-      const b = BASELINE_LITERAL[f] ?? 0;
-      if (l.length > b) over.push(`${f} : ${l.length} (baseline ${b}) — lignes ${l.join(', ')}`);
-    }
-    expect(over, ['`FlowTest` monté À LA MAIN sans enjeu (hors `testFlow`) :', ...over].join('\n')).toEqual([]);
-    const stale: string[] = [];
-    for (const [f, b] of Object.entries(BASELINE_LITERAL)) {
-      const n = counts[f]?.length ?? 0;
-      if (n < b) stale.push(`${f} : baseline ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, ['Baseline(s) PÉRIMÉE(s) :', ...stale].join('\n')).toEqual([]);
+  /** 4ᵉ FORME : soldée par #1262 V2 L6c (les Flows AUTHORÉS de scène ont leur forme d'enjeu,
+   *  `AuthoredStake`). SUR-ENSEMBLE des `FlowTest` de `testFlow` (leurs arguments ont la même forme). */
+  it('4ᵉ FORME : aucun DESCRIPTEUR de jet littéral sans enjeu', () => {
+    const vus = muets(literalTestsWithoutStake);
+    expect(vus, ['`FlowTest` monté À LA MAIN sans enjeu (hors `testFlow`) :', ...vus].join('\n')).toEqual([]);
   });
 
   /**
@@ -399,7 +347,7 @@ describe('cliquet — une étape de cascade qui LANCE dit son ENJEU (#1117)', ()
    *
    * Deux corpus, parce que l'arbre MAIGRIT : un CORPUS FIGÉ (les quatre formes réellement rencontrées
    * dans ce chantier, recopiées telles quelles) qui mord même le jour où tout site réel est doté, et
-   * l'arbre COURANT — dont le compte reste égal à la somme de `BASELINE_FLOW`.
+   * l'arbre COURANT — dont le compte est nul (les `FlowTest` sont ABSOLUS).
    */
   const CORPUS_FIGE = [
     // Test SIMPLE à difficulté fixe (Focalisation interrompue, `combatFlow`).
@@ -434,9 +382,9 @@ describe('cliquet — une étape de cascade qui LANCE dit son ENJEU (#1117)', ()
       if (perdus.length) manquants.push(`${keyOf(file)} : lignes ${perdus.join(', ')} vues par testFlow, PERDUES par la forme`);
     }
     expect(manquants, ['Sites de l’ancien périmètre non retrouvés :', ...manquants].join('\n')).toEqual([]);
-    // Compte EXACT de l'ancien périmètre (somme de `BASELINE_FLOW`) — s'il bouge, la comparaison
-    // ci-dessus porterait sur un autre stock que celui mesuré.
-    expect(ancien).toBe(Object.values(BASELINE_FLOW).reduce((a, b) => a + b, 0));
+    // Compte EXACT de l'ancien périmètre — s'il bouge, la comparaison ci-dessus porterait sur un autre
+    // stock que celui mesuré.
+    expect(ancien).toBe(0);
   });
 
   it('FAIL-CLOSED (4ᵉ forme) : les DEUX formes propres sont détectées, et l’enjeu les éteint', () => {
@@ -454,24 +402,16 @@ describe('cliquet — une étape de cascade qui LANCE dit son ENJEU (#1117)', ()
     expect(literalTestsWithoutStake(pasUnTest)).toHaveLength(0);
   });
 
-  it('aucun `FlowTest` NEUF sans enjeu, et toute baseline soldée est ABAISSÉE', () => {
-    const counts: Record<string, number[]> = {};
-    for (const { file, src } of scanned()) {
-      const found = flowTestsWithoutStake(src);
-      if (found.length) counts[keyOf(file)] = found;
-    }
-    const over: string[] = [];
-    for (const [f, l] of Object.entries(counts)) {
-      const b = BASELINE_FLOW[f] ?? 0;
-      if (l.length > b) over.push(`${f} : ${l.length} (baseline ${b}) — lignes ${l.join(', ')}`);
-    }
-    expect(over, ['`FlowTest` joué par le seam sans enjeu (`FlowTest.stake`) :', ...over].join('\n')).toEqual([]);
-    const stale: string[] = [];
-    for (const [f, b] of Object.entries(BASELINE_FLOW)) {
-      const n = counts[f]?.length ?? 0;
-      if (n < b) stale.push(`${f} : baseline ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, ['Baseline(s) PÉRIMÉE(s) :', ...stale].join('\n')).toEqual([]);
+  /** Les `FlowTest` : les 7 producteurs de Flow (vague 5) fournissent leur `FlowTest.stake`
+   *  (Escalade et Saut → la fiche Chute ; Surprise → l'État Surpris ; Vigilance → le Talent ;
+   *  Focalisation interrompue et Récolte → leur fiche ; Piège-lame → l'Atout qui la porte), et les Flows
+   *  AUTHORÉS des documents de scène ont leur forme d'enjeu (`AuthoredStake`, #1262 V2 L6c — le texte
+   *  voyage avec le document, arbitrage user 2026-08-12), tenue par `validateScene`, qui voit AUSSI les
+   *  Flows des projets JSON. Ce scan garde ce que le validateur ne voit pas : un `testFlow` de source TS
+   *  hors document validé. */
+  it('aucun `FlowTest` sans enjeu', () => {
+    const vus = muets(flowTestsWithoutStake);
+    expect(vus, ['`FlowTest` joué par le seam sans enjeu (`FlowTest.stake`) :', ...vus].join('\n')).toEqual([]);
   });
 
   it('FAIL-CLOSED : un `FlowTest` synthétique sans enjeu est DÉTECTÉ, avec enjeu il ne l’est pas', () => {

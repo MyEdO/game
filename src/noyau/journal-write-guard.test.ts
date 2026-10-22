@@ -15,7 +15,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * `journal.ts` HORS SCAN : c'est le foyer de la primitive, son implémentation EST le motif.
  */
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SCAN_DIRS = ['src/state', 'src/noyau'];
 const FOYER = 'src/noyau/journal.ts';
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || rel === FOYER;

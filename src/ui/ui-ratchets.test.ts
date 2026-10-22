@@ -89,6 +89,12 @@ const estTest = (f: Fichier) => estFichierVitest(f.rel);
 const estCss = (f: Fichier) => f.rel.endsWith('.css');
 const estTsx = (f: Fichier) => f.rel.endsWith('.tsx');
 
+/** Garde ABSOLUE : aucun fichier ne porte de site. */
+function assertAucun(counts: Record<string, number>, what: string) {
+  const sites = Object.entries(counts).map(([f, n]) => `${f} : ${n}`);
+  expect(sites, `Régression ${what} — utiliser le token/la primitive :\n${sites.join('\n')}`).toEqual([]);
+}
+
 function assertRatchet(counts: Record<string, number>, baseline: Record<string, number>, what: string) {
   const over: string[] = [];
   for (const [f, n] of Object.entries(counts)) {
@@ -104,15 +110,13 @@ function assertRatchet(counts: Record<string, number>, baseline: Record<string, 
   expect(stale, `Baseline(s) PÉRIMÉE(s) ${what} — abaisser :\n${stale.join('\n')}`).toEqual([]);
 }
 
-// ── (iv) Couleurs hex hors tokens `:root` : la palette vit dans `base.css` (§charte-ui). Tout hex
-//    dans un AUTRE module CSS est de la dette gelée — le cliquet interdit sa hausse, impose la décrue.
-//    Purge #310 : les 12 modules audités sont à ZÉRO — baseline vide, tolérance zéro. ──
-const HEX_BASELINE: Record<string, number> = {};
+// ── (iv) Couleurs hex hors tokens `:root` : la palette vit dans `base.css` (§charte-ui). Purge #310 :
+//    les 12 modules audités sont à ZÉRO — tolérance zéro. ──
 
 // ── (v) Prix affichés ⇒ `<Coins>`/`formatMoney` : une valeur monétaire interpolée suivie d'une unité
 //    nue (` CO`/` PA`/` CA`) dans le JSX est de la dette (illisible, non i18n). `Coins.tsx` définit
 //    l'unité (exclu). Migré au #310 (ConditionEditor/EffectList/PortView → formatMoney/<Coins>) : la
-//    dette réelle est retombée à zéro — heuristique fail-closed, sans baseline. Les 4 faux positifs
+//    dette réelle est retombée à zéro — heuristique fail-closed, absolue. Les 4 faux positifs
 //    restants (CharacterSheet/CharacterCreator/GameOpEditor/EquipmentPanel) ne sont PAS de la monnaie
 //    (« PA » = Points d'Armure, LDB) : exemption nominative gelée en dur ci-dessous plutôt qu'en
 //    baseline (aucun de ces sites n'est censé approcher zéro un jour).
@@ -125,7 +129,6 @@ const PRICE_PA_ARMOR_EXEMPT = new Set([
   // d'Armure) déplacés tels quels de CharacterSheet.tsx — même faux positif, même exemption.
   'EtatPanel.tsx',
 ]);
-const PRICE_BASELINE: Record<string, number> = {};
 
 // ── (vii) `flex-wrap: wrap` hors couche partagée : le motif « rangée qui s'enroule » vit dans `.bar`
 //    (`components.css`) et dans `Row` (`layout.css`, qui s'enroule PAR CONSTRUCTION). Un `flex-wrap`
@@ -316,10 +319,9 @@ const BARE_BUTTON_BASELINE: Record<string, number> = {
   'ObjectiveBanner.tsx': 1,
   'VoyageScreen.tsx': 4,
 };
-// Baseline SÉPARÉE des `className` opaques (aucun littéral dedans) : au recensement, zéro site après
-// exemption des primitives — tout `<button className={fn(...)}>` NOUVEAU doit soit exposer un
-// littéral `btn`/`chip`/`seg` dans son expression, soit vivre dans un fichier-primitive exempté ci-dessus.
-const BARE_BUTTON_OPAQUE_BASELINE: Record<string, number> = {};
+// Les `className` opaques (aucun littéral dedans) : zéro site après exemption des primitives — tout
+// `<button className={fn(...)}>` doit soit exposer un littéral `btn`/`chip`/`seg` dans son expression,
+// soit vivre dans un fichier-primitive exempté ci-dessus.
 
 
 // ── (xiii) FUITE DE DOMAINE dans la COUCHE PARTAGÉE (#371) : la couche partagée est la SEULE que le
@@ -529,7 +531,7 @@ function scanFrozenValueRows(files: readonly Fichier[]): Record<string, number> 
 }
 
 describe('#236 — cliquets d’hygiène UI', () => {
-  it('(iv) hex hors tokens : aucune hausse par module CSS (base.css exclu)', () => {
+  it('(iv) hex hors tokens : aucun par module CSS (base.css exclu)', () => {
     const counts: Record<string, number> = {};
     for (const f of FICHIERS_UI().filter((f) => estCss(f) && nomDe(f) !== 'base.css')) {
       // Commentaires exclus du scan : un « #304 » de réf de ticket n'est pas une couleur.
@@ -537,7 +539,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
       const n = (css.match(/#[0-9a-fA-F]{3,8}\b/g) || []).length;
       if (n > 0) counts[rel(f)] = n;
     }
-    assertRatchet(counts, HEX_BASELINE, 'hex hors tokens');
+    assertAucun(counts, 'hex hors tokens');
   });
 
   it('(v) prix ⇒ <Coins> : aucune composition manuelle de monnaie (fail-closed, exemptions PA nominatives)', () => {
@@ -550,7 +552,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
       const n = (f.text.match(/\}[^<>{}]{0,4} (?:CO|PA|CA)\b/g) || []).length;
       if (n > 0) counts[rel(f)] = n;
     }
-    assertRatchet(counts, PRICE_BASELINE, 'prix sans <Coins>');
+    assertAucun(counts, 'prix sans <Coins>');
   });
 
   it('(vii) flex-wrap: wrap hors components.css/layout.css : aucune hausse par module CSS', () => {
@@ -590,7 +592,7 @@ describe('#236 — cliquets d’hygiène UI', () => {
     const files = FICHIERS_UI().filter((f) => estTsx(f) && !estTest(f) && !BARE_BUTTON_EXEMPT_FILES.has(rel(f)) && !rel(f).startsWith('composites/'));
     const { bare, opaque } = scanBareButtons(files);
     assertRatchet(bare, BARE_BUTTON_BASELINE, '<button> nu — composer .btn/.chip ou une primitive (feedback user 2026-07-12, #373)');
-    assertRatchet(opaque, BARE_BUTTON_OPAQUE_BASELINE, '<button> className opaque — exposer un littéral btn/chip/seg ou passer par une primitive (feedback user 2026-07-12, #373)');
+    assertAucun(opaque, '<button> className opaque — exposer un littéral btn/chip/seg ou passer par une primitive (feedback user 2026-07-12, #373)');
   });
 
   it('(xiii) fuite de domaine en couche partagée : classe mono-consommateur ET non cataloguée = stock nominatif, décroissant (#371, #1806)', () => {

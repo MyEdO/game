@@ -144,8 +144,6 @@ test('options sensibles, globals readonly et directives nommées gardent leurs e
     ['src/zz-parite/unused.ts','const _unused=1; export function f(_arg:number){return 1;}','no-unused-vars',0],
     ['scripts/zz-parite/catch.js','try{f();}catch{}','no-empty',0],
     ['scripts/zz-parite/loop.js','while(true){f();}','no-constant-condition',0],
-    ['src/state/zz-parite/type.ts',"import type {X} from '../../ui/x'; export type A=X;",'murs/purete-imports',0],
-    ['src/engine/zz-parite/value.ts',"import {X} from '../../state/x'; export const A=X;",'murs/purete-imports',1],
     ['scripts/zz-parite/globals.js','window=1; process=2; console=3;','no-global-assign',3],
     ['src/state/zz-parite/directive.ts','// eslint-disable-next-line murs/marques -- sonde\nexport const a = x as PlayerText; Object.assign(x,{label:"x"});\nexport const b = x as PlayerText;','murs/marques',1],
     ['src/state/zz-parite/directive.ts','// oxlint-disable-next-line murs/marques -- sonde\nexport const a = x as PlayerText; Object.assign(x,{label:"x"});\nexport const b = x as PlayerText;','murs/conteneur',1],
@@ -153,7 +151,7 @@ test('options sensibles, globals readonly et directives nommées gardent leurs e
   const fixtures=cas.map(([filePath,code],i)=>({filePath:filePath.replace(/(?=\.[^.]+$)/,`-${i}`),code}))
   const resultats=lintFixtures(fixtures)
   for(let i=0;i<cas.length;i++) assert.equal(resultats[i].messages.filter(m=>m.ruleId===cas[i][2]).length,cas[i][3],JSON.stringify(resultats[i]))
-  assert.equal(resultats[6].messages.find(m=>m.ruleId==='murs/marques').line,3)
+  assert.equal(resultats[4].messages.find(m=>m.ruleId==='murs/marques').line,3)
   for(const prefix of ['eslint','oxlint']) {
     assert.deepEqual(directivesLint(`/* ${prefix}-disable */\nx()`, 'a.ts',['murs/marques']),[1])
     assert.deepEqual(directivesLint(`/* ${prefix} murs/marques: off */\nx()`, 'a.ts',['murs/marques']),[1])
@@ -177,27 +175,12 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['src/parite-locale.test.ts','a.localeCompare(b);','murs/ordre-total-locale',0],
     ['src/state/parite-issue.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',1],
     ['src/noyau/rollFlowSpecs.ts',"import {describeX} from './flowOutcomes';describeX();",'murs/canal-issue',0],
-    ['src/engine/parite-dynamique.ts',"import('../ui/x');",'murs/purete-imports',1],
-    ['src/engine/parite-dynamique.test.ts',"import('../ui/x');",'murs/purete-imports',0],
-    ['src/data/parite-statique.ts',"import {x} from '../state/x';x();",'murs/purete-imports',1],
-    ['src/data/parite-statique.test.ts',"import {x} from '../state/x';x();",'murs/purete-imports',0],
-    ['src/state/parite-type-rendu.ts',"import type {X} from '../gameIso/x'; export type A=X;",'murs/purete-imports',1],
-    ['src/state/parite-typeof-rendu.ts',"export type A=typeof import('../gameIso/x');",'murs/purete-imports',1],
-    ['src/state/parite-index-rendu.ts',"import('../gameIso');",'murs/purete-imports',1],
-    ['src/state/parite-gabarit-rendu.ts',"import(`../gameIso/x`);",'murs/purete-imports',1],
-    ['src/state/parite-require-rendu.ts',"require('../gameIso/x');",'murs/purete-imports',1],
-    ['src/state/parite-voisin-rendu.ts',"import('../gameIsoX/x');",'murs/purete-imports',0],
-    ['src/engine/parite-require-gabarit.ts',"require(`../ui/x`);",'murs/purete-imports',1],
-    ['src/data/parite-create-require.ts',"createRequire(import.meta.url)('../state/x');",'murs/purete-imports',1],
-    ['src/data/parite-module-require.ts',"module.require('../state/x');",'murs/purete-imports',1],
-    ['src/engine/parite-module-require-gabarit.ts',"module.require(`../ui/x`);",'murs/purete-imports',1],
     ['src/ui/hud/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
     ['src/ui/parite-atelier-alias.tsx',"import {ConditionEditor} from '@/ui/editor/ConditionEditor';ConditionEditor();",'murs/atelier',1],
     ['src/ui/compendium/parite-atelier.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',1],
     ['src/ui/hud/parite-atelier-refs.tsx',"import {OP_LABEL} from '../editor/refsDOp';OP_LABEL.x;",'murs/atelier',1],
     ['src/ui/editor/codex/parite-atelier.tsx',"import {GameOpEditor} from '../../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
     ['src/ui/hud/parite-atelier.test.tsx',"import {GameOpEditor} from '../editor/GameOpEditor';GameOpEditor();",'murs/atelier',0],
-    ['src/state/parite-type-affichage.ts',"import type {X} from '../ui/x'; export type A=X;",'murs/purete-imports',0],
     ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
     ['src/lib/parite-minuterie.ts','export const id=setInterval(f,9);','murs/minuteries',1],
     ['src/state/parite-minuterie-reference.ts','export const poser=setTimeout;','murs/minuteries',1],

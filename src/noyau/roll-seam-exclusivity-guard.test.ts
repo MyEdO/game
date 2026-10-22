@@ -2,8 +2,8 @@ import { ast, analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect, vi } from 'vitest';
 import { rendreCible } from '../../scripts/docs/build-all.mjs';
 import * as ts from 'typescript/unstable/ast';
-import { useGame } from './store';
-import { jouerLesClotures } from '../noyau/combatEffects';
+import { useGame } from '../state/store';
+import { jouerLesClotures } from './combatEffects';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,7 +40,7 @@ import { detenteur } from '../detenteur.testkit';
 
 /** `docs/registre-jets.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
 const DOC_REGISTRE = await rendreCible('docs/registre-jets.md');
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SCAN_DIRS = [RACINE_DU_SEAM];
 
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || rollSeamExcluded(rel);

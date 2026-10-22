@@ -46,7 +46,7 @@ const FORMES = Object.freeze({
   'excuse sans tag': 'suite (`npm test`) — src/comment-poison-guard.test.ts',
   "vocabulaire de l'ancien état": 'suite (`npm test`) — src/comment-poison-guard.test.ts',
   "emoji d'affordance": 'suite (`npm test`) — src/ui/no-emoji-affordance.test.ts',
-  'seam de jet contourné': 'suite (`npm test`) — src/state/roll-seam-exclusivity-guard.test.ts',
+  'seam de jet contourné': 'suite (`npm test`) — src/noyau/roll-seam-exclusivity-guard.test.ts',
   'forme du stock permanent': 'types-hooks (`npm run test:hooks`) — scripts/guards/memoire-forme.test.mjs',
   lint: 'types (`npm run lint`)',
 });

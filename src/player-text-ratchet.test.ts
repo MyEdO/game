@@ -6,8 +6,8 @@
  *
  *  1. `rawText(` — le FOSSILE est MORT (E7-FINAL) : son dernier site de production est passé au
  *     minteur du texte authoré et le module `i18n/rawText.ts` est SUPPRIMÉ. Le cliquet SURVIT au
- *     module, converti en TRIPWIRE à zéro tolérance : le gel est vide, donc toute réapparition du
- *     nom — module ressuscité, helper homonyme ailleurs — rougit nominativement.
+ *     module, converti en TRIPWIRE à zéro tolérance, SANS gel : toute réapparition du nom — module
+ *     ressuscité, helper homonyme ailleurs — rougit nominativement.
  *  2. `as CascadeStep` — le contournement de CONTENEUR (T2) dans les fichiers de TEST. En production
  *     il n'en reste AUCUN (mesuré, et le lint l'y refuse : `built-brand-lint.test.ts`) ; les tests sont
  *     hors du sélecteur, donc c'est CE cliquet qui les tient — sans lui, « les tests sont exclus »
@@ -49,25 +49,8 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
-
-/**
- * GEL VIDE — LE FOSSILE EST MORT (E7-FINAL, 2026-08-17). Le compte est 0 partout, et
- * `src/i18n/rawText.ts` n'existe plus dans l'arbre.
- *
- * Les deux stocks se sont éteints par des voies DIFFÉRENTES, et c'est ce qui rend le zéro vrai : les 138
- * appels des harnais sont passés à `i18n/fixtureText` (E7), un minteur RÉSERVÉ AUX TESTS et muré par
- * chemin d'import (cliquets T4/T5, en bas de ce fichier) ; le dernier site de PRODUCTION
- * (`noyau/combatManeuvers.ts`) est passé au minteur du texte AUTHORÉ, `dataLabel`, parce que le texte
- * qu'il portait est le `label` d'une entité de catalogue et non une phrase écrite au call-site.
- *
- * CE QUE CETTE CONSTANTE DEVIENT : un TRIPWIRE, pas un gel. Vide, elle fait rougir toute occurrence de
- * `rawText(` où qu'elle soit — le module ne peut pas ressusciter en silence, et un helper homonyme posé
- * ailleurs se signale au même titre. `compteAppels` garde donc son rôle entier : détecter la
- * RÉSURRECTION. Il ne se relève pas ; il n'a plus rien à relever.
- */
-export const GEL_RAW_TEXT: Readonly<Record<string, number>> = {};
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /** GEL DU 2026-08-17 (`as CascadeStep` en TEST) — 35 casts dans 15 fichiers. Zéro en production. E7 en a
  *  éteint DEUX, dans des fichiers déjà ouverts pour la migration : leur cast ne servait qu'à blanchir un
@@ -163,8 +146,8 @@ export function compteCasts(source: string): number {
  *  production est un angle mort, et un angle mort ne s'hérite pas. D'où le passage EXPLICITE à `recense`
  *  pour les cinq cliquets, et la disparition du paramètre par DÉFAUT qui la propageait en silence. */
 const HORS_CASCADE_STEP = new Set([
-  'src/state/player-text-ratchet.test.ts',
-  'src/state/built-brand-lint.test.ts',
+  'src/player-text-ratchet.test.ts',
+  'src/noyau/built-brand-lint.test.ts',
   'src/noyau/pendings.ts',
 ]);
 
@@ -177,18 +160,18 @@ const HORS_CASCADE_STEP = new Set([
  *  La sonde « le tripwire VOIT un fichier de production » plus bas mesure les deux jeux sur un arbre
  *  factice : le bon rougit, l'ancien reste vert. */
 const HORS_RAW_TEXT = new Set([
-  'src/state/player-text-ratchet.test.ts',
-  'src/state/built-brand-lint.test.ts',
+  'src/player-text-ratchet.test.ts',
+  'src/noyau/built-brand-lint.test.ts',
 ]);
 
 /** Hors recensement du cliquet 3 (`dataLabel('…')`) : CE fichier seul, dont les sondes écrivent la prose
  *  qu'il refuse. Aucun fichier de production — le cliquet 3 est à cible 0 SANS gel, il n'a pas de stock à
  *  couvrir. */
-const HORS_DATA_LABEL_SONDES = new Set(['src/state/player-text-ratchet.test.ts']);
+const HORS_DATA_LABEL_SONDES = new Set(['src/player-text-ratchet.test.ts']);
 
 /** Hors recensement des cliquets 4 et 5 : CE fichier seul, qui nomme le motif en sondes. Rien d'autre —
  *  surtout pas un fichier de production. */
-const HORS_FIXTURE = new Set(['src/state/player-text-ratchet.test.ts']);
+const HORS_FIXTURE = new Set(['src/player-text-ratchet.test.ts']);
 
 /** Recensement fichier → compte sur un arbre (chemins POSIX relatifs à la racine). L'exclusion est DITE
  *  par l'appelant, et le paramètre est REQUIS : un défaut ferait hériter à un cliquet l'angle mort d'un
@@ -280,6 +263,15 @@ function relachees(reel: Record<string, number>, gel: Readonly<Record<string, nu
 
 const somme = (m: Record<string, number>): number => Object.values(m).reduce((a, b) => a + b, 0);
 
+/**
+ * LE FOSSILE EST MORT (E7-FINAL, 2026-08-17) : `src/i18n/rawText.ts` n'existe plus dans l'arbre. Les deux
+ * stocks se sont éteints par des voies DIFFÉRENTES, et c'est ce qui rend le zéro vrai : les 138 appels des
+ * harnais sont passés à `i18n/fixtureText` (E7), un minteur RÉSERVÉ AUX TESTS et muré par chemin d'import
+ * (cliquets T4/T5, en bas de ce fichier) ; le dernier site de PRODUCTION (`noyau/combatManeuvers.ts`) est
+ * passé au minteur du texte AUTHORÉ, `dataLabel`, parce que le texte qu'il portait est le `label` d'une
+ * entité de catalogue et non une phrase écrite au call-site. Toute occurrence de `rawText(` rougit, où
+ * qu'elle soit : `compteAppels` détecte la RÉSURRECTION.
+ */
 describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient un TRIPWIRE (zéro tolérance)', () => {
   const reel = recense(process.cwd(), compteAppels, undefined, HORS_RAW_TEXT);
 
@@ -289,13 +281,6 @@ describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient 
 
   it('AUCUN fichier de l’arbre n’appelle le fossile — ni en production, ni dans un harnais', () => {
     expect(Object.keys(reel), 'les harnais sont passés à `i18n/fixtureText`, la production à `t()`/`dataLabel`').toEqual([]);
-  });
-
-  it('le TRIPWIRE est armé : le gel est VIDE, donc aucun fichier n’a de tolérance', () => {
-    expect(GEL_RAW_TEXT, 'une entrée ici rouvrirait un gel là où il n’y a plus rien à geler').toEqual({});
-    expect(somme(GEL_RAW_TEXT)).toBe(0);
-    expect(violations(reel, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual([]);
-    expect(relachees(reel, GEL_RAW_TEXT)).toEqual([]);
   });
 
   /**
@@ -318,22 +303,15 @@ describe('#1318 E7-FINAL — le fossile `rawText` est MORT : le cliquet devient 
 
       const vu = recense(faux, compteAppels, undefined, HORS_RAW_TEXT);
       expect(vu, 'le jeu propre du cliquet 1 n’exempte AUCUN fichier de production').toEqual({ 'src/noyau/pendings.ts': 1 });
-      expect(violations(vu, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/noyau/pendings.ts : 1 appel(s) de rawText pour un gel de 0']);
 
       const aveugle = recense(faux, compteAppels, undefined, HORS_CASCADE_STEP);
-      expect(aveugle, 'PRÉIMAGE DU DÉFAUT : hériter de l’exemption du cliquet 2 rendait ce rouge invisible').toEqual({});
-      expect(violations(aveugle, GEL_RAW_TEXT, 'appel(s) de rawText'), 'vert AVEUGLE — un fossile ressuscité en production passait').toEqual([]);
+      expect(aveugle, 'PRÉIMAGE DU DÉFAUT : hériter de l’exemption du cliquet 2 rendait ce rouge invisible — un fossile ressuscité en production passait').toEqual({});
     } finally {
       rmSync(faux, { recursive: true, force: true });
     }
   });
 
-  it('MUTATION : un SEUL appel, dans N’IMPORTE quel fichier, rougit nominativement', () => {
-    expect(violations({ 'src/noyau/combatManeuvers.ts': 1 }, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/noyau/combatManeuvers.ts : 1 appel(s) de rawText pour un gel de 0']);
-    expect(violations({ 'src/state/nouveauFlux.ts': 1 }, GEL_RAW_TEXT, 'appel(s) de rawText')).toEqual(['src/state/nouveauFlux.ts : 1 appel(s) de rawText pour un gel de 0']);
-  });
-
-  it('MUTATION : un fichier qui DESCEND sous son gel ne rougit pas — la sémantique que le cliquet 2 emploie encore', () => {
+  it('MUTATION : un fichier qui DESCEND sous son gel ne rougit pas — la sémantique du cliquet 2', () => {
     expect(violations({ 'src/state/un-harnais.test.ts': 3 }, { 'src/state/un-harnais.test.ts': 5 }, 'appel(s)')).toEqual([]);
   });
 
@@ -438,7 +416,7 @@ describe('#1318 E7 T4/T5 — le SUCCESSEUR `fixtureText` est muré aux HARNAIS (
     expect(HORS_CASCADE_STEP.has('src/noyau/pendings.ts'), 'ce fichier de production est hors du cliquet 2…').toBe(true);
     expect(HORS_FIXTURE.has('src/noyau/pendings.ts'), '…et doit rester SOUS T4/T5, sans quoi la serrure a un angle mort de production').toBe(false);
     expect(HORS_RAW_TEXT.has('src/noyau/pendings.ts'), '…et SOUS le cliquet 1, dont la prose promet « où qu’elle soit »').toBe(false);
-    expect([...HORS_FIXTURE]).toEqual(['src/state/player-text-ratchet.test.ts']);
+    expect([...HORS_FIXTURE]).toEqual(['src/player-text-ratchet.test.ts']);
   });
 
   it('MUTATION : un module de PRODUCTION qui importe le minteur est vu', () => {

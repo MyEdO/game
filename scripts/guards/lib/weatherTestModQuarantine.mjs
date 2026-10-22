@@ -1,5 +1,5 @@
 // QUARANTAINE d'import des CANAUX météo (EDOC ch.5 l.82, #341 ; MDG 13 l.185, #1936). Les étages
-// propriétaires des LECTEURS de canal vivent dans deux couches (`src/engine`, `src/state`) qu'aucun dossier
+// propriétaires des LECTEURS de canal vivent dans deux couches (`src/engine`, `src/noyau`) qu'aucun dossier
 // `interne/` ne regroupe (#2724) : seuls ces étages les importent.
 // Module ESM pur (node nu).
 

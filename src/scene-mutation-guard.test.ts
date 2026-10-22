@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { scanSceneMutation } from '../../scripts/guards/lib/sceneMutation.mjs';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
-import { detenteur } from '../detenteur.testkit';
+import { scanSceneMutation } from '../scripts/guards/lib/sceneMutation.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import { detenteur } from './detenteur.testkit';
 
 /**
  * Garde-fou « immutabilité de la scène du store » — `src/noyau/monde/vision.ts` et

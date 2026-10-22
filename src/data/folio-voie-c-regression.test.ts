@@ -1,16 +1,15 @@
 /**
- * Le stock de la VOIE C est à ZÉRO (#1225) — ce test prouve que ce zéro est un stock SOLDÉ, pas un
+ * La VOIE C ne tolère aucune réfutation (#1225) — ce test prouve que sa liste vide est un solde, pas un
  * angle mort. `book-source-integrity.test.ts` ne peut le montrer : il mesure `src/data` tel quel, où
  * plus aucun folio n'est réfutable par le titre ; un détecteur éteint y rendrait exactement la même
  * liste vide. On mesure donc sur une COPIE temporaire d'un dataset réel dont UN folio est remis faux :
- * la voie C doit NOMMER l'entrée, hors stock (taille 0), avec le folio du titre mesuré au Source.
+ * la voie C doit NOMMER l'entrée, avec le folio du titre mesuré au Source.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { auditFolios } from '../../scripts/guards/lib/folioIntegrity.mjs';
-import { FOLIO_TITLE_RATCHET } from '../../scripts/guards/lib/folioTitleRatchetStock.mjs';
 
 const DIR = __dirname;
 /** Entrée témoin : `qualities.json:leger` — folio réel 292 (`60 - Fabrication.md`), attesté aussi par
@@ -40,21 +39,16 @@ function auditAvecFolio(page: number): ReturnType<typeof auditFolios> {
   return auditFolios(bac);
 }
 
-describe('voie C — le stock à zéro NOMME toujours une régression (#1225)', () => {
-  it('le stock des titres est bien VIDE — sans quoi ce test ne prouverait rien', () => {
-    expect(FOLIO_TITLE_RATCHET.size).toBe(0);
-  });
-
+describe('voie C — une réfutation par le titre est toujours NOMMÉE (#1225)', () => {
   it('témoin : le dataset RÉEL, recopié tel quel, ne rend aucune réfutation par le titre', () => {
     const { titleViolations } = auditAvecFolio(FOLIO_REEL);
     expect(titleViolations.map((v) => v.key)).toEqual([]);
   });
 
-  it('mutation : un folio remis faux est NOMMÉ, hors stock, avec le folio du titre mesuré', () => {
+  it('mutation : un folio remis faux est NOMMÉ, avec le folio du titre mesuré', () => {
     const { titleViolations } = auditAvecFolio(FOLIO_FAUX);
     expect(titleViolations.map((v) => v.key)).toEqual([`${DATASET}:${ID}`]);
     const v = titleViolations[0];
-    expect(FOLIO_TITLE_RATCHET.has(v.key)).toBe(false);
     expect(v.page).toBe(FOLIO_FAUX);
     expect(v.proche?.lo).toBe(FOLIO_REEL);
   });

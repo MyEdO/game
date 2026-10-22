@@ -10,12 +10,12 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * Garde-fou « écriture de la coque hors seam » (#302, #296). SOURCE UNIQUE de `state.vessel.wounds` :
  * `shipDamage.ts` (mutation du Combattant-coque) + `seaVoyageFlow.ts` (persistance
  * `set({ vessel: { ...vessel, wounds } })`, via `setVesselHull`/`persistHullWounds`/
- * `damageVesselHull`/`healVesselHull`). BASELINE ZÉRO ailleurs dans `src/state`.
+ * `damageVesselHull`/`healVesselHull`). BASELINE ZÉRO ailleurs dans `SCAN_DIRS`.
  *
  * `shipDamage.ts`/`seaVoyageFlow.ts` HORS SCAN : ce sont les 2 foyers, leur implémentation EST le motif.
  */
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
+const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const SCAN_DIRS = ['src/state', 'src/noyau'];
 const FOYERS = new Set(['src/noyau/monde/shipDamage.ts', 'src/noyau/seaVoyageFlow.ts']);
 const EXCLUDED = (rel: string) => estFichierVitest(rel) || FOYERS.has(rel);
@@ -31,7 +31,7 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou « coque » — écriture de state.vessel.wounds hors seam (cliquet, #302/#296)', () => {
-  it('aucun fichier de src/state (hors shipDamage.ts/seaVoyageFlow.ts) ne réécrit `vessel.wounds` en direct', () => {
+  it(`aucun fichier de ${SCAN_DIRS.join(', ')} (hors shipDamage.ts/seaVoyageFlow.ts) ne réécrit \`vessel.wounds\` en direct`, () => {
     const counts = countsByFile();
     const offenders = Object.entries(counts).map(([rel, n]) => `${rel} : ${n} site(s)`);
     expect(

@@ -870,7 +870,7 @@ export const effectTargetingSchema = z.union([
 /** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
  *  l'exhaustivité de COMPILATION que le Record d'affichage tenait : un trigger ajouté à l'union sans
  *  son libellé ici ne compile pas. La taxonomie du recensement d'événements de combat
- *  (`state/combat-event-emission-coverage.test.ts`) en dérive. */
+ *  (`src/combat-event-emission-coverage.test.ts`) en dérive. */
 export const effectTriggerSchema = enumNomme({
   onHit: 'À la touche',
   onCrit: 'Sur un Critique',

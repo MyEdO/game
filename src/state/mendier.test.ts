@@ -113,11 +113,6 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     expect(bourseBrass(h)).toBe(48);
     resetRule('mendier-heures-par-jour');
   });
-
-  it('`src/engine/bourse.ts` reste PUR : aucun import de `src/state` (règle stricte 3)', () => {
-    const src = readFileSync(join(ROOT, 'src/engine/bourse.ts'), 'utf8');
-    expect(src).not.toMatch(/from '\.\.\/state\//);
-  });
 });
 
 describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carrières, jamais listée', () => {

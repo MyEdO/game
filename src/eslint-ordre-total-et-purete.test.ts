@@ -2,31 +2,45 @@ import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import { posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { creerBancLint, lintFixtures, selectionnerMessages, configPourFichier } from '../scripts/guards/lib/lint.testkit.mjs';
+import { blocsDeRegle, creerBancLint, lintFixtures, selectionnerMessages, configPourFichier } from '../scripts/guards/lib/lint.testkit.mjs';
+import { correspondGlob } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
-import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { COUCHES, dossierDe, estZone, fermeture, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
+import { estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, SURFACE_DU_NOYAU, dossierDe, estZone, fermeture, paquetFerme, porteManquee, zoneDe } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * BANC DES MURS DE COUCHE (#1709, #2882 ; AGENTS.md règle stricte 3).
  *
  * Les zones du dépôt et leurs sens d'import se disent UNE fois, dans `COUCHES`
  * (`scripts/guards/lib/couches.mjs`), et se jouent par la gate `lint` (`murs/purete-imports`,
- * `murs/zone`). Ce banc lit cette table, ne la recopie pas, et MESURE la config RÉSOLUE :
- *  1. CONTRAT de la table — chaque zone nommée existe, le dossier de chaque zone est à elle (`zoneDe`), et `fermeture`
- *     rend, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
- *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les deux murs ; une zone dont
+ * `murs/zone`, `murs/suite-jouee`, `murs/reexportation`, `murs/quarantaine`). Ce banc lit cette table, ne la recopie pas, et MESURE la
+ * config RÉSOLUE :
+ *  1. CONTRAT de la table — chaque zone nommée existe, le dossier de chaque zone est à elle (`zoneDe`), une zone qui
+ *     survit à la bascule (`survit`) n'ouvre que des zones qui survivent, chaque script d'`outillage` et chacun de ses
+ *     modules existent, l'un dans sa zone, les autres hors des zones, et `fermeture`, `porteManquee` et
+ *     `paquetFerme` rendent, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
+ *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les murs ; une zone dont
  *     l'arbre ne porte pas le dossier se mesure sur des fixtures posées dans son dossier ;
  *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, depuis
- *     des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`) et par chemin `/…` : la
- *     matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
- *  4. FERMETURE — un fichier d'une zone non déclarée est refusé, un fichier d'une zone déclarée passe.
+ *     des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
+ *     l'index du dossier : la matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
+ *  4. PAQUETS, JOKER — chaque zone × chaque paquet de l'hôte web rend le verdict de `paquetFerme` ; un motif de glob
+ *     dont le dossier de zone est un joker est refusé hors de `racine` ;
+ *  5. JSX, HORS ZONE — chaque zone qui survit refuse le JSX et tout module de code hors des zones, hors des modules
+ *     que l'`outillage` d'un de ses scripts déclare pour ce script seul ; une zone qui ne survit pas, une donnée passent ;
+ *  6. RÉEXPORTATION, SUITE JOUÉE, QUARANTAINE — chaque forme refusée l'est, chaque forme voisine passe ; chaque
+ *     fichier en quarantaine existe ;
+ *  7. FERMETURE — un fichier d'une zone non déclarée est refusé, un fichier d'une zone déclarée passe.
+ * Ensemble, CONTRAT, PAQUETS, JSX et HORS ZONE impliquent qu'une zone qui survit ne charge, de proche en proche, aucun
+ * module d'une zone de l'hôte web ni aucun de ses paquets : chaque arc qu'elle trace mène à une zone qui survit, à un
+ * paquet hors de l'hôte web, à une donnée, ou à un module d'outillage déclaré, que seul son script lit.
  *
  * PIÈGE MESURÉ : sans config explicite, un outil peut rendre `ruleId` nul et tout paraît « pris » par
  * vacuité — d'où la sélection par le MESSAGE du mur, puis l'assertion sur son `ruleId`.
  */
 
 const REGLE = 'murs/purete-imports';
+const REEX = 'murs/reexportation';
 const ZONES = Object.keys(COUCHES).filter((z) => z !== 'racine');
 
 /** Les formes d'import vers `p` ; `type` : la forme s'efface à la compilation. */
@@ -34,8 +48,14 @@ const FORMES: { nom: string; code: (p: string) => string; type: boolean }[] = [
   { nom: 'statique nommé', code: (p) => `import { X } from '${p}';\nexport const a = X;\n`, type: false },
   { nom: 'side-effect', code: (p) => `import '${p}';\n`, type: false },
   { nom: 'dynamique', code: (p) => `export const f = async () => (await import('${p}')).X;\n`, type: false },
+  { nom: 'dynamique gabarit', code: (p) => `export const f = async () => (await import(\`${p}\`)).X;\n`, type: false },
   { nom: 'require', code: (p) => `export const r = require('${p}');\n`, type: false },
+  { nom: 'require gabarit', code: (p) => `export const r = require(\`${p}\`);\n`, type: false },
+  { nom: '`createRequire(…)(…)`', code: (p) => `export const r = createRequire(import.meta.url)('${p}');\n`, type: false },
+  { nom: '`module.require`', code: (p) => `export const r = module.require('${p}');\n`, type: false },
+  { nom: '`module.require` gabarit', code: (p) => `export const r = module.require(\`${p}\`);\n`, type: false },
   { nom: 'inline type `import(…).T`', code: (p) => `export type A = import('${p}').X;\n`, type: true },
+  { nom: '`typeof import(…)`', code: (p) => `export type A = typeof import('${p}');\n`, type: true },
   { nom: 'import type … from', code: (p) => `import type { X } from '${p}';\nexport type A = X;\n`, type: true },
   { nom: 'mixte { type X, y }', code: (p) => `import { type X, y } from '${p}';\nexport const a = y;\nexport type B = X;\n`, type: false },
   { nom: 'export … from', code: (p) => `export { X } from '${p}';\n`, type: false },
@@ -80,6 +100,13 @@ const specifieurs = (rel: string, vers: string): string[] => {
   return [relatif(rel, cible), alias(cible), `/${cible}`].filter((p): p is string => p !== null);
 };
 
+/** Les arcs de `rel` vers la zone `vers` que la matrice joue : `specifieurs` vers `<dossier>/x`, et l'index du
+ *  dossier en relatif — sans motif de glob, qui viserait le fichier `<dossier>.ts`. */
+const arcsVers = (rel: string, vers: string): { p: string; cible: string; avecMotif: boolean }[] => [
+  ...specifieurs(rel, vers).map((p) => ({ p, cible: `${dossierDe(vers)}/x`, avecMotif: true })),
+  { p: relatif(rel, dossierDe(vers)), cible: dossierDe(vers), avecMotif: false },
+];
+
 /** Le chemin d'une fixture posée à côté du fichier réel `rel`. */
 const voisin = (rel: string, i: number) => rel.replace(/(\.[^.]+)$/, `-couche-${i}$1`);
 
@@ -94,6 +121,27 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(['src/a.ts', 'src/zz-inconnue/a.ts', 'src/hotes/a.ts', 'src/racine/a.ts', 'scripts/a.mjs', 'hoteX/a.ts'].map(zoneDe))
       .toEqual(['racine', 'src/zz-inconnue', 'src/hotes', 'src/racine', null, null]);
     for (const z of ['src/zz-inconnue', 'src/hotes', 'src/racine']) expect(estZone(z), z).toBe(false);
+  });
+
+  it('CONTRAT : une zone qui survit à la bascule (`survit`) n’ouvre que des zones qui survivent, en valeur, en type et par porte', () => {
+    const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true);
+    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'hote', 'hoteTexte', 'hotes', 'i18n', 'lib', 'noyau', 'scenes']);
+    for (const z of survivent) {
+      const { importe, types = [], portes = {} } = COUCHES[z];
+      expect(importe, `${z} importe toutes les zones`).not.toBe('*');
+      for (const v of [...(importe === '*' ? [] : importe), ...types, ...Object.keys(portes)]) expect(COUCHES[v].survit, `${z} ouvre ${v}`).toBe(true);
+    }
+  });
+
+  it('CONTRAT : chaque script d’`outillage` est un fichier de sa zone qui survit, et chacun de ses modules un fichier hors des zones', () => {
+    const declares = Object.entries(COUCHES).flatMap(([z, c]) => Object.entries(c.outillage ?? {}).map(([script, modules]) => ({ z, script, modules })));
+    expect(declares.length, 'aucun outillage déclaré : le contrat ne mesure rien').toBeGreaterThan(0);
+    const existe = (rel: string) => existsSync(new URL(`../${rel}`, import.meta.url));
+    for (const { z, script, modules } of declares) {
+      expect([zoneDe(script), COUCHES[z].survit, existe(script)], script).toEqual([z, true, true]);
+      expect(modules.length, script).toBeGreaterThan(0);
+      for (const m of modules) expect([estZone(zoneDe(m) ?? ''), existe(m)], `${script} → ${m}`).toEqual([false, true]);
+    }
   });
 
   it('ORACLE : `fermeture` rend le verdict écrit à la main de chaque classe de ligne', () => {
@@ -164,41 +212,62 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['constructor', 'noyau', 'src/noyau/x.ts', null],
     ];
     expect(portes.map(([de, vers, cible]) => porteManquee(de, vers, cible))).toEqual(portes.map(([, , , v]) => v));
+    const paquets: [de: string, paquet: string | null, verdict: boolean][] = [
+      ['noyau', 'react', true],
+      ['hotes', 'three', true],
+      ['scenes', 'zustand', true],
+      ['hote', 'react-dom', true],
+      ['lib', 'react', true],
+      ['noyau', 'zod', false], // hors de l'hôte web
+      ['noyau', '@scope/react', false],
+      ['noyau', null, false], // module de Node
+      ['state', 'react', false], // ne survit pas
+      ['ui', 'three', false],
+      ['racine', 'react', false],
+      ['constructor', 'react', false],
+    ];
+    expect(paquets.map(([de, p]) => paquetFerme(de, p))).toEqual(paquets.map(([, , v]) => v));
   });
 
-  it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les deux murs, dans chaque dialecte', () => {
+  it('PÉRIMÈTRE : des fichiers RÉELS de chaque zone sont sous les murs, dans chaque dialecte ; la réexportation, en production de `src/state` et `src/noyau` hors de la surface', () => {
+    const regles = (rel: string) => Object.keys(configPourFichier(rel).rules);
     for (const zone of ZONES) {
       for (const rel of sondes(zone)) {
-        const { rules } = configPourFichier(rel);
-        expect(Object.keys(rules), rel).toEqual(expect.arrayContaining([REGLE, 'murs/zone']));
+        expect(regles(rel), rel).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
+        expect(regles(rel).includes(REEX), rel).toBe(['state', 'noyau'].includes(zone) && !estKitDeTest(rel));
       }
     }
     for (const ext of ['.mjs', '.mts', '.cjs', '.js', '.jsx', '.tsx']) {
-      const { rules } = configPourFichier(`src/lib/zz-dialecte${ext}`);
-      expect(Object.keys(rules), ext).toEqual(expect.arrayContaining([REGLE, 'murs/zone']));
+      expect(regles(`src/lib/zz-dialecte${ext}`), ext).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
     }
+    const [state] = sondes('state');
+    const horsReexportation = [SURFACE_DU_NOYAU, voisin(state, 0).replace(/\.ts$/, '.test.ts'), voisin(state, 1).replace(/\.ts$/, '.testkit.ts'), 'src/noyau/zz.d.ts'];
+    expect(horsReexportation.filter((rel) => regles(rel).includes(REEX))).toEqual([]);
   });
 
-  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 120_000 }, () => {
+  it('FORMES : chaque paire de zones rend le verdict de la table, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 240_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
     for (const de of ZONES) {
       for (const rel of sondes(de)) {
         for (const vers of ZONES) {
           if (vers === de) continue;
-          for (const p of specifieurs(rel, vers)) {
-            for (const f of FORMES) {
-              const attendu = fermeture(de, vers, f.type) === null && porteManquee(de, vers, `${dossierDe(vers)}/x`) === null ? 'passe' : REGLE;
-              cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath: voisin(rel, cas.length), code: f.code(p) } });
+          for (const { p, cible, avecMotif } of arcsVers(rel, vers)) {
+            for (const f of FORMES.filter((x) => avecMotif || x.nom !== 'import.meta.glob')) {
+              const ferme = fermeture(de, vers, f.type) !== null || porteManquee(de, vers, cible) !== null;
+              const filePath = voisin(rel, cas.length);
+              const reexporte = f.nom === 'export … from' && REEX in configPourFichier(filePath).rules;
+              const attendu = [...(ferme ? [REGLE] : []), ...(reexporte ? [REEX] : [])].join('+') || 'passe';
+              cas.push({ cle: `${rel} → ${p} (${f.nom})`, attendu, fixture: { filePath, code: f.code(p) } });
             }
           }
         }
       }
     }
-    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE]);
+    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX]);
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
-  it('PORTES : une zone à porte ne lit la zone importée que par sa porte, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 60_000 }, () => {
+  it('PORTES : une zone à porte ne lit la zone importée que par sa porte, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 120_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
     const aPortes = (Object.entries(COUCHES) as [string, { portes?: Record<string, string> }][]).filter(([, c]) => c.portes);
     for (const [de, { portes = {} }] of aPortes) {
@@ -226,6 +295,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
   it('FORMES : un test est hors du mur de couche, un import interne à la zone passe, la requête ne compte pas', () => {
     const [rel] = sondes('engine');
     const [data] = sondes('data');
+    const [state] = sondes('state');
     const specifieur = (de: string, vers: string) => specifieurs(de, vers)[0];
     const obtenus = verdicts([
       { filePath: voisin(rel, 0).replace(/\.ts$/, '.test.ts'), code: `import { X } from '${specifieur(rel, 'ui')}';\nexport const a = X;\n` },
@@ -234,8 +304,150 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       { filePath: voisin(data, 3), code: `import x from '${specifieur(data, 'ui')}?raw';\nexport const a = x;\n` },
       { filePath: voisin(data, 4), code: `export const g = import.meta.glob(['!${specifieur(data, 'ui')}.ts', '${specifieur(data, 'engine')}.ts']);\n` },
       { filePath: 'src/lib/zz-dialecte.mjs', code: "import { X } from '../engine/x.js';\nexport const a = X;\n" },
+      { filePath: voisin(state, 6), code: `export const f = () => import('${relatif(state, `${dossierDe('gameIso')}X/x`)}');\n` },
     ], [REGLE]);
-    expect(obtenus).toEqual(['passe', 'passe', 'passe', REGLE, 'passe', REGLE]);
+    expect(obtenus).toEqual(['passe', 'passe', 'passe', REGLE, 'passe', REGLE, 'passe']);
+  });
+
+  it('PAQUETS : chaque zone × chaque paquet de l’hôte web rend le verdict de `paquetFerme`, en valeur comme en type ; un autre paquet passe', { timeout: 60_000 }, () => {
+    const paquets = [...PAQUETS_DE_L_HOTE_WEB.map((p) => [p, p]), ['react', 'react/jsx-runtime'], ['@scope/x', '@scope/x'], ['zod', 'zod'], ['node:fs', 'node:fs']] as const;
+    const formes = FORMES.filter((f) => ['statique nommé', 'import type … from', 'require'].includes(f.nom));
+    const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
+    for (const de of ZONES) {
+      const [rel] = sondes(de);
+      for (const [paquet, spec] of paquets) {
+        for (const f of formes) cas.push({ cle: `${rel} → ${spec} (${f.nom})`, attendu: paquetFerme(de, paquet) ? REGLE : 'passe', fixture: { filePath: voisin(rel, cas.length), code: f.code(spec) } });
+      }
+    }
+    expect(cas.filter((c) => c.attendu === REGLE).length, 'aucune zone qui survit : le banc ne mesure rien').toBeGreaterThan(0);
+    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE]);
+    expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
+  });
+
+  it('JOKER : hors de `racine`, un motif d’`import.meta.glob` dont le dossier de zone est un joker est refusé ; un dossier écrit, un motif exclu, sa propre zone et la racine passent', () => {
+    const [noyau] = sondes('noyau');
+    const [data] = sondes('data');
+    const vers = (rel: string, motif: string) => relatif(rel, 'src').replace(/\/?$/, '/') + motif;
+    const cas: [rel: string, motif: string, attendu: string][] = [
+      [noyau, vers(noyau, '*/x.ts'), REGLE],
+      [noyau, vers(noyau, '**/*.ts'), REGLE],
+      [noyau, vers(noyau, '{state,engine}/x.ts'), REGLE],
+      [data, vers(data, '*/*.json'), REGLE],
+      [noyau, vers(noyau, 'engine/*.ts'), 'passe'],
+      [noyau, vers(noyau, 'engine/**/*.ts'), 'passe'],
+      [noyau, `!${vers(noyau, '*/x.ts')}`, 'passe'],
+      [noyau, './**/*.ts', 'passe'],
+      ['src/zz-racine.ts', './*/x.ts', 'passe'],
+    ];
+    const obtenus = verdicts(cas.map(([rel, motif], i) => ({ filePath: voisin(rel, i), code: `export const g = import.meta.glob(['${motif}']);\n` })), [REGLE]);
+    expect(Object.fromEntries(cas.map(([rel, motif], i) => [`${rel} : ${motif}`, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([rel, motif, v]) => [`${rel} : ${motif}`, v])));
+  });
+
+  it('JSX, HORS ZONE : une zone qui survit n’écrit aucun JSX et ne lit aucun module de code hors des zones, en valeur comme en type ; son outillage déclaré, une donnée, `node:` et une zone qui ne survit pas passent', () => {
+    const survivent = ZONES.filter((z) => COUCHES[z].survit === true);
+    const autres = ZONES.filter((z) => COUCHES[z].survit !== true);
+    const cas: [cle: string, filePath: string, code: string, attendu: string][] = [];
+    const scriptsSeuls: typeof cas = [];
+    const jsx = ['export const A = () => <div />;\n', 'export const F = () => <></>;\n'];
+    for (const z of ZONES) {
+      for (const [i, code] of jsx.entries()) {
+        for (const ext of ['.tsx', '.jsx']) cas.push([`${z} : JSX ${i} ${ext}`, `${dossierDe(z)}/zz-jsx-${i}${ext}`, code, survivent.includes(z) ? REGLE : 'passe']);
+      }
+    }
+    const horsZone = ['scripts/zz-pont.mjs', 'scripts/zz-pont', 'server/src/zz', 'hoteX/zz.ts'];
+    for (const z of [...survivent, ...autres]) {
+      const [rel] = sondes(z);
+      const attendu = survivent.includes(z) ? REGLE : 'passe';
+      for (const cible of horsZone) {
+        for (const f of FORMES.filter((x) => ['statique nommé', 'import type … from', 'dynamique', 'require'].includes(x.nom))) {
+          cas.push([`${rel} → ${cible} (${f.nom})`, voisin(rel, cas.length), f.code(relatif(rel, cible)), attendu]);
+        }
+      }
+      for (const neutre of [relatif(rel, 'docs/zz.json'), 'node:fs']) cas.push([`${rel} → ${neutre}`, voisin(rel, cas.length), `import x from '${neutre}';\nexport const a = x;\n`, 'passe']);
+    }
+    for (const [z, { outillage = {} }] of Object.entries(COUCHES)) {
+      for (const [script, modules] of Object.entries(outillage)) {
+        const [autre] = sondes(z).filter((rel) => rel !== script);
+        for (const m of modules) {
+          cas.push([`${script} → ${m} (déclaré)`, script, `import * as x from '${relatif(script, m)}';\nexport const a = x;\n`, 'passe']);
+          cas.push([`${autre} → ${m} (déclaré pour un autre script)`, voisin(autre, cas.length), `import * as x from '${relatif(autre, m)}';\nexport const a = x;\n`, REGLE]);
+        }
+        scriptsSeuls.push([`${script} → scripts/zz-autre.mjs (non déclaré)`, script, `import * as x from '${relatif(script, 'scripts/zz-autre.mjs')}';\nexport const a = x;\n`, REGLE]);
+      }
+    }
+    // Le script d'outillage porte deux fixtures : une passe de `lintFixtures` par chemin.
+    for (const lot of [cas, scriptsSeuls]) {
+      const obtenus = verdicts(lot.map(([, filePath, code]) => ({ filePath, code })), [REGLE]);
+      expect(Object.fromEntries(lot.map(([cle], i) => [cle, obtenus[i]]))).toEqual(Object.fromEntries(lot.map(([cle, , , v]) => [cle, v])));
+    }
+  });
+
+  it('RÉEXPORTATION : un module de production de `src/state` ou `src/noyau` ne réexporte rien, sous aucune forme ; une déclaration locale, un réexport en valeur, la surface, `src/data` et un test passent', () => {
+    const cas: [filePath: string, code: string, attendu: string][] = [
+      ['src/noyau/zz-reex-0.ts', "export * from './a';\n", REEX],
+      ['src/noyau/zz-reex-1.ts', "export * as c from './c';\n", REEX],
+      ['src/noyau/zz-reex-2.ts', "export { d, type E } from './d';\n", REEX],
+      ['src/noyau/zz-reex-3.ts', "export type { T } from './t';\n", REEX],
+      ['src/noyau/monde/zz-reex-4.ts', "import { a } from './a';\nexport { a };\n", REEX],
+      ['src/noyau/zz-reex-5.ts', "import * as ns from './ns';\nexport { ns };\n", REEX],
+      ['src/noyau/zz-reex-6.ts', "import def from './def';\nexport { def as autre };\n", REEX],
+      ['src/state/zz-reex-7.ts', "import type { T } from '../noyau/t';\nexport type { T };\n", REEX],
+      ['src/state/zz-reex-8.ts', "export { x } from '../noyau/x';\n", REEX],
+      ['src/noyau/zz-reex-9.ts', 'const locale = 1;\nexport { locale };\n', 'passe'],
+      ['src/noyau/zz-reex-10.ts', "import { a } from './a';\nexport const valeur = a;\n", 'passe'],
+      [SURFACE_DU_NOYAU, "export { a } from './a';\n", 'passe'],
+      ['src/data/zz-reex-12.ts', "export { a } from './a';\n", 'passe'],
+      ['src/noyau/zz-reex-13.test.ts', "export { a } from './a';\n", 'passe'],
+      ['src/state/zz-reex-14.testkit.ts', "export { a } from './a';\n", 'passe'],
+    ];
+    const obtenus = verdicts(cas.map(([filePath, code]) => ({ filePath, code })), [REEX, REGLE]);
+    expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([f, , v]) => [f, v])));
+  });
+
+  it('SUITE JOUÉE : une suite que ni la suite principale ni celle du noyau ne jouent est refusée ; une suite jouée et un module passent', () => {
+    const SUITE = 'murs/suite-jouee';
+    const cas: [filePath: string, attendu: string][] = [
+      ['hotes/godot/pont/zz.test.ts', SUITE],
+      ['src/lib/zz.test.mjs', SUITE],
+      ['src/state/zz.test.js', SUITE],
+      ['hotes/godot/pont/zz.hors-store.test.ts', 'passe'],
+      ['src/hote/zz.test.ts', 'passe'],
+      ['src/noyau/zz.hors-store.test.ts', 'passe'],
+      ['src/state/zz.test.tsx', 'passe'],
+      ['hotes/godot/pont/zz.ts', 'passe'],
+    ];
+    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: 'export const a = 1;\n' })), [SUITE]);
+    expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([f, v]) => [f, v])));
+  });
+
+  it('QUARANTAINE : chaque fichier en quarantaine refuse, sous chaque forme d’arc, chaque module de l’arbre que ses `cibles` visent ; un autre module, et le même code hors quarantaine, passent', { timeout: 60_000 }, () => {
+    const QUAR = 'murs/quarantaine';
+    const blocs = blocsDeRegle(QUAR);
+    expect(blocs.length, 'aucune quarantaine déclarée : le banc ne mesure rien').toBeGreaterThan(0);
+    const arbre = readCorpus(['src']).map((f) => f.rel);
+    const lignes = (rel: string, cibles: string[]) => cibles.flatMap((cible, i) => {
+      const p = relatif(rel, cible.replace(/\.(?:[cm]?[jt]sx?)$/, ''));
+      return [`import '${p}';`, `void import('${p}');`, `void import(\`${p}\`);`, `require('${p}');`, `module.require('${p}');`,
+        `createRequire(import.meta.url)('${p}');`, `export * from '${p}';`, `export type T${i} = typeof import('${p}');`,
+        `import type * as N${i} from '${p}';`, `void import.meta.glob('${p}.ts');`];
+    });
+    for (const bloc of blocs) {
+      expect(bloc.files.filter((rel) => !existsSync(new URL(`../${rel}`, import.meta.url))), 'fichier en quarantaine absent de l’arbre').toEqual([]);
+      const [{ cibles }] = bloc.options as [{ cibles: string[] }];
+      const visees = arbre.filter((rel) => cibles.some((g) => correspondGlob(rel, g)));
+      expect(visees.length, `${cibles.join(', ')} : aucun module de l’arbre visé`).toBeGreaterThan(0);
+      for (const rel of bloc.files) {
+        const refus = lignes(rel, visees);
+        const neutres = lignes(rel, [`${posix.dirname(rel)}/zz-neutre.ts`]);
+        const [pris] = lintFixtures([{ filePath: rel, code: refus.join('\n') + '\n' }]);
+        expect(selectionnerMessages(pris, (m) => m.ruleId === QUAR).map((m) => m.line).sort((x, y) => x - y), rel).toEqual(refus.map((_, i) => i + 1));
+        const [libre] = lintFixtures([{ filePath: rel, code: neutres.join('\n') + '\n' }]);
+        expect(selectionnerMessages(libre, (m) => m.ruleId === QUAR), `${rel} : module neutre`).toEqual([]);
+        const hors = rel.replace(/[^/]+$/, 'zz-hors-quarantaine.ts');
+        const [ailleurs] = lintFixtures([{ filePath: hors, code: lignes(hors, visees).join('\n') + '\n' }]);
+        expect(selectionnerMessages(ailleurs, (m) => m.ruleId === QUAR), hors).toEqual([]);
+      }
+    }
   });
 
   it('FERMETURE : un fichier d\'une zone non déclarée est refusé, tests compris ; une zone déclarée et la racine passent', () => {
@@ -266,8 +478,8 @@ function tableLint(formes: {nom: string; code: string; tsx?: boolean}[], chemin:
   }));
 }
 
-/** Les couches dont les TESTS sont sous le mur de l'ordre total. */
-const SOUS_LE_MUR = ['src/engine', 'src/state', 'src/noyau', 'src/web', 'src/ui', 'src/gameIso', 'src/audio', 'src/scenes', 'src/data', 'src'] as const;
+/** Les couches dont les TESTS sont sous le mur de l'ordre total : le dossier de chaque zone. */
+const SOUS_LE_MUR = [...new Set(Object.keys(COUCHES).map(dossierDe))];
 
 /** Le premier fichier de PRODUCTION réel de `src/ui` (corpus, jamais un nom en dur) : le mur ne vise
  *  que les `*.test.*`, et c'est ce fichier-là qui le dit — un `files:` élargi à toute la couche se
@@ -365,7 +577,7 @@ async function prisOrdreTotal(code: string, filePath: string): Promise<string[]>
   return [...new Set(mur.map((m) => m.ruleId!))].sort();
 }
 
-describe('ordre total dans les tests de `src` — mur mesuré sur la config RÉSOLUE (#1709 C3c-1)', () => {
+describe('ordre total dans les tests des zones — mur mesuré sur la config RÉSOLUE (#1709 C3c-1)', () => {
   for (const dir of SOUS_LE_MUR) {
     it(`${dir} : les formes de marche brute sont prises, les formes neutres et \`readCorpus\` passent`, { timeout: 30_000 }, async () => {
       const chemin = `${ROOT}/${sondeTest(dir)}`;

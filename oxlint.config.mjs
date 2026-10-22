@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import globals from 'globals';
 import { fileURLToPath } from 'node:url';
-import { RACINES_DES_ZONES } from './scripts/guards/lib/couches.mjs';
+import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation)$/';
 const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText`/`AdresseDeCreation` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), ou par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`).';
@@ -628,7 +628,23 @@ export const BLOCS_LINT = [
   {
     // #2882, #2928
     files: CODE_DES_ZONES,
-    rules: { 'murs/zone': 'error' },
+    rules: { 'murs/zone': 'error', 'murs/suite-jouee': 'error' },
+  },
+  {
+    // #2817 D2
+    files: ZONES_SANS_REEXPORTATION.map((z) => `${dossierDe(z)}/**`),
+    excludeFiles: [SURFACE_DU_NOYAU, '**/*.test.*', '**/*.bench.*', '**/*.testkit.*', '**/*.d.ts'],
+    rules: { 'murs/reexportation': 'error' },
+  },
+  {
+    // #328
+    files: ['src/noyau/cascade.ts', 'src/noyau/pendings.ts', 'src/ui/CascadeModal.tsx'],
+    rules: {
+      'murs/quarantaine': ['error', {
+        cibles: ['**/*{shipCrew,shipManeuver,crewMorale,crew-roles}*', '**/*{shipCrew,shipManeuver,crewMorale,crew-roles}*/**'],
+        message: 'le batch générique de cascade (#328) n’importe rien du domaine naval : le flux propriétaire résout la présentation du participant à la construction (`BatchParticipant`).',
+      }],
+    },
   },
   {
     // #415, #2724, #2817

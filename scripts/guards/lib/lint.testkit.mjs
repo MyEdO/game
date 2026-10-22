@@ -47,6 +47,8 @@ export function configPourFichier(fichier) {
   for (const b of BLOCS_LINT) if ((b.files ?? ['**/*']).some(g=>correspondGlob(rel,g)) && !(b.excludeFiles??[]).some(g=>correspondGlob(rel,g))) Object.assign(rules,b.rules)
   return {rules}
 }
+/** Les blocs de la config qui activent `regle` : leurs `files` et les options de la règle. @param {string} regle */
+export const blocsDeRegle = (regle) => BLOCS_LINT.filter((b) => b.rules && regle in b.rules).map((b) => ({ files: b.files ?? [], options: [].concat(b.rules[regle]).slice(1) }))
 /** @param {{filePath:string,code:string}[]} fixtures @param {object} [configuration] */
 export function lintFixtures(fixtures, configuration) {
   const cwd = mkdtempSync(join(tmpdir(),'lint-contrat-'))

@@ -3545,14 +3545,14 @@ export function specLabel(category: string, refId: string, specId: string): Play
  *
  * CE QU'IL N'EST PAS : le fossile `rawText` sous un autre nom — d'autant moins négociable que ce fossile
  * est MORT (#1318 E7-FINAL). Il gelait un LITTÉRAL FR écrit au call-site ; ici l'argument est TOUJOURS lu
- * dans la donnée. Le cliquet nominatif `state/player-text-ratchet.test.ts` tient cette différence à ZÉRO,
+ * dans la donnée. Le cliquet nominatif `src/player-text-ratchet.test.ts` tient cette différence à ZÉRO,
  * sans gel : un littéral FR passé à `dataLabel(` rougit la CI — la garde, pas le nom, ferme le retour.
  *
  * `repli` : la dégradation quand la donnée ne porte pas de texte — un ID, ou un libellé DÉJÀ dérivé du
  * catalogue (`refLabel`, `CHAR_LABELS`). Jamais un littéral FR : même cliquet.
  */
 export function dataLabel(texte: string | undefined | null, repli?: string): PlayerText {
-  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
+  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `src/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
   return (texte ?? repli ?? '') as PlayerText;
 }
 

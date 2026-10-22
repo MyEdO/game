@@ -13,7 +13,7 @@
 //  - `src/i18n/index.ts : setLocale` — commutateur du seam i18n (plan évacué → #320), la seule
 //    entrée publique qui change de locale ; trois modules de moteur (`engine/mountTravel.ts`:40,
 //    `engine/shipCritical.ts`:28, `engine/spellRangeFormat.ts`:49) et un test
-//    (`state/player-text-ratchet.test.ts`:33) motivent leur forme (fonction plutôt que carte figée)
+//    (`src/player-text-ratchet.test.ts`:33) motivent leur forme (fonction plutôt que carte figée)
 //    par son existence. Sans consommateur tant que le catalogue est mono-FR.
 //  - `portFlow.PortState`, `landMarketFlow.LandMarketState` (`src/noyau/`) — ANGLE MORT de knip, pas
 //    des morts : `noyau/etat.ts` les lit en import de type INLINE (`import('./portFlow').PortState`), forme

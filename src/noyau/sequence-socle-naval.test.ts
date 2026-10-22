@@ -16,17 +16,17 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { specificateursDe } from '../../scripts/guards/lib/importGraph.mjs';
-import { useGame } from './store';
+import { useGame } from '../state/store';
 import { createHero } from '../engine/character';
 import { combatStakeRef } from '../data';
-import { monoStep } from '../noyau/rollSeam';
-import { startSequence, activeSequence, sequenceCumRound, sequenceScoreOf } from '../noyau/sequenceCore';
-import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from '../noyau/sequenceContract';
-import { avecLesTables, sequenceDeFixture, cleDeFixture } from '../noyau/noyau.testkit';
-import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { monoStep } from './rollSeam';
+import { startSequence, activeSequence, sequenceCumRound, sequenceScoreOf } from './sequenceCore';
+import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
+import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
+import { tablesDuJeu } from './tablesDuJeu';
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
-const FICHIERS = ['../noyau/sequenceContract.ts', '../noyau/sequenceCore.ts'];
+const FICHIERS = ['./sequenceContract.ts', './sequenceCore.ts'];
 const SOURCES = FICHIERS.map((fichier) => ({ fichier, texte: readFileSync(new URL(fichier, import.meta.url), 'utf-8') }));
 const SOURCE = SOURCES.map(({ texte }) => texte).join('\n');
 

@@ -10,7 +10,7 @@ import { AVERTISSEMENT, entries, evaluate, readWrite } from './exception-add-gua
 import { instanceDeDepot } from '../guards/lib/depotGabarit.mjs'
 import { ecriture, lancerHook } from '../guards/lib/lancerHook.mjs'
 
-const GUARD = 'src/state/label-logic-guard.test.ts' // matche `estFichierGarde`
+const GUARD = 'src/label-logic-guard.test.ts' // matche `estFichierGarde`
 const edit = (before, after, file = GUARD) => evaluate({ file, before, after, isWrite: false, exists: true })
 const avertit = (d) => {
   assert.ok(d && typeof d.contexte === 'string', 'attendu : avertissement')
