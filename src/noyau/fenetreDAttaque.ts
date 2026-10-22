@@ -31,8 +31,9 @@ import { testSkillLabel } from '../data';
 import { t } from '../i18n';
 import { difficultyText } from './difficultyText';
 import { libelleDuJet, libelleDuVerbe } from './libelles';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
-import type { BasculeNommee, ChoixNomme } from './reglages';
+import { REGLAGES_DE_L_ATTAQUE, type BasculeNommee, type ChoixNomme } from './reglages';
+
+type ReglageDeLAttaque = (typeof REGLAGES_DE_L_ATTAQUE)[number];
 
 const [tete, brasG, brasD, corps, jambeG, jambeD] = LOCALISATIONS_DE_COUP;
 /** Les 6 localisations dans l'ordre des fenêtres de coup : la liste du moteur, permutée. */
@@ -177,8 +178,8 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const inversion = jete && FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
   const bloque = apercu && (apercu.blocked || !apercu.inRange) ? t(apercu.blocked ? 'attaque.sansLigneDeVue' : 'attaque.horsDePortee') : null;
   const defenseAttendue = !!res && surfacedDefensePending(s, attaquant, cible, arme, pa);
-  const bascule = (verbe: keyof ActionsDuNoyau, active: boolean, note: string | null): BasculeNommee => ({ verbe, libelle: libelleDuVerbe(verbe)!, active, note });
-  const choix = <V extends string>(verbe: keyof ActionsDuNoyau, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ verbe, libelle: libelleDuVerbe(verbe)!, choisie, options });
+  const bascule = (verbe: ReglageDeLAttaque, active: boolean, note: string | null): BasculeNommee => ({ verbe, libelle: libelleDuVerbe(verbe)!, active, note });
+  const choix = <V extends string>(verbe: ReglageDeLAttaque, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ verbe, libelle: libelleDuVerbe(verbe)!, choisie, options });
   const localisations = (l: HitLocation): { valeur: HitLocation; libelle: string } => ({ valeur: l, libelle: t('attaque.lieuVise', { lieu: locationLabel(l, cible.bodyShape) }) });
 
   return {

@@ -1,32 +1,33 @@
-## L'interface du combat, lue dans la vue : le round et le tour, la fiche de l'actif, la barre de ses offres (une offre
-## pressée rend son id), la raison d'une barre fermée, le journal, le refus d'un geste, une panne du pont et la fin du
-## combat.
+## L'interface du combat, lue dans le panneau de la vue (`vue.panneau`, `src/hote/ecran.ts`) : le round et le tour, la
+## fiche de l'actif, la raison d'une barre fermée, l'aperçu du premier clic, la barre des offres de l'actif (une offre
+## pressée rend son id), le journal, le refus d'un geste, une panne du pont et la fin du combat.
 class_name InterfaceDuCombat
 extends CanvasLayer
 
 signal offre_choisie(offre: String)
 
-const LARGEUR_PANNEAU := 300
+const LARGEUR_PANNEAU := 300.0
+const FOND := Color(0.11, 0.1, 0.09, 0.92)
+const MARGE := 10.0
 
 var _tour := Label.new()
 var _fiche := Label.new()
-var _barre := Label.new()
+var _raison := Label.new()
+var _apercu := Label.new()
 var _offres := HFlowContainer.new()
+var _titre_du_journal := Label.new()
 var _journal := RichTextLabel.new()
 var _message := Label.new()
 var _panne := Label.new()
 
 
 func _ready() -> void:
-	var gauche := _panneau(Control.PRESET_TOP_LEFT, Vector2(LARGEUR_PANNEAU, 0), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_END)
-	gauche.add_child(_tour)
-	gauche.add_child(_fiche)
-	gauche.add_child(_barre)
-	_barre.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var droite := _panneau(Control.PRESET_RIGHT_WIDE, Vector2(LARGEUR_PANNEAU, 0), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BOTH)
-	var titre := Label.new()
-	titre.text = "Journal"
-	droite.add_child(titre)
+	var gauche := _panneau(Control.PRESET_TOP_LEFT, Vector2(LARGEUR_PANNEAU, 0.0), Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_END)
+	for etiquette in [_tour, _fiche, _raison, _apercu]:
+		etiquette.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		gauche.add_child(etiquette)
+	var droite := _panneau(Control.PRESET_RIGHT_WIDE, Vector2(LARGEUR_PANNEAU, 0.0), Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BOTH)
+	droite.add_child(_titre_du_journal)
 	_journal.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_journal.scroll_following = true
 	droite.add_child(_journal)
@@ -45,7 +46,11 @@ func _ready() -> void:
 
 
 func _panneau(preset: Control.LayoutPreset, taille: Vector2, en_largeur: Control.GrowDirection, en_hauteur: Control.GrowDirection) -> VBoxContainer:
+	var fond := StyleBoxFlat.new()
+	fond.bg_color = FOND
+	fond.set_content_margin_all(MARGE)
 	var cadre := PanelContainer.new()
+	cadre.add_theme_stylebox_override("panel", fond)
 	cadre.custom_minimum_size = taille
 	cadre.grow_horizontal = en_largeur
 	cadre.grow_vertical = en_hauteur
@@ -62,36 +67,29 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 		var texte: Variant = ligne.get("texte") if ligne.de == "journal" else ligne.evenement.get("text")
 		if texte != null:
 			_journal.add_text("%s\n" % texte)
-	var combat: Variant = vue.projection.combat
 	for bouton in _offres.get_children():
 		bouton.queue_free()
-	if combat == null:
-		_tour.text = ""
-		_fiche.text = ""
-		_barre.text = ""
+	var panneau: Variant = vue.panneau
+	for etiquette in [_tour, _fiche, _raison, _apercu, _titre_du_journal]:
+		etiquette.text = ""
+	if panneau == null:
 		return
-	_tour.text = "Round %d · tour %d / %d" % [int(combat.round), int(combat.tour), int(combat.tours)]
-	_fiche.text = "" if combat.actif == null else _decrire(combat.actif)
-	_barre.text = "" if combat.barre.raison == null else str(combat.barre.raison)
-	if combat.fin != null:
-		_message.text = "Fin du combat : %s" % combat.fin
+	_tour.text = panneau.tour
+	_fiche.text = "\n".join(PackedStringArray(panneau.fiche))
+	_raison.text = "" if panneau.raison == null else panneau.raison
+	_apercu.text = "" if panneau.apercu == null else panneau.apercu
+	_titre_du_journal.text = panneau.journal
+	if panneau.fin != null:
+		_message.text = panneau.fin
+	var combat: Dictionary = vue.projection.combat
 	if combat.offres != null:
 		for offre in combat.offres.liste:
 			var bouton := Button.new()
-			bouton.text = offre.id if offre.cout == null else "%s (%s)" % [offre.id, offre.cout]
+			bouton.text = panneau.offres[offre.id]
 			bouton.toggle_mode = true
 			bouton.set_pressed_no_signal(combat.intention == offre.id)
 			bouton.pressed.connect(func() -> void: offre_choisie.emit(offre.id))
 			_offres.add_child(bouton)
-
-
-func _decrire(actif: Dictionary) -> String:
-	var etats := PackedStringArray()
-	for e in actif.etats:
-		etats.append("%s %d" % [e.id, int(e.valeur)])
-	return "%s\nBlessures : %d / %d\nAvantage : %d\nMouvement : %d / %d\nAction : %s\nÉtats : %s" % [
-		actif.nom, int(actif.pb[0]), int(actif.pb[1]), int(actif.avantage),
-		int(actif.mouvement[0]), int(actif.mouvement[1]), actif.action, ", ".join(etats) if not etats.is_empty() else "aucun"]
 
 
 func afficher_refus(texte: String) -> void:

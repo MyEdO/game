@@ -5,7 +5,8 @@
  * `scripts/guards/lib/couches.mjs`, TypeScript et GDScript, hors tests et cibles générées) ne nomme un verbe de la partie
  * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau. Seule exception :
  * le verbe que le geste `offre` porte, son entrée dans le noyau. Et aucun script GDScript ne calcule une règle
- * (`calculsDeRegle`, plan `docs/plans/2026-10-21-vague6-hote-godot.md` M-e) : il lit la vue.
+ * (`calculsDeRegle`, plan `docs/plans/2026-10-21-vague6-hote-godot.md` M-e) : il lit la vue ; l'arithmétique de la mise
+ * en page vit dans un seul module, que sa structure désigne (`estMiseEnPage`).
  */
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
@@ -13,7 +14,8 @@ import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { HOTES_DU_NOYAU, dossierDe } from '../../scripts/guards/lib/couches.mjs';
-import { calculsDeRegle, lexemesGdscript } from '../../scripts/guards/lib/gdscriptSansRegle.mjs';
+import { calculsDeRegle, estMiseEnPage } from '../../scripts/guards/lib/gdscriptSansRegle.mjs';
+import { lexemesGdscript } from '../../scripts/guards/lib/gdscript.mjs';
 import { VERBES } from './verbes.generated';
 import { CLES_DE_FENETRE } from '../noyau/index';
 
@@ -71,9 +73,10 @@ describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
     expect(trouves, 'un verbe ou une fenêtre nommé en dur : le lire du noyau (`VERBES`, `fenetreDuJeu`)').toEqual([]);
   });
 
-  it('aucun script GDScript ne calcule une règle : ni hasard, ni chemin, ni mesure entre cases', () => {
-    const trouves = fichiersDesHotes().filter(estGdscript).flatMap((f) =>
-      calculsDeRegle(readFileSync(new URL(f, RACINE), 'utf8')).map(({ famille, ligne, extrait }) => `${f}:${ligne} ${famille} ${extrait}`));
-    expect(trouves, 'une règle calculée par l’hôte : la lire de la vue du noyau').toEqual([]);
+  it('aucun script GDScript ne calcule une règle : ni hasard, ni chemin, ni arithmétique, ordre ou mesure hors de la mise en page', () => {
+    const scripts = fichiersDesHotes().filter(estGdscript).map((f) => ({ f, src: readFileSync(new URL(f, RACINE), 'utf8') }));
+    expect(scripts.filter(({ src }) => estMiseEnPage(src)).map(({ f }) => f), 'un seul module de mise en page').toHaveLength(1);
+    const trouves = scripts.flatMap(({ f, src }) => calculsDeRegle(src).map(({ famille, ligne, extrait }) => `${f}:${ligne} ${famille} ${extrait}`));
+    expect(trouves, 'une règle calculée par l’hôte : la lire de la vue du noyau ; une mise en page : dans le module de mise en page').toEqual([]);
   });
 });

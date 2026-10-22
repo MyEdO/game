@@ -4,9 +4,8 @@ import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '
 import { fenetreDeDefense } from '../../noyau/fenetreDeDefense';
 import { libelleDuJet } from '../../noyau/libelles';
 import { t } from '../../i18n';
-import { defenseDodgeMods, defenseGagneeEnMelee } from '../../noyau/combatFlow';
+import { defenseDodgeMods } from '../../noyau/combatFlow';
 import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
-import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../../engine/combatFeatures/dispatch';
 import { composeRollLabel } from '../../noyau/rollSeam';
 import { RollShell, type RollAction } from '../RollShell';
 import { opposedResponded } from '../opposedFrozen';
@@ -86,51 +85,28 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const reverseAvail = rolled && FLOWS.defense.reverseAvailable(useGame.getState);
   const reversePreview = reverseAvail ? FLOWS.defense.reversePreview(useGame.getState) : null;
 
-  // Réaction de Porte-Bouclier (variante « Avantage de groupe », AA 13 l.84) : offerte quand on se défend
-  // au Bouclier (parade), 1×/Round, si la réserve du camp (projetée sur `defender.advantage`) couvre le coût.
-  // Coût + éligibilité viennent de la DONNÉE (`shieldReactionCost`), jamais d'un nom en dur.
-  const reactionCost = pd.mode === 'parade' ? shieldReactionCost(defender, chosenParry) : 0;
-  const canReact = reactionCost > 0 && !defender.usedShieldReactionRound && (defender.advantage ?? 0) >= reactionCost;
-  const toggleReaction = (kind: 'damage' | 'push') => setShieldReaction(pd.shieldReaction === kind ? null : kind);
-  // LDB 10 l.1037
-  const contre = pd.mode === 'parade' ? contreSurDefenseGagnee(defender, chosenParry) : null;
-  const riposteChoisie = !!contre?.choisie;
-  const ripostesPortees = contre ? contresEpuisees(defender, contre) : null;
-  const refusRiposte = ripostesPortees != null ? `Riposte déjà portée ${ripostesPortees} fois ce Round : Niveau ${contre!.plafond}.` : undefined;
-  const riposte = !refusRiposte && pd.riposte !== false;
-  const JET_LANCE = 'Le jet est lancé : la réaction se déclare avant.';
-  const defenseGagnee = !!res && defenseGagneeEnMelee(attacker, defender, pd.weapon, res);
-  /** La cause du refus d'une option de Porte-bouclier, une phrase par cause. AA 13 l.84 ; LDB 13 l.123. */
-  const refusReaction = (kind: 'damage' | 'push'): string | undefined => {
-    if (res) return kind === 'damage' && !defenseGagnee ? 'Défense non gagnée : pas de Dégâts.' : JET_LANCE;
-    if (canReact || pd.shieldReaction === kind) return undefined;
-    // Le volet n'existe que sous `reactionCost > 0` : des trois conditions de `canReact`, l'une des DEUX
-    // restantes est fausse — la dernière est le reste.
-    if (defender.usedShieldReactionRound) return 'Réaction de Porte-Bouclier déjà utilisée ce Round.';
-    return `Il faut ${reactionCost} Avantages : ${defender.label} en a ${defender.advantage ?? 0}.`;
-  };
-  // Une réaction DÉCLARÉE reste à l'écran après le jet (`postRollExtra`), figée, avec sa cause.
-  const refusOui = refusRiposte ?? (res ? (defenseGagnee ? JET_LANCE : 'Défense non gagnée : pas de Riposte.') : undefined);
-  const riposteChoix = riposteChoisie && (
+  // Porte-Bouclier et Riposte : la fenêtre de Défense du noyau (`fenetreDeDefense`), chaque option avec sa raison de refus.
+  const riposte = vue.riposte;
+  const riposteChoix = riposte && (
     <OptionChooser
       layout="seg"
-      groupLabel={<CodexRef category="talents" id="riposte" label="Riposte" />}
-      options={[
-        { key: 'oui', label: t('valeur.oui'), selected: riposte, refus: refusOui, onSelect: () => setRiposte(true) },
-        { key: 'non', label: t('valeur.non'), selected: !refusRiposte && !riposte, refus: refusRiposte ?? (res ? JET_LANCE : undefined), onSelect: () => setRiposte(false) },
-      ]}
+      groupLabel={<CodexRef category="talents" id="riposte" label={riposte.libelle} />}
+      options={riposte.options.map((o) => ({
+        key: o.valeur ? 'oui' : 'non', label: o.libelle, selected: riposte.choisie === o.valeur, refus: o.refus ?? undefined, onSelect: () => setRiposte(!!o.valeur),
+      }))}
     />
   );
-  const porteBouclier = reactionCost > 0 && (
+  const bouclier = vue.porteBouclier;
+  const porteBouclier = bouclier && (
     <OptionChooser
       layout="seg"
-      groupLabel={<CodexRef category="talents" id="porte-bouclier" label="Porte-bouclier">Porte-bouclier ({reactionCost} Av.)</CodexRef>}
-      options={[
-        { key: 'damage', label: t('valeur.damage'), selected: pd.shieldReaction === 'damage', refus: refusReaction('damage'), onSelect: () => toggleReaction('damage') },
-        { key: 'push', label: t('valeur.push'), selected: pd.shieldReaction === 'push', refus: refusReaction('push'), onSelect: () => toggleReaction('push') },
-      ]}
+      groupLabel={<CodexRef category="talents" id="porte-bouclier" label="Porte-bouclier">{bouclier.libelle}</CodexRef>}
+      options={bouclier.options.flatMap((o) => (o.valeur === null ? [] : [{
+        key: o.valeur, label: o.libelle, selected: bouclier.choisie === o.valeur, refus: o.refus ?? undefined, onSelect: () => setShieldReaction(bouclier.choisie === o.valeur ? null : o.valeur),
+      }]))}
     />
   );
+  const riposteOuverte = riposte?.choisie != null;
 
   // NATURE de l'attaque figée, telle que la frappe l'a DÉCLARÉE en ouvrant la fenêtre (#1858) : une
   // gratuite de créature s'annonce par la sienne (Morsure, Attaque caudale… LDB 85), le reste est une
@@ -197,7 +173,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
             groupLabel={vue.reaction.libelle}
             options={vue.reaction.options.map((o) => {
               const mode = o.valeur as DefenseMode;
-              return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode, mode === 'social' ? sub?.skillId : undefined) };
+              return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode) };
             })}
           />
           {vue.armeDeParade && (
@@ -233,10 +209,10 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
     /* #1000 : les deux camps ont forcé — l'arbitrage APPLIQUÉ (garanties éteintes) est AFFICHÉ. */
     postRollExtra: res && (
       <>
-        {((pd.shieldReaction && porteBouclier) || (!refusRiposte && riposteChoix)) && (
+        {((pd.shieldReaction && porteBouclier) || (riposteOuverte && riposteChoix)) && (
           <div className="rm-options">
             {pd.shieldReaction && porteBouclier}
-            {!refusRiposte && riposteChoix}
+            {riposteOuverte && riposteChoix}
           </div>
         )}
         {opposedForcingCancelled(pd) && <p className="rm-note">{OPPOSED_FORCING_CANCELLED_NOTE}</p>}

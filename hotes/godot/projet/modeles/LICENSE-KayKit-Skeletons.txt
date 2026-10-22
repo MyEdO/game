@@ -1,0 +1,15 @@
+KayKit : Skeletons (Skeleton_Warrior.glb)
+
+Created/distributed by Kay Lousberg (www.kaylousberg.com)
+Distribution page: https://kaylousberg.itch.io/kaykit-skeletons (read 2026-10-22)
+
+The license as the distribution page states it, verbatim:
+
+	Asset license: Creative Commons Zero v1.0 Universal
+
+	Free for personal and commercial use, no attribution required. (CC0 Licensed)
+
+	These assets are CC0 so you can use them freely. But please don’t resell unmodified copies or claim them as your own.
+
+License: (Creative Commons Zero, CC0)
+http://creativecommons.org/publicdomain/zero/1.0/

@@ -468,7 +468,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             catégorie d'erreur ; l'hôte y joint ses pistes de lecture), `projection.ts` (la projection de
                             l'état en données, chaque liste aux bornes de l'hôte, les cases atteignables),
                             `formes.ts` (la forme JSON d'un paramètre de verbe), `verbes.generated.ts` (les
-                            paramètres des verbes, `scripts/gen-verbes.mjs`). Entrée d'un hôte servi ou bâti par
+                            paramètres des verbes, `scripts/gen-verbes.mjs`), `gestes.ts` (`fenetreADessiner` : la
+                            fenêtre qui tient la main, chacun de ses verbes en geste prêt à saisir et à rendre),
+                            `ecran.ts` (`panneauDuCombat`, `corpsDeLaFenetre` : les textes d'un hôte qui dessine la
+                            partie, tirés du catalogue et des lecteurs du noyau). Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -483,8 +486,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   projet/                   le projet Godot 4.7 (GDScript, scènes, modèles KayKit et leur licence) : il dessine la
-                            vue et rend chaque geste en intention, sans règle (gardes
-                            `src/hote/derive-du-noyau.hors-store.test.ts`, `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
+                            vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
+                            le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,
+                            `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
                             jetons armés en minuteurs. `construire.mjs --sonde` l'importe et contrôle chaque script
                             avec l'éditeur épinglé (`npm run godot:sonde`, étape de la CI) ; `--export --sortie`
                             produit l'export Web, que `recette.mjs` joue au navigateur, un tour complet.

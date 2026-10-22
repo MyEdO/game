@@ -1,6 +1,7 @@
 ## Le plateau 3D : le sol du plateau de la scène (`vue.plateau`), chaque combattant à sa case (`voisins`), les
 ## surbrillances des cases que la vue peint (`vue.cases`), des cibles et de l'aperçu du premier clic, et la case sous le
-## pointeur ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case cliquée.
+## pointeur jusqu'au clic ; caméra pivotante (Q/E, par quart de tour) et zoomable (molette). Il ne rend que la case
+## cliquée.
 class_name Plateau
 extends Node3D
 
@@ -12,7 +13,6 @@ const ITEM_ATTEIGNABLE := 2
 const ITEM_CIBLE := 3
 const ITEM_SURVOL := 4
 const DUREE_QUART_S := 0.25
-const PAS_DE_ZOOM := 1.15
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
 
@@ -36,7 +36,8 @@ func _ready() -> void:
 	_lacet = _pivot.rotation.y
 
 
-## Montre la vue ; les lignes de `journal` qui nomment un acteur et sa cible tournent l'acteur vers elle et l'animent.
+## Montre la vue ; chaque ligne de `journal` qui nomme un acteur et sa cible tourne l'acteur vers elle et l'anime, et
+## la cible accuse le coup.
 func montrer(vue: Dictionary, journal: Array) -> void:
 	_vue = vue
 	if not _bornes.has_area() and vue.plateau != null:
@@ -55,8 +56,9 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 		_modeles[c.id].montrer(c, lieu, c.id == actif)
 	for ligne in journal:
 		var e: Variant = ligne.get("evenement")
-		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")):
+		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")) and e.actorId != e.targetId:
 			_modeles[e.actorId].agir_vers(_modeles[e.targetId].position)
+			_modeles[e.targetId].subir()
 	_peindre()
 
 
@@ -77,11 +79,11 @@ func _poser_le_sol(plateau: Dictionary) -> void:
 			_sol.set_cell_item(Vector3i(x, 0, y), ITEM_SOL)
 	for case in plateau.infranchissables:
 		_sol.set_cell_item(Vector3i(int(case.x), 0, int(case.y)), ITEM_BLOQUANT)
-	_pivot.position = Vector3(_bornes.size.x / 2.0, 0.0, _bornes.size.y / 2.0)
+	_pivot.position = MiseEnPage.centre_du_plateau(_bornes.size)
 
 
 func _monde(case: Vector2i) -> Vector3:
-	return Vector3(case.x + 0.5, 0.0, case.y + 0.5)
+	return MiseEnPage.centre_de_case(case)
 
 
 ## Les cases peintes : celles de la vue, les cibles, l'aperçu, puis la case sous le pointeur.
@@ -117,12 +119,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_survoler(_case_sous(event.position))
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var case: Variant = _case_sous(event.position)
+		_survol = null
+		_peindre()
 		if case != null:
 			case_cliquee.emit(case)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_UP:
-		_zoomer(1.0 / PAS_DE_ZOOM)
+		_zoomer(-1.0)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-		_zoomer(PAS_DE_ZOOM)
+		_zoomer(1.0)
 	else:
 		return
 	get_viewport().set_input_as_handled()
@@ -135,7 +139,7 @@ func _survoler(case: Variant) -> void:
 
 
 func _pivoter(sens: float) -> void:
-	_lacet += sens * PI / 2.0
+	_lacet = MiseEnPage.lacet_tourne(_lacet, sens)
 	if _pivotement != null:
 		_pivotement.kill()
 	_pivotement = create_tween()
@@ -143,8 +147,8 @@ func _pivoter(sens: float) -> void:
 	_pivotement.tween_callback(func() -> void: _survoler(_case_sous(get_viewport().get_mouse_position())))
 
 
-func _zoomer(facteur: float) -> void:
-	_camera.position.z = clampf(_camera.position.z * facteur, DISTANCE_MIN, DISTANCE_MAX)
+func _zoomer(sens: float) -> void:
+	_camera.position.z = MiseEnPage.distance_zoomee(_camera.position.z, sens, DISTANCE_MIN, DISTANCE_MAX)
 	_survoler(_case_sous(get_viewport().get_mouse_position()))
 
 
@@ -153,5 +157,5 @@ func _case_sous(point: Vector2) -> Variant:
 	var sol: Variant = Plane(Vector3.UP, 0.0).intersects_ray(_camera.project_ray_origin(point), _camera.project_ray_normal(point))
 	if sol == null:
 		return null
-	var case := Vector2i(floori(sol.x), floori(sol.z))
+	var case := MiseEnPage.case_du_point(sol)
 	return case if _bornes.has_point(case) else null

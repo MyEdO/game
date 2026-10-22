@@ -9,6 +9,7 @@ import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
+import { avecSigne } from '../noyau/difficultyText';
 import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
 import { RecapLineRow } from './RecapLine';
@@ -321,7 +322,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
           deux jets : masqué avec eux (#990). */}
       {!panelMasked && rolled && winnerIndex != null && netSL != null && (
         <div className="rm-netsl" title="Différence de DR entre les deux jets : elle alimente les Dégâts (Test opposé)">
-          DR net : {netSL >= 0 ? '+' : '−'}{Math.abs(netSL)}
+          DR net : {avecSigne(netSL)}
         </div>
       )}
       {summary != null && <p className="rm-summary">{summary}</p>}

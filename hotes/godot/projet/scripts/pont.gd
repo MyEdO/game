@@ -10,16 +10,16 @@ signal refus(erreur: Dictionary)
 signal panne(message: String)
 
 const INTERFACE := "wfrpPont"
-const ATTENTE_MS := 10000
+const ATTENTE_S := 10.0
 
 var est_web := OS.has_feature("web")
 var _pont: JavaScriptObject = null
-var _debut_ms := 0
 
 
 func _ready() -> void:
-	_debut_ms = Time.get_ticks_msec()
 	set_process(est_web)
+	if est_web:
+		get_tree().create_timer(ATTENTE_S).timeout.connect(_expirer)
 
 
 func _process(_delta: float) -> void:
@@ -27,9 +27,12 @@ func _process(_delta: float) -> void:
 	if _pont != null:
 		set_process(false)
 		pret.emit()
-	elif Time.get_ticks_msec() - _debut_ms > ATTENTE_MS:
+
+
+func _expirer() -> void:
+	if _pont == null:
 		set_process(false)
-		_signaler("globalThis.%s reste absent après %d ms : wfrp-pont.js n'est pas chargé." % [INTERFACE, ATTENTE_MS])
+		_signaler("globalThis.%s reste absent après %s s : wfrp-pont.js n'est pas chargé." % [INTERFACE, ATTENTE_S])
 
 
 func est_pret() -> bool:

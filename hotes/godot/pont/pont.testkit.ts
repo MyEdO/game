@@ -82,6 +82,7 @@ export function fautesDeLaFenetre(vue: VueDuPont): string[] {
     for (const a of g.arguments) {
       if (a.saisie === 'fixe' && a.valeur !== f.pid) fautes.push(`${g.verbe}.${a.nom} : posé à ${String(a.valeur)}, la fenêtre désigne ${String(f.pid)}`);
       fautes.push(...fautesDeLArgument(`${g.verbe}.${a.nom}`, a));
+      if (a.saisie === 'choix' && (g.rendu === 'bouton' || ((g.rendu === 'choix' || g.rendu === 'liste') && g.aChoisir !== a.nom))) fautes.push(`${g.verbe}.${a.nom} : des valeurs nommées que le rendu ${g.rendu} ne fait pas dire`);
     }
   }
   return fautes;

@@ -55,6 +55,14 @@ export const fr = {
   // Action de la modale d'attaque quand la Défense s'interpose : elle passe la main, n'applique rien (#1765).
   'defense.passerLaMain': 'Passer à la Défense',
   'defense.secondaire': '{arme} (2nde)',
+  // Les choix de la Défense (`fenetreDeDefense`) et la raison qui ferme chacun. AA 13 l.84 ; LDB 10 l.1037 ; LDB 13 l.123.
+  'defense.porteBouclier': 'Porte-bouclier ({cout} Av.)',
+  'defense.refus.jetLance': 'Le jet est lancé : la réaction se déclare avant.',
+  'defense.refus.degatsSansDefenseGagnee': 'Défense non gagnée : pas de Dégâts.',
+  'defense.refus.riposteSansDefenseGagnee': 'Défense non gagnée : pas de Riposte.',
+  'defense.refus.bouclierUtilise': 'Réaction de Porte-Bouclier déjà utilisée ce Round.',
+  'defense.refus.avantages': 'Il faut {cout} Avantages : {nom} en a {avantage}.',
+  'defense.refus.ripostesPortees': 'Riposte déjà portée {n} fois ce Round : Niveau {plafond}.',
   // Action de la modale d'attaque quand aucune Défense ne s'interpose : elle applique le coup.
   // Le libellé d'un verbe de fenêtre (`libelleDuVerbe`, `noyau/libelles.ts`) : `verbe.<id>`, sinon celui du suffixe de
   // son flux (`verbe.<suffixe>`, `flowActionName`). Lu par le web, la fenêtre d'attaque et tout hôte.
@@ -327,8 +335,30 @@ export const fr = {
   'ecran.fin.defeat': 'défaite',
   'ecran.journal': 'Journal',
   'ecran.offre': '{libelle} ({cout})',
-  'ecran.apercu': 'Coût : {cout} de Mouvement. Cliquer à nouveau la case pour s’y rendre.',
-  'ecran.apercu.cible': 'Cliquer à nouveau la cible pour confirmer.',
+  'ecran.apercu': 'Coût : {cout} de Mouvement',
+  'ecran.apercu.cible': 'Cible : {cible}',
+  // Le corps de la fenêtre qui tient la main (`corpsDeLaFenetre`, `src/hote/ecran.ts`) : qui agit contre qui, ses jets.
+  'ecran.attaque.cible': 'Cible : {cible}',
+  'ecran.jet.aJeter': '{test} : {base}, à atteindre {cible}, {difficulte}',
+  'ecran.jet.tombe': '{test} : {jet} contre {cible}, DR {dr}, {verdict}',
+  'ecran.jet.seuil': '{test} : {jet} contre {cible}, {verdict}',
+  'ecran.jet.tombeSansCible': '{test} : {jet}, {verdict}',
+  'ecran.jet.masque': '{test} : jet caché',
+  'ecran.jet.reussite': 'réussite',
+  'ecran.jet.echec': 'échec',
+  'ecran.defense.annoncee': 'Défense {de} : {test}, {difficulte}',
+  'ecran.defense.qui': '{attaquant} attaque {defenseur} avec {arme}',
+  'ecran.defense.test': 'Réaction : {test}',
+  'ecran.drNet': 'DR net {dr}',
+  'ecran.ligne.qui': '{qui} : {texte}',
+  'ecran.ligne.testAJeter': '{test}, à atteindre {cible}, à lancer',
+  'ecran.ligne.testAJeterSansCible': '{test}, à lancer',
+  'ecran.ligne.testTombe': '{test} : {jet} contre {cible}, DR {dr}, {verdict}',
+  'ecran.ligne.testTombeSansCible': '{test} : {jet}, DR {dr}, {verdict}',
+  'ecran.ligne.tableATirer': '{table}, à tirer',
+  'ecran.ligne.tableTombee': '{table} : {ligne}',
+  'ecran.ligne.deALancer': '{de}, à lancer',
+  'ecran.ligne.deTombe': '{de} : {lecture}',
   // Fenêtre d'attaque — libellés lus par `fenetreDAttaque` (`noyau/fenetreDAttaque.ts`), le web et tout hôte.
   // Dégâts d'arme avant le DR du jet : en-tête de la fenêtre et réticule du stage (`gameIso/stage/AimOverlay.tsx`).
   'attaque.degats': 'Dégâts +{dmg}',

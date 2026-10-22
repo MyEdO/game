@@ -1,13 +1,16 @@
 // LA RECETTE DU TOUR COMPLET DE L'HÔTE GODOT (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md`, critère 4) :
 // l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`) servi en statique, Chromium piloté au clic et
 // au clavier sur le canevas comme un joueur. Godot publie à la page ce que l'écran porte (`globalThis.wfrpEcran` : le
-// texte et le centre de chaque bouton, le point de chaque case) ; `wfrpPont.appeler('vue')` observe la partie. Aucun
-// geste ne passe par le pont : chaque intention part d'un clic ou d'une frappe. Le tour : la fenêtre du round à
-// l'Entrée, une charge sur l'ennemi le plus proche, la localisation, le jet et sa confirmation dans la fenêtre
-// d'attaque, la fin du tour ; le héros suivant marche d'une case (aperçu puis déplacement) et finit son tour ; les
-// jetons de l'adversaire repris par les minuteurs de Godot jusqu'à la Défense, jetée et confirmée. Console à 0 erreur.
+// texte et le centre de chaque bouton, le point de chaque case) ; `wfrpPont.appeler('vue')` observe la partie, et chaque
+// bouton se trouve par le texte que la vue lui donne. Aucun geste ne passe par le pont : chaque intention part d'un clic
+// ou d'une frappe. Le tour : la fenêtre du round à l'Entrée, une charge sur l'ennemi le plus proche, la localisation, le
+// jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche d'une case (aperçu puis
+// déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de Godot jusqu'à la Défense du
+// héros visé, jetée et confirmée, puis le round 2. Chaque étape est assertée sur la vue ; une assertion fausse, une
+// erreur relevée par le pont (`erreursGlobales`) ou une erreur de console rendent un code non nul.
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
+import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { createReadStream, statSync } from 'node:fs'
 import { extname, resolve, sep } from 'node:path'
@@ -40,13 +43,20 @@ const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
 const vue = async () => JSON.parse(await evaluate(session, `wfrpPont.appeler('vue')`)).vue
 const ecran = async () => JSON.parse(await evaluate(session, 'JSON.stringify(globalThis.wfrpEcran ?? null)'))
-/** Le prochain écran publié : l'actuel est marqué vu, le suivant ne l'est pas. */
+/** Attend que la vue, lue par le pont, vérifie `condition` (une expression sur `v`). */
+const attendreLaVue = (condition, timeoutMs = 30000) =>
+  waitFor(session, `(() => { try { const v = JSON.parse(wfrpPont.appeler('vue')).vue; return !!(${condition}) } catch { return false } })()`, { timeoutMs })
+/** Le prochain écran publié : l'actuel est marqué vu, le suivant ne l'est pas (chaque publication remplace l'objet). */
 const marquer = () => evaluate(session, '(globalThis.wfrpEcran && (wfrpEcran.vu = true), true)')
 const nouvelEcran = () => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs: 30000 })
-/** Un bouton par son texte, ou par son texte suivi d'un coût entre parenthèses (une offre). */
-const porte = (texte) => `(b) => b.texte === ${JSON.stringify(texte)} || b.texte.startsWith(${JSON.stringify(`${texte} (`)})`
-const attendreBouton = (texte, timeoutMs = 30000) => waitFor(session, `!!globalThis.wfrpEcran && wfrpEcran.boutons.some(${porte(texte)})`, { timeoutMs })
 const actif = (v) => v.projection.combat?.actif
+const nomDe = (v, id) => v.projection.combat.voisins.liste.find((c) => c.id === id)?.nom
+/** Le libellé du geste que la fenêtre attend. */
+const attendu = (v) => {
+  const gestes = v.fenetre?.gestes.filter((g) => g.attendu) ?? []
+  assert.equal(gestes.length, 1, `un geste attendu dans ${JSON.stringify(v.fenetre?.gestes.map((g) => g.libelle))}`)
+  return gestes[0].libelle
+}
 
 async function cliquerPoint(x, y) {
   await marquer()
@@ -55,7 +65,7 @@ async function cliquerPoint(x, y) {
 }
 async function cliquerBouton(texte) {
   const { boutons } = await ecran()
-  const b = boutons.find((x) => x.texte === texte) ?? boutons.find((x) => x.texte.startsWith(`${texte} (`))
+  const b = boutons.find((x) => x.texte === texte)
   if (!b) throw new Error(`bouton « ${texte} » absent ; boutons : ${boutons.map((x) => x.texte).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
 }
@@ -68,64 +78,94 @@ async function capturer(nom) {
   noter(`capture ${await shot(session, nom, o.captures)}`)
 }
 async function finirLeTour() {
-  await cliquerBouton('end-turn')
-  if ((await vue()).projection.combat.finDeTourArmee) await cliquerBouton('end-turn')
+  await cliquerBouton((await vue()).panneau.offres['end-turn'])
+  const v = await vue()
+  if (v.projection.combat.finDeTourArmee) await cliquerBouton(v.panneau.offres['end-turn'])
 }
 
 let echec = null
 try {
   await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}` })
-  await attendreBouton('confirmRoundStart', 120000)
-  await capturer('godot-1-round')
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  let v = await vue()
+  assert.ok(v.fenetre, 'la fenêtre du round tient la main')
+  assert.equal(v.projection.combat.round, 1)
+  await capturer('2928-6c-1-round')
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
-  let v = await vue()
+  v = await vue()
   const heros = actif(v)
-  noter(`Entrée : fenêtre ${v.projection.fenetre?.cle ?? 'fermée'} ; actif ${heros.nom}, barre ${v.projection.combat.barre.forme}`)
+  assert.equal(v.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
+  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  assert.equal(v.projection.combat.barre.forme, 'ouverte')
+  noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
   const proche = v.projection.combat.voisins.liste.filter((c) => v.projection.combat.cibles.liste.includes(c.id)).sort((a, b) => a.distance - b.distance)[0]
-  await cliquerBouton('charge')
+  await cliquerBouton(v.panneau.offres.charge)
   v = await vue()
-  noter(`offre charge : intention ${v.projection.combat.intention}, ${v.cases.length} cases peintes`)
+  assert.equal(v.projection.combat.intention, 'charge', 'l’offre arme son intention')
+  noter(`offre ${v.panneau.offres.charge} : intention charge, ${v.cases.length} cases peintes`)
   await cliquerCase({ x: proche.pos[0], y: proche.pos[1] })
-  noter(`clic sur ${proche.nom} (${proche.pos}) : jetons programmés`)
-  await attendreBouton('attackRoll')
+  await attendreLaVue('v.attaque && v.fenetre')
   v = await vue()
-  noter(`fenêtre d'attaque ouverte par la reprise du jeton : ${v.attaque.sousTitre}`)
-  await cliquerBouton(v.attaque.localisation.options.find((l) => l.valeur !== '').libelle)
+  assert.deepEqual([v.attaque.attaquantId, v.attaque.cibleId, v.attaque.jete], [heros.id, proche.id, false], 'la charge ouvre l’attaque du héros sur sa cible')
+  noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${v.fenetre.titre} » ouverte ; ${v.fenetre.corps.join(' / ')}`)
+  const localiser = v.fenetre.gestes.find((g) => g.verbe === v.attaque.localisation.verbe)
+  const lieu = localiser.arguments.find((a) => a.saisie === 'choix').valeurs.find((x) => x.valeur !== null)
+  await cliquerBouton(lieu.libelle)
   v = await vue()
-  noter(`localisation ${v.attaque.localisation.choisie} ; cible du jet ${v.attaque.jet.pending.target}`)
-  await capturer('godot-2-attaque-apercu')
-  await cliquerBouton('attackRoll')
+  assert.equal(v.attaque.localisation.choisie, lieu.valeur, 'la Localisation cliquée est retenue')
+  noter(`Localisation « ${lieu.libelle} » ; ${v.fenetre.corps.find((l) => l.includes('à atteindre'))}`)
+  await capturer('2928-6c-2-attaque-apercu')
+  await cliquerBouton(attendu(v))
   v = await vue()
-  noter(`jet : ${v.attaque.issue?.ligne ?? 'issue en attente'}`)
-  await capturer('godot-3-attaque-jet')
-  await cliquerBouton('attackConfirm')
+  assert.equal(v.attaque.jete, true, 'le jet tombe')
+  assert.ok(v.attaque.issue, 'le jet tombé dit son issue')
+  noter(`jet : ${v.attaque.issue.ligne}`)
+  await capturer('2928-6c-3-attaque-jet')
+  const pbAvant = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
+  await cliquerBouton(attendu(v))
   v = await vue()
-  noter(`confirmée : fenêtre d'attaque ${v.attaque === null ? 'fermée' : 'ouverte'} ; ${proche.nom} ${v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb.join('/')}`)
+  assert.equal(v.attaque, null, 'confirmée, la fenêtre d’attaque se ferme')
+  const pbApres = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
+  noter(`confirmée : fenêtre fermée ; ${proche.nom} ${pbAvant} → ${pbApres} Blessures`)
   await finirLeTour()
   v = await vue()
   const second = actif(v)
-  const vers = v.cases.find((c) => c.cout === 1).case
+  assert.notEqual(second.id, heros.id, 'la fin du tour passe la main')
+  assert.equal(second.camp, 'hero')
+  const vers = v.cases.find((c) => c.zone === 'marche' && c.cout === 1).case
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
   v = await vue()
-  noter(`premier clic sur (${vers.x}, ${vers.y}) : aperçu ${JSON.stringify(v.projection.combat.apercu)}`)
-  await capturer('godot-4-deplacement-apercu')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y]], 'le premier clic montre l’aperçu')
+  assert.ok(v.panneau.apercu, 'le panneau dit ce que l’aperçu coûte')
+  noter(`premier clic sur (${vers.x}, ${vers.y}) : ${v.panneau.apercu}`)
+  await capturer('2928-6c-4-deplacement-apercu')
   await cliquerCase(vers)
-  noter(`second clic : ${second.nom} en ${actif(await vue()).pos}`)
+  v = await vue()
+  assert.deepEqual(actif(v).pos, [vers.x, vers.y], 'le second clic déplace le héros')
+  noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
-  await attendreBouton('defenseRoll', 60000)
+  await attendreLaVue('v.defense && v.fenetre', 60000)
   v = await vue()
-  noter(`jetons de l'adversaire repris par les minuteurs ; fenêtre ${v.projection.fenetre.cle}, étape ${v.projection.fenetre.etape?.genre}, à ${v.projection.fenetre.proprietaire} ; actif ${actif(v).nom}`)
-  await capturer('godot-5-defense')
-  await cliquerBouton('defenseRoll')
-  await cliquerBouton('defenseConfirm')
-  await sleep(2500)
+  const adversaire = actif(v)
+  assert.equal(adversaire.camp, 'enemy', 'les jetons repris, le noyau joue l’adversaire')
+  assert.equal(v.defense.attaquantId, adversaire.id, 'la Défense répond à l’adversaire actif')
+  assert.equal(v.fenetre.proprietaire, nomDe(v, v.defense.defenseurId), 'la Défense est au héros visé')
+  noter(`Défense ouverte par les minuteurs : ${v.fenetre.corps.join(' / ')} ; à ${v.fenetre.proprietaire}`)
+  await capturer('2928-6c-5-defense')
+  await cliquerBouton(attendu(v))
   v = await vue()
-  noter(`Défense confirmée : fenêtre ${v.projection.fenetre?.cle ?? 'aucune'}, round ${v.projection.combat?.round}`)
-  await capturer('godot-6-apres-defense')
-  noter(`erreursGlobales : ${await evaluate(session, `wfrpPont.appeler('erreursGlobales')`)}`)
+  assert.equal(v.defense.jete, true, 'le jet de Défense tombe')
+  await cliquerBouton(attendu(v))
+  await attendreLaVue('!v.defense && v.projection.combat.round === 2', 60000)
+  v = await vue()
+  noter(`Défense confirmée : fenêtre « ${v.fenetre?.titre ?? 'aucune'} », round ${v.projection.combat.round}`)
+  await capturer('2928-6c-6-apres-defense')
+  const releve = JSON.parse(await evaluate(session, `wfrpPont.appeler('erreursGlobales')`))
+  assert.deepEqual(releve, { ok: true, erreurs: [] }, 'aucune erreur de la page relevée par le pont')
+  noter('erreursGlobales : aucune')
 } catch (e) {
   echec = e
   console.error('ÉCHEC', e.message)

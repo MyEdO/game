@@ -49,7 +49,7 @@ import { areGrappling, clearGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
 import { groupAdvantage, mirrorPools } from '../engine/advantagePool';
 import { campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
-import { skillAdvantageCap } from '../engine/skillCombatApps';
+import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
 import { resolveMagicMissile, resolveCasting, isArcaneSpell, isMagicMissile, castBlockedBy, spellTargetCount, overcastSL, castAfterCrit, defaultCritChoice, castInfo, castInfoIsPrayer, focusCriticalDR, dispelOwnSpellDR, consumeMalepierre, malepierreItemOf } from '../engine/magic';
@@ -2549,11 +2549,14 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     // ── Défense réactive (héros attaqué par l'IA en mêlée) ──
-    defenseSetMode: (mode: DefenseMode, subSkillId?: string) => {
-      const pd = get().pendingDefense;
-      if (!pd || pd.result) return; // le mode ne change plus après le jet
-      // Substitution sociale : fige la Compétence substituée (Intimidation/Dressage) ; sinon on l'efface.
-      set({ pendingDefense: { ...pd, mode, substituteSkillId: mode === 'social' ? subSkillId : undefined } });
+    defenseSetMode: (mode: DefenseMode) => {
+      const { pendingDefense: pd, battle } = get();
+      if (!pd || pd.result || !battle) return; // le mode ne change plus après le jet
+      const defenseur = inBattleId(battle, pd.defenderId);
+      const attaquant = inBattleId(battle, pd.attackerId);
+      // LDB 09 l.207, l.287
+      const substitut = mode === 'social' && defenseur && attaquant ? combatSubstitute(defenseur, attaquant, 'defense')?.skillId : undefined;
+      set({ pendingDefense: { ...pd, mode, substituteSkillId: substitut } });
     },
     defenseSetParryWeapon: (uid: string | null) => {
       const pd = get().pendingDefense;

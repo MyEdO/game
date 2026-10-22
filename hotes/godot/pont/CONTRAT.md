@@ -32,7 +32,7 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
 
 `demarrer` ouvre la partie une seule fois par page : un second appel se refuse, et recommencer, c'est recharger la page. Un `demarrer` refusé n'ouvre rien.
 
-Les gestes de la modale d'attaque sont des verbes de la partie, joués par `jouer` : quand `vue.attaque` n'est pas `null`, ce sont les verbes de `projection.fenetre.verbes` (`fenetreDuJeu`), réglages du jet compris (`FENETRE_DU_JET`, `src/noyau/combatAuto.ts`). Chaque verbe de la partie et ses paramètres viennent du registre dérivé du noyau (`src/hote/verbes.generated.ts`, produit par `scripts/gen-verbes.mjs`) : ni le pont ni ce contrat n'en nomment aucun.
+Les gestes d'une fenêtre sont des verbes de la partie, joués par `jouer` : ce sont les verbes de `projection.fenetre.verbes` (`fenetreDuJeu`), réglages et flux réactif compris (`FENETRE_DU_JET`, `src/noyau/combatAuto.ts`), chacun dessiné par `vue.fenetre`. Chaque verbe de la partie et ses paramètres viennent du registre dérivé du noyau (`src/hote/verbes.generated.ts`, produit par `scripts/gen-verbes.mjs`) : ni le pont, ni ce contrat, ni le GDScript n'en nomment aucun.
 
 ## Suite
 
@@ -51,24 +51,25 @@ type Suite = {
 
 ```ts
 type Vue = {
-  projection: Projection;          // projeter, src/hote/projection.ts, sans borne
-  attaque: FenetreDAttaque | null; // fenetreDAttaque, src/noyau/fenetreDAttaque.ts
+  projection: Projection;               // projeter, src/hote/projection.ts, sans borne
+  fenetre: FenetreADessiner | null;     // fenetreADessiner, src/hote/gestes.ts
+  attaque: FenetreDAttaque | null;      // fenetreDAttaque, src/noyau/fenetreDAttaque.ts
+  defense: FenetreDeDefense | null;     // fenetreDeDefense, src/noyau/fenetreDeDefense.ts
+  panneau: PanneauDuCombat | null;      // panneauDuCombat, src/hote/ecran.ts
   cases: { zone: string; case: { x: number; y: number }; cout: number }[]; // casesAtteignables
   plateau: { w: number; h: number; infranchissables: { x: number; y: number }[] } | null; // plateauDeLaScene
-  champ: string[];                 // CLICS_DU_CHAMP
-  parametres: Record<string, ParametreDeVerbe[]>; // VERBES, src/hote/verbes.generated.ts
+  champ: { combattant: string; case: string }; // CLICS_DU_CHAMP
 };
 ```
 
 - `projection` est la projection commune aux hôtes, sans borne : Godot reçoit chaque liste entière. Ses champs sont des données, jamais du texte mis en forme. Elle porte notamment `fenetre` (`fenetreDuJeu` : la clé de la fenêtre qui tient la main, son propriétaire, ses verbes, l'id que ses verbes prennent en premier argument), `jets` (`jetsEnVue`), et `combat`, avec `barre` (`etatDeLaBarre` : `{ forme, raison }`), `offres` (`offresDeLActif`), `cibles` (`validTargets`), `apercu` (`battle.preview` : `{ genre, cible, case, cout }`) et `voisins` (tous les combattants, chacun avec ses États `{ id, valeur }`).
-- `attaque` est la fenêtre d'attaque en données, `null` sans attaque en attente.
+- `fenetre` est la fenêtre qui tient la main, prête à dessiner, en mots du joueur : son titre, son étape et qui tient la main, son corps en lignes (`corpsDeLaFenetre` : qui agit contre qui, les jets à jeter ou tombés, le DR net, l'issue), et un geste par verbe de `projection.fenetre.verbes`, dans le même ordre. Un geste porte son libellé, chacun de ses arguments (posé par la fenêtre, ou à saisir en choix, nombre, texte, objet ou JSON, avec ses valeurs nommées, ses bornes et sa valeur courante), son rendu (`bouton`, `choix`, `liste`, `formulaire` ; un argument requis, ou optionnel à valeurs nommées, est à dire), l'argument d'un `choix` ou d'une `liste` (`aChoisir`), `attendu` (le geste que la politique de la fenêtre joue maintenant) et `ouvert` (faux pour un réglage que la fenêtre d'attaque ou de la Défense ne nomme pas maintenant). Godot dessine chaque geste ouvert d'après son rendu ; aucun verbe n'est rendu par une liste écrite à la main.
+- `attaque` et `defense` sont les fenêtres d'attaque et de la Défense en données, `null` hors de leur attente.
+- `panneau` est le panneau du combat en mots du joueur : le round et le tour, la fiche de l'actif, la raison d'une barre fermée (`null` quand une fenêtre tient la main), ce que l'aperçu du premier clic coûte, la fin du combat, le titre du journal et le libellé de chaque offre par son id ; `null` hors combat.
 - `cases` liste les cases que le champ peint au tour de l'actif (`porteesDuTour`), et rien hors de ce tour.
 - `plateau` est le plateau de la scène (`plateauDeLaScene`, `src/noyau/monde/scene.ts`) : ses dimensions et les cases que nul ne franchit à pied ; `null` sans scène.
-- `champ` nomme les verbes d'un clic du champ (une entité, une case) ; l'hôte choisit celui dont le premier paramètre a la forme de ce qu'il désigne.
-- `parametres` donne les paramètres de chaque verbe que la vue offre, ceux de la fenêtre et ceux du champ (`ParametreDeVerbe`, `src/hote/formes.ts`) : l'hôte en déduit quel contrôle rend quel verbe.
-
-Une fenêtre que Godot ne dessine pas encore se rend depuis `projection.fenetre` : sa clé, et ses verbes en boutons.
+- `champ` nomme le verbe du clic du champ qui désigne un combattant, et celui qui désigne une case.
 
 ## Écran publié
 
-Chaque vue mise en page, Godot pose `globalThis.wfrpEcran = { pas, boutons: { texte, x, y }[], cases: Record<"x,y", [x, y]> }` : le texte et le centre de chaque bouton actif, le point de l'écran de chaque case du plateau. La recette du tour complet (`hotes/godot/recette.mjs`) y lit où cliquer ; elle observe la partie par `vue` et ne joue aucun geste par le pont.
+Chaque vue mise en page, Godot pose `globalThis.wfrpEcran = { boutons: { texte, x, y }[], cases: Record<"x,y", [x, y]> }` : le texte et le centre de chaque bouton actif, le point de l'écran de chaque case du plateau. Chaque publication remplace l'objet. La recette du tour complet (`hotes/godot/recette.mjs`) y lit où cliquer ; elle observe la partie par `vue` et ne joue aucun geste par le pont.

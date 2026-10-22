@@ -1,11 +1,12 @@
 // Garde « docs vivantes » — les références vivantes (docs/*.md, hors docs/plans/ & docs/raw/) ne
 // doivent jamais mentir. Six vérifications déterministes, exit 1 avec la liste fichier:ligne sinon :
-//   1. CHEMINS  — tout `src/…` / `scripts/…` cité existe sur le disque (fichier, dossier ou glob).
+//   1. CHEMINS  — tout chemin cité d'une racine de zone (`src/…`, `hotes/…`) ou de `scripts/…` existe sur le disque
+//      (fichier, dossier ou glob).
 //   2. SYMBOLES — tout appel de fonction backtiqué (`nomCamel(` / `NomPascal(`) se retrouve dans src/ ou scripts/.
 //   3. PRIMITIVES — tout symbole de `src/data/primitives.manifest.json` est un EXPORT réel de src/ ou de scripts/.
 //   4. CATALOGUE CSS — les deux sens entre `docs/charte-ui.md` et les feuilles `.css` de src/.
 //   5. SENS INVERSE — tout chemin `docs/….md` cité par src/ ou scripts/ existe sur le disque.
-//   6. HOOKS — tout chemin `src/…` / `scripts/…` cité par un hook (git-hooks, hooks) existe.
+//   6. HOOKS — tout chemin d'une racine de zone ou de `scripts/…` cité par un hook (git-hooks, hooks) existe.
 // Un métavariable `<…>` qui suit un chemin le tronque au dossier (ex. `src/ui/jetProps/<hook>.tsx`
 // → on valide `src/ui/jetProps/`). Re-run : node scripts/docs/check-doc-refs.mjs (npm run docs:check).
 import { readFileSync, existsSync, statSync } from 'node:fs'
@@ -15,6 +16,7 @@ import { estSuiteVitest, SUFFIXE_SUITE } from '../guards/lib/fichierVitest.mjs'
 import { liensJugeables } from '../guards/lib/liensMarkdown.mjs'
 import { cibleProduite, generateurDe } from './build-all.mjs'
 import { ast, typescript } from '../guards/lib/dialecte.mjs'
+import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
 
 const DOCS_DIR = 'docs'
 const SRC_DIR = 'src'
@@ -41,8 +43,10 @@ function cheminCite(text, m) {
 
 const lineAt = (text, index) => text.slice(0, index).split('\n').length
 
-/** Chemin de code cité dans un texte quelconque (prose d'un `.md`, commentaire ou chaîne d'un `.mjs`). */
-const CHEMIN_RE = /\b(?:src|scripts)\/[A-Za-z0-9_./*-]+/g
+/** Chemin de code cité dans un texte quelconque (prose d'un `.md`, commentaire ou chaîne d'un `.mjs`) : il part d'une
+ *  racine de zone que l'arbre porte (`RACINES_PRESENTES`) ou de `scripts`, jamais du segment d'un autre chemin
+ *  (`projet/scripts/…`) ; un préfixe sans segment (`./`, `/`, `<racine>/`) le laisse citer. */
+const CHEMIN_RE = new RegExp(String.raw`(?<!\w\/)(?<![\w.-])(?:${[...RACINES_PRESENTES, 'scripts'].join('|')})\/[A-Za-z0-9_./*-]+`, 'g')
 /** Nom de fichier dont le RADICAL fait un seul caractère (`src/ui/X.tsx`, `src/x.ts`, `scripts/x.mjs`) :
  *  la métavariable de prose du dépôt, jamais un fichier réel. */
 const estMetavariable = (tok) => /(^|\/)[A-Za-z](?:\.[A-Za-z0-9]+)*$/.test(tok)

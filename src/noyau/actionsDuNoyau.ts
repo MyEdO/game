@@ -705,7 +705,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Flux de défense réactive (héros attaqué par l'IA) : choisir Parade/Esquive, défendre,
    *  dépenser une Chance, appliquer. PAS de « Subir » : le RAW n'offre aucune non-défense volontaire
    *  (mêlée = Test opposé, LDB 13 l.123) ; la résolution non opposée est réservée aux cas imposés. */
-  defenseSetMode: (mode: DefenseMode, subSkillId?: string) => void;
+  defenseSetMode: (mode: DefenseMode) => void;
   /** Choisit l'arme de parade (uid d'ItemInstance ; null = main principale) — avant le jet de défense. */
   defenseSetParryWeapon: (uid: IdDObjet | null) => void;
   /** Déclare/efface la réaction de Porte-Bouclier (variante AA 13 l.84) pour cette défense au Bouclier. */

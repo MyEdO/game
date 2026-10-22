@@ -29,7 +29,7 @@ import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
 import { sequence } from '../engine/sequences';
-import { reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
+import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 
 /**
  * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
@@ -61,8 +61,8 @@ interface FenetreReactive { flux: FlowKey; rangees: (s: Jeu) => readonly RangeeR
  *  fenêtre comme les autres. `reactives` : les fenêtres que l'étape ouvre en son sein, dans l'ordre de la chaîne
  *  réelle (`resolveCastChain` : le Contre-sort précède l'opposition). Record total : un `jet` neuf nomme son flux. */
 export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: FlowKey | null; rangees?: (s: Jeu) => readonly RangeeDeFenetre[] | undefined; reglages?: readonly (keyof ActionsDuNoyau)[]; reactives?: readonly FenetreReactive[] }> = {
-  attack: { flux: 'attack', reglages: ['attackSetLocation', 'attackSetWeapon', 'attackSetDualMode', 'attackSetWithhold', 'attackSetHarpoonRopeCut', 'attackSetGrapple', 'attackSetCritLocation'] },
-  defense: { flux: 'defense', reglages: ['defenseSetMode', 'defenseSetParryWeapon', 'defenseSetShieldReaction', 'defenseSetRiposte'] },
+  attack: { flux: 'attack', reglages: REGLAGES_DE_L_ATTAQUE },
+  defense: { flux: 'defense', reglages: REGLAGES_DE_LA_DEFENSE },
   fumble: { flux: null },
   cast: {
     flux: 'cast',

@@ -1,6 +1,6 @@
 ## Un combattant du plateau : le modèle glTF de son camp animé par son `AnimationPlayer`, son nom et ses Points de
 ## Blessures (`pb`) en étiquette, l'anneau de l'actif ; il glisse vers sa nouvelle case, frappe vers une cible, accuse
-## une perte de Blessures et tombe hors de combat.
+## le coup qui le vise et tombe hors de combat.
 class_name Combattant
 extends Node3D
 
@@ -20,7 +20,6 @@ const ANIMATION_MORT := &"Death_A"
 @onready var _etiquette: Label3D = $Etiquette
 
 var _animations: AnimationPlayer
-var _blessures := -1
 var _hors_combat := false
 var _deplacement: Tween
 
@@ -44,9 +43,6 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool) -> void:
 		_animations.clear_queue()
 		_animations.play(ANIMATION_MORT)
 		_etiquette.modulate.a = OPACITE_HORS_COMBAT
-	elif _blessures >= 0 and int(c.pb[0]) < _blessures and not _hors_combat:
-		_jouer_puis_repos(ANIMATION_COUP)
-	_blessures = int(c.pb[0])
 	if not lieu.is_equal_approx(position):
 		_aller(lieu)
 
@@ -55,6 +51,12 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool) -> void:
 func agir_vers(cible: Vector3) -> void:
 	_tourner_vers(cible)
 	_jouer_puis_repos(ANIMATION_ATTAQUE)
+
+
+## Visé par un coup, il l'accuse, s'il tient encore debout.
+func subir() -> void:
+	if not _hors_combat:
+		_jouer_puis_repos(ANIMATION_COUP)
 
 
 func _aller(lieu: Vector3) -> void:

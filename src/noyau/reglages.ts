@@ -13,8 +13,14 @@ import type { CascadeStep } from './pendings';
  *  ouverte). */
 export interface ValeurDuReglage { valeur: string | number | boolean | null; libelle: string; refus: string | null }
 
-/** Un choix d'une fenêtre : le verbe qui le règle, son libellé, la valeur retenue et les valeurs ouvertes. */
-export interface ChoixNomme<V extends string = string> { verbe: keyof ActionsDuNoyau; libelle: string; choisie: V | null; options: { valeur: V | null; libelle: string }[] }
+/** Un choix d'une fenêtre : le verbe qui le règle, son libellé, la valeur retenue et les valeurs offertes, chacune avec
+ *  la raison qui la ferme (absente ou `null` : ouverte). */
+export interface ChoixNomme<V extends string | boolean = string> {
+  verbe: keyof ActionsDuNoyau;
+  libelle: string;
+  choisie: V | null;
+  options: { valeur: V | null; libelle: string; refus?: string | null }[];
+}
 
 /** Une bascule d'une fenêtre : le verbe qui la règle, son libellé, son état, et la note qui en dit l'effet (`null` :
  *  aucune). */
@@ -31,13 +37,23 @@ export interface Reglage {
   note: string | null;
 }
 
+/** Les verbes que la fenêtre d'attaque règle (`fenetreDAttaque`, `FENETRE_DU_JET.attack`) : chacun nommé par l'élément
+ *  qui le règle quand l'attaque l'ouvre, fermé sinon (`hote/gestes.ts`). */
+export const REGLAGES_DE_L_ATTAQUE = [
+  'attackSetLocation', 'attackSetWeapon', 'attackSetDualMode', 'attackSetWithhold', 'attackSetHarpoonRopeCut', 'attackSetGrapple',
+  'attackSetCritLocation',
+] as const satisfies readonly (keyof ActionsDuNoyau)[];
+
+/** Les verbes que la fenêtre de la Défense règle (`fenetreDeDefense`, `FENETRE_DU_JET.defense`), comme ceux de l'attaque. */
+export const REGLAGES_DE_LA_DEFENSE = ['defenseSetMode', 'defenseSetParryWeapon', 'defenseSetShieldReaction', 'defenseSetRiposte'] as const satisfies readonly (keyof ActionsDuNoyau)[];
+
 const estNomme = (e: unknown): e is ChoixNomme | BasculeNommee => typeof e === 'object' && e !== null && 'verbe' in e;
 
 /** Les réglages des éléments nommés d'une fenêtre lue (`fenetreDAttaque`, `fenetreDeDefense`) : chaque champ qui
  *  nomme son verbe. */
 export function reglagesDesElements(fenetre: object | null): Reglage[] {
   return Object.values(fenetre ?? {}).filter(estNomme).map((e) => ('options' in e
-    ? { verbe: e.verbe, libelle: e.libelle, courant: e.choisie, valeurs: e.options.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })), bornes: null, note: null }
+    ? { verbe: e.verbe, libelle: e.libelle, courant: e.choisie, valeurs: e.options.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: o.refus ?? null })), bornes: null, note: null }
     : { verbe: e.verbe, libelle: e.libelle, courant: e.active, valeurs: null, bornes: null, note: e.note }));
 }
 

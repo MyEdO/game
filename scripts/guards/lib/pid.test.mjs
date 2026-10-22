@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { NAISSANCE_ABSENTE, creationMemorisee, estPidDeProcessus, estPidVivant, estPidVivantDepuis } from './pid.mjs'
 import { constructionsReserveesDuCorpus, scanConstructionsReservees, SONDE_D_EXISTENCE, VIE_SUR_PID_LU } from './canonUnique.mjs'
-import { corpusDesGardes } from './commentPoison.mjs'
+import { corpusTypeScriptDesGardes } from './commentPoison.mjs'
 
 /** Une erreur de sonde au `code` donné, telle que `process.kill` la lève. */
 const erreurDeSonde = (code) => Object.assign(new Error(code), { code })
@@ -95,7 +95,7 @@ const SONDE = { ...SONDE_D_EXISTENCE, foyer: 'scripts/guards/lib/pid.mjs' }
 
 // #2516
 test('SONDE_D_EXISTENCE : aucun `kill(<pid>, 0)` hors de `estPidVivant`', () => {
-  assert.deepEqual(constructionsReserveesDuCorpus(corpusDesGardes(), [SONDE]), [])
+  assert.deepEqual(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), [SONDE]), [])
 })
 
 // #2516
@@ -117,7 +117,7 @@ const VIE = { ...VIE_SUR_PID_LU, foyer: ['scripts/guards/lib/pid.mjs', 'scripts/
 
 // #2603 #2586
 test('VIE_SUR_PID_LU : aucun `estPidVivant` jugé sans naissance hors de `pid.mjs`', () => {
-  assert.deepEqual(constructionsReserveesDuCorpus(corpusDesGardes(), [VIE]), [])
+  assert.deepEqual(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), [VIE]), [])
 })
 
 // #2603 #2586
