@@ -758,6 +758,8 @@ export function CombatConsole() {
   // (`combatSlice.ts:1939` `battleReload`, `:2151` `battleSelectAmmo`, tous deux paramétrés par l'arme).
   const rangedWs = ACTION_CANDIDATES['armes-a-distance']({ active, battle, netMode: net.mode }) as Weapon[];
   const heldSet = activeLoadout(active);
+  /** Un AUTRE set se prend-il : la porte du registre (`switch-loadout`), jamais `loadoutSwapped` relu ici. */
+  const setsCommutables = actionGate('switch-loadout', gateCtx).ok;
   // G1 porte l'arme DU SET, lue par `uid` — jamais la première arme de `c.weapons`, dont l'ordre ne dit
   // rien de ce qui est TENU. Sans set (statbloc de créature) : l'arme que le moteur ferait parler à
   // distance (`attackWeapon`, source unique du choix d'arme).
@@ -1289,7 +1291,7 @@ export function CombatConsole() {
                         data-set={lo.id}
                         data-action="switch-loadout"
                         className={`chip cc-set${held ? ' on' : ''}`}
-                        disabled={!live || (!!battle.loadoutSwapped && !held)}
+                        disabled={!live || (!held && !setsCommutables)}
                         aria-label={unloaded ? `${loadoutLabel(lo, active)}, VIDE` : loadoutLabel(lo, active)}
                         onClick={() => runAction('switch-loadout', useGame.getState, { loadoutId: lo.id })}
                       >
@@ -1299,7 +1301,7 @@ export function CombatConsole() {
                             jamais un `title` — grief du juge vision), en MOT ENTIER lisible. */}
                         {unloaded ? <i className="cc-set-load">VIDE</i> : null}
                         {/* La touche s'imprime sur la case qui l'exécute : X commute le set au poing. */}
-                        {held && live && loadouts.length >= 2 ? <span className="cc-key">X</span> : null}
+                        {held && live && setsCommutables ? <span className="cc-key">X</span> : null}
                       </button>
                     );
                     return mainItem?.trappingId

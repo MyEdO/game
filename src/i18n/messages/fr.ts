@@ -1018,6 +1018,7 @@ export const fr = {
   'cs.refusCaseHorsPortee': 'Case hors d’atteinte pour ce Tour.',
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
   'cs.refusAucunChemin': 'Aucun chemin jusqu’à cette case.',
+  'cs.refusFormationBloquee': 'La formation ne passe pas : une case d’arrivée est occupée ou hors de la carte.',
   'cs.refusBordeeHorsPortee': 'Cible hors de portée des pièces de {ship}.',
   'cs.refusTirArmeDeMelee': '{weapon} n’est pas une arme à distance.',
   'cs.runStumble': '{name} trébuche dans sa Course : sur place.',

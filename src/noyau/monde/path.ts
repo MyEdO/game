@@ -14,9 +14,9 @@ export interface Pt {
 }
 
 const pz = (p: Pt) => p.z ?? 0;
-/** Construit une position en omettant `z` quand il vaut 0 → un résultat au sol est byte-identique à
- *  l'ancien `{x,y}` (non-régression ; même esprit que la clé z=0 sans suffixe). */
-const pt = (x: number, y: number, z = 0): Pt => (z ? { x, y, z } : { x, y });
+/** Construit une case en omettant `z` quand il vaut 0 : une case au sol s'écrit `{x,y}`, comme sa clé
+ *  sans suffixe (`tileKey`). */
+export const pointDeCase = (x: number, y: number, z = 0): Pt => (z ? { x, y, z } : { x, y });
 /** Clé de case. CONVENTION : z=0 omet le suffixe (« x,y ») → byte-identique aux ensembles `blocked`
  *  2D que bâtissent les appelants (occupied(), héros au sol) ; z>0 → « x,y,z » distinct. Une seule
  *  fonction de clé partout (pas de double schéma). */
@@ -28,7 +28,7 @@ export { key as tileKey };
 /** Réciproque de `tileKey` : « x,y » → `{x,y}`, « x,y,z » → `{x,y,z}` (même convention que `pt`). */
 export const tileFromKey = (k: string): Pt => {
   const [x, y, z = 0] = k.split(',').map(Number);
-  return pt(x, y, z);
+  return pointDeCase(x, y, z);
 };
 /** 4-cardinaux — SAUTS en ligne droite (Saut LDB 15 : on franchit un gouffre tout droit). */
 const CARDINALS = [
@@ -126,10 +126,10 @@ function neighborsOf(scene: Scene, p: Pt, edges: Set<string>, swim?: ReadonlySet
       const climbed = traverse?.climb && traverse?.climbFullSpeed
         ? climbEdgeBetween(scene, { x: p.x, y: p.y, z }, { x: nx, y: ny, z: nz })
         : undefined;
-      if (climbed) { out.push(pt(nx, ny, nz)); continue; } // Grimpant : mur ET falaise bypassés, coût normal
+      if (climbed) { out.push(pointDeCase(nx, ny, nz)); continue; } // Grimpant : mur ET falaise bypassés, coût normal
       if (wallBlocked) continue;
       const link = surfaceLink(scene, p, { x: nx, y: ny, z: nz });
-      if (link && link.grade !== 'cliff') out.push(pt(nx, ny, nz));
+      if (link && link.grade !== 'cliff') out.push(pointDeCase(nx, ny, nz));
     }
   }
   return out;
@@ -160,7 +160,7 @@ function walkComponentsUncached(scene: Scene): Map<string, number> {
       if (label.has(k) || !isWalkable(scene, x, y, layer.z)) continue;
       const id = nextId++;
       label.set(k, id);
-      const queue: Pt[] = [pt(x, y, layer.z)];
+      const queue: Pt[] = [pointDeCase(x, y, layer.z)];
       for (let i = 0; i < queue.length; i++) {
         for (const n of walkNeighbors(scene, queue[i])) {
           const nk = key(n.x, n.y, pz(n));
@@ -190,7 +190,7 @@ export function walkComponentsFrom(scene: Scene, from: Pt): Set<number> {
   const own = walkComponentAt(scene, from.x, from.y, z);
   if (own !== null) return new Set([own]);
   const out = new Set<number>();
-  for (const n of walkNeighbors(scene, pt(from.x, from.y, z))) {
+  for (const n of walkNeighbors(scene, pointDeCase(from.x, from.y, z))) {
     const id = walkComponentAt(scene, n.x, n.y, pz(n));
     if (id !== null) out.add(id);
   }
@@ -203,7 +203,7 @@ export function walkComponentsFrom(scene: Scene, from: Pt): Set<number> {
 export function walkReachableFrom(scene: Scene, from: Pt): Pt[] {
   const z = pz(from);
   const ids = walkComponentsFrom(scene, from);
-  const out: Pt[] = [pt(from.x, from.y, z)];
+  const out: Pt[] = [pointDeCase(from.x, from.y, z)];
   const startKey = key(from.x, from.y, z);
   for (const [k, id] of walkComponentsOf(scene)) {
     if (!ids.has(id) || k === startKey) continue;
@@ -372,12 +372,12 @@ export function pushAway(
   for (let i = 0; i < tiles; i++) {
     const next = { x: cur.x + sx, y: cur.y + sy };
     if (!isWalkable(scene, next.x, next.y, tz) || blocked.has(key(next.x, next.y, tz))) {
-      return { dest: pt(cur.x, cur.y, tz), pushed, collided: true };
+      return { dest: pointDeCase(cur.x, cur.y, tz), pushed, collided: true };
     }
     cur = next;
     pushed++;
   }
-  return { dest: pt(cur.x, cur.y, tz), pushed, collided: false };
+  return { dest: pointDeCase(cur.x, cur.y, tz), pushed, collided: false };
 }
 
 /** Symétrique de `pushAway` : tire `target` VERS `anchor` (Langue préhensile, LDB 85 l.213 — la proie de
@@ -400,7 +400,7 @@ export function pullToward(
     cur = next;
     pulled++;
   }
-  return { dest: pt(cur.x, cur.y, tz), pulled };
+  return { dest: pointDeCase(cur.x, cur.y, tz), pulled };
 }
 
 /** Cases atteignables pour une FUITE (LDB 15 l.68 : « dans la direction OPPOSÉE à celle de

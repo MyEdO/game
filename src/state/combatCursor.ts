@@ -5,15 +5,14 @@
  * pilote le réticule existant (`hoverTargeting`/`movePreviewAt`) et commet via les actions du noyau
  * `battleClickEntity`/`battleClickTile`. Zéro chemin parallèle.
  */
-import type { Pt } from '../noyau/monde/path';
+import { pointDeCase, type Pt } from '../noyau/monde/path';
 import type { Get, Set } from '../noyau/flowTypes';
 import type { GameState } from './store';
 import type { Combatant } from '../engine/types';
 import { tileCenter, type Dims } from '../geometry/iso';
 import { isWalkable, liftDe, tileAt, type Scene } from '../noyau/monde/scene';
 import { estAbsent } from '../noyau/monde/terrain';
-import { combatantAtTile } from '../noyau/monde/combatGeometry';
-import { combatantClickActs } from '../noyau/combatOrParty';
+import { intentionDuClicDeCase } from '../noyau/combatOrParty';
 import { currentTargetingMode, type TargetingMode } from '../noyau/targetingModes';
 import { cycleTarget, cyclePrevTarget, cursorActor } from '../noyau/targeting';
 import { refuserGeste } from '../noyau/refusVisible';
@@ -27,13 +26,6 @@ export interface CombatCursor {
 }
 
 export type ScreenDir = 'up' | 'down' | 'left' | 'right';
-
-export type CursorIntent =
-  | { kind: 'entity'; id: string }
-  | { kind: 'tile'; pt: Pt };
-
-/** Construit une case en omettant `z` quand il vaut 0 (byte-identique à `{x,y}`, comme `path.ts`). */
-const mk = (x: number, y: number, z = 0): Pt => (z ? { x, y, z } : { x, y });
 
 /** Vecteur ÉCRAN (y vers le bas) de la direction poussée. */
 const DIR_VEC: Record<ScreenDir, [number, number]> = {
@@ -90,7 +82,7 @@ export function resolveCursorZ(scene: Scene, x: number, y: number): number {
  */
 export function nextCursorTile(scene: Scene, cur: CombatCursor | null, dir: ScreenDir, dims: Dims, activePos: Pt): Pt {
   const start = cur?.tile ?? activePos;
-  if (!cur) return mk(start.x, start.y, start.z ?? 0); // le curseur se pose sur l'actif au 1er appui
+  if (!cur) return pointDeCase(start.x, start.y, start.z ?? 0); // le curseur se pose sur l'actif au 1er appui
   let best: Pt | null = null;
   let bestDot = 0; // strictement positif requis → sinon on reste sur place (bord/coin)
   for (let dy = -1; dy <= 1; dy++)
@@ -99,30 +91,14 @@ export function nextCursorTile(scene: Scene, cur: CombatCursor | null, dir: Scre
       const nx = start.x + dx;
       const ny = start.y + dy;
       if (nx < 0 || nx >= dims.w || ny < 0 || ny >= dims.h) continue;
-      const cand = mk(nx, ny, resolveCursorZ(scene, nx, ny)); // couche résolue (z1 chemin de ronde / z0 sol)
+      const cand = pointDeCase(nx, ny, resolveCursorZ(scene, nx, ny)); // couche résolue (z1 chemin de ronde / z0 sol)
       const dot = screenStepDot(scene, start, cand, dir, dims);
       if (dot > bestDot) {
         bestDot = dot;
         best = cand;
       }
     }
-  return best ?? mk(start.x, start.y, start.z ?? 0);
-}
-
-/**
- * Décision de commit du curseur — RÉPLIQUE EXACTE de la branche `battle` de `performClick` (IsoStage) :
- * occupant d'une tuile de l'empreinte, `combatantClickActs` (mode courant) → attaque/cible, sinon allié/soi
- * → aucun commit (jamais de clic-case sous un combattant), case libre → déplacement. PUR (lit `get`).
- */
-export function cursorCommitIntent(get: Get, cur: CombatCursor): CursorIntent | null {
-  const b = get().battle;
-  if (!b || b.over) return null;
-  const { x, y } = cur.tile;
-  const z = cur.tile.z ?? 0;
-  const occ = combatantAtTile(b.combatants, x, y, z);
-  if (occ && combatantClickActs(get, occ)) return { kind: 'entity', id: occ.id };
-  if (occ) return null;
-  return { kind: 'tile', pt: mk(x, y, z) };
+  return best ?? pointDeCase(start.x, start.y, start.z ?? 0);
 }
 
 /**
@@ -138,7 +114,7 @@ export function tileModeValidTiles(get: Get, mode: Required<Pick<TargetingMode, 
   const out: Pt[] = [];
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
-      const pt = mk(x, y, resolveCursorZ(scene, x, y));
+      const pt = pointDeCase(x, y, resolveCursorZ(scene, x, y));
       if (mode.tileValidAt(get, active, pt)) out.push(pt);
     }
   return out;
@@ -243,7 +219,7 @@ export function creerActionsDuCurseur(get: Get<GameState>, set: Set<GameState>):
       const s = get();
       const cur = s.combatCursor;
       if (!cur) return;
-      const intent = cursorCommitIntent(get, cur);
+      const intent = intentionDuClicDeCase(get, cur.tile);
       if (!intent) {
         // Mode-CASE (#198, résidus) : un commit qui tombe malgré tout sur une case non commettable
         // (occupant sans action pour ce mode) prévient — jamais muet — par la porte de refus commune

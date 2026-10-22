@@ -5,7 +5,7 @@
  * `ConditionCtx` fabriqué par l'appelant ; sans `ctx`, la carte est intégralement ouverte.
  */
 import { describe, it, expect } from 'vitest';
-import { parseProject, routesFrom, routesEtat, visiblePlaces, type WorldMap } from '../noyau/worldMap';
+import { parseProject, routesCliquables, routesFrom, routesEtat, visiblePlaces, type WorldMap } from '../noyau/worldMap';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { emptyScene } from '../noyau/monde/scene';
 import type { ConditionCtx } from '../engine/flowCore';
@@ -80,6 +80,12 @@ describe('les DEUX axes sur un MÊME flag — le cap donné au quai révèle l�
     const etat = routesEtat(carteBarge, 'quai', ctx());
     expect(etat.map((e) => [e.route.id, e.ouverte])).toEqual([['route-quai-ilot', false]]);
     expect(etat[0].route.refus).toBeTruthy();
+  });
+
+  it('`routesCliquables` : une route vers un lieu non révélé n’est ni tracée ni cliquable, même offerte fermée', () => {
+    expect(routesEtat(carteBarge, 'quai', ctx())).toHaveLength(1);
+    expect(routesCliquables(carteBarge, 'quai', ctx())).toEqual([]);
+    expect(routesCliquables(carteBarge, 'quai', ctx({ [CAP_SEL]: true })).map((e) => [e.route.id, e.ouverte])).toEqual([['route-quai-ilot', true]]);
   });
 });
 

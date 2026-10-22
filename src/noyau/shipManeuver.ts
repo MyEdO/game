@@ -22,10 +22,11 @@ import { navalMoveMod, navalMoveMult, navalSkillTestDR, navalTestTypeDR, navalNa
 import { cargoOverload } from '../engine/seaVoyage';
 import { exposedCrew } from '../engine/shipCritical';
 import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesMinime, crewTestSuccess } from '../engine/crewMorale';
-import { placementPenalty } from './monde/shipPostes';
+import { placementPenalty, translaterFormation } from './monde/shipPostes';
 import { inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
+import { refuserGeste } from './refusVisible';
 import { findCrewRoleById } from '../data';
 import { profilNavalDe, estNavire } from '../engine/coque';
 import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
@@ -40,7 +41,6 @@ import type { CrewRoleRoll } from './pendings';
 import { rotateDir8, DIR8_DELTA } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { footprintTiles, footprintN } from './monde/footprint';
-import { placeCombatant } from './monde/spawn';
 import { applyShipCollision } from './monde/shipCollision';
 import type { ActionsDuNoyau } from './actionsDuNoyau'; // défini côté pendings (neutre) — cf. quarantaine #328
 
@@ -288,20 +288,18 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         if (hit) { victim = hit; break; } // coque devant → stop adjacent (moved = step − 1)
         moved = step;
       }
-      if (moved > 0) {
-        const delta = { x: d.gx * moved, y: d.gy * moved };
-        // Coque + équipage À BORD translatés du MÊME delta (formation rigide) ; les postes (sans `pos`) suivent la
-        // coque. MÊME patron de commit que le mouvement de combat (combatSlice : ANIM_MOVE).
-        const movers = [hull, ...(hull.crewIds ?? [])
-          .map((id) => inBattleId(battle, id))
-          .filter((c): c is Combatant => !!c?.pos)];
-        for (const m of movers) {
-          const from = { ...m.pos! };
-          placeCombatant(m, scene, { x: from.x + delta.x, y: from.y + delta.y });
-          bus.emit(EVT.ANIM_MOVE, { id: m.id, path: [from, { ...m.pos }] });
-        }
-        get().log(t('store.shipAdvance', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
+      // Coque + équipage À BORD : formation rigide (`translaterFormation`), qui refuse une arrivée invalide ; le
+      // navire s'arrête alors au dernier pas où toute la formation passe, sans percuter. MÊME patron de commit que
+      // le mouvement de combat (combatSlice : ANIM_MOVE).
+      const voulu = moved;
+      let deplaces: ReturnType<typeof translaterFormation> = null;
+      while (moved > 0 && !(deplaces = translaterFormation(battle.combatants, scene, hull, hull.crewIds ?? [], { x: d.gx * moved, y: d.gy * moved }))) {
+        moved--;
+        victim = undefined;
       }
+      for (const { mobile, depart } of deplaces ?? []) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
+      if (moved > 0) get().log(t('store.shipAdvance', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
+      else if (voulu > 0) refuserGeste(get, set, t('cs.refusFormationBloquee'));
       // Éperonnage (MDG 13) : on percute de la PROUE (avance vers l'avant) ; FRONTAL si la victime tient un cap
       // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).
       if (victim) {

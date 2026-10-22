@@ -510,6 +510,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   cancelMove: () => void;
   battleEndTurn: () => void;
   armEndTurn: () => void;
+  /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
+  battleClearPreview: () => void;
   /** Reprise après un changement de Cadence de combat en plein combat (passage en Auto/Rapide) :
    *  ré-entre la boucle (auto-résolution de modale + tour de l'IA). No-op en manuel / hors combat. */
   resumeCadence: () => void;

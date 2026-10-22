@@ -37,10 +37,9 @@ import { sceneMetresPerTile } from './monde/scene';
 import { combatDistance } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
 import { bearingPostes } from './monde/shipBattery';
-import { serveTargetPoste, isPosteManned } from './monde/shipPostes';
+import { serveTargetPoste, isPosteManned, translaterFormation } from './monde/shipPostes';
 import { posteHullOf } from './siegePush';
 import { spellOps } from '../engine/flowCore';
-import { placeCombatant } from './monde/spawn';
 import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } from './mount';
 import { pilotedByHuman } from './netOwnership';
 import { inBattleId } from './monde/combatants';
@@ -743,14 +742,10 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
  *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `battlePushEngine` — plafonné
  *  à `rule('siege-engine-push-speed')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
  *  du chef) est appliqué à l'ENGIN et à TOUS les servants du poste (`ShipPoste.crewIds`, chef inclus) :
- *  formation RIGIDE, MÊME patron que `shipAdvance` (`shipManeuver.ts`) qui translate une coque + son équipage du
- *  MÊME delta. Consomme l'Action du chef (comme `battleManPoste`) ; l'engin reste SANS tour (`inert`,
+ *  formation RIGIDE (`translaterFormation`). Consomme l'Action du chef (comme `battleManPoste`) ; l'engin reste SANS tour (`inert`,
  *  jamais ajouté à `battle.order`) — seul le rendu de la pièce suit (`posteAnchor` lit `hull.pos`).
- *
- *  v1 : la case d'arrivée de chaque SERVANT translaté n'est PAS revalidée individuellement (formation
- *  authorée souple, MÊME simplification que `shipAdvance` qui ne valide que la case de la coque) — un
- *  servant peut atterrir sur une case occupée/hors-scène si la formation initiale était irrégulière.
- *  Sans incidence pour l'engin ADE II en donnée aujourd'hui (empreinte 1×1, servants alignés en scénario). */
+ *  La case du CHEF passe `battle.reachable` ; la formation entière se refuse (`refuserGeste`) quand
+ *  `translaterFormation` juge une case d'arrivée invalide. */
 function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   const battle = get().battle;
   const scene = get().scene;
@@ -765,14 +760,9 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   // loseNextMovement des servants), pour que `cancelMove` défasse aussi une poussée.
   const snapshot = (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
   const delta = { x: pt.x - active.pos.x, y: pt.y - active.pos.y };
-  const movers = [hull, ...(poste.crewIds ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c?.pos)];
-  for (const m of movers) {
-    const from = { ...m.pos! };
-    placeCombatant(m, scene, { x: from.x + delta.x, y: from.y + delta.y });
-    bus.emit(EVT.ANIM_MOVE, { id: m.id, path: [from, { ...m.pos }] });
-  }
+  const deplaces = translaterFormation(battle.combatants, scene, hull, poste.crewIds ?? [], delta);
+  if (!deplaces) { refuserGeste(get, set, t('cs.refusFormationBloquee')); return; }
+  for (const { mobile, depart } of deplaces) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
   const dist = chebyshev(delta, { x: 0, y: 0 });
   // Pousser = le MOUVEMENT de TOUT l'équipage (LDB 13 l.106 : locomotion, aucun Test → le Mouvement, pas
   // l'Action). Le chef dépense son Mouvement MAINTENANT ; chaque autre servant dépensera le sien à son tour

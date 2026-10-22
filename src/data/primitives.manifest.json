@@ -362,7 +362,7 @@
   {
     "id": "shipDamage",
     "type": "primitives.manifest",
-    "label": "damageHull/healHull/damageVesselHull/healVesselHull",
+    "label": "damageHull/healHull/damageVesselHull/healVesselHull/damageCampaignVessel",
     "fichier": "src/noyau/monde/shipDamage.ts",
     "concept": "dégâts/soin de coque, source unique de state.vessel.wounds",
     "perimetre": "voyage fluvial/maritime + combat naval",

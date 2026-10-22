@@ -952,10 +952,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // pas des refus, ils n'ont rien à dire. Table locale à UN consommateur (ce site est le clic-sol).
         const dit = REFUS_DEPLACEMENT[movement.reason];
         if (dit) refuserGeste(get, set, t(dit));
-        if (battle.preview) {
-          set({ battle: { ...battle, preview: null } });
-          bus.emit(EVT.SCENE_DIRTY);
-        }
+        get().battleClearPreview();
         return;
       }
       // Peur (LDB 21 l.27) : `retenuParLaPeur`. L'intention rejoue le clic BRUT (`pt`) après le Test →
@@ -1688,6 +1685,13 @@ export function createCombatSlice(get: Get, set: Set) {
       const b = get().battle;
       if (!b || b.over || combatBusy(get())) return; // la fin du tour elle-même est close sous un flux différé
       set({ battle: { ...b, endTurnArmed: turnEconomyStamp(b) } });
+    },
+    /** Retire l'aperçu armé par un premier clic (`battle.preview`), celui que le second clic commettrait. */
+    battleClearPreview: () => {
+      const b = get().battle;
+      if (!b?.preview) return;
+      set({ battle: { ...b, preview: null } });
+      bus.emit(EVT.SCENE_DIRTY);
     },
 
     // ── Chance, 3e usage : pré-emption d'initiative en début de Round (LDB 17 l.25) ──

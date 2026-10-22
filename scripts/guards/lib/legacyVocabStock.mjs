@@ -896,13 +896,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/monde/lineOfSight.ts",
-    motif: "désormais",
-    ancre: "// #805 : les cases de zone portent désormais l'étage (`z` du souffleur/centre) — la fumée d'un étage",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/state/magic-composant.test.ts",
     motif: "désormais",
     ancre: "// #152 : la rencontre `enc-mutants` spawne le Mutant du bestiaire, désormais flagué",

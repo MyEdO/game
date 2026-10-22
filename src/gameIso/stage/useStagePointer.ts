@@ -24,7 +24,7 @@ import { useGame } from '../../state/store';
 import { entityBlockedAt } from '../../noyau/monde/sceneRules';
 import { ficheDEntite, sceneNpc } from '../../noyau/monde/sceneNpc';
 import type { Pt } from '../../noyau/monde/path';
-import { pasDeLaMarche, porteActionnable } from '../../noyau/marcheDuGroupe';
+import { marcheOuverte, pasDeLaMarche, porteActionnable } from '../../noyau/marcheDuGroupe';
 import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan, type PathOpts } from '../../noyau/monde/exploreNav';
 import { placesJouables, RANG_MENEUR, seatPoseOf } from '../../noyau/monde/seating';
 import { meneurDuMonde } from '../../noyau/monde/combatants';
@@ -38,7 +38,7 @@ import { controlsActive } from '../../noyau/netOwnership';
 import { SENSIBILITE_DRAG_DEG_PX, getStageYaw, poserYaw } from '../../state/stageYaw';
 import { accordsPan, getStagePan, poserPan } from '../../state/stagePan';
 import { battreStageFrames } from './stageFrames';
-import { combatantClickActs } from '../../noyau/combatOrParty';
+import { combatantClickActs, intentionDuClicDeCase } from '../../noyau/combatOrParty';
 import { hoverClickCommits } from '../../ui/pointerCaps';
 import { useLongPress } from '../../ui/useLongPress';
 import { type Dims } from '../../geometry/iso';
@@ -48,7 +48,7 @@ import { targetUnderPointer } from './spritePicker';
 import { pointStageSousPixel, pointViewBoxSousPixel, resoudrePixel, tireLeRayon, type Verdict } from './pickResolve';
 import { armeParSurvol, entiteDuGeste, jouerArete, type VerbesArete } from './geste';
 import { actionsDe, estUtilisable } from '../../noyau/monde/usable';
-import { porteDOffre } from '../../state/offresUtilisables';
+import { porteDOffre } from '../../noyau/interactionsDExploration';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import type { AreteUtilisable } from '../../noyau/aretes';
 import type { AreteProjetee } from './aretesProjetees';
@@ -244,7 +244,7 @@ export function useStagePointer({
       if (st.actionnerLaPorte(portal)) setAreteSurvolee(null);
       return;
     }
-    if (st.mode !== 'exploration') return;
+    if (!marcheOuverte(st)) return;
     const currentScene = st.scene;
     const plan = exploreMovePlan(currentScene, st.partyPos, portal.to, pathOpts());
     if (!plan) return;
@@ -333,18 +333,13 @@ export function useStagePointer({
     // consomme le clic — rien ne redescend au clic-sol, qui écraserait l'aperçu qu'une frappe vient de
     // poser (`combatSlice.battleClickTile` réécrit `preview` à chaque sortie de déplacement).
     if (v.nature === 'arete') { activerArete(v.arete); return; }
-    const { x, y } = t;
-    const tz = t.z ?? 0;
     if (st.mode === 'battle') {
       if (!controlsActive(st)) return; // coop : tour du héros d'un AUTRE joueur — clics inertes
-      const occ = st.battle ? combatantAtTile(st.battle.combatants, x, y, tz) : undefined; // clic sur N'IMPORTE quelle tuile de l'empreinte, au bon étage
-      // Décision PARTAGÉE avec le clic d'un portrait de frise (`combatantClickActs`) : un ennemi
-      // s'attaque en mode neutre, tout combattant se cible en mode sort / choix de cibles ; un
-      // allié/soi non actionnable ne fait rien (son inspection est le geste SECONDAIRE). Desktop
-      // (survol) : la visée a déjà tout montré → un clic COMMET ; tactile : deux-taps (tap 1 =
-      // aperçu) — cf. pointerCaps.
-      if (occ) { if (combatantClickActs(useGame.getState, occ)) st.battleClickEntity(occ.id, { confirm: hoverClickCommits() }); }
-      else st.battleClickTile(tz ? { x, y, z: tz } : { x, y }, { confirm: hoverClickCommits() }); // z-aware : escalier / case de rempart
+      // Ce que joue la case : `intentionDuClicDeCase`, la même que le commit du curseur. Desktop (survol) :
+      // la visée a déjà tout montré → un clic COMMET ; tactile : deux-taps (tap 1 = aperçu) — cf. pointerCaps.
+      const intention = intentionDuClicDeCase(useGame.getState, t);
+      if (intention?.kind === 'entity') st.battleClickEntity(intention.id, { confirm: hoverClickCommits() });
+      else if (intention) st.battleClickTile(intention.pt, { confirm: hoverClickCommits() });
       return;
     }
     const ent = entiteDuGeste(sc, v, t);

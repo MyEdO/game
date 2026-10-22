@@ -35,6 +35,7 @@ import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 
 import type { Get, Set } from '../noyau/flowTypes';
 import { initialNet, type NetState } from '../noyau/etat';
+import { fermerLeSiege } from '../noyau/sieges';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
 import { FORMAT_SAVE } from './formats.generated';
@@ -327,18 +328,9 @@ export function netJoin(get: Get, set: Set, appliquerSnapshot: (data: Record<str
   });
 }
 
-/** HÔTE : siège FERMÉ (départ définitif, fin de grâce). Ses héros ET ses emplacements reviennent à
- *  l'hôte (spec §6) — son ✓ ne sera plus requis. S'il portait le RÔLE MJ, le rôle est RETIRÉ : sans
- *  cette purge, `gmSeat` désignerait un siège absent — les ennemis resteraient « conduits par un
- *  humain » (`pilotedByHuman`) et leurs modales n'appartiendraient à personne. */
+/** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */
 export function netSeatClosed(get: Get, set: Set, seat: number): void {
-  const { seatNames, presence, ownership, slots, gmSeat } = get().net;
-  const names = { ...seatNames };
-  delete names[seat];
-  const pres = { ...presence };
-  delete pres[seat];
-  const own = Object.fromEntries(Object.entries(ownership).map(([h, s]) => [h, s === seat ? 0 : s]));
-  set({ net: { ...get().net, seatNames: names, presence: pres, ownership: own, slots: slots.map((s) => (s === seat ? 0 : s)), gmSeat: gmSeat === seat ? undefined : gmSeat } });
+  set({ net: fermerLeSiege(get().net, seat) });
   get().log(t('coop.seatClosed'));
 }
 

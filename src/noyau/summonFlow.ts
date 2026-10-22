@@ -15,7 +15,7 @@ import type { Combatant } from '../engine/types';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { BattleState } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
-import { Pt, tileKey } from './monde/path';
+import { pointDeCase, type Pt, tileKey } from './monde/path';
 import { Scene, isWalkable } from './monde/scene';
 import { occupied } from './monde/combatGeometry';
 import { inBattleId } from './monde/combatants';
@@ -47,15 +47,28 @@ function freeTilesNear(scene: Scene, battle: BattleState, center: Pt, n: number)
       for (let dx = -r; dx <= r && out.length < n; dx++) {
         const x = center.x + dx, y = center.y + dy;
         if (chebyshev({ x, y }, center) !== r) continue; // seulement l'anneau de rayon r
-        if (isWalkable(scene, x, y, z) && !blocked.has(tileKey(x, y, z))) out.push(z ? { x, y, z } : { x, y });
+        if (isWalkable(scene, x, y, z) && !blocked.has(tileKey(x, y, z))) out.push(pointDeCase(x, y, z));
       }
   return out;
 }
 
-function insertAfter(order: string[], afterId: string, id: string): void {
-  const i = order.indexOf(afterId);
+function insertAfter(order: string[], afterId: string | undefined, id: string): void {
+  const i = afterId === undefined ? -1 : order.indexOf(afterId);
   if (i >= 0) order.splice(i + 1, 0, id);
-  else order.push(id); // lanceur absent de l'ordre (rare) → la créature agit en fin de Round
+  else order.push(id); // sans place nommée dans l'ordre → le combattant agit en fin de Round
+}
+
+/** Inscrit `c` en bataille : parmi les combattants, dans l'ordre du Round courant ET dans l'ordre canonique d'où repart
+ *  chaque Round (`baseOrder`, `advanceTurn`), juste après `apresId` (en fin d'ordre sans lui), puis dans la réserve
+ *  d'Avantage de son camp (AA 11 l.11-13). Mute la bataille. L'invocation et l'outillage de recette l'appellent. */
+export function inscrireEnBataille(battle: BattleState, c: Combatant, apresId?: string): void {
+  // `baseOrder` peut être LE MÊME tableau que `order` en début de combat : dédoublé, sinon les deux insertions
+  // frapperaient le même tableau et l'id y serait DEUX fois (doublon dans l'initiative → clés React en double).
+  if (!battle.baseOrder || battle.baseOrder === battle.order) battle.baseOrder = [...battle.order];
+  battle.combatants.push(c);
+  insertAfter(battle.baseOrder, apresId, c.id);
+  insertAfter(battle.order, apresId, c.id);
+  if (battle.advantagePools) mirrorPools(battle.advantagePools, [c]);
 }
 
 export interface SummonOpts {
@@ -88,10 +101,6 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
   // Camp : allié = même `kind` que le lanceur (contrôlé/IA selon son camp) ; hostile = camp opposé.
   const kind: Combatant['kind'] = hostile ? (caster.kind === 'hero' ? 'enemy' : 'hero') : caster.kind;
   const tiles = freeTilesNear(scene, battle, caster.pos, count);
-  // `baseOrder` (ordre canonique restauré à chaque Round) peut être LE MÊME tableau que `order` en
-  // début de combat : il faut le dédoubler, sinon les deux `insertAfter` ci-dessous frapperaient le
-  // même tableau et l'id serait inséré DEUX fois (doublon dans l'initiative → clés React en double).
-  if (!battle.baseOrder || battle.baseOrder === battle.order) battle.baseOrder = [...battle.order];
   const placed: Combatant[] = [];
   for (let i = 0; i < count; i++) {
     const pos = tiles[i];
@@ -108,12 +117,9 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
       ...(summon.despawnIfCasterDown ? { despawnIfSummonerDown: true } : {}),
       ...(opts.spellId ? { spellId: opts.spellId } : {}),
     };
-    battle.combatants.push(c);
-    insertAfter(battle.baseOrder, caster.id, id);
-    insertAfter(battle.order, caster.id, id);
+    inscrireEnBataille(battle, c, caster.id);
     placed.push(c);
   }
-  if (battle.advantagePools) mirrorPools(battle.advantagePools, placed); // AA 11 l.11-13
   set({ battle: { ...battle } });
   if (!placed.length) return [t('summon.noRoom', { name: caster.label, ref: invoque })];
   const name = placed[0].label;
