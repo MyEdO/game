@@ -12,7 +12,14 @@ import { AUCUN_VERBE_DE_JOUEUR } from './modalArbiter';
 import { fenetreDuJeu } from './combatAuto';
 import { FLOW_VERBS } from './flowVerbs';
 import { libelleDeLaFenetre, libelleDuVerbe } from './libelles';
-import { CLES_DES_FENETRES, ETAPE_TEMOIN, ETAT, FENETRES, MODALES, VERBES_DES_FENETRES, type Fenetre } from './fenetres.testkit';
+import type { CascadeStep } from './pendings';
+import { cleDeFixture } from './noyau.testkit';
+import { fixtureText } from '../i18n/fixtureText';
+import { CLES_DES_FENETRES, ETAT, fenetresDuJeu, MODALES, VERBES_DES_FENETRES, type Fenetre } from './fenetres.testkit';
+
+/** Une étape témoin à rangées : de quoi lire le `pid` de chaque interaction. */
+const ETAPE_TEMOIN: CascadeStep = { id: 'etape', kind: cleDeFixture('note'), label: fixtureText('etape'), participants: [{ id: 'rangee', interactive: true, base: 0, target: 0, difficulty: 'intermediaire', result: null }] };
+const FENETRES = fenetresDuJeu(ETAPE_TEMOIN);
 
 /** Ce qui manque à la fenêtre : un verbe, une action de la partie derrière chacun, son libellé (`libelleDuVerbe`). */
 function fautes(f: Fenetre): string[] {

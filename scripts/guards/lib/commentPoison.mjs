@@ -47,18 +47,9 @@ export const corpusDesGardes = () =>
 
 const extensionDe = (rel) => String(rel).slice(String(rel).lastIndexOf('.'));
 const estTypeScript = (rel) => EXTRACTEURS[extensionDe(rel)] === extractComments;
-let codeTypeScript = null;
-let codeTypeScriptDe = null;
 /** Le corpus des gardes en dialecte TypeScript ou JavaScript, celui que lisent les gardes qui l'analysent
- *  (`analyserCorpus`) ; mémoïsé sur le corpus dont il dérive. */
-export function corpusTypeScriptDesGardes() {
-  const corpus = corpusDesGardes();
-  if (codeTypeScriptDe !== corpus) {
-    codeTypeScript = corpus.filter((f) => estTypeScript(f.rel));
-    codeTypeScriptDe = corpus;
-  }
-  return codeTypeScript;
-}
+ *  (`analyserCorpus`). */
+export const corpusTypeScriptDesGardes = () => corpusDesGardes().filter((f) => estTypeScript(f.rel));
 
 /** Les commentaires du fichier `rel`, de contenu `contenu`, par l'extracteur de son dialecte (`EXTRACTEURS`,
  *  `extractComments` hors du périmètre).

@@ -30,7 +30,7 @@ export interface BasculeNommee { verbe: keyof ActionsDuNoyau; libelle: string; a
  *  forme de l'argument les dit), ses bornes (`null` : aucune), la note qui en dit l'effet. */
 export interface Reglage {
   verbe: string;
-  libelle: string;
+  libelle: string | null;
   courant: string | number | boolean | null;
   valeurs: ValeurDuReglage[] | null;
   bornes: { min: number; max: number; pas: number | null } | null;
@@ -60,7 +60,7 @@ export function reglagesDesElements(fenetre: object | null): Reglage[] {
 /** Le réglage d'un choix d'étape de cascade (`options`, `chosen`) par le verbe `verbe`. */
 export const reglageDuChoix = (verbe: keyof ActionsDuNoyau) => (e: CascadeStep): Reglage => ({
   verbe,
-  libelle: e.label ?? '',
+  libelle: e.label ?? null,
   courant: e.chosen ?? null,
   valeurs: (e.options ?? []).map((o) => ({ valeur: o.key, libelle: o.label, refus: o.refus ?? null })),
   bornes: null,
@@ -70,7 +70,7 @@ export const reglageDuChoix = (verbe: keyof ActionsDuNoyau) => (e: CascadeStep):
 /** Le réglage d'une quantité d'étape de cascade (`quantity`, `amount`) par le verbe `verbe`. */
 export const reglageDeLaQuantite = (verbe: keyof ActionsDuNoyau) => (e: CascadeStep): Reglage => ({
   verbe,
-  libelle: e.label ?? '',
+  libelle: e.label ?? null,
   courant: e.amount ?? null,
   valeurs: null,
   bornes: e.quantity ? { min: e.quantity.min, max: e.quantity.max, pas: e.quantity.step ?? null } : null,

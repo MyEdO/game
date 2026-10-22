@@ -115,7 +115,7 @@ const SAISIE_DE_LA_FORME: Partial<Record<Forme['genre'], ArgumentDuGeste['saisie
 /** L'argument du paramètre (ou du champ) `p` du verbe `verbe`, saisi d'après le réglage `reglage` quand il en a un ;
  *  son libellé, celui du réglage, sinon celui du paramètre (`libelleDuParametre`). */
 function argument(etat: Jeu, verbe: string, p: { nom: string; optionnel: boolean; forme: Forme }, reglage: Reglage | undefined): ArgumentDuGeste {
-  const libelle = reglage?.libelle || libelleDuParametre(verbe, p.nom);
+  const libelle = reglage?.libelle ?? libelleDuParametre(verbe, p.nom);
   const base = { nom: p.nom, optionnel: p.optionnel, libelle, valeur: reglage?.courant ?? null, bornes: reglage?.bornes ?? null, note: reglage?.note ?? null, champs: null };
   const valeurs = reglage?.valeurs ?? (reglage?.bornes ? null : valeursDeLaForme(etat, p.nom, p.forme));
   if (valeurs) return { ...base, saisie: 'choix', valeurs };

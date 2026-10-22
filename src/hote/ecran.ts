@@ -137,7 +137,7 @@ export function corpsDeLaFenetre(etat: Jeu): string[] {
   const attaque = fenetreDAttaque(etat);
   if (attaque) return corpsDeLAttaque(etat, attaque);
   const defense = fenetreDeDefense(etat);
-  const nom = (id: string) => porteurParId(etat, id)?.label ?? '';
+  const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
   return [
     ...(defense ? [t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }), t('ecran.defense.test', { test: defense.test })] : []),
     ...jetsEnVue(etat).flatMap((j) => lignesDuJet(etat, j)),

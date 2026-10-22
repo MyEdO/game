@@ -11,7 +11,6 @@ import { FENETRE_DU_JET, JET_AUTO, VERBES_D_INTERACTION, verbesDeLaFenetre, verb
 import type { CascadeStep } from './pendings';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';
-import { fixtureText } from '../i18n/fixtureText';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
 /** L'état d'une partie neuve : ses actions. */
@@ -20,8 +19,6 @@ export const ETAT = creerPartie(etatInitialDuJeu(), ENTREES).etat();
 /** `pid` : la fenêtre a-t-elle de quoi rendre l'id que ses verbes prennent en premier argument, quand il en faut un ? */
 export interface Fenetre { nom: string; cle: string; verbes: readonly string[]; declaree?: VerbesDeFenetre; pid: boolean }
 
-/** Une étape témoin à rangées : de quoi lire le `pid` de chaque interaction. */
-export const ETAPE_TEMOIN: CascadeStep = { id: 'etape', kind: cleDeFixture('note'), label: fixtureText('etape'), participants: [{ id: 'rangee', interactive: true, base: 0, target: 0, difficulty: 'intermediaire', result: null }] };
 /** Le flux de jet `cle` désigne-t-il ses rangées par leur id (flux multi : premier argument `pid`) ? */
 const fluxAPid = (cle: FlowKey): boolean => FLOW_VERBS[cle].kind === 'multi';
 const multi = (def: ModalDef | HorsModalDef): boolean => (def.flux ?? []).some(fluxAPid);
@@ -29,8 +26,8 @@ const multi = (def: ModalDef | HorsModalDef): boolean => (def.flux ?? []).some(f
 /** Les modales hors de la cascade, et la clé de la cascade (politique `partial`). */
 export const MODALES = (MODAL_DEFS as readonly ModalDef[]).filter((d) => d.auto.mode !== 'partial');
 const CASCADE = (MODAL_DEFS as readonly ModalDef[]).find((d) => d.auto.mode === 'partial')!.key;
-/** Chaque fenêtre que `fenetreDuJeu` peut rendre. */
-export const FENETRES: readonly Fenetre[] = [
+/** Chaque fenêtre que `fenetreDuJeu` peut rendre, le `pid` d'une interaction lu sur l'étape témoin à rangées `temoin`. */
+export const fenetresDuJeu = (temoin: CascadeStep): readonly Fenetre[] => [
   ...MODALES.map((d) => ({ nom: `modale ${d.key}`, cle: d.key, verbes: verbesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) || !!d.rangees })),
   ...(HORS_MODAL as readonly HorsModalDef[]).filter((d) => d.tientLaMain).map((d) => ({ nom: `hors modale ${d.key}`, cle: d.key, verbes: verbesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) })),
   ...(Object.keys(JET_AUTO) as (keyof typeof JET_AUTO)[]).flatMap((jet) => {
@@ -40,11 +37,14 @@ export const FENETRES: readonly Fenetre[] = [
       ...reactives.map((r) => ({ nom: `cascade, étape-jet ${jet}, fenêtre ${r.flux}`, cle: CASCADE, verbes: verbesDuJet(jet, r), pid: !fluxAPid(r.flux) || !!r.rangees })),
     ];
   }),
-  ...Object.entries(VERBES_D_INTERACTION).map(([i, { verbes, pid }]) => ({ nom: `cascade, interaction ${i}`, cle: CASCADE, verbes, declaree: verbes, pid: !verbes.length || !!pid(ETAPE_TEMOIN) })),
+  ...Object.entries(VERBES_D_INTERACTION).map(([i, { verbes, pid }]) => ({ nom: `cascade, interaction ${i}`, cle: CASCADE, verbes, declaree: verbes, pid: !verbes.length || !!pid(temoin) })),
 ];
 
+/** Les fenêtres, sans rangée témoin : leurs clés et leurs verbes ne dépendent pas du `pid`. */
+const SANS_RANGEE = fenetresDuJeu({ id: 'etape', kind: cleDeFixture('note') });
+
 /** Chaque clé de fenêtre que `fenetreDuJeu` peut rendre. */
-export const CLES_DES_FENETRES: ReadonlySet<string> = new Set(FENETRES.map((f) => f.cle));
+export const CLES_DES_FENETRES: ReadonlySet<string> = new Set(SANS_RANGEE.map((f) => f.cle));
 
 /** Chaque verbe qu'une fenêtre peut offrir. */
-export const VERBES_DES_FENETRES: ReadonlySet<string> = new Set(FENETRES.flatMap((f) => f.verbes));
+export const VERBES_DES_FENETRES: ReadonlySet<string> = new Set(SANS_RANGEE.flatMap((f) => f.verbes));
