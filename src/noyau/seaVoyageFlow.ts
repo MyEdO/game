@@ -363,14 +363,20 @@ function voyageShip(get: Get): { vessel: CampaignVessel; hull: Combatant } | nul
   return { vessel, hull };
 }
 
+/** La coque de TRAJET quand le voyage porte le navire de campagne (`travelPlan.vehicle` de même véhicule que
+ *  `vessel`) ; `undefined` sinon (bateau de route fluviale, aucun voyage). */
+export function coqueDuNavireDeCampagne(plan: TravelPlan | null | undefined, vessel: CampaignVessel | null | undefined): Combatant | undefined {
+  return plan?.vehicle && vessel && plan.vehicle.creatureId === vessel.vehicleId ? plan.vehicle : undefined;
+}
+
 /** PERSISTE les Blessures de la coque de trajet sur le navire de campagne (#30) — l'UNIQUE écriture
  *  `vessel.wounds` (#296). No-op si la coque de trajet n'est pas le navire de campagne (bateau de route
  *  fluviale sans navire de campagne). */
 export function persistHullWounds(get: Get, set: Set): void {
-  const plan = get().travelPlan;
   const vessel = get().vessel;
-  if (!plan?.vehicle || !vessel || plan.vehicle.creatureId !== vessel.vehicleId) return;
-  set({ vessel: { ...vessel, wounds: { current: plan.vehicle.wounds.current, max: plan.vehicle.wounds.max } } });
+  const coque = coqueDuNavireDeCampagne(get().travelPlan, vessel);
+  if (!vessel || !coque) return;
+  set({ vessel: { ...vessel, wounds: { current: coque.wounds.current, max: coque.wounds.max } } });
 }
 
 /** Fixe ABSOLUMENT les Blessures de coque du navire de campagne (effet d'auteur `adjustVessel`, #308) —
@@ -383,9 +389,8 @@ export function setVesselHull(get: Get, set: Set, current: number, max: number):
   const wounds = { current: Math.max(0, Math.min(current, max)), max };
   set({ vessel: { ...vessel, wounds } });
   const plan = get().travelPlan;
-  if (plan?.vehicle && plan.vehicle.creatureId === vessel.vehicleId) {
-    set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle, wounds: { ...wounds } } } });
-  }
+  const coque = coqueDuNavireDeCampagne(plan, vessel);
+  if (plan && coque) set({ travelPlan: { ...plan, vehicle: { ...coque, wounds: { ...wounds } } } });
 }
 
 /** Inflige `amount` Dégâts à la coque de TRAJET (`hull`, `travelPlan.vehicle`) et PERSISTE aussitôt sur
@@ -398,6 +403,19 @@ export function damageVesselHull(get: Get, set: Set, hull: Combatant, amount: nu
   if (plan) set({ travelPlan: { ...plan } }); // bump de référence : la mutation en place de `hull` doit se voir
   persistHullWounds(get, set);
   return j;
+}
+
+/** Inflige `amount` Dégâts au navire de campagne hors combat : à sa coque de trajet quand un voyage la porte
+ *  (`damageVesselHull`), sinon à sa coque bâtie de `vessel` (`voyageShip`), écrite par `setVesselHull`.
+ *  `null` sans navire de campagne dont la donnée porte une coque. */
+export function damageCampaignVessel(get: Get, set: Set, amount: number): string[] | null {
+  const coque = coqueDuNavireDeCampagne(get().travelPlan, get().vessel);
+  if (coque) return damageVesselHull(get, set, coque, amount);
+  const ship = voyageShip(get);
+  if (!ship) return null;
+  const journal = damageHull(ship.hull, amount);
+  setVesselHull(get, set, ship.hull.wounds.current, ship.hull.wounds.max);
+  return journal;
 }
 
 /** Restaure `amount` Blessures à la coque de TRAJET et PERSISTE aussitôt sur `vessel.wounds` — pendant

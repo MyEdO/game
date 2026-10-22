@@ -10,10 +10,13 @@ import { mannedPosteWeapon, loadWeapon, lacherLArme } from '../../engine/items';
 import { hasWeaponGroupSkill } from '../../engine/combat';
 import { exposedCrew } from '../../engine/shipCritical';
 import { isOutOfAction } from '../../engine/conditions';
-import { combatDistance, footprintN } from './footprint';
+import { combatDistance, footprintN, footprintTiles } from './footprint';
 import { rotateDir8, DIR8_DELTA, DIR8_ORDER, DELTA_DIR8, type Dir8 } from '../../geometry/dir8';
-import { isWalkable, type Scene } from './scene';
-import { findFreeTile } from './combatGeometry';
+import { isWalkable, tileAt, type Scene } from './scene';
+import { pointDeCase, tileKey } from './path';
+import { estAbsent, terrainHorsGrille } from './terrain';
+import { casesTenues, findFreeTile } from './combatGeometry';
+import { placeCombatant } from './spawn';
 import type { Combatant, ShipPoste, ShipDeck, FireArc } from '../../engine/types';
 
 
@@ -44,6 +47,33 @@ export function placementPenalty(mounts: MountWeight[], capacity: number): Place
   if (maxSide > capacity * 0.5) return { m: -2, man: -2, navDR: -2 };
   if (maxSide > capacity * 0.25) return { m: -1, man: -1, navDR: -1 };
   return { m: 0, man: 0, navDR: 0 };
+}
+
+/** Translate une FORMATION RIGIDE du MÊME `delta` : la coque, puis chaque membre positionné de `crewIds` (ADE II 8
+ *  l.258 ; MDG 13), posé par `placeCombatant` à son étage. Les postes, sans position, suivent la coque. La
+ *  translation est ENTIÈRE ou refusée : `null`, sans rien déplacer, si l'empreinte d'arrivée d'un membre sort de
+ *  la scène (`tileAt` hors grille ou absente) ou couvre une case tenue par un combattant hors formation
+ *  (`casesTenues`). La poussée d'un engin (`targetingModes`), l'avance d'un navire
+ *  (`shipManeuver`) et l'outillage de recette l'appellent. Rend chaque déplacé avec sa case de départ. */
+export function translaterFormation(combatants: Combatant[], scene: Scene | null | undefined, coque: Combatant, crewIds: Iterable<string>, delta: Pt): { mobile: Combatant; depart: NonNullable<Combatant['pos']> }[] | null {
+  const equipage = [...new Set(crewIds)].filter((id) => id !== coque.id);
+  const mobiles = [coque, ...equipage.map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c)]
+    .filter((c): c is Combatant & { pos: NonNullable<Combatant['pos']> } => !!c.pos);
+  const ids = new Set(mobiles.map((m) => m.id));
+  const prises = casesTenues(combatants, (c) => !ids.has(c.id));
+  const arrivee = (m: (typeof mobiles)[number]) => pointDeCase(m.pos.x + delta.x, m.pos.y + delta.y, m.pos.z ?? 0);
+  const caseValide = (x: number, y: number, z: number) => {
+    if (prises.has(tileKey(x, y, z))) return false;
+    if (!scene) return true;
+    const terrain = tileAt(scene, x, y, z);
+    return terrain !== terrainHorsGrille() && !estAbsent(terrain);
+  };
+  if (!mobiles.every((m) => { const a = arrivee(m); return footprintTiles(a, footprintN(m)).every((t) => caseValide(t.x, t.y, a.z ?? 0)); })) return null;
+  return mobiles.map((mobile) => {
+    const depart = { ...mobile.pos };
+    placeCombatant(mobile, scene, arrivee(mobile));
+    return { mobile, depart };
+  });
 }
 
 /** Le Combattant-coque dont l'équipage (`crewIds`) inclut `crewId`, parmi `combatants` — le SUPPORT naval du

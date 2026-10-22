@@ -338,7 +338,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             (services que l'hôte pose : appel différé et état de son jeton, persistance d'un héros), `triggeredEffects.ts`,
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
-                            `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`, et les flux
+                            `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`,
+                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte), et les flux
                             de jeu ci-dessous. Sans hôte (mur `murs/sans-hote`) : le RNG de bataille
                             (`battleRng.ts`) naît de la graine fixe `GRAINE_INITIALE_DE_BATAILLE`, que
                             l'hôte ré-ensemence (`seedBattleRng(graineDEntropie())`, `state/store.ts`). Les ACTIONS de jeu (`ActionsDuNoyau`) naissent de fabriques

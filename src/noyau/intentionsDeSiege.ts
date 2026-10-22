@@ -81,7 +81,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // `armEndTurn` = 1er temps du garde-fou « tour gâché » : l'armement vit dans `battle` (état d'hôte),
   // donc l'invité le DEMANDE comme tout geste de son tour — sinon son 1er appui serait sans effet.
   battleClickEntity: 'invité', battleClickTile: 'invité', battleEndTurn: 'invité',
-  armEndTurn: 'invité', cancelMove: 'invité', battleSelectAction: 'invité',
+  armEndTurn: 'invité', battleClearPreview: 'invité', cancelMove: 'invité', battleSelectAction: 'invité',
   // actions de la hotbar — rendues dès `controlsCombatant` (le combattant ACTIF), et autorisées par
   // le REPLI universel de `intentAllowedFor` (aucune modale ouverte → le propriétaire de l'actif).
   battleAim: 'invité', battleDefendTotal: 'invité', battleDisengage: 'invité', battleRun: 'invité',

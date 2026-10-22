@@ -23,7 +23,7 @@ let root: Root | null = null;
 
 /**
  * LE CLIC D'UNE SURFACE RÉELLE (curseur clavier/manette) sur une case : `commitCursor` →
- * `cursorCommitIntent` → la porte partagée des 3 surfaces (`combatantClickActs`) → clic-jeton ou
+ * `intentionDuClicDeCase` → la porte partagée des 3 surfaces (`combatantClickActs`) → clic-jeton ou
  * clic-sol. Jamais `battleClickEntity`/`battleClickTile` en direct : ils court-circuiteraient la porte
  * même que ces contrats mesurent (un refus non prononcé passerait vert).
  */

@@ -221,7 +221,7 @@ describe('raccourcis — Retour arrière annule le déplacement', () => {
 /**
  * X FAIT TOURNER LES SETS (planche USER 2026-08-17, travée gauche de la console) : la colonne de sets
  * a absorbé le commutateur, et sa touche passe au set SUIVANT dans l'ordre où ils y sont dessinés.
- * Le plafond 1×/tour et les gates de contrôle restent au store (`battleSwitchLoadout`).
+ * Sa garde est le gate du registre (`set-commutable`) ; le plafond 1×/tour est posé par `battleSwitchLoadout`.
  */
 describe('raccourcis — X commute le set d’armes', () => {
   /** Combat dont l'acteur ACTIF porte `sets` sets, celui d'`actif` au poing. */
@@ -252,6 +252,13 @@ describe('raccourcis — X commute le set d’armes', () => {
     const switch2 = vi.fn();
     b.run(() => ({ ...s2, battleSwitchLoadout: switch2 }) as never);
     expect(switch2).toHaveBeenCalledWith('lo-a');
+  });
+
+  it('après un changement de set ce tour, la touche n’est plus offerte (gate `set-commutable`)', () => {
+    const b = binding('switch-loadout');
+    const commute = avecSets(['lo-a', 'lo-b'], 'lo-b');
+    commute.battle!.loadoutSwapped = true;
+    expect(b.when(commute)).toBe(false);
   });
 
   it('se tait pendant un ciblage par la carte, comme les autres gestes qui ENGAGENT', () => {

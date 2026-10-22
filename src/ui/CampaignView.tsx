@@ -59,7 +59,7 @@ import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { voyageHubActive, voyageStepPending } from '../noyau/modalArbiter';
 import { placeOfScene, atLocationPlace, placeServices } from '../noyau/worldMap';
 import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
-import { roomFocusAt } from '../noyau/monde/rooms';
+import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
 import { controlsActive, controlsCombatant } from '../noyau/netOwnership';
 import { combatantClickActs } from '../noyau/combatOrParty';
@@ -142,8 +142,8 @@ export function CampaignView() {
   // Offre de repos LÀ OÙ SE TIENT le groupe (zone d'auteur > scène > camp ; null = interdit).
   const restHere = mode === 'exploration' && scene ? restPlacesHere({ scene, partyPos } as Parameters<typeof restPlacesHere>[0]) : null;
   const fouillerLaPiece = useGame((s) => s.fouillerLaPiece);
-  // Fouiller : offert DANS une pièce (`roomFocusAt`), sans rien dire de ce qu'elle cache.
-  const dansUnePiece = !!scene && !!roomFocusAt(scene, partyPos);
+  // Fouiller : offert là où le verbe l'ouvre (`fouilleOuverte`), sans rien dire de ce que la pièce cache.
+  const fouilleOfferte = useGame((s) => !('refus' in fouilleOuverte(s)));
   // Fiche de personnage/poste : héros au STORE (`sheetId`, patron `inspectId`) — partagé avec
   // PartyScreen pour que la fiche survive au switch de héros entre les deux hôtes.
   const sheetId = useGame((s) => s.sheetId);
@@ -317,7 +317,7 @@ export function CampaignView() {
                   onOpen: () => openRest({ places: restHere.places, lieu: sceneLieu(useGame.getState), quality: restHere.quality }),
                 }
               : undefined}
-            onFouiller={dansUnePiece ? fouillerLaPiece : undefined}
+            onFouiller={fouilleOfferte ? fouillerLaPiece : undefined}
             /* Le tiroir-journal REJOINT la rangée d'ouvreurs : hors combat le pont est la SEULE plaque
                du bas, le rail d'outils ne se rend pas (§1c-ter). */
             journal={<LogDrawer battle={null} journal={journal} onOpenHistory={dialogueHistory.length > 0 ? () => setHistoryOpen(true) : undefined} />}

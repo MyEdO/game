@@ -1,6 +1,6 @@
 /** Interactions d'exploration : offres d'un décor ou d'un PNJ (`actionsDe`), leur exécuteur unique,
  *  l'assise et la fouille de pièce (#1687). */
-import { type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite } from './monde/usable';
+import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite } from './monde/usable';
 import { type SceneEntity, Scene } from './monde/scene';
 import { ouvrirDialogue } from './dialogue';
 import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type SeatPose, assignSeat } from './monde/seating';
@@ -21,6 +21,10 @@ import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
+import type { ActionGate } from './actionRegistry';
+import type { Jeu } from './etat';
+import type { RefusGeste } from './gesteDArete';
+import type { RoomFocus } from './monde/rooms';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -40,6 +44,49 @@ const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: Scen
 function placesDe(scene: Scene, entityId: string) {
   const ent = scene.entities.find((e) => e.id === entityId);
   return ent?.kind === 'prop' ? placesJouables(scene, entityId) : [];
+}
+
+/** Les places JOUABLES de CE meuble qu'aucun occupant ne tient : le verdict de l'offre d'assise (`porteDOffre`) et
+ *  le geste d'assise (`sasseoirA`) les lisent. */
+function placesLibres(scene: Scene, entityId: string) {
+  return placesDe(scene, entityId).filter((p) => !scene.seatAssignments?.[entityId]?.[p.slotId]);
+}
+
+/** Un ennemi d'embuscade n'offre rien et ne s'interpelle pas en exploration. */
+const enEmbuscade = (ent: SceneEntity): boolean => !!ent.combat?.hiddenUntilCombat;
+
+/** Verdict d'une offre d'exploration : la pastille le peint, le clic s'en sert pour savoir ce qu'il peut jouer sans
+ *  rien demander. Ouverte par défaut (`actionsDe` a déjà retiré l'injouable) ; seule l'assise sans place libre se
+ *  refuse, avec sa raison (arbitrage 2026-08-24 : la raison au survol). */
+export function porteDOffre(scene: Scene, ent: SceneEntity, origine: ActionOfferte['origine']): ActionGate {
+  if (origine !== 'assise' || placesLibres(scene, ent.id).length) return { ok: true };
+  return { ok: false, reason: t('seating.occupied') };
+}
+
+/** Une offre d'exploration : l'offre d'`actionsDe` et son verdict (`porteDOffre`). */
+interface OffreDExploration extends ActionOfferte {
+  gate: ActionGate;
+}
+
+/** Les offres d'exploration d'un porteur, et son nom à l'écran. */
+interface OffresDExplorationParPorteur {
+  porteurId: string;
+  porteurLabel?: string;
+  offres: OffreDExploration[];
+}
+
+/** Les offres d'exploration du champ : un porteur par entité qui offre quelque chose (`actionsDe`) à portée du groupe
+ *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. */
+export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'campaignNarratif'>): OffresDExplorationParPorteur[] {
+  const { scene } = s;
+  if (!scene || s.dialogue) return [];
+  const porteurs: OffresDExplorationParPorteur[] = [];
+  for (const ent of scene.entities) {
+    if (enEmbuscade(ent) || !aPorteeDe(s.partyPos, ent)) continue;
+    const offres = actionsDe(scene, ent, s.flags).map((o) => ({ ...o, gate: porteDOffre(scene, ent, o.origine) }));
+    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: nomDEntite(ent, presetDuNarratif(s.campaignNarratif)), offres });
+  }
+  return porteurs;
 }
 
 /** Le meneur occupe-t-il CE meuble ? Alors il s'en relève, et le dit. Rend `true` s'il s'est levé —
@@ -66,8 +113,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   const places = placesDe(scene, entityId);
   if (!places.length) return;
   const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
-  const libres = places.filter((p) => !scene.seatAssignments?.[entityId]?.[p.slotId]);
-  const cible = libres.find((p) => memeCase(p.approach, partyPos));
+  const cible = placesLibres(scene, entityId).find((p) => memeCase(p.approach, partyPos));
   if (cible) {
     // REVALIDATION ATOMIQUE dans le callback `set` : entre le choix de la place ci-dessus et
     // l'écriture, un autre siège coop a pu prendre la dernière — un seul gagnant en sort. La place
@@ -94,8 +140,19 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   }
   // UN SEUL message par situation : la place visée est partie (course perdue) ou toutes sont
   // prises → « occupé » ; il en reste une, mais pas sous les pieds → « rejoindre la place ».
-  const resteLibre = places.some((p) => !get().scene?.seatAssignments?.[entityId]?.[p.slotId]);
-  get().log(t(resteLibre ? 'seating.mustReachApproach' : 'seating.occupied'));
+  const apres = get().scene;
+  get().log(t(apres && placesLibres(apres, entityId).length ? 'seating.mustReachApproach' : 'seating.occupied'));
+}
+
+/** La fouille de la pièce : la scène et la pièce où le groupe se tient, ou le refus nommé. Le verbe `fouillerLaPiece`,
+ *  sa touche et son bouton la lisent. */
+export function fouilleOuverte(s: Jeu): { scene: Scene; piece: RoomFocus } | RefusGeste {
+  if (!s.scene) return { refus: 'geste.refus.aucuneScene', vars: {} };
+  if (s.mode !== 'exploration') return { refus: 'fouille.refus.horsExploration', vars: {} };
+  const porteur = porteurDExploration(s);
+  if ('refus' in porteur) return porteur;
+  const piece = roomFocusAt(s.scene, s.partyPos);
+  return piece ? { scene: s.scene, piece } : { refus: 'fouille.refus.horsPiece', vars: {} };
 }
 
 export function creerActionsDInteraction(get: Get, set: Set) {
@@ -104,7 +161,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const { scene, partyPos } = get();
       if (!scene) return;
       const ent = scene.entities.find((e) => e.id === entityId);
-      if (!ent || ent.combat?.hiddenUntilCombat) return; // un ennemi d'embuscade n'est pas interpellable en exploration
+      if (!ent || enEmbuscade(ent)) return;
       // ── MEUBLE À PLACES — les places AJOUTENT une affordance, elles n'en retirent AUCUNE : un buffet
       // à tabourets qui porte aussi une fouille reste fouillable. Ordre servi, et c'est le seul :
       //  1. le meneur occupe CE meuble → il se relève (bascule du même intent, priorité absolue) ;
@@ -183,16 +240,11 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       ]);
     },
     fouillerLaPiece: () => {
-      const s = get();
-      if (!s.scene) return void refuserGeste(get, set, t('geste.refus.aucuneScene'));
-      if (s.mode !== 'exploration') return void refuserGeste(get, set, t('fouille.refus.horsExploration'));
-      const porteur = porteurDExploration(s);
-      if ('refus' in porteur) return void refuserGeste(get, set, t(porteur.refus, porteur.vars));
-      const piece = roomFocusAt(s.scene, s.partyPos);
-      if (!piece) return void refuserGeste(get, set, t('fouille.refus.horsPiece'));
+      const fouille = fouilleOuverte(get());
+      if ('refus' in fouille) return void refuserGeste(get, set, t(fouille.refus, fouille.vars));
       // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
       get().log(t('fouille.journal'));
-      cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(s.scene, piece), t('eff.flowTitleDiscovery')), [
+      cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.flowTitleDiscovery')), [
         { verbe: 'avancerHorloge', minutes: rule('fouille-piece-minutes') as number },
       ]);
     },

@@ -16,13 +16,12 @@ import { pruneSeatAssignments } from '../noyau/monde/seating';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
-import { meneurDuMonde } from '../noyau/monde/combatants';
 import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/plateforme';
 import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
 import { rosterUpdate } from './roster';
 import { planifierLeTickAuto } from '../noyau/combatAuto';
 import type { Scene } from '../noyau/monde/scene';
-import { exploreStepDest } from '../noyau/monde/exploreNav';
+import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
 import { bus, EVT } from '../noyau/bus';
 import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
@@ -188,8 +187,8 @@ export interface ActionsDeLAdaptateur {
   loadGame: (slot: AnySlot) => boolean;
   /** Importe une save : `null` quand elle est appliquée, sinon la cause de son refus. */
   importGame: (json: string) => import('./saves').ObsoleteCause | null;
-  /** Pas clavier d'exploration : déplace le groupe d'UNE surface voisine connectée dans la direction
-   *  ÉCRAN poussée (flèches) — rampes/tabliers gérés par `exploreStepDest` (zéro ambiguïté de z). */
+  /** Pas clavier d'exploration dans la direction ÉCRAN poussée (flèches) : le store fournit l'alignement à
+   *  l'écran, le pas est celui du noyau (`pasAligneDuGroupe`). */
   stepPartyDir: (dir: ScreenDir) => void;
   setGameMenu: (open: boolean) => void;
 }
@@ -342,16 +341,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   stepPartyDir: (dir) => {
-    const { scene, mode, partyPos, dialogue, camRot, viewMode, camEdge } = get();
-    if (!scene || mode !== 'exploration' || dialogue) return;
+    const { scene, partyPos, camRot, viewMode, camEdge } = get();
+    if (!scene) return;
     const dims = { w: scene.dimensions.w, h: scene.dimensions.h, rot: camRot, view: viewMode, edge: camEdge, yawDeg: viewYawDeg(camRot, camEdge) };
-    const dest = exploreStepDest(scene, partyPos, (voisin) => screenStepDot(scene, partyPos, voisin, dir, dims));
-    if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
-    // Glisse d'1 case via l'anim de marche EXISTANTE (ANIM_MOVE → walkPosOf), puis `moveParty` (z-aware :
-    // facing, triggers, déplacement-puis-fouille) — le leader VISIBLE est le même qu'IsoStage.
-    const leader = meneurDuMonde(get());
-    if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [partyPos, dest] });
-    get().moveParty(dest);
+    pasAligneDuGroupe(get, (voisin) => screenStepDot(scene, partyPos, voisin, dir, dims));
   },
   setGameMenu: (open) => set({ gameMenuOpen: open }),
 }));

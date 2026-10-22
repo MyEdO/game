@@ -7,7 +7,7 @@ import {
   type Scene,
   type WallSeg,
 } from './scene';
-import { tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
+import { pointDeCase, tileKey, walkComponentAt, walkComponentsFrom, walkNeighbors, type Pt } from './path';
 import { memoByRef } from './sceneMemo';
 import { occupiedRoomIds, roomsByTile } from './rooms';
 import { parUnitesDeCode } from '../../lib/ordre.mjs';
@@ -26,7 +26,6 @@ export interface RoomPortal {
   to: Pt;
 }
 
-const pointAt = (x: number, y: number, z: number): Pt => (z ? { x, y, z } : { x, y });
 /** Clé canonique d'une ARÊTE — UNE seule dans ce module : elle identifie aussi bien un accès (dans
  *  son `id`) qu'un segment de mur dans l'index ci-dessous. */
 const edgeKey = (x: number, y: number, side: WallSeg['side'], z: number) => `${z}:${x},${y}:${side}`;
@@ -75,7 +74,7 @@ function roomPortalsUncached(scene: Scene): RoomPortal[] {
   for (const { point: from, zoneIds: fromZoneIds } of indexed.values()) {
     const z = from.z ?? 0;
     for (const [dx, dy] of directions) {
-      const to = pointAt(from.x + dx, from.y + dy, z);
+      const to = pointDeCase(from.x + dx, from.y + dy, z);
       const edge = edgeOf(from.x, from.y, to.x, to.y);
       if (!edge) continue;
       const kind = portalKind(scene, wallAt(scene, edge, z));

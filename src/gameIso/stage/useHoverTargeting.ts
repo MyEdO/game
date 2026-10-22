@@ -25,6 +25,7 @@ import { modalBlocksMapHover } from '../../state/mapHover';
 import { detenteurDuCiblage, mapTargetingActive } from '../../noyau/targetingHolder';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
 import { CAST_MODE } from '../../noyau/targetingModes';
+import { marcheOuverte } from '../../noyau/marcheDuGroupe';
 
 export interface HoverAim {
   fromId: string | null; // départ de la ligne (résolu en pixels au rendu — suit le glissement)
@@ -195,7 +196,7 @@ export function useHoverTargeting(
   // portée de saut du GROUPE. Memoïsé sur (hover, partyPos, scene) → le BFS ne tourne PAS à la frame.
   const explorePlan = useMemo(() => {
     const tile = hoveredPortal?.to ?? hover;
-    if (mode !== 'exploration' || dialogue || !scene || !tile) return null;
+    if (!marcheOuverte({ mode, dialogue }) || !scene || !tile) return null;
     if (tile.x === partyPos.x && tile.y === partyPos.y && (tile.z ?? 0) === (partyPos.z ?? 0)) return null;
     return exploreMovePlan(scene, partyPos, tile, optionsDeCheminDuGroupe(party));
   }, [hover, hoveredPortal, mode, dialogue, scene, partyPos, party]);

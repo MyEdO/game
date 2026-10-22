@@ -6,13 +6,13 @@
  * (`loadHouseRules`) ; le panneau in-game écrit via `setHouseRule`/`resetHouseRule` (persistance
  * immédiate). Même patron que `projectLibrary` / roster.
  *
- * COUTURE UNIQUE d'écriture JOUEUR — et donc le point où vit le VERROU de combat (`houseRulesMutability`) :
+ * COUTURE UNIQUE d'écriture JOUEUR — et donc le point où se lit le VERROU de combat (`houseRulesMutability`) :
  * `engine/policy.setRule` reste la primitive PURE (persistance, tests du moteur) et ne connaît pas la
  * partie ; tout chemin joueur (panneau du menu principal, onglet Options en jeu) passe ici.
  */
 import { ruleOverrides, loadRuleOverrides, setRule, resetRule, type RuleValue } from '../engine/policy';
 import { useGame } from './store';
-import { t } from '../i18n';
+import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
 
 /** Clé du magasin des règles maison dans le `localStorage`. */
@@ -33,22 +33,10 @@ export function saveHouseRules(): void {
   }
 }
 
-/**
- * Les règles optionnelles sont-elles MUTABLES en cet instant, et sinon POURQUOI — contrat unique
- * consommé par la couche d'écriture (ci-dessous) ET par l'écran des règles (qui en compose
- * `GatedAction` : `enabled={mutable}`, `reason={reason}`).
- *
- * Verrou de CLASSE, SANS exception ni granularité par entrée (d'où l'absence de paramètre : aucune
- * réponse ne dépend d'un id) : tant qu'une bataille est en cours, TOUTE entrée d'`OPTIONAL_RULES`
- * est figée — le moteur lit `rule(id)` en direct, et une bascule en plein combat rétroagit sur un état
- * déjà construit à l'ouverture (réserves d'Avantage de camp, Initiative, système de Blessures…). Ce qui
- * relève du CONFORT (rythme de résolution…) n'est pas une règle et ne vit pas dans ce registre : c'est
- * une préférence (`state/preferences.ts`), modifiable à tout moment, combat compris.
- */
+/** Le verrou des règles maison du noyau (`reglesMaisonMutables`) sur la partie du store : contrat consommé par la
+ *  couche d'écriture (ci-dessous) ET par l'écran des règles (`GatedAction` : `enabled={mutable}`, `reason={reason}`). */
 export function houseRulesMutability(): { mutable: boolean; reason: string } {
-  const battle = useGame.getState().battle;
-  if (!battle || battle.over) return { mutable: true, reason: '' };
-  return { mutable: false, reason: t('houseRules.lockedInBattle') };
+  return reglesMaisonMutables(useGame.getState());
 }
 
 /** Surcharge une règle (depuis le panneau) ET persiste. Refusée tant qu'un combat est en cours. */

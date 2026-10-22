@@ -79,7 +79,7 @@ export interface ActionOfferte {
  *
  * Une action `unique` épuisée SORT d'ici, et le décor redevient MUET : plus de halo, plus de pastille,
  * plus de curseur. Ce n'est pas un refus escamoté — un refus PORTE une raison (arbitrage 2026-08-24) et
- * nomme une porte FERMÉE, celle dont les places sont toutes prises (`offresUtilisables:porteDOffre`),
+ * nomme une porte FERMÉE, celle dont les places sont toutes prises (`interactionsDExploration:porteDOffre`),
  * pas une offre qui n'existe plus. Un décor qui a tout donné ne promet rien : il est du décor.
  */
 export function actionsAuthorees(ent: SceneEntity, flags: Drapeaux = {}): ActionAuthoree[] {

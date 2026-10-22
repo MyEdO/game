@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { intentAllowedFor, seatSlotsRemaining, controlsActive, controlsCombatant, pilotedByHuman, aiDriven, ownsLocal, rolledLocally } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
-import { seatOwns } from './sieges';
+import { fermerLeSiege, seatOwns } from './sieges';
 import { setCadence, resetCadence } from '../engine/cadence';
 import type { Jeu } from './etat';
 import { cascadeDeTest } from '../state/cascade.testkit';
@@ -21,6 +21,17 @@ const base = (over: Partial<Jeu>): Jeu =>
     ] },
     ...over,
   }) as unknown as Jeu;
+
+describe('fermerLeSiege — le départ définitif d’un siège rend ses héros, ses emplacements et le rôle MJ', () => {
+  it('héros et emplacements reviennent à l’hôte, le rôle MJ tombe, les autres sièges restent', () => {
+    const s = base({});
+    const net = { ...s.net, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Léa' }, presence: { 1: 'away' as const, 2: 'ok' as const }, ownership: { h1: 2, h2: 1 }, slots: [1, 2, 0, 1], gmSeat: 1 };
+    const apres = fermerLeSiege(net, 1);
+    expect(apres).toMatchObject({ seatNames: { 0: 'Hôte', 2: 'Léa' }, presence: { 2: 'ok' }, ownership: { h1: 2, h2: 0 }, slots: [0, 2, 0, 0], gmSeat: undefined });
+    expect(pilotedByHuman({ ...s, net: apres }, { id: 'e1', kind: 'enemy' } as never), 'sans MJ, l’ennemi revient à l’IA').toBe(false);
+    expect(fermerLeSiege(net, 2).gmSeat, 'fermer un autre siège garde le MJ').toBe(1);
+  });
+});
 
 describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base du masque de présentation', () => {
   const solo = () => base({ net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);

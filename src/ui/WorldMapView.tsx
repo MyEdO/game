@@ -3,7 +3,7 @@ import { nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
 import { t, deElide } from '../i18n';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
+import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
 import { descenteJouee } from '../noyau/riverVoyageFlow';
@@ -135,13 +135,15 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
   /** Routes PRATICABLES : la logique de voyage (sélection, départ, cadrage cliquable) n'en connaît pas d'autres. */
   const routes = useMemo(() => etats.filter((e) => e.ouverte).map((e) => e.route), [etats]);
   const routesFermees = useMemo(() => etats.filter((e) => !e.ouverte).map((e) => e.route), [etats]);
+  /** Routes TRACÉES et cliquables depuis ici (`routesCliquables`), ouvertes ou fermées-consultables. */
+  const cliquables = useMemo(
+    () => new Map((map && here ? routesCliquables(map, here.id, ctxCond) : []).map((e) => [e.route.id, e])),
+    [map, here, ctxCond],
+  );
   /** Routes DESSINÉES depuis ici : praticables ET menant à un lieu EXISTANT — ce que le joueur peut
    *  réellement cliquer. Un tronçon vers un lieu non révélé n'est ni tracé ni médaillé : l'aide de la
    *  colonne se dit sur CETTE liste, jamais sur les routes brutes (elle promettrait un cercle absent). */
-  const routesDessinees = useMemo(
-    () => (here ? routes.filter((r) => placeVisible.has(otherEnd(r, here.id))) : []),
-    [routes, placeVisible, here],
-  );
+  const routesDessinees = useMemo(() => [...cliquables.values()].filter((e) => e.ouverte).map((e) => e.route), [cliquables]);
 
   // Anti-chevauchement : positions de RENDU décluttérées (les `pos` d'authoring restent intacts).
   // Le repère de rendu est celui du viewBox (y aplati par 0.64) → l'écartement travaille dessus.
@@ -332,7 +334,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
     const pa = posOf(a), pb = posOf(b);
     const c = routeCurve(pa.x, pa.y, pb.x, pb.y, r.id);
     const sel = r.id === selId;
-    const etat = etats.find((e) => e.route.id === r.id);
+    const etat = cliquables.get(r.id);
     const fromHere = !!etat && etat.ouverte;
     // Trajet fermé partant d'ici : VISIBLE et cliquable (il se consulte), mais le départ est refusé.
     const fermee = !!etat && !etat.ouverte;

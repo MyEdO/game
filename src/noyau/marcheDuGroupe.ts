@@ -5,7 +5,7 @@ import { poserCapDuGroupe, meneurDuMonde, capDuGroupe } from './monde/combatants
 import { facingToward, rotateDir8 } from '../geometry/dir8';
 import { bus, EVT } from './bus';
 import { checkTriggers, jouerFlowEntier, runFlow } from './combatEffects';
-import { exploreMovePlan, mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';
+import { exploreMovePlan, exploreStepDest, mouvementDuGroupe, optionsDeCheminDuGroupe, povStepDest } from './monde/exploreNav';
 import { atterrissagesDeSaut, walkNeighbors, type Pt } from './monde/path';
 import { planJump } from './monde/jumpMove';
 import { chebyshev } from '../engine/grid';
@@ -65,11 +65,33 @@ export const gesteDuPas = (chemin: readonly Pt[], i: number): { verbe: 'sauter';
 export const cheminMarchable = (scene: Scene, chemin: readonly Pt[]): boolean =>
   chemin.every((p, i) => i === 0 || gesteDuPas(chemin, i).verbe === 'sauter' || walkNeighbors(scene, chemin[i - 1]).some((n) => memeCase(n, p)));
 
+/** La marche du groupe est-elle ouverte : en exploration, hors dialogue. La garde de tout pas du groupe (`pasDeLaMarche`,
+ *  `stepPartyRelative`, `pasAligneDuGroupe`), de la marche tenue de l'écran et de son aperçu au survol. */
+export const marcheOuverte = (s: Pick<Jeu, 'mode' | 'dialogue'>): boolean => s.mode === 'exploration' && !s.dialogue;
+
+/** Le pas d'une case du groupe vers `dest` : refusé (`MOVE_BLOCKED`) sans case, sinon le meneur glisse d'une case par
+ *  l'anim de marche (`ANIM_MOVE`) et le groupe s'y pose (`moveParty`). Rend `false` au refus. */
+function faireLePas(s: Jeu, dest: Pt | null): boolean {
+  if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return false; }
+  const leader = meneurDuMonde(s);
+  if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [s.partyPos, dest] });
+  s.moveParty(dest);
+  return true;
+}
+
+/** Le pas du groupe vers la case voisine la mieux alignée sur `alignement` (`exploreStepDest`) : l'hôte fournit
+ *  l'alignement de chaque voisine sur la direction qu'il a lue à l'écran. */
+export function pasAligneDuGroupe(get: Get, alignement: (voisin: Pt) => number): void {
+  const s = get();
+  if (!marcheOuverte(s) || !s.scene) return;
+  faireLePas(s, exploreStepDest(s.scene, s.partyPos, alignement));
+}
+
 /** Le pas `i` d'une marche du groupe sur `chemin`, dans la scène `sceneId`, s'il se joue encore (`gesteDuPas`) : le
- *  groupe explore cette scène, hors dialogue, depuis la case d'avant, et le pas passe sa garde (`pasDuGroupe`) ; un saut
+ *  groupe explore cette scène, hors dialogue (`marcheOuverte`), depuis la case d'avant, et le pas passe sa garde (`pasDuGroupe`) ; un saut
  *  se garde lui-même. `null` : la marche s'arrête. La garde de la marche de l'écran et de `marcherVers`. */
 export function pasDeLaMarche(s: Pick<Jeu, 'mode' | 'dialogue' | 'scene' | 'partyPos'>, sceneId: string, chemin: readonly Pt[], i: number): ReturnType<typeof gesteDuPas> | null {
-  if (s.mode !== 'exploration' || s.dialogue || s.scene?.id !== sceneId || i >= chemin.length || !memeCase(s.partyPos, chemin[i - 1])) return null;
+  if (!marcheOuverte(s) || s.scene?.id !== sceneId || i >= chemin.length || !memeCase(s.partyPos, chemin[i - 1])) return null;
   const pas = gesteDuPas(chemin, i);
   return pas.verbe === 'sauter' || pasDuGroupe(s, chemin[i]) ? pas : null;
 }
@@ -97,18 +119,13 @@ export function creerActionsDeMarche(get: Get, set: Set) {
     },
     stepPartyRelative: (rel) => {
       const s = get();
-      if (s.mode !== 'exploration') return;
+      if (!marcheOuverte(s)) return;
       const scene = s.scene;
       if (!scene || !meneurDuMonde(s)) return;
       const cur = capDuGroupe(s) ?? 'S';
       // Cap MONDE du pas = regard tourné de 0/2/4/6 crans (2 crans = 90° par cadran relatif).
       const worldDir = rotateDir8(cur, { forward: 0, right: 2, back: 4, left: 6 }[rel]);
-      const dest = povStepDest(scene, s.partyPos, worldDir);
-      if (!dest) { bus.emit(EVT.MOVE_BLOCKED, {}); return; }
-      // Glisse d'1 case via l'anim de marche EXISTANTE (même forme d'émission que stepPartyDir).
-      const leader = meneurDuMonde(s);
-      if (leader) bus.emit(EVT.ANIM_MOVE, { id: leader.id, path: [s.partyPos, dest] });
-      s.moveParty(dest);
+      if (!faireLePas(s, povStepDest(scene, s.partyPos, worldDir))) return;
       // Un pas ≠ avant ne doit pas tourner le regard : `moveParty` a posé le cap du groupe le long du
       // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
       if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));

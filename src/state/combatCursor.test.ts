@@ -3,11 +3,12 @@
  *  - `nextCursorTile` : voisin de grille dont le centre PROJETÉ colle le mieux à la direction
  *    ÉCRAN poussée (le curseur « suit les yeux ») → en iso une « droite » est un pas diagonal de
  *    grille, en vue du dessus un pas cardinal. Gère rotation caméra + projection sans cas particulier.
- *  - `cursorCommitIntent` : décision de commit, RÉPLIQUE de la branche `battle` de performClick
- *    (IsoStage) → parité souris (ennemi → attaque, case libre → déplacement, allié → inspection).
+ *  - `intentionDuClicDeCase` (noyau) : ce que joue la case, lue par le commit du curseur ET le clic-sol
+ *    (`useStagePointer.performClick`) → ennemi → attaque, case libre → déplacement, allié → rien.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles, cursorCommitIntent } from './combatCursor';
+import { nextCursorTile, nextCaseCursorTile, tileModeValidTiles } from './combatCursor';
+import { intentionDuClicDeCase } from '../noyau/combatOrParty';
 import { useGame } from './store';
 import { runBindingById } from './clavier/keybindings';
 import { t } from '../i18n';
@@ -15,7 +16,7 @@ import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import type { Dims } from '../geometry/iso';
 
-/** Arène d'herbe minimale (cursorCommitIntent dérive l'affordance d'attaque → besoin d'une scène). */
+/** Arène d'herbe minimale (intentionDuClicDeCase dérive l'affordance d'attaque → besoin d'une scène). */
 const arena = () => {
   const w = 22, h = 16;
   return { id: 's', dimensions: { w, h }, layers: [{ z: 0, tiles: new Array(w * h).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
@@ -134,7 +135,7 @@ describe('nextCaseCursorTile — mode-CASE (#198, résidus) : navigation BORNÉE
   });
 });
 
-describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
+describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)', () => {
   beforeEach(() => { useGame.setState({ battle: null, party: [], inspectId: null }); });
   function makeState(over: Record<string, unknown> = {}) {
     const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
@@ -152,17 +153,17 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
 
   it('curseur sur un ennemi → intention { entity }', () => {
     const { enemy } = makeState();
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 7, y: 10 } })).toEqual({ kind: 'entity', id: enemy.id });
+    expect(intentionDuClicDeCase(useGame.getState, { x: 7, y: 10 })).toEqual({ kind: 'entity', id: enemy.id });
   });
 
   it('curseur sur une case libre → intention { tile }', () => {
     makeState();
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 12, y: 4 } })).toEqual({ kind: 'tile', pt: { x: 12, y: 4 } });
+    expect(intentionDuClicDeCase(useGame.getState, { x: 12, y: 4 })).toEqual({ kind: 'tile', pt: { x: 12, y: 4 } });
   });
 
   it('curseur sur un allié non actionnable → null (no-op, jamais clic-case), et le commit n’ouvre aucune fiche', () => {
     makeState();
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 5, y: 10 } })).toBeNull();
+    expect(intentionDuClicDeCase(useGame.getState, { x: 5, y: 10 })).toBeNull();
     useGame.setState({ combatCursor: { tile: { x: 5, y: 10 } } });
     useGame.getState().commitCursor();
     expect(useGame.getState().inspectId, 'l’inspection est la touche `inspecter`, jamais le commit').toBeNull();
@@ -179,12 +180,19 @@ describe('cursorCommitIntent — parité performClick (mode-aware)', () => {
     runBindingById('inspecter', useGame.getState);
     expect(useGame.getState().inspectId).toBe(enemy.id);
     expect(useGame.getState().battle!.acted, 'inspecter ne consomme aucune Action').toBe(false);
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 7, y: 10 } })).toEqual({ kind: 'entity', id: enemy.id });
+    expect(intentionDuClicDeCase(useGame.getState, { x: 7, y: 10 })).toEqual({ kind: 'entity', id: enemy.id });
+  });
+
+  it('combat terminé → null ; une case libre d’étage garde son `z`', () => {
+    makeState();
+    expect(intentionDuClicDeCase(useGame.getState, { x: 12, y: 4, z: 1 })).toEqual({ kind: 'tile', pt: { x: 12, y: 4, z: 1 } });
+    useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victory' } as never });
+    expect(intentionDuClicDeCase(useGame.getState, { x: 12, y: 4 })).toBeNull();
   });
 
   it('hors combat → null', () => {
     useGame.setState({ battle: null });
-    expect(cursorCommitIntent(useGame.getState, { tile: { x: 1, y: 1 } })).toBeNull();
+    expect(intentionDuClicDeCase(useGame.getState, { x: 1, y: 1 })).toBeNull();
   });
 });
 
