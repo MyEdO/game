@@ -32,7 +32,7 @@ const jsonAere = (v: unknown): string =>
       ? `{${Object.entries(v).filter(([, x]) => x !== undefined).map(([k, x]) => `${JSON.stringify(k)}:${jsonAere(x)}`).join(',')}}`
       : JSON.stringify(v);
 
-/** Un appel écrit tel qu'un agent le passe : `lire {"quoi":"journal","depuis":40}`. Les renvois des sorties l'emploient. */
+/** Un appel écrit tel qu'un agent le passe : `lire {"quoi":"journal","depuis":40}`. Les pistes de lecture des sorties l'emploient. */
 export const appelEcrit = (outil: NomDOutil, args: Record<string, unknown> = {}): string => {
   const presents = Object.fromEntries(Object.entries(args).filter(([, v]) => v !== undefined));
   return `\`${outil}${Object.keys(presents).length ? ` ${jsonAere(presents)}` : ''}\``;

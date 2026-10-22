@@ -1,13 +1,14 @@
 /**
  * LA PROJECTION DE L'ÉTAT D'UNE PARTIE (#2898, plan v3 « La forme » ; #2928 M-i), commune aux hôtes du noyau : ce
  * qu'une vue montre, lu champ par champ par les lecteurs de la surface du noyau (`../noyau/index`), chaque liste
- * tranchée aux bornes que l'hôte fixe (`BornesDeLaProjection`). Aucune règle ne se calcule ici : un champ est un
- * lecteur du noyau, ou un champ de l'état lu tel quel (provenance : `scripts/docs/build-hote-texte.mjs`).
+ * tranchée aux bornes que l'hôte fixe (`BornesDeLaProjection`), et les cases atteignables au tour de l'actif. Aucune
+ * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (provenance :
+ * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import {
   activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed,
-  porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction,
-  type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre,
+  porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey,
+  type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt,
 } from '../noyau/index';
 
 /** Un combattant projeté. */
@@ -22,7 +23,8 @@ export interface CombattantProjete {
   distance: number | null;
   /** Engagé avec l'actif (`engagedWith`). */
   engage: boolean;
-  etats: string[];
+  /** Ses États (`conditions`), chacun avec sa valeur. */
+  etats: { id: string; valeur: number }[];
   horsCombat: boolean;
 }
 
@@ -68,9 +70,9 @@ export interface Projection {
     fin: NonNullable<Jeu['battle']>['over'];
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
     /** L'aperçu du premier clic du champ (`battle.preview`), que le second confirme. */
-    apercu: { genre: string; vers: string; cout: number | null } | null;
-    /** La barre de l'actif (`etatDeLaBarre`) : `ouverte`, ou fermée avec sa raison. */
-    barre: string;
+    apercu: Apercu | null;
+    /** La barre de l'actif (`etatDeLaBarre`) : sa forme, et la raison d'une barre fermée (`null` : ouverte). */
+    barre: { forme: EtatDeLaBarre['forme']; raison: string | null };
     intention: string | null;
     finDeTourArmee: boolean;
     cibles: { liste: string[]; enPlus: number };
@@ -94,8 +96,13 @@ export interface Projection {
   journal: number;
 }
 
-/** Une case écrite `(x,y)`, `(—)` sans case. */
-export const pos = (p: [number, number] | null): string => (p ? `(${p[0]},${p[1]})` : '(—)');
+/** L'aperçu du premier clic : son genre, sa cible ou sa case, son coût. */
+export interface Apercu {
+  genre: string;
+  cible: string | null;
+  case: [x: number, y: number] | null;
+  cout: number | null;
+}
 
 const nomDe = (etat: Jeu, id: string | undefined | null): string | null => {
   if (id == null) return null;
@@ -114,7 +121,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     pos: c.pos ? [c.pos.x, c.pos.y] : null,
     distance: Number.isFinite(d) ? d : null,
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
-    etats: c.conditions.map((e) => (e.value > 1 ? `${e.id}×${e.value}` : e.id)),
+    etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
   };
 }
@@ -150,11 +157,30 @@ function offresEnVue(offres: readonly Offre[]): OffreEnVue[] {
 
 const tranche = <T>(liste: readonly T[], n: number): { liste: T[]; enPlus: number } => ({ liste: liste.slice(0, n), enPlus: Math.max(0, liste.length - n) });
 
-/** L'aperçu du premier clic : son genre, sa case ou sa cible, son coût. */
-export function apercuDe(etat: Jeu): NonNullable<Projection['combat']>['apercu'] {
+/** L'aperçu du premier clic (`battle.preview`), `null` sans aperçu. */
+export function apercuDe(etat: Jeu): Apercu | null {
   const a = etat.battle?.preview;
   if (!a) return null;
-  return { genre: a.kind, vers: 'targetId' in a ? a.targetId : pos([a.tile.x, a.tile.y]), cout: 'cost' in a ? a.cost : null };
+  return 'targetId' in a
+    ? { genre: a.kind, cible: a.targetId, case: null, cout: 'cost' in a ? a.cost : null }
+    : { genre: a.kind, cible: null, case: [a.tile.x, a.tile.y], cout: 'cost' in a ? a.cost : null };
+}
+
+/** Une case que le champ peint au tour de l'actif : sa zone (`porteesDuTour`), la case, son coût. */
+export interface CaseAtteignable {
+  zone: string;
+  case: Pt;
+  cout: number;
+}
+
+/** Les cases que le champ peint au tour de l'actif (`porteesDuTour`, le lecteur de sa surbrillance), par zone, puis par
+ *  coût et par case. Hors combat, ou hors du tour du joueur (par défaut : la barre n'est pas ouverte, `etatDeLaBarre`) :
+ *  aucune. */
+export function casesAtteignables(etat: Jeu, monTour = etatDeLaBarre(etat).forme === 'ouverte'): CaseAtteignable[] {
+  if (!etat.battle) return [];
+  const portees = porteesDuTour(() => etat, monTour);
+  return (Object.entries(portees) as [string, Map<string, number>][]).flatMap(([zone, cases]) =>
+    [...cases].map(([cle, cout]) => ({ zone, case: tileFromKey(cle), cout })).sort((a, b) => a.cout - b.cout || a.case.y - b.case.y || a.case.x - b.case.x));
 }
 
 /** La projection de l'état après `pas` gestes, sur un journal de `journal` lignes, chaque liste à ses `bornes`. */
@@ -182,7 +208,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
           apercu: apercuDe(etat),
-          barre: barre.forme === 'ouverte' ? 'ouverte' : `${barre.forme} : ${barre.raison}`,
+          barre: { forme: barre.forme, raison: barre.forme === 'ouverte' ? null : barre.raison },
           intention: etat.localIntent?.actionId ?? null,
           finDeTourArmee: endTurnArmed(b),
           cibles: tranche(offres ? validTargets(() => etat).map((c) => c.id) : [], bornes.cibles),

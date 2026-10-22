@@ -6,12 +6,14 @@
  * vérité : chaque geste appliqué s'y ajoute ; un fichier changé hors de l'hôte, ou une mémoire qu'un geste refusé a
  * touchée, se rejoue. Doc généré : `npm run docs:hote-texte`.
  */
-import { empreinte, jouerUnGeste, ligneDuFichier, lireGeste, lireLeFichier, nouvelEntete, offresDeLaBarre, rejouer, type Geste, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { argumentsDuVerbe, ErreurDeGeste, type CategorieDErreur } from '../hote/partie';
+import { empreinte, jouerUnGeste, ligneDuFichier, lireLeFichier, rejouer, PISTES_DU_TEXTE, type LigneNumerotee, type PartieRejouee } from './partieTexte';
+import { ErreurDeGeste, nouvelEntete, type CategorieDErreur } from '../hote/partie';
+import { gesteDuVerbe, lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
 import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
-import { borner, casesAtteignables, enSuspens, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesGestes, rendreLesOffres, rendreLesVerbes, replier } from './vue';
-import { etatDeLaBarre, fenetreDuJeu, gestesDExploration } from '../noyau/index';
+import { casesAtteignables } from '../hote/projection';
+import { borner, enSuspens, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesGestes, rendreLesOffres, rendreLesVerbes, replier } from './vue';
+import { etatDeLaBarre, gestesDExploration } from '../noyau/index';
 
 /** Le disque que le lanceur prête, par NOM de partie : lire son fichier (`null` s'il n'existe pas), l'écrire, y ajouter ;
  *  la prendre pour ce serveur (`null`, ou qui la tient déjà) et la rendre. */
@@ -54,27 +56,10 @@ export interface EntreesDeJouer {
   partie?: string;
 }
 
-/** Les verbes voisins d'un nom inconnu nommés dans le refus, au plus. */
-const VOISINS_AU_PLUS = 8;
-
-/** Le geste du fichier d'un geste de l'agent, ses arguments contrôlés contre le type du verbe (`argumentsDuVerbe`). Un
- *  verbe inconnu se refuse avec ceux de la fenêtre qui tient la main et ses voisins de nom. */
-function gesteControle(r: PartieRejouee, g: GesteDeLAgent): Geste {
-  if ('offre' in g) return lireGeste(g);
-  const parametres = Object.prototype.hasOwnProperty.call(VERBES, g.verbe) ? VERBES[g.verbe] : null;
-  if (!parametres) {
-    const m = g.verbe.toLowerCase();
-    const voisins = Object.keys(VERBES).filter((v) => v.toLowerCase().includes(m) || m.includes(v.toLowerCase())).slice(0, VOISINS_AU_PLUS);
-    const fenetre = fenetreDuJeu(r.partie.etat());
-    const dits = [
-      ...(fenetre?.verbes.length ? [`verbes de la fenêtre ${fenetre.cle} : ${fenetre.verbes.join(', ')}`] : []),
-      ...(voisins.length ? [`voisins : ${voisins.join(', ')}`] : []),
-    ];
-    throw new ErreurDeGeste('validation', `verbe inconnu : ${g.verbe}${dits.length ? ` ; ${dits.join(' ; ')}` : ''} (${appelEcrit('lire', { quoi: 'verbes', id: g.verbe })})`);
-  }
-  const geste = lireGeste({ type: g.verbe, args: g.args ?? [], siege: g.siege });
-  return 'offre' in geste ? geste : { ...geste, args: argumentsDuVerbe(r.partie.etat(), geste.type, geste.args, parametres) };
-}
+/** Le geste du fichier d'un geste de l'agent : une offre lue telle quelle, un verbe contrôlé contre son type
+ *  (`gesteDuVerbe`). */
+const gesteControle = (r: PartieRejouee, g: GesteDeLAgent): Geste =>
+  'offre' in g ? lireGeste(g) : gesteDuVerbe(r.partie.etat(), { type: g.verbe, args: g.args, siege: g.siege }, PISTES_DU_TEXTE);
 
 /** Le nom d'un geste dans une réponse. */
 const nomDuGeste = (g: Geste): string => ('offre' in g ? `offre ${g.offre}` : g.type);
@@ -154,14 +139,14 @@ export function creerHote(disque: Disque) {
       case 'carte':
         return rendu(rendreLaCarte(etat, projection(r), depuis));
       case 'cases':
-        return rendu(rendreLesCases(casesAtteignables(etat, etatDeLaBarre(etat).forme === 'ouverte'), depuis));
+        return rendu(rendreLesCases(casesAtteignables(etat), depuis));
       case 'journal':
         return rendu(rendreLeJournal(r.journal, depuis, e.ligne ?? 0));
       case 'offres': {
         if (etat.mode === 'exploration') return rendu(rendreLesGestes(gestesDExploration(etat), depuis));
         const barre = etatDeLaBarre(etat);
         if (barre.forme !== 'ouverte') return rendu([`aucune offre : ${barre.raison}`]);
-        return rendu(rendreLesOffres(etat, offresDeLaBarre(etat), { id, toutes: e.toutes ?? false, depuis }));
+        return rendu(rendreLesOffres(etat, offresDeLaBarre(etat, PISTES_DU_TEXTE), { id, toutes: e.toutes ?? false, depuis }));
       }
     }
   }

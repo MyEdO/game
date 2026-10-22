@@ -461,12 +461,15 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             import de cette couche) et au portrait de dialogue (`gameIso/tokenBodyKind.tsx`).
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
-                            horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, le contrôle des
-                            arguments d'un verbe, le scénario de test par id et son lancement, la tenue des jetons
-                            programmés, numérotés : un jeton ne traverse pas JSON), `projection.ts` (la projection
-                            de l'état, chaque liste aux bornes de l'hôte), `formes.ts` (la forme JSON d'un paramètre
-                            de verbe), `verbes.generated.ts` (les paramètres des verbes, `scripts/gen-verbes.mjs`).
-                            Entrée d'un hôte servi par Vite : `scripts/entree-d-hote.mjs`.
+                            horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
+                            partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
+                            programmés, numérotés : un jeton ne traverse pas JSON), `geste.ts` (un geste écrit en
+                            JSON, son verbe et ses arguments contrôlés, son intention, l'issue de son envoi en
+                            catégorie d'erreur ; l'hôte y joint ses pistes de lecture), `projection.ts` (la projection de
+                            l'état en données, chaque liste aux bornes de l'hôte, les cases atteignables),
+                            `formes.ts` (la forme JSON d'un paramètre de verbe), `verbes.generated.ts` (les
+                            paramètres des verbes, `scripts/gen-verbes.mjs`). Entrée d'un hôte servi ou bâti par
+                            Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
                             (`portes` de `COUCHES`), plus `scenes`, le module commun `src/hote/` et les feuilles.
@@ -474,6 +477,11 @@ src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable 
                             virtuelle), `vue.ts` (projection à ses bornes et rendus bornés), `outils.ts` (les trois
                             outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
+hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que l'export web de Godot appelle.
+                            `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
+                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
+                            `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
+                            --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;

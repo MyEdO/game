@@ -4,8 +4,8 @@
  *  - les instructions du serveur, la description et le schéma de chaque outil (`INSTRUCTIONS`, `outils`,
  *    src/hoteTexte/outils.ts, importés : la même source que le serveur) ;
  *  - les bornes de sortie (`BORNES`, src/hoteTexte/vue.ts), par l'AST TypeScript ;
- *  - les catégories d'erreur (`CategorieDErreur`, src/hote/partie.ts) et le plafond de reprises
- *    (`PLAFOND_DE_REPRISES`, src/hoteTexte/partieTexte.ts) ; les cadences (`CADENCE_MODES`, src/engine/cadence.ts) ;
+ *  - les catégories d'erreur (`CategorieDErreur`) et le plafond de reprises de l'horloge virtuelle
+ *    (`PLAFOND_DE_REPRISES`), src/hote/partie.ts ; les cadences (`CADENCE_MODES`, src/engine/cadence.ts) ;
  *  - les verbes de la partie et la forme de leurs arguments, lus du type du noyau par le vérificateur
  *    (`verbesDeLaPartie`, scripts/docs/lib/verbesDeLaPartie.mjs), écrits par `parametresEcrits` (src/hote/formes.ts) :
  *    la même lecture que celle de la cible de code `src/hote/verbes.generated.ts` (scripts/gen-verbes.mjs), qui
@@ -32,7 +32,6 @@ const OUTILS = 'src/hoteTexte/outils.ts'
 const CADENCE = 'src/engine/cadence.ts'
 const VUE = 'src/hoteTexte/vue.ts'
 const PROJECTION = 'src/hote/projection.ts'
-const COEUR = 'src/hoteTexte/partieTexte.ts'
 const COMMUN = 'src/hote/partie.ts'
 
 function abandon(msg) {
@@ -142,7 +141,7 @@ function typeEcrit(js) {
 function rendu() {
   const bornes = constante(VUE, 'BORNES')
   const categories = unionDeChaines(COMMUN, 'CategorieDErreur')
-  const plafond = constante(COEUR, 'PLAFOND_DE_REPRISES')
+  const plafond = constante(COMMUN, 'PLAFOND_DE_REPRISES')
   const cadences = constante(CADENCE, 'CADENCE_MODES')
   const definitions = outils({ scenarios: null, cadences })
   const verbes = verbesDeLaPartie()
@@ -153,7 +152,7 @@ function rendu() {
 
   let out = `# Hôte texte : le noyau joué par MCP, sans navigateur\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-hote-texte.mjs\` (\`npm run docs:hote-texte\`) — NE PAS ÉDITER À LA MAIN.\n`
-  out += `> Sources : \`INSTRUCTIONS\` et \`outils\` (\`${OUTILS}\`), \`BORNES\` (\`${VUE}\`), \`CategorieDErreur\` (\`${COMMUN}\`), \`PLAFOND_DE_REPRISES\` (\`${COEUR}\`).\n\n`
+  out += `> Sources : \`INSTRUCTIONS\` et \`outils\` (\`${OUTILS}\`), \`BORNES\` (\`${VUE}\`), \`CategorieDErreur\` et \`PLAFOND_DE_REPRISES\` (\`${COMMUN}\`).\n\n`
   out += `L'hôte texte (#2898, « Hôte texte du noyau : une partie pilotable sans interface graphique, pour la recette par agent ») joue une partie du noyau sans store, sans écran et sans navigateur, servie par un serveur MCP sur stdio : un agent y déroule un scénario de test, et la même partie se rejoue sous CI. Il n'importe que la surface du noyau (\`src/noyau/index.ts\`), les scénarios de test (\`src/scenes/\`), le module commun des hôtes (\`src/hote/\` : contrôle des arguments, scénario par id, jetons, projection) et les feuilles : la ligne \`hoteTexte\` de la table \`COUCHES\` (\`scripts/guards/lib/couches.mjs\`) le tient, sa porte vers le noyau comprise, et la garde \`src/noyau/surface-fermeture-guard.test.ts\` mesure que sa fermeture n'atteint ni \`state\`, ni \`ui\`, ni \`gameIso\`, ni \`web\`. Il dérive du noyau tout ce qu'il nomme : les verbes et leurs arguments (\`ActionsDuNoyau\`), les fenêtres et leurs verbes (\`fenetreDuJeu\`) ; un verbe neuf du noyau se joue sans toucher à l'hôte, et la garde \`src/hote/derive-du-noyau.hors-store.test.ts\` refuse un verbe ou une fenêtre nommé en dur dans le code des hôtes.\n\n`
   out += `**Périmètre mesuré / angles morts** — ce doc lit les outils (importés de \`${OUTILS}\`) et, par l'AST TypeScript, les constantes de l'hôte (bornes, catégories d'erreur, plafond de reprises). Il ne mesure NI que la vue respecte ses bornes (le test \`src/hoteTexte/bornes.hors-store.test.ts\` le fait), NI que chaque lecteur de la provenance est bien celui qu'appelle la projection (la table est écrite dans ce générateur), NI les budgets de temps, qui sont des mesures datées.\n\n`
 
@@ -176,7 +175,7 @@ function rendu() {
   out += '```\n\n'
   out += `\`regles\` sont les règles maison chargées à la création de la partie ; les règles du scénario se posent ensuite, au lancement. Chaque ligne suivante est un geste appliqué : \`{"offre":"<id d’offre>","ctx":{…}}\`, ou un verbe \`{"type":"<verbe>","args":[…],"siege":0}\`. Un geste refusé ne s'écrit pas. Le fichier se relit, se copie et se tronque à la main : la partie est ce qu'il rejoue, et le serveur rejoue un fichier changé hors de lui. Un serveur tient la partie qu'il a ouverte (\`<nom>.verrou\`, son pid et sa naissance) : un second serveur se la voit refuser tant que le premier vit. Exemple committé, rejoué sous CI : \`src/hoteTexte/combat-dome.jsonl\`. Une partie neuve remet à zéro les séquences d'ids du moteur (\`src/engine/sequences.ts\`) : deux rejeux d'un fichier dans un même processus fabriquent les mêmes ids.\n\n`
 
-  out += `## Les jetons\n\nLe noyau programme ses beats différés (tours de l'IA, tick de la cadence auto) par la plateforme de la partie. Après chaque geste, l'hôte reprend tous les jetons programmés, par échéance puis par ordre d'arrivée, sur une horloge virtuelle (le module commun des hôtes les numérote dans l'ordre d'arrivée, \`tenueDesJetons\`, \`${COMMUN}\`), jusqu'à ce qu'il n'en reste aucun ; ceux du lancement sont repris avant la première ligne. Une réponse dit combien de jetons ont été repris. Au-delà de ${milliers(plafond)} reprises après un même geste, l'hôte lève : la partie boucle.\n\n`
+  out += `## Les jetons\n\nLe noyau programme ses beats différés (tours de l'IA, tick de la cadence auto) par la plateforme de la partie. Après chaque geste, l'hôte reprend tous les jetons programmés, par échéance puis par ordre d'arrivée, sur l'horloge virtuelle du module commun des hôtes (\`horlogeVirtuelle\`, \`${COMMUN}\`, qui les numérote dans l'ordre d'arrivée par \`tenueDesJetons\`), jusqu'à ce qu'il n'en reste aucun ; ceux du lancement sont repris avant la première ligne. Une réponse dit combien de jetons ont été repris. Au-delà de ${milliers(plafond)} reprises après un même geste, l'hôte lève : la partie boucle.\n\n`
 
   out += `## Les erreurs\n\nUne entrée hors du schéma d'un outil est refusée par le serveur avant l'hôte (\`Input validation error\`). Une erreur de l'hôte sort en \`erreur <catégorie> : <message>\`, l'outil en erreur (\`isError\`), et le fichier reste intact. Dans une suite de \`jouer\`, les gestes d'avant le refusé restent appliqués et écrits ; la réponse dit « geste k/n refusé », puis la vue. Un geste refusé qui a touché l'état en mémoire (son refus, une mutation en place) fait rejouer la partie depuis son fichier.\n\n`
   out += `| Catégorie | Cas |\n|---|---|\n`
@@ -208,7 +207,7 @@ function rendu() {
   return {
     out,
     path: OUT,
-    staleMsg: `docs:hote-texte — ${OUT} est PÉRIMÉ (diverge de ${OUTILS}, ${VUE}, ${COEUR} ou ${COMMUN}).`,
+    staleMsg: `docs:hote-texte — ${OUT} est PÉRIMÉ (diverge de ${OUTILS}, ${VUE} ou ${COMMUN}).`,
     rerunMsg: '  → relancer `npm run docs:hote-texte` (dérivé jamais commité, #2203).',
     okMsg: `docs:hote-texte — OK (${OUT} à jour, ${Object.keys(definitions).length} outils, ${Object.keys(verbes).length} verbes)`,
     writeMsg: `${OUT} — ${Object.keys(definitions).length} outils, ${Object.keys(verbes).length} verbes, ${PROVENANCE.length} champs, ${categories.length} catégories d'erreur.`,

@@ -1,59 +1,25 @@
 /**
  * LE CŒUR DE L'HÔTE TEXTE (#2898, plan v3 étape 4) : le fichier de partie, son rejeu et le geste suivant, sans
  * écran ni disque. Le fichier (JSONL) est la vérité de la partie : un en-tête (`Entete`), puis une ligne par geste
- * appliqué (`Geste`). Le rejeu ouvre une partie du noyau (`creerPartie`), lance le scénario de l'en-tête
- * (`Partie.lancer`), puis rejoue chaque ligne ; après chaque appel, l'hôte reprend tous les jetons programmés, par
- * échéance puis par ordre d'arrivée, jusqu'à ce qu'il n'en reste aucun. Un geste en erreur (validation, permission,
+ * appliqué (`Geste`). Le rejeu ouvre la partie de l'en-tête et lance son scénario (`ouvrirLaPartie`, le module commun
+ * des hôtes), puis rejoue chaque ligne ; après chaque appel, l'hôte reprend tous les jetons programmés sur l'horloge
+ * virtuelle du module commun (`horlogeVirtuelle`), jusqu'à ce qu'il n'en reste aucun. Un geste en erreur (validation, permission,
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
-import {
-  creerPartie, etatInitialDuJeu, argsAvecVerdictLocal, actionGate, etatDeLaBarre, offreDesignee, runAction, quiTientLaMain, siegeDe, porteurParId, ACTIONS, CADENCE_MODES,
-  type ActionRunCtx, type Cadence, type Intention, type Jeu, type LigneDuJournal, type Offre, type Partie, type ResultatDeLAppel,
-} from '../noyau/index';
+import type { Jeu, LigneDuJournal, Partie, ResultatDeLAppel } from '../noyau/index';
+import { ErreurDeGeste, horlogeVirtuelle, nouvelEntete, ouvrirLaPartie, valider, type Entete, type TenueDesJetons } from '../hote/partie';
+import { envoyerLIntention, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
 import { estObjet } from '../hote/formes';
-import { ErreurDeGeste, lancerLeScenarioDeTest, scenarioDeTest, tenueDesJetons, valider } from '../hote/partie';
-import { offresDeLaBarreOuverte } from '../hote/projection';
 import { appelEcrit } from './outils';
 import { tableTotale } from '../lib/tableTotale';
 
-/** L'en-tête du fichier : le scénario lancé et les entrées de la partie (D8). */
-export interface Entete {
-  scenario: string;
-  graine: number;
-  regles: Record<string, unknown>;
-  cadence: Cadence;
-  desFixes: boolean;
-}
-
-/** Un geste du fichier : une offre du registre (`jouerLOffre`), ou un verbe brut de la partie. */
-export type Geste =
-  | { offre: string; ctx?: ActionRunCtx }
-  | { type: string; args: unknown[]; siege?: number };
-
-/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse. */
-export function nouvelEntete(scenario: string, options: { graine?: number; cadence?: string; desFixes?: boolean; regles?: Record<string, unknown> }): Entete {
-  scenarioDeTest(scenario);
-  const graine = options.graine ?? 1;
-  valider(Number.isInteger(graine), `graine non entière : ${graine}`);
-  const cadence = options.cadence ?? 'manuel';
-  valider((CADENCE_MODES as readonly string[]).includes(cadence), `cadence inconnue : ${cadence} (${CADENCE_MODES.join(', ')})`);
-  return { scenario, graine, regles: options.regles ?? {}, cadence: cadence as Cadence, desFixes: options.desFixes ?? false };
-}
-
-/** Lit un geste écrit (une ligne JSON), ou lève une erreur de validation. */
-export function lireGeste(v: unknown): Geste {
-  valider(estObjet(v), 'un geste est un objet JSON');
-  const g = v as Record<string, unknown>;
-  if ('offre' in g) {
-    valider(typeof g.offre === 'string', 'offre : un id d’action');
-    valider(g.ctx === undefined || estObjet(g.ctx), 'offre : le contexte est un objet JSON');
-    return g.ctx === undefined ? { offre: g.offre as string } : { offre: g.offre as string, ctx: g.ctx as ActionRunCtx };
-  }
-  valider(typeof g.type === 'string', 'jouer : un nom d’action du noyau');
-  valider(Array.isArray(g.args), 'jouer : les arguments sont un tableau JSON');
-  valider(g.siege === undefined || Number.isInteger(g.siege), 'jouer : le siège est un entier');
-  return g.siege === undefined ? { type: g.type as string, args: g.args as unknown[] } : { type: g.type as string, args: g.args as unknown[], siege: g.siege as number };
-}
+/** Les pistes de lecture de l'hôte texte : l'appel de `lire` qui montre la suite d'un refus. */
+export const PISTES_DU_TEXTE: PistesDeLecture = {
+  vue: ` (${appelEcrit('lire', { quoi: 'vue' })})`,
+  offres: ` (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`,
+  offre: (id) => ` (${appelEcrit('lire', { quoi: 'offres', id })})`,
+  verbe: (id) => ` (${appelEcrit('lire', { quoi: 'verbes', id })})`,
+};
 
 /** Le texte d'un fichier : l'en-tête, puis les gestes. */
 export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] } {
@@ -86,139 +52,38 @@ export interface LigneNumerotee {
   differee: boolean;
 }
 
-/** Une partie rejouée : la partie ouverte, son en-tête, ses gestes, son journal entier, et le nombre de jetons repris
+/** Une partie rejouée : la partie ouverte, la tenue de ses jetons, son en-tête, ses gestes, son journal entier, et le nombre de jetons repris
  *  après chaque pas (0 : le lancement). */
 export interface PartieRejouee {
   partie: Partie;
+  jetons: TenueDesJetons;
   entete: Entete;
   gestes: Geste[];
   journal: LigneNumerotee[];
   reprises: number[];
 }
 
-/** Le plafond de reprises après un appel : au-delà, la partie boucle. */
-const PLAFOND_DE_REPRISES = 100_000;
-
-/** Absorbe le résultat d'un appel : ses lignes au journal, puis la reprise de tous ses jetons (`tenueDesJetons`), par
- *  échéance puis par ordre d'arrivée (leur numéro), sur une horloge virtuelle propre à l'appel. */
+/** Absorbe le résultat d'un appel : ses lignes au journal, puis la reprise de tous ses jetons sur l'horloge virtuelle
+ *  du module commun (`horlogeVirtuelle`), le nombre de reprises noté au pas. */
 function absorber(r: PartieRejouee, resultat: ResultatDeLAppel, pas: number): void {
-  const jetons = tenueDesJetons(r.partie);
-  const file: { id: number; echeance: number }[] = [];
-  let horloge = 0;
-  const lire = (res: ResultatDeLAppel, differee: boolean): void => {
+  const { jetons } = r;
+  const lire = (res: ResultatDeLAppel, differee: boolean) => {
     for (const ligne of res.journal) r.journal.push({ n: r.journal.length, pas, ligne, differee });
-    for (const p of jetons.programmes(res)) file.push({ id: p.id, echeance: horloge + p.delai });
+    return jetons.programmes(res);
   };
-  lire(resultat, false);
-  let reprises = 0;
-  for (; file.length; reprises++) {
-    if (reprises >= PLAFOND_DE_REPRISES) throw new Error(`[hôte texte] plus de ${PLAFOND_DE_REPRISES} reprises après le pas ${pas} : la partie boucle`);
-    file.sort((a, b) => a.echeance - b.echeance || a.id - b.id);
-    const { id, echeance } = file.shift()!;
-    horloge = echeance;
-    lire(jetons.reprendre(id), true);
-  }
-  r.reprises[pas] = reprises;
-}
-
-/** Les offres de l'actif (`offresDeLActif`), ou l'erreur de règle qui dit pourquoi la barre n'est pas ouverte
- *  (`etatDeLaBarre`, le verdict que lit aussi la console). */
-export function offresDeLaBarre(etat: Jeu): Offre[] {
-  const barre = etatDeLaBarre(etat);
-  if (barre.forme !== 'ouverte') throw new ErreurDeGeste('regle', `aucune offre : ${barre.raison} (${appelEcrit('lire', { quoi: 'vue' })})`);
-  return offresDeLaBarreOuverte(etat, barre);
-}
-
-/** La sonde : elle répond à toute lecture et à tout appel par elle-même, et se convertit en `0`. */
-const SONDE: unknown = new Proxy(function sonde() {}, {
-  get: (_cible, cle) => (cle === Symbol.toPrimitive ? () => 0 : SONDE),
-  apply: () => SONDE,
-});
-
-/** Les champs du contexte qu'une offre lit : ceux que sa porte (`runAction`) lit en se jouant sur la sonde, une fois
- *  chaque champ présent, une fois chaque champ absent ; la sonde ne joue rien. Une porte que la sonde fait lever ne
- *  dit pas ce qu'elle lit : `null`, et son contexte ne se contrôle pas. */
-function champsLusParLOffre(actionId: string): Set<string> | null {
-  const lus = new Set<string>();
-  try {
-    for (const valeur of [SONDE, undefined]) {
-      const ctx = new Proxy({}, {
-        get: (_cible, cle) => {
-          if (typeof cle === 'string') lus.add(cle);
-          return valeur;
-        },
-      });
-      runAction(actionId, () => SONDE as Jeu, ctx as ActionRunCtx);
-    }
-  } catch {
-    return null;
-  }
-  return lus;
-}
-
-/** Un champ du contexte d'une offre que ni elle ni ses candidats ne lisent lève une erreur de validation, qui nomme les
- *  champs acceptés ; pour une offre qui arme une intention, la cible se choisit après elle. */
-function controlerLeContexte(offre: string, ctx: ActionRunCtx | undefined, offres: readonly Offre[]): void {
-  const lus = champsLusParLOffre(offre);
-  if (!lus) return;
-  const acceptes = new Set([...lus, ...offres.flatMap((o) => (o.actionId === offre ? Object.keys(o.args) : []))]);
-  const ignores = Object.keys(ctx ?? {}).filter((k) => !acceptes.has(k));
-  if (!ignores.length) return;
-  const cible = ACTIONS.find((a) => a.id === offre)?.intent ? ' ; la cible de cette offre se choisit après elle, par le clic de son combattant' : '';
-  throw new ErreurDeGeste('validation', `${offre} ne lit pas ${ignores.join(', ')} du contexte (champs acceptés : ${[...acceptes].join(', ') || 'aucun'})${cible} (${appelEcrit('lire', { quoi: 'offres', id: offre })})`);
-}
-
-/** L'intention d'un geste, contrôlée. Une offre que l'énumérateur ne rend pas, ou qu'aucun candidat ne désigne
- *  (`offreDesignee`), est une erreur de règle avec la raison du registre ; une offre fermée aussi (`actionGate`, sur les
- *  arguments du geste) ; un champ du contexte que l'offre ne lit pas (`controlerLeContexte`) et un verbe inconnu sont
- *  des erreurs de validation. Un verbe joué au nom d'un siège joint le verdict d'armement que ce siège voit
- *  (`argsAvecVerdictLocal`), comme le client du web le joint à son intention. */
-function intentionDuGeste(etat: Jeu, geste: Geste): Intention {
-  if ('offre' in geste) {
-    valider(ACTIONS.some((a) => a.id === geste.offre), `offre inconnue : ${geste.offre} (${appelEcrit('lire', { quoi: 'offres', toutes: true })})`);
-    const offres = offresDeLaBarre(etat);
-    controlerLeContexte(geste.offre, geste.ctx, offres);
-    const barre = etatDeLaBarre(etat);
-    const ctx = barre.forme === 'ouverte' ? { active: barre.active, battle: barre.battle, netMode: etat.net.mode, args: geste.ctx } : undefined;
-    if (!offreDesignee(offres, geste.offre, geste.ctx)) {
-      const pertinence = ctx ? actionGate(geste.offre, ctx) : undefined;
-      const raison = pertinence && !pertinence.ok ? pertinence.reason : offres.some((o) => o.actionId === geste.offre) ? 'aucun candidat ne correspond au contexte' : 'aucun candidat';
-      throw new ErreurDeGeste('regle', `${geste.offre} n’est pas offerte : ${raison} (${appelEcrit('lire', { quoi: 'offres', id: geste.offre })})`);
-    }
-    const gate = actionGate(geste.offre, ctx!);
-    if (!gate.ok) throw new ErreurDeGeste('regle', `${geste.offre} fermée : ${gate.reason ?? 'sans raison'}`);
-    return { type: 'jouerLOffre', args: geste.ctx ? [geste.offre, geste.ctx] : [geste.offre] };
-  }
-  valider(typeof (etat as unknown as Record<string, unknown>)[geste.type] === 'function', `verbe inconnu : ${geste.type}`);
-  if (geste.siege === undefined) return { type: geste.type, args: geste.args } as Intention;
-  return { type: geste.type, args: argsAvecVerdictLocal(() => etat, geste.type, geste.args), siege: geste.siege } as Intention;
-}
-
-/** Qui tient la main (`quiTientLaMain`) et le siège qui le joue (`siegeDe`) : ce qui rendrait le geste permis. */
-function laMain(etat: Jeu): string {
-  const main = quiTientLaMain(etat);
-  if (main === '*') return 'la fenêtre est à tous les sièges';
-  const nom = main && porteurParId(etat, main)?.label;
-  return `la main est à ${nom ?? main ?? 'l’hôte'}, siège ${siegeDe(etat, main)}`;
+  r.reprises[pas] = horlogeVirtuelle(lire(resultat, false), (id) => lire(jetons.reprendre(id), true));
 }
 
 /** Joue un geste sur la partie rejouée : l'intention contrôlée, envoyée, ses jetons repris. L'issue de la partie fait
  *  foi : `hors-allowlist` est une erreur de validation, `refusee` une erreur de permission ; un verbe qui lève est une
  *  erreur de validation. Rend les lignes de journal du geste. */
 export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
-  const intention = intentionDuGeste(r.partie.etat(), geste);
+  const intention = intentionDuGeste(r.partie.etat(), geste, PISTES_DU_TEXTE);
   // Le moteur mute en place (combattants, scène) : l'empreinte se prend AVANT l'appel, jamais sur l'état d'avant relu après.
   const avant = r.partie.etat();
   const faitsAvant = empreinteDesFaits(avant);
   const refusAvant = avant.refus?.nonce;
-  let resultat: ResultatDeLAppel;
-  try {
-    resultat = r.partie.envoyer(intention);
-  } catch (erreur) {
-    throw new ErreurDeGeste('validation', `${intention.type} a levé : ${erreur instanceof Error ? erreur.message : String(erreur)}`);
-  }
-  if (resultat.issue === 'hors-allowlist') throw new ErreurDeGeste('validation', `${intention.type} hors de l’allowlist d’un siège`);
-  if (resultat.issue === 'refusee') throw new ErreurDeGeste('permission', `${intention.type} refusée au siège ${'siege' in geste ? String(geste.siege) : '—'} : ${laMain(avant)}`);
+  const resultat = envoyerLIntention(r.partie, intention);
   // Un geste a un effet s'il change les FAITS ou programme une suite ; un événement émis seul (`move_blocked`) informe.
   if (!resultat.evenements.some((e) => e.type === 'programme') && empreinteDesFaits(r.partie.etat()) === faitsAvant) {
     throw new ErreurDeGeste('regle', `${intention.type} sans effet${ceQueDitLeJeu(refusAvant, r.partie.etat(), resultat)}`);
@@ -232,26 +97,19 @@ export function jouerUnGeste(r: PartieRejouee, geste: Geste): LigneNumerotee[] {
 /** Rejoue un fichier : la partie ouverte sur l'en-tête, le scénario lancé, chaque geste rejoué. Une ligne qui ne se
  *  rejoue plus ferme la partie et lève, avec son rang (1 : l'en-tête, le lancement). */
 export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee {
-  const scenario = scenarioDeTest(entete.scenario);
-  const heros = new Map<string, unknown>();
-  const partie = creerPartie(etatInitialDuJeu(), {
-    graine: entete.graine,
-    reglesMaison: entete.regles,
-    cadence: entete.cadence,
-    desFixes: entete.desFixes,
-    persisterLeHeros: (h) => heros.set(h.id, structuredClone(h)),
-  });
-  const r: PartieRejouee = { partie, entete, gestes: [], journal: [], reprises: [] };
+  let r: PartieRejouee | null = null;
   let ligne = 1;
   try {
-    absorber(r, lancerLeScenarioDeTest(partie, scenario), 0);
+    const { partie, jetons, lancement } = ouvrirLaPartie(entete);
+    r = { partie, jetons, entete, gestes: [], journal: [], reprises: [] };
+    absorber(r, lancement, 0);
     for (const geste of gestes) {
       ligne++;
       jouerUnGeste(r, geste);
     }
     return r;
   } catch (erreur) {
-    partie.fermer();
+    r?.partie.fermer();
     const message = erreur instanceof Error ? erreur.message : String(erreur);
     throw new ErreurDeGeste('validation', `ligne ${ligne} du fichier ne se rejoue plus : ${message}`);
   }

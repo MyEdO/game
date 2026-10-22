@@ -5,14 +5,14 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP, porteesDuTour, tileFromKey,
+  effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS,
-  type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type Pt,
+  type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
 import { ecritALaForme, signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
-import { apercuDe, combattantsTries, pos, projeter as projeterAuxBornes, type BornesDeLaProjection, type CombattantProjete, type OffreEnVue, type Projection } from '../hote/projection';
+import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection } from '../hote/projection';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
 
@@ -54,13 +54,22 @@ export function borner(entrees: readonly string[], commande: Commande): string[]
   return gardees.map((l) => coupeAuMot(l, BORNES.largeur));
 }
 
+/** Une case écrite `(x,y)`, `(—)` sans case. */
+const pos = (p: [number, number] | null): string => (p ? `(${p[0]},${p[1]})` : '(—)');
+
+/** Un État écrit : son id, et sa valeur au-delà de 1 (`id×n`). */
+const etatEcrit = (id: string, valeur: number): string => (valeur > 1 ? `${id}×${valeur}` : id);
+
+/** Ce que vise l'aperçu du premier clic : sa cible, ou sa case. */
+const versEcrit = (a: Apercu): string => a.cible ?? pos(a.case);
+
 /** Ce qui attend le geste suivant : l'intention armée, l'aperçu du premier clic, la fin de tour armée ; une réponse dit
  *  ceux qu'un geste a levés. */
 export function enSuspens(etat: Jeu): string[] {
   const a = apercuDe(etat);
   return [
     ...(etat.localIntent ? [`intention ${etat.localIntent.actionId}`] : []),
-    ...(a ? [`aperçu ${a.genre} → ${a.vers}`] : []),
+    ...(a ? [`aperçu ${a.genre} → ${versEcrit(a)}`] : []),
     ...(etat.battle && endTurnArmed(etat.battle) ? ['fin de tour armée'] : []),
   ];
 }
@@ -85,7 +94,7 @@ export function ligneDeCombattant(c: CombattantProjete): string {
   if (c.distance !== null) parts.push(`d${c.distance}`);
   if (c.engage) parts.push('engagé');
   if (c.horsCombat) parts.push('hors combat');
-  if (c.etats.length) parts.push(`[${c.etats.join(', ')}]`);
+  if (c.etats.length) parts.push(`[${c.etats.map((e) => etatEcrit(e.id, e.valeur)).join(', ')}]`);
   return parts.join(' · ');
 }
 
@@ -143,8 +152,8 @@ function texteDeLigneDeJet(l: LigneDeJet): string {
 const ligneDeJets = (j: JetEnVue): string[] => replier(`jet ${j.flux} : ${j.lignes.map(texteDeLigneDeJet).join(' · ')}${
   j.oppose ? ` · ${j.oppose.gagnante === null ? 'égalité' : `gagne : ${j.lignes[j.oppose.gagnante]?.qui ?? `ligne ${j.oppose.gagnante + 1}`}`} · DR net ${signe(j.oppose.drNet)}` : ''}`);
 
-const ligneDApercu = (a: NonNullable<NonNullable<Projection['combat']>['apercu']>): string =>
-  `aperçu : ${a.genre} → ${a.vers}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
+const ligneDApercu = (a: Apercu): string =>
+  `aperçu : ${a.genre} → ${versEcrit(a)}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
 
 /** Les gestes d'un geste d'exploration tels que la vue les écrit : chaque argument à la forme de son paramètre. */
 export const gestesEcrits = (g: GesteDExploration): { verbe: string; args: unknown[] }[] =>
@@ -172,7 +181,7 @@ export function rendreLaVue(p: Projection): string[] {
       lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
       lignes.push(...replier(`champ : ${CLICS_DU_CHAMP.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
-    } else if (!c.fin) lignes.push(`barre ${c.barre}`);
+    } else if (!c.fin) lignes.push(`barre ${c.barre.forme} : ${c.barre.raison}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);
     if (p.fenetre) lignes.push(ligneDeFenetre(p.fenetre), ...ligneDeVerbes(p.fenetre));
@@ -316,7 +325,7 @@ export function rendreLaFiche(etat: Jeu, id: string): string[] | null {
     `carac : ${ch}`,
     `armes : ${c.weapons.map((w) => w.label).join(' · ') || 'aucune'}`,
     `armure (PA) : ${LOCALISATIONS_DE_COUP.map((loc) => `${loc} ${effectiveArmourAt(c, loc)}`).join(' · ')}`,
-    `États : ${c.conditions.map((e) => (e.value > 1 ? `${e.id}×${e.value}` : e.id)).join(', ') || 'aucun'}`,
+    `États : ${c.conditions.map((e) => etatEcrit(e.id, e.value)).join(', ') || 'aucun'}`,
     `compétences : ${c.skills.map((s) => s.id).join(', ') || 'aucune'}`,
     `talents : ${c.talents.map((t) => t.talentId).join(', ') || 'aucun'}`,
   ], 'fiche');
@@ -343,18 +352,9 @@ export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string
   return borner([...combattants.map((c) => `${c.id === p.combat!.actif?.id ? '> ' : '  '}${ligneDeCombattant(c)}`), ...suite], 'carte');
 }
 
-/** Les cases que le champ peint au tour de l'actif (`porteesDuTour`, le lecteur de sa surbrillance), par zone et par
- *  coût, une page de `BORNES.cases` cases (`depuis`). Hors combat, ou hors du tour du joueur : aucune. */
-export function casesAtteignables(etat: Jeu, monTour: boolean): { zone: string; case: Pt; cout: number }[] {
-  if (!etat.battle) return [];
-  const portees = porteesDuTour(() => etat, monTour);
-  return (Object.entries(portees) as [string, Map<string, number>][]).flatMap(([zone, cases]) =>
-    [...cases].map(([cle, cout]) => ({ zone, case: tileFromKey(cle), cout })).sort((a, b) => a.cout - b.cout || a.case.y - b.case.y || a.case.x - b.case.x));
-}
-
 /** `cases` (`BORNES.lignes.cases`) : les zones et leur compte, puis une ligne par zone et par tranche de
  *  `BORNES.casesParLigne` cases, « (x,y)·coût ». */
-export function rendreLesCases(cases: readonly { zone: string; case: Pt; cout: number }[], depuis?: number): string[] {
+export function rendreLesCases(cases: readonly CaseAtteignable[], depuis?: number): string[] {
   if (!cases.length) return ['aucune case atteignable (hors combat, ou hors du tour d’un héros de ce siège)'];
   const debut = Math.max(0, depuis ?? 0);
   const pageDeCases = cases.slice(debut, debut + BORNES.cases);

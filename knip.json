@@ -8,11 +8,12 @@
     "scripts/**/*.{mjs,mts,ts}",
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
-    "src/hoteTexte/serveur.ts"
+    "src/hoteTexte/serveur.ts",
+    "hotes/godot/pont/entree.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
-    "hotes/**/*.{ts,tsx}",
+    "hotes/**/*.{ts,tsx,mjs}",
     "scripts/**/*.{mjs,mts,ts}"
   ],
   "ignore": [

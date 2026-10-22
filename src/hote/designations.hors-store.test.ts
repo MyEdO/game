@@ -1,7 +1,7 @@
 /**
  * LES DÉSIGNATIONS DES VERBES (#2898, #2928) : la table du noyau (`DESIGNATIONS`, src/noyau/designations.ts) est la seule
  * source des ids qu'un paramètre de verbe désigne : les paramètres des verbes (`VERBES`, lus du type du noyau) portent
- * chacune de ses clés, et aucune autre ; `argumentsDuVerbe` (`partie.ts`) contrôle un id contre elle.
+ * chacune de ses clés, et aucune autre ; `argumentsDuVerbe` (`geste.ts`) contrôle un id contre elle.
  */
 import { describe, it, expect } from 'vitest';
 import { DESIGNATIONS } from '../noyau/index';
