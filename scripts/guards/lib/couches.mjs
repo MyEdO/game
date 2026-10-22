@@ -1,7 +1,7 @@
 // LES ZONES DU DÉPÔT ET LEURS SENS D'IMPORT (#2882, #2928 ; AGENTS.md règle 3). Une seule source : le mur
 // `murs/purete-imports` et le mur `murs/zone` (`couchesLint.mjs`), la fermeture du noyau (`fermetureDuNoyau.mjs`), la
-// suite du noyau (`racinesDeLaSuite.mjs`), le périmètre des gardes (`commentPoison.mjs`), les couches CSS
-// (`cssCouches.mjs`) et les lectures des gates (`scripts/gates/toutes.mjs`) la lisent,
+// suite du noyau (`racinesDeLaSuite.mjs`), les couches CSS (`cssCouches.mjs`) et les racines que l'arbre
+// porte (`racinesPresentes.mjs`) la lisent,
 // `docs/architecture.md` la décrit. Plan : `docs/plans/2026-10-19-restructuration.md`.
 //
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
@@ -10,9 +10,7 @@
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type.
 // Toute autre zone lui est fermée, même pour un type.
-import { existsSync } from 'node:fs';
-import { dirname, join, posix as cheminPosix } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { posix as cheminPosix } from 'node:path';
 
 /** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, l'entrée de la fermeture
  *  (`fermetureDuNoyau.mjs`), le seul module de `src/noyau/` qui réexporte (`reexportations.mjs`). */
@@ -56,12 +54,6 @@ export const dossierDe = (z) => COUCHES[z].dossier ?? `src/${z}`;
 /** Les dossiers de premier niveau du dépôt qui portent une zone (`src`, `hotes`). */
 export const RACINES_DES_ZONES = Object.freeze([...new Set(Object.keys(COUCHES).map((z) => dossierDe(z).split('/')[0]))]);
 
-/** Celles que l'arbre de ce module porte, lues au chargement : une racine sans dossier n'a rien à lire. Le périmètre des
- *  gardes (`commentPoison.mjs`) et les lectures des gates (`ECRIT_LU`, `scripts/gates/toutes.mjs`) en dérivent. Le
- *  chemin se joint au dossier du module, jamais par `new URL(gabarit, import.meta.url)`, que Vite réécrit en import
- *  d'actifs sous un environnement de navigateur (`jsdom`). */
-const DEPOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-export const RACINES_PRESENTES = Object.freeze(RACINES_DES_ZONES.filter((r) => existsSync(join(DEPOT, r))));
 
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte (`portes`). */
 export const HOTES_DU_NOYAU = Object.freeze(Object.keys(COUCHES).filter((z) => COUCHES[z].portes?.noyau === SURFACE_DU_NOYAU));

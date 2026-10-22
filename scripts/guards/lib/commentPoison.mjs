@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { allAbbrAlternation } from '../../raw/_lib.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
 import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
-import { RACINES_PRESENTES } from './couches.mjs';
+import { RACINES_PRESENTES } from './racinesPresentes.mjs';
 
 /** PÉRIMÈTRE DES GARDES — SOURCE UNIQUE des trois portes anti-poison (suite Vitest, pre-commit, hook
  *  au stylo) et du corpus des gardes qui balaient l'arbre (`corpusDesGardes`). Un fichier hors de ce

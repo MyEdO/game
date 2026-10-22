@@ -20,7 +20,6 @@ export function dossierDe(z: string): string;
 
 /** Les dossiers de premier niveau du dépôt qui portent une zone. */
 export const RACINES_DES_ZONES: readonly string[];
-export const RACINES_PRESENTES: readonly string[];
 
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte. */
 export const HOTES_DU_NOYAU: readonly string[];
