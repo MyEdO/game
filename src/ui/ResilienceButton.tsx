@@ -1,5 +1,6 @@
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
+import { t } from '../i18n';
 
 /**
  * Bouton « Je ne faillirai pas ! » (Résilience, LDB 17 l.68) : sacrifie un Point de Résilience
@@ -14,7 +15,7 @@ import { CodexRef } from './compendium/CodexRef';
  */
 export function ResilienceButton({ resilience, show, onForce }: { resilience: number; show: boolean; onForce: () => void }) {
   if (resilience <= 0 || !show) return null;
-  const label = <><Icon id="fire/flame" size="sm" /> Résilience ×{resilience}</>;
+  const label = <><Icon id="fire/flame" size="sm" /> {t('verbe.forceSuccess')} ×{resilience}</>;
   return (
     <CodexRef category="characteristics" id="resilience" label="Résilience" instance="Je ne faillirai pas !" wrap>
       <button

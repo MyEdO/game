@@ -10,6 +10,7 @@ import { ev } from '../noyau/combatLog';
 import { describeFocus } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Modale de Focalisation (LDB — Test étendu de Focalisation) : « Lancer » accumule du DR vers le NI,
@@ -58,8 +59,8 @@ export function FocusModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'always' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

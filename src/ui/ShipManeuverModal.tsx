@@ -8,6 +8,7 @@ import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildP
 import { OptionChooser, type RollOption } from './OptionChooser';
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
+import { t } from '../i18n';
 
 /** Virages proposés (MDG 13 — angle abstrait, choix d'UX) : crans d'octant signés (±1 = 45°, ±2 = 90°). */
 const TURN_OPTIONS: { key: string; label: string; steps: number }[] = [
@@ -60,7 +61,7 @@ export function ShipManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'always' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
     ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, when: 'pre' as const }] : []),
     { key: 'confirm', label: 'Manœuvrer', onClick: confirm, when: 'always', disabled: !allRolled },
   ];

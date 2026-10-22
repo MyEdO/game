@@ -5,6 +5,8 @@ import { TableRollLine } from '../RollLine';
 import { Icon } from '../Icon';
 import { drawRow } from '../rollRowBuild';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
+import { libelleDuJet } from '../../noyau/libelles';
+import { t } from '../../i18n';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET de Maladresse (Tableau des Oups !,
@@ -27,7 +29,7 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
   const r = step.fumble.result;
   const rolled = !!r;
   return {
-    title: <><Icon id="nav/dice" size="sm" /> Maladresse</>,
+    title: <><Icon id="nav/dice" size="sm" /> {libelleDuJet('fumble')}</>,
     // Z1 : l'ACTEUR et le FAIT qui ouvre la fenêtre. Le NOM DE LA TABLE se lit sur la ligne de tirage
     // (`TableRollLine`, ci-dessous) et sur le bouton de lancement — jamais une troisième fois ici.
     subtitle: `${combatant.label} — Test de combat raté sur un double`,
@@ -42,6 +44,6 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
         rollFrisson: true,
       }),
     ],
-    actions: [{ key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' }],
+    actions: [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' }],
   };
 }

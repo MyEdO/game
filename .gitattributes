@@ -19,6 +19,7 @@
 *.mp3  binary
 *.ogg  binary
 *.wav  binary
+*.glb  binary
 
 # --- Pilotes de fusion LOCAUX : déclarés par `npm run postinstall` (git config merge.<nom>.driver). ---
 # GitHub n'exécute aucun pilote de fusion : une PR qui touche un fichier piloté en même temps que

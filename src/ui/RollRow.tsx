@@ -18,9 +18,10 @@ import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
 import type { FLOW_VERBS } from '../noyau/flowVerbs';
 import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
+import { t } from '../i18n';
 
 /** Libellé par défaut du bouton « Lancer » (rangée seule ET coquille `RollShell` hissée). */
-export const DEFAULT_ROLL_LABEL = <><Icon id="nav/dice" size="sm" /> Lancer</>;
+export const defaultRollLabel = (): ReactNode => <><Icon id="nav/dice" size="sm" /> {t('verbe.roll')}</>;
 
 /**
  * Une RANGÉE de jet (mono OU participant d'un flux MULTI), pendant UI de la fabrique `makeRollFlow`
@@ -45,7 +46,7 @@ export function RollRow({
   rerolled,
   lost,
   interactive = true,
-  rollLabel = DEFAULT_ROLL_LABEL,
+  rollLabel = defaultRollLabel(),
   onRoll,
   onReroll,
   onBonusSL,

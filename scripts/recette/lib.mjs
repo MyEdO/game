@@ -203,11 +203,12 @@ function validerProcessus(processus) {
 export const COMMANDE_PROCESSUS_CIM = 'ConvertTo-Json -Compress -InputObject @(Get-CimInstance Win32_Process -Filter "ProcessId > 0" | ForEach-Object { if (-not $_.CreationDate) { throw "date de creation absente, PID $($_.ProcessId)" }; [pscustomobject]@{ ProcessId = $_.ProcessId; ParentProcessId = $_.ParentProcessId; Cree = [int64]($_.CreationDate.ToUniversalTime() - [datetime]\'1970-01-01\').TotalMilliseconds } })';
 
 /** Instantané PID/parent/création (`cree`, ms epoch, EXIGÉE) via CIM sous Windows, à la milliseconde,
- *  ps ailleurs (`etimes`, à la seconde, d'où `TOLERANCE_CREATION_MS`) ; toute observation illisible refuse. */
+ *  ps ailleurs (`etimes`, à la seconde, d'où `TOLERANCE_CREATION_MS`) ; toute observation illisible refuse. Un zombie
+ *  (`stat` en `Z`) est un processus mort, que son parent n'a pas recueilli : il n'est pas de l'instantané. */
 export function lireProcessus({ plateforme = process.platform, executer = spawnSync, horloge = Date.now } = {}) {
   const r = plateforme === 'win32'
     ? executer('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', COMMANDE_PROCESSUS_CIM], { encoding: 'utf8' })
-    : executer('ps', ['-eo', 'pid=,ppid=,etimes='], { encoding: 'utf8' });
+    : executer('ps', ['-eo', 'pid=,ppid=,etimes=,stat='], { encoding: 'utf8' });
   if (r.error) throw r.error;
   if (r.status !== 0) throw new Error(`killChromeTree : observation des processus impossible (code ${r.status}) — ${r.stderr || ''}`);
   if (plateforme === 'win32') {
@@ -217,11 +218,11 @@ export function lireProcessus({ plateforme = process.platform, executer = spawnS
   }
   const maintenant = horloge();
   const lignes = r.stdout.trim().split('\n').filter(Boolean).map((s) => {
-    const ligne = /^\s*(\d+)\s+(\d+)\s+(\d+)\s*$/.exec(s);
+    const ligne = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s*$/.exec(s);
     if (!ligne) throw new Error('killChromeTree : ligne de processus malformée « ' + s + ' »');
-    return { pid: Number(ligne[1]), parent: Number(ligne[2]), cree: Math.max(0, maintenant - Number(ligne[3]) * 1000) };
+    return { pid: Number(ligne[1]), parent: Number(ligne[2]), cree: Math.max(0, maintenant - Number(ligne[3]) * 1000), zombie: ligne[4].startsWith('Z') };
   });
-  return validerProcessus(lignes);
+  return validerProcessus(lignes).filter((p) => !p.zombie).map(({ pid, parent, cree }) => ({ pid, parent, cree }));
 }
 
 /** ÉCHÉANCE d'extinction d'un Chrome et de libération de son profil, qui tient la CHARGE : #2540, une
@@ -520,15 +521,16 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * pendant deux jours des écrans qui rendaient juste à leur largeur de référence (lot « matières &
  * proportions », #393), et les 900px de haut des recettes suivantes ne tiennent sur AUCUN de ses
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
+ * `args` : des drapeaux de Chrome propres à la recette (le WebGL logiciel de l'hôte Godot, `hotes/godot/recette.mjs`).
  */
-export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000 } = {}) {
+export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000, args = [] } = {}) {
   const lancement = chromeDeLaMachine(chromePath);
   const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), nomDeProfil(process.pid));
   mkdirSync(profile, { recursive: true });
   const chrome = spawn(lancement.chemin, [
     ...lancement.args, '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
-    `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', 'about:blank',
+    `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', ...args, 'about:blank',
   ], { ...OPTIONS_SPAWN_CHROME });
   const childEntry = { chrome, profile };
   activeChildren.add(childEntry);

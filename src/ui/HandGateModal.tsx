@@ -7,6 +7,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { Icon } from './Icon';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Test de Dextérité (+20) PAR ACTION de « Main ensanglantée » (Aux Armes bras 46-50, l.2569) : interposé
@@ -50,8 +51,8 @@ export function HandGateModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

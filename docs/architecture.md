@@ -482,6 +482,12 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
+  projet/                   le projet Godot 4.7 (GDScript, scènes, modèles KayKit et leur licence) : il dessine la
+                            vue et rend chaque geste en intention, sans règle (gardes
+                            `src/hote/derive-du-noyau.hors-store.test.ts`, `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
+                            jetons armés en minuteurs. `construire.mjs --sonde` l'importe et contrôle chaque script
+                            avec l'éditeur épinglé (`npm run godot:sonde`, étape de la CI) ; `--export --sortie`
+                            produit l'export Web, que `recette.mjs` joue au navigateur, un tour complet.
 src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;

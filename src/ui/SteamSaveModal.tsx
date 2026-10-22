@@ -7,6 +7,7 @@ import { testBreakdown, testPending } from './breakdown';
 import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Sauvegarde d'Initiative d'une PANNE DE VAPEUR « Fuite de vapeur » (MDG 12 l.326-328) : la personne qui
@@ -43,7 +44,7 @@ export function SteamSaveModal() {
     resilience: actor?.resilience ?? 0,
   });
 
-  const actions: RollAction[] = [{ key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' }];
+  const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' }];
   const text = !rolled
     ? 'Un jet de vapeur jaillit de la chaudière — Test d’Initiative ou ébouillanté.'
     : p.success ? `${p.actorName} esquive le jet de vapeur.` : `${p.actorName} est ébouillanté par le jet de vapeur !`;

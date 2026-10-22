@@ -12,6 +12,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeAppraise } from '../noyau/flowOutcomes';
 import { libelleDEvaluation } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
 const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };
@@ -71,8 +72,8 @@ export function AppraiseModalView({
 
   const actions: RollAction[] = owned
     ? [
-        { key: 'cancel', label: 'Annuler', onClick: onCancel, when: 'pre' },
-        { key: 'confirm', label: 'Appliquer', onClick: onConfirm, when: 'post' },
+        { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, when: 'pre' },
+        { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, when: 'post' },
       ]
     : [];
 

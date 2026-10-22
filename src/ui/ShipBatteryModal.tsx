@@ -5,6 +5,7 @@ import { RollShell, type RollAction } from './RollShell';
 import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
+import { t } from '../i18n';
 
 /**
  * Modale du TIR DE BATTERIE (« bordée », MDG 14 l.128) — JUMEAU de `ShipManeuverModal` (flux MULTI,
@@ -44,7 +45,7 @@ export function ShipBatteryModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'always' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
     ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, when: 'pre' as const }] : []),
     { key: 'confirm', label: <><Icon id="fire/flame" size="sm" /> Feu !</>, onClick: confirm, when: 'always', disabled: !allRolled },
   ];

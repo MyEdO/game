@@ -648,10 +648,10 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
    *  est NOMMÉ (`refuserGeste`). */
   windowAcross: (from: Pt, to: Pt) => void;
-  /** DÉCLARATION pré-jet de la rangée `tombantId` (LDB 15 l.82 « vous pouvez tenter ») : `true` = Test,
+  /** DÉCLARATION pré-jet de la rangée `pid` (LDB 15 l.82 « vous pouvez tenter ») : `true` = Test,
    *  `false` = chute PLEINE sans Test. Quand toutes les rangées sautent sans Test, l'étape se résout. */
   /** `suspendre` : l'axe hauteur (EDO 01 l.231), exigé quand `pendingFall.suspendu` est offert. */
-  fallChoose: (tombantId: string, attempt: boolean, suspendre?: boolean) => void;
+  fallChoose: (pid: string, attempt: boolean, suspendre?: boolean) => void;
   // fall{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
   fallConfirm: () => void;
   fallCancel: () => void;
@@ -867,6 +867,6 @@ export interface GesteDuNoyau {
   args: unknown[];
 }
 
-/** Les clics du champ de bataille : viser un combattant, viser une case. Un premier clic pose l'aperçu, le même clic
- *  le confirme (`battle.preview`). */
-export const CLICS_DU_CHAMP = ['battleClickEntity', 'battleClickTile'] as const satisfies readonly (keyof ActionsDuNoyau)[];
+/** Les clics du champ de bataille, par ce qu'ils désignent : un combattant (son id), une case (`Pt`). Un premier clic
+ *  pose l'aperçu, le même clic le confirme (`battle.preview`). */
+export const CLICS_DU_CHAMP = { combattant: 'battleClickEntity', case: 'battleClickTile' } as const satisfies Record<string, keyof ActionsDuNoyau>;

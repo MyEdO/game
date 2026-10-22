@@ -329,7 +329,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // focalisé, son activation native suffit (pas de double appel). La touche est un CONSOMMATEUR du
   // registre d'actions (`round-start`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
   {
-    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.roundStart', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
+    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.confirmRoundStart', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
     run: (g) => runAction('round-start', g),
   },

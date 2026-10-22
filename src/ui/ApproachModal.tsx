@@ -8,6 +8,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeApproach } from '../noyau/flowOutcomes';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Modale d'APPROCHE d'une source de Peur (LDB 21 l.27) : Test SEC de `pendingApproach.test` qui diffère le
@@ -49,8 +50,8 @@ export function ApproachModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

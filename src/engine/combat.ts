@@ -580,7 +580,7 @@ const bd = (label: string, base: number, t: TestResult, c?: DifficultyCompositio
     sl: t.sl,
   };
 };
-export const DEFENSE_LABEL: Record<'parade' | 'esquive', string> = { parade: t('defense.parade'), esquive: t('defense.esquive') };
+export const DEFENSE_LABEL: Record<'parade' | 'esquive', string> = { parade: t('valeur.parade'), esquive: t('valeur.esquive') };
 
 /**
  * Combiner les Difficultés (LDB `14 - _GoBack.md` l.91-96) — le plafond borne la combinaison des

@@ -10,6 +10,7 @@ import { ev } from '../noyau/combatLog';
 import { describeRun } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Modale de Course (LDB 15 l.41) : « Lancer » jette le Test de `pendingRun.test`,
@@ -51,8 +52,8 @@ export function RunModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

@@ -1,14 +1,13 @@
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
-import { garanti } from '../../lib/garanti';
-import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE, parryWeaponOf } from '../../noyau/rollFlowSpecs';
+import { FLOWS, opposedForcingCancelled, OPPOSED_FORCING_CANCELLED_NOTE } from '../../noyau/rollFlowSpecs';
+import { fenetreDeDefense } from '../../noyau/fenetreDeDefense';
+import { libelleDuJet } from '../../noyau/libelles';
+import { t } from '../../i18n';
 import { defenseDodgeMods, defenseGagneeEnMelee } from '../../noyau/combatFlow';
-import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, DEFENSE_LABEL, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
+import { defenseValue, defenseBaseValue, defenseValueModParts, defenseModifiers, defenseTestOf, issueAuJet, coupAApplique, type DefenseMode } from '../../engine/combat';
 import { shieldReactionCost, contreSurDefenseGagnee, contresEpuisees } from '../../engine/combatFeatures/dispatch';
-import { combatSubstitute } from '../../engine/skillCombatApps';
-import { byId } from '../../data/index';
 import { composeRollLabel } from '../../noyau/rollSeam';
-import { isUnarmed } from '../../engine/items';
 import { RollShell, type RollAction } from '../RollShell';
 import { opposedResponded } from '../opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from '../rollRowBuild';
@@ -20,6 +19,13 @@ import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
 import { CodexRef } from '../compendium/CodexRef';
+
+/** Le titre d'une réaction de Défense, au survol de son option. */
+function titreDeLaReaction(mode: DefenseMode, libelle: string): string {
+  if (mode === 'parade') return 'Parer avec son arme (Corps à corps)';
+  if (mode === 'esquive') return 'Esquiver (Agilité)';
+  return `${libelle} à la place de Corps à corps : l’attaquant a peur de vous`;
+}
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET de défense réactive — hook à part de
@@ -45,25 +51,22 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   const reverseVerb = useGame((s) => s.defenseReverse);
   const confirm = useGame((s) => s.defenseConfirm);
   const spendResolve = useGame((s) => s.spendResolveCondition);
-  if (!pd || !battle) return null;
-  const attacker = battle.combatants.find((c) => c.id === pd.attackerId);
-  const defender = battle.combatants.find((c) => c.id === pd.defenderId);
+  const vue = pd && battle ? fenetreDeDefense(useGame.getState()) : null;
+  if (!pd || !battle || !vue) return null;
+  const attacker = battle.combatants.find((c) => c.id === vue.attaquantId);
+  const defender = battle.combatants.find((c) => c.id === vue.defenseurId);
   if (!attacker || !defender) return null;
   const res = pd.result;
   const issue = res ? issueAuJet(defender, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defender), pd.weapon, attacker) : null;
   const rolled = !!res;
-  // Armes pouvant parer (hors Mains nues) ; arme de parade = celle du jet (`parryWeaponOf`).
-  const parryPickable = defender.weapons.filter((w) => !isUnarmed(w) && !!w.uid);
-  const chosenParry = parryWeaponOf(defender, pd);
+  // Armes pouvant parer et arme de parade du jet : la fenêtre de Défense du noyau (`fenetreDeDefense`).
+  const chosenParry = vue.parade;
   // Lignes d'Esquive du contexte (neige, monté) : MÊME source que le jet résolu (`defenseDodgeMods`).
   const dodgeMods = defenseDodgeMods(useGame.getState(), defender);
-  // Substitution sociale (LDB 09 l.207/287) : proposée en MÊLÉE quand une Compétence sociale
-  // (Intimidation/Dressage `combatSubstitute`) est utilisable en défense — l'attaquant a PEUR du
-  // défenseur (gate `fear`). Data-driven : l'option existe parce que la donnée+le gate le disent.
-  const sub = pd.weapon.type === 'melee' ? combatSubstitute(defender, attacker, 'defense') : null;
-  const socialLabel = sub ? garanti(byId('skill', sub.skillId), sub.skillId, 'compétence de substitution').label : undefined;
+  // Substitution sociale de la réaction : la fenêtre de Défense du noyau (`fenetreDeDefense.social`).
+  const sub = vue.social;
   // Base de la défense sociale (mode 'social') = valeur de Test de la Compétence substituée.
-  const socialBase = pd.mode === 'social' ? sub?.value : undefined;
+  const socialBase = pd.mode === 'social' ? sub?.valeur : undefined;
   // MA ligne pré-remplie : valeur + mods de la défense CHOISIE (recalculés à chaque changement). La météo
   // « Tests physiques » du jour (#341) arrive par le CANAL UNIQUE : `defenseModifiers` lit `defender.envWeather`
   // et pousse la ligne « Météo » scopée par la carac du mode (Parade→CC, Esquive→Agilité) — zéro câblage ici.
@@ -71,19 +74,17 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // la valeur jetée.
   const myMods = [...defenseValueModParts(defender, pd.mode, chosenParry), ...defenseModifiers(defender, pd.mode, dodgeMods, pd.mode === 'parade' ? chosenParry : undefined)];
   const myBase = defenseBaseValue(defender, pd.mode, chosenParry, socialBase);
-  const myLabel = pd.mode === 'social' ? (socialLabel ?? 'Intimidation') : DEFENSE_LABEL[pd.mode];
+  const myLabel = vue.test;
   // Z1 (`docs/charte-ui.md`) : le DÉFENSEUR, et les ids du Test du mode CHOISI (`defenseTestOf`, LDB 13 l.161-167).
   const defenseTest = defenseTestOf(defender, pd.mode, chosenParry, pd.substituteSkillId ?? sub?.skillId);
   // Valeurs affichées sur le segmented control (chaque option montre SA valeur effective).
   const segVal = (mode: DefenseMode) =>
-    optionValue(defenseValue(defender, mode, chosenParry, mode === 'social' ? sub?.value : undefined), defenseModifiers(defender, mode, dodgeMods, mode === 'parade' ? chosenParry : undefined));
+    optionValue(defenseValue(defender, mode, chosenParry, mode === 'social' ? sub?.valeur : undefined), defenseModifiers(defender, mode, dodgeMods, mode === 'parade' ? chosenParry : undefined));
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant).
   const reverseAvail = rolled && FLOWS.defense.reverseAvailable(useGame.getState);
   const reversePreview = reverseAvail ? FLOWS.defense.reversePreview(useGame.getState) : null;
-  // `pd.modes` (tir) limite les réactions proposées ; absent = mêlée (Parade + Esquive). Filtre seul.
-  const allowMode = (m: 'parade' | 'esquive') => !pd.modes || pd.modes.includes(m);
 
   // Réaction de Porte-Bouclier (variante « Avantage de groupe », AA 13 l.84) : offerte quand on se défend
   // au Bouclier (parade), 1×/Round, si la réserve du camp (projetée sur `defender.advantage`) couvre le coût.
@@ -115,8 +116,8 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
       layout="seg"
       groupLabel={<CodexRef category="talents" id="riposte" label="Riposte" />}
       options={[
-        { key: 'oui', label: 'Oui', selected: riposte, refus: refusOui, onSelect: () => setRiposte(true) },
-        { key: 'non', label: 'Non', selected: !refusRiposte && !riposte, refus: refusRiposte ?? (res ? JET_LANCE : undefined), onSelect: () => setRiposte(false) },
+        { key: 'oui', label: t('valeur.oui'), selected: riposte, refus: refusOui, onSelect: () => setRiposte(true) },
+        { key: 'non', label: t('valeur.non'), selected: !refusRiposte && !riposte, refus: refusRiposte ?? (res ? JET_LANCE : undefined), onSelect: () => setRiposte(false) },
       ]}
     />
   );
@@ -125,8 +126,8 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
       layout="seg"
       groupLabel={<CodexRef category="talents" id="porte-bouclier" label="Porte-bouclier">Porte-bouclier ({reactionCost} Av.)</CodexRef>}
       options={[
-        { key: 'damage', label: 'Dégâts', selected: pd.shieldReaction === 'damage', refus: refusReaction('damage'), onSelect: () => toggleReaction('damage') },
-        { key: 'push', label: 'Repousser', selected: pd.shieldReaction === 'push', refus: refusReaction('push'), onSelect: () => toggleReaction('push') },
+        { key: 'damage', label: t('valeur.damage'), selected: pd.shieldReaction === 'damage', refus: refusReaction('damage'), onSelect: () => toggleReaction('damage') },
+        { key: 'push', label: t('valeur.push'), selected: pd.shieldReaction === 'push', refus: refusReaction('push'), onSelect: () => toggleReaction('push') },
       ]}
     />
   );
@@ -176,14 +177,14 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return {
     flowKey: 'defense',
-    title: 'Défense',
-    subtitle: composeRollLabel(defender, 'Défense', defenseTest),
-    extra: <VsHeader actor={attacker} target={defender} label={pd.weapon?.label ?? 'Mains nues'} />,
+    title: libelleDuJet('defense'),
+    subtitle: composeRollLabel(defender, libelleDuJet('defense'), defenseTest),
+    extra: <VsHeader actor={attacker} target={defender} label={vue.arme} />,
     disableEscClose: true,
     rolled,
     /* Options pré-jet (Parade/Esquive/social + arme de parade) + bouton Détermination (retirer un État). */
@@ -193,23 +194,22 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
           {/* Réaction : segmented control PARTAGÉ — chaque option affiche SA valeur effective (mods compris). */}
           <OptionChooser
             layout="seg"
-            groupLabel="Réaction"
-            options={[
-              ...(allowMode('parade') ? [{ key: 'parade', label: 'Parade', value: segVal('parade'), selected: pd.mode === 'parade', title: 'Parer avec son arme (Corps à corps)', onSelect: () => setMode('parade') }] : []),
-              ...(allowMode('esquive') ? [{ key: 'esquive', label: 'Esquive', value: segVal('esquive'), selected: pd.mode === 'esquive', title: 'Esquiver (Agilité)', onSelect: () => setMode('esquive') }] : []),
-              ...(sub ? [{ key: 'social', label: socialLabel!, value: segVal('social'), selected: pd.mode === 'social', title: `${socialLabel} à la place de Corps à corps : l’attaquant a peur de vous`, onSelect: () => setMode('social', sub.skillId) }] : []),
-            ]}
+            groupLabel={vue.reaction.libelle}
+            options={vue.reaction.options.map((o) => {
+              const mode = o.valeur as DefenseMode;
+              return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode, mode === 'social' ? sub?.skillId : undefined) };
+            })}
           />
-          {pd.mode === 'parade' && parryPickable.length >= 2 && (
+          {vue.armeDeParade && (
             <div className="rm-loc-inline">
-              <span className="mini-title">Parer avec</span>
+              <span className="mini-title">{vue.armeDeParade.libelle}</span>
               <select
                 className="rm-loc-select"
-                value={pd.parryWeaponUid ?? chosenParry?.uid ?? ''}
+                value={vue.armeDeParade.choisie ?? ''}
                 onChange={(e) => setParry(e.target.value || null)}
               >
-                {parryPickable.map((w) => (
-                  <option key={w.uid} value={w.uid}>{w.label}{w.hand === 'off' ? ' (2nde)' : ''}</option>
+                {vue.armeDeParade.options.map((o) => (
+                  <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>
                 ))}
               </select>
               <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>

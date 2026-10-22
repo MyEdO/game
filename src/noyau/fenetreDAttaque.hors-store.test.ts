@@ -50,8 +50,9 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
       expect(avant.cibleId).toBe(E.id);
       expect(avant.sousTitre.startsWith(`${H.label} — Attaque`), avant.sousTitre).toBe(true);
       expect(avant.enTete).toContain('Dégâts +');
-      expect(avant.localisation!.choisie).toBe('');
-      expect(avant.localisation!.options.map((o) => o.valeur).sort()).toEqual(['', ...LOCALISATIONS_DE_COUP].sort());
+      expect(avant.localisation).toMatchObject({ verbe: 'attackSetLocation', choisie: null });
+      expect(avant.localisation!.options.map((o) => o.valeur)).toEqual(expect.arrayContaining([null, ...LOCALISATIONS_DE_COUP]));
+      expect(avant.localisation!.options).toHaveLength(LOCALISATIONS_DE_COUP.length + 1);
       expect(avant.jet && 'pending' in avant.jet ? avant.jet.pending.labelRef.category : null).toBe('skills');
       expect(avant.defense && 'pending' in avant.defense, 'la défense adverse n’est pas annoncée').toBe(true);
       expect(avant.influences).toMatchObject({ relancee: false, sombrePacte: true, inversion: null });
@@ -62,7 +63,7 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
       const cibleDe = (f: FenetreDAttaque) => (f.jet && 'pending' in f.jet ? f.jet.pending.target : null);
       expect(cibleDe(visee), 'viser une Localisation ne change pas la cible annoncée').not.toBe(cibleDe(avant));
       partie.envoyer({ type: 'attackSetLocation', args: [null] });
-      expect(vue(partie).localisation!.choisie).toBe('');
+      expect(vue(partie).localisation!.choisie).toBeNull();
 
       partie.envoyer({ type: 'attackRoll', args: [] });
       partie.envoyer({ type: 'attackSetForcedRoll', args: [11] });
