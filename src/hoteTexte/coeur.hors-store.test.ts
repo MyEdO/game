@@ -7,7 +7,8 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { empreinte, jouerUnGeste, lireLeFichier, nouvelEntete, rejouer } from './partieTexte';
+import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from './partieTexte';
+import { nouvelEntete } from '../hote/partie';
 import { fermerLaTable, partie, table, verbe } from './hote.testkit';
 import type { GesteDeLAgent } from './serveur';
 

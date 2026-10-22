@@ -2,8 +2,9 @@
 // `src/noyau/surface-fermeture-guard.test.ts`.
 //
 // Question : ce qu'un hôte externe importe (`ENTREES_FERMEES` : la surface `src/noyau/index.ts`, les scénarios
-// de test qu'il lance, le module commun des hôtes `src/hote/`, #2928, et l'entrée de l'hôte texte, #2898) charge-t-il à
-// l'EXÉCUTION un module d'un hôte web ou d'interface ? Réponse
+// de test qu'il lance, le module commun des hôtes `src/hote/`, #2928, l'entrée de l'hôte texte, #2898, et les modules
+// des hôtes externes `hotes/`, dont le pont de Godot, #2928) charge-t-il à l'EXÉCUTION un module d'un hôte web ou
+// d'interface ? Réponse
 // attendue : aucun fichier de `ZONES_D_HOTE`, aucun paquet de `PAQUETS_D_HOTE`.
 // La table `COUCHES` (`couches.mjs`) n'ouvre, en valeur, aucune zone d'hôte aux zones de la fermeture, mais n'en
 // répond pas seule : `murs/purete-imports` ne juge ni paquet ni les angles morts de son en-tête (`couchesLint.mjs`) ;
@@ -19,17 +20,20 @@ import { clotureDImports } from './importGraph.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
 import { SURFACE_DU_NOYAU, dossierDe, zoneDe } from './couches.mjs'
 import { estRetenu } from './sourceCorpus.mjs'
+import { estKitDeTest } from './fichierVitest.mjs'
 
-/** Les modules du module commun des hôtes (#2928) : les fichiers de code (`estRetenu` : ni suite, ni banc, ni
- *  déclaration) que l'arbre de travail de ce dépôt porte sous `dossierDe('hote')`, ignorés exclus. */
-const MODULES_DU_COMMUN = listerImage(depotDe(fileURLToPath(new URL('../../..', import.meta.url))), TRAVAIL, dossierDe('hote'))
-  .filter((rel) => estRetenu(rel))
+const DEPOT = depotDe(fileURLToPath(new URL('../../..', import.meta.url)))
+
+/** Les modules de la zone `z` (#2928) : les fichiers de code TypeScript (`estRetenu` : ni suite, ni banc, ni
+ *  déclaration ; ni kit de test) que l'arbre de travail de ce dépôt porte sous `dossierDe(z)`, ignorés exclus. */
+const modulesDe = (z) => listerImage(DEPOT, TRAVAIL, dossierDe(z))
+  .filter((rel) => estRetenu(rel) && !estKitDeTest(rel))
   .sort()
 
 /** Les entrées qu'un hôte externe importe, mesurées chacune par `mesure` : la surface du noyau, le registre des
- *  scénarios de test dont il construit le lancement, chaque module du module commun des hôtes, et l'entrée de l'hôte
- *  texte (#2898). */
-export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', ...MODULES_DU_COMMUN, 'src/hoteTexte/serveur.ts'])
+ *  scénarios de test dont il construit le lancement, chaque module du module commun des hôtes, l'entrée de l'hôte
+ *  texte (#2898), et chaque module des hôtes externes (`hotes`, #2928), dont l'entrée du bundle du pont de Godot. */
+export const ENTREES_FERMEES = Object.freeze([SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts', ...modulesDe('hote'), 'src/hoteTexte/serveur.ts', ...modulesDe('hotes')])
 
 /** Les zones qu'aucun module de la fermeture ne charge. */
 export const ZONES_D_HOTE = Object.freeze(['state', 'ui', 'gameIso', 'web', 'net', 'audio'])

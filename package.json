@@ -21,6 +21,7 @@
     "test:watch": "node scripts/lancer-local.mjs vitest -- vitest",
     "test:noyau": "node scripts/lancer-local.mjs vitest -- vitest run --config vitest.noyau.config.ts",
     "hote-texte": "node scripts/hote-texte.mjs",
+    "pont:godot": "node hotes/godot/construire.mjs --pont-seul",
     "bench": "node scripts/lancer-local.mjs vitest -- vitest bench --run",
     "agents:sync": "node scripts/agents/compat-cli.mjs sync",
     "agents:check": "node scripts/agents/compat-cli.mjs check",

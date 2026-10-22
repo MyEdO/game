@@ -6,7 +6,8 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { lireLeFichier, ligneDuFichier, nouvelEntete, rejouer } from './partieTexte';
+import { lireLeFichier, ligneDuFichier, rejouer } from './partieTexte';
+import { nouvelEntete } from '../hote/partie';
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { gestesDExploration } from '../noyau/index';
 import { gestesEcrits } from './vue';

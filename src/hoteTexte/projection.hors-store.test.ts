@@ -10,8 +10,11 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { activeCombatant, combatDistance, mouvementDuTour, porteesDuTour, CLICS_DU_CHAMP } from '../noyau/index';
-import { lireLeFichier, nouvelEntete, rejouer, type Geste, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { BORNES, borner, casesAtteignables, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
+import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
+import { nouvelEntete } from '../hote/partie';
+import type { Geste } from '../hote/geste';
+import { casesAtteignables } from '../hote/projection';
+import { BORNES, borner, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {

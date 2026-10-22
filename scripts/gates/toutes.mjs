@@ -407,6 +407,15 @@ export const ECRIT_LU = {
       '`tsc --noEmit --incremental false` : aucune sortie, aucun `.tsbuildinfo` ; LIT package.json et ' +
       'vite.config.ts (mesurés à la sonde, hors des deux racines de `include`)',
   },
+  'pont:godot': {
+    ecrit: [],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    raison:
+      '`vite build` du pont de Godot (hotes/godot/construire.mjs, #2928) sans `--sortie` : `write: false`, le bundle reste ' +
+      'en mémoire, exécuté dans un `node:vm`, et rien ne s’écrit ; `configFile: false`, donc aucune config recompilée ; LIT les zones, scripts/ ' +
+      '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
+      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite)',
+  },
   lint: {
     ecrit: [],
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],

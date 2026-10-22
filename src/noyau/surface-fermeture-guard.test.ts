@@ -1,8 +1,8 @@
 /**
  * CE QU'UN HÔTE EXTERNE IMPORTE NE CHARGE AUCUN HÔTE (#2817 D9, #2898, #2928, épique #2882) : la fermeture d'exécution
  * de chaque entrée de `ENTREES_FERMEES` (la surface `src/noyau/index.ts`, les scénarios de test qu'un hôte lance, les
- * modules du module commun des hôtes, l'entrée de l'hôte texte) n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`,
- * `audio`, ni `react`. La mesure vit dans
+ * modules du module commun des hôtes, l'entrée de l'hôte texte, les modules des hôtes externes dont le pont de Godot)
+ * n'atteint ni `state`, `ui`, `gameIso`, `web`, `net`, `audio`, ni `react`, `zustand` ou `three`. La mesure vit dans
  * `scripts/guards/lib/fermetureDuNoyau.mjs`, qui dit pourquoi la table `COUCHES` ne l'implique pas.
  */
 import { beforeAll, describe, it, expect } from 'vitest';
@@ -17,12 +17,15 @@ import { detenteur } from '../detenteur.testkit';
 const TEMOINS: Readonly<Partial<Record<string, readonly string[]>>> = {
   [SURFACE_DU_NOYAU]: ['src/noyau/partie.ts', 'src/engine/combat.ts'],
   'src/scenes/test-scenarios/index.ts': ['src/scenes/test-scenarios/_shared.ts', 'src/scenes/campaign.ts', 'src/noyau/worldMap.ts'],
-  'src/hoteTexte/serveur.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', 'src/hoteTexte/outils.ts', 'src/hote/partie.ts', 'src/hote/projection.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
+  'src/hoteTexte/serveur.ts': ['src/hoteTexte/partieTexte.ts', 'src/hoteTexte/vue.ts', 'src/hoteTexte/outils.ts', 'src/hote/partie.ts', 'src/hote/geste.ts', 'src/hote/projection.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
+  'hotes/godot/pont/entree.ts': ['hotes/godot/pont/pont.ts', 'src/hote/partie.ts', 'src/hote/geste.ts', 'src/hote/projection.ts', SURFACE_DU_NOYAU, 'src/scenes/test-scenarios/index.ts'],
 };
 
-it('les entrées : la surface, les scénarios, chaque module du commun des hôtes lu dans l’arbre, l’entrée de l’hôte texte', () => {
+it('les entrées : la surface, les scénarios, chaque module du commun des hôtes et des hôtes externes lu dans l’arbre, l’entrée de l’hôte texte', () => {
   expect(ENTREES_FERMEES).toEqual(expect.arrayContaining(Object.keys(TEMOINS)));
-  expect(ENTREES_FERMEES.filter((e) => e.startsWith('src/hote/')), 'le commun des hôtes ne se lit plus').toEqual(expect.arrayContaining(['src/hote/formes.ts', 'src/hote/partie.ts', 'src/hote/projection.ts']));
+  expect(ENTREES_FERMEES.filter((e) => e.startsWith('src/hote/')), 'le commun des hôtes ne se lit plus').toEqual(expect.arrayContaining(['src/hote/formes.ts', 'src/hote/geste.ts', 'src/hote/partie.ts', 'src/hote/projection.ts']));
+  expect(ENTREES_FERMEES.filter((e) => e.startsWith('hotes/')), 'les hôtes externes ne se lisent plus').toEqual(expect.arrayContaining(['hotes/godot/pont/entree.ts', 'hotes/godot/pont/pont.ts']));
+  expect(ENTREES_FERMEES.filter((e) => e.endsWith('.testkit.ts')), 'ni kit de test').toEqual([]);
   expect(ENTREES_FERMEES.filter((e) => estFichierVitest(e) || e.endsWith('.generated.ts')), 'ni suite ni module généré ignoré').toEqual([]);
 });
 

@@ -855,6 +855,8 @@ const ATTENDU = {
     "scripts/test/verrou.mjs",
   ],
   'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
+  // #2928 : sans `--sortie`, `vite build` du pont de Godot n'écrit rien (`write: false`) ; l'arbre n'est jamais écrit.
+  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs'],
   'server:typecheck': [],
 }
 
