@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
+[ext_resource type="PackedScene" path="res://scenes/Plateau.tscn" id="2_plateau"]
+[ext_resource type="Script" path="res://scripts/interface.gd" id="3_interface"]
+[ext_resource type="Script" path="res://scripts/fenetre.gd" id="4_fenetre"]
+
+[node name="Combat" type="Node"]
+script = ExtResource("1_combat")
+
+[node name="Plateau" parent="." instance=ExtResource("2_plateau")]
+
+[node name="Interface" type="CanvasLayer" parent="."]
+script = ExtResource("3_interface")
+
+[node name="Fenetre" type="CanvasLayer" parent="."]
+layer = 2
+script = ExtResource("4_fenetre")

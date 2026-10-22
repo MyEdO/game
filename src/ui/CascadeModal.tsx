@@ -43,6 +43,7 @@ import { Prose, mdToText } from './Prose';
 import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
 import { libelleDuDe, lectureDuTotal, libelleDuSeuil, libelleDeTable, libelleDuJetFige } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
@@ -319,7 +320,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         subtitle={<>{totalJets} jet{totalJets > 1 ? 's' : ''}</>}
         rolled
         rows={p.participants.flatMap(stepWitnessRows)}
-        actions={[{ key: 'finish', label: 'Terminer', onClick: () => finish(), when: 'always' }]}
+        actions={[{ key: 'finish', label: t('verbe.cascadeFinish'), onClick: () => finish(), when: 'always' }]}
         embedded={embedded} etape={etape}
       />
     );
@@ -460,7 +461,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
   // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
   const continueAction: RollAction = {
-    key: 'next', label: isLast ? 'Terminer' : 'Continuer', onClick: () => next(), when: 'always',
+    key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), when: 'always',
     ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
   };
 
@@ -823,7 +824,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     const rollAllRows = rollAllUnrolledRows(cur.participants!, batchRoll, (x) => x.interactive !== false && owns(x.id));
     const batchActions: RollAction[] = [
       ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)', when: 'always' } as RollAction] : []),
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout résoudre</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)", when: 'always' } as RollAction] : []),
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> {t('verbe.cascadeResolveAll')}</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)", when: 'always' } as RollAction] : []),
       ...(ready ? [continueAction] : []),
     ];
     return (
@@ -898,7 +899,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
     ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)", when: 'always' } as RollAction] : []),
-    { key: 'next', label: isLast ? 'Terminer' : 'Continuer', onClick: () => next(), when: 'post' },
+    { key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), when: 'post' },
   ];
 
   return (

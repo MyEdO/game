@@ -11,6 +11,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeBargain } from '../noyau/flowOutcomes';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /** Vue pure de la modale de Marchandage (Test OPPOSÉ, testable sans store). */
 export function BargainModalView({
@@ -92,7 +93,7 @@ export function BargainModalView({
 
   const actions: RollAction[] = owned
     ? [
-        { key: 'cancel', label: 'Annuler', onClick: onCancel, when: 'pre' },
+        { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, when: 'pre' },
         { key: 'confirm', label: 'Conclure', onClick: onConfirm, when: 'post' },
       ]
     : [];

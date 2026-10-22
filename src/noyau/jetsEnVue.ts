@@ -24,7 +24,7 @@ import { formatWardSave } from '../engine/traits/dispatch';
 import { findCrewRoleById, findSpellById, refLabel } from '../data';
 import { t } from '../i18n';
 import { HORS_MODAL, MODAL_DEFS, type HorsModalDef, type ModalDef } from './modalArbiter';
-import { fenetreDuJeu } from './combatAuto';
+import { FENETRE_DU_JET, fenetreDuJeu } from './combatAuto';
 import { specDeEtape, tableStepDef } from './cascade';
 import { opposedAttackerLabel } from './rollSeam';
 import { APPRAISE_SKILL } from './merchantFlow';
@@ -356,17 +356,11 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   crewTest: (s) => s.pendingCrewTest && vue('crewTest', rangees(s.pendingCrewTest.participants, (p) => ligne(p.id, libelleDeRole(p), jete(p.result)))),
 };
 
-/** Les flux qu'une étape-JET de cascade héberge, dans l'ordre de sa fenêtre ; `fumble` : la Maladresse, portée
- *  par l'étape. Table TOTALE sur `HostJet`. */
-const FLUX_D_ETAPE: Record<HostJet, readonly (FlowKey | 'fumble')[]> = {
-  attack: ['attack'],
-  defense: ['defense'],
-  fumble: ['fumble'],
-  cast: ['cast', 'counterspell', 'opposition'],
-  test: ['test'],
-  extended: ['extendedTest'],
-  disengage: ['disengage', 'flee'],
-  forceDoor: ['forceDoor'],
+/** Les flux qu'une étape-JET de cascade héberge, dans l'ordre de sa fenêtre : le sien, puis ceux des fenêtres qu'elle
+ *  ouvre en son sein (`FENETRE_DU_JET`). */
+const fluxDeLEtape = (jet: HostJet): readonly FlowKey[] => {
+  const { flux, reactives = [] } = FENETRE_DU_JET[jet];
+  return [...(flux ? [flux] : []), ...reactives.map((r) => r.flux)];
 };
 
 function etapeCourante(s: Jeu): CascadeStep | undefined {
@@ -428,8 +422,12 @@ function jetsDeLaCascade(s: Jeu): JetEnVue[] {
   const cur = p.participants[p.cursor];
   if (!cur) return [];
   if (!cur.jet) return lireEtape(s, cur, true);
-  return FLUX_D_ETAPE[cur.jet].flatMap((f) => {
-    const v = f === 'fumble' ? lireMaladresse(cur) : LECTEURS[f](s);
+  if (cur.jet === 'fumble') {
+    const v = lireMaladresse(cur);
+    return v ? [v] : [];
+  }
+  return fluxDeLEtape(cur.jet).flatMap((f) => {
+    const v = LECTEURS[f](s);
     return v ? [v] : [];
   });
 }

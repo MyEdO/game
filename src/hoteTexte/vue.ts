@@ -180,7 +180,7 @@ export function rendreLaVue(p: Projection): string[] {
       const liste = c.offres.liste.map(libelleDOffre);
       lignes.push(`offres : ${liste.length ? [...liste, ...enPlus(c.offres.enPlus, `(${appelEcrit('lire', { quoi: 'offres' })})`)].join(' · ') : 'aucune offre légale'}`);
       if (c.cibles.liste.length) lignes.push(`cibles : ${[...c.cibles.liste, ...enPlus(c.cibles.enPlus, 'autres')].join(', ')}`);
-      lignes.push(...replier(`champ : ${CLICS_DU_CHAMP.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
+      lignes.push(...replier(`champ : ${Object.values(CLICS_DU_CHAMP).map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`));
     } else if (!c.fin) lignes.push(`barre ${c.barre.forme} : ${c.barre.raison}`);
   } else {
     lignes.push(`${p.scene ? `scène ${p.scene.id} « ${p.scene.nom} »` : 'aucune scène'} · écran ${p.ecran} · pas ${p.pas}`);

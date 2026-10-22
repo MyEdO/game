@@ -129,7 +129,7 @@ describe('le champ et l’exploration se lisent', () => {
       expect(cases[0].zone).toBe('course');
       expect(rendreLesCases(cases)[0]).toMatch(/^zones : course \d+ · marche \d+$/);
       const vue = rendreLaVue(projeter(etat, r.gestes.length, r.journal.length)).join(' ');
-      for (const clic of CLICS_DU_CHAMP) expect(vue).toContain(`${clic}(`);
+      for (const clic of Object.values(CLICS_DU_CHAMP)) expect(vue).toContain(`${clic}(`);
       expect(vue).toMatch(/intention armée : course \(un clic du champ la commet\)/);
     }, { offre: 'course' });
   });

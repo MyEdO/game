@@ -1,5 +1,6 @@
 import { Icon } from './Icon';
 import { fmtD100 } from './Dice';
+import { t } from '../i18n';
 
 /**
  * Bouton « Inverser » (LDB 23 l.209 « Entraînement au Combat » / l.218 « Observer une cible » ; LDB 10,
@@ -28,7 +29,7 @@ export function ReverseButton({
       onClick={onReverse}
       title="Inverser ce Test : intervertit les chiffres du d100"
     >
-      <Icon id="nav/dice" size="sm" /> Inverser{previewLabel}
+      <Icon id="nav/dice" size="sm" /> {t('verbe.reverse')}{previewLabel}
     </button>
   );
 }

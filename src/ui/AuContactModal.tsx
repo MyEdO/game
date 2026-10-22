@@ -12,6 +12,7 @@ import { opposedLines } from './breakdown';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /** Enjeu servi par chaque fenêtre d'Au contact. */
 const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-roll', choice: 'au-contact-choice' };
@@ -76,7 +77,7 @@ export function AuContactModal() {
     onDarkPact: darkPact,
     onForce: force,
   }, {
-    rollLabel: 'Lancer',
+    rollLabel: t('verbe.roll'),
     // Résilience AVANT le jet (LDB 17 l.68) : Corps à corps forcé à l'emporter.
     preRollForce: () => { roll(); force(); },
   });
@@ -87,7 +88,7 @@ export function AuContactModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   if (pd.phase === 'choice') {

@@ -99,3 +99,8 @@ test('préfiltre : raisons et identifiant encodés restent jugés par AST', () =
     assert.equal(vert.status, 0, vert.stderr)
   } finally { rmSync(racine, { recursive: true, force: true }) }
 })
+
+test('chemin cité : un préfixe sans segment le laisse citer, le segment d’un autre chemin non', () => {
+  for (const prefixe of ['', './', '/', '<racine>/', '`']) assert.equal(aJugerParAst(`${prefixe}scripts/test/temoin.test.mjs`), true, prefixe)
+  for (const prefixe of ['projet/', 'autre/projet/', 'a.b/', 'x-']) assert.equal(aJugerParAst(`${prefixe}scripts/test/temoin.test.mjs`), false, prefixe)
+})

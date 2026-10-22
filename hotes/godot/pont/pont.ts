@@ -4,11 +4,13 @@
  * jamais. Le pont ne porte aucune règle : un geste passe par le module commun des hôtes (`src/hote/`), la vue est faite
  * des lecteurs du noyau, les jetons programmés sont tenus par numéro et rejoués quand Godot les rend.
  */
-import { fenetreDAttaque, type FenetreDAttaque, type LigneDuJournal, type ResultatDeLAppel } from '../../../src/noyau/index';
+import { CLICS_DU_CHAMP, fenetreDAttaque, fenetreDeDefense, plateauDeLaScene, type FenetreDAttaque, type FenetreDeDefense, type LigneDuJournal, type ResultatDeLAppel } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, valider, type CategorieDErreur, type PartieOuverte, type Programme } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/hote/formes';
+import { fenetreADessiner, type FenetreADessiner } from '../../../src/hote/gestes';
+import { panneauDuCombat, type PanneauDuCombat } from '../../../src/hote/ecran';
 
 /** La catégorie d'une erreur du pont : celle d'un geste, ou `interne` pour une levée qu'aucun contrôle n'attendait. */
 export type CategorieDuPont = CategorieDErreur | 'interne';
@@ -22,12 +24,21 @@ interface ErreurGlobale {
   source: string | null;
 }
 
-/** La vue : la projection commune (`projeter`), la fenêtre d'attaque (`fenetreDAttaque`) et les cases atteignables au
- *  tour de l'actif (`casesAtteignables`). */
+/** La vue : la projection commune (`projeter`), la fenêtre qui tient la main prête à dessiner (`fenetreADessiner` : son
+ *  titre, chacun de ses verbes et de ses arguments), la fenêtre d'attaque et celle de la Défense en données
+ *  (`fenetreDAttaque`, `fenetreDeDefense`), le panneau du combat en mots du joueur (`panneauDuCombat` : le tour, la
+ *  fiche de l'actif, l'aperçu, le libellé de chaque offre), les cases atteignables au tour de l'actif
+ *  (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), et les clics du champ par ce qu'ils désignent
+ *  (`CLICS_DU_CHAMP`). */
 export interface VueDuPont {
   projection: Projection;
+  fenetre: FenetreADessiner | null;
   attaque: FenetreDAttaque | null;
+  defense: FenetreDeDefense | null;
+  panneau: PanneauDuCombat | null;
   cases: CaseAtteignable[];
+  plateau: ReturnType<typeof plateauDeLaScene> | null;
+  champ: typeof CLICS_DU_CHAMP;
 }
 
 /** Ce qu'un appel qui touche la partie rend : la vue d'après, les jetons qu'il a programmés, ses lignes de journal. */
@@ -73,10 +84,16 @@ export function creerPont() {
 
   const vueDe = (o: NonNullable<typeof ouverte>): VueDuPont => {
     const etat = o.partie.etat();
+    const projection = projeter(etat, o.pas, o.lignes, SANS_BORNE);
     return {
-      projection: projeter(etat, o.pas, o.lignes, SANS_BORNE),
+      projection,
+      fenetre: fenetreADessiner(etat),
       attaque: fenetreDAttaque(etat),
+      defense: fenetreDeDefense(etat),
+      panneau: panneauDuCombat(projection),
       cases: casesAtteignables(etat),
+      plateau: etat.scene ? plateauDeLaScene(etat.scene) : null,
+      champ: CLICS_DU_CHAMP,
     };
   };
 

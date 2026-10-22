@@ -17,21 +17,46 @@ import { allAbbrAlternation } from '../../raw/_lib.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
 import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
 import { RACINES_PRESENTES } from './racinesPresentes.mjs';
+import { lexemesGdscript } from './gdscript.mjs';
+
+/** Les commentaires d'un fichier, par l'extracteur de son dialecte, chacun sous la forme `Comment` : le
+ *  TypeScript et le JavaScript (`extractComments`), le GDScript de l'hôte Godot (`lexemesGdscript`). */
+const EXTRACTEURS = Object.freeze({
+  '.ts': extractComments,
+  '.tsx': extractComments,
+  '.mts': extractComments,
+  '.mjs': extractComments,
+  '.gd': (src) => lexemesGdscript(src).commentaires,
+});
 
 /** PÉRIMÈTRE DES GARDES — SOURCE UNIQUE des trois portes anti-poison (suite Vitest, pre-commit, hook
  *  au stylo) et du corpus des gardes qui balaient l'arbre (`corpusDesGardes`). Un fichier hors de ce
  *  périmètre n'est lu par aucune ; un fichier dedans l'est par toutes, tests compris (le poison écrit
  *  dans un test est du poison). Ses racines : `scripts`, et chaque racine des zones que l'arbre porte
- *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`). */
+ *  (`RACINES_PRESENTES`), un corpus vide levant (`readCorpus`) ; ses extensions, celles d'un dialecte
+ *  dont les commentaires s'extraient (`EXTRACTEURS`). */
 export const PERIMETRE_DES_GARDES = Object.freeze({
   racines: Object.freeze([...RACINES_PRESENTES, 'scripts']),
-  extensions: Object.freeze(['.ts', '.tsx', '.mts', '.mjs']),
+  extensions: Object.freeze(Object.keys(EXTRACTEURS)),
   tests: true,
 });
 
 /** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé : même tableau à chaque appel). */
 export const corpusDesGardes = () =>
   readCorpus([...PERIMETRE_DES_GARDES.racines], { exts: [...PERIMETRE_DES_GARDES.extensions], tests: PERIMETRE_DES_GARDES.tests });
+
+const extensionDe = (rel) => String(rel).slice(String(rel).lastIndexOf('.'));
+const estTypeScript = (rel) => EXTRACTEURS[extensionDe(rel)] === extractComments;
+/** Le corpus des gardes en dialecte TypeScript ou JavaScript, celui que lisent les gardes qui l'analysent
+ *  (`analyserCorpus`). */
+export const corpusTypeScriptDesGardes = () => corpusDesGardes().filter((f) => estTypeScript(f.rel));
+
+/** Les commentaires du fichier `rel`, de contenu `contenu`, par l'extracteur de son dialecte (`EXTRACTEURS`,
+ *  `extractComments` hors du périmètre).
+ * @param {string} rel @param {string} contenu @returns {Comment[]} */
+export function commentairesDe(rel, contenu) {
+  return (EXTRACTEURS[extensionDe(rel)] ?? extractComments)(contenu);
+}
 
 /** Le fichier est-il dans le périmètre des gardes ? Sous l'une des racines, et retenu par le corpus
  *  (`estRetenu`) : la porte au fichier et le corpus ne diffèrent pas.
@@ -474,7 +499,7 @@ export function tombstonesIn(text) {
  */
 export function scanTombstones(relPath, contenu) {
   const findings = [];
-  for (const c of extractComments(contenu)) {
+  for (const c of commentairesDe(relPath, contenu)) {
     for (const fam of TOMBSTONE_FAMILIES) {
       const m = fam.rx.exec(c.text);
       if (m) findings.push({ line: matchLine(c, m.index), detail: `[${fam.label}] ${excerptAt(c, m.index)}` });
@@ -610,7 +635,7 @@ export function untaggedExcuseMatch(text) {
  */
 export function scanExcuses(relPath, contenu) {
   const findings = [];
-  for (const c of extractComments(contenu)) {
+  for (const c of commentairesDe(relPath, contenu)) {
     const m = untaggedExcuseMatch(c.text);
     if (m) findings.push({ line: matchLine(c, m.index), detail: excerptAt(c, m.index) });
   }
@@ -818,7 +843,7 @@ export function scanLegacyVocabHorsStock(relPath, contenu) {
  */
 export function scanLegacyVocab(relPath, contenu) {
   const findings = [];
-  for (const c of extractComments(contenu)) {
+  for (const c of commentairesDe(relPath, contenu)) {
     if (ENTERINE_TAG_RX.test(c.text)) continue;
     for (const fam of LEGACY_VOCAB_FAMILIES) {
       if (!sAppliqueA({ rel: relPath }, fam)) continue;
@@ -876,7 +901,7 @@ export const DECISION_TRACE_RX = ENTERINE_TAG_RX;
  */
 export function scanDecisionClaims(relPath, contenu) {
   const findings = [];
-  for (const c of extractComments(contenu)) {
+  for (const c of commentairesDe(relPath, contenu)) {
     for (const fam of DECISION_CLAIM_FAMILIES) {
       const m = fam.rx.exec(c.text);
       if (!m) continue;
@@ -895,7 +920,7 @@ export function scanDecisionClaims(relPath, contenu) {
  */
 export function scanRawClaims(relPath, contenu) {
   const findings = [];
-  for (const c of extractComments(contenu)) {
+  for (const c of commentairesDe(relPath, contenu)) {
     for (const fam of RAW_CLAIM_FAMILIES) {
       const m = fam.rx.exec(c.text);
       if (!m) continue;

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { ModLine, RollBreakdown, RollMask, SecondReadLine } from '../engine/combat';
 import type { VerdictReason } from '../engine/tests';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
-import { difficultyText } from '../noyau/difficultyText';
+import { avecSigne, difficultyText, texteDuMod } from '../noyau/difficultyText';
 import { Dice } from './Dice';
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
@@ -21,12 +21,6 @@ import { t } from '../i18n';
 function difficultyValue(difficulty?: Difficulty, combined?: number): number {
   if (combined != null) return combined;
   return difficulty ? DIFFICULTY_MODIFIERS[difficulty] : 0;
-}
-
-/** Un modificateur TEL QU'IL SE LIT (« +10 Soutien », « −20 Localisation visée ») — source UNIQUE :
- *  la chip le rend, et le popover du palier dérivé énumère sa composition avec la MÊME écriture. */
-function modText(m: ModLine): string {
-  return `${m.value >= 0 ? '+' : '−'}${Math.abs(m.value)} ${m.label}`;
 }
 
 /** DÉCOUVRABILITÉ de la Difficulté : le glyphe vit DANS le déclencheur, À LA SUITE du texte — ce
@@ -85,7 +79,7 @@ function DifficultyText({ difficulty, easedBy, parts, combined }: { difficulty?:
         id={ref.id}
         label="Combiner les Difficultés"
         instance={texte}
-        provenances={parts?.map(modText)}
+        provenances={parts?.map(texteDuMod)}
         /* Le nom accessible COMMENCE par le texte visible (le glyphe, lui, est muet) : il
            l'enrichit de la règle atteinte, il ne le remplace pas. */
         ariaLabel={`${texte} — Combiner les Difficultés`}
@@ -162,7 +156,7 @@ function ModChip({ m }: { m: ModLine }) {
   // souscription par chip re-rendrait toute la grille de mods à chaque tick de combat.
   const state = useGame.getState();
   const tone = m.value >= 0 ? 'pos' : 'neg';
-  const text = modText(m);
+  const text = texteDuMod(m);
   // PROVENANCE (qui soutient, qui octroie) : elle vit DANS le popover de la chip — arbitrage user
   // 2026-08-05, verbatim « Normalement les informations de ce genre sont dans le hover codex non ? ».
   // Les noms flottant à côté de la chip (badges inline) ne se rattachaient visuellement à rien : le
@@ -229,7 +223,7 @@ function SecondReadRow({ s }: { s: SecondReadLine }) {
       <RollCalc base={s.base} modifier={s.base != null ? s.target - s.base : 0} target={s.target} />
       <span className="rm-roll-dice"><span className="hint">{t('roll.memeDe')}</span></span>
       <span className={`rm-roll-sl ${tranchee ? '' : 'rm-roll-sl-pending'}`} aria-hidden={tranchee ? undefined : true}>
-        {tranchee ? <>{s.success ? '✓' : '✗'} {(s.sl ?? 0) >= 0 ? '+' : '−'}{Math.abs(s.sl ?? 0)} DR</> : '—'}
+        {tranchee ? <>{s.success ? '✓' : '✗'} {avecSigne(s.sl ?? 0)} DR</> : '—'}
       </span>
     </div>
   );
@@ -280,7 +274,7 @@ export function RollLine({ d }: { d: RollBreakdown }) {
         <span className="rm-roll-sl" title={masked ? MASK_HINT.roll : undefined} aria-label={masked ? MASK_HINT.roll : undefined}>
           {masked ? '?' : d.seuil
             ? <>{d.success ? d.seuil.reussite : d.seuil.echec}</>
-            : <>{d.success ? '✓' : '✗'} {d.sl >= 0 ? '+' : '−'}{Math.abs(d.sl)} DR</>}
+            : <>{d.success ? '✓' : '✗'} {avecSigne(d.sl)} DR</>}
         </span>
       </div>
       {!masked && d.second && <SecondReadRow s={d.second} />}

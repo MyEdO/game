@@ -73,7 +73,6 @@ const EXEMPTES = new Map<string, string>([
   ['src/ui/editor/NarratifEditor.tsx|base?.label ?? \'ex. Josef Quartjin\'', PLACEHOLDER],
   ['src/ui/gallery/registry.tsx|signeAstralExemple()?.label ?? \'\'', OUTILLAGE],
   ['src/ui/gallery/registry.tsx|heros?.label ?? \'Héros\'', OUTILLAGE],
-  ['src/ui/jetProps/useDefenseJetProps.tsx|pd.weapon?.label ?? \'Mains nues\'', SANS_ARME],
   ['src/ui/PossessionsScreen.tsx|selected.label ?? \'\'', AUTHORE],
   ['src/ui/ReloadModal.tsx|weapon?.label ?? \'arme\'', SANS_ARME],
   ['src/noyau/cascade.ts|ctx?.title ?? choix.label ?? \'Choix\'', AUTHORE],

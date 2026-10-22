@@ -12,6 +12,7 @@ import { describeTest, amazingTestLabel } from '../../noyau/flowOutcomes';
 import { rule } from '../../engine/policy';
 import { CodexRef } from '../compendium/CodexRef';
 import { libelleDuTestDeScene } from '../../noyau/jetsEnVue';
+import { t } from '../../i18n';
 
 /**
  * PARAMÉTRAGE de la coquille partagée `RollShell` pour le JET d'un Test de compétence de scène
@@ -66,7 +67,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // Barre : « Continuer » post-jet + « Annuler » pré-jet SI le test est annulable (action de COMBAT ;
   // referme la cascade sans dépenser l'Action). Les tests de dialogue/scène n'ont pas `cancellable`.
   const actions: RollAction[] = [{ key: 'confirm', label: 'Continuer', onClick: resolve, when: 'post' }];
-  if (pt.cancellable) actions.unshift({ key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' });
+  if (pt.cancellable) actions.unshift({ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' });
 
   return {
     flowKey: 'test',

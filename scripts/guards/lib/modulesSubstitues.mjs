@@ -8,7 +8,7 @@
 // Les crochets d'un fichier chargeur (`export function load|resolve`) se lisent à leur définition,
 // quelle que soit leur activation (`register`, `--loader`, `--import`).
 import { posix } from 'node:path';
-import { corpusDesGardes } from './commentPoison.mjs';
+import { corpusTypeScriptDesGardes } from './commentPoison.mjs';
 import { analyserTexte, typescript } from './dialecte.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { analyserEnLots, liaisonsDe } from './importGraph.mjs';
@@ -373,8 +373,8 @@ export function sitesDeSubstitution(fichier, texte) {
   return lireContexte(contexteDeFichier(fichier), analyserTexte({ rel: fichier, text: texte }).sourceFile);
 }
 
-/** Les sites de substitution du corpus `fichiers` (`{ rel, text }`), par défaut `corpusDesGardes()`. */
-export function sitesDuDepot(fichiers = corpusDesGardes()) {
+/** Les sites de substitution du corpus `fichiers` (`{ rel, text }`), par défaut `corpusTypeScriptDesGardes()`. */
+export function sitesDuDepot(fichiers = corpusTypeScriptDesGardes()) {
   const sites = [];
   for (const { fichier, sourceFile } of analyserEnLots(fichiers.filter((f) => estCodeDeTest(f.rel)))) {
     sites.push(...lireContexte(contexteDeFichier(fichier.rel), sourceFile));

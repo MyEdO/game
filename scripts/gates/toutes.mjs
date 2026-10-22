@@ -416,6 +416,17 @@ export const ECRIT_LU = {
       '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
       'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite)',
   },
+  'godot:sonde': {
+    ecrit: [],
+    lit: ['hotes/', 'scripts/', 'src/data/', 'src/lib/', 'package.json'],
+    raison:
+      '`godot --headless --import` puis `--check-only` de chaque script (hotes/godot/construire.mjs, #2928, plan M-f) sur ' +
+      'une COPIE du projet sous `os.tmpdir()`, que la sonde efface : l’import n’écrit pas `hotes/godot/projet/.godot/` ; ' +
+      'le binaire épinglé vit hors de l’arbre (`~/.cache/wfrp-godot/`, ou `GODOT`) ; LIT hotes/ (le projet et son ' +
+      'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose que le constructeur importe au ' +
+      'chargement), src/lib/ (`tableTotale`) et src/data/ (la prose source que le greffon charge), mesurés à ' +
+      'l’enregistreur de lectures le 2026-10-22, et package.json',
+  },
   lint: {
     ecrit: [],
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],

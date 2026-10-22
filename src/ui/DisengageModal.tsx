@@ -22,6 +22,7 @@ import { optionValue, opposedLines, testBreakdown, testPending } from './breakdo
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow, type BuiltRollRow } from './rollRowBuild';
 import { libelleDeTest, libelleDuTestNomme } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /** Enjeu servi par chaque fenêtre du Désengagement. */
 const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'disengage-choice', esquive: 'disengage-esquive', fuir: 'disengage-fuir' };
@@ -158,7 +159,7 @@ export function DisengageModal() {
       : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
 
     const rolled = !!res && (!toucheDu || !!jet);
-    const actions: RollAction[] = [{ key: 'confirm', label: 'Appliquer', onClick: fleeConfirm, when: 'post' }];
+    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, when: 'post' }];
 
     return (
       <RollShell
@@ -214,7 +215,7 @@ export function DisengageModal() {
   }, { key: 'mover' });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

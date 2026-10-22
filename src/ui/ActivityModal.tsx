@@ -9,6 +9,7 @@ import { describeActivity } from '../noyau/flowOutcomes';
 import { resultLines, freeCons } from '../noyau/rollSeam';
 import { activityStakeRef, hasActivityStake } from '../data';
 import { libelleDePuissance } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Jet d'Activité (LDB 23 interlude / ADE II 8 BATAILLE de masse) : même coquille `RollShell` que
@@ -124,8 +125,8 @@ export function ActivityModal() {
   const issue = rolled ? describeActivity(pa) : '';
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

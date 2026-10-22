@@ -52,7 +52,7 @@ describe('Substitution sociale en défense LIVE (LDB 09 l.287)', () => {
     E.psychState = [{ type: 'peur', sourceId: H.id, indice: 2, calmeDR: 0 } as never]; // l'attaquant a peur de H
     seedBattleRng(1);
     setDefense(H, E);
-    useGame.getState().defenseSetMode('social', 'intimidation');
+    useGame.getState().defenseSetMode('social');
     useGame.getState().defenseRoll();
     const dd = useGame.getState().pendingDefense!.result!.defenderDetail!;
     expect(dd.mode).toBe('social');

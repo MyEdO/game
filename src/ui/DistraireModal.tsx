@@ -11,6 +11,7 @@ import { describeDistraire } from '../noyau/flowOutcomes';
 import { opposedResponded } from './opposedFrozen';
 import { buildRollRow, frozenOpposedRow } from './rollRowBuild';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Modale de Distraire (LDB 10 l.364 / AA 13 l.51) : Mouvement, Test OPPOSÉ Athlétisme (mover) vs Calme
@@ -60,7 +61,7 @@ export function DistraireModal() {
     onDarkPact: darkPact,
     onForce: force,
   }, {
-    rollLabel: 'Lancer',
+    rollLabel: t('verbe.roll'),
     // Résilience AVANT le jet (LDB 17 l.68) : Athlétisme forcé à l'emporter.
     preRollForce: () => { roll(); force(); },
   });
@@ -71,7 +72,7 @@ export function DistraireModal() {
 
   const actions: RollAction[] = [
     { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

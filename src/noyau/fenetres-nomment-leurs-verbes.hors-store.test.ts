@@ -1,62 +1,57 @@
 /**
- * CHAQUE FENÊTRE NOMME CE QU'ON Y JOUE (#2898) : toute fenêtre que `fenetreDuJeu` peut rendre — chaque modale
- * (`MODAL_DEFS`), chaque situation `HORS_MODAL` qui tient la main et, pour la cascade (politique `partial`, ses verbes
- * sont ceux de l'étape courante), chaque étape-jet de combat (`JET_AUTO`) et chaque interaction
- * (`VERBES_D_INTERACTION`) — déclare au moins un verbe, et chacun est une action de la partie. Une fenêtre sans verbe
- * de joueur le déclare dans sa définition (`AUCUN_VERBE_DE_JOUEUR`), et le test la nomme. Une fenêtre dont les verbes
- * désignent une rangée par son id (flux de jet multi, verbes d'étape) déclare de quoi rendre ce `pid`.
+ * CHAQUE FENÊTRE NOMME CE QU'ON Y JOUE (#2898, #2928) : toute fenêtre que `fenetreDuJeu` peut rendre (`FENETRES`,
+ * `fenetres.testkit.ts`) déclare au moins un verbe, et chacun est une action de la partie, nommée en mots du joueur
+ * (`libelleDuVerbe`). Une fenêtre sans verbe de joueur le déclare dans sa définition (`AUCUN_VERBE_DE_JOUEUR`), et le
+ * test la nomme. Une fenêtre dont les verbes désignent une rangée par son id (flux de jet multi, verbes d'étape)
+ * déclare de quoi rendre ce `pid`. Chaque fenêtre a son titre (`libelleDeLaFenetre`), et chaque réglage d'un flux de
+ * jet (`<flux>Set…`) est le verbe d'une fenêtre : aucun ne se joue hors de celle qui le dessine.
  */
 import { describe, it, expect } from 'vitest';
-import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
-import { MODAL_DEFS, HORS_MODAL, AUCUN_VERBE_DE_JOUEUR, type HorsModalDef, type ModalDef, type VerbesDeFenetre } from './modalArbiter';
-import { FENETRE_DU_JET, JET_AUTO, VERBES_D_INTERACTION, fenetreDuJeu, verbesDeLaFenetre, verbesDuJet } from './combatAuto';
+import type { Jeu } from './index';
+import { AUCUN_VERBE_DE_JOUEUR } from './modalArbiter';
+import { fenetreDuJeu } from './combatAuto';
+import { FLOW_VERBS } from './flowVerbs';
+import { libelleDeLaFenetre, libelleDuVerbe } from './libelles';
 import type { CascadeStep } from './pendings';
-import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';
 import { fixtureText } from '../i18n/fixtureText';
-
-const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
-const ETAT = creerPartie(etatInitialDuJeu(), ENTREES).etat();
-
-/** `pid` : la fenêtre a-t-elle de quoi rendre l'id que ses verbes prennent en premier argument, quand il en faut un ? */
-interface Fenetre { nom: string; verbes: readonly string[]; declaree?: VerbesDeFenetre; pid: boolean }
+import { CLES_DES_FENETRES, ETAT, fenetresDuJeu, MODALES, VERBES_DES_FENETRES, type Fenetre } from './fenetres.testkit';
 
 /** Une étape témoin à rangées : de quoi lire le `pid` de chaque interaction. */
-const ETAPE_TEMOIN: CascadeStep = { id: 'etape', kind: cleDeFixture('note'), label: fixtureText('etape'), participants: [{ id: 'rangee', interactive: true, base: 0, target: 0, result: null }] };
-/** Le flux de jet `cle` désigne-t-il ses rangées par leur id (flux multi : premier argument `pid`) ? */
-const fluxAPid = (cle: FlowKey): boolean => FLOW_VERBS[cle].kind === 'multi';
-const multi = (def: ModalDef | HorsModalDef): boolean => (def.flux ?? []).some(fluxAPid);
+const ETAPE_TEMOIN: CascadeStep = { id: 'etape', kind: cleDeFixture('note'), label: fixtureText('etape'), participants: [{ id: 'rangee', interactive: true, base: 0, target: 0, difficulty: 'intermediaire', result: null }] };
+const FENETRES = fenetresDuJeu(ETAPE_TEMOIN);
 
-const modales = (MODAL_DEFS as readonly ModalDef[]).filter((d) => d.auto.mode !== 'partial');
-const FENETRES: readonly Fenetre[] = [
-  ...modales.map((d) => ({ nom: `modale ${d.key}`, verbes: verbesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) || !!d.rangees })),
-  ...(HORS_MODAL as readonly HorsModalDef[]).filter((d) => d.tientLaMain).map((d) => ({ nom: `hors modale ${d.key}`, verbes: verbesDeLaFenetre(d), declaree: d.verbes, pid: !multi(d) })),
-  ...(Object.keys(JET_AUTO) as (keyof typeof JET_AUTO)[]).map((jet) => {
-    const { flux, rangees } = FENETRE_DU_JET[jet];
-    return { nom: `cascade, étape-jet ${jet}`, verbes: verbesDuJet(jet), pid: !(flux && fluxAPid(flux)) || !!rangees };
-  }),
-  ...Object.entries(VERBES_D_INTERACTION).map(([i, { verbes, pid }]) => ({ nom: `cascade, interaction ${i}`, verbes, declaree: verbes, pid: !verbes.length || !!pid(ETAPE_TEMOIN) })),
-];
-
-/** Ce qui manque à la fenêtre : un verbe, ou une action de la partie derrière chacun. */
+/** Ce qui manque à la fenêtre : un verbe, une action de la partie derrière chacun, son libellé (`libelleDuVerbe`). */
 function fautes(f: Fenetre): string[] {
   const aucunDeclare = f.declaree === AUCUN_VERBE_DE_JOUEUR;
   return [
     ...(f.verbes.length === 0 && !aucunDeclare ? ['aucun verbe déclaré (`verbes`, `flux`, `drive`, `intents`) ni `AUCUN_VERBE_DE_JOUEUR`'] : []),
     ...(aucunDeclare && f.verbes.length ? [`déclarée sans verbe de joueur, elle en nomme : ${f.verbes.join(', ')}`] : []),
     ...f.verbes.filter((v) => typeof Reflect.get(ETAT, v) !== 'function').map((v) => `« ${v} » n'est pas une action de la partie`),
+    ...f.verbes.filter((v) => libelleDuVerbe(v) === null).map((v) => `« ${v} » n'a pas de libellé (\`verbe.${v}\` ni celui du suffixe de son flux)`),
     ...(f.pid ? [] : ['ses verbes désignent une rangée par son id, et la fenêtre ne déclare pas de quoi rendre ce `pid` (`rangees`)']),
   ];
 }
 
 describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () => {
   it('le relevé couvre les deux registres et la cascade', () => {
-    expect(modales.length, 'témoin : les modales du registre').toBeGreaterThan(20);
+    expect(MODALES.length, 'témoin : les modales du registre').toBeGreaterThan(20);
     expect(FENETRES.some((f) => f.nom === 'hors modale victory') && FENETRES.some((f) => f.nom === 'cascade, interaction choix')).toBe(true);
   });
 
   it.each(FENETRES.map((f) => [f.declaree === AUCUN_VERBE_DE_JOUEUR ? `${f.nom} (aucun verbe de joueur, déclaré)` : f.nom, f] as const))('%s', (_nom, f) => {
     expect(fautes(f), f.nom).toEqual([]);
+  });
+
+  it('chaque fenêtre a son titre (`libelleDeLaFenetre`)', () => {
+    expect([...CLES_DES_FENETRES].filter((cle) => libelleDeLaFenetre(cle) === null), 'clé sans `fenetre.<clé>`').toEqual([]);
+  });
+
+  it('chaque réglage d’un flux de jet (`<flux>Set…`) est le verbe d’une fenêtre', () => {
+    const prefixes = Object.keys(FLOW_VERBS);
+    const reglages = Object.keys(ETAT).filter((v) => typeof Reflect.get(ETAT, v) === 'function' && prefixes.some((p) => new RegExp(`^${p}Set[A-Z]`).test(v)));
+    expect(reglages.length, 'témoin : les réglages des flux de la partie').toBeGreaterThan(20);
+    expect(reglages.filter((v) => !VERBES_DES_FENETRES.has(v)), 'réglage qu’aucune fenêtre ne déclare').toEqual([]);
   });
 
   it('`fenetreDuJeu` rend les verbes déclarés : le Sauvetage par Destin, la porte de départ de nuit', () => {

@@ -16,6 +16,7 @@ import {
   scanRawClaims,
   scanDecisionClaims,
   extractComments,
+  commentairesDe,
   matchLine,
   excerptAt,
   loadDecisionsBaseline,
@@ -136,6 +137,14 @@ describe('garde-fou commentaires — en-tête structuré (#1475)', () => {
     expect(TESTS_SRC().length).toBeGreaterThan(0);
     expect(CORPUS.filter((f) => !estFichierScanne(f.rel)).map((f) => f.rel)).toEqual([]);
     expect(estFichierScanne('src/vite-env.d.ts')).toBe(false);
+  });
+
+  it('un script GDScript de l’hôte Godot est lu par son dialecte : ses commentaires `#` portent le poison, ses chaînes non', () => {
+    expect(estFichierScanne('hotes/godot/projet/scripts/combat.gd')).toBe(true);
+    const source = '## La fenêtre.\n## Fonction déplacée vers state/foo.ts\nvar t := "Fonction déplacée vers state/foo.ts"';
+    expect(scanTombstones('hotes/godot/projet/scripts/temoin.gd', source).map((x) => x.line)).toEqual([2]);
+    expect(scanExcuses('hotes/godot/projet/scripts/temoin.gd', `# Affichage en attendant ${'la '}primitive partagée.`)).toHaveLength(1);
+    expect(commentairesDe('hotes/godot/projet/scripts/temoin.gd', source).map((c) => c.line)).toEqual([1]);
   });
 });
 
@@ -677,7 +686,7 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
     () => {
       const offenders: string[] = [];
       for (const { rel, text } of CORPUS) {
-        for (const c of extractComments(text)) {
+        for (const c of commentairesDe(rel, text)) {
           const m = untaggedExcuseMatch(c.text);
           if (m) offenders.push(`${rel}:${matchLine(c, m.index)} ${excerptAt(c, m.index)}`);
         }

@@ -4,11 +4,12 @@ import { useFocusEmprunte } from './focus';
 import { GatedAction, classeBouton, type TonBouton } from './GatedAction';
 import { CadrePied } from './Cadre';
 import { Stack } from './Layout';
-import { RollRow, type RollRowProps, DEFAULT_ROLL_LABEL } from './RollRow';
+import { RollRow, type RollRowProps, defaultRollLabel } from './RollRow';
 import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
+import { avecSigne } from '../noyau/difficultyText';
 import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
 import { RecapLineRow } from './RecapLine';
@@ -321,7 +322,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
           deux jets : masqué avec eux (#990). */}
       {!panelMasked && rolled && winnerIndex != null && netSL != null && (
         <div className="rm-netsl" title="Différence de DR entre les deux jets : elle alimente les Dégâts (Test opposé)">
-          DR net : {netSL >= 0 ? '+' : '−'}{Math.abs(netSL)}
+          DR net : {avecSigne(netSL)}
         </div>
       )}
       {summary != null && <p className="rm-summary">{summary}</p>}
@@ -359,10 +360,10 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
             l'atterrissage, la SCÈNE centrale (ci-dessus) porte les dés : ce bouton disparaît sans repli. */}
         {/* Le CTA hissé EST celui de la rangée : son `rollBlocked` le ferme de même (`RollRow`). */}
         {hoistIdx >= 0 && !rolled && !hoist.rolling && (hoistRow?.rollBlocked
-          ? <GatedAction key="roll" id={`${uid}-roll-hisse`} label={hoistRow.rollLabel ?? DEFAULT_ROLL_LABEL} enabled={false} reason={hoistRow.rollBlocked} onClick={() => {}} />
+          ? <GatedAction key="roll" id={`${uid}-roll-hisse`} label={hoistRow.rollLabel ?? defaultRollLabel()} enabled={false} reason={hoistRow.rollBlocked} onClick={() => {}} />
           : (
             <button key="roll" className="btn btn-primary" onClick={withPickedDie(hoistDieCommit, () => hoist.trigger())}>
-              {hoistRow?.rollLabel ?? DEFAULT_ROLL_LABEL}
+              {hoistRow?.rollLabel ?? defaultRollLabel()}
             </button>
           ))}
     </>

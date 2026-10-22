@@ -9,6 +9,7 @@ import { ev } from '../noyau/combatLog';
 import { describeWard } from '../noyau/flowOutcomes';
 import { Icon } from './Icon';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Modale de la Bénédiction de Protection (LDB 41 l.142) : « Les ennemis doivent effectuer un Test de
@@ -47,8 +48,8 @@ export function WardModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
   ];
 
   return (

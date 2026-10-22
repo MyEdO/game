@@ -67,6 +67,9 @@ export function t(key: MsgKey, params?: Params): PlayerText {
   return interpolate(pat, params) as PlayerText;
 }
 
+/** `cle` est-elle une clé du catalogue ? La garde des libellés lus par id (`noyau/libelles.ts`). */
+export const estUneCle = (cle: string): cle is MsgKey => Object.prototype.hasOwnProperty.call(CATALOGS.fr, cle);
+
 /**
  * FRAGMENT « de X » ÉLIDÉ — source UNIQUE de l'élision de la préposition devant un nom propre de
  * règle (Compétence, Caractéristique) : « Test **de** Résistance » mais « Test **d'**Initiative ».

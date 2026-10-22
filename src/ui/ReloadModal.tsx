@@ -11,6 +11,7 @@ import { recapLineOfEvent } from '../gameIso/combatNarration';
 import { ev } from '../noyau/combatLog';
 import { describeReload } from '../noyau/flowOutcomes';
 import { libelleDeTest } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /** Vue pure de la modale de rechargement (testable sans store). */
 export function ReloadModalView({
@@ -67,8 +68,8 @@ export function ReloadModalView({
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: onCancel, when: 'pre' },
-    { key: 'confirm', label: 'Appliquer', onClick: onConfirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, when: 'pre' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, when: 'post' },
   ];
 
   return (

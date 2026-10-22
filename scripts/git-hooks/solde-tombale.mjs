@@ -1,7 +1,7 @@
 // Volet ANTI-TOMBALE de la porte du commit (`porte-du-commit.mjs`) : fermer un ticket dont le code porte encore, EN COMMENTAIRE,
 // une trace de dette qui le cite laisse une pierre tombale (AGENTS.md règle 6, tolérance ZÉRO).
 //
-// La détection réutilise `extractComments` (scripts/guards/lib/commentPoison.mjs), la mécanique
+// La détection réutilise `commentairesDe` (scripts/guards/lib/commentPoison.mjs), la mécanique
 // EXISTANTE du garde-fou commentaires — jamais un `git grep` sur le texte brut : un motif écrit dans
 // une CHAÎNE n'est pas un commentaire (faux positif mesuré sur une fixture de test qui cite une
 // ligne de dette dans un littéral). Périmètre de fichiers = celui des trois portes anti-poison
@@ -13,7 +13,7 @@
 // Chargé par IMPORT DYNAMIQUE depuis `decisionsDuCommit` (`porte-du-commit.mjs`) : `commentPoison` tire
 // le vocabulaire RAW derrière lui, et un commit qui ne ferme rien n'a aucune raison de le payer. Les
 // tickets fermés lui sont PASSÉS : il n'importe pas la porte.
-import { extractComments, estFichierScanne } from '../guards/lib/commentPoison.mjs'
+import { commentairesDe, estFichierScanne } from '../guards/lib/commentPoison.mjs'
 import { cleDeContenu } from '../guards/lib/stock.mjs'
 
 /** Motifs de DETTE : les tournures par lesquelles un commentaire annonce un travail NON FAIT.
@@ -63,7 +63,7 @@ export function tombalesDansSource(numeros, { fichiers = [], lire = () => null }
     const chemin = fichier.replace(/\\/g, '/')
     const src = lire(fichier)
     if (!src) continue
-    for (const commentaire of extractComments(src)) {
+    for (const commentaire of commentairesDe(fichier, src)) {
       commentaire.text.split('\n').forEach((texte, rang) => {
         if (!MOTIF_DETTE_RE.test(texte) || DETTE_ETEINTE_RE.test(texte)) return
         const vus = new Set()

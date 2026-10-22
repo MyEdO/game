@@ -856,7 +856,11 @@ const ATTENDU = {
   ],
   'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
   // #2928 : sans `--sortie`, `vite build` du pont de Godot n'écrit rien (`write: false`) ; l'arbre n'est jamais écrit.
-  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs'],
+  // +1 le 2026-10-22 (#2928) : `construire.mjs` écrit sous `--sortie` (absent de la gate) et sous le cache de l'éditeur.
+  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
+  // #2928 : la sonde importe et contrôle une copie du projet sous un `mkdtempSync` d'os.tmpdir(), retirée par `rmSync` ;
+  // l'éditeur épinglé s'écrit sous `~/.cache/wfrp-godot/`. L'arbre n'est jamais écrit.
+  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
   'server:typecheck': [],
 }
 

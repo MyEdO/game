@@ -54,7 +54,7 @@ Les écrans suivants dans Godot, la coquille commune des jets, l'art 3D (#2794) 
 - **M-c** : la vue-données de la fenêtre d'attaque descend au noyau dans un lot À PART, avant le pont v2 : `useAttackJetProps` lit ce lecteur, `useAttackJetProps.conformance.test.tsx` reste l'oracle.
 - **M-d** : la garde `state/roll-line-combat.test.ts:626` nomme la nouvelle maison unique du mot « Combinée » et mord partout ailleurs.
 - **M-e** : garde CI dans `scripts/guards/lib/` sur `hotes/godot/projet/**/*.gd` : ni `AStar*`, ni `RandomNumberGenerator`/`randi`/`randf`, ni arithmétique de distance sur les positions ; cases et cibles ne viennent que de la vue.
-- **M-f** : tranché : binaire de l'éditeur Godot à version et somme épinglées, en cache CI ; `godot --headless --path hotes/godot/projet --import`, puis `--check-only` sur chaque script.
+- **M-f** : tranché : binaire de l'éditeur Godot à version et somme épinglées, en cache CI ; `godot --headless --path hotes/godot/projet --import`, puis `--check-only` sur chaque script. Angle mort mesuré au lot 6c (juge, 2026-10-22) : `--check-only` ne voit pas l'appel d'une méthode renommée d'une autre classe (`class_name`), ni une clé de la vue lue dans un `Dictionary` ; la recette du tour complet au navigateur (`hotes/godot/recette.mjs`) les voit, la sonde non.
 - **M-g** : un `demarrer` par page ; un second appel rend une erreur structurée ; recommencer = recharger.
 - **M-h** : `knip.json` ne prend plus `src/noyau/index.ts` en entrée mais ses vrais consommateurs (entrée du pont, CLI texte, tests) : knip tient les exports morts de l'index.
 - **M-i** : `projeter` (`src/hoteTexte/vue.ts:221`, sans les rendus bornés) entre dans le module commun.

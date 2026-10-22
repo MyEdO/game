@@ -21,6 +21,10 @@ export const PERIMETRE_DES_GARDES: Readonly<{
 }>;
 /** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé). */
 export function corpusDesGardes(): readonly import('./sourceCorpus.mjs').CorpusFile[];
+/** Le corpus des gardes en dialecte TypeScript ou JavaScript, celui que lisent les gardes qui l'analysent. */
+export function corpusTypeScriptDesGardes(): readonly import('./sourceCorpus.mjs').CorpusFile[];
+/** Les commentaires d'un fichier par l'extracteur de son dialecte (TypeScript, JavaScript, GDScript). */
+export function commentairesDe(rel: string, contenu: string): Comment[];
 export function estFichierScanne(cheminRelatifOuAbsolu: string): boolean;
 /** L'ensemble `ART` : les fichiers de l'art du rig, par dossier. */
 export function estArtDuRig(rel: string): boolean;

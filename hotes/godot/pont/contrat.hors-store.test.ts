@@ -2,12 +2,17 @@
  * LE CONTRAT DU PONT (#2928, `CONTRAT.md`) : la réponse est toujours une chaîne JSON ; une méthode inconnue, une entrée
  * illisible ou hors contrat, un appel avant `demarrer`, un second `demarrer` (un par page, plan M-g) et un jeton inconnu
  * se refusent en `validation` ; un geste refusé porte la catégorie que le module commun lui donne (`validation`,
- * `permission`, `regle`), une levée qu'aucun contrôle n'attendait la catégorie `interne` ; les erreurs de la page
- * s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un même pont.
+ * `permission`, `regle`), une levée qu'aucun contrôle n'attendait la catégorie `interne` ; la vue porte le plateau de
+ * la scène, chaque verbe de sa fenêtre en geste prêt à dessiner (`fautesDeLaFenetre`) et les clics du champ ; les
+ * erreurs de la page s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
+ * même pont.
  */
 import { describe, it, expect, vi } from 'vitest';
-import { drainer, erreurDe, suiteDe, table } from './pont.testkit';
+import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
+import { CLICS_DU_CHAMP, plateauDeLaScene } from '../../../src/noyau/index';
+import { VERBES } from '../../../src/hote/verbes.generated';
+import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 
 /** La panne d'un lecteur de la vue, armée par le test de la catégorie `interne`. */
 const panne = vi.hoisted(() => ({ projeter: false }));
@@ -65,6 +70,20 @@ describe('le pont et sa partie', () => {
     expect(e.categorie).toBe('validation');
     expect(e.message).toMatch(/une partie par page, déjà démarrée/);
     expect(vue(), '`vue` rend la vue de la dernière suite').toEqual(suite.vue);
+  });
+
+  it('la vue porte le plateau de la scène, chaque verbe de sa fenêtre en geste, et les clics du champ', () => {
+    const v = vue();
+    const scene = scenario.construire().scene;
+    expect(v.plateau, 'le plateau de la scène du scénario').toEqual(plateauDeLaScene(scene));
+    const temoin = structuredClone(scene);
+    (temoin.layers[0].tiles as string[])[3 * scene.dimensions.w + 4] = 'mur';
+    const plateau = plateauDeLaScene(temoin);
+    expect(plateau.infranchissables, 'un mur posé en (4, 3) : infranchissable').toContainEqual({ x: 4, y: 3 });
+    expect(plateau.infranchissables, 'l’herbe voisine en (5, 3) : franchissable').not.toContainEqual({ x: 5, y: 3 });
+    expect(fautesDeLaFenetre(v), 'chaque verbe de la fenêtre ouverte, dessinable').toEqual([]);
+    expect(v.champ).toEqual(CLICS_DU_CHAMP);
+    for (const verbe of Object.values(v.champ)) expect(VERBES[verbe], verbe).toBeDefined();
   });
 
   it('un jeton inconnu se refuse en `validation`', () => {

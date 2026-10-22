@@ -2,6 +2,7 @@ import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
 import { rerollAvailable, darkPactAvailable, type RollActorView, type RollInfluenceView } from '../noyau/rollFlowFactory';
+import { t } from '../i18n';
 
 /**
  * Boutons de dépense de Chance partagés par les modales de jet (LDB « Destin et Résistance »
@@ -37,7 +38,7 @@ export function ChanceButtons({
   const pactBtn = onDarkPact && darkPactAvailable(actorView, roll) && (
     <CodexRef category={RULE_REF['sombre-pacte'].category} id={RULE_REF['sombre-pacte'].id} label="Sombre Pacte" wrap>
       <button className="btn btn-resource" onClick={onDarkPact}>
-        <Icon id="condition/bleeding" size="sm" /> Pacte
+        <Icon id="condition/bleeding" size="sm" /> {t('verbe.darkPact')}
       </button>
     </CodexRef>
   );
@@ -53,7 +54,7 @@ export function ChanceButtons({
            aussi la contrainte LDB 12 l.40. */
         title={`Relancer le jet raté — une seule relance par Test${freeReroll ? '' : ` (${fortune} Point${fortune > 1 ? 's' : ''} de Chance)`}`}
       >
-        {freeReroll ? <><Icon id="faith/prayer" size="sm" /> Relancer</> : <><Icon id="resource/fortune" size="sm" /> Relancer ×{fortune}</>}
+        {freeReroll ? <><Icon id="faith/prayer" size="sm" /> {t('verbe.reroll')}</> : <><Icon id="resource/fortune" size="sm" /> {t('verbe.reroll')} ×{fortune}</>}
       </button>
     </CodexRef>
   );
@@ -70,7 +71,7 @@ export function ChanceButtons({
             onClick={onBonusSL}
             title={`Dépenser un Point de Chance pour +1 DR (${fortune} restant${fortune > 1 ? 's' : ''})`}
           >
-            <Icon id="ui/add" size="sm" /> Chance : +1 DR ×{fortune}
+            <Icon id="ui/add" size="sm" /> {t('verbe.bonusSL')} ×{fortune}
           </button>
         </CodexRef>
       )}

@@ -19,7 +19,7 @@ import { Row } from '../Layout';
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'defense.appliquer'), onClick: confirm, when: 'post' };
+  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, when: 'post' };
 }
 
 /**
@@ -115,8 +115,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
           {vue.choixDArme && (
             <div className="rm-loc-inline">
               <span className="mini-title">{vue.choixDArme.libelle}</span>
-              <select className="rm-loc-select" value={vue.choixDArme.choisie} onChange={(e) => setWeapon(e.target.value || null)}>
-                {vue.choixDArme.options.map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}
+              <select className="rm-loc-select" value={vue.choixDArme.choisie ?? ''} onChange={(e) => setWeapon(e.target.value || null)}>
+                {vue.choixDArme.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
               </select>
               <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
             </div>
@@ -124,8 +124,8 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
           {vue.localisation && (
             <div className="rm-loc-inline">
               <span className="mini-title">{vue.localisation.libelle}</span>
-              <select className="rm-loc-select" value={vue.localisation.choisie} onChange={(e) => setLocation((e.target.value as HitLocation) || null)}>
-                {vue.localisation.options.map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}
+              <select className="rm-loc-select" value={vue.localisation.choisie ?? ''} onChange={(e) => setLocation((e.target.value as HitLocation) || null)}>
+                {vue.localisation.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
               </select>
               <CodexRef category="regles" id="viser-une-localisation" label="Viser une Localisation" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
             </div>
@@ -183,7 +183,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     postRollExtra: vue.attente ? <p className="rm-note" data-ton="attente">{vue.attente}</p> : undefined,
     forcedExtra: vue.critiqueALocaliser ? <CritLocationPicker current={vue.critiqueALocaliser.choisie} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
-      { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' } as RollAction,
+      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' } as RollAction,
       confirmerLeCoup(vue.defenseAttendue, confirm),
     ],
   };

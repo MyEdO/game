@@ -7,6 +7,7 @@ import { testValueSplit, testBreakdown, testPending } from '../breakdown';
 import { Icon } from '../Icon';
 import { HEAL_ACT } from '../healSubtitle';
 import { libelleDeTest } from '../../noyau/jetsEnVue';
+import { t } from '../../i18n';
 
 /**
  * Jet d'UNE passe de Chirurgie (Test ÉTENDU influençable), données de la coquille — calque `useHealJetProps` :
@@ -54,7 +55,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   });
   const recovery = kind === 'recovery';
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' },
     { key: 'confirm', label: 'Appliquer la passe', onClick: next, when: 'post' },
   ];
   return {

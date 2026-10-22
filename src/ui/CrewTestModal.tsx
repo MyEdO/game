@@ -11,6 +11,7 @@ import type { BuiltRollRow } from './rollRowBuild';
 import { buildParticipantRows, rollAllUnrolledRows, crewRoleRow } from './buildParticipantRows';
 import { Icon } from './Icon';
 import { resultLine, freeCons } from '../noyau/rollSeam';
+import { t } from '../i18n';
 
 /**
  * Modale du TEST D'ÉQUIPAGE GÉNÉRIQUE en COMBAT (MDG 14, « Types de Test d'équipage ») — JUMEAU de
@@ -79,9 +80,9 @@ export function CrewTestModalView({ p, battle, party, owns, roll, reroll, bonus,
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'always' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
     ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, when: 'pre' as const }] : []),
-    { key: 'confirm', label: 'Appliquer', onClick: confirm, when: 'always', disabled: !allRolled },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'always', disabled: !allRolled },
   ];
 
   return (

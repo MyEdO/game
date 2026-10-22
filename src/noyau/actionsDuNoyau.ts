@@ -648,10 +648,10 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  `gesteDArete`, Mouvement seul (1 case + l'allège à ½ vitesse), aucun Test, aucune Action. Tout refus
    *  est NOMMÉ (`refuserGeste`). */
   windowAcross: (from: Pt, to: Pt) => void;
-  /** DÉCLARATION pré-jet de la rangée `tombantId` (LDB 15 l.82 « vous pouvez tenter ») : `true` = Test,
+  /** DÉCLARATION pré-jet de la rangée `pid` (LDB 15 l.82 « vous pouvez tenter ») : `true` = Test,
    *  `false` = chute PLEINE sans Test. Quand toutes les rangées sautent sans Test, l'étape se résout. */
   /** `suspendre` : l'axe hauteur (EDO 01 l.231), exigé quand `pendingFall.suspendu` est offert. */
-  fallChoose: (tombantId: string, attempt: boolean, suspendre?: boolean) => void;
+  fallChoose: (pid: string, attempt: boolean, suspendre?: boolean) => void;
   // fall{Roll,Reroll,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
   fallConfirm: () => void;
   fallCancel: () => void;
@@ -705,7 +705,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Flux de défense réactive (héros attaqué par l'IA) : choisir Parade/Esquive, défendre,
    *  dépenser une Chance, appliquer. PAS de « Subir » : le RAW n'offre aucune non-défense volontaire
    *  (mêlée = Test opposé, LDB 13 l.123) ; la résolution non opposée est réservée aux cas imposés. */
-  defenseSetMode: (mode: DefenseMode, subSkillId?: string) => void;
+  defenseSetMode: (mode: DefenseMode) => void;
   /** Choisit l'arme de parade (uid d'ItemInstance ; null = main principale) — avant le jet de défense. */
   defenseSetParryWeapon: (uid: IdDObjet | null) => void;
   /** Déclare/efface la réaction de Porte-Bouclier (variante AA 13 l.84) pour cette défense au Bouclier. */
@@ -867,6 +867,6 @@ export interface GesteDuNoyau {
   args: unknown[];
 }
 
-/** Les clics du champ de bataille : viser un combattant, viser une case. Un premier clic pose l'aperçu, le même clic
- *  le confirme (`battle.preview`). */
-export const CLICS_DU_CHAMP = ['battleClickEntity', 'battleClickTile'] as const satisfies readonly (keyof ActionsDuNoyau)[];
+/** Les clics du champ de bataille, par ce qu'ils désignent : un combattant (son id), une case (`Pt`). Un premier clic
+ *  pose l'aperçu, le même clic le confirme (`battle.preview`). */
+export const CLICS_DU_CHAMP = { combattant: 'battleClickEntity', case: 'battleClickTile' } as const satisfies Record<string, keyof ActionsDuNoyau>;

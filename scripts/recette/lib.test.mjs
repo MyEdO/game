@@ -1249,11 +1249,11 @@ test('instantanés processus : Windows et ps complets, formes malformées refus�
     assert.ok(args.at(-1).includes('Get-CimInstance Win32_Process -Filter "ProcessId > 0"') && args.at(-1).includes('CreationDate'))
     return { status: 0, stdout: '[]' }
   } })
-  assert.deepEqual(lire('linux', ' 42 0 30\n43 42 2\n'), [{ pid: 42, parent: 0, cree: 70000 }, { pid: 43, parent: 42, cree: 98000 }])
+  assert.deepEqual(lire('linux', ' 42 0 30 Ss\n43 42 2 Sl\n44 42 1 Z\n'), [{ pid: 42, parent: 0, cree: 70000 }, { pid: 43, parent: 42, cree: 98000 }])
   for (const stdout of ['{}', '[{}]', '[null]', '[{"ProcessId":42}]', '[{"ProcessId":0,"ParentProcessId":1}]', '[{"ProcessId":"42","ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":-1}]', '[{"ProcessId":42.1,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1},{"ProcessId":42,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":-1}]', '[{"ProcessId":42,"ParentProcessId":1}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":null}]', '[{"ProcessId":42,"ParentProcessId":1,"Cree":"hier"}]']) {
     assert.throws(() => lire('win32', stdout), /malformé/)
   }
-  for (const stdout of ['42 1', '42 nope 3', '42 1 3 surplus', '0 1 3', '42 -1 3', '42.1 1 3', '42 1 3\n43', '42 1 3\n42 1 3']) {
+  for (const stdout of ['42 1 3', '42 nope 3 S', '42 1 3 S surplus', '0 1 3 S', '42 -1 3 S', '42.1 1 3 S', '42 1 3 S\n43', '42 1 3 S\n42 1 3 Z']) {
     assert.throws(() => lire('linux', stdout), /malformé/)
   }
   let arrets = 0

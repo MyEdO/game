@@ -85,7 +85,7 @@ export function ForcedRollPicker({ roll, target, onSet, critable = true, fixed =
   const maxRoll = fixed ? Math.min(max ?? FIXED_ROLL_MAX, FIXED_ROLL_MAX) : maxForcedRoll(target);
   // Le dé se commet au geste TERMINAL (`commit: 'geste'`), et une saisie hors des faces est REFUSÉE
   // plutôt que calée : la politique vit dans `NumberField`, elle n'est pas rejouée ici.
-  const stateLabel = !fixed ? 'Dé choisi' : marked ? 'Dé fixé' : 'Fixer le dé';
+  const stateLabel = !fixed ? 'Dé choisi' : marked ? 'Dé fixé' : t('verbe.setForcedRoll');
   // Un second clic sur le MÊME dé ne rejoue pas le commit : poser le dé (re)LANCE côté flux.
   const poser = (n: number) => { if (n !== roll) onSet(n); };
   return (

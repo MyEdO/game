@@ -212,7 +212,7 @@ export function CastModal() {
         ? []
         : [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, when: 'post' } as RollAction]
       : caster.kind !== 'enemy'
-        ? [{ key: 'cancel', label: 'Annuler', onClick: cancel, when: 'pre' } as RollAction]
+        ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' } as RollAction]
         : []),
     {
       key: 'confirm',

@@ -24,7 +24,7 @@ import { ast } from '../scripts/guards/lib/dialecte.mjs';
 import {
   cleEnLigne, constructionsReserveesDuCorpus, recopieDeCanon, scanConstructionsReservees,
 } from '../scripts/guards/lib/canonUnique.mjs';
-import { corpusDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
+import { corpusTypeScriptDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
 import {
   CHAMPS_DE_GROUPE, CHAMPS_DE_SITE_OBSERVE, CHAMPS_REQUIS, CHAMP_D_OCCURRENCE, SEPARATEUR_DE_CLE,
   SEPARATEUR_DE_REMEDE,
@@ -53,7 +53,7 @@ const EN_LIGNE = ['clé de site en ligne'];
 
 describe('clé de site (#1903)', () => {
   it('aucune clé de site recopiée hors de son foyer dans le périmètre des gardes', () => {
-    expect(constructionsReserveesDuCorpus(corpusDesGardes(), CLE_DE_SITE)).toEqual([]);
+    expect(constructionsReserveesDuCorpus(corpusTypeScriptDesGardes(), CLE_DE_SITE)).toEqual([]);
   });
 
   it('clé à occurrence', () => {

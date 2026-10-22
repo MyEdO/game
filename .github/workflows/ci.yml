@@ -133,6 +133,13 @@ jobs:
         run: npm run typecheck
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run pont:godot
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/wfrp-godot
+          key: godot-${{ hashFiles('hotes/godot/construire.mjs') }}
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:sonde
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}

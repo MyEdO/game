@@ -9,6 +9,7 @@ import { OptionChooser, type RollSegOption } from './OptionChooser';
 import { testBreakdown, testPending } from './breakdown';
 import { confirmerLeCoup } from './jetProps/useAttackJetProps';
 import { libelleDeManoeuvre } from '../noyau/jetsEnVue';
+import { t } from '../i18n';
 
 /**
  * Modale de MANŒUVRE de créature (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85 - Traits de
@@ -69,7 +70,7 @@ export function ManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Annuler', onClick: cancel, when: 'always' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
     confirmerLeCoup(awaitingDefense, confirm),
   ];
 

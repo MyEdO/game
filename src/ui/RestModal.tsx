@@ -10,7 +10,7 @@ import { lodgingOptions, foodOptions, restCost, type PendingRest, type RestLodgi
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../noyau/combatFlow';
-import { t } from '../i18n';
+import { t, type MsgKey } from '../i18n';
 import { hasCondition } from '../engine/conditions';
 import { toBrass } from '../engine/money';
 import { ReadyRow } from './ReadyRow';
@@ -21,18 +21,18 @@ import type { Combatant } from '../engine/types';
 import { GatedAction } from './GatedAction';
 import { Row } from './Layout';
 
-const LODGING_META: Record<RestLodging, { icon: IconIdInput; label: string }> = {
-  privee: { icon: 'rest/bed', label: 'Privée' },
-  commune: { icon: 'rest/couch', label: 'Commune' },
-  maison: { icon: 'rest/home', label: 'Chez soi' },
-  dehors: { icon: 'rest/camp', label: 'Dehors' },
-  bord: { icon: 'travel/sail-ship', label: 'À bord' },
+const LODGING_META: Record<RestLodging, { icon: IconIdInput; labelKey: MsgKey }> = {
+  privee: { icon: 'rest/bed', labelKey: 'valeur.lodging.privee' },
+  commune: { icon: 'rest/couch', labelKey: 'valeur.lodging.commune' },
+  maison: { icon: 'rest/home', labelKey: 'valeur.lodging.maison' },
+  dehors: { icon: 'rest/camp', labelKey: 'valeur.lodging.dehors' },
+  bord: { icon: 'travel/sail-ship', labelKey: 'valeur.lodging.bord' },
 };
-const FOOD_META: Record<RestFood, { icon: IconIdInput; label: string }> = {
-  repas: { icon: 'rest/stew', label: 'Repas' },
-  maison: { icon: 'rest/feast', label: 'Maison' },
-  ration: { icon: 'item/misc', label: 'Ration' },
-  rien: { icon: 'ui/forbidden', label: 'Rien' },
+const FOOD_META: Record<RestFood, { icon: IconIdInput; labelKey: MsgKey }> = {
+  repas: { icon: 'rest/stew', labelKey: 'valeur.food.repas' },
+  maison: { icon: 'rest/feast', labelKey: 'valeur.food.maison' },
+  ration: { icon: 'item/misc', labelKey: 'valeur.food.ration' },
+  rien: { icon: 'ui/forbidden', labelKey: 'valeur.food.rien' },
 };
 
 /** Avertissements de la ligne d'un héros (info de DÉCISION, pas de texte tuto). */
@@ -122,12 +122,12 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
             <OptionChooser
               layout="seg"
               groupLabel="Couchage"
-              options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {LODGING_META[l].label}</>, selected: commonLodging === l, onSelect: () => applyTroupe({ lodging: l }) }))}
+              options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: commonLodging === l, onSelect: () => applyTroupe({ lodging: l }) }))}
             />
             <OptionChooser
               layout="seg"
               groupLabel="Pitance"
-              options={masterFood.map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {FOOD_META[f].label}</>, selected: commonFood === f, onSelect: () => applyTroupe({ food: f }) }))}
+              options={masterFood.map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: commonFood === f, onSelect: () => applyTroupe({ food: f }) }))}
             />
           </Row>
         </div>
@@ -149,7 +149,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                 </div>
                 {/* Choix COURANT en toutes lettres (arbitrage user : plus de segments cryptiques par défaut). */}
                 <div className="rest-hero-pick">
-                  <span className="rest-hero-choice"><Icon id={LODGING_META[cfg.lodging].icon} size="sm" /> {LODGING_META[cfg.lodging].label} · <Icon id={FOOD_META[cfg.food].icon} size="sm" /> {FOOD_META[cfg.food].label}</span>
+                  <span className="rest-hero-choice"><Icon id={LODGING_META[cfg.lodging].icon} size="sm" /> {t(LODGING_META[cfg.lodging].labelKey)} · <Icon id={FOOD_META[cfg.food].icon} size="sm" /> {t(FOOD_META[cfg.food].labelKey)}</span>
                   {warns.length > 0 && (
                     <span className="rest-warn">{warns.map((w, i) => <span key={i}>{i > 0 && ' · '}{w}</span>)}</span>
                   )}
@@ -166,12 +166,12 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
                   <OptionChooser
                     layout="seg"
                     groupLabel="Couchage"
-                    options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {LODGING_META[l].label}</>, selected: cfg.lodging === l, onSelect: () => restSet(h.id, { lodging: l }) }))}
+                    options={lodgingOptions(p.places).map((l) => ({ key: l, label: <><Icon id={LODGING_META[l].icon} size="sm" /> {t(LODGING_META[l].labelKey)}</>, selected: cfg.lodging === l, onSelect: () => restSet(h.id, { lodging: l }) }))}
                   />
                   <OptionChooser
                     layout="seg"
                     groupLabel="Nourriture"
-                    options={foodOptions(p.places, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {FOOD_META[f].label}</>, selected: cfg.food === f, onSelect: () => restSet(h.id, { food: f }) }))}
+                    options={foodOptions(p.places, h).map((f) => ({ key: f, label: <><Icon id={FOOD_META[f].icon} size="sm" /> {t(FOOD_META[f].labelKey)}</>, selected: cfg.food === f, onSelect: () => restSet(h.id, { food: f }) }))}
                   />
                 </Row>
               )}

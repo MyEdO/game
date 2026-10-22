@@ -7,6 +7,7 @@ import { CodexRef } from './compendium/CodexRef';
 import { GatedAction } from './GatedAction';
 import { raisonRefusDetermination } from '../engine/conditions';
 import { RULE_REF } from '../engine/ruleRefs';
+import { t } from '../i18n';
 
 /**
  * Détermination en modale de jet (LDB 17 l.59-61) : AVANT de lancer, un héros qui subit des
@@ -28,7 +29,7 @@ export function DeterminationButton({ combatant, onSpend }: { combatant?: Combat
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
-          <Icon id="resource/resolve" size="sm" /> Détermination ×{resolve}
+          <Icon id="resource/resolve" size="sm" /> {t('verbe.determine')} ×{resolve}
         </button>
       </CodexRef>
       {open &&
