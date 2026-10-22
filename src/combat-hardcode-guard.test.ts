@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { scanHardcode } from '../../scripts/guards/lib/hardcode.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { scanHardcode } from '../scripts/guards/lib/hardcode.mjs';
+import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « tout migrer » — chantier d'unification des événements/réactions de combat.
  * (cf. docs/combat-events-coherence.md — Recensement Lot 0.)
  *
- * Compte les SITES RÉACTIFS codés PAR-NOM dans TOUT `src/engine` + `src/state` (récursif, `.ts`/
+ * Compte les SITES RÉACTIFS codés PAR-NOM dans TOUT `SCAN_DIRS` (récursif, `.ts`/
  * `.tsx`, HORS `*.test.*`) : une réaction de combat (pénalité, dégâts par round, bonus, Riposte,
  * Cleave, infection, contenu caché dans un hook…) doit devenir de la DONNÉE (`TriggeredEffect`/
  * `passive`), pas une branche impérative nommant l'entité. Deux familles de marqueurs (cf.
@@ -33,7 +33,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * `scripts/guards/lib/hardcode.mjs` (module .mjs pur, partagé avec le hook pre-commit).
  */
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
 const EXCLUDED = (rel: string) => estFichierVitest(rel);
 
@@ -127,7 +127,7 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou « tout migrer » — réactions de combat hardcodées (cliquet généralisé, Lot 8)', () => {
-  it('aucun fichier de src/engine + src/state ne dépasse sa baseline gelée', () => {
+  it(`aucun fichier de ${SCAN_DIRS.join(', ')} ne dépasse sa baseline gelée`, () => {
     const counts = countsByFile();
     const offenders: string[] = [];
     for (const [rel, n] of Object.entries(counts)) {

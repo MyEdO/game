@@ -1,4 +1,4 @@
-import { ast, declarationQuiPorte } from '../../scripts/guards/lib/dialecte.mjs';
+import { ast, declarationQuiPorte } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -13,12 +13,12 @@ import {
   scanLabelKeyedIndex,
   collectFacesDAffichage, scanFaceDAffichageIdentite, scanFaceDeDonneeString, scanLiantsLitterauxDesFaces,
   contexteDeLaGarde, corpusDeLaGarde, scanLabelLogicFichier, scanLabelLogicCorpus, dettesParVolet, clesInterditesAuStock,
-} from '../../scripts/guards/lib/labelLogic.mjs';
-import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { couvertureDuBalayage } from '../../scripts/guards/lib/stock.mjs';
-import { detenteur } from '../detenteur.testkit';
-import { skillRefLabel, talentRefLabel, talents } from '../data';
-import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
+} from '../scripts/guards/lib/labelLogic.mjs';
+import { listerArbre } from '../scripts/guards/lib/lister.mjs';
+import { couvertureDuBalayage } from '../scripts/guards/lib/stock.mjs';
+import { detenteur } from './detenteur.testkit';
+import { skillRefLabel, talentRefLabel, talents } from './data';
+import { parseSkillRef, parseTalentRef } from './ui/editor/refFormatLivre';
 
 /**
  * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine AGENTS.md bloc
@@ -35,7 +35,7 @@ import { parseSkillRef, parseTalentRef } from '../ui/editor/refFormatLivre';
  *  - NU : la faute.
  * Les volets (formes détectées) sont décrits et contre-éprouvés un par un plus bas.
  */
-const ROOT = fileURLToPath(new URL('../..', import.meta.url)); // src/state/ → ../../ = racine du projet
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 /** Le balayage de la garde sur le vrai corpus, tenu par `detenteur` (#1801) : l'inventaire, le cliquet
  *  du stock et celui des coutures périmées jugent le MÊME balayage. */
@@ -104,7 +104,7 @@ describe('garde « logique par libellé » : un corpus, une composition, deux st
     expect(estDansLeCorpus('src/scenes/test-scenarios/marche-equipement.ts')).toBe(true);
     expect(estDansLeCorpus('src/i18n/index.ts')).toBe(true);
     expect(estDansLeCorpus('src/ui/App.tsx')).toBe(true);
-    expect(estDansLeCorpus('src/state/label-logic-guard.test.ts')).toBe(false);
+    expect(estDansLeCorpus('src/label-logic-guard.test.ts')).toBe(false);
     expect(estDansLeCorpus('scripts/guards/lib/labelLogic.mjs')).toBe(false);
     expect(estDansLeCorpus('src/data/trappings.json')).toBe(false);
     expect(estDansLeCorpus('src/vite-env.d.ts')).toBe(false);

@@ -128,9 +128,8 @@ describe('#1051 — l’ancienne regex d’interlude est ÉNUMÉRÉE (4 clés ex
  * LIMITE DÉCLARÉE : la garde est TEXTUELLE (elle lit le corps de la fonction dans le fichier), elle
  * prouve l'absence de branchement par nom, pas l'absence de toute logique.
  * L'énumération ci-dessous se fait sans ÉTAT (aucun `useGame` monté ni pending posé) ET par IMPORT
- * ISOLÉ : `netOwnership` ne charge plus le store (#1054), ce que garde
- * `netownership-import-isole.test.ts` — un script ou une garde CI légère peut donc lire `ROUTES`
- * hors environnement de test complet.
+ * ISOLÉ : `netOwnership` vit au noyau, auquel `src/state` est fermé (`COUCHES`, #1054) — un script ou
+ * une garde CI légère peut donc lire `ROUTES` hors environnement de test complet.
  */
 describe('#1051 — DoD : aucune branche par nom d’intent dans `intentAllowedFor`', () => {
   const corps = (): string => {

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { skills } from '../data';
-import { CHAR_LABELS } from '../engine/types';
-import { fr } from '../i18n/messages/fr';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { skills } from './data';
+import { CHAR_LABELS } from './engine/types';
+import { fr } from './i18n/messages/fr';
 
 /**
  * CLIQUET LEXICAL du LIBELLÉ D'ACTION d'un jet (#1078 LOT C1) — « un signe, un sens »
@@ -108,7 +108,7 @@ describe('CLIQUET — le libellé d’ACTION d’un jet ne porte ni parenthèse 
  * « Scorbut », « Tonneau contaminé » sont des situations — la ligne du jet, elle, dit « Résistance »
  * (précédents mesurés : `state/approach-fear.test.ts`, `state/combat/venin-test.test.ts`).
  *
- * MESURE : un `rollLabel` littéral de `src/state` (les `rollLabel` de `src/ui` sont le libellé du
+ * MESURE : un `rollLabel` littéral de `src/state` ou de `src/noyau` (les `rollLabel` de `src/ui` sont le libellé du
  * BOUTON « Lancer », `RollRowProps` — autre champ, hors périmètre) doit être un libellé du CATALOGUE
  * — compétence (`skills`), caractéristique (`CHAR_LABELS`), ou compétence + spécialisation entre
  * parenthèses (« Métier (Cartographe) ») — apostrophes normalisées (le catalogue écrit `'`, les sites
@@ -201,7 +201,7 @@ describe('CLIQUET — un `rollLabel` nomme la COMPÉTENCE, pas la situation (#11
 
 
 /**
- * VOLET 3 (#1112) — le LIBELLÉ D'UNE LIGNE DE JET fabriquée dans `src/state` (`RollBreakdown` d'une
+ * VOLET 3 (#1112) — le LIBELLÉ D'UNE LIGNE DE JET fabriquée dans `src/state`, `src/noyau` ou `src/ui` (`RollBreakdown` d'une
  * modale, `NightEntry.d` d'un procès-verbal) nomme la COMPÉTENCE / la CARACTÉRISTIQUE lancée (Z5), et
  * JAMAIS une autre nomenclature : le rôle tenu, la situation, le nom de l'action. La provenance (rôle
  * d'équipage, poste) vit sur l'entrée, pas sur la ligne.
@@ -245,7 +245,7 @@ export function scanRollLineLabels(src: string): { line: number; text: string; c
 describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lancée (#1112 volet 3)', () => {
   // PÉRIMÈTRE ÉTENDU (#1117) : le FABRICANT de rangées-participants vit dans `src/ui`
   // (`buildParticipantRows`) et dérivait son libellé d'un `part.label` CALCULÉ — il échappait donc au
-  // scan des littéraux de `src/state`. Le trou est celui-là : on scanne les deux couches.
+  // scan des littéraux de `src/state` et `src/noyau`. Le trou est celui-là : on scanne aussi `src/ui`.
   const files = () => readCorpus(['src/state', 'src/noyau', 'src/ui']);
 
   it('aucun libellé de ligne LITTÉRAL qui ne soit une Compétence/Caractéristique du catalogue', () => {

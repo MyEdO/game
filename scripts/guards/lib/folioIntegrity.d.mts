@@ -112,7 +112,6 @@ export function auditFolios(dataDir: string): {
   multi: FolioMulti[];
 };
 export function renderStock(violations: FolioViolation[], entete: string): string;
-export function renderTitleStock(violations: TitleViolation[], entete: string): string;
 
 export interface SecondaryEntry {
   key: string;

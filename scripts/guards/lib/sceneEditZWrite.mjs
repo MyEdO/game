@@ -7,7 +7,7 @@ import { ast } from './dialecte.mjs';
 // ne casse à la compilation, l'élément est posé au sol (0) sans que l'auteur puisse choisir sa
 // couche. Ce scanner détecte, par AST réelle (compilateur TypeScript), toute fonction EXPORTÉE de
 // `sceneEdit.ts` qui pousse dans une collection z-portante sans déclarer de paramètre nommé `z`.
-// Module ESM pur — consommé par `src/state/scene-edit-z-write-guard.test.ts`.
+// Module ESM pur — consommé par `src/noyau/scene-edit-z-write-guard.test.ts`.
 import * as ts from 'typescript/unstable/ast';
 
 /** Collections dont l'ÉLÉMENT porte un `z` au modèle (`scene.ts`) — `roofs` (FU-2) et `architecture`

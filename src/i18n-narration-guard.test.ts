@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
  * Garde-fou i18n — narration moteur (Phase C, plan évacué → #320).
@@ -10,10 +10,8 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  *
  * PÉRIMÈTRE INVERSÉ #410 (2026-07-13) : ancien jumeau exact du garde emoji FAINÉANT — l'ancienne
  * version n'auditait qu'une allowlist de fichiers MIGRÉS, laissant passer TOUT nouveau littéral FR
- * d'un fichier non listé. Le scan balaie désormais TOUT `src/engine` + `src/state` (walk récursif) ;
- * chaque fichier porte une BASELINE gelée de son stock de littéraux FR (la dette ne CROÎT plus), et
- * les fichiers MIGRÉS restent à ZÉRO (invariant enforced). Tout nouveau fichier naît couvert
- * (baseline 0). Le stock gelé (Phase C, à résorber au catalogue) DÉCROÎT au fil des migrations.
+ * d'un fichier non listé. Le scan balaie TOUT `SCAN_DIRS` (walk récursif), sans liste : tout fichier
+ * naît couvert, et aucun ne porte de littéral FR (ABSOLUE depuis #1318 V8c₅, 2026-08-17).
  *
  * Couvre les FORMES d'émission de journal (PAS les libellés de MODALE/UI `{label:…}`/`prompt:` —
  * surface UI distincte, Phase D différée) :
@@ -33,9 +31,8 @@ const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
 
 /** Fichiers DISPENSÉS par NATURE (#1117) : leur sortie n'est pas une surface de JEU mais une sortie
  *  d'OUTIL de développement — la console de recette (`__wfrp.*`), lue par un développeur/recetteur,
- *  jamais par un joueur. Traduire ces verdicts n'a aucun sens, et les compter dans un cliquet
- *  anti-hausse ne mesure rien (chaque helper de recette en ajoute par construction : la baseline
- *  monterait à chaque outil, ce qui n'est pas un cliquet). Dispense STRUCTURELLE et NOMINATIVE — elle
+ *  jamais par un joueur. Traduire ces verdicts n'a aucun sens, et les compter ne mesure rien (chaque
+ *  helper de recette en ajoute par construction). Dispense STRUCTURELLE et NOMINATIVE — elle
  *  ne s'étend pas d'elle-même : ajouter un fichier ici demande de justifier que sa surface est
  *  hors-jeu. */
 const DEV_ONLY = new Set([
@@ -46,103 +43,6 @@ const DEV_ONLY = new Set([
   // ne traduit pas du code d'authoring : même nature que `devtools.ts`, dispensé au même titre.
   'src/state/sceneToAscii.ts',
 ]);
-
-/** Fichiers dont la narration de JOURNAL est entièrement passée au catalogue (Phase C) — baseline
- *  ZÉRO INVARIANTE : un littéral FR y réapparaissant échoue, quelle que soit la baseline générale. */
-const MIGRATED = new Set([
-  'src/engine/conditions.ts',
-  'src/engine/ops.ts',
-  'src/engine/psychology.ts',
-  'src/noyau/combat/turnHooks.ts',
-  'src/noyau/outOfCombatUpkeep.ts',
-  'src/noyau/combatManeuvers.ts',
-  'src/noyau/flowOutcomes.ts',
-  'src/noyau/combatSlice.ts',
-  'src/noyau/combatFlow.ts',
-  'src/noyau/pursuitFlow.ts', // #1279 : toute la narration de poursuite est passee au catalogue
-  'src/noyau/interludeFlow.ts', // #1318 V8c₁ : `if.*`
-  'src/noyau/massBattleFlow.ts', // #1318 V8c₁ : `mbf.*`
-  'src/noyau/merchantFlow.ts', // #1318 V8c₁ : `mf.*`
-  'src/engine/disease.ts', // #1318 V8c₂ : `dz.*` (le moteur pur résout par `t()`, comme `ops.ts`)
-  'src/noyau/combatEffects.ts', // #1318 V8c₂ : `eff.*`
-  'src/state/store.ts', // #1318 V8c₂ : `store.*`
-  'src/noyau/conversation.ts', // #1318 V8c₂ : `store.*` (#2817)
-  'src/noyau/entreeEnScene.ts', // #1318 V8c₂ : `store.*` (#2817)
-  'src/noyau/interactionsDExploration.ts', // #1318 V8c₂ : `store.*` (#2817)
-  'src/noyau/issueDeCombat.ts', // #1318 V8c₂ : `store.*` (#2817)
-  'src/noyau/testsDeScene.ts', // #1318 V8c₂ : `store.*` (#2817)
-  'src/noyau/travelFlow.ts', // #1318 V8c₂ : `tf.*`
-  'src/noyau/riverVoyageFlow.ts', // #1318 V8c₂ : `rv.*`
-  'src/engine/healing.ts', // #1318 V8c₃ : `heal.*` (le moteur pur résout par `t()`, comme `ops.ts`)
-  'src/engine/rest.ts', // #1318 V8c₃ : `rest.*`
-  'src/noyau/restFlow.ts', // #1318 V8c₃ : `rf.*`
-  'src/noyau/shipCrew.ts', // #1318 V8c₃ : `crew.*`
-  'src/noyau/seaVoyageFlow.ts', // #1318 V8c₃ : `sv.*`
-  'src/engine/provisions.ts', // #1318 V8c₄ : `prov.*` (Faim & Soif — le moteur pur résout par `t()`)
-  'src/engine/suffocation.ts', // #1318 V8c₄ : `suff.*`
-  'src/engine/exposure.ts', // #1318 V8c₄ : `exp.*` (protection magique = `eff.weatherWarded`, partagée)
-  'src/engine/mountTravel.ts', // #1318 V8c₄ : `mt.*`
-  'src/engine/shipCritical.ts', // #1318 V8c₄ : `shipCrit.*` + `shipLoc.*` (foyer des Localisations de bateau)
-  'src/engine/spellRangeFormat.ts', // #1318 V8c₄ : `spellFmt.*` (portée/cible/durée d'un sort)
-  'src/noyau/upkeep.ts', // #1318 V8c₄ : `upkeep.*`
-  'src/noyau/medicFlow.ts', // #1318 V8c₄ : `medic.*`
-  'src/state/netFlow.ts', // #1318 V8c₄ : `coop.*` (le namespace du salon, déjà posé)
-  'src/noyau/travelPostes.ts', // #1318 V8c₄ : `tp.*`
-  'src/noyau/corruptionFlow.ts', // #1318 V8c₄ : `cor.*`
-  'src/noyau/seaActivities.ts', // #1318 V8c₄ : `sact.*`
-  'src/noyau/portFlow.ts', // #1318 V8c₄ : `port.*`
-  'src/noyau/partyFlow.ts', // #1318 V8c₄ : `pf.*`
-  'src/engine/drunkenness.ts', // #1318 V8c₅ : `drunk.*`
-  'src/engine/items.ts', // #1318 V8c₅ : `ammo.*` (munition attendue par une arme à distance)
-  'src/engine/money.ts', // #1318 V8c₅ : `money.*` (épellation d'un montant)
-  'src/engine/qualities/craftEconomy.ts', // #1318 V8c₅ : `craft.*` (la classe est un id, le libellé une clé)
-  'src/engine/social.ts', // #1318 V8c₅ : `social.*`
-  'src/engine/structureCritical.ts', // #1318 V8c₅ : `structCrit.*`
-  'src/engine/tavernGame.ts', // #1318 V8c₅ : `tavern.*` (issue d'une manche/partie)
-  'src/engine/traits/dispatch.ts', // #1318 V8c₅ : `specSrc.*`/`traitArg.*` (carte de CLÉS, résolue à l'appel)
-  'src/engine/trauma.ts', // #1318 V8c₅ : les deux `PassiveKind` accentués sont devenus des ids ASCII
-  'src/engine/travel.ts', // #1318 V8c₅ : `trv.*`
-  'src/engine/advancement.ts', // #1318 V8c₅ : `adv.*` (les `reason` de refus, invisibles aux 7 formes)
-  'src/engine/careerSlots.ts', // #1318 V8c₅ : `slot.*` (idem, + le Maxi de Talent)
-  'src/noyau/combat/roundHooks.ts', // #1318 V8c₅ : `turn.exhausted`
-  'src/state/clavier/keybindings.ts', // #1318 V8c₅ : `key.*` (le registre porte des CLÉS, `bindingLabel`)
-  'src/noyau/mount.ts', // #1318 V8c₅ : `mount.*`
-  'src/noyau/rollFlowFactory.ts', // #1318 V8c₅ : `roll.*`
-  'src/noyau/shipManeuver.ts', // #1318 V8c₅ : `shipManv.*`
-  'src/noyau/shipwreck.ts', // #1318 V8c₅ : `wreck.*`
-  'src/noyau/summonFlow.ts', // #1318 V8c₅ : `summon.*`
-]);
-
-/** Stock GELÉ par fichier (recensement #410, 2026-07-13) — littéraux FR de narration hors catalogue,
- *  Phase C à résorber. Toute HAUSSE échoue (régression) ; toute BAISSE doit ABAISSER la baseline. Les
- *  fichiers MIGRÉS (ci-dessus) n'y figurent PAS : leur invariant est ZÉRO.
- *
- *  GEL COURANT #1318 V8c₅ (2026-08-17) — `GEL_TOTAL` littéraux sur `GEL_FICHIERS` fichiers : la table
- *  est VIDE. Les DIX-HUIT derniers fichiers gelés sont passés MIGRÉS (invariant ZÉRO), et les DEUX que
- *  la tranche 4 avait nommés aux limites (`advancement`/`careerSlots`, du texte joueur qui ne pesait
- *  aucun point de gel) avec eux. Ce que le prédicat sait voir sur ces HUIT formes est ÉTEINT ;
- *  `src/state/sceneToAscii.ts` sort par la porte de la NATURE (`DEV_ONLY`, sortie d'outil d'authoring),
- *  pas par une migration.
- *  Les DEUX chiffres ci-dessus sont des CONSTANTES assertées contre la table (`GEL_TOTAL`/`GEL_FICHIERS`,
- *  dernier test du fichier) : ce commentaire a menti une fois (92 annoncés pour 103 tenus), il ne le
- *  peut plus sans rougir. Une entrée qui REPARAÎTRAIT ici serait une régression, pas une dette : la
- *  table n'est plus un stock à résorber mais un cliquet à zéro.
- *  `noyau/combatFlow.ts` reste MIGRÉ (invariant ZÉRO) : les littéraux que ce prédicat y a révélés sont
- *  au catalogue (`cf.gangwayCollapse`/`cf.spellNotFound`/`cf.cannotCast`/`cf.cannotPray`/`cf.oups`,
- *  plus `cf.outOfAction`/`cf.noLineOfSight`, et les DEUX que la 7ᵉ forme y a trouvés —
- *  `cf.componentAbsorbs`/`cf.sourceRebuilds` : un fichier « MIGRÉ » ne l'est que pour ce que le
- *  détecteur sait voir, et cette tranche l'a mesuré plutôt que supposé). */
-/** Le GEL ANNONCÉ au commentaire ci-dessus, en CONSTANTES — assertées contre la table réelle par le
- *  dernier test du fichier. Un commentaire de gel n'est pas une mesure : celui-ci a annoncé 92 pour
- *  103 tenus (V8c₃, rattrapé par le juge). Désormais, un chiffre faux rougit. */
-const GEL_TOTAL = 0;
-const GEL_FICHIERS = 0;
-
-const BASELINE: Record<string, number> = {
-  // VIDE (#1318 V8c₅) : plus un seul fichier de `src/engine`+`src/state` ne porte de littéral FR sur
-  // les huit formes d'émission. `src/state/devtools.ts` et `src/state/sceneToAscii.ts` n'y figurent
-  // pas non plus — DISPENSÉS par nature (`DEV_ONLY`), jamais comptés.
-};
 
 /**
  * PRÉDICAT DE FRANCITÉ — HEURISTIQUE, et c'est dit ici (#1333, V8c₀).
@@ -162,8 +62,8 @@ const BASELINE: Record<string, number> = {
  *     restent hors du compte. MESURÉ sur trois d'entre eux (`isFrench` rendu `false` pour les trois) :
  *     `combatEffects.ts:1517` « incante … (rituel garanti). », `consumableFlow.ts:128` « utilise : … »,
  *     `partyFlow.ts:615` « +{xp} PX (Ambition accomplie). ». Conséquence à dire : le compte de
- *     `consumableFlow.ts` est 0 — le fichier n'a donc PAS d'entrée de baseline, et cette absence ne
- *     veut pas dire « aucun texte FR », seulement « aucun que ce prédicat sache voir » ;
+ *     `consumableFlow.ts` est 0, ce qui ne veut pas dire « aucun texte FR », seulement « aucun que ce
+ *     prédicat sache voir » ;
  *   - littéral d'UN SEUL mot FR (`Carreaux`, `Aucun`, `Standard`) : indiscernable d'un id/clé ASCII —
  *     écarté volontairement (l'espace est la condition de la marque 3) ;
  *   - un mot-outil FR dans une chaîne TECHNIQUE la ferait compter (aucun cas mesuré sur le stock
@@ -173,13 +73,13 @@ const BASELINE: Record<string, number> = {
  *     démontré, parce qu'ils portaient du texte JOUEUR (leurs `reason` remontent à l'écran via
  *     `pf.refused`/`pf.designateRefused`) sans peser un seul point de gel : `src/engine/advancement.ts`
  *     (« PX insuffisants », « Compétence inconnue »…) et `src/engine/careerSlots.ts` (« emplacement déjà
- *     désigné », « un seul Domaine sombre autorisé… »). V8c₅ les a migrés et posés MIGRÉS — leur
- *     invariant ZÉRO ne prouve toujours que ce que ces huit formes savent voir.
+ *     désigné », « un seul Domaine sombre autorisé… »). V8c₅ les a migrés — leur zéro ne prouve
+ *     toujours que ce que ces huit formes savent voir.
  *
- * CE QUE `GEL_TOTAL` EST, DONC : la COUVERTURE de ce prédicat sur ces huit formes — jamais la dette
- * totale de FR-hors-catalogue de `src/engine`+`src/state`. Le stock COUVERT est éteint (`GEL_TOTAL` 0,
- * V8c₅) : cela dit « plus rien de ce que je sais voir », pas « plus un littéral » — les formes
- * ci-dessus restent hors de portée dans l'absolu. Toute réapparition dans ce périmètre ROUGIT.
+ * CE QUE CE ZÉRO EST, DONC : la COUVERTURE de ce prédicat sur ces huit formes — jamais la dette totale
+ * de FR-hors-catalogue de `SCAN_DIRS`. Il dit « plus rien de ce que je sais voir », pas « plus un
+ * littéral » — les formes ci-dessus restent hors de portée dans l'absolu. Toute réapparition dans ce
+ * périmètre ROUGIT.
  */
 const ACCENT = /[éèêëàâäçôöûùîïœÉÈÊÀÂÇÔÛ]/;
 const FR_QUOTES = /[«»]/;
@@ -405,27 +305,12 @@ function countsByFile(): Record<string, number> {
 }
 
 describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
-  it('aucun fichier de src/engine|src/state ne dépasse sa baseline gelée de littéraux FR', () => {
-    const counts = countsByFile();
-    const over: string[] = [];
-    for (const [rel, n] of Object.entries(counts)) {
-      const b = MIGRATED.has(rel) ? 0 : BASELINE[rel] ?? 0;
-      if (n > b) over.push(`${rel} : ${n} littéral(aux) FR (baseline gelée ${b})`);
-    }
+  it(`aucun fichier de ${SCAN_DIRS.join(', ')} ne porte de littéral FR de narration`, () => {
+    const over = Object.entries(countsByFile()).map(([rel, n]) => `${rel} : ${n} littéral(aux) FR`);
     expect(
       over,
       `Nouveau(x) littéral(aux) FR de narration hors catalogue — passer par t(...)/tr(...) :\n${over.join('\n')}`,
     ).toEqual([]);
-  });
-
-  it('les fichiers MIGRÉS restent à ZÉRO littéral FR (invariant Phase C)', () => {
-    const counts = countsByFile();
-    const regressed: string[] = [];
-    for (const rel of MIGRATED) {
-      const n = counts[rel] ?? 0;
-      if (n > 0) regressed.push(`${rel} : ${n} littéral(aux) FR (doit rester 0)`);
-    }
-    expect(regressed, `Régression d'un fichier MIGRÉ — la narration doit rester au catalogue :\n${regressed.join('\n')}`).toEqual([]);
   });
 
   it('le lecteur de littéraux honore l’ÉCHAPPEMENT : une phrase à apostrophe échappée est COMPTÉE', () => {
@@ -456,7 +341,7 @@ describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
 
   it('7ᵉ FORME : un `return [ … ]` compte SES lignes (le journal RENDU en tableau)', () => {
     // Le site réel (`engine/disease.ts`, contraction/développement/Gangrène) : quatre phrases joueur
-    // dans un fichier déclaré MIGRÉ — l'invariant ZÉRO restait VERT quand on les y remettait.
+    // dans un fichier migré — la garde restait VERTE quand on les y remettait.
     expect(narrationCount("  return [`${c.label} développe : ${diseaseLabel(name)}.`];")).toBe(1);
     // Deux lignes dans le même retour comptent DEUX fois.
     expect(narrationCount('return [`Le groupe arrive à ${to}.`, `La nuit tombe sur le camp.`];')).toBe(2);
@@ -480,22 +365,5 @@ describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
     expect(narrationCount("lines.push(t('a.b', { x: t('c.d', { y: 'une phrase de plus' }) }));")).toBe(1);
     // `.at(`/`format(` ne sont pas des minteurs : leurs littéraux ne sont pas visés par cette forme.
     expect(narrationCount("const s = arr.at('la première case');")).toBe(0);
-  });
-
-  it('le GEL ANNONCÉ au commentaire est le gel TENU par la table (le chiffre ne peut plus mentir)', () => {
-    const entrees = Object.entries(BASELINE);
-    const total = entrees.reduce((n, [, b]) => n + b, 0);
-    expect(entrees.length, `GEL_FICHIERS annonce ${GEL_FICHIERS} fichiers, la table en porte ${entrees.length}`).toBe(GEL_FICHIERS);
-    expect(total, `GEL_TOTAL annonce ${GEL_TOTAL} littéraux, la table en somme ${total}`).toBe(GEL_TOTAL);
-  });
-
-  it('CLIQUET : toute baseline devenue trop haute (fichier assaini) doit être ABAISSÉE', () => {
-    const counts = countsByFile();
-    const stale: string[] = [];
-    for (const [rel, b] of Object.entries(BASELINE)) {
-      const n = counts[rel] ?? 0;
-      if (n < b) stale.push(`${rel} : baseline ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, 'Baseline(s) PÉRIMÉE(s) — abaisser ces entrées de BASELINE').toEqual([]);
   });
 });

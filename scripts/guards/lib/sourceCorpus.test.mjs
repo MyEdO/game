@@ -8,7 +8,7 @@
 //      (`isolate: false`, `vite.config.ts`) ne peut être licite qu'à cette condition.
 //  (d) NORMALISÉE : la clé porte le dossier en chemin POSIX depuis la racine — absolu, relatif et
 //      séparateur final désignent le MÊME corpus, là où les appelants mélangent les formes
-//      (`src/state/cascade-step-stake-guard.test.ts` passe des absolus, `src/engine/grid.test.ts`
+//      (`src/noyau/cascade-step-stake-guard.test.ts` passe des absolus, `src/engine/grid.test.ts`
 //      un relatif).
 //  (e) PORTE     : `viderCorpus()` est la sortie de la condition de licéité — après elle, un fichier
 //      AJOUTÉ entre deux lectures est vu, et le tableau rendu est NEUF.

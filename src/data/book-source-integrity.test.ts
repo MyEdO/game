@@ -32,7 +32,6 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { books } from './index';
 import { auditFolio, auditFolios, citedEntriesOf } from '../../scripts/guards/lib/folioIntegrity.mjs';
 import { FOLIO_RATCHET } from '../../scripts/guards/lib/folioRatchetStock.mjs';
-import { FOLIO_TITLE_RATCHET } from '../../scripts/guards/lib/folioTitleRatchetStock.mjs';
 
 const DIR = __dirname;
 const BOOK_IDS = new Set(books.map((b) => b.id));
@@ -128,13 +127,6 @@ describe('intégrité du folio — source.page pointe sur la page qui porte la d
 });
 
 /**
- * Plafond du stock de la VOIE C, même rôle et même lecture que `FOLIO_RATCHET_MAX`. À ZÉRO depuis
- * le solde des 57 clés de la pose (#1225) : toute réfutation par titre est un échec, il
- * n'y a plus de dette à cliqueter.
- */
-const FOLIO_TITLE_RATCHET_MAX = 0;
-
-/**
  * Plafond des entrées IRRÉSOLUES — ni desc verbatim, ni titre de section : ce que la garde ne PEUT
  * pas juger. 488 au relevé du 2026-09-23 (#1897), `normMap` lisant le `<br>` d'une cellule de table
  * comme une espace et la voie desc situant une tête de chapitre par `preMarkerRange`, dont
@@ -154,25 +146,13 @@ const UNRESOLVED_MAX = 488;
 
 describe('intégrité du folio — voie TITRE de section, et skip BRUYANT de ce qui reste (#1200)', () => {
   const { titleViolations, noteAuthored, unresolved, stats, total } = AUDIT;
-  const found = new Set(titleViolations.map((v) => v.key));
 
-  it('aucune entrée NEUVE ne déclare un folio réfuté par le titre de sa section', () => {
+  it('aucune entrée ne déclare un folio réfuté par le titre de sa section (#1225)', () => {
     expect(
-      titleViolations
-        .filter((v) => !FOLIO_TITLE_RATCHET.has(v.key))
-        .map(
-          (v) =>
-            `${v.key} (${v.book}) déclare p.${v.page}, titre le plus proche en folio ${v.proche?.lo ?? '?'} (écart ${v.ecart})`,
-        ),
+      titleViolations.map(
+        (v) => `${v.key} (${v.book}) déclare p.${v.page}, titre le plus proche en folio ${v.proche?.lo ?? '?'} (écart ${v.ecart})`,
+      ),
     ).toEqual([]);
-  });
-
-  it('le stock des titres ne peut que DÉCROÎTRE — aucune clé soldée n’y traîne', () => {
-    expect([...FOLIO_TITLE_RATCHET].filter((k) => !found.has(k))).toEqual([]);
-  });
-
-  it('le stock des titres ne GROSSIT pas — sa taille est plafonnée par la garde', () => {
-    expect(FOLIO_TITLE_RATCHET.size).toBeLessThanOrEqual(FOLIO_TITLE_RATCHET_MAX);
   });
 
   it('ce que NI la desc NI le titre ne résolvent est compté et LISTÉ, jamais tu', () => {

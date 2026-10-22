@@ -1,5 +1,7 @@
 export { parUnitesDeCode, parLibelle } from '../../../src/lib/ordre.mjs';
 export function cheminAbsent(erreur: unknown): boolean;
+/** Ce chemin est-il visé par ce motif ? Séparateurs POSIX. */
+export function correspondGlob(chemin: string, motif: string): boolean;
 export type ListingType = { nature: 'directory' | 'absent' | 'other'; entrees: { nom: string; nature: 'file' | 'directory' | 'link' | 'other' }[] };
 export function listerDossier(dir: string, options?: { absent?: 'lever' | 'vide' }): string[];
 export function listerEntrees(dir: string, options?: { absent?: 'lever' | 'vide' }): ListingType;

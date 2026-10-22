@@ -18,17 +18,16 @@
 // que l'actuel : l'outil ne sait que SOLDER. Faire croître le stock reste un geste manuel doublé d'un
 // relèvement du plafond dans la garde, donc visible en revue.
 //
-// VOIE C (#1200) : quand la desc ne localise rien, le TITRE de section prend le relais. Ses
-// réfutations ont leur propre stock (`folioTitleRatchetStock.mjs`, `--stock-titres`), et ce qu'elle
-// ne résout pas non plus est listé nommément (`--muets`) : plus aucune entrée n'échappe en silence.
+// VOIE C (#1200) : quand la desc ne localise rien, le TITRE de section prend le relais. Chacune de ses
+// réfutations est une régression (aucun stock, #1225), et ce qu'elle ne résout pas non plus est listé
+// nommément (`--muets`) : plus aucune entrée n'échappe en silence.
 //
-// Usage : node scripts/data/audit-folios.mjs [--json] [--out <fichier>] [--stock] [--stock-titres] [--muets]
+// Usage : node scripts/data/audit-folios.mjs [--json] [--out <fichier>] [--stock] [--muets]
 import { writeFileSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { auditFolios, renderStock, renderTitleStock } from '../guards/lib/folioIntegrity.mjs';
+import { auditFolios, renderStock } from '../guards/lib/folioIntegrity.mjs';
 import { FOLIO_RATCHET } from '../guards/lib/folioRatchetStock.mjs';
-import { FOLIO_TITLE_RATCHET } from '../guards/lib/folioTitleRatchetStock.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const DATA_DIR = join(ROOT, 'src', 'data');
@@ -66,22 +65,6 @@ if (process.argv.includes('--stock')) {
   const entete = ancien.slice(0, ancien.indexOf('/** @type {ReadonlySet<string>} */')).trimEnd();
   writeFileSync(cible, renderStock(violations, entete));
   console.log(`stock re-rendu : ${FOLIO_RATCHET.size} -> ${violations.length} clés (en-tête conservé — le mettre à jour à la main).`);
-} else if (process.argv.includes('--stock-titres')) {
-  const cible = join(ROOT, 'scripts', 'guards', 'lib', 'folioTitleRatchetStock.mjs');
-  if (titleViolations.length > FOLIO_TITLE_RATCHET.size) {
-    console.error(
-      `REFUS : la mesure rend ${titleViolations.length} clés, le stock en porte ${FOLIO_TITLE_RATCHET.size}. Cet outil ne sait que SOLDER.\n` +
-        titleViolations
-          .filter((v) => !FOLIO_TITLE_RATCHET.has(v.key))
-          .map((v) => `  ${v.key} p.${v.page} -> ${fmt(v.ranges)}`)
-          .join('\n'),
-    );
-    process.exit(1);
-  }
-  const ancien = readFileSync(cible, 'utf8');
-  const entete = ancien.slice(0, ancien.indexOf('/** @type {ReadonlySet<string>} */')).trimEnd();
-  writeFileSync(cible, renderTitleStock(titleViolations, entete));
-  console.log(`stock titres re-rendu : ${FOLIO_TITLE_RATCHET.size} -> ${titleViolations.length} clés.`);
 } else if (jsonOut || outPath) {
   const payload = JSON.stringify({ total, stats, rows, multi, titleViolations, noteAuthored, unresolved }, null, 2);
   if (outPath) writeFileSync(outPath, payload);
@@ -102,10 +85,9 @@ if (process.argv.includes('--stock')) {
     console.log(`  ${r.key.padEnd(48)} ${r.book.padEnd(22)} p.${String(r.declare).padEnd(5)} -> ${r.reel.padEnd(30)} ${r.chapitre}${tag}`);
   }
   if (titleViolations.length) {
-    console.log(`\nRÉFUTÉES PAR LE TITRE DE SECTION : ${titleViolations.length} (le folio montré est celui d'un titre HOMONYME, pas un emplacement prouvé)`);
+    console.log(`\nRÉFUTÉES PAR LE TITRE DE SECTION (régressions) : ${titleViolations.length} (le folio montré est celui d'un titre HOMONYME, pas un emplacement prouvé)`);
     for (const v of titleViolations) {
-      const tag = FOLIO_TITLE_RATCHET.has(v.key) ? '' : '  <= HORS CLIQUET (régression)';
-      console.log(`  ${v.key.padEnd(48)} p.${String(v.page).padEnd(5)} -> titre le plus proche ${fmt(v.proche ? [v.proche] : v.ranges).padEnd(10)} écart ${String(v.ecart).padEnd(3)} ${v.proche?.file ?? ''}${tag}`);
+      console.log(`  ${v.key.padEnd(48)} p.${String(v.page).padEnd(5)} -> titre le plus proche ${fmt(v.proche ? [v.proche] : v.ranges).padEnd(10)} écart ${String(v.ecart).padEnd(3)} ${v.proche?.file ?? ''}`);
     }
   }
   if (noteAuthored.length) {

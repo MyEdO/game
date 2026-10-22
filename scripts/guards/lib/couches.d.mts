@@ -1,5 +1,5 @@
 /** La ligne d'une zone de `COUCHES` : son dossier, ce qu'elle importe librement (`'*'` : toutes), ce qu'elle ne lit
- *  qu'en type, et ses portes. */
+ *  qu'en type, ses portes, et si elle survit à la bascule. */
 export interface Couche {
   /** Le dossier de la zone, relatif à la racine du dépôt ; `src/<zone>` sans lui. */
   readonly dossier?: string;
@@ -7,10 +7,27 @@ export interface Couche {
   readonly types?: readonly string[];
   /** Pour une zone importée, le seul module qu'elle en lit (chemin relatif à la racine). */
   readonly portes?: Readonly<Record<string, string>>;
+  /** La zone survit à la bascule : aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, aucun JSX,
+   *  aucun module hors des zones. */
+  readonly survit?: true;
+  /** Pour un script d'outillage de la zone, les seuls modules hors des zones qu'il lit (chemins relatifs à la racine). */
+  readonly outillage?: Readonly<Record<string, readonly string[]>>;
 }
 
-/** La surface du noyau : porte de `noyau`, entrée de la fermeture, seul module de `src/noyau/` qui réexporte. */
+/** La surface du noyau : porte de `noyau`, seul module de `src/state/` et `src/noyau/` qui réexporte. */
 export const SURFACE_DU_NOYAU: "src/noyau/index.ts";
+
+/** Les zones dont la production ne réexporte rien hors de la surface du noyau. */
+export const ZONES_SANS_REEXPORTATION: readonly string[];
+
+/** Les paquets de l'hôte web : aucune zone qui survit à la bascule ne les charge. */
+export const PAQUETS_DE_L_HOTE_WEB: readonly string[];
+
+/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` : un script d'outillage de la zone `de` qui le déclare ? */
+export function horsZoneOuvert(de: string, importeurRel: string, cibleRel: string): boolean;
+
+/** La zone `de` refuse-t-elle le paquet `paquet` : elle survit à la bascule, et c'est un paquet de l'hôte web ? */
+export function paquetFerme(de: string, paquet: string | null): boolean;
 
 /** Les zones du dépôt et leurs sens d'import (#2882, #2928). */
 export const COUCHES: Readonly<Record<string, Couche>>;

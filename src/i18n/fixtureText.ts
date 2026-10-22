@@ -11,7 +11,7 @@
  *
  * RÈGLE D'IMPORT — fichiers de TEST uniquement (`*.test.ts(x)`, `*.test-d.ts`). Un fichier de
  * production qui l'importe, ou qui l'appelle, est ROUGE NOMINATIF, sans gel ni tolérance : les deux
- * cliquets sont posés dans `state/player-text-ratchet.test.ts` (T4 : le chemin d'import, extension
+ * cliquets sont posés dans `src/player-text-ratchet.test.ts` (T4 : le chemin d'import, extension
  * comprise ; T5 : l'appel, sous TOUS ses bindings locaux — un alias n'est pas une porte).
  *
  * CE QUI SE PERD À CE PASSAGE, et qui se dit : le stock de fixtures FR des harnais N'EST PLUS BORNÉ.

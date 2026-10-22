@@ -12,10 +12,10 @@ import { PILOTE_CASCADE_RATCHET } from '../../scripts/guards/lib/piloteCascadeSt
 import { cleDeSite, ecartDuVolet, type Site } from '../../scripts/guards/lib/stock.mjs';
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import { detenteur } from '../detenteur.testkit';
-import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
-import type { CascadeStep } from '../noyau/pendings';
-import type { GameState } from './store';
-import { cleDeFixture } from '../noyau/noyau.testkit';
+import { avanceEtapeCascade, cascadeDeTest } from '../state/cascade.testkit';
+import type { CascadeStep } from './pendings';
+import type { GameState } from '../state/store';
+import { cleDeFixture } from './noyau.testkit';
 
 const STOCK = 'scripts/guards/lib/piloteCascadeStock.mjs';
 const mesure = detenteur(() => {

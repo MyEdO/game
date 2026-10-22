@@ -69,7 +69,7 @@
     },
     {
       "famille": "URL",
-      "fichier": "src/state/sequence-socle-naval.test.ts",
+      "fichier": "src/noyau/sequence-socle-naval.test.ts",
       "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
       "occurrence": 1
     },

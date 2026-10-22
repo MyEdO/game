@@ -2,15 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * CLIQUET — une étape de cascade QUI LANCE DIT sa Difficulté (#1112). Une étape-jet porte `base` et
+ * GARDE — une étape de cascade QUI LANCE DIT sa Difficulté (#1112). Une étape-jet porte `base` et
  * `target` (cible déjà calculée) : sans `difficulty` en donnée, la ligne de jet affiche une cible sans
  * dire de quelle Difficulté elle est faite, et l'affichage n'a AUCUN moyen de la retrouver (le +N est
  * déjà fondu dans `target`). La Difficulté est produite par le PRODUCTEUR du jet, jamais devinée.
  *
  * Le scan est STRUCTUREL : littéral d'objet contenant `result: null` (signature d'une étape de cascade
  * non encore jouée) ET `target:` — commentaires et contenus de chaînes/gabarits neutralisés avant le
- * parcours d'accolades (sinon un `${…}` fausse l'appariement). Baseline NOMINATIVE par fichier,
- * DÉCROISSANTE : un site assaini doit ABAISSER sa baseline (cliquet à double sens).
+ * parcours d'accolades (sinon un `${…}` fausse l'appariement). ABSOLUE : aucun site.
  */
 
 const RACINES = ['src/state', 'src/noyau'];
@@ -75,29 +74,14 @@ export function stepsWithoutDifficulty(src: string): number[] {
   return lines;
 }
 
-/** Baseline NOMINATIVE (fichier → nombre d'étapes-jet encore sans Difficulté). ZÉRO = assaini. */
-const BASELINE: Record<string, number> = {};
-
-describe('cliquet — une étape de cascade qui LANCE dit sa Difficulté (#1112)', () => {
-  it('aucun nouveau site sans Difficulté, et toute baseline assainie est ABAISSÉE', () => {
-    const counts: Record<string, number[]> = {};
+describe('une étape de cascade qui LANCE dit sa Difficulté (#1112)', () => {
+  it('aucun site sans Difficulté', () => {
+    const over: string[] = [];
     for (const { rel, text } of readCorpus(RACINES, { exts: ['.ts'] })) {
       const found = stepsWithoutDifficulty(text);
-      // La CLÉ de la baseline est relative à `src/`.
-      if (found.length) counts[rel.slice('src/'.length)] = found;
-    }
-    const over: string[] = [];
-    for (const [f, l] of Object.entries(counts)) {
-      const b = BASELINE[f] ?? 0;
-      if (l.length > b) over.push(`${f} : ${l.length} (baseline ${b}) — lignes ${l.join(', ')}`);
+      if (found.length) over.push(`${rel} : lignes ${found.join(', ')}`);
     }
     expect(over, `Étape(s) de cascade SANS Difficulté déclarée — la poser au PRODUCTEUR du jet :\n${over.join('\n')}`).toEqual([]);
-    const stale: string[] = [];
-    for (const [f, b] of Object.entries(BASELINE)) {
-      const n = counts[f]?.length ?? 0;
-      if (n < b) stale.push(`${f} : baseline ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, `Baseline(s) PÉRIMÉE(s) :\n${stale.join('\n')}`).toEqual([]);
   });
 
   it('FAIL-CLOSED : une étape-jet synthétique sans Difficulté est DÉTECTÉE, avec Difficulté elle ne l’est pas', () => {

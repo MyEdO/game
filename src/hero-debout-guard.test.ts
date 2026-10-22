@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { scanHeroDebout } from '../../scripts/guards/lib/heroDebout.mjs';
-import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
+import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { scanHeroDebout } from '../scripts/guards/lib/heroDebout.mjs';
+import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 
 /**
  * Garde-fou « héros DEBOUT » (#1362, lot L1a) — ABSOLU : ni stock, ni baseline, ni liste blanche.
@@ -14,7 +14,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  * Ce que la garde détecte : la CO-OCCURRENCE, dans une même instruction du texte APLATI, du GROUPE
  * (`party`), de la moitié « hors d'action » (`dead` ou `isOutOfAction`) et d'une comparaison de
  * `wounds.current` à 0/1 — toute GRAPHIE, y compris multi-ligne, destructurée ou négative.
- * COUVERTURE : `src/state`, `src/ui`, `src/gameIso`, `src/engine`, `src/scenes`, `src/net`, `src/data` — tout
+ * COUVERTURE : `SCAN_DIRS` — tout
  * code qui peut tenir un `party`, tests compris (`tests: true`), hors fichiers de banc Vitest.
  * Ce qu'elle ne détecte PAS, et pourquoi (un détecteur ne vaut que sa couverture DITE) :
  *  — le moteur de COMBAT, qui accouple les mêmes jetons pour une autre notion (« vient de tomber à

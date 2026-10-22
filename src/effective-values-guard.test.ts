@@ -2,12 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * Garde-fou #498 — toute valeur de carac/compétence AFFICHÉE (`src/ui`, `src/state`) passe par les
+ * Garde-fou #498 — toute valeur de carac/compétence AFFICHÉE (`DIRS`) passe par les
  * lecteurs canoniques du moteur (`effectiveChar`/`skillBaseValue`, `src/engine`). Motif interdit :
  * un accès brut `.characteristics` (TOKEN large — pas seulement `.characteristics[...]`, un alias
  * `const x = y.characteristics; x[k]` contourne aussi bien mutations/traumas/talents actifs). Scan
- * structurel de `src/ui/**` et `src/state/**`, hors `*.test.ts(x)` (les `.d.ts` ne sont déjà dans
- * aucun corpus).
+ * structurel de `DIRS`, hors `*.test.ts(x)` (les `.d.ts` ne sont déjà dans aucun corpus).
  *
  * `CHAR_ACCESS_EXEMPT` (patron des exemptions nominatives au SITE) porte les
  * seuls sites légitimes restants : un champ `characteristics: CharKey[]` d'un NIVEAU de carrière
@@ -63,7 +62,7 @@ const CHAR_ACCESS_EXEMPT: { file: string; match: string; count: number; reason: 
 ];
 
 describe('garde-fou lecteurs canoniques carac/compétence à l’affichage (#498)', () => {
-  it('aucun src/ui ou src/state n’accède aux caracs hors effectiveChar/skillBaseValue (hors exemptions nominatives)', () => {
+  it(`aucun fichier de ${DIRS.join(', ')} n’accède aux caracs hors effectiveChar/skillBaseValue (hors exemptions nominatives)`, () => {
     const offenders: string[] = [];
     const exemptHits = new Map<string, number>();
 

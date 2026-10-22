@@ -26,7 +26,7 @@ ré-ordonnancement d'initiative, surnombre (la règle ; les exemptions sont des 
 `suffocation-tick` (règle environnementale universelle, gatée par le drapeau d'effet éditable
 `suffocates`/`noBreath`).
 
-**Garde-fou (cliquet)** : `src/state/combat-hardcode-guard.test.ts` scanne `src/engine`+`src/state` et
+**Garde-fou (cliquet)** : `src/combat-hardcode-guard.test.ts` scanne son `SCAN_DIRS` et
 échoue si une branche réactive nomme un État/trait/talent/atout précis (`hasCondition('sonne')`,
 `traitId==='infecte'`…) au-delà d'une baseline gelée PAR FICHIER ; toute baisse de baseline doit être
 resserrée (patron cliquet de `no-emoji-affordance.test.ts`). La dette devient un test qui rougit, pas un

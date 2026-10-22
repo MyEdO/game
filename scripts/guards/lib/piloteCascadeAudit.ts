@@ -1,6 +1,6 @@
 /**
  * AUDIT des PILOTES DE CASCADE RECOPIÉS dans un test (#1765) — définition UNIQUE de la mesure, partagée
- * par la garde `src/state/pilote-cascade.test.ts` et la régénération de `piloteCascadeStock.mjs`
+ * par la garde `src/noyau/pilote-cascade.test.ts` et la régénération de `piloteCascadeStock.mjs`
  * (`regenerations`).
  *
  * Classe de défaut mesurée : une ITÉRATION d'une suite ou d'un kit de test (`fichierVitest.mjs`), dans tous

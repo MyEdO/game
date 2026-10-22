@@ -1680,7 +1680,7 @@ export const fr = {
   // ── #1318 V8a₁ — LIBELLÉS D'ÉTAPE de cascade (`step.*`). Namespace DISTINCT de `out.*` (narration
   // d'ISSUE, l.462) et de `cf.*`/`cs.*` (narration de combatFlow/combatSlice) : une étape se NOMME
   // avant tout jet, alors que ces deux-là racontent ce qui vient d'arriver. Patrons byte-identiques
-  // aux littéraux d'origine (stock gelé par `state/player-text-ratchet.test.ts`).
+  // aux littéraux d'origine (stock gelé par `src/player-text-ratchet.test.ts`).
   // Les trois premiers sont les GABARITS que les fabriques du seam (`noyau/rollSeam.ts`) rendent.
   'step.sujetDetail': '{sujet} — {detail}',
   'step.sujetPrecision': '{sujet} ({precision})',

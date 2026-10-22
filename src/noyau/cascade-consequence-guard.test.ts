@@ -1,20 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { creerBancLint, selectionnerMessages } from '../../scripts/guards/lib/lint.testkit.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * Cliquet du composeur d'affichage (#295, verrou 2) — le canal `journal:` d'un `CascadeApplier` a
+ * Garde du composeur d'affichage (#295, verrou 2) — le canal `journal:` d'un `CascadeApplier` a
  * disparu DU TYPE (`cascade.ts CascadeApplier`, mort du canal) : le compilateur interdit déjà toute
  * chaîne LIBRE re-décrivant le jet (`${step.result.roll}/${step.result.target}`, « réussi »/« raté »)
- * que la rangée `RollLine` affiche déjà (✓/✗ ±DR). Ce cliquet reste en CEINTURE (grep, pas seulement
+ * que la rangée `RollLine` affiche déjà (✓/✗ ±DR). Cette garde reste en CEINTURE (grep, pas seulement
  * type) ; le CONTENU des conséquences (`freeCons(...)`) est verrouillé par le describe « CONTENU »
  * ci-dessous — doctrine #295 : une ligne de conséquence narre l'effet DÉJÀ appliqué, jamais le jet.
  *
- * BASELINE gelée par fichier (patron `ui-ratchets.test.ts`), TOUTE à ZÉRO (#295 migration soldée) :
- * toute HAUSSE échoue (régression).
+ * ABSOLUE (#295 migration soldée) : aucun fichier du scope ne porte le canal.
  */
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url)); // racine du repo
@@ -38,13 +37,7 @@ function dupCounts(src: string): { journalArrays: number; jetDup: number; verdic
   return { journalArrays: snippets.length, jetDup, verdict };
 }
 
-/** Baseline par fichier (relatif à la racine du repo, slashes avant) — ZÉRO partout : `travelFlow`/
- *  `travelPostes`/`seaVoyageFlow`/`shipwreck`/`pursuitFlow`/`combatFlow`/`combat/roundHooks`/
- *  `combat/turnHooks`/`combat/triggeredTest`/`restFlow`/`embrigadementFlow`/`riverVoyageFlow` (Lot 1) +
- *  `combatEffects`/`combatManeuvers`/`encounterPsychFlow` (mort du canal, #295) — plus aucun fichier
- *  du scope ne porte le canal `journal:` (mort, #295). */
-const BASELINE: Record<string, { journalArrays: number; jetDup: number; verdict: number }> = {};
-
+/** Les fichiers des appliers migrés : Lot 1 et mort du canal (#295). */
 const SCOPE = [
   'src/noyau/travelFlow.ts', 'src/noyau/travelPostes.ts', 'src/noyau/seaVoyageFlow.ts', 'src/noyau/shipwreck.ts',
   'src/noyau/pursuitFlow.ts', 'src/noyau/combatFlow.ts', 'src/noyau/combat/roundHooks.ts', 'src/noyau/combat/turnHooks.ts',
@@ -52,23 +45,14 @@ const SCOPE = [
   'src/noyau/combatEffects.ts', 'src/noyau/combatManeuvers.ts', 'src/noyau/encounterPsychFlow.ts',
 ];
 
-describe('cliquet composeur — canal journal: déprécié des CascadeApplier (#295, verrou 2, mort du canal)', () => {
+describe('composeur — canal journal: déprécié des CascadeApplier (#295, verrou 2, mort du canal)', () => {
   it('aucun fichier du scope ne réutilise le canal journal: (canal absent DU TYPE)', () => {
     const over: string[] = [];
-    const stale: string[] = [];
     for (const rel of SCOPE) {
-      const src = readFileSync(join(ROOT, rel), 'utf8');
-      const n = dupCounts(src);
-      const b = BASELINE[rel] ?? { journalArrays: 0, jetDup: 0, verdict: 0 };
-      if (n.journalArrays > b.journalArrays || n.jetDup > b.jetDup || n.verdict > b.verdict) {
-        over.push(`${rel} : journalArrays=${n.journalArrays}(base ${b.journalArrays}) jetDup=${n.jetDup}(base ${b.jetDup}) verdict=${n.verdict}(base ${b.verdict})`);
-      }
-      if (n.journalArrays < b.journalArrays || n.jetDup < b.jetDup || n.verdict < b.verdict) {
-        stale.push(`${rel} : baseline journalArrays=${b.journalArrays}/jetDup=${b.jetDup}/verdict=${b.verdict}, réel ${n.journalArrays}/${n.jetDup}/${n.verdict}`);
-      }
+      const n = dupCounts(readFileSync(join(ROOT, rel), 'utf8'));
+      if (n.journalArrays || n.jetDup || n.verdict) over.push(`${rel} : journalArrays=${n.journalArrays} jetDup=${n.jetDup} verdict=${n.verdict}`);
     }
     expect(over, `Régression canal journal: déprécié — migrer vers consequences: freeCons(...) :\n${over.join('\n')}`).toEqual([]);
-    expect(stale, `Baseline(s) PÉRIMÉE(s) — abaisser (fichier assaini) :\n${stale.join('\n')}`).toEqual([]);
   });
 
   it('fail-closed : le compteur détecte une duplication SYNTHÉTIQUE de jet dans un littéral journal:', () => {
@@ -85,50 +69,39 @@ describe('cliquet composeur — canal journal: déprécié des CascadeApplier (#
     const stateWrite = "set({ journal: [...get().journal.slice(-40), 'ligne'] });";
     expect(journalLiterals(stateWrite)).toEqual([]);
   });
-
-  it('aucun applier des surfaces migrées ne recense de nouveau fichier hors BASELINE (garde exhaustive du scope)', () => {
-    for (const rel of Object.keys(BASELINE)) expect(SCOPE).toContain(rel);
-  });
 });
 
 /**
- * Cliquet du composeur d'affichage (#295, Lot 5 — CONTENU) : le canal `journal:` a disparu (verrou
- * ci-dessus), mais la migration Lot 1 n'avait touché que le TYPE — pas le TEXTE. Ce second cliquet
+ * Garde du composeur d'affichage (#295, Lot 5 — CONTENU) : le canal `journal:` a disparu (verrou
+ * ci-dessus), mais la migration Lot 1 n'avait touché que le TYPE — pas le TEXTE. Cette seconde garde
  * scanne, PAR FICHIER, le motif `${…roll}/${…target}` sur TOUT le fichier (pas seulement les
  * littéraux `journal:`, morts) : un re-print du jet dans un texte de conséquence (`freeCons(...)`,
  * `tell(...)`, `log(...)`…) juste au-dessus d'une rangée qui l'affiche déjà (CascadeModal, SteamSaveModal,
  * RenounceModal…) est le symptôme exact du mandat user (« le pire c'est les résultats qui remettent le
  * résultat du jet visible juste au-dessus »).
  *
- * PÉRIMÈTRE INVERSÉ #410 (2026-07-13) : la garde balaie désormais TOUT `src/state` + `src/engine`
- * (walk récursif) au lieu d'une liste opt-in de 10 fichiers — l'audit de couverture a trouvé le
- * symptôme EXACT vivant hors liste (merchantFlow:206,226 ; portFlow:361,364 ; engine/magic ;
- * engine/provisions ; engine/travel), qu'un nouveau flow aurait franchi en silence. Tout nouveau
- * fichier naît couvert (baseline 0).
- *
- * BASELINE ZÉRO pour tout fichier sans re-print. BASELINE > 0 = STOCK GELÉ par fichier — les sites
- * que le dériveur (`engine/traceLine.ts`) ne peut PAS rendre (raison mesurée en regard de chacun).
- * Toute hausse au-delà = régression ; toute baisse doit ABAISSER la baseline (cliquet décroissant).
+ * PÉRIMÈTRE INVERSÉ #410 (2026-07-13) : la garde balaie TOUT `CONTENT_DIRS` (walk récursif) au lieu
+ * d'une liste opt-in de 10 fichiers — l'audit de couverture a trouvé le symptôme EXACT vivant hors
+ * liste (merchantFlow:206,226 ; portFlow:361,364 ; engine/magic ; engine/provisions ; engine/travel),
+ * qu'un nouveau flow aurait franchi en silence. Tout nouveau fichier naît couvert. ABSOLUE : aucun
+ * fichier de CODE ne re-printe un jet ; le jet rendu passe par le dériveur (`traceLineOf`, forme
+ * OPPOSÉE `casc.opposedTrace` — #1262 V3 Lj, #1294), et les re-prints IRRÉDUCTIBLES au dériveur
+ * vivent au CATALOGUE, comptés par `CATALOG_BASELINE` ci-dessous (#295, #1318) — une migration i18n
+ * ne fait donc pas DISPARAÎTRE un site du compte.
  *
  * CE QUE CE SCAN NE VOIT PAS, dit sans détour (il ne lit qu'un motif de TEXTE `${x.roll}/${x.target}`) :
  * une recopie du dé par un autre gabarit (`${roll} sur ${target}`, concaténation, `join`), une recopie
  * routée par une clé de catalogue (`t('out.…')` — le garde i18n ne fait que compter des littéraux FR
- * par fichier, il ne juge AUCUN contenu), et tout re-print hors `src/state`/`src/engine`. Le dériveur
+ * par fichier, il ne juge AUCUN contenu), et tout re-print hors `CONTENT_DIRS`. Le dériveur
  * lui-même échappe au motif par construction : c'est le volet « canal » (lint AST) plus bas qui tient
  * la porte d'entrée, pas ce compteur.
  */
 const CONTENT_DIRS = ['src/state', 'src/noyau', 'src/engine'];
 
-/** Baseline par fichier — voir doc ci-dessus. VIDE : aucun fichier de CODE ne re-printe un jet. Le jet
- *  rendu passe par le dériveur (`traceLineOf`, forme OPPOSÉE `casc.opposedTrace` — #1262 V3 Lj, #1294) ;
- *  les re-prints IRRÉDUCTIBLES au dériveur vivent au CATALOGUE, comptés par `CATALOG_BASELINE`
- *  ci-dessous (#295, #1318) — une migration i18n ne fait donc pas DISPARAÎTRE un site du compte. */
-const CONTENT_BASELINE: Record<string, number> = {};
-
 /**
  * VOLET CATALOGUE (#1318 V8c₂) — le compteur ci-dessus lit du CODE ; depuis que la narration passe par
- * `t()`, un re-print de jet vit dans une VALEUR du catalogue (`{roll}/{target}`), hors de sa portée. Une
- * baseline qui décroît pour cette seule raison est une FAUSSE résorption : le texte joueur n'a pas
+ * `t()`, un re-print de jet vit dans une VALEUR du catalogue (`{roll}/{target}`), hors de sa portée. Un
+ * compte qui décroît pour cette seule raison est une FAUSSE résorption : le texte joueur n'a pas
  * changé, seul l'endroit où il est écrit. Ce volet rend les sites visibles à nouveau.
  *
  * ALLOWLIST NOMINATIVE : les patrons du DÉRIVEUR (`traceLineOf`/`casc.*`) SONT la forme canonique du
@@ -181,25 +154,10 @@ function contentCounts(): Record<string, number> {
   return counts;
 }
 
-describe('cliquet composeur — CONTENU des conséquences : re-print roll/target hors rangée (#295 Lot 5, #410 inversé)', () => {
-  it('aucun fichier de src/state|src/engine ne dépasse sa baseline gelée', () => {
-    const counts = contentCounts();
-    const over: string[] = [];
-    for (const [rel, n] of Object.entries(counts)) {
-      const b = CONTENT_BASELINE[rel] ?? 0;
-      if (n > b) over.push(`${rel} : ${n} occurrence(s) (baseline gelée ${b})`);
-    }
+describe('composeur — CONTENU des conséquences : re-print roll/target hors rangée (#295 Lot 5, #410 inversé)', () => {
+  it(`aucun fichier de ${CONTENT_DIRS.join(', ')} ne re-printe un jet`, () => {
+    const over = Object.entries(contentCounts()).map(([rel, n]) => `${rel} : ${n} occurrence(s)`);
     expect(over, `Régression — re-print roll/target hors rangée (#295 Lot 5) :\n${over.join('\n')}`).toEqual([]);
-  });
-
-  it('CLIQUET : toute baseline devenue trop haute (site purgé) doit être ABAISSÉE', () => {
-    const counts = contentCounts();
-    const stale: string[] = [];
-    for (const [rel, b] of Object.entries(CONTENT_BASELINE)) {
-      const n = counts[rel] ?? 0;
-      if (n < b) stale.push(`${rel} : baseline gelée ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, `Baseline(s) PÉRIMÉE(s) — abaisser (site purgé depuis) :\n${stale.join('\n')}`).toEqual([]);
   });
 
   it('CATALOGUE : les clés qui re-printent un jet sont EXACTEMENT celles déclarées (dériveur exempté)', () => {
@@ -230,8 +188,9 @@ describe('cliquet composeur — CONTENU des conséquences : re-print roll/target
  * VOLET ISSUE (#1262 V3 Lj) — le canal de l'ISSUE d'un jet. Le murage par export est impossible
  * (`get().log` sert le narratif légitime, `describeX` sert AUSSI l'affichage des fenêtres de
  * `src/ui`) : la police est un LINT D'IMPORT AST (mur `murs/canal-issue`, `oxlint.config.mjs`, patron
- * `ownsLocal`), borné à `src/state` — la couche qui décidait — et MESURÉ ici sur la config RÉELLE
- * (lanceur Oxlint, jamais une copie de règle : une regex maison laissait passer les guillemets doubles).
+ * `ownsLocal`), borné à `src/state` et `src/noyau` hors tests, joué sur l'arbre par la gate `lint`, et
+ * MESURÉ ici sur la config RÉELLE (lanceur Oxlint, jamais une copie de règle : une regex maison laissait
+ * passer les guillemets doubles).
  *
  * Deux goulots exemptés, nommés, et RIEN d'autre : la DÉCLARATION d'issue d'un flux à fenêtre
  * (`rollFlowSpecs.ts`, `spec.issue`, rendue par le verbe `apply`) et la conséquence d'étape de
@@ -259,22 +218,7 @@ async function violationsCanal(code: string, filePath = SOUS_LA_REGLE): Promise<
   return selectionnerMessages(res, (m) => m.ruleId === 'murs/canal-issue').length;
 }
 
-describe('cliquet du canal — l’ISSUE d’un jet ne se compose qu’aux GOULOTS (#1262 V3 Lj)', () => {
-  it('src/state RÉEL : aucun fichier ne compose d’issue hors goulot (la population EST le contrat)', { timeout: 30_000 }, async () => {
-    // Pré-filtre par SOUS-CHAÎNE nue (« flowOutcomes ») — aucune forme d'import n'y échappe, et seuls
-    // les candidats sont lintés (linter tout `src/state` coûte ~8 s à chaque run pour le même verdict).
-    // La population EST le corpus réel de `src/state`, tests compris, lu par `readCorpus` — mémoïsé par
-    // clé, donc partagé avec les autres gardes du même worker.
-    const candidats = readCorpus(['src/state', 'src/noyau'], { tests: true })
-      .filter(({ text }) => text.includes('flowOutcomes'))
-      .map(({ abs }) => abs);
-    const res = await eslint.lintFiles(candidats);
-    const offenders = res.flatMap((r) => selectionnerMessages(r,
-      (m) => m.ruleId === 'murs/canal-issue')
-      .map(() => relative(ROOT, r.filePath).split('\\').join('/')));
-    expect(offenders, 'Issue composée hors goulot — déclarer `spec.issue` et acquitter par `flow.apply` :').toEqual([]);
-  });
-
+describe('canal — l’ISSUE d’un jet ne se compose qu’aux GOULOTS (#1262 V3 Lj)', () => {
   it('les GOULOTS sont exemptés NOMMÉMENT (et eux seuls) : le même import y passe', async () => {
     for (const g of ISSUE_GOULOTS) {
       expect(await violationsCanal("import { describeReload } from './flowOutcomes';", g), g).toBe(0);

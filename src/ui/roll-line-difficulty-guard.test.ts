@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * CLIQUET — une LIGNE DE JET fabriquée à la main DIT sa Difficulté (#1112 G8b). Le contrat : une ligne
+ * GARDE — une LIGNE DE JET fabriquée à la main DIT sa Difficulté (#1112 G8b). Le contrat : une ligne
  * de `RollShell` naît de la fabrique (`ui/breakdown.ts` : `testBreakdown`/`testPending`/`opposedLines`),
  * qui pose la Difficulté en donnée de ligne. Un `RollBreakdown`/`PendingRoll` assemblé en littéral
  * (`{ label, base, modifier, target, roll, success, sl }`) court-circuite la fabrique : sans
  * `difficulty`, la cible affichée ne dit plus de quelle Difficulté elle est faite.
  *
- * Stock NOMINATIF (fichier + nombre), plafond COLLÉ et décroissant : assainir un site l'ABAISSE.
+ * ABSOLUE : aucun site.
  */
 
 const SCAN_DIRS = ['src/ui', 'src/state', 'src/noyau'];
@@ -41,28 +41,14 @@ export function scanHandmadeRollLines(src: string): number[] {
   return lines;
 }
 
-/** Stock NOMINATIF au 2026-08-05 — ZÉRO ailleurs. */
-const BASELINE: Record<string, number> = {};
-
-describe('cliquet — une ligne de jet fabriquée à la main dit sa Difficulté (#1112 G8b)', () => {
-  it('aucun site NEUF, et toute baseline assainie est ABAISSÉE', () => {
-    const counts: Record<string, number[]> = {};
+describe('une ligne de jet fabriquée à la main dit sa Difficulté (#1112 G8b)', () => {
+  it('aucun site', () => {
+    const over: string[] = [];
     for (const { rel, text } of readCorpus(SCAN_DIRS)) {
       const hits = scanHandmadeRollLines(text);
-      if (hits.length) counts[rel] = hits;
-    }
-    const over: string[] = [];
-    for (const [f, l] of Object.entries(counts)) {
-      const b = BASELINE[f] ?? 0;
-      if (l.length > b) over.push(`${f} : ${l.length} (baseline ${b}) — lignes ${l.join(', ')}`);
+      if (hits.length) over.push(`${rel} : lignes ${hits.join(', ')}`);
     }
     expect(over, ['Ligne de jet fabriquée à la main SANS Difficulté — passer par `ui/breakdown.ts` :', ...over].join('\n')).toEqual([]);
-    const stale: string[] = [];
-    for (const [f, b] of Object.entries(BASELINE)) {
-      const n = counts[f]?.length ?? 0;
-      if (n < b) stale.push(`${f} : baseline ${b}, réel ${n} — ABAISSER`);
-    }
-    expect(stale, ['Baseline(s) PÉRIMÉE(s) :', ...stale].join('\n')).toEqual([]);
   });
 
   it('FAIL-CLOSED : une ligne littérale SANS Difficulté est détectée, une ligne AVEC ne l’est pas', () => {
