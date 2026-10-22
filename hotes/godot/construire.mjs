@@ -9,14 +9,17 @@
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
 // script (`--check-only`) ; la CI la joue (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
-// puis l'export Web du projet (`export_presets.cfg`, modèles d'export 4.7 de la machine), que `recette.mjs` joue au
-// navigateur. Godot ne travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien.
+// puis l'export Web du projet (`export_presets.cfg`), que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
+// somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
+// travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
+// du profil Godot (`export_templates`).
 import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
-import { join, relative, resolve, sep } from 'node:path'
+import { basename, join, relative, resolve, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import { gzipSync, inflateRawSync } from 'node:zlib'
 import { createContext, runInContext } from 'node:vm'
@@ -31,9 +34,9 @@ const PONT = 'wfrp-pont.js'
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier>
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             le projet importé, puis chaque script contrôlé, par l'éditeur Godot épinglé
-  --export            le bundle et l'export Web du projet, dans --sortie
+  --export            le bundle et l'export Web du projet, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
-  GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement`
+  GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
 /** Les modes : l'option qui choisit chacun. */
 const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export' }
@@ -115,38 +118,87 @@ function executer(code) {
 
 
 /** L'éditeur Godot épinglé (plan M-f) : sa version, et par plateforme l'archive publiée, sa somme SHA-256, les
- *  entrées qu'on en tire et celle qu'on lance (la console, sous Windows). */
+ *  entrées qu'on en tire et celle qu'on lance (la console, sous Windows). `modeles` : l'archive des modèles d'export
+ *  de la même version, et la somme SHA-256 de chaque modèle qu'on en tire, par entrée (#2943). */
 const EDITEUR = {
   version: '4.7-stable',
   plateformes: {
     linux: { archive: 'Godot_v4.7-stable_linux.x86_64.zip', sha256: '0b1a6c54c2c619c12e169fe9241edda4b81080b519451cec2984bf0d2c6cb73c', entrees: ['Godot_v4.7-stable_linux.x86_64'] },
     win32: { archive: 'Godot_v4.7-stable_win64.exe.zip', sha256: '02a5312236f4e0209c78bcb2f52135b1963e6b8888c873c9cee81459e60bcd71', entrees: ['Godot_v4.7-stable_win64.exe', 'Godot_v4.7-stable_win64_console.exe'] },
   },
+  modeles: {
+    archive: 'Godot_v4.7-stable_export_templates.tpz',
+    sha256: { 'templates/web_nothreads_release.zip': '6e1d01e7d8995a2dfec8b33dc530f02c034906267ec441288c2a3318d49e00b9' },
+  },
 }
 
 /** La version que `--version` imprime pour l'éditeur épinglé. */
 const VERSION_IMPRIMEE = EDITEUR.version.replace('-', '.')
 
-/** Le dossier où l'éditeur se garde, hors de l'arbre : la CI le met en cache sous ce chemin (`ci.yml`). */
+/** Le dossier où l'éditeur et le modèle d'export se gardent, hors de l'arbre : la CI le met en cache sous ce chemin (`ci.yml`). */
 const CACHE = join(homedir(), '.cache', 'wfrp-godot', EDITEUR.version)
 
-/** Les entrées `noms` d'une archive zip (`zip`), décompressées : le répertoire central, puis chaque en-tête local. */
-function extraire(zip, noms) {
-  const fin = zip.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
+/** Une archive zip en mémoire, lue comme une archive par tranches. */
+const enMemoire = (zip) => ({ taille: zip.length, lire: async (debut, fin) => zip.subarray(debut, fin) })
+
+/** Une archive zip publiée à `url`, lue par tranches (requêtes `Range`, réponse 206 exigée) ; `telecharges()` rend
+ *  les octets reçus. */
+async function aDistance(url) {
+  let telecharges = 0
+  const tranche = async (debut, fin) => {
+    const reponse = await fetch(url, { headers: { Range: `bytes=${debut}-${fin - 1}` } })
+    if (reponse.status !== 206) throw new Error(`${url} : HTTP ${reponse.status} sur la tranche ${debut}-${fin - 1}, 206 attendu`)
+    const octets = Buffer.from(await reponse.arrayBuffer())
+    telecharges += octets.length
+    return { reponse, octets }
+  }
+  const { reponse } = await tranche(0, 1)
+  const taille = Number(reponse.headers.get('content-range')?.split('/')[1])
+  if (!Number.isSafeInteger(taille)) throw new Error(`${url} : Content-Range « ${reponse.headers.get('content-range')} » sans taille`)
+  return { taille, lire: async (debut, fin) => (await tranche(debut, fin)).octets, telecharges: () => telecharges }
+}
+
+/** La fin d'une archive zip qui contient à coup sûr la fin du répertoire central : 22 octets et un commentaire d'au plus 65 535. */
+const QUEUE_ZIP = 22 + 0xffff
+
+/** Les entrées `noms` d'une archive zip lue par tranches (`archive` : `{ taille, lire(debut, fin) }`), décompressées :
+ *  la fin du répertoire central, le répertoire central, puis l'en-tête local et les données de chaque entrée. */
+async function extraire({ taille, lire }, noms) {
+  const queue = await lire(Math.max(0, taille - QUEUE_ZIP), taille)
+  const fin = queue.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]))
   if (fin < 0) throw new Error('archive sans répertoire central')
+  const [nombre, longueur, debut] = [queue.readUInt16LE(fin + 10), queue.readUInt32LE(fin + 12), queue.readUInt32LE(fin + 16)]
+  if (nombre === 0xffff || longueur === 0xffffffff || debut === 0xffffffff) throw new Error('archive zip64 : non prise en charge')
+  const central = await lire(debut, debut + longueur)
   const entrees = new Map()
-  for (let n = zip.readUInt16LE(fin + 10), p = zip.readUInt32LE(fin + 16); n > 0; n--) {
-    const longueurs = [28, 30, 32].map((o) => zip.readUInt16LE(p + o))
-    entrees.set(zip.toString('utf8', p + 46, p + 46 + longueurs[0]), { methode: zip.readUInt16LE(p + 10), taille: zip.readUInt32LE(p + 20), local: zip.readUInt32LE(p + 42) })
+  for (let n = nombre, p = 0; n > 0; n--) {
+    const longueurs = [28, 30, 32].map((o) => central.readUInt16LE(p + o))
+    entrees.set(central.toString('utf8', p + 46, p + 46 + longueurs[0]), { methode: central.readUInt16LE(p + 10), taille: central.readUInt32LE(p + 20), local: central.readUInt32LE(p + 42) })
     p += 46 + longueurs[0] + longueurs[1] + longueurs[2]
   }
-  return noms.map((nom) => {
+  const extraites = []
+  for (const nom of noms) {
     const e = entrees.get(nom)
     if (!e) throw new Error(`${nom} absent de l’archive (entrées : ${[...entrees.keys()].join(', ')})`)
-    const debut = e.local + 30 + zip.readUInt16LE(e.local + 26) + zip.readUInt16LE(e.local + 28)
-    const donnees = zip.subarray(debut, debut + e.taille)
-    return { nom, octets: e.methode === 0 ? donnees : inflateRawSync(donnees) }
-  })
+    const entete = await lire(e.local, e.local + 30)
+    const donnees = e.local + 30 + entete.readUInt16LE(26) + entete.readUInt16LE(28)
+    const octets = await lire(donnees, donnees + e.taille)
+    if (e.methode !== 0 && e.methode !== 8) throw new Error(`${nom} : méthode ${e.methode} non prise en charge`)
+    extraites.push({ nom, octets: e.methode === 0 ? octets : inflateRawSync(octets) })
+  }
+  return extraites
+}
+
+/** L'URL de `fichier` dans la publication de la version épinglée. */
+const publie = (fichier) => `https://github.com/godotengine/godot/releases/download/${EDITEUR.version}/${fichier}`
+
+/** La somme SHA-256 de `octets`, hexadécimale. */
+const sha256 = (octets) => createHash('sha256').update(octets).digest('hex')
+
+/** Lève, au nom de `nom`, si la somme de `octets` n'est pas `attendue`. */
+function verifierSomme(nom, octets, attendue) {
+  const somme = sha256(octets)
+  if (somme !== attendue) throw new Error(`${nom} : SHA-256 ${somme}, ${attendue} attendue`)
 }
 
 /** La version que le binaire `binaire` imprime. */
@@ -164,19 +216,51 @@ async function editeur() {
   if (!plateforme) throw new Error(`aucun éditeur épinglé pour ${process.platform} : pose GODOT=<binaire ${VERSION_IMPRIMEE}>`)
   const lanceur = join(CACHE, plateforme.entrees.at(-1))
   if (existsSync(lanceur)) return lanceur
-  const url = `https://github.com/godotengine/godot/releases/download/${EDITEUR.version}/${plateforme.archive}`
+  const url = publie(plateforme.archive)
   console.log(`[godot] téléchargement de ${url}`)
   const reponse = await fetch(url)
   if (!reponse.ok) throw new Error(`${url} : HTTP ${reponse.status}`)
   const zip = Buffer.from(await reponse.arrayBuffer())
-  const somme = createHash('sha256').update(zip).digest('hex')
-  if (somme !== plateforme.sha256) throw new Error(`${plateforme.archive} : SHA-256 ${somme}, ${plateforme.sha256} attendue`)
+  verifierSomme(plateforme.archive, zip, plateforme.sha256)
   mkdirSync(CACHE, { recursive: true })
-  for (const { nom, octets } of extraire(zip, plateforme.entrees)) {
+  for (const { nom, octets } of await extraire(enMemoire(zip), plateforme.entrees)) {
     writeFileSync(join(CACHE, nom), octets)
     chmodSync(join(CACHE, nom), 0o755)
   }
   return lanceur
+}
+
+/** Le préréglage d'export du projet, relatif au projet (et à sa copie). */
+const PRESETS = 'export_presets.cfg'
+
+/** Le modèle d'export Web que le préréglage `cfg` consomme en release : son entrée dans l'archive des modèles, au nom
+ *  que Godot cherche (`platform/web/export/export_plugin.h`, `_get_template_name`, Godot 4.7-stable). */
+function modeleDuPreset(cfg) {
+  const option = (nom) => {
+    const valeur = cfg.match(new RegExp(`^variant/${nom}=(true|false)\\r?$`, 'm'))?.[1]
+    if (!valeur) throw new Error(`${PRESETS} : variant/${nom} absent`)
+    return valeur === 'true'
+  }
+  return `templates/web${option('extensions_support') ? '_dlink' : ''}${option('thread_support') ? '' : '_nothreads'}_release.zip`
+}
+
+/** Le chemin du modèle d'export Web du préréglage : celui du cache si sa somme est l'épinglée, sinon tiré par tranches
+ *  de l'archive des modèles publiée et vérifié par sa somme épinglée. */
+async function modeleWeb() {
+  const entree = modeleDuPreset(readFileSync(join(PROJET, PRESETS), 'utf8'))
+  const attendue = EDITEUR.modeles.sha256[entree]
+  if (!attendue) throw new Error(`${entree} : aucune somme épinglée (EDITEUR.modeles)`)
+  const chemin = join(CACHE, basename(entree))
+  if (existsSync(chemin) && sha256(readFileSync(chemin)) === attendue) return chemin
+  const url = publie(EDITEUR.modeles.archive)
+  console.log(`[godot] modèle d'export ${entree}, tiré de ${url}`)
+  const archive = await aDistance(url)
+  const [{ octets: modele }] = await extraire(archive, [entree])
+  verifierSomme(entree, modele, attendue)
+  mkdirSync(CACHE, { recursive: true })
+  writeFileSync(chemin, modele)
+  console.log(`[godot] ${octets(archive.telecharges())} téléchargés sur ${octets(archive.taille)}, ${basename(entree)} (${octets(modele.length)}) gardé dans ${CACHE}`)
+  return chemin
 }
 
 /** Les scripts du projet sous `dossier`, chemins `res://`. */
@@ -221,9 +305,16 @@ function sonder(binaire) {
   })
 }
 
-/** L'export Web du projet dans `sortie`. */
-function exporter(binaire, sortie) {
-  return surUneCopie(binaire, (copie) => godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')]))
+/** L'export Web du projet dans `sortie`, sur le modèle `modele` : le préréglage de la copie le reçoit par `custom_template/release`. */
+function exporter(binaire, sortie, modele) {
+  return surUneCopie(binaire, (copie) => {
+    const presets = join(copie, PRESETS)
+    const cfg = readFileSync(presets, 'utf8')
+    const release = /^custom_template\/release=.*$/m
+    if (!release.test(cfg)) return [`${PRESETS} : custom_template/release absent`]
+    writeFileSync(presets, cfg.replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`))
+    return godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')])
+  })
 }
 
 const octets = (n) => `${n.toLocaleString('fr-FR')} o`
@@ -261,7 +352,7 @@ async function principal() {
   mkdirSync(options.sortie, { recursive: true })
   const code = await pont(options.sortie)
   if (code) return code
-  const sortie = verdict(exporter(await editeur(), options.sortie))
+  const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb()))
   if (!sortie) console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return sortie
 }
