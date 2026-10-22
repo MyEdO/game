@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { fileURLToPath } from 'node:url';
 import { skills, talents, careerLevels, species, stars, specCatalogOf, specLabel, specPoolOf, specResolves, specEntryId } from './index';
@@ -157,7 +157,7 @@ describe('#1342 L3 — contrat `pool` des spécialisations', () => {
  *    domaine ouvert) ;
  *  - un libellé AMBIGU (deux entrées du même catalogue au même libellé normalisé) n'est pas départagé.
  */
-const DOSSIER_DATA = fileURLToPath(new URL('.', import.meta.url));
+const DOSSIER_DATA = __dirname;
 /** DEUXIÈME racine de donnée authorée : les projets de scène composent la MÊME grammaire
  *  (`defs-scenes/communs.ts#competenceChiffreeSchema` = `refOuSpec('skill', { value })`), donc le même
  *  invariant s'y mesure. Un scan borné à `src/data` laissait cette racine hors garde. */
@@ -190,7 +190,7 @@ describe('L2 #1548 — aucune `spec` de Compétence ni de Talent écrite en LIBE
   ]));
 
   const fichiers = RACINES.flatMap(([racine, dir]) =>
-    fichiersDeDonnees(dir).map((abs) => ({ abs, ou: `${racine}${abs.slice(dir.length).replace(/\\/g, '/')}` })),
+    fichiersDeDonnees(dir).map((abs) => ({ abs, ou: `${racine}${relative(dir, abs).replace(/\\/g, '/')}` })),
   );
 
   it('le walk couvre bien TOUS les datasets JSON (périmètre non vide, non réduit à un fichier)', () => {
@@ -359,7 +359,7 @@ describe('#1457 B2 — une spec ATTESTÉE dont le seul consommateur est un statb
   const consommateurs = new Map<string, Set<string>>();
   for (const [racine, dir] of RACINES) {
     for (const abs of fichiersDeDonnees(dir)) {
-      const ou = `${racine}${abs.slice(dir.length).replace(/\\/g, '/')}`;
+      const ou = `${racine}${relative(dir, abs).replace(/\\/g, '/')}`;
       let data: unknown;
       try { data = JSON.parse(readFileSync(abs, 'utf8')); } catch { continue; }
       const walk = (node: unknown): void => {
@@ -448,7 +448,7 @@ function choixSansPoolJoueur(documents: [string, unknown][], defsDe: (id: string
 describe('#1897 — un emplacement ne vise jamais une entrée à pool JOUEUR vide', () => {
   const defsDe = (id: string): DefASpecs[] => [...skills, ...talents].filter((d) => d.id === id);
   const documents: [string, unknown][] = RACINES.flatMap(([racine, dir]) =>
-    fichiersDeDonnees(dir).map((abs): [string, unknown] => [`${racine}${abs.slice(dir.length).replace(/\\/g, '/')}`, JSON.parse(readFileSync(abs, 'utf8'))]),
+    fichiersDeDonnees(dir).map((abs): [string, unknown] => [`${racine}${relative(dir, abs).replace(/\\/g, '/')}`, JSON.parse(readFileSync(abs, 'utf8'))]),
   );
 
   it('les deux racines authorées : aucun emplacement sur une entrée sans pool joueur', () => {

@@ -9,7 +9,7 @@ import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { refLabel } from '../data';
 import { testBreakdown } from './breakdown';
-import { difficultyText } from './difficultyText';
+import { difficultyText } from '../noyau/difficultyText';
 import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
 import { lignesDeJet } from './ligneDeJet.testkit';
 import { clampTarget, cibleDuTest } from '../engine/tests';

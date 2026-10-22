@@ -61,8 +61,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant — jamais un automatisme).
-  const reverseAvail = rolled && FLOWS.test.reverseAvailable(useGame.getState, useGame.setState);
-  const reversePreview = reverseAvail ? FLOWS.test.reversePreview(useGame.getState, useGame.setState) : null;
+  const reverseAvail = rolled && FLOWS.test.reverseAvailable(useGame.getState);
+  const reversePreview = reverseAvail ? FLOWS.test.reversePreview(useGame.getState) : null;
   // Barre : « Continuer » post-jet + « Annuler » pré-jet SI le test est annulable (action de COMBAT ;
   // referme la cascade sans dépenser l'Action). Les tests de dialogue/scène n'ont pas `cancellable`.
   const actions: RollAction[] = [{ key: 'confirm', label: 'Continuer', onClick: resolve, when: 'post' }];

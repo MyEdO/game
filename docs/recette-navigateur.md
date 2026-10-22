@@ -1614,7 +1614,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   `onDockPortrait`) — puis ouvre la modale Attaque. La modale PRÉSÉLECTIONNE l'arme PERSONNELLE du
   servant, jamais l'arme de poste (`personalWeaponsOf` exclut explicitly l'arme du poste servi de
   l'auto-choix, `src/noyau/mount.ts:104-121`) : RE-sélectionner l'arme de poste dans le `<select>`
-  « Arme » de la modale (`src/ui/jetProps/useAttackJetProps.tsx:171-184`) avant de lancer le jet.
+  « Arme » de la modale (`src/ui/jetProps/useAttackJetProps.tsx:115-123`) avant de lancer le jet.
 
 - **Ouvrir la fiche complète d'un héros (`CharacterSheet`)** : `sheetId` est un `useState` LOCAL au
   composant écran (`PartyScreen.tsx`/`CampaignView.tsx`) — aucun helper `__wfrp` ne l'arme (le raccourci

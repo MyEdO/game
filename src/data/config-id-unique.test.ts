@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs';
 
 /**
@@ -22,7 +23,7 @@ import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
  * clés `fichier#…`) y sont uniques par la marque de leur collection (`grammaire/collection-cle.ts`).
  */
 
-const RACINES = [fileURLToPath(new URL('./', import.meta.url)), fileURLToPath(new URL('../scenes/', import.meta.url))];
+const RACINES = [__dirname, fileURLToPath(new URL('../scenes/', import.meta.url))];
 
 type Porteur = { id: string; ou: string };
 
@@ -33,7 +34,7 @@ function idsDePremierNiveau(): Porteur[] {
     for (const nom of listerArbre(dir, { filtre: (rel) => rel.endsWith('.json') })) {
       let racine: unknown;
       try {
-        racine = JSON.parse(readFileSync(`${dir}${nom}`, 'utf8'));
+        racine = JSON.parse(readFileSync(join(dir, nom), 'utf8'));
       } catch {
         continue;
       }
@@ -75,13 +76,13 @@ const FLIPPES_V_FLIP_CONFIG = [
 /** TOUTE racine-objet à enveloppe de `src/data` (`id` + `label`) : l'espace d'unicité est celui des
  *  DOCUMENTS, pas d'un lot. */
 function documentsConfig(): (Porteur & { type: string })[] {
-  const dir = fileURLToPath(new URL('./', import.meta.url));
+  const dir = __dirname;
   return listerDossier(dir)
     .filter((f) => f.endsWith('.json'))
     .flatMap((f) => {
       let racine: unknown;
       try {
-        racine = JSON.parse(readFileSync(`${dir}${f}`, 'utf8'));
+        racine = JSON.parse(readFileSync(join(dir, f), 'utf8'));
       } catch {
         return [];
       }

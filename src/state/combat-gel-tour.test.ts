@@ -366,7 +366,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   });
 
   it('2ᵉ cause de `null` du hook : l’ACTEUR a quitté le `battle` ⇒ orphelin', () => {
-    // useDefenseJetProps:48 / useAttackJetProps:68 / useFumbleJetProps:25 /
+    // useDefenseJetProps:51 / useAttackJetProps:57 / useFumbleJetProps:26 /
     // useExtendedTestJetProps:34 — `if (!attacker || !target) return null`.
     for (const jet of ['attack', 'defense', 'fumble', 'extended'] as HostJet[]) {
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: battleDe('personne') } as never, etape(jet)), `${jet} sans acteur`).toBe(true);

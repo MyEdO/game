@@ -138,6 +138,14 @@ export function opposedAttackerLabel(opp: { test?: RollRequest['test']; attacker
   return opp?.attackerLabel ?? (opp?.test ? testSkillLabel(opp.test) : undefined);
 }
 
+/** Cible Codex du NOM d'un jet (la Compétence ou la Caractéristique lancée) — identité STABLE, jamais un
+ *  libellé de recherche. */
+export interface RollLabelRef {
+  category: string;
+  id: string;
+  label: string;
+}
+
 /** COMPOSE l'affichage détaillé d'une étape mono depuis les ids déclarés — SOURCE UNIQUE (mandat
  *  coordinateur) : plus un call-site n'assemble `${actor.name} — ${action} (${skill})` à la main.
  *  `action` = `req.actionLabel` (nom seul) ; le détail (compétence/carac) est omis si le Test ne porte

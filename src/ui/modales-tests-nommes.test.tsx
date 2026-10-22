@@ -12,7 +12,7 @@ import { RunModal } from './RunModal';
 import { ApproachModal } from './ApproachModal';
 import { refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
-import { difficultyText } from './difficultyText';
+import { difficultyText } from '../noyau/difficultyText';
 import { poserFicheDeTest, restaurerFiche, testDeFiche } from '../state/ficheDeTest.testkit';
 import { lignesDeJet } from './ligneDeJet.testkit';
 import { combattantDeModale } from './combattantDeModale.testkit';

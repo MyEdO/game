@@ -8,7 +8,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { previewAttack, withAttackerAt, difficultyOf } from '../noyau/combatFlow';
-import { difficultyShownText } from '../ui/difficultyText';
+import { difficultyShownText } from '../noyau/difficultyText';
 import { apercuDuGeste, previewDifficultyOf } from '../noyau/targetingModes';
 import { hoverTargeting } from '../noyau/targeting';
 import { selectedAttackOption } from '../noyau/combatManeuvers';
@@ -17,7 +17,7 @@ import { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import { initialNet } from '../noyau/etat';
 
-/** Ce que l'affichage dira de cette Difficulté (`ui/difficultyText`, celle de la modale). */
+/** Ce que l'affichage dira de cette Difficulté (`noyau/difficultyText`, celle de la modale). */
 const dit = (p: Parameters<typeof difficultyOf>[0]): string | null => difficultyShownText(difficultyOf(p));
 
 const guerrier = (over: Partial<Combatant> = {}): Combatant =>

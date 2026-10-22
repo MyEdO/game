@@ -23,7 +23,7 @@ import * as traitsDef from './schemas/defs/traits';
 import * as spellsDef from './schemas/defs/spells';
 import { characteristics, skills, traits } from './index';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 /** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les quatre sites qui le lisent. */
 const DATASETS = listerDossier(DIR).filter((f) => f.endsWith('.json'));
 const KNOWN_RULE_IDS = new Set(OPTIONAL_RULES.map((r) => r.id));

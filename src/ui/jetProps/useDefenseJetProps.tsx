@@ -80,8 +80,8 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant).
-  const reverseAvail = rolled && FLOWS.defense.reverseAvailable(useGame.getState, useGame.setState);
-  const reversePreview = reverseAvail ? FLOWS.defense.reversePreview(useGame.getState, useGame.setState) : null;
+  const reverseAvail = rolled && FLOWS.defense.reverseAvailable(useGame.getState);
+  const reversePreview = reverseAvail ? FLOWS.defense.reversePreview(useGame.getState) : null;
   // `pd.modes` (tir) limite les réactions proposées ; absent = mêlée (Parade + Esquive). Filtre seul.
   const allowMode = (m: 'parade' | 'esquive') => !pd.modes || pd.modes.includes(m);
 

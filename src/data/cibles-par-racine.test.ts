@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { CIBLES_PAR_RACINE, type RacineDeCatalogue } from '../noyau/combatEffects';
 
@@ -13,7 +12,7 @@ import { CIBLES_PAR_RACINE, type RacineDeCatalogue } from '../noyau/combatEffect
  * La racine se lit au CHAMP de donnée qui porte la feuille — jamais à une liste d'ids. Une feuille qu'aucun
  * champ connu ne porte est une racine NEUVE : rouge, nommée, jusqu'à ce qu'elle entre au registre.
  */
-const DATA = fileURLToPath(new URL('.', import.meta.url));
+const DATA = __dirname;
 
 /** Le champ porteur → sa racine. L'ordre compte : le plus spécifique d'abord. */
 const RACINE_PAR_CHAMP: readonly { racine: RacineDeCatalogue; champ: RegExp; fichier?: string }[] = [

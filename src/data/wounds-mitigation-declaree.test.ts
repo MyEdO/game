@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { fileURLToPath } from 'node:url';
 
 /**
  * Garde STRUCTURELLE : tout `op:'wounds'` d'une DONNÉE déclare sa mitigation.
@@ -28,7 +27,7 @@ import { fileURLToPath } from 'node:url';
  * (AA 07 l.40) sont SOUS cette garde : elles vivent en donnée, dans `criticals.json`.
  */
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 
 type AnyRec = Record<string, unknown>;
 

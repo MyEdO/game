@@ -15,10 +15,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { fileURLToPath } from 'node:url';
 import { auditSecondaries, auditSecondaryRef, secondaryEntriesOf } from '../../scripts/guards/lib/folioIntegrity.mjs';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 /** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les deux sites qui le lisent. */
 const DATASETS = listerDossier(DIR).filter((f) => f.endsWith('.json'));
 

@@ -9,11 +9,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { auditFolios } from '../../scripts/guards/lib/folioIntegrity.mjs';
 import { FOLIO_TITLE_RATCHET } from '../../scripts/guards/lib/folioTitleRatchetStock.mjs';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 /** Entrée témoin : `qualities.json:leger` — folio réel 292 (`60 - Fabrication.md`), attesté aussi par
  *  l'index du LDB. Son ancien folio faux, 286, sert de mutation. */
 const DATASET = 'qualities.json';

@@ -28,14 +28,13 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { books } from './index';
 import { auditFolio, auditFolios, citedEntriesOf } from '../../scripts/guards/lib/folioIntegrity.mjs';
 import { FOLIO_RATCHET } from '../../scripts/guards/lib/folioRatchetStock.mjs';
 import { FOLIO_TITLE_RATCHET } from '../../scripts/guards/lib/folioTitleRatchetStock.mjs';
 
-const DIR = fileURLToPath(new URL('.', import.meta.url));
+const DIR = __dirname;
 const BOOK_IDS = new Set(books.map((b) => b.id));
 /** Scan UNIQUE partagé par les deux voies : il relit tout `Source/`. */
 const AUDIT = auditFolios(DIR);

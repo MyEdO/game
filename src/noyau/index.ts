@@ -1,29 +1,22 @@
 /**
- * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état, des
- * actions, de l'intention et du lancement de scénario, les lecteurs dont un hôte a besoin pour montrer la
- * fenêtre d'attaque (`docs/plans/2026-10-19-modale-attaque-godot.md`, morceaux 1 à 7), et ceux de sa vue
- * (#2898) : le tour, les offres du registre, la fenêtre ouverte, l'exploration. Chaque nom vient du module qui
- * le déclare ; c'est le SEUL module de `src/noyau` qui réexporte (`scripts/guards/lib/reexportations.mjs`).
+ * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie, les types de l'état et de
+ * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
+ * la fenêtre d'attaque en données, l'exploration. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
+ * module de `src/noyau` qui réexporte (`scripts/guards/lib/reexportations.mjs`).
  */
-export { creerPartie, type Partie, type Intention, type Evenement, type EntreesDeLaPartie, type ResultatDeLAppel, type IssueDeLAppel, type LigneDuJournal } from './partie';
+export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
 export { etatInitialDuJeu, type EtatDeJeu, type Jeu } from './etat';
-export type { Get } from './flowTypes';
 export type { Jeton } from './plateforme';
-export type { ActionsDuNoyau } from './actionsDuNoyau';
 export { argsAvecVerdictLocal, porteesDuTour } from './localIntent';
-export { previewAttack, defenseDodgeMods, resolveAttack, activeCombatant } from './combatFlow';
-export { rederiveAttack } from './rollFlowSpecs';
-export { opReroll, opBonusSL } from './rollFlowFactory';
-export { LOCALISATIONS_DE_COUP, type HitLocation } from '../engine/types';
-export { modDeRegle } from '../engine/reglesChiffrees';
+export { previewAttack, activeCombatant } from './combatFlow';
+export { LOCALISATIONS_DE_COUP } from '../engine/types';
 export { CADENCE_MODES, type Cadence } from '../engine/cadence';
-export type { LancementDeScenario } from './lancementDeScenario';
-export { actionGate, actionCostLabel, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionGate, type ActionCtx, type ActionRunCtx, type ActionSelectorCtx, type Offre, type OffresParPorteur } from './actionRegistry';
-export { ACTIONS, type ActionDef } from '../data/index';
+export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
+export { ACTIONS } from '../data/index';
 export { mouvementDuTour } from './mount';
 export { combatDistance } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
-export { pickActiveModalKey, modalOwnerOf, type ModalKey } from './modalArbiter';
 export { fenetreDuJeu, CLES_DE_FENETRE } from './combatAuto';
 export { stepInteraction } from './cascade';
 export type { Combatant } from '../engine/types';
@@ -31,11 +24,10 @@ export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain } from './netOwnership';
 export { siegeDe } from './sieges';
-export { portalsForParty, type RoomPortal } from './monde/roomPortals';
 export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLICS_DU_CHAMP } from './actionsDuNoyau';
 export { capDuGroupe, porteurParId } from './monde/combatants';
-export type { Scene } from './monde/scene';
 export { tileFromKey, type Pt } from './monde/path';
-export { jetsEnVue, type JetEnVue, type LigneDeJet, type OppositionEnVue, type DeDuTest } from './jetsEnVue';
+export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
+export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';

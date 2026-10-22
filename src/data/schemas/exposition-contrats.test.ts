@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 import { SCHEMA_DEFS } from './_registry.generated';
 import {
@@ -27,7 +27,7 @@ import type { Exposition } from './grammaire/document';
  *  (e) routes ⊆ bindings (`ARRAYS`/`OBJECTS` d'`overrides.ts`) — ce qui tient le cast de `CodexEdit`.
  */
 
-const DATA_DIR = fileURLToPath(new URL('../', import.meta.url));
+const DATA_DIR = resolve(__dirname, '..');
 const jsonSurDisque = () => listerDossier(DATA_DIR).filter((f) => f.endsWith('.json'));
 
 /**

@@ -8,7 +8,7 @@
     "scripts/**/*.{mjs,mts,ts}",
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
-    "src/noyau/index.ts"
+    "src/hoteTexte/serveur.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

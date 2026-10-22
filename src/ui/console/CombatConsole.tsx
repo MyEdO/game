@@ -877,7 +877,7 @@ export function CombatConsole() {
     // G3 — Viser
     cellFor('aim', 'arme', { label: active.aiming ? 'En joue' : 'Viser', on: !!active.aiming, off: busy || !!active.aiming || frenzied }),
     // G6 — geste d'ARME : la jauge est l'ARSENAL tenu (`canPushback`). L'Empoignade n'en est PAS un
-    // (LDB 14 l.155, l.159) : elle reste à la modale d'attaque à mains nues (`useAttackJetProps.tsx:96`).
+    // (LDB 14 l.155, l.159) : elle reste à la modale d'attaque à mains nues (`noyau/fenetreDAttaque.ts` `empoigner`).
     cellFor('pushback', 'geste', { on: !!active.pushbackMode }),
     // G5 — postures de tir PRÉ-ARMÉES (`battle.stances`, spec §1a G5) : les cases portent le choix, la
     // fenêtre de jet n'en garde que l'affichage. Bascule (re-clic = désarmer), gate en texte visible.

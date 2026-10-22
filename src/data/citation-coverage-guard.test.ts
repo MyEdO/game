@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { auditDataset, EXEMPT_DATASETS, isCitedItem } from '../../scripts/guards/lib/citationCoverage.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 
@@ -28,7 +27,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
  * `EXEMPT_DATASETS`). Zéro entrée extraite sans source sur `src/data/*.json`.
  */
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 /** Les datasets `.json` de `src/data`, en ordre total — UN listage pour les deux sites qui le lisent. */
 const DATASETS = listerDossier(DATA_DIR).filter((f) => f.endsWith('.json'));
 

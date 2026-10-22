@@ -10,7 +10,7 @@ import type { Dims } from '../../geometry/iso';
 import { HoverMovePreview, TapPreview, mouvementLigne } from './MoveOverlays';
 import { composeAttack, type ModLine } from '../../engine/combat';
 import { difficultyOf, type AttackPreview } from '../../noyau/combatFlow';
-import { difficultyShownText } from '../../ui/difficultyText';
+import { difficultyShownText } from '../../noyau/difficultyText';
 import { DIFFICULTY_LABELS, type Combatant, type Weapon } from '../../engine/types';
 import type { BattleState } from '../../noyau/etat';
 

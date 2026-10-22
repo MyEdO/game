@@ -12,7 +12,8 @@ import { Dims, tileCenter } from '../../geometry/iso';
 import { TargetReticle } from '../TargetReticle';
 import { relationColor } from '../teamColors';
 import { GOLD_TINT, ENEMY_CUE_TINT, RING_ALLY_TINT } from '../highlightTints';
-import { difficultyShownText } from '../../ui/difficultyText';
+import { difficultyShownText } from '../../noyau/difficultyText';
+import { t as message } from '../../i18n';
 import type { HoverAim } from './useHoverTargeting';
 
 export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pendingDefense, pendingHeal, pendingCast }: {
@@ -75,9 +76,9 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
         const modTxt = tip.mod ? ` (${tip.mod > 0 ? '+' : '−'}${Math.abs(tip.mod)})` : '';
         const l2 = `${tip.skill}  ${eff}${modTxt}`;
         // Difficulté que dira le jet de CE geste, mise en mots par l'UNIQUE fonction d'affichage que
-        // la modale emploie (`ui/difficultyText`) : jamais un cran voisin, jamais une 2ᵉ formulation.
+        // la modale emploie (`noyau/difficultyText`) : jamais un cran voisin, jamais une 2ᵉ formulation.
         const lDiff = difficultyShownText(tip.difficulty);
-        const l3 = tip.dmg != null ? `Dégâts +${tip.dmg}` : null;
+        const l3 = tip.dmg != null ? message('attaque.degats', { dmg: tip.dmg }) : null;
         const w = Math.max(tip.targetName.length * 6.6, tip.title.length * 6, l2.length * 6, (lDiff ?? '').length * 6.6, (l3 ?? '').length * 6) + 20;
         const h = 52 + (lDiff ? 14 : 0) + (l3 ? 14 : 0);
         const x0 = -w / 2 + 10;

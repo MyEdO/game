@@ -24,11 +24,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
-import { fileURLToPath } from 'node:url';
 import trappings from './trappings.json';
 import { replier } from '../lib/ordre.mjs';
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+const DATA_DIR = __dirname;
 const SCENES_DIR = join(DATA_DIR, '..', 'scenes');
 
 /** Clé de rapprochement d'un libellé : `replier`, sans suffixe entre parenthèses
