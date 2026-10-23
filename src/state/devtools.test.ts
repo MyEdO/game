@@ -579,11 +579,11 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(api.soif('absent')).toMatch(/^✗/);
   });
 
-  it('battle() expose les armes tenues de chaque combattant : trappingId, formeChoisie et forme résolue (K13)', () => {
+  it('battle() expose les armes tenues de chaque combattant : trappingId, apparence et forme résolue (K13)', () => {
     const c = combattant();
-    const vue = buildApi().battle() as { combatants: { id: string; armes: { label: string; trappingId: string | null; formeChoisie: string | null; formeResolue: string | null }[] }[] };
+    const vue = buildApi().battle() as { combatants: { id: string; armes: { label: string; trappingId: string | null; apparence: string | null; formeResolue: string | null }[] }[] };
     const moi = vue.combatants.find((x) => x.id === heroId)!;
-    expect(moi.armes).toEqual(c.weapons.map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, formeChoisie: w.formeChoisie ?? null, formeResolue: formeResolue(w) ?? null })));
+    expect(moi.armes).toEqual(c.weapons.map((w) => ({ label: w.label, trappingId: w.trappingId ?? null, apparence: w.apparence ?? null, formeResolue: formeResolue(w) ?? null })));
     expect(moi.armes.some((w) => w.trappingId !== null && w.formeResolue !== null)).toBe(true);
   });
 

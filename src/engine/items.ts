@@ -12,7 +12,7 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { findTrappingById, findApparenceById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
@@ -112,8 +112,8 @@ export interface WeaponSpec {
   uid?: string | { prefix: string };
   teinte?: string;
   form?: string;
-  /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
-  formeChoisie?: string;
+  /** Id du catalogue d’apparences choisi sur l’instance, propagé vers `Weapon.apparence`. */
+  apparence?: string;
   /** Attaque naturelle de corps (aucune arme dessinée) — propagé vers `Weapon.natural`. */
   natural?: boolean;
   /** Nature d'attaque naturelle STAMPÉE (morsure/cornes/caudale/tentacules/pietinement…) — pour la
@@ -155,7 +155,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
   if (spec.teinte !== undefined) w.teinte = spec.teinte;
   if (spec.form !== undefined) w.form = spec.form;
-  if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
+  if (spec.apparence !== undefined) w.apparence = spec.apparence;
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
   if (spec.builtinId !== undefined) w.builtinId = spec.builtinId;
@@ -199,14 +199,14 @@ export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTra
 
 /** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
  *  invoquée, le choix du joueur. */
-export type SourceDeForme = Pick<Weapon, 'form' | 'formeChoisie' | 'natural' | 'trappingId'>;
+export type SourceDeForme = Pick<Weapon, 'form' | 'apparence' | 'natural' | 'trappingId'>;
 
 /**
  * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
  * d'inventaire, sélecteur de forme et outillage de recette la lisent. Routage PAR ID STABLE :
  *  1. attaque naturelle → aucune forme ;
  *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
- *  3. choix du joueur, s'il est parmi les `formChoices` du catalogue ;
+ *  3. racine de l’apparence choisie, si admise par `shape` ou `formChoices` ;
  *  4. `shape` du catalogue, par `trappingId`.
  * `undefined` : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
  */
@@ -215,7 +215,9 @@ export function formeResolue(x: SourceDeForme): string | undefined {
   const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
   if (invoquee) return invoquee;
   const t = x.trappingId ? findTrappingById(x.trappingId) : undefined;
-  if (x.formeChoisie && t?.formChoices?.includes(x.formeChoisie)) return x.formeChoisie;
+  const apparence = findApparenceById(x.apparence);
+  const forme = apparence?.forme ?? apparence?.id;
+  if (forme && (forme === t?.shape || t?.formChoices?.includes(forme))) return forme;
   return t?.shape;
 }
 
@@ -706,7 +708,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: Co
     weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
     bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
     minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    ...(it.teinte ? { teinte: it.teinte } : {}), form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    ...(it.teinte ? { teinte: it.teinte } : {}), form: it.form, apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
   }), it.enchants ?? []);
 }

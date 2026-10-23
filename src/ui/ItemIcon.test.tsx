@@ -70,7 +70,7 @@ describe('ItemIcon — même forme que le pion (#2113)', () => {
   const arme = (w: Weapon) => renderToStaticMarkup(<ItemIcon item={w} />);
 
   it('la forme CHOISIE se dessine sur l’objet comme sur l’arme tenue', () => {
-    const it = { ...itemFromTrappingById('arme-simple')!, formeChoisie: 'hache' };
+    const it = { ...itemFromTrappingById('arme-simple')!, apparence: 'hache' };
     expect(html(it), 'la sonde mord : le choix change l’icône').not.toBe(html(itemFromTrappingById('arme-simple')!));
     expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
   });

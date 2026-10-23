@@ -28,8 +28,8 @@ for (const id of [...TENUES_QC, 'soldat'])
 // Espèces de la planche : le registre `raceAppearance.json` fait foi (les races qui portent une
 // apparence de rig authorée). `label` ne sert que de légende.
 const SPECIES = raceAppearance.map((r) => ({ id: asRigSpeciesId(r.id), label: r.label }));
-const wep = (trappingId: string, type: 'melee' | 'ranged', formeChoisie?: string): Weapon =>
-  ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId, ...(formeChoisie && { formeChoisie }) });
+const wep = (trappingId: string, type: 'melee' | 'ranged', apparence?: string): Weapon =>
+  ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId, ...(apparence && { apparence }) });
 const plate = { ...itemFromGive({ trappingId: 'plastron' }), equipped: true };
 const helm = { ...itemFromGive({ trappingId: 'heaume' }), equipped: true };
 
