@@ -1,0 +1,13 @@
+{
+  "model": "Skeleton_Warrior.glb",
+  "model_sha256": "5e84951d14ecf754b9a989489e760124d1b29af250f8a32546babd0a1cceea7a",
+  "importe_le": "2026-10-23",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-KayKit-Skeletons.txt",
+      "licence": "(Creative Commons Zero, CC0)"
+    }
+  ],
+  "animation_sources": []
+}

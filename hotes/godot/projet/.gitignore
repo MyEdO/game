@@ -1,1 +1,3 @@
 .godot/
+# Les GLB se tirent de la Release des modèles (`hotes/godot/asset/release.ts`, #2948).
+/modeles/*.glb
