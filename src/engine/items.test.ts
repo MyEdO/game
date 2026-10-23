@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme } from './items';
 import { effectiveWeaponRange } from './weaponDamage';
+import { createHero } from './character';
 import { rangeBandName } from './combat';
 import { trappings, type TrappingRef } from '../data';
 import { Combatant, ItemInstance, Weapon } from './types';
@@ -360,6 +361,25 @@ describe('ensureDefaultLoadout', () => {
     ensureDefaultLoadout(c);
     expect(c.loadouts).toHaveLength(1);
     expect(c.activeLoadoutId).toBe('x');
+  });
+
+  // Héros CRÉÉ (`createHero`) : le Set I se compose depuis `objetDeSlot` seul, sans lire `equipped`.
+  const set1DeCarriere = (careerId: string) => {
+    const h = createHero({ speciesId: 'humains-reiklander', careerId, label: 'x', seed: 1 });
+    const tid = (uid?: string) => (uid ? h.items?.find((i) => i.uid === uid)?.trappingId : undefined);
+    return { main: tid(h.loadouts?.[0].main), off: tid(h.loadouts?.[0].off) };
+  };
+
+  it('Garde (arme à 1 main + targe) : la targe en secondaire', () => {
+    expect(set1DeCarriere('garde')).toEqual({ main: 'arme-simple', off: 'bouclier-targe' });
+  });
+
+  it('Sorcier (bâton de combat à 2 mains + dague) : aucun secondaire', () => {
+    expect(set1DeCarriere('sorcier')).toEqual({ main: 'baton-de-combat', off: undefined });
+  });
+
+  it('Soldat (arme à 1 main + dague, sans bouclier) : la dague en secondaire', () => {
+    expect(set1DeCarriere('soldat')).toEqual({ main: 'arme-simple', off: 'dague' });
   });
 });
 

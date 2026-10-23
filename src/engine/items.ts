@@ -862,12 +862,13 @@ export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
   return poste;
 }
 
-/** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets équipés qui peuvent
- *  occuper un slot (`objetDeSlot`) : le 1er = meilleure arme de mêlée (+ bouclier/2e arme à 1 main en secondaire), le 2nd = 1re arme à distance (sinon vide).
- *  Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`), pas stocké. */
+/** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets qui peuvent occuper
+ *  un slot (`objetDeSlot`, seul filtre) : le 1er = meilleure arme de mêlée, et sous une arme à 1 main un
+ *  bouclier en secondaire, sinon une 2e arme éligible (`isOffHandEligible`) ; le 2nd = 1re arme à distance
+ *  (sinon vide). Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
 export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
-  const items = (c.items ?? []).filter((i) => i.equipped && objetDeSlot(c, i.uid) === i);
+  const items = (c.items ?? []).filter((i) => objetDeSlot(c, i.uid) === i);
   const melee = items.filter((i) => i.kind === 'melee');
   const ranged = items.filter((i) => i.kind === 'ranged');
 
@@ -875,7 +876,10 @@ export function ensureDefaultLoadout(c: Combatant): void {
   if (melee.length) {
     const main = [...melee].sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0];
     set1.main = main.uid;
-    if (mainsDuPorteur(c, main) === 1) set1.off = melee.find((i) => i.uid !== main.uid && mainsDuPorteur(c, i) === 1)?.uid;
+    if (mainsDuPorteur(c, main) === 1) {
+      const secondaires = items.filter((i) => i.uid !== main.uid && isOffHandEligible(i));
+      set1.off = (secondaires.find(isShieldItem) ?? secondaires[0])?.uid;
+    }
   }
   const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
   c.loadouts = [set1, set2];

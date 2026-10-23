@@ -17,9 +17,9 @@ type ConjuredSet = NonNullable<NonNullable<Combatant['activeEffects']>[number]['
  *  l'arme du set actif, convertie par `recomputeLoadout` comme toute arme tenue (zéro injection
  *  parallèle). Garantit d'abord les sets réels (Set I/II) pour une restauration propre. Mute `c`. */
 export function equipConjuredWeapon(c: Combatant, item: ItemInstance): ConjuredSet {
+  ensureDefaultLoadout(c); // sets réels, composés AVANT l'arrivée de l'objet invoqué → restoreLoadoutId pointe un vrai set
   c.items = c.items ?? [];
   c.items.push(item);
-  ensureDefaultLoadout(c); // sets réels présents → restoreLoadoutId pointe un vrai set
   const restoreLoadoutId = c.activeLoadoutId;
   const loadoutId = newLoadoutId(c);
   c.loadouts = [...(c.loadouts ?? []), { id: loadoutId, main: item.uid }];
