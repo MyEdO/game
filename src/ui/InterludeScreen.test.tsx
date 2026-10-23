@@ -1,5 +1,5 @@
 /**
- * Écran « Entre deux aventures » refondu (LOT 6) : bandeau de SYNTHÈSE persistant (vignettes héros
+ * Écran « Entre deux aventures » : bandeau de SYNTHÈSE persistant (vignettes héros
  * + pips d'Activités + bourse du groupe, les 3 phases), volets homogènes au gabarit `ActivityPane`
  * (pied FIXE : pré-jet visible AVANT « Entreprendre »), clôture récapitulative confirmée (M3).
  * Rendu statique : le store SSR sert l'état initial, d'où le seam (même pattern que WorldMapView).

@@ -40,7 +40,7 @@ export function sortByDepth(...layers: StageObj[][]): StageObj[] {
 }
 
 /** Insère les éléments DYNAMIQUES dans la couche statique PRÉ-TRIÉE, par dichotomie. À égalité de
- *  profondeur le STATIQUE passe d'abord (les dynamiques étaient historiquement poussés après) et les
+ *  profondeur le STATIQUE passe d'abord et les
  *  dynamiques gardent leur ordre d'émission (tri stable). `dyn` vide ⇒ identité (réf stable). */
 export function mergeByDepth(stat: StageObj[], dyn: StageObj[]): StageObj[] {
   if (!dyn.length) return stat;

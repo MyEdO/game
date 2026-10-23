@@ -39,7 +39,7 @@ const SHIP_LOC_KEY: Record<ShipLocation, MsgKey> = {
 export const shipLocationLabel = (loc: ShipLocation): PlayerText => t(SHIP_LOC_KEY[loc]);
 
 /** Réfs de tables data-driven d'une coque (MDG naval par défaut / MSRC fluvial) — `hull.locationTable` (colonne
- *  de Localisation) + `hull.criticalTable` (jeu de Critiques). Absentes → jeu naval MDG (comportement historique). */
+ *  de Localisation) + `hull.criticalTable` (jeu de Critiques). Absentes → jeu naval MDG. */
 export interface HullCritOpts { locationTable?: string | null; criticalTable?: string | null }
 
 /** Catégorie Codex EXACTE (`registry.ts`) d'une rangée de Critique de coque, par jeu × Localisation —

@@ -1,10 +1,10 @@
 /**
- * LOT 4 — CONTEXTE D'ESCOUADE & COORDINATION (déterministe, sans dé). Trois comportements émergents :
+ * CONTEXTE D'ESCOUADE & COORDINATION (déterministe, sans dé). Trois comportements émergents :
  *  (a) FEU CONCENTRÉ — l'IA converge sur la cible que ses alliés ENCADRENT (surnombre RAW : meilleure
- *      proba de toucher → plus de dégâts attendus). Parité du décompte avec `combatFlow.ts:428` vérifiée.
+ *      proba de toucher → plus de dégâts attendus). Parité du décompte avec la résolution `attackEnv` vérifiée.
  *  (b) ÉVITEMENT du DANGER — entre deux cases d'approche équidistantes, l'IA choisit la MOINS exposée à
  *      la menace des héros (danger-map).
- *  (c) `squad` OPTIONNEL — sans escouade, l'action est STRICTEMENT identique au Lot 3.
+ *  (c) `squad` OPTIONNEL — sans escouade, surnombre/cohésion/danger-map sont neutres.
  * Pur : `chooseEnemyAction` est déterministe ; on donne des Caractéristiques RÉELLES pour que les
  * espérances de dégâts (`expectedDamage`) soient chiffrables (≠ tests à `{} as never`).
  */
@@ -43,7 +43,7 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 const tidOf = (a: EnemyAction): string | undefined =>
   (a as { targetId?: string }).targetId ?? (a as { thenTargetId?: string }).thenTargetId;
 
-describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
+describe('Escouade — FEU CONCENTRÉ (surnombre RAW)', () => {
   it('deux cibles équivalentes au contact : l’IA vise CELLE qu’un allié encadre déjà (surnombre +20)', () => {
     // Enemy au centre, deux héros identiques tous deux au contact (mêlée). Un allié de l'enemy est adjacent
     // au héros « encadré » → surnombre 2c1 (+20 au toucher) sur lui → meilleure espérance de dégâts.
@@ -56,7 +56,7 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
     expect(tidOf(a)).toBe('flanked'); // le surnombre fait pencher le feu concentré sur la cible encadrée
   });
 
-  it('sans escouade, les deux cibles équivalentes restent départagées comme au Lot 3 (PAS « flanked »)', () => {
+  it('sans escouade, les deux cibles équivalentes restent départagées par le tie-break (PAS « flanked »)', () => {
     // Contrôle : SANS `squad`, aucun surnombre → les cibles sont équivalentes ; le tie-break déterministe
     // (id de cible ↑) choisit « alone » (a < f). Le test (a) ci-dessus DÉVIE bien ce choix grâce à l'escouade.
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [MELEE] });
@@ -67,16 +67,16 @@ describe('Lot 4 — FEU CONCENTRÉ (surnombre RAW)', () => {
     expect(tidOf(a)).toBe('alone'); // tie-break par id (≠ « flanked ») → l'escouade est bien la cause de (a)
   });
 
-  it('parité du DÉCOMPTE avec combatFlow.ts:428 : 1 allié adjacent + l’attaquant = 2c1 → +20 (et 2 alliés → +40)', () => {
+  it('parité du DÉCOMPTE avec `attackEnv` : 1 allié adjacent + l’attaquant = 2c1 → +20 (et 2 alliés → +40)', () => {
     // L'IA réutilise `outnumberMod(adj + 1)` où `adj` = alliés à combatDistance ≤ 1 (MÊME filtre que la
-    // résolution combatFlow.ts:428, qui inclut l'attaquant). On vérifie ici la fonction partagée.
+    // résolution `attackEnv`, qui inclut l'attaquant). On vérifie ici la fonction partagée.
     expect(outnumberMod(1 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'deux-contre-un')); // 1 allié + attaquant
     expect(outnumberMod(2 + 1)).toEqual(ligneDeRegle('superiorite-numerique', 'trois-contre-un')); // 2 alliés + attaquant
     expect(outnumberMod(0 + 1)).toBeNull(); // attaquant seul → pas de surnombre
   });
 });
 
-describe('Lot 4 — ÉVITEMENT du DANGER (danger-map)', () => {
+describe('Escouade — ÉVITEMENT du DANGER (danger-map)', () => {
   it('entre deux cases d’approche équidistantes, l’IA choisit la MOINS exposée à un archer héros', () => {
     // L'enemy (mêlée, M=5) ne peut atteindre QUE `prey` ce tour (l'archer est hors de portée d'approche →
     // pas une cible de mêlée jouable). Il l'aborde par l'une de deux cases de contact équidistantes : la case
@@ -97,8 +97,8 @@ describe('Lot 4 — ÉVITEMENT du DANGER (danger-map)', () => {
   });
 });
 
-describe('Lot 4 — squad OPTIONNEL : parité Lot 3', () => {
-  it('sans `squad`, l’action est identique à un appel équivalent SANS le champ (comportement Lot 3)', () => {
+describe('Escouade — squad OPTIONNEL', () => {
+  it('sans `squad`, l’action est identique à un appel équivalent SANS le champ', () => {
     const mkInput = (extra: Partial<EnemyTurnInput>): EnemyTurnInput => {
       const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [RANGED], movement: 4 });
       const dangerous = mk('dangerous', 'hero', { x: 10, y: 13 }, {

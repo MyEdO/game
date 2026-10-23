@@ -1,6 +1,6 @@
 /**
- * Effets onHit AUTHORÉS des MANŒUVRES (`TraitData.maneuver.effects`, donnée éditable) — migrés des
- * handlers en dur de `applyFreeAttackEffects`. Appliqués SCOPED à la manœuvre (via `maneuverEffectsOf`
+ * Effets onHit AUTHORÉS des MANŒUVRES (`TraitData.maneuver.effects`, donnée éditable), lus par
+ * `applyFreeAttackEffects` sans handler en dur. Appliqués SCOPED à la manœuvre (via `maneuverEffectsOf`
  * + `applyTriggeredEffects`). Preuve : Attaque caudale → À Terre si la cible est plus petite ;
  * Tentacules → Empêtré.
  */
@@ -81,7 +81,7 @@ describe('effets onHit des manœuvres de zone/action (data) — appliqués par l
 });
 
 /**
- * Hurlement fantomatique porte désormais un nœud Flow `test` (Lot 4a) enfoui dans son Flow
+ * Hurlement fantomatique porte un nœud Flow `test` enfoui dans son Flow
  * `seq[ do(1d10) , test{Résistance → Brisé} , do(3 Assourdi) ]`. Routé via le store (un `test` non routé
  * LÈVE). La manœuvre cible `allFoes` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
  * suspend en ÉTAPE de cascade `triggeredTest` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le

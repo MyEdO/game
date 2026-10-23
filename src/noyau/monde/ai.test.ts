@@ -207,3 +207,64 @@ describe('IA — vision réciproque (perceived)', () => {
     expect(chooseEnemyAction(input(e, [seen], { perceived: new Set(['5,9,0']) })).kind).toBe('shoot');
   });
 });
+
+describe('IA — Engagé cloué sur place (LDB 15 l.43-49)', () => {
+  /** `e` Engagé avec `a` (au contact, béni et refusé : aucune attaque possible sur lui), `b` loin. */
+  function engage(opts: Partial<Combatant> = {}) {
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { engagedWith: ['a'], ...opts });
+    const a = mk('a', 'hero', { x: 5, y: 6 }, { engagedWith: ['e'] });
+    const b = mk('b', 'hero', { x: 1, y: 1 });
+    return chooseEnemyAction(input(e, [a, b], { wardRefused: new Set(['a']) }));
+  }
+
+  it('Engagé sans départ libre : aucun déplacement, l’IA ne quitte pas l’Engagement', () => {
+    expect(engage().kind).not.toBe('move');
+  });
+
+  it('témoin : sans Engagement, la même IA s’approche de l’autre cible', () => {
+    const action = engage({ engagedWith: [] });
+    expect(action.kind).toBe('move');
+    expect((action as { thenTargetId: string }).thenTargetId).toBe('b');
+  });
+
+  it('plus grand que tous ses Engagés (LDB 85 l.373-374) ou Nuée (LDB 85 l.253) : départ libre', () => {
+    expect(engage({ size: 'grande' }).kind).toBe('move');
+    expect(engage({ swarm: true }).kind).toBe('move');
+  });
+
+  /** `e` Engagé au contact de `h`, son seul adversaire ; `libres` : les seules cases non bloquées. */
+  function fuyard(opts: Partial<Combatant>, libres?: string[]) {
+    const e = mk('e', 'enemy', { x: 5, y: 5 }, { engagedWith: ['h'], ...opts });
+    const h = mk('h', 'hero', { x: 5, y: 6 }, { engagedWith: ['e'] });
+    const ouvertes = new Set(libres);
+    const blocked = libres
+      ? new Set(Array.from({ length: 144 }, (_, i) => `${i % 12},${Math.floor(i / 12)}`).filter((k) => !ouvertes.has(k)))
+      : undefined;
+    return chooseEnemyAction(input(e, [h], blocked ? { blocked } : {}));
+  }
+  const BRISE: Partial<Combatant> = { conditions: [{ id: 'brise', value: 1 }] as never };
+  const BESTIAL_BLESSE: Partial<Combatant> = { traits: [{ id: 'bestial' }] as never, wounds: { current: 4, max: 10 } };
+  /** Les seules cases libres autour de `e` (5,5) sont à une case de `h` (5,6), comme la sienne. */
+  const ACCULE = ['5,5', '4,5', '6,5'];
+
+  it('Brisé cloué (LDB 16 l.52) : se Désengage au lieu de se battre', () => {
+    expect(fuyard(BRISE)).toEqual({ kind: 'disengage' });
+  });
+
+  it('Brisé à départ libre : fuit sans Désengagement', () => {
+    expect(fuyard({ ...BRISE, size: 'grande' }).kind).toBe('move');
+  });
+
+  it('Bestial blessé cloué, non acculé (LDB 85 l.59) : se Désengage', () => {
+    expect(fuyard(BESTIAL_BLESSE)).toEqual({ kind: 'disengage' });
+  });
+
+  it('Bestial blessé acculé, Engagé ou non : aucune case ne l’éloigne, il se bat', () => {
+    expect(fuyard(BESTIAL_BLESSE, ACCULE)).toEqual({ kind: 'melee', targetId: 'h' });
+    expect(fuyard({ ...BESTIAL_BLESSE, engagedWith: [] }, ACCULE)).toEqual({ kind: 'melee', targetId: 'h' });
+  });
+
+  it('témoin : Bestial indemne cloué, il se bat sans chercher à fuir', () => {
+    expect(fuyard({ traits: [{ id: 'bestial' }] as never })).toEqual({ kind: 'melee', targetId: 'h' });
+  });
+});

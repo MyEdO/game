@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { aiApproachPlan, runEnemyAI } from '../noyau/combatFlow';
+import { aiApproachPlan, attaqueDeLIA, runEnemyAI } from '../noyau/combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
@@ -66,6 +66,53 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
     const { plan, action, ran } = planFor(8, { engagedWith: ['x'] });
     expect(plan).toBe(action);
     expect(ran).toBeNull();
+  });
+});
+
+describe('attaqueDeLIA — l’attaque que porte l’action, seule à exiger le Test de Bénédiction (LDB 41 l.142)', () => {
+  const avec = (enemy: Combatant, heroes: Combatant[], over: Partial<EnemyTurnInput> = {}): EnemyTurnInput =>
+    ({ enemy, heroes, scene: scene(), blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: 4, spells: [], ...over });
+  const attaque = (input: EnemyTurnInput) => {
+    const action = chooseEnemyAction(input);
+    return { action, ...attaqueDeLIA(input, input.enemy, action) };
+  };
+
+  it('mêlée au contact et Charge qui atteint sa cible : l’attaque est jugée', () => {
+    expect(attaque(avec(C('enemy', 'e', 2), [C('hero', 'h', 3)])).cibleId).toBe('h');
+    const charge = attaque(avec(C('enemy', 'e', 2), [C('hero', 'h', 8)]));
+    expect(charge.action.kind).toBe('move');
+    expect(charge.cibleId).toBe('h');
+  });
+
+  it('fuite d’un Brisé, errance vers un adversaire non perçu, approche hors de portée de Charge : aucune attaque', () => {
+    const brise = C('enemy', 'e', 2, { conditions: [{ id: 'brise', value: 1 }] } as Partial<Combatant>);
+    const fuite = attaque(avec(brise, [C('hero', 'h', 5)]));
+    expect(fuite.action.kind).toBe('move');
+    expect(fuite.cibleId).toBeNull();
+    const errance = attaque(avec(C('enemy', 'e', 2), [C('hero', 'h', 25)], { perceived: new Set() }));
+    expect(errance.action.kind).toBe('move');
+    expect(errance.cibleId).toBeNull();
+    const loin = attaque(avec(C('enemy', 'e', 2), [C('hero', 'h', 25)]));
+    expect(loin.action.kind).toBe('move');
+    expect(loin.cibleId).toBeNull();
+  });
+
+  it('la Charge qui change de cible : c’est SA cible qui est jugée, et refusée elle n’est plus chargée', () => {
+    const e = C('enemy', 'e', 2);
+    const a = C('hero', 'a', 8);
+    const b = C('hero', 'b', 3);
+    a.pos = { x: 8, y: 5 };
+    b.pos = { x: 3, y: 4 };
+    const recibee = attaque(avec(e, [a, b]));
+    expect(recibee.action).toMatchObject({ kind: 'move', thenTargetId: 'b' });
+    expect(recibee.approche?.plan).toMatchObject({ kind: 'move', thenTargetId: 'a' });
+    expect(recibee.cibleId).toBe('a');
+    const refusee = attaque(avec(e, [a, b], { wardRefused: new Set(['a']) }));
+    expect(refusee.cibleId).not.toBe('a');
+  });
+
+  it('une monture montée n’attaque pas par l’action de l’IA', () => {
+    expect(attaque(avec(C('enemy', 'e', 2, { riderId: 'r' }), [C('hero', 'h', 3)])).cibleId).toBeNull();
   });
 });
 

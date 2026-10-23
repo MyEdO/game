@@ -524,7 +524,7 @@ export const campSchema = z.enum(['party', 'enemies']);
 export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme']);
 
 /** OBJECTIF de victoire d'une rencontre (#197) — AUTHORABLE en donnée, lu par `checkBattleOver`.
- *  Absent = `allEnemiesDead` (comportement HISTORIQUE, tous les scénarios existants inchangés).
+ *  Absent = `allEnemiesDead`.
  *  `destroyStructure` référence l'arête par son identifiant STABLE (x/y/side/z), le même couple que
  *  `structureIsDown`/`Combatant.structureEdge` (bélier-porte, `AA 10 l.94-102`) — la victoire se déclenche
  *  à la BRÈCHE, indépendamment du sort des combattants. `surviveRounds` : victoire posée au début du
@@ -585,7 +585,7 @@ export const encounterDefSchema = nommerChamps(z.strictObject({
    *  Aplati en `Effect[]` par `finishVictory` (la déférence transition/dialogue + la mesure de récompense
    *  restent sur la séquence plate). */
   onVictory: sceneFlowSchema.optional(),
-  /** Objectif de victoire (#197). Absent = `allEnemiesDead` (défaut historique). */
+  /** Objectif de victoire (#197). Absent = `allEnemiesDead`. */
   victoryCondition: victoryConditionSchema.optional(),
   /** Surprise (`LDB 13 l.52-81`) : camp pris en EMBUSCADE au début du combat. Les combattants de ce camp
    *  font un Test opposé de Perception vs la meilleure Discrétion des embusqueurs ; les vaincus gagnent
@@ -610,7 +610,7 @@ export const encounterDefSchema = nommerChamps(z.strictObject({
    *  INTERDITES ; l'auteur DÉROGE explicitement en posant `banRanged: false` (« pas toutes »). Champ
    *  SÉPARÉ de `victoryCondition` (une variante locale peut l'imposer à une rencontre qui n'est pas un
    *  `firstBlood`, valeur explicite `true`). Hors `firstBlood`, champ absent = armes à distance autorisées
-   *  (défaut historique). Défaut résolu par `banRangedActive` (SEUL point), consommé par
+   *  (défaut). Défaut résolu par `banRangedActive` (SEUL point), consommé par
    *  `resolveAttack`/`firedAttackBlock` (joueur ET IA). */
   banRanged: z.boolean().optional(),
   /** Rencontre de SIÈGE — #1680, commentaire 5546039260 du 2026-09-04 : « Structures ciblables en
@@ -714,7 +714,7 @@ export const wallSegSchema = nommerChamps(z.strictObject({
   z: z.number().optional(),
   door: z.boolean().optional(),
   /** Porte FERMÉE par défaut à l'ouverture de la scène (bloque vue+passage tant qu'on ne l'ouvre pas).
-   *  Absent = ouverte par défaut (comportement historique : une porte est une ouverture franchissable). */
+   *  Absent = ouverte par défaut (une porte est une ouverture franchissable). */
   closed: z.boolean().optional(),
   /** Structure destructible posée SUR l'arête (id de `structures.json`, ex. `porte-de-ville`). Tant
    *  qu'elle tient, l'arête bloque passage+vue comme un mur plein ; une fois ABATTUE (`structureIsDown`),

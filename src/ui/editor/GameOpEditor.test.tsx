@@ -83,7 +83,7 @@ describe('GameOpEditor — menu « + op » COMPLET', () => {
  * GRAINE d'une op : une op créée par l'atelier n'ÉLIT jamais une entrée de registre à la place de
  * l'auteur. Deux verdicts complémentaires, sur TOUT le vocabulaire (aucune liste à la main) :
  *  (a) tout champ-réf d'une op fraîche est VIDE — l'auteur choisit, l'op porte sa raison ;
- *  (b) s'il est malgré tout renseigné, il RÉSOUT dans son dataset (le défaut historique : `talentId:
+ *  (b) s'il est malgré tout renseigné, il RÉSOUT dans son dataset (défaut mesuré : `talentId:
  *      'sang-froid'` absent de talents.json, `ref: 'Loup'`/'Ours' — des LIBELLÉS là où le bestiaire
  *      est keyé `loup`/`ours` → `RefIrresoluble` au jeu).
  */

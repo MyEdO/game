@@ -914,7 +914,7 @@ export interface ActiveEffect {
   testModChar?: CharKey;
   /** RESTREINT un `testModChar:'capacite-de-combat'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
    *  Épaule luxée « Tests effectués avec ce bras », LDB 18/AA) : lu par `combatValue`/`defenseValue`
-   *  (parade), jamais l'autre main. Absent = les deux mains (comportement historique). */
+   *  (parade), jamais l'autre main. Absent = les deux mains. */
   testModHand?: 'main' | 'off';
   /** RESTREINT `testMod`/`testModChar` aux Tests classés « déplacement » (op `testMod.movementOnly`,
    *  #193 — Genou démis « Tests impliquant cette jambe », LDB 18/AA) — MÊME catégorie `SkillData.movement`
@@ -949,19 +949,15 @@ export interface ActiveEffect {
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête — Peau de loup d'hiver d'Ulric,
    *  Protection contre la pluie) : `exposureNight` est sauté tant que l'effet dure. */
   weatherImmune?: boolean;
-  /** Bouclier anti-flèches (LDB 47 — L11) : les projectiles ORGANIQUES (flèches, carreaux,
-   *  javelots) entrant dans la zone de `radiusMeters` autour du porteur sont détruits. */
+  /** Bouclier anti-flèches (LDB 47 l.358) : zone de `radiusMeters` autour du porteur. */
   arrowWard?: { radiusMeters: number };
   /** Dôme (LDB 47 l.410) : quiconque dans la zone gagne le TRAIT `ward` contre les attaques magiques
    *  ou à distance provenant de l'EXTÉRIEUR du dôme. Le Trait et son Indice viennent de la DONNÉE du
    *  sort (op `domeWard`) — aucun seuil n'est écrit dans le code. */
   domeWard?: { radiusMeters: number; ward: import('./statEntry').TraitInstance };
-  /** Bénédiction de Protection (LDB 41 — L13) : « Les ennemis doivent effectuer un Test de FM
-   *  Accessible (+20) pour attaquer votre cible. Sur un échec, ils doivent choisir une cible ou
-   *  une Action différente. » — Test joué à la DÉCLARATION d'attaque (rien n'est consommé). */
+  /** Bénédiction de Protection (LDB 41 l.142) : Test joué à la DÉCLARATION d'attaque (`attackWardGate`). */
   attackWardFM?: boolean;
-  /** Martyr (LDB 42 — L13) : « Vous recevez tous les Dégâts subis en principe par vos cibles »
-   *  — id du PRÊTRE qui encaisse à la place du porteur (BE doublé pour ces Dégâts). */
+  /** Martyr (LDB 43 l.107) : id du PRÊTRE qui encaisse à la place du porteur. */
   martyrGuard?: string;
   /** Points de Chance ACCORDÉS temporairement par un Sort (op `gainResource` — Signes d'Amul,
    *  Maître du Destin) : les points NON dépensés sont retirés à l'expiration de l'effet (rounds OU

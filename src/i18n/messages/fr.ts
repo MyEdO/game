@@ -1136,7 +1136,7 @@ export const fr = {
   'cf.coverLabel': 'Couvert ({cover})',
   'cf.castLabel': 'Incantation / NI {ni}',
   'cf.prayerLabel': 'Prière',
-  'cf.pushThrough': '{name} écarte les plus petits et se déplace librement.',
+  'cf.departLibre': '{name} quitte librement le corps à corps.',
   'cf.collapse': "{name} s'effondre, hors de combat.",
   'cf.coqueSansCritique': '{name} est un véhicule, pas un navire : il ne subit pas de Blessure Critique.',
   'cf.gangwayCollapse': "{name} chute de la passerelle qui s'effondre.",

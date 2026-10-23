@@ -30,7 +30,7 @@ export const HERO_RING = [
 ];
 
 /**
- * Teintes SÉMANTIQUES d'équipe (Lot 1) — case sous le pion + voile léger sur le modèle :
+ * Teintes SÉMANTIQUES d'équipe — case sous le pion + voile léger sur le modèle :
  * allié = vert, ennemi = rouge, unité active = jaune (prime sur la couleur d'équipe pour la case).
  * Distinct des anneaux d'IDENTITÉ par héros (HERO_RING), qui restent un indice secondaire.
  */

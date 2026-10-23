@@ -359,7 +359,7 @@ export const inflictTraumaSchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, kind: { label: "type"  }, severity: { label: "gravité"  }, location: { label: "localisation"  }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
-/** Souffle de ZONE (Lot 3) centré sur une case : tous les combattants à `radius` cases (Chebyshev)
+/** Souffle de ZONE centré sur une case : tous les combattants à `radius` cases (Chebyshev)
  *  — en combat par position, hors combat le groupe (à partyPos) — subissent les `ops` (vocabulaire
  *  unique `GameOp`, appliquées par `applyOps` cible par cible). Bombe, grenade, piège de zone…
  *  Dégâts BRUTS par défaut (`op:'wounds'` ignore BE+PA) ; mitiger = `{ignoreTB:false, ignoreAP:false}`. */
@@ -562,7 +562,7 @@ export const endDialogueSchema = nommerChamps(z.strictObject({ type: z.literal('
 
 // ── Les deux variantes RÉCURSIVES (elles portent un `Flow<Effect>`) ──────────────────────────────
 
-/** Effet PROGRAMMÉ (Lot 0, étendu #668) : `flow` est appliqué quand l'horloge atteint l'échéance,
+/** Effet PROGRAMMÉ (étendu #668) : `flow` est appliqué quand l'horloge atteint l'échéance,
  *  résolue par `scheduleAt` (`engine/clock`) selon la `ScheduleSpec` fournie — priorité `atDate`
  *  (date impériale absolue) > `afterDays` (« J+N », à `atHour:atMinute`, défaut minuit) >
  *  `afterMinutes` (compte à rebours relatif : mèche de bombe) > `atHour`/`atMinute` seuls (prochaine
@@ -587,7 +587,7 @@ export const petitePriereSchema = z.strictObject({
   },
 });
 
-/** Effet PROGRAMMÉ (Lot 0, étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
+/** Effet PROGRAMMÉ (étendu #668) — l'une des DEUX variantes dont le corps reste manuscrit :
  *  elle porte un `Flow`, donc elle est MUTUELLEMENT récursive avec l'union `Effect`, et ce
  *  corps est l'ANNOTATION de `delayedEffectSchema`. */
 export type DelayedEffect = { type: 'delayedEffect'; flow: Flow; cancelFlag?: string } & ScheduleSpec;

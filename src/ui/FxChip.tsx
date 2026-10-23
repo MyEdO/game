@@ -2,7 +2,7 @@ import { Icon } from './Icon';
 import type { IconId } from './icons';
 
 /**
- * Mini-chip d'une conséquence mécanique NON-État (LOT 5) : « −1 Activité », « Revenus +20 % »…
+ * Mini-chip d'une conséquence mécanique NON-État : « −1 Activité », « Revenus +20 % »…
  * Icône du registre + libellé en clair. Complète StateChips/EffectChips (réservés aux États
  * réels) dans la MÊME famille visuelle `.fx-chip` — les ops sont structurées, ceci n'est qu'un
  * RENDU (aucun parsing de texte).

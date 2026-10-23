@@ -440,7 +440,7 @@ export function pathTo(scene: Scene, start: Pt, goal: Pt, env: MoveEnv): Pt[] | 
       if (came.has(k)) continue;
       const isGoal = n.x === goal.x && n.y === goal.y && nz === gz;
       // Empreinte > 1 : chaque pas (arrivée incluse) doit tenir entièrement. 1×1 : la cible peut être
-      // une case occupée (on s'arrête au contact d'un ennemi), comportement historique.
+      // une case occupée (on s'arrête au contact d'un ennemi).
       if (foot > 1) { if (!footFits(scene, n.x, n.y, nz, foot, blocked, swim)) continue; }
       else if (!isGoal && (!isWalkable(scene, n.x, n.y, nz, swim) || blocked.has(k))) continue;
       came.set(k, key(p.x, p.y, pz(p)));

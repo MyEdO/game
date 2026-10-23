@@ -613,7 +613,7 @@ function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestC
  *  `ck` — POINT UNIQUE partagé par `testValue` (Tests hors-combat), `combatValue`/`defenseValue`
  *  parade (Tests d'arme, `weaponHand` gaté) et `defenseValue` Esquive (`movement:true`). `weaponHand`/
  *  `movement` : contexte du Test COURANT, opposé aux gates portés par l'effet (`testModHand`/
- *  `testModMovementOnly`) — absents des DEUX côtés = mod global (comportement historique). */
+ *  `testModMovementOnly`) — absents des DEUX côtés = mod global. */
 export function activeCharTestModParts(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: 'main' | 'off'; movement?: boolean } = {}): ModLine[] {
   const out: ModLine[] = [];
   for (const e of c.activeEffects ?? []) {

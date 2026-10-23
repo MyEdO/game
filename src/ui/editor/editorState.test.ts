@@ -178,7 +178,7 @@ describe('editorState — #841 FU-C : corps/étage sélectionnables et supprimab
 
   it('hitAt sélectionne le CORPS actif quand aucune feuille n’est sous le clic (aucun mode architecture ⇒ inchangé)', () => {
     const scene = sceneWithArchitecture(); // corps « corps », étage z0, une partie en (1,1)-(2,2)
-    // Sans activeBodyId (comportement historique) : clic dans le vide = rien.
+    // Sans activeBodyId : clic dans le vide = rien.
     expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS)).toBeNull();
     // Avec le corps ACTIF (mode Architecture) : le clic désigne l’étage courant du corps.
     expect(hitAt(scene, { x: 5, y: 5 }, DEFAULT_LAYERS, 0, 'corps')).toEqual({ type: 'architectureStorey', bodyId: 'corps', id: 'z0' });

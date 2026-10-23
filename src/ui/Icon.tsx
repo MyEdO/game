@@ -1,7 +1,7 @@
 import { ICON_DEFS } from './icons';
 import type { IconIdInput } from './icons';
 
-/* Primitive d'icône UI (LOT 4 — remplace les emojis d'affordance). Rend le fragment SVG du
+/* Primitive d'icône UI (à la place des emojis d'affordance). Rend le fragment SVG du
    registre src/ui/icons/ dans un viewBox 24×24 qui hérite la couleur du texte (currentColor).
    SEAM des ids portés par la DONNÉE (`IconIdInput`) : les ids authorés en TS sont typés `IconId`
    (union générée) en amont ; ici on accepte aussi un `string` JSON, validé par le throw DEV. */

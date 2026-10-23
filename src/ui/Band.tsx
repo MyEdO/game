@@ -20,7 +20,7 @@ export function Band({
   right?: ReactNode;
   children?: ReactNode;
   /** Titre cliquable — bande de section renvoyant vers SA catégorie du Compendium (`EtatPanel.tsx`).
-   *  Sans cette prop : titre statique (comportement historique). */
+   *  Sans cette prop : titre statique. */
   onTitleClick?: () => void;
   titleAriaLabel?: string;
 }) {

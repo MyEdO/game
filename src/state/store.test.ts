@@ -498,7 +498,7 @@ describe('Boucle de jeu (store)', () => {
         result,
         suite: { mode: 'machine', coup: {} },
       },
-      // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
+      // La défense est une étape de cascade combat → on la pose comme en jeu (maybeOpenDefense).
       pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     useGame.getState().defenseConfirm();

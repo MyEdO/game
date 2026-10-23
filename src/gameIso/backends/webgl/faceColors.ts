@@ -56,7 +56,7 @@ function reliefColor(id: string, part: string | undefined): string {
  *
  *  Un matériau de toit qui n'a AUCUNE teinte de pente peint au ton d'alarme (#877) : `roofMaterial` a
  *  déjà rendu son repli visible pour un id inconnu, il reste le cas d'une entrée RÉELLE sans `N` — les
- *  teintes de pente sont optionnelles au type (`catalog/roofs/types.ts:18`). Mesuré le 2026-09-02 :
+ *  teintes de pente sont optionnelles au type (`RoofMaterialDef`, `src/data/materials.types.ts`). Mesuré le 2026-09-02 :
  *  1 entrée sur 4 est dans ce cas (`plan`, qui ne porte que ses teintes de vue du dessus) et AUCUNE
  *  masse de toit des documents du dépôt ne la nomme — la donnée n'est donc pas fautive, mais rien
  *  n'interdit à un auteur de la choisir (`validateScene` admet les 4 ids), et ce jour-là la face se

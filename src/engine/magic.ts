@@ -1029,8 +1029,7 @@ export function evaluateMissile(
   const loc = locOverride ?? hitLocationByShape(reverseRoll(cr.roll), target.bodyShape);
   const spellDmg = missileDamage(spell);
   const bfm = bonus(effectiveChar(caster, 'force-mentale'));
-  // Attribut de Domaine (LDB 48 — L14) : Métal ignore les PA métalliques ET les ajoute en Dégâts ;
-  // Cieux ignore les PA métalliques ; Ombres ignore tous les PA non magiques.
+  // Attributs de Domaine : Cieux LDB 48 l.106, Métal LDB 48 l.399, Ombres LDB 48 l.588.
   const totalAP = effectiveArmourAt(target, loc); // PA portés + temporisés (Armure Aethyrique)
   const dom = domainMissileMods(target, spell, loc, totalAP);
   const damage = (spellDmg?.damage ?? 0) + missileDamageSL(sl, overcastDamageSteps, overcastSourceOf(spell)) + bfm + dom.bonusDamage;

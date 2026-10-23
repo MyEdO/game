@@ -12,14 +12,14 @@
  * chaque chiffre dérive d'une fonction du moteur — pas de constante magique « pifométrique » — et toute
  * action jouée passe par la résolution RAW (LoS LDB 13 l.114, bandes de portée appliquées au jet).
  *
- * Lot 3 — l'IA vise par MENACE (`targetThreat`, plus le « PV le plus bas »), achève proprement
+ * Choix de cible : l'IA vise par MENACE (`targetThreat`), achève proprement
  * (`killSecure`), ne s'acharne pas (`overkillPenalty`), valorise les États infligés (`CONDITION_THREAT`,
  * data-driven), couvre les paquets en ZdE et se POSITIONNE (flanc/dos, couvert, portée préférée —
  * `positionValue`).
  *
- * Lot 4 — CONTEXTE D'ESCOUADE (`squad` en entrée, OPTIONNEL : absent → comportement Lot 3 inchangé) :
+ * CONTEXTE D'ESCOUADE (`squad` en entrée, OPTIONNEL : absent → surnombre, danger-map et cohésion neutres) :
  * FEU CONCENTRÉ via le surnombre RAW (`outnumberEnvMelee` réutilise `outnumberMod`/LDB 14 avec le MÊME
- * décompte que la résolution `combatFlow.ts:428` → l'IA converge sur une cible que ses alliés encadrent),
+ * décompte que la résolution `attackEnv` (combatFlow) → l'IA converge sur une cible que ses alliés encadrent),
  * ÉVITEMENT du DANGER (`dangerAt` : danger-map des héros, l'ennemi fuit les cases exposées) et COHÉSION
  * légère (ne pas s'isoler de l'escouade). Aucun nouveau MODIFICATEUR de combat n'est inventé.
  */
@@ -47,7 +47,7 @@ const FRIENDLY_FIRE_AVERSION = 2;
 import type { SpellData } from '../../data';
 import { hasCondition, canTakeAction, isActionLocked, restrictingConditions, COND } from '../../engine/conditions';
 import { effectiveMovement } from '../../engine/encumbrance';
-import { isEngaged, meleeReachTiles } from '../../engine/engagement';
+import { isEngaged, isEngagedWith, meleeReachTiles, cloueParLEngagement } from '../../engine/engagement';
 import { isFlankOrRear } from './combatGeometry';
 import { facingToward, type Dir8 } from '../../geometry/dir8';
 import { groupMatch } from '../../engine/groups';
@@ -96,6 +96,7 @@ export type EnemyAction =
   | { kind: 'reload' } // recharge une arme à Recharge déchargée (Test étendu de Projectiles, LDB 62 l.333)
   | { kind: 'melee'; targetId: string } // attaque de mêlée (cible adjacente)
   | { kind: 'move'; to: Pt; thenTargetId: string } // approche ; attaque après si adjacent
+  | { kind: 'disengage' } // Désengagement (LDB 15 l.47-49) d'un Engagé cloué que sa fuite oblige à partir (Brisé LDB 16 l.52, Bestial LDB 85 l.59)
   | { kind: 'recover'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
   | { kind: 'spendResource'; resource: 'resolve'; via: 'removeCondition'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
   | { kind: 'grapple'; targetId: string; resolution: 'break' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
@@ -126,23 +127,23 @@ export interface EnemyTurnInput {
   flying?: boolean;
   /** Grimpant (LDB 85 l.160-162), patron de `flying` : capacité de traversée dérivée par l'appelant
    *  (`climbTraverseFor`, ai.ts est pur) — arêtes `WallSeg.climb` franchies au pas normal. ABSENT/undefined
-   *  = aucune capacité (comportement historique, `reachable` inchangé). */
+   *  = aucune capacité (`reachable` inchangé). */
   traverse?: TraverseCapability;
   /** Cases enfumées (Souffle (Fumée)) qui bloquent la Ligne de Vue. */
   smoke?: Pt[];
   /** Vision RÉCIPROQUE : cases (`"x,y,0"`) que CET ennemi perçoit réellement (Ligne de Vue + lumière,
    *  vision nocturne incluse) — calculé par l'appelant via le moteur de vision. L'ennemi ne cible/poursuit
-   *  que les héros sur ces cases (furtivité). ABSENT = pas de gate (comportement historique / tests purs). */
+   *  que les héros sur ces cases (furtivité). ABSENT = pas de gate (tests purs). */
   perceived?: Set<string>;
   /** Orientation MONDE (`Dir8`) des combattants, lue de `get().facing` par l'appelant (couche impure :
    *  `ai.ts` est pur, sans store). Sert au bonus de FLANC/DOS du positionnement (`isFlankOrRear`, LDB 14
    *  l.91). ABSENT = aucun bonus de flanc (graceful : tests purs / scène sans orientation). */
   facing?: Record<string, Dir8>;
-  /** ESCOUADE (Lot 4) : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
+  /** ESCOUADE : les ALLIÉS de l'ennemi encore en action et posés (l'ennemi lui-même EXCLU),
    *  résolus par l'appelant (couche impure qui a le `battle`). Sert au FEU CONCENTRÉ (surnombre RAW en
-   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution, cf. combatFlow.ts:428) et
-   *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = comportement Lot 3 STRICTEMENT
-   *  inchangé (le golden et les fixtures sans escouade restent identiques). */
+   *  mêlée, LDB 14 — même `outnumberMod` et même décompte que la résolution `attackEnv`, combatFlow) et
+   *  à la COHÉSION légère (ne pas s'isoler / ne pas bloquer l'allié). ABSENT = surnombre, cohésion et
+   *  danger-map neutres (le golden et les fixtures sans escouade restent identiques). */
   squad?: Combatant[];
   /** Postes de siège NON servis à portée de SERVICE (emplacement/coque adjacent), surfacés par l'appelant
    *  impur (`servablePostes`, qui a la liste COMPLÈTE des combattants). Donnent un candidat `manPoste`
@@ -164,9 +165,20 @@ export interface EnemyTurnInput {
   /** Restriction d'armes à distance EFFECTIVE de la rencontre (#537, résolue par `banRangedActive(battle)`
    *  — SOURCE UNIQUE, `ai.ts` reste pur sans `battle`). Sous ban, l'IA ne considère PLUS ses armes à distance
    *  comme jouables (`hasRanged`) : elle bascule mêlée/approche au lieu de télégraphier un tir no-op
-   *  (`resolveAttack` le refuserait silencieusement, combatFlow.ts:620-623). Ne touche PAS aux sorts offensifs
-   *  (NADJ 06 l.181 : la restriction ne vise QUE les projectiles). ABSENT = comportement historique inchangé. */
+   *  (`resolveAttack` le refuserait silencieusement). Ne touche PAS aux sorts offensifs
+   *  (NADJ 06 l.181 : la restriction ne vise QUE les projectiles). ABSENT = armes à distance permises. */
   banRanged?: boolean;
+  /** Bénédiction de Protection (LDB 41 l.142) : ids des adversaires que cet ennemi a renoncé à attaquer CE
+   *  tour, son Test de FM raté (jet de l'appelant impur, `runEnemyAI`). Ni tir, ni mêlée, ni approche qui
+   *  finit à leur contact ne les vise ; s'en rapprocher reste permis, et ils restent des adversaires pour
+   *  tout le reste (menace, Engagement, sorts). ABSENT = aucun. */
+  wardRefused?: ReadonlySet<string>;
+  /** Les Engagés de l'ennemi encore en action (`engagesEnAction`, posés par `buildAiInput`) : ceux qui le
+   *  clouent (LDB 15 l.43-49). ABSENT (tests purs) = ses Engagés parmi `heroes`. */
+  engages?: readonly Combatant[];
+  /** L'Action du tour est déjà dépensée (Esquive du Désengagement, LDB 15 l.49) : il ne reste que le
+   *  Mouvement, ni Charge ni Course ni attaque à l'arrivée. ABSENT = Action disponible. */
+  actionDepensee?: boolean;
   /** MÉMO de Ligne de Vue de la DÉCISION en cours (`makeLosMemo`, `lineOfSight.ts`). L'appelant impur
    *  (`buildAiInput`) en pose un par décision et `aiApproachPlan` le REPASSE à ses deux ré-énumérations
    *  (Charge, Course) : une case n'est donc évaluée qu'UNE fois pour toute la décision. ABSENT (tests
@@ -175,7 +187,7 @@ export interface EnemyTurnInput {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
-// POIDS DES HEURISTIQUES (Lot 3) — centralisés et commentés pour régler le RESSENTI sans toucher au
+// POIDS DES HEURISTIQUES — centralisés et commentés pour régler le RESSENTI sans toucher au
 // code. Chaque poids module une grandeur dérivée du moteur (Blessures espérées, États, géométrie) ;
 // l'utilité finale d'un candidat est une SOMME pondérée (`scoreCandidate`). Plus le score est HAUT,
 // meilleur le candidat (argmax = max). Les grandeurs de base sont en « Blessures espérées » (l'unité
@@ -189,8 +201,8 @@ const W = {
   threat: 1,
   /** Achever une cible (dégâts attendus ≥ PB restants) : prime forte — un mort ne riposte plus. */
   killSecure: 12,
-  /** S'acharner sur une cible NEUTRALISÉE (à terre/inconsciente/0 PB) : malus FORT (anti-acharnement,
-   *  Lot 1) — on ne la frappe qu'en dernier recours (aucune menace debout). */
+  /** S'acharner sur une cible NEUTRALISÉE (à terre/inconsciente/0 PB) : malus FORT
+   *  (anti-acharnement) — on ne la frappe qu'en dernier recours (aucune menace debout). */
   overkill: 100,
   /** Frapper au FLANC/DOS (hors champ de vision avant de la cible, LDB 14 l.62) : gratuit → bonus modéré. */
   flankRear: 4,
@@ -202,7 +214,7 @@ const W = {
   /** Pénalité de DISTANCE résiduelle à la cible après un `move` (par case) : à utilité égale, on choisit
    *  la case qui réduit le plus la distance (départage des approches, calibré faible). */
   approachDist: 0.2,
-  // — Lot 4 (contexte d'escouade) ————————————————————————————————————————————————————————————————
+  // — Contexte d'escouade —————————————————————————————————————————————————————————————————————
   /** ÉVITEMENT du DANGER (danger-map) : pénalité par Blessure espérée que les héros nous infligeraient
    *  DEPUIS la case d'arrivée (Σ sur les héros, via `expectedDamage` réciproque). Calibré < 1 (l'unité
    *  est déjà en « Blessures espérées ») pour rester un DÉPARTAGE de cases d'approche, jamais un veto qui
@@ -223,7 +235,7 @@ const W = {
 type Weights = { -readonly [K in keyof typeof W]: number };
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
-// LOT 5 — DOCTRINES TACTIQUES data-driven. « Un loup ≠ une bande de brigands ≠ une compagnie d'élite ».
+// DOCTRINES TACTIQUES data-driven. « Un loup ≠ une bande de brigands ≠ une compagnie d'élite ».
 // Une DOCTRINE = (a) un OVERRIDE PARTIEL des poids `W` du cœur discrétionnaire + (b) 1-2 micro-réglages
 // de macro-comportement (`macro`). Elle est SÉLECTIONNÉE par des signaux DATA (traits/Intelligence/groups/
 // sorts — `pickDoctrine`), JAMAIS par un nom de créature en dur. CONTRAINTE RAW ABSOLUE : une doctrine ne
@@ -249,7 +261,7 @@ type Doctrine = Partial<Weights> & { macro?: DoctrineMacro };
 /**
  * Les 7 doctrines (presets confirmés). Chaque entrée n'écrit QUE les poids qu'elle DÉVIE de `W` ; tout le
  * reste hérite du défaut neutre. `standard` est volontairement VIDE (= `W` à l'identique) → garantit que le
- * golden et les fixtures génériques (classées `standard`) gardent EXACTEMENT le comportement des Lots 1-4.
+ * golden et les fixtures génériques (classées `standard`) gardent EXACTEMENT les poids de `W`.
  */
 const DOCTRINES: Record<DoctrineId, Doctrine> = {
   // DÉFAUT NEUTRE — aucun delta : les poids effectifs == `W`. Obligatoire pour la parité golden.
@@ -303,8 +315,8 @@ const DOCTRINES: Record<DoctrineId, Doctrine> = {
  * @param enemy l'ennemi qui agit (traits/characteristics/groups/spells/weapons/conditions).
  * @param squad ses alliés (réservé à de futurs signaux d'escouade — non requis par les règles actuelles).
  * @param heroes les héros de la rencontre (non filtrés par perception — `chooseEnemyAction` passe
- *  `input.heroes`) : sert UNIQUEMENT au signal d'embuscade ci-dessous. ABSENT ⇒ aucun signal (comportement
- *  historique des appels directs à `pickDoctrine` sans 3ᵉ argument, ex. la majorité d'`ai-doctrine.test.ts`).
+ *  `input.heroes`) : sert UNIQUEMENT au signal d'embuscade ci-dessous. ABSENT ⇒ aucun signal (appels
+ *  directs à `pickDoctrine` sans 3ᵉ argument, ex. la majorité d'`ai-doctrine.test.ts`).
  */
 export function pickDoctrine(enemy: Combatant, _squad: Combatant[] = [], heroes: Combatant[] = []): DoctrineId {
   // (1) OVERRIDE EN DONNÉE prioritaire : si l'auteur a figé une doctrine valide, on la respecte TELLE QUELLE.
@@ -368,7 +380,7 @@ export function pickDoctrine(enemy: Combatant, _squad: Combatant[] = [], heroes:
   if (isMilitary && !bestial) return 'soldats';
   // RACAILLE : humanoïde d'un groupe racaille/criminel (sans signal militaire/magique) → opportuniste, tape le faible.
   if (isRabble && !bestial) return 'racaille';
-  // DÉFAUT NEUTRE : aucun signal franc (fixtures génériques, caractéristiques absentes…) → comportement Lots 1-4.
+  // DÉFAUT NEUTRE : aucun signal franc (fixtures génériques, caractéristiques absentes…) → poids `W` sans override.
   return 'standard';
 }
 
@@ -385,7 +397,7 @@ function doctrineWeights(id: DoctrineId): Weights {
 }
 
 /**
- * MENACE d'un héros pour l'ennemi (Lot 3 — REMPLACE le « PV le plus bas » comme critère de cible) :
+ * MENACE d'un héros pour l'ennemi (REMPLACE le « PV le plus bas » comme critère de cible) :
  *  menace = (dégâts qu'il peut nous infliger) × ATTEIGNABILITÉ (proche = menace immédiate) × FRAGILITÉ
  *  (PB bas = plus facile à éliminer, donc cible prioritaire pour neutraliser sa menace).
  * - dégâts du héros : espérance de son MEILLEUR coup contre l'ennemi (mêlée ou tir) — réutilise
@@ -451,16 +463,16 @@ function nearest(enemyPos: Pt, heroes: Combatant[]): Combatant {
 }
 
 /**
- * Un CANDIDAT d'action discrétionnaire (Lot 3 — moteur Utility à score pondéré).
+ * Un CANDIDAT d'action discrétionnaire (moteur Utility à score pondéré).
  * `kind` = type d'action (sert au BIAIS de palier dans le départage : à utilité égale, on garde l'ordre
- * castArea < focus < cast < reload < shoot < melee < move — la cascade historique comme tie-break stable,
+ * castArea < focus < cast < reload < shoot < melee < move — un tie-break stable,
  * PAS comme priorité absolue : une utilité supérieure renverse le palier). `utility` = somme
  * pondérée des heuristiques (plus HAUT = mieux). `targetId`/`coord` = départage déterministe final.
  */
 interface Candidate {
   action: EnemyAction;
   kind: keyof typeof TIER;
-  /** Utilité pondérée (Lot 3) — somme des heuristiques. Plus HAUT = meilleur. */
+  /** Utilité pondérée — somme des heuristiques. Plus HAUT = meilleur. */
   utility: number;
   /** id de la cible visée (départage, stable) — vide si l'action n'en a pas. */
   targetId: string;
@@ -468,8 +480,8 @@ interface Candidate {
   coord: Pt | null;
 }
 
-// Paliers d'action (cascade historique, du plus prioritaire au moins). Au Lot 3 ils ne servent plus de
-// PRIORITÉ absolue (l'utilité prime) mais de BIAIS de départage stable à utilité égale (parité golden).
+// Paliers d'action, du plus prioritaire au moins : BIAIS de départage stable à utilité égale (l'utilité
+// prime ; parité golden).
 const TIER = {
   castArea: 0, // ZdE couvrant ≥2 héros (LDB 47 l.28)
   focus: 1, // Focalisation d'un sort infaisable d'un jet (LDB 46)
@@ -483,8 +495,8 @@ const TIER = {
 } as const;
 
 /**
- * argmax déterministe (Lot 3) : meilleur candidat par UTILITÉ décroissante. Tie-break STABLE à utilité
- * égale (départage lexicographique) : palier d'action (cascade historique) ↑, puis id de cible ↑, puis
+ * argmax déterministe : meilleur candidat par UTILITÉ décroissante. Tie-break STABLE à utilité
+ * égale (départage lexicographique) : palier d'action ↑, puis id de cible ↑, puis
  * coordonnées (x,y) ↑, puis index d'énumération (ultime garde-fou). Les égalités d'utilité sont gérées
  * proprement par cette chaîne — déterministe, sans dé.
  */
@@ -514,18 +526,24 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Tenue de formation (#196) : Mouvement effectif plafonné à 0 → tout le reste de la fonction (approche,
   // repositionnement/kiting, fallback anti-immobilisme) énumère seulement la case courante — un ennemi déjà
   // adjacent (`inMelee`/`withinMelee`, testés sur `pos` SANS passer par `reach`) reste attaquable normalement.
-  const movement = input.holdsFormation ? 0 : input.movement;
+  // Engagé cloué (LDB 15 l.43-49) : MÊME plafond à 0 — il ne quitte l'Engagement que par le Désengagement
+  // (`disengage`), que l'IA choisit seulement quand sa fuite l'y oblige (Brisé, Bestial).
+  const cloue = cloueParLEngagement(enemy, input.engages ?? input.heroes.filter((h) => isEngagedWith(enemy, h.id)));
+  const libre = input.holdsFormation ? 0 : input.movement;
+  const movement = cloue ? 0 : libre;
   const spells = input.spells ?? []; // absent (tests purs / fixtures sans sort) → aucun candidat de sort
-  // Escouade (Lot 4) : alliés posés encore en action (l'ennemi exclu par l'appelant). Absent → [] →
-  // surnombre/cohésion/danger-map neutres = comportement Lot 3 strictement inchangé.
+  // Escouade : alliés posés encore en action (l'ennemi exclu par l'appelant). Absent → [] →
+  // surnombre/cohésion/danger-map neutres.
   const squad = input.squad ?? [];
   // Vision réciproque : l'ennemi ne cible/poursuit que les héros qu'il PERÇOIT (LoS + lumière, comme le
-  // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
+  // groupe). `perceived` absent = aucun gate (tests purs).
   const heroes = input.perceived
     ? input.heroes.filter((h) => h.pos && input.perceived!.has(`${h.pos.x},${h.pos.y},0`))
     : input.heroes;
   // Gardes FORCÉES (psychologie/RAW, hors scoring) : la trace = action forcée, classement VIDE.
   const forced = (a: EnemyAction): EnemyAction => { if (AI_TRACE) _lastRanking = []; return a; };
+  /** LDB 41 l.142. */
+  const attaquable = (h: Combatant): boolean => !input.wardRefused?.has(h.id);
   if (input.heroes.length === 0) return forced({ kind: 'end' }); // plus AUCUN adversaire (combat fini) → passe la main
   if (!canTakeAction(enemy) && effectiveMovement(enemy) === 0) return forced({ kind: 'end' }); // ni Action ni Mouvement (Surpris LDB 16 l.135…) → passe la main (gating data-driven, plus de nom en dur)
   // En flammes (LDB 16 l.84) : un ennemi NON frénétique se roule au sol pour éteindre le feu (1d10/Round
@@ -608,7 +626,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Cases atteignables ce tour (inclut la case de départ à distance 0). Vol (LDB 85 l.433) :
   // ligne directe, seules les cases d'atterrissage doivent être praticables et libres.
-  const reach = (flying ? flyReachable : reachable)(scene, pos, movement, { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse });
+  const reachAu = (m: number) => (flying ? flyReachable : reachable)(scene, pos, m, { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse });
+  const reach = reachAu(movement);
   const hereKey = tileKey(pos.x, pos.y, pos.z ?? 0);
 
   // ANTI-IMMOBILISME (combat ENGAGÉ, fidélité LDB 13 l.114) : si la perception ne montre AUCUNE cible
@@ -635,8 +654,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Fuite (Brisé / Bestial blessé). `preferHidden` (Brisé, LDB 16 l.52 « hors de vue de l'ennemi ») :
   // gagner une CACHETTE (case hors de vue de tout héros) prime sur la distance ; sinon, la plus éloignée.
-  const fleeMove = (preferHidden = false): EnemyAction => {
-    const tiles = [...reach.keys()].map(tileFromKey);
+  const fleeMove = (preferHidden = false, cases = reach): EnemyAction => {
+    const tiles = [...cases.keys()].map(tileFromKey);
     const distOf = (t: Pt) => Math.min(...heroes.map((h) => chebyshev(t, h.pos!)));
     const vuePar = (t: Pt): boolean => heroes.some((h) => h.pos && los.clear(h.pos, t));
     const hidden = preferHidden ? tiles.filter((t) => !vuePar(t)) : [];
@@ -667,21 +686,22 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return { kind: 'spendResource', resource: 'resolve', via: 'removeCondition', id: clearable.id };
   };
   // Verrouillage d'Action data-driven (`restrictsAction`, ex. Brisé LDB 16 l.52) : Mouvement + Action doivent
-  // servir à fuir/se cacher. AVANT de fuir, l'IA tente de se RESSAISIR par la Détermination ; sinon, fuir si
-  // NON Engagé (un Brisé Engagé ne peut PAS récupérer par Test, LDB 16 l.54 → il retombe dans le scoring et se
-  // bat à −10). PLUS de nom d'État en dur.
+  // servir à fuir/se cacher. AVANT de fuir, l'IA tente de se RESSAISIR par la Détermination ; sinon elle fuit
+  // hors de vue (cachette prioritaire), et se Désengage d'abord quand l'Engagement la cloue (LDB 15 l.43-49).
   if (isActionLocked(enemy)) {
     const spend = planProactiveSpend();
     if (spend) return forced(spend);
-    if (!isEngaged(enemy)) return forced(fleeMove(true)); // fuir hors de vue (cachette prioritaire)
+    return forced(cloue ? { kind: 'disengage' } : fleeMove(true));
   }
-  // Bestial (LDB 85 l.59) : « Si elle perd plus de la moitié de ses Blessures, elle tente de fuir »
-  // — sauf Territorial (combat jusqu'à la mort) ou acculée/Engagée (elle reste — Frénésie gérée par
-  // le drapeau frenzied de l'appelant).
+  // Bestial (LDB 85 l.59) : sous la moitié de ses Blessures, elle fuit (Désengagement d'abord si l'Engagement la
+  // cloue), sauf Territoriale ou acculée : aucune case à son Mouvement ne l'éloigne de ses adversaires.
   if (isBestial(enemy.traits) && !isTerritorial(enemy.traits) && !isFrenzied(enemy)
-      && enemy.wounds.current < enemy.wounds.max / 2 && !isEngaged(enemy)) return forced(fleeMove());
+      && enemy.wounds.current < enemy.wounds.max / 2) {
+    const fuite = fleeMove(false, cloue ? reachAu(libre) : reach);
+    if (fuite.kind !== 'end') return forced(cloue ? { kind: 'disengage' } : fuite);
+  }
 
-  // === DOCTRINE TACTIQUE (Lot 5) ===========================================================
+  // === DOCTRINE TACTIQUE ===========================================================
   // La doctrine (déduite des signaux DATA ou forcée par `enemy.aiDoctrine`) module les POIDS du cœur
   // discrétionnaire ci-dessous (`Weff` = `W` + override partiel). Elle est choisie APRÈS toutes les gardes
   // forcées (fin de combat, En flammes, Brisé, Bestial, anti-immobilisme) — qu'elle ne touche JAMAIS — et
@@ -710,7 +730,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return false;
   };
 
-  // === CŒUR DISCRÉTIONNAIRE — moteur Utility (Lot 3 : score pondéré) =======================
+  // === CŒUR DISCRÉTIONNAIRE — moteur Utility (score pondéré) =======================
   // Tout ce qui précède (gardes RAW/psychologie : fin de combat, En flammes, Brisé, Bestial, fuite,
   // anti-immobilisme…) reste FORCÉ et n'entre PAS dans le scoring. Ici on ÉNUMÈRE PLUSIEURS candidats
   // par type (un par cible atteignable, plusieurs cases d'approche), on les SCORE par UTILITÉ pondérée
@@ -735,24 +755,24 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return visibleFoes.length ? nearest(pos, visibleFoes) : null;
   };
 
-  // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
+  // --- HEURISTIQUES de SCORE (dont escouade) -----------------------
   /** FEU CONCENTRÉ via SURNOMBRE (RAW, LDB 14) — MÊME `outnumberMod` et MÊME décompte que la résolution
-   *  (`src/noyau/combatFlow.ts:428`) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
+   *  (`attackEnv`, combatFlow) : N = (alliés de l'escouade à `combatDistance ≤ 1` de la cible) + 1
    *  (l'attaquant lui-même, qui SERA au contact en frappant). Renvoie le `ModLine` du bonus de toucher
    *  (+20 à 2c1, +40 à 3+c1) sous forme d'`env` injecté DANS `expectedDamage` (mêlée UNIQUEMENT — le
-   *  surnombre RAW est mêlée-only, cf. combatFlow:425 qui ne sert que `attackEnv` de mêlée). Aucun
+   *  surnombre RAW est mêlée-only, `attackEnv` ne le sert qu'en mêlée). Aucun
    *  modificateur inventé : on réutilise la fonction du moteur. Squad vide → null (pas d'env). */
   const outnumberEnvMelee = (target: Combatant): ModLine[] | undefined => {
     if (squad.length === 0) return undefined;
     const adj = squad.filter((c) => c.pos && combatDistance(c, target) <= 1).length;
-    const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité exacte avec combatFlow:425)
+    const onm = outnumberMod(adj + 1); // +1 = l'attaquant courant (parité exacte avec `attackEnv`)
     return onm ? [onm] : undefined;
   };
 
   /** Utilité tactique d'une ATTAQUE (mêlée/tir/sort) sur `target` : valeur de l'effet + menace de la cible
    *  + killSecure − overkill. Pour un SORT, la valeur EST `spellActionValue` (déjà = dégâts + contrôle ×
    *  fiabilité × opposition), passée précalculée ; le contrôle n'est PLUS ajouté à part (il est dedans).
-   *  En MÊLÉE, le bonus de toucher de SURNOMBRE (feu concentré, Lot 4) est injecté dans l'espérance. */
+   *  En MÊLÉE, le bonus de toucher de SURNOMBRE (feu concentré) est injecté dans l'espérance. */
   const attackUtility = (
     target: Combatant,
     src: { kind: 'melee'; weapon: Weapon } | { kind: 'ranged'; weapon: Weapon; dist: number } | { kind: 'spell'; value: number },
@@ -768,7 +788,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return Weff.damageDealt * dmg + Weff.threat * threat + securesKill - overkill;
   };
 
-  /** DANGER-MAP (Lot 4) : Blessures que les HÉROS nous infligeraient si l'on se tenait sur `to` — Σ sur
+  /** DANGER-MAP : Blessures que les HÉROS nous infligeraient si l'on se tenait sur `to` — Σ sur
    *  les héros de l'espérance de LEUR meilleur coup (mêlée/tir) contre l'ennemi POSÉ sur `to` (réutilise
    *  `expectedDamage`, réciprocité, PUR). Un ennemi évite donc les cases exposées (et, blessé, d'autant
    *  plus, puisque la pénalité s'ajoute à un score offensif moindre). Coût borné aux cases candidates ;
@@ -804,9 +824,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return total;
   };
 
-  /** Bonus de POSITIONNEMENT d'une case d'arrivée `to` pour attaquer `target` (Lot 3) : flanc/dos +
+  /** Bonus de POSITIONNEMENT d'une case d'arrivée `to` pour attaquer `target` : flanc/dos +
    *  gain de couvert pour soi + respect de la portée préférée (tireur/lanceur reste à distance+LdV ;
-   *  mêlée au contact). Lot 4 : − danger-map (cases exposées) + cohésion (ne pas s'isoler de l'escouade). PUR. */
+   *  mêlée au contact). Escouade : − danger-map (cases exposées) + cohésion (ne pas s'isoler de l'escouade). PUR. */
   // Un combattant qui PORTE une arme à distance (ou un sort offensif) se positionne en TIREUR : il vise sa
   // PORTÉE de tir, pas le contact — même s'il garde une arme de mêlée de secours. L'ancien `&& !hasMeleeWeapon`
   // déclassait à tort les HYBRIDES (chasseur fronde+dague, arbalétrier+épée) en mêleeurs dès qu'ils étaient
@@ -825,7 +845,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // une Action d'Attaque GRATUITE pour résoudre l'Empoignade AU LIEU de l'Action de la créature » — le tentacule
   // tient pendant que le CORPS garde son Action normale (résolution gratuite dans aiCreatureFreeAttacks). La
   // Langue préhensile (p.340) n'a PAS cette dérogation : « le démarrage d'une Empoignade (voir page 163) » → règle
-  // GÉNÉRALE → la créature est VERROUILLÉE comme tout grappleur (LOT B ; un Langue tireur à Avantage supérieur y
+  // GÉNÉRALE → la créature est VERROUILLÉE comme tout grappleur (un Langue tireur à Avantage supérieur y
   // « laisse partir la cible » via le Break). Seule la VICTIME (sans trait de tentacule) reste toujours verrouillée.
   const holdsViaLimb = creatureAttacks(enemy.traits ?? []).some((a) => a.kind === 'tentacules');
   {
@@ -878,10 +898,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     } else if (withinMelee(to, target.pos!)) {
       v += Weff.preferredRange; // mêlée : au contact
     }
-    // ÉVITEMENT du DANGER (Lot 4) : pénalise une case exposée à la menace des héros (danger-map). Calibré
+    // ÉVITEMENT du DANGER : pénalise une case exposée à la menace des héros (danger-map). Calibré
     // < 1 → départage de cases, jamais un veto (l'utilité d'attaque, ×1..12, peut l'emporter et faire avancer).
     if (squad.length || heroes.length) v -= Weff.dangerAvoid * dangerAt(to);
-    // COHÉSION légère (Lot 4, SOBRE) : malus si la case isole l'ennemi de TOUTE son escouade (aucun allié
+    // COHÉSION légère (SOBRE) : malus si la case isole l'ennemi de TOUTE son escouade (aucun allié
     // à portée de soutien ≤ 3 cases) — préfère rester en formation, à utilité d'attaque égale. Si l'escouade
     // est vide, pas de cohésion (un solitaire ne « s'isole » de personne).
     if (squad.length && !squad.some((c) => c.pos && chebyshev(to, c.pos) <= 3)) v -= Weff.cohesion;
@@ -889,7 +909,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   };
 
   // Meilleure case d'APPROCHE vers une cible — énumère PLUSIEURS cases pertinentes (adjacentes à la
-  // cible, et la case qui réduit le plus la distance) plutôt qu'une seule (Lot 3 : laisse le scoring
+  // cible, et la case qui réduit le plus la distance) plutôt qu'une seule (laisse le scoring
   // arbitrer position vs distance). Renvoie une liste de candidats `(to, utilité de position)`.
   const approachCandidates = (target: Combatant): { to: Pt; posV: number }[] => {
     const out: { to: Pt; posV: number }[] = [];
@@ -901,7 +921,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return out;
   };
 
-  // --- ÉNUMÉRATION des candidats JOUABLES (Lot 3 : multi-cibles, multi-cases) ----------------
+  // --- ÉNUMÉRATION des candidats JOUABLES (multi-cibles, multi-cases) ----------------
   const candidates: Candidate[] = [];
   const fpick = frenzyPick();
 
@@ -1014,9 +1034,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     candidates.push({ action: { kind: 'reload' }, kind: 'reload', utility: 0, targetId: '', coord: null });
     committingPrep = true; // un tireur recharge sur place plutôt que de foncer en mêlée
   }
-  // Tir (hors Combat rapproché, cible visible) : UN candidat PAR cible tirable (Lot 3 — multi-cibles).
+  // Tir (hors Combat rapproché, cible visible) : UN candidat PAR cible tirable (multi-cibles).
   if (canShoot && rangedW) {
-    const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool);
+    const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool).filter(attaquable);
     for (const t of pool) {
       candidates.push({ action: { kind: 'shoot', targetId: t.id }, kind: 'shoot', utility: attackUtility(t, { kind: 'ranged', weapon: rangedW, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
     }
@@ -1039,7 +1059,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // MÊLÉE + APPROCHE — UN vivier hate-restreint (LDB 21) ; MÊLÉE pour les cibles au contact, APPROCHE
   // (suspendue en PRÉPARATION) pour les cibles non attaquables ce tour.
   const heldInMelee = hasRanged && adjacentFoes.length > 0;
-  const here = heldInMelee ? adjacentFoes : heroes.filter(meleeReachableNow);
+  const here = (heldInMelee ? adjacentFoes : heroes.filter(meleeReachableNow)).filter(attaquable);
   const baseVivier = here.length ? here : heroes;
   const vivier = restrict(fpick ? [fpick] : baseVivier);
   // Estimation d'attaque pour scorer une cible (utilité d'arme de mêlée si on en a une, sinon menace seule
@@ -1049,11 +1069,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   for (const t of vivier) {
     if (hasMeleeWeapon && meleeWeapon && inMelee(t)) {
       // Cible déjà au contact → frappe (position déjà acquise, pas de bonus de déplacement).
-      candidates.push({ action: { kind: 'melee', targetId: t.id }, kind: 'melee', utility: attackUtility(t, { kind: 'melee', weapon: meleeWeapon }), targetId: t.id, coord: t.pos ?? null });
+      if (attaquable(t)) candidates.push({ action: { kind: 'melee', targetId: t.id }, kind: 'melee', utility: attackUtility(t, { kind: 'melee', weapon: meleeWeapon }), targetId: t.id, coord: t.pos ?? null });
     } else if (!committingPrep && !attackableNow(t)) {
       // Cible non attaquable ce tour → candidats d'APPROCHE : utilité d'attaque + positionnement − distance.
       const atk = targetUtility(t);
       for (const { to, posV } of approachCandidates(t)) {
+        if (!attaquable(t) && withinMelee(to, t.pos!)) continue;
         const u = atk + posV - Weff.approachDist * manhattan(to, t.pos!);
         candidates.push({ action: { kind: 'move', to, thenTargetId: t.id }, kind: 'move', utility: u, targetId: t.id, coord: to });
       }

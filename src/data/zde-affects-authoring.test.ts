@@ -1,7 +1,7 @@
 /**
- * AUTHORING de `SpellTarget.affects` (`src/engine/spellRange.ts:34`) sur les Zones d'Effet dont le
+ * AUTHORING de `SpellTarget.affects` (`src/engine/spellRange.ts`) sur les Zones d'Effet dont le
  * VERBATIM de source réserve le ciblage — le champ est lu par `castCommitZone`
- * (`src/noyau/combatFlow.ts:3526`, contrats `src/state/castCommitZone-affects.test.ts`).
+ * (`src/noyau/combatFlow.ts`, contrats `src/state/castCommitZone-affects.test.ts`).
  *
  * Ce test câble la DONNÉE au moteur : chaque `affects` authoré est réellement évalué par
  * `evalCondition` (`src/engine/flowCore.ts`) sur des candidats de camps opposés, et retient

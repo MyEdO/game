@@ -354,7 +354,7 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
 }
 
 /** Programme les ops d'une op IMPURE `delayed` (ext. #50-D) dans la file `scheduledEffects` — même
- *  mécanique que l'Effet de scène `delayedEffect` (Lot 0). Échéance : `afterMinutes/Hours/Days` résolus
+ *  mécanique que l'Effet de scène `delayedEffect`. Échéance : `afterMinutes/Hours/Days` résolus
  *  MAINTENANT contre la cible, OU `afterDuration:true` = l'échéance du contexte (fin de la durée du
  *  consommable — Bonnet de fou « Quand l'effet se dissipe… », LDB 71 l.20). `forMinutes/Hours/Days` :
  *  durée d'horloge PROPRE des ops différées (bakée sur la feuille programmée — Délice de Ranald :

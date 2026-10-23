@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -9,6 +9,8 @@ import {
   estFichierScanne,
   tombstonesIn,
   scanTombstones,
+  lignesDesFichiersDuDepot,
+  scanPointeursHorsBornes,
   untaggedExcuseMatch,
   scanExcuses,
   legacyVocabIn,
@@ -28,6 +30,7 @@ import {
 } from '../scripts/guards/lib/commentPoison.mjs';
 import { LEGACY_VOCAB_SITES } from '../scripts/guards/lib/legacyVocabStock.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
+import { TRAVAIL, depotDe, listerImage } from '../scripts/guards/lib/gitPorte.mjs';
 import { detenteur } from './detenteur.testkit';
 
 /**
@@ -79,6 +82,20 @@ const GARDE = {
       '(« la couche monde a quitté le SVG ») passe la garde. Le démonstratif en complément (« ce compte ») ' +
       'reste hors famille pour la même raison : il ne distingue pas le code du jeu. Le verbe de victoire (« l’a ' +
       'emporté ») : 4 sites, tous du vocabulaire de JEU.',
+    'Le DÉPLACEMENT d’un corps de code n’est mesuré que vers une cible de CODE (module, symbole chameau, fichier), ' +
+      'une destination sans article, ou un adverbe de fidélité qui clôt la proposition (#2874) : mesuré le 2026-10-23 ' +
+      'sur `src/**`+`scripts/**`, 69 occurrences du participe, dont 4 tombales hors de ces formes, ' +
+      'reformulées à la main (une cible capitalisée sous article, « de la Palette » ; un sujet sans complément, ' +
+      '« les fonctions déplacées ne dépendent que… », « zéro logique métier déplacée », « déplacées en tête de ' +
+      'Compétences »). Le même participe y décrit sinon un déplacement EN JEU ou à l’EXÉCUTION (une case, un focus, ' +
+      'une entrée de stock), que rien ne distingue de ces 4 formes.',
+    'Les SYNONYMES du déplacement et le vocabulaire d’HISTOIRE hors du lexique fermé ne sont pas des familles ' +
+      '(#2874, mesuré le 2026-10-23 sur `src/**`+`scripts/**`) : « copié/recopié » (59 commentaires, 50 fichiers), ' +
+      '« repris tel quel » (6), « issu de » + cible de code (8) y décrivent la COPIE d’une valeur à l’exécution ou ' +
+      'une dérivation vivante ; « transféré » n’a aucune occurrence. « historique » hors des noms d’état du code ' +
+      '(131) nomme surtout un historique VIVANT (undo, dialogue, git, statut de graphie) ; « lot » en minuscules ' +
+      '(22) désigne aussi un lot de marchandises EN JEU et le sous-lot d’un ticket ; « ne … plus » (1227 ' +
+      'commentaires, 728 fichiers) dit autant un contrat vivant qu’un état révolu.',
   ],
   baseline: {
     fichier: 'scripts/guards/lib/legacyVocabStock.mjs',
@@ -198,6 +215,64 @@ describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)
 
   it('faux positif écarté : "déplacé dans la boîte" (a11y, pas du code — affinage #136)', () => {
     expect(tombstonesIn('// focus déplacé dans la boîte à l\'ouverture.')).toEqual([]);
+  });
+
+  it('cas planté : le DÉPLACEMENT d’un corps de code, en toute casse et à travers son incise (#2874)', () => {
+    const L = 'extrait/migré/déplacé de/vers X (origine révolue du module)';
+    expect(tombstonesIn('// Commit CASE (clic-sol) — corps DÉPLACÉS verbatim de battleClickTile')).toContain(L);
+    expect(tombstonesIn('// Affordances (réticule au survol) — corps DÉPLACÉS verbatim des branches de hoverTargeting')).toContain(L);
+    expect(tombstonesIn('/** ATTAQUE. Corps DÉPLACÉS verbatim\n *  de `battleClickEntity` (combatSlice). */')).toContain(L);
+    expect(tombstonesIn('// `describeEffect` déplacés tels quels de CharacterSheet.tsx — même exemption.')).toContain(L);
+    expect(tombstonesIn('// Corps déplacé depuis `combatFlow.ts` sans retouche.')).toContain(L);
+    expect(tombstonesIn('// Helpers déplacés vers `noyau/cascade` (un seul appelant).')).toContain(L);
+    expect(tombstonesIn('/** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE. */')).toContain(L);
+    expect(tombstonesIn('// séquences extraites de combatFlow, journalisées par le hook')).toContain(L);
+    expect(tombstonesIn('// colonne des États — EXTRAITE de PortraitTile pour être posable seule')).toContain(L);
+    // Sans accent, en toute casse, à travers une incise entre parenthèses ou entre tirets.
+    expect(tombstonesIn('// Corps DEPLACE de `battleClickTile` sans retouche')).toContain(L);
+    expect(tombstonesIn('// corps deplaces depuis combatFlow.ts')).toContain(L);
+    expect(tombstonesIn('// Corps déplacé (verbatim) de `battleClickTile`')).toContain(L);
+    expect(tombstonesIn('// Corps déplacé — sans retouche — VERS `noyau/cascade`')).toContain(L);
+    expect(tombstonesIn('// Corps Déplacés (verbatim).')).toContain(L);
+    expect(tombstonesIn('// helpers MIGRES (tels quels) vers `noyau/cascade`')).toContain(L);
+    expect(tombstonesIn('// colonne Extraite (telle quelle) de PortraitTile')).toContain(L);
+  });
+
+  it('faux positif écarté : le PRÉSENT accentué du verbe reste hors famille, même devant une cible de code (#2874)', () => {
+    expect(tombstonesIn('// la clôture le déplace vers `sea.events` du lendemain')).toEqual([]);
+    expect(tombstonesIn('// le hook migre de `descText` vers `effectsList`')).toEqual([]);
+  });
+
+  it('cas planté : l’ÉTAT HISTORIQUE du code et l’étiquette d’un LOT de livraison (#2874)', () => {
+    const H = 'état historique du code (histoire du site)';
+    const LOT = 'étiquette de lot de livraison (histoire du site)';
+    expect(tombstonesIn('/** Absent = robe unie (comportement historique). */')).toContain(H);
+    expect(tombstonesIn('// Absent = `allEnemiesDead` (défaut HISTORIQUE).')).toContain(H);
+    expect(tombstonesIn('// les dynamiques étaient historiquement poussés après')).toContain(H);
+    expect(tombstonesIn('// Paliers d’action (cascade historique, du plus prioritaire au moins)')).toContain(H);
+    expect(tombstonesIn('// ≥ 3 → Frénésie (politique historique conservée)')).toContain(H);
+    expect(tombstonesIn('// === DOCTRINE TACTIQUE (Lot 5) ===')).toContain(LOT);
+    expect(tombstonesIn('// test top-level = IDENTIQUE au Lot 0')).toContain(LOT);
+    expect(tombstonesIn('/** Garde-fou anti-emoji (LOT 4) : les affordances passent par le registre. */')).toContain(LOT);
+    expect(tombstonesIn('/** Bénédiction de Protection (' + 'LDB' + ' 41 — L13) : Test à la déclaration. */')).toContain(LOT);
+  });
+
+  it('faux positifs écartés : l’historique VIVANT (undo, dialogue, git) et le lot de marchandises EN JEU (#2874)', () => {
+    expect(tombstonesIn('// Ctrl+Z annule la restauration : l’historique n’a pas été vidé')).toEqual([]);
+    expect(tombstonesIn('/** Relecture de l’historique de dialogue. */')).toEqual([]);
+    expect(tombstonesIn('// `historique` = graphie connue à éteindre')).toEqual([]);
+    expect(tombstonesIn('/** Vend le lot 0 du convoi et joue la fenêtre du dé d’acheteur. */')).toEqual([]);
+  });
+
+  it('faux positifs écartés : le déplacement EN JEU, à l’EXÉCUTION ou d’une DONNÉE migrée (#2874)', () => {
+    expect(tombstonesIn('// une armoire déplacée d’une case et un coffre déplacé d’une case')).toEqual([]);
+    expect(tombstonesIn('/** Polygone DÉPLACÉ de `d` le long de `n`. */')).toEqual([]);
+    expect(tombstonesIn('/** Polygone DÉPLACÉ de `rank × COPLANAR_BIAS_M` le long de SA normale */')).toEqual([]);
+    expect(tombstonesIn('// Une entrée DÉPLACÉE d’un porteur DISPARU vers un autre porteur ne compte nulle part')).toEqual([]);
+    expect(tombstonesIn('// Aucun effet de tour n’est déplacé (ils vivent dans `advanceTurn` et `ouvrirLeRound`).')).toEqual([]);
+    expect(tombstonesIn('/** un appel peut être commenté, déplacé dans\n *  une branche morte ou masqué */')).toEqual([]);
+    expect(tombstonesIn('// `costNote` EST la raison ; il est déplacé VERBATIM dans `maison`, le drapeau meurt')).toEqual([]);
+    expect(tombstonesIn('// le littéral déplacé dans la table i18n (`t(…)`)')).toEqual([]);
   });
 
   it('cas planté : "l\'ancien X a été supprimé" est détecté (preuve TDD affinage #136)', () => {
@@ -326,7 +401,7 @@ describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)
   });
 
   it('cas planté : l’ORIGINE révolue d’un module est une tombale (#1385)', () => {
-    const L = 'extrait/migré de X (origine révolue du module)';
+    const L = 'extrait/migré/déplacé de/vers X (origine révolue du module)';
     expect(tombstonesIn(" * Extrait d'IsoStage tel quel (rendu inchangé).")).toContain(L);
     expect(tombstonesIn('// FX de combat (extraits de GameStage3D) : flottants typés.')).toContain(L);
     expect(tombstonesIn(' * Marche visuelle (extraite de useWalkAnim.ts) : le token glisse.')).toContain(L);
@@ -344,6 +419,11 @@ describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)
     expect(tombstonesIn(' * les métadonnées ont migré dans `SpellData` (spells.json)')).toContain(L);
     expect(tombstonesIn('// La bande résumée a migré vers `FigTile.zoneBadges`')).toContain(L);
     expect(tombstonesIn(" *  `SpellData` (les champs migrés de l'ancienne SpellSpec)")).toContain(L);
+    // #2874 : le PARTICIPE à travers son incise, et la migration qui ne nomme que son ticket.
+    expect(tombstonesIn(' * Lot 1 a migré ~150 sites de `src/state` (find-par-id EXACT')).toContain(L);
+    expect(tombstonesIn('// Séquence de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés')).toContain(L);
+    expect(tombstonesIn('// les 3 rollTest inline ont MIGRÉ vers les résolveurs purs de vehicle.ts')).toContain(L);
+    expect(tombstonesIn('//    l’unité (exclu). Migré au #310 (ConditionEditor → formatMoney) : la')).toContain(L);
   });
 
   it('faux positifs écartés : l’extrait de SOURCE et le sens courant du mot (#1385)', () => {
@@ -363,6 +443,12 @@ describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)
     // Une EXTRACTION peut être vivante : constante ou dossier back-tické décrivent ce que le code FAIT.
     expect(tombstonesIn('// ids extraits de `CHAR_KEYS` à chaque rendu')).toEqual([]);
     expect(tombstonesIn('// arêtes extraites des `walls/` du niveau chargé')).toEqual([]);
+    // #2874 : le PRÉSENT décrit un contrat vivant, et l'extraction suivie d'une incise est une dérivation.
+    expect(tombstonesIn(' * Une entrée qui migre de `desc`\n * inline vers `descRef` garde le même texte')).toEqual([]);
+    expect(tombstonesIn('// ces sites ne se migrent pas vers `estDebout` sans changer la règle')).toEqual([]);
+    expect(tombstonesIn(" *   (extrait de l'union `GameOp` de `engine/ops.ts` par regex → zéro dérive).")).toEqual([]);
+    expect(tombstonesIn('// Champs du catalogue — EXTRAITS par regex de `data/index.ts`')).toEqual([]);
+    expect(tombstonesIn(' * CASCADE de fin de combat — extrait les JETS de PERSONNAGE de fin de combat de `combatFlow.ts`')).toEqual([]);
   });
 
   it('cas planté : le passé nostalgique nomme un état révolu, quel que soit son sujet (2026-07-30)', () => {
@@ -446,6 +532,30 @@ describe('garde-fou commentaires — pierres tombales (#136, AGENTS.md règle 6)
   });
 });
 
+describe('garde-fou commentaires — pointeurs de ligne hors bornes (#2874)', () => {
+  const lignes = lignesDesFichiersDuDepot(['src/engine/a.ts', 'src/noyau/a.ts', 'raw/x.md'], (c) =>
+    c === 'src/engine/a.ts' ? 'l1\nl2\nl3\n' : c === 'src/noyau/a.ts' ? 'l1\n'.repeat(40) : 'l1\nl2');
+  it('cas planté : un renvoi au-delà de la fin de son fichier est vu, chemin exact, suffixe ou nom seul', () => {
+    expect(scanPointeursHorsBornes('t.ts', '// voir src/engine/a.ts:4', lignes)).toHaveLength(1);
+    expect(scanPointeursHorsBornes('t.ts', '// voir `engine/a.ts:2-5`', lignes)).toHaveLength(1);
+    expect(scanPointeursHorsBornes('t.ts', '/** raw/x.md:3 */', lignes)).toHaveLength(1);
+    expect(scanPointeursHorsBornes('t.ts', '// a.ts:41', lignes)).toHaveLength(1);
+  });
+
+  it('faux positifs écartés : renvoi dans les bornes, nom porté par un candidat, fichier hors dépôt, chaîne', () => {
+    expect(scanPointeursHorsBornes('t.ts', '// voir src/engine/a.ts:3', lignes)).toEqual([]);
+    expect(scanPointeursHorsBornes('t.ts', '// a.ts:30 (un des deux fichiers la porte)', lignes)).toEqual([]);
+    expect(scanPointeursHorsBornes('t.ts', '// node_modules/zod/v4/core/schemas.js:2194-2206', lignes)).toEqual([]);
+    expect(scanPointeursHorsBornes('t.ts', "const s = 'src/engine/a.ts:99';", lignes)).toEqual([]);
+  });
+
+  it('aucun renvoi `chemin.ext:N` d’un commentaire ne dépasse la fin du fichier qu’il vise (tolérance ZÉRO)', () => {
+    const duDepot = lignesDesFichiersDuDepot(listerImage(depotDe(ROOT), TRAVAIL), (c) => readFileSync(join(ROOT, c), 'utf8'));
+    const offenders = CORPUS.flatMap(({ rel, text }) => scanPointeursHorsBornes(rel, text, duDepot).map((x) => `${rel}:${x.line} ${x.detail}`));
+    expect(offenders, `Renvoi(s) de ligne hors bornes — nommer le SYMBOLE visé, qui ne dérive pas :\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------------------------
 // Famille 2 — commentaire-EXCUSE (AGENTS.md règle 6). Un tag `[entériné AAAA-MM-JJ]` dans le MÊME
 // commentaire neutralise la détection (décision utilisateur traçable).
@@ -479,6 +589,13 @@ describe('garde-fou commentaires — excuses non tracées (#136, AGENTS.md règl
 
   it('cas planté : un commentaire neutre ne matche pas (contrôle négatif)', () => {
     expect(untaggedExcuseMatch('// Calcule le total des dégâts appliqués à la cible.')).toBeNull();
+  });
+
+  it('cas plantés : l’écart QUALIFIÉ d’écart voulu par le commentaire lui-même (#2874)', () => {
+    expect(untaggedExcuseMatch('// Simplification IA assumée (sévérité mineure) : l’IA ne fait jamais de X.')).not.toBeNull();
+    expect(untaggedExcuseMatch(' * Portée traquée : simplification VOLONTAIRE — les déclarations sont…')).not.toBeNull();
+    expect(untaggedExcuseMatch('// (simplification : un seul palier, documentée)')).not.toBeNull();
+    expect(untaggedExcuseMatch('// la simplification du graphe rend un arbre')).toBeNull();
   });
 
   it('faux positifs écartés : « pas encore <participe de mécanique> » = état de partie (affinage 2026-07-06)', () => {

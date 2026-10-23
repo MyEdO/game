@@ -22,7 +22,7 @@
  * Le même Sort s'imprime « Vampire|Vampire » au chapitre des Vampires, et « Sorcier|Shaman » au
  * ch. 46 (l.70, Bélier) : c'est la DÉSIGNATION du porteur de la table, pas une cible tierce. La
  * cible correcte est donc `self`, jamais une référence de carrière ou d'espèce
- * (`src/engine/spellRange.test.ts:43` avait relevé l'anomalie sans suite).
+ * (`src/engine/spellRange.test.ts` avait relevé l'anomalie sans suite).
  *
  * LISTE CLOSE, jamais un motif : seuls les 8 textes ci-dessus migrent. L'échappatoire `special`
  * reste entière pour « Spécial », « Voir texte », « 1 voilier dans la Ligne de vue »…

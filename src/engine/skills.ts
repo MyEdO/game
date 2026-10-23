@@ -67,7 +67,7 @@ export function effectiveSkillCharKey(
  *  d'Encombrement sur l'Agilité (LDB 61), port d'armure (LDB 63) et objet Laid sur la Sociabilité (LDB 60).
  *  `sense` (optionnel) : sens NARRATIVEMENT sollicité par CE Test de Perception (vue/ouïe — déterminé par
  *  l'appelant/la scène, cf. Talent Sens aiguisé `manual:true`) ; restreint les `skillMod` sense-scopés
- *  (Surdité, LDB 18 — `traumaSkillPenalty`). Absent = comportement historique (le RAW n'est pas levé
+ *  (Surdité, LDB 18 — `traumaSkillPenalty`). Absent = aucune restriction de sens (le RAW n'est pas levé
  *  faute d'info sur le Test précis). */
 export function testValue(c: Combatant, skill?: string, characteristic?: CharKey, spec?: string, sense?: PairedSense): number {
   if (!skill && !characteristic) return 0;

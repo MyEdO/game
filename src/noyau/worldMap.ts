@@ -181,7 +181,7 @@ export interface MapRouteTrace {
   seaHeading?: import('../engine/seaWeather').WindDirection;
   /** Route FLUVIALE JOUÉE (MSRC 7 « Navigation fluviale ») : en mode `barge`, la descente se joue jour par
    *  jour (Test de Navigation, table des vents, périls, chavirage) au lieu d'un transport payant. Repli
-   *  payant si aucun batelier/embarcation. Absent = barge en transport payant (comportement historique). */
+   *  payant si aucun batelier/embarcation. Absent = barge en transport payant. */
   river?: boolean;
   /** Périls de rivière tirés chaque jour sur une route fluviale JOUÉE (MSRC 7 l.119-166, `river-perils.json`) :
    *  `perilId` (débris/rochers/eaux-peu-profondes/barrage) tiré à `chancePct` %. Data-driven, éditable. */

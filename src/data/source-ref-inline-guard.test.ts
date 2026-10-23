@@ -6,7 +6,7 @@ import { hasInlineSourceRef } from '../../scripts/guards/lib/sourceRefInline.mjs
  * Garde-fou « réf de source `{book,page}` réinventée » (#281, F20/V10 du programme structurel
  * #276). `z.strictObject({ book: z.string(), page: z.number() })` réinvente `sourceRefSchema`
  * (`src/data/schemas/grammaire/valeurs.ts`) — importer `sourceRefSchema` à la place. Tolérance ZÉRO
- * (bloquant) : le Lot 3 a migré les 4 seules defs qui la réinventaient.
+ * (bloquant).
  *
  * `grammaire/valeurs.ts` HORS SCAN : c'est le foyer de la primitive, sa définition EST le motif.
  */

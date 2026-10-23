@@ -517,7 +517,7 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * Lance Chrome headless et attache une session CDP dédiée (targetId + sessionId propres).
  *
  * Viewport par DÉFAUT = la vue de RÉFÉRENCE (`VUE_REFERENCE`, bureau 1707×780) : la fenêtre que
- * l'utilisateur a RÉELLEMENT devant lui. Le défaut historique de 1280 a fait juger « étriqués »
+ * l'utilisateur a RÉELLEMENT devant lui. Une largeur fixe de 1280 a fait juger « étriqués »
  * pendant deux jours des écrans qui rendaient juste à leur largeur de référence (lot « matières &
  * proportions », #393), et les 900px de haut des recettes suivantes ne tiennent sur AUCUN de ses
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).

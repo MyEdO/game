@@ -1,6 +1,6 @@
 /**
- * LOT 3 — Heuristiques de MENACE & POSITIONNEMENT (déterministes, sans dé). Chaque test isole une
- * heuristique et vérifie le CHANGEMENT de comportement VOULU par rapport au « PV le plus bas » du Lot 2 :
+ * Heuristiques de MENACE & POSITIONNEMENT (déterministes, sans dé). Chaque test isole une
+ * heuristique et vérifie le comportement VOULU face au critère « PV le plus bas » :
  *  - ciblage par MENACE (`targetThreat`) plutôt que par PV bas (un caster fragile et dangereux préféré
  *    à un PV-bas inoffensif hors d'atteinte) ;
  *  - `killSecure` (achève une cible à portée) ;

@@ -4,7 +4,7 @@ import { emojisIn } from '../../scripts/guards/lib/emojiAffordance.mjs';
 import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
 
 /**
- * Garde-fou anti-emoji (LOT 4) : les AFFORDANCES de l'UI passent par le registre d'icônes
+ * Garde-fou anti-emoji : les AFFORDANCES de l'UI passent par le registre d'icônes
  * (`src/ui/icons/` + `<Icon id>` / `<IconG id>`), plus jamais par un emoji dans le code ou la
  * donnée — et un emoji de LOG/journal/prose se retire tout autant (texte affiché à l'utilisateur).
  * Couverture EXHAUSTIVE par défaut : ce test de BUILD balaie TOUT `src/` (walk récursif, .ts/.tsx/

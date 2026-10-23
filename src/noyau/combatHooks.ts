@@ -22,11 +22,11 @@ import type { EffectTrigger } from '../engine/flowCore';
 import { tablesPosees } from './tablesPosees';
 
 /** Le moment du cycle de vie = un `EffectTrigger` (taxonomie UNIQUE, partagée avec les triggers de
- *  DONNÉES — plus de `CombatPhase` séparé). Les hooks portés ici sont le rôle MACHINERIE de l'arène
+ *  DONNÉES). Les hooks portés ici sont le rôle MACHINERIE de l'arène
  *  sur ce vocabulaire (tick de durées, zones, mort…) ; le contenu d'entité = `TriggeredEffect` data. */
 
-/** Contexte d'un hook : l'état (get/set) + les protagonistes du moment + un `sink(line, c?)` pour
- *  journaliser (remplace les `tickLine` locales des séquences extraites de combatFlow). */
+/** Contexte d'un hook : l'état (get/set) + les protagonistes du moment + un `sink(line, c?)`,
+ *  canal UNIQUE du journal de toutes les séquences de hooks. */
 export interface CombatHookCtx {
   get: Get;
   set: SetFn;

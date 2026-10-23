@@ -14,7 +14,7 @@ import type { Weapon } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
 
 /**
- * Assommante (LDB 62 l.235) en nœud Flow `test` OPPOSÉ (Lot 4c) : « Si vous touchez la Tête avec une
+ * Assommante (LDB 62 l.235) en nœud Flow `test` OPPOSÉ : « Si vous touchez la Tête avec une
  * arme Assommante, tentez un Test opposé Force/Résistance contre la cible frappée. Si vous remportez le
  * Test, votre adversaire gagne Sonné. » L'attaquant (porteur de l'arme) oppose sa FORCE (FIGÉE) à la
  * RÉSISTANCE de la victime ; l'issue vient de `resolveOpposed` (PAS d'un test simple plié) — l'attaquant

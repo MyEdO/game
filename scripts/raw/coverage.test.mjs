@@ -288,7 +288,7 @@ test('sectionsOf(text, 3) : CASCADE — les headings H2 restent aussi des bounda
 
 test('niveauDeSectionDe (#604, #1825 lot E) : `coverage.mjs` découpe au niveau que le REGISTRE déclare — absent = 2', () => {
   // RÈGLE, pas table : tout livre du registre découpe à un niveau de heading VALIDE, et celui qui ne
-  // déclare rien retombe sur 2 (comportement historique). Aucun sigle recopié : la population vient
+  // déclare rien retombe sur 2. Aucun sigle recopié : la population vient
   // du registre, et le défaut se juge sur un sigle qu'AUCUNE entrée ne porte.
   for (const [ab] of BOOKS) {
     const n = niveauDeSectionDe(ab)

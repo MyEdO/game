@@ -1,6 +1,6 @@
 /**
  * Barre de statut de l'éditeur (manque du POC) : case survolée + terrain, outil actif,
- * dimensions de la scène, et toggles de CALQUES (déplacés de la Palette — ils concernent la vue).
+ * dimensions de la scène, et toggles de CALQUES (ici et non dans la Palette : ils concernent la vue).
  */
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { garanti } from '../../lib/garanti';

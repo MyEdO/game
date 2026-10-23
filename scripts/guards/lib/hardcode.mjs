@@ -21,9 +21,7 @@ export function stripComments(src) {
 }
 
 /**
- * Marqueurs réactifs par-nom, famille TRAIT/TALENT — recensés aux Lots 4bis/6 sur
- * noyau/combat/roundHooks.ts et noyau/combatFlow.ts, généralisés à tout src/engine + src/state
- * (Lot 8) : une réaction de combat codée PAR-NOM (trait/talent) plutôt que par donnée.
+ * Marqueurs réactifs par-nom, famille TRAIT/TALENT, sur tout src/engine + src/state : une réaction de combat codée PAR-NOM (trait/talent) plutôt que par donnée.
  * Les appels `hasTraitKey(`/`hasTalent(` NE sont PAS ici : leur nocivité dépend de l'ARGUMENT-entité
  * (littéral en dur vs donnée), tranchée par `nameCallHasLiteralArg` (#385) — un `hasTalent(c, X)` dont
  * `X` est une variable/donnée est data-driven, pas un hardcode par-nom.
@@ -100,8 +98,8 @@ function callHasLiteralArg(line, callRx) {
 }
 
 /**
- * Marqueurs réactifs par-nom, famille PAR-ÉTAT — motif du Lot 4 (`hasCondition(_, COND.*)` /
- * `stacks(_, COND.*)`), généralisé À TOUT l'arbre (Lot 8, issue #160). Var libre (`\w+`) : plus
+ * Marqueurs réactifs par-nom, famille PAR-ÉTAT (`hasCondition(_, COND.*)` /
+ * `stacks(_, COND.*)`), sur TOUT l'arbre (issue #160). Var libre (`\w+`) : plus
  * seulement `c`/`target`. Toute lecture d'un État en INTERROGATION nominative est candidate ;
  * les GATES/mesures de machinerie universelle en sont retranchés par `MACHINERY_RX` (ci-dessous),
  * PAS par une entrée nominative d'entité (COND.hemorragique/aTerre/surpris…).

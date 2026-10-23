@@ -88,7 +88,7 @@ function isFunctionLike(node) {
  * mutante (`.push(...)`, `.splice(...)`, `.sort(...)`…), `Object.assign(<porteur>, …)`, ou
  * `delete <porteur>.<chemin>`.
  *
- * Portée traquée (alias/paramètres) : simplification VOLONTAIRE — les déclarations `const`/`let`
+ * Portée traquée (alias/paramètres), ANGLE MORT déclaré — les déclarations `const`/`let`
  * sont enregistrées dans la portée de la FONCTION englobante (pas bloc-scopées finement), et un
  * paramètre typé `Scene` reste tracé pour tout le corps de sa fonction. Sur ce dépôt (déclare-avant-
  * usage systématique, pas de shadowing de nom entre blocs frères d'une même fonction) ceci ne

@@ -513,7 +513,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
     const vigiePart = phare!.participants!.find((x) => x.id === vigie.id);
     expect(vigiePart).toBeTruthy();
     expect(vigiePart!.base).toBe(crewRoleValue(vigie, vigieRole, navigationDuNavire(useGame.getState, useGame.getState().travelPlan!.vehicle!), 'vue').value);
-    // Autre étape (Progression, sans sens narratif dédié) : base résolue SANS sens — comportement historique.
+    // Autre étape (Progression, sans sens narratif dédié) : base résolue SANS sens.
     expect(progression).toBeTruthy();
     for (const part of progression!.participants!) expect(typeof part.base).toBe('number');
   });

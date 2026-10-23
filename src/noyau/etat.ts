@@ -90,6 +90,10 @@ export interface BattleState {
    *  planification — un beat redondant arrive et n'a rien à jouer. Porté par `battle` (et non par un
    *  module) : il naît et meurt avec le combat, sans fuite d'une partie à l'autre. */
   aiTurnPlayed?: string;
+  /** Bénédiction de Protection (LDB 41 l.142) : verdicts du Test de FM de l'acteur d'IA, par cible, pour le
+   *  tour `tour` (clé de `aiTurnPlayed`). Un tour suspendu puis repris relit son verdict au lieu de rejouer
+   *  le dé ; une autre clé de tour le périme. `true` = il ose attaquer. */
+  verdictsDeBenediction?: { tour: string; parCible: Record<string, boolean> };
   /** Le set d'armes a-t-il déjà été changé ce Tour ? Plafond MAISON 1×/tour (dégainer = Action gratuite,
    *  cadence laissée au MJ, LDB 13 l.106). Reset au tour. */
   loadoutSwapped?: boolean;
@@ -101,7 +105,7 @@ export interface BattleState {
   log: CombatEvent[];
   over: null | 'victory' | 'defeat';
   onVictory?: Flow;
-  /** Objectif de victoire authorable (#197). Absent = `allEnemiesDead` (défaut historique, `checkBattleOver`). */
+  /** Objectif de victoire authorable (#197). Absent = `allEnemiesDead` (`checkBattleOver`). */
   victoryCondition?: VictoryCondition;
   /** Restriction d'armes à distance de la rencontre (#471, `EncounterDef.banRanged`) — copiée au
    *  démarrage du combat, lue par `resolveAttack`/`firedAttackBlock`. Absent/false = autorisées. */

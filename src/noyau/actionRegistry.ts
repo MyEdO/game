@@ -28,7 +28,7 @@ import { actorHasSkill, possesses } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
 import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, type AttackOption } from './combatManeuvers';
 import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
-import { inBattleId } from './monde/combatants';
+import { engagesEnAction } from './monde/combatants';
 import { wastesAction, endTurnArmed } from './endTurnGuard';
 import { HEAL_SKILL, healableTargets } from '../engine/healing';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -110,9 +110,7 @@ function desengagementGate(ctx: ActionCtx): ActionGate {
  *  en jeu (LDB 15 l.45-49, « Utiliser l'Avantage »). Prédicat PARTAGÉ (barre + économie du tour). */
 export function freeDisengage({ active, battle }: ActionCtx): boolean {
   if (!isEngaged(active)) return false;
-  const foes = (active.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && !isOutOfAction(c));
+  const foes = engagesEnAction(battle, active);
   return foes.length > 0 && active.advantage > Math.max(0, ...foes.map((f) => f.advantage));
 }
 

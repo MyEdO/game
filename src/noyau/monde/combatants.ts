@@ -61,6 +61,13 @@ export function inBattleId(battle: Jeu['battle'], id: string | undefined): Comba
   return id == null ? undefined : battle?.combatants.find((c) => c.id === id);
 }
 
+/** Les Engagés de `c` (`engagedWith`) encore en action dans `battle`. */
+export function engagesEnAction(battle: Jeu['battle'], c: Combatant): Combatant[] {
+  return (c.engagedWith ?? [])
+    .map((id) => inBattleId(battle, id))
+    .filter((e): e is Combatant => !!e && !isOutOfAction(e));
+}
+
 /**
  * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : la file de combat ET le groupe.
  * DISTINCT d'`actorIn`, qui choisit l'un OU l'autre (`battle?.combatants ?? party`) : un héros du

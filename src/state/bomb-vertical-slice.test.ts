@@ -7,7 +7,7 @@ import type { Effect } from '../data/schemas/defs-scenes/effets';
 
 /**
  * TRANCHE VERTICALE « zéro hardcode » : la bombe de « Une nuit à l'Opéra » composée UNIQUEMENT
- * d'Effets de scène en DONNÉES (Lot 0 `delayedEffect` + Lot 3 `inflictDamage`), pilotée par le VRAI
+ * d'Effets de scène en DONNÉES (`delayedEffect` + `inflictDamage`), pilotée par le VRAI
  * store. Prouve que la mèche brûle puis explose au franchissement de l'horloge, et que poser le
  * `cancelFlag` (désamorçage) avant l'échéance annule l'explosion.
  */

@@ -239,7 +239,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Hurlement fantomatique : zone vivante, 1d10 ignore BE+PA + 3 Assourdi, dépense tous les Av', () => {
-    setCadence('auto'); // le Test de Résistance enfoui (Lot 4a) du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
+    setCadence('auto'); // le Test de Résistance enfoui du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.traits = [{ id: 'hurlement-fantomatique' }]; E.advantage = 4; E.characteristics.initiative = 40;
@@ -254,7 +254,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   it('Venin : Morsure venimeuse sur PB → Test de Résistance raté → Empoisonné (LDB 85 l.326)', () => {
-    setCadence('auto'); // le Test de Résistance enfoui (Lot 4a) du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
+    setCadence('auto'); // le Test de Résistance enfoui du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
     useGame.getState().seedRng(2);
     const { H, E } = setup();
     E.traits = [{ id: 'morsure', value: 14 }, { id: 'venin', arg: 'Intermédiaire' }]; E.advantage = 1;

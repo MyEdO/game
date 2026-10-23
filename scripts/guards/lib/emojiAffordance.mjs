@@ -1,4 +1,4 @@
-// Mécanique de scan du garde-fou anti-emoji (LOT 4) : les AFFORDANCES de l'UI passent par le
+// Mécanique de scan du garde-fou anti-emoji : les AFFORDANCES de l'UI passent par le
 // registre d'icônes (`src/ui/icons/`), plus jamais par un emoji dans le code ou la donnée. Module
 // ESM pur, exécutable par `node` nu — consommé par src/ui/no-emoji-affordance.test.ts ET par le
 // hook pre-commit (scripts/git-hooks/pre-commit.mjs). Les EXCEPTIONS (fichiers hors périmètre) restent DONNÉES DE POLICY dans

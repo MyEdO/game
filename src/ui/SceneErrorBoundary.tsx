@@ -10,7 +10,7 @@ export interface SceneErrorBoundaryProps {
   message?: string;
   /** Libellé du bouton de reprise — défaut « Recharger ». */
   retryLabel?: string;
-  /** Action de reprise. Défaut ABSENT = rechargement de page (comportement historique : la scène
+  /** Action de reprise. Défaut ABSENT = rechargement de page (la scène
    *  peut avoir un état corrompu). Fournie = un simple retour au rendu normal (réessaie les
    *  enfants sans recharger) — le crash de rendu ne touche pas le store, la session survit. */
   onRetry?: () => void;

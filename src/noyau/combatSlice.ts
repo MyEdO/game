@@ -429,7 +429,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // de reprendre la route — no-op en combat (`combatEndBoundary` gère la défaite via `battle`).
   if (done && checkPartyWiped(get, set)) return;
   // `handled` : un dénouement a été joué (le filet `checkBattleOver` de fin ne se déclenche que pour
-  // une clôture NON routée). Deux étages, dans l'ordre historique de la chaîne :
+  // une clôture NON routée). Deux étages, dans cet ordre :
   //  (1) le dénouement de `purpose` — exclusif PAR CONSTRUCTION (une séquence porte UN `purpose`) ;
   //  (2) les BORNES portées par la séquence — CUMULATIVES depuis #942 L1 : deux fragments FUSIONNÉS
   //      (append de même `purpose`) apportent chacun sa borne ; une chaîne `else if` n'en jouait
@@ -463,7 +463,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // l'accostage `travelPlan` est nul (la désertion `purpose:'test'`
   // a sa propre reprise `resolvePortArrival`) ; `runSeaDay` garde de son côté combat/steamSave.
   else if (done?.purpose === 'test' && get().travelPlan?.sea) { runSeaDay(get, set); handled = true; }
-  // ── Étage 2 : BORNES portées par la séquence — plus une chaîne EXCLUSIVE (#942 L1) ──
+  // ── Étage 2 : BORNES portées par la séquence, chacune à sa place déclarée (#942) ──
   // Accostage à FINALISER à la clôture (désertion à la relâche surfacée, #387) : `travelPlan` est déjà nul
   // ici (l'arrivée l'a annulé) — la séquence porte sa continuation dans `portArrival`. Couture GÉNÉRALE
   // (la CLASSE « séquence dont la fermeture finalise une transition ») : `pendingCascade` est DÉJÀ null.
@@ -473,24 +473,24 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // bornes suivantes (jamais un accident de chaîne) — combat TERMINÉ ⇒ ni tour à reprendre, ni Round
   // suivant à ouvrir.
   if (done?.combatEndBoundary) { finishCombatEnd(get, set); handled = true; } // Tests de fin de combat clos → écran de victoire/défaite
-  // PRÉCÉDENCE déclarée `maneuverResume` > `roundBoundary` (le défaut que corrige #942 L1 était l'inverse :
-  // la borne de Round, première dans la chaîne, AFFAMAIT la reprise de tour d'une séquence FUSIONNÉE).
+  // PRÉCÉDENCE déclarée `maneuverResume` > `roundBoundary` (#942) : la reprise de tour d'une séquence
+  // FUSIONNÉE passe avant la borne de Round.
   // Les deux bornes ne sont PAS équivalentes : au franchissement, `advanceTurn` a DÉJÀ posé `{turn: 0, round}` et
-  // joué les décomptes une-fois-par-Round (combatFlow.ts:5242-5243 → `resolveRoundBoundary` →
+  // joué les décomptes une-fois-par-Round (`advanceTurn` → `resolveRoundBoundary` →
   // `openRoundEndCascade`) ; le `roundBoundary` de la séquence porte seulement `enterRoundStartPause`.
   // Lui céder la place SACRIFIE donc, pour le Round COURANT, la pause de début de Round et son reset
   // per-Round (`shotsThisTurn`/`acted`/`movementUsed`…) — au profit du tour EN COURS. Moindre mal :
   // l'inverse perd le tour définitivement (la pause pose `turn: -1` et GÈLE la machinerie,
   // `combatAdvanceBlocked`), alors que ce qu'`advanceTurn` re-dérivera est la borne du Round SUIVANT.
-  // Chemin sans producteur mesuré aujourd'hui : `combatGate` bloque la fusion pendant un combat.
+  // Aucun producteur en combat : `combatGate` y bloque la fusion.
   else if (done?.maneuverResume) { resumeManeuverDefense(get, set, done.maneuverResume); handled = true; } // défense de manœuvre de zone close → reprendre le tour de la créature (attaques gratuites restantes / avance)
   else if (done?.roundBoundary) { enterRoundStartPause(get, set); handled = true; } // Peur de fin de Round close → pause de début de Round (PAS resolveRoundBoundary : décomptes déjà appliqués)
   // REPRISE DE L'IA à la clôture — fondée sur l'ÉTAT (un combat tourne), jamais sur le `purpose` de
   // la séquence close : une séquence `'test'`/`'affichage'` peut s'ouvrir EN COMBAT (Test déclenché
-  // par `routeTriggeredTest`, révélation d'un jet subi) et c'est ELLE qui gelait le tour via
-  // `combatAdvanceBlocked` — la clôturer sans reprendre laissait l'IA figée. `resumeSuspendedAI`
-  // porte ses propres gardes (`combatAdvanceBlocked` : bataille finie, autre pending, cascade encore
-  // ouverte ; acteur actif non piloté par l'IA) : l'élargissement ne peut pas la faire agir à tort.
+  // par `routeTriggeredTest`, révélation d'un jet subi) : c'est ELLE qui gèle le tour via
+  // `combatAdvanceBlocked`, et sa clôture reprend l'IA. `resumeSuspendedAI` porte ses propres gardes
+  // (`combatAdvanceBlocked` : bataille finie, autre pending, cascade encore ouverte ; acteur actif non
+  // piloté par l'IA) : cette reprise ne peut pas la faire agir à tort.
   // Continuation DÉTERMINISTE de la victoire différée (#345) d'abord : `checkBattleOver` a pu DIFFÉRER
   // la cascade de fin de combat tant que ce slot était occupé — on re-vérifie ICI, slot libre, sans
   // dépendre d'un clic (confirmRoundStart). Le garde `!pendingCascade` (checkBattleOver) protège la
@@ -499,15 +499,14 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   if (!handled && get().battle) {
     if (!checkBattleOver(get, set)) resumeSuspendedAI(get, set); // combat non terminé → reprendre l'IA
   }
-  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) : `suspendedCascades` ne se vidait qu'au
-  // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
-  // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
+  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942) : une séquence parquée par une AUTRE séquence
+  // (`startCascade`/`pushStep` d'un `purpose` différent) reprend ici. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
   // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `startCombat` reste
   // propriété du teardown, cf. `dismissVictory`/`dismissDefeat`).
   if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
 }
 
-/** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
+/** Actions de combat du store, spreadées EN TÊTE du `create`. */
 export function createCombatSlice(get: Get, set: Set) {
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */
@@ -997,7 +996,7 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       // Tap 2 : COMMIT.
       if (fearGateBlocks() || frenzyBlocks()) return;
-      // Annulation (R6/LOT 6) : au PREMIER segment du Tour (movementUsed === 0), on capture l'état
+      // Annulation : au PREMIER segment du Tour (movementUsed === 0), on capture l'état
       // positionnel AVANT de bouger, pour pouvoir tout annuler tant qu'aucune Action n'a été prise.
       const snapshot =
         (battle.movementUsed ?? 0) === 0 ? captureMoveSnapshot(battle, get().facing) : battle.moveSnapshot ?? null;
@@ -1619,7 +1618,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t('cs.leavePoste', { name: active.label, weapon }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    // « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, Lot 2 #156) : ouvre le mode de
+    // « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
     // ciblage-CASE 'push' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
     // translation de la formation. Gate : chef d'un poste MOBILE (`pushEligible`), Action dispo, Équipe ≥
     // moitié requise (`pushCrewOk`, sinon no-op — comme un tir sous-effectif refusé, `firedAttackBlock`).
@@ -3557,7 +3556,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Cumul LDB 12 mutualisé (`extendedTestStep`) : un Round réussi ajoute son DR, un raté le retire (planché à 0).
       const prev = caster.dispel?.spellId === pd.spellId && caster.dispel.spellCasterId === pd.spellCasterId ? caster.dispel.total : 0;
       // Bonus « propre Sort » (`VDM 02 l.186`) versé sur le DR du jet, PAS sur la cible du Test
-      // (`skillDRBonus` vs `skillMod`, `ops.ts:180-184`) — un DR vaut une dizaine (`tests.ts:98`).
+      // (`skillDRBonus` vs `skillMod`, `engine/ops`) — un DR vaut une dizaine (`tens`, `engine/tests`).
       const ownSl = res.sl + dispelOwnSpellDR(pd.spellCasterId === pd.casterId);
       const { total, done } = extendedTestStep(prev, { success: res.success, sl: ownSl }, pd.ni, !!rule('test-extended-min-sl'));
       const logLines = [t('cs.dispelRoll', { name: caster.label, spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];

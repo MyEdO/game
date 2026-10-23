@@ -23,7 +23,7 @@ export interface SerpentProps {
   girth: number; // épaisseur du corps lové
   hood: boolean; // capuchon de cobra (déployé derrière la tête)
   /** Robe à motif : bandes transversales sombres (@corpsO) + mouchetures claires (@corpsH)
-   *  sur le lové et le cou. Absent = robe unie (comportement historique). */
+   *  sur le lové et le cou. Absent = robe unie. */
   markings?: 'bandes';
   /** Couleur d'iris (défaut jaune historique '#d8b020'). */
   eye?: string;
@@ -32,7 +32,7 @@ export interface SerpentProps {
    *  Absent = tête de serpent historique, inchangée à l'octet. */
   blunt?: boolean;
   /** Queue PÂLE dressée qui se déploie en S au-dessus du lové (os `queue` dédié, animé) —
-   *  colorée par @cheveux/@cheveuxO. Absent = pas de queue dressée (comportement historique). */
+   *  colorée par @cheveux/@cheveuxO. Absent = pas de queue dressée. */
   tailUp?: boolean;
   palette: PaletteDeclaree; // robe par défaut (corps/corpsO/corpsH…)
 }

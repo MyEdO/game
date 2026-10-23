@@ -21,13 +21,12 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
  * géométrie, journal, sélecteur d'ouverture) via `MACHINERY_RX` — des RÈGLES d'arène générales,
  * jamais un nom d'État éditable.
  *
- * MODE CLIQUET (Lot 8 — généralisation du report-only Lot 0/4bis/6, qui ne portait que sur 3
- * fichiers nommés) : `BASELINES` gèle, PAR FICHIER, le nombre de sites tolérés au recensement.
+ * MODE CLIQUET : `BASELINES` gèle, PAR FICHIER, le nombre de sites tolérés au recensement.
  * Le test échoue si un fichier DÉPASSE sa baseline (= nouveau hardcode = régression) OU si une
- * baseline est devenue trop haute (fichier assaini sans qu'elle soit abaissée — patron repris de
- * `no-emoji-affordance.test.ts` CLIQUET, lignes 100-111). Un fichier absent de `BASELINES` a une
+ * baseline est devenue trop haute (fichier assaini sans qu'elle soit abaissée — même CLIQUET que
+ * `src/ui/no-emoji-affordance.test.ts`). Un fichier absent de `BASELINES` a une
  * baseline 0 implicite : `engine/conditions.ts`, `noyau/combat/roundHooks.ts`,
- * `noyau/combatFlow.ts` (les 3 cibles historiques du Lot 0, migrées aux Lots 4/4bis/6) y restent.
+ * `noyau/combatFlow.ts` y restent.
  *
  * Mécanique de détection (marqueurs réactifs par-nom, exclusion des imports) :
  * `scripts/guards/lib/hardcode.mjs` (module .mjs pur, partagé avec le hook pre-commit).

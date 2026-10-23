@@ -8,7 +8,7 @@ import { useVersionDesDatasets } from './useVersionDesDatasets';
  * Bandeau d'interlocuteur (#371 lot 1) — gabarit visuel UNIQUE d'un PNJ qui s'adresse au joueur :
  * portrait (même pipeline que le rendu iso, `tokenBodyKind` en vue de face) + nom + texte.
  *  - `dialogue` : arbre de choix (`DialogueBox`) — zone de choix rendue si fournie ; portrait ABSENT
- *    tant qu'aucune entité n'est liée (comportement historique : une ligne narrateur sans portrait).
+ *    tant qu'aucune entité n'est liée (une ligne narrateur sans portrait).
  *  - `boniment` : réplique STATIQUE, sans arbre (marchand, aubergiste…) — portrait TOUJOURS montré,
  *    replié sur un fleuron neutre si aucune entité de scène n'incarne l'interlocuteur.
  * La SÉMANTIQUE de la boîte appartient à son porteur (`DialogueBox`, porteur de `useModalA11y`) : le

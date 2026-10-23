@@ -10,7 +10,7 @@ import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
 
 /**
- * Venin (LDB 85) en nœud Flow `test` (Lot 4a) : `onHit` causant des PB → la victime teste sa Résistance
+ * Venin (LDB 85) en nœud Flow `test` : `onHit` causant des PB → la victime teste sa Résistance
  * (Difficulté = l'arg d'instance « Venin (Difficile) » via `argDifficulty` honoré par `withArg`) ; échec
  * → Empoisonné. Trois cas RAW :
  *  (a) victime HÉROS MANUEL → étape de cascade `triggeredTest` INFLUENÇABLE, Difficulté DIFFICILE (arg) ;

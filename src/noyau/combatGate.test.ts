@@ -29,9 +29,8 @@ describe('combatAdvanceBlocked — garde de reprise unifiée (A1, iso)', () => {
     expect(combatAdvanceBlocked(s({ pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]) }))).toBe(true);
   });
 
-  it('pendingCast : bloque par défaut, MAIS pas avec {cast:false} (iso resumeSuspendedAI)', () => {
+  it('pendingCast : bloque, pour tous les sites de reprise', () => {
     expect(combatAdvanceBlocked(s({ pendingCast: {} as never }))).toBe(true);
-    expect(combatAdvanceBlocked(s({ pendingCast: {} as never }), { cast: false })).toBe(false);
   });
 
   it('pendingRoundStart : ignoré par défaut, MAIS bloque avec {roundStart:true} (iso maybeRunEnemyTurn)', () => {

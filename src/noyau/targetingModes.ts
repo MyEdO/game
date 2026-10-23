@@ -211,7 +211,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Affordances (réticule au survol) — corps DÉPLACÉS verbatim des branches de hoverTargeting
+// Affordances (réticule au survol) — `TargetingMode.affordance`, lue par `hoverTargeting`
 // ───────────────────────────────────────────────────────────────────────────
 
 /**
@@ -478,11 +478,11 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Commit COMBATTANT (clic-token) — corps DÉPLACÉS verbatim de battleClickEntity
+// Commit COMBATTANT (clic-token) — `TargetingMode.commitCombatant`, appelé par `battleClickEntity`
 // ───────────────────────────────────────────────────────────────────────────
 
-/** ATTAQUE : approche-puis-frappe — le SEUL exécuteur charge/moveAttack du jeu. Corps DÉPLACÉ verbatim
- *  de `battleClickEntity` (combatSlice) ; `active`/`id`/`opts` fournis par l'aiguilleur. */
+/** ATTAQUE : approche-puis-frappe — le SEUL exécuteur charge/moveAttack du jeu.
+ *  `active`/`id`/`opts` fournis par l'aiguilleur (`battleClickEntity`, combatSlice). */
 function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, opts?: BattleClickOpts): void {
   const battle = get().battle;
   const scene = get().scene;
@@ -697,7 +697,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
 }
 
 /** CAST : un token n'est pas une cible de ZONE (la zone se pose après le jet) → modale ; sinon
- *  l'incantation vise l'allié/ennemi/soi. Corps DÉPLACÉ verbatim de battleClickEntity. */
+ *  l'incantation vise l'allié/ennemi/soi. */
 function castClickCommit(get: Get, set: Set, active: Combatant, id: string): void {
   const battle = get().battle;
   if (!battle || !battle.selectedSpellId) return;
@@ -716,11 +716,11 @@ function castClickCommit(get: Get, set: Set, active: Combatant, id: string): voi
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Commit CASE (clic-sol) — corps DÉPLACÉS verbatim de battleClickTile
+// Commit CASE (clic-sol) — `TargetingMode.commitTile`, appelé par `battleClickTile`
 // ───────────────────────────────────────────────────────────────────────────
 
 /** TÉLÉPORTATION (Jalon 2.6 — sort « Téléportation », LDB 47) : le lanceur choisit sa case d'arrivée
- *  parmi les cases en surbrillance (survol des obstacles). Corps DÉPLACÉ verbatim de battleClickTile. */
+ *  parmi les cases en surbrillance (survol des obstacles). */
 function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   const battle = get().battle;
   if (!battle) return;
@@ -779,7 +779,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
 }
 
 /** Sort de ZONE sélectionné : le clic-case OUVRE la modale — le centre se choisit APRÈS le jet.
- *  Sort non-zone : clic-sol sans effet en mode cast. Corps DÉPLACÉ verbatim de battleClickTile. */
+ *  Sort non-zone : clic-sol sans effet en mode cast. */
 function castCommitTile(get: Get, set: Set, active: Combatant, _pt: Pt): void {
   const battle = get().battle;
   if (battle && battle.action === 'cast' && battle.selectedSpellId && !battle.acted && !get().pendingCast) {
@@ -930,7 +930,7 @@ export const targetingModeConsigne = (modeId: string): PlayerText | undefined =>
 };
 
 /**
- * Aiguilleur UNIQUE — extrait factuellement des priorités de `battleClickEntity`/`hoverAim` :
+ * Aiguilleur UNIQUE du ciblage (clic `battleClickEntity`, survol `hoverAim`), par priorité :
  *   pendingCleave > pendingDualStrike > pendingCast.pickingTargets (Surincantation) >
  *   zoneEnPose (cast-zone OU siège) > battle.action ∈ {cast, heal, dispel, battery, teleport} > attack.
  * `battle.action` (string) et les `pending*` RESTENT l'état sous-jacent (ils gatent aussi mouvement/

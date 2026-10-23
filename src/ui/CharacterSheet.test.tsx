@@ -145,11 +145,11 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     useGame.setState({ party: [h], battle: null, sheetId: h.id, sheetTab: 'possessions' });
     const html = mount(<CharacterSheet heroId={h.id} onClose={() => {}} />);
     expect(html).toContain('sheet-portrait');
-    expect(html).toContain('charprev'); // figurine en pied (CharacterPreview), plus de médaillon PortraitTile
+    expect(html).toContain('charprev'); // figurine en pied (CharacterPreview)
     expect(html).toContain('Blessures');
-    expect(html).not.toContain('frame-row'); // rangée de compagnie MORTE dans la fiche (pt.2)
-    expect(html).not.toContain('Caractéristiques'); // caracs SORTIES de la colonne (déplacées en tête de Compétences)
-    expect(html).not.toContain('Destin'); // ressources (FateChips) SORTIES de la colonne
+    expect(html).not.toContain('frame-row'); // la rangée de compagnie n'est pas dans la fiche (pt.2)
+    expect(html).not.toContain('Caractéristiques'); // les caracs vivent en tête de Compétences, hors de la colonne
+    expect(html).not.toContain('Destin'); // ressources (FateChips) hors de la colonne
   });
 
   it('nom du héros en tête de la colonne, au-dessus du cadre-figurine ; la colonne : boîte-figurine, barre de vie, barre d’encombrement, race/classe/statut', () => {
@@ -179,7 +179,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(bars[0].querySelector('.life-bar__value')?.textContent).toBe('12/12');
     expect(bars[1].querySelector('.life-bar__label')?.textContent).toBe('Encombrement');
     expect(bars[1].querySelector('.life-bar__value')?.textContent).toBe('0/6');
-    // 5. Rangées race / carrière / statut / bourse (Lot 3 T-bourse #531 : la Bourse PERSO
+    // 5. Rangées race / carrière / statut / bourse (#531 : la Bourse PERSO
     // s'affiche en permanence dans la colonne d'identité, sur tous les onglets).
     const rows = portrait.querySelectorAll('.sheet-idrow');
     expect(rows.length).toBe(4);

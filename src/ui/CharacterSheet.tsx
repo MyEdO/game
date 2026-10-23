@@ -136,7 +136,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
 
   if (!hero) return null;
 
-  // Bourse PERSONNELLE du héros (Lot 3 T-bourse #531) : affichée en permanence dans la
+  // Bourse PERSONNELLE du héros (#531) : affichée en permanence dans la
   // colonne d'identité (visible sur TOUS les onglets), pas seulement au canAfford des sorts.
   const bourse = bourseOf(hero);
 

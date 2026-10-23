@@ -62,7 +62,7 @@ const doc = document(
     /** Facette VOYAGE (passage payant, LDB 51 l.178-189). `medium` : milieu du TRAJET PAYÉ (un véhicule
      *  peut être bi-milieu — ex. la Barge navigue le fleuve LDB 70 l.10 tout en figurant à la table
      *  navale MDG 12 avec `hull.propulsion:'maritime'` — les deux facettes sont INDÉPENDANTES,
-     *  jamais l'une dérivée de l'autre) ; absent = terrestre implicite (défaut historique). */
+     *  jamais l'une dérivée de l'autre) ; absent = terrestre implicite. */
     travel: nommerChamps(z.strictObject({
       movement: z.number(),
       medium: z.enum(['terrestre', 'fluvial', 'maritime']).optional(),

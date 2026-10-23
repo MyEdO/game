@@ -8,8 +8,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { battleRng } from '../noyau/battleRng';
-import { applyCast, applyAttackResult, attackWardGate, doAttack } from '../noyau/combatFlow';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
+import { aiTurnLog, applyCast, applyAttackResult, attackWardGate, resumeSuspendedAI, runEnemyAI } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
 import { findSpell } from '../data';
@@ -18,6 +18,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CastResult, MissileResult } from '../engine/magic';
 import { desEnSuite } from '../engine/dice.testkit';
+import { chebyshev } from '../engine/grid';
 
 /** RNG scripté (padding 5). */
 function seq(values: number[]): RNG {
@@ -62,24 +63,121 @@ describe('L13 — gates & redirections', () => {
     if (foes[1]) expect(noWard).toEqual({ allowed: true, lines: [] }); // sans bénédiction : aucun Test
   });
 
-  it('B. de Protection : l’IA renonce à frapper le héros béni (jet raté)', () => {
-    const { hero, foes } = setup();
+  type Tour = { action: string | undefined; visee: string | undefined; hero: Combatant; priest: Combatant; E: Combatant; refus: number };
+  /** Lignes de refus de la Bénédiction de Protection au journal (une par Test raté). */
+  const refusAuJournal = (): number => useGame.getState().battle!.log.filter((e) => /ne peut se résoudre/.test(e.text)).length;
+  /** Ce que l'IA a décidé et vise (`actorAim`) à cet instant. */
+  const decision = (): Pick<Tour, 'action' | 'visee' | 'refus'> => {
+    const traces = aiTurnLog();
+    return { action: traces[traces.length - 1]?.action, visee: useGame.getState().actorAim?.toId, refus: refusAuJournal() };
+  };
+
+  /** L'IA `E` au contact du héros béni `hero` ; `P` au contact aussi, ou hors de combat. `prep` repose la
+   *  scène. Tous les dés de combat valent `de`, puis `E` joue son tour. */
+  function tourDeLIA(de: number, autreCible: boolean, prep?: (E: Combatant, hero: Combatant, priest: Combatant, foes: Combatant[]) => void): Tour {
+    const { hero, priest, foes } = setup();
     const E = foes[0];
+    foes.slice(1).forEach((f, i) => { f.pos = { x: 1 + i, y: 1 }; });
     hero.activeEffects = [{ label: 'Bénédiction de Protection', bonus: 0, duration: { scale: 'rounds', left: 6 }, attackWardFM: true }];
-    E.characteristics['force-mentale'] = 1; // cible 21
-    // graine dont le 1er d100 rate la cible 21 (cherchée puis rejouée — déterministe par seed).
-    let failSeed: number | null = null;
-    for (let s = 1; s <= 60; s++) {
-      useGame.getState().seedRng(s);
-      if (!attackWardGate(E, hero, battleRng()).allowed) { failSeed = s; break; }
-    }
-    expect(failSeed).not.toBeNull();
-    useGame.getState().seedRng(failSeed!);
-    const before = hero.wounds.current;
-    const suspended = doAttack(useGame.getState, useGame.setState, E, hero);
-    expect(suspended).toBeUndefined();
-    expect(hero.wounds.current).toBe(before);
+    priest.pos = { x: 11, y: 11 };
+    if (!autreCible) priest.dead = true;
+    prep?.(E, hero, priest, foes);
+    const b = useGame.getState().battle!;
+    useGame.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: false }, actorAim: null });
+    seedBattleRng(1);
+    battleRng().int = () => de;
+    runEnemyAI(useGame.getState, useGame.setState, E.id);
+    return { ...decision(), hero, priest, E };
+  }
+
+  it('B. de Protection (IA, LDB 41 l.142) : Test raté → l’IA choisit une autre cible', () => {
+    const { action, visee, priest } = tourDeLIA(100, true);
+    expect(action).toBe(`melee ${priest.id}`);
+    expect(visee).toBe(priest.id);
     expect(useGame.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/Bénédiction de Protection/);
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : Test raté sans autre cible → une autre Action, jamais le héros béni', () => {
+    const { action, visee, hero } = tourDeLIA(100, false);
+    expect(action).not.toBe(`melee ${hero.id}`);
+    expect(visee).not.toBe(hero.id);
+    expect(useGame.getState().pendingAttack).toBeNull();
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : Test réussi → l’IA attaque le héros béni', () => {
+    const { action, visee, hero } = tourDeLIA(1, true);
+    expect(action).toBe(`melee ${hero.id}`);
+    expect(visee).toBe(hero.id);
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : la Charge vers la cible bénie joue le Test ; raté, l’IA re-choisit sans l’attaquer', () => {
+    const { action, refus, hero, E } = tourDeLIA(100, false, (E, hero) => { E.pos = { x: hero.pos!.x + 6, y: hero.pos!.y }; E.movement = 4; });
+    expect(refus).toBe(1);
+    expect(action).not.toMatch(/^melee/);
+    for (let i = 0; i < 6; i++) vi.runOnlyPendingTimers();
+    expect(useGame.getState().pendingAttack).toBeNull();
+    expect(chebyshev(E.pos!, hero.pos!), 're-choisie, l’approche ne finit pas au contact').toBeGreaterThan(1);
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : un déplacement sans attaque ce tour ne joue aucun Test (fuite d’un Brisé)', () => {
+    const { refus, action } = tourDeLIA(100, false, (E) => { E.conditions.push({ id: 'brise', value: 1 }); E.resolve = 0; });
+    expect(action).toMatch(/^move/);
+    expect(refus).toBe(0);
+    expect(useGame.getState().battle!.verdictsDeBenediction?.parCible).toEqual({});
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : un tireur qui rate son Test tire sur une autre cible', () => {
+    const fronde: Weapon = { label: 'Fronde', type: 'ranged', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as unknown as Weapon;
+    const { action, refus, priest } = tourDeLIA(100, true, (E, hero, priest) => {
+      E.weapons = [fronde];
+      E.pos = { x: hero.pos!.x + 5, y: hero.pos!.y };
+      priest.pos = { x: hero.pos!.x + 5, y: hero.pos!.y + 4 };
+    });
+    expect(refus).toBe(1);
+    expect(action).toBe(`shoot ${priest.id}`);
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : une monture montée qui rate son Test frappe une autre cible au contact', () => {
+    const { visee, refus, priest } = tourDeLIA(100, true, (E, _hero, priest, foes) => {
+      const cavalier = foes[1];
+      E.riderId = cavalier.id;
+      cavalier.mountId = E.id;
+      cavalier.pos = { ...E.pos! };
+      priest.pos = { x: 11, y: 11 };
+    });
+    expect(refus).toBe(1);
+    expect(visee).toBe(priest.id);
+  });
+
+  it('B. de Protection (IA, LDB 41 l.142) : un tour suspendu puis repris relit son verdict — pas de second dé, pas d’attaque de la cible refusée', () => {
+    const premier = tourDeLIA(100, true);
+    expect(premier.refus).toBe(1);
+    expect(premier.visee).toBe(premier.priest.id);
+    // Le télégraphe tombe sur une fenêtre ouverte : la frappe ne part pas, le tour n'a rien consommé.
+    useGame.setState({ pendingFateSave: {} as never });
+    vi.runOnlyPendingTimers();
+    expect(useGame.getState().battle!.acted).toBe(false);
+    useGame.setState({ pendingFateSave: null });
+    const decisions = aiTurnLog().length;
+    resumeSuspendedAI(useGame.getState, useGame.setState);
+    for (let i = 0; i < 3 && aiTurnLog().length === decisions; i++) vi.runOnlyPendingTimers();
+    expect(aiTurnLog().length, 'le tour a été rejoué').toBe(decisions + 1);
+    const repris = decision();
+    expect(repris.refus).toBe(1);
+    expect(repris.action).toBe(`melee ${premier.priest.id}`);
+    expect(repris.visee).not.toBe(premier.hero.id);
+  });
+
+  it('un tour suspendu ne reprend pas tant qu’une incantation reste ouverte (`pendingCast`)', () => {
+    tourDeLIA(100, true);
+    useGame.setState({ pendingFateSave: {} as never });
+    vi.runOnlyPendingTimers();
+    useGame.setState({ pendingFateSave: null, pendingCast: {} as never });
+    const decisions = aiTurnLog().length;
+    resumeSuspendedAI(useGame.getState, useGame.setState);
+    vi.runOnlyPendingTimers();
+    expect(aiTurnLog().length).toBe(decisions);
+    useGame.setState({ pendingCast: null });
   });
 
   it('B. de Protection (héros attaquant) : le clic DIFFÈRE l’attaque derrière un Test de FM influençable', () => {

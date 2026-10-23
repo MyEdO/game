@@ -8,6 +8,7 @@
  */
 import { Combatant, Weapon } from './types';
 import { REACH_IDS, reachIdOf, reachRankOf } from './items';
+import { sizeGap } from './size';
 
 /**
  * Portée d'ENGAGEMENT / d'attaque d'une arme de MÊLÉE, en CASES. RAW : LDB 62 l.163 (Allonge
@@ -54,6 +55,18 @@ export function isEngaged(c: Combatant): boolean {
 
 export function isEngagedWith(a: Combatant, bId: string): boolean {
   return !!a.engagedWith?.includes(bId);
+}
+
+/** Départ libre d'un Engagé, sans Test ni Avantage : plus grand que TOUS ses Engagés (LDB 85 l.373-374)
+ *  ou Nuée (LDB 85 l.253). `foes` = ses Engagés encore en action. Pure. */
+export function departLibre(mover: Combatant, foes: readonly Combatant[]): boolean {
+  return foes.length > 0 && (!!mover.swarm || foes.every((f) => sizeGap(mover.size, f.size) >= 1));
+}
+
+/** Cloué sur place (LDB 15 l.43-49) : Engagé à un adversaire encore en action, sans départ libre — tout
+ *  déplacement passe par le Désengagement. `foes` = ses Engagés encore en action. Pure. */
+export function cloueParLEngagement(mover: Combatant, foes: readonly Combatant[]): boolean {
+  return foes.length > 0 && !departLibre(mover, foes);
 }
 
 /** Pose Engagé symétriquement ET marque le coup échangé ce Round (les deux côtés).

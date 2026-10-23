@@ -6,9 +6,9 @@ import { estFichierVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 /**
  * Garde-fou « recherche de combattant EN COMBAT par id » (#279, F1 du programme structurel #276).
  * `X.combatants.find((c) => c.id === …)` réinvente `inBattleId(battle, id)`
- * (`src/noyau/monde/combatants.ts`). Lot 1 a migré ~150 sites de `src/state` (find-par-id EXACT
- * uniquement — les prédicats COMPOSÉS, ex. `c.id === X && c.kind === 'hero'`, ne se réduisent pas
- * à un simple appel de primitive et RESTENT visibles ici, comptés).
+ * (`src/noyau/monde/combatants.ts`). Seul le find-par-id EXACT s'y réduit : les prédicats COMPOSÉS,
+ * ex. `c.id === X && c.kind === 'hero'`, ne se réduisent pas à un simple appel de primitive et
+ * RESTENT visibles ici, comptés.
  *
  * PÉRIMÈTRE ÉTENDU #410 (2026-07-13) : le scan couvre `SCAN_DIRS`
  * — l'audit de couverture des gardes a révélé ~85 sites UI/rendu (modales de jet, jetProps, caméra,
@@ -36,7 +36,7 @@ const BASELINES: Record<string, number> = {
   // FOYER de la primitive : l'implémentation d'`inBattleId` EST le motif. Gelée à son site UNIQUE
   // (le cliquet la surveille comme n'importe quel autre fichier) plutôt qu'exemptée en bloc.
   'src/noyau/monde/combatants.ts': 1,
-  // src/state (Lot 1)
+  // src/state
   'src/noyau/combat/recover.ts': 1,
   'src/noyau/combatFlow.ts': 1,
   'src/state/devtools.ts': 1,

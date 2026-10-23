@@ -65,7 +65,7 @@ export function roofCoursesPerStep(det?: { courses?: { hM: number } }): number |
 
 const EPS = 1e-9;
 
-/** VOLUME de l'avant-toit (Lot 3) piloté par la DONNÉE matériau (`RoofMaterialDef`) : `overhang` = run du
+/** VOLUME de l'avant-toit piloté par la DONNÉE matériau (`RoofMaterialDef`) : `overhang` = run du
  *  soffite au-delà de l'égout, en CASES (drop = `overhang × ROOF_SLOPE_M`, coplanaire au pan) ; `fasciaDrop`
  *  = hauteur (m) de la planche de rive verticale (0 ⇒ pas de fascia). Les TONS (soffite/fascia) restent au
  *  backend — le builder ne produit que la GÉOMÉTRIE (faces `part:'soffite'`/`'fascia'`). */

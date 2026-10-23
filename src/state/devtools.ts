@@ -1376,8 +1376,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  modale de Défense — c'est son CONTENU qu'on recette. La fenêtre s'ouvre par la couture de la
      *  déclaration d'attaque de l'IA (`combatFlow.ts:maybeOpenDefense`, appelée par `doAttack`), au tour de
      *  l'attaquant, qui lui est donné si besoin : sa fermeture reprend ce tour comme après une attaque
-     *  d'IA. Elle SAUTE les portes préalables de `doAttack` (Bénédiction de Protection `attackWardGate`,
-     *  Main ensanglantée `aiHandGate`), qui jettent des dés et peuvent faire renoncer au coup : la
+     *  d'IA. Elle SAUTE les portes préalables de l'attaque d'IA (Bénédiction de Protection `attackWardGate`,
+     *  jouée à la décision de `runEnemyAI` ; Main ensanglantée `aiHandGate`, de `doAttack`), qui jettent des
+     *  dés et peuvent faire renoncer au coup : la
      *  recette porte sur la fenêtre de Défense, pas sur ces Tests. Refus NOMMÉS, sans rien toucher : pas
      *  de combat, pause de début de Round (la pause n'a aucun actif), tour d'un combattant piloté par
      *  l'IA (ses minuteurs de tour sont en vol, `maybeRunEnemyTurn`), combattant introuvable ou hors de
@@ -1888,7 +1889,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     },
 
     /** RECETTE : octroie un Talent à un combattant (par id) — ex. Mâchoires d'acier pour tester son trigger.
-     *  Dernier paramètre : `times` (défaut 1, comportement historique) OU `{ spec?, times? }` pour les talents
+     *  Dernier paramètre : `times` (défaut 1) OU `{ spec?, times? }` pour les talents
      *  `specsSource` dont la mécanique se lit PAR la spec (ex. Magie du Chaos — `chaosDomainOf`,
      *  `combatFeatures/dispatch.ts`, lit `talents[].spec` comme l'id du Domaine — `talent('hero-1',
      *  'magie-du-chaos', { spec: 'tzeentch' })`). */

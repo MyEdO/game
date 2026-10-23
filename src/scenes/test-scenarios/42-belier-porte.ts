@@ -20,7 +20,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * Carte (10×15, pavée) : la formation (chef + bélier 2×2 + 5 servants, `crewFormationSlots`, ADE II 8
  * l.258 : « on pousse par les flancs/l'arrière ») démarre ALIGNÉE en x avec la porte (arête N de (5,4),
  * colonne x=5 comprise dans l'empreinte 2×2 dès le départ), à 3 cases de la porte — DISTANCE À TRAVERSER
- * (Lot 2 #156, MOBILITÉ) : « roues, se déplace sur le champ de bataille » (l.256/258, vitesse non chiffrée
+ * (#156, MOBILITÉ) : « roues, se déplace sur le champ de bataille » (l.256/258, vitesse non chiffrée
  * → `siege-engine-push-speed`, plafond maison 2 cases/poussée) — EXACTEMENT 2 poussées plein Nord (2 cases
  * puis le reliquat de 1) amènent l'empreinte au contact DIRECT de la porte (dx=0, jamais en diagonale) : la
  * démonstration reste courte, zéro dérive de trajectoire. Un gobelin défend l'autre côté de la porte (5,2).

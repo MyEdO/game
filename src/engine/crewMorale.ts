@@ -342,7 +342,7 @@ export function competencesDuRole(role: CrewRoleData, navigation: RefDesignee): 
  *  SEUL point de valeur des Tests d'équipage (manœuvre, bordée, générique, fiche du navire). `sense`
  *  (optionnel) : sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie qui « voit la lumière d'un
  *  phare », MDG 13 l.337 — visuel, transmis par l'appelant) ; restreint les `skillMod` sense-scopés
- *  (Surdité, LDB 18) via `testValue`. Absent = comportement historique. PUR. */
+ *  (Surdité, LDB 18) via `testValue`. Absent = aucune restriction de sens. PUR. */
 export function crewRoleValue(crew: Combatant, role: CrewRoleData, navigation: RefDesignee, sense?: PairedSense): CrewRoleValue {
   const skills = competencesDuRole(role, navigation);
   const b = bestForSkills([crew], skills, undefined, sense);

@@ -1,9 +1,8 @@
 /**
- * GOLDEN de parité (Lot 2 — Socle Utility). Filet anti-régression du refactor « énumérer → scorer →
- * argmax » de `chooseEnemyAction` : pour un jeu d'états figés couvrant CHAQUE branche (gardes RAW ET
- * cœur discrétionnaire), l'action retournée doit être STRICTEMENT identique au comportement d'avant
- * le refactor. Les valeurs de référence sont celles établies par la cascade historique (et déjà
- * vérifiées par `ai*.test.ts`). Tout écart détecté = bug du refactor à corriger (pas le golden).
+ * GOLDEN de décision (Socle Utility). Pour un jeu d'états figés couvrant CHAQUE branche de
+ * `chooseEnemyAction` (gardes RAW ET cœur discrétionnaire « énumérer → scorer → argmax »), l'action
+ * rendue est celle que fige chaque cas. Les valeurs de référence sont vérifiées par `ai*.test.ts`. Un
+ * écart est une régression de la décision ; une règle qui change réécrit sa valeur depuis le RAW.
  *
  * Pur : aucun dé, aucun mock — `chooseEnemyAction` est déterministe.
  */
@@ -52,7 +51,7 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 const tidOf = (a: EnemyAction): string | undefined =>
   (a as { targetId?: string }).targetId ?? (a as { thenTargetId?: string }).thenTargetId;
 
-describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scoring)', () => {
+describe('GOLDEN — gardes RAW/psychologie (forcées, hors scoring)', () => {
   it('vivier perçu vide mais adversaires existants → anti-immobilisme (move vers le plus proche)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 3 });
     const h = mk('h', 'hero', { x: 5, y: 12 });
@@ -127,7 +126,7 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
   });
 });
 
-describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score → argmax)', () => {
+describe('GOLDEN — cœur discrétionnaire (enumerate → score → argmax)', () => {
   it('mêlée cible AU CONTACT → melee', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 });
     const h = mk('h', 'hero', { x: 5, y: 6 });

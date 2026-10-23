@@ -76,7 +76,7 @@ import {
 import { RULE_REF } from '../engine/ruleRefs';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
-import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
+import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles, departLibre } from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
@@ -158,7 +158,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
-import { actorIn, inBattleId } from './monde/combatants';
+import { actorIn, engagesEnAction, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -398,7 +398,7 @@ export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combata
  *  par `firedAttackBlock` (gate joueur/IA) ET `resolveAttack` (application). `banRanged` explicite
  *  PRIME (`true`/`false` = dérogation assumée par l'auteur) ; absent + `firstBlood` = interdit PAR
  *  DÉFAUT (le duel judiciaire est la seule rencontre où le RAW pose la restriction par défaut) ;
- *  absent hors `firstBlood` = autorisé (défaut historique, non-régression). */
+ *  absent hors `firstBlood` = autorisé. */
 export function banRangedActive(battle: BattleState | null | undefined): boolean {
   return battle?.banRanged ?? (battle?.victoryCondition?.type === 'firstBlood');
 }
@@ -493,9 +493,8 @@ export function crowdEligible(battle: BattleState, attacker: Combatant, target: 
   );
 }
 
-/** Bénédiction de Protection (LDB 41 — L13) : si la cible est bénie, l'attaquant doit réussir un
- *  Test de FM Accessible (+20) pour OSER attaquer — joué à la DÉCLARATION ; sur un échec, « ils
- *  doivent choisir une cible ou une Action différente » (rien n'est consommé). */
+/** Bénédiction de Protection (LDB 41 l.142) : Test de l'attaquant contre une cible bénie, joué à la
+ *  DÉCLARATION de l'attaque ; un échec ne consomme rien. */
 export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG): { allowed: boolean; lines: string[] } {
   if (!hasActiveFlag(target, 'attackWardFM')) return { allowed: true, lines: [] };
   const t = rollTest(testValue(attacker, undefined, 'force-mentale'), 'accessible', rng);
@@ -1257,24 +1256,25 @@ export function disengageOutcome(winner: 'attacker' | 'defender' | 'tie'): 'succ
   return winner === 'attacker' ? 'success' : winner === 'tie' ? 'tie' : 'failure';
 }
 
+/** Départ libre (`departLibre`) au terme d'un déplacement : lève les liens d'Engagement de `mover` avec ceux de
+ *  `foes` qu'il a quittés (hors de portée de mêlée l'un de l'autre), et ne journalise le départ que s'il en a
+ *  quitté un. */
+function partirLibrement(battle: BattleState, mover: Combatant, foes: readonly Combatant[]): void {
+  const quittes = foes.filter((f) => combatDistance(mover, f) > Math.max(meleeReachTiles(mover.weapons), meleeReachTiles(f.weapons)));
+  for (const f of quittes) disengageFrom(mover, f);
+  if (quittes.length) battle.log.push(ev('move', tr('cf.departLibre', { name: mover.label }), mover.id));
+}
+
 /** Lance le Désengagement d'un combattant Engagé (LDB 15 l.43-49) : option A
  *  (Avantage > adversaires → résolue direct) ou option B (Test opposé d'Esquive vs le
  *  foe le plus dangereux). No-op « rouvre le mouvement » si plus aucun foe vivant. */
 export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   const battle = get().battle!;
-  const foes = (mover.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && !isOutOfAction(c));
-  // Désengagement GRATUIT du plus grand (LDB 85 l.373-374) : une créature plus grande que TOUS ses
-  // adversaires Engagés les écarte et se déplace librement, sans Test ni sacrifice d'Avantage.
-  // Plus grand que TOUS ses Engagés (85 l.373-374) OU Nuée (ignore l'Engagement en se déplaçant, LDB 85 l.253) → départ libre.
-  const freeDisengage = foes.length > 0 && (mover.swarm || foes.every((f) => sizeGap(mover.size, f.size) >= 1));
+  const foes = engagesEnAction(battle, mover);
+  const freeDisengage = departLibre(mover, foes);
   if (!foes.length || freeDisengage) {
-    if (freeDisengage) {
-      for (const f of foes) disengageFrom(mover, f); // lève les liens Engagé avec les plus petits écartés
-      battle.log.push(ev('move', tr('cf.pushThrough', { name: mover.label }), mover.id));
-    }
-    // Lien d'Engagement périmé (foe mort/parti) OU désengagement gratuit : rouvrir le déplacement normal.
+    // Lien d'Engagement périmé (foe mort/parti) OU départ libre : liens levés, déplacement normal rouvert.
+    for (const f of foes) disengageFrom(mover, f);
     set({ battle: { ...battle, action: null, reachable: moveReachFor(mover, get().scene!, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)) } });
     return;
   }
@@ -1313,6 +1313,20 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   // résolveurs ferment LES DEUX. La ligne d'attaque figée du foe et les portraits restent inchangés.
   const step = hostStep(get, { id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: mover.id });
   if (step) openSequence(get, set, { title: tr('step.seDesengager'), icon: 'action/disengage', purpose: 'combat', steps: [step] });
+}
+
+/** Désengagement d'un combattant de l'IA par le flux du joueur (`startDisengage`) : Sacrifier l'Avantage quand il
+ *  l'emporte (LDB 15 l.47), sinon le Test opposé d'Esquive, qui coûte l'Action (l.49). Vrai : il n'est plus
+ *  Engagé. */
+export function desengagerLIA(get: Get, set: SetFn, mover: Combatant): boolean {
+  startDisengage(get, set, mover);
+  const pd = get().pendingDisengage;
+  if (pd?.canSacrifice) get().disengageConfirmA();
+  else if (pd?.canEsquive && canTakeAction(mover)) {
+    get().disengageRoll();
+    get().disengageConfirm();
+  } else if (pd) get().disengageCancel();
+  return !isEngaged(mover);
 }
 
 /**
@@ -1498,38 +1512,73 @@ export function displayedReach(get: Get): Map<string, number> {
   return battle.reachable.size > 0 ? battle.reachable : computeMoveReach(get);
 }
 
+/** Phase SANS dé de l'approche de l'IA (`aiApproachPlan`). `contact` : le plan finit au contact de sa cible
+ *  ce tour, donc en attaque ; `course` : ni la Marche ni la Charge n'y mènent, reste à tenter la Course. */
+export type ApprocheSansDe = { plan: EnemyAction; contact: boolean; course: boolean };
+
+/** Les ré-énumérations d'approche rejouent la décision à un budget SUPÉRIEUR sur la MÊME géométrie : elles
+ *  partagent le mémo de Ligne de Vue de la décision (posé par `buildAiInput` ; un appel PUR sans mémo en
+ *  reçoit un ici) — une case atteinte aux trois budgets n'est évaluée qu'une fois. */
+function avecMemoDeVue(input: EnemyTurnInput): EnemyTurnInput {
+  return input.losMemo ? input : { ...input, losMemo: makeLosMemo(input.scene, input.smoke ?? []) };
+}
+
+/** L'IA a encore son Action ce tour : aucun État ne la lui retire et elle ne l'a pas dépensée. */
+const actionLibre = (input: EnemyTurnInput): boolean => canTakeAction(input.enemy) && !input.actionDepensee;
+
+/** Approche SANS dé (LDB 15 l.35-37) : la Marche si elle mène au contact, sinon la Charge à portée de
+ *  Course si ELLE y mène, pour un combattant de mêlée non Engagé. Pure et déterministe. */
+export function aiChargePlan(input: EnemyTurnInput, geom: Combatant, action: EnemyAction): ApprocheSansDe {
+  const enemy = input.enemy;
+  if (action.kind !== 'move') return { plan: action, contact: false, course: false };
+  const atContact = (a: EnemyAction): boolean =>
+    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
+  const marche: ApprocheSansDe = { plan: action, contact: atContact(action), course: false };
+  if (marche.contact) return marche; // la Marche suffit déjà
+  if (isEngaged(enemy) || hasCondition(enemy, COND.aTerre) || !actionLibre(input)) return marche;
+  if (!enemy.weapons.some((w) => w.type === 'melee')) return marche;
+  const M = effectiveMovement(geom);
+  if (M <= 0) return marche;
+  const courseBudget = chargeReach(M, runMultiplier(geom.traits));
+  if (courseBudget <= input.movement) return marche;
+  const charge = chooseEnemyAction({ ...avecMemoDeVue(input), movement: courseBudget });
+  if (charge.kind === 'move' && atContact(charge)) return { plan: charge, contact: true, course: false };
+  return { ...marche, course: true };
+}
+
+/** L'attaque à l'arme que porte l'action d'IA `action`, dont la cible bénie exige le Test de Bénédiction
+ *  (LDB 41 l.142) : mêlée, tir, ou approche qui finit au contact ce tour, donc en attaque (`aiChargePlan`).
+ *  `cibleId` null : aucune attaque ce tour (fuite, errance, approche hors de portée, Course), ou une monture
+ *  montée, qui attaque par sa branche propre. `approche` : la phase sans dé d'un `move`. Pure. */
+export function attaqueDeLIA(input: EnemyTurnInput, geom: Combatant, action: EnemyAction): { cibleId: string | null; approche: ApprocheSansDe | null } {
+  if (input.enemy.riderId) return { cibleId: null, approche: null };
+  if (action.kind === 'melee' || action.kind === 'shoot') return { cibleId: action.targetId, approche: null };
+  if (action.kind !== 'move') return { cibleId: null, approche: null };
+  const approche = aiChargePlan(input, geom, action);
+  const plan = approche.plan;
+  return { cibleId: approche.contact && plan.kind === 'move' && actionLibre(input) ? plan.thenTargetId : null, approche };
+}
+
 /**
  * PARITÉ héros/IA sur l'approche (LDB 15 l.35-41) : si le plan de MARCHE n'amène pas l'ennemi au
  * contact, un combattant de mêlée non Engagé tente une CHARGE à portée de Course (2M × Bond/Foulée) ;
  * si même la Course ne suffit pas, il COURT (Action + Test de la fiche `course`, `testDuCavalier`,
  * résolution instantanée IA) : budget = Marche + Course + DR, et il n'attaque PAS ce tour.
- * Pure (rng injecté) — renvoie le plan retenu et le jet de Course éventuel.
+ * Pure (rng injecté) — renvoie le plan retenu et le jet de Course éventuel. `sansDe` : la phase sans dé
+ * déjà jouée par l'appelant (`aiChargePlan`).
  */
 export function aiApproachPlan(
   input: EnemyTurnInput,
   geom: Combatant,
   action: EnemyAction,
   rng: RNG,
+  sansDe: ApprocheSansDe = aiChargePlan(input, geom, action),
 ): { plan: EnemyAction; ran: { roll: number; target: number; sl: number; success: boolean; test: TestNomme; budget: number } | null } {
+  const none = { plan: sansDe.plan, ran: null };
+  if (!sansDe.course || action.kind !== 'move') return none;
   const enemy = input.enemy;
-  const none = { plan: action, ran: null };
-  if (action.kind !== 'move') return none;
-  if (isEngaged(enemy) || hasCondition(enemy, COND.aTerre) || !canTakeAction(enemy)) return none;
-  if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
   const M = effectiveMovement(geom);
-  if (M <= 0) return none;
-  const atContact = (a: EnemyAction): boolean =>
-    a.kind === 'move' && combatDistance({ ...enemy, pos: { ...a.to, h: heightAt(input.scene, a.to.x, a.to.y, a.to.z ?? 0) } } as Combatant, input.heroes.find((h) => h.id === a.thenTargetId) ?? input.heroes[0], sceneMetresPerTile(input.scene)) <= meleeReachTiles(enemy.weapons);
-  if (atContact(action)) return none; // la Marche suffit déjà
-  // Charge (portée de Course, sans Test — LDB 15 l.35-37).
-  const courseBudget = chargeReach(M, runMultiplier(geom.traits));
-  if (courseBudget <= input.movement) return none;
-  // Les deux ré-énumérations ci-dessous rejouent l'approche à un budget de mouvement SUPÉRIEUR sur la
-  // MÊME géométrie : elles partagent le mémo de Ligne de Vue de la décision (posé par `buildAiInput` ;
-  // un appel PUR sans mémo en reçoit un ici) — une case atteinte aux trois budgets n'est évaluée qu'une fois.
-  const inp: EnemyTurnInput = input.losMemo ? input : { ...input, losMemo: makeLosMemo(input.scene, input.smoke ?? []) };
-  const charge = chooseEnemyAction({ ...inp, movement: courseBudget });
-  if (charge.kind === 'move' && atContact(charge)) return { plan: charge, ran: null };
+  const inp = avecMemoDeVue(input);
   // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
   const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
   const r = resolveRun(valeurDuTest(enemy, course), course.difficulty, M, rng);
@@ -3781,20 +3830,15 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   return true;
 }
 
+/** Attaque d'IA sur une cible déjà OSÉE : la Bénédiction de Protection se joue à la décision (`runEnemyAI`). */
 export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant): Applique {
-  // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
-  // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
-  const ward = attackWardGate(attacker, target, battleRng());
-  const b0 = get().battle;
-  if (ward.lines.length && b0) set({ battle: { ...b0, log: [...b0.log, ...evLines(ward.lines, 'info', attacker.id)] } });
-  if (!ward.allowed) return undefined;
   // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme EMPLOYÉE contre
   // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
   if (!aiHandGate(get, set, attacker, firedWeapon(attacker, target).uid)) return undefined;
   if (maybeOpenDefense(get, set, attacker, target, undefined, undefined, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via defenseConfirm/Cancel ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
   // Tir ennemi : l'annoncer dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision — un tir
-  // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d). Avant, l'annonce
-  // partait dans le journal du GROUPE (invisible en combat).
+  // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d) ; le journal du
+  // GROUPE est invisible en combat.
   if (firedWeapon(attacker, target).type === 'ranged') {
     const b0 = get().battle;
     if (b0) set({ battle: { ...b0, log: [...b0.log, ev('shoot', tr('cf.aim', { name: attacker.label, target: target.label }), attacker.id, target.id)] } });
@@ -4244,7 +4288,7 @@ function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant,
   const from = { ...tgt.pos };
   placeCombatant(tgt, get().scene, r.dest);
   bus.emit(EVT.ANIM_MOVE, { id: tgt.id, path: [{ ...r.dest }] });
-  applyZoneCrossings(get, set, tgt, [...tilesBetween(from, r.dest), { ...r.dest }]); // une traction TRAVERSE (Mur de feu, L11)
+  applyZoneCrossings(get, set, tgt, [...tilesBetween(from, r.dest), { ...r.dest }]); // une traction TRAVERSE (Mur de feu)
   return [tr('cs.tonguePull', { name: attacker.label, foe: tgt.label })];
 }
 
@@ -4463,8 +4507,8 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
     // GRATUITE pour résoudre l'Empoignade AU LIEU de l'Action de la créature » — le tentacule tient pendant que
     // le corps agit. Pour CHAQUE adversaire encore Empoigné et en vie : Test opposé de Force GRATUIT (résolveur
     // PARTAGÉ `resolveGrappleOpposed`), instantané. La créature N'EST PAS verrouillée (ai.ts saute le verrou
-    // LOT B pour le trait tentacule) → elle CONSERVE son Action normale. La Langue préhensile (p.340) n'a PAS
-    // cette dérogation (« voir page 163 ») → elle est verrouillée comme tout grappleur (LOT B), pas ici.
+    // d'Empoignade pour le trait tentacule) → elle CONSERVE son Action normale. La Langue préhensile (p.340) n'a PAS
+    // cette dérogation (« voir page 163 ») → elle est verrouillée comme tout grappleur, pas ici.
     const tentacules = atks.find((a) => a.kind === 'tentacules');
     if (tentacules) {
       for (const fid of [...(enemy.grapplingWith ?? [])]) {
@@ -5313,10 +5357,10 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     return;
   }
   const radius = pc.zone.radius;
-  // `excludesCaster` (SpellTarget kind:'area', src/engine/spellRange.ts:34) : le lanceur n'est pas
+  // `excludesCaster` (SpellTarget kind:'area', src/engine/spellRange.ts) : le lanceur n'est pas
   // compté parmi les combattants touchés par sa propre Zone d'Effet.
   const excludesCaster = spell.target?.kind === 'area' && spell.target.excludesCaster === true;
-  // `affects` (src/engine/spellRange.ts:34) : Condition évaluée PAR CANDIDAT (`target` = le candidat,
+  // `affects` (SpellTarget, src/engine/spellRange.ts) : Condition évaluée PAR CANDIDAT (`target` = le candidat,
   // `caster` = le lanceur). Absente → LDB 47 l.28.
   const affects = spell.target?.kind === 'area' || spell.target?.kind === 'cone' ? spell.target.affects : undefined;
   // Le DR confronté par la Condition est celui que SUBIT le candidat (Résistance à la Magie, LDB 85
@@ -5388,7 +5432,7 @@ function isSpellActive(spell: SpellData, caster: Combatant, battle: BattleState 
  * Couche IMPURE : a les DONNÉES de sort + le `battle`. Le `movement` n'inclut PAS le cas « vient
  * d'enfourcher » (Mouvement consommé) — l'appelant le force à 0 le cas échéant.
  */
-export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
+export function buildAiInput(enemy: Combatant, get: Get, wardRefused?: ReadonlySet<string>): EnemyTurnInput {
   const battle = get().battle!;
   const scene = get().scene!;
   const foeKind = enemy.kind === 'enemy' ? 'hero' : 'enemy';
@@ -5445,6 +5489,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   const smoke = smokeOf(battle);
   return {
     enemy, heroes, scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
+    engages: engagesEnAction(battle, enemy), actionDepensee: battle.acted,
     smoke, flying: flyM != null, traverse: climbTraverseFor(enemy.traits), perceived, facing: get().facing, squad,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
     // la décision sont fixées, et repassé tel quel aux ré-énumérations d'`aiApproachPlan`.
@@ -5459,6 +5504,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
     // Restriction d'armes à distance de la rencontre (#537) — MÊME résolution que le gate joueur (`firedAttackBlock`),
     // aucune 2ᵉ source : `banRangedActive` reste l'unique point de vérité.
     banRanged: banRangedActive(battle),
+    wardRefused,
   };
 }
 
@@ -5664,7 +5710,7 @@ export type CastCritChoice = 'critique' | 'puissance' | 'ineluctable';
  * journal de sort préservé).
  *
  * Pourquoi ce détour file→drain : `runCombatFlow` est le seul exécuteur qui porte la CONTINUATION
- * `after` d'un nœud `test` enfoui — un sort à Test interne (Lot 4) suspend alors en APPENDANT une étape
+ * `after` d'un nœud `test` enfoui — un sort à Test interne suspend alors en APPENDANT une étape
  * `triggeredTest` à la cascade `cast` active (openCastCascade), comme Critique/Maladresse de sort. Il
  * pousse son journal dans la file différée `pendingLogQueue` ; `drainPendingLog` la vide ici et rend les
  * lignes (`.text`) — la file capte AUSSI les lignes des hooks profonds déclenchés par les ops du sort
@@ -6172,7 +6218,7 @@ export function applyCast(
             placeCombatant(t, get().scene, r.dest);
             bus.emit(EVT.ANIM_MOVE, { id: t.id, path: [{ ...r.dest }] });
             logLines.push(tr('cf.pushed', { name: t.label, m: r.pushed * 2 }));
-            applyZoneCrossings(get, set, t, [...tilesBetween(fromPos, r.dest), { ...r.dest }]); // une poussée TRAVERSE (Mur de feu, L11)
+            applyZoneCrossings(get, set, t, [...tilesBetween(fromPos, r.dest), { ...r.dest }]); // une poussée TRAVERSE (Mur de feu)
           }
           if (r.collided) logLines.push(tr('cf.collided', { name: t.label }));
         }
@@ -6237,7 +6283,7 @@ export function applyCast(
     if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', spell: spell.label, defense: 'none' });
   }
 
-  // Attributs de Domaine (LDB 48 — L14) : riders post-lancement d'un Sort « issu du Domaine ».
+  // Attributs de Domaine (LDB 48) : riders post-lancement d'un Sort du Domaine.
   if (res.cast) {
     for (const t of [target, ...extraTargets]) {
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
@@ -6845,7 +6891,7 @@ export function finalizeBattle(get: Get, set: SetFn): void {
 }
 
 /** L'OBJECTIF de victoire de la rencontre en cours est-il rempli ? (#197) Absent = `allEnemiesDead`
- *  (équivalent à `!enemiesAlive`, comportement historique inchangé). `enemiesAlive` est passé par
+ *  (équivalent à `!enemiesAlive`). `enemiesAlive` est passé par
  *  l'appelant (déjà calculé par `checkBattleOver`, hors engins INERTES). PUR (aucune écriture). */
 function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleState, scene: Scene | null, enemiesAlive: boolean): boolean {
   switch (vc?.type) {
@@ -6961,9 +7007,9 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   // défaite : un cavalier hors d'action dont la monture survit encore n'empêche PAS la défaite (LDB 14).
   const heroesAlive = battle.combatants.some((c) => c.kind === 'hero' && !c.mountable && !c.inert && !isOutOfAction(c));
   const enemiesAlive = battle.combatants.some((c) => c.kind === 'enemy' && !c.inert && !isOutOfAction(c));
-  // Objectif de victoire authorable (#197) : par défaut `allEnemiesDead` (équivalent à `!enemiesAlive`,
-  // comportement historique inchangé) — un autre type NE termine PAS le combat à la mort du dernier
-  // ennemi tant que sa propre condition n'est pas remplie (ex. porte intacte, bélier-porte).
+  // Objectif de victoire authorable (#197) : par défaut `allEnemiesDead` (équivalent à `!enemiesAlive`)
+  // — un autre type NE termine PAS le combat à la mort du dernier ennemi tant que sa propre condition
+  // n'est pas remplie (ex. porte intacte, bélier-porte).
   if (victoryConditionMet(battle.victoryCondition, battle, scene, enemiesAlive)) {
     // Tests de fin de combat des héros survivants (maladie/Corruption) AVANT l'écran de victoire (décision
     // utilisateur) : cadence-aware (héros manuel → cascade influençable). Si une cascade s'ouvre, on DIFFÈRE
@@ -7157,8 +7203,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
  *  `dispatchCascadeDone`), seule couture depuis #942 L8. Garde alignée sur celle de `resumeEnemyTurn`. */
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
-  // `resumeSuspendedAI` ne surveillait historiquement PAS `pendingCast` → `{ cast: false }` (iso A1).
-  if (combatAdvanceBlocked(s, { cast: false })) return;
+  if (combatAdvanceBlocked(s)) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
   if (!active || !aiDriven(s, active)) return;
@@ -7347,7 +7392,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
       if (c.wounds.current <= 0) applyZeroWounds(c);
     }
   decayEngagement(battle.combatants);
-  // Zones persistantes (L11) : un Round de moins ; les zones épuisées se dissipent (fumée, Mur de feu…).
+  // Zones persistantes : un Round de moins ; les zones épuisées se dissipent (fumée, Mur de feu…).
   if (battle.zones?.length) {
     const d = decayZones(battle.zones);
     battle.zones = d.zones;
@@ -7578,7 +7623,7 @@ export function collectHeroRoundEndPsych(get: Get, c: Combatant): HeroPsychDue |
 /** DÉCLARATION COMMUNE d'une bande de Psychologie de combat — telle qu'elle vit sur l'ÉTAPE. */
 type CombatPsychDecl = NonNullable<CascadeStep['combatPsych']>;
 
-/** Ce qui DIVERGE d'un héros à l'autre DANS une bande (charge utile de RANGÉE, socle L0) : le DR déjà
+/** Ce qui DIVERGE d'un héros à l'autre DANS une bande (charge utile de RANGÉE) : le DR déjà
  *  cumulé du Test étendu et l'allègement « Sans Peur ». */
 interface CombatPsychRowMeta { prevDR: number; sansPeur: boolean }
 
@@ -7836,6 +7881,7 @@ function describeAiAction(a: EnemyAction): string {
     case 'shoot': return `shoot ${a.targetId}`;
     case 'melee': return `melee ${a.targetId}`;
     case 'move': return `move→${a.thenTargetId}@${a.to.x},${a.to.y}`;
+    case 'disengage': return 'disengage';
     case 'reload': return 'reload';
     case 'recover': return `recover ${a.state}`;
     case 'spendResource': return `spend ${a.resource}→${a.id}`;
@@ -7937,8 +7983,11 @@ function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
 }
 
 export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
-  const { battle, scene } = get();
-  if (!battle || !scene || battle.over) return;
+  const { battle: auDepart, scene } = get();
+  if (!auDepart || !scene || auDepart.over) return;
+  // Relu après chaque résolution de la boucle de re-décision qui remplace l'état du combat (Détermination,
+  // Désengagement) : la suite du tour écrit dans l'état vivant.
+  let battle: BattleState = auDepart;
   const enemy = inBattleId(battle, enemyId);
   if (!enemy || isOutOfAction(enemy)) return advanceTurn(get, set);
   // Re-test du prédicat de contrôle À L'ENTRÉE : `maybeRunEnemyTurn` l'a évalué AVANT de
@@ -8018,7 +8067,31 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   const geom = mountOf(battle, enemy) ?? enemy;
   // Entrée de l'IA MUTUALISÉE (sorts résolus + escouade/orientation/perception/mouvement/vol/blocage).
   // « Vient d'enfourcher » → Mouvement consommé ce tour (l'IA a seulement son Action).
-  let input = buildAiInput(enemy, get);
+  // Bénédiction de Protection (LDB 41 l.142) : `oseAttaquer` joue le Test de la cible bénie quand l'IA
+  // s'apprête à l'attaquer, une fois par cible et par tour : le verdict vit dans `battle` sous la clé du
+  // tour, et un refus range la cible parmi celles que `chooseEnemyAction` n'attaque plus ce tour.
+  if (battle.verdictsDeBenediction?.tour !== cleTour) battle.verdictsDeBenediction = { tour: cleTour, parCible: {} };
+  const verdicts = battle.verdictsDeBenediction.parCible;
+  const refusees = (): ReadonlySet<string> => new Set(Object.keys(verdicts).filter((id) => !verdicts[id]));
+  const oseAttaquer = (cible: Combatant): boolean => {
+    const connu = verdicts[cible.id];
+    if (connu !== undefined) return connu;
+    const ward = attackWardGate(enemy, cible, battleRng());
+    if (!ward.lines.length) return ward.allowed;
+    verdicts[cible.id] = ward.allowed;
+    battle.log.push(...evLines(ward.lines, 'info', enemy.id));
+    set({ battle: { ...battle } });
+    return ward.allowed;
+  };
+  // Le Test se joue sur l'attaque que porte l'action (`attaqueDeLIA`) ; la phase sans dé d'une approche est
+  // gardée pour le `move` qui la jouera.
+  const approches = new Map<EnemyAction, ApprocheSansDe>();
+  const cibleAttaquee = (a: EnemyAction): Combatant | undefined => {
+    const { cibleId, approche } = attaqueDeLIA(input, geom, a);
+    if (approche) approches.set(a, approche);
+    return cibleId ? inBattleId(battle, cibleId) : undefined;
+  };
+  let input = buildAiInput(enemy, get, refusees());
   if (justMounted) input.movement = 0;
   let action = chooseEnemyAction(input);
   // Dépense PROACTIVE de Détermination (LDB 17 l.57-61) : si l'IA décide de se DÉVERROUILLER (action
@@ -8030,11 +8103,19 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // ... et MÊME boucle pour « Briser l'Empoignade » (LDB 14 l.161) : Briser est GRATUIT (par le Mouvement) et
   // n'épuise PAS l'Action → l'ennemi libéré RE-DÉCIDE et joue sa vraie action (tir/cast/charge) le même tour.
   // Multi-Empoignade : chaque tour de boucle dénoue UN lien ; `grapplingWith` se vide → la garde ne re-fire plus.
-  for (let safety = 8; safety > 0; safety--) {
+  // ... et MÊME boucle pour la cible bénie refusée (LDB 41 l.142) : chaque refus retire UN adversaire du choix.
+  // ... et MÊME boucle pour le Désengagement (LDB 15 l.47-49) : parti, il re-décide sa fuite sur le Mouvement
+  // qui lui reste (`actionDepensee` après l'Esquive).
+  for (let safety = 8 + battle.combatants.length; safety > 0; safety--) {
     if (action.kind === 'spendResource') {
       const before = stacks(enemy, action.id);
       get().spendResolveCondition(enemy.id, action.id);
+      battle = garanti(get().battle, 'battle', 'runEnemyAI');
       if (stacks(enemy, action.id) >= before) break; // dépense inopérante → on n'insiste pas (anti-boucle dure)
+    } else if (action.kind === 'disengage') {
+      const parti = desengagerLIA(get, set, enemy);
+      battle = garanti(get().battle, 'battle', 'runEnemyAI');
+      if (!parti) break; // toujours cloué : son tour s'achève (`case 'disengage'`)
     } else if (action.kind === 'grapple' && action.resolution === 'break') {
       const targetId = action.targetId; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
       const foe = inBattleId(battle, targetId);
@@ -8044,8 +8125,11 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       battle.log.push(ev('dodge', tr('cs.grappleBreak', { name: enemy.label, foe: foe.label }), enemy.id, foe.id));
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
-    } else break;
-    input = buildAiInput(enemy, get);
+    } else {
+      const cible = cibleAttaquee(action);
+      if (!cible || oseAttaquer(cible)) break;
+    }
+    input = buildAiInput(enemy, get, refusees());
     if (justMounted) input.movement = 0;
     action = chooseEnemyAction(input);
   }
@@ -8054,7 +8138,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   AI_TURN_LOG.push({ round: battle.round, id: enemy.id, label: enemy.label, action: describeAiAction(action), top: consumeAiRanking() });
   if (AI_TURN_LOG.length > 400) AI_TURN_LOG.shift();
   const targetOf = (id: string) => inBattleId(battle, id)!;
-  const canAct = canTakeAction(enemy); // Sonné : pas d'Action — déplacement seul (LDB 16 l.125)
+  const canAct = canTakeAction(enemy) && !battle.acted; // Sonné (LDB 16 l.125) ou Action dépensée au Désengagement : déplacement seul
 
   // Attaque (mêlée ou tir, selon l'arme active) puis fin de tour — cadence préservée.
   const attackThenAdvance = (target: Combatant, delay: number = TEMPO.aimTelegraph) => {
@@ -8096,7 +8180,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (enemy.riderId) {
     const skittish = isSkittishMount(enemy.traits); // Nerveux (LDB 14 l.182) → la monture passe son tour
     const foe = skittish || !canAct ? undefined
-      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && combatDistance(enemy, c) <= meleeReachTiles(enemy.weapons));
+      : battle.combatants.filter((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && combatDistance(enemy, c) <= meleeReachTiles(enemy.weapons)).find((c) => oseAttaquer(c));
     if (foe) { attackThenAdvance(foe); return; }
     return advanceTurn(get, set);
   }
@@ -8111,6 +8195,10 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // La boucle de dépense ci-dessus n'a PAS pu déverrouiller (dépense inopérante — l'acteur reste
       // verrouillé) : il n'a aucune autre action légale ce tour → il passe la main (terminal anti-boucle).
       return advanceTurn(get, set);
+    case 'disengage':
+      // Désengagement manqué (échec, égalité, aucune option) : toujours cloué, il passe la main.
+      programmer(() => advanceTurn(get, set), beatHold(get, 'afterMove'));
+      return;
     case 'cast': {
       if (!canAct) return advanceTurn(get, set);
       const ctgt = targetOf(action.targetId);
@@ -8292,14 +8380,14 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       return;
     }
     case 'move': {
-      // Simplification IA assumée (sévérité mineure, relevée par la revue de fidélité) :
-      //  • l'IA ne fait JAMAIS de Désengagement (option joueur, LDB 15 l.43-49) : un
-      //    ennemi Engagé qui se repositionne ne paie pas l'Esquive/le sacrifice d'Avantage.
+      // Engagée, l'IA ne se déplace que sur un départ libre (`departLibre`, LDB 15 l.43-49) : le contact
+      // quitté au terme du déplacement lève ses liens (`partirLibrement`).
       // PARITÉ d'approche (LDB 15 l.35-41) : Charge à portée de Course si la Marche ne suffit pas,
       // sinon Course (Test de `course` instantané, pas d'attaque ce tour) — cf. aiApproachPlan.
-      const { plan, ran } = aiApproachPlan(input, geom, action, battleRng());
+      const { plan, ran } = aiApproachPlan(input, geom, action, battleRng(), approches.get(action));
       const mv = plan.kind === 'move' ? plan : action;
       const wasEngaged = isEngaged(enemy);
+      const quittes = engagesEnAction(battle, enemy);
       const distBefore = combatDistance(enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
       const fromPos = { ...enemy.pos! }; // position AVANT déplacement (déclenchement de Peur à l'approche)
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
@@ -8321,12 +8409,13 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         if (!b || b.over || !b.combatants.includes(enemy)) return;
         placeCombatant(enemy, get().scene, mv.to);
         if (geom !== enemy) placeCombatant(geom, get().scene, mv.to); // Combat monté : la monture suit le cavalier (couple solidaire)
+        if (departLibre(enemy, quittes)) partirLibrement(battle, enemy, quittes);
         displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
         get().faceFromPath(enemy.id, path);
         if (geom !== enemy) get().faceFromPath(geom.id, path);
         bus.emit(EVT.ANIM_MOVE, { id: enemy.id, path });
         if (geom !== enemy) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path });
-        applyZoneCrossings(get, set, enemy, path ?? [{ ...mv.to }]); // Mur de feu & co (L11) : traverser coûte
+        applyZoneCrossings(get, set, enemy, path ?? [{ ...mv.to }]); // Mur de feu & co : traverser coûte
         // Grimpant (LDB 85 l.160-162) : le pathing IA franchit une arête `WallSeg.climb` SANS Test —
         // pas un jet silencieux, journalisé comme le geste joueur `climbAcross` (#504, MÊME clé i18n).
         if (path && path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
@@ -8340,8 +8429,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         set({ battle: { ...battle } });
         bus.emit(EVT.SCENE_DIRTY);
         const tgt = targetOf(mv.thenTargetId);
-        // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant.
-        if (!ran && canAct && combatDistance(enemy, tgt) <= meleeReachTiles(enemy.weapons)) {
+        // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; une cible bénie refusée
+        // laisse l'approche faite, sans l'attaque (LDB 41 l.142).
+        if (!ran && canAct && combatDistance(enemy, tgt) <= meleeReachTiles(enemy.weapons) && oseAttaquer(tgt)) {
           // Charge de l'IA : se ruer au contact depuis une position non-Engagée donne l'Avantage (LDB 15 l.35-37).
           if (!wasEngaged) {
             const adv = chargeAdvantage(effectiveMovement(geom), distBefore);
@@ -8536,7 +8626,7 @@ export const TABLES = {
       if (!level) return [];
       const gain = corruptionGain(level, row.result!.success, Math.max(0, row.result!.sl));
       // Le verdict (roll/target) est déjà porté par la rangée de jet (RollLine ✓/✗ ±DR) — la conséquence ne
-      // re-décrit QUE ce qui a été appliqué (#295 Lot 1, Décision 1b) : le gain RÉEL, ou une résistance nue.
+      // re-décrit QUE ce qui a été appliqué (#295) : le gain RÉEL, ou une résistance nue.
       // Le DEGRÉ affronté est nommé des DEUX côtés (#1281, critère 2) : il l'était sur la seule réussite,
       // et l'échec ne laissait qu'un « +N Point(s) de Corruption » qui ne disait pas à quoi le porteur avait cédé.
       if (gain <= 0) return [tr('out.corruptExposureResist', { name: hero.label, label })];

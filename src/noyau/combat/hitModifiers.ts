@@ -287,8 +287,7 @@ export const TABLES = {
       },
     },
     {
-      // Bouclier anti-flèches (LDB 47 — L11) : projectile ORGANIQUE entrant dans la zone → détruit,
-      // « n'infligeant aucun Dégât à leur cible ». Le tir et la munition sont consommés normalement.
+      // Bouclier anti-flèches (LDB 47 l.358). Le tir et la munition sont consommés normalement.
       // AVANT les sauvegardes : un projectile détruit en vol n'est pas un coup reçu (LDB 85 l.98), il n'y a
       // donc aucun dé de sauvegarde à jeter contre lui.
       id: 'arrow-ward',

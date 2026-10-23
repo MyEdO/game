@@ -44,9 +44,8 @@ import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 const TEST_PROLONGATION = { char: 'force-mentale' } as const satisfies RollRequest['test'];
 
 // ============================================================================================
-// Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
-// tel quel, `ctx.sink` remplaçant la `tickLine` locale, `ctx.get` le `get`). Les `order` reflètent la
-// position d'origine → ordre + RNG préservés (golden byte-pour-byte).
+// Séquence RAW de franchissement de Round, une étape par hook (`ctx.sink` journalise, `ctx.get` lit
+// l'état). Les `order` fixent l'ordre des étapes, donc celui des tirages RNG (golden byte-pour-byte).
 // ============================================================================================
 
 /** Aux Armes (AA 07 l.5) : un combattant à 0 PB porteur de l'État Hémorragique (et pas déjà Inconscient / hors

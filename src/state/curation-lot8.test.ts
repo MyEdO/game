@@ -1,5 +1,5 @@
 /**
- * Curation élargie (Lot 8 bis) : Magie mineure + Arcanes communs + Miracles
+ * Curation élargie : Magie mineure + Arcanes communs + Miracles
  * Sigmar/Shallya curés, ops missile (Drain soigne le lanceur, Grands feux posent
  * leurs États), PA temporisés (Armure Aethyrique), désambiguïsation des labels
  * en double, inventaire d'implémentation.
@@ -49,7 +49,7 @@ describe('couverture de curation', () => {
     // la narration de modulation bougie↔lanterne (Test de Focalisation, non modélisé, arbitrage MJ) → partiel.
     expect(spellSupportOf(lumiere)).toBe('partiel');
     // Cautériser : mécanique (heal/removeCondition/preventInfection/Inconscient sur −6 DR) + un volet
-    // « arbitrage MJ » (le hurlement de douleur). Le Test interne a migré en nœud Flow `test` (Lot 4b) :
+    // « arbitrage MJ » (le hurlement de douleur). Le Test interne a migré en nœud Flow `test` :
     // sa narration vit dans la branche `fail`, visible par `spellEffectOps` → la classification reflète
     // ce volet → « partiel ».
     const cauteriser = findSpellById('cauteriser')!;

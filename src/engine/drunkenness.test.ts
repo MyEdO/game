@@ -85,7 +85,7 @@ describe('Ivresse — Résistance à l’alcool (LDB 09 l.471-487)', () => {
     applyAlcoholTest(c, false, 2, d10fixed(7));
     const r = applyAlcoholTest(c, false, 2, d10fixed(7));
     applyDrunkOps(c, r.drunkOps);
-    // Cible = id de Groupe `tout` (wildcard « n'importe qui », groupMatch engine/groups.ts:155).
+    // Cible = id de Groupe `tout` (wildcard « n'importe qui », `groupMatch`, engine/groups.ts).
     expect(c.psychTraits?.some((p) => p.type === 'animosite' && p.cible === 'tout')).toBe(true);
   });
 

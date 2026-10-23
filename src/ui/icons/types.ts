@@ -1,4 +1,4 @@
-/** Icône UI SVG maison (LOT 4 — remplace les emojis d'affordance). Charte : voir defs/action.ts. */
+/** Icône UI SVG maison (à la place des emojis d'affordance). Charte : voir defs/action.ts. */
 export interface IconDef {
   /** `famille/nom` en kebab-case (ex. `action/attack`, `ui/wait`). */
   id: string;

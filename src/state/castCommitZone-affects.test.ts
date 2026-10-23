@@ -1,7 +1,7 @@
 /**
- * `castCommitZone` (src/noyau/combatFlow.ts:3499) — `affects` (SpellTarget kind:'area',
- * src/engine/spellRange.ts:31) : la Zone d'Effet déclare EN DONNÉE, par une `Condition` du
- * vocabulaire existant (src/engine/flowCore.ts:116), quels candidats elle retient.
+ * `castCommitZone` (src/noyau/combatFlow.ts) — `affects` (SpellTarget kind:'area',
+ * src/engine/spellRange.ts) : la Zone d'Effet déclare EN DONNÉE, par une `Condition` du
+ * vocabulaire existant (src/engine/flowCore.ts), quels candidats elle retient.
  *  - champ absent = LDB 47 l.28 ;
  *  - champ présent = réserve du texte du Sort (VDM 11 l.418).
  * Cumul avec `excludesCaster` : les deux filtres s'appliquent.

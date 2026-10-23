@@ -64,7 +64,7 @@ export interface MapCanvasProps {
   className?: string;
   ariaLabel?: string;
   /** Clic sur le FOND (hors tracé/marqueur) en coordonnées logiques du viewBox — placement d'auteur
-   *  (éditeur, #345 : positionner un POI). Absent = fond non cliquable (comportement historique). */
+   *  (éditeur, #345 : positionner un POI). Absent = fond non cliquable. */
   onBackgroundClick?: (p: { x: number; y: number }) => void;
   /** Jeton de RECADRAGE : dès qu'il AUGMENTE (l'appelant vient d'ouvrir du contenu — un lieu révélé),
    *  la vue rejoue `computeFit`, exactement comme le bouton « Recentrer ». Jamais à chaque rendu : sans

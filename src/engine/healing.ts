@@ -118,11 +118,10 @@ export function lodgedAmmoCount(target: Combatant): number {
  *  drain, repos) porte ses propres à-côtés sans dupliquer le plafond de munition logée. */
 export interface HealWoundsOptions {
   /** Verrous « 1 soin de Blessures / rencontre » + matériel stérile (LDB 09 l.260 / LDB 18 l.298) —
-   *  SEUL le chemin compétence Guérison les pose. Défaut `true` (comportement historique de la
-   *  fonction, chemin Guérison). */
+   *  SEUL le chemin compétence Guérison les pose. Défaut `true` (chemin Guérison). */
   skillCheck?: boolean;
   /** Lève l'Inconscient et remet l'horloge de mort à zéro dès qu'on repasse > 0 PB (LDB 18 l.15).
-   *  Défaut `true` (comportement historique). Le repos gère sa PROPRE réanimation (+ À Terre, non
+   *  Défaut `true`. Le repos gère sa PROPRE réanimation (+ À Terre, non
    *  couvert ici) — `false` pour éviter un double traitement partiel. */
   wake?: boolean;
   /** Libellé de journal spécifique au chemin (reçoit le nombre de PB EFFECTIVEMENT rendus, déjà

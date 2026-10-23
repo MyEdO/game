@@ -1,7 +1,7 @@
 import { CodexRef } from './compendium/CodexRef';
 
 /**
- * Rendu UNIQUE de la VALEUR des Blessures (LOT 5 — composants de donnée unifiés) : « courant/max »
+ * Rendu UNIQUE de la VALEUR des Blessures (composant de donnée unifié) : « courant/max »
  * avec ses tons, popover Codex de la caractéristique Blessure. TOUT écran qui affiche des PB passe
  * par ici (fiche, inspection, cartes) ; TOUJOURS « courant/max » — l'unité EST le composant, plus de
  * « max seul » ni de « N/M PB » divergents.

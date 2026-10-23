@@ -115,9 +115,8 @@ function assertRatchet(counts: Record<string, number>, baseline: Record<string, 
 
 // ── (v) Prix affichés ⇒ `<Coins>`/`formatMoney` : une valeur monétaire interpolée suivie d'une unité
 //    nue (` CO`/` PA`/` CA`) dans le JSX est de la dette (illisible, non i18n). `Coins.tsx` définit
-//    l'unité (exclu). Migré au #310 (ConditionEditor/EffectList/PortView → formatMoney/<Coins>) : la
-//    dette réelle est retombée à zéro — heuristique fail-closed, absolue. Les 4 faux positifs
-//    restants (CharacterSheet/CharacterCreator/GameOpEditor/EquipmentPanel) ne sont PAS de la monnaie
+//    l'unité (exclu). Heuristique fail-closed, absolue, sans dette (#310). Ses 4 faux positifs
+//    (CharacterSheet/CharacterCreator/GameOpEditor/EquipmentPanel) ne sont PAS de la monnaie
 //    (« PA » = Points d'Armure, LDB) : exemption nominative gelée en dur ci-dessous plutôt qu'en
 //    baseline (aucun de ces sites n'est censé approcher zéro un jour).
 const PRICE_PA_ARMOR_EXEMPT = new Set([
@@ -125,8 +124,8 @@ const PRICE_PA_ARMOR_EXEMPT = new Set([
   'creator/CharacterCreator.tsx',
   'editor/GameOpEditor.tsx',
   'EquipmentPanel.tsx',
-  // #492 : `ActiveEffectsPanel`/`describeEffect` (« PA (toutes Localisations) », Points
-  // d'Armure) déplacés tels quels de CharacterSheet.tsx — même faux positif, même exemption.
+  // #492 : `ActiveEffectsPanel`/`describeEffect` affichent « PA (toutes Localisations) » (Points
+  // d'Armure), comme CharacterSheet.tsx — même faux positif, même exemption.
   'EtatPanel.tsx',
 ]);
 

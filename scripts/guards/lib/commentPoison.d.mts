@@ -32,6 +32,10 @@ export function estArtDuRig(rel: string): boolean;
 export const TOMBSTONE_FAMILIES: { rx: RegExp; label: string }[];
 export function tombstonesIn(text: string): string[];
 export function scanTombstones(relPath: string, contenu: string): Finding[];
+/** Le compte de lignes des fichiers du dépôt vers lesquels un chemin de renvoi se résout (vide = aucun). */
+export function lignesDesFichiersDuDepot(chemins: readonly string[], lire: (chemin: string) => string): (renvoi: string) => number[];
+/** Les renvois `chemin.ext:N` des commentaires d'un fichier qu'aucun fichier résolu ne porte. */
+export function scanPointeursHorsBornes(relPath: string, contenu: string, lignesDe: (renvoi: string) => number[]): Finding[];
 
 export const LEGACY_VOCAB_FAMILIES: { rx: RegExp; label: string; domaine?: (rel: string) => boolean }[];
 export const LEGACY_VOCAB_EXCLUSIONS: { rx: RegExp; label: string }[];

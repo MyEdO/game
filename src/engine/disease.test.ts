@@ -174,7 +174,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const c = sick({ diseases: [dz] });
 
     // La donnée du symptôme (passive grantPsychTrait) est CÂBLÉE : Haine dont la Cible est l'id de Groupe
-    // `vivant` (Middenheim 131 « toutes les choses vivantes » ; groupMatch, engine/groups.ts:156) + Frénésie.
+    // `vivant` (Middenheim 131 « toutes les choses vivantes » ; `groupMatch`, engine/groups.ts) + Frénésie.
     // (diseasePsychTraits = le collecteur ; effectivePsychTraits = stockés ∪ dérivés.)
     expect(diseasePsychTraits(c)).toEqual([
       { type: 'haine', cible: 'vivant' },

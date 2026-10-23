@@ -233,7 +233,7 @@ function combatSkillPick(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon
  * RAW : Corps à corps et Projectiles étant Groupées, les Augmentations ne comptent QUE pour la
  * Spécialisation correspondant au Groupe de l'arme tenue (exemple Sigrid, LDB 09 l.44 : sans la
  * Spé adéquate on teste sur la Caractéristique brute). `weapon` omis (créatures, Piétinement,
- * affichage générique) → comportement historique : meilleure Spé disponible.
+ * affichage générique) → meilleure Spé disponible.
  */
 export function combatBaseValue(c: Combatant, kind: 'melee' | 'ranged', weapon?: Weapon): number {
   const p = combatSkillPick(c, kind, weapon);

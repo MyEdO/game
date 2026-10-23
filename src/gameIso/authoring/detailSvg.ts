@@ -1,7 +1,7 @@
 /**
  * DÉTAIL de surface des PEINTRES SVG D'AUTHORING (frontière du module : `authoring/project.ts` ;
  * matériaux v2 « dessiné main ») — consomme les
- * `DetailRecipe` (Lot 0) portées par les defs d'apparence (structure/relief/terrain).
+ * `DetailRecipe` portées par les defs d'apparence (structure/relief/terrain).
  *
  * Règle structurante « pattern = structure, fill = couleur » : la face pose son FILL plein (teintable
  * nuit/estompe/brume), puis (a) un `<pattern userSpaceOnUse>` par (recette × ORIENTATION d'arête × plan)

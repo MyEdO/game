@@ -186,7 +186,7 @@ describe('Modal — un contrôle porté par PORTAL possède ses touches (fronti�
 
   it('RÉGRESSION — focus DANS la boîte : le comportement d’origine est intact', () => {
     const { primary } = mountWithPortal();
-    // Focus nulle part → repli sur le primaire (contrat historique).
+    // Focus nulle part → repli sur le primaire.
     (document.activeElement as HTMLElement | null)?.blur();
     pressEnter(document.body);
     expect(clicks).toBe(1);

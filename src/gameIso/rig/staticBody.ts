@@ -13,7 +13,7 @@ import { buildTokenMap, applyTokenMap, type PaletteDeclaree } from './palette';
 import type { Palette } from '../../engine/authoringAppearance';
 
 /** Ligne de SOL du repère de corps (= les 150px de l'ancrage aux pieds). Tout corps statique pose
- *  sa base ICI ⇒ pas de lévitation (le défaut historique de la coque, qui se posait à ~98). */
+ *  sa base ICI ⇒ pas de lévitation. */
 export const GROUND_Y = 150;
 
 /**

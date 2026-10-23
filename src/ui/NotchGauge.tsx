@@ -27,8 +27,8 @@ export interface NotchGaugeProps {
   /** Variante empilée : label au-dessus de la piste (défaut : une ligne). */
   stacked?: boolean;
   /** Taille FIXE (px) par cran — la piste se dimensionne à SES crans (`notches × cellSize`), jamais
-   *  étirée au conteneur. Sans cette prop : comportement historique (piste flexible pleine largeur,
-   *  adapté aux jauges à nombreux crans). Réservé aux jauges à PEU de crans (Destin, Corruption). */
+   *  étirée au conteneur. Sans cette prop : piste flexible pleine largeur,
+   *  adaptée aux jauges à nombreux crans. Réservé aux jauges à PEU de crans (Destin, Corruption). */
   cellSize?: number;
   className?: string;
 }

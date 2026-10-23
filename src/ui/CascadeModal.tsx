@@ -45,7 +45,7 @@ import { nommer } from '../noyau/monde/identites';
 import { libelleDuDe, lectureDuTotal, libelleDuSeuil, libelleDeTable, libelleDuJetFige } from '../noyau/jetsEnVue';
 import { t } from '../i18n';
 
-/** Une étape-JET est PRÉSENTABLE avec son acteur (comportement historique) OU sans acteur quand
+/** Une étape-JET est PRÉSENTABLE avec son acteur OU sans acteur quand
  *  elle est MONDIALE (`worldOwner`, seam #275 Décision 3 — désertion/Moral, aucun `actorId` par
  *  conception) : rendre `null` dans ce second cas privait TOUS les sièges — y compris l'owner
  *  (MJ) — de la modale (#P0-2). Exporté pour test direct (pas de harnais de rendu React ici). */
@@ -842,7 +842,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     );
   }
 
-  // JET : étape influençable (comportement historique — requiert l'acteur) OU étape MONDIALE
+  // JET : étape influençable (requiert l'acteur) OU étape MONDIALE
   // (`worldOwner`, seam #275 Décision 3 — désertion/Moral) : aucun acteur PRÉSENTABLE par
   // conception, l'ownership est déjà routée en amont (sentinel `WORLD_STEP_OWNER`, ne pas y
   // toucher ICI) — rendu générique (titre = `cur.label` déjà composé par le seam, pas de portrait).

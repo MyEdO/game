@@ -630,7 +630,7 @@ export interface ShipManeuverParticipant extends RollParticipant {
    *  À LA CONSTRUCTION de l'étape par l'appelant qui connaît le contexte (`buildVoyageCrewStep`, kind
    *  `'phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
    *  `crewRoleValue`/`testValue`. Absent pour les Tests d'équipage sans sens narratif dédié
-   *  (manœuvre, bordée…) = comportement historique. */
+   *  (manœuvre, bordée…) = aucune restriction de sens. */
   sense?: PairedSense;
   result: CrewRoleRoll | null;
   /** Refus NOMMÉ du contributeur qui ne peut pas tenter son rôle (`crewRoleValue().refus`, LDB 09 l.30) :
@@ -1565,7 +1565,7 @@ export interface PendingExtendedTest extends PendingBase {
   /** Issue de DOMAINE en donnée (kind-agnostique — Commerce d'opportunité, artisanat futur…) : résolue
    *  par la table `issuesDeTestEtendu` (calque de la table `appliers`) à la clôture du Test,
    *  qu'il ait ATTEINT sa cible ou buté sur `maxAttempts`. `meta` = paramètres sérialisables (jamais de
-   *  closure — coop). Absent ⇒ comportement historique (`flag`/`dispel`, réussite seule). */
+   *  closure — coop). Absent ⇒ `flag`/`dispel`, réussite seule. */
   outcome?: { kind: IssueDeTestEtendu; meta?: CascadeStepMeta };
   /** ENJEU du Round (#1117) — référence de donnée résolue par `resolveStake`, rendue par la modale. */
   stake?: StakeRef;

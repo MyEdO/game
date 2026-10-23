@@ -20,7 +20,7 @@ test('ancreDeTitre : la ponctuation PART et l’espace qu’elle laisse devient 
 })
 
 test('ancreDeTitre : les ACCENTS restent, l’apostrophe courbe part, le `_` d’un mot reste', () => {
-  // docs/raw/4e/bestiaire.md:471 · docs/raw/00-index.md:21 · docs/raw/4e/catalogue-creatures.md:819.
+  // Titres de docs/raw/4e/bestiaire.md · docs/raw/00-index.md · docs/raw/4e/catalogue-creatures.md.
   assert.equal(ancreDeTitre('Écarts ou points à vérifier'), 'écarts-ou-points-à-vérifier')
   assert.equal(ancreDeTitre('⚠ Fichiers au-dessus du seuil d’outillage (512 Ko)'), '-fichiers-au-dessus-du-seuil-doutillage-512-ko')
   assert.equal(ancreDeTitre('[LDB 84] _GoBack'), 'ldb-84-_goback')

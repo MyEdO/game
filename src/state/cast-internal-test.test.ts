@@ -14,7 +14,7 @@ import type { Combatant } from '../engine/types';
  *  - la VICTIME est un HÉROS manuel → le test SUSPEND en APPENDANT une étape `triggeredTest` à la
  *    MÊME cascade `cast` active (une seule cascade enrichie, influençable — Chance/Pacte/Résilience) ;
  *  - la VICTIME est un ENNEMI → jet INLINE + branche honorée + ligne de parité dans le journal de
- *    combat (plus jamais de jet silencieux). C'est la machinerie posée aux Lots 1-2, branchée ici sur
+ *    combat (aucun jet silencieux), branché sur
  *    la DONNÉE convertie (`spells.json` : op `test` → nœud Flow `test`).
  */
 describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’incantation', () => {

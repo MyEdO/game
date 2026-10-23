@@ -151,7 +151,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     expect(before - foe.wounds.current).toBeGreaterThanOrEqual(1);
   });
 
-  // NB : Affamé porte désormais un nœud Flow `test` (Lot 4a) → routé cadence-aware, plus un jet inline
+  // NB : Affamé porte un nœud Flow `test` → routé cadence-aware, jamais un jet inline
   // silencieux. Testé sur une VRAIE bataille dans le describe « Affamé — Test de trigger routé » ci-dessous.
 
   it('TRAIT Vampirique : Morsure infligeant N PB → l’attaquant draine N PB (Vol de vie, gaté par attackKind)', () => {
@@ -278,7 +278,7 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
 });
 
 /**
- * Affamé (LDB 85) porte désormais un nœud Flow `test` (Lot 4a) : `onKill` → Test de FM Accessible →
+ * Affamé (LDB 85) porte un nœud Flow `test` : `onKill` → Test de FM Accessible →
  * échec = `loseTurn`. Routé cadence-aware via le store (un `test` non routé LÈVE) : une créature ENNEMIE
  * → jet INLINE + branche. On le vérifie sur une VRAIE bataille (FM basse → échec → perd Action+Mouvement).
  */

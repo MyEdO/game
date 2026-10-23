@@ -1,8 +1,8 @@
 /**
- * Panneau LIEU de l'éditeur de carte du monde (#419) — extrait du monolithe `WorldMapEditor.tsx`
- * (règle 4 AGENTS.md : 5 sections à plat → 3 onglets `Tabs`). « Lieu » (identité + services),
- * « Commerce » (Marché terrestre + Port maritime, même famille négoce), « Plan du hub » (POI, déjà
- * un sous-écran de fait). Zéro logique métier déplacée : découpage JSX pur, coutures runtime intactes.
+ * Panneau LIEU de l'éditeur de carte du monde (#419), monté par `WorldMapEditor.tsx`
+ * (règle 4 AGENTS.md : 3 onglets `Tabs`). « Lieu » (identité + services),
+ * « Commerce » (Marché terrestre + Port maritime, même famille négoce), « Plan du hub » (POI, un
+ * sous-écran de fait). Découpage JSX pur : la logique métier vit dans `noyau/worldMap` et `engine/`.
  */
 import { useState } from 'react';
 import { Tabs } from '../composites/Tabs';

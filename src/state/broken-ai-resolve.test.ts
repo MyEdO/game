@@ -1,18 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { chooseEnemyAction } from '../noyau/monde/ai';
-import { runEnemyAI, aiTurnLog, clearAiTurnLog } from '../noyau/combatFlow';
+import { runEnemyAI, aiTurnLog, clearAiTurnLog, buildAiInput } from '../noyau/combatFlow';
 import { spawnEnemy } from '../noyau/monde/spawn';
+import { engagesEnAction } from '../noyau/monde/combatants';
 import { pregen, PREGEN } from '../data/pregens';
 import { stacks } from '../engine/conditions';
-import { seedBattleRng } from '../noyau/battleRng';
+import { chebyshev } from '../engine/grid';
+import { battleRng, seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 
 /**
- * Lot 1 — IA : un acteur VERROUILLÉ (`restrictsAction`, ex. Brisé) dépense PROACTIVEMENT sa Détermination
+ * IA : un acteur VERROUILLÉ (`restrictsAction`, ex. Brisé) dépense PROACTIVEMENT sa Détermination
  * pour se RESSAISIR (retirer l'État, LDB 17 l.57-61) au lieu de fuir/subir tout le combat. GÉNÉRIQUE et
  * data-driven (aucun nom d'État en dur) : la décision PURE vit dans `chooseEnemyAction` (`spendResource`),
  * l'exécution dans `runEnemyAI` (dépense via l'action store `spendResolveCondition`, puis vraie action).
+ * Sans Détermination, l'Engagé que sa fuite oblige à partir (Brisé LDB 16 l.52, Bestial LDB 85 l.59) se
+ * Désengage d'abord par le flux du joueur (LDB 15 l.47-49).
  */
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 12, h: 12 }, layers: [{ z: 0, tiles: Array(144).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
@@ -87,5 +91,115 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
     const log = aiTurnLog();
     const last = log[log.length - 1];
     expect(last?.action.startsWith('spend')).toBe(false);
+  });
+});
+
+describe('IA Engagée : la fuite obligée passe par le Désengagement (LDB 15 l.47-49)', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); clearAiTurnLog(); useGame.setState({ battle: null, party: [], pendingDisengage: null, pendingCascade: null }); seedBattleRng(1); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** `e` (brigand) Engagé au contact du héros `h` ; `de` : les d100 du combat, dans l'ordre (jet figé de
+   *  l'adversaire, puis Esquive de `e`), 50 ensuite. */
+  function poser(e: Partial<Combatant>, des: number[] = []) {
+    const ennemi = spawnEnemy({ ref: 'brigand' }, 'e', { x: 5, y: 5 });
+    Object.assign(ennemi, { kind: 'enemy', engagedWith: ['h'], movement: 4, resolve: 0 }, e);
+    const heros = pregen(PREGEN.sorcier);
+    heros.id = 'h'; heros.pos = { x: 6, y: 5 }; heros.engagedWith = ['e']; heros.wounds = { ...heros.wounds, max: 30, current: 30 };
+    const battle = {
+      combatants: [ennemi, heros], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,
+      action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+    } as never;
+    useGame.setState({ battle, scene: scene(), party: [], partyPos: { x: 0, y: 0 } });
+    const file = [...des];
+    battleRng().int = () => file.shift() ?? 50;
+    return { ennemi, heros };
+  }
+  const journal = (): string[] => useGame.getState().battle!.log.map((l) => l.text);
+  const jouer = () => { runEnemyAI(useGame.getState, useGame.setState, 'e'); vi.runOnlyPendingTimers(); vi.runOnlyPendingTimers(); };
+  const BRISE = { conditions: [{ id: 'brise', value: 1 }] } as Partial<Combatant>;
+  const BESTIAL_BLESSE = { traits: [{ id: 'bestial' }], wounds: { current: 4, max: 10 } } as Partial<Combatant>;
+
+  it('Brisé Engagé, Avantage supérieur : il le sacrifie (l.47), puis fuit hors du contact', () => {
+    const { ennemi, heros } = poser({ ...BRISE, advantage: 2 });
+    jouer();
+    expect(journal()).toContain(`${ennemi.label} se désengage en sacrifiant son Avantage.`);
+    expect(ennemi.engagedWith).toEqual([]);
+    expect(chebyshev(ennemi.pos!, heros.pos!)).toBeGreaterThan(1);
+    expect(useGame.getState().pendingDisengage).toBeNull();
+  });
+
+  it('Brisé Engagé : Esquive réussie (l.49), il fuit sur son seul Mouvement, ni Course ni attaque', () => {
+    const { ennemi, heros } = poser(BRISE, [99, 5]);
+    jouer();
+    expect(journal()).toContain(`${ennemi.label} se désengage (Esquive réussie, +1 Avantage).`);
+    expect(journal().some((l) => l.startsWith(`${ennemi.label} prend sa Course`))).toBe(false);
+    expect(ennemi.engagedWith).toEqual([]);
+    expect(chebyshev(ennemi.pos!, heros.pos!)).toBeGreaterThan(1);
+    expect(useGame.getState().pendingDefense ?? null).toBeNull();
+  });
+
+  it('Brisé Engagé : Esquive manquée, il reste Engagé à sa place et ne frappe pas', () => {
+    const { ennemi, heros } = poser(BRISE, [5, 99]);
+    jouer();
+    expect(journal()).toContain(`${ennemi.label} échoue à se désengager ; ${heros.label} gagne +1 Avantage.`);
+    expect(ennemi.engagedWith).toEqual(['h']);
+    expect(ennemi.pos).toEqual({ x: 5, y: 5 });
+    expect(aiTurnLog()[aiTurnLog().length - 1]?.action).toBe('disengage');
+    expect(useGame.getState().pendingDefense ?? null).toBeNull();
+  });
+
+  it('Bestial blessé Engagé, non acculé : il se Désengage puis fuit (LDB 85 l.59)', () => {
+    const { ennemi, heros } = poser({ ...BESTIAL_BLESSE, advantage: 2 });
+    jouer();
+    expect(journal()).toContain(`${ennemi.label} se désengage en sacrifiant son Avantage.`);
+    expect(chebyshev(ennemi.pos!, heros.pos!)).toBeGreaterThan(1);
+  });
+
+  it('Bestial blessé Engagé : Esquive manquée, il reste Engagé', () => {
+    const { ennemi } = poser(BESTIAL_BLESSE, [5, 99]);
+    jouer();
+    expect(ennemi.engagedWith).toEqual(['h']);
+    expect(ennemi.pos).toEqual({ x: 5, y: 5 });
+  });
+
+  it('les Engagés qui clouent l’IA sont ceux que quitte son déplacement (`engagesEnAction`), camp compris', () => {
+    const { ennemi, heros } = poser({ engagedWith: ['a'] });
+    heros.engagedWith = []; heros.pos = { x: 10, y: 10 };
+    const allie = spawnEnemy({ ref: 'brigand' }, 'a', { x: 5, y: 6 });
+    Object.assign(allie, { kind: 'enemy', engagedWith: ['e'] });
+    useGame.getState().battle!.combatants.push(allie);
+    const entree = buildAiInput(ennemi, useGame.getState);
+    expect(entree.engages).toEqual(engagesEnAction(useGame.getState().battle, ennemi));
+    expect(entree.engages?.map((c) => c.id)).toEqual(['a']);
+    expect(chooseEnemyAction(entree).kind).not.toBe('move');
+    allie.dead = true;
+    allie.wounds = { ...allie.wounds, current: 0 };
+    expect(buildAiInput(ennemi, useGame.getState).engages).toEqual([]);
+  });
+
+  it('départ libre (Nuée, LDB 85 l.253) : les liens ne se lèvent, journalisés, que pour le contact quitté', () => {
+    const fuite = poser({ ...BRISE, swarm: true });
+    jouer();
+    expect(chebyshev(fuite.ennemi.pos!, fuite.heros.pos!)).toBeGreaterThan(1);
+    expect(fuite.ennemi.engagedWith).toEqual([]);
+    expect(journal()).toContain(`${fuite.ennemi.label} quitte librement le corps à corps.`);
+
+    const reste = poser({ swarm: true }, [99]);
+    reste.heros.activeEffects = [{ label: 'Bénédiction de Protection', bonus: 0, duration: { scale: 'rounds', left: 6 }, attackWardFM: true }];
+    const autre = pregen(PREGEN.sorcier);
+    autre.id = 'b'; autre.pos = { x: 7, y: 6 };
+    useGame.getState().battle!.combatants.push(autre);
+    jouer();
+    expect(aiTurnLog()[aiTurnLog().length - 1]?.action.startsWith('move→b')).toBe(true);
+    expect(chebyshev(reste.ennemi.pos!, reste.heros.pos!)).toBe(1);
+    expect(reste.ennemi.engagedWith).toEqual(['h']);
+    expect(journal()).not.toContain(`${reste.ennemi.label} quitte librement le corps à corps.`);
+  });
+
+  it('la ligne de Détermination survit au déplacement qui la suit (état du combat relu)', () => {
+    const { ennemi, heros } = poser({ ...BRISE, engagedWith: [], resolve: 1 });
+    heros.engagedWith = []; heros.pos = { x: 8, y: 5 };
+    jouer();
+    expect(journal().some((l) => l.startsWith(`${ennemi.label} puise dans sa Détermination`))).toBe(true);
   });
 });

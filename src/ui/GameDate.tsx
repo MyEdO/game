@@ -8,7 +8,7 @@ export function gameDateText(time: number): string {
 }
 
 /**
- * Rendu UNIQUE d'un instant de jeu (LOT 5 — composants de donnée unifiés) : icône de la phase du
+ * Rendu UNIQUE d'un instant de jeu (composant de donnée unifié) : icône de la phase du
  * jour (registre `time/*` via `dayPhase().icon`, libellé de phase en tooltip) + jour de semaine
  * (absent des jours intercalaires, canon) + date impériale complète (`formatImperial`). Tout écran
  * qui affiche l'horloge de campagne passe par ici (menu ☰, repos, voyage, sauvegardes, interlude).

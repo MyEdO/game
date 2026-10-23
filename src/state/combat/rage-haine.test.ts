@@ -12,7 +12,7 @@ import type { Combatant } from '../../engine/types';
  * Trait Rage — LDB 85 l.281-283 : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
  * devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses
  * Avantages (minimum 3) pour entrer en Frénésie. » Hook `rage` (onTurnStart, décision IA RNG-free) :
- * ≥ 3 → Frénésie (politique historique) ; sinon ≥ 1 ET adversaires ENGAGÉS non couverts → tout
+ * ≥ 3 → Frénésie ; sinon ≥ 1 ET adversaires ENGAGÉS non couverts → tout
  * dépenser pour la Haine (état psy CIBLÉ, LDB 21 : +1 DR aux Tests de Combat contre le groupe via
  * `psychDRAdjust`, immunité à sa Peur — pas du vide).
  */

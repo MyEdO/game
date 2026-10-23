@@ -14,7 +14,7 @@
  *  - `runCombatFlow(ctx, flow)` — exécuteur à PILE d'un Flow EN COMBAT (calque `runFlow` côté scène) :
  *    porte la continuation `after` (sur un `test`, `after = reste de la pile`).
  *  - `routeTriggeredTest` — l'entrée des triggers portant un nœud `test` (Mâchoires `onGainCondition`,
- *    Venin/Hurlement/2 enchants `onHit`) : délègue à `runCombatFlow` (test top-level = IDENTIQUE au Lot 0 ;
+ *    Venin/Hurlement/2 enchants `onHit`) : délègue à `runCombatFlow` (test top-level = `after` vide ;
  *    test enfoui = suspendu avec `after`).
  *
  * Les branches `onSuccess`/`onFail` + la continuation `after` voyagent dans le `meta` (sérialisable,
@@ -671,7 +671,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
 /**
  * ROUTEUR d'un Flow de trigger PORTANT un nœud `test` vers la voie cadence-aware, appelé par
  * `triggeredEffects` quand le contexte porte son `set`. Délègue au `runCombatFlow` à PILE (after-aware) : un `test` top-level
- * (Mâchoires, `onGainCondition`) est traité IDENTIQUEMENT au Lot 0 (`after` = pile vide) ; un `test`
+ * (Mâchoires, `onGainCondition`) se résout avec `after` = pile vide ; un `test`
  * ENFOUI (Venin sous `if`, Hurlement dans un `seq`) suspend en empaquetant le reste de la pile dans
  * `after`. Le `caster`/référent = `actor` (le porteur de l'effet : Force de la source pour les formules) ;
  * `target` = la cible de l'effet (qui jette le Test). `opsCtx` porte le contexte de la touche

@@ -774,16 +774,14 @@ export type GameOp =
   /** « Soumis aux règles de la Suffocation » (LDB 18 l.345-346 — Ombres étrangleuses,
    *  Transmutation de Chamon) : −1 PB/Round, 0 PB → Inconscient, mort après BE Rounds. */
   | { op: 'suffocate' }
-  /** Bouclier anti-flèches (LDB 47 — L11) : « les projectiles constitués de matière organique
-   *  sont automatiquement détruits s'ils entrent dans la Zone d'Effet ». Aura sur la cible. */
+  /** Bouclier anti-flèches (LDB 47 l.358). Aura sur la cible. */
   | { op: 'arrowWard' }
   /** Dôme (LDB 47 l.410) — aura sur la cible, qui OCTROIE `traitId` (Indice) à ceux qu'elle couvre :
    *  MÊME graphie d'octroi que `grantTrait`, et REQUISE ici (un dôme sans Indice serait une protection
    *  qui ne sauve de rien). AUCUNE zone ne s'authore ici : elle est DÉJÀ déclarée par la ligne « Cible »
    *  du sort (`SpellTarget`, ZdE en DIAMÈTRE — LDB 47 l.28), lue par `zdeDiameterMeters`. */
   | { op: 'domeWard'; traitId: string; indice: Formula }
-  /** Bénédiction de Protection (LDB 41 — L13) : « Les ennemis doivent effectuer un Test de FM
-   *  Accessible (+20) pour attaquer votre cible ». Drapeau lu à la déclaration d'attaque. */
+  /** Bénédiction de Protection (LDB 41 l.142). Drapeau lu à la déclaration d'attaque. */
   | { op: 'attackWardFM' }
   /** Martyr (LDB 43 l.107) : « Vous recevez tous les Dégâts subis en principe par vos cibles.
    *  […] votre Bonus d'Endurance est doublé pour le calcul des PB subis à cause de ces Dégâts. »
@@ -807,7 +805,7 @@ export type GameOp =
    *  `defenseValue` parade uniquement, JAMAIS l'autre main) ; `movementOnly` restreint (`char:'agilite'` typiquement)
    *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
    *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
-   *  = comportement historique (global, comme avant #193). */
+   *  = global. */
   | { op: 'testMod'; amount: number; char?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: 'main' | 'off' }
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
    *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
@@ -1102,7 +1100,7 @@ export type GameOp =
   | { op: 'senseLoss'; sense: PairedSense }
   /** Perd sa prochaine Action ET/OU son prochain Mouvement (Affamé : « festoie » ; échec du gate de la
    *  Racine de mandragore : « une Action ou un Mouvement (un au choix) », LDB 71 l.35 → l'issue du choix
-   *  pose `what:'action'` ou `'movement'`). `what` absent = les deux (comportement historique). Pose les
+   *  pose `what:'action'` ou `'movement'`). `what` absent = les deux. Pose les
    *  drapeaux lus au début du Round du porteur. */
   | { op: 'loseTurn'; what?: 'action' | 'movement' }
   /** GATE d'action par Round (Racine de mandragore, LDB 71 l.35 : « Les utilisateurs doivent réussir un

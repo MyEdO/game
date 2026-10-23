@@ -1,11 +1,11 @@
 /**
  * Hooks de DÉBUT DE TOUR ENNEMI (`turnStart`), déclarés dans la table `crochetsDeCombat` (`TABLES`,
- * lue par `combatHooks`) : la séquence de début de tour de l'IA vit ICI, chaque étape étant un hook ordonné par `order`. N'importe RIEN de combatFlow → pas de cycle (les
- * fonctions déplacées ne dépendent que des modules feuilles `engine/*`, `combatLog`, `combatGeometry`,
+ * lue par `combatHooks`) : la séquence de début de tour de l'IA vit ICI, chaque étape étant un hook ordonné par `order`. N'importe RIEN de combatFlow → pas de cycle (ses
+ * fonctions ne dépendent que des modules feuilles `engine/*`, `combatLog`, `combatGeometry`,
  * `lineOfSight`, `battleRng`, `cascade`, `rollSeam` — ce dernier porte la PORTE d'ouverture de jet
  * (`surfaceOf`, `pushMono`, `choiceStep`, #1262).
  *
- * DÉPENDANCE D'ORDRE RAW (commentée à l'origine dans `runEnemyAI`, encodée ici par `order`) : fin de
+ * DÉPENDANCE D'ORDRE RAW (encodée par `order`) : fin de
  * Frénésie (10) → Rage (20) → tentative de Frénésie IA (30) AVANT la psychologie (40) — la Frénésie
  * rend immunisé au test psy, donc elle doit être résolue d'abord. Le golden `turnStart.golden.test.ts`
  * fige l'ordre + les tirages RNG byte-pour-byte.
@@ -20,7 +20,7 @@ import { isOutOfAction, addCondition, combatTestPenalty } from '../../engine/con
 import { rawCombatTestBase, testValue } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
-import { inBattleId } from '../monde/combatants';
+import { engagesEnAction } from '../monde/combatants';
 import { garanti } from '../../lib/garanti';
 import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
 import { mountMovement, riderFearSize } from '../mount';
@@ -152,10 +152,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
   // Psychologique ». « Son adversaire » se lit à l'Engagement, jamais au camp : le lien Engagé est posé par
   // la résolution d'une attaque de mêlée et SYMÉTRIQUE (LDB 13 l.169-171) — un Engagé de son propre camp
   // est donc son adversaire de fait, comme pour la Peur de Taille (`agressifEnvers`).
-  const engagedFoesAdv = (enemy.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((e): e is Combatant => !!e && !isOutOfAction(e))
-    .map((e) => e.advantage ?? 0);
+  const engagedFoesAdv = engagesEnAction(battle, enemy).map((e) => e.advantage ?? 0);
   if (isPsychImmune(enemy, engagedFoesAdv.length ? Math.max(...engagedFoesAdv) : undefined)) return; // Immunité (Psychologie) / Frénésie / Détermination temp / Belliqueux
   enemy.psychState ??= [];
   const log: string[] = [];
@@ -216,8 +213,7 @@ export function resolvePsychAI(get: Get, set: SetFn, enemy: Combatant): void {
 }
 
 // ============================================================================================
-// Hooks `turnStart` : la séquence RAW de début de tour ennemi, migrée ISO-COMPORTEMENT depuis la tête
-// de `runEnemyAI`. Les `order` encodent la dépendance d'ordre (Frénésie/Rage AVANT la psychologie).
+// Hooks `turnStart` : la séquence RAW de début de tour ennemi, ouverte par `runEnemyAI`. Les `order` encodent la dépendance d'ordre (Frénésie/Rage AVANT la psychologie).
 // Chaque `run()` appelle au RUNTIME la fonction/le bloc correspondant (pas de souci de cycle à l'import).
 // ============================================================================================
 
@@ -263,11 +259,8 @@ export const TABLES = {
     // `onTurnStart` en DONNÉES (`psychology.json` : Sonné/Inconscient ∨ plus d'ennemi en LdV → Exténué),
     // diffusé UNIFORMÉMENT (héros + IA) par `fireTurnStartTriggers` AVANT les hooks d'entrée ci-dessous.
     {
-      // Rage (LDB 85 l.281-283) : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
-      // devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses
-      // Avantages (minimum 3) pour entrer en Frénésie. » Décision IA (RNG-free) : ≥ 3 → Frénésie
-      // (politique historique conservée) ; sinon ≥ 1 ET des adversaires au contact non encore haïs →
-      // tout dépenser pour la Haine (état psy ciblé LDB 21 : +1 DR aux Tests de Combat contre le groupe
+      // Rage (LDB 85 l.281-283). Décision IA (RNG-free) : ≥ 3 → Frénésie ; sinon ≥ 1 ET des adversaires
+      // au contact non encore haïs → tout dépenser pour la Haine (état psy ciblé LDB 21 : +1 DR aux Tests de Combat contre le groupe
       // + immunité à sa Peur, via psychology.json/psychDRAdjust). Cible = le 1ᵉʳ Groupe de chaque
       // adversaire Engagé (racial des héros) ; re-testable en fin de Round comme toute Haine (LDB 21).
       id: 'rage',
@@ -286,9 +279,7 @@ export const TABLES = {
         }
         if (adv < 1) return;
         // Adversaires en COMBAT RAPPROCHÉ (Engagés, vivants) non déjà couverts par une Haine ACTIVE.
-        const foes = (enemy.engagedWith ?? [])
-          .map((id) => inBattleId(battle, id))
-          .filter((f): f is Combatant => !!f && f.kind !== enemy.kind && !isOutOfAction(f));
+        const foes = engagesEnAction(battle, enemy);
         const hated = (enemy.psychState ?? []).filter((p) => p.type === 'haine' && p.active === true && p.cible);
         const uncovered = foes.filter((f) => !hated.some((p) => groupMatch(p.cible!, f.groups ?? [])));
         // Cibles de Haine : 1ᵉʳ Groupe de chaque adversaire non couvert (dédupliqué) — un foe sans Groupe

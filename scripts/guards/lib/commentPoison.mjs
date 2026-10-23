@@ -403,25 +403,68 @@ const NAMED_ARTIFACT_TOMBSTONE_RX = new RegExp(
 // origine peut porter l'article « l'ancien(ne) », et sa cible s'étend au chemin back-tické qui porte un
 // « / » et à la constante de module back-tickée (SCREAMING_SNAKE). La donnée migrée d'une FORME à une
 // autre (« migré du CODE en donnée ») reste hors cible.
-const DEPUIS = `d(?:e\\s+|epuis\\s+|es\\s+|u\\s+|${APOS})`;
-const MIGRE_OU = `(?:${DEPUIS}|vers\\s+|dans\\s+)(?:l${APOS}ancienn?e?\\s+)?`;
+// Le DÉPLACEMENT d'un corps de code est la même migration (#2874), à deux écarts près, mesurés le
+// 2026-10-23 sur le corpus des gardes : l'incise qui sépare le participe de sa préposition (adverbe de
+// fidélité, groupe nominal « des branches de ») reste dans la proposition, et l'adverbe de fidélité
+// qui CLÔT la proposition suffit, l'origine sous-entendue. Le même verbe décrit aussi un déplacement EN
+// JEU ou à l'EXÉCUTION (une case, un focus, une entrée de stock) : la cible de code et la destination
+// sans article l'en séparent.
+// La migration au PARTICIPE admet la même incise, et sa cible peut n'être que le numéro de son TICKET ; le
+// verbe au PRÉSENT décrit un contrat vivant et reste hors famille, comme l'extraction suivie d'une incise.
+// Formes couvertes et faux positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts` (#2874).
+// Casse SIGNIFICATIVE pour la cible : le discriminant chameau n'existe que si la majuscule interne compte.
+// Les MOTS de la famille (participes, prépositions, adverbes de fidélité) s'écrivent donc en casse libre
+// lettre à lettre (`casseLibre`). Le participe admet sa graphie accentuée, qui finit par l'accent, et sa
+// graphie SANS accent : la graphie accentuée sans accent final est le PRÉSENT, hors famille. Quand le
+// présent s'écrit lui-même sans accent, la graphie sans accent n'est admise qu'en capitales. Une incise
+// entre parenthèses ou entre tirets peut suivre le participe (#2874).
+const FIN_DE_MOT = '(?![\\wÀ-ÿ])';
+const casseLibre = (mot) =>
+  [...mot].map((l) => (l.toLowerCase() === l.toUpperCase() ? l : `[${l.toLowerCase()}${l.toUpperCase()}]`)).join('');
+const participe = (accentue, sansAccent, sansAccentEnCapitales = false) =>
+  `(?:${casseLibre(accentue)}|${sansAccentEnCapitales ? sansAccent.toUpperCase() : casseLibre(sansAccent)})` +
+  `${casseLibre('e')}?${casseLibre('s')}?${FIN_DE_MOT}`;
+const DEPUIS = `${casseLibre('d')}(?:${casseLibre('e')}\\s+|${casseLibre('epuis')}\\s+|${casseLibre('es')}\\s+|${casseLibre('u')}\\s+|${APOS})`;
+const MIGRE_OU =
+  `(?:${DEPUIS}|${casseLibre('vers')}\\s+|${casseLibre('dans')}\\s+)(?:${casseLibre('l')}${APOS}${casseLibre('ancien')}${casseLibre('n')}?${casseLibre('e')}?\\s+)?`;
 const MODULE_CIBLE =
-  `${BT}[\\w/-]*(?:[a-zà-ÿ][A-Z]|\\.tsx?)[\\w/.-]*${BT}|[A-Z][a-zà-ÿ]+[A-Z][\\w]*|[\\w/*-]+\\.tsx?\\b`;
+  `${BT}[\\w/-]*(?:[a-zà-ÿ][A-Z]|\\.tsx?)[\\w/.-]*${BT}|[A-Za-zà-ÿ][a-zà-ÿ]+[A-Z][\\w]*|[\\w/*-]+\\.[mc]?[jt]sx?\\b`;
 const MIGRATION_CIBLE = `${BT}[\\w.-]*/[\\w/.*-]*${BT}|${BT}[A-Z][A-Z0-9]*_[A-Z0-9_]+${BT}`;
-const EXTRACTED_FROM_RX = new RegExp(
-  `\\b(?:[Ee]xtraite?s?\\s+${DEPUIS}(?:${MODULE_CIBLE})|[Mm]igrée?s?\\s+${MIGRE_OU}(?:${MODULE_CIBLE}|${MIGRATION_CIBLE}))`,
+const EXTRAIT = `${casseLibre('extrait')}${casseLibre('e')}?${casseLibre('s')}?${FIN_DE_MOT}`;
+const MIGRE = participe('migré', 'migre', true);
+const DEPLACE = participe('déplacé', 'deplace');
+const INCISE = '[^.;:!?()—]{0,60}?\\b';
+const INCISE_DELIMITEE = '(?:\\s*\\([^()]{0,60}\\)|\\s+[—–][^—–.;]{0,60}[—–])?';
+const FIDELE =
+  `(?:${casseLibre('verbatim')}|${casseLibre('tel')}(?:${casseLibre('le')})?${casseLibre('s')}?${GAP}${casseLibre('quel')}(?:${casseLibre('le')})?${casseLibre('s')}?` +
+  `|${casseLibre('à')}\\s+${casseLibre('l')}${APOS}${casseLibre('identique')})`;
+const ARTICLE = `(?:${['la', 'le', 'un', 'une', 'les'].map(casseLibre).join('|')})\\b`;
+const CIBLE_DE_CODE = `(?:${MODULE_CIBLE}|${MIGRATION_CIBLE})`;
+const CODE_MOVED_RX = new RegExp(
+  `\\b${EXTRAIT}${INCISE_DELIMITEE}\\s+${DEPUIS}(?:${MODULE_CIBLE})` +
+    `|\\b${MIGRE}${INCISE_DELIMITEE}(?:${INCISE}${MIGRE_OU}${CIBLE_DE_CODE}|[^.;:!?()—]{0,60}?#\\d)` +
+    `|\\b${DEPLACE}${INCISE_DELIMITEE}${INCISE}${MIGRE_OU}${CIBLE_DE_CODE}` +
+    `|\\b${DEPLACE}${INCISE_DELIMITEE}${GAP}(?:${casseLibre('vers')}|${casseLibre('dans')})${GAP}(?![\\s*/]|${ARTICLE})` +
+    `|\\b${DEPLACE}${GAP}\\(?${FIDELE}\\)?[ \\t]*(?:[.;)]|\\*+/|$)`,
+  'm',
+);
+// Le RÉVOLU du site par son vocabulaire d'histoire (#2874), mesuré le 2026-10-23 sur le corpus des gardes : le
+// nom d'un état du code qualifié d'historique, l'adverbe, ou l'étiquette d'un lot de livraison (« Lot » à
+// majuscule ; en minuscules, le mot désigne aussi un lot de marchandises EN JEU et le sous-lot d'un ticket),
+// jusque derrière un livre et son chapitre, à la place de la ligne citée.
+// Les autres emplois du mot (l'historique d'undo, de dialogue, de git) décrivent une donnée vivante.
+const HISTOIRE_DU_CODE_RX = new RegExp(
+  `\\b${casseLibre('historiquement')}${FIN_DE_MOT}` +
+    `|\\b(?:${['comportement', 'défaut', 'régime', 'contrat', 'ordre', 'politique', 'cascade'].map(casseLibre).join('|')})${casseLibre('s')}?` +
+    `\\s+${casseLibre('historique')}${casseLibre('s')}?${FIN_DE_MOT}`,
+);
+const LOT_DE_LIVRAISON_RX = new RegExp(
+  `\\((?:Lots?|LOTS?)\\s+\\d|\\b(?:${['au', 'du', 'aux', 'des', 'le', 'les', 'en'].map(casseLibre).join('|')})\\s+(?:Lots?|LOTS?)\\s+\\d` +
+    `|\\b(?:${allAbbrAlternation()})\\s+\\d+\\s*[—–]\\s*L\\d+\\b`,
 );
 
 /** @type {{ rx: RegExp, label: string }[]} */
 export const TOMBSTONE_FAMILIES = [
-  // NB : l'accord féminin/pluriel du participe passé est couvert par les suffixes optionnels
-  // (« e »/« s »), sinon la famille ne matcherait jamais la forme la plus courante.
-  //
-  // Affinage #136 (post-scan agent, 51 offenders triés à la main) : la famille brute matchait aussi un
-  // déplacement PHYSIQUE en jeu/UI, jamais suivi d'un article en vrai tombstone de code (qui cible
-  // toujours un module ou un chemin, jamais précédé d'un déterminant). Le lookahead négatif écarte
-  // l'article.
-  { rx: /déplacée?s? (vers|dans) (?!la\b|le\b|un\b|une\b|les\b)/i, label: 'déplacé(e)(s) vers/dans (code)' },
   { rx: /anciennement/i, label: 'anciennement' },
   // Le préfixe du révolu INTRODUIT un artefact qui n'existe plus, quelle que soit la casse de ce qui
   // suit : exiger un back-tick ou une majuscule laissait passer toute la moitié minuscule de la classe
@@ -466,7 +509,9 @@ export const TOMBSTONE_FAMILIES = [
   // du code — back-ticks, identifiant chameau (`IsoStage`, `GameStage3D`) ou nom de fichier `.ts(x)`.
   // Les citations de source RAW en sont exclues par construction (leurs sigles — LDB, ADE, EDOC — ne
   // portent aucune minuscule interne), comme l'extrait de texte au sens courant (minuscules).
-  { rx: EXTRACTED_FROM_RX, label: 'extrait/migré de X (origine révolue du module)' },
+  { rx: CODE_MOVED_RX, label: 'extrait/migré/déplacé de/vers X (origine révolue du module)' },
+  { rx: HISTOIRE_DU_CODE_RX, label: 'état historique du code (histoire du site)' },
+  { rx: LOT_DE_LIVRAISON_RX, label: 'étiquette de lot de livraison (histoire du site)' },
   { rx: NO_MORE_ARTIFACT_RX, label: 'négation temporelle + artefact de code (état révolu)' },
   { rx: OF_YORE_RX, label: 'passé nostalgique (état révolu)' },
   { rx: NO_MORE_CODE_RX, label: 'n’est plus du code (nature révolue du site)' },
@@ -503,6 +548,67 @@ export function scanTombstones(relPath, contenu) {
     for (const fam of TOMBSTONE_FAMILIES) {
       const m = fam.rx.exec(c.text);
       if (m) findings.push({ line: matchLine(c, m.index), detail: `[${fam.label}] ${excerptAt(c, m.index)}` });
+    }
+  }
+  return findings;
+}
+
+// ---------------------------------------------------------------------------------------------
+// POINTEUR DE LIGNE hors bornes (#2874). Tolérance ZÉRO, pas d'exception.
+// ---------------------------------------------------------------------------------------------
+
+// Un renvoi `chemin.ext:N` (ou `:N-M`) d'un commentaire nomme une ligne que le lecteur doit pouvoir
+// ouvrir : un fichier du dépôt plus court que N ne la porte plus. Le chemin se résout comme l'écrit un
+// auteur — exact, suffixe de chemin, ou nom de fichier seul — et le renvoi passe si UN candidat porte la
+// ligne. Un chemin qui ne résout vers aucun fichier du dépôt (dépendance, fixture) n'est pas jugé.
+// Formes couvertes et faux positifs écartés : LITTÉRAUX dans `src/comment-poison-guard.test.ts`.
+const POINTEUR_DE_LIGNE_RX =
+  /(?<![\w./-])([\w./-]*[\w-]\.(?:tsx?|mts|cts|mjs|cjs|jsx?|gd|md|json)):(\d+)(?:-(\d+))?/g;
+
+/**
+ * Le compte de lignes des fichiers du dépôt vers lesquels un chemin de renvoi se résout.
+ * @param {string[]} chemins chemins relatifs des fichiers du dépôt
+ * @param {(chemin: string) => string} lire contenu d'un fichier du dépôt
+ * @returns {(renvoi: string) => number[]} vide = aucun fichier du dépôt
+ */
+export function lignesDesFichiersDuDepot(chemins, lire) {
+  const parNom = new Map();
+  for (const c of chemins) {
+    const nom = c.slice(c.lastIndexOf('/') + 1);
+    if (!parNom.has(nom)) parNom.set(nom, []);
+    parNom.get(nom).push(c);
+  }
+  const lignes = new Map();
+  const compte = (c) => {
+    if (!lignes.has(c)) {
+      const t = lire(c);
+      lignes.set(c, t.split('\n').length - (t.endsWith('\n') ? 1 : 0));
+    }
+    return lignes.get(c);
+  };
+  return (renvoi) => {
+    const nu = renvoi.replace(/^\.\//, '');
+    const memeNom = parNom.get(nu.slice(nu.lastIndexOf('/') + 1)) ?? [];
+    const exacts = memeNom.filter((c) => c === nu || c.endsWith('/' + nu));
+    return (exacts.length ? exacts : nu.includes('/') ? [] : memeNom).map(compte);
+  };
+}
+
+/**
+ * Les renvois de ligne des commentaires d'un fichier qu'AUCUN fichier résolu ne porte.
+ * @param {string} relPath @param {string} contenu
+ * @param {(renvoi: string) => number[]} lignesDe `lignesDesFichiersDuDepot`
+ * @returns {{ line: number, detail: string }[]}
+ */
+export function scanPointeursHorsBornes(relPath, contenu, lignesDe) {
+  const findings = [];
+  for (const c of commentairesDe(relPath, contenu)) {
+    for (const m of c.text.matchAll(POINTEUR_DE_LIGNE_RX)) {
+      const comptes = lignesDe(m[1]);
+      const visee = Math.max(Number(m[2]), Number(m[3] ?? 0));
+      if (comptes.length && comptes.every((n) => n < visee)) {
+        findings.push({ line: matchLine(c, m.index), detail: `${m[0]} — ${comptes.join('/')} ligne(s)` });
+      }
     }
   }
   return findings;
@@ -598,6 +704,8 @@ const CONSERVATION_ANCIENS_APPELS =
 const INACHEVE_ICI = String.raw`\b(?:non|pas)\s+(?:encore\s+)?(?:codée?s?|implémentée?s?|câblée?s?|branchée?s?|gérée?s?|traitée?s?|supportée?s?)\s+ici(?![\wÀ-ÿ])`;
 // #2199
 const LOT_A_VENIR = String.raw`(?:(?<!#\d+\s*)\(|=\s*)(?:sous-)?lots?\s+(?:suivants?|ultérieurs?|futurs?|à\s+venir)(?![\wÀ-ÿ])`;
+// #2874 : l'écart que le commentaire QUALIFIE lui-même d'écart voulu, au lieu de dire la règle que le code suit.
+const SIMPLIFICATION_QUALIFIEE = String.raw`simplification(?:\s+IA)?\s*(?:assumée|volontaire|documentée|:)`;
 export const EXCUSE_RX = new RegExp(
   "(assume|épargn[ée]\\w*(?!\\w)(?!\\s+(par|pour)\\s)|pour l'instant|" +
     REPORT_AILLEURS +
@@ -615,6 +723,8 @@ export const EXCUSE_RX = new RegExp(
     INACHEVE_ICI +
     '|' +
     LOT_A_VENIR +
+    '|' +
+    SIMPLIFICATION_QUALIFIEE +
     '|pas encore (?!' +
     GAME_STATE_PARTICIPLE +
     ')|(?<!\\b(accordée?s?|prime|insensible)\\s)temporairement(?!\\s+(insensible|accordé|accordée|accordées|prime)))',

@@ -101,7 +101,7 @@ export function removeEntity(get: Get, set: SetFn, id: string) {
 }
 
 
-/** Traversée de zones persistantes (Mur de feu, LDB 47 — L11) au terme d'un déplacement :
+/** Traversée de zones persistantes (Mur de feu, LDB 48 l.286) au terme d'un déplacement :
  *  applique l'`onCross` des zones SANS `crossTest` et journalise (comportement inchangé) ; pour les
  *  zones GATÉES (Forêt d'épines, LDB 48 l.749 : « doit réussir un Test… sans posséder le Talent… »),
  *  route un `test` cadence-aware par le hook — succès → `onCross` sauté, échec → identique à `onCross`.

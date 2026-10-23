@@ -425,7 +425,7 @@ export interface GameStage3DProps {
    *  (`stage/MondeDeCampagne` → `stage/TokenChromeOverlay`) le passe ; l'ÉDITEUR, lui, regarde aussi son plateau du
    *  dessus mais ne monte AUCUNE surcouche de jeton — il garde donc ses corps en billboard, sans quoi
    *  l'auteur perdrait de vue ses figurants (mesuré : `ui/editor/editeur-monde-volumique.test.tsx`).
-   *  Absent = billboards, le régime historique. */
+   *  Absent = billboards. */
   pionsEnDisques?: boolean;
   /** ENTRÉE EN SCÈNE (#1372) — l'écran signale ici qu'il tient (ou lâche) son voile de chargement :
    *  `true` tant que les sujets dans le rayon d'entrée (`AMBIANCE.entreeEnScene`) n'ont pas leur

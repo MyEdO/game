@@ -164,8 +164,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
    * comme pendant un vrai `applyCast`). Le nœud `test` enfoui n'OUVRE PAS une seconde cascade : il
    * APPEND une étape `triggeredTest` à la MÊME cascade `cast` active (preuve « une seule cascade
    * enrichie »), comme Critique/Maladresse de sort. Sa validation (cascadeRoll+cascadeNext) joue la
-   * branche PUIS la continuation `after` (le `do` final). C'est la machinerie que le Lot 4 utilisera
-   * quand un sort portera un nœud Flow `test` ; aucun sort n'en a ENCORE → la voie est juste prête. */
+   * branche PUIS la continuation `after` (le `do` final) : la voie d'un sort qui porte un nœud Flow `test`. */
   it('CONTEXTE CAST : test enfoui APPEND à la cascade `cast` ouverte (une seule cascade enrichie)', () => {
     seedBattleRng(5);
     const { H } = setup();
