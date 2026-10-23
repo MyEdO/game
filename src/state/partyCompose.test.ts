@@ -10,6 +10,7 @@ import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { bourseOf } from '../engine/bourse';
+import { withActingSeat } from '../noyau/netOwnership';
 
 function hero(id: string): Combatant {
   const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
@@ -49,8 +50,8 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   it('partyAddHero : respecte le quota d’emplacements du siège (hôte autoritaire)', () => {
     useGame.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 0, 1] } });
     const st = useGame.getState();
-    st.partyAddHero(hero('g1'), undefined, 1);
-    st.partyAddHero(hero('g2'), undefined, 1); // 1 seul slot au siège 1 → refusé
+    withActingSeat(1, () => st.partyAddHero(hero('g1')));
+    withActingSeat(1, () => st.partyAddHero(hero('g2'))); // 1 seul slot au siège 1 → refusé
     const s = useGame.getState();
     expect(s.party.map((h) => h.id)).toEqual(['g1']);
     expect(s.net.ownership['g1']).toBe(1);
@@ -58,7 +59,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
 
   it('partyRemoveHero : retire le héros et nettoie sa possession', () => {
     useGame.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
-    useGame.getState().partyAddHero(hero('g1'), undefined, 1);
+    withActingSeat(1, () => useGame.getState().partyAddHero(hero('g1')));
     useGame.getState().partyRemoveHero('g1');
     const s = useGame.getState();
     expect(s.party).toHaveLength(0);
@@ -71,7 +72,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     st.partyAddHero(hero('b'));
     st.partyAddHero(hero('c'));
     const moneyBefore = toBrass(partyMoneyTotal(useGame.getState));
-    useGame.getState().partyReplaceHero('a', hero('z'), 0); // remplace le 1er de 3
+    useGame.getState().partyReplaceHero('a', hero('z')); // remplace le 1er de 3
     const s = useGame.getState();
     expect(s.party.map((h) => h.id)).toEqual(['z', 'b', 'c']); // longueur 3, ordre conservé, a→z en place
     expect(s.net.ownership['z']).toBe(0); // possession transférée au siège

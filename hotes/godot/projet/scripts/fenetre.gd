@@ -63,8 +63,9 @@ func montrer(fenetre: Variant) -> void:
 	var sous_titre := PackedStringArray()
 	if fenetre.etape != null and fenetre.etape != fenetre.titre:
 		sous_titre.append(fenetre.etape)
-	if fenetre.proprietaire != null:
-		sous_titre.append(fenetre.proprietaire)
+	var nom: Variant = fenetre.proprietaire.get("nom")
+	if nom != null:
+		sous_titre.append(nom)
 	if not sous_titre.is_empty():
 		_ligne(" · ".join(sous_titre))
 	_pile.add_child(HSeparator.new())

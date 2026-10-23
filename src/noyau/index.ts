@@ -35,6 +35,8 @@ export { plateauDeLaScene } from './monde/scene';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDeDefense, type FenetreDeDefense } from './fenetreDeDefense';
+export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
+export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuVerbe, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet } from './libelles';
 export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, type Reglage, type ValeurDuReglage } from './reglages';
 export { avecSigne, texteDuMod } from './difficultyText';

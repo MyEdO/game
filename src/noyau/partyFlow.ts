@@ -40,7 +40,7 @@ import { isArcaneSpell } from '../engine/magic';
 import { spellCost, verdictApprentissage } from '../engine/grimoire';
 import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
-import { seatSlotsRemaining } from './netOwnership';
+import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
 import { releaseSeat } from './monde/seating';
 import type { Scene } from './monde/scene';
@@ -677,14 +677,15 @@ export function refusComposition(s: Pick<Jeu, 'battle'>): string | null {
   return s.battle ? t('pf.partyInCombat') : null;
 }
 
-/** Ajoute un héros au groupe dans un emplacement du siège `seat` (0 = hôte/solo) — point
- *  d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector, créateur ; côté
- *  invité l'action est enveloppée en intent, l'hôte injecte le siège autoritaire). Refuse
+/** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
+ *  du transport pour un intent) — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
+ *  créateur). Refuse
  *  groupe plein, doublon d'id, ou quota d'emplacements du siège épuisé. La Richesse de carrière
  *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
-export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money, seat = 0): void {
+export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money): void {
   if (compositionRefusee(get)) return;
   const s = get();
+  const seat = decidingSeat(s);
   if (s.party.length >= PARTY_MAX || s.party.some((h) => h.id === hero.id)) return;
   if (seatSlotsRemaining(s, seat) <= 0) return;
   const copy: Combatant = ensureBourse(structuredClone(hero));
@@ -742,10 +743,11 @@ export function partyRemoveHero(get: Get, set: Set, heroId: string): void {
 }
 
 /** Remplace ATOMIQUEMENT le héros `oldId` par `hero` à SA position dans `party` (substitution en
- *  place → préserve l'index/ordre) ; transfère la possession au `seat` (l'ancien id est libéré).
+ *  place → préserve l'index/ordre) ; transfère la possession du siège qui possédait `oldId`, sinon du siège qui
+ *  décide (`decidingSeat`), au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Ne touche PAS la bourse (un remplacement n'est pas un recrutement). */
-export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant, seat = 0): void {
+export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combatant): void {
   if (compositionRefusee(get)) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === oldId);
@@ -753,6 +755,7 @@ export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combat
   if (hero.id !== oldId && s.party.some((h) => h.id === hero.id)) return; // doublon d'id
   const copy: Combatant = structuredClone(hero);
   const ownership = { ...s.net.ownership };
+  const seat = ownership[oldId] ?? decidingSeat(s);
   delete ownership[oldId];
   ownership[copy.id] = seat;
   set({ party: s.party.map((h, i) => (i === idx ? copy : h)), net: { ...s.net, ownership } });
@@ -761,9 +764,9 @@ export function partyReplaceHero(get: Get, set: Set, oldId: string, hero: Combat
 
 export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
-    partyAddHero: (hero, wealth, seat) => partyAddHero(get, set, hero, wealth, seat),
+    partyAddHero: (hero, wealth) => partyAddHero(get, set, hero, wealth),
     partyRemoveHero: (heroId) => partyRemoveHero(get, set, heroId),
-    partyReplaceHero: (oldId, hero, seat) => partyReplaceHero(get, set, oldId, hero, seat),
+    partyReplaceHero: (oldId, hero) => partyReplaceHero(get, set, oldId, hero),
     toggleEquip: (heroId, uid) => toggleEquip(get, set, heroId, uid),
     stowItem: (heroId, uid, containerUid) => stowItem(get, set, heroId, uid, containerUid),
     createLoadout: (heroId) => createLoadout(get, set, heroId),

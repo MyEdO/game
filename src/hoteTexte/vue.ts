@@ -10,9 +10,10 @@ import {
   type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
 import type { LigneNumerotee } from './partieTexte';
+import { t } from '../i18n';
 import { ecritALaForme, signature, type ParametreDeVerbe } from '../hote/formes';
 import { VERBES } from '../hote/verbes.generated';
-import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection } from '../hote/projection';
+import { apercuDe, combattantsTries, projeter as projeterAuxBornes, type Apercu, type BornesDeLaProjection, type CaseAtteignable, type CombattantProjete, type OffreEnVue, type Projection, type ProprietaireDeLaFenetre } from '../hote/projection';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
 
@@ -107,10 +108,14 @@ function enteteDeCombat(p: Projection): string {
   return `R${c.round} tour ${c.tour}/${c.tours} · ${qui} · pas ${p.pas}`;
 }
 
+/** Qui tient la main d'une fenêtre, en mots (`ProprietaireDeLaFenetre`). */
+const quiTientLaFenetre = (p: ProprietaireDeLaFenetre): string =>
+  p.genre === 'porteur' ? (p.nom ?? t('ecran.proprietaire.sansNom')) : t(p.genre === 'tous' ? 'ecran.proprietaire.tous' : 'ecran.proprietaire.aucun');
+
 const ligneDeFenetre = (f: NonNullable<Projection['fenetre']>): string => {
   const e = f.etape;
   const etape = e ? ` · étape ${e.id} ${e.genre}, ${e.interaction}${e.choix.length ? ` [${e.choix.join(' | ')}]` : ''}` : '';
-  return `fenêtre ${f.cle} (à ${f.proprietaire ?? 'l’hôte'})${etape}`;
+  return `fenêtre ${f.cle} (à ${quiTientLaFenetre(f.proprietaire)})${etape}`;
 };
 
 /** Un texte replié à la largeur, au mot, jamais coupé : une ligne de plus (en retrait) quand la largeur est atteinte ;

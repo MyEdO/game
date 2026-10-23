@@ -6,18 +6,19 @@
  */
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
+import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
 import { deMonde, type RNG } from '../engine/dice';
-import type { CampaignVessel } from './etat';
+import type { CampaignVessel, Jeu } from './etat';
 import type { NightEntry } from './restFlow';
 import type { PendingBase } from './rollFlowFactory';
 import type { PairedSense } from '../engine/ops';
 import { findCrewRoleById, findCrewTestTypeById, findVehicleById, findSeaShantyById } from '../data';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { exposedCrew } from '../engine/shipCritical';
+import { knownShanties } from '../engine/combatFeatures/dispatch';
 import { partyBest, peutTenter } from '../engine/skills';
 import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
@@ -460,9 +461,7 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
 export function councilPay(get: Get, set: SetFn, decision: string): void {
   const p = get().pendingCouncil;
   const vessel = get().vessel;
-  if (!p || p.phase !== 'choix' || !vessel || !isPayChoice(decision)) return;
-  // Non payable (hors choix GRATUIT) → rejet : le Conseil n'accepte que ce que le groupe couvre.
-  if (!isFreePayChoice(decision) && !canAfford(partyMoneyTotal(get), fromBrass(payChoiceCostBrass(p.wageBrass, decision)))) return;
+  if (!p || !vessel || !choixDePaieOuverts(get()).includes(decision)) return;
   const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, p.today, battleRng());
   if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
   set({
@@ -470,6 +469,23 @@ export function councilPay(get: Get, set: SetFn, decision: string): void {
     pendingCouncil: { ...p, phase: 'bilan', decision, results: factorLedger(out.factorRolls), delta: out.delta, before: out.before, after: out.after },
   });
   get().log(out.lines);
+}
+
+/** Les choix de paie que `councilPay` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
+ *  gratuit compris. Vide hors phase `choix` du Conseil. #229 */
+export function choixDePaieOuverts(s: Jeu): string[] {
+  const p = s.pendingCouncil;
+  if (!p || p.phase !== 'choix' || !s.vessel) return [];
+  const bourse = partyMoneyTotal(() => s);
+  return payChoices().map((c) => c.factorId).filter((id) => isFreePayChoice(id) || canAfford(bourse, fromBrass(payChoiceCostBrass(p.wageBrass, id))));
+}
+
+/** Les chansons que `shantySetSong` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
+ *  le catalogue porte, tant que le jet n'est pas tombé. MDG 09 l.32-40. */
+export function chansonsDuChanteur(s: Jeu): string[] {
+  const p = s.pendingShanty;
+  const chanteur = p && !p.result && s.battle ? inBattleId(s.battle, p.singerId) : undefined;
+  return chanteur ? knownShanties(chanteur).flatMap((id) => findSeaShantyById(id)?.id ?? []) : [];
 }
 
 /** Clôt le Conseil de bord (phase bilan) — le recalcul a déjà été appliqué à la validation de la paie. #229 */

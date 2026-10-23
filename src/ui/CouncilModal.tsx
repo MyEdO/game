@@ -1,4 +1,6 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
+import { choixDePaieOuverts } from '../noyau/shipCrew';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
 import { MultiRollList } from './MultiRollList';
@@ -22,6 +24,7 @@ export function CouncilModal() {
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
   const councilPay = useGame((s) => s.councilPay);
   const councilClose = useGame((s) => s.councilClose);
+  const ouverts = useGame(useShallow(choixDePaieOuverts));
   if (!p) return null;
 
   const title = <><Icon id="scenario/naval" size="sm" /> Conseil de bord</>;
@@ -50,7 +53,7 @@ export function CouncilModal() {
   const options = payChoices().map(({ factorId }) => {
     const f = findMoraleFactor(factorId);
     const costBrass = payChoiceCostBrass(p.wageBrass, factorId);
-    const affordable = costBrass <= purseBrass; // un choix GRATUIT (`wageMul: 0`) l'est toujours : 0 ≤ bourse
+    const affordable = ouverts.includes(factorId);
     return {
       key: factorId,
       label: f?.label ?? factorId,

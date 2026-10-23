@@ -13,10 +13,12 @@ import type { CascadeStep } from './pendings';
  *  ouverte). */
 export interface ValeurDuReglage { valeur: string | number | boolean | null; libelle: string; refus: string | null }
 
-/** Un choix d'une fenêtre : le verbe qui le règle, son libellé, la valeur retenue et les valeurs offertes, chacune avec
- *  la raison qui la ferme (absente ou `null` : ouverte). */
-export interface ChoixNomme<V extends string | boolean = string> {
+/** Un choix d'une fenêtre : le verbe qui le règle, le paramètre qu'il règle (absent : le premier argument libre du
+ *  verbe), son libellé, la valeur retenue et les valeurs offertes, chacune avec la raison qui la ferme (absente ou
+ *  `null` : ouverte). */
+export interface ChoixNomme<V extends string | number | boolean = string> {
   verbe: keyof ActionsDuNoyau;
+  parametre?: string;
   libelle: string;
   choisie: V | null;
   options: { valeur: V | null; libelle: string; refus?: string | null }[];
@@ -26,10 +28,12 @@ export interface ChoixNomme<V extends string | boolean = string> {
  *  aucune). */
 export interface BasculeNommee { verbe: keyof ActionsDuNoyau; libelle: string; active: boolean; note: string | null }
 
-/** Le réglage d'un verbe : son libellé, la valeur courante de son premier argument libre, ses valeurs (`null` : la
- *  forme de l'argument les dit), ses bornes (`null` : aucune), la note qui en dit l'effet. */
+/** Le réglage d'un argument d'un verbe : le paramètre qu'il règle (absent : le premier argument libre du verbe), son
+ *  libellé, la valeur courante de l'argument, ses valeurs (`null` : la forme de l'argument les dit), ses bornes
+ *  (`null` : aucune), la note qui en dit l'effet. */
 export interface Reglage {
   verbe: string;
+  parametre?: string;
   libelle: string | null;
   courant: string | number | boolean | null;
   valeurs: ValeurDuReglage[] | null;
@@ -47,13 +51,13 @@ export const REGLAGES_DE_L_ATTAQUE = [
 /** Les verbes que la fenêtre de la Défense règle (`fenetreDeDefense`, `FENETRE_DU_JET.defense`), comme ceux de l'attaque. */
 export const REGLAGES_DE_LA_DEFENSE = ['defenseSetMode', 'defenseSetParryWeapon', 'defenseSetShieldReaction', 'defenseSetRiposte'] as const satisfies readonly (keyof ActionsDuNoyau)[];
 
-const estNomme = (e: unknown): e is ChoixNomme | BasculeNommee => typeof e === 'object' && e !== null && 'verbe' in e;
+const estNomme = (e: unknown): e is ChoixNomme<string | number | boolean> | BasculeNommee => typeof e === 'object' && e !== null && 'verbe' in e;
 
 /** Les réglages des éléments nommés d'une fenêtre lue (`fenetreDAttaque`, `fenetreDeDefense`) : chaque champ qui
  *  nomme son verbe. */
 export function reglagesDesElements(fenetre: object | null): Reglage[] {
   return Object.values(fenetre ?? {}).filter(estNomme).map((e) => ('options' in e
-    ? { verbe: e.verbe, libelle: e.libelle, courant: e.choisie, valeurs: e.options.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: o.refus ?? null })), bornes: null, note: null }
+    ? { verbe: e.verbe, ...(e.parametre ? { parametre: e.parametre } : {}), libelle: e.libelle, courant: e.choisie, valeurs: e.options.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: o.refus ?? null })), bornes: null, note: null }
     : { verbe: e.verbe, libelle: e.libelle, courant: e.active, valeurs: null, bornes: null, note: e.note }));
 }
 

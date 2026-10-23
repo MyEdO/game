@@ -248,7 +248,6 @@ export const fr = {
   'parametre.roll': 'Résultat du dé',
   'parametre.scenes': 'Scènes',
   'parametre.scope': 'Portée',
-  'parametre.seat': 'Siège',
   'parametre.shantyId': 'Chanson',
   'parametre.skipGate': 'Test déjà passé',
   'parametre.steps': 'Pas de virage',
@@ -337,6 +336,11 @@ export const fr = {
   'ecran.offre': '{libelle} ({cout})',
   'ecran.apercu': 'Coût : {cout} de Mouvement',
   'ecran.apercu.cible': 'Cible : {cible}',
+  // Qui tient la main d'une fenêtre (`ProprietaireDeLaFenetre`, `src/hote/projection.ts`), dit par l'hôte texte
+  // (`src/hoteTexte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.
+  'ecran.proprietaire.aucun': 'l’hôte',
+  'ecran.proprietaire.tous': 'tous',
+  'ecran.proprietaire.sansNom': 'un porteur sans nom',
   // Le corps de la fenêtre qui tient la main (`corpsDeLaFenetre`, `src/hote/ecran.ts`) : qui agit contre qui, ses jets.
   'ecran.attaque.cible': 'Cible : {cible}',
   'ecran.jet.aJeter': '{test} : {base}, à atteindre {cible}, {difficulte}',
@@ -2665,6 +2669,7 @@ export const fr = {
   'medic.patientSinks': "{patient} sombre sur la table — l'opération est interrompue (stabilisez-le d'abord).",
   'medic.afterSurgery': 'Suites de l’opération',
   'medic.interrupted': "{healer} interrompt l'opération — le travail est à refaire.",
+  'medic.plaie': '{plaie} · {localisation}',
 
   // ── #1318 V8c₄ — COOP EN LIGNE (`state/netFlow.ts`, `coop.*` — le namespace du salon, déjà posé).
   'coop.intentRefused': 'Action refusée : elle ne revient pas au joueur qui l’a demandée.',

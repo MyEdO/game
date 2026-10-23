@@ -2,18 +2,21 @@
  * LES GESTES DE LA FENÊTRE QUI TIENT LA MAIN (#2928), communs aux hôtes qui la dessinent : son titre, son étape, son
  * corps (`corpsDeLaFenetre`), et chacun de ses verbes (`fenetreDuJeu`) avec son libellé (`libelleDuVerbe`) et chacun
  * de ses arguments (`VERBES`) prêt à saisir. L'id que la fenêtre désigne (`pid`) est posé d'office ; un autre argument est saisi d'après le réglage que le
- * noyau nomme pour son verbe (`reglages.ts` : la valeur courante, les valeurs ouvertes, les bornes), sinon d'après sa
+ * noyau nomme pour son verbe et ce paramètre, ou pour le premier argument libre (`reglages.ts` : la valeur courante, les
+ * valeurs ouvertes, les bornes), sinon d'après sa
  * forme (`formes.ts`) : un choix parmi les valeurs qu'elle énumère (littéraux, booléen, `null`, ids que l'état désigne),
  * un nombre, une chaîne, un objet champ par champ, ou, pour une forme qui n'en dit pas plus (tableau, dictionnaire,
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, fenetreDAttaque, fenetreDeDefense, fenetreDuJeu, jetsEnVue, libelleDeLaFenetre, libelleDuJet, libelleDuLitteral,
-  libelleDuParametre, libelleDuVerbe, porteurParId, reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, stepInteraction,
+  DESIGNATIONS, fenetreDAttaque, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, jetsEnVue, libelleDeLaFenetre, libelleDuJet, libelleDuLitteral,
+  libelleDuParametre, libelleDuVerbe, reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_L_OPERATION, REGLAGES_DE_LA_DEFENSE, REGLAGES_DU_BUTIN,
+  stepInteraction,
   VERBES_D_INTERACTION, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
 import { corpsDeLaFenetre } from './ecran';
+import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
 import type { Forme } from './formes';
 import { VERBES } from './verbes.generated';
 
@@ -59,7 +62,7 @@ export interface GesteDeLaFenetre {
 export interface FenetreADessiner {
   titre: string;
   etape: string | null;
-  proprietaire: string | null;
+  proprietaire: ProprietaireDeLaFenetre;
   corps: string[];
   gestes: GesteDeLaFenetre[];
 }
@@ -68,6 +71,8 @@ export interface FenetreADessiner {
 const LECTEURS: readonly { lire: (s: Jeu) => object | null; verbes: readonly string[] }[] = [
   { lire: fenetreDAttaque, verbes: REGLAGES_DE_L_ATTAQUE },
   { lire: fenetreDeDefense, verbes: REGLAGES_DE_LA_DEFENSE },
+  { lire: fenetreDuButin, verbes: REGLAGES_DU_BUTIN },
+  { lire: fenetreDeLOperation, verbes: REGLAGES_DE_L_OPERATION },
 ];
 
 /** Les réglages de la fenêtre : ceux que nomment les fenêtres lues ouvertes et l'étape de séquence courante, et les
@@ -145,14 +150,17 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   const fenetre = fenetreDuJeu(etat);
   if (!fenetre) return null;
   const { reglages: lus, regles } = reglagesDeLaFenetre(etat, fenetre.etape);
-  const reglages = new Map(lus.map((r) => [r.verbe, r]));
+  const reglages = new Map<string, Reglage[]>();
+  for (const r of lus) reglages.set(r.verbe, [...(reglages.get(r.verbe) ?? []), r]);
   const attendu = verbeAttendu(etat, fenetre.drive);
   const gestes = fenetre.verbes.map((verbe): GesteDeLaFenetre => {
-    let regle = reglages.get(verbe);
+    const duVerbe = reglages.get(verbe) ?? [];
+    let libre = duVerbe.find((r) => r.parametre === undefined);
     const args = (VERBES[verbe] ?? []).map((p): ArgumentDuGeste => {
       if (p.nom === PARAMETRE_DESIGNE && fenetre.pid) return { nom: p.nom, optionnel: p.optionnel, saisie: 'fixe', libelle: null, valeur: fenetre.pid, valeurs: null, bornes: null, note: null, champs: null };
-      const a = argument(etat, verbe, p, regle);
-      regle = undefined;
+      const nomme = duVerbe.find((r) => r.parametre === p.nom);
+      const a = argument(etat, verbe, p, nomme ?? libre);
+      if (!nomme) libre = undefined;
       return a;
     });
     const ouvert = !regles.has(verbe) || reglages.has(verbe);
@@ -160,6 +168,5 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
-  const proprietaire = fenetre.proprietaire === '*' ? null : fenetre.proprietaire ? (porteurParId(etat, fenetre.proprietaire)?.label ?? null) : null;
-  return { titre: pc?.title ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire, corps: corpsDeLaFenetre(etat), gestes };
+  return { titre: pc?.title ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), corps: corpsDeLaFenetre(etat), gestes };
 }

@@ -240,7 +240,6 @@ function pickAppearance(speciesId: string, sex: Sexe, variantId?: string): Appea
 
 export function CharacterCreator() {
   const party = useGame((s) => s.party);
-  const net = useGame((s) => s.net);
   const setScreen = useGame((s) => s.setScreen);
   const addHero = useGame((s) => s.partyAddHero);
   const replaceHero = useGame((s) => s.partyReplaceHero);
@@ -314,8 +313,7 @@ export function CharacterCreator() {
     if (editing) {
       // Remplacement EN PLACE (primitive atomique) : préserve l'index/ordre et transfère la
       // possession au même siège — pas de re-crédit de la Richesse (déjà comptée à la création).
-      const seat = net.ownership[editing.heroId] ?? net.mySeat ?? 0;
-      replaceHero(editing.heroId, hero, seat);
+      replaceHero(editing.heroId, hero);
     } else {
       addHero(hero, wealth); // côté invité : intent vers l'hôte (l'état arrive par snapshot)
     }
