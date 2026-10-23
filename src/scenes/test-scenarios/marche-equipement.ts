@@ -1,5 +1,5 @@
 import { createHero } from '../../engine/character';
-import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
+import { itemFromTrappingById, itemFromGive, recomputeLoadout } from '../../engine/items';
 import { rigSpeciesId } from '../../data';
 import { Combatant } from '../../engine/types';
 import { flowFromEffects } from '../../noyau/monde/flow';
@@ -16,16 +16,15 @@ import type { Scene } from '../../noyau/monde/scene';
  * Maître d'armes (sac garni à équiper).
  */
 
-/** Négociant : épée magique NON identifiée (qualité cachée + skin), maille endommagée, dague à vendre,
+/** Négociant : épée magique NON identifiée (qualité cachée + teinte), maille endommagée, dague à vendre,
  *  selle et harnais (charger une monture/déplacer vers la mule, DoD Possessions testable). */
 function negociant(): Combatant {
   const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', seed: 2510, id: 'test-negociant' });
-  // Épée bâtarde « légendaire » : qualité MAGIQUE cachée (« De plaies atroces », ADE II) + skin bleuté ;
+  // Épée bâtarde « légendaire » : qualité MAGIQUE cachée (« De plaies atroces », ADE II) + teinte bleutée ;
   // identified:false → masquée tant qu'une Évaluation ne l'a pas révélée (mais ACTIVE en combat).
-  const epee = itemFromTrappingById('epee-batarde')!;
+  const epee = itemFromGive({ trappingId: 'epee-batarde', teinte: { id: 'aethyrique' } });
   epee.qualities = [...epee.qualities, { id: 'de-plaies-atroces' }];
   epee.identified = false;
-  epee.skin = { metal: '#7faaff' };
   epee.equipped = true;
   const maille = itemFromTrappingById('chemise-de-mailles')!;
   maille.damageTaken = 2; // 2 PA perdus → réparable (10 %/PA, LDB 63)

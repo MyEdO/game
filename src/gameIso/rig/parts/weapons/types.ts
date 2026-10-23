@@ -8,7 +8,7 @@
  * SKINS d'objets uniques/légendaires (futur) : `art` peut porter des `@tokens` de couleur
  * (même mécanisme que les parts monstrueuses, cf. `parts/monstrous.ts` : `@peau`, `@metal`…)
  * et `palette` fournit la table par défaut clé→couleur. Un objet légendaire (ItemInstance)
- * pourra alors override `palette` pour un skin personnalisé sans toucher au def.
+ * pourra alors override `palette` pour une teinte personnalisée sans toucher au def.
  */
 import type { RigHeldDef } from '../types';
 import type { PaletteDeCouchePortee } from '../../palette';

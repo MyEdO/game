@@ -501,16 +501,18 @@ const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'id
 
 /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
  *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>) {
-  return nommerChamps(z.strictObject({ id: idDe(type), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe) {
+  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
 }
 
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
   type: T,
   extra?: E,
-): z.ZodType<unknown> {
-  return objetDeRef(type, (extra ?? {}) as Record<string, z.ZodType>, metasExtra(extra));
+  sousListe?: SousListe,
+): z.ZodType<{ id: Id<T> }>;
+export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousListe?: SousListe): z.ZodType<unknown> {
+  return objetDeRef(type, extra ?? {}, metasExtra(extra), sousListe);
 }
 
 /** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */

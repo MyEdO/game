@@ -1,3 +1,4 @@
+import { findTeinteById } from '../../../data';
 import type { ItemInstance, HitLocation } from '../../../engine/types';
 import type { BouclierDeDessin, FormeDArme, MatiereDArmure, PieceDeDessin } from '../../../noyau/equipementDessine';
 import type { Slot } from '../../../engine/authoringAppearance';
@@ -47,10 +48,9 @@ const WEAPONS: Record<string, PartArt> = FORM_ART;
 export function weaponPart(w: FormeDArme): PartArt {
   const f = weaponFamily(w);
   if (f === '') return ''; // mains nues : pas d'arme
-  // SKIN d'objet légendaire : re-résout l'art du def contre SA palette + l'override d'instance
-  // (≠ tenues qui suivent la palette du PORTEUR). Sans skin → art @défaut précalculé.
-  const def = w.skin ? FORM_DEF.get(f) : undefined;
-  if (def) return applyTokenMapArt(def.art, tableDObjet([def.palette ?? {}], w.skin));
+  const palette = findTeinteById(w.teinte)?.palette;
+  const def = palette ? FORM_DEF.get(f) : undefined;
+  if (def) return applyTokenMapArt(def.art, tableDObjet([def.palette ?? {}], palette));
   return WEAPONS[f] ?? WEAPONS.epee;
 }
 
@@ -90,12 +90,12 @@ export function armourPart(item: PieceDeDessin, slot: Slot): PartArt | null {
   if (!coversSlot(item, slot)) return null;
   const mat = ART_DE_MATIERE[item.matiere];
   // Art dessiné par le workflow (matériau × emplacement) en priorité, COULEUR résolue contre la
-  // palette du matériau (défaut sans perte) + le SKIN de l'objet (override par-objet, légendaire).
+  // palette du matériau (défaut sans perte) + la teinte de l'objet.
   const art = ARMOUR[mat]?.[slot as 'tete' | 'torse' | 'bras' | 'jambes' | 'pied' | 'main' | 'cou'];
   // Les defs d'art couvrent tete/torse/bras/jambes ; pour un slot qu'aucun def ne dessine (pied/main/cou),
   // art est absent → null, et la zone retombe sur son repli de chair (resolve.ts).
   return art
-    ? applyTokenMapArt(art, tableDObjet([ARMOUR_PALETTES[mat] ?? {}], item.skin))
+    ? applyTokenMapArt(art, tableDObjet([ARMOUR_PALETTES[mat] ?? {}], findTeinteById(item.teinte)?.palette))
     : null;
 }
 

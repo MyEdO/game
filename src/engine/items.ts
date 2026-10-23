@@ -110,7 +110,7 @@ export interface WeaponSpec {
   mountSide?: FireArc;
   resolveChar?: CharKey;
   uid?: string | { prefix: string };
-  skin?: Record<string, string>;
+  teinte?: string;
   form?: string;
   /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
   formeChoisie?: string;
@@ -153,7 +153,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   if (spec.reload !== undefined) w.reload = spec.reload;
   if (spec.subType !== undefined) w.subType = spec.subType;
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
-  if (spec.skin !== undefined) w.skin = spec.skin;
+  if (spec.teinte !== undefined) w.teinte = spec.teinte;
   if (spec.form !== undefined) w.form = spec.form;
   if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
   if (spec.natural !== undefined) w.natural = spec.natural;
@@ -364,9 +364,10 @@ export function customTrapping(name: string): ItemInstance {
 /** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
  *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
  *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
-export function itemFromGive(give: { trappingId?: string; custom?: string }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
+export function itemFromGive(give: { trappingId?: string; custom?: string; teinte?: { id: string } }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
   const it = (give.trappingId ? itemFromTrappingById(give.trappingId, resolveTrapping) : null) ?? customTrapping(give.custom ?? give.trappingId ?? 'Objet');
   if (source) it.source = source;
+  if (give.teinte) it.teinte = give.teinte.id;
   return it;
 }
 
@@ -705,7 +706,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: Co
     weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
     bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
     minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    skin: it.skin, form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    ...(it.teinte ? { teinte: it.teinte } : {}), form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
   }), it.enchants ?? []);
 }

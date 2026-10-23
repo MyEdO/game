@@ -278,7 +278,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
 }
 
 /** Attribue la ligne `index` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
- *  l'Effet d'origine s'applique avec ce heroId (qualités/skin/identification conservés), la
+ *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
  *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot). */
 export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', index: number, heroId: string) {
   const bucket = get()[key];
@@ -1347,10 +1347,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
       const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif));
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
-      // Évaluation, #2), skin légendaire. Les qualités restent ACTIVES mécaniquement (registre).
+      // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
       if (e.identified === false) it.identified = false;
-      if (e.skin) it.skin = e.skin;
       if (e.magicKnown) it.magicKnown = true; // aura détectée en fenêtre de loot → suit l'objet
       if (e.detectTried) it.detectTried = true;
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;

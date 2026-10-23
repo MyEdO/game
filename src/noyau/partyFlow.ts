@@ -1,6 +1,6 @@
 /**
  * Actions GROUPE (hors combat) — module à part du store, même patron
- * `(get, set)` que combatFlow : équipement (équiper/transférer/skin), avancement PX
+ * `(get, set)` que combatFlow : équipement (équiper/transférer), avancement PX
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  * Refacto pure — comportement préservé.
  */
@@ -282,45 +282,10 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
-function applySkinPatch(it: ItemInstance, patch: Record<string, string | undefined>): void {
-  const next: Record<string, string> = { ...(it.skin ?? {}) };
-  for (const [k, v] of Object.entries(patch)) { if (v == null) delete next[k]; else next[k] = v; }
-  it.skin = Object.keys(next).length ? next : undefined;
-}
-
-/** Skin (habillage cosmétique) d'un objet — porteur héros OU possession (#620). `recomputeLoadout`
- *  (propage skin → `Weapon.skin` actif) reste réservé au héros. */
-export function setItemSkin(_get: Get, set: Set, carrierId: string, uid: string, patch: Record<string, string | undefined>): void {
-  set((s) => {
-    const carrier = resolveCarrier(s, carrierId);
-    if (!carrier) return {};
-    if (carrier.kind === 'hero') {
-      return ecrireActeur(s, carrierId, (h) => {
-        const clone: Combatant = structuredClone(h);
-        const it = (clone.items ?? []).find((i) => i.uid === uid);
-        if (it) {
-          applySkinPatch(it, patch);
-          recomputeLoadout(clone); // propage skin → Weapon.skin actif
-        }
-        return clone;
-      });
-    }
-    return {
-      possessions: s.possessions.map((p) => {
-        if (p.uid !== carrierId) return p;
-        const clone: Possession = structuredClone(p);
-        const it = clone.items.find((i) => i.uid === uid);
-        if (it) applySkinPatch(it, patch);
-        return clone;
-      }),
-    };
-  });
-}
-
 /** Change la FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de guerre/demi-lance) :
  *  pose `item.formeChoisie` parmi les `formChoices` du trapping (forme hors-liste → no-op), puis recompute
  *  pour que l'arme active (si tenue) porte ce choix (`Weapon.formeChoisie`). Cosmétique RAW — toutes les formes d'une
- *  Arme simple partagent les mêmes stats (LDB 62). Même patron (clone + recomputeLoadout) que setItemSkin. */
+ *  Arme simple partagent les mêmes stats (LDB 62). */
 export function choisirForme(_get: Get, set: Set, heroId: string, uid: string, forme: string): void {
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
@@ -774,7 +739,6 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     setActiveLoadout: (heroId, id) => setActiveLoadout(get, set, heroId, id),
     setLoadoutSlot: (heroId, id, slot, uid) => setLoadoutSlot(get, set, heroId, id, slot, uid),
     transferItem: (uid, fromHeroId, toHeroId) => transferItem(get, set, uid, fromHeroId, toHeroId),
-    setItemSkin: (heroId, uid, patch) => setItemSkin(get, set, heroId, uid, patch),
     choisirForme: (heroId, uid, forme) => choisirForme(get, set, heroId, uid, forme),
     grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
     buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),

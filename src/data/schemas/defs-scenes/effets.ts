@@ -16,9 +16,9 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema, surchargePaletteSchema } from '../grammaire/valeurs';
+import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
-import { idDe, refOuSpec } from '../grammaire/ref';
+import { idDe, ref, refOuSpec } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -147,7 +147,7 @@ const objetDonneSchema: z.ZodType<string, string> = idDe('trapping', INSTANCIABL
 /** Donne un objet à un héros (défaut : le premier). `trappingId` = objet à stats de la campagne
  *  (`narratif.objets`) ou du catalogue, feuille OUVERTE de `INSTANCIABLE_PAR_ID` ; `custom` = objet HORS-base (nom libre — trinket/quête/pièces de monstre) sans
  *  stats. L'objet arrive NON équipé. Champs MAGIQUES optionnels (butin/quête) : `qualities` AJOUTÉES
- *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `skin` = recoloration. */
+ *  (Atout/Défaut), `identified:false` = qualités masquées jusqu'à Évaluation (#2), `teinte` = recoloration. */
 export const giveTrappingSchema = nommerChamps(z.strictObject({
   type: z.literal('giveTrapping'),
   trappingId: objetDonneSchema.optional(),
@@ -155,7 +155,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   heroId: z.string().optional(),
   qualities: z.array(z.string()).optional(),
   identified: z.boolean().optional(),
-  skin: surchargePaletteSchema.optional(),
+  teinte: ref('material', undefined, 'objet').optional(),
   /** Aura détectée / Détection déjà tentée / jour de la
    *  dernière Évaluation ratée — posés par la fenêtre de loot AVANT attribution, propagés sur
    *  l'ItemInstance à la remise. */
@@ -165,7 +165,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, skin: { label: "palette", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+}), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que

@@ -2,7 +2,7 @@
  * Résolveur de PORTEUR unique (#614 doctrine « un héros, un mercenaire, une mule : le MÊME portage » ;
  * #620 SOCLE POSSESSIONS T1-e) — un porteur d'objets est soit un HÉROS (`state.party`, par `id`), soit
  * une POSSESSION (`state.possessions`, par `uid`). Les actions d'inventaire (équiper/ranger/transférer/
- * skin) résolvent le porteur ICI plutôt que de dupliquer la recherche party/possessions à chaque site.
+ * teinte) résolvent le porteur ICI plutôt que de dupliquer la recherche party/possessions à chaque site.
  */
 import type { Combatant } from '../../engine/types';
 import type { Possession, PossessionLocation } from '../../engine/possession';

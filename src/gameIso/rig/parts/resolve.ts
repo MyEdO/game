@@ -1,3 +1,4 @@
+import { findTeinteById } from '../../../data';
 import type { Slot } from '../../../engine/authoringAppearance';
 import { viewOrFront, type Part, type PartArt } from './types';
 import type { View } from '../facing';
@@ -68,7 +69,7 @@ function resolveUpperLimb(
   if (armItem) {
     const mat = ART_DE_MATIERE[armItem.matiere];
     matterArt = ARMOUR[mat]?.bras ?? '';                         // jetons @metal/@cuir… intacts
-    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], armItem.skin);
+    const map = tableDObjet([ARMOUR_PALETTES[mat] ?? {}], findTeinteById(armItem.teinte)?.palette);
     matterResolve = (svg) => applyTokenMap(svg, map);
     brasEstPleineLongueur = true;
   } else {

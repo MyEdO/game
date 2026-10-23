@@ -1,7 +1,7 @@
 /**
  * Éditeur RÉUTILISABLE d'une `Weapon` (arme dérivée/naturelle conférée par une mutation, un trait, un
  * objet…). Édite le VRAI objet `Weapon` — pas de structure intermédiaire. Les champs de LOADOUT
- * (hand/uid/reload/bypass/skin) sont runtime et hors édition : on ne décrit ici que l'arme elle-même.
+ * (hand/uid/reload/bypass/teinte) sont runtime et hors édition : on ne décrit ici que l'arme elle-même.
  */
 import type { Weapon, QualityInstance, ReachValue } from '../../engine/types';
 import { REACH_LABELS, REACH_VARIABLE } from '../../engine/types';

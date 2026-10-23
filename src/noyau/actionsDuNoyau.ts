@@ -161,7 +161,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   transferItem: (uid: IdDObjet, fromHeroId: IdDePorteur, toHeroId: IdDePorteur) => void;
   /** Skin cosmétique d'un objet (override de palette clé→hex ; clé à `undefined` = reset).
    *  Propagé à l'arme active via recomputeLoadout → le rendu se recolore (objet légendaire). */
-  setItemSkin: (heroId: IdDePorteur, uid: IdDObjet, patch: Record<string, string | undefined>) => void;
   /** Change la FORME (silhouette) d'une arme abstraite parmi ses `formChoices` (« Arme simple » →
    *  épée/hache/masse/…). Pose `ItemInstance.formeChoisie` puis recompute → l'arme tenue change de silhouette. */
   choisirForme: (heroId: IdDeHeros, uid: IdDObjet, forme: string) => void;

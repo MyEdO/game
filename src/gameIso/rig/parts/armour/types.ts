@@ -11,6 +11,6 @@ export type ArmourSet = Partial<Record<'tete' | 'torse' | 'bras' | 'jambes' | 'p
  * `armourPart` (equipment.ts) y résout la matière de la pièce (`matiere`) par `ART_DE_MATIERE`.
  *
  * `palette` : couleurs par défaut des `@tokens` de l'art (PaletteDeCouchePortee = hex exact) → rendu sans
- * perte + recoloriage cohérent par le skin d'objet, EXACTEMENT comme les tenues.
+ * perte + recoloriage cohérent par la teinte d'objet, EXACTEMENT comme les tenues.
  */
 export interface ArmourDef { id: string; set: ArmourSet; palette?: PaletteDeCouchePortee }

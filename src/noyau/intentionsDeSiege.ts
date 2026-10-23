@@ -234,7 +234,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   oocCastSpell: 'hôte', oocFocusSpell: 'hôte', oocDispelSpell: 'hôte', openMedic: 'hôte',
   usePartyItem: 'hôte', appraiseItem: 'hôte', appraiseGear: 'hôte',
   // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
-  toggleEquip: 'hôte', stowItem: 'hôte', transferItem: 'hôte', setItemSkin: 'hôte', choisirForme: 'hôte',
+  toggleEquip: 'hôte', stowItem: 'hôte', transferItem: 'hôte', choisirForme: 'hôte',
   setLoadoutSlot: 'hôte', createLoadout: 'hôte', deleteLoadout: 'hôte', setActiveLoadout: 'hôte',
   abandonPossession: 'hôte', renamePossession: 'hôte', retrievePossession: 'hôte',
   stablePossession: 'hôte', embark: 'hôte', disembark: 'hôte',

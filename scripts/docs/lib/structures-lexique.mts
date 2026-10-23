@@ -18,6 +18,7 @@
 // `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
 
 import { basename } from 'node:path';
+import { SLOTS } from '../../../src/data/palette.types';
 import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
 import { provenanceMesuree } from '../../../src/data/schemas/grammaire/sans-livre.ts';
@@ -390,6 +391,17 @@ export const CONCEPTS: readonly Concept[] = [
         statut: 'cible',
         note: 'tableau de chaînes dont au moins un élément résout — forme CIBLE, DESIGN v2 S2 (#1463, 2026-08-23) : « `refs(type)` = liste d’ids nus brandée (75 champs `string[]`) ». Ce qui reste est le TYPAGE du champ, pas une réécriture de la donnée.',
       },
+    ],
+  },
+  // src/data/schemas/grammaire/valeurs.ts:surchargePaletteSchema
+  {
+    id: 'palette-d-objet',
+    label: 'palette d’objet',
+    strate: 'Valeur',
+    champs: ['palette'],
+    datasets: ['materials.json'],
+    signatures: [
+      { sig: signature(SLOTS.filter((slot) => ['metal', 'cuir', 'accent'].includes(slot))), statut: 'cible' },
     ],
   },
   {

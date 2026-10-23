@@ -615,8 +615,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 
 /** SURCHARGE de palette persistée (`Palette`, `src/engine/authoringAppearance.ts`) : clés dans `SLOTS`, valeurs
  *  `couleurHexSchema` (#1903). `buildTokenMap` ne lit une surcharge que sur une base : une clé de rôle
- *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, `skin` d'objet, d'op et
- *  d'effet de scène. */
+ *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, palette des matières d'objet. */
 export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
 
 /** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`, `PaletteDEspece`) : clés dans

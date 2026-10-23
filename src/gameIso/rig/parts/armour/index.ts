@@ -14,7 +14,7 @@ export const ARMOUR: Record<string, ArmourSet> = Object.fromEntries(
 );
 
 /** Palette par DÉFAUT de chaque matériau (couleurs exactes des `@tokens` de son art) → rendu sans
- *  perte + recoloriage cohérent par le skin d'objet. Clé = `id` du def. */
+ *  perte + recoloriage cohérent par la teinte d'objet. Clé = `id` du def. */
 export const ARMOUR_PALETTES: Record<string, PaletteDeclaree> = Object.fromEntries(
   ARMOUR_DEFS.filter((d) => d.palette).map((d) => [d.id, d.palette!]),
 );

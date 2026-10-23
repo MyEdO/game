@@ -13,9 +13,9 @@ import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
 /** Clés d'une arme que le dessin LIT telles quelles (#2097) : le type `FormeDArme` et le sélecteur
  *  `armeDeDessin` en dérivent ; l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et la forme
  *  RÉSOLUE, et elles seules. */
-const CLES_ARME = ['attackKind', 'hand', 'hands', 'natural', 'skin', 'subType', 'type'] as const;
+const CLES_ARME = ['attackKind', 'hand', 'hands', 'natural', 'teinte', 'subType', 'type'] as const;
 /** Clés d'une pièce d'armure que le dessin LIT (#2097). */
-const CLES_PIECE = ['locs', 'skin'] as const;
+const CLES_PIECE = ['locs', 'teinte'] as const;
 
 /** Matière d'une pièce d'armure : id du type d'armure (`subType`, sous-liste `armour` des Groupes,
  *  `weaponGroups.json?kind=armour`). */
