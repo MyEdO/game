@@ -69,15 +69,14 @@ function Harness({ picker, de = 5 }: { picker: boolean; de?: number }) {
             interactive: true,
             resilience: 2,
             rollFrisson: false,
-            preRollForce: () => setRolled(true),
             forcedRoll: picker && rolled ? { roll: de, target: 45, onSet: () => {} } : undefined,
           },
         ),
         rolled,
       }]}
       actions={[
-        { key: 'cancel', label: 'Annuler', when: 'pre', onClick: () => {} },
-        { key: 'apply', label: 'Appliquer', when: 'post', onClick: () => {} },
+        { key: 'cancel', label: 'Annuler', onClick: () => {} },
+        { key: 'apply', label: 'Appliquer', onClick: () => {} },
       ]}
     />
   );

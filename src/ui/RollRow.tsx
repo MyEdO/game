@@ -17,7 +17,7 @@ import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
 import type { FLOW_VERBS } from '../noyau/flowVerbs';
-import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
+import { actorInfluenceView, fermetureDeLaResilience, type RollInfluenceView } from '../noyau/rollFlowFactory';
 import { t } from '../i18n';
 
 /** Libellé par défaut du bouton « Lancer » (rangée seule ET coquille `RollShell` hissée). */
@@ -52,7 +52,6 @@ export function RollRow({
   onBonusSL,
   onDarkPact,
   onForce,
-  preRollForce,
   forcedRoll,
   fixedMark = false,
   determination,
@@ -106,7 +105,7 @@ export function RollRow({
   const rowName = typeof row.d?.label === 'string' ? row.d.label
     : typeof row.pending?.label === 'string' ? row.pending.label
       : actor?.label;
-  const determineBtn = determination && determination.resolve > 0 && (
+  const determineBtn = determination && (
     <CodexRef category={RULE_REF.determination.category} id={RULE_REF.determination.id} label="Détermination" wrap>
       <button className="btn btn-resource" onClick={determination.onResolve}>
         <Icon id="resource/resolve" size="sm" /> Détermination ×{determination.resolve}
@@ -155,7 +154,7 @@ export function RollRow({
           {declare?.hint && <span className="hint">{declare.hint}</span>}
           {/* Résilience PRÉ-jet (LDB 17 l.68 « au lieu de lancer les dés ») — disponible AVANT de lancer, pas
               seulement après un échec, comme la coquille `RollShell`. */}
-          {onForce && <ResilienceButton resilience={av.resilience} show={forceAvailable(av, influence)} onForce={preRollForce ?? onForce} />}
+          {onForce && <ResilienceButton resilience={av.resilience} show={!fermetureDeLaResilience(av, influence)} onForce={onForce} />}
           {/* Résistance (Menace) PRÉ-jet (LDB 10 : « réussir automatiquement le premier Test »). */}
           {resist && <ResistButton menace={resist.menace} show onResist={resist.onResist} />}
           {determineBtn}
@@ -190,8 +189,8 @@ export function RollRow({
             {resist && <ResistButton menace={resist.menace} show onResist={resist.onResist} />}
             {reverse && <ReverseButton show onReverse={reverse.onReverse} preview={reverse.preview} />}
             {/* Détermination (LDB 17 l.59) : POOL DISTINCT de la Résilience — sa fenêtre est la
-                PRÉSENCE de la donnée `determination` posée par le site, et sa réserve son propre
-                compteur (`resolve > 0`, porté par le bouton). Jamais gatée par la Résilience. */}
+                PRÉSENCE de la donnée `determination`, posée par le site quand le verbe `determine`
+                de son flux est ouvert (réserve comprise). Jamais gatée par la Résilience. */}
             {determineBtn}
           </InfluenceRow>
         </>
@@ -210,7 +209,7 @@ export interface RollRowProps {
   row: PanelRowData;
   rolled: boolean;
   /** Une relance a DÉJÀ été consommée sur ce Test (`slot.rerolled`, LDB 12 l.40) — FAIT du slot, la
-   *  fenêtre de la Chance s'en dérive (`rerollAvailable`). */
+   *  fenêtre de la Chance s'en dérive (`fermetureDeLaRelance`). */
   rerolled?: boolean;
   /** L'ISSUE du flux est DÉFAVORABLE malgré un jet propre réussi (Test combiné partiel, incantation
    *  sous le NI) : seule la Résilience s'y ouvre (`LDB 17 l.68`). Absent → l'accent de Test opposé
@@ -226,8 +225,6 @@ export interface RollRowProps {
   onDarkPact?: () => void;
   /** Absent → pas de Résilience sur ce flux. */
   onForce?: () => void;
-  /** Action Résilience PRÉ-jet spécifique (défaut : `onForce`). */
-  preRollForce?: () => void;
   /** « vous choisissez le résultat » (LDB 17 l.68) : sélecteur du dé. DEUX provenances, un seul contrôle —
    *  `fixed` absent = dé CHOISI de la Résilience (post-jet, doit rester une réussite) ; `fixed` = dé FIXÉ
    *  par l'option de confort (avant OU après le jet, tout le d100). Absent → pas de sélecteur.

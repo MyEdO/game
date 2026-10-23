@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { castSpell, routeCounterspell, counterspellCandidates, counterspellChanted, isDispellableCast, withPreRollFixedDie } from '../noyau/combatFlow';
+import { castSpell, routeCounterspell, counterspellCandidates, isDispellableCast, withPreRollFixedDie } from '../noyau/combatFlow';
+import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
 import { effectivelyHostile } from '../engine/relations';
 import type { SpellLike } from '../engine/magic';
 import { createHero } from '../engine/character';
@@ -144,16 +145,17 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     const pcs = useGame.getState().pendingCounterspell!;
     expect(pcs.participants.map((p) => p.id)).toEqual(expect.arrayContaining([h1.id, h2.id]));
     expect(pcs.participants.every((p) => !p.result), 'personne ne roule d’office').toBe(true);
-    expect(counterspellChanted(pcs), 'fenêtre vierge : « Laisser passer » est encore offert').toBe(false);
+    const laisserPasser = () => FLOW_HANDLERS.counterspell.fermetures(useGame.getState).cancel;
+    expect(laisserPasser(), 'phase 1 : « Laisser passer » attend les déclarations').toBe('declarationsDues');
     const cur = () => useGame.getState().battle!.combatants;
     // PHASE 1 (#1042/#1059) : la composition se règle AVANT les dés — un jet lancé ici ne part pas.
     useGame.getState().counterspellRoll(h1.id);
-    expect(counterspellChanted(useGame.getState().pendingCounterspell), 'aucun dé tant que la fenêtre n’a pas déclaré').toBe(false);
+    expect(useGame.getState().pendingCounterspell!.participants.every((p) => !p.result), 'aucun dé tant que la fenêtre n’a pas déclaré').toBe(true);
     expect(cur().find((c) => c.id === h1.id)!.dispelledThisRound, 'le verrou de phase ne brûle rien').toBeFalsy();
     useGame.getState().counterspellDeclare(h1.id, 'solo');
     useGame.getState().counterspellDeclare(h2.id, 'pass');
     useGame.getState().counterspellRoll(h1.id);
-    expect(counterspellChanted(useGame.getState().pendingCounterspell), 'phase 2 : le déclaré chante').toBe(true);
+    expect(laisserPasser(), 'phase 2 : le déclaré chante, « Laisser passer » se ferme').toBe('jetLance');
     expect(cur().find((c) => c.id === h1.id)!.dispelledThisRound, 'l’essai du chanteur est consommé').toBe(true);
     expect(cur().find((c) => c.id === h2.id)!.dispelledThisRound, 'celui qui a passé garde le sien').toBeFalsy();
   });
@@ -256,9 +258,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     H.characteristics.intelligence = 99;
     H.resilience = 1;
     castSpell(useGame.getState, useGame.setState, H, E, 'flechette');
-    withPreRollFixedDie(useGame.getState, useGame.setState,
-      () => useGame.getState().castRoll(),
-      () => useGame.getState().castForceSuccess());
+    useGame.getState().castForceSuccess(); // avant le jet : le geste lance puis force (`auJetDu`)
     const pc = useGame.getState().pendingCast!;
     expect(pc.forced, 'la réussite est achetée par la Résilience').toBe(true);
     // L'aiguillage a vu le résultat FINAL : soit il a routé (non-critique), soit il attend le choix

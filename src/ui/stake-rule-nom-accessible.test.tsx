@@ -27,7 +27,7 @@ describe('StakeRule — le ⓘ s’annonce par sa FICHE, pas par le pas qui le p
   });
 
   it('2. un pas d’un AUTRE nom ne déteint pas dessus (la coquille pose le ⓘ elle-même)', () => {
-    const actions: RollAction[] = [{ key: 'ack', label: 'Continuer', when: 'always', onClick: () => {} }];
+    const actions: RollAction[] = [{ key: 'ack', label: 'Continuer', onClick: () => {} }];
     const html = renderToStaticMarkup(
       <RollShell title="Initiative" rows={[]} rolled={false} actions={actions} stake={stake} />,
     );

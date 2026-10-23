@@ -38,6 +38,7 @@ import { rule } from '../engine/policy';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau, GesteDuNoyau } from './actionsDuNoyau';
+import { siOuvert } from './rollFlowSpecs';
 
 /** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat —, et le verbe de chacune : il va
  *  de l'ancrage à la case d'en face (`caseOpposee`). */
@@ -337,7 +338,7 @@ export function creerActionsDeFranchissement(get: Get, set: Set) {
       if (refus) return void refuserGeste(get, set, refus);
       settleFall(get, set, p);
     },
-    fallCancel: () => set({ pendingFall: null }),
+    fallCancel: () => siOuvert('fall', 'cancel', get, () => set({ pendingFall: null })),
     windowAcross: (from, to) => {
       const verdict = gesteDepuis(get(), from);
       if ('refus' in verdict) return void refuserGeste(get, set, t(verdict.refus, verdict.vars));

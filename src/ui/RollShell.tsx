@@ -8,7 +8,10 @@ import { RollRow, type RollRowProps, defaultRollLabel } from './RollRow';
 import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
-import { FLOW_VERBS } from '../noyau/flowVerbs';
+import { FLOW_VERBS, type FlowKey } from '../noyau/flowVerbs';
+import { fermeturesDuFlux } from '../noyau/verbesOuverts';
+import { FERMETURES_DITES, type FermetureDuJet, type VerbeDuCycle } from '../noyau/rollFlowFactory';
+import { libelleDeLaFermeture } from '../noyau/libelles';
 import { avecSigne } from '../noyau/difficultyText';
 import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
@@ -35,8 +38,8 @@ import type { OnDismiss } from '../state/dismissStack';
  * `outcome` (l'issue sous la liste) se rend à TOUTE cardinalité : un jet opposé a une issue comme
  * un jet mono — c'est le MÊME schéma d'informations (#1078).
  *
- * La phase courante est `rolled` (au moins un jet lancé). Les actions déclarent `when` :
- * `'pre'` (avant jet), `'post'` (après), `'always'` (toujours) — le shell filtre. Aucune classe CSS
+ * La phase courante est `rolled` (au moins un jet lancé). Une action qui joue un verbe du cycle de jet le nomme
+ * (`verbe`) : la coquille ne la montre que tant que le noyau le laisse ouvert (`fermeturesDuFlux`). Aucune classe CSS
  * nouvelle : réutilise `Modal` (états `champ` et `plein`), `rm-subtitle`, `mini-title`,
  * `cs-rows`, `rm-summary`, `cadre-pied` — donc restyler/étendre se fait à UN endroit.
  */
@@ -55,7 +58,7 @@ export type RollRowData = RollRowProps & {
   separator?: ReactNode;
 };
 
-/** Un bouton de la barre d'actions, filtré par phase (`when`). Rendu dans le pied (`CadrePied`). La
+/** Un bouton de la barre d'actions, montré tant que le verbe qu'il joue est ouvert. Rendu dans le pied (`CadrePied`). La
  *  PROÉMINENCE (style) n'est PLUS choisie par l'appelant : elle se DÉDUIT du RÔLE porté par la `key`
  *  (cf. `actionTon`) — un même verbe a le même poids visuel dans toutes les modales. */
 export interface RollAction {
@@ -68,8 +71,13 @@ export interface RollAction {
   disabled?: boolean;
   /** Fermée pour une RAISON, que le joueur lit au survol, au focus et au toucher (`GatedAction`). */
   refus?: string;
-  /** Phase où le bouton est VISIBLE : avant le jet / après / toujours. */
-  when: 'pre' | 'post' | 'always';
+  /** Le verbe du cycle de jet que joue le bouton : il n'est montré que tant que le noyau le laisse ouvert
+   *  (`fermeturesDuFlux`). Absent : le bouton ne joue aucun verbe du cycle, il est toujours montré. */
+  verbe?: VerbeDuCycle;
+  /** Le flux qui juge `verbe`, quand ce n'est pas celui de la coquille (`flowKey`). */
+  flux?: FlowKey;
+  /** Le slot de ce flux qui juge `verbe` (flux à plusieurs jets) ; absent, la fenêtre entière. */
+  pid?: string;
 }
 
 /** TON d'une action DÉDUIT de sa `key` (les appelants ne le choisissent plus) : abandon /
@@ -258,10 +266,16 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
   const hoistFaces = landedRow?.row.d ? d100Faces(landedRow.row.d.roll) : null;
   // Échap : pendant le frisson HISSÉ (roulis ou atterrissage de la scène centrale), SKIPPE — même
   // geste qu'un clic sur les dés (`hoist.skip`), jamais une annulation en pleine animation. Sinon,
-  // annule seulement pré-jet ; un bouton Annuler post-jet porte sa visibilité via `when`.
+  // annule tant que le flux de la coquille laisse l'annulation ouverte (`fermeturesDuFlux`), sinon avant le jet.
   // Congédiement PARTIEL par construction (`dismissStack.ts:12-14`) : la fenêtre qui porte le jet
   // (`Modal` de la coquille ou boîte d'un hôte) ne se ferme que par son démontage, jamais par l'appui.
-  const escGeste = disableEscClose ? undefined : (hoist.rolling || hoist.landed) ? hoist.skip : (!rolled ? onCancel : undefined);
+  const fermeture = (verbe: VerbeDuCycle, flux: FlowKey | undefined, pid?: string): FermetureDuJet | null => {
+    if (flux) return fermeturesDuFlux(state, flux, pid)[verbe];
+    if (import.meta.env.DEV) throw new Error(`RollShell : le verbe « ${verbe} » n'a aucun flux qui le juge (flowKey ou RollAction.flux).`);
+    return null;
+  };
+  const annulable = flowKey ? fermeture('cancel', flowKey) === null : !rolled;
+  const escGeste = disableEscClose ? undefined : (hoist.rolling || hoist.landed) ? hoist.skip : (annulable ? onCancel : undefined);
   const escClose: OnDismiss | undefined = escGeste && (() => { escGeste(); return false; });
   // « TOUT LANCER » par rangées (`rollRows`/`rollAll` — fenêtre MULTI) : chaque rangée commet d'abord
   // SON brouillon ; celles dont la saisie a POSÉ un dé ont déjà lancé, on ne les relance pas. Les
@@ -276,9 +290,14 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
     if (!launched.size) { fallback(); return; } // aucun dé saisi : le verbe du domaine s'applique tel quel
     for (const { r, key } of rollable) if (!launched.has(key)) r.onRoll?.();
   };
-  const shownActions = actions
-    .filter((a) => a.when === 'always' || (rolled ? a.when === 'post' : a.when === 'pre'))
-    .map((a) => (ROLL_ALL_ROWS_KEYS.has(a.key) ? { ...a, onClick: rollAllRowsWithPickedDice(a.onClick) } : a));
+  // Un verbe que son flux ferme se tait, sauf une fermeture qui attend une décision (`FERMETURES_DITES`) : refusé, il
+  // dit sa raison.
+  const shownActions = actions.flatMap((a) => {
+    const f = a.verbe ? fermeture(a.verbe, a.flux ?? flowKey, a.pid) : null;
+    if (f && !FERMETURES_DITES.has(f)) return [];
+    const juge = f ? { ...a, refus: libelleDeLaFermeture(f) } : a;
+    return [ROLL_ALL_ROWS_KEYS.has(juge.key) ? { ...juge, onClick: rollAllRowsWithPickedDice(juge.onClick) } : juge];
+  });
   // Le corps est une PILE (`Stack`) : c'est son `gap` qui place l'enjeu et les notes, primitives sans
   // marge externe.
   const body = (

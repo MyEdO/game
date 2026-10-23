@@ -139,6 +139,7 @@ describe('BargainModal (#2c)', () => {
         decidedBy: 'dr',
       },
     };
+    useGame.setState({ pendingBargain: pb }); // la coquille juge la clôture sur le Marchandage en attente
     const html = renderToStaticMarkup(
       <BargainModalView pb={pb} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );

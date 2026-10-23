@@ -71,8 +71,8 @@ export function StateRecoveryModalView({
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'apply' },
   ];
 
   return (

@@ -1,7 +1,7 @@
 import { Icon } from './Icon';
 import { CodexRef } from './compendium/CodexRef';
 import { RULE_REF } from '../engine/ruleRefs';
-import { rerollAvailable, darkPactAvailable, type RollActorView, type RollInfluenceView } from '../noyau/rollFlowFactory';
+import { fermetureDeLaRelance, fermetureDuBonus, fermetureDuPacte, type RollActorView, type RollInfluenceView } from '../noyau/rollFlowFactory';
 import { t } from '../i18n';
 
 /**
@@ -9,7 +9,7 @@ import { t } from '../i18n';
  * ch.17 l.22-28) : « Relancer » et « +1 DR » (cumulable), plus le Sombre Pacte (LDB 19 l.17).
  *
  * Aucune FENÊTRE n'est calculée ici : elles vivent au seam, en prédicats purs
- * (`rerollAvailable`/`darkPactAvailable`, `noyau/rollFlowFactory.ts`), aux côtés des ops qui les
+ * (`fermetureDeLaRelance`/`fermetureDuBonus`/`fermetureDuPacte`, `noyau/rollFlowFactory.ts`), aux côtés des ops qui les
  * exécutent. Ce composant reçoit les FAITS — ressources du jeteur (`actorView`), état du jet
  * (`roll`) — et rend l'affordance quand le prédicat l'ouvre ET que le verbe est OFFERT : l'offre se
  * lit à la PRÉSENCE du handler, jamais à un booléen fourni par l'appelant.
@@ -35,7 +35,7 @@ export function ChanceButtons({
   onDarkPact?: () => void;
 }) {
   const { fortune, freeReroll } = actorView;
-  const pactBtn = onDarkPact && darkPactAvailable(actorView, roll) && (
+  const pactBtn = onDarkPact && !fermetureDuPacte(actorView, roll) && (
     <CodexRef category={RULE_REF['sombre-pacte'].category} id={RULE_REF['sombre-pacte'].id} label="Sombre Pacte" wrap>
       <button className="btn btn-resource" onClick={onDarkPact}>
         <Icon id="condition/bleeding" size="sm" /> {t('verbe.darkPact')}
@@ -45,7 +45,7 @@ export function ChanceButtons({
   // La relance GRATUITE relève de la Bénédiction de Chance (LDB 41), la payante de la Chance
   // (LDB 12 l.40) : le bouton porte la règle qui l'autorise RÉELLEMENT.
   const rerollRef = freeReroll ? RULE_REF['benediction-de-chance'] : RULE_REF.chance;
-  const rerollBtn = rerollAvailable(actorView, roll) && (
+  const rerollBtn = !fermetureDeLaRelance(actorView, roll) && (
     <CodexRef category={rerollRef.category} id={rerollRef.id} label={freeReroll ? 'Bénédiction de Chance' : 'Chance'} wrap>
       <button
         className="btn btn-resource"
@@ -61,7 +61,7 @@ export function ChanceButtons({
   return (
     <>
       {rerollBtn}
-      {fortune > 0 && onBonusSL && (
+      {!fermetureDuBonus(actorView, roll) && onBonusSL && (
         <CodexRef category={RULE_REF.chance.category} id={RULE_REF.chance.id} label="Chance" wrap>
           {/* Le bouton NOMME la ressource qu'il dépense : « +1 DR ×N » nu ne disait pas d'où venait le
               cran (recette : lu comme un Avantage, une Résilience partielle…). Même forme de pool que

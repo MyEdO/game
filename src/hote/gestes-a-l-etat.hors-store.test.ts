@@ -4,10 +4,13 @@
  * à part de `gestes.hors-store.test.ts`, dont la table (`fenetres.testkit.ts`) tient le jeu branché. Un argument qui
  * désigne une ligne de l'état sans id (ligne de butin, Blessure Critique) se choisit parmi les valeurs que le lecteur de
  * sa fenêtre nomme (`fenetreDuButin`, `fenetreDeLOperation`). Qui tient la main se dit par son genre
- * (`proprietaireDeLaFenetre`), en mots à l'hôte texte.
+ * (`proprietaireDeLaFenetre`), en mots à l'hôte texte. Un verbe de jet que son flux ferme se dessine fermé, avec ce qui
+ * le ferme (`fermeturesDeLaFenetre`, #2936).
  */
 import { describe, it, expect } from 'vitest';
-import type { Jeu } from '../noyau/index';
+import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Jeu, type Partie } from '../noyau/index';
+import { auContact, heroDuDuel } from '../noyau/combatDeTest.testkit';
+import { testScene } from '../scenes/test-fixture';
 import { fenetreADessiner, type ArgumentDuGeste } from './gestes';
 import { proprietaireDeLaFenetre } from './projection';
 import { t } from '../i18n';
@@ -138,5 +141,41 @@ describe('qui tient la main se dit par son genre, nommé sans id', () => {
       expect(ligne({ genre: 'porteur', nom: 'Berta' })).toContain('(à Berta)');
       expect(ligne({ genre: 'porteur', nom: null })).toContain(`(à ${t('ecran.proprietaire.sansNom')})`);
     });
+  });
+});
+
+describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi (#2936)', () => {
+  const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
+  /** Le geste `verbe` de la fenêtre que `partie` dessine. */
+  const geste = (partie: Partie, verbe: string) => {
+    const g = fenetreADessiner(partie.etat())?.gestes.find((x) => x.verbe === verbe);
+    if (!g) throw new Error(`${verbe} absent de la fenêtre`);
+    return { ouvert: g.ouvert, raison: g.raison };
+  };
+
+  it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
+    const ouverture = creerPartie({ ...etatInitialDuJeu(), party: [heroDuDuel()] }, ENTREES);
+    ouverture.envoyer({ type: 'startScene', args: [testScene()] });
+    ouverture.envoyer({ type: 'startCombat', args: ['enc-mutants'] });
+    ouverture.envoyer({ type: 'confirmRoundStart', args: [] });
+    const garde = ouverture.etat();
+    ouverture.fermer();
+    const { E, patch } = auContact(garde);
+    const partie = creerPartie({ ...garde, ...patch }, ENTREES);
+    try {
+      partie.envoyer({ type: 'battleClickEntity', args: [E.id, { confirm: true }] });
+      expect(geste(partie, 'attackRoll')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'attackSetLocation')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'attackSetForcedRoll')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      expect(geste(partie, 'attackConfirm')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      partie.envoyer({ type: 'attackRoll', args: [] });
+      expect(geste(partie, 'attackRoll')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'attackCancel')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'attackSetLocation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
+      expect(geste(partie, 'attackSetForcedRoll')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'attackConfirm')).toEqual({ ouvert: true, raison: null });
+    } finally {
+      partie.fermer();
+    }
   });
 });

@@ -7,7 +7,7 @@
  */
 import {
   activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed,
-  porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey,
+  porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, fermeturesDeLaFenetre, libelleDeLaFermeture,
   type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt,
 } from '../noyau/index';
 
@@ -58,9 +58,10 @@ export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
   scene: { id: string; nom: string } | null;
-  /** La fenêtre qui tient la main, en combat comme hors combat, ses verbes et l'id que ses verbes prennent en premier
-   *  argument (`pid`) ; pour la cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
-  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+  /** La fenêtre qui tient la main, en combat comme hors combat, ses verbes, ceux qui sont fermés maintenant avec leur
+   *  raison (`fermeturesDeLaFenetre`) et l'id que ses verbes prennent en premier argument (`pid`) ; pour la cascade, son
+   *  étape courante (`stepInteraction`, les clés d'un choix). */
+  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; verbes: string[]; fermes: Record<string, string>; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
   /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), jetés ou à jeter, et le DR net d'un Test opposé tranché. */
   jets: JetEnVue[];
   combat: null | {
@@ -141,6 +142,10 @@ export function combattantsTries(etat: Jeu): CombattantProjete[] {
   return b.combatants.map((c) => combattant(c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
 }
 
+/** Les verbes de la fenêtre que son jet ferme maintenant (`fermeturesDeLaFenetre`), chacun avec sa raison en mots du joueur. */
+const fermesDe = (etat: Jeu, f: NonNullable<ReturnType<typeof fenetreDuJeu>>): Record<string, string> =>
+  Object.fromEntries([...fermeturesDeLaFenetre(etat, f)].flatMap(([verbe, fermeture]) => (fermeture ? [[verbe, libelleDeLaFermeture(fermeture)]] : [])));
+
 /** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix. */
 const etapeDe = (f: NonNullable<ReturnType<typeof fenetreDuJeu>>) =>
   f.etape ? { etape: { id: f.etape.id, genre: f.etape.kind, interaction: stepInteraction(f.etape), choix: (f.etape.options ?? []).map((o) => o.key) } } : {};
@@ -204,7 +209,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
-    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
+    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], fermes: fermesDe(etat, fenetre), pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
     jets: jetsEnVue(etat),
     combat: b
       ? {

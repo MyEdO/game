@@ -62,8 +62,6 @@ export function DistraireModal() {
     onForce: force,
   }, {
     rollLabel: t('verbe.roll'),
-    // Résilience AVANT le jet (LDB 17 l.68) : Athlétisme forcé à l'emporter.
-    preRollForce: () => { roll(); force(); },
   });
 
   const issue = pd.atk
@@ -71,8 +69,8 @@ export function DistraireModal() {
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
   ];
 
   return (

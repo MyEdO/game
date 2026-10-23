@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Combatant } from '../engine/types';
-import { actorInfluenceView, forceAvailable, type RollInfluenceView } from '../noyau/rollFlowFactory';
+import { actorInfluenceView, fermetureDeLaResilience, type RollInfluenceView } from '../noyau/rollFlowFactory';
 import { ChanceButtons } from './ChanceButtons';
 import { ResilienceButton } from './ResilienceButton';
 
@@ -52,7 +52,7 @@ export function InfluenceRow({
         onBonusSL={onBonusSL}
         onDarkPact={onDarkPact}
       />
-      {onForce && <ResilienceButton resilience={av.resilience} show={forceAvailable(av, roll)} onForce={onForce} />}
+      {onForce && <ResilienceButton resilience={av.resilience} show={!fermetureDeLaResilience(av, roll)} onForce={onForce} />}
       {children}
     </div>
   );

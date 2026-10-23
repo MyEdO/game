@@ -34,6 +34,16 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     return { H };
   }
 
+  it('runConfirm avant le jet : la clôture est fermée (`jetNonLance`), personne ne court', () => {
+    const { H } = setup();
+    useGame.getState().battleRun({ x: 16, y: 10 });
+    useGame.getState().runConfirm();
+    const st = useGame.getState();
+    expect(st.pendingRun, 'la fenêtre reste ouverte').toBeTruthy();
+    expect(st.battle!.acted).toBe(false);
+    expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual({ x: 10, y: 10 });
+  });
+
   it('battleRun(dest) ouvre pendingRun ; runRoll lance ; runConfirm court vers la destination + consomme l’Action', () => {
     useGame.getState().seedRng(2);
     const { H } = setup();

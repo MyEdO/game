@@ -19,7 +19,7 @@ import { Row } from '../Layout';
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, when: 'post' };
+  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, verbe: 'apply' };
 }
 
 /**
@@ -73,7 +73,6 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     rollFrisson: true,
     fortune: attacker.fortune ?? 0,
     resilience: attacker.resilience ?? 0,
-    preRollForce: () => { roll(); forceSuccess(); },
     noForcedDie: influences.sansDeForce,
     reverse: influences.inversion ? { onReverse: reverseVerb, preview: influences.inversion.apercu } : undefined,
   });
@@ -183,7 +182,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     postRollExtra: vue.attente ? <p className="rm-note" data-ton="attente">{vue.attente}</p> : undefined,
     forcedExtra: vue.critiqueALocaliser ? <CritLocationPicker current={vue.critiqueALocaliser.choisie} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
-      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' } as RollAction,
+      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' } as RollAction,
       confirmerLeCoup(vue.defenseAttendue, confirm),
     ],
   };

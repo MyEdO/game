@@ -62,12 +62,14 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant — jamais un automatisme).
-  const reverseAvail = rolled && FLOWS.test.reverseAvailable(useGame.getState);
+  const reverseAvail = FLOWS.test.reverseAvailable(useGame.getState);
   const reversePreview = reverseAvail ? FLOWS.test.reversePreview(useGame.getState) : null;
-  // Barre : « Continuer » post-jet + « Annuler » pré-jet SI le test est annulable (action de COMBAT ;
-  // referme la cascade sans dépenser l'Action). Les tests de dialogue/scène n'ont pas `cancellable`.
-  const actions: RollAction[] = [{ key: 'confirm', label: 'Continuer', onClick: resolve, when: 'post' }];
-  if (pt.cancellable) actions.unshift({ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' });
+  // Barre : « Annuler » et « Continuer », que le flux `test` ouvre (un Test de COMBAT est annulable avant le jet,
+  // `FLOWS.test.fermetures(get).cancel` ; referme la cascade sans dépenser l'Action).
+  const actions: RollAction[] = [
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'apply' },
+  ];
 
   return {
     flowKey: 'test',
@@ -126,7 +128,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
         resilience: actor?.resilience ?? 0,
         reverse: reverseAvail ? { onReverse: reverseVerb, preview: reversePreview } : undefined,
         /* Détermination (LDB 17 l.59) : AVANT le jet, si un malus psy social pèse, la dépense l'ignore. */
-        determination: !rolled && pt.psychMod ? { resolve: actor?.resolve ?? 0, onResolve: determination } : undefined,
+        determination: FLOWS.test.fermetures(useGame.getState).determine ? undefined : { resolve: actor?.resolve ?? 0, onResolve: determination },
       }),
     ],
     outcome: rolled ? [recapLineOfEvent(ev('info', describeTest(pt), pt.actorId), party)] : undefined,
@@ -145,7 +147,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
       </div>
     ) : undefined,
     actions,
-    /* Échap = Annuler, seulement si le test est annulable (pré-jet ; RollShell ne l'attache pas post-jet). */
-    onCancel: pt.cancellable ? cancel : undefined,
+    /* Échap = Annuler, tant que le flux `test` l'ouvre (RollShell le juge). */
+    onCancel: cancel,
   };
 }

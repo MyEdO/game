@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RollShell, type RollRowData, type RollAction } from './RollShell';
 import { testBreakdown, testPending } from './breakdown';
 import { buildRollRow, type BuiltRollRow } from './rollRowBuild';
 import { StakeRule, stakeRuleOf } from './StakeNote';
 import { flowStakeRef } from '../data';
+import { useGame } from '../state/store';
+import type { Jeu } from '../noyau/etat';
 
 const noop = () => {};
 
@@ -31,11 +33,16 @@ const rolledRow = (over: Partial<RollRowData> = {}): BuiltRollRow => ({
 });
 
 // Les hooks/modales NE fournissent PLUS de « Lancer » : la coquille le hisse dans `.cadre-pied`
-// pour le cas mono. Les actions sont donc seulement Annuler (pré) + Appliquer (post).
+// pour le cas mono. Les actions sont donc seulement Annuler + Appliquer, que le flux de la coquille juge.
 const actions: RollAction[] = [
-  { key: 'cancel', label: 'Annuler', onClick: noop, when: 'pre' },
-  { key: 'apply', label: 'Appliquer', onClick: noop, when: 'post' },
+  { key: 'cancel', label: 'Annuler', onClick: noop, verbe: 'cancel' },
+  { key: 'apply', label: 'Appliquer', onClick: noop, verbe: 'apply' },
 ];
+
+/** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.run.rolled`). */
+const course = (result: unknown): Jeu['pendingRun'] => ({ combatantId: 'coureur', result } as unknown as Jeu['pendingRun']);
+beforeEach(() => useGame.setState({ pendingRun: course(null) }));
+afterEach(() => useGame.setState({ pendingRun: null }));
 
 function render(node: React.ReactElement) {
   return renderToStaticMarkup(node);
@@ -59,11 +66,11 @@ function actionsBar(html: string): string {
 
 describe('RollShell — la couture UNIQUE du plein écran', () => {
   it('une fenêtre de jet pose le champ lisible ET le plein écran sur son voile ; embarquée, aucun', () => {
-    const flottante = render(<RollShell title="Jet" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const flottante = render(<RollShell flowKey="run" title="Jet" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
     const voile = /<div class="modal-overlay"[^>]*>/.exec(flottante)?.[0] ?? '';
     expect(voile).toContain('data-champ="true"');
     expect(voile).toContain('data-plein="true"');
-    const embarquee = render(<RollShell title="Jet" embedded rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const embarquee = render(<RollShell flowKey="run" title="Jet" embedded rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
     expect(embarquee).not.toContain('data-plein');
   });
 });
@@ -71,7 +78,7 @@ describe('RollShell — la couture UNIQUE du plein écran', () => {
 describe('RollShell — coquille de jet unifiée', () => {
   it('(a) mono : 1 rangée interactive pré-jet → « Lancer » HISSÉ dans la barre `.cadre-pied`', () => {
     const html = render(
-      <RollShell
+      <RollShell flowKey="run"
         title="Test mono"
         subtitle="Un jet"
         rows={[pendingRow()]}
@@ -93,15 +100,15 @@ describe('RollShell — coquille de jet unifiée', () => {
   });
 
   it('(f) mono : « Lancer » dans la barre, pré-jet — masqué après le jet', () => {
-    const pre = render(<RollShell title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
-    const post = render(<RollShell title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />);
+    const pre = render(<RollShell flowKey="run" title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const post = render(<RollShell flowKey="run" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />);
     expect(actionsBar(pre)).toContain('Lancer'); // hissé pré-jet
     expect(post).not.toContain('🎲 Lancer'); // rien à hisser post-jet (rangée déjà lancée)
   });
 
   it('(g) multi : 2 rangées interactives non lancées → « Lancer » PAR RANGÉE, PAS hissé dans la barre', () => {
     const html = render(
-      <RollShell
+      <RollShell flowKey="run"
         title="Multi"
         rows={[pendingRow(), pendingRow({ row: { pending: testPending('Voile', 50) } })]}
         rolled={false}
@@ -117,7 +124,7 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   it('(b) multi : 2 rangées + summary rendu', () => {
     const html = render(
-      <RollShell
+      <RollShell flowKey="run"
         title="Test multi"
         instruction="Chaque rôle lance"
         rows={[rolledRow(), rolledRow({ row: { d: testBreakdown('Voile', 50, { roll: 30, target: 50, sl: 2, success: true }) } })]}
@@ -169,7 +176,7 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   // ── Garde de vocabulaire d'actions (#211) : la barre d'une modale de jet est verrouillée à
   //    (verbes DÉCLARÉS du flux ∪ commandes neutres). Choke-point unique : `RollShell` + `flowKey`. ──
-  const act = (key: string): RollAction => ({ key, label: key, onClick: noop, when: 'always' });
+  const act = (key: string): RollAction => ({ key, label: key, onClick: noop });
 
   it('(h) garde : actions NEUTRES (cancel/rollAll/confirm) passent pour tout flux', () => {
     expect(() =>
@@ -200,17 +207,18 @@ describe('RollShell — coquille de jet unifiée', () => {
     ).not.toThrow();
   });
 
-  it('(d) actions filtrées par phase : Annuler (pre) disparaît après jet, Appliquer (post) apparaît', () => {
+  it('(d) actions filtrées par le noyau : Annuler disparaît après le jet, Appliquer apparaît', () => {
     const pre = render(
-      <RollShell title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />,
+      <RollShell flowKey="run" title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />,
     );
+    useGame.setState({ pendingRun: course({ roll: 22, target: 45, sl: 2, success: true }) });
     const post = render(
-      <RollShell title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />,
+      <RollShell flowKey="run" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />,
     );
-    expect(pre).toContain('Annuler'); // when:'pre'
-    expect(pre).not.toContain('Appliquer'); // when:'post' masqué
-    expect(post).toContain('Appliquer'); // when:'post'
-    expect(post).not.toContain('Annuler'); // when:'pre' masqué
+    expect(pre).toContain('Annuler'); // `cancel` ouvert avant le jet
+    expect(pre).not.toContain('Appliquer'); // `apply` fermé : jetNonLance
+    expect(post).toContain('Appliquer');
+    expect(post).not.toContain('Annuler'); // `cancel` fermé : jetLance
     // Le « Lancer » hissé (mono) suit la même phase : présent pré-jet, absent post-jet.
     // (Le préfixe 🎲 est désormais l'icône <Icon id="nav/dice"> — on vérifie le libellé texte.)
     expect(pre).toContain('Lancer');
@@ -221,8 +229,8 @@ describe('RollShell — coquille de jet unifiée', () => {
     const classes = (html: string, label: string) =>
       (new RegExp(`<button[^>]*class="([^"]*)"[^>]*>${label}<`).exec(actionsBar(html))?.[1] ?? '').split(' ').filter(Boolean).sort();
     const refusees: RollAction[] = [
-      { key: 'cancel', label: 'Annuler', onClick: noop, when: 'pre', refus: 'Le jet est engagé.' },
-      { key: 'confirm', label: 'Valider', onClick: noop, when: 'pre', refus: 'Choisis une option.' },
+      { key: 'cancel', label: 'Annuler', onClick: noop, refus: 'Le jet est engagé.' },
+      { key: 'confirm', label: 'Valider', onClick: noop, refus: 'Choisis une option.' },
     ];
     const nues: RollAction[] = refusees.map(({ refus: _refus, ...a }) => a);
     const refuse = render(<RollShell title="T" rows={[]} rolled={false} actions={refusees} />);
@@ -243,7 +251,7 @@ describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA
   const stake = flowStakeRef('run-roll'); // un jet dont l'enjeu a un foyer (`regles/course`)
 
   it('un `stake` à foyer donne le ℹ au titre SANS que le site ne compose quoi que ce soit', () => {
-    const html = render(<RollShell title="Course" rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
+    const html = render(<RollShell flowKey="run" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
     expect(stakeRuleOf(stake), 'pré-requis : cet enjeu a bien un foyer').toBeTruthy();
     expect(html.match(/ab-codex-info/g) ?? [], 'une porte, et une seule').toHaveLength(1);
     // Nom accessible DÉRIVÉ du titre — aucun libellé recopié au call-site.
@@ -251,14 +259,14 @@ describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA
   });
 
   it('sans `stake`, aucune porte n’apparaît au titre', () => {
-    const html = render(<RollShell title="Course" rows={[pendingRow()]} rolled={false} actions={actions} />);
+    const html = render(<RollShell flowKey="run" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} />);
     expect(html).not.toContain('ab-codex-info');
   });
 
   it('un site qui a DÉJÀ composé sa porte (titre ou sous-titre) n’en reçoit pas une 2ᵉ', () => {
     const rule = stakeRuleOf(stake);
-    const auTitre = render(<RollShell title={<>Course <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
-    const auSousTitre = render(<RollShell title="Course" subtitle={<>étape <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
+    const auTitre = render(<RollShell flowKey="run" title={<>Course <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
+    const auSousTitre = render(<RollShell flowKey="run" title="Course" subtitle={<>étape <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
     expect(auTitre.match(/ab-codex-info/g) ?? []).toHaveLength(1);
     expect(auSousTitre.match(/ab-codex-info/g) ?? []).toHaveLength(1);
   });

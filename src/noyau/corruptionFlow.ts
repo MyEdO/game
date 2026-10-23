@@ -21,6 +21,7 @@ import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import { battleRng } from './battleRng';
+import { siOuvert } from './rollFlowSpecs';
 import { zoneCovers } from './monde/zones';
 import { bonus, effectiveChar, refreshWounds } from '../engine/characteristics';
 import { recomputeLoadout } from '../engine/items';
@@ -374,13 +375,13 @@ export function creerActionsDeCorruption(get: Get, set: Set) {
      *  (kind 'seuil', LDB 19 l.70) : dénouement chez `corruptionFlow`, puis le slot LIBÉRÉ revient au
      *  seuil suivant en attente (`corruptionQueue`) — la fenêtre suivante s'ouvre, aucun Test ne se
      *  résout en silence faute de place. */
-    resolveCorruption: () => {
+    resolveCorruption: () => siOuvert('corruption', 'apply', get, () => {
       const pc = get().pendingCorruption;
-      if (!pc || pc.roll == null) return;
+      if (!pc) return;
       set({ pendingCorruption: null });
       resolveCorruptionPending(get, set, pc);
       releaseCorruptionSlot(get, set);
-    },
+    }),
   } satisfies Partial<ActionsDuNoyau>;
 }
 

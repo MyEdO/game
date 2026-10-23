@@ -44,7 +44,7 @@ export function SteamSaveModal() {
     resilience: actor?.resilience ?? 0,
   });
 
-  const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' }];
+  const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' }];
   const text = !rolled
     ? 'Un jet de vapeur jaillit de la chaudière — Test d’Initiative ou ébouillanté.'
     : p.success ? `${p.actorName} esquive le jet de vapeur.` : `${p.actorName} est ébouillanté par le jet de vapeur !`;

@@ -82,7 +82,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   // Inversion de Test (LDB 23 l.209/218, LDB 10 — CHOIX du joueur, #558) : offerte dès qu'une voie
   // (Talent/jeton) est applicable (`reverseAvailable`, pure) ; `reversePreview` rend l'issue LISIBLE
   // avant le clic (le jeton, libre, peut dégrader un succès existant).
-  const reverseAvail = rolled && FLOWS.defense.reverseAvailable(useGame.getState);
+  const reverseAvail = FLOWS.defense.reverseAvailable(useGame.getState);
   const reversePreview = reverseAvail ? FLOWS.defense.reversePreview(useGame.getState) : null;
 
   // Porte-Bouclier et Riposte : la fenêtre de Défense du noyau (`fenetreDeDefense`), chaque option avec sa raison de refus.
@@ -148,12 +148,11 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
     rollFrisson: true,
     fortune: defender.fortune ?? 0,
     resilience: defender.resilience ?? 0,
-    preRollForce: () => { roll(); forceSuccess(); },
     reverse: reverseAvail ? { onReverse: reverseVerb, preview: reversePreview } : undefined,
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
   ];
 
   return {
@@ -168,14 +167,16 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
       <>
         <div className="rm-options">
           {/* Réaction : segmented control PARTAGÉ — chaque option affiche SA valeur effective (mods compris). */}
-          <OptionChooser
-            layout="seg"
-            groupLabel={vue.reaction.libelle}
-            options={vue.reaction.options.map((o) => {
-              const mode = o.valeur as DefenseMode;
-              return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode) };
-            })}
-          />
+          {vue.reaction && (
+            <OptionChooser
+              layout="seg"
+              groupLabel={vue.reaction.libelle}
+              options={vue.reaction.options.map((o) => {
+                const mode = o.valeur as DefenseMode;
+                return { key: mode, label: o.libelle, value: segVal(mode), selected: pd.mode === mode, title: titreDeLaReaction(mode, o.libelle), onSelect: () => setMode(mode) };
+              })}
+            />
+          )}
           {vue.armeDeParade && (
             <div className="rm-loc-inline">
               <span className="mini-title">{vue.armeDeParade.libelle}</span>

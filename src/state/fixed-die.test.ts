@@ -155,7 +155,7 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
     expect(die.forcedRoll!.fixed).toBe(true);
     expect(die.forcedRoll!.target).toBe(FIXED_ROLL_MAX);
     die.forcedRoll!.onSet(33);
-    expect(calls[0]).toBe('roll'); // on lance PUIS on substitue (geste de `preRollForce`)
+    expect(calls[0]).toBe('roll'); // on lance PUIS on substitue (geste pré-armé, `withPreRollFixedDie`)
   });
 
   it('le journal porte la mention « dé fixé »', () => {

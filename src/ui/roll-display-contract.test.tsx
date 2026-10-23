@@ -34,7 +34,7 @@ const rolledRow = (label = 'Athlétisme', over: Partial<RollRowData> = {}): Buil
   ...over,
 });
 
-const actions: RollAction[] = [{ key: 'confirm', label: 'Appliquer', onClick: noop, when: 'post' }];
+const actions: RollAction[] = [{ key: 'confirm', label: 'Appliquer', onClick: noop }];
 
 describe('RollShell — l’ISSUE se rend à toute cardinalité (#1078)', () => {
   it('une coquille à 2 rangées (jet OPPOSÉ) rend son `outcome`', () => {

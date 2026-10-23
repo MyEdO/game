@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 import { influencesLocally } from '../noyau/netOwnership';
-import { overcastTargetCandidates, previewCast, counterspellChanted, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor, withPreRollFixedDie } from '../noyau/combatFlow';
+import { overcastTargetCandidates, previewCast, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSupportFor } from '../noyau/combatFlow';
 import type { CounterDeclaration } from '../noyau/pendings';
 import { findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
@@ -11,7 +11,7 @@ import { testValue } from '../engine/skills';
 import { clampTarget } from '../engine/tests';
 import { castingValue, spellTargetCount, overcastSL, castAfterCrit, castInfoIsPrayer } from '../engine/magic';
 import { type OvercastAxis, overcastSourceOf, overcastAxes, extraTargetCapacity, missileOvercastDamageBonus, spellHasOvercastTableRoll, overcastBudget, overcastStepCost } from '../engine/overcast';
-import { availableResistance, resistanceImproves } from '../engine/menace';
+import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { rule } from '../engine/policy';
 import { CharFrame } from './CharFrame';
 import { OptionChooser } from './OptionChooser';
@@ -186,33 +186,21 @@ export function CastModal() {
     interactive: influencesLocally(useGame.getState(), pc.casterId),
     fortune: caster.fortune ?? 0,
     resilience: caster.resilience ?? 0,
-    // Résilience PRÉ-JET : même geste en deux temps que le dé fixé pré-armé — rendu ATOMIQUE (#1029),
-    // sinon le routage du Contre-sort déciderait sur le jet naturel, avant la réussite forcée.
-    preRollForce: () => withPreRollFixedDie(useGame.getState, useGame.setState, roll, forceSuccess),
   }));
 
   const issue = res && castRevealed && outcome
     ? [recapLineOfEvent(ev(res.isCritical ? 'crit' : 'cast', outcome, caster.id, selfTarget ? undefined : target.id), pool)]
     : undefined;
 
-  // Rangée d'opposition interactive encore à lancer : `oppositionConfirm` REFUSE d'agréger (la cible
-  // subirait sans avoir opposé) — l'action le DIT au lieu de rester cliquable pour rien.
-  const oppPending = !!pcs && pcs.participants.some((part) => part.interactive && !part.result);
-  // Incantation CRITIQUE d'un Sort : l'effet retenu est un CHOIX du lanceur (LDB 46 l.28-32) — tant
-  // qu'il n'est pas ÉCRIT, « Appliquer » reste gris (la même garde tient dans `castConfirm`), car de
-  // ce choix dépend la dissipabilité. Une Prière n'a pas cette table de choix.
-  const critChoicePending = !!res?.isCritical && !isPrayer && !pc.critChoice && influencesLocally(useGame.getState(), pc.casterId);
   const actions: RollAction[] = [
-    // Renoncer (héros lanceur) : pré-jet uniquement. « Laisser passer » (Contre-sort) vit APRÈS le jet
-    // d'incantation — la fenêtre naît du jet : sans cette action, décliner la Dissipation serait
-    // inatteignable (Échap est neutralisé une fois lancé). Il décline la fenêtre ENTIÈRE : dès qu'une
-    // rangée a chanté, le choix n'existe plus (l'issue s'applique par « Appliquer », qui agrège).
+    // Renoncer (héros lanceur), ou « Laisser passer » le Contre-sort : la fenêtre naît du jet d'incantation, et sans
+    // cette action décliner la Dissipation serait inatteignable (Échap est neutralisé une fois lancé). Il décline la
+    // fenêtre ENTIÈRE : le flux `counterspell` le ferme dès qu'une rangée a chanté (l'issue s'applique par
+    // « Appliquer », qui agrège).
     ...(csp
-      ? counterspellChanted(csp)
-        ? []
-        : [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, when: 'post' } as RollAction]
+      ? [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, verbe: 'cancel', flux: 'counterspell' } as RollAction]
       : caster.kind !== 'enemy'
-        ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'pre' } as RollAction]
+        ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' } as RollAction]
         : []),
     {
       key: 'confirm',
@@ -220,9 +208,8 @@ export function CastModal() {
       label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="map-tool/pin" size="sm" /> Poser la zone</> : 'Appliquer',
       title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
       onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => placeZone(true) : confirm,
-      when: 'post',
-      refus: oppPending ? 'Une cible n’a pas encore opposé son Test'
-        : critChoicePending ? 'Choisis l’effet de ton Incantation Critique' : undefined,
+      verbe: 'apply',
+      flux: csp ? 'counterspell' : pcs ? 'opposition' : 'cast',
     },
   ];
 
@@ -469,12 +456,8 @@ export function CastModal() {
                     onBonusSL={() => oppBonusSL(part.id)}
                     onDarkPact={() => oppDarkPact(part.id)}
                     onForce={() => oppForce(part.id)}
-                    /* Résistance (Menace : Magie), LDB 10 l.1020 : auto-succès du Test qui résiste au
-                       Sort, à DR = Bonus d'Endurance. MÊME fenêtre que le verbe `resist` de la fabrique
-                       (`resistanceImproves`) : une opposition GAGNÉE à DR inférieur laisse une marge que
-                       le talent réduit encore — c'est le « DR requis important » du texte. */
-                    resist={pcs.menace != null && availableResistance(actor, pcs.menace) != null
-                      && resistanceImproves(actor, r ? { won: r.resisted, sl: r.oppose.sl } : null)
+                    /* Résistance (Menace : Magie), LDB 10 l.1020 : la fenêtre est le verbe `resist` du flux. */
+                    resist={pcs.menace != null && !fermeturesDuFlux(useGame.getState(), 'opposition', part.id).resist
                       ? { menace: pcs.menace, onResist: () => oppResist(part.id) } : undefined}
                   />
                 );

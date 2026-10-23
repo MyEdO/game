@@ -9,7 +9,7 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, fenetreDAttaque, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, jetsEnVue, libelleDeLaFenetre, libelleDuJet, libelleDuLitteral,
+  DESIGNATIONS, fenetreDAttaque, fenetreDeDefense, fenetreDeLOperation, fenetreDuButin, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuParametre, libelleDuVerbe, reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_L_OPERATION, REGLAGES_DE_LA_DEFENSE, REGLAGES_DU_BUTIN,
   stepInteraction,
   VERBES_D_INTERACTION, type Jeu, type Reglage, type ValeurDuReglage,
@@ -46,7 +46,8 @@ export interface ArgumentDuGeste {
  *  choix, en liste), `formulaire` (les arguments saisis, puis le bouton). Un argument est à dire quand il est requis,
  *  ou optionnel avec des valeurs nommées : aucune valeur que le noyau nomme ne reste sans saisie. `attendu` : le verbe que la politique de la fenêtre
  *  joue maintenant (`drive`, le jet puis sa clôture). `ouvert` : faux pour un verbe qu'une fenêtre lue règle
- *  (`LECTEURS`) et qu'elle ne nomme pas maintenant ; un hôte ne le dessine pas. */
+ *  (`LECTEURS`) et qu'elle ne nomme pas maintenant, ou que le flux de jet qui le joue ferme maintenant
+ *  (`fermeturesDeLaFenetre`) ; un hôte ne le dessine pas. `raison` : ce qui ferme ce verbe de jet, en mots du joueur. */
 export interface GesteDeLaFenetre {
   verbe: string;
   libelle: string;
@@ -55,6 +56,7 @@ export interface GesteDeLaFenetre {
   aChoisir: string | null;
   attendu: boolean;
   ouvert: boolean;
+  raison: string | null;
 }
 
 /** La fenêtre qui tient la main, prête à dessiner : son titre, son étape de séquence, qui tient la main, son corps en
@@ -137,12 +139,10 @@ function renduDe(args: readonly ArgumentDuGeste[]): Pick<GesteDeLaFenetre, 'rend
   return { rendu: 'formulaire', aChoisir: null };
 }
 
-/** Le verbe que la politique de la fenêtre joue maintenant : son premier (le jet) tant qu'un jet de la fenêtre reste à
- *  tomber, son dernier (la clôture) ensuite. */
-function verbeAttendu(etat: Jeu, drive: readonly string[] | undefined): string | null {
-  if (!drive?.length) return null;
-  const lignes = jetsEnVue(etat).flatMap((j) => j.lignes);
-  return lignes.length && lignes.every((l) => l.jet !== null) ? drive[drive.length - 1] : drive[0];
+/** Le verbe que la politique de la fenêtre joue maintenant : le premier de son drive que son jet n'a pas fermé
+ *  (`fermeturesDeLaFenetre`) — le jet tant qu'il reste à tomber, la clôture ensuite. */
+function verbeAttendu(drive: readonly string[] | undefined, fermetures: ReadonlyMap<string, unknown>): string | null {
+  return drive?.find((v) => !fermetures.get(v)) ?? null;
 }
 
 /** La fenêtre qui tient la main, prête à dessiner ; `null` : rien ne tient la main. */
@@ -152,7 +152,8 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   const { reglages: lus, regles } = reglagesDeLaFenetre(etat, fenetre.etape);
   const reglages = new Map<string, Reglage[]>();
   for (const r of lus) reglages.set(r.verbe, [...(reglages.get(r.verbe) ?? []), r]);
-  const attendu = verbeAttendu(etat, fenetre.drive);
+  const fermetures = fermeturesDeLaFenetre(etat, fenetre);
+  const attendu = verbeAttendu(fenetre.drive, fermetures);
   const gestes = fenetre.verbes.map((verbe): GesteDeLaFenetre => {
     const duVerbe = reglages.get(verbe) ?? [];
     let libre = duVerbe.find((r) => r.parametre === undefined);
@@ -163,8 +164,9 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
       if (!nomme) libre = undefined;
       return a;
     });
-    const ouvert = !regles.has(verbe) || reglages.has(verbe);
-    return { verbe, libelle: garanti(libelleDuVerbe(verbe), verbe, 'libellé du verbe'), arguments: args, ...renduDe(args), attendu: verbe === attendu, ouvert };
+    const fermeture = fermetures.get(verbe) ?? null;
+    const ouvert = (!regles.has(verbe) || reglages.has(verbe)) && !fermeture;
+    return { verbe, libelle: garanti(libelleDuVerbe(verbe), verbe, 'libellé du verbe'), arguments: args, ...renduDe(args), attendu: verbe === attendu, ouvert, raison: fermeture && libelleDeLaFermeture(fermeture) };
   });
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;

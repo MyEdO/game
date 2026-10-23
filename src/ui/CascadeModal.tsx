@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 import { useEffect, type ComponentProps, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
-import { availableResistance, resistanceImproves } from '../engine/menace';
+import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { StakeRule, OutcomeNote, sameCertainOps, sameEntityRef } from './StakeNote';
@@ -95,7 +95,7 @@ function CoqueDEtape(props: ComponentProps<typeof RollShell>): JSX.Element {
   const sequenceAbandon = useGame((s) => s.sequenceAbandon);
   const abandon = useGame(useShallow((s) => sequenceAbandonEtatOf(() => s)));
   const actions: RollAction[] = abandon
-    ? [{ key: 'break', label: abandon.label, title: abandon.title, onClick: () => sequenceAbandon(), when: 'always', ...(abandon.refus !== undefined ? { refus: abandon.refus } : {}) }, ...props.actions]
+    ? [{ key: 'break', label: abandon.label, title: abandon.title, onClick: () => sequenceAbandon(), ...(abandon.refus !== undefined ? { refus: abandon.refus } : {}) }, ...props.actions]
     : props.actions;
   return <RollShell {...props} actions={actions} />;
 }
@@ -320,7 +320,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         subtitle={<>{totalJets} jet{totalJets > 1 ? 's' : ''}</>}
         rolled
         rows={p.participants.flatMap(stepWitnessRows)}
-        actions={[{ key: 'finish', label: t('verbe.cascadeFinish'), onClick: () => finish(), when: 'always' }]}
+        actions={[{ key: 'finish', label: t('verbe.cascadeFinish'), onClick: () => finish() }]}
         embedded={embedded} etape={etape}
       />
     );
@@ -456,12 +456,12 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // un titre « Haine ». La mémoire du joueur est portée par le JOURNAL (chaque conséquence y est
   // écrite par `commitStep`) et par le BILAN de fin de séquence, qui rend TOUTES les étapes.
   // Action « Continuer » / « Terminer » (dernière étape) — bouton primaire d'enchaînement, partagé par
-  // les étapes AFFICHAGE, QUANTITÉ et CHOIX (conséquences pures, aucun jet à attendre) : `when:'always'` ;
+  // les étapes AFFICHAGE, QUANTITÉ et CHOIX (conséquences pures, aucun jet à attendre) : sans `verbe`, donc jamais fermé par un flux ;
   // l'étape BATCH ne le sert qu'une fois ses rangées lancées (`ready`).
   // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
   // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
   const continueAction: RollAction = {
-    key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), when: 'always',
+    key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(),
     ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
   };
 
@@ -534,8 +534,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   if (interaction === 'table') {
     const aff = affordancesDuDe(cur);
     const tableActions: RollAction[] = [
-      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tableRoll(cur.id), when: 'pre' },
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)", when: 'always' } as RollAction] : []),
+      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tableRoll(cur.id) },
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
       <CoqueDEtape
@@ -562,8 +562,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // PORTEUR en Z1. La fenêtre annonce le seuil et le porteur AVANT le lancer : la donnée est sur
     // l'étape dès sa déclaration (`rollSeam.dieStep`).
     const dieActions: RollAction[] = [
-      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => dieRoll(cur.id), when: 'pre' },
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)", when: 'always' } as RollAction] : []),
+      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => dieRoll(cur.id) },
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
       <CoqueDEtape
@@ -804,10 +804,9 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       // sur l'étape (`cur.combatPsych`/`cur.encounterPsych`), les divergences par héros sur la rangée.
       const part = cur.participants!.find((x) => x.id === String(r.key));
       const a = r.actor;
-      const done = part?.result;
-      const resistOk = !!part?.menace && !!a && availableResistance(a, part.menace) != null
-        && resistanceImproves(a, done ? { won: !!done.success, sl: done.sl ?? 0 } : null);
-      const determineOk = !!a && !!part && !done && !!(cur.combatPsych || cur.encounterPsych);
+      const ouverts = part ? fermeturesDuFlux(useGame.getState(), 'cascadeBatch', part.id) : null;
+      const resistOk = !!part?.menace && ouverts?.resist === null;
+      const determineOk = ouverts?.determine === null;
       return {
         ...r,
         flowKey: 'cascadeBatch' as const,
@@ -823,8 +822,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // influence — `cascadeResolveAll`, comme la branche jet).
     const rollAllRows = rollAllUnrolledRows(cur.participants!, batchRoll, (x) => x.interactive !== false && owns(x.id));
     const batchActions: RollAction[] = [
-      ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)', when: 'always' } as RollAction] : []),
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> {t('verbe.cascadeResolveAll')}</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)", when: 'always' } as RollAction] : []),
+      ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)' } as RollAction] : []),
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> {t('verbe.cascadeResolveAll')}</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)" } as RollAction] : []),
       ...(ready ? [continueAction] : []),
     ];
     return (
@@ -854,10 +853,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // `outcome` (résumé de conséquence) n'existe que sur une étape COMMITTÉE ; l'étape COURANTE
   // s'appuie sur la rangée ✓/✗ ±DR (breakdown) comme SEUL verdict (#295 Décision 1b) : aucun
   // prologue « X réussit »/« X échoue » ici.
-  // Résistance (Menace), LDB 10 l.1020 : étape taguée `menace` + spec du talent disponible (non
-  // consommée cette séance) + `resistanceImproves` (MÊME fenêtre que le verbe `resist` de la fabrique).
-  const resistAvail = !!actor && cur.menace != null && availableResistance(actor, cur.menace) != null
-    && resistanceImproves(actor, res ? { won: !!res.success, sl: res.sl ?? 0 } : null);
+  // Résistance (Menace), LDB 10 l.1020 : la fenêtre est le verbe `resist` du flux.
+  const resistAvail = cur.menace != null && !fermeturesDuFlux(useGame.getState(), 'cascade', cur.id).resist;
 
   // En-tête A→B du Test opposé : il n'existe QUE pour un défenseur unique (une bande n'a pas de « B »
   // — chaque rangée porte son portrait, la rangée témoin porte l'attaquant).
@@ -898,8 +895,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // « Tout lancer » : tant qu'il reste >1 jet, résout d'un coup le reste (RNG, sans influence) PUIS
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
-    ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)", when: 'always' } as RollAction] : []),
-    { key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), when: 'post' },
+    ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => resolveAll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+    { key: 'next', label: isLast ? t('verbe.cascadeFinish') : t('verbe.cascadeNext'), onClick: () => next(), verbe: 'apply', flux: 'cascade', pid: cur.id },
   ];
 
   return (

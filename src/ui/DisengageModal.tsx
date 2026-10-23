@@ -159,7 +159,7 @@ export function DisengageModal() {
       : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
 
     const rolled = !!res && (!toucheDu || !!jet);
-    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, when: 'post' }];
+    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, verbe: 'apply', flux: 'flee' }];
 
     return (
       <RollShell
@@ -215,7 +215,7 @@ export function DisengageModal() {
   }, { key: 'mover' });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
   ];
 
   return (

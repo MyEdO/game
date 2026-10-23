@@ -52,15 +52,11 @@ export function BattementModal() {
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
     onForce: force,
-  }, {
-    // Résilience AVANT le jet (LDB 17 l.68) : on lance puis on force la réussite (dé PAR DÉFAUT = DR max
-    // → plus d'Avantage retiré). PAS de choix du dé : l'Avantage retiré ne dépend que du DR.
-    preRollForce: () => { roll(); force(); },
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, when: 'always' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
   ];
 
   return (

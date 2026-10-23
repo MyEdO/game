@@ -72,8 +72,6 @@ export function GrappleModal() {
     onForce: force,
   }, {
     rollLabel: 'Lancer (Force)',
-    // Résilience AVANT le jet (LDB 17 l.68) : Force forcée à l'emporter.
-    preRollForce: () => { roll(); force(); },
   });
 
   const issue = pd.def
@@ -111,12 +109,12 @@ export function GrappleModal() {
   }
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'pre' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: breakGrapple, title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', when: 'pre' } as RollAction]
+      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: breakGrapple, title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
       : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, when: 'post' },
+    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'apply' },
   ];
 
   return (

@@ -9,6 +9,7 @@ import { estUneCle, t } from '../i18n';
 import { HIT_LOCATION_LABELS } from '../engine/types';
 import { FLOW_VERBS } from './flowVerbs';
 import type { HostJet } from './slotsDeJet';
+import type { FermetureDuJet } from './rollFlowFactory';
 
 /** Les préfixes des flux de jet, du plus long au plus court : `cascadeBatch` avant `cascade`. */
 const PREFIXES = Object.keys(FLOW_VERBS).sort((a, b) => b.length - a.length);
@@ -49,3 +50,6 @@ export const libelleDeLaFenetre = (cle: string): string | null => texte(`fenetre
 
 /** Le titre d'une étape-jet de la séquence, par son `jet`. */
 export const libelleDuJet = (jet: HostJet): string => t(`jet.${jet}`);
+
+/** Ce qui ferme un verbe du cycle de jet (`FermetureDuJet`), en mots du joueur. */
+export const libelleDeLaFermeture = (f: FermetureDuJet): string => t(`jet.ferme.${f}`);

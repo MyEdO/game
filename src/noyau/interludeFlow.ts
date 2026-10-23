@@ -12,6 +12,8 @@
  * passe par le flux de repos standard (récupération, convalescence, horloge — weeks × 7 jours).
  */
 import type { Jeu } from './etat';
+import { siOuvert } from './rollFlowSpecs';
+import { garanti } from '../lib/garanti';
 import { battleRng } from './battleRng';
 import { d10, d100, deMonde, roll as rollDice } from '../engine/dice';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoundingFailure } from '../engine/tests';
@@ -1174,8 +1176,12 @@ export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'ski
  *  de bande) OU `resolver` DIRECT (Revenus/Artisanat/Apprentissage/Identification, sans table). Les
  *  `patch` des résolveurs sont ACCUMULÉS puis fusionnés dans l'unique écriture finale. */
 export function confirmActivity(get: Get, set: Set): void {
+  siOuvert('activity', 'apply', get, () => appliquerLActivite(get, set));
+}
+
+function appliquerLActivite(get: Get, set: Set): void {
   const pa = get().pendingActivity;
-  if (!pa || pa.roll == null || !pa.activityId) return;
+  if (!pa || !pa.activityId) return;
   // Activité/Scène de BATAILLE de masse (ADE II 8) : l'issue porte sur l'ARMÉE (application distincte
   // par `confirmBattleActivity`, canal de jet identique). BUDGET UNIQUE (l.65 : « comme à l'accoutumée,
   // ils ne peuvent participer qu'à un maximum de trois Activités ») : une prépa de bataille EST une
@@ -1212,7 +1218,7 @@ export function confirmActivity(get: Get, set: Set): void {
   let patch: Partial<InterludeHeroState> = {};
   // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'fumble'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
-  const fumble = isFumble(pa.roll, pa.success);
+  const fumble = isFumble(garanti(pa.roll, pa.heroId, 'jet de l’Activité'), pa.success);
   // Résolveur DIRECT (pas de table d'issues) : Revenus/Artisanat/Apprentissage/Identification —
   // ils agissent/consomment MÊME sur échec (RAW). Les résolveurs de BANDE restent dans la boucle.
   if (def.resolver && !def.outcomes?.length && !def.onSuccess?.length) {

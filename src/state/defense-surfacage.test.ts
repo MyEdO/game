@@ -188,8 +188,8 @@ function playWindow(seed: number, pa: Partial<PendingAttack>, opts?: { force?: b
   if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forceSuccess` est un no-op
   seedBattleRng(seed);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (opts?.force) g().attackForceSuccess();
+  // « au lieu de lancer les dés pour un Test, vous choisissez le résultat » (LDB 17 l.68)
+  if (opts?.force) g().attackForceSuccess(); else g().attackRoll();
   g().attackConfirm();
   g().defenseRoll();
   return g().pendingDefense!.result!;
@@ -371,11 +371,10 @@ function playForcings(seed: number, opts: { atk?: boolean; def?: boolean }) {
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(seed);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (opts.atk) g().attackForceSuccess();
+  // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
+  if (opts.atk) g().attackForceSuccess(); else g().attackRoll();
   g().attackConfirm();
-  g().defenseRoll();
-  if (opts.def) g().defenseForceSuccess();
+  if (opts.def) g().defenseForceSuccess(); else g().defenseRoll();
   const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
   return { pd: g().pendingDefense!, atkResilience: resilienceOf('e'), defResilience: resilienceOf('h') };
 }
@@ -390,17 +389,16 @@ function playPosed(opts: { forceAtk?: boolean; forceDef?: boolean; atkDie?: numb
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(opts.seed ?? 3);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().attackRoll();
-  if (opts.forceAtk) g().attackForceSuccess();
+  // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
+  if (opts.forceAtk) g().attackForceSuccess(); else g().attackRoll();
   // « pire » = la réussite la MOINS bonne (DR naturel minimal) : sans garantie, ce dé perd l'opposition.
   const atkTarget = g().pendingAttack!.result!.attackerDetail!.target;
   const atkDie = opts.atkDie === 'pire' ? maxForcedRoll(atkTarget) : opts.atkDie;
   if (atkDie != null) g().attackSetForcedRoll(atkDie);
   g().attackConfirm();
-  g().defenseRoll();
+  if (opts.forceDef) g().defenseForceSuccess(); else g().defenseRoll();
   const target = g().pendingDefense!.def!.target;
   const defDie = opts.defDie === 'pire' ? maxForcedRoll(target) : opts.defDie;
-  if (opts.forceDef) g().defenseForceSuccess();
   if (defDie != null) g().defenseSetForcedRoll(defDie);
   const pd = g().pendingDefense!;
   const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;

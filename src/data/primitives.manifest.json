@@ -123,7 +123,7 @@
     "label": "RollShell",
     "fichier": "src/ui/RollShell.tsx",
     "css": "src/ui/styles/roll-shell.css",
-    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte",
+    "concept": "coquille de jet mono/multi (Lancer→Chance→Pacte→Résilience→Appliquer) ; posée dans `Modal` ou `EmbeddedShell`, ou rendue à part (`useRollShell` : titre, corps, gestes) pour l'hôte qui l'englobe dans SA boîte ; une action qui joue un verbe du cycle le nomme (`RollAction.verbe`) et ne se montre que tant que le noyau le laisse ouvert (`fermeturesDuFlux`)",
     "perimetre": "toute modale de jet, mono (N=1) et multi (N contributeurs)",
     "verrou": "roll-modal-invariant.test.ts"
   },
@@ -145,6 +145,15 @@
     "concept": "fabrique de flux de jet + registre spec par kind",
     "perimetre": "tout Test interactif joueur",
     "verrou": "rollflow-no-drift.test.ts, rollFlowWiring.test.ts"
+  },
+  {
+    "id": "verbesOuverts",
+    "type": "primitives.manifest",
+    "label": "fermeturesDuFlux / fermeturesDeLaFenetre / fermeturesDeLaMaladresse",
+    "fichier": "src/noyau/verbesOuverts.ts",
+    "concept": "ce qui ferme MAINTENANT chaque verbe du cycle d'un flux de jet (`FermetureDuJet`, libellé `libelleDeLaFermeture`), le prédicat même que gardent ses ops (`RollFlowHandlers.fermetures` : Résilience `fermetureDuForcage`, clôtures `cloture`/`jetPose`/`jetImpose`, annulation `annulation`, issue perdue `perdu` du spec), et chaque verbe de la fenêtre qui tient la main qu'un de ses flux joue ; le tirage des Oups !, hors des flux, a son juge (`fermeturesDeLaMaladresse`) ; une fermeture qui attend une décision du joueur (`FERMETURES_DITES`) se montre refusée avec sa raison ; aucun site ne date un verbe « avant » ou « après » le jet",
+    "perimetre": "barre d'actions de `RollShell` (`RollAction.verbe`), Résistance et Détermination des rangées, gestes des hôtes du noyau (`fenetreADessiner` : `attendu`, `ouvert`, `raison` ; `projection.fenetre.fermes`), confirmations et annulations manuscrites du store (`siOuvert`)",
+    "verrou": "verbesOuverts.hors-store.test.ts, gestes-a-l-etat.hors-store.test.ts"
   },
   {
     "id": "rollSeam",

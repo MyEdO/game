@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AppraiseModalView } from './AppraiseModal';
+import { useGame } from '../state/store';
 import type { PendingAppraise } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { addCondition, COND } from '../engine/conditions';
@@ -83,9 +84,11 @@ describe('AppraiseModal (#2e)', () => {
 
   it('après une réussite : « révélé » + bouton Appliquer', () => {
     const pa: PendingAppraise = { ...base, roll: 20, success: true, sl: 2 };
+    useGame.setState({ pendingAppraise: pa }); // la coquille juge la clôture sur l'Évaluation en attente
     const html = renderToStaticMarkup(
       <AppraiseModalView pa={pa} fortune={0} onRoll={noop} onReroll={noop} onBonusSL={noop} onConfirm={noop} onCancel={noop} />,
     );
+    useGame.setState({ pendingAppraise: null });
     expect(html).toContain('révélé');
     expect(html).toMatch(/Appliquer/);
   });

@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { availableResistance, resistanceImproves } from '../engine/menace';
+import { fermeturesDuFlux } from '../noyau/verbesOuverts';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { exposureLevelSchema, NATURES_D_INFLUENCE } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -45,9 +45,8 @@ export function CorruptionModal() {
   const rolled = pc.roll != null;
   const seuil = pc.kind === 'seuil';
   // Résistance (Menace) (LDB 10 l.1020) : exposition → 'corruption', seuil → 'mutation' (tag posé
-  // à l'ouverture). MÊME fenêtre que le verbe `resist` de la fabrique — `resistanceImproves`.
-  const resistAvail = pc.menace != null && hero != null && availableResistance(hero, pc.menace) != null
-    && resistanceImproves(hero, rolled ? { won: !!pc.success, sl: pc.sl ?? 0 } : null);
+  // à l'ouverture). La fenêtre est le verbe `resist` du flux.
+  const resistAvail = pc.menace != null && !fermeturesDuFlux(useGame.getState(), 'corruption').resist;
   // Pré-jet (audit M6) : `pc.target` n'existe qu'après resolve → base réelle du Test affichée
   // AVANT le jet (même parité que les autres flux).
   const { base, mods } = hero ? valeurDecomposee(hero, pc.test) : { base: 0, mods: [] };
@@ -72,7 +71,7 @@ export function CorruptionModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Continuer', onClick: resolve, when: 'post' },
+    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'apply' },
   ];
 
   return (

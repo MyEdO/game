@@ -4896,14 +4896,6 @@ export function bestCounterspeller(candidates: readonly Combatant[]): Combatant 
   return [...candidates].sort((a, b) => castingValue(b, 'langue', 'magick') - castingValue(a, 'langue', 'magick'))[0];
 }
 
-/** Une rangée de la fenêtre a-t-elle CHANTÉ ? Plusieurs contre-lanceurs peuvent tenter contre la
- *  MÊME incantation (#1040, cf. `counterspellConfirm` dans `src/noyau/combatSlice.ts`) — ce prédicat
- *  ne désigne donc personne : il dit que la fenêtre porte déjà une issue à appliquer, ce que
- *  « Laisser passer » jetterait. PUR (lu aussi par la modale). */
-export function counterspellChanted(pcs: PendingCounterspell | null | undefined): boolean {
-  return !!pcs?.participants.some((p) => !!p.result);
-}
-
 /** Combattants d'une fenêtre de Contre-sort (rangées → acteurs vivants de l'état). PUR. */
 export function counterspellActors(s: Jeu, pcs: PendingCounterspell | null | undefined): Combatant[] {
   return (pcs?.participants ?? []).map((p) => actorIn(s, p.id)).filter((c): c is Combatant => !!c);

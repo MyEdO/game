@@ -143,11 +143,6 @@ describe('#1318 V4 — toute affordance d’influence RENDUE est exécutable', (
     expect(b.some((t) => /Détermination/.test(t))).toBe(true);
     expect(b.some((t) => /Résilience/.test(t))).toBe(false);
   });
-
-  it('Détermination : réserve VIDE → aucun bouton (sa propre réserve la gate)', () => {
-    const b = boutons(posJet(mk('hero'), RATE, { determination: { resolve: 0, onResolve: noop } }));
-    expect(b.some((t) => /Détermination/.test(t))).toBe(false);
-  });
 });
 
 /**

@@ -69,10 +69,10 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
        que ce qu'aucune des deux ne dit : la remise à zéro portée par `willReset`. */
     outcome: willReset ? resultLines(freeCons(['Le total repart de zéro !'])) : undefined,
     /* « Round suivant » cumule + ouvre le Round suivant ; à la réussite, ferme la cascade.
-       « Renoncer » disponible aussi APRÈS le jet (when:'always'). */
+       « Renoncer » ouvert aussi APRÈS le jet (`clotures.cancel` du flux `extendedTest`). */
     actions: [
-      { key: 'cancel', label: 'Renoncer', onClick: cancel, when: 'always' },
-      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), when: 'post' },
+      { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'apply' },
     ],
     onCancel: cancel,
   };
