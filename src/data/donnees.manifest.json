@@ -611,6 +611,12 @@
         },
         {
           "files": [
+            "apparences.json"
+          ],
+          "desc": "LES apparences d'objet — une entrée sans `forme` est une forme (cible de `shape`/`formChoices` de `trappings.json`), une entrée avec `forme` en est une variante, avec ses étiquettes de naissance"
+        },
+        {
+          "files": [
             "terrains.json"
           ],
           "desc": "LES terrains de la grille — un document où la RÈGLE (`walkable`, `priority`, `opaque`, `built`) et le RENDU (`swatch`, `stops`, `detail`, `overlayProp`, `solidHeightM`) vivent dans la MÊME entrée ; lu par la façade `src/noyau/monde/terrain`"

@@ -120,6 +120,7 @@ import combatStakesJson from './combat-stakes.json';
 import activitiesStakeJson from './activities.json';
 import actionsJson from './actions.json';
 import axesJson from './axes.json';
+import apparencesJson from './apparences.json';
 import navalProgressionJson from './naval-progression.json';
 import seaNavigationJson from './sea-navigation.json';
 import seaPerilsJson from './sea-perils.json';
@@ -139,6 +140,7 @@ import type { InterludeEvent } from './interludeEvents';
 import type { Peripetie } from './peripeties';
 import type { CharacteristicsData } from './schemas/defs/characteristics';
 import type { AxesData } from './schemas/defs/axes';
+import type { ApparenceData } from './schemas/defs/apparences';
 import type { NavalProgressionData } from './schemas/defs/naval-progression';
 import type { SeaNavigationData } from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
@@ -1220,10 +1222,10 @@ export interface TrappingData {
    *  en donnée (2, belier-ade2, #210) reste éditable au Compendium plutôt que codée en dur ailleurs. Absent
    *  = empreinte 1 (affûts compacts type baliste/canon). */
   siegeFootprint?: number;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
-   *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : `formeResolue` (`engine/items`) le
-   *  résout par `trappingId` (#2113). */
+  /** FORME de l'objet — id d'une RACINE de `apparences.json` (#2948), refiné au parse, ≠ libellé. Portée
+   *  par les armes, les boucliers et les armures (dont `subType` reste la matière). Absent pour
+   *  munitions/armes de siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance :
+   *  `formeResolue` (`engine/items`) le résout par `trappingId` (#2113). */
   shape?: string;
   /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
    *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
@@ -1236,7 +1238,7 @@ export interface TrappingData {
   /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911), lue par `isShieldTrapping`
    *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
   shield?: true;
-  /** Formes choisibles (slugs `WeaponDef.slug`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
+  /** Formes choisibles (racines de `apparences.json`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
    *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
    *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
@@ -2866,6 +2868,10 @@ const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
 /** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
 export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
+/** Catalogue des APPARENCES d'objet (#2948, `schemas/defs/apparences.ts`) : une entrée sans `forme` est
+ *  une forme et son apparence par défaut, une entrée avec `forme` en est une variante. */
+export const apparences = apparencesJson as ApparenceData[];
+export const findApparenceById: (id: string | null | undefined) => ApparenceData | undefined = indexParId('apparences', apparences);
 export const eyes = eyesJson as DetailColorData[];
 export const hairs = hairsJson as DetailColorData[];
 /** Calendrier impérial — tables de CONTENU éditables au Codex (cf. `engine/clock.ts` pour la mécanique). */

@@ -44,7 +44,7 @@ import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/d
 import { CONTENU_A_SOURCER, SANS_LIVRE, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
-import { TYPES, espaceDe, type TypeEntite } from './schemas/grammaire/ref';
+import { TYPES, espaceDe, idDe, type TypeEntite } from './schemas/grammaire/ref';
 
 /**
  * Clés que `document()` pose sur TOUT document, sans qu'aucun def ne les demande — DÉRIVÉES de
@@ -219,6 +219,36 @@ const ecartsHorsStrate = (
 });
 
 describe('structures de la donnée — stock nominatif décroissant (#1463 L0)', () => {
+  it('une branche idDe ne déclare que les valeurs réellement validées par le parse de son union', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'structures-union-'));
+    try {
+      mkdirSync(join(dossier, 'src/data'), { recursive: true });
+      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+      cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      const schema = z.strictObject({ reference: z.union([idDe('skill'), z.literal('libre')]) });
+      const defs: SchemaDef[] = [{ file: 'sonde.json', root: 'src/data', famille: 'config', schema }];
+      const chemin = join(dossier, 'src/data/sonde.json');
+      writeFileSync(chemin, JSON.stringify({ reference: 'libre' }));
+      expect(scannerDonnees(dossier, defs).formes.filter((f) => f.concept === 'reference')).toEqual([]);
+      writeFileSync(chemin, JSON.stringify({ reference: 'athletisme' }));
+      expect(scannerDonnees(dossier, defs).formes.filter((f) => f.concept === 'reference')).toMatchObject([
+        { champ: 'reference', signature: 'id-declare', statut: 'declaree', cibles: ['skills.json'] },
+      ]);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ['apparences.json', 'forme', 'apparences.json'],
+    ['trappings.json', 'shape', 'apparences.json'],
+    ['buildings.json', 'roofMaterial', 'materials.json'],
+  ])('une référence scalaire %s › %s est déclarée par son idDe vers %s', (dataset, champ, cible) => {
+    expect(scan.formes.find((f) => f.concept === 'reference' && f.dataset === dataset && f.champ === champ)).toMatchObject({
+      signature: 'id-declare', statut: 'declaree', cibles: [cible],
+    });
+  });
+
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
     expect(GARDE.question).toMatch(/A —.*B —.*C —/s);
     expect(GARDE.primitive).toContain('structures-scan.mts');
@@ -1184,8 +1214,10 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
       niveaux[0].trappings = [
         ...(niveaux[0].trappings as unknown[]),
         { text: 'Dague' },
+        { text: 'dague' },
         { text: 'Sa Honte' },
         { text: 'Assistant' },
+        { text: 'hache' },
       ];
       writeFileSync(chemin, JSON.stringify(niveaux), 'utf8');
       const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
@@ -1193,11 +1225,11 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
       expect(
         forme(apres, 'text (résolvable)')?.occurrences,
         '`{text:"Dague"}` sous `trappings` doit être classé `text (résolvable)` : un texte qui résout vers le `label` d’une POSSESSION est une référence à migrer en `{id}` (#624), pas du narratif déclaré.',
-      ).toBe(1);
+      ).toBe(2);
       expect(
         forme(apres, 'text')!.occurrences - forme(temoin, 'text')!.occurrences,
         '`{text:"Sa Honte"}` et `{text:"Assistant"}` doivent rester la forme `text` DECLARÉE : l’irréductible narratif ne se migre pas, et un homonyme d’un AUTRE dataset n’est pas une dotation.',
-      ).toBe(2);
+      ).toBe(3);
       expect(
         forme(apres, 'text (résolvable)')!.cibles,
         'la forme résolvable doit IMPRIMER le dataset où le libellé a été trouvé.',
@@ -1246,7 +1278,16 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const temoin = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
+      const sonde = document('sonde', 'entite', {
+        sondes: z.array(z.strictObject({ skillIdent: z.string(), poids: z.number() })),
+        opsSonde: z.array(z.strictObject({ op: z.literal('sondeJuge'), talentId: z.string(), valeur: z.number() })),
+        casses: z.array(z.strictObject({ machinId: z.string() })),
+      }, { sondes: { label: 'Sondes' }, opsSonde: { label: 'Ops' }, casses: { label: 'Casses' } },
+      { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } });
+      const defs: SchemaDef[] = [...DEFS, { file: 'sonde.json', root: 'src/data', famille: 'entite', schema: sonde.schema }];
+      const chemin = join(copie, 'src/data/sonde.json');
+      writeFileSync(chemin, '[]', 'utf8');
+      const temoin = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS);
       const cleF = (f: { concept: string; dataset: string; champ: string; signature: string; statut: string; occurrences: number }) =>
         `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.occurrences}`;
       const cleO = (o: { dataset: string; champ: string; signature: string; motif: string }) =>
@@ -1257,26 +1298,25 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
         'la COPIE non mutée ne mesure pas comme l’arbre : le contrôle positif ne prouverait rien.',
       ).toBe(scan.formes.length);
 
-      const chemin = join(copie, 'src/data/axes.json');
-      const axes = JSON.parse(readFileSync(chemin, 'utf8')) as Array<Record<string, unknown>>;
+      const axes: Array<Record<string, unknown>> = [{ id: 'sonde', type: 'sonde', label: 'Sonde', maison: 'sonde' }];
       axes[0].sondes = [{ skillIdent: 'athletisme', poids: 3 }]; // graphie de référence NEUVE
       axes[0].opsSonde = [{ op: 'sondeJuge', talentId: 'affable', valeur: 1 }]; // op NEUVE à ref à plat
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
-      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
+      const apres = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS);
       const formesNeuves = apres.formes.filter((f) => !temoin.formes.some((g) => cleF(g) === cleF(f))).map(cleF);
       const orphelinesNeuves = apres.orphelines.filter((o) => !temoin.orphelines.some((q) => cleO(q) === cleO(o))).map(cleO);
       const opsNeuves = apres.ops.filter((o) => !temoin.ops.some((q) => cleOpSonde(q) === cleOpSonde(o))).map(cleOpSonde);
 
       expect(formesNeuves, 'une GRAPHIE de référence neuve (`skillIdent`) n’est pas vue : le stock ne mordrait pas.').toContain(
-        'reference | axes.json | sondes | skillIdent+… | divergente | 1',
+        'reference | sonde.json | sondes | skillIdent+… | divergente | 1',
       );
       expect(orphelinesNeuves, 'une FK morte (`machinId`) n’est pas vue : le motif `clé de référence non résolue` serait inatteignable.').toContain(
-        'axes.json | casses | machinId | clé de référence non résolue',
+        'sonde.json | casses | machinId | clé de référence non résolue',
       );
       expect(opsNeuves, 'une op NEUVE à ref à plat n’est pas vue : le dénominateur de la strate Ops serait aveugle.').toContain(
-        'sondeJuge | op,talentId,valeur | axes.json',
+        'sondeJuge | op,talentId,valeur | sonde.json',
       );
     } finally {
       rmSync(copie, { recursive: true, force: true });
@@ -1300,7 +1340,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
       // donc voir une COLLISION d'id entre les deux documents.
       writeFileSync(
         join(copie, 'src/data/sonde-record.json'),
-        JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', entries: { 'zone-marche': '#123456' } }),
+        JSON.stringify({ id: 'sonde-record', type: 'sondeRecord', label: 'Sonde record', maison: 'sonde', entries: { 'zone-marche': '#123456' } }),
         'utf8',
       );
       const sonde = document('sondeRecord', 'record', {}, {}, expositionDeSonde, { valeurRecord: z.string() });
@@ -1347,11 +1387,13 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
   mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
-  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', maison: 'sonde' }, { id: 'renvoi-deux', maison: 'sonde' }]));
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', type: 'alpha', label: 'Renvoi un', maison: 'sonde' }, { id: 'renvoi-deux', type: 'alpha', label: 'Renvoi deux', maison: 'sonde' }]));
   writeFileSync(
     join(dossier, 'src/data/x.json'),
     JSON.stringify({
       id: 'x',
+      type: 'x',
+      label: 'X',
       maison: 'sonde',
       t: { a: 1, b: 2 },
       tNue: { a: 3, b: 4 },
@@ -1458,7 +1500,7 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
   mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
-  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', maison: 'sonde' }]));
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', type: 'alpha', label: 'Renvoi un', maison: 'sonde' }]));
   writeFileSync(join(dossier, 'src/data/a.json'), JSON.stringify([{ id: 'a1', type: 'a', label: 'A1', maison: 'sonde' }]));
   writeFileSync(
     join(dossier, 'src/data/b.json'),

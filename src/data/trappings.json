@@ -2264,7 +2264,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "calotte"
   },
   {
     "id": "jambieres-en-cuir",
@@ -2288,7 +2289,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "jambieres"
   },
   {
     "id": "justaucorps-de-cuir",
@@ -2312,7 +2314,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "justaucorps"
   },
   {
     "id": "veste-de-cuir",
@@ -2336,7 +2339,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "veste"
   },
   {
     "id": "plastron-de-cuir",
@@ -2363,7 +2367,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "plastron"
   },
   {
     "id": "chausses-de-mailles",
@@ -2394,7 +2399,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "jambieres"
   },
   {
     "id": "chemise-de-mailles",
@@ -2425,7 +2431,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "justaucorps"
   },
   {
     "id": "coiffe-de-mailles",
@@ -2463,7 +2470,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "coiffe"
   },
   {
     "id": "cotte-de-mailles",
@@ -2494,7 +2502,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "veste"
   },
   {
     "id": "brassards",
@@ -2528,7 +2537,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "brassards"
   },
   {
     "id": "heaume",
@@ -2566,7 +2576,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "heaume"
   },
   {
     "id": "heaume-ouvert",
@@ -2601,7 +2612,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "heaume-ouvert"
   },
   {
     "id": "jambieres-d-acier",
@@ -2635,7 +2647,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "jambieres"
   },
   {
     "id": "plastron",
@@ -2669,7 +2682,8 @@
     "source": {
       "book": "livre-de-base",
       "page": 300
-    }
+    },
+    "shape": "plastron"
   },
   {
     "id": "baril",
@@ -10797,7 +10811,8 @@
         "value": -10
       }
     ],
-    "enc": 8
+    "enc": 8,
+    "shape": "armure-complete"
   },
   {
     "id": "lame-a-poignee-en-bois-de-cerf",
@@ -11852,7 +11867,8 @@
     "source": {
       "book": "archives-de-l-empire-2",
       "page": 29
-    }
+    },
+    "shape": "plastron"
   },
   {
     "id": "sel-sacre",
@@ -13768,7 +13784,8 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 171
-    }
+    },
+    "shape": "veste"
   },
   {
     "id": "dague-voleuse-de-chance",

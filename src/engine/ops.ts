@@ -41,10 +41,9 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
+import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, formeResolue } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
-import { weaponMatchesFamily } from './weaponDamage';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
@@ -676,7 +675,7 @@ export type GameOp =
    *  avec elle », enchantements de l'arme neutralisés). Porté par le PORTEUR
    *  (ActiveEffect.enchantRef) + l'objet (`ItemInstance.enchants`), replié dans l'arme à la résolution
    *  (`applyEnchants`). `damageBonus` résolu contre le LANCEUR (BSoc du prêtre). */
-  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`) — relus par `parseQuality` ; jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string;
+  | { op: 'augmentWeapon'; /** ids STABLES de qualité (`QualityRef.id`) — relus par `parseQuality` ; jamais un libellé. */ addQualities?: string[]; damageBonus?: Formula; bypass?: ArmourBypass; requiresWeapon?: string[];
       /** Qualités RETIRÉES par id STABLE (VDM 05 — Arme enchantée : « retirer 1 Défaut de l'arme »).
        *  Retire aussi les qualités de FAMILLE du Groupe d'arme, qui sont sur le même plan RAW. */
       removeQualities?: string[];
@@ -2160,15 +2159,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'augmentWeapon': {
         const dmg = o.damageBonus != null ? Math.max(0, resolveFormula(o.damageBonus, ref, rng)) : undefined;
-        // L'altération se pose SUR L'ARME TENUE (set actif : main puis 2nde) qui matche la famille requise
-        // (Épée de justice → une épée ; ungated → la main). Aucune arme valable tenue → fizzle journalisé.
-        // « Tenue » = la résolution du set actif (`objetDeSlot`, `isWeaponActive`) : l'objet `off` d'un set
-        // à deux mains n'est pas tenu.
+        // LDB 42 l.145 ; LDB 43 l.252,281
         const lo = activeLoadout(target);
         const held = [lo?.main, lo?.off]
           .map((u) => objetDeSlot(target, u))
           .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
-        const item = held.find((i) => weaponMatchesFamily(i, o.requiresWeapon));
+        const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.includes(formeResolue(i) ?? ''));
         if (!item) {
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));
           break;

@@ -38,3 +38,25 @@ describe('trappings.json — une armure porte son type d’armure (#2948)', () =
     expect(schema.safeParse(doc).success).toBe(true);
   });
 });
+
+describe('trappings.json — `shape` et `formChoices` sont des racines du catalogue des apparences (#2948)', () => {
+  const arme = (doc: Entree[]) => doc.find((t) => t.id === 'arme-simple')!;
+
+  it('une `shape` inconnue du catalogue est refusée, nommément', () => {
+    const doc = clone();
+    arme(doc).shape = 'epee-inexistante';
+    expect(refus(doc).join(' ')).toMatch(/« epee-inexistante » est absent du catalogue des apparences \(apparences\.json\)/);
+  });
+
+  it('un id de `formChoices` inconnu du catalogue est refusé, nommément', () => {
+    const doc = clone();
+    arme(doc).formChoices = ['epee', 'hache-inexistante'];
+    expect(refus(doc).join(' ')).toMatch(/« hache-inexistante » est absent du catalogue des apparences/);
+  });
+
+  it('une armure sans `shape` est refusée, nommément', () => {
+    const doc = clone();
+    delete doc.find((t) => t.id === 'heaume')!.shape;
+    expect(refus(doc)).toContain('heaume : une armure porte sa forme (`shape`, racine de apparences.json)');
+  });
+});

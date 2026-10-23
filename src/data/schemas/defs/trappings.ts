@@ -16,7 +16,8 @@ import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/me
  *  mesurée par `grammaire/formes-partagees.test.ts` à défaut d'être refinée au parse. */
 import { qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
-import { refusDeLEntree } from '../grammaire/ref';
+import { idDe, refusDeLEntree } from '../grammaire/ref';
+import { RACINE_D_APPARENCE } from '../grammaire/sousListes';
 
 
 export const file = 'trappings.json';
@@ -149,8 +150,8 @@ const doc = document(
      *  pierrier/canon/baliste/mortier là où `subType`='armes-de-siege' seul ne le fait pas (hint joueur,
      *  `ammoFamilyLabel`). */
     defaultAmmo: z.string().optional(),
-    shape: z.string().optional(),
-    formChoices: z.array(z.string()).optional(),
+    shape: idDe('apparence', RACINE_D_APPARENCE).optional(),
+    formChoices: z.array(idDe('apparence', RACINE_D_APPARENCE)).optional(),
     requiresMastery: z.boolean().optional(),
     /** LDB 73 l.19/23 */
     prosthesisTraining: z
@@ -302,10 +303,12 @@ const doc = document(
     espace: { discriminant: 'categorie', marqueurs: ['service'] },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const e = v as { id: string; categorie: string; subType: string | null };
+        const e = v as { id: string; categorie: string; subType: string | null; shape?: string };
         if (e.categorie !== 'armor') return;
         const refus = refusDuTypeDArmure(e.subType);
         if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
+        // Le TYPE est la matière ; la SILHOUETTE est sa forme, racine du catalogue des apparences (#2948).
+        if (e.shape === undefined) ctx.addIssue({ code: 'custom', path: ['shape'], message: `${e.id} : une armure porte sa forme (\`shape\`, racine de apparences.json)` });
       }),
   },
 );

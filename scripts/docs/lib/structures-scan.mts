@@ -28,7 +28,7 @@ import { basename, join, relative } from 'node:path';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
 import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
-import { defsDeDocument } from './slots-registre.mjs';
+import { defsDeDocument, slotsDuParse } from './slots-registre.mjs';
 import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
 import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
@@ -547,6 +547,14 @@ export function scannerDonnees(
     docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
   );
   const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+  const referencesDeclarees = new WeakMap<object, Map<string | number, Set<string>>>();
+  for (const slot of slotsDuParse({ brutParNom }, defs)) {
+    if (slot.parCle) continue;
+    if (!referencesDeclarees.has(slot.porteur)) referencesDeclarees.set(slot.porteur, new Map());
+    const cases = referencesDeclarees.get(slot.porteur)!;
+    if (!cases.has(slot.cle)) cases.set(slot.cle, new Set());
+    cases.get(slot.cle)!.add(espaceDe(slot.type));
+  }
   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
@@ -670,6 +678,8 @@ export function scannerDonnees(
   /** Datasets vers lesquels la valeur `v` de la clé `k` de `o` résout : l'espace NOMMÉ d'une référence
    *  typée, sinon tous ceux où l'id est indexé. */
   const ciblesDe = (o: Obj, k: string, v: string): ReadonlySet<string> | undefined => {
+    const declarees = referencesDeclarees.get(o)?.get(k);
+    if (declarees) return declarees;
     const espace = espaceNomme(o, k, v);
     return espace ? new Set([espace]) : index.get(v);
   };
@@ -806,11 +816,12 @@ export function scannerDonnees(
   };
 
   const resoutSite = (p: Prepare, o: Obj, champ: string, k: string, v: unknown): boolean => {
+    if (referencesDeclarees.get(o)?.has(k)) return typeof v === 'string';
     if (!resoutIndex(p.nom, o, k, v)) return false;
+    if (k === 'text') return datasetsDuTexte(p, o, champ, v as string).length > 0;
     if (espaceNomme(o, k, v as string)) return true;
     const datasets = index.get(v as string);
-    // `{text}` résolu vers un LIBELLÉ : la résolution est scopée aux cibles majoritaires du site.
-    if (!datasets) return k === 'text' && datasetsDuTexte(p, o, champ, v as string).length > 0;
+    if (!datasets) return false;
     const champSite = champDeSite(p, o, champ);
     const maj = ciblesMajoritaires(sitesDeCle.get(`${p.nom}|${champSite}|${k}`));
     if (maj.length && !maj.some((d) => datasets.has(d))) {
@@ -994,8 +1005,7 @@ export function scannerDonnees(
         if (k === identite || !resoutSite(p, o, champ, k, v)) continue;
         resolvantes.add(k);
         if (typeof v !== 'string') continue;
-        for (const d of ciblesDe(o, k, v) ?? []) cibles.add(d);
-        if (k === 'text') for (const d of datasetsDuTexte(p, o, champ, v)) cibles.add(d);
+        for (const d of k === 'text' ? datasetsDuTexte(p, o, champ, v) : ciblesDe(o, k, v) ?? []) cibles.add(d);
       }
 
       // ---- `{text}` : mesuré même quand il ne résout pas (T6)
@@ -1039,8 +1049,9 @@ export function scannerDonnees(
       } else if (resolvantes.size && estDocument) {
         // Référence portée par un CHAMP SCALAIRE d'un document (`species: "humain"`).
         for (const k of resolvantes) {
-          const ligne = inscrireReference(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, 'id-nu'), o, [k]);
-          for (const d of index.get(String(o[k])) ?? []) ligne.ciblesSet.add(d);
+          const declaree = referencesDeclarees.get(o)?.has(k);
+          const ligne = inscrireReference(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, declaree ? 'id-declare' : 'id-nu'), o, [k]);
+          for (const d of ciblesDe(o, k, String(o[k])) ?? []) ligne.ciblesSet.add(d);
         }
         classe = true;
       }
@@ -1056,9 +1067,12 @@ export function scannerDonnees(
         // registre du type, JAMAIS une FK »). Sans ce filtre, un id de spéc qui COLLISIONNE avec un
         // document indexé ouvrirait un couple (dataset, champ) fantôme au registre des slots.
         if (GRAPHIE_REFERENCE.has(k)) continue;
-        if (!(v as string[]).some((x) => index.has(x) && ouvreReference(p.nom, o, k, x))) continue;
+        if (!(v as string[]).some((x, rang) => referencesDeclarees.get(v)?.has(rang) || (index.has(x) && ouvreReference(p.nom, o, k, x)))) continue;
         const ligne = inscrireReference(conceptRefs, p, k, statutDe(conceptRefs, 'ids-nus'), v, v.keys());
-        for (const x of v as string[]) for (const d of index.get(x) ?? []) ligne.ciblesSet.add(d);
+        for (const [rang, x] of (v as string[]).entries()) {
+          const declarees = referencesDeclarees.get(v)?.get(rang);
+          for (const d of declarees ?? index.get(x) ?? []) ligne.ciblesSet.add(d);
+        }
         classe = true;
       }
 

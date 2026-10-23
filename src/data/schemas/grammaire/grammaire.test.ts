@@ -699,7 +699,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         `materials` (81 → 79) — trois defs SCELLÉS en deviennent un, la population perd 2.
     //   #1690 : `terrains` naît SCELLÉ (79 → 80) — le registre TS des 25 sols devient un dataset.
     //   #1715 : `buildings` naît SCELLÉ (80 → 81) — le registre TS des 7 types de bâtiment devient un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
+    //   #2948 : `apparences` naît SCELLÉ (81 → 82) — le catalogue des apparences d'objet devient un dataset.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 82, mesures: 0 });
   });
 
 });
