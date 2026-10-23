@@ -18,6 +18,7 @@ import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
 import { builtinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const pos = { x: 3, y: 3 };
 /** Échelle TERRESTRE : celle d'une scène qui ne déclare rien — le défaut du monde (`LDB 15 l.12`). */
@@ -31,7 +32,7 @@ const target = (): Combatant => ({ id: 't', name: 'Cible', activeEffects: [] }) 
 
 describe('op light — OBJET passif gaté sur le port', () => {
   it('lanterne PORTÉE (equipped) → émet une LightSource (rayon du passive)', () => {
-    const lant = itemFromTrappingById('lanterne')!;
+    const lant = itemFromTrappingById('lanterne', idNeufDeBanc)!;
     lant.equipped = true;
     const sources = combatantLights({ pos, items: [lant] }, MPT_TERRE);
     expect(sources).toHaveLength(1);
@@ -40,13 +41,13 @@ describe('op light — OBJET passif gaté sur le port', () => {
   });
 
   it('lanterne NON portée (rangée dans le sac) → AUCUNE lumière (gate)', () => {
-    const lant = itemFromTrappingById('lanterne')!; // equipped:false par défaut, hors loadout
+    const lant = itemFromTrappingById('lanterne', idNeufDeBanc)!; // equipped:false par défaut, hors loadout
     expect(combatantLights({ pos, items: [lant] }, MPT_TERRE)).toEqual([]);
   });
 
   it('bougie PORTÉE éclaire moins (rayon 5) ; le MAX des émetteurs gagne', () => {
-    const bougie = itemFromTrappingById('bougie')!; bougie.equipped = true;
-    const lant = itemFromTrappingById('lanterne')!; lant.equipped = true;
+    const bougie = itemFromTrappingById('bougie', idNeufDeBanc)!; bougie.equipped = true;
+    const lant = itemFromTrappingById('lanterne', idNeufDeBanc)!; lant.equipped = true;
     expect(combatantLights({ pos, items: [bougie] }, MPT_TERRE)[0].radiusTiles).toBe(5);
     expect(combatantLights({ pos, items: [bougie, lant] }, MPT_TERRE)[0].radiusTiles).toBe(10); // max
   });
@@ -72,7 +73,7 @@ describe('op light — le rayon est en MÈTRES dans la donnée, en cases à l’
     return op!.radiusM;
   };
   const portees = (id: string, mpt: number) => {
-    const it = itemFromTrappingById(id)!;
+    const it = itemFromTrappingById(id, idNeufDeBanc)!;
     it.equipped = true;
     return combatantLights({ pos, items: [it] }, mpt)[0].radiusTiles;
   };
@@ -102,7 +103,7 @@ describe('sort « lumiere » — parité d\'émission', () => {
   it('appliquer les ops du sort pousse un ActiveEffect.light (temporisé)', () => {
     const c = target();
     const ops = spellEffectOps(findSpellById('lumiere')!.effects);
-    applyOps(c, ops, { rng: desDuTest, label: 'Lumière' });
+    applyOps(c, ops, { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Lumière' });
     const eff = (c.activeEffects ?? []).find((e) => e.light);
     expect(eff, 'un ActiveEffect.light doit être posé').toBeTruthy();
     expect(eff!.light!.radiusM).toBe(20);

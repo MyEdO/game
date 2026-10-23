@@ -7,6 +7,7 @@ import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Câblage de l'ESCALADE (LDB 15 l.53-57) à la géométrie z (#82) : `climbAcross` grimpe une arête
@@ -30,7 +31,7 @@ const top = { x: 2, y: 0 };
 
 describe('climbAcross — aucun grimpeur (#1906)', () => {
   it('seul héros à 0 PB, conscient : refus NOMMÉ au journal, le groupe ne bouge pas, rien ne lève', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.wounds.current = 0;
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
@@ -43,7 +44,7 @@ describe('climbAcross — aucun grimpeur (#1906)', () => {
 
 describe('climbAcross — exploration', () => {
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene({ kind: 'ladder' }) });
   });
 
@@ -80,7 +81,7 @@ describe('climbAcross — combat', () => {
   });
 
   function setup(climb: WallClimb, atPos = foot) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

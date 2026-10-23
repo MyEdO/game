@@ -9,6 +9,7 @@ import { MINUTES_PER_DAY } from './clock';
 import { stacks, syncDerivedConditions } from './conditions';
 import type { Combatant } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Jalon 2.6 — Ops maladies/soins : Amère catharsis (cureDisease + échelle DR), Bénédiction de
@@ -33,7 +34,7 @@ describe('cureDisease — Amère catharsis (LDB 42)', () => {
     // Les deux Malaises PORTENT chacun leur État *Exténué* (LDB 20 l.188) : la réconciliation les pose.
     syncDerivedConditions(c);
     expect(stacks(c, 'extenue')).toBe(2);
-    applyOps(c, [{ op: 'cureDisease', count: 1, countPerSL: { every: 2, amount: 1 } }], { rng: desDuTest, sl: 2 });
+    applyOps(c, [{ op: 'cureDisease', count: 1, countPerSL: { every: 2, amount: 1 } }], { idNeuf: idNeufDeBanc, rng: desDuTest, sl: 2 });
     expect(c.diseases).toHaveLength(0); // 1 + ⌊2/2⌋ = 2 purges
     expect(stacks(c, 'extenue')).toBe(0); // malaise levé → Exténué rendu
   });
@@ -48,9 +49,9 @@ describe('cureDisease — Amère catharsis (LDB 42)', () => {
 describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extensions #46 (dice/disease)', () => {
   it('−1 jour (min 1), UNE seule fois par maladie (verrou `oncePerDisease` — porté par la donnée du Miracle)', () => {
     const c = dummy({ diseases: [sick('infection-mineure', 5)] });
-    applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { rng: desDuTest });
+    applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
-    const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { rng: desDuTest }); // 2e tentative → refus
+    const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { idNeuf: idNeufDeBanc, rng: desDuTest }); // 2e tentative → refus
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
     expect(log.join(' ')).toMatch(/aucune maladie/);
   });
@@ -63,19 +64,19 @@ describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extens
   });
   it("`dice` tire les jours à l'application (Rouille mouchetée : « 1d10 jours », MSRC 04 l.241)", () => {
     const c = dummy({ diseases: [sick('verole-du-tanneur', 15)] });
-    applyOps(c, [{ op: 'reduceDiseaseDays', dice: { n: 1, sides: 10 }, disease: 'verole-du-tanneur' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'reduceDiseaseDays', dice: { n: 1, sides: 10 }, disease: 'verole-du-tanneur' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     const reduced = 15 - c.diseases![0].minutesLeft / MINUTES_PER_DAY;
     expect(reduced).toBeGreaterThanOrEqual(1);
     expect(reduced).toBeLessThanOrEqual(10);
   });
   it("`daysPerSL` échelle sur `ctx.sl` (Gesundheit : « un jour par DR obtenu », MSRC 04 l.184-186)", () => {
     const c = dummy({ diseases: [sick('blessure-purulente', 5)] });
-    applyOps(c, [{ op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' }], { rng: desDuTest, sl: 3 });
+    applyOps(c, [{ op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' }], { idNeuf: idNeufDeBanc, rng: desDuTest, sl: 3 });
     expect(c.diseases![0].minutesLeft).toBe(2 * MINUTES_PER_DAY); // 5 − 3 DR
   });
   it('`daysPerSL` sans `ctx.sl` (Test non joué) → aucune réduction', () => {
     const c = dummy({ diseases: [sick('blessure-purulente', 5)] });
-    applyOps(c, [{ op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'reduceDiseaseDays', days: 0, daysPerSL: { every: 1, amount: 1 }, disease: 'blessure-purulente' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(c.diseases![0].minutesLeft).toBe(5 * MINUTES_PER_DAY);
   });
 });
@@ -83,7 +84,7 @@ describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extens
 describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larmes de Shallya (LDB 42)', () => {
   it('preventInfection pose woundDressed (pas d’Infection post-critique, LDB 18 l.298)', () => {
     const c = dummy({});
-    applyOps(c, [{ op: 'preventInfection' }], { rng: desDuTest, label: 'Cautériser' });
+    applyOps(c, [{ op: 'preventInfection' }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Cautériser' });
     expect(c.woundDressed).toBe(true);
   });
 
@@ -96,7 +97,7 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
         { label: 'Main/bras amputé (brasD)', location: 'brasD', ops: [{ op: 'maxWeaponHands', hands: 1 }] },
       ],
     });
-    applyOps(c, [{ op: 'cureCriticalWound', count: 1, countPerSL: { every: 2, amount: 1 } }], { rng: desDuTest, sl: 4 }); // 1 + 2 = 3 tentées
+    applyOps(c, [{ op: 'cureCriticalWound', count: 1, countPerSL: { every: 2, amount: 1 } }], { idNeuf: idNeufDeBanc, rng: desDuTest, sl: 4 }); // 1 + 2 = 3 tentées
     expect(c.traumas).toHaveLength(1); // l'amputation reste
     expect(c.traumas![0].label).toMatch(/amputé/);
     expect(c.criticalWounds).toBe(1); // 3 − 2 guéris
@@ -104,7 +105,7 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
 
   it('cureCriticalWounds direct : 0 trauma guérissable → journal explicite via l’op', () => {
     const c = dummy({ traumas: [{ label: 'Main/bras amputé (brasD)', location: 'brasD' }] });
-    const log = applyOps(c, [{ op: 'cureCriticalWound' }], { rng: desDuTest });
+    const log = applyOps(c, [{ op: 'cureCriticalWound' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(log.join(' ')).toMatch(/amputations sont hors d'atteinte/);
     expect(c.traumas).toHaveLength(1);
   });

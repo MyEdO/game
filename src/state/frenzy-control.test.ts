@@ -8,6 +8,7 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import { isFrenzied } from '../engine/psychology';
 import { hasCondition, COND } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Talent « Contrôle de la Frénésie » — LDB 10 l.251-255 : « Vous pouvez y mettre fin avec un Test de
@@ -22,7 +23,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(withTalent = true) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());

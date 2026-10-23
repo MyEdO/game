@@ -7,6 +7,7 @@ import { availableAttacks } from '../noyau/combatManeuvers';
 import { setContact, areInContact } from '../engine/engagement';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Au Contact (Issue #42.5, LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`).
 
@@ -28,7 +29,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

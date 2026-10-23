@@ -43,6 +43,7 @@ import {
 } from './banc-volumique';
 // Le module JSON SERVI (prose adressée matérialisée par `wfrp:prose-source`) : la forme que le jeu lit.
 import areneProjet from '../../scenes/arene/arene-projet.json';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -120,7 +121,7 @@ afterEach(() => {
   useGame.setState({ povActive: false });
 });
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
+const HÉROS = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** Scène d'ARÈNE : douze décors semés autour du groupe — assez de sujets pour qu'un remontage se
  *  voie ; aucune toiture, donc aucun décor sous espace dégagé (la population ne varie que du meneur). */

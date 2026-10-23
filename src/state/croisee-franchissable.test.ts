@@ -15,6 +15,7 @@ import { t } from '../i18n';
 import { wallSegSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { buildScene } from '../noyau/mapSpec';
 import { patchWall } from '../noyau/sceneEdit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Croisée FRANCHISSABLE (#700) : sauter par une fenêtre d'étage EST la chute volontaire (LDB 15 l.82,
@@ -55,7 +56,7 @@ const dedans = { x: 1, y: 1 };
 const dehors = { x: 2, y: 1 };
 
 function explorer(scene: Scene, pos: { x: number; y: number; z?: number }) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: pos, scene, pendingFall: null, flags: {} });
 }
 
@@ -192,7 +193,7 @@ describe('enjamber la croisée — combat', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(movementUsed = 0, tour: { acted?: boolean; movedPreAction?: boolean } = {}, sc = plainPied()) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -290,7 +291,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
     sc.encounters = [enc.encounter];
     sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: 'enc-rue' }]) }];
     explorer(sc, { ...dedans, z: 1 });
-    const second = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'K', seed: 2 });
+    const second = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'K', seed: 2 });
     useGame.setState({ party: [...useGame.getState().party, second] });
     const [a, b] = useGame.getState().party;
     useGame.getState().fallAcross({ ...dedans, z: 1 }, dehors);

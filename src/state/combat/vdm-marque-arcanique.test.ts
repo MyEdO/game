@@ -10,6 +10,7 @@ import { effectiveTalents } from '../../engine/talentEffects';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Marque Arcanique — PREUVE DE CÂBLAGE sur le chemin RÉEL (`applyMiscast` → rangée « Marqué par la
@@ -39,7 +40,7 @@ describe('Marque Arcanique — le Talent marqué est RÉELLEMENT possédé', () 
   });
 
   function setup(): Combatant {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

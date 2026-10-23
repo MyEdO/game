@@ -163,6 +163,7 @@ export function creerHote(disque: Disque) {
     const leves: string[] = [];
     for (const brut of e.gestes) {
       const avant = empreinte(r.partie.etat());
+      const idsAvant = r.idsFabriques();
       const suspendus = enSuspens(r.partie.etat());
       try {
         const geste = gesteControle(r, brut);
@@ -177,9 +178,9 @@ export function creerHote(disque: Disque) {
       } catch (erreur) {
         if (!(erreur instanceof ErreurDeGeste)) throw erreur;
         refus = erreur;
-        // Un geste refusé après son envoi a pu toucher l'état (son refus, une mutation en place) : la mémoire se rejoue
-        // depuis le fichier, qui ne l'a pas écrit.
-        if (empreinte(r.partie.etat()) !== avant) {
+        // Un geste refusé après son envoi a pu toucher l'état (son refus, une mutation en place) ou consommer des ids de
+        // la fabrique : la mémoire se rejoue depuis le fichier, qui ne l'a pas écrit.
+        if (empreinte(r.partie.etat()) !== avant || r.idsFabriques() !== idsAvant) {
           fermer();
           r = partie(nom).r;
         }

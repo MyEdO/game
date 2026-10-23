@@ -15,13 +15,14 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { SizeCategory } from '../engine/size';
 import type { TraitList } from '../engine/statEntry';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = () => useGame.getState();
 const PIETINEMENT = findManeuverById('pietinement')!;
 
 /** Héros au contact d'un ennemi ; le tour est donné à `tourDe`. */
 function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; tailleH: SizeCategory; traitsE?: TraitList; traitsH?: TraitList; movementUsed?: number; advantageE?: number }): { H: Combatant; E: Combatant } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   g().seedRng(2);
   g().startScene(testScene());

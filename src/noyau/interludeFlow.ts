@@ -71,6 +71,7 @@ import { gelerLaConstante } from '../lib/gelerProfond';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -190,7 +191,7 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
   // les commandes du cycle précédent sont livrées à l'ouverture de CET interlude.
   for (const o of get().pendingOrders ?? []) {
     const hero = party.find((h) => h.id === o.heroId);
-    const it = hero ? itemFromTrappingById(o.trappingId) : null;
+    const it = hero ? itemFromTrappingById(o.trappingId, idNeuf) : null;
     if (hero && it) {
       hero.items = [...(hero.items ?? []), it];
       autoStowNewItem(hero, it); // #204 : rangement par défaut
@@ -805,7 +806,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!h.craft) return { lines: [] };
       const { total: drDone, done } = extendedTestStep(pa.drBefore ?? 0, { success: !!pa.success, sl: pa.sl }, h.craft.drTarget);
       if (done) {
-        const it = itemFromTrappingById(h.craft.trappingId);
+        const it = itemFromTrappingById(h.craft.trappingId, idNeuf);
         if (it) {
           it.qualities = [...(it.qualities ?? []), ...h.craft.atouts.map((id) => ({ id })), ...h.craft.defauts.map((id) => ({ id }))]; // ids → QualityInstance
           h.items = [...(h.items ?? []), it];
@@ -976,7 +977,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!pa.chosenSkill) return { lines: [] };
       const skillLabel = refLabel('skills', { id: pa.chosenSkill, spec: pa.chosenSkillSpec });
       if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: h.label, skill: skillLabel })] };
-      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
+      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { idNeuf, rng: battleRng(), label: pa.label, source: activitySource(pa) }) };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
@@ -986,7 +987,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       const pistoles = rollDice(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
-      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { rng: battleRng(), label: pa.label, source: activitySource(pa) });
+      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: { id: pa.chosenSkill, ...(pa.chosenSkillSpec ? { spec: pa.chosenSkillSpec } : {}) } }], { idNeuf, rng: battleRng(), label: pa.label, source: activitySource(pa) });
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
       return { lines: [msg('if.punchausenOk', { name: h.label, money: formatMoney(gain) }), ...tokenLines] };
     }
@@ -996,7 +997,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // durée `{scale:'adventure'}` déjà portée par l'op (purgée à l'interlude suivant).
       const lines: string[] = [msg('if.reputationSpend', { name: h.label, money: formatMoney(fromBrass(pa.costBrass ?? 0)) })];
       const delta = isAstoundingSuccess(pa.success, pa.sl) ? 2 : pa.success ? 1 : isAstoundingFailure(pa.success, pa.sl) ? -1 : 0;
-      if (delta !== 0) lines.push(...applyOps(h, [{ op: 'statusMod', amount: delta }], { rng: battleRng(), label: pa.label, source: activitySource(pa) }));
+      if (delta !== 0) lines.push(...applyOps(h, [{ op: 'statusMod', amount: delta }], { idNeuf, rng: battleRng(), label: pa.label, source: activitySource(pa) }));
       else lines.push(msg('if.reputationWasted', { name: h.label }));
       // Coût débité APRÈS le `statusMod` — l'allocation clone `h` et capte la modification de Statut.
       payWithAllocation(get, set, { debits: soloPayer(h.id, fromBrass(pa.costBrass ?? 0)), recipient: h.id, purpose: 'reputation' });
@@ -1235,6 +1236,7 @@ export function confirmActivity(get: Get, set: Set): void {
       closeOps.push(...(band.ops ?? []).filter((o) => o.op === 'condition'));
       if (immediate.length) {
         lines.push(...applyOps(h, immediate, {
+          idNeuf,
           rng: battleRng(), label: def.label, now: get().gameTime, source: { kind: 'activity', id: def.id }, sl: pa.sl,
           onCorruption: (n: number, align?: ChaosAlign) => gainCorruption(get, set, h, n, align),
           onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
@@ -1433,7 +1435,7 @@ export function interludeEnd(get: Get, set: Set): void {
     const after: string[] = [];
     for (const { id, ops } of deferred) {
       const h = get().party.find((x) => x.id === id);
-      if (h) after.push(...applyOps(h, ops, { rng: battleRng(), now: get().gameTime }));
+      if (h) after.push(...applyOps(h, ops, { idNeuf, rng: battleRng(), now: get().gameTime }));
     }
     set({ party: [...get().party] });
     for (const l of after) get().log(l);

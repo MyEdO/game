@@ -12,6 +12,7 @@ import { actorBillboards, bakeWorldGeometry, billboardPose, type BillboardSubjec
 import { ndcAt, pickNearestTarget, type PickTarget } from '../backends/webgl/spriteRaycast';
 import { actorCapsuleOf } from './actorCapsule';
 import { stage3dFraming } from './stage3dCamera';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * HIT-TEST DE SPRITE — CE QUE CHAQUE VOIE RÉPOND (#1176 lot P2-3, #1297 lot B).
@@ -100,7 +101,7 @@ describe('Un jeton derrière un mur qui le COUVRE — le volumique le rend quand
   scene.walls = [{ x: 1, y: 1, side: 'N' }];
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
-  const [hero] = makeShowcaseParty();
+  const [hero] = makeShowcaseParty(idNeufDeBanc);
 
   it('PRÉMISSE écran-espace : le panneau couvre bien la capsule du jeton (sinon la garde ne mesure rien)', () => {
     const murs = buildWalls(scene, 'jeu');
@@ -137,7 +138,7 @@ describe('Un jeton derrière un mur qui le COUVRE — le volumique le rend quand
  * (#1297) répond là où l'affine se taisait.
  */
 describe('Les QUATRE arêtes de la case du jeton (#1176 P2-3, #1297 lot B)', () => {
-  const [hero] = makeShowcaseParty();
+  const [hero] = makeShowcaseParty(idNeufDeBanc);
   const ARETES = [
     { nom: 'N', seg: { x: 1, y: 1, side: 'N' as const }, murParDessus: false },
     { nom: 'O', seg: { x: 0, y: 1, side: 'E' as const }, murParDessus: false },
@@ -167,7 +168,7 @@ describe('Deux jetons qui se CHEVAUCHENT — même vainqueur des deux côtés (#
   const scene = emptyScene('scene-test', 6, 6);
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
-  const [a, b] = makeShowcaseParty();
+  const [a, b] = makeShowcaseParty(idNeufDeBanc);
   const POSE_A = { x: 2, y: 2 };
   const POSE_B = { x: 3, y: 3 }; // juste DEVANT A à l'écran (même colonne, une rangée de profondeur en plus)
 
@@ -204,7 +205,7 @@ describe('Coin de la boîte d’un billboard — la voie volumique y répond ENC
     const scene = emptyScene('scene-test', 6, 6);
     const dims = dimsDe(scene);
     const mpt = sceneMetresPerTile(scene);
-    const [hero] = makeShowcaseParty();
+    const [hero] = makeShowcaseParty(idNeufDeBanc);
     const camera = cameraVolumique(dims, mpt);
     const sub = sujet(scene, mpt, hero, 2, 2);
     const quad = quadDe(sub, camera);
@@ -229,7 +230,7 @@ describe('Cibles à distance ÉGALE — le verdict ne dépend pas de l’ordre d
   const scene = emptyScene('scene-test', 6, 6);
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
-  const [a, b] = makeShowcaseParty();
+  const [a, b] = makeShowcaseParty(idNeufDeBanc);
   const camera = cameraVolumique(dims, mpt);
   const suba = sujet(scene, mpt, a, 2, 2);
   const subb = sujet(scene, mpt, b, 2, 2);
@@ -275,7 +276,7 @@ describe('Un jeton derrière un billboard de DÉCOR — le clic retombe sur la t
   const scene = emptyScene('scene-test', 6, 6);
   const dims = dimsDe(scene);
   const mpt = sceneMetresPerTile(scene);
-  const [hero] = makeShowcaseParty();
+  const [hero] = makeShowcaseParty(idNeufDeBanc);
   const camera = cameraVolumique(dims, mpt);
   const quad = quadDe(sujet(scene, mpt, hero, 2, 2), camera);
   const jeton: PickTarget = { cid: hero.id, object: quad };

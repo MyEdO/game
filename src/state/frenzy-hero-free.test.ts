@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
@@ -21,7 +22,7 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -17,6 +17,7 @@ import { spellEffectOps } from '../engine/flowCore';
 import { effectiveChar } from '../engine/characteristics';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
 
@@ -53,7 +54,7 @@ describe('effets « lourds » présents dans le Flow éditable (données app-own
 
 describe('résolution au lancement depuis le Flow', () => {
   it('Forme bestiale : la métamorphose (op polymorph) remplace les Caractéristiques du lanceur', () => {
-    const w = pregen(PREGEN.sorcier);
+    const w = pregen(idNeufDeBanc, PREGEN.sorcier);
     useGame.setState({ party: [w] as Combatant[] });
     const ours = findCreatureById('ours')!;
     expect(typeof ours.char.force).toBe('number');
@@ -65,7 +66,7 @@ describe('résolution au lancement depuis le Flow', () => {
   });
 
   it('Vol de vie : l’op lifeSteal (on:caster) draine une fraction des Blessures infligées', () => {
-    const [w, cible] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = pregenParty(idNeufDeBanc, PREGEN.sorcier, PREGEN.soldat);
     w.wounds.current = w.wounds.max - 5;
     cible.wounds.current = cible.wounds.max; // ≥ 3 PB encaissables
     useGame.setState({ party: [w, cible] as Combatant[] });

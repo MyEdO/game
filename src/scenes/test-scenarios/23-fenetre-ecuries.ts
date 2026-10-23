@@ -3,6 +3,7 @@ import { buildScene, type WallSpec } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « La fenêtre sur les écuries » — recette de la croisée FRANCHISSABLE et de la porte SECRÈTE (#700) :
@@ -164,5 +165,5 @@ export const scenario: TestScenario = {
   partyNote:
     'Pré-tirés, à l’étage. Gestes : sauter/se suspendre à la croisée (hors combat, puis en combat via l’homme de main) · ' +
     'remonter par l’escalier de la salle basse · entrer au bureau (découverte à l’approche) · Fouiller la pièce.',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

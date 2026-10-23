@@ -8,6 +8,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // ---------------------------------------------------------------------------
 // Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)
@@ -55,7 +56,7 @@ describe('Piétinement en combat (store)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

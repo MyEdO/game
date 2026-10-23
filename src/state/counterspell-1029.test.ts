@@ -8,6 +8,7 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1029 / #1031 / #1040 — Contre-sort (`LDB 46 l.156`) :
@@ -27,7 +28,7 @@ const CRIT = { roll: 11, target: 60, sl: 1, isCritical: true, isFumble: false, l
 
 function setup() {
   const mk = (label: string, seed: number) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
     h.spells = ['flechette'];
     return h;
   };

@@ -12,9 +12,10 @@ import { ACTE_DE_DEVERROUILLAGE, hasCondition } from '../engine/conditions';
 import { findConditionById, type ActionDef } from '../data/index';
 import { t } from '../i18n';
 import type { ConditionInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

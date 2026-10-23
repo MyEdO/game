@@ -48,6 +48,7 @@ import { t } from '../i18n';
 
 import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../engine/sequenceVocab';
+import { idNeuf } from './plateforme';
 
 /** La définition d'un id, déclarée par son module de DOMAINE (`TablesDuJeu.sequences`), ou `undefined`
  *  (état restauré d'une save dont l'id n'est plus une famille du jeu, famille de fixture d'un test).
@@ -279,7 +280,7 @@ export function sequenceRoundOps<P>(
     if (!ops?.length) return;
     for (const id of ids ?? []) {
       const c = porteur(id);
-      if (c) lines.push(...applyOps(c, [...ops], { rng: battleRng(), caster: c, ...campAdvantageHooks(get) }));
+      if (c) lines.push(...applyOps(c, [...ops], { idNeuf, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }));
     }
   };
   appliquer(decl.winner, targets.winners);
@@ -291,7 +292,7 @@ export function sequenceRoundOps<P>(
     for (const id of targets.all ?? []) {
       const c = porteur(id);
       const every = c ? sequenceAttritionEvery(seq.params, c) : 0;
-      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { rng: battleRng(), caster: c }));
+      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { idNeuf, rng: battleRng(), caster: c }));
     }
   }
   return lines;

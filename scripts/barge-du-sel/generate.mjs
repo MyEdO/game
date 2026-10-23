@@ -17,7 +17,7 @@ import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scene, hero, P, flowOf, poste, resetIds, projectDoc, flagWhen } from '../campagne/lib.mjs';
-import { itemFromTrappingById } from '../../src/engine/items.ts';
+import { gabaritDObjet } from '../../src/engine/items.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 
 /** Construction PURE du document de projet : la SOURCE possède 100 % de la donnée de l'artefact
@@ -25,12 +25,12 @@ import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
  *  Rejouable à volonté dans un même process — garde `src/scenes/generateurs-byte-stables.test.ts`. */
 export function build() {
 let ammoSeq = 0;
-/** Munition de bord (`ItemInstance` kind:'ammo') bâtie par la couture CANONIQUE `itemFromTrappingById`,
+/** Munition de bord (`ItemInstance` kind:'ammo') bâtie par la couture CANONIQUE `gabaritDObjet`,
  *  uid STABLE + quantité — cohérence témoin avec `scripts/loup-et-saumure/generate.mjs`. */
 function ammoStock(trappingId, qty) {
-  const base = itemFromTrappingById(trappingId);
+  const base = gabaritDObjet(trappingId);
   if (!base) throw new Error(`munition inconnue au catalogue : ${trappingId}`);
-  return { ...base, uid: `ammo-${trappingId}-${++ammoSeq}`, qty };
+  return { uid: `ammo-${trappingId}-${++ammoSeq}`, ...base, qty };
 }
 /** Poste ARMÉ (#241) : le `poste()` DOTÉ de son coffre à boulets de bord (`ShipPoste.ammo`) + la munition
  *  sélectionnée par défaut. Sans dotation, la pièce est muette (affordance « Pas de munitions »). */

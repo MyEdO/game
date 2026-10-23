@@ -84,6 +84,7 @@ import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
+import { idNeuf } from './plateforme';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -574,6 +575,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
   const caster = porte.casterId ? actorIn(get(), porte.casterId) : undefined;
   const crew = porte.crewIds?.map((id) => actorIn(get(), id)).filter((m): m is Combatant => !!m);
   return {
+    idNeuf,
     ...porte.gele,
     rng: battleRng(),
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
@@ -1345,7 +1347,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
-      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif));
+      const it = itemFromGive(e, idNeuf, undefined, objetDuNarratif(env.get().campaignNarratif));
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
       // Évaluation, #2), skin légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
@@ -1503,7 +1505,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, e, { rng: battleRng(), sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, e, { idNeuf, rng: battleRng(), sl: env.sl, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
@@ -1540,7 +1542,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat, `applyOps` a muté les CLONES → on ré-applique aux héros réels par id.
       const lines = targets.flatMap((c) => {
         const real = inBattle ? c : env.get().party.find((h) => h.id === c.id) ?? c;
-        return applyOps(real, e.ops, { rng: battleRng() });
+        return applyOps(real, e.ops, { idNeuf, rng: battleRng() });
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.blast', { lines: lines.join(' · ') }));
@@ -1784,7 +1786,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       });
       if (!cible) return;
       const apres = { ...cible };
-      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { rng: battleRng() });
+      const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf, rng: battleRng() });
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
       for (const l of lines) env.log(l);
     },
@@ -2053,7 +2055,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.mode === 'forceSuccess') {
         // Arbitrage D'AUTEUR explicite (rituel garanti) : le RAW ne prévoit aucun lancer scripté SANS jet —
         // applique directement les effets du sort (Critique/Imparfaite n'ont pas de sens hors d'un vrai jet).
-        const ctx: OpsCtx = { rng: battleRng(), caster, label: spell.label, sl: spell.cn ?? 0, source: { kind: 'spell', id: spell.id } };
+        const ctx: OpsCtx = { idNeuf, rng: battleRng(), caster, label: spell.label, sl: spell.cn ?? 0, source: { kind: 'spell', id: spell.id } };
         for (const line of applyOps(target, spellOps(spell.effects, 'target'), ctx)) env.log(line);
         for (const line of applyOps(caster, spellOps(spell.effects, 'caster'), ctx)) env.log(line);
         env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);

@@ -5,6 +5,7 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import { mountMovement } from '../noyau/mount';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
   beforeEach(() => {
@@ -18,7 +19,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
   });
 
   function setup(prep?: (hero: Combatant) => void) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     prep?.(hero);
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());

@@ -24,6 +24,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { FICHE_DE_TEST, poserFicheDeTest, restaurerFiche, testDeFiche, testDuJeu } from './ficheDeTest.testkit';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle
@@ -40,7 +41,7 @@ const cible = (c: Combatant, regle: keyof typeof FICHE_DE_TEST, cle: string) => 
 const g = () => useGame.getState();
 
 function heros(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, talentsRolled: false });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1, talentsRolled: false });
   for (const k of ['agilite', 'force-mentale', 'endurance'] as const) h.characteristics[k] = 70;
   return h;
 }

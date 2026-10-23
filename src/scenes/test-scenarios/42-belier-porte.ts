@@ -4,6 +4,7 @@ import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * BÉLIER — PORTE (ADE II 8 « Le théâtre de la guerre » l.233) : consommateur LIVE du modèle ENGIN DE
@@ -107,7 +108,7 @@ export const scenario: TestScenario = {
     "sur sa Force, jamais sa CC ; seule la porte encaisse des Dégâts (Atout Bélier).",
   partyNote: 'Le Soldat sert le bélier (chef de pièce) ; 5 servants PNJ complètent l’Équipe requise.',
   construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
     scene: construireScene(),
   }),
   autoCombat: 'siege-belier',

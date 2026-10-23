@@ -11,6 +11,7 @@ import type { Combatant } from '../engine/types';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
 import { avecLesTables } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * SOCLE des BANDES de cascade (#1117, flux `cascadeBatch`) — les trois capacités qu'une rangée doit
@@ -25,7 +26,7 @@ import { tablesDuJeu } from '../noyau/tablesDuJeu';
  */
 
 const bandHero = (id: string, over: Partial<Combatant> = {}): Combatant => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 2 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 2 });
   h.id = id;
   h.characteristics.endurance = 43; // Bonus d'Endurance = 4 (DR imposé de la Résistance)
   Object.assign(h, over);

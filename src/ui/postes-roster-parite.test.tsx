@@ -25,6 +25,7 @@ import { TravelRolesPanel } from './TravelRolesPanel';
 import { ShipRolesPanel } from './ShipRolesPanel';
 import { ShipStationsPanel } from './ShipStationsPanel';
 import { propulsionDuNavire } from '../engine/shipBuild';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -38,8 +39,8 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 /** MÊME groupe pour les quatre montages : seules les données de poste changent d'un roster à l'autre. */
 function groupe(): Combatant[] {
   return [
-    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brenner', seed: 7 }), id: 'a' },
-    { ...createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Hilda', seed: 8 }), id: 'b' },
+    { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brenner', seed: 7 }), id: 'a' },
+    { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Hilda', seed: 8 }), id: 'b' },
   ];
 }
 

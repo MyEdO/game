@@ -11,6 +11,7 @@ import type { BuiltCascadeStep } from '../noyau/stepBrand';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * LE CONTRAT DU SOCLE DE SÉQUENCE (#1479), sur ses DEUX bords :
@@ -62,7 +63,7 @@ beforeEach(() => {
   apples = 0;
   seedBattleRng(7);
   resetCadence();
-  const party = makePregens().slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
+  const party = makePregens(idNeufDeBanc).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });

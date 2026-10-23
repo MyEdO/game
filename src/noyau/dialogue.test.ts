@@ -18,12 +18,13 @@ import { recordTurn, DIALOGUE_HISTORY_CAP, type DialogueTurn } from './monde/dia
 import { campaignStart } from '../engine/clock';
 import { withBourseMoney } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const cc = conditionCtx({ flags: {}, gameTime: campaignStart() });
 
 /** Héros porteur d'une bourse — la solvabilité d'une réponse payante se lit sur le GROUPE. */
 const hero = (brass: number): Combatant =>
-  withBourseMoney({ id: 'h1', name: 'Hero', kind: 'hero', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass });
+  withBourseMoney({ id: 'h1', name: 'Hero', kind: 'hero', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass }, idNeufDeBanc);
 
 const noeud = (choices: DialogueNode['choices']): Dialogue => ({ id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: '…', choices }] } as Dialogue);
 

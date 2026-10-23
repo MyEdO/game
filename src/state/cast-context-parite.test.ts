@@ -14,6 +14,7 @@ import { domainEnvironmentBonus } from '../engine/domainAttributes';
 import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const SPELL = 'ecorce'; // Domaine Vie (Ghyran), NI 3, portée Contact
 
@@ -22,7 +23,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const mage = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', seed: 3 });
+    const mage = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'M', seed: 3 });
     useGame.setState({ party: [mage] });
     useGame.getState().startScene({ ...testScene(), environment: 'rural' } as never);
     useGame.getState().startCombat('enc-mutants');

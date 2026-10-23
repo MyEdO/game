@@ -9,6 +9,7 @@ import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { BattleState } from '../noyau/etat';
 import { draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // ---------------------------------------------------------------------------
 // Frappe Mortelle — balayage (LDB 14 - _GoBack.md l.9-12 + 85 l.299)
@@ -62,7 +63,7 @@ describe('Balayage en combat (store)', () => {
   /** Prépare un combat enc-mutants avec `nHeroes` héros, puis renvoie le state. */
   function setupBattle(nHeroes: number) {
     const party = Array.from({ length: nHeroes }, (_, i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }),
+      createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }),
     );
     useGame.setState({ party });
     useGame.getState().startScene(testScene());

@@ -21,6 +21,7 @@ import { tenuParUnHumain, seatOwns } from '../noyau/sieges';
 import { fleeTouche, fleeToucheDu } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = useGame.getState;
 const set = useGame.setState;
@@ -28,7 +29,7 @@ const NET0 = g().net;
 
 /** Combat RÉEL à deux sièges : le siège 1 (invité) possède H[0] ; l'hôte (siège 0) rend l'état. */
 function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
-  const party = [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
+  const party = [createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H0', seed: 1 })];
   set({ party });
   g().startScene(testScene());
   g().startCombat('enc-mutants');

@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { footprintN, occupiesTile, footprintsOverlap } from '../noyau/monde/footprint';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Téléportation (sort « Téléportation », LDB 47) : comme TOUT autre atterrissage (Marche, Charge,
@@ -21,7 +22,7 @@ describe('téléportation — un grand qui se téléporte dégage les plus petit
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

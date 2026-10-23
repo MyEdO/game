@@ -9,11 +9,12 @@ import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { bestForcedRoll } from '../engine/tests';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const SPELL = 'armure-aethyrique';
 
 function sorcier(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   w.characteristics = { ...w.characteristics, intelligence: 55 };
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);

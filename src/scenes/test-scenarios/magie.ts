@@ -6,6 +6,7 @@ import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 import type { Combatant, CharKey } from '../../engine/types';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Magie en combat » : LA grande bataille magique, qui réunit le concile (toutes les familles curées),
@@ -96,7 +97,7 @@ const PRIESTS: { id: string; label: string; cult: string; chars: Partial<Record<
  * de PX (mémorisation) + d'Explosion (ZdE) ; le Grand Prêtre porte 3 Péchés (Colère des dieux).
  */
 function makeMagicParty(): Combatant[] {
-  const ans = pregenParty(PREGEN.pretre)[0]; // base prêtre (clonée par makePriest/makeFlagellant)
+  const ans = pregenParty(idNeuf, PREGEN.pretre)[0]; // base prêtre (clonée par makePriest/makeFlagellant)
 
   const sorc = makeSorceress('sc-elfe', 'Aelindra, Haute Sorcière', { x: 2, y: 11 });
   if (!sorc.spells?.includes('explosion')) sorc.spells = ['explosion', ...(sorc.spells ?? [])]; // ZdE au clic-case
@@ -118,7 +119,7 @@ function makeMagicParty(): Combatant[] {
 
   const flagellant = makeFlagellant(ans, 'pr-flagellant', 'Konrad le Flagellant', 'ulric', { sociabilite: 60, 'force-mentale': 56, 'capacite-de-combat': 60, force: 52, endurance: 50 }, { x: 6, y: 10 });
 
-  const grunni = clone(pregenParty(PREGEN.tueur)[0]);
+  const grunni = clone(pregenParty(idNeuf, PREGEN.tueur)[0]);
   grunni.pos = { x: 6, y: 12 };
 
   return [sorc, ...priests, flagellant, grunni];

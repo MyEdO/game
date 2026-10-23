@@ -13,11 +13,12 @@ import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function party2() {
-  const all = makePregens();
+  const all = makePregens(idNeufDeBanc);
   // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52).
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
+  const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }

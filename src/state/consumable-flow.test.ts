@@ -15,14 +15,15 @@ import { hasCondition } from '../engine/conditions';
 import { applierDe } from '../noyau/cascade';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   return { ...h, id: name, ...over } as Combatant;
 }
 
 function giveItem(h: Combatant, trappingId: string, uid: string): void {
-  const it = itemFromTrappingById(trappingId)!;
+  const it = itemFromTrappingById(trappingId, idNeufDeBanc)!;
   it.uid = uid;
   h.items = [...(h.items ?? []), it];
 }

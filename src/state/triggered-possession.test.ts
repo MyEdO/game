@@ -30,6 +30,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;
@@ -41,7 +42,7 @@ const g = useGame.getState;
  * possession posée n'est pas la même).
  */
 function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Combatant; E: Combatant[] } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   g().startScene(testScene());
   g().startCombat('enc-mutants');

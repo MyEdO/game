@@ -16,11 +16,12 @@ import { findEffectTableById } from '../data/effectTables';
 import { findTableEntry } from '../engine/tables';
 import { easeDifficulty } from '../engine/tests';
 import { testValue } from '../engine/skills';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup(careerId: string) {
   vi.useFakeTimers();
   vi.clearAllTimers();
-  const h = createHero({ speciesId: 'humains-reiklander', careerId, label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId, label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
   useGame.getState().startScene(testScene());
   vi.clearAllTimers();

@@ -7,6 +7,7 @@ import type { Combatant, HitLocation } from './types';
 import type { RNG } from './dice';
 import type { CritEscalation } from '../data/criticals';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const C = (over: Partial<Combatant>): Combatant =>
   ({
@@ -93,7 +94,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     expect(res.label).toBe('Blessure spectaculaire');
     c.criticalWounds = 1;
     c.traumas = res.traumas;
-    applyOps(c, res.ops, { rng: desDuTest }); // applique l'Hémorragique immédiat
+    applyOps(c, res.ops, { idNeuf: idNeufDeBanc, rng: desDuTest }); // applique l'Hémorragique immédiat
     expect(c.conditions.some((x) => x.id === 'hemorragique')).toBe(true);
     expect(c.traumas.some((t) => t.onHealGrant)).toBe(true);
     // guérison : on retire l'Hémorragique → cicatrice octroyée automatiquement

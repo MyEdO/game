@@ -16,6 +16,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { Scene } from '../noyau/monde/scene';
+import { passagesDe } from '../lib/sonde';
 
 /**
  * LOT 3 (R4) — `previewAttack` rejoue le MÊME env + modificateurs que la résolution, sans tirer le dé :
@@ -625,9 +626,9 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
     expect(a.weapons.map((w) => w.uid), 'la fixture doit VRAIMENT désigner un uid absent des armes tenues').not.toContain('it-99');
 
     seedBattleRng(3);
-    const vues = ARME_INTROUVABLE.vues;
+    const vues = passagesDe(ARME_INTROUVABLE);
     useGame.getState().attackRoll();
-    expect(ARME_INTROUVABLE.vues, 'l’uid introuvable est CRIÉ, jamais absorbé en silence').toBeGreaterThan(vues);
+    expect(passagesDe(ARME_INTROUVABLE), 'l’uid introuvable est CRIÉ, jamais absorbé en silence').toBeGreaterThan(vues);
     const avant = useGame.getState().pendingAttack!.result!.attackerDetail!;
 
     for (let i = 0; i < 2; i++) useGame.getState().attackBonusSL();

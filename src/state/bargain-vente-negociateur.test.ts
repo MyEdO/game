@@ -7,6 +7,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { testValue } from '../engine/skills';
 import { describeBargain } from '../noyau/flowOutcomes';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`startBargain` →
@@ -17,7 +18,7 @@ const set = useGame.setState.bind(useGame);
 
 /** Meneur Négociateur à exactement 80 en Marchandage. */
 function negociateur(): Combatant {
-  const [h] = makePregens();
+  const [h] = makePregens(idNeufDeBanc);
   h.talents = [...h.talents.filter((t) => t.talentId !== 'negociateur'), { talentId: 'negociateur', times: 1 }];
   h.skills = h.skills.filter((s) => s.id !== 'marchandage');
   h.skills.push({ id: 'marchandage', advances: 0 } as SkillInstance);

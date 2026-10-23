@@ -17,6 +17,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { interludeEventFor } from '../data/interludeEvents';
 import { InterludeScreen, type InterludeSeam } from './InterludeScreen';
 import { ACTIVITIES } from '../engine/activities';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Texte NU d'un rendu statique : balises retirées, entités HTML de React décodées — pour confronter
  *  un texte de DONNÉE (apostrophes comprises) au markup rendu. */
@@ -29,9 +30,9 @@ const mdToPlain = (html: string) => html
   .replace(/&amp;/g, '&');
 
 function buildSeam(weeks = 3): InterludeSeam {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
+  const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 1601 });
   a.xp = 300;
-  const b = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
+  const b = createHero({ idNeuf: idNeufDeBanc, speciesId: 'nains', careerId: 'artisan', label: 'Forgeron', seed: 1602 });
   if (!b.skills.some((s) => s.id === 'metier')) b.skills.push({ id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 10 });
   useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
   useGame.getState().startScene(testScene());

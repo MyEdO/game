@@ -23,6 +23,7 @@ import { rule } from '../engine/policy';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 const ACTIVITY_ID = 'recueillir-informations';
 const INN_GOSSIP_KIND = 'inn-gather-info';
@@ -70,7 +71,7 @@ export const TABLES = {
       const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'bad' }]);
       if (def?.failExtenue && hero) {
         const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.133
-        applyOps(hero, [op], { rng: battleRng(), source: { kind: 'activity', id: ACTIVITY_ID } });
+        applyOps(hero, [op], { idNeuf, rng: battleRng(), source: { kind: 'activity', id: ACTIVITY_ID } });
         set({ party: [...get().party] });
         cons.push({ ops: [op] });
       }

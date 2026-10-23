@@ -29,6 +29,7 @@ import type { Ctx } from './EffectList';
 import { paintEffectZone, type Sel, type Tool } from './editorState';
 import { evalCondition, conditionCtx } from '../../engine/flowCore';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -527,7 +528,7 @@ function sceneNavale(): Scene {
 }
 
 const spawned = (scene: Scene, id: string) => {
-  useGame.setState({ party: pregenParty(PREGEN.soldat) });
+  useGame.setState({ party: pregenParty(idNeufDeBanc, PREGEN.soldat) });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('abordage');
   return useGame.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -586,7 +587,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
       const boxRoot = createRoot(el);
       boxes.push({ el, root: boxRoot });
       await act(async () => {
-        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: pregenParty(PREGEN.soldat) });
+        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: pregenParty(idNeufDeBanc, PREGEN.soldat) });
         boxRoot.render(<DialogueBox />);
       });
       return el;

@@ -14,22 +14,20 @@
  *    dire à ses invités, et l'hôte qui exécute l'intent d'un invité ne lui vole pas son message ;
  *  - il NE PERSISTE PAS dans le journal de combat : ce tiroir garde les FAITS de jeu, un clic refusé
  *    n'en est pas un ;
- *  - il porte un `nonce` STRICTEMENT croissant : deux refus identiques d'affilée sont deux évènements
- *    distincts, que la bannière ré-anime au lieu de rester muette (`ui/CombatBanner`).
+ *  - il porte un `nonce` neuf (`idNeuf`, `src/noyau/plateforme.ts`) : deux refus identiques d'affilée sont deux
+ *    évènements distincts, que la bannière ré-anime au lieu de rester muette (`ui/CombatBanner`).
  * HORS COMBAT il n'y a pas de bannière : le refus retombe alors sur le journal de partie, qui est LA
  * surface visible de ce contexte. Jamais de no-op silencieux.
  */
 import type { Get, Set } from './flowTypes';
-import { sequence } from '../engine/sequences';
+import { idNeuf } from './plateforme';
 
 /** Le refus AFFICHÉ (un seul à la fois : le dernier geste refusé). */
 export interface RefusIHM {
   texte: string;
   /** Identité de l'évènement — clé de ré-animation ET cible de l'effacement différé. */
-  nonce: number;
+  nonce: string;
 }
-
-const nonces = sequence();
 
 /**
  * Refuse le geste courant EN LE DISANT. Renvoie `true` (le refus a été prononcé) pour que les sites
@@ -41,13 +39,13 @@ export function refuserGeste(get: Get, set: Set, texte: string): boolean {
     get().log(texte); // hors combat, le journal EST la surface visible — le refus s'y dit vraiment
     return true;
   }
-  set({ refus: { texte, nonce: nonces.suivant() } });
+  set({ refus: { texte, nonce: idNeuf('refus') } });
   return true;
 }
 
 /** Éteint le refus affiché — SI c'est toujours celui qu'on croit : un refus survenu entre-temps a sa
  *  propre durée d'affichage, et la minuterie du précédent ne doit pas la couper. */
-export function eteindreRefus(get: Get, set: Set, nonce: number): void {
+export function eteindreRefus(get: Get, set: Set, nonce: string): void {
   if (get().refus?.nonce === nonce) set({ refus: null });
 }
 

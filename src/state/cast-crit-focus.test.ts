@@ -16,10 +16,11 @@ import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Sorcier sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM. */
 function wiz() {
-  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+  const w = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   return w;
@@ -66,7 +67,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   });
 
   it('une PRIÈRE critique ne déclenche pas la mécanique (règle du ch.46, Tests de Langue)', () => {
-    const priest = pregen(PREGEN.pretre);
+    const priest = pregen(idNeufDeBanc, PREGEN.pretre);
     useGame.setState({ party: [priest] as Combatant[] });
     const ben = findSpell('Bénédiction de Guérison')!;
     applyCast(useGame.getState, useGame.setState, priest, priest, ben, critRes(true, 2), false, false);

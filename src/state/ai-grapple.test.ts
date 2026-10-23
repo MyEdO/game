@@ -9,6 +9,7 @@ import { areGrappling } from '../engine/grapple';
 import { stacks } from '../engine/conditions';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // IA — versant Empoignade (LDB 14 l.161) : « Si vous commencez votre tour Empoigné, vous pouvez BRISER
 // l'Empoignade si vous disposez d'un Avantage SUPÉRIEUR ; autrement, vous devez effectuer un Test opposé de
@@ -87,7 +88,7 @@ describe('IA Empoignade — dispatch (runEnemyAI) : l’Empoigné LUTTE, le tire
     e.kind = 'enemy'; e.movement = 4; e.engagedWith = ['h'];
     e.grapplingWith = ['h'];
     e.conditions = [{ id: 'empetre', value: 1, sourceId: 'h' }];
-    const h = pregen(PREGEN.sorcier);
+    const h = pregen(idNeufDeBanc, PREGEN.sorcier);
     h.id = 'h'; h.pos = { x: 6, y: 5 }; h.engagedWith = ['e']; h.advantage = 0;
     h.grapplingWith = ['e']; h.wounds = { ...h.wounds, max: 30, current: 30 };
     const battle = {

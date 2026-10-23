@@ -4,8 +4,9 @@ import { PortraitTile } from './PortraitTile';
 import { iconSvg } from './Icon';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
-const base = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+const base = () => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
 describe('PortraitTile', () => {
   it('jauge HORIZONTALE : pleine et verte à PV max', () => {

@@ -5,6 +5,7 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Recette du carnet d'enquête (#670, mécanique MAISON — aucune règle RAW) : une affaire, deux
@@ -100,5 +101,5 @@ export const scenario: TestScenario = {
     'Mécanique MAISON du carnet (#670) : `revealClue` première révélation (dialogue, premier stade) ' +
     'et mise à jour (stade explicite), `discreditClue` (déclencheur de zone, fausse piste écartée).',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene(), narratif: construireNarratif() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireScene(), narratif: construireNarratif() }),
 };

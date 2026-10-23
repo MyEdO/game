@@ -22,6 +22,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { refDeRegle } from '../engine/reglesChiffrees';
+import { passagesDe } from '../lib/sonde';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -703,13 +704,13 @@ describe('SÉPARABILITÉ du plafond — le monteur refuse une combinaison qui d�
    *  une branche morte ou masqué par un `if` — seul le compteur d'invocations RÉELLES prouve que
    *  chaque ligne plafonnée y passe. */
   it('CÂBLÉ : chaque ligne plafonnée passe RÉELLEMENT par l’invariant (compteur d’exécution)', () => {
-    const avant = SEPARABILITE.vus;
+    const avant = passagesDe(SEPARABILITE);
     rollLine({ difficulty: 'intermediaire', valeur: 55, surLaCible: mods, plafond: 'difficultes' });
     rollLine({ difficulty: 'intermediaire', valeur: 55, surLaCible: mods, plafond: 'difficultes' });
-    expect(SEPARABILITE.vus - avant, 'une ligne plafonnée = un passage par l’invariant').toBe(2);
+    expect(passagesDe(SEPARABILITE) - avant, 'une ligne plafonnée = un passage par l’invariant').toBe(2);
     // HORS mode plafonné il n'y a rien à séparer : la garde ne doit pas s'inviter.
-    const horsMode = SEPARABILITE.vus;
+    const horsMode = passagesDe(SEPARABILITE);
     rollLine({ difficulty: 'intermediaire', valeur: 55, surLaCible: mods });
-    expect(SEPARABILITE.vus - horsMode).toBe(0);
+    expect(passagesDe(SEPARABILITE) - horsMode).toBe(0);
   });
 });

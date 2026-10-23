@@ -3,6 +3,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Échéance & compte à rebours » (#668) : `setObjective`/`delayedEffect` posés avec une même
@@ -79,7 +80,7 @@ export const scenario: TestScenario = {
     'avancer le temps et progresser le compte à rebours jusqu’au tir.',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
   construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
     scene: construireAuberge(),
   }),
   money: { gold: 2, silver: 0, brass: 0 }, // #668 : de quoi payer une nuit d'auberge à 4 (2 chambres privées + 4 repas ≈ 24s, LDB 66 l.13/16/28) du premier clic

@@ -12,12 +12,13 @@ import { makePregens } from '../data/pregens';
 import { hasTalent } from '../engine/magic';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const reward = flowFromEffects([{ type: 'giveXp', amount: 50 }]);
 
 /** Un héros NON-Béni auquel on garantit d'être « entendu » (Prière avancée → seuil très haut). */
 function laypersonSurePray(): Combatant {
-  const p = makePregens().find((h) => !hasTalent(h as Combatant, 'beni'))! as Combatant;
+  const p = makePregens(idNeufDeBanc).find((h) => !hasTalent(h as Combatant, 'beni'))! as Combatant;
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = 200; else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 200 } as never);
   p.xp = 0;
@@ -48,7 +49,7 @@ describe('Petites Prières (LDB 25) — effet de scène', () => {
 
   it('un Béni est renvoyé à la prière normale (pas de Petite Prière)', () => {
     setRule('prayer-petites', true);
-    const beni = makePregens().find((h) => hasTalent(h as Combatant, 'beni')) as Combatant | undefined;
+    const beni = makePregens(idNeufDeBanc).find((h) => hasTalent(h as Combatant, 'beni')) as Combatant | undefined;
     if (!beni) return; // aucun Béni dans les pregens → cas non applicable
     beni.xp = 0;
     useGame.setState({ party: [beni], journal: [] });

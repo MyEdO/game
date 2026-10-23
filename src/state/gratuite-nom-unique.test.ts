@@ -15,6 +15,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { TraitList } from '../engine/statEntry';
 import type { SuiteDeCoup } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = () => useGame.getState();
 const TRAITS: TraitList = [{ id: 'morsure', value: 7 }, { id: 'attaque-caudale', value: 7 }];
@@ -23,7 +24,7 @@ const nomDeLaManoeuvre = (kind: string): string => attaqueNaturelle(TRAITS, kind
 
 /** Héros Énorme au contact d'un ennemi Moyen ; `tourDe` porte les traits et le tour. */
 function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   g().seedRng(5);
   g().startScene(testScene());

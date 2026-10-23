@@ -41,6 +41,7 @@ import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const CONSOLE_SRC = src('../ui/console/CombatConsole.tsx');
@@ -431,7 +432,7 @@ describe('(b) réciproque fail-closed — aucune case d’action hors registre',
 describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (témoin mesuré)', () => {
   /** Combat minimal réel : un héros ACTIF, une scène, le mode de bordée armé. */
   function combatArme(over: Partial<BattleState> = {}) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
     h.id = 'h1';
     h.pos = { x: 5, y: 5 };
     useGame.setState({

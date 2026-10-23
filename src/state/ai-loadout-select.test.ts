@@ -12,6 +12,7 @@ import { useGame } from './store';
 import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { runEnemyAI } from '../noyau/combatFlow';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 const embuscadeConstruit = embuscade.construire();
 
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
@@ -19,7 +20,7 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    useGame.setState({ party: makeShowcaseParty() });
+    useGame.setState({ party: makeShowcaseParty(idNeufDeBanc) });
     useGame.getState().startScene(embuscadeConstruit.scene);
     useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
     useGame.getState().confirmRoundStart();

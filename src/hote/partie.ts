@@ -9,6 +9,7 @@ import {
   creerPartie, etatInitialDuJeu, CADENCE_MODES,
   type Cadence, type Jeton, type Partie, type ResultatDeLAppel,
 } from '../noyau/index';
+import { fabriqueEnSequence } from '../lib/entityId';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
 
@@ -109,27 +110,37 @@ export function horlogeVirtuelle(premiers: readonly Programme[], reprendre: (id:
   return reprises;
 }
 
-/** Une partie ouverte : la partie du noyau, la tenue de ses jetons, et le résultat du lancement de son scénario. */
+/** Une partie ouverte : la partie du noyau, la tenue de ses jetons, le résultat du lancement de son scénario, et le
+ *  nombre d'ids que sa fabrique a rendus (un geste refusé qui en a consommé fait diverger la mémoire du fichier). */
 export interface PartieOuverte {
   partie: Partie;
   jetons: TenueDesJetons;
   lancement: ResultatDeLAppel;
+  idsFabriques: () => number;
 }
 
 /** Ouvre la partie de l'en-tête : la partie du noyau sur l'état initial (`creerPartie`, aucun héros persisté : l'hôte
  *  n'a pas de sauvegarde), puis son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`). Un
- *  lancement qui lève ferme la partie. */
+ *  lancement qui lève ferme la partie. Ses ids neufs viennent d'une fabrique en séquence propre à la partie
+ *  (`fabriqueEnSequence`), qui ne vaut que sur l'état initial, sans id fabriqué : deux parties de la même en-tête
+ *  fabriquent les mêmes ids. */
 export function ouvrirLaPartie(entete: Entete): PartieOuverte {
   const scenario = scenarioDeTest(entete.scenario);
+  const enSequence = fabriqueEnSequence();
+  let fabriques = 0;
   const partie = creerPartie(etatInitialDuJeu(), {
     graine: entete.graine,
     reglesMaison: entete.regles,
     cadence: entete.cadence,
     desFixes: entete.desFixes,
     persisterLeHeros: () => {},
+    idNeuf: (genre) => {
+      fabriques += 1;
+      return enSequence(genre);
+    },
   });
   try {
-    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancementDuScenario(scenario)) };
+    return { partie, jetons: tenueDesJetons(partie), lancement: partie.lancer(lancementDuScenario(scenario)), idsFabriques: () => fabriques };
   } catch (erreur) {
     partie.fermer();
     throw erreur;

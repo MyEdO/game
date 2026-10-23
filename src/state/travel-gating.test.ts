@@ -17,6 +17,7 @@ import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { campaignStart } from '../engine/clock';
 import type { TravelPlan } from '../noyau/travelFlow';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = () => useGame.getState();
 const set = useGame.setState;
@@ -57,7 +58,7 @@ const carte: WorldMap = {
 
 function auDepart(flags: Record<string, boolean> = {}): void {
   set({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     travelPlan: null,
     pendingRest: null,
     pendingCascade: null,
@@ -118,7 +119,7 @@ function enPleineTraversee(flags: Record<string, boolean> = {}): void {
     hoursPerDay: 6, km: 100, kmDone: 50, interrupted: false,
   };
   set({
-    party: makePregens().slice(0, 2),
+    party: makePregens(idNeufDeBanc).slice(0, 2),
     worldMap: carteNaufrage,
     scene: scenePlate('monde-a'),
     travelPlan: plan,

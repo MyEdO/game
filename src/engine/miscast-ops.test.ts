@@ -15,6 +15,7 @@ import { endOfRound, removeCondition, hasCondition, isMagicallyAsleep } from './
 import { outOfCombatUpkeep } from '../noyau/outOfCombatUpkeep';
 import type { Flow } from './flowCore';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -35,35 +36,35 @@ describe('castPenalty — pénalités/blocages temporisés', () => {
   it('Langue maladroite : −10 aux Tests de Langue pendant N Rounds, dissipé par endOfRound', () => {
     const c = hero();
     const base = castingValue(c, 'langue', 'magick');
-    applyOps(c, [{ op: 'castPenalty', skill: { id: 'langue' }, mod: -10, rounds: 2 }], { rng: desDuTest, label: 'Langue maladroite' });
+    applyOps(c, [{ op: 'castPenalty', skill: { id: 'langue' }, mod: -10, rounds: 2 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Langue maladroite' });
     expect(castingValue(c, 'langue', 'magick')).toBe(base - 10);
     expect(castPenaltyMod(c, 'priere')).toBe(0); // ne touche pas la Prière
-    endOfRound(c, makeRNG(1));
+    endOfRound(c, makeRNG(1), idNeufDeBanc);
     expect(castingValue(c, 'langue', 'magick')).toBe(base - 10); // round 1 restant
-    const log = endOfRound(c, makeRNG(1));
+    const log = endOfRound(c, makeRNG(1), idNeufDeBanc);
     expect(castingValue(c, 'langue', 'magick')).toBe(base); // expiré
     expect(log.join('\n')).toMatch(/Langue maladroite se dissipe/);
   });
 
   it('blocage : « Vous abusez de ma patience » interdit les Tests de Prière', () => {
     const c = hero();
-    applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, blocked: true, rounds: 3 }], { rng: desDuTest, label: 'Vous abusez de ma patience' });
+    applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, blocked: true, rounds: 3 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Vous abusez de ma patience' });
     expect(castBlockedBy(c, 'priere')).toBe('Vous abusez de ma patience');
     expect(castBlockedBy(c, 'langue')).toBeNull();
   });
 
   it('durée d\'horloge : untilTime = now + minutes/heures/jours', () => {
     const c = hero();
-    applyOps(c, [{ op: 'castPenalty', skill: { id: 'langue' }, blocked: true, minutes: 5 }], { rng: desDuTest, label: 'Drain de puissance', now: 1000 });
+    applyOps(c, [{ op: 'castPenalty', skill: { id: 'langue' }, blocked: true, minutes: 5 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Drain de puissance', now: 1000 });
     expect(c.castPenalties![0].untilTime).toBe(1005);
     const c2 = hero();
-    applyOps(c2, [{ op: 'castPenalty', skill: { id: 'priere' }, maxZeroDR: true, days: 7 }], { rng: desDuTest, label: 'Pensez à vos actes', now: 0 });
+    applyOps(c2, [{ op: 'castPenalty', skill: { id: 'priere' }, maxZeroDR: true, days: 7 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Pensez à vos actes', now: 0 });
     expect(c2.castPenalties![0].untilTime).toBe(7 * 24 * 60);
   });
 
   it('« Pensez à vos actes » : tout Test de Prière RÉUSSI plafonné à 0 DR', () => {
     const c = hero();
-    applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, maxZeroDR: true, days: 7 }], { rng: desDuTest, label: 'Pensez à vos actes', now: 0 });
+    applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, maxZeroDR: true, days: 7 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Pensez à vos actes', now: 0 });
     expect(prayerMaxZeroDR(c)).toBe(true);
     const prayer = { label: 'Bénédiction de Guérison', ecole: 'Béni', family: 'beni' as const, cn: null, desc: 'soin' };
     const res = evaluateCasting(c, prayer, { roll: 5, target: 55, success: true, sl: 5, isDouble: false });
@@ -146,7 +147,7 @@ describe('tables migrées — sweep d\'application', () => {
       for (let seed = 0; seed < 120; seed++) {
         const c = hero();
         const r = rollMiscast(sev, makeRNG(seed), sev === 'colere' ? seed % 6 : 0);
-        const lines = applyOps(c, r.ops, { rng: makeRNG(seed + 1), label: r.label, now: 0 });
+        const lines = applyOps(c, r.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(seed + 1), label: r.label, now: 0 });
         expect(Array.isArray(lines)).toBe(true);
       }
     }
@@ -165,7 +166,7 @@ describe('tables migrées — sweep d\'application', () => {
       expect(op).toBeTruthy();
       expect((op as { escapeStrength?: unknown }).escapeStrength).toBeTruthy();
       const c = hero();
-      applyOps(c, r.ops, { rng: makeRNG(1), label: r.label });
+      applyOps(c, r.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(1), label: r.label });
       const inst = c.conditions.find((x) => x.id === 'empetre')!;
       expect(inst.escapeStrength! % 5).toBe(0);
       expect(inst.escapeStrength).toBeGreaterThanOrEqual(5);
@@ -182,7 +183,7 @@ describe('tables migrées — sweep d\'application', () => {
       if (!r.label.startsWith('Tenez compte')) continue;
       found = true;
       const c = hero();
-      applyOps(c, r.ops, { rng: makeRNG(1), label: r.label });
+      applyOps(c, r.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(1), label: r.label });
       const p = c.castPenalties![0];
       expect(p.skill).toBe('priere');
       expect(p.mod).toBe(-10);
@@ -207,7 +208,7 @@ describe('tables migrées — sweep d\'application', () => {
         const r = rollMiscast('colere', makeRNG(seed), sin, undefined, deNaturel);
         expect(r.rowId, 'la rangée visée n’est pas celle tirée').toBe('colere-je-trouve-inquietant-votre-manque-de-foi');
         const c = hero();
-        applyOps(c, r.ops, { rng: makeRNG(seed + 1), label: r.label });
+        applyOps(c, r.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(seed + 1), label: r.label });
         out.push(c.castPenalties![0].roundsLeft!);
       }
       return out;
@@ -232,7 +233,7 @@ describe('tables migrées — sweep d\'application', () => {
       expect(r.rowId).toBe('colere-partagez-ma-douleur');
       const c = hero();
       const avant = c.wounds.current;
-      applyOps(c, r.ops, { rng: makeRNG(8), label: r.label });
+      applyOps(c, r.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(8), label: r.label });
       return avant - c.wounds.current;
     };
     expect(perdues(0, 36), 'à 0 Point de Péché : 1 Blessure').toBe(1);
@@ -275,11 +276,11 @@ describe('mitigation déclarée des Blessures — donnée → expandOp → apply
 
   it('applyOps DÉDUIT la mitigation déclarée : BE 4 + PA 3 absorbent « Ressentez ma colère », pas « Choc aethyrique »', () => {
     const mitige = hero({ armour: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } });
-    applyOps(mitige, [{ ...woundsOf('colere', 'Ressentez ma colère'), amount: 6 }], { rng: makeRNG(1) });
+    applyOps(mitige, [{ ...woundsOf('colere', 'Ressentez ma colère'), amount: 6 }], { idNeuf: idNeufDeBanc, rng: makeRNG(1) });
     expect(mitige.wounds.current).toBe(10); // 6 − 4 (BE) − 3 (PA) ≤ 0
 
     const nu = hero({ armour: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } });
-    applyOps(nu, [{ ...woundsOf('majeure', 'Choc aethyrique'), amount: 6 }], { rng: makeRNG(1) });
+    applyOps(nu, [{ ...woundsOf('majeure', 'Choc aethyrique'), amount: 6 }], { idNeuf: idNeufDeBanc, rng: makeRNG(1) });
     expect(nu.wounds.current).toBe(4); // 6 pleines
   });
 });
@@ -304,7 +305,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
    *  `noyau/combatFlow.ts` ligne `label: m.label` de `finishMiscast`). */
   function palier(seed: number) {
     const c = hero();
-    const log = applyOps(c, opsDuPalier(), { rng: makeRNG(seed), label: 'Purifier la chair' });
+    const log = applyOps(c, opsDuPalier(), { idNeuf: idNeufDeBanc, rng: makeRNG(seed), label: 'Purifier la chair' });
     const cause = (c.activeEffects ?? []).find((e) => e.opsPerRound)!;
     return { c, cause, log: log.join('\n') };
   }
@@ -327,7 +328,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
     const { c } = palier(3);
     removeCondition(c, 'inconscient'); // chemin `battleSpendResolve` : le retrait A LIEU
     expect(hasCondition(c, 'inconscient')).toBe(false);
-    const log = endOfRound(c, makeRNG(7));
+    const log = endOfRound(c, makeRNG(7), idNeufDeBanc);
     expect(c.conditions.find((x) => x.id === 'inconscient')?.value, 'un seul pion — l’État ne se cumule pas (LDB 16 l.115)').toBe(1);
     expect(log, 'la RE-POSE nomme sa cause').toEqual(['Cobaye regagne 1 État Inconscient : Purifier la chair le tient toujours.']);
   });
@@ -335,11 +336,11 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   it('la cause ÉCOULÉE (N fins de Round), un retrait n’est plus suivi d’une re-pose', () => {
     const { c, cause } = palier(3);
     const n = cause.duration.scale === 'rounds' ? cause.duration.left : 0;
-    for (let i = 0; i < n; i++) endOfRound(c, makeRNG(7 + i));
+    for (let i = 0; i < n; i++) endOfRound(c, makeRNG(7 + i), idNeufDeBanc);
     expect((c.activeEffects ?? []).some((e) => e.opsPerRound), 'la cause a expiré').toBe(false);
     expect(hasCondition(c, 'inconscient'), 'l’État survit à sa cause (règles normales)').toBe(true);
     removeCondition(c, 'inconscient');
-    endOfRound(c, makeRNG(99));
+    endOfRound(c, makeRNG(99), idNeufDeBanc);
     expect(hasCondition(c, 'inconscient')).toBe(false);
   });
 
@@ -349,11 +350,11 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   it('une op gatée sur son propre État, posée HORS rejeu, annonce une POSE (Filet) — et une RE-POSE au rejeu', () => {
     const c = hero();
     const filet: GameOp = { op: 'condition', id: 'empetre', value: 1, unlessCondition: 'empetre' };
-    expect(applyOps(c, [filet], { label: 'Filet', rng: makeRNG(1) }), 'PREMIÈRE pose : le gate n’a rien retenu')
+    expect(applyOps(c, [filet], { idNeuf: idNeufDeBanc, label: 'Filet', rng: makeRNG(1) }), 'PREMIÈRE pose : le gate n’a rien retenu')
       .toEqual(['Cobaye reçoit 1 État Empêtré.']);
     removeCondition(c, 'empetre');
     c.activeEffects = [{ label: 'Filet', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [filet] }];
-    expect(endOfRound(c, makeRNG(1)), 'REJEU de fin de Round : la cause est NOMMÉE')
+    expect(endOfRound(c, makeRNG(1), idNeufDeBanc), 'REJEU de fin de Round : la cause est NOMMÉE')
       .toContain('Cobaye regagne 1 État Empêtré : Filet le tient toujours.');
   });
 
@@ -367,7 +368,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
       rows: [{ min: 1, max: 10, ops: [{ op: 'condition', id: 'aveugle', value: 1, unlessCondition: 'aveugle' }] }],
     };
     c.activeEffects = [{ label: 'Nuée', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [roulee] }];
-    expect(endOfRound(c, makeRNG(4))).toEqual(['Cobaye reçoit 1 État Aveuglé.']);
+    expect(endOfRound(c, makeRNG(4), idNeufDeBanc)).toEqual(['Cobaye reçoit 1 État Aveuglé.']);
   });
 
   it('ce n’est PAS un sommeil magique (`isMagicallyAsleep` ne s’en empare pas)', () => {
@@ -376,7 +377,7 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
   });
 
   it('la récurrence se compte en ROUNDS : `perRound` + durée d’horloge est REFUSÉ nommément', () => {
-    expect(() => applyOps(hero(), [{ op: 'condition', id: 'inconscient', perRound: true, durationMinutes: 30 }], { rng: makeRNG(1), now: 0 }))
+    expect(() => applyOps(hero(), [{ op: 'condition', id: 'inconscient', perRound: true, durationMinutes: 30 }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), now: 0 }))
       .toThrow(/« perRound » ne se combine qu'avec « durationRounds »/);
   });
 
@@ -398,14 +399,14 @@ describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty
     }
     expect(ops, 'rangée « Pensez à vos actes » introuvable').toBeTruthy();
     const c = hero();
-    applyOps(c, ops!, { label: 'Pensez à vos actes', now: 0, rng: makeRNG(1) });
+    applyOps(c, ops!, { idNeuf: idNeufDeBanc, label: 'Pensez à vos actes', now: 0, rng: makeRNG(1) });
     expect(c.castPenalties![0].untilTime).toBe(7 * 24 * 60);
   });
 
   it('une formule à dés en jours est résolue sous RNG semé : untilTime = (1d10 + 3) × 24 × 60', () => {
     const attendu = makeRNG(11).int(1, 10); // même graine, même premier tirage que l'op ci-dessous
     const c = hero();
-    applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, mod: -10, days: { sum: [{ dice: { n: 1, sides: 10 } }, 3] } }], { label: 'Contrecoup à durée en jours', now: 0, rng: makeRNG(11) });
+    applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, mod: -10, days: { sum: [{ dice: { n: 1, sides: 10 } }, 3] } }], { idNeuf: idNeufDeBanc, label: 'Contrecoup à durée en jours', now: 0, rng: makeRNG(11) });
     expect(c.castPenalties![0].untilTime).toBe((attendu + 3) * 24 * 60);
   });
 });

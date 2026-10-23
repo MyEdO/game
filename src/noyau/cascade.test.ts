@@ -11,6 +11,7 @@ import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { journaliser } from './combatLog';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * CASCADE séquentielle influençable (jets de NUIT / VOYAGE) — cœur générique. 3ᵉ consommateur de la
@@ -31,7 +32,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     h.fortune = 2; h.resilience = 1;
     useGame.setState({ party: [h] });
     return h;
@@ -283,8 +284,8 @@ describe('Cascade séquentielle influençable', () => {
 
   it('étape « batch » (participants — seam de jet #275 Décision 4 cran 1) : agrège les contributeurs à la validation', () => {
     useGame.getState().seedRng(11);
-    const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
-    const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
+    const h1 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
+    const h2 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
     useGame.setState({ party: [h1, h2] });
     appliers['crew-batch'] = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ consequences: freeCons([`${step.label} → DR ${step.result?.sl}`]) }));
     const participants: BatchParticipant[] = [
@@ -632,7 +633,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
 
   it('`rowSurface` déclarée au lancement : la bande résolue APRÈS la décision ne redit pas ses dés au journal, et la clôture la rend', () => {
     g().seedRng(5);
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     s({ party: [h] });
     const bande = buildBand(g, { id: 'bande', kind: cleDeFixture('repriseNeutre'), label: fixtureText('Bande'), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
     expect(runCascadeImmediate(g, s, [choix(), bande], { title: 'Jour', purpose: 'test', rowSurface: 'pv' })).toBeUndefined();

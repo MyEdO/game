@@ -8,6 +8,7 @@ import { addCondition, stacks, COND } from '../../engine/conditions';
 import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * #38 (d) — AA 07 l.7 ; LDB 16 l.105. Hook `bleed-death`, seul le prédicat d'éligibilité diffère selon
@@ -27,7 +28,7 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () 
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -12,10 +12,11 @@ import { ACTION_CANDIDATES } from '../noyau/actionRegistry';
 import { resetRule, setRule } from '../engine/policy';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // #2312 : un effet de jeu joué en combat écrit le combattant ET le héros du groupe (`ecrireActeur`).
 
-const SOLDAT = { speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 } as const;
+const SOLDAT = { idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 } as const;
 
 function poserGroupe(): Combatant {
   const hero = createHero(SOLDAT);

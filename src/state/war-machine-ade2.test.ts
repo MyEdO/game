@@ -8,6 +8,7 @@ import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { Combatant, Weapon } from '../engine/types';
 import type { GameState } from './store';
 import type { BattleState } from '../noyau/etat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Machines de guerre ADE II (ch.08 folio 88, l.243/251/253) :
@@ -72,7 +73,7 @@ function mountBattle(combatants: Combatant[]) {
 
 /** L'arme RÉELLE du catalogue, construite par le chemin de production (trapping → item → arme servie). */
 const flameCannon = (): Weapon => {
-  const item = itemFromTrappingById('canon-a-flammes-nain-ade2');
+  const item = itemFromTrappingById('canon-a-flammes-nain-ade2', idNeufDeBanc);
   expect(item).not.toBeNull();
   const carrier = { id: 'crew', name: 'Servant', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } } as unknown as Combatant;
   const w = mannedPosteWeapon(carrier, { item: item as never, side: 'proue', crewIds: ['crew'] } as never);

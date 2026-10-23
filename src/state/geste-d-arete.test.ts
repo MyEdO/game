@@ -16,6 +16,7 @@ import { climbMovementCost } from '../engine/movement';
 import { sceneMetresPerTile } from '../noyau/monde/scene';
 import { t, type MsgKey } from '../i18n';
 import type { Pt } from '../noyau/monde/path';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * PORTEUR d'un geste d'arête (#700, #2190) : UNE réponse pour `climbAcross`, `fallAcross`,
@@ -70,7 +71,7 @@ const dit = (cle: MsgKey, vars: Record<string, string | number> = {}) => expect(
 
 /** Combat : héros actif posté en `pos` sur `scene`, ennemis hors d'action (sauf `foe`, rendu vivant à la demande). */
 function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: boolean; movedPreAction?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], net: NET0 });
   g().startScene(testScene());
   g().startCombat('enc-mutants');
@@ -129,7 +130,7 @@ describe('#2190 — un `from` qui n’est pas la case du mobile est refusé', ()
   }
 
   it('exploration : le groupe ne se téléporte pas', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     for (const c of CAS) {
       useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: ailleurs, scene: c.scene(), pendingFall: null, dialogue: null, journal: [] });
       c.agir(c.de, c.vers);
@@ -226,7 +227,7 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   });
 
   it('exploration : dialogue ouvert → refus NOMMÉ pour les trois gestes', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     for (const c of CAS) {
       useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: c.de, scene: c.scene(), pendingFall: null, dialogue: {} as never, journal: [] });
       expect('refus' in gesteDArete(g()), c.geste).toBe(true);
@@ -238,7 +239,7 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   });
 
   it('plans refusés : arête non grimpable, sommet inaccessible, plan `none`, croisée d’étage enjambée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const explorer = (scene: Scene, pos: Pt) => useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: pos, scene, pendingFall: null, dialogue: null, journal: [] });
     explorer(falaise(), foot);
     g().climbAcross(foot, top);
@@ -343,8 +344,8 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
 
   /** Deux héros : `H` (actif, sans Escalade) et `S` (fort en Escalade), `S` loin du pied. */
   function deuxHeros() {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const S = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 2 });
+    const H = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const S = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 2 });
     S.skills = [...S.skills.filter((k) => k.id !== 'escalade'), { id: 'escalade', characteristic: 'force', advances: 60 }];
     H.skills = H.skills.filter((k) => k.id !== 'escalade');
     useGame.setState({ party: [H, S], net: NET0 });

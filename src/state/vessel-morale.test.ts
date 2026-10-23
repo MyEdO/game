@@ -10,6 +10,7 @@ import { toBrass, type Money } from '../engine/money';
 import { makePregens } from '../data/pregens';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Navire de campagne PERSISTANT (MDG 14) : le Moral de l'équipage est recalculé une fois par SEMAINE
@@ -18,7 +19,7 @@ import { fixtureText } from '../i18n/fixtureText';
 beforeEach(() => {
   useGame.setState({
     battle: null, mode: 'exploration', journal: [], travelPlan: null, 
-    party: makePregens().slice(0, 1), gameTime: 0, lastUpkeepDay: 0, vessel: null,
+    party: makePregens(idNeufDeBanc).slice(0, 1), gameTime: 0, lastUpkeepDay: 0, vessel: null,
   });
   seedBattleRng(7);
 });
@@ -99,7 +100,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     // interne à `tickCampaignVesselWeek`), mais le texte apparaissait ×3 à l'écran.
     useGame.setState({
       battle: null, mode: 'exploration', journal: [], travelPlan: null, pendingRest: null,
-      party: makePregens().slice(0, 1), gameTime: 7 * MINUTES_PER_DAY - 100, lastUpkeepDay: 6,
+      party: makePregens(idNeufDeBanc).slice(0, 1), gameTime: 7 * MINUTES_PER_DAY - 100, lastUpkeepDay: 6,
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] },
     });
     creditBourse(useGame.getState, useGame.setState, useGame.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });

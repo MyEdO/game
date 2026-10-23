@@ -65,6 +65,7 @@ import {
 } from './banc-volumique';
 // Le module JSON SERVI (prose adressée matérialisée par `wfrp:prose-source`) : la forme que le jeu lit.
 import areneProjet from '../../scenes/arene/arene-projet.json';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -260,7 +261,7 @@ function murage(nom: string, avant: Relevé, après: Relevé): { fautes: string[
 // LES DEUX THÉÂTRES
 // ————————————————————————————————————————————————
 
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
+const HÉROS = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 7 });
 
 /** La scène RÉELLE du jeu (le hub de l'arène) : bâtiments, toitures, une soixantaine de sujets. Sur une
  *  carte nue, « rien n'a bougé » serait vrai sans rien prouver. */

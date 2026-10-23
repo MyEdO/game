@@ -11,6 +11,7 @@ import { carrierById, persistCarriersCargo } from '../noyau/carriers';
 import type { WorldMap } from '../noyau/worldMap';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #58 — Commerce de cargaison TERRESTRE (Mort sur le Reik Compagnon ch.11) : les consommateurs runtime du
@@ -54,7 +55,7 @@ const landMap: WorldMap = {
 };
 
 function freshState(withCarrier = true) {
-  const party = makePregens().slice(0, 3);
+  const party = makePregens(idNeufDeBanc).slice(0, 3);
   const possessions: Possession[] = withCarrier ? [dili(party[0].id)] : [];
   useGame.setState({
     party, possessions,

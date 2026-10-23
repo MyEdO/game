@@ -5,6 +5,7 @@ import { weaponHands, recomputeLoadout, itemFromTrappingById } from './items';
 import { dangerousNine, hasQuality } from './qualities/dispatch';
 import { makeRNG } from './dice';
 import type { Weapon, Combatant } from './types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Règles d'arme CONTEXTUELLES de Groupe (Issue #43.1, LDB 62) :
 //  - 43.1c Lance de cavalerie hors Charge → Arme improvisée (l.59)
@@ -137,7 +138,7 @@ describe('43.1a — Cavalerie (2M) à pied → Deux Mains (LDB 62 l.142-143)', (
     expect(weaponHands({ subType: 'cavalerie', hands: 1 }, { mounted: false })).toBe(1); // lance 1-main inchangée
   });
   it('recomputeLoadout : Marteau à bec-de-corbin dérive 2 mains à pied, 1 main monté', () => {
-    const marteau = itemFromTrappingById('marteau-a-bec-de-corbin')!;
+    const marteau = itemFromTrappingById('marteau-a-bec-de-corbin', idNeufDeBanc)!;
     expect(marteau.subType).toBe('cavalerie');
     expect(marteau.hands).toBe(2);
     const onFoot = combatant({ items: [{ ...marteau, equipped: true }] });

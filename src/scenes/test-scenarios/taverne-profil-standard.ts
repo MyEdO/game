@@ -4,6 +4,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Taverne — un PNJ à profil standard » (#1882) : un habitué de la salle, typé par le profil standard de
@@ -70,5 +71,5 @@ export const scenario: TestScenario = {
     'l’opposant joue sa fiche.',
   partyNote: 'Soldat · Chasseur',
   rules: { 'tavern-games': true },
-  construire: () => ({ party: pregenParty(PREGEN.soldat, PREGEN.chasseur), scene: construireScene() }),
+  construire: () => ({ party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur), scene: construireScene() }),
 };

@@ -16,6 +16,7 @@ import { WEAPON_DEFS } from './parts/weapons/_registry.generated';
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, weaponFromItem } from '../../engine/items';
 import type { Combatant, Weapon } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -27,7 +28,7 @@ const bestiaireDOrigine = creatures.slice();
 
 /** Héros qui porte `arme`, rendu par la poupée depuis son état (`CharacterPreview hero`). */
 function héros(arme: Weapon): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 4 });
   h.weapons = [arme];
   return h;
 }
@@ -52,7 +53,7 @@ describe('surface React montée : l’édition d’un catalogue recompose son ri
       () => héros({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: armeDeCatalogue.id }),
       () => éditerLaForme(armeDeCatalogue.id, autreForme),
     ],
-    ['Possession portée (`trappingId`)', () => héros(weaponFromItem(itemFromTrappingById('arbalete')!, 'main')), () => éditerLaForme('arbalete', 'hache_lancer')],
+    ['Possession portée (`trappingId`)', () => héros(weaponFromItem(itemFromTrappingById('arbalete', idNeufDeBanc)!, 'main')), () => éditerLaForme('arbalete', 'hache_lancer')],
   ];
   for (const [nom, porteur, éditer] of PORTEURS)
     it(`${nom} : la forme éditée au catalogue change le dessin de la poupée du héros`, () => {

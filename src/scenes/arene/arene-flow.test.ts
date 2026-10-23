@@ -12,6 +12,7 @@ import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import { lancerCampagne, campagneDuJeu, areneCampaign } from '../campaign';
 import { presetPnjById } from '../../state/campaignData';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /** Évalue la Condition `when` d'un choix contre l'état VIVANT (source unique evalCondition). */
 const condOk = (when: Condition) => evalCondition(when, { flags: useGame.getState().flags, gameTime: 0 });
@@ -38,21 +39,21 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('loadProject démarre sur la zone d’entrée, sans combat', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     expect(useGame.getState().scene?.id).toBe('arene-zone1');
     expect(useGame.getState().battle).toBeNull();
   });
 
   it('entrer sur le sol (dans le rect du trigger) DÉCLENCHE la rencontre', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     poserLeGroupe(useGame.getState, useGame.setState, { x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
     expect(useGame.getState().battle).not.toBeNull();
   });
 
   it('onVictory : argent + flag zone1_clear + transition vers le hub', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(useGame.getState, useGame.setState, zone1.encounters[0].onVictory!);
     expect(useGame.getState().flags.zone1_clear).toBe(true);
@@ -60,7 +61,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('au hub, la porte des Ruines s’ouvre une fois la Cour nettoyée', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(useGame.getState, useGame.setState, zone1.encounters[0].onVictory!);
     const hub = useGame.getState().scene!;
@@ -70,7 +71,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('ÉCHELLE COMPLÈTE : les 13 victoires enchaînées ouvrent chaque porte puis le titre de champion', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     const dlgHub = project.find((s) => s.id === 'arene-hub')!.dialogues.find((d) => d.id === 'dlg-hub')!;
     const choices = dlgHub.nodes.flatMap((n) => n.choices);
@@ -93,7 +94,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('ARCHITECTURE : la taverne du Bourg est cernée de murs d’arête, franchissable par sa PORTE', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const hub = useGame.getState().scene!;
     const bourg = hub.architecture?.find((body) => body.id === 'bourg');
@@ -119,7 +120,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
   });
 
   it('CONTRATS : la victoire au camp de Bella pose contrat_foret_fait → la prime du Maître se débloque', () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const foret = project.find((s) => s.id === 'arene-exp-foret')!;
     const bande = foret.encounters.find((e) => e.id === 'enc-foret-bande')!;
@@ -171,7 +172,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('medicalAid ouvre l’infirmerie du PNJ : nom/id viennent de l’entité (pas codés en dur), jamais dans le groupe', () => {
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idNeufDeBanc);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     useGame.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     creditBourse(useGame.getState, useGame.setState, party[1].id, { gold: 1, silver: 10, brass: 0 }); // le patient (party[1]) paie son acte (soloPayer)
@@ -196,7 +197,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('PORTE : un soigneur sans fiche de Guérison n’ouvre AUCUNE infirmerie — rien à lire, rien à inventer (L2 #1548)', () => {
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idNeufDeBanc);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     useGame.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     // `fidele` est un figurant de la chapelle : aucune réf de bestiaire, donc aucune Guérison.
@@ -231,7 +232,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
         statblock: { type: 'statblock', label: 'Prêtre de Sigmar', char: { intelligence: 40 }, skills: [{ id: 'guerison', value: GUERISON }] },
       } as SceneEntity],
     };
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idNeufDeBanc);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     useGame.setState({ party, scene: infirmerie, battle: null, pendingHeal: null, medic: null });
     applyEffects(useGame.getState, useGame.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: 'soigneur' }]);
@@ -243,7 +244,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('le JOUEUR choisit le patient dans l’infirmerie (medicSelectPatient)', () => {
-    const party = makeShowcaseParty();
+    const party = makeShowcaseParty(idNeufDeBanc);
     party[0].wounds = { ...party[0].wounds, current: party[0].wounds.current - 3 };
     party[2].wounds = { ...party[2].wounds, current: party[2].wounds.current - 8 };
     useGame.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
@@ -254,7 +255,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
   });
 
   it('un acte sans patient pertinent est simplement refusé (pas de jet)', () => {
-    useGame.setState({ party: makeShowcaseParty(), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
+    useGame.setState({ party: makeShowcaseParty(idNeufDeBanc), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
     applyEffects(useGame.getState, useGame.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
     useGame.getState().medicAct('wounds');
     expect(useGame.getState().pendingHeal).toBeNull();

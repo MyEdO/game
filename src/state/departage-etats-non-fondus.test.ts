@@ -16,6 +16,7 @@ import { addCondition, COND } from '../engine/conditions';
 import type { Possession } from '../engine/possession';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * DÉPARTAGE d'un Marchandage OPPOSÉ sous ÉTAT (LDB 12 l.160, verbatim `12 - Tests.md` l.160 : « Si les
@@ -93,7 +94,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
   afterEach(() => resetRule('test-auto-bands'));
 
   it('la porte du seam pose la Compétence NUE en `base` et laisse l’État dans la CIBLE', () => {
-    const [leader] = makePregens();
+    const [leader] = makePregens(idNeufDeBanc);
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     seedBattleRng(1);
@@ -105,7 +106,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
   });
 
   it('ACHAT, DR égal : le marchandeur Empoisonné l’emporte par sa Compétence — remise, jamais surcoût', () => {
-    const [leader] = makePregens();
+    const [leader] = makePregens(idNeufDeBanc);
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     const { seed, merchant, die, sl } = findSeed(probePort, NUE + ETAT);
@@ -130,7 +131,7 @@ const convoiPossession = (ownerId: string): Possession =>
   ({ uid: LAND_CARRIER, ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }) as Possession;
 
 function setupLand(): Combatant {
-  const [leader] = makePregens();
+  const [leader] = makePregens(idNeufDeBanc);
   marchandeurEmpoisonne(leader);
   set({
     party: [leader], scene, battle: null, vessel: null,

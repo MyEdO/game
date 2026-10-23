@@ -11,6 +11,7 @@ import { scenePlanDefects } from '../noyau/planDefects';
 import { buildScene } from '../noyau/mapSpec';
 import { patchWall } from '../noyau/sceneEdit';
 import { setRule, resetRule } from '../engine/policy';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Se SUSPENDRE d'abord à la croisée (EDO 01 l.231) : `WallSeg.suspendu` = hauteur de chute de qui se
@@ -124,8 +125,8 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
   let A = '';
   let B = '';
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     A = a.id;
     B = b.id;
     useGame.setState({ battle: null, party: [a, b], mode: 'exploration', partyPos: chambre, scene: etage(2), pendingFall: null, pendingCascade: null, flags: {} });
@@ -173,7 +174,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('fenetre-suspension'); });
 
   function setup(movementUsed = 0, sc = etage(2)) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     g().startScene(testScene());
     g().startCombat('enc-mutants');

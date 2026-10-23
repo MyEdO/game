@@ -10,9 +10,10 @@ import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup() {
-  const hero = makePregens()[0];
+  const hero = makePregens(idNeufDeBanc)[0];
   hero.pos = { x: 5, y: 5 };
   hero.initiative = 50;
   const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });

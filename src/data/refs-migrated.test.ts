@@ -53,6 +53,7 @@ import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../
 // @ts-expect-error - bibliothèque RAW ESM JS (pas de types) — même convention que `vite.config.ts`
 import { sourceDirOf } from '../../scripts/raw/_lib.mjs';
 import { norm } from '../lib/normalize';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
@@ -92,7 +93,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 
   it('itemFromTrappingById pose un trappingId qui pointe le catalogue', () => {
     for (const id of ['arbalete', 'epee-batarde', 'chemise-de-mailles', 'mains-nues']) {
-      const it = itemFromTrappingById(id);
+      const it = itemFromTrappingById(id, idNeufDeBanc);
       expect(it, id).toBeTruthy();
       expect(it!.trappingId).toBe(id);
     }
@@ -106,7 +107,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       else if ('wildcard' in t) expect(typeof t.wildcard).toBe('string');
       else if ('vehicleId' in t) expect(findVehicleById(t.vehicleId as string)).toBeTruthy();
       else if ('creatureId' in t) expect(findCreatureById(t.creatureId as string)).toBeTruthy();
-      else if ('id' in t) expect(itemFromTrappingById(t.id as string)).toBeTruthy();
+      else if ('id' in t) expect(itemFromTrappingById(t.id as string, idNeufDeBanc)).toBeTruthy();
       else expect(typeof t.text).toBe('string');
     }
     const all = [...classes.flatMap((c) => c.trappings), ...careerLevels.flatMap((l) => l.trappings)];
@@ -121,7 +122,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       for (const tr of c.trappings) {
         expect(isObj(tr)).toBe(true);
         if ('creatureId' in tr) expect(findCreatureById(tr.creatureId as string)).toBeTruthy();
-        else if ('id' in tr) expect(itemFromTrappingById(tr.id as string)).toBeTruthy();
+        else if ('id' in tr) expect(itemFromTrappingById(tr.id as string, idNeufDeBanc)).toBeTruthy();
       }
     }
   });
@@ -568,13 +569,13 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       walk(crewRoles, 'crewRoles');
       walk(tavernGamesJson, 'tavernGames');
       walk(seaWeatherJson, 'seaWeather');
-      walk(makePregens(), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
+      walk(makePregens(idNeufDeBanc), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
       expect(nonMigres, nonMigres.join('\n')).toEqual([]);
     });
 
     it('pregens(runtime — makePregens) : toute spec de Compétence/Talent est ADMISE par son entrée (`refusDeSpec`)', () => {
       const refus: string[] = [];
-      for (const h of makePregens()) {
+      for (const h of makePregens(idNeufDeBanc)) {
         for (const [type, refs] of [['skill', h.skills], ['talent', h.talents]] as const) {
           for (const r of refs as { id?: string; talentId?: string; spec?: string }[]) {
             const id = r.talentId ?? r.id;

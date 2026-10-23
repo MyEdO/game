@@ -7,10 +7,11 @@
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { EtatDeJeu } from './etat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Le héros du duel. */
 export function heroDuDuel(): Combatant {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  return createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 }
 
 /** Met le héros et le premier ennemi au contact dans le combat ouvert de `etat` (combattants mutés en place,

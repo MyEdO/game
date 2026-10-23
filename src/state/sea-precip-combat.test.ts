@@ -12,6 +12,7 @@ import type { RNG } from '../engine/dice';
 import type { TravelPlan } from '../noyau/travelFlow';
 import { propulsionDuNavire } from '../engine/shipBuild';
 import { desEnSuite } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Compétence de Navigation d'une Cogue (`propulsionDuNavire`, MDG 13 l.18-19). */
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
@@ -37,7 +38,7 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function ouvreLeCombat(): { H: Combatant; E: Combatant } {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.setState({ travelPlan: seaPlan() });

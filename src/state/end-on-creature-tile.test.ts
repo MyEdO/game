@@ -11,6 +11,7 @@ import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
 import type { SizeCategory } from '../engine/size';
 import { inBattleId } from '../noyau/monde/combatants';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * INVARIANT (LDB 85 l.373-374 vs Frappe Mortelle) : on TRAVERSE la case d'une créature plus petite
@@ -85,7 +86,7 @@ describe('intégration store — un héros ne peut pas FINIR sur la case d\'un e
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -5,6 +5,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * GOLDEN du CYCLE DE TOUR ENNEMI (phase `turnStart`) : fige byte-pour-byte la séquence de début de
@@ -25,7 +26,7 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     seedBattleRng(777);

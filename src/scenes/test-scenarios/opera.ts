@@ -6,6 +6,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
+import { idNeuf } from '../../noyau/plateforme';
 
 // Profil des deux étudiants saboteurs : de jeunes civils paniqués, vifs mais fragiles (pas de combattants).
 const ETUDIANT: CustomStatblock = { type: 'statblock',
@@ -315,5 +316,5 @@ export const scenario: TestScenario = {
     '→ zoneBlast, désamorçage facilité par la Poudre noire, cancelFlag), pétards + vol des clés par Glimbrin ' +
     '(Test caché à deux issues), étudiants saboteurs (combat optionnel), dialogue gaté de la Comtesse, PX canoniques.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

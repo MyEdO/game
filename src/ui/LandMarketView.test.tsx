@@ -8,6 +8,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const get = useGame.getState.bind(useGame);
@@ -33,7 +34,7 @@ function evaluer() {
 describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test (LDB 09 l.30)', () => {
   beforeEach(() => {
     useGame.setState({
-      party: makePregens().slice(0, 3), possessions: [],
+      party: makePregens(idNeufDeBanc).slice(0, 3), possessions: [],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: landMap, travelPlan: null, landMarket: null, journal: [],
     } as never);

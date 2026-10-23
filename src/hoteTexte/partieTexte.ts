@@ -52,11 +52,12 @@ export interface LigneNumerotee {
   differee: boolean;
 }
 
-/** Une partie rejouée : la partie ouverte, la tenue de ses jetons, son en-tête, ses gestes, son journal entier, et le nombre de jetons repris
- *  après chaque pas (0 : le lancement). */
+/** Une partie rejouée : la partie ouverte, la tenue de ses jetons, le compte des ids de sa fabrique, son en-tête, ses
+ *  gestes, son journal entier, et le nombre de jetons repris après chaque pas (0 : le lancement). */
 export interface PartieRejouee {
   partie: Partie;
   jetons: TenueDesJetons;
+  idsFabriques: () => number;
   entete: Entete;
   gestes: Geste[];
   journal: LigneNumerotee[];
@@ -100,8 +101,8 @@ export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee
   let r: PartieRejouee | null = null;
   let ligne = 1;
   try {
-    const { partie, jetons, lancement } = ouvrirLaPartie(entete);
-    r = { partie, jetons, entete, gestes: [], journal: [], reprises: [] };
+    const { partie, jetons, lancement, idsFabriques } = ouvrirLaPartie(entete);
+    r = { partie, jetons, idsFabriques, entete, gestes: [], journal: [], reprises: [] };
     absorber(r, lancement, 0);
     for (const geste of gestes) {
       ligne++;
@@ -136,7 +137,7 @@ const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...tableTo
 
 /** Ce que le jeu a dit d'un geste sans effet : le refus neuf, sinon les lignes du journal de la partie, sinon les événements
  *  informatifs émis (`move_blocked`). */
-function ceQueDitLeJeu(refusAvant: number | undefined, apres: Jeu, resultat: ResultatDeLAppel): string {
+function ceQueDitLeJeu(refusAvant: string | undefined, apres: Jeu, resultat: ResultatDeLAppel): string {
   if (apres.refus && apres.refus.nonce !== refusAvant) return ` : ${apres.refus.texte}`;
   const dites = resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
   if (dites.length) return ` : ${dites.join(' ')}`;

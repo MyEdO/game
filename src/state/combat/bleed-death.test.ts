@@ -8,6 +8,7 @@ import { ev } from '../../noyau/combatLog';
 import { addCondition, hasCondition, loseWounds, stacks, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Mort par Hémorragique EN COMBAT (LDB 16 l.105 : « à la fin du Round, 10 %/pion de mourir ; un double =
@@ -27,7 +28,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

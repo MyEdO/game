@@ -8,6 +8,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1028 — Contre-sort (Dissipation, LDB 46 l.156) : le surfaçage suit la POSSESSION, jamais le `kind`
@@ -20,6 +21,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 /** Héros sorcier (Langue (Magick)) + ennemie contre-lanceuse façon Eusapia, à portée l'un de l'autre. */
 function setup() {
   const hero = createHero({
+    idNeuf: idNeufDeBanc,
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
     careerTalent: { id: 'magie-mineure' }, seed: 707,
   });
@@ -135,7 +137,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
 
   it('D — Sort ENNEMI (IA) : chaque contre-lanceur héros garde SA rangée, à SON siège', () => {
     useGame.getState().seedRng(3);
-    const w2 = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, seed: 101 });
+    const w2 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W2', careerTalent: { id: 'magie-mineure' }, seed: 101 });
     w2.spells = ['flechette'];
     const { H, E } = setup();
     const b = useGame.getState().battle!;

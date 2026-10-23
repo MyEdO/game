@@ -6,6 +6,7 @@ import { makeRNG } from './dice';
 import { Combatant, Weapon, DIFFICULTY_MODIFIERS } from './types';
 import { attaqueNaturelle } from './creatureAttacks';
 import { ligneDeRegle } from './reglesChiffrees';
+import { passagesDe } from '../lib/sonde';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -431,7 +432,7 @@ describe('TIR + Chance : la re-dérivation dit la MÊME Difficulté que la réso
   for (const [dist, palier] of [[10, 'accessible'], [40, 'complexe'], [80, 'tresDifficile']] as const) {
     it(`à ${dist} cases (${palier}) : même Difficulté, et la ligne s'explique`, () => {
       const a = mk({ id: 'a', weapons: [bow] });
-      const repli = REDERIVATIONS.recomposees; // aucune re-composition ne doit s'ajouter (#1153 L4, R5)
+      const repli = passagesDe(REDERIVATIONS); // aucune re-composition ne doit s'ajouter (#1153 L4, R5)
       const c = mk({ id: 'c' });
       const origine = resolveRanged(a, c, bow, makeRNG(9), dist).attackerDetail!;
       expect(origine.difficulty, 'la fixture doit VRAIMENT composer un palier').toBe(palier);
@@ -439,7 +440,7 @@ describe('TIR + Chance : la re-dérivation dit la MÊME Difficulté que la réso
       const re = rederivePassiveAttack(a, c, bow, bumpSL(hydrateTR(origine)), 'ranged', { rng: makeRNG(1595) }, undefined, false, frozenDifficulty(origine));
       expect(dit(re.attackerDetail!)).toEqual(dit(origine));
       expect(inexplique(re.attackerDetail!), 'aucune chip « autres » après la Chance').toBe(0);
-      expect(REDERIVATIONS.recomposees, 'la Difficulté est TRANSPORTÉE, jamais recomposée').toBe(repli);
+      expect(passagesDe(REDERIVATIONS), 'la Difficulté est TRANSPORTÉE, jamais recomposée').toBe(repli);
     });
   }
 });
@@ -447,7 +448,7 @@ describe('TIR + Chance : la re-dérivation dit la MÊME Difficulté que la réso
 describe('MÊLÉE + Chance : le surnombre survit au re-jet (#1153 L4)', () => {
   it('l’`env` de la scène est perdu par la re-dérivation — la Difficulté, elle, voyage', () => {
     const a = mk({ id: 'a', weapons: [sword] });
-    const repli = REDERIVATIONS.recomposees; // aucune re-composition ne doit s'ajouter (#1153 L4, R5)
+    const repli = passagesDe(REDERIVATIONS); // aucune re-composition ne doit s'ajouter (#1153 L4, R5)
     const b = mk({ id: 'b', weapons: [sword] });
     const env: ModLine[] = [{ label: 'Surnombre (2 c.1)', value: 20, famille: 'circonstance' }];
     const r = resolveMelee(a, b, sword, makeRNG(11), { defense: 'parade', env });
@@ -460,7 +461,7 @@ describe('MÊLÉE + Chance : le surnombre survit au re-jet (#1153 L4)', () => {
     );
     expect(dit(re.attackerDetail!)).toEqual(dit(origine));
     expect(inexplique(re.attackerDetail!)).toBe(0);
-    expect(REDERIVATIONS.recomposees, 'la Difficulté est TRANSPORTÉE, jamais recomposée').toBe(repli);
+    expect(passagesDe(REDERIVATIONS), 'la Difficulté est TRANSPORTÉE, jamais recomposée').toBe(repli);
   });
 });
 

@@ -36,6 +36,7 @@ import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
@@ -52,7 +53,7 @@ const ALVATAFL = findTavernGameById('alvatafl')!;
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idNeufDeBanc)[0] as Combatant;
   useGame.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -521,7 +522,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
    *  tranche (famille 1bis) — sans quoi un jeu de lancers N+1 verrait son `tieBreak` ignoré. */
   it('à SCORE ÉGAL, la volée passe par le départage DÉCLARÉ (jamais une égalité recodée)', () => {
     avecLesTables({ departages: { ...tablesDuJeu().departages, 'test-le-defiant-gagne': { departage: () => 'a' } } });
-    const [a, b] = makePregens().slice(0, 2) as Combatant[];
+    const [a, b] = makePregens(idNeufDeBanc).slice(0, 2) as Combatant[];
     useGame.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     useGame.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
@@ -532,7 +533,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
   });
 
   it('le départage RAW des boules reste le match nul (l.57)', () => {
-    const [a, b] = makePregens().slice(0, 2) as Combatant[];
+    const [a, b] = makePregens(idNeufDeBanc).slice(0, 2) as Combatant[];
     useGame.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().playTavernGame({ gameId: 'boules', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4);

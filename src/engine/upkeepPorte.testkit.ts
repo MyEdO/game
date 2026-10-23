@@ -15,6 +15,7 @@ import type { RNG } from './dice';
 import { applyOps, type GameOp } from './ops';
 import { applyDiseaseGangrene } from './disease';
 import { applyDiseaseEnd } from './rest';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Ce que le moteur remet à la porte pour UN Test d'entretien. */
 export type SpecEntretien = Parameters<UpkeepDeferTest>[0];
@@ -39,5 +40,5 @@ export function applique(
   if (res.success) return []; // `diseaseTick` : la réussite n'applique RIEN (branche `success` vide au schéma)
   // MÊME ancrage que l'applier de nuit : la maladie est l'entité SOURCE de ce que son échec inflige.
   const source = { kind: 'disease' as const, id: String(meta.diseaseName ?? '') };
-  return applyOps(c, (meta.opsEchec ?? []) as GameOp[], { rng, sl, source });
+  return applyOps(c, (meta.opsEchec ?? []) as GameOp[], { idNeuf: idNeufDeBanc, rng, sl, source });
 }

@@ -6,6 +6,7 @@ import { trappings, findTrappingById } from '../data';
 import { itemFromTrappingById } from './items';
 import { makeRNG } from './dice';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const user = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -80,7 +81,7 @@ describe('consommables — catalogue migré (LDB 71/72/67 + MSRC, donnée réell
     const g = f as Extract<Flow, { kind: 'if' }>;
     expect(g.cond).toEqual({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 });
     expect(consumableOps(f)).toEqual([{ op: 'heal', amount: { bonusOf: 'endurance' } }]);
-    expect(isConsumable(itemFromTrappingById('potion-de-guerison')!)).toBe(true);
+    expect(isConsumable(itemFromTrappingById('potion-de-guerison', idNeufDeBanc)!)).toBe(true);
   });
   it('necessaire-antipoison : « Un Test de Guérison réussi … retire tous les États Empoisonné » (LDB 67 l.13)', () => {
     const f = findTrappingById('necessaire-antipoison')!.consumable! as Extract<Flow, { kind: 'test' }>;

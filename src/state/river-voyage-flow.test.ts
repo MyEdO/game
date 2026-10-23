@@ -20,6 +20,7 @@ import type { Combatant, SkillInstance } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Possession } from '../engine/possession';
 import type { MapRoute, MapRouteTrace, WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * VOYAGE FLUVIAL (MSRC 7) — la descente du Reik en barge JOUÉE jour par jour. Depuis la Phase B, TOUS
@@ -39,12 +40,12 @@ function skill(c: Combatant, skillId: string, advances: number, spec?: string): 
 
 /** Un équipage de barge : Gunnar le batelier (Ramer/Voile), plus deux passagers sans compétence de marin. */
 function crew(withSavoir = false): Combatant[] {
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+  const gunnar = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   skill(gunnar, 'ramer', 50);
   skill(gunnar, 'voile', 45, 'chaland');
   skill(gunnar, 'metier', 40, 'construction-de-bateaux'); // spec par ID (#1341) — la donnée en stocke un
-  const otto = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
-  const lise = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise', motivation: 'x', seed: 13, id: 'r-lise' });
+  const otto = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
+  const lise = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Lise', motivation: 'x', seed: 13, id: 'r-lise' });
   const trio = [gunnar, otto, lise];
   if (withSavoir) for (const h of trio) skill(h, 'savoir', 40, 'voies-fluviales');
   return trio;
@@ -969,7 +970,7 @@ describe('#1111 — le libellé de l’étape de Navigation est celui de `compos
 describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke un), jamais par LABEL', () => {
   /** Un charpentier : Dextérité figée à 30, +30 avances en Métier (Charpentier) → 60 s'il est TROUVÉ. */
   function charpentier(): Combatant {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Bran', motivation: 'x', seed: 21, id: 'r-bran' });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Bran', motivation: 'x', seed: 21, id: 'r-bran' });
     h.characteristics.dexterite = 30;
     skill(h, 'metier', 30, 'charpentier');
     return h;

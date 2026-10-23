@@ -12,11 +12,12 @@ import { castCommitZone } from '../noyau/combatFlow';
 import { pregen, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
 
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
-  const h = pregen(PREGEN.sorcier);
+  const h = pregen(idNeufDeBanc, PREGEN.sorcier);
   h.id = id; h.label = id; h.pos = { x, y, z: 0 };
   h.wounds = { ...h.wounds, max: 99, current: 99 };
   const sk = h.skills.find((s) => s.id === 'langue');

@@ -21,12 +21,13 @@ import { findCreatureById, findVehicleById } from '../data';
 import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
 import { validateScene } from '../noyau/validateScene';
 import { presetPnjById } from './campaignData';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 
 function pose(entities: SceneEntity[]): void {
-  set({ party: makePregens().slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
+  set({ party: makePregens(idNeufDeBanc).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
 }
 
 const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', ref: 'humain', tavernGame: { gameId: 'dominos' } };

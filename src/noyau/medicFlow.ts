@@ -84,6 +84,7 @@ export interface MedicState {
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { idNeuf } from './plateforme';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
  *  d'usage est un simple Test étendu de Guérison, sans Chirurgie, LDB 18 l.120/179). */
@@ -291,7 +292,7 @@ export function surgeryNext(get: Get, set: Set): void {
       // expirent ENSEMBLE) — `defaultUntilTime` fournit la même échéance à toutes les ops sans durée propre.
       if (penalty.length) {
         const now = get().gameTime;
-        log.push(...applyOps(patient, penalty, { rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
+        log.push(...applyOps(patient, penalty, { idNeuf, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
       }
       set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
       finishPlayerAction(get, set, log, 'heal');

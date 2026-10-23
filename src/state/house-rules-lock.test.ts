@@ -8,6 +8,7 @@ import { resolveRoundBoundary } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * VERROU des règles optionnelles pendant un combat (#564, #1049) — garde d'INGÉNIERIE : elle ne dit
@@ -34,7 +35,7 @@ function fakeStorage(): Storage {
 }
 
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   seedBattleRng(777);

@@ -68,15 +68,12 @@ describe('scénarios de test — aucun personnage sans espèce résolue (#936)',
     const avant = enemyRigProfile(spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }));
     const apres = enemyRigProfile(spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }, { appearance: { species: 'humains-reiklander' } }));
     expect(apres?.appearance.species).toBe('humains-reiklander');
-    // `uid` d'objet = compteur de PROCESSUS (`w-it-<n>`) : sa valeur dépend de tout ce qui a spawné avant
-    // dans le fichier de test ET de l'ordre de la suite. Toute comparaison de profil le neutralise.
-    const stable = (e: unknown): string => JSON.stringify(e).replace(/"uid":"[^"]*"/g, '"uid":""');
     // L'espèce posée (race `humain`) ajoute le tirage individuel (`tirageIndividuel`, #1882) que la race de REPLI ne tire pas.
     expect(avant!.appearance.colors).toBeUndefined();
     expect(apres!.appearance.colors).toBeDefined();
     const horsTirage = (a: object) => ({ ...a, species: '', colors: undefined, parts: undefined });
-    expect(stable(horsTirage(apres!.appearance))).toBe(stable(horsTirage(avant!.appearance)));
-    expect(stable(apres!.equip)).toBe(stable(avant!.equip));
+    expect(horsTirage(apres!.appearance)).toEqual(horsTirage(avant!.appearance));
+    expect(apres!.equip).toEqual(avant!.equip);
     expect(apres!.tenue).toEqual(avant!.tenue);
   });
 });

@@ -11,6 +11,7 @@ import { setDoorSchema } from '../data/schemas/defs-scenes/effets';
 import { idDeTriggerDePorte, triggersDePortesSecretes } from '../noyau/monde/decouvertePorteSecrete';
 import { t } from '../i18n';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * DÉCOUVRIR une porte secrète à l'APPROCHE (#700) — `EDO 08 l.404`, `EDO 07 l.263`, `LDB 09 l.399`,
@@ -41,7 +42,7 @@ const seg = (): WallSeg => useGame.getState().scene!.walls!.find((w) => w.x === 
 /** Deux héros formés en Perception (le Soutien l'exige, `LDB 12 l.195`) ; `aveugles` : ni lumière portée
  *  ni Vision nocturne (le noir de la scène est alors total pour eux). */
 const heros = (aveugles = false) => ['A', 'B'].map((label, i) => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 });
   return {
     ...h,
     skills: [...h.skills.filter((s) => s.id !== 'perception'), { id: 'perception', characteristic: 'initiative' as const, advances: 5 }],

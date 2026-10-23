@@ -2768,6 +2768,8 @@ export const fr = {
   'sheet.tab.avancement': 'Avancement',
   'sheet.tab.histoire': 'Histoire',
   'pf.partyInCombat': 'La composition du groupe ne change pas en combat.',
+  'pf.heroDejaAuGroupe': '{name} est déjà dans le groupe.',
+  'pf.emplacementsDuSiegePris': 'Vos emplacements du groupe sont tous pris.',
   'pf.spellNeedsXp': '{name} : {cost} PX requis pour mémoriser {spell} (reste {left}).',
   'pf.spellLearned': '{name} mémorise {spell} (−{cost} PX{remise}).',
   'pf.fragSpellDiscount': ', remise de {n} PX — Recherche universitaire',

@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Coup Critique / Assommante en révélation + gel de l'IA.
 describe('Conséquences d’attaque en révélation (store)', () => {
@@ -21,7 +22,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   });
 
   function battle() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

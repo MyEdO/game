@@ -5,6 +5,7 @@ import { castSpell, resolveRoundBoundary, counterspellCandidates, routeCountersp
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Dissipation / Contre-sort (LDB 46 l.156) : Test opposé de Langue (Magick) contre une
  *  incantation — IA (ennemi → héros) et action joueur (héros → ennemi), un seul par Round. */
@@ -14,6 +15,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
 
   function setup() {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 707,
     });

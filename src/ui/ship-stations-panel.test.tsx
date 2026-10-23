@@ -21,6 +21,7 @@ import { navalTraitsDe } from '../engine/navalTraits';
 import { shipStations } from '../data';
 import type { Combatant } from '../engine/types';
 import { ShipStationsPanel } from './ShipStationsPanel';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,8 +31,8 @@ afterEach(() => { act(() => root?.unmount()); container?.remove(); root = null; 
 
 /** Deux héros au groupe. */
 function poserGroupe(): Combatant[] {
-  const gunnar = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 }), id: 'gunnar' };
-  const lise = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', seed: 8 }), id: 'lise' };
+  const gunnar = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 }), id: 'gunnar' };
+  const lise = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Lise', seed: 8 }), id: 'lise' };
   // L'équipage vit AUSSI dans la bataille en mer (`setShipStation` patche les deux) : la fixture
   // porte donc une file de combat, sans quoi le contrat ne mesurerait que la moitié de l'action.
   const battle = { combatants: [gunnar, lise], log: [], round: 1, turn: 0 } as unknown as BattleState;

@@ -8,6 +8,7 @@
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
+import type { FabriqueDId } from '../lib/entityId';
 import type { CombatEvent } from './combatLog';
 import type { EtatDeJeu, Jeu } from './etat';
 import type { Get, SetDesClesReservees } from './flowTypes';
@@ -24,7 +25,6 @@ import { seedBattleRng } from './battleRng';
 import { loadRuleOverrides } from '../engine/policy';
 import { setCadence, type Cadence } from '../engine/cadence';
 import { setDesFixes } from '../engine/fixedDie';
-import { remettreLesSequencesAZero } from '../engine/sequences';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -41,13 +41,15 @@ export type Evenement =
   | { type: 'programme'; jeton: Jeton; delai: number };
 
 /** Les entrées que l'hôte fournit (D8) : la graine des dés, les règles maison, la cadence, les dés fixés,
- *  et la persistance d'un héros. */
+ *  la persistance d'un héros et la fabrique d'ids neufs (`FabriqueDId`, #2907), distincte de tout id de
+ *  `etatInitial`. */
 export interface EntreesDeLaPartie {
   graine: number;
   reglesMaison: Readonly<Record<string, unknown>>;
   cadence: Cadence;
   desFixes: boolean;
   persisterLeHeros: (heros: Combatant) => void;
+  idNeuf: FabriqueDId;
 }
 
 /** Une ligne écrite pendant un appel : au journal de la partie (`journal`), ou au journal du combat
@@ -122,7 +124,6 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   let etat: Jeu = { ...etatInitial, ...creerActionsDuNoyau(get, set) };
 
   brancherLeJeu(get, set, tablesDuJeu());
-  remettreLesSequencesAZero();
   seedBattleRng(entrees.graine);
   loadRuleOverrides(entrees.reglesMaison);
   setCadence(entrees.cadence);
@@ -136,6 +137,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     },
     enAttente: (jeton) => enVol.has(jeton),
     persisterLeHeros: entrees.persisterLeHeros,
+    idNeuf: entrees.idNeuf,
   });
   const desabonnements = [
     bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte })),

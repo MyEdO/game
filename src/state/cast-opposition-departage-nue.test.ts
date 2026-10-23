@@ -7,6 +7,8 @@ import { evaluateTest, resolveOpposed, REPLIS_DEUX_CIBLES } from '../engine/test
 import { testValue, skillBaseValue } from '../engine/skills';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
+import { passagesDe } from '../lib/sonde';
 
 /**
  * Départage d'égalité de l'INCANTATION OPPOSÉE (`SpellSpec.opposed`, multijet de la modale de cast)
@@ -28,6 +30,7 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
    *  NUE 90 chargée de 2 Exténué → valeur TESTÉE 70 : les deux ordres sont INVERSÉS. */
   function setup() {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 13,
     });
@@ -99,14 +102,14 @@ describe('LDB 12 l.160 — l’opposition à un Sort départage sur les nues des
     const { H, E } = setup();
     frozenCast(H, E);
     // La sonde est VIVANTE dans ce runtime : deux jets SANS nue la font compter.
-    const temoin = REPLIS_DEUX_CIBLES.count;
+    const temoin = passagesDe(REPLIS_DEUX_CIBLES);
     resolveOpposed(evaluateTest(30, 50), evaluateTest(40, 50));
-    expect(REPLIS_DEUX_CIBLES.count, 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(temoin + 1);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(temoin + 1);
 
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     useGame.getState().castConfirm();                     // jet témoin auto-roulé → resolveOpposed
     useGame.getState().oppositionSetForcedRoll(E.id, 42); // dé fixé → re-opposition
     useGame.getState().oppositionBonusSL(E.id);           // +1 DR → re-opposition
-    expect(REPLIS_DEUX_CIBLES.count, 'un départage de l’opposition est retombé sur les cibles').toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'un départage de l’opposition est retombé sur les cibles').toBe(avant);
   });
 });

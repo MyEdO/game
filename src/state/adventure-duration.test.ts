@@ -14,12 +14,13 @@ import { testScene } from '../scenes/test-fixture';
 import { fromBrass } from '../engine/money';
 import { creditBourse } from '../noyau/bourseFlow';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('statusMod (LDB 23 l.228-234) — Standing temporaire « pour la prochaine aventure »', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [] });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();
@@ -36,20 +37,20 @@ describe('statusMod (LDB 23 l.228-234) — Standing temporaire « pour la procha
   it('cas nominal : +1 Standing (succès) se compose IMMÉDIATEMENT dans heroStatus', () => {
     const h = useGame.getState().party[0];
     const base = heroStatus(h).standing;
-    applyOps(h, [{ op: 'statusMod', amount: 1 }], { rng: desDuTest, label: 'Réputation' });
+    applyOps(h, [{ op: 'statusMod', amount: 1 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Réputation' });
     expect(heroStatus(h).standing).toBe(base + 1);
   });
 
   it('Échec Stupéfiant : −1 Standing, jamais sous 1 (plancher Bronze 1)', () => {
     const h = useGame.getState().party[0];
-    applyOps(h, [{ op: 'statusMod', amount: -99 }], { rng: desDuTest, label: 'Basse flatterie' });
+    applyOps(h, [{ op: 'statusMod', amount: -99 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Basse flatterie' });
     expect(heroStatus(h).standing).toBe(1);
   });
 
   it("expiration adventure : purgé à l'OUVERTURE de l'interlude suivant (`startInterlude`), pas avant", () => {
     const h = useGame.getState().party[0];
     const base = heroStatus(h).standing;
-    applyOps(h, [{ op: 'statusMod', amount: 2 }], { rng: desDuTest, label: 'Réputation' });
+    applyOps(h, [{ op: 'statusMod', amount: 2 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Réputation' });
     expect(heroStatus(useGame.getState().party[0]).standing).toBe(base + 2); // toujours actif CETTE aventure
     useGame.getState().startInterlude(1); // ouvre l'interlude → aventure précédente CLOSE → purge
     draineCascade(useGame.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités

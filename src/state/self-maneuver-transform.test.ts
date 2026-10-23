@@ -13,6 +13,7 @@ import { testScene } from '../scenes/test-fixture';
 import { effectiveChar } from '../engine/characteristics';
 import { liveMorphRef } from '../engine/polymorph';
 import { hasTraitKey } from '../engine/traits/dispatch';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const applicableIds = (c: Parameters<typeof selfManeuversOf>[0]) =>
   selfManeuversOf(c).filter((m) => selfManeuverApplicable(c, m)).map((m) => m.id);
@@ -22,7 +23,7 @@ describe('battleSelfManeuver — Métamorphose (activation joueur)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

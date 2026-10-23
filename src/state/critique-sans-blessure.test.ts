@@ -14,6 +14,7 @@ import type { Combatant, ShipPoste, Weapon, ArmourPoints } from '../engine/types
 import type { AttackResult } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { deFixe } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Le Critique ne dépend pas de la perte de Blessures : LDB 13 l.183, LDB 13 l.161 (dépassement) ; AA 07 l.25, MDG 13 l.656,
@@ -74,7 +75,7 @@ const doubleAbsorbe = (attaquant: Combatant, cible: Combatant): AttackResult =>
 
 function combat(seed = 7) {
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');
@@ -127,7 +128,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
 const fleche: Weapon = { label: 'Flèche', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [] };
 function mur(structure = 'mur-en-pierre', graine = 1): { S: Combatant; H: Combatant } {
   useGame.getState().seedRng(graine);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   const s: Scene = structuredClone(testScene());
   s.walls = [{ x: 2, y: 2, side: 'E', structure }];
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });

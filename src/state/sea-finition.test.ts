@@ -14,6 +14,7 @@ import type { WorldMap } from '../noyau/worldMap';
 import type { Combatant } from '../engine/types';
 import { avanceEtapeCascade } from './cascade.testkit';
 import type { CascadeStep } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Remet la Bourse d'un héros à un montant EXACT (test) — vide puis crédite (SOCLE POSSESSIONS #531). */
 function fund(id: string, m: { gold: number; silver: number; brass: number }): void {
@@ -42,7 +43,7 @@ const seaMap: WorldMap = {
 function freshState() {
   seedBattleRng(7);
   useGame.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,

@@ -11,6 +11,7 @@ import { findVehicleById, shipConstruction } from '../data';
 import type { Combatant } from './types';
 import { schema as shipCriticalsSchema } from '../data/schemas/defs/ship-criticals';
 import shipCriticalsJson from '../data/ship-criticals.json';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1657 B3-2b-c — TOMBER DU GRÉEMENT (MDG 13 l.678-688).
@@ -102,7 +103,7 @@ describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA
     const vigie = marin('vigie', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>);
     const pontier = marin('pontier', { shipStation: 'pont' } as Partial<Combatant>);
 
-    const out = applyCrewHit(MOYENNE, [gabier, vigie, pontier], rangee(10).crewHit!, makeRNG(1));
+    const out = applyCrewHit(MOYENNE, [gabier, vigie, pontier], rangee(10).crewHit!, makeRNG(1), idNeufDeBanc);
     expect(out.victims, 'une épreuve, deux présences — le pont est épargné').toEqual(['gabier', 'vigie']);
     expect(out.stationsFermees, 'le nid-de-pie est OUVERT : la coque porte l’Amélioration (MDG 12 l.299)').toEqual([]);
     expect(out.testFlow, 'le nœud part par la porte, il n’est pas roulé ici').toBeTruthy();
@@ -111,7 +112,7 @@ describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA
   it('sans l’Amélioration « nid-de-pie », la station est FERMÉE et nommée (MDG 12 l.299)', () => {
     const vigie = marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
     const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
-    const out = applyCrewHit(coque('bateau-de-patrouille'), [gabier, vigie], rangee(10).crewHit!, makeRNG(1));
+    const out = applyCrewHit(coque('bateau-de-patrouille'), [gabier, vigie], rangee(10).crewHit!, makeRNG(1), idNeufDeBanc);
     expect(out.victims).toEqual(['gabier']);
     expect(out.stationsFermees).toEqual(['nid-de-pie']);
   });
@@ -123,8 +124,8 @@ describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA
       const vigie = marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
       const be = 3; // Endurance 31 → BE 3
       const lignes = [
-        ...applyOps(gabier, ops, { rng: makeRNG(seed), hull: MOYENNE }),
-        ...applyOps(vigie, ops, { rng: makeRNG(seed), hull: MOYENNE }),
+        ...applyOps(gabier, ops, { idNeuf: idNeufDeBanc, rng: makeRNG(seed), hull: MOYENNE }),
+        ...applyOps(vigie, ops, { idNeuf: idNeufDeBanc, rng: makeRNG(seed), hull: MOYENNE }),
       ];
       const metres = lignes.map((l) => Number(/chute de (\d+) m/.exec(l)![1]));
       expect(metres[0], `seed ${seed} : gréement = 2d10 m`).toBeGreaterThanOrEqual(2);
@@ -207,20 +208,20 @@ describe('l’op `fall` NOMME ses anomalies (règle 7 : jamais un repli muet)', 
 
   it('hors contexte de coque : anomalie nommée, jamais une chute de 0 m', () => {
     const c = cible();
-    expect(() => applyOps(c, opsDEchec(10), { rng: makeRNG(1) })).toThrow(/aucune Taille de coque/);
+    expect(() => applyOps(c, opsDEchec(10), { idNeuf: idNeufDeBanc, rng: makeRNG(1) })).toThrow(/aucune Taille de coque/);
     expect(c.wounds.current, 'rien n’a été appliqué en douce').toBe(200);
   });
 
   it('table de hauteur inconnue : anomalie nommée', () => {
-    expect(() => applyOps(cible(), [{ op: 'fall', hauteur: { table: { id: 'tomberDeLaLune' } } }], { rng: makeRNG(1), hull: MOYENNE }))
+    expect(() => applyOps(cible(), [{ op: 'fall', hauteur: { table: { id: 'tomberDeLaLune' } } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), hull: MOYENNE }))
       .toThrow(/table de hauteur inconnue/);
   });
 
   it('station sans colonne de hauteur : anomalie nommée', () => {
     const pontier = marin('pontier', { shipStation: 'pont' } as Partial<Combatant>);
-    expect(() => applyOps(pontier, opsDEchec(10), { rng: makeRNG(1), hull: MOYENNE })).toThrow(/colonne de hauteur/);
+    expect(() => applyOps(pontier, opsDEchec(10), { idNeuf: idNeufDeBanc, rng: makeRNG(1), hull: MOYENNE })).toThrow(/colonne de hauteur/);
     const sansStation = marin('sans-station');
-    expect(() => applyOps(sansStation, opsDEchec(10), { rng: makeRNG(1), hull: MOYENNE })).toThrow(/colonne de hauteur/);
+    expect(() => applyOps(sansStation, opsDEchec(10), { idNeuf: idNeufDeBanc, rng: makeRNG(1), hull: MOYENNE })).toThrow(/colonne de hauteur/);
   });
 });
 
@@ -265,7 +266,7 @@ describe('« 3 × mètres + 1d10 » n’a qu’UN foyer dans `src/**`', () => {
   it('et ce foyer est bien celui que l’op joue : mêmes Blessures, même État', () => {
     const parLOp = marin('op', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
     const parLaBrique = marin('brique');
-    applyOps(parLOp, opsDEchec(10), { rng: makeRNG(7), hull: MOYENNE });
+    applyOps(parLOp, opsDEchec(10), { idNeuf: idNeufDeBanc, rng: makeRNG(7), hull: MOYENNE });
     // 25 m = la colonne nid-de-pie d'une coque Moyenne (entière : aucun dé de hauteur), et le 1d10 de
     // Dégâts est le PREMIER tirage de la même graine — la brique reçoit exactement ce que l'op tire.
     applyFall(parLaBrique, 25, rollDes(1, 10, makeRNG(7)));

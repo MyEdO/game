@@ -12,8 +12,9 @@ import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
 import { deleteSlot, readSlot, saveToSlot } from '../../state/saves';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
-const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+const hero = () => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 
 /** Dialogue à deux nœuds ; n1 porte un override `speakerId`, n2 hérite du speaker de session. */
 function makeDialogue(): Dialogue {

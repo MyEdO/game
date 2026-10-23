@@ -13,9 +13,10 @@ import { pregen, PREGEN, makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { findSpell } from '../data';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function wiz() {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', 'carreau', ...(w.spells ?? [])];
@@ -70,7 +71,7 @@ describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
 
   it('cibler un ALLIÉ derrière un mur → refusé aussi (le gate ignore l’équipe — buffs compris)', () => {
     const { w } = setup();
-    const ally = makePregens().find((h) => h.id !== w.id)!;
+    const ally = makePregens(idNeufDeBanc).find((h) => h.id !== w.id)!;
     ally.pos = { x: 16, y: 4 }; // derrière le mur
     const b = useGame.getState().battle!;
     useGame.setState({ battle: { ...b, combatants: [...b.combatants, ally] } });

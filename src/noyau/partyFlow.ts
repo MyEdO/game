@@ -44,7 +44,7 @@ import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
 import { releaseSeat } from './monde/seating';
 import type { Scene } from './monde/scene';
-import { persisterLeHeros } from './plateforme';
+import { persisterLeHeros, idNeuf } from './plateforme';
 import { creditBourse, payWithAllocation, soloPayer } from './bourseFlow';
 import { ensureBourse, bourseOf } from '../engine/bourse';
 import { transferPossession } from './possessionsFlow';
@@ -56,6 +56,7 @@ import { gainCorruption } from './corruptionFlow';
 import { touchActors } from './combatOrParty';
 import { nePeutPasDifferer, applyEffects } from './combatEffects';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { refuserGeste } from './refusVisible';
 
 /** Recalcule les Blessures max (BF + 2·BE + BFM × Taille + Dur à cuire) après une Augmentation
  *  de Caractéristique ou un nouveau Talent ; un gain de max augmente aussi le courant (mute). */
@@ -679,16 +680,27 @@ export function refusComposition(s: Pick<Jeu, 'battle'>): string | null {
 
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
  *  du transport pour un intent) — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
- *  créateur). Refuse
- *  groupe plein, doublon d'id, ou quota d'emplacements du siège épuisé. La Richesse de carrière
- *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
+ *  créateur). Refuse EN LE DISANT (`refuserGeste`) un héros dont l'id est déjà au groupe (le même pré-tiré recruté
+ *  deux fois, par l'hôte ou par l'intention d'un invité), un groupe plein, et un siège dont les emplacements sont
+ *  tous pris. La Richesse de carrière (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus
+ *  de bourse de groupe. */
 export function partyAddHero(get: Get, set: Set, hero: Combatant, wealth?: Money): void {
   if (compositionRefusee(get)) return;
   const s = get();
   const seat = decidingSeat(s);
-  if (s.party.length >= PARTY_MAX || s.party.some((h) => h.id === hero.id)) return;
-  if (seatSlotsRemaining(s, seat) <= 0) return;
-  const copy: Combatant = ensureBourse(structuredClone(hero));
+  if (s.party.some((h) => h.id === hero.id)) {
+    refuserGeste(get, set, t('pf.heroDejaAuGroupe', { name: hero.label }));
+    return;
+  }
+  if (s.party.length >= PARTY_MAX) {
+    refuserGeste(get, set, t('party.recruit.full'));
+    return;
+  }
+  if (seatSlotsRemaining(s, seat) <= 0) {
+    refuserGeste(get, set, t('pf.emplacementsDuSiegePris'));
+    return;
+  }
+  const copy: Combatant = ensureBourse(structuredClone(hero), idNeuf);
   set({
     party: [...s.party, copy],
     net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat } },

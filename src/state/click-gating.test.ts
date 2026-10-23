@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Arène 20×8, MUR vertical en x=10 percé d'une brèche en y=0. */
 function wallScene() {
@@ -17,7 +18,7 @@ function wallScene() {
 }
 
 function setup() {
-  const a = makePregens()[0];
+  const a = makePregens(idNeufDeBanc)[0];
   a.pos = { x: 2, y: 0 };
   a.weapons = [{ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 12, qualities: [] }] as never; // ×3 = 36 m = 18 cases
   const seen = spawnEnemy({ ref: 'brigand' }, 'e-vu', { x: 6, y: 0 });

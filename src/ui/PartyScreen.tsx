@@ -32,6 +32,7 @@ import { resolveActiveAxes } from '../noyau/worldMap';
 import { t } from '../i18n';
 import { Row, Stack } from './Layout';
 import { ChipDeRefus } from './ChipDeRefus';
+import { idNeuf } from '../noyau/plateforme';
 
 /**
  * Écran d'équipe — solo ET coop. En coop, l'hôte attribue chaque SIÈGE (`net.slots`) ; chaque joueur
@@ -680,7 +681,7 @@ export function CandidatePool({
   /** Ouvre le créateur (carte-action « Créer un personnage »). */
   onCreate?: () => void;
 }) {
-  const allPregens = useState(() => makePregensWithWealth())[0];
+  const allPregens = useState(() => makePregensWithWealth(idNeuf))[0];
   const [roster, setRoster] = useState(() => rosterLoad());
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);

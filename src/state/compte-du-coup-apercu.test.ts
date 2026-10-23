@@ -11,6 +11,7 @@ import { recomputeLoadout } from '../engine/items';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { locationLabel, type Combatant, type HitLocation, type ItemInstance, type Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Aperçu au jet = application : LDB 18 l.44, l.53, l.55 ; LDB 63 l.19, l.21, l.30, l.32, l.78 ; LDB 60 l.50 ;
  *  AA 07 l.65 ; #1595 c.6221792068 Q3, c.6228496170 Q1. */
@@ -24,7 +25,7 @@ interface Jet { seed: number; roll: number; paTouche?: number; pieces?: (lieu: H
 /** Le coup né au jet par la couture du jeu (`rederivePassiveAttack`), sur un ennemi important à 20 PB. */
 function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, lieu?: HitLocation) {
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: tenue ? 0 : undefined } });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');
@@ -153,7 +154,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
   function projectile(current: number, sauve = false): { journal: string; touche: string } {
     for (let seed = 1; seed < 100; seed++) {
       useGame.getState().seedRng(seed);
-      const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+      const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
       useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       useGame.getState().startScene(structuredClone(testScene()));
       useGame.getState().startCombat('enc-mutants');
@@ -201,8 +202,8 @@ const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, 
  *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `attackConfirm`. */
 function devieePuisApplication(cas: 'tas' | 'melee') {
   useGame.getState().seedRng(3);
-  const tireur = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
-  const allie = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Allie', seed: 8 });
+  const tireur = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
+  const allie = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Allie', seed: 8 });
   useGame.setState({ party: [tireur, allie], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');

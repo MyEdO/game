@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Scene } from '../noyau/monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
 import type { Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Nuée — Trait Nuée (LDB 85 l.251-253).
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
@@ -77,7 +78,7 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
 }
 
 function startNuee(scene: Scene) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null, pendingDisengage: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat(ENC_NUEE);

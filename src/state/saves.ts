@@ -68,6 +68,8 @@ const HORS_SAVE = {
   // l'invité coop en hériterait par `netSnapshot`.
   debugLabels: 'drapeau de recette (overlay de debug)',
   debugRoofCut: 'drapeau de recette (lève-toit débrayé)',
+  // #2907 — `refusVisible.ts` : retour d'IHM local du geste refusé, son nonce né de la fabrique de la partie.
+  refus: 'retour d’IHM local, jamais un état de partie',
 } as const satisfies Partial<Record<keyof GameState, string>>;
 
 /** Les clés de DONNÉES de `GameState` (ni action, ni `HORS_SAVE`) : la forme du `data` d'une save. */

@@ -7,6 +7,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import { t } from '../../i18n';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Marché & équipement » : tout le cycle objets en une échoppe. Réunit le Marchand (Acheter/Vendre/
@@ -19,19 +20,19 @@ import type { Scene } from '../../noyau/monde/scene';
 /** Négociant : épée magique NON identifiée (qualité cachée + skin), maille endommagée, dague à vendre,
  *  selle et harnais (charger une monture/déplacer vers la mule, DoD Possessions testable). */
 function negociant(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', seed: 2510, id: 'test-negociant' });
+  const h = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Négociant (test)', motivation: 'Test', seed: 2510, id: 'test-negociant' });
   // Épée bâtarde « légendaire » : qualité MAGIQUE cachée (« De plaies atroces », ADE II) + skin bleuté ;
   // identified:false → masquée tant qu'une Évaluation ne l'a pas révélée (mais ACTIVE en combat).
-  const epee = itemFromTrappingById('epee-batarde')!;
+  const epee = itemFromTrappingById('epee-batarde', idNeuf)!;
   epee.qualities = [...epee.qualities, { id: 'de-plaies-atroces' }];
   epee.identified = false;
   epee.skin = { metal: '#7faaff' };
   epee.equipped = true;
-  const maille = itemFromTrappingById('chemise-de-mailles')!;
+  const maille = itemFromTrappingById('chemise-de-mailles', idNeuf)!;
   maille.damageTaken = 2; // 2 PA perdus → réparable (10 %/PA, LDB 63)
   maille.equipped = true;
-  const dague = itemFromTrappingById('dague')!; // un objet à vendre
-  const selle = itemFromTrappingById('selle-et-harnais')!;
+  const dague = itemFromTrappingById('dague', idNeuf)!; // un objet à vendre
+  const selle = itemFromTrappingById('selle-et-harnais', idNeuf)!;
   h.items = [epee, maille, dague, selle];
   recomputeLoadout(h);
   h.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.5 };
@@ -40,9 +41,9 @@ function negociant(): Combatant {
 
 /** Maître d'armes : sac garni pour l'écran d'EMPLACEMENTS (couches d'armure LDB 63 + 2 sets d'armes + cape). */
 function maitreArmes(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', seed: 2606, id: 'test-equipement' });
+  const h = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: "Maître d'armes (test)", motivation: 'Test', seed: 2606, id: 'test-equipement' });
   const take = (id: string, equipped = false) => {
-    const it = itemFromTrappingById(id)!;
+    const it = itemFromTrappingById(id, idNeuf)!;
     it.equipped = equipped;
     return it;
   };

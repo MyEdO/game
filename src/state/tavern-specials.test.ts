@@ -11,12 +11,13 @@ import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { TavernPayload } from '../noyau/tavernFlow';
 import { avanceEtapeCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 
 /** Un pré-tiré, avec ou sans Tireur d'élite. */
 function heros(rang: number, tireur: boolean): Combatant {
-  const h = makePregens()[rang] as Combatant;
+  const h = makePregens(idNeufDeBanc)[rang] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }

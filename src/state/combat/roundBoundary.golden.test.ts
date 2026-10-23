@@ -5,6 +5,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { addCondition, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * GOLDEN d'ordre de franchissement de Round (filet anti-régression du plan d'archi) : combat
@@ -18,7 +19,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('lignes de journal + position RNG inchangées', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     seedBattleRng(777);

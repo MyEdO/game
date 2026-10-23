@@ -4,6 +4,7 @@ import { openRoundStartPsych } from '../noyau/combatFlow';
 import { resolvePsychAI } from '../noyau/combat/turnHooks';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Traits psy CIBLÉS en COMBAT (Animosité/Haine/…, LDB 21 l.9 : Test de Calme « au début du Round »).
@@ -23,7 +24,7 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

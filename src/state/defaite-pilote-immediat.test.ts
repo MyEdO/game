@@ -25,6 +25,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -46,7 +47,7 @@ const seaMap: WorldMap = {
 function journeeDeMer(cadence: Cadence): void {
   seedBattleRng(1);
   set({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -60,9 +61,9 @@ function journeeDeMer(cadence: Cadence): void {
 
 function journeeDeFleuve(cadence: Cadence): void {
   seedBattleRng(7);
-  const g = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+  const g = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   for (const [id, adv] of [['ramer', 50], ['voile', 45]] as const) g.skills.push({ id, characteristic: skillCharacteristicById(id), advances: adv } as never);
-  const o = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
+  const o = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'r-otto' });
   get().setParty([g, o]);
   const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] } as never);
   get().loadProject({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
@@ -95,7 +96,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
   it('sauvegarde confirmée, aucun Test de reste du jour : défaite, voyage et halte purgés', () => {
     seedBattleRng(1);
     set({
-      party: makePregens().slice(0, 3),
+      party: makePregens(idNeufDeBanc).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -112,7 +113,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
 
 describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VOL', () => {
   it('l’étape 1 anéantit le groupe : l’étape 2 n’est jamais appliquée, retour `undefined`', () => {
-    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens().slice(0, 2) } as never);
+    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens(idNeufDeBanc).slice(0, 2) } as never);
     const vus: string[] = [];
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeWipe: (g, s, step) => {
       vus.push(step.id);
@@ -133,7 +134,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
   it('désertion en surface I, groupe à terre : défaite, et l’accostage n’est jamais finalisé', () => {
     seedBattleRng(1);
     set({
-      party: makePregens().slice(0, 3),
+      party: makePregens(idNeufDeBanc).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null, pendingShoreLeave: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,

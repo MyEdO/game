@@ -5,6 +5,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { advanceTurn, etatDeTourNeuf } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Un Tour qui commence remet à neuf l'état de Tour de la bataille par UNE source (`etatDeTourNeuf`) :
@@ -14,11 +15,11 @@ const g = () => useGame.getState();
 
 /** `BA` : B ouvre le Round, A le ferme (E, hors de l'ordre, garde le combat ouvert). */
 function deuxHeros(ordre: 'AB' | 'BA' = 'AB', turn = 0): { A: Combatant; B: Combatant } {
-  const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-  const B = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+  const A = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const B = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
   A.pos = { x: 2, y: 2 };
   B.pos = { x: 2, y: 8 };
-  const E = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 }), kind: 'enemy', pos: { x: 18, y: 18 } } as Combatant;
+  const E = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 }), kind: 'enemy', pos: { x: 18, y: 18 } } as Combatant;
   const battle: BattleState = {
     combatants: [A, B, E], order: ordre === 'AB' ? [A.id, B.id, E.id] : [B.id, A.id], turn, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

@@ -5,6 +5,7 @@ import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import type { TraitInstance } from './statEntry';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const t = (o: { id: string; arg?: string; value?: number; range?: number; natural?: boolean }): TraitInstance => o as TraitInstance;
 
@@ -142,7 +143,7 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
   /** Canal POSSESSION DE HÉROS : l'objet du catalogue équipé, projeté par `recomputeLoadout`. */
   const parPossession = (trappingId: string): Weapon | undefined => {
     const c = {
-      items: [{ ...itemFromTrappingById(trappingId)!, equipped: true }],
+      items: [{ ...itemFromTrappingById(trappingId, idNeufDeBanc)!, equipped: true }],
       weapons: [], armour: emptyArmour(), characteristics: chars,
     } as unknown as Combatant;
     recomputeLoadout(c);
@@ -166,7 +167,7 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
 
   it('machine de guerre ADE II (Canon à flammes nain) : `onHitEffects`, `minRangeBand`, Groupe de Projectiles et Recharge portés par le trait, par `weapon:` ET par le poste servi', () => {
     const canaux = [
-      mannedPosteWeapon(chef, hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'tribord' }))!,
+      mannedPosteWeapon(chef, hydratePoste({ trappingId: 'canon-a-flammes-nain-ade2', side: 'tribord' }, idNeufDeBanc))!,
       weaponFromTrait(t({ id: 'a-distance', arg: 'canon-a-flammes-nain-ade2', value: 12 }))!,
       weaponFromId('canon-a-flammes-nain-ade2')!,
     ];

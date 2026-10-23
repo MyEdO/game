@@ -19,6 +19,7 @@ import { sequenceTableRow } from '../noyau/sequenceCore';
 import { tavernParams } from '../noyau/tavernFlow';
 import { schema } from '../data/schemas/defs/tavernGames';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 const TORCHON = findTavernGameById('torchon')!;
@@ -40,7 +41,7 @@ function capterLeRecit(): void {
 }
 
 function partie(n: number): Combatant[] {
-  const party = makePregens().slice(0, n) as Combatant[];
+  const party = makePregens(idNeufDeBanc).slice(0, n) as Combatant[];
   useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   capterLeRecit();
   get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
@@ -164,7 +165,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
   });
 
   it('BALAYAGE FINAL (l.113) : qui n’a pas roulé sur le Tableau Ivre coûte 1 point — et qui l’a fait, non', () => {
-    const party = makePregens().slice(0, 1) as Combatant[];
+    const party = makePregens(idNeufDeBanc).slice(0, 1) as Combatant[];
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
     // Bonus d'Endurance ramené à 1 : le premier échec de Résistance suffit à franchir le seuil d'Ivresse.
@@ -192,7 +193,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
    * donc au malus, même s'il n'a rien bu ce soir-là.
    */
   it('BALAYAGE : un lanceur DÉJÀ ivre en arrivant ne compte pas parmi les trop sobres', () => {
-    const party = makePregens().slice(0, 1) as Combatant[];
+    const party = makePregens(idNeufDeBanc).slice(0, 1) as Combatant[];
     party[0].drunk = { failedTests: 3, drunk: true, result: 'piece-tourne' };
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
@@ -221,7 +222,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
 
   it('GRAINE RÉELLE (aucun DR posé) : la partie entière se déroule et se dénoue', () => {
     seedBattleRng(17);
-    const party = makePregens().slice(0, 2) as Combatant[];
+    const party = makePregens(idNeufDeBanc).slice(0, 2) as Combatant[];
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     for (let i = 0; i < 200 && get().pendingCascade; i++) {
@@ -284,7 +285,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
   });
 
   it('(b) ses paramètres pilotent la partie : SON récit sort, et aucune pinte n’est descendue', () => {
-    const party = makePregens().slice(0, 1) as Combatant[];
+    const party = makePregens(idNeufDeBanc).slice(0, 1) as Combatant[];
     useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
     get().playTavernGame({ gameId: 'torchon', challengerId: party[0].id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });

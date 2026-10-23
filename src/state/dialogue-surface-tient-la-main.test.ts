@@ -21,6 +21,7 @@ import { makeShowcaseParty } from '../data/pregens';
 import type { Dialogue, Scene } from '../noyau/monde/scene';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const dlg: Dialogue = {
   id: 'd-surface', start: 'n1',
@@ -34,7 +35,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<GameState> = {}) {
   useGame.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: makeShowcaseParty(idNeufDeBanc), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     gameMenuOpen: false, codexOverlay: null, sheetId: null, worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },

@@ -17,7 +17,7 @@ import type { Pt } from './path';
 import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { emptyArmour, buildWeapon, hydratePoste, loadWeapon } from '../../engine/items';
+import { emptyArmour, avecUidDArme, hydratePoste, loadWeapon } from '../../engine/items';
 import { maxWounds, bonus, refreshWounds } from '../../engine/characteristics';
 import { resizeBySteps, SIZE_ORDER, SizeCategory, sizeFromTraits } from '../../engine/size';
 import { appliquerAcquisitions } from '../../engine/talentEffects';
@@ -27,9 +27,10 @@ import { rollMutation, mutationById } from '../../data/mutations';
 import { makeRNG, type RNG } from '../../engine/dice';
 import { attachMutation, type Mutation } from '../../engine/corruption';
 import { groupsFor } from '../../engine/groups';
-import { weaponsFromTraits, armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../../engine/creatureEquip';
+import { weaponsFromTraits, armourFromTraits, renderWeaponsFromTraits, weaponFromId, armeGenerique } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
+import { idNeuf } from '../plateforme';
 
 /**
  * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
@@ -382,7 +383,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   };
   // Armes : depuis les Traits si fournis (« Arme (Épée) +7 », « À distance (Arbalète) +9 (60) »),
   // sinon une arme générique au dégât indiqué.
-  attacherMutationsDeSpawn(combattant, traits, (t) => (t.length ? weaponsFromTraits(t) : [buildWeapon({ label: 'Arme', damage: { literal: sb.weaponDamage ?? '+BF' } })])); // uid universel
+  attacherMutationsDeSpawn(combattant, traits, (t) => (t.length ? weaponsFromTraits(t) : [armeGenerique(sb.weaponDamage ?? '+BF')]));
   appliquerAcquisitions(combattant); // Béni : LDB 10 l.109
   return combattant;
 }
@@ -431,7 +432,7 @@ export function spawnEnemy(
     : ficheDeRef(porteur.ref, id, pos, opts);
   c.porteurDeFiche = porteur;
   if (opts?.crewIds) c.crewIds = opts.crewIds;
-  if (opts?.postes) c.postes = opts.postes.map(hydratePoste); // #222 — réf catalogue → base HYDRATÉE (couture unique)
+  if (opts?.postes) c.postes = opts.postes.map((poste) => hydratePoste(poste, idNeuf)); // #222 — réf catalogue → base HYDRATÉE (couture unique)
   if (opts?.upgrades) c.upgrades = opts.upgrades;
   // Blindage (MDG 12 l.234/236) : PA de coque depuis les Traits du TYPE (`ship.traits`) + les Améliorations
   // d'INSTANCE (`upgrades`). Self-contained → posé ici (pas de post-pass type `applyShipPostes`). Consommé par
@@ -466,7 +467,7 @@ export function spawnEnemy(
   if (opts?.weapon) {
     const idWeapon = weaponFromId(opts.weapon); // null (+ console.error #223) si le trappingId ne résout pas
     if (idWeapon && !renderWeaponsFromTraits(c.traits ?? []).some((w) => w.type === idWeapon.type)) {
-      c.weapons = [idWeapon, ...c.weapons];
+      c.weapons = [avecUidDArme(idWeapon, opts.weapon, c.weapons), ...c.weapons];
     }
   }
   // Arme à distance CHARGÉE au spawn (miroir du héros dans startCombat) — LDB 62 l.335 : le `loaded` ne gate

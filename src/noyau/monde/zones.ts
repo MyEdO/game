@@ -18,6 +18,7 @@ import { isDescriptiveZone, type ZoneArea, type SceneEffectZone } from './scene'
 import { isOutOfAction } from '../../engine/conditions';
 import { isProfane } from '../../engine/corruption';
 import { groupMatch } from '../../engine/groups';
+import { idNeuf } from '../plateforme';
 
 export interface BattleZone {
   /** id STABLE de la zone authoree (`SceneEffectZone.id`), propage par `sceneZonesToBattle` — identite
@@ -195,7 +196,7 @@ export function crossZones(
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
     lines.push(`${mover.label} traverse ${z.label} !`);
-    lines.push(...applyOps(mover, z.onCross, { caster: resolveCaster(z.casterId), rng, label: z.label }));
+    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
   }
   return lines;
 }
@@ -215,7 +216,7 @@ export function zonesRoundTick(
     for (const c of combatants) {
       if (!c.pos || c.dead || isOutOfAction(c)) continue;
       if (!zoneCovers(z, c.pos) || !zoneTargets(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
-      for (const line of applyOps(c, z.perRound, { caster, rng, label: z.label })) out.push({ line, combatant: c });
+      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label })) out.push({ line, combatant: c });
     }
   }
   return out;

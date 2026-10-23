@@ -9,6 +9,7 @@ import { bonus, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants } from './weaponDamage';
 import type { TriggeredEffect } from './flowCore';
+import type { TraitInstance } from './statEntry';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
 import { findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
@@ -25,13 +26,10 @@ import { craftEncDelta } from './qualities/craftEconomy';
 import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
-import { nextEntityId } from '../lib/entityId';
-import { sequence } from './sequences';
+import { nextEntityId, type FabriqueDId } from '../lib/entityId';
 
-const prochainUid = sequence();
-export function newUid(): string {
-  return `it-${prochainUid.suivant()}`;
-}
+/** Genre des uids d'objet (`FabriqueDId`). */
+const GENRE_OBJET = 'it';
 
 /** Convention d'AFFICHAGE des Dégâts (spec → chaîne) : la SEULE fonction qui décide « +BF » vs « +N »
  *  vs « +BF+N ». DÉRIVE l'affichage de la donnée structurée (`WeaponDamageSpec`, dans `types.ts`). */
@@ -76,9 +74,10 @@ export function parseDamage(s: string): WeaponDamageSpec {
 }
 
 /** Spécification d'une arme SYNTHÉTIQUE (≠ catalogue) : sert `buildWeapon` (→ Weapon) ET `weaponItem`
- *  (→ ItemInstance). `uid` : littéral (Tentacule : 'nat-tentacule'), préfixe → `${prefix}-${newUid()}`,
- *  ou absent → `buildWeapon` génère un uid stable par défaut (`w-${newUid()}`) : TOUTE arme construite
- *  porte un uid (les Pendings d'arme — rechargement/renversement/piège-lame — la retrouvent par uid). */
+ *  (→ ItemInstance). `uid` : celui de l'objet source, ou la clé littérale de la donnée (Tentacule :
+ *  'nat-tentacule') ; `buildWeapon` n'en fabrique aucun. L'uid d'une arme SANS objet est posé par celui qui
+ *  ASSEMBLE la liste d'armes du combattant (`avecUidDArme`) : les Pendings d'arme (rechargement, piège-lame)
+ *  la retrouvent par uid dans cette liste. */
 export interface WeaponSpec {
   label: string;
   type?: 'melee' | 'ranged';
@@ -108,7 +107,7 @@ export interface WeaponSpec {
   hand?: 'main' | 'off';
   mountSide?: FireArc;
   resolveChar?: CharKey;
-  uid?: string | { prefix: string };
+  uid?: string;
   skin?: Record<string, string>;
   form?: string;
   /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
@@ -129,14 +128,9 @@ export interface WeaponSpec {
   source?: EffectSource;
 }
 
-function specUid(uid: WeaponSpec['uid']): string {
-  if (uid == null) return `w-${newUid()}`; // arme sans uid explicite → uid stable par défaut (universel)
-  return typeof uid === 'string' ? uid : `${uid.prefix}-${newUid()}`; // UN seul appel newUid par arme
-}
-
 /** CONSTRUCTEUR D'ARME UNIQUE. Toute arme synthétique (naturelle, invoquée, gratuite, de trait de créature,
  *  mains nues, Tentacule) passe par ici — fin des re-déclarations éparpillées de la forme `Weapon`. Porte la
- *  convention de Dégâts (`damageString`), l'uid, la COPIE de `qualities` et les défauts (mêlée, 1 main). Le
+ *  convention de Dégâts (`damageString`), l'uid reçu, la COPIE de `qualities` et les défauts (mêlée, 1 main). Le
  *  PROFIL COMPLET d'une Possession (identité `trappingId`, Portée `{bf}`, effets à la touche, Groupe de
  *  Projectiles, bande de portée minimale, main qui la tient) : aucun champ d'arme ne se pose après coup. */
 export function buildWeapon(spec: WeaponSpec): Weapon {
@@ -151,7 +145,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   if (spec.range !== undefined) w.range = spec.range;
   if (spec.reload !== undefined) w.reload = spec.reload;
   if (spec.subType !== undefined) w.subType = spec.subType;
-  w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
+  if (spec.uid !== undefined) w.uid = spec.uid;
   if (spec.skin !== undefined) w.skin = spec.skin;
   if (spec.form !== undefined) w.form = spec.form;
   if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
@@ -225,24 +219,23 @@ export const isUnarmed = (w: Weapon): boolean => isUnarmedTrapping(w.builtinId ?
 
 /** IDENTITÉ STABLE d'une arme — SOURCE UNIQUE pour tout keying d'arme (#598). Ordre : id de catalogue
  *  (`trappingId`, partagé par toutes les instances d'un même modèle) → marqueur built-in (`builtinId`)
- *  → `uid` d'instance (toujours défini par `buildWeapon`). JAMAIS `name`, qui est un LIBELLÉ d'affichage.
- *  Stabilité vérifiée pour tout porteur d'`onHitEffects` : ces effets ne viennent que du catalogue
- *  (l'instance a un `trappingId`), d'un enchantement, d'une arme invoquée ou d'un poste servi — dans
- *  les trois derniers cas l'`uid` est celui d'un `ItemInstance` persisté, donc stable d'un
- *  `recomputeLoadout` à l'autre (les armes de `grantNaturalWeapon`, seules à porter un uid regénéré,
- *  ne portent pas d'`onHitEffects`). */
+ *  → `uid` (celui de l'objet source, ou celui que l'assembleur de la liste pose, `avecUidDArme`). JAMAIS
+ *  `name`, qui est un LIBELLÉ d'affichage. Stabilité vérifiée pour tout porteur d'`onHitEffects` : ces
+ *  effets ne viennent que du catalogue (l'instance a un `trappingId`), d'un enchantement, d'une arme
+ *  invoquée ou d'un poste servi — dans les trois derniers cas l'`uid` est celui d'un `ItemInstance`
+ *  persisté, donc stable d'un `recomputeLoadout` à l'autre. */
 export const weaponIdentity = (w: Weapon): string => w.trappingId ?? w.builtinId ?? w.uid ?? '';
 
-/** Variante ItemInstance (objet d'inventaire) : RÉUTILISE `buildWeapon` pour le cœur (Dégâts, uid,
- *  qualities copiées, défauts) puis ne fait que la bascule `Weapon`→`ItemInstance` (`type`→`kind` + les
- *  champs propres à l'OBJET : enc/equipped/conjured). Utilisé par l'arme INVOQUÉE (op `grantWeapon`) posée
- *  dans un set d'armes dédié. */
-export function weaponItem(spec: WeaponSpec & { conjured?: boolean }): ItemInstance {
-  const { type, uid, ...rest } = buildWeapon(spec); // buildWeapon garantit toujours un uid
+/** Variante ItemInstance (objet d'inventaire) : RÉUTILISE `buildWeapon` pour le cœur (Dégâts, qualities
+ *  copiées, défauts) puis ne fait que la bascule `Weapon`→`ItemInstance` (`type`→`kind` + les champs propres
+ *  à l'OBJET : uid reçu, enc/equipped/conjured). Utilisé par l'arme INVOQUÉE (op `grantWeapon`) posée dans un
+ *  set d'armes dédié. */
+export function weaponItem(spec: WeaponSpec & { uid: string; conjured?: boolean }): ItemInstance {
+  const { type, ...rest } = buildWeapon(spec);
   return {
     ...rest,
     kind: type,
-    uid: uid!,
+    uid: spec.uid,
     enc: 0,
     equipped: false,
     ...(spec.conjured ? { conjured: true } : {}),
@@ -270,14 +263,19 @@ function kindOf(categorie: string): ItemKind {
   return 'misc';
 }
 
-/** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
- *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
- *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
-export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
+/** Le GABARIT d'un objet de catalogue : tout ce qu'une instance porte, sauf son identité (`uid`). Ce que
+ *  lit un site qui ne CRÉE pas d'objet (profil d'une arme de créature, qualités d'un don, pièce d'une
+ *  forme invoquée, aperçu d'étal) : il n'en fabrique aucun id. */
+export type GabaritDObjet = Omit<ItemInstance, 'uid'>;
+
+/** Gabarit d'objet depuis le catalogue par son `id` STABLE, PUR. Pose `trappingId` (réf de re-dérivation).
+ *  Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de `INSTANCIABLE_PAR_ID`
+ *  lève (`dansLaSousListe`). */
+export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = findTrappingById): GabaritDObjet | null {
   const resolu = resolveTrapping(id);
   if (!resolu) return null;
   if (!dansLaSousListe(INSTANCIABLE_PAR_ID, resolu))
-    throw new Error(`itemFromTrappingById: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
+    throw new Error(`gabaritDObjet: "${resolu.id}" porte un marqueur hors de INSTANCIABLE_PAR_ID (${INSTANCIABLE_PAR_ID.horsMarqueurs.join(', ')}) : pas un objet possédable.`);
   const t = structuredClone(resolu); // #2097
   const kind = kindOf(t.categorie);
   const locs =
@@ -290,7 +288,6 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
   // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
   // POSSÈDE, et une édition du catalogue ne les repeint pas.
   return {
-    uid: newUid(),
     trappingId: t.id,
     label: t.label,
     kind,
@@ -329,6 +326,12 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
   };
 }
 
+/** Une instance NEUVE d'objet de catalogue : le gabarit (`gabaritDObjet`) et un uid neuf de `idNeuf`. Id inconnu → null. */
+export function itemFromTrappingById(id: string, idNeuf: FabriqueDId, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
+  const gabarit = gabaritDObjet(id, resolveTrapping);
+  return gabarit ? { uid: idNeuf(GENRE_OBJET), ...gabarit } : null;
+}
+
 /**
  * Matérialise une `TrappingRef` RÉSOLUE (`{id, spec?, count?, qualities?}` — après
  * `resolveTrappingChoices`) en objet de sac. COUTURE UNIQUE ref → objet : le catalogue donne les
@@ -338,9 +341,10 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
  */
 export function itemFromTrappingRef(
   ref: Extract<TrappingRef, { id: string }>,
+  idNeuf: FabriqueDId,
   resolveTrapping: TrappingResolver = findTrappingById,
 ): ItemInstance | null {
-  const it = itemFromTrappingById(ref.id, resolveTrapping);
+  const it = itemFromTrappingById(ref.id, idNeuf, resolveTrapping);
   if (!it) return null;
   if (ref.spec) it.spec = ref.spec;
   if (it.kind === 'ammo' && ref.count && 'fixed' in ref.count) it.qty = ref.count.fixed; // quantité de la carrière
@@ -353,20 +357,27 @@ export function itemFromTrappingRef(
   return it;
 }
 
-/** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
- *  base : permet de donner un objet au groupe via `giveTrapping` sans entrée de données (cf. retrait de
- *  l'inventaire de groupe — « donner un objet = un trapping custom OU réel »). kind `misc`, sans stats. */
-export function customTrapping(name: string): ItemInstance {
-  return { uid: newUid(), label: name, kind: 'misc', qualities: [], enc: 0, equipped: false };
+/** Gabarit d'un objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping
+ *  de la base : kind `misc`, sans stats. */
+const gabaritCustom = (name: string): GabaritDObjet => ({ label: name, kind: 'misc', qualities: [], enc: 0, equipped: false });
+
+/** Objet « custom » NEUF : permet de donner un objet via `giveTrapping` sans entrée de données (cf. retrait
+ *  de l'inventaire de groupe — « donner un objet = un trapping custom OU réel »). */
+export function customTrapping(name: string, idNeuf: FabriqueDId): ItemInstance {
+  return { uid: idNeuf(GENRE_OBJET), ...gabaritCustom(name) };
 }
 
-/** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
- *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
- *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
-export function itemFromGive(give: { trappingId?: string; custom?: string }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
-  const it = (give.trappingId ? itemFromTrappingById(give.trappingId, resolveTrapping) : null) ?? customTrapping(give.custom ?? give.trappingId ?? 'Objet');
-  if (source) it.source = source;
-  return it;
+/** Gabarit de l'objet d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
+ *  (`custom`, nom libre hors-base). */
+function gabaritDuDon(give: { trappingId?: string; custom?: string }, resolveTrapping: TrappingResolver): GabaritDObjet {
+  return (give.trappingId ? gabaritDObjet(give.trappingId, resolveTrapping) : null) ?? gabaritCustom(give.custom ?? give.trappingId ?? 'Objet');
+}
+
+/** L'ItemInstance NEUVE d'un Effet `giveTrapping` (`gabaritDuDon`). SOURCE UNIQUE (applyEffects + ramassage de
+ *  prop). `source` (optionnel) = entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de
+ *  règle (`ItemInstance.source`). */
+export function itemFromGive(give: { trappingId?: string; custom?: string }, idNeuf: FabriqueDId, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
+  return { uid: idNeuf(GENRE_OBJET), ...gabaritDuDon(give, resolveTrapping), ...(source ? { source } : {}) };
 }
 
 /** Fusionne les qualités MAGIQUES ajoutées d'un `giveTrapping` (`give.qualities` = ids de scène) aux
@@ -379,7 +390,7 @@ export function withGiveQualities(base: QualityInstance[], give: { qualities?: s
  *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
  *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
 export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  const resolved = resolveQualities(itemFromGive(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
+  const resolved = resolveQualities(gabaritDuDon(give, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
   return withGiveQualities(resolved, give);
 }
 
@@ -499,7 +510,7 @@ export function armourLayer(it: ItemInstance): ArmourLayer {
  *  fiche — purement cosmétique (rendu dorsal du rig), une seule à la fois. Détecté par la capacité
  *  par-OBJET `weatherProtection` (catalogue, ≠ nom — un objet `misc` qui protège des intempéries =
  *  un vêtement de dos). */
-export function isCapeItem(it: ItemInstance): boolean {
+export function isCapeItem(it: GabaritDObjet): boolean {
   return it.kind === 'misc' && itemCapability(it, 'weatherProtection');
 }
 
@@ -559,20 +570,36 @@ export function equipConflicts(c: Pick<Combatant, 'items'>, it: ItemInstance): I
   return [];
 }
 
-let _unarmed: Weapon | null = null;
+const MAINS_NUES = 'mains-nues';
+
 /** Arme « Mains nues » canonique, DÉRIVÉE de l'entrée de catalogue `mains-nues` (LDB 62 l.28) : Dégâts,
  *  Allonge, Atouts et Groupe viennent tous de la donnée. Entrée absente ou sans profil d'arme = donnée
- *  cassée, BRUYANTE — jamais un profil deviné. Lazy + mémoïsé sur le résolveur par défaut ; un résolveur
- *  INJECTÉ (campagne, test de câblage) est lu à chaque appel. Copie fraîche à chaque appel. */
+ *  cassée, BRUYANTE — jamais un profil deviné. Le résolveur INJECTÉ (campagne, test de câblage) est lu à
+ *  chaque appel. Sans uid : la liste d'armes qui la reçoit le pose (`mainsNuesSiDesarme`). */
 export function unarmedWeapon(resolveTrapping: TrappingResolver = findTrappingById): Weapon {
-  const build = (): Weapon => {
-    const it = itemFromTrappingById('mains-nues', resolveTrapping);
-    if (!it?.damage) throw new Error('unarmedWeapon : entrée de catalogue « mains-nues » absente ou sans profil d’arme (src/data/trappings.json).');
-    return buildWeapon({ label: it.label, damage: it.damage, reach: it.reach, qualities: it.qualities, subType: it.subType, builtinId: 'mains-nues' });
-  };
-  if (resolveTrapping !== findTrappingById) return { ...build(), hand: 'main' };
-  if (!_unarmed) _unarmed = build();
-  return { ..._unarmed, hand: 'main' };
+  const it = gabaritDObjet(MAINS_NUES, resolveTrapping);
+  if (!it?.damage) throw new Error('unarmedWeapon : entrée de catalogue « mains-nues » absente ou sans profil d’arme (src/data/trappings.json).');
+  return { ...buildWeapon({ label: it.label, damage: it.damage, reach: it.reach, qualities: it.qualities, subType: it.subType, builtinId: MAINS_NUES }), hand: 'main' };
+}
+
+/** L'uid qu'ASSEMBLER la liste d'armes `armes` d'un combattant pose sur une arme : `cle`, la clé de l'INSTANCE
+ *  source (uid de l'objet, `cleDInstanceDeTrait`, id de la mutation, `mains-nues`), départagée par
+ *  `nextEntityId` sur les uids déjà dans la liste. Unique dans ce combattant, et le même d'un assemblage à
+ *  l'autre tant que son instance source demeure. PUR. */
+export function uidDArme(cle: string, armes: readonly Weapon[]): string {
+  const pris = new Set(armes.flatMap((w) => (w.uid == null ? [] : [w.uid])));
+  return pris.has(cle) ? nextEntityId(cle, pris) : cle;
+}
+
+/** `w` avec l'uid que la liste `armes` lui donne (`uidDArme`) : le sien s'il en porte un, sinon `cle`. */
+export function avecUidDArme(w: Weapon, cle: string, armes: readonly Weapon[]): Weapon {
+  return { ...w, uid: uidDArme(w.uid ?? cle, armes) };
+}
+
+/** La clé d'une INSTANCE de trait : son id, sa provenance (`TraitInstance.src`) et son argument — deux instances
+ *  d'un même trait ne la partagent que si rien ne les distingue (même id, même source, même argument). */
+export function cleDInstanceDeTrait(t: TraitInstance): string {
+  return [t.id, t.src ? `${t.src.kind}:${t.src.id}` : null, t.arg ?? null].filter((x) => x != null).join('@');
 }
 
 /** L'arme NATURELLE (`Weapon.natural`) d'un op `grantNaturalWeapon`, pour ses deux sources : passive
@@ -603,7 +630,7 @@ export function tientUneArme(weapons: Weapon[]): boolean {
 /** Mains nues (`LDB 62 l.28`) du combattant qui PERD son arme (`lacherLArme`) ou dont le set n'en tient
  *  aucune (`recomputeLoadout`). `tenue` : le prédicat, évalué par l'appelant sur les armes TENUES. */
 export function mainsNuesSiDesarme(weapons: Weapon[], tenue: boolean = tientUneArme(weapons)): void {
-  if (!tenue && !weapons.some(isUnarmed)) weapons.push(unarmedWeapon());
+  if (!tenue && !weapons.some(isUnarmed)) weapons.push(avecUidDArme(unarmedWeapon(), MAINS_NUES, weapons));
 }
 
 /** RE-DÉRIVE l'arme TENUE depuis son OBJET SOURCE (`objetSourceDeLArme`) après une mutation de cet objet —
@@ -622,8 +649,8 @@ export function rederiverLArmeTenue(c: Combatant, weapon: Weapon): void {
 
 /** L'arme QUITTE les mains, quelle qu'en soit la cause (`LDB 60 l.50`, `LDB 14 l.34`, `LDB 62 l.280`,
  *  `AA 10 l.274-276`). Objet de l'inventaire : ses emplacements de set se vident et `recomputeLoadout`
- *  re-dérive. Sinon (statbloc, pièce de poste) : elle sort de `c.weapons`, keyée par `uid` (`buildWeapon`
- *  le pose toujours ; l'arme tirée peut être une COPIE). */
+ *  re-dérive. Sinon (statbloc, pièce de poste) : elle sort de `c.weapons`, keyée par `uid` (celui que
+ *  l'assembleur de la liste a posé, `avecUidDArme` ; l'arme tirée peut être une COPIE). */
 export function lacherLArme(c: Combatant, weapon: Weapon): void {
   const it = objetSourceDeLArme(c, weapon);
   if (it && (c.items ?? []).includes(it)) {
@@ -693,7 +720,7 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
  * Les VETOS de port (arme détruite, machine à Équipe, amputation) restent chez l'appelant : ils dépendent
  * du PORTEUR, pas du profil de l'arme.
  */
-export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { mounted?: boolean }): Weapon {
+export function weaponFromItem(it: GabaritDObjet & { uid?: string }, hand?: 'main' | 'off', ctx?: { mounted?: boolean }): Weapon {
   return applyEnchants(buildWeapon({
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'ranged',
     // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
@@ -761,26 +788,26 @@ export function recomputeLoadout(c: Combatant): void {
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
     const dw = i.equipped && !i.destroyed && i.trappingId ? findTrappingById(i.trappingId)?.derivedWeapon : undefined;
-    if (dw) weapons.push({ hand: 'main', ...dw, derivedFromItem: i.uid });
+    if (dw) weapons.push(avecUidDArme({ hand: 'main', ...dw, derivedFromItem: i.uid }, i.uid, weapons));
   }
   // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 l.405) ou
   // mutation (Tentacule épais → trait ; LDB 19 : « Compte comme une Arme de Créature »). Op `grantNaturalWeapon`,
   // MÊME vocabulaire, boucle KIND-AGNOSTIQUE : ajouter une source = l'itérer ici, aucun kind nommé en dur.
   // (L'Attaque gratuite 1/tour du Tentacule est portée par le maneuver `tentacule`, keyé sur uid `nat-tentacule`.)
   const naturalWeaponPassives = [
-    ...(c.mutations ?? []).map((m) => m.passive),
-    ...(c.traits ?? []).map((t) => findTraitById(t.id)?.passive),
+    ...(c.mutations ?? []).map((m) => ({ source: m.id, ops: m.passive })),
+    ...(c.traits ?? []).map((t) => ({ source: cleDInstanceDeTrait(t), ops: findTraitById(t.id)?.passive })),
   ];
-  for (const ops of naturalWeaponPassives) for (const op of ops ?? []) {
+  for (const { source, ops } of naturalWeaponPassives) for (const op of ops ?? []) {
     if (op.op !== 'grantNaturalWeapon') continue;
     const flat = (typeof op.damage === 'number' ? op.damage : 0) + (op.damagePlus ?? 0);
-    weapons.push({ hand: 'main', ...armeNaturelleAccordee(op, flat, { uid: op.uid ?? { prefix: 'nat' } }) });
+    weapons.push(avecUidDArme({ hand: 'main', ...armeNaturelleAccordee(op, flat, { uid: op.uid }) }, source, weapons));
   }
   // Armes NATURELLES accordées par un Sort (op `grantNaturalWeapon` — Dent et griffe : Morsure/Arme ;
   // Incarnation de Wyssan) : attaques ADDITIONNELLES tant que l'effet dure (retirées au recompute
   // d'expiration, dropExpiredGrantedWeapons). Même injection que Tentacule/Cornes.
   for (const e of c.activeEffects ?? []) {
-    if (e.naturalWeapon) weapons.push({ ...e.naturalWeapon, hand: 'main' });
+    if (e.naturalWeapon) weapons.push(avecUidDArme({ ...e.naturalWeapon, hand: 'main' }, e.naturalWeapon.uid, weapons));
   }
 
   // Pièce d'artillerie SERVIE (`mannedPoste`, MDG 12-13) : SEUL le CHEF (`crewIds[0]`) DÉRIVE l'arme du poste
@@ -828,16 +855,16 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 
 /**
  * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
- * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation). `trappingId`
+ * de la pièce depuis `trappingId` (`gabaritDObjet`, la couture existante — JAMAIS une base copiée),
+ * puis re-pose l'état d'INSTANCE propre au poste (uid authoré, sinon neuf de `idNeuf` ; enchants de dérogation). `trappingId`
  * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
  */
-export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
-  const base = itemFromTrappingById(a.trappingId);
+export function hydratePoste(a: AuthoredShipPoste, idNeuf: FabriqueDId): ShipPoste {
+  const base = gabaritDObjet(a.trappingId);
   if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
   const item: ItemInstance = {
+    uid: a.uid ?? idNeuf(GENRE_OBJET), // uid d'instance STABLE (liens hotbar/log)
     ...base,
-    uid: a.uid ?? base.uid, // uid d'instance STABLE (liens hotbar/log)
     ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
   };
   const poste: ShipPoste = { item };
@@ -1053,12 +1080,12 @@ export function damageScore(d?: WeaponDamageSpec): number {
  *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; le `count` d'une munition
  *  donne sa quantité. Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
  *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). */
-export function buildInventory(refs: TrappingRef[]): ItemInstance[] {
+export function buildInventory(refs: TrappingRef[], idNeuf: FabriqueDId): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
     if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
     if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
-    const it = itemFromTrappingRef(ref);
+    const it = itemFromTrappingRef(ref, idNeuf);
     if (it) items.push(it);
   }
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures

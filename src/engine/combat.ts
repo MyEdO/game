@@ -42,6 +42,7 @@ import { hullHitAdjust } from './shipMelee';
 import { rule } from './policy';
 import { lancerDuTableau, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, critWoundLocation, type CauseCoupCritique, type CompteDesCritiques } from './critical';
 import { objetSourceDeLArme } from './weaponLoad';
+import { sonde } from '../lib/sonde';
 
 /** Inverse le jet du toucher (23 → 32 ; « 00 » → 100). */
 export function reverseRoll(r: number): number {
@@ -685,17 +686,17 @@ export function composeAttack(mods: ModLine[]): DifficultyComposition {
 }
 
 /**
- * COMPTEUR des re-dérivations qui ont RECOMPOSÉ faute de composition transportée (#1153 L4) — sonde
- * partagée, patron `ANONYMES`/`REPLIS_DEUX_CIBLES`. Un site de re-dérivation qui oublie le transport
+ * COMPTEUR des re-dérivations qui ont RECOMPOSÉ faute de composition transportée (#1153 L4) — `sonde`
+ * (`src/lib/sonde.ts`). Un site de re-dérivation qui oublie le transport
  * retombe dans le défaut d'origine (Difficulté d'une attaque qui change parce qu'on dépense sa
  * Chance) : le repli reste possible — un appel direct hors flux doit rester résoluble — mais il ne
  * peut plus être SILENCIEUX. Inerte en PROD hors journal.
  */
-export const REDERIVATIONS = { recomposees: 0 };
+export const REDERIVATIONS = sonde();
 
 /** Repli du transport : compose depuis le contexte APPAUVRI du re-jet, et le DIT. */
 function compoDeRepli(mods: ModLine[], site: string): DifficultyComposition {
-  REDERIVATIONS.recomposees += 1;
+  REDERIVATIONS.passer();
   console.error(`[combat] ${site} : re-dérivation SANS Difficulté transportée — recomposée depuis un contexte appauvri (ni distance, ni env, ni flanc/dos). Passer \`frozenDifficulty(detail d'origine)\` au call-site.`);
   return composeAttack(mods);
 }

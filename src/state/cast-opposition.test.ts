@@ -6,6 +6,7 @@ import { ownsLocal, intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { castingBaseValue } from '../engine/magic';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Incantation OPPOSÉE (`SpellSpec.opposed`) — multijet DANS la modale de cast (jamais auto-caché) :
@@ -23,6 +24,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
 
   function setup() {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 707,
     });
@@ -144,9 +146,9 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
 
   /** Lanceur (siège 0) + cible héros (siège 1), fenêtre d'incantation OUVERTE par les vraies coutures. */
   async function setupCoop() {
-    const caster = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    const caster = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     caster.spells = ['fauche-demon'];
-    const cible = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 31 });
+    const cible = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'T', seed: 31 });
     useGame.setState({ party: [caster, cible] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -218,9 +220,9 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
 
   /** Sorcier + un allié PNJ conduit par l'IA (`aiControlled`) + une cible ennemie. */
   function setupPnj() {
-    const caster = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    const caster = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     caster.spells = ['parole-de-tzeentch'];
-    const allie = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'PNJ', seed: 31 });
+    const allie = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'PNJ', seed: 31 });
     useGame.setState({ party: [caster, allie] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

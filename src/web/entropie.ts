@@ -1,3 +1,5 @@
+import type { FabriqueDId } from '../lib/entityId';
+
 /**
  * L'ENTROPIE DE L'HÔTE (#2817, D8) : le seul site de `Math.random` de `src/` (mur `murs/entropie`,
  * `oxlint.config.mjs`). Le moteur et le noyau n'en tirent jamais : ils reçoivent un `RNG` nommé par
@@ -10,7 +12,9 @@ export const entierDEntropie = (n: number): number => Math.floor(Math.random() *
 /** Graine d'entropie dans [0, 0xffff] : RNG de bataille, brouillon de création, générateur de nom. */
 export const graineDEntropie = (): number => entierDEntropie(0x10000);
 
-/** Id d'entité unique d'un projet à l'autre (scène, carte, projet, lieu, trajet) : la seule fabrique
- *  d'id de l'hôte (#2817), horloge de l'hôte plus entropie. */
-export const idDEntropie = (genre: string): string =>
+/** La fabrique d'ids neufs de l'hôte web (`FabriqueDId`, #2817, #2907) : un id unique d'un projet, d'une
+ *  sauvegarde, d'un onglet et d'un siège à l'autre — scène, carte, projet, lieu, trajet, et ce que la partie
+ *  fabrique (objet, héros, refus). Horloge de l'hôte plus entropie : sa forme (`genre-horloge-tirage`) ne
+ *  rejoint jamais celle d'un compteur. */
+export const idDEntropie: FabriqueDId = (genre) =>
   `${genre}-${Date.now().toString(36)}-${entierDEntropie(36 ** 6).toString(36).padStart(6, '0')}`;

@@ -14,6 +14,7 @@ import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import { COND, hasCondition } from '../engine/conditions';
 import { CombatStartSplash } from './CombatStartSplash';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -29,7 +30,7 @@ const mot = () => host.querySelector('.combat-splash .display-title');
 
 /** Ouvre le combat de la fixture ; `surprise` rend la rencontre EMBUSQUÉE (le groupe est surpris). */
 function ouvrir(surprise?: 'party') {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   // Guetteur aveugle : l'opposition de Surprise est perdue quel que soit le dé.
   const guetteur = { ...hero, skills: [], characteristics: { ...hero.characteristics, initiative: 1 } };
   useGame.setState({ party: [guetteur] });

@@ -14,6 +14,10 @@ import { RollShell } from '../RollShell';
 import { ANONYMES } from '../RollLine';
 import { useAttackJetProps } from './useAttackJetProps';
 import { resetRule, setRule } from '../../engine/policy';
+import { passagesDe } from '../../lib/sonde';
+
+/** Les passages de la sonde `ANONYMES` au début du cas. */
+let anonymesAvant = 0;
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -85,7 +89,7 @@ function Probe() {
 let root: Root | null = null;
 let host: HTMLDivElement | null = null;
 
-beforeEach(() => { ANONYMES.count = 0; });
+beforeEach(() => { anonymesAvant = passagesDe(ANONYMES); });
 afterEach(() => {
   if (root) act(() => root!.unmount());
   host?.remove();
@@ -314,7 +318,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
  *  2. ces circonstances ne sont plus des chips — le palier les porte (composition à l'infobulle) ;
  *  3. un modificateur de JET (État du jeteur, `LDB 16 l.11` « à tous vos Tests ») RESTE une chip et
  *     ne bouge pas le palier : la taxonomie se VOIT à l'écran ;
- *  4. `ANONYMES.count === 0` partout : aucune ligne ne cache d'écart.
+ *  4. `passagesDe(ANONYMES)` immobile partout : aucune ligne ne cache d'écart.
  */
 describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', () => {
   const ligne = (v: HTMLDivElement) => v.querySelector('.rm-roll-block') as HTMLElement;
@@ -360,7 +364,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
       ligne(v).querySelector('.rm-roll-diff .codex-ref')!.getAttribute('aria-label'),
       'le nom accessible COMMENCE par le texte visible et nomme la règle atteinte',
     ).toBe('Très difficile (−30) — Combiner les Difficultés');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   /** UNIFICATION (#1153) : toute Difficulté affichée a la MÊME grammaire — même (i), même porte vers
@@ -373,7 +377,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(calcul(v)).toBe('45');
     expect(porte(v), 'la Difficulté déclarée ouvre la même fiche que la composée').toBe('Intermédiaire (+0)');
     expect(infoPalier(v), 'le (i) ne dépend pas du mode : la grammaire est unique').toBeTruthy();
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   it('l’État du JETEUR (Empoisonné, LDB 16 l.11) reste une CHIP — palier inchangé', () => {
@@ -381,7 +385,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(palier(v)).toBe('Intermédiaire (+0)');
     expect(chips(v)).toEqual(['−10 Empoisonné']);
     expect(calcul(v)).toBe('45 −10 = 35');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   it('MIXTE — la chip d’État SURVIT à côté du palier composé par la Localisation visée', () => {
@@ -389,7 +393,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(palier(v)).toBe('Difficile (−20)');
     expect(chips(v)).toEqual(['−10 Empoisonné']);
     expect(calcul(v)).toBe('45 −30 = 15');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   /**
@@ -412,7 +416,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(infobulle(v), 'aucune amputation : le plafond ne mord pas sur −10').not.toContain('plafond Difficultés');
     expect(chips(v), 'l’État du jeteur ne se dilue jamais dans la Difficulté').toEqual(['−10 Empoisonné']);
     expect(calcul(v)).toBe('40 −20 = 20');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   /**
@@ -441,7 +445,7 @@ describe('Attaque — la Difficulté DÉRIVE des circonstances (#1153 L3b-2)', (
     expect(chips(v)).toEqual(['+60 Avantage', '−6 plafond 99']);
     expect(calcul(v)).toBe('45 +54 = 99');
     expect(ligne(v).textContent).not.toContain('autres');
-    expect(ANONYMES.count, 'la sonde DEV ne compte aucune chip anonyme').toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant), 'la sonde DEV ne compte aucune chip anonyme').toBe(0);
   });
 
   /**

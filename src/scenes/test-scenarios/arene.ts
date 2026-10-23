@@ -2,6 +2,7 @@ import { makeShowcaseParty } from '../../data/pregens';
 import { itemFromTrappingById } from '../../engine/items';
 import { areneCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Arène 2.0 — recette de la campagne vitrine : on démarre AU BOURG (et non en zone 1) avec le
@@ -10,10 +11,10 @@ import type { TestScenario } from './_shared';
  * voyage (#T2). Point d'entrée Playwright de la recette navigateur.
  */
 function groupe() {
-  const party = makeShowcaseParty();
+  const party = makeShowcaseParty(idNeuf);
   // De quoi tester voyage (rations) et marchands sans grinder la zone 1.
   for (const h of party) {
-    const ration = itemFromTrappingById('ration');
+    const ration = itemFromTrappingById('ration', idNeuf);
     if (ration) h.items = [...(h.items ?? []), ration];
   }
   return party;

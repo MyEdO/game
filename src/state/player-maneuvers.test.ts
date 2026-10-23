@@ -12,6 +12,7 @@ import { testScene } from '../scenes/test-fixture';
 import { findManeuverById } from '../data';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from '../noyau/etat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -109,7 +110,7 @@ describe('manœuvres en combat (store)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

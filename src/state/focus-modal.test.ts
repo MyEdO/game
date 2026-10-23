@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Focalisation par modale (LDB — Test étendu).
 describe('Focalisation en modale (store)', () => {
@@ -16,7 +17,7 @@ describe('Focalisation en modale (store)', () => {
   });
 
   it('battleFocusSpell ouvre pendingFocus sans tirer ; focusRoll tire ; focusConfirm cumule le DR + consomme l’Action', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.characteristics['force-mentale'] = 80;
     hero.spells = ['arme-aethyrique'];
     if (!hero.skills.some((s) => s.id === 'focalisation')) hero.skills.push({ id: 'focalisation', advances: 20, characteristic: 'force-mentale' } as never);
@@ -46,7 +47,7 @@ describe('Focalisation en modale (store)', () => {
   });
 
   it('IA : un ennemi ACTIF peut focaliser pour lui-même ; focusConfirm pose le DR et reprend son tour', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'PJ', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(7);
     useGame.getState().startScene(testScene());
@@ -82,7 +83,7 @@ describe('Focalisation en modale (store)', () => {
   });
 
   it('un sort non focalisable (Magie mineure) n’ouvre pas la modale', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.spells = ['flechette'];
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());

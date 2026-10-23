@@ -10,6 +10,7 @@ import { syncDerivedConditions } from './conditions';
 import { spellOps } from './flowCore';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** La porte, quand le Test différé n'est pas le sujet du test. */const ignore: UpkeepDeferTest = () => {};
 
@@ -123,9 +124,9 @@ describe('Pneumonie : le Test quotidien passe par le canal INFLUENÇABLE de l’
   it('l’applicateur de l’étape (applyOps sur `onFail`) produit la MÊME échelle d’aggravation', () => {
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
     const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
-    applyOps(c, onFail, { rng: seq([]) });
+    applyOps(c, onFail, { idNeuf: idNeufDeBanc, rng: seq([]) });
     expect(fievre(c).severity).toBe('grave');
-    applyOps(c, onFail, { rng: seq([]) });
+    applyOps(c, onFail, { idNeuf: idNeufDeBanc, rng: seq([]) });
     expect(symptomIds(c)).toContain('toxine');
   });
 });
@@ -141,9 +142,9 @@ describe('`aggravateSymptom` : TROIS issues distinctes, jamais un booléen (EDOC
 
   it('symptôme DÉJÀ à cette sévérité → `deja` : c’est CE cas, et lui seul, qui ouvre l’échelon suivant', () => {
     const c = hero({ diseases: [contractDisease('pneumonie', seq([5, 5, 5]))!] });
-    applyOps(c, onFail(), { rng: seq([]) }); // Fièvre → Grave
+    applyOps(c, onFail(), { idNeuf: idNeufDeBanc, rng: seq([]) }); // Fièvre → Grave
     expect(aggravateDiseaseSymptom(c, 'pneumonie', 'fievre', 'grave').etat).toBe('deja');
-    applyOps(c, onFail(), { rng: seq([]) });
+    applyOps(c, onFail(), { idNeuf: idNeufDeBanc, rng: seq([]) });
     expect(symptomIds(c)).toContain('toxine');
   });
 
@@ -155,7 +156,7 @@ describe('`aggravateSymptom` : TROIS issues distinctes, jamais un booléen (EDOC
     // L'État *Exténué* que le Malaise PORTE (LDB 20 l.188) est posé d'avance : il n'appartient pas à
     // la chaîne d'aggravation, et ce test-ci ne juge QU'elle.
     syncDerivedConditions(c);
-    const log = applyOps(c, onFail(), { rng: seq([]) });
+    const log = applyOps(c, onFail(), { idNeuf: idNeufDeBanc, rng: seq([]) });
     expect(symptomIds(c), 'sans Fièvre, la chaîne ne descend pas jusqu’à Toxine').not.toContain('toxine');
     expect(log, 'rien à journaliser non plus').toEqual([]);
   });

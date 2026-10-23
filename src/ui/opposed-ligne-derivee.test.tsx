@@ -20,6 +20,7 @@ import { findQualityById } from '../data';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../state/cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -45,7 +46,7 @@ afterEach(() => {
 
 describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () => {
   it('taverne contre la salle : la fenêtre lit « <adversaire> — Pari », dérivé de la STRUCTURE', () => {
-    const [a] = makePregens().slice(0, 1) as [Combatant];
+    const [a] = makePregens(idNeufDeBanc).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
 
@@ -65,7 +66,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
    */
   it('JOURNAL de la manche mono : les DEUX camps sont NOMMÉS, avec leur Test', () => {
     seedBattleRng(4);
-    const [a] = makePregens().slice(0, 1) as [Combatant];
+    const [a] = makePregens(idNeufDeBanc).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a], journal: [] });
     get().playTavernGame({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const step = get().pendingCascade!.participants[0];
@@ -86,7 +87,7 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
    * régression que ce cas verrouille.
    */
   it('alternative AUTHORÉE : la fenêtre écrit « Force/Athlétisme », jamais la dérivation seule', () => {
-    const [a, b] = makePregens().slice(0, 2) as [Combatant, Combatant];
+    const [a, b] = makePregens(idNeufDeBanc).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
     const eff = findQualityById('destabilisante')!.effects![0];
     const choix = eff.flow;

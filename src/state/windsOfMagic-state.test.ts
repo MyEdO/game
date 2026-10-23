@@ -12,9 +12,10 @@ import { testScene } from '../scenes/test-fixture';
 import { pregen, PREGEN } from '../data/pregens';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function wizardWithSecondeVue(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: 'cieux', advances: 30 } as never); // domaine du sort de test (arc-de-t-essla)

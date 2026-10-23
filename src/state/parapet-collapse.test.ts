@@ -8,6 +8,7 @@ import { isWalkable, tileCollapsed, structureIsDown, type Scene } from '../noyau
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { testScene } from '../scenes/test-fixture';
 import { draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Effondrement de PASSERELLE (Lot B) : abattre une STRUCTURE de sol (herse) fait s'effondrer la passerelle
@@ -46,7 +47,7 @@ function sceneSurGouffre(): Scene {
 /** Lance un combat sur la scène à herse + passerelle, RNG seedé ; renvoie la structure enrôlée et les ennemis. */
 function start(scene: Scene = sceneWithParapet()) {
   useGame.getState().seedRng(1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');

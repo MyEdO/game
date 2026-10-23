@@ -7,6 +7,7 @@ import { trappings } from '../data';
 import type { Possession } from '../engine/possession';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Harnais MINIMAL (get/set) sur un état réduit à `party`+`possessions` — `resolveCarrier` (#620) lit
  *  les deux ; `choisirForme` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
@@ -28,7 +29,7 @@ function makeMulePossession(items: ItemInstance[]): Possession {
 
 /** Héros porteur d'une « Arme simple » ÉQUIPÉE (shape par défaut `epee`), loadout dérivé par recompute. */
 function heroWithArmeSimple(): Combatant {
-  const it = itemFromTrappingById('arme-simple')!;
+  const it = itemFromTrappingById('arme-simple', idNeufDeBanc)!;
   it.equipped = true;
   const hero = {
     id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
@@ -47,7 +48,7 @@ describe('choisirForme — sélecteur de forme d’une arme abstraite', () => {
     setDataset('trappings', trappings.map((t) => (t.id === 'arme-simple' ? { ...t, ...patch } : t)));
 
   it('une « Arme simple » créée via itemFromTrappingById ne porte aucun choix : sa forme résolue est celle du catalogue', () => {
-    const it = itemFromTrappingById('arme-simple')!;
+    const it = itemFromTrappingById('arme-simple', idNeufDeBanc)!;
     expect(it.formeChoisie).toBeUndefined();
     expect(formeResolue(it)).toBe('epee');
   });
@@ -167,7 +168,7 @@ describe('généralisation porteur (#620 SOCLE POSSESSIONS T1-e) — héros OU p
   it('toggleEquip(carrierId=hero.id) : comportement héros INCHANGÉ (arme équipée + recomputeLoadout)', () => {
     // Héros SANS loadout encore posé (`ensureDefaultLoadout` ne dérive qu'AU 1er recompute, LDB) : l'item
     // part non-équipé, aucun `weapons` actif tant que toggleEquip n'a pas tourné.
-    const it = itemFromTrappingById('arme-simple')!;
+    const it = itemFromTrappingById('arme-simple', idNeufDeBanc)!;
     it.equipped = false;
     const hero = {
       id: 'h1', name: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
@@ -265,7 +266,7 @@ describe('stowItem — ranger l’arme TENUE dans un sac', () => {
   it('l’épée rangée n’est plus en main, et les Mains nues la remplacent', () => {
     const hero = heroWithArmeSimple();
     const epee = hero.items![0];
-    const sac = { ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true };
+    const sac = { ...itemFromTrappingById('sac', idNeufDeBanc)!, uid: 'sac-1', equipped: true };
     hero.items!.push(sac);
     recomputeLoadout(hero);
     expect(activeWeapon(hero, epee.uid)).toBeDefined();
@@ -281,9 +282,9 @@ describe('stowItem — ranger l’arme TENUE dans un sac', () => {
 // Un objet mis en main sort de son contenant : l'arme achetée (rangée d'office, `autoStowNewItem`) se choisit au set.
 describe('setLoadoutSlot — une arme ACHETÉE, rangée dans un sac, choisie au set', () => {
   it('elle est en main, et n’est plus dans le sac', () => {
-    const base = { id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac')!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 } } as unknown as Combatant;
+    const base = { id: 'h1', label: 'Test', kind: 'hero', characteristics: { force: 30, endurance: 30 }, items: [{ ...itemFromTrappingById('sac', idNeufDeBanc)!, uid: 'sac-1', equipped: true }], weapons: [], talents: [], skills: [], traits: [], activeEffects: [], conditions: [], advantage: 0, wounds: { current: 10, max: 10 } } as unknown as Combatant;
     recomputeLoadout(base);
-    const hero = avecObjet(base, itemFromTrappingById('arme-simple')!);
+    const hero = avecObjet(base, itemFromTrappingById('arme-simple', idNeufDeBanc)!);
     const achat = hero.items!.find((i) => i.kind === 'melee')!;
     expect(achat.inside, 'rangée d’office à l’achat').toBe('sac-1');
     const { get, set } = makeHarness([hero]);

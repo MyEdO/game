@@ -37,6 +37,7 @@ import { gameOpSchema, CHAMPS_EXCLUS_DE_CARRIED } from '../data/schemas/grammair
 import { entree as spellEntreeSchema } from '../data/schemas/defs/spells';
 import type { Combatant, ActiveEffect } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const CHAMON = 'transmutation-de-chamon';
 const ETATS = ['aveugle', 'assourdi', 'sonne'] as const;
@@ -312,7 +313,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
 
   it('« carried » sans DURÉE de contexte ne pose RIEN, et le dit au journal', () => {
     const c = mk('hero', 'seul');
-    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { rng: deFixe(1) });
+    const lines = applyOps(c, [{ op: 'condition', id: 'sonne', carried: true }], { idNeuf: idNeufDeBanc, rng: deFixe(1) });
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
     expect(lines.join(' | ')).toContain('« carried » exige une source à DURÉE');

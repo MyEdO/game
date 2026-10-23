@@ -4,6 +4,7 @@ import { CharacterPreview } from './CharacterPreview';
 import type { Appearance } from '../engine/authoringAppearance';
 import { asRigSpeciesId } from '../gameIso/rig/appearance';
 import { pregen, PREGEN } from '../data/pregens';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.5, seed: 3 };
 
@@ -19,7 +20,7 @@ describe('CharacterPreview (rendu headless)', () => {
   });
 
   it("dérive apparence + équipement d'un héros : l'arme du pré-tiré influe sur le rendu", () => {
-    const hero = pregen(PREGEN.soldat);
+    const hero = pregen(idNeufDeBanc, PREGEN.soldat);
     expect(hero.weapons.length).toBeGreaterThan(0); // prérequis du test : le soldat est armé
     const armed = renderToStaticMarkup(<CharacterPreview hero={hero} />);
     expect(armed).toContain('data-bone="torse"');

@@ -5,13 +5,14 @@ import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import type { MerchantState } from '../noyau/merchantFlow';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Panier de VENTE (#22b) : parité avec l'achat, sans dupliquer la logique (prix via `sellGain`).
 describe('Panier de vente (#22b)', () => {
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const a = itemFromTrappingById('hallebarde')!;
-    const b = itemFromTrappingById('dague')!;
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const a = itemFromTrappingById('hallebarde', idNeufDeBanc)!;
+    const b = itemFromTrappingById('dague', idNeufDeBanc)!;
     hero.items = [a, b];
     const merchant: MerchantState = {
       entityId: 'm', archetype: 'armurier', settlement: 'ville', resaleRate: 0.5, stock: [], cart: [], bargainLocked: false,

@@ -11,6 +11,7 @@ import { PortraitTile } from './PortraitTile';
 import { DELAI_APPUI_LONG } from './useLongPress';
 import { createHero } from '../engine/character';
 import { t } from '../i18n';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -26,7 +27,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const gunnar = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+const gunnar = () => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
 function tuile(props: { onClick?: () => void; onInspect?: () => void; decoratif?: boolean }): HTMLElement {
   host = document.createElement('div');

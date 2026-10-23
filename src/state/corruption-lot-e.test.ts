@@ -11,10 +11,11 @@ import { PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52). */
 function hero(): Combatant {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: `pregen-${PREGEN.soldat}`, seed: PREGEN.soldat, talentsRolled: false });
+  return createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: `pregen-${PREGEN.soldat}`, seed: PREGEN.soldat, talentsRolled: false });
 }
 
 beforeEach(() => {

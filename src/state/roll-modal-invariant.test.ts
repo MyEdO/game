@@ -32,6 +32,7 @@ import { addCondition, COND } from '../engine/conditions';
 
 import { testScene } from '../scenes/test-fixture';
 import { resetCadence } from '../engine/cadence';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -156,7 +157,7 @@ describe('Surfaçage « remonte-à-un-humain » — statique au choke-point (a)'
 
 // ── Harness de combat (calqué sur round-upkeep-cascade / maneuver-defense-cascade) ───────────────
 function freshCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   set({ party: [hero] });
   get().startScene(testScene());
   get().startCombat('enc-mutants');
@@ -237,7 +238,7 @@ function behavioralFloor(): void {
   }
   // 7) Corruption au seuil (LDB 19 l.70) — gaté `tenuParUnHumain` (surface, cadence-agnostique, modale).
   {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'C', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'C', seed: 1 });
     hero.aiControlled = silence; // volet (d) : ré-silençage réel
     hero.characteristics.endurance = 1; hero.characteristics['force-mentale'] = 1; hero.corruption = 5; // seuil 0 → dépassé
     set({ party: [hero], battle: null, pendingCorruption: null, net: { ...get().net, gmSeat: undefined } });

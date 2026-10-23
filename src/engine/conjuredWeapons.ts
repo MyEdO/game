@@ -7,7 +7,7 @@
  * (= BFM…) et l'Atout Magique sont surchargés par le Sort.
  */
 import { Combatant, ItemInstance, QualityInstance } from './types';
-import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmedTrapping, isImprovisedTrapping, isShieldTrapping } from './items';
+import { recomputeLoadout, gabaritDObjet, ensureDefaultLoadout, newLoadoutId, isUnarmedTrapping, isImprovisedTrapping, isShieldTrapping } from './items';
 import { hasQuality } from './qualities/dispatch';
 import { trappingsInstanciables, byId } from '../data';
 
@@ -88,7 +88,7 @@ export function conjureFormOptions(caster: Pick<Combatant, 'skills'>): ConjureFo
   if (!groupAdv.size) groupAdv.set('base', 0); // mage sans Spé → armes de base
   const out: { weapon: string; group: string; adv: number }[] = [];
   for (const t of trappingsInstanciables()) {
-    const it = itemFromTrappingById(t.id);
+    const it = gabaritDObjet(t.id);
     if (it?.kind !== 'melee' || !it.subType || !isConjurableWeapon(it)) continue;
     // groupAdv est keyé par id de Groupe ; it.subType EST l'id de Groupe de l'arme → match direct.
     const adv = groupAdv.get(it.subType);

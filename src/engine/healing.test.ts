@@ -9,6 +9,7 @@ import { applyOps } from './ops';
 import { setRule, resetRule } from './policy';
 import { possesses } from './skills';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -45,17 +46,17 @@ describe('engine/healing — gate compétence & cibles', () => {
     it('défaut (désactivée) : un soin magique ne rend aucune Blessure à une Structure, mais à un Personnage', () => {
       const s = mur();
       expect(soinMagiqueOperant(s)).toBe(false);
-      applyOps(s, [{ op: 'heal', amount: 3 }], { rng: desDuTest });
+      applyOps(s, [{ op: 'heal', amount: 3 }], { idNeuf: idNeufDeBanc, rng: desDuTest });
       expect(s.wounds.current).toBe(5);
       const p = hero({ wounds: { current: 5, max: 12 } });
-      applyOps(p, [{ op: 'heal', amount: 3 }], { rng: desDuTest });
+      applyOps(p, [{ op: 'heal', amount: 3 }], { idNeuf: idNeufDeBanc, rng: desDuTest });
       expect(p.wounds.current).toBe(8);
     });
     it('activée : le soin magique rend ses Blessures à la Structure ; la Guérison reste sans effet', () => {
       setRule('structure-soin-magique', true);
       const s = mur();
       expect(soinMagiqueOperant(s)).toBe(true);
-      applyOps(s, [{ op: 'heal', amount: 3 }], { rng: desDuTest });
+      applyOps(s, [{ op: 'heal', amount: 3 }], { idNeuf: idNeufDeBanc, rng: desDuTest });
       expect(s.wounds.current).toBe(8);
       expect(isHealable(s)).toBe(false);
     });

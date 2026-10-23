@@ -12,6 +12,7 @@ import { createHero } from '../engine/character';
 import { buildScene } from '../noyau/mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * CADENCE DE VOYAGE (#232) — la couche PARTAGÉE mer ⇄ fluvial : ordres COMMANDÉE (routine auto-résolue,
@@ -34,7 +35,7 @@ const seaMap: WorldMap = {
 function freshSea() {
   seedBattleRng(1);
   useGame.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null,
     pendingCrewTest: null, pendingRest: null, pendingSteamSave: null,
@@ -204,7 +205,7 @@ function riverSkill(c: Combatant, skillId: string, advances: number, spec?: stri
 }
 
 function riverCrew(): Combatant[] {
-  const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+  const gunnar = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   riverSkill(gunnar, 'ramer', 50);
   riverSkill(gunnar, 'voile', 45);
   riverSkill(gunnar, 'metier', 40, 'Construction de bateaux');

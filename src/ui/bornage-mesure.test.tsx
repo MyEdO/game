@@ -23,6 +23,11 @@ import { combattantDeModale } from './combattantDeModale.testkit';
 import { poserFicheDeTest, restaurerFiche } from '../state/ficheDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { PendingBargain } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
+import { passagesDe } from '../lib/sonde';
+
+/** Les passages de la sonde `ANONYMES` au début du cas. */
+let anonymesAvant = 0;
 
 /**
  * Le bornage d'une cible se MESURE là où naît le `TestResult` (`evaluateTest`, `forcedTR`,
@@ -33,7 +38,7 @@ import type { PendingBargain } from '../noyau/pendings';
  */
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 let host: HTMLDivElement; let root: Root;
-beforeEach(() => { vi.useFakeTimers(); host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); ANONYMES.count = 0; });
+beforeEach(() => { vi.useFakeTimers(); host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); anonymesAvant = passagesDe(ANONYMES); });
 afterEach(() => {
   act(() => root.unmount()); host.remove(); restaurerFiche(); vi.clearAllTimers(); vi.useRealTimers();
   useGame.setState({ battle: null, pendingRun: null, pendingApproach: null, pendingWard: null, pendingCorruption: null, pendingStateRecovery: null, pendingBargain: null, pendingFall: null, pendingCascade: null, party: [], mode: 'exploration' } as never);
@@ -46,7 +51,7 @@ const calcul = () => host.querySelector('.rm-roll-block')?.querySelector('.rm-ro
 /** La ligne nomme l'écrêtage `sens` et rien n'y reste anonyme. */
 function nommeLEcretage(sens: 'plafond' | 'plancher', cible: number): void {
   expect(chips().filter((c) => c.endsWith(`${sens} ${cible}`)), chips().join(' | ')).toHaveLength(1);
-  expect(ANONYMES.count, chips().join(' | ')).toBe(0);
+  expect((passagesDe(ANONYMES) - anonymesAvant), chips().join(' | ')).toBe(0);
 }
 /** Le jet rangé porte la mesure de son constructeur : cible bornée, et sa cible brute retrouvée. */
 function porteLaMesure(jet: { target?: number; clamped?: number } | null | undefined, brute: number): void {
@@ -55,7 +60,7 @@ function porteLaMesure(jet: { target?: number; clamped?: number } | null | undef
 }
 
 function heroCoureur(): Combatant {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   hero.characteristics = { ...hero.characteristics, agilite: 95 };
   useGame.setState({ party: [hero] });
   g().startScene(testScene()); g().startCombat('enc-mutants'); g().confirmRoundStart(); vi.clearAllTimers();
@@ -131,7 +136,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     const pre = calcul();
     act(force);
     expect(calcul()).toBe(pre);
-    expect(ANONYMES.count, chips().join(' | ')).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant), chips().join(' | ')).toBe(0);
   }
 
   it('Bénédiction de Protection (Accessible, donnée réelle)', () => {
@@ -198,7 +203,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
   });
 
   it('Chute volontaire forcée AVANT le jet : la cible est bornée et mesurée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.characteristics = { ...hero.characteristics, agilite: 150 };
     const s = emptyScene('scene-test', 4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
@@ -216,7 +221,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
       const [ligne] = opposedLines([{ label: 'X', base: valeur, r: force }]);
       const h = document.createElement('div'); document.body.appendChild(h); const r = createRoot(h);
       act(() => r.render(createElement(RollLine, { d: ligne.d! })));
-      expect(ANONYMES.count, h.textContent ?? '').toBe(0);
+      expect((passagesDe(ANONYMES) - anonymesAvant), h.textContent ?? '').toBe(0);
       act(() => r.unmount()); h.remove();
     }
   });

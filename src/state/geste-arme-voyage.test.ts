@@ -27,12 +27,13 @@ import { runAction } from '../noyau/actionRegistry';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { chebyshev } from '../engine/grid';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = () => useGame.getState();
 
 /** Combat témoin : un héros au tour ENTIER, un ennemi placé à distance de Charge (hors d'Allonge). */
 function setup(opts: { peur?: boolean } = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   get().startScene(testScene());
   get().startCombat('enc-mutants');
@@ -284,6 +285,6 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
       useGame.getInitialState() as unknown as Record<string, unknown>,
       '2026-08-20T00:00:00.000Z',
     );
-    expect(snap.data.refus, 'un refus périmé part dans la sauvegarde').toBeNull();
+    expect('refus' in snap.data, 'un refus part dans la sauvegarde').toBe(false);
   });
 });

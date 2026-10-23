@@ -23,6 +23,7 @@ import { intentEluLocalement } from '../noyau/targetingModes';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import type { ActiveEffect } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = () => useGame.getState();
 
@@ -37,9 +38,9 @@ const arena = () => {
  * `controlsCombatant` ouvre le clic ici, et le refuserait sur le héros du voisin. Jamais un combat vide.
  */
 function table(mode: 'host' | 'guest', porteurs: Record<string, number>) {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const hero = makePregens(idNeufDeBanc)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
   hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
-  const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const ally = makePregens(idNeufDeBanc)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'capitaine-du-guet' }, 'e1', { x: 7, y: 6 });
   const e2 = spawnEnemy({ ref: 'capitaine-du-guet' }, 'e2', { x: 8, y: 6 });
   // Porteurs de Sorts à la forme RÉELLE d'un effet actif (`bonus`/`duration` REQUIS,

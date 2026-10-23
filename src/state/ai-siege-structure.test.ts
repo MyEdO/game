@@ -8,6 +8,7 @@ import { findStructureById } from '../data';
 import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * SIÈGE-B — l'IA ennemie prend les STRUCTURES (porte/mur) pour cible avec ses armes de siège (AA 10 l.138 :
@@ -42,7 +43,7 @@ const mkGate = (): Combatant => {
  *  = 72 m, dans la bande Longue de la portée 50 m. Un héros est tapi DERRIÈRE le mur (cour) → hors LdV. */
 const mkGunner = (): Combatant => {
   const g = mkActor('gunner', 'enemy', { x: 14, y: 2 });
-  g.postes = [{ item: itemFromTrappingById('canon-petit')!, crewIds: ['gunner'] } as ShipPoste];
+  g.postes = [{ item: itemFromTrappingById('canon-petit', idNeufDeBanc)!, crewIds: ['gunner'] } as ShipPoste];
   applyShipPostes([g]); // sert le canon au chef → g.weapons porte la pièce dérivée (ranged, Atout Siège)
   return g;
 };

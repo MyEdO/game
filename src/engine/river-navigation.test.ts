@@ -13,6 +13,7 @@ import {
 import { rollShipCritical } from './shipCritical';
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
 import { deMax, deMin } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * NAVIGATION FLUVIALE — couche PURE de MSRC 7 (« Navigation fluviale »). Tables VERBATIM du chapitre,
@@ -51,7 +52,7 @@ describe('Table des vents (MSRC 7 l.21-33)', () => {
 
 describe('Navigation & rame (l.11-17)', () => {
   it('Savoir (Voies fluviales) → +1 DR si la Compétence est ACQUISE (avances > 0), sinon 0 (l.13)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'B', motivation: 'x', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'B', motivation: 'x', seed: 1 });
     expect(savoirVoiesFluvialesBonus(h)).toBe(0);
     h.skills.push({ id: 'savoir', spec: 'voies-fluviales', characteristic: 'intelligence', advances: 10 });
     expect(savoirVoiesFluvialesBonus(h)).toBe(1);

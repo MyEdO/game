@@ -22,7 +22,7 @@ import { hasActiveCapability } from './disease';
 
 /** Lecture par-OBJET (catalogue, NON gatée) : cet objet porte-t-il la capacité `cap` ? Lue PAR ID dans
  *  `TrappingData.capabilities` — un objet custom (sans `trappingId`) n'a aucune capacité. */
-export function itemCapability(it: ItemInstance, cap: keyof ItemCapabilities): boolean {
+export function itemCapability(it: Pick<ItemInstance, 'trappingId'>, cap: keyof ItemCapabilities): boolean {
   return !!(it.trappingId && findTrappingById(it.trappingId)?.capabilities?.[cap]);
 }
 

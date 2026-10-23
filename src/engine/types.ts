@@ -844,8 +844,9 @@ export interface ActiveEffect {
   conjuredSet?: { itemUid: string; loadoutId: string; restoreLoadoutId?: string };
   /** Arme NATURELLE accordée par un Sort (Dent et griffe : Morsure/Arme ; Incarnation de Wyssan) —
    *  attaque ADDITIONNELLE injectée dans `c.weapons` par recomputeLoadout (même patron que Tentacule/
-   *  Cornes), retirée à l'expiration. Dégâts SB-relatifs (« +BF+N ») et Atouts portés par l'arme. */
-  naturalWeapon?: Weapon;
+   *  Cornes), retirée à l'expiration. Dégâts SB-relatifs (« +BF+N ») et Atouts portés par l'arme. Son `uid` naît
+   *  avec l'effet : deux armes accordées restent distinctes quand l'une expire. */
+  naturalWeapon?: Weapon & { uid: string };
   /** Talent ACCORDÉ TEMPORAIREMENT par cet effet (op `grantTalent` à durée — Flambeau de Vertu : Sans
    *  peur…) : réf par `talentId` STABLE (+ `spec` éventuel), lu tant que l'effet dure par
    *  `combatFeatures/dispatch.featuresOf` (capacités de combat) et par `effectGrantedTalents` →

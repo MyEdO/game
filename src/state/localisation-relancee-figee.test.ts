@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { resetRule, setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, HitLocation, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** La Localisation relancée se décide une fois par jet : LDB 18 l.53, l.55 ; LDB 17 l.68 ; LDB 23 l.209 ; AA 07 l.25, l.32 ; #1595. */
 
@@ -51,7 +52,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
 
   /** Le héros force sa touche sur une cible déjà à 0, puis choisit une Localisation autre que celle tirée. */
   function forceEtChoisit(): HitLocation {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

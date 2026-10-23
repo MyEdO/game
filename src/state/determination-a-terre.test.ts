@@ -15,10 +15,11 @@ import { hasCondition, raisonRefusDetermination, ACTE_DE_DEVERROUILLAGE } from '
 import { findConditionById } from '../data/index';
 import { t } from '../i18n';
 import type { Combatant, ConditionInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Héros ACTIF, À Terre, à `pb` Blessures et `resolve` points de Détermination. */
 function setup(pb: number, resolve: number, inst: Partial<ConditionInstance> = {}) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

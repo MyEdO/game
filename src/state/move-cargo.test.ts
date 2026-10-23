@@ -6,6 +6,7 @@ import { carrierById, persistCarriersCargo } from '../noyau/carriers';
 import type { WorldMap } from '../noyau/worldMap';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #327 lot C — transfert de cargaison entre porteurs CO-LOCALISÉS (`moveCargo` → `transferCargo` du tronc).
@@ -19,7 +20,7 @@ const get = useGame.getState.bind(useGame);
 const map: WorldMap = { id: 'm', label: 'x', places: [{ id: 'P', label: 'Halte', pos: { x: 0, y: 0 }, scene: 'halte' }], routes: [] };
 
 function setup(muleCargo: CargoLot[], cartCargo: CargoLot[]) {
-  const party = makePregens().slice(0, 1);
+  const party = makePregens(idNeufDeBanc).slice(0, 1);
   const ownerId = party[0].id;
   const possessions: Possession[] = [
     { uid: 'mule', ownerId, nature: 'bete', ref: { creatureId: 'mule' }, location: { kind: 'avec-le-groupe' }, items: [], cargo: muleCargo }, // encPortee 14

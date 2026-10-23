@@ -19,6 +19,7 @@ import { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Storage isolé pour chaque fixture. */
 function fakeStorage(): Storage {
@@ -36,7 +37,7 @@ function fakeStorage(): Storage {
 }
 
 function savedHero(): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
+  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idNeufDeBanc)[0]));
   h.id = 'roster-test-1';
   h.label = 'Aventurière Sauvegardée';
   return h;
@@ -300,7 +301,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
     );
 
   it('siège occupé : contrat scellé — portrait + nom + rôle + cartouche « Contrat N » + sceau, personnage cliquable', () => {
-    const heroes = makePregens().slice(0, 2);
+    const heroes = makePregens(idNeufDeBanc).slice(0, 2);
     const html = render(heroes, initialNet());
     expect(html).toContain('seat-card');
     expect(html).toContain('seat-card-contract');
@@ -334,7 +335,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
   });
 
   it('groupe complet : 4 cartes de siège, aucun siège vide, aucune galerie', () => {
-    const heroes = makePregens().slice(0, 4);
+    const heroes = makePregens(idNeufDeBanc).slice(0, 4);
     const full = render(heroes, initialNet());
     expect((full.match(/seat-card-contract/g) ?? []).length).toBe(4);
     for (const h of heroes) expect(full).toContain(h.label);
@@ -343,7 +344,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
   });
 
   it('sous-titre d’archétype : la CARRIÈRE d’abord, l’espèce ensuite (arbitrage user 2026-07-13)', () => {
-    const hero = makePregens()[0];
+    const hero = makePregens(idNeufDeBanc)[0];
     const sub = heroSubtitle(hero);
     expect(sub).toContain(' — '); // « Carrière — Espèce »
     // la carrière précède l'espèce (séparateur em-dash entre les deux)
@@ -449,7 +450,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
 
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: makePregens().slice(0, 1), net: initialNet() });
+    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: makePregens(idNeufDeBanc).slice(0, 1), net: initialNet() });
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);

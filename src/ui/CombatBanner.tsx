@@ -35,7 +35,7 @@ export function CombatBanner() {
     : aim ? narrateIntent(aim, battle.combatants)
     : combatFeed(battle.log, battle.combatants, 1)[0];
   const key = !line ? null
-    : refus ? `refus-${refus.nonce}`
+    : refus ? refus.nonce
     : aim ? `aim-${aim.fromId}-${aim.toId}-${aim.kind}`
     : line.raw;
 

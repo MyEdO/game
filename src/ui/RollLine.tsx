@@ -13,6 +13,7 @@ import { actorIn } from '../noyau/monde/combatants';
 import type { RollLabelRef } from '../noyau/rollSeam';
 import { useGame, type GameState } from '../state/store';
 import { t } from '../i18n';
+import { sonde } from '../lib/sonde';
 
 /** Valeur de la Difficulté déjà comprise dans le modificateur de la ligne — elle est EXPLIQUÉE par le
  *  texte de la ligne, donc retirée de ce que les chips ont à réconcilier (#1072). Hors des crans de
@@ -111,7 +112,7 @@ function reconciled(mods: ModLine[], modifier: number, target: number, clamped?:
   // modificateur jamais nommé). En DEV le fait se journalise à l'écran où il se produit — le compte
   // sert de sonde au cliquet « zéro chip anonyme » (#1153) ; en PROD, rien à dire au joueur.
   if (rest && import.meta.env?.DEV) {
-    ANONYMES.count += 1;
+    ANONYMES.passer();
     console.error(`[RollLine] chip « autres » (${rest}) : la ligne ne s'explique pas — itemiser la source à l'ÉMISSION (rollSeam.rollLine).`);
   }
   // Les deux lignes ci-dessous sont des artefacts de réconciliation d'AFFICHAGE, jamais lus par
@@ -124,9 +125,9 @@ function reconciled(mods: ModLine[], modifier: number, target: number, clamped?:
   ];
 }
 
-/** COMPTEUR DEV des chips « autres » réellement rendues (#1153) — sonde partagée : un écran de recette
- *  ou un test peut lire `ANONYMES.count` pour prouver qu'aucune ligne n'a rien à cacher. Inerte en PROD. */
-export const ANONYMES = { count: 0 };
+/** SONDE DEV des chips « autres » réellement rendues (#1153, `src/lib/sonde.ts`) : un test lit
+ *  `passagesDe(ANONYMES)` pour prouver qu'aucune ligne n'a rien à cacher. Inerte en PROD. */
+export const ANONYMES = sonde();
 
 /**
  * Nom d'AFFICHAGE d'une provenance — COUTURE UNIQUE de la résolution id→nom (#1078).

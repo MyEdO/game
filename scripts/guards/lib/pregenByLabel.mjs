@@ -1,7 +1,7 @@
 // Mécanique de scan du garde-fou « prégénéré retrouvé PAR LABEL » (#322) : un test qui recherche
 // un `PregenDef` (`src/data/pregens.json`) via `.find(… => x.name === 'Wilhelmina Faust')` ou
 // `.name.startsWith('Klein')` réinvente une résolution par AFFICHAGE (fragile au renommage) au lieu
-// de `pregen(PREGEN.<clé>)` / `pregenParty(...)` (`src/data/pregens.ts`), la SOURCE UNIQUE d'un
+// de `pregen(idNeuf, PREGEN.<clé>)` / `pregenParty(idNeuf, ...)` (`src/data/pregens.ts`), la SOURCE UNIQUE d'un
 // prégénéré par id STABLE. Module ESM pur, exécutable par `node` nu — consommé par
 // `src/data/pregen-by-label-guard.test.ts`. Même patron que
 // `hardcode.mjs`/`inBattleFind.mjs` (mécanique de détection ici, policy dans le test).

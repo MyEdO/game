@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ItemInstance, Weapon } from '../engine/types';
-import { isCapeItem, isShieldItem } from '../engine/items';
+import type { Weapon } from '../engine/types';
+import { isCapeItem, isShieldItem, type GabaritDObjet } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { armeDeDessin, armourPart, bouclierDeDessin, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { viewOrFront } from '../gameIso/rig/parts/types';
@@ -30,11 +30,11 @@ const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
 
 /** Arme minimale pour le routage d'art à partir d'un objet : ce dont sa forme se résout (`trappingId`,
  *  `form`, `formeChoisie`, cf. `formeResolue`), `skin` et `subType` — la MÊME forme que le pion. */
-function asWeapon(item: ItemInstance): Weapon {
+function asWeapon(item: GabaritDObjet): Weapon {
   return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, formeChoisie: item.formeChoisie, trappingId: item.trappingId, subType: item.subType };
 }
 
-function resolve(item: ItemInstance | Weapon): Resolved {
+function resolve(item: GabaritDObjet | Weapon): Resolved {
   if ('kind' in item) {
     if (item.kind === 'armor') {
       for (const slot of ARMOUR_SLOTS) {
@@ -77,7 +77,7 @@ const ROTATE = -40; // arme en diagonale (look inventaire) ; boucliers/armures r
 const VB_CACHE = new Map<string, string>();
 const cacheKey = (art: string, rotate: boolean) => (rotate ? 'r:' : 'n:') + art;
 
-export function ItemIcon({ item, size = 'sm' }: { item: ItemInstance | Weapon; size?: number | SizeKey }) {
+export function ItemIcon({ item, size = 'sm' }: { item: GabaritDObjet | Weapon; size?: number | SizeKey }) {
   useVersionDesDatasets();
   const r = resolve(item);
   const px = typeof size === 'number' ? size : SIZE_PX[size];

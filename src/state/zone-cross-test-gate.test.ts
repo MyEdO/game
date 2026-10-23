@@ -16,6 +16,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { hasCondition, COND, stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const CROSS_TEST_ZONE: BattleZone = {
   // `source` = l'ENTITÉ qui a posé la zone, comme `placeZoneFromOp` la pose en production (#1262 V2
@@ -37,7 +38,7 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(heroTalents: Combatant['talents'] = []) {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const H = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     H.talents = [...H.talents, ...heroTalents];
     useGame.setState({ party: [H] });
     useGame.getState().startScene(testScene());

@@ -11,6 +11,7 @@ import { weaponsFromTraits } from './creatureEquip';
 import { attaqueNaturelle } from './creatureAttacks';
 import { findCreatureById } from '../data';
 import type { Combatant, Weapon } from './types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const attacker = (size?: Combatant['size']): Combatant => ({ advantage: 0, conditions: [], skills: [], size } as unknown as Combatant);
 const weapon = (sizeFor?: Weapon['sizeFor']): Weapon => ({ name: 'Massue', type: 'melee', hands: 1, qualities: [], sizeFor }) as unknown as Weapon;
@@ -32,7 +33,7 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
     expect(mods.find((m) => m.label === 'Possession pas à sa taille')?.value).toBe(-20);
   });
   it("catalogue ogre réel (`massue-ogre`) : un ogre la manie SANS −20, une créature Moyenne SUBIT −20 (ADE II 2 l.604 : « pratiquement inutilisables entre les mains des créatures de Taille Moyenne »)", () => {
-    const massue = itemFromTrappingById('massue-ogre')! as unknown as Weapon;
+    const massue = itemFromTrappingById('massue-ogre', idNeufDeBanc)! as unknown as Weapon;
     expect(attackModifiers(attacker('grande'), null, massue, { kind: 'melee' }).find((m) => m.label === 'Possession pas à sa taille')).toBeUndefined();
     expect(attackModifiers(attacker('moyenne'), null, massue, { kind: 'melee' }).find((m) => m.label === 'Possession pas à sa taille')?.value).toBe(-20);
   });
@@ -68,7 +69,7 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
   });
 
   it("l'ogre avec une épée du CATALOGUE (sans `sizeFor`) garde son −20 (objet manufacturé, pas une arme naturelle/sizeless)", () => {
-    const epee = itemFromTrappingById('dague')! as unknown as Weapon;
+    const epee = itemFromTrappingById('dague', idNeufDeBanc)! as unknown as Weapon;
     expect(epee.natural).toBeUndefined();
     expect(epee.sizeless).toBeUndefined();
     const mods = attackModifiers(attacker('grande'), null, epee, { kind: 'melee' });

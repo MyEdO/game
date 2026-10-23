@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Règle optionnelle « Relancer l'Initiative chaque Round » — LDB 13 l.43 :
@@ -19,7 +20,7 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-init-reroll'); resetRule('combat-init-method'); });
 
   function openCombat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     seedBattleRng(777);

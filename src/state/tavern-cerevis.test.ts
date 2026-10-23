@@ -32,6 +32,7 @@ import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernComb
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
@@ -41,7 +42,7 @@ const CEREVIS = findTavernGameById('cerevis')!;
 const OPPONENT = 40;
 
 function seul(): Combatant {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idNeufDeBanc)[0] as Combatant;
   useGame.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -134,7 +135,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
   });
 
   it('héros CONTRE héros : CHAQUE rangée de la bande porte SA seconde lecture', () => {
-    const [a, b] = makePregens() as Combatant[];
+    const [a, b] = makePregens(idNeufDeBanc) as Combatant[];
     useGame.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().playTavernGame({ gameId: 'cerevis', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
     const bande = get().pendingCascade!.participants[0];

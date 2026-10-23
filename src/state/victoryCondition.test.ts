@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { structureIsDown, structureDownKey } from '../noyau/monde/scene';
 import type { Scene } from '../noyau/monde/scene';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * OBJECTIF de victoire authorable (#197) — `checkBattleOver` ne se rabat plus systématiquement sur
@@ -27,7 +28,7 @@ function drainCombatEndCascade(): void {
 }
 
 function startFixtureCombat(scene: Scene = testScene()) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');

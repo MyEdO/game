@@ -6,6 +6,7 @@ import { povStepDest } from '../noyau/monde/exploreNav';
 import { useGame } from './store';
 import { capDuGroupe, poserCapDuGroupe } from '../noyau/monde/combatants';
 import { createHero } from '../engine/character';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * POV (vue subjective) — MOVEMENT + STATE. `povStepDest` réutilise la connectivité 8-connexe UNIQUE
@@ -44,7 +45,7 @@ describe('povStepDest — cap MONDE → surface voisine connectée', () => {
 describe('store — actions POV (pivotParty / stepPartyRelative)', () => {
   /** Groupe minimal + scène ouverte, meneur posé au centre, mode exploration. */
   function setup(facing: Dir8 = 'S') {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({
       screen: 'campaign',
       party: [hero],

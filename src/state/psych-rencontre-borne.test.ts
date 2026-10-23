@@ -19,6 +19,7 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { Scene, SceneEntity } from '../noyau/monde/scene';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function ent(over: Partial<SceneEntity> & Pick<SceneEntity, 'id'>): SceneEntity {
   return { kind: 'personnage', pos: { x: 1, y: 1 }, ...over } as SceneEntity;
@@ -33,7 +34,7 @@ const ARAI = (id: string) => ent({ id, statblock: { label: 'Araignée', char: { 
 
 /** Héros au Calme plancher (FM 1, aucune avance) : son Test de rencontre échoue de façon déterministe. */
 function phobique(label = 'H') {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 1 });
   h.characteristics['force-mentale'] = 1;
   h.skills = [];
   h.psychTraits = [{ type: 'phobie', cible: 'araignees', indice: 1 }];
@@ -112,7 +113,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
    *  Test gagné (+1 DR non dû à chaque attaque, immunité non due, bande re-proposée chaque Round). */
   it('Test d’Amour RÉUSSI + aimé présent : `active` RESTE false, aucun DR', () => {
     const h = C({ id: 'h', psychTraits: [{ type: 'amour', cible: 'famille' }] });
-    applyOps(h, psychBranchOps({ kind: 'amour', cible: 'famille', sourceId: 'fam', indice: 0 }, { success: true }), { rng: desDuTest });
+    applyOps(h, psychBranchOps({ kind: 'amour', cible: 'famille', sourceId: 'fam', indice: 0 }, { success: true }), { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(h.psychState).toEqual([expect.objectContaining({ type: 'amour', cible: 'famille', active: false })]);
 
     const aime = C({ id: 'fam', groups: ['famille'] });
@@ -128,7 +129,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   it('VIGILANCE — une pose AUTHORÉE d’Amour survit à la borne, et le refresh l’éteint hors combat', () => {
     const h = phobique();
     h.psychTraits = [{ type: 'amour', cible: 'famille' }];
-    applyOps(h as unknown as Combatant, [{ op: 'beginPsych', type: 'amour', cible: 'famille', active: true }], { rng: desDuTest });
+    applyOps(h as unknown as Combatant, [{ op: 'beginPsych', type: 'amour', cible: 'famille', active: true }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(h.psychState, 'pose authorée : aucun `fromTest`').toEqual([{ type: 'amour', cible: 'famille', active: true }]);
 
     useGame.setState({ party: [h] });

@@ -7,6 +7,7 @@ import { buildEncounter } from '../noyau/monde/encounterAuthoring';
 import { validateScene } from '../noyau/validateScene';
 import type { Scene } from '../noyau/monde/scene';
 import type { Possession } from '../engine/possession';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #621 — la monture de COMBAT du héros (`heroCombatMount`) accepte un cavalier si elle n'est PAS
@@ -16,7 +17,7 @@ import type { Possession } from '../engine/possession';
  */
 
 function makeHero() {
-  return createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  return createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 }
 
 function startFixtureCombat(hero: ReturnType<typeof makeHero>, possessions: Possession[]) {

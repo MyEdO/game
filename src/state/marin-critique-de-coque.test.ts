@@ -13,6 +13,7 @@ import { findSpell } from '../data';
 import { hasCondition, COND } from '../engine/conditions';
 import { draineCascade } from './cascade.testkit';
 import { makeRNG } from '../engine/dice';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Critique de coque à l'Équipage : le marin encaisse LE coup qui porte le Critique, calculé contre LUI
@@ -138,7 +139,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
 
   it('héros marin tué par le Critique : le Destin est proposé (LDB 17 l.29)', () => {
     const ogre = perso('ogre', { size: 'enorme' as Combatant['size'] });
-    const marin = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marin', seed: 1 });
+    const marin = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marin', seed: 1 });
     marin.id = 'marin';
     marin.pos = { x: 6, y: 5 };
     marin.fate = 2;

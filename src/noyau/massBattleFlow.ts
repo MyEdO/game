@@ -44,6 +44,7 @@ import {
 } from '../engine/massBattle';
 import { t } from '../i18n';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { idNeuf } from './plateforme';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -82,7 +83,7 @@ function makeArmy(name: string, startMight: number): MassBattleArmy {
 function armyWithMightDelta(a: MassBattleArmy, delta: number): MassBattleArmy {
   if (delta === 0) return a;
   const combatant = cloneArmyCombatant(a.combatant);
-  applyOps(combatant, [delta > 0 ? { op: 'heal', amount: delta } : { op: 'wounds', amount: -delta }], { rng: battleRng() });
+  applyOps(combatant, [delta > 0 ? { op: 'heal', amount: delta } : { op: 'wounds', amount: -delta }], { idNeuf, rng: battleRng() });
   return { ...a, combatant };
 }
 
@@ -792,7 +793,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
       if (heal > 0) {
         // HÉROS (pas la coque) : `applyOps` direct sur un clone, comme `armyWithMightDelta` ci-dessus.
         const healed = { ...hero, wounds: { ...hero.wounds } };
-        applyOps(healed, [{ op: 'heal', amount: heal }], { rng: battleRng() });
+        applyOps(healed, [{ op: 'heal', amount: heal }], { idNeuf, rng: battleRng() });
         set((s) => ecrireActeur(s, hero.id, (h) => ({ ...h, wounds: { ...healed.wounds } })));
         lines.push(t('mbf.rallyHeal', { name: hero.label, heal, dr: pa.sl, be }));
       } else {

@@ -6,6 +6,7 @@ import type { Jeu } from './etat';
 import type { Combatant } from '../engine/types';
 import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const c = (id: string): Combatant => ({ id, name: id } as unknown as Combatant);
 const state = (over: Partial<Jeu>): Jeu => ({ party: [], battle: null, ...over } as unknown as Jeu);
@@ -36,8 +37,8 @@ describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () 
   describe('combatantClickActs : décideur PARTAGÉ carte ⇄ frise/curseur — DÉRIVÉ du mode courant', () => {
     beforeEach(() => { useGame.setState({ battle: null, party: [], inspectId: null }); });
     function combat(over: Record<string, unknown> = {}) {
-      const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-      const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+      const hero = makePregens(idNeufDeBanc)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+      const ally = makePregens(idNeufDeBanc)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
       const enemy = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 7, y: 6 }); // adjacent au héros
       const battle = {
         combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

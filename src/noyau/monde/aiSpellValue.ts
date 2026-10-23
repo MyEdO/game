@@ -24,6 +24,7 @@ import { groupMatch } from '../../engine/groups';
 import { spellOps } from '../../engine/flowCore';
 import { type SpellData, findConditionById } from '../../data';
 import { RefIrresoluble, spawnEnemy } from './spawn';
+import { nextEntityId, type FabriqueDId } from '../../lib/entityId';
 
 /** DR moyen prudent injecté dans l'espérance d'une touche (l'espérance d'un DR ≥ 0 sur une réussite). */
 const AVG_DR = 1;
@@ -178,11 +179,22 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
   return best;
 }
 
+/** La fabrique d'ids d'un CLONE évalué : un lecteur ne consomme aucun id de la partie. Ses ids ne quittent pas
+ *  l'évaluation et ne croisent aucun uid du clone (`nextEntityId`). */
+function fabriqueDuClone(clone: Combatant): FabriqueDId {
+  const pris = new Set([...(clone.items ?? []).map((i) => i.uid), ...(clone.weapons ?? []).flatMap((w) => (w.uid == null ? [] : [w.uid]))]);
+  return (genre) => {
+    const id = nextEntityId(genre, pris);
+    pris.add(id);
+    return id;
+  };
+}
+
 /** Clone PROFOND de `c` avec `op` appliquée (charMod/augment/octroi…) — déterministe (RNG semé à neuf,
  *  `GRAINE_DU_CLONE`). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
 function applyOpClone(c: Combatant, op: GameOp): Combatant {
   const clone = structuredClone(c);
-  applyOps(clone, [op], { caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
+  applyOps(clone, [op], { idNeuf: fabriqueDuClone(clone), caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
   return clone;
 }
 

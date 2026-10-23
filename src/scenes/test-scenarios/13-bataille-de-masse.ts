@@ -2,6 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Bataille de masse » (ADE II 08, Le théâtre de la guerre) : vitrine du sous-système de Puissance de
@@ -93,7 +94,7 @@ export const scenario: TestScenario = {
   // UNIQUE dans lequel puise la préparation de bataille (ADE II 8 l.65). Sans lui : Round 1 direct.
   interludeWeeks: 3,
   construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
     scene: construireScene(),
     massBattle: {
       enemyName: 'Horde ennemie',

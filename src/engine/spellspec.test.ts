@@ -11,6 +11,7 @@ import { spells, findSpellById, type SpellData } from '../data';
 import { spellOps } from './flowCore';
 import { spellSupportOf } from './spellspec';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -27,7 +28,7 @@ function hero(p: Partial<Combatant> = {}): Combatant {
  *  résolue contre le lanceur). La durée et les effets vivent désormais sur SpellData (données JSON). */
 function castVia(spell: SpellData, caster: Combatant, target: Combatant): string[] {
   const rounds = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, desDuTest) : null;
-  return applyOps(target, spellOps(spell.effects, 'target'), { rng: desDuTest, caster, label: spell.label, ...(rounds != null ? { defaultDurationRounds: rounds } : {}) });
+  return applyOps(target, spellOps(spell.effects, 'target'), { idNeuf: idNeufDeBanc, rng: desDuTest, caster, label: spell.label, ...(rounds != null ? { defaultDurationRounds: rounds } : {}) });
 }
 
 describe('specs curées — résolution', () => {

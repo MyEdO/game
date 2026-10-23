@@ -14,6 +14,7 @@ import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool } from './characteristics';
 import { d100, RNG } from './dice';
+import type { FabriqueDId } from '../lib/entityId';
 import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
@@ -774,7 +775,7 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG, emit?: ConditionEmit): string[] {
+export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, emit?: ConditionEmit): string[] {
   const log: string[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
@@ -802,7 +803,7 @@ export function endOfRound(c: Combatant, rng: RNG, emit?: ConditionEmit): string
     // L'ancrage du re-jeu est celui MEMORISE sur l'effet a sa pose (`applyOps` l'y stampe) : il se relaie,
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
-      label: e.label, rng, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
+      label: e.label, rng, idNeuf, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId, onCondition: emit,
       rejeuRecurrent: true, // SEUL site qui pose le drapeau : ce qui suit est une RE-pose (`LDB 16 l.117`)
     }).forEach((l) => log.push(l));
   }

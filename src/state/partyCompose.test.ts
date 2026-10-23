@@ -11,9 +11,10 @@ import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { withActingSeat } from '../noyau/netOwnership';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(id: string): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens()[0]));
+  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idNeufDeBanc)[0]));
   h.id = id;
   h.label = `Héros ${id}`;
   return h;
@@ -38,13 +39,15 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(toBrass(bourseOf(s.party[0]))).toBe(toBrass({ gold: 1, silver: 2, brass: 3 }));
   });
 
-  it('partyAddHero : refuse les doublons d’id et le groupe plein', () => {
+  it('partyAddHero : refuse les doublons d’id et le groupe plein, en le disant', () => {
     const st = useGame.getState();
     st.partyAddHero(hero('a'));
     st.partyAddHero(hero('a'));
     expect(useGame.getState().party).toHaveLength(1);
+    expect(useGame.getState().journal).toContain('Héros a est déjà dans le groupe.');
     for (const id of ['b', 'c', 'd', 'e']) useGame.getState().partyAddHero(hero(id));
     expect(useGame.getState().party).toHaveLength(4); // 'e' refusé
+    expect(useGame.getState().journal).toContain('Groupe complet — retirez un aventurier pour en recruter un autre.');
   });
 
   it('partyAddHero : respecte le quota d’emplacements du siège (hôte autoritaire)', () => {
@@ -54,6 +57,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     withActingSeat(1, () => st.partyAddHero(hero('g2'))); // 1 seul slot au siège 1 → refusé
     const s = useGame.getState();
     expect(s.party.map((h) => h.id)).toEqual(['g1']);
+    expect(s.journal).toContain('Vos emplacements du groupe sont tous pris.');
     expect(s.net.ownership['g1']).toBe(1);
   });
 

@@ -7,6 +7,7 @@ import { creatures, findCreatureById, findTraitById } from '../data';
 import { hasTraitKey } from './traits/dispatch';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Forme bestiale (LDB 48) : métamorphose en une Bête du Reikland — F/E/Ag/Dex remplacées + Traits
@@ -25,7 +26,7 @@ describe('polymorphOps — Forme bestiale (Ours)', () => {
   it('remplace F/E/Ag/Dex par celles de l’Ours et accorde ses Traits (sauf Bestial)', () => {
     const ours = findCreatureById('ours')!;
     const c = dummy({});
-    applyOps(c, polymorphOps(c, 'ours'), { rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 3 });
+    applyOps(c, polymorphOps(c, 'ours'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 3 });
     expect(effectiveChar(c, 'force')).toBe(ours.char.force); // 55
     expect(effectiveChar(c, 'endurance')).toBe(ours.char.endurance); // 45
     expect(effectiveChar(c, 'agilite')).toBe(ours.char.agilite); // 25
@@ -35,8 +36,8 @@ describe('polymorphOps — Forme bestiale (Ours)', () => {
 
   it('reprend sa vraie forme à l’expiration (Caractéristiques restaurées, Traits retirés)', () => {
     const c = dummy({});
-    applyOps(c, polymorphOps(c, 'Ours'), { rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 1 });
-    endOfRound(c, desDuTest); // 1 Round écoulé → l'effet expire
+    applyOps(c, polymorphOps(c, 'Ours'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Forme bestiale', defaultDurationRounds: 1 });
+    endOfRound(c, desDuTest, idNeufDeBanc); // 1 Round écoulé → l'effet expire
     expect(effectiveChar(c, 'force')).toBe(30); // base restaurée
     expect(effectiveChar(c, 'agilite')).toBe(40);
     expect(hasTraitKey(c.traits, 'morsure')).toBe(false); // Trait retiré

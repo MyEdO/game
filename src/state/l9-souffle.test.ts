@@ -12,6 +12,7 @@ import { createHero } from '../engine/character';
 import { findSpell } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const okRes = (sl: number): CastResult => ({ cast: true, roll: 30, target: 70, sl, isCritical: false, isFumble: false, log: 'lance Souffle' });
 
@@ -20,7 +21,7 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     useGame.setState({ party: [W] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

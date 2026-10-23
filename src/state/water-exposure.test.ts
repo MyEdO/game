@@ -16,11 +16,12 @@ import { type RNG } from '../engine/dice';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import { desEnSuite } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const seq = (vals: number[]): RNG => desEnSuite(vals, { ensuite: vals[vals.length - 1] });
 
 function hero(name: string, over: Partial<Combatant> = {}): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 17 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 17 });
   return { ...h, id: name, ...over } as Combatant;
 }
 

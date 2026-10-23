@@ -22,6 +22,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { cheminsProseNommee } from '../../../scripts/guards/lib/proseNommee.mjs';
 import { detenteur } from '../../detenteur.testkit';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 interface Rangee {
   cat: string;
@@ -59,7 +60,7 @@ const RANGEES: Rangee[] = (() => {
   }
   // Statbloc d'inspection : rendu SANS entrée (un combattant n'est pas une entrée de dataset).
   for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-    const c = pregen(PREGEN[key]);
+    const c = pregen(idNeufDeBanc, PREGEN[key]);
     for (const s of combatantSections(c)) balaye(s.rows, 'combattant', String(key), s.title, undefined, acc);
   }
   return acc;

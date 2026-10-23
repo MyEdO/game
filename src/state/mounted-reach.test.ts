@@ -13,9 +13,10 @@ import { mountUp } from '../noyau/mount';
 import { attackPlan, previewAttack, resolveAttack } from '../noyau/combatFlow';
 import { combatDistance } from '../noyau/monde/footprint';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup() {
-  const hero = makePregens()[0];
+  const hero = makePregens(idNeufDeBanc)[0];
   hero.weapons = [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never; // Allonge 1
   const mount = spawnEnemy({ ref: 'cheval' }, 'mount-1', { x: 11, y: 9 });
   mount.size = 'grande'; // empreinte 2×2 → couvre (11,9)(12,9)(11,10)(12,10)

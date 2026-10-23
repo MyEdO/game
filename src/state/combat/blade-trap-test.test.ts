@@ -14,6 +14,7 @@ import { testScene } from '../../scenes/test-fixture';
 import type { PendingBladeTrap } from '../../noyau/pendings';
 import type { Weapon } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Piège-lame (LDB 62 l.278-280) en Test opposé CADENCE-AWARE : « Si vous obtenez un Critique en vous
@@ -38,7 +39,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

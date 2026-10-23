@@ -9,13 +9,14 @@ import {
 } from './tavernGame';
 import type { Combatant } from './types';
 import type { TestResult } from './tests';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const SOURCE = { book: 'nuits-agitees-et-dures-journees', page: 93 };
 const cran = (crans: number): TavernSpecial => ({ effet: 'cran', hasTalent: 'tireur-d-elite', steps: crans, source: SOURCE });
 
 /** Un héros, avec ou sans Tireur d'élite. */
 function heros(tireur: boolean): Combatant {
-  const h = makePregens()[0] as Combatant;
+  const h = makePregens(idNeufDeBanc)[0] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }

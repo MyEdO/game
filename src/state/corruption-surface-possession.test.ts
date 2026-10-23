@@ -12,13 +12,14 @@ import { pilotedByHuman } from '../noyau/netOwnership';
 import { tenuParUnHumain } from '../noyau/sieges';
 import { makePregens } from '../data/pregens';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = useGame.getState;
 const NET0 = g().net;
 
 /** Héros dont le seuil BFM+BE vaut 0 : le moindre gain le franchit. */
 function heroAuSeuil(): Combatant {
-  const h = makePregens()[0];
+  const h = makePregens(idNeufDeBanc)[0];
   h.characteristics.endurance = 1;
   h.characteristics['force-mentale'] = 1;
   h.corruption = 10;

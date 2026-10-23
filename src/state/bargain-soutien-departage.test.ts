@@ -20,6 +20,7 @@ import { testValue } from '../engine/skills';
 import type { Possession } from '../engine/possession';
 import type { CascadeStep } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * DÉPARTAGE d'un Marchandage OPPOSÉ soutenu (LDB 12) — le Soutien est un MODIFICATEUR du Test
@@ -64,7 +65,7 @@ function setupPort(party: Combatant[]): void {
 
 /** Meneur à `nue` en Marchandage + un soutien éligible (≥ 1 Augmentation, LDB 12 l.195) plus faible. */
 function pairAvecSoutien(nue = 45): { leader: Combatant; helper: Combatant } {
-  const [leader, helper] = makePregens();
+  const [leader, helper] = makePregens(idNeufDeBanc);
   tuneSkill(leader, 'marchandage', nue);
   tuneSkill(helper, 'marchandage', 20);
   return { leader, helper };
@@ -182,7 +183,7 @@ const convoiPossession = (ownerId: string): Possession =>
 /** Marché terrestre ouvert, un convoi porteur, un meneur à `nue` en Marchandage + 2 soutiens éligibles. */
 function setupLand(nue: number): Combatant {
   const mk = (id: string, fel: number): Combatant => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: id, motivation: 'x', seed: 11, id });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'marchand', label: id, motivation: 'x', seed: 11, id });
     h.characteristics = { ...h.characteristics, Fel: fel } as Combatant['characteristics'];
     return h;
   };

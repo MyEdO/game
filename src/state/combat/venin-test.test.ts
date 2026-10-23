@@ -8,6 +8,7 @@ import { hasCondition } from '../../engine/conditions';
 
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Venin (LDB 85) en nœud Flow `test` (Lot 4a) : `onHit` causant des PB → la victime teste sa Résistance
@@ -30,7 +31,7 @@ describe('Venin — nœud Flow test routé cadence-aware (gates argDifficulty/un
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

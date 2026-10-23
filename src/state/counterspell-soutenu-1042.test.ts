@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { CounterParticipant } from '../noyau/pendings';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1042 / #1059 — Contre-sort : PHASE DE DÉCLARATION puis Test SOUTENU des dissipateurs du même Domaine.
@@ -26,7 +27,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 /** Trois héros lanceurs (deux du Domaine du Feu, un de la Mort) face à une ennemie qui incante. */
 function setup() {
   const mk = (label: string, seed: number, advances: number, domain: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label, careerTalent: { id: 'magie-mineure' }, seed });
     h.spells = ['flechette'];
     h.characteristics.intelligence = 40;
     h.characteristics['force-mentale'] = 60;

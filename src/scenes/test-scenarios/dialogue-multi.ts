@@ -3,6 +3,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Dialogue multi-interlocuteurs » (#669) : UN dialogue dont les NŒUDS alternent l'interlocuteur
@@ -83,7 +84,7 @@ export const scenario: TestScenario = {
     'dans le MÊME dialogue — la réponse masquée ne consomme pas de numéro (touche 1 = 1ʳᵉ visible).',
   partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
   construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
     scene: construireAuberge(),
   }),
 };

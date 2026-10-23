@@ -51,6 +51,7 @@ import { fireClockTriggers } from './clockHooks';
 import { bus, EVT } from './bus';
 
 import type { Get, Set } from './flowTypes';
+import { idNeuf } from './plateforme';
 
 
 /** Purge les effets à durée d'HORLOGE arrivés à échéance (`untilTime` ≤ maintenant) : contrecoups
@@ -240,7 +241,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
       for (const h of party) {
         if (h.dead) continue;
         lines.push(t('upkeep.sleepDeprived', { name: h.label, n: missed, s: missed > 1 ? 's' : '' }));
-        lines.push(...applyOps(h, [{ op: 'condition', id: 'extenue', value: missed }], { rng: battleRng() }));
+        lines.push(...applyOps(h, [{ op: 'condition', id: 'extenue', value: missed }], { idNeuf, rng: battleRng() }));
       }
     }
   }

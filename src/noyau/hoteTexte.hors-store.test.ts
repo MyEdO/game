@@ -11,8 +11,9 @@ import {
 } from './index';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
-const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
+const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {}, idNeuf: idNeufDeBanc };
 const PASTILLES = testScenarios.find((s) => s.id === 'pastilles-entite')!;
 
 const emis = ({ evenements }: ResultatDeLAppel) => evenements.flatMap((e) => (e.type === 'emis' ? [e.evt] : []));

@@ -154,6 +154,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import { decidingSeat } from './netOwnership';
+import { idNeuf } from './plateforme';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -836,7 +837,7 @@ export const TABLES = {
       // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
       // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
       const source = { kind: 'disease' as const, id: String(row.meta?.diseaseName ?? '') };
-      return { consequences: freeCons(applyOps(hero, opsEchec, { rng: battleRng(), sl: row.result!.sl, source })) };
+      return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf, rng: battleRng(), sl: row.result!.sl, source })) };
     }),
     diseaseGangrene: bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0))) };

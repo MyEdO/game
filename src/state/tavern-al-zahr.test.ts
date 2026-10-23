@@ -19,6 +19,7 @@ import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, seque
 import { tavernParams, potProchain } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
 import { avanceEtapeCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -70,7 +71,7 @@ async function drain(opts: { des?: number[]; choix?: string } = {}): Promise<{ t
 }
 
 function heros(): Combatant {
-  return makePregens()[0] as Combatant;
+  return makePregens(idNeufDeBanc)[0] as Combatant;
 }
 
 /** Un héros à la bourse garnie, seul au groupe. */
@@ -187,7 +188,7 @@ describe('Al-zahr — la partie au store', () => {
 
   it('ABANDON en cours de manche (l.17) : FERMÉ « entre deux manches » — tour du héros, pli dû, fenêtre d’un autre héros ; on n’en sort que par le pli', () => {
     seedBattleRng(1);
-    const [a, b] = makePregens().slice(0, 2) as [Combatant, Combatant];
+    const [a, b] = makePregens(idNeufDeBanc).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
     for (const h of [a, b]) creditBourse(get, useGame.setState, h.id, { gold: 0, silver: 0, brass: 3000 });
     get().playTavernGame({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'hero', id: b.id }, stakeBrass: 10, tablePlayers: 3 });
@@ -354,7 +355,7 @@ describe('Al-zahr — la partie au store', () => {
   });
 
   it('D1 — manche impossible à ouvrir : AUCUNE mise n’est prise (quorum avant débit)', async () => {
-    const [a, b] = makePregens() as Combatant[];
+    const [a, b] = makePregens(idNeufDeBanc) as Combatant[];
     useGame.setState({ party: [a, b] });
     creditBourse(get, useGame.setState, a.id, { gold: 0, silver: 0, brass: 5000 });
     const avant = toBrass(bourseOf(get().party[0]));

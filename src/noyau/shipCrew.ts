@@ -33,6 +33,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
 import { unloadWeapon, setAmmoChoice } from '../engine/items';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { idNeuf } from './plateforme';
 
 /**
  * Assignation de l'équipage APTE d'un navire aux rôles qui contribuent à `testTypeId` (MDG 14). Chaque marin tient
@@ -229,11 +230,11 @@ export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, 
   const combatants = get().battle?.combatants ?? get().party;
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c));
   const lines: string[] = [t('crew.shantyStart', { name: singer.label, shanty: shanty.label, min: 3 + Math.max(0, sl) })];
-  for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
+  for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { idNeuf, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
   if (shanty.captainOps?.length) {
     const roles = shipDefaultRoles(crew, 'manoeuvre', navigationDuNavire(get, ship));
     const captain = crew.find((c) => roles.get(c.id) === 'capitaine');
-    if (captain) lines.push(...applyOps(captain, shanty.captainOps, { label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
+    if (captain) lines.push(...applyOps(captain, shanty.captainOps, { idNeuf, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }));
     else lines.push(t('crew.noCaptain'));
   }
   singer.singingShanty = { shantyId, label };

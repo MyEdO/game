@@ -207,6 +207,8 @@ const ECHAP_ALIAS = [
 ].map((selector) => ({ selector, message: MSG_ECHAP_ALIAS }));
 const DEFINITION_ECHAP = 'Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator[id.name="CODE_ECHAP"]';
 const ECHAP_GABARIT = { selector: 'TemplateElement[value.cooked="Escape"]', message: MSG_ECHAP };
+const MSG_FABRIQUE_IMPORT = 'Fabrique d’ids (#2907) : `fabriqueEnSequence` ne s’importe que sous `src/hote` et dans un `*.testkit.*` — un id neuf vient de la fabrique que l’hôte pose sur la partie (`idNeuf`, `src/noyau/plateforme.ts`), jamais d’une séquence de module.';
+const MSG_SONDE_LECTURE = 'Sonde (#2907) : `passagesDe` ne s’importe que dans un `*.test.*` ou un `*.testkit.*` — le porteur d’une sonde ne fait que `passer()`, son compte ne décide ni ne nomme rien (`src/lib/sonde.ts`).';
 const MSG_ECHAP_IMPORT = 'Échap (#1476, #2724) : `CODE_ECHAP` ne s’importe que sous `src/state/clavier` et `src/ui/clavier` — une surface qui se ferme à Échap s’empile (`useDismissLayer`/`useModalA11y`) et la porte de la pile la congédie ; le remap d’un raccourci passe par `useRemapDeTouche`.';
 const MSG_POSITIONS = 'Positions de touche (#1687, #2724) : le registre clavier, son lecteur et son remap lisent `e.code` (la POSITION physique), jamais `e.key` (le caractère, qui ment sur un clavier AZERTY). Les touches NOMMÉES des couches (`src/ui/clavier/couches/`) se lisent par `e.key`.';
 const VERROU_POSITIONS = [
@@ -662,6 +664,24 @@ export const BLOCS_LINT = [
     files: CODE_DES_ZONES,
     excludeFiles: ['src/web/entropie.ts', '**/*.test.*', '**/*.bench.*'],
     rules: { 'murs/entropie': ['error', ...VERROU_ENTROPIE] },
+  },
+  {
+    // #2907
+    files: ['src/engine/**', 'src/noyau/**', 'src/data/**', 'src/scenes/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.bench.*', 'src/**/*.testkit.*'],
+    rules: { 'murs/etat-de-module': 'error' },
+  },
+  {
+    // #2907
+    files: ['src/**'],
+    excludeFiles: ['src/hote/**', 'src/**/*.testkit.*'],
+    rules: { 'murs/fabrique-import': ['error', { patterns: [{ regex: '(^|/)entityId(\\.[cm]?[jt]sx?)?$', importNames: ['fabriqueEnSequence'], message: MSG_FABRIQUE_IMPORT }] }] },
+  },
+  {
+    // #2907
+    files: ['src/**'],
+    excludeFiles: ['src/**/*.test.*', 'src/**/*.testkit.*'],
+    rules: { 'murs/sonde-lecture': ['error', { patterns: [{ regex: '(^|/)sonde(\\.[cm]?[jt]sx?)?$', importNames: ['passagesDe'], message: MSG_SONDE_LECTURE }] }] },
   },
   {
     // #2817

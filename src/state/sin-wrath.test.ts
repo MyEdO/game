@@ -12,9 +12,10 @@ import { avanceEtapeCascade, draineEtLit } from './cascade.testkit';
 import { pregenParty, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function priestParty(sin: number) {
-  const [priest, ally] = pregenParty(PREGEN.pretre, PREGEN.soldat);
+  const [priest, ally] = pregenParty(idNeufDeBanc, PREGEN.pretre, PREGEN.soldat);
   const priere = priest.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
   else priest.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });

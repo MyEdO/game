@@ -13,6 +13,7 @@ import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -128,7 +129,7 @@ describe('mort / indisponibilité d’un occupant', () => {
   });
 
   it('un PNJ attablé mis hors de combat libère sa place par `notifySlain`', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], battle: null, journal: [] });
     useGame.getState().startScene(testScene());
     const sc = useGame.getState().scene!;
@@ -151,7 +152,7 @@ describe('ouverture de combat — le MENEUR assis se lève avec les autres enrô
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('sa place est libérée dans l’écriture de pose du combat', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], battle: null });
     useGame.getState().startScene(testScene());
     const sc = useGame.getState().scene!;

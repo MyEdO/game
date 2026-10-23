@@ -3,6 +3,7 @@ import { makeSorceress } from './_casters';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * DÔME (`LDB 47 l.410`) — la sauvegarde qu'une ZONE octroie, sous la main du joueur.
@@ -32,7 +33,7 @@ const SORTS_ILYANWE = ['dome', 'bouclier-anti-fleches', 'flechette', 'lumiere'];
 function groupe() {
   const sorciere = makeSorceress('sorciere', 'Ilyanwe la Voilée', { ...HERO_START });
   sorciere.spells = [...SORTS_ILYANWE];
-  const protegee = pregen(PREGEN.soldat);
+  const protegee = pregen(idNeuf, PREGEN.soldat);
   protegee.id = 'protegee';
   // Un nom, rien de plus : la couverture par le dôme est CALCULÉE par le moteur au moment du coup, un
   // nom qui l'écrirait la peindrait avant le lancer.

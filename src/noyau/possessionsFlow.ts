@@ -11,6 +11,7 @@ import { resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
 import { t } from '../i18n';
 import { makeRNG, hashSeed } from '../engine/dice';
+import { nextEntityId } from '../lib/entityId';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 
@@ -35,15 +36,9 @@ export function seedStartingPossessions(get: Get, set: Set): void {
   }
 }
 
-/** Attribue un `uid` `pos-N` par SCAN du registre (anti-collision — jamais un compteur-module, cf.
- *  `newUid`/`it-N` de `engine/items.ts` qui ne convient qu'aux items). Ajoute au registre, renvoie l'uid. */
+/** Ajoute `p` au registre sous un `uid` libre parmi ceux du registre (`nextEntityId`), et le renvoie. */
 export function addPossession(get: Get, set: Set, p: PossessionInput): string {
-  const existing = get().possessions;
-  const maxN = existing.reduce((max, cur) => {
-    const m = /^pos-(\d+)$/.exec(cur.uid);
-    return m ? Math.max(max, Number(m[1])) : max;
-  }, 0);
-  const uid = `pos-${maxN + 1}`;
+  const uid = nextEntityId('pos', get().possessions.map((x) => x.uid));
   const full = { ...p, uid } as Possession;
   set((s) => ({ possessions: [...s.possessions, full] }));
   return uid;

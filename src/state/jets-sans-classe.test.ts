@@ -32,6 +32,7 @@ import { makeRNG } from '../engine/dice';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
@@ -55,7 +56,7 @@ function traversee(cadence: 'commande' | 'jour-par-jour', mode: 'sea' | 'river' 
 
 beforeEach(() => {
   resetCadence();
-  set({ battle: null, party: makePregens().slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
+  set({ battle: null, party: makePregens(idNeufDeBanc).slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });
 afterEach(() => {

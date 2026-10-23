@@ -7,13 +7,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Carrière « Mystique » Niveau 4 (« Prophète », careerLevels.json) : emplacement de talent
 // EXPLICITE « Magie des Arcanes (Cieux) » — sert de 2e Domaine à un lanceur qui possède déjà Feu.
 const FEU_SPELLS = ['cauteriser', 'coeurs-ardents', 'couronne-de-flammes', 'grands-feux-d-u-zhul', 'l-egide-d-aqshy', 'l-epee-ardente-de-rhuin', 'mur-de-feu', 'purification'];
 
 function elfProphete(over: Partial<Combatant> = {}): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   return {
     ...w,
     species: 'hauts-elfes', // arcaneDomainsBonusOf: force-mentale → cap > 1
@@ -30,7 +31,7 @@ function elfProphete(over: Partial<Combatant> = {}): Combatant {
 
 // Carrière « Sorcier » Niveau 2 : emplacement « Magie des Arcanes (Au choix) », non désigné.
 function sorcierHumain(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   return {
     ...w,
     species: 'humains-reiklander',

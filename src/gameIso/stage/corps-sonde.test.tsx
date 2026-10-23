@@ -17,6 +17,7 @@ import { idsDeLActeur, type ActorPose, type KeepEl, type SceneBillboardEls, type
 import { GameStage3D, setStageRendererFactory, type StageFrame, type StageWalkAnim } from './GameStage3D';
 import { estCorps } from './corpsActeur';
 import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, respirer, scènes, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -45,7 +46,7 @@ const anim: StageWalkAnim = {
   cam: () => ({ x: 6, y: 6 }),
 };
 
-const BASE = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
+const BASE = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
 /** Le héros `h1` tenant l'arme `trappingId` du catalogue (#2113) : une arme neuve est un dessin neuf, donc une cuisson. */
 function héros(trappingId: string): Combatant {
   const arme = ({ uid: 'w1', trappingId, label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } satisfies Partial<Weapon>) as Weapon;

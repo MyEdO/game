@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
 import { makePregens } from '../data/pregens';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeEach(() => {
   useGame.setState({ battle: null, party: [], journal: [] });
@@ -11,7 +12,7 @@ beforeEach(() => {
 
 describe('Effet inflictTrauma', () => {
   it('fracture mineure à la jambe → trauma posé (Mouvement ÷2) + criticalWounds++', () => {
-    const party = makePregens().slice(0, 2);
+    const party = makePregens(idNeufDeBanc).slice(0, 2);
     useGame.setState({ party });
     applyEffects(useGame.getState, useGame.setState, [
       { type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'jambeG', heroId: party[0].id },
@@ -22,7 +23,7 @@ describe('Effet inflictTrauma', () => {
     expect(h.criticalWounds).toBe(1);
   });
   it('amputation au bras droit → séquelle permanente (main directrice)', () => {
-    const party = makePregens().slice(0, 1);
+    const party = makePregens(idNeufDeBanc).slice(0, 1);
     useGame.setState({ party });
     applyEffects(useGame.getState, useGame.setState, [
       { type: 'inflictTrauma', kind: 'amputation', location: 'brasD' },

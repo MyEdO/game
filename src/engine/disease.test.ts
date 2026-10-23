@@ -351,10 +351,10 @@ describe('MSRC 16 — Vers de carie : phase active PERSISTANTE (dégénérescenc
     for (let d = 0; d < 7; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
     const table = steps.map((s) => s.meta?.opsEchec).find((o): o is import('./ops').GameOp[] => Array.isArray(o) && o[0]?.op === 'rollTable')!;
     const dead = fullSick();
-    applyOps(dead, table, { rng: deFixe(10), sl: -3 }); // d10=10 + |DR −3| = 13 → Mort
+    applyOps(dead, table, { idNeuf: idNeufDeBanc, rng: deFixe(10), sl: -3 }); // d10=10 + |DR −3| = 13 → Mort
     expect(dead.dead).toBe(true);
     const dizzy = fullSick();
-    applyOps(dizzy, table, { rng: desEnSuite([1, 6]), sl: 0 }); // 1-2 → −1d10 Initiative
+    applyOps(dizzy, table, { idNeuf: idNeufDeBanc, rng: desEnSuite([1, 6]), sl: 0 }); // 1-2 → −1d10 Initiative
     expect(dizzy.characteristics.initiative).toBe(24);
   });
 });
@@ -387,11 +387,12 @@ describe('MSRC 16 — Vers du Reik : −10 Soc GATÉ visibilité (l.140) + écla
 import { activeDiseaseTestMod } from './disease';
 import { dropExpiredGrantedTraits } from './grantedTraits';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('MSRC 16 — Vers de carie : Traits de table PERMANENTS (l.103)', () => {
   it('grantTrait SANS durée = effet permanent → survit à la guérison + à un balayage d’effets expirés', () => {
     const c = fullSick();
-    applyOps(c, [{ op: 'grantTrait', traitId: 'nerveux' }], { rng: seq([]) }); // rangée 9 de la table
+    applyOps(c, [{ op: 'grantTrait', traitId: 'nerveux' }], { idNeuf: idNeufDeBanc, rng: seq([]) }); // rangée 9 de la table
     expect((c.traits ?? []).some((t) => t.id === 'nerveux')).toBe(true);
     const eff = (c.activeEffects ?? []).find((e) => e.grantedTrait?.id === 'nerveux');
     expect(eff?.duration.scale).toBe('permanent'); // ni horloge ni Rounds → jamais purgé (l.103)

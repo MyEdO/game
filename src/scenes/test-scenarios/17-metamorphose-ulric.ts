@@ -3,6 +3,7 @@ import { flowFromEffects } from '../../noyau/monde/flow';
 import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * MÉTAMORPHOSE — un Enfant d'Ulric (lycanthrope, Middenheim p.116) commence en forme HUMAINE et adopte sa
@@ -60,7 +61,7 @@ export const scenario: TestScenario = {
     "auto-transformation de l'IA (self-buff valorisé data-driven), rendu du rig hybride.",
   partyNote: 'Groupe standard (Soldat · Sorcière · Tueur nain · Répurgateur) face à deux lycanthropes.',
   construire: () => ({
-    party: [pregen(PREGEN.soldat), pregen(PREGEN.sorcier), pregen(PREGEN.tueur), pregen(PREGEN.repurgateur)],
+    party: [pregen(idNeuf, PREGEN.soldat), pregen(idNeuf, PREGEN.sorcier), pregen(idNeuf, PREGEN.tueur), pregen(idNeuf, PREGEN.repurgateur)],
     scene: construireScene(),
   }),
 };

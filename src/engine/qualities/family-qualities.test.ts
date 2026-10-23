@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../items';
 import { resolveQualities } from './dispatch';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 describe('resolveQualities — qualités de FAMILLE (WeaponGroupData.qualities) mergées avec les qualités propres', () => {
   it('rapière (subType escrime) : Rapide+Empaleuse viennent de la famille (absentes de ses qualités propres)', () => {
-    const rapiere = itemFromTrappingById('rapiere')!;
+    const rapiere = itemFromTrappingById('rapiere', idNeufDeBanc)!;
     expect(rapiere.qualities.map((q) => q.id)).not.toContain('rapide');
     expect(rapiere.qualities.map((q) => q.id)).not.toContain('empaleuse');
     const ids = resolveQualities(rapiere).map((r) => r.id).sort();
@@ -12,7 +13,7 @@ describe('resolveQualities — qualités de FAMILLE (WeaponGroupData.qualities) 
   });
 
   it('fleuret (escrime, qualités propres Pointue+Inoffensive en plus) : union sans doublon', () => {
-    const fleuret = itemFromTrappingById('fleuret')!;
+    const fleuret = itemFromTrappingById('fleuret', idNeufDeBanc)!;
     const ids = resolveQualities(fleuret).map((r) => r.id).sort();
     expect(ids).toEqual(['empaleuse', 'inoffensive', 'pointue', 'rapide'].sort());
     expect(new Set(ids).size).toBe(ids.length); // pas de doublon

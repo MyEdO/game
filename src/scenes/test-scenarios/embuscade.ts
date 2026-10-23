@@ -4,6 +4,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Le combat « complet » de référence (exploration → dialogue → 5 mutants, ch.2). Son groupe absorbe les
@@ -15,13 +16,13 @@ import type { TestScenario } from './_shared';
  *  - Frère Anselm (Prêtre) sait Guérison → Action Soigner / arrêt d'Hémorragie sur un allié qui tombe.
  */
 function groupe(): Combatant[] {
-  const sigmund = pregen(PREGEN.soldat); // Destin/Résilience intacts (sauvetage in extremis)
-  const grunni = pregen(PREGEN.tueur);
-  const anselm = pregen(PREGEN.pretre);
+  const sigmund = pregen(idNeuf, PREGEN.soldat); // Destin/Résilience intacts (sauvetage in extremis)
+  const grunni = pregen(idNeuf, PREGEN.tueur);
+  const anselm = pregen(idNeuf, PREGEN.pretre);
   if (!anselm.skills.some((s) => s.id === 'guerison')) {
     anselm.skills.push({ id: 'guerison', characteristic: 'intelligence', advances: 25 }); // sinon pas d'Action Soigner
   }
-  const klein = pregen(PREGEN.voleur); // Halfling fragile
+  const klein = pregen(idNeuf, PREGEN.voleur); // Halfling fragile
   klein.fate = 0;
   klein.fortune = 0;
   klein.resilience = 0;

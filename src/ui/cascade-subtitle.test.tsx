@@ -20,6 +20,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import type { CascadeStep } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -28,7 +29,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
+const HERO = () => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence à UNE étape, le titre de la fenêtre étant fourni par l'appelant. */
 function openStep(title: string, step: (heroId: string) => CascadeStep) {

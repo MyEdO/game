@@ -12,13 +12,14 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { modalOwnerOf } from '../noyau/modalArbiter';
 import { seatOwns } from '../noyau/sieges';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = useGame.getState;
 const NET0 = useGame.getState().net;
 
 /** Deux héros, l'un à l'hôte (siège 0), l'autre à l'invité (siège 1). */
 function deuxSieges(): [Combatant, Combatant] {
-  const [a, b] = makePregens().slice(0, 2) as [Combatant, Combatant];
+  const [a, b] = makePregens(idNeufDeBanc).slice(0, 2) as [Combatant, Combatant];
   useGame.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   useGame.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
   return [a, b];

@@ -20,6 +20,7 @@ import { resoudrePixel, type CadreDePick, type EtatDePick } from './pickResolve'
 import { VH, VW } from './useStageCamera';
 import { useStagePointer, type StagePointer } from './useStagePointer';
 import { AreteOverlay } from './AreteOverlay';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * FORTIFICATION D'ARÊTE PAR L'ÉTAGE `arete` (#1687, lot 1b-4 ; AA 10 l.94-102) — la structure abattable
@@ -78,7 +79,7 @@ const mur = (() => {
 })();
 /** Le frappeur est un HÉROS RÉEL (pregen) : ses armes et ses Compétences sont ce que la porte lit. */
 const heros = (() => {
-  const h = makePregens()[0];
+  const h = makePregens(idNeufDeBanc)[0];
   h.id = 'h1';
   h.pos = { x: FRAPPEUR.x, y: FRAPPEUR.y };
   return h;

@@ -9,6 +9,7 @@ import { meta } from '../data/schemas/defs/trappings';
 import { trappings, trappingsInstanciables } from '../data';
 import { setDataset } from '../data/overrides';
 import { itemFromTrappingById, weaponFromItem } from './items';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const RENDU_PUR = Object.entries(meta)
   .filter(([, m]) => m.renduPur)
@@ -34,7 +35,7 @@ describe('rendu pur : aucune instance ne recopie un champ de rendu du catalogue'
     expect(porteurs.length, 'la sonde mord : des objets instanciables portent un champ de rendu').toBeGreaterThan(0);
     const recopies: string[] = [];
     for (const t of porteurs) {
-      const objet = itemFromTrappingById(t.id)!;
+      const objet = itemFromTrappingById(t.id, idNeufDeBanc)!;
       const arme = objet.kind === 'melee' || objet.kind === 'ranged' ? weaponFromItem(objet) : undefined;
       if (JSON.stringify(objet).includes(SENTINELLE)) recopies.push(`objet:${t.id}`);
       if (arme && JSON.stringify(arme).includes(SENTINELLE)) recopies.push(`arme:${t.id}`);

@@ -34,6 +34,7 @@ import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from '../state/cascade.testkit';
 import { tacheSuivante } from './focus.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -341,7 +342,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
   /** Combat de la fixture, au tour du héros, un Mutant au contact : Tab a une cible valide. */
   function ouvrirCombat() {
     seedBattleRng(7);
-    const heros = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Héros', seed: 1 });
+    const heros = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Héros', seed: 1 });
     useGame.setState({ party: [heros], screen: 'campaign', gameMenuOpen: false, dialogue: null });
     useGame.getState().startScene(testScene());
     act(() => { useGame.getState().startCombat('enc-mutants'); });

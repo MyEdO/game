@@ -14,11 +14,12 @@ import type { WorldMap } from '../noyau/worldMap';
 import { dayIndex } from '../engine/clock';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** La scène de l'auberge, d'où part la route. */
 const auberge = () => ({ ...emptyScene('s-auberge', 5, 5), label: 'La Diligence' });
 
-const marcheur = () => [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 2533 })];
+const marcheur = () => [createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Marcheur', seed: 2533 })];
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

@@ -4,9 +4,10 @@ import { EquipmentPanel } from './EquipmentPanel';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { trappings } from '../data';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Résolveur de test : libellé → instance par id (authoring). */
-const itemFromTrapping = (label: string) => itemFromTrappingById(trappings.find((t) => t.label === label)!.id);
+const itemFromTrapping = (label: string) => itemFromTrappingById(trappings.find((t) => t.label === label)!.id, idNeufDeBanc);
 
 /** Héros de test : cuir souple + maille PORTÉS (couches superposées), plate et cape au sac,
  *  arme simple en main + hallebarde (2M) au sac. Armure/armes/loadouts dérivés par recompute. */

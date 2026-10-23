@@ -14,6 +14,7 @@ import { isStructure } from '../../engine/structures';
 import { couvertDepuisDifficulte } from '../../engine/cover';
 import { findStructureById } from '../../data';
 import { pregen, PREGEN } from '../../data/pregens';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 const diligenceConstruit = diligence.construire();
 const scenarioConstruit = scenario.construire();
 
@@ -87,7 +88,7 @@ function carte(): Scene {
   } as Scene;
 }
 
-const groupe = () => [pregen(PREGEN.chasseur), pregen(PREGEN.soldat)];
+const groupe = () => [pregen(idNeufDeBanc, PREGEN.chasseur), pregen(idNeufDeBanc, PREGEN.soldat)];
 
 /** Ouvre le combat de la fixture sur une carte NEUVE et rend l'état de bataille. */
 function ouvrirCombat() {

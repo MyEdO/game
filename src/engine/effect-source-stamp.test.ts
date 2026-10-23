@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { applyOps } from './ops';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * CÂBLAGE — `ctx.source` (EffectSource) doit remonter sur TOUT objet/arme PERSISTANT créé par un
@@ -22,14 +23,14 @@ const SRC = { kind: 'spell', id: 'benediction-de-puissance' } as const;
 describe('grantNaturalWeapon — stampe ctx.source sur l’arme naturelle créée', () => {
   it('avec ctx.source : l’arme (activeEffects[].naturalWeapon ET c.weapons) porte la source', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'grantNaturalWeapon', label: 'Griffe aethyrique', damage: 3 }], { rng: desDuTest, label: 'Griffe aethyrique', source: SRC });
+    applyOps(c, [{ op: 'grantNaturalWeapon', label: 'Griffe aethyrique', damage: 3 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Griffe aethyrique', source: SRC });
     expect(c.activeEffects?.[0].naturalWeapon?.source).toEqual(SRC);
     expect(c.weapons.find((w) => w.label === 'Griffe aethyrique')?.source).toEqual(SRC);
   });
 
   it('sans ctx.source : aucune fausse valeur — le champ reste absent', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'grantNaturalWeapon', label: 'Griffe', damage: 3 }], { rng: desDuTest, label: 'Griffe' });
+    applyOps(c, [{ op: 'grantNaturalWeapon', label: 'Griffe', damage: 3 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Griffe' });
     expect(c.activeEffects?.[0].naturalWeapon?.source).toBeUndefined();
     expect(c.weapons.find((w) => w.label === 'Griffe')?.source).toBeUndefined();
   });
@@ -38,14 +39,14 @@ describe('grantNaturalWeapon — stampe ctx.source sur l’arme naturelle créé
 describe('grantWeapon — stampe ctx.source sur l’objet invoqué créé', () => {
   it('avec ctx.source : l’ItemInstance conjured porte la source', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' } }], { rng: desDuTest, label: 'Arme aethyrique', defaultDurationRounds: 4, source: SRC });
+    applyOps(c, [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' } }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Arme aethyrique', defaultDurationRounds: 4, source: SRC });
     const it = c.items?.find((i) => i.conjured);
     expect(it?.source).toEqual(SRC);
   });
 
   it('sans ctx.source : aucune fausse valeur — le champ reste absent', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' } }], { rng: desDuTest, label: 'Arme aethyrique', defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'grantWeapon', label: 'Arme aethyrique', damage: { bonusOf: 'force-mentale' } }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Arme aethyrique', defaultDurationRounds: 4 });
     const it = c.items?.find((i) => i.conjured);
     expect(it?.source).toBeUndefined();
   });
@@ -54,13 +55,13 @@ describe('grantWeapon — stampe ctx.source sur l’objet invoqué créé', () =
 describe('giveTrapping — stampe ctx.source sur l’objet donné', () => {
   it('avec ctx.source : l’ItemInstance créée porte la source', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'giveTrapping', custom: 'Babiole invoquée' }], { rng: desDuTest, source: SRC });
+    applyOps(c, [{ op: 'giveTrapping', custom: 'Babiole invoquée' }], { idNeuf: idNeufDeBanc, rng: desDuTest, source: SRC });
     expect(c.items?.[0].source).toEqual(SRC);
   });
 
   it('sans ctx.source : aucune fausse valeur — le champ reste absent', () => {
     const c = combatant();
-    applyOps(c, [{ op: 'giveTrapping', custom: 'Babiole' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'giveTrapping', custom: 'Babiole' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(c.items?.[0].source).toBeUndefined();
   });
 });

@@ -7,6 +7,7 @@ import type { Combatant } from './types';
 import { applyOps } from './ops';
 import { dispellableSpellsOn, dissipateSpell } from './dispel';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function mk(id: string, p: Partial<Combatant> = {}): Combatant {
   return {
@@ -21,7 +22,7 @@ function mk(id: string, p: Partial<Combatant> = {}): Combatant {
 
 // Pose un sort durable (charMod) sur une cible, marqué à l'incantation (OpsCtx.sourceSpell).
 function cast(target: Combatant, spell: { spellId: string; ni: number; casterId: string; label: string }, char: 'force-mentale' | 'force' = 'force-mentale', mod = 10) {
-  applyOps(target, [{ op: 'charMod', char, mod }], { rng: desDuTest, label: spell.label, defaultDurationRounds: 5, sourceSpell: spell });
+  applyOps(target, [{ op: 'charMod', char, mod }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: spell.label, defaultDurationRounds: 5, sourceSpell: spell });
 }
 
 describe('dispel — énumération des sorts permanents actifs', () => {

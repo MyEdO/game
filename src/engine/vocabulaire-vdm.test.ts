@@ -20,6 +20,7 @@ import { findSpellById } from '../data';
 import { makeRNG } from './dice';
 import type { Combatant, ItemInstance } from './types';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
   ({
@@ -45,14 +46,14 @@ describe('1 — op `ap` à montant NÉGATIF : Armure de fer blanc (VDM 05)', () 
 
   it('−2 PA à CHAQUE Localisation, lus par effectiveArmourAt (le clamp à la pose rendrait l’op inerte)', () => {
     const c = dummy({ armour: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } });
-    applyOps(c, opsOf('armure-de-fer-blanc'), { rng: desDuTest, label: 'Armure de fer blanc', defaultDurationRounds: 3 });
+    applyOps(c, opsOf('armure-de-fer-blanc'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Armure de fer blanc', defaultDurationRounds: 3 });
     expect(effectiveArmourAt(c, 'corps')).toBe(1);
     expect(effectiveArmourAt(c, 'tete')).toBe(1);
   });
 
   it('le PLANCHER est celui du TOTAL : une armure de 1 PA tombe à 0, jamais sous', () => {
     const c = dummy({ armour: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 } });
-    applyOps(c, opsOf('armure-de-fer-blanc'), { rng: desDuTest, label: 'Armure de fer blanc', defaultDurationRounds: 3 });
+    applyOps(c, opsOf('armure-de-fer-blanc'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Armure de fer blanc', defaultDurationRounds: 3 });
     expect(effectiveArmourAt(c, 'corps')).toBe(0);
   });
 });
@@ -60,14 +61,14 @@ describe('1 — op `ap` à montant NÉGATIF : Armure de fer blanc (VDM 05)', () 
 describe('1 bis — `ap` `atHitLocation` : Inscription, volet acide (VDM 05)', () => {
   it('le PA est détruit à la Localisation TOUCHÉE, et nulle part ailleurs', () => {
     const c = dummy({ armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 } });
-    applyOps(c, opsOf('inscription'), { rng: desDuTest, label: 'Inscription', location: 'tete' });
+    applyOps(c, opsOf('inscription'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Inscription', location: 'tete' });
     expect(effectiveArmourAt(c, 'tete')).toBe(1);
     expect(effectiveArmourAt(c, 'corps')).toBe(2);
   });
 
   it('hors contexte de touche, RIEN n’est posé (jamais un repli sur « toutes les Localisations »)', () => {
     const c = dummy({ armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 } });
-    applyOps(c, opsOf('inscription'), { rng: desDuTest, label: 'Inscription' });
+    applyOps(c, opsOf('inscription'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Inscription' });
     expect(effectiveArmourAt(c, 'tete')).toBe(2);
     expect(effectiveArmourAt(c, 'corps')).toBe(2);
   });
@@ -90,7 +91,7 @@ describe('2 — `augmentWeapon` DÉGRADANT : Défaut (VDM 05)', () => {
   it('« Tous les Atouts de l’arme disparaissent » — le TYPE est lu au registre, pas listé en dur', () => {
     const c = wielder();
     expect(hasQuality(c.weapons[0], 'precise')).toBe(true);
-    applyOps(c, opsOf('defaut-metal'), { rng: desDuTest, label: 'Défaut', defaultDurationRounds: 3 });
+    applyOps(c, opsOf('defaut-metal'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Défaut', defaultDurationRounds: 3 });
     expect(hasQuality(c.weapons[0], 'precise')).toBe(false);
     // Aucun Atout ne subsiste (les Défauts, eux, ne sont pas visés).
     expect(resolveQualities(c.weapons[0]).filter((r) => r.data?.polarite === 'atout')).toEqual([]);
@@ -99,7 +100,7 @@ describe('2 — `augmentWeapon` DÉGRADANT : Défaut (VDM 05)', () => {
   it('« −1 DR à tous les Tests pour attaquer avec elle » — passif d’arme conféré, lu par attackDRAdjust', () => {
     const c = wielder();
     const before = attackDRAdjust(c.weapons[0], true);
-    applyOps(c, opsOf('defaut-metal'), { rng: desDuTest, label: 'Défaut', defaultDurationRounds: 3 });
+    applyOps(c, opsOf('defaut-metal'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Défaut', defaultDurationRounds: 3 });
     expect(attackDRAdjust(c.weapons[0], true)).toBe(before - 1);
   });
 });
@@ -112,24 +113,24 @@ describe('3 — `corruptionExposure` `easeSteps` : Bouclier en acier doré (VDM 
 
   it('« une Exposition Majeure en devient une Mineure » — l’abri atténue le niveau POSÉ', () => {
     const c = dummy();
-    applyOps(c, opsOf('bouclier-en-acier-dore'), { rng: desDuTest, label: 'Bouclier en acier doré', defaultDurationRounds: 10 });
+    applyOps(c, opsOf('bouclier-en-acier-dore'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Bouclier en acier doré', defaultDurationRounds: 10 });
     expect(corruptionEaseSteps(c)).toBe(2);
     const seen: ExposureLevel[] = [];
-    applyOps(c, [{ op: 'corruptionExposure', level: 'majeure' }], { rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
+    applyOps(c, [{ op: 'corruptionExposure', level: 'majeure' }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
     expect(seen).toEqual(['mineure']);
   });
 
   it('sous le premier cran, aucune exposition n’est posée', () => {
     const c = dummy();
-    applyOps(c, opsOf('bouclier-en-acier-dore'), { rng: desDuTest, label: 'Bouclier en acier doré', defaultDurationRounds: 10 });
+    applyOps(c, opsOf('bouclier-en-acier-dore'), { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Bouclier en acier doré', defaultDurationRounds: 10 });
     const seen: ExposureLevel[] = [];
-    applyOps(c, [{ op: 'corruptionExposure', level: 'moderee' }], { rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
+    applyOps(c, [{ op: 'corruptionExposure', level: 'moderee' }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
     expect(seen).toEqual([]);
   });
 
   it('sans abri, le niveau posé est intact (l’atténuation ne s’invente pas)', () => {
     const seen: ExposureLevel[] = [];
-    applyOps(dummy(), [{ op: 'corruptionExposure', level: 'majeure' }], { rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
+    applyOps(dummy(), [{ op: 'corruptionExposure', level: 'majeure' }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCorruptionExposure: (l) => { seen.push(l); return []; } });
     expect(seen).toEqual(['majeure']);
     expect(easeExposure('majeure', 0)).toBe('majeure');
   });

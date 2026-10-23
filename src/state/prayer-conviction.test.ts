@@ -7,9 +7,10 @@ import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function priest(): Combatant {
-  const p = pregen(PREGEN.pretre);
+  const p = pregen(idNeufDeBanc, PREGEN.pretre);
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 } as never);

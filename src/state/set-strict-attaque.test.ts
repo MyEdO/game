@@ -12,20 +12,21 @@ import { spawnEnemy } from '../noyau/monde/spawn';
 import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
 import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from '../noyau/combatFlow';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const emptyScene = (w = 16, h = 12) =>
   ({ id: 's', dimensions: { w, h }, layers: [{ z: 0, tiles: new Array(w * h).fill('herbe') }],
      entities: [], dialogues: [], triggers: [], encounters: [] }) as never;
 
 const take = (id: string, over: Partial<ItemInstance> = {}): ItemInstance => {
-  const it = itemFromTrappingById(id);
+  const it = itemFromTrappingById(id, idNeufDeBanc);
   if (!it) throw new Error(`trapping introuvable : ${id}`);
   return { ...it, uid: id, equipped: true, ...over };
 };
 
 /** Héros RÉEL (pré-tiré) porteur d'une arme à distance (set 1) et d'une épée (set 2), arme de tir CHARGÉE. */
 function shooter(rangedId: string) {
-  const h = makePregens()[0];
+  const h = makePregens(idNeufDeBanc)[0];
   const ranged = take(rangedId);
   const epee = take('arme-simple');
   const ammo = take(rangedId === 'arbalete' ? 'carreau' : 'balle-et-poudre', { equipped: false });
@@ -144,7 +145,7 @@ describe('invariant « jamais sans arme » + statbloc', () => {
 
 describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
   it('un PNJ IA au set de tir pur, Engagé, ne TIRE pas (il se replace) — plus de coup de poing automatique', () => {
-    const h = makePregens()[0];
+    const h = makePregens(idNeufDeBanc)[0];
     h.pos = { x: 3, y: 3 };
     const e = spawnEnemy({ ref: 'brigand' }, 'e-tir', { x: 4, y: 3 });
     e.items = [take('arbalete'), take('carreau', { equipped: false })];

@@ -70,6 +70,7 @@ import { stepDetail, stepFraction, stepPrecision, idDansLaSequence } from './rol
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 /**
  * Adversaire d'une partie — TROIS formes, chacune JOUE une fiche (`tavernGameValue`) :
@@ -779,7 +780,7 @@ function torchonBoit(get: Get, set: Set, lanceurId: string, camp: 'player' | 'op
   if (acteur && regles.ops?.length) {
     // ANCRAGE DE RÈGLE : ce que la sanction applique se relie à la FICHE DU JEU, qui porte sa règle
     // verbatim — un effet actif sans ancrage s'affiche NU (`effect-rule-anchor`).
-    lignes.push(...applyOps(acteur, [...regles.ops], { rng: battleRng(), source: { kind: 'tavernGame', id: seq.payload.gameId } }));
+    lignes.push(...applyOps(acteur, [...regles.ops], { idNeuf, rng: battleRng(), source: { kind: 'tavernGame', id: seq.payload.gameId } }));
   }
   if (perte) setSequenceCum(get, set, { ...seq.cum, [camp]: (seq.cum[camp] ?? 0) - perte });
   return lignes;
@@ -2334,7 +2335,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
     const heros = combinedActor(get, p, CAMP_PLAYER);
     log.push(t('tavern.cerevisEffacee', { who: garanti(heros, p.challengerId, 'cérévis').label }));
     if (heros && combinedEcheance(erased[CAMP_PLAYER] ?? 0, regles.eraseEvery) && regles.ops?.length) {
-      log.push(...applyOps(heros, [...regles.ops], { rng: battleRng(), source: { kind: 'tavernGame', id: game.id } }));
+      log.push(...applyOps(heros, [...regles.ops], { idNeuf, rng: battleRng(), source: { kind: 'tavernGame', id: game.id } }));
     }
     return { go: 'continue', cum: marques, payload: { ...p, combined: { ...etat, erased, efface: true } }, log };
   }
@@ -2375,7 +2376,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
       log.push(t('tavern.cerevisAlcool', { who: qui }));
       // ANCRAGE DE RÈGLE : ce que la partie fait boire se relie à la FICHE DU JEU, qui porte sa règle
       // verbatim — une pastille d'ivresse sans fiche ne dirait pas d'où elle vient.
-      log.push(...applyOps(porteur, [...regles.ops], { rng: battleRng(), source: { kind: 'tavernGame', id: game.id } }));
+      log.push(...applyOps(porteur, [...regles.ops], { idNeuf, rng: battleRng(), source: { kind: 'tavernGame', id: game.id } }));
     }
   }
 

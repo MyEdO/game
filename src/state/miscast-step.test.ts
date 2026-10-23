@@ -19,6 +19,7 @@ import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { desEnSuite } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * INCANTATION IMPARFAITE / COLÈRE DES DIEUX en étape à TABLE (#942 L6) — le d100 des Tableaux
@@ -61,7 +62,7 @@ function joueEnRetenant(max = 30): { des: number[]; lignes: string[] } {
 }
 
 function mageSolo(seed = 3): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed });
   h.wounds.max = 200;
   h.wounds.current = 200;
   useGame.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] });

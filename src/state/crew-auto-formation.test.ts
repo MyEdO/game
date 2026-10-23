@@ -5,6 +5,7 @@ import { buildEncounters } from '../noyau/monde/encounterAuthoring';
 import { crewFormationSlots } from '../noyau/monde/shipPostes';
 import { pregenParty, PREGEN } from '../data/pregens';
 import type { Scene } from '../noyau/monde/scene';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Verrouillage #210 résidu — `autoFormCrews` (shipPostes.ts) câblé au spawn (`combatSlice.startCombat`) :
@@ -41,7 +42,7 @@ function makeScene(): Scene {
 }
 
 function start(): void {
-  useGame.setState({ party: pregenParty(PREGEN.soldat) });
+  useGame.setState({ party: pregenParty(idNeufDeBanc, PREGEN.soldat) });
   useGame.getState().startScene(makeScene());
   useGame.getState().startCombat(ENC_ID);
 }

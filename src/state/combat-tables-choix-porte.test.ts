@@ -21,6 +21,7 @@ import type { AttackResult } from '../engine/combat';
 import type { CascadeStep } from '../noyau/pendings';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
 import { testDeRegle } from '../engine/reglesChiffrees';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * LES TABLES, CHOIX et AFFICHAGES de combat PAR LA PORTE (#1262 V1 lot 5b) — Déviation, Piège-lame,
@@ -55,7 +56,7 @@ const live = (id: string) => useGame.getState().battle!.combatants.find((c) => c
 function combat(nb: number, seed = 7, invites: number[] = []) {
   useGame.getState().seedRng(seed);
   const heros = Array.from({ length: nb }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
+    createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: seed + i }));
   useGame.setState({ party: heros });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');

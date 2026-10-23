@@ -19,6 +19,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 import type { DepartageDeSequence } from '../engine/sequenceVocab';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** L'adversaire au profil standard, nommé comme `playTavernGame` le nomme (`opponentActor.label`). */
 const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
@@ -26,7 +27,7 @@ const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 const get = useGame.getState.bind(useGame);
 
 function heros(): Combatant {
-  return makePregens()[0] as Combatant;
+  return makePregens(idNeufDeBanc)[0] as Combatant;
 }
 
 /** Séquence de partie en cours, telle que `playTavernGame` la pose. */

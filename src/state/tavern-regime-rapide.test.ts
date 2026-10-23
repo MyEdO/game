@@ -21,12 +21,13 @@ import { toBrass } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import { tavernParams } from '../noyau/tavernFlow';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens()[0] as Combatant;
+  const a = makePregens(idNeufDeBanc)[0] as Combatant;
   useGame.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }

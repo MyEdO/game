@@ -25,6 +25,7 @@ import { resetDesFixes } from '../engine/fixedDie';
 import type { Weapon, Combatant, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] };
 const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
@@ -46,7 +47,7 @@ const critHit = (woundsLost = 2): AttackResult => ({
 function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } = {}) {
   useGame.setState({ battle: null, pendingCascade: null, suspendedCascades: [] });
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');

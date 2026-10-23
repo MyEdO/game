@@ -10,6 +10,7 @@ import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
 import { testScene } from '../scenes/test-fixture';
 import { locationLabel, type Combatant, type HitLocation, type Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** T7 — le d100 de la Localisation relancée est consommé au JET, jamais à l'application. LDB 18 l.53, l.55 ; #1595 c.6226467544. */
 
@@ -17,7 +18,7 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }
 
 function arene() {
   useGame.getState().seedRng(7);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');

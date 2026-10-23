@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
 import { createHero } from '../engine/character';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Résilience « Je ne faillirai pas ! » = AVANT le jet (LDB 17 l.68, mode principal « au lieu de
@@ -76,7 +77,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
   });
 
   it('frénésie : avant le jet → entrée garantie, 1 Résilience dépensée', () => {
-    const brute = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brute', seed: 1 }), id: 'e1', resilience: 1 };
+    const brute = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brute', seed: 1 }), id: 'e1', resilience: 1 };
     useGame.setState({
       battle: { combatants: [brute] } as any,
       pendingFrenzy: { combatantId: 'e1', result: null } as any,

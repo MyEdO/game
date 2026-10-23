@@ -20,6 +20,7 @@ import { creatureAttacks } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
 import { draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('Défense de manœuvre de zone — cascade influençable (héros) vs silence (IA)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });
@@ -27,8 +28,8 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
 
   /** Groupe de 2 héros NON surpris (donc capables de se défendre) + 1 ennemi à Souffle (Feu) à portée. */
   function setup() {
-    const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
-    const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
+    const H1 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
+    const H2 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     useGame.setState({ party: [H1, H2] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -2,6 +2,7 @@ import { pregenParty, PREGEN } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import { spec } from './siege-enceinte';
 import type { TestScenario } from './_shared';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * SIÈGE — EXPLORATION (sans combat). Le MÊME `MapSpec` que `siege-enceinte`, recompilé avec un id de scène
@@ -22,7 +23,7 @@ export const scenario: TestScenario = {
     'toits, relief, brouillard). Le mode combat ne gêne plus l\'inspection de la carte.',
   partyNote: 'Explorez librement : montez au rempart par la rampe du flanc gauche, faites le tour de l\'enceinte. Aucune rencontre ne démarre.',
   construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
     scene: buildScene({ ...spec(), id: 'siege-explore', label: 'Siège — exploration (sans combat)' }),
   }),
 };

@@ -20,6 +20,7 @@ import { startCascade } from '../noyau/cascade';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { tacheSuivante } from './focus.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -37,8 +38,8 @@ beforeEach(() => {
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);
-  sigmund = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', seed: 1 });
-  aelindra = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Aelindra', seed: 2 });
+  sigmund = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', seed: 1 });
+  aelindra = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Aelindra', seed: 2 });
   useGame.setState({
     battle: null, party: [sigmund, aelindra], suspendedCascades: [], journal: [], pendingCascade: null,
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} },

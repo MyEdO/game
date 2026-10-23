@@ -24,6 +24,7 @@ import { bonus } from '../engine/characteristics';
 import { skillBaseValue } from '../engine/skills';
 import { tavernGameValue } from './tavernFlow';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 
@@ -44,7 +45,7 @@ async function drain(): Promise<void> {
 }
 
 function twoHeroes(): [Combatant, Combatant] {
-  const all = makePregens();
+  const all = makePregens(idNeufDeBanc);
   return [all[0] as Combatant, all[1] as Combatant];
 }
 
@@ -559,7 +560,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
 describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre', () => {
   beforeEach(() => {
     useGame.setState(useGame.getInitialState(), true);
-    useGame.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    useGame.setState({ party: makePregens(idNeufDeBanc).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('une seconde partie ouverte en pleine partie est REFUSÉE — la première survit intacte', () => {
@@ -594,7 +595,7 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
 describe('#1279 S4 — le formulaire est masqué pendant TOUTE partie, quel que soit le jeu', () => {
   beforeEach(() => {
     useGame.setState(useGame.getInitialState(), true);
-    useGame.setState({ party: makePregens().slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    useGame.setState({ party: makePregens(idNeufDeBanc).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('hors partie, le formulaire est offert', () => {

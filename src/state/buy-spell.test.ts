@@ -12,6 +12,7 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { findSpellById } from '../data';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeEach(() => {
   useGame.setState({ battle: null, party: [], journal: [], pendingCast: null });
@@ -21,7 +22,7 @@ beforeEach(() => {
 describe('buySpell', () => {
   it('mémorise contre PX (Magie mineure) ; refuse sans PX suffisants', () => {
     // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM.
-    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+    const w = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
     // Prémisse CONTRÔLÉE (indépendante du BFM réel du pré-tiré, #421 — les pré-tirés suivent
     // désormais les règles de création, leur quota de sorts mineurs varie avec leur seed) : BFM 2,
     // et 2 sorts mineurs déjà connus (Fléchette, Choc) = ses BFM inclus au Talent. Le suivant est
@@ -40,7 +41,7 @@ describe('buySpell', () => {
   });
 
   it('Bénédictions du culte : 0 PX (incluses au Talent Béni)', () => {
-    const p = pregen(PREGEN.pretre);
+    const p = pregen(idNeufDeBanc, PREGEN.pretre);
     p.talents.push({ talentId: 'beni', spec: 'sigmar', times: 1 });
     p.xp = 0;
     useGame.setState({ party: [p] as Combatant[] });
@@ -50,7 +51,7 @@ describe('buySpell', () => {
   });
 
   it('sort de Magie du Chaos : 100 PX ET +1 Point de Corruption', () => {
-    const w = pregen(PREGEN.sorcier);
+    const w = pregen(idNeufDeBanc, PREGEN.sorcier);
     w.talents.push({ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 });
     w.xp = 200;
     useGame.setState({ party: [w] as Combatant[] });
@@ -64,7 +65,7 @@ describe('buySpell', () => {
 
 describe('Effet learnSpell (trouvaille de campagne)', () => {
   it('apprend SANS PX au héros au Talent éligible', () => {
-    const [w, other] = pregenParty(PREGEN.sorcier, PREGEN.soldat);
+    const [w, other] = pregenParty(idNeufDeBanc, PREGEN.sorcier, PREGEN.soldat);
     w.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }); // spec = id de Domaine (domains.json:3) ; rend le sort d'Arcane apprenable
     w.xp = 0;
     useGame.setState({ party: [other, w] as Combatant[] });
@@ -82,7 +83,7 @@ describe('Effet learnSpell (trouvaille de campagne)', () => {
   const refus = (h: Combatant) => t('pf.spellCannotLearn', { name: h.label, spell: CAUTERISER.label });
   /** Un soldat NOMMÉ, grimoire vide, plus le Talent de lanceur qu'on veut lui donner (aucun par défaut). */
   const soldatNomme = (talent?: { talentId: string; spec?: string; times: number }) => {
-    const s = pregen(PREGEN.soldat);
+    const s = pregen(idNeufDeBanc, PREGEN.soldat);
     s.spells = [];
     if (talent) s.talents.push(talent);
     useGame.setState({ party: [s] as Combatant[] });
@@ -145,7 +146,7 @@ describe('lecture au grimoire — NI doublé dans le flux', () => {
   });
 
   it('oocCastSpell(fromGrimoire) refuse sans grimoire porté', () => {
-    const w = pregen(PREGEN.sorcier);
+    const w = pregen(idNeufDeBanc, PREGEN.sorcier);
     useGame.setState({ party: [w] as Combatant[] });
     useGame.getState().oocCastSpell(w.id, 'arme-aethyrique', w.id, true);
     expect(useGame.getState().pendingCast).toBeNull();
@@ -153,7 +154,7 @@ describe('lecture au grimoire — NI doublé dans le flux', () => {
   });
 
   it('avec grimoire porté + Domaine : pendingCast.grimoire posé', () => {
-    const w = pregen(PREGEN.sorcier);
+    const w = pregen(idNeufDeBanc, PREGEN.sorcier);
     w.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }); // id de Domaine, jamais le libellé
     w.spells = (w.spells ?? []).filter((s) => s !== 'arme-aethyrique'); // id de sort (runtime)
     w.items = [...(w.items ?? []), { uid: 'g1', name: 'Grimoire', trappingId: 'grimoire', kind: 'misc', enc: 1, qualities: [] } as never];

@@ -15,6 +15,7 @@ import { makePregens } from '../data/pregens';
 import { spawnEnemy } from './monde/spawn';
 import { findSpellById } from '../data';
 import type { ActiveEffect, Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const arena = () => {
   const w = 16, h = 12;
@@ -23,8 +24,8 @@ const arena = () => {
 
 /** Combat 2 héros + 2 ennemis, héros actif au centre. `over` patche le `battle`. */
 function combat(over: Record<string, unknown> = {}) {
-  const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = makePregens(idNeufDeBanc)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = makePregens(idNeufDeBanc)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 7, y: 6 }); // adjacent
   const e2 = spawnEnemy({ ref: 'brigand' }, 'e2', { x: 8, y: 6 });
   const battle = {

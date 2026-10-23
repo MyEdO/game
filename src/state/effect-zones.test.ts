@@ -16,6 +16,7 @@ import {
 import { occupied } from '../noyau/monde/combatGeometry';
 import type { BattleState } from '../noyau/etat';
 import { deFixe } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const rng: RNG = deFixe(5) as RNG;
 
@@ -123,7 +124,7 @@ describe('intégration : startCombat sème les pièges de la scène dans battle.
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('une scène avec effectZones → zone permanente dans le combat', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const scene: Scene = {
       ...testScene(),
       effectZones: [

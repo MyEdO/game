@@ -15,6 +15,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * NAUFRAGE (#244, cascade #269) — séquence de survie unique branchée aux deux sites de coulée (avarie de
@@ -77,7 +78,7 @@ function freshState() {
   resetCadence();
   registerScene(portAScene() as never);
   useGame.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     scene: portAScene() as never,
     battle: null,
     worldMap: seaMap,

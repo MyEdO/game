@@ -19,6 +19,7 @@ import { setSpritePicker } from './spritePicker';
 import { VH, VW } from './useStageCamera';
 import { useStagePointer, type StagePointer } from './useStagePointer';
 import { useHoverTargeting } from './useHoverTargeting';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * #1822 — INSPECTER est un GESTE du plateau, plus un mode : le clic droit et l'appui long au doigt
@@ -82,8 +83,8 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
   const px = (x: number, y: number) => tileCenter(x, y, dims);
 
   function combat() {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
+    const hero = makePregens(idNeufDeBanc)[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
+    const ally = makePregens(idNeufDeBanc)[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
     const enemy: Combatant = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 4, y: 4 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

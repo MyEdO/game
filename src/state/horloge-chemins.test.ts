@@ -18,6 +18,7 @@ import { buildScene } from '../noyau/mapSpec';
 import { fixtureText } from '../i18n/fixtureText';
 import { campaignStart } from '../engine/clock';
 import { draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -46,7 +47,7 @@ beforeEach(() => {
 
 describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   it('nuit du joueur (`restFlow`) : la modale de repos, Dormir, puis la cascade de nuit tirent l’échéance', () => {
-    set({ party: makePregens().slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
+    set({ party: makePregens(idNeufDeBanc).slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
     get().openRest({ lieu: fixtureText('Ici'), places: { camp: true } });
     get().restSleep();
@@ -64,7 +65,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       ],
       routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 12, modes: ['pied'], perilDie: 0 }],
     };
-    set({ party: makePregens().slice(0, 1) });
+    set({ party: makePregens(idNeufDeBanc).slice(0, 1) });
     get().loadProject({ scenes: [scene('lieu-a'), scene('lieu-b')], entryId: 'lieu-a', worldMap: carte, projet: null });
     set({ gameTime: campaignStart(), flags: {}, scheduledEffects: [] });
     const t0 = armeLEcheance();
@@ -73,7 +74,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
   });
 
   it('voyage fluvial (`riverVoyageFlow`) : la journée en barge tire l’échéance', () => {
-    const gunnar = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
+    const gunnar = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
     for (const [id, advances, spec] of [['ramer', 50, undefined], ['voile', 45, 'chaland']] as const) {
       const sk = gunnar.skills.find((x) => x.id === id && (x.spec ?? null) === (spec ?? null));
       if (sk) sk.advances = Math.max(sk.advances, advances);
@@ -109,7 +110,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
     };
     set({
-      party: makePregens().slice(0, 3), worldMap: mer, gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [], pendingCrewTest: null,
+      party: makePregens(idNeufDeBanc).slice(0, 3), worldMap: mer, gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [], pendingCrewTest: null,
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);

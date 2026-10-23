@@ -43,7 +43,7 @@ import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSki
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
-import { sequence } from './sequences';
+import type { FabriqueDId } from '../lib/entityId';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -288,10 +288,11 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   motivation?: string;
   /** Apparence du héros sans son espèce de rendu, dérivée ici de `speciesId` (`rigSpeciesId`). Absente = aucune. */
   apparence?: Omit<NonNullable<Combatant['appearance']>, 'species'>;
+  /** Id authoré du héros ; absent, il est neuf de `idNeuf`. */
   id?: string;
+  /** La fabrique d'ids neufs de la partie (`FabriqueDId`) : id du héros sans `id`, uids de ses objets. */
+  idNeuf: FabriqueDId;
 }
-
-const prochainHeros = sequence();
 
 export function rollCharacteristics(sp: SpeciesData, rng: RNG): Characteristics {
   const chars = {} as Characteristics;
@@ -402,7 +403,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
   //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
   const rawTrappings = resolveTrappingChoices(opts.careerId, 1, opts.trappingChoices ?? {});
-  const items = buildInventory(rawTrappings);
+  const items = buildInventory(rawTrappings, opts.idNeuf);
 
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
   // et Mutations » l.708 « Un Lourd Fardeau ») : posé sur `Combatant.traits` (MÊME forme/lecture que
@@ -419,9 +420,8 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const fate = fateBase.fate + split.fate;
   const resilience = fateBase.resilience + split.resilience;
 
-  const numero = prochainHeros.suivant();
   const hero: Combatant = {
-    id: opts.id ?? `hero-${numero}`,
+    id: opts.id ?? opts.idNeuf('hero'),
     label: opts.label,
     kind: 'hero',
     species: opts.speciesId,

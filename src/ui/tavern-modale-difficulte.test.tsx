@@ -12,13 +12,14 @@ import { pregenParty, PREGEN } from '../data/pregens';
 import { setRule, resetRule } from '../engine/policy';
 import { findTavernGameById } from '../engine/tavernGame';
 import { TavernGameModal } from './TavernGameModal';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = useGame.getState;
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
   setRule('tavern-games', true);
-  useGame.setState({ party: pregenParty(PREGEN.soldat) });
+  useGame.setState({ party: pregenParty(idNeufDeBanc, PREGEN.soldat) });
 });
 afterEach(() => {
   demonterRacines();

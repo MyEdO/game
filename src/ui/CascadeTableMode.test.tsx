@@ -29,6 +29,7 @@ import type { AttackResult } from '../engine/combat';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import type { GenreDeCascade } from '../noyau/tablesPosees';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Le genre de la bande de prose : une clé de fixture, typée comme une étape la porte. */
 const KIND_PROSE = cleDeFixture<GenreDeCascade>('uiBandProse');
@@ -539,7 +540,7 @@ describe('Après la pose — l’étape reste lisible à l’état résolu (verd
  */
 describe('bandes successives — le corps ne rend QUE la bande courante', () => {
   const heroOf = (id: string) => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 1 });
     h.id = id;
     return h;
   };

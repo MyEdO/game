@@ -6,10 +6,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { EFFECT_HANDLERS, applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('Effet givePossession (#617/#618 Lot 1)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], journal: [], possessions: [] });
   });
 

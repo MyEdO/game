@@ -15,12 +15,13 @@ import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const RULE = 'combat-aa-avantage-groupe';
 
 /** Un héros unique, porteur (ou non) de Fuite !, de Mouvement fixé à 4 comme l'adversaire. */
 function hero(withTalent: boolean): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
   h.movement = 4;
   h.talents = withTalent ? [{ talentId: 'fuite', times: 1 }] : [];
   h.items = [];

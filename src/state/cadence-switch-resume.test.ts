@@ -11,6 +11,7 @@ import { makeShowcaseParty } from '../data/pregens';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { controlsActive } from '../noyau/netOwnership';
 import { setCadence } from '../engine/cadence';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 const embuscadeConstruit = embuscade.construire();
 
 describe('Bascule de Cadence en plein combat', () => {
@@ -18,7 +19,7 @@ describe('Bascule de Cadence en plein combat', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); setCadence('manuel'); });
 
   function startAtHeroTurn() {
-    useGame.setState({ party: makeShowcaseParty() });
+    useGame.setState({ party: makeShowcaseParty(idNeufDeBanc) });
     useGame.getState().startScene(embuscadeConstruit.scene);
     useGame.getState().startCombat('enc-mutants', undefined, { noSurprise: true });
     useGame.getState().confirmRoundStart();

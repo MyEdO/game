@@ -6,6 +6,7 @@ import { compteDuCoup, resolveStrayRangedHit, toucheAuJetPose, toucheDuTestDeDef
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Chaque producteur fait naître le verdict de relance sur la cible que le compte lit, d'après son état à la
  *  naissance. AA 07 l.25 ; LDB 18 l.53, l.55 ; LDB 14 l.136 ; LDB 10 l.1037 ; MDG 14 l.128. */
@@ -17,7 +18,7 @@ const jet = { label: 'Test', roll: 37, target: 90, success: true, sl: 5, isDoubl
 
 function combat(current: number): { H: Combatant; cible: Combatant } {
   useGame.getState().seedRng(5);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');

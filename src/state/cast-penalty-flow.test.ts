@@ -7,9 +7,10 @@ import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { carryOverState } from '../engine/persistence';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function priest() {
-  const p = pregen(PREGEN.pretre);
+  const p = pregen(idNeufDeBanc, PREGEN.pretre);
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });
@@ -32,7 +33,7 @@ describe('gates d\'incantation', () => {
   });
 
   it('blocage de Focalisation → oocFocusSpell refuse', () => {
-    const wiz = pregen(PREGEN.sorcier);
+    const wiz = pregen(idNeufDeBanc, PREGEN.sorcier);
     wiz.spells = ['arme-aethyrique'];
     wiz.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 5 } as never);
     wiz.castPenalties = [{ label: 'Vue assombrie', skill: 'focalisation', blocked: true, roundsLeft: 3 }];

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { rosterLoad, rosterAdd, rosterRemove, rosterUpdate, rosterExport, rosterImport, takeRosterNotice, RosterEntry } from './roster';
 import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
 import type { Combatant } from '../engine/types';
+import { createHero } from '../engine/character';
+import { idDEntropie } from '../web/entropie';
 
 /** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
 function fakeStorage(): Storage {
@@ -34,6 +36,13 @@ describe('roster — persistance des personnages créés', () => {
 
   it('vide au départ', () => {
     expect(rosterLoad()).toEqual([]);
+  });
+
+  it('deux héros créés sans id authoré par la fabrique de l’hôte web ne s’écrasent pas (#2907)', () => {
+    const neuf = (label: string) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 4801, idNeuf: idDEntropie });
+    rosterAdd({ hero: neuf('A'), wealth: { gold: 0, silver: 0, brass: 0 } });
+    rosterAdd({ hero: neuf('B'), wealth: { gold: 0, silver: 0, brass: 0 } });
+    expect(rosterLoad().map((e) => e.hero.label)).toEqual(['A', 'B']);
   });
 
   it('rosterAdd puis rosterLoad : le personnage et sa richesse initiale sont retrouvés', () => {

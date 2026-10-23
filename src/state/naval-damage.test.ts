@@ -10,6 +10,7 @@ import { stacks } from '../engine/conditions';
 import { findVehicleById } from '../data';
 import { makeRNG } from '../engine/dice';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Stub `get` (hors combat), comme outOfCombatUpkeep — les États navals tickent par le pipeline data-driven.
 const GET = (() => ({ battle: undefined })) as never;
@@ -36,7 +37,7 @@ describe('Modèle naval — chaîne complète rig → localisation → Critique 
     expect(crit.ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 4 }]);
 
     // 3) L'appelant applique l'effet (langue unique) → l'État NAVAL data-driven se pose sur le navire.
-    applyOps(ship, crit.ops, { rng: desDuTest });
+    applyOps(ship, crit.ops, { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(stacks(ship, 'voie-d-eau')).toBe(4);
 
     // 4) Chaque Round (endOfRound commun), l'Indice grossit le cumul d'Inondation ; aux seuils relatifs à

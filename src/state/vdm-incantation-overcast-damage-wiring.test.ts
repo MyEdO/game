@@ -16,11 +16,12 @@ import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { findSpell } from '../data';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const RULE = 'magic-vdm-incantation';
 
 function setup() {
-  const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+  const w = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   w.spells = ['carreau'];
   useGame.setState({ party: [w] });
   useGame.getState().startScene(testScene());
@@ -72,7 +73,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
   });
 
   it('sort NON-missile : l’axe Dégâts est refusé par `castAllocOvercast` (aucun axe hors Projectile)', () => {
-    const w = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+    const w = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
     w.spells = ['armure-aethyrique'];
     useGame.setState({ party: [w] });
     useGame.getState().startScene(testScene());

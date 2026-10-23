@@ -7,6 +7,7 @@ import { setDataset } from '../data/overrides';
 import { trappings } from '../data';
 import { tokensOf } from '../gameIso/rig/palette';
 import type { ItemInstance, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Objet minimal (catégories sans art : munition/cape/consommable/divers). */
 const mk = (p: Partial<ItemInstance>): ItemInstance =>
@@ -16,7 +17,7 @@ const html = (item: ItemInstance) => renderToStaticMarkup(<ItemIcon item={item} 
 
 describe('ItemIcon', () => {
   it('arme du registre (en jetons) : SVG en diagonale, sans <defs>', () => {
-    const h = html(itemFromTrappingById('hallebarde')!);
+    const h = html(itemFromTrappingById('hallebarde', idNeufDeBanc)!);
     expect(h).toContain('item-icon-weapon');
     expect(h).toContain('rotate(-40)'); // arme en diagonale
     expect(h).not.toContain('<defs'); // art en jetons résolus en hex → pas de dégradé
@@ -30,7 +31,7 @@ describe('ItemIcon', () => {
   });
 
   it('armure : SVG droit (pas de rotation), classe armor', () => {
-    const h = html(itemFromTrappingById('plastron')!);
+    const h = html(itemFromTrappingById('plastron', idNeufDeBanc)!);
     expect(h).toContain('item-icon-armor');
     expect(h).not.toContain('rotate(-40)');
   });
@@ -53,7 +54,7 @@ describe('ItemIcon', () => {
   });
 
   it('rend en SSR sans getBBox (repli viewBox, aucune exception)', () => {
-    expect(() => html(itemFromTrappingById('hallebarde')!)).not.toThrow();
+    expect(() => html(itemFromTrappingById('hallebarde', idNeufDeBanc)!)).not.toThrow();
   });
 
   it('objet sans porteur (coup-de-poing) : chair du porteur par défaut, aucun jeton `@` rendu (#1903)', () => {
@@ -70,13 +71,13 @@ describe('ItemIcon — même forme que le pion (#2113)', () => {
   const arme = (w: Weapon) => renderToStaticMarkup(<ItemIcon item={w} />);
 
   it('la forme CHOISIE se dessine sur l’objet comme sur l’arme tenue', () => {
-    const it = { ...itemFromTrappingById('arme-simple')!, formeChoisie: 'hache' };
-    expect(html(it), 'la sonde mord : le choix change l’icône').not.toBe(html(itemFromTrappingById('arme-simple')!));
+    const it = { ...itemFromTrappingById('arme-simple', idNeufDeBanc)!, formeChoisie: 'hache' };
+    expect(html(it), 'la sonde mord : le choix change l’icône').not.toBe(html(itemFromTrappingById('arme-simple', idNeufDeBanc)!));
     expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
   });
 
   it('une édition de la forme au catalogue repeint l’objet ET l’arme tenue', () => {
-    const it = itemFromTrappingById('arbalete')!;
+    const it = itemFromTrappingById('arbalete', idNeufDeBanc)!;
     const avant = html(it);
     setDataset('trappings', trappings.map((t) => (t.id === 'arbalete' ? { ...t, shape: 'hache_lancer' } : t)));
     expect(html(it)).not.toBe(avant);

@@ -18,6 +18,7 @@ import { endOfRound, bleedDeathRoll, tickDeath, hasCondition } from '../engine/c
 import { fateSaveOrDie } from '../engine/fortune';
 import { fireConditionEffects } from './triggeredEffects';
 import { t } from '../i18n';
+import { idNeuf } from './plateforme';
 
 /** A-t-il un effet périodique (perte de PB chaque Round) OU est-il à 0 PB (progression vers l'Inconscience) ? */
 function needsUpkeep(c: Combatant): boolean {
@@ -53,11 +54,11 @@ export function outOfCombatUpkeep(party: Combatant[], rounds: number, rng: RNG):
         // réservé aux quatre causes de `needsUpkeep`.
         if (!hasRoundTick(c)) continue;
         active = true;
-        endOfRound(c, rng).forEach((l) => log.push(l));
+        endOfRound(c, rng, idNeuf).forEach((l) => log.push(l));
         continue;
       }
       active = true;
-      endOfRound(c, rng).forEach((l) => log.push(l)); // MÊME tic que ci-dessus (ops récurrentes + durées)
+      endOfRound(c, rng, idNeuf).forEach((l) => log.push(l)); // MÊME tic que ci-dessus (ops récurrentes + durées)
       // Dégâts périodiques d'État (Empoisonné/En Flammes/Hémorragique) MIGRÉS en données (effects: onRoundEnd
       // → wounds) : MÊME chemin qu'en combat, ils tickent AUSSI hors-combat. La cible 'self' ne touche pas
       // `battle` (targetsFor) → `get` stub suffit ; pas de `set` (flow sans test interactif hors combat).

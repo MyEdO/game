@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { frenzyTarget } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Contraintes de Frénésie pour le HÉROS (LDB 21 l.33) : « vous devez vous déplacer à votre maximum
@@ -14,7 +15,7 @@ describe('Frénésie héros — cible imposée et déplacement contraint', () =>
   afterEach(() => { vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

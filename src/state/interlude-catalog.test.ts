@@ -18,6 +18,7 @@ import { hasCondition } from '../engine/conditions';
 import { spells } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const ALTDORF_MAP: WorldMap = {
   id: 'w', label: 'Monde de test',
@@ -29,7 +30,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingCorruption: null, journal: [] });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();

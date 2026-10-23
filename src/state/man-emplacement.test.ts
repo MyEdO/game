@@ -11,6 +11,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 import { initialNet } from '../noyau/etat'; // `resolveAttack` lit `net` (surfaçage de la défense, #989) — l'état forgé le porte
 
 /**
@@ -51,7 +52,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
     inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant; // affût RAW-pur (AA 10 l.136-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[] = [], side?: FireArc): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds, ...(side ? { side } : {}) });
+  ({ item: itemFromTrappingById(engineId, idNeufDeBanc)!, crewIds, ...(side ? { side } : {}) });
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,

@@ -13,6 +13,7 @@ import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
   id: 'c', label: 'C', kind: 'enemy',
@@ -29,12 +30,12 @@ describe('Formula {indiceOf} — Dégâts « Indice » en GameOp', () => {
   });
   it('wounds {indiceOf} applique l’Indice, mitigé par les drapeaux', () => {
     const t = mk();
-    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: true, ignoreAP: true }], { rng: desDuTest, indice: 10 });
+    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: true, ignoreAP: true }], { idNeuf: idNeufDeBanc, rng: desDuTest, indice: 10 });
     expect(t.wounds.current).toBe(10); // 10 Dégâts ignorant BE+PA
   });
   it('wounds {indiceOf} déduit BE si ignoreTB:false', () => {
     const t = mk(); // BE = 3
-    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }], { rng: desDuTest, indice: 10 });
+    applyOps(t, [{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }], { idNeuf: idNeufDeBanc, rng: desDuTest, indice: 10 });
     expect(t.wounds.current).toBe(13); // 10 − BE 3 − PA 0
   });
 });
@@ -52,10 +53,10 @@ describe('Condition {slThreshold} — issue échelonnée sur la marge', () => {
       else: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } },
     };
     const hi = mk({ id: 'h' });
-    runPureFlowLines(hi, mk({ id: 'a' }), flow, { rng: desDuTest, sl: 6 });
+    runPureFlowLines(hi, mk({ id: 'a' }), flow, { idNeuf: idNeufDeBanc, rng: desDuTest, sl: 6 });
     expect(hi.conditions.find((c) => c.id === 'Pétrifié')).toBeTruthy();
     const lo = mk({ id: 'l' });
-    runPureFlowLines(lo, mk({ id: 'a' }), flow, { rng: desDuTest, sl: 3 });
+    runPureFlowLines(lo, mk({ id: 'a' }), flow, { idNeuf: idNeufDeBanc, rng: desDuTest, sl: 3 });
     expect(lo.conditions.find((c) => c.id === 'sonne')).toBeTruthy();
     expect(lo.conditions.find((c) => c.id === 'Pétrifié')).toBeUndefined();
   });

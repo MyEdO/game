@@ -30,11 +30,16 @@ import { refLabel } from '../data';
 import { combattantDeModale } from './combattantDeModale.testkit';
 import { fleeTouche } from '../noyau/pendings';
 import type { Combatant, Difficulty } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
+import { passagesDe } from '../lib/sonde';
+
+/** Les passages de la sonde `ANONYMES` au début du cas. */
+let anonymesAvant = 0;
 
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 let host: HTMLDivElement; let root: Root;
 const g = () => useGame.getState();
-beforeEach(() => { vi.useFakeTimers(); host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); ANONYMES.count = 0; });
+beforeEach(() => { vi.useFakeTimers(); host = document.createElement('div'); document.body.appendChild(host); root = createRoot(host); anonymesAvant = passagesDe(ANONYMES); });
 afterEach(() => {
   act(() => root.unmount()); host.remove(); vi.clearAllTimers(); vi.useRealTimers();
   useGame.setState({ battle: null, party: [], pendingWard: null, pendingApproach: null, pendingRun: null, pendingFrenzy: null, pendingCorruption: null, pendingFall: null, pendingDisengage: null, pendingHandGate: null, pendingAttack: null, pendingCascade: null } as never);
@@ -58,7 +63,7 @@ function nommeLEtat(quand: string, attendue: number, label?: string, chip = '−
   expect(l.chips, quand).toContain(chip);
   expect(l.somme, `${quand} : somme des termes`).toBe(l.cible);
   expect(l.cible, `${quand} : cible`).toBe(attendue);
-  expect(ANONYMES.count, `${quand} : ${l.chips.join(' | ')}`).toBe(0);
+  expect((passagesDe(ANONYMES) - anonymesAvant), `${quand} : ${l.chips.join(' | ')}`).toBe(0);
 }
 const sonne = <T extends Combatant>(c: T): T => { c.conditions = [{ id: 'sonne', value: 3 }]; return c; };
 const cible = (c: Combatant, test: TestDesigne, d: Difficulty) => clampTarget(cibleDuTest(valeurDuTest(c, test), d)).target;
@@ -137,7 +142,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
   });
 
   it('Chute', () => {
-    const hero = sonne(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }));
+    const hero = sonne(createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }));
     const s = emptyScene('scene-test', 4, 4); s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null } as never);
     g().fallAcross({ x: 2, y: 0 }, { x: 2, y: 1 });

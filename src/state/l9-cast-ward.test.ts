@@ -12,14 +12,15 @@ import { findSpellById } from '../data';
 import { previewCast } from '../noyau/combatFlow';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup(priestPos: { x: number; y: number }) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const priest = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const priest = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     useGame.setState({ party: [hero, priest] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -1,9 +1,10 @@
 /**
  * Services que le noyau demande à l'environnement d'exécution (#2817, D6) : un appel différé, l'état
- * de son jeton et la persistance d'un héros. L'hôte pose UNE plateforme (`poserLaPlateforme`) ; tout appel
+ * de son jeton, la persistance d'un héros et la fabrique d'ids neufs (#2907). L'hôte pose UNE plateforme (`poserLaPlateforme`) ; tout appel
  * sans plateforme posée lève. Le web la pose à la création du store (`src/state/store.ts`).
  */
 import type { Combatant } from '../engine/types';
+import type { FabriqueDId } from '../lib/entityId';
 
 declare const marqueDuJeton: unique symbol;
 
@@ -16,6 +17,8 @@ export interface PlateformeDe<J> {
   /** Vrai tant que l'appel du jeton n'a ni tiré ni été annulé par l'hôte. */
   enAttente: (jeton: J) => boolean;
   persisterLeHeros: (heros: Combatant) => void;
+  /** La fabrique d'ids neufs de l'hôte (`FabriqueDId`, `src/lib/entityId.ts`). */
+  idNeuf: FabriqueDId;
 }
 
 export type Plateforme = PlateformeDe<Jeton>;
@@ -49,3 +52,6 @@ export function enAttente(jeton: Jeton): boolean {
 export function persisterLeHeros(heros: Combatant): void {
   plateforme().persisterLeHeros(heros);
 }
+
+/** Un id neuf de genre `genre`, par la fabrique de l'hôte (`FabriqueDId`). */
+export const idNeuf: FabriqueDId = (genre) => plateforme().idNeuf(genre);

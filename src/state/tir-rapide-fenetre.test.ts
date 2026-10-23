@@ -8,6 +8,7 @@ import { emptyScene } from '../noyau/monde/scene';
 import { t } from '../i18n';
 import type { Combatant, Weapon } from '../engine/types';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * TIR RAPIDE, BOUCLE REPRENABLE (#997, #1765) — `LDB 11 l.97-103`. Chaque tir d'interruption passe par la
@@ -25,7 +26,7 @@ const etape = () => { const c = g().pendingCascade; return c?.participants[c.cur
  *  E1 a pris le talent deux fois : il tire d'abord (LDB 11 l.103). */
 function finDeRound(gmSeat?: number) {
   const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
-    const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
+    const c = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0;
     c.wounds = { ...c.wounds, current: 200, max: 200 };
     return c;

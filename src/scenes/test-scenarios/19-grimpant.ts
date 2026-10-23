@@ -3,6 +3,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * GRIMPANT (LDB 85 l.160-162, #504) : une créature porteuse escalade une arête `WallSeg.climb` en
@@ -49,6 +50,6 @@ export const scenario: TestScenario = {
     "vitesse pleine — pathing (`reachable`/`pathTo`, `MoveEnv.traverse`) et IA (`chooseEnemyAction`) " +
     "exploitent l'arête automatiquement ; le groupe (hors du Talent Grimpeur) reste bloqué en bas.",
   partyNote: 'Chasseur solo, posté sur le plateau (hors d’atteinte au sol).',
-  construire: () => ({ party: pregenParty(PREGEN.chasseur), scene: construireScene() }),
+  construire: () => ({ party: pregenParty(idNeuf, PREGEN.chasseur), scene: construireScene() }),
   autoCombat: 'enc-grimpant',
 };

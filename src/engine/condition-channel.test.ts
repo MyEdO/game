@@ -24,6 +24,7 @@ import { contractDisease, tickDisease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import type { RNG } from './dice';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const seq = (values: number[]): RNG => desEnSuite(values);
 
@@ -48,7 +49,7 @@ function withSpy(run: (emit: (e: ConditionChange) => void) => string[]): { lines
 describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () => {
   it('applique Sonné : la notification porte id + sens + porteur (aucun libellé)', () => {
     const c = hero();
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: COND.sonne }], { rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: COND.sonne }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([{ stateId: COND.sonne, change: 'gain', targetId: 'h' }]);
     expect(lines).toHaveLength(1);
     expect(seen[0].stateId).not.toContain(' '); // un id, jamais « Sonné »
@@ -63,7 +64,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
     ];
     for (const o of forms) {
       const c = hero();
-      const { lines, seen } = withSpy((emit) => applyOps(c, [o], { rng: desDuTest, onCondition: emit, now: 0 }));
+      const { lines, seen } = withSpy((emit) => applyOps(c, [o], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit, now: 0 }));
       expect(lines, `forme ${JSON.stringify(o)}`).toHaveLength(1);
       expect(seen, `forme ${JSON.stringify(o)}`).toEqual([{ stateId: o.id, change: 'gain', targetId: 'h' }]);
     }
@@ -71,7 +72,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
 
   it("`perRound` notifie à l'ANNONCE, sans poser d'État : le canal appareille une LIGNE, pas un delta", () => {
     const c = hero();
-    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: COND.extenue, perRound: true }], { rng: desDuTest, onCondition: emit }));
+    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'condition', id: COND.extenue, perRound: true }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([{ stateId: COND.extenue, change: 'gain', targetId: 'h' }]);
     // Le porteur ne porte RIEN encore : les poses réelles tomberont à chaque fin de Round (op re-jouée)
     // et notifieront chacune la leur. Un consommateur qui compterait les `gain` double-compterait.
@@ -81,7 +82,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   it("op 'removeCondition' notifie une PERTE du même id", () => {
     const c = hero();
     addCondition(c, COND.extenue, 2);
-    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.extenue }], { rng: desDuTest, onCondition: emit }));
+    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.extenue }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([{ stateId: COND.extenue, change: 'loss', targetId: 'h' }]);
   });
 
@@ -89,7 +90,7 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   it("op 'removeCondition' de valeur 2 sur UN seul pion : la ligne dit 1, et une seule perte sort", () => {
     const c = hero();
     addCondition(c, COND.empoisonne, 1);
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.empoisonne, value: 2 }], { rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.empoisonne, value: 2 }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(lines).toEqual(['Cobaye retire 1 État Empoisonné.']);
     expect(seen).toEqual([{ stateId: COND.empoisonne, change: 'loss', targetId: 'h' }]);
     expect(hasCondition(c, COND.empoisonne)).toBe(false);
@@ -100,14 +101,14 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
   it("op 'removeCondition' sur un État VERROUILLÉ : ni ligne, ni perte", () => {
     const c = hero({ wounds: { current: 0, max: 12 } });
     addCondition(c, COND.aTerre, 1); // verrou de TYPE : 0 Blessure (LDB 18 l.15)
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(hasCondition(c, COND.aTerre), 'la sonde ne mesurerait rien si le verrou ne tenait pas').toBe(true);
     expect(lines, 'le journal annonce un retrait qui n’a pas eu lieu').toEqual([]);
     expect(seen, 'le canal notifie une perte qui n’a pas eu lieu').toEqual([]);
 
     // TÉMOIN — le même État, verrou TOMBÉ (1 Blessure) : la ligne ET la perte sortent.
     c.wounds.current = 1;
-    const ok = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { rng: desDuTest, onCondition: emit }));
+    const ok = withSpy((emit) => applyOps(c, [{ op: 'removeCondition', id: COND.aTerre }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(hasCondition(c, COND.aTerre)).toBe(false);
     expect(ok.lines).toHaveLength(1);
     expect(ok.seen).toEqual([{ stateId: COND.aTerre, change: 'loss', targetId: 'h' }]);
@@ -115,14 +116,14 @@ describe("op 'condition' → canal onCondition (l'id part avec la ligne)", () =>
 
   it("removeCondition SANS État à retirer : la ligne sort, le canal reste MUET (rien à nommer)", () => {
     const c = hero();
-    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition' }], { rng: desDuTest, onCondition: emit }));
+    const { lines, seen } = withSpy((emit) => applyOps(c, [{ op: 'removeCondition' }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(lines).toHaveLength(1);
     expect(seen).toEqual([]);
   });
 
   it("une op SANS État (wounds) ne notifie rien", () => {
     const c = hero();
-    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'wounds', amount: 2 }], { rng: desDuTest, onCondition: emit }));
+    const { seen } = withSpy((emit) => applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: emit }));
     expect(seen).toEqual([]);
   });
 });
@@ -140,15 +141,15 @@ describe('PARITÉ STRICTE des lignes — le canal est additif, il ne touche à a
   it('mêmes ops, avec et sans canal → lignes identiques au caractère près', () => {
     for (const ops of OPS) {
       const prep = () => { const c = hero(); addCondition(c, COND.extenue, 2); return c; };
-      const sans = applyOps(prep(), ops, { rng: desDuTest, now: 0 });
-      const avec = applyOps(prep(), ops, { rng: desDuTest, now: 0, onCondition: () => {} });
+      const sans = applyOps(prep(), ops, { idNeuf: idNeufDeBanc, rng: desDuTest, now: 0 });
+      const avec = applyOps(prep(), ops, { idNeuf: idNeufDeBanc, rng: desDuTest, now: 0, onCondition: () => {} });
       expect(avec, `ops ${JSON.stringify(ops)}`).toEqual(sans);
     }
   });
 
   it("l'ÉTAT du combattant est lui aussi identique (le canal n'applique rien)", () => {
-    const sans = hero(); applyOps(sans, [{ op: 'condition', id: COND.sonne, value: 2 }], { rng: desDuTest });
-    const avec = hero(); applyOps(avec, [{ op: 'condition', id: COND.sonne, value: 2 }], { rng: desDuTest, onCondition: () => {} });
+    const sans = hero(); applyOps(sans, [{ op: 'condition', id: COND.sonne, value: 2 }], { idNeuf: idNeufDeBanc, rng: desDuTest });
+    const avec = hero(); applyOps(avec, [{ op: 'condition', id: COND.sonne, value: 2 }], { idNeuf: idNeufDeBanc, rng: desDuTest, onCondition: () => {} });
     expect(avec.conditions).toEqual(sans.conditions);
   });
 });
@@ -174,7 +175,7 @@ describe('sites HORS applyOps — paramètre `emit` (LDB 18 verrous, durées de 
   it('endOfRound RELAIE le canal jusqu’à tickDurations (le fil ne se coupe pas en chemin)', () => {
     const c = hero();
     c.conditions = [{ id: COND.aveugle, value: 1, roundsLeft: 1 }];
-    const { seen } = withSpy((emit) => endOfRound(c, seq([]), emit));
+    const { seen } = withSpy((emit) => endOfRound(c, seq([]), idNeufDeBanc, emit));
     expect(seen).toEqual([{ stateId: COND.aveugle, change: 'loss', targetId: 'h' }]);
   });
 
@@ -190,7 +191,7 @@ describe('sites HORS applyOps — paramètre `emit` (LDB 18 verrous, durées de 
 describe('moteur PUR (aucun canal branché)', () => {
   it('tous les sites restent silencieux et fonctionnels sans hook', () => {
     const c = hero();
-    expect(applyOps(c, [{ op: 'condition', id: COND.sonne }], { rng: desDuTest })).toHaveLength(1);
+    expect(applyOps(c, [{ op: 'condition', id: COND.sonne }], { idNeuf: idNeufDeBanc, rng: desDuTest })).toHaveLength(1);
     expect(c.conditions.find((x) => x.id === COND.sonne)?.value).toBe(1);
     expect(() => releaseConditionLocks(c, 'magic')).not.toThrow();
     expect(() => tickDurations(c)).not.toThrow();

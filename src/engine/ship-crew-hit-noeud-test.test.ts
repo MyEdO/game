@@ -28,6 +28,7 @@ import { resolveStake } from '../data';
 import type { Combatant, ShipPoste } from './types';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritEntry, type ShipCritKey, type ShipCritSet } from '../data/shipCriticals';
 import { shipCrewHitSchema, flowSchema, noeudTest } from '../data/schemas/grammaire/mecanique';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
 const lire = (f: string) => JSON.parse(readFileSync(join(DATA, f), 'utf8')) as { tables: Record<string, ShipCritEntry[]> };
@@ -174,7 +175,7 @@ describe('coup à l’équipage — le moteur DÉSIGNE et REND, il ne roule plus
         const rng = rngCompteur(seed);
         const rngTemoin = rngCompteur(seed);
 
-        const out = applyCrewHit(coqueAvecPostes(ids), equipage, hit, rng);
+        const out = applyCrewHit(coqueAvecPostes(ids), equipage, hit, rng, idNeufDeBanc);
         const attendues = 'poste' in cible
           ? posteCrewAttendu(coqueAvecPostes(ids), temoins, rngTemoin)
           : exposedCrew(temoins).filter((c) => ('role' in cible

@@ -14,6 +14,7 @@ import { testScene } from '../scenes/test-fixture';
 import { ManeuverModal } from './ManeuverModal';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -22,7 +23,7 @@ beforeAll(() => {
 /** Un héros au Souffle (Feu) déclare sa manœuvre sur le seul ennemi debout et lance son jet. */
 function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.getState().seedRng(2);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

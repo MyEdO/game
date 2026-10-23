@@ -9,6 +9,7 @@ import { testScene } from '../../scenes/test-fixture';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../../engine/types';
 import { resetCadence, setCadence } from '../../engine/cadence';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * runCombatFlow — exécuteur à PILE d'un Flow EN COMBAT, cadence-aware, qui porte la CONTINUATION `after`.
@@ -51,7 +52,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

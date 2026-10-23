@@ -17,6 +17,7 @@ import { setCadence, resetCadence, type Cadence } from '../engine/cadence';
 import type { CascadeStep } from '../noyau/pendings';
 import { avecLesTables, type FixtureDeTables, cleDeFixture } from '../noyau/noyau.testkit';
 import type { GenreDEtape, GenreDeCascade } from '../noyau/tablesPosees';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * GARDE DE PARITÉ DE PORTEUR (#1426) — le pilote de cascade traite une table de MONDE exactement
@@ -111,7 +112,7 @@ interface Observation {
 
 /** Groupe d'UN héros, siège local, mode solo — l'état complet du cas, jamais hérité du voisin. */
 function montage(): string {
-  const h = makePregens()[0];
+  const h = makePregens(idNeufDeBanc)[0];
   set({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   return h.id;
@@ -299,7 +300,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
    * porteur sur lequel il n'a plus aucune prise.
    */
   it('POSSESSION — héros du groupe HORS de la file d’un combat ouvert : vu, influençable, posable', () => {
-    const [h1, h2] = makePregens();
+    const [h1, h2] = makePregens(idNeufDeBanc);
     set({ party: [h1!, h2!], battle: null, pendingCascade: null, suspendedCascades: [] });
     set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     set({ battle: { combatants: [h1!], order: [h1!.id], turn: 0, round: 1, log: [], over: null } as never });

@@ -30,7 +30,7 @@ export type LivingRef =
 
 /** TRONC — toute possession : une identité possédée, localisée, qui PORTE. */
 interface PossessionCommon {
-  uid: string; // pos-N, anti-collision par scan du registre (jamais un compteur module)
+  uid: string; // libre parmi les uids du registre (`addPossession`, `nextEntityId`)
   ownerId: string; // héros propriétaire — OBLIGATOIRE à l'acquisition ; succession si mort/retiré
   label?: string; // nom d'instance (« Marguerite »), affichage pur
   location: PossessionLocation;

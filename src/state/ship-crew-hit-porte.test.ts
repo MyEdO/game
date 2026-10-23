@@ -21,6 +21,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
 import type { WorldMap } from '../noyau/worldMap';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1657 B3-2 — LE COUP À L'ÉQUIPAGE D'UN CRITIQUE DE COQUE PASSE PAR LA PORTE.
@@ -49,7 +50,7 @@ const seaMap: WorldMap = {
 /** Trois PJ à bord, tenus par le siège local (cadence manuelle) — la condition de surfaçage — et
  *  ÉPINGLÉS sur le PONT : `greement-fluvial` vise la station (MSRC 07 l.78), pas « tout le monde ». */
 function equipage(): Combatant[] {
-  return makePregens().slice(0, 3).map((h) => ({ ...h, shipStation: 'pont' }));
+  return makePregens(idNeufDeBanc).slice(0, 3).map((h) => ({ ...h, shipStation: 'pont' }));
 }
 
 function baseState(party: Combatant[]): void {
@@ -231,11 +232,11 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
 
   it('2 porteurs TENUS + 1 PNJ : DEUX rangées en bande, le PNJ résolu inline et DIT au journal', () => {
     seedBattleRng(1);
-    const party = makePregens().slice(0, 2);
+    const party = makePregens(idNeufDeBanc).slice(0, 2);
     baseState(party);
     const pnj = marin();
 
-    const bande = bandeTriggeredTest(get, set, [...party, pnj], noeudGreement(), 'sonde-separation', { rng: desDuTest, label: 'Gréement' });
+    const bande = bandeTriggeredTest(get, set, [...party, pnj], noeudGreement(), 'sonde-separation', { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Gréement' });
     expect(bande, 'aucune bande pour les porteurs tenus').toBeTruthy();
     expect(bande!.kind).toBe('triggeredBatchTest');
     expect(bande!.groupOwner, 'deux sièges concernés → possession de GROUPE').toBe(true);
@@ -250,7 +251,7 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
   });
 
   it('`crewTarget:{poste:true}` (MDG 13 l.763) : la victime est le SERVANT tiré au sort — 30 seeds, deux postes', () => {
-    const party = makePregens().slice(0, 1);
+    const party = makePregens(idNeufDeBanc).slice(0, 1);
     const equipage = [party[0], marin()];
     const coque = { id: 'hull', postes: [
       { item: { uid: 'p1', name: 'Canon' }, side: 'tribord', crewIds: ['marin'] },
@@ -259,12 +260,12 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
     const canon = rollShipCritical('equipements', makeRNG(1), 3, SHIP_CRIT_SET).crewHit!;
     const compte: Record<string, number> = {};
     for (let seed = 1; seed <= 30; seed++) {
-      for (const id of applyCrewHit(coque, equipage, canon, makeRNG(seed)).victims) compte[id] = (compte[id] ?? 0) + 1;
+      for (const id of applyCrewHit(coque, equipage, canon, makeRNG(seed), idNeufDeBanc).victims) compte[id] = (compte[id] ?? 0) + 1;
     }
     expect(compte, 'le tirage du poste doit rester DÉTERMINISTE par seed et couvrir les deux postes')
       .toEqual({ [party[0].id]: 16, marin: 14 });
 
     // Sans poste, « Canon détaché » ne désigne personne : aucune fenêtre fantôme.
-    expect(applyCrewHit({ id: 'hull' } as unknown as Combatant, equipage, canon, makeRNG(1)).victims).toEqual([]);
+    expect(applyCrewHit({ id: 'hull' } as unknown as Combatant, equipage, canon, makeRNG(1), idNeufDeBanc).victims).toEqual([]);
   });
 });

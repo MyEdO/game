@@ -39,6 +39,7 @@ import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/fl
 import { RNG } from '../engine/dice';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { routeTriggeredTest } from './combat/triggeredTest';
+import { idNeuf } from './plateforme';
 
 /** TAGUE des effets authorés de l'ENTITÉ dont ils sont tirés — « les GameOps sont rattachés à quelque
  *  chose » (arbitrage user 2026-07-18). Cette identité voyage jusqu'à l'`OpsCtx` du dispatch, où
@@ -421,7 +422,7 @@ export function applyTriggeredEffects(
       // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `if`.
-      const flowCtx: OpsCtx = { rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+      const flowCtx: OpsCtx = { idNeuf, rng, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).
         ...(trigger === 'onOwnTestFailed' ? { noReentryOwnTestFailed: true } : {}) };

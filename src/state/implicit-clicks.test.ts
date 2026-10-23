@@ -7,6 +7,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
 import { chebyshev } from '../engine/grid';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Modèle de clic IMPLICITE (spec 2026-06-10) : déplacement par défaut au clic-case, attaque au
@@ -16,7 +17,7 @@ import { chebyshev } from '../engine/grid';
  */
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

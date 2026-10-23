@@ -24,6 +24,7 @@ import type { Combatant } from '../engine/types';
 import type { GameOp, OpsCtx } from '../engine/ops';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
@@ -51,10 +52,10 @@ const consequenceSurLeSujet = (): string => JSON.stringify({
   scheduledEffects: get().scheduledEffects,
   flags: get().flags,
   cascade: get().pendingCascade?.participants.map((p) => p.kind),
-// Les identifiants d'objet sont MINTÉS par un compteur de module (`newUid`, `engine/items.ts`) : deux
-// décors successifs n'en portent jamais les mêmes. C'est une IDENTITÉ, pas une conséquence — on la
-// neutralise, sinon deux courses du MÊME site différeraient toujours et le témoin ne mesurerait rien.
-}).replace(/\bit-\d+\b/g, 'it-#');
+// Les uids d'objet sont NEUFS (`FabriqueDId`, `src/lib/entityId.ts`) : deux décors successifs n'en portent
+// jamais les mêmes. C'est une IDENTITÉ, pas une conséquence — on la neutralise, sinon deux courses du MÊME
+// site différeraient toujours et le témoin ne mesurerait rien.
+}).replace(/"uid":"[^"]*"/g, '"uid":"#"');
 
 /** Hauteur du journal. Une conséquence peut n'exister QUE là (op `narrative`) : le contrat positif la
  *  compte, et le témoin à branches vides annule la ligne que la résolution du jet y écrit de toute façon. */
@@ -133,7 +134,7 @@ type Jouee = { jouee: boolean; poses: readonly string[] };
  *  Le SUJET reçoit ce que le nœud PRÉSUPPOSE, lu dans sa donnée : les Groupes que ses `onlyGroups`
  *  exigent (Test ou op) et les États que ses ops `removeCondition` retirent. */
 function preparerPorte(n: Noeud): { opsCtx: OpsCtx; poses: readonly string[] } {
-  const opsCtx: OpsCtx = { rng: battleRng(), label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
+  const opsCtx: OpsCtx = { idNeuf: idNeufDeBanc, rng: battleRng(), label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
   const ops = [...opsDesBranches(n.node.success), ...opsDesBranches(n.node.fail)];
   const groupes = [...(n.node.test.onlyGroups ?? []), ...ops.flatMap((o) => (o as { onlyGroups?: string[] }).onlyGroups ?? [])];
   const aRetirer = ops.flatMap((o) => (o.op === 'removeCondition' ? [o.id] : []));
@@ -182,7 +183,7 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
       return { jouee: true, poses };
     }
     case 'consommable': {
-      const it = itemFromTrappingById(n.entryId);
+      const it = itemFromTrappingById(n.entryId, idNeufDeBanc);
       if (!it) return { jouee: false, poses };
       it.uid = 'sonde-1';
       set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, items: [...(c.items ?? []), it] } : c)) as never });

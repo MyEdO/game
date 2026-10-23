@@ -66,6 +66,7 @@ import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type Ec
 import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
+import { sonde } from '../lib/sonde';
 
 /** Agrégation d'un jet multi (porte/contresort/équipage) — SEULE variation de la famille multi.
  *  Canonique dans `pendings.ts` (`CascadeAggregate`, ré-exportée ici pour compat des call-sites du
@@ -801,13 +802,13 @@ function combatChannelValue(actor: Combatant | undefined, canal: RollLineCombat,
  *
  * Exportée pour être jugée SEULE : le mock de MODULE est interdit ici (`isolate: false`, garde
  * `src/vi-mock-isolate-guard.test.ts`), la régression ne peut donc se simuler qu'en appelant
- * l'invariant avec une combinaison qui ment. `SEPARABILITE.vus` compte les passages RÉELS — c'est ce
+ * l'invariant avec une combinaison qui ment. `SEPARABILITE` (`sonde`, `src/lib/sonde.ts`) compte les passages RÉELS — c'est ce
  * compteur, et non la présence d'un appel dans le source, qui prouve le câblage.
  */
-export const SEPARABILITE = { vus: 0 };
+export const SEPARABILITE = sonde();
 
 export function assertSeparabilite(surLaCible: ModLine[], combine: number, circCombined: number): void {
-  SEPARABILITE.vus += 1;
+  SEPARABILITE.passer();
   const horsTable = surLaCible.filter((m) => m.famille !== 'circonstance').reduce((s, m) => s + m.value, 0);
   if (combine === circCombined + horsTable) return;
   const msg = `[seam] rollLine : la combinaison plafonnée (${combine}) n'est pas séparable — circonstances ${circCombined} `

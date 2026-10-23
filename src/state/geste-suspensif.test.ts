@@ -9,10 +9,11 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { applyEffects, runFlow } from '../noyau/combatEffects';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = () => useGame.getState();
 const heros = (label: string, seed: number) => {
-  const h = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` };
+  const h = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` };
   h.fortune = 2; h.resilience = 2; h.characteristics.force = 45;
   return h;
 };

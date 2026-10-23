@@ -6,6 +6,7 @@ import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from '../noyau/comba
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { armyMight, armyStartMight, nomDArmee } from '../noyau/massBattleFlow';
 import type { MassBattleSpec } from '../engine/massBattle';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Effet `startMassBattle` authoré typique (armées + situations par Round + rencontres de combat). */
 function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { type: 'startMassBattle' }> {
@@ -25,7 +26,7 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
 
 function apply(effects: Effect[]) {
   seedBattleRng(1234);
-  useGame.setState({ party: pregenParty(PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
+  useGame.setState({ party: pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
   applyEffects(useGame.getState, useGame.setState, effects);
 }
 

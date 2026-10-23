@@ -6,6 +6,7 @@ import { createHero } from '../engine/character';
 import { placeCombatant } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import { displayedReach, movePreviewAt } from '../noyau/combatFlow';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Combat multi-couche z-aware (relief unifié — plus d'escaliers) : la traversée verticale s'auto-dérive
@@ -38,7 +39,7 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
 
   // Démarre un combat sur testScene() puis SUBSTITUE la scène à rampe et place le héros actif.
   function setup(heroPos: { x: number; y: number; z?: number }) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

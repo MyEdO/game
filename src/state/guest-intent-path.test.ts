@@ -22,6 +22,7 @@ import { testScene } from '../scenes/test-fixture';
 import { initialNet } from '../noyau/etat';
 import { makePregens } from '../data/pregens';
 import type { Combatant, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const NET0 = useGame.getState().net;
 const chars = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -115,7 +116,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(useGame.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
   });
 
-  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens()[0])), id, label: id });
+  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens(idNeufDeBanc)[0])), id, label: id });
   const hoteEtUnInvite = () => useGame.setState({
     party: [], journal: [], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
   });
@@ -124,6 +125,15 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     hoteEtUnInvite();
     expect(applyIntent(1, 'partyAddHero', [pregen('g1'), undefined, 0])).toBe('appliquee');
     expect(useGame.getState().net.ownership.g1, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
+  });
+
+  it('composition : un même pré-tiré recruté deux fois par l’invité est refusé, et le refus se dit (#2907)', () => {
+    hoteEtUnInvite();
+    useGame.setState({ net: { ...useGame.getState().net, slots: [1, 1, 0, 0] } });
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
+    expect(applyIntent(1, 'partyAddHero', [pregen('g1')]), 'l’invité n’a plus d’emplacement : le doublon n’est pas mesuré').toBe('appliquee');
+    expect(useGame.getState().party.map((h) => h.id)).toEqual(['g1']);
+    expect(useGame.getState().journal).toEqual(['g1 est déjà dans le groupe.']);
   });
 
   it('composition : `partyReplaceHero` aussi', () => {

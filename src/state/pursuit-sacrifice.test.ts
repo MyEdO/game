@@ -20,11 +20,12 @@ import { type EtatDeFamille, type MancheClose } from '../noyau/sequenceContract'
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function heroes(): Combatant[] {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cott', seed: 3 });
+  const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const b = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
+  const c = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Cott', seed: 3 });
   // Mouvements ÉGAUX : aucun DR de vitesse (l.105-108) ne vient troubler l'arithmétique mesurée ici ;
   // le plus lent se départage alors au DR de la manche (`pursuitLaggard`).
   for (const h of [a, b, c]) h.movement = 4;

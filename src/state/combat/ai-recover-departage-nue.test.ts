@@ -8,6 +8,7 @@ import { opposedTest, REPLIS_DEUX_CIBLES } from '../../engine/tests';
 import { etats } from '../../data';
 import { setDataset } from '../../data/overrides';
 import type { Combatant, Difficulty } from '../../engine/types';
+import { passagesDe } from '../../lib/sonde';
 
 /**
  * Voie IA du Test de RÉCUPÉRATION opposé (`runEnemyAI`, `case 'recover'`) — `LDB 12 l.160`.
@@ -68,9 +69,9 @@ describe('LDB 12 l.160 — la récupération opposée de l’IA départage sur l
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('TÉMOIN : la sonde `REPLIS_DEUX_CIBLES` compte bien un opposé roulé SANS nue', () => {
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     opposedTest(30, 40, makeRNG(1));
-    expect(REPLIS_DEUX_CIBLES.count, 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(avant + 1);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(avant + 1);
   });
 
   it('la résolution IA lit les DEUX nues, distinctes des valeurs testées', () => {
@@ -82,12 +83,12 @@ describe('LDB 12 l.160 — la récupération opposée de l’IA départage sur l
 
   it('CONTRAT : le tour IA joue le recover SANS aucun repli deux-cibles', () => {
     setBattle('e');
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     runEnemyAI(useGame.getState, useGame.setState, 'e');
     vi.runAllTimers();
     const log = aiTurnLog();
     expect(log.some((r) => r.id === 'e' && r.action.startsWith('recover')), 'le tour IA n’a pas joué le recover').toBe(true);
-    expect(REPLIS_DEUX_CIBLES.count, 'un départage de la voie IA est retombé sur les cibles').toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'un départage de la voie IA est retombé sur les cibles').toBe(avant);
   });
 });
 

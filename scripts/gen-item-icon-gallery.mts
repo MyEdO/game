@@ -11,7 +11,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { ItemIcon } from '../src/ui/ItemIcon';
 import { findTrappingById, trappingsInstanciables } from '../src/data';
-import { formeResolue, isShieldItem, itemFromTrappingById } from '../src/engine/items';
+import { formeResolue, isShieldItem, gabaritDObjet, type GabaritDObjet } from '../src/engine/items';
 import type { HitLocation, ItemInstance } from '../src/engine/types';
 
 const cell = (label: string, node: React.ReactElement) =>
@@ -24,8 +24,8 @@ const grid = (cells: string[]) =>
 // résout au catalogue (`formeResolue`) ; un bouclier se reconnaît à la marque de son entrée (`isShieldItem`).
 const objets = trappingsInstanciables()
   .filter((t) => t.categorie === 'melee' || t.categorie === 'ranged')
-  .map((t) => itemFromTrappingById(t.id)!);
-const icone = (label: string, item: ItemInstance) => cell(label, React.createElement(ItemIcon, { item, size: 64 }));
+  .map((t) => gabaritDObjet(t.id)!);
+const icone = (label: string, item: GabaritDObjet) => cell(label, React.createElement(ItemIcon, { item, size: 64 }));
 const weaponCells = objets.filter((it) => !isShieldItem(it)).flatMap((it) => {
   const choix = findTrappingById(it.trappingId!)?.formChoices ?? [];
   return [icone(it.label, it), ...choix.filter((f) => f !== formeResolue(it)).map((f) => icone(`${it.label} · ${f}`, { ...it, formeChoisie: f }))];

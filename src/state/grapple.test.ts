@@ -9,6 +9,7 @@ import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
 import { unarmedWeapon } from '../engine/items';
 import type { AttackResult } from '../engine/combat';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Empoignade (Issue #42.1, LDB 14 l.159/161/169).
 
@@ -33,7 +34,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

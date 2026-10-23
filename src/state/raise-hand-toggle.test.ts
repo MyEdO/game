@@ -17,9 +17,10 @@ import { createHero } from '../engine/character';
 import { findActionById } from '../data/index';
 import { serializeMessage, parseMessage } from '../net/protocol';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function combat(mode: 'local' | 'host' | 'guest' = 'host') {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   useGame.setState({

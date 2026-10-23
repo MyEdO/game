@@ -6,8 +6,8 @@
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem } from './items';
-import type { ItemInstance, WeaponDamageSpec } from './types';
+import { avecUidDArme, buildWeapon, cleDInstanceDeTrait, emptyArmour, gabaritDObjet, weaponFromItem, type GabaritDObjet } from './items';
+import type { WeaponDamageSpec } from './types';
 import { findResolvedTrait, traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
 
@@ -28,7 +28,7 @@ export function weaponFromId(trappingId: string): Weapon | null {
     console.error(`[weapon] trapping « ${trappingId} » (catégorie « ${trapping.categorie} ») n'est pas une arme — entité désarmée, rien d'inventé.`);
     return null;
   }
-  const it = itemFromTrappingById(trappingId);
+  const it = gabaritDObjet(trappingId);
   return it ? weaponFromItem(it) : null;
 }
 
@@ -40,8 +40,8 @@ export function weaponFromId(trappingId: string): Weapon | null {
  * (RAW : attaques naturelles ou génériques acceptées hors catalogue) — le rendu retombe alors sur le
  * comportement générique/naturel.
  */
-function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsRanged'): ItemInstance | undefined {
-  return arg && SPEC_SOURCES[source].resolves(arg) ? (itemFromTrappingById(arg) ?? undefined) : undefined;
+function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsRanged'): GabaritDObjet | undefined {
+  return arg && SPEC_SOURCES[source].resolves(arg) ? (gabaritDObjet(arg) ?? undefined) : undefined;
 }
 
 /**
@@ -51,7 +51,7 @@ function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsR
  * dans la projection : l'armement de créature étant en Traits, sans qualité portée, une arbalète de
  * bestiaire n'aurait sinon aucun défaut Recharge.
  */
-function creatureWeapon(it: ItemInstance, dmg: WeaponDamageSpec, range: number | undefined): Weapon {
+function creatureWeapon(it: GabaritDObjet, dmg: WeaponDamageSpec, range: number | undefined): Weapon {
   const w = weaponFromItem(it);
   w.damage = dmg;
   if (range !== undefined) w.range = range;
@@ -112,16 +112,24 @@ export function renderWeaponsFromTraits(traits: TraitList): Weapon[] {
   const weapons: Weapon[] = [];
   for (const t of traits) {
     const w = weaponFromTrait(t);
-    if (w) weapons.push(w);
+    if (w) weapons.push(avecUidDArme(w, cleDInstanceDeTrait(t), weapons));
   }
   return weapons;
+}
+
+/** Clé de l'arme générique de repli, sans entité source. */
+const ARME_GENERIQUE = 'arme';
+
+/** L'arme générique de repli (« Arme » au dégât `damage`, poings du statbloc) d'une liste sans arme. */
+export function armeGenerique(damage: string): Weapon {
+  return buildWeapon({ label: 'Arme', damage: { literal: damage }, uid: ARME_GENERIQUE });
 }
 
 /** Armes JOUABLES (combat) : comme `renderWeaponsFromTraits`, mais garantit AU MOINS une arme (« Arme »
  *  générique = poings) pour qu'un combattant puisse toujours frapper, même sans trait d'arme. */
 export function weaponsFromTraits(traits: TraitList): Weapon[] {
   const weapons = renderWeaponsFromTraits(traits);
-  if (weapons.length === 0) weapons.push(buildWeapon({ label: 'Arme', damage: { literal: '+BF' } })); // uid universel
+  if (weapons.length === 0) weapons.push(armeGenerique('+BF'));
   return weapons;
 }
 

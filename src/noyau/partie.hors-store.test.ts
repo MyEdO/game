@@ -8,8 +8,9 @@ import { creerPartie, etatInitialDuJeu, previewAttack, type EntreesDeLaPartie, t
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { BRUNA, ALDO, etatAttable, rangsAssis } from './taverneAttablee.testkit';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
-const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
+const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {}, idNeuf: idNeufDeBanc };
 
 const emis = ({ evenements }: ResultatDeLAppel) => evenements.flatMap((e) => (e.type === 'emis' ? [e.evt] : []));
 

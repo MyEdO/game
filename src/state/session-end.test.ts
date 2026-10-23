@@ -8,13 +8,14 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { resolveMax } from '../engine/talentEffects';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('endSession (LDB 05 / LDB 17)', () => {
   beforeEach(() => { useGame.setState({ party: [], journal: [], flags: {} }); });
 
   it('octroie +50/+500 PX d’Ambition (perso + groupe à chaque héros)', () => {
-    const a = pregen(PREGEN.soldat); a.xp = 0;
-    const b = pregen(PREGEN.tueur); b.xp = 0;
+    const a = pregen(idNeufDeBanc, PREGEN.soldat); a.xp = 0;
+    const b = pregen(idNeufDeBanc, PREGEN.tueur); b.xp = 0;
     useGame.setState({ party: [a, b] });
     useGame.getState().endSession({
       heroes: { [a.id]: { ambitionShort: true, ambitionLong: true } },
@@ -26,7 +27,7 @@ describe('endSession (LDB 05 / LDB 17)', () => {
   });
 
   it('regagne 1 Point de Détermination pour un héros ayant agi selon sa Motivation (plafonné)', () => {
-    const a = pregen(PREGEN.tueur); a.resolve = 0;
+    const a = pregen(idNeufDeBanc, PREGEN.tueur); a.resolve = 0;
     useGame.setState({ party: [a] });
     useGame.getState().endSession({ heroes: { [a.id]: { motivation: true } } });
     const h = useGame.getState().party.find((x) => x.id === a.id)!;
@@ -34,7 +35,7 @@ describe('endSession (LDB 05 / LDB 17)', () => {
   });
 
   it('restaure la Chance du groupe au niveau du Destin', () => {
-    const a = pregen(PREGEN.soldat);
+    const a = pregen(idNeufDeBanc, PREGEN.soldat);
     if (a.fate != null) a.fortune = 0; // dépensée
     useGame.setState({ party: [a] });
     useGame.getState().endSession({});

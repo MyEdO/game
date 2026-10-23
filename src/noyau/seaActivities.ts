@@ -55,6 +55,7 @@ import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -285,7 +286,7 @@ export const TABLES = {
       const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
       const j: string[] = [];
       if (step.result.success) {
-        const it = itemFromTrappingById('carte-marine');
+        const it = itemFromTrappingById('carte-marine', idNeuf);
         if (it) {
           it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
           hero.items = [...(hero.items ?? []), it];

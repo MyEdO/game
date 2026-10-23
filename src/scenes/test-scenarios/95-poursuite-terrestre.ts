@@ -3,6 +3,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * POURSUITE TERRESTRE JOUABLE (#95, LDB 15 l.88-108) : le groupe fuit trois brigands sur un chemin
@@ -67,5 +68,5 @@ export const scenario: TestScenario = {
     "influençable purpose:'pursuite', UNE bande par manche — une rangée par coureur) dès l'entrée ; rattrapage " +
     '(Distance ≤ 0) bascule en combat contre les mêmes brigands, évasion (Distance ≥ 10) se dénoue au récit.',
   partyNote: 'Groupe fixe (pré-tirés)',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

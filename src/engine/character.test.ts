@@ -17,6 +17,7 @@ import { baseWithTalents } from './talentEffects';
 import { acquerirTalent } from './careerSlots';
 import { traitConsumptionFactor } from './provisions';
 import { traitEncumbranceFactor } from './combatFeatures/dispatch';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const REIK = 'humains-reiklander';
 const sp = () => findSpeciesById(REIK)!;
@@ -142,7 +143,7 @@ describe('resolveSpeciesTalents — fixes / choix / aléatoires', () => {
 
 describe('acquerirTalent — Maxi (LDB 05 l.475, LDB 10 l.18)', () => {
   it('une acquisition de plus sous le Maxi ; aucune au Maxi', () => {
-    const heros = { characteristics: createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', seed: 3 }).characteristics, talents: [] as Combatant['talents'] };
+    const heros = { characteristics: createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'soldat', label: 'x', seed: 3 }).characteristics, talents: [] as Combatant['talents'] };
     acquerirTalent(heros, { id: 'perspicace' });
     acquerirTalent(heros, { id: 'perspicace' });
     expect(heros.talents).toEqual([{ talentId: 'perspicace', spec: undefined, times: 1 }]);
@@ -152,14 +153,14 @@ describe('acquerirTalent — Maxi (LDB 05 l.475, LDB 10 l.18)', () => {
     // Graine 5 : Perspicace (Maxi 1) choisi, puis tiré en doublon au tirage 1.
     const choix = { seed: 5, speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } } };
     expect(resolveSpeciesTalentsDetail(sp(), choix)[3]).toMatchObject({ ref: { id: 'perspicace' }, tirage: { doublon: true } });
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'x', ...choix });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'soldat', label: 'x', ...choix });
     expect(hero.talents.find((t) => t.talentId === 'perspicace')?.times).toBe(1);
   });
 });
 
 describe('createHero — applique compétences et talents raciaux', () => {
   it('le héros reçoit ses compétences d’espèce (advances ≥ valeur raciale) et ses talents', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'Test', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'soldat', label: 'Test', seed: 3 });
     const calme = hero.skills.find((s) => s.id === 'calme');
     expect(calme).toBeTruthy();
     expect(calme!.advances).toBeGreaterThanOrEqual(5); // +5 d'espèce (additif si aussi en carrière)
@@ -170,18 +171,19 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('aucun libellé « (Au choix) » résiduel sur le héros (specs résolues)', () => {
     for (const seed of [1, 5, 9]) {
-      const hero = createHero({ speciesId: 'nains', careerId: 'artisan', label: 'T', seed });
+      const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'nains', careerId: 'artisan', label: 'T', seed });
       for (const s of hero.skills) expect(s.spec ?? '').not.toMatch(/au choix|\sou\s/i);
       for (const t of hero.talents) expect(talentConcrete(t)).not.toMatch(/\(.*au choix.*\)/i);
     }
   });
 
   it('5 Augmentations gratuites sur les 3 Caractéristiques de carrière (LDB 05 l.459)', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
     const total = Object.values(hero.charAdvances ?? {}).reduce((a, b) => a + (b ?? 0), 0);
     expect(total).toBe(5);
     // La répartition explicite s'ajoute aux valeurs initiales.
     const manual = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: REIK,
       careerId: 'soldat', // Caractéristiques de carrière : CC, F, E (Recrue)
       label: 'T',
@@ -199,6 +201,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('« +5 Caractéristique de départ » passif (Affable → Soc +5 via charMod), sans Augmentation comptée', () => {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: REIK,
       careerId: 'soldat',
       label: 'T',
@@ -216,6 +219,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('talent de carrière = talent d\'espèce → times 2 (LDB 05 l.535, LDB 10 l.9) ; Blessures avec Dur à cuire', () => {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'elfes-sylvains', // « Dur à cuire ou Seconde vue » (1re option), aucun Talent aléatoire
       careerId: 'milicien', // Niveau 1 propose « Dur à cuire »
       label: 'T',
@@ -231,6 +235,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('PX bonus de la création conservés ; détails portés', () => {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: REIK,
       careerId: 'soldat',
       label: 'T',
@@ -245,6 +250,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('Halfling Herboriste : Sens aiguisé (Goût) d\'espèce reprenable en talent de carrière (times 2)', () => {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'halflings',
       careerId: 'herboriste',
       label: 'T',
@@ -258,7 +264,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
   it('Talent de carrière : pris au Niveau 1 (LDB 05 l.535), un emplacement « (Au choix) » exige sa spécialisation (LDB 10 l.17)', () => {
     const cree = (careerTalent: { id: string; spec?: string }) =>
-      () => createHero({ speciesId: 'humains-reiklander', careerId: 'pretre', label: 'T', careerTalent, seed: 5 });
+      () => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'pretre', label: 'T', careerTalent, seed: 5 });
     expect(cree({ id: 'beni' })).toThrow(/Talent de carrière « beni ».*pretre.*exige une spécialisation \(LDB 10 l\.17\)/);
     expect(cree({ id: 'acrobate' })).toThrow(/Talent de carrière « acrobate ».*absent du Niveau 1 de « pretre » \(LDB 05 l\.535\)/);
     const hero = cree({ id: 'beni', spec: 'sigmar' })();
@@ -279,7 +285,7 @@ describe('createHero — applique compétences et talents raciaux', () => {
 
 describe('createHero — Trait racial + Taille par talent (#572)', () => {
   it('un héros Ogre porte le trait racial `ogre` (encombrance/consommation ×2) et sa Taille est Grande', () => {
-    const hero = createHero({ speciesId: 'ogres', careerId: 'ratier', label: 'Grosminet', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'ogres', careerId: 'ratier', label: 'Grosminet', seed: 3 });
     expect(hero.traits).toEqual([{ id: 'ogre' }]);
     expect(hero.talents.some((t) => t.talentId === 'massif')).toBe(true);
     expect(hero.size).toBe('grande');
@@ -288,7 +294,7 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
   });
 
   it('un héros Halfling (talent Petit) a une Taille Petite, sans trait racial ni facteur ×2', () => {
-    const hero = createHero({ speciesId: 'halflings', careerId: 'marchand', label: 'Bilbon', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'halflings', careerId: 'marchand', label: 'Bilbon', seed: 3 });
     expect(hero.talents.some((t) => t.talentId === 'petit')).toBe(true);
     expect(hero.size).toBe('petite');
     expect(hero.traits ?? []).toEqual([]);
@@ -297,7 +303,7 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
   });
 
   it('un héros humain (ni Massif ni Petit) a une Taille Moyenne', () => {
-    const hero = createHero({ speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3 });
     expect(hero.size).toBe('moyenne');
   });
 });
@@ -305,6 +311,7 @@ describe('createHero — Trait racial + Taille par talent (#572)', () => {
 describe('createHero — Signe astral à Talent non désigné (ADE II 03 l.235)', () => {
   it('Les Deux Bœufs : le Métier choisi à l’adresse de l’op du signe désigne le Talent octroyé', () => {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: REIK, careerId: 'soldat', label: 'T', seed: 3, talentsRolled: false,
       starId: 'les-deux-boeufs', specChoices: { [adresseDeCreation.signe(1)]: 'armurier' },
     });
@@ -315,7 +322,7 @@ describe('createHero — Signe astral à Talent non désigné (ADE II 03 l.235)'
 describe('joker de création — une référence déjà tenue par un autre emplacement (LDB 05 l.535, l.484)', () => {
   const sansEspece = { plus5: [], plus3: [] };
   const gladiateur = (spec: string) =>
-    createHero({ speciesId: REIK, careerId: 'gladiateur', label: 'g', seed: 1, speciesSkillAdvances: sansEspece, specChoices: { [adresseDeCreation.carriereCompetence(2)]: spec } });
+    createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'gladiateur', label: 'g', seed: 1, speciesSkillAdvances: sansEspece, specChoices: { [adresseDeCreation.carriereCompetence(2)]: spec } });
 
   it('gladiateur : le joker Corps à corps qui désigne Bagarre, déjà au Niveau 1, est refusé par son nom', () => {
     expect(() => gladiateur('bagarre')).toThrow(/Compétence de carrière « corps-a-corps\|bagarre » : déjà pris par un autre emplacement/);
@@ -328,7 +335,7 @@ describe('joker de création — une référence déjà tenue par un autre empla
   });
 
   const piedpaille = (plus5: RefDesignee[]) =>
-    createHero({ speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', seed: 1, speciesSkillAdvances: { plus5, plus3: [] } });
+    createHero({ idNeuf: idNeufDeBanc, speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', seed: 1, speciesSkillAdvances: { plus5, plus3: [] } });
 
   it('Halfling Piedpaille : le joker Métier qui désigne Cuisinier, déjà dans la liste, est refusé par son nom', () => {
     expect(() => piedpaille([{ id: 'metier', spec: 'cuisinier' }, { id: 'metier', spec: 'cuisinier' }, { id: 'charme' }])).toThrow(
@@ -366,7 +373,7 @@ describe('deux jokers de même id non désignés : chacun prend le premier LIBRE
     const fixture = { ...glad, skills: glad.skills.map((r, i) => (i === 1 ? { id: 'corps-a-corps', choix: true as const } : r)) };
     setDataset('careerLevels', origine.map((l) => (l === glad ? fixture : l)));
     try {
-      const h = createHero({ speciesId: REIK, careerId: 'gladiateur', label: 'g', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
+      const h = createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'gladiateur', label: 'g', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
       const cac = h.skills.filter((s) => s.id === 'corps-a-corps').map((s) => s.spec);
       expect(cac).toHaveLength(3);
       expect(new Set(cac).size).toBe(3);
@@ -384,7 +391,7 @@ describe('deux jokers de même id non désignés : chacun prend le premier LIBRE
     try {
       const defauts = speciesSkillDefaults(fixture);
       expect(defauts.plus5[0].spec).not.toBe(defauts.plus5[1].spec);
-      const h = createHero({ speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', seed: 1, speciesSkillAdvances: { plus5: [{ id: 'metier' }, { id: 'metier' }, { id: 'metier', spec: 'cuisinier' }], plus3: [] } });
+      const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'halflings-piedpaille', careerId: 'gladiateur', label: 'h', seed: 1, speciesSkillAdvances: { plus5: [{ id: 'metier' }, { id: 'metier' }, { id: 'metier', spec: 'cuisinier' }], plus3: [] } });
       const metiers = h.skills.filter((s) => s.id === 'metier').map((s) => s.spec);
       expect(new Set(metiers).size).toBe(3);
     } finally {
@@ -399,7 +406,7 @@ describe('répartition par défaut des 40 Augmentations de carrière (LDB 05 l.5
     expect(entrees).toHaveLength(10);
     const r = repartitionDeCarriere(entrees);
     expect(Object.values(r)).toEqual([5, 5, 5, 5, 5, 5, 5, 5]);
-    const h = createHero({ speciesId: REIK, careerId: 'archer', label: 'a', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: REIK, careerId: 'archer', label: 'a', seed: 1, speciesSkillAdvances: { plus5: [], plus3: [] } });
     expect(h.skills.reduce((a, s) => a + s.advances, 0)).toBe(40);
     expect(h.skills.filter((s) => s.advances > 0)).toHaveLength(8);
   });

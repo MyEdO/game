@@ -8,6 +8,7 @@ import { areGrappling, setGrapple } from '../engine/grapple';
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Attaques GRATUITES de créature (Taille & traits) : Morsure / Attaque caudale / Piétinement,
 // chacune 1 Avantage, OPPOSÉE (cible Surprise ici → résolution instantanée), gratuite (LDB 85).
@@ -16,7 +17,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetCadence(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

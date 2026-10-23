@@ -12,6 +12,7 @@ import { conditionCtx, type ConditionCtx } from '../engine/flowCore';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { actorIn, ecrireActeur } from './monde/combatants';
+import { idNeuf } from './plateforme';
 
 const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2097
 
@@ -36,7 +37,7 @@ function ecrireBourses(s: Jeu, montants: Record<string, (actuel: Money) => Money
   const bourses: Record<string, ItemInstance> = {};
   for (const [id, montant] of Object.entries(montants)) {
     const lu = actorIn(s, id);
-    const bourse = lu && bourseInstanceOf(withBourseMoney(lu, montant(bourseOf(lu))));
+    const bourse = lu && bourseInstanceOf(withBourseMoney(lu, montant(bourseOf(lu)), idNeuf));
     if (bourse) bourses[id] = bourse;
   }
   return ecrireActeur(s, Object.keys(bourses), (h) => {

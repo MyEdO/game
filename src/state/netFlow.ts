@@ -89,10 +89,6 @@ export function netSnapshot(get: Get): Record<string, unknown> {
   // ouvre le choix du paramètre CHEZ CE JOUEUR (spec HUD §1d). L'élection se joue donc chez
   // l'ÉMETTEUR (`emettreIntentInvite`), jamais par un intent — sinon elle atterrirait ici, à l'hôte.
   delete (data as Record<string, unknown>).dispelCarrierId;
-  // MÊME raison pour le REFUS de geste (`refusVisible.ts`) : c'est la réponse faite à CE joueur sur SON
-  // clic. L'hôte qui refuse son propre geste n'a rien à dire aux autres tables ; et quand il exécute
-  // l'intent d'un invité, le refus éventuel appartient à l'invité, pas au sien.
-  delete (data as Record<string, unknown>).refus;
   // Les règles maison de l'HÔTE voyagent avec l'état → parité hôte/invité (sinon l'invité calcule
   // sur SES propres surcharges localStorage et diverge).
   return packHouseRules(data, ruleOverrides());

@@ -22,13 +22,14 @@ import { endTurnArmed } from '../noyau/endTurnGuard';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant } from '../engine/types';
 import { CombatConsole } from './console/CombatConsole';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 function combattant(id: string, label: string, kind: Combatant['kind'] = 'hero'): Combatant {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
+  const c = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
   c.id = id;
   c.kind = kind;
   c.pos = { x: 4, y: 4 };

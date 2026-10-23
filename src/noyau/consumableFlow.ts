@@ -31,6 +31,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
+import { idNeuf } from './plateforme';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
  *  d'acteur (`has group Elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
@@ -54,6 +55,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       case 'do': {
         if (node.effect.type === 'ops') {
           const lines = applyLeafOps(get, set, hero, node.effect, {
+            idNeuf,
             rng: battleRng(),
             // PROVENANCE du produit bu : un poison qui enduit la lame (`augmentWeapon`) garde SON
             // identité sur les effets fondus dans l'arme (`stampSource`, engine/ops) — sans elle, le

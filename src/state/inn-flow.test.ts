@@ -7,6 +7,7 @@ import { buildScene } from '../noyau/mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
 import { stacks } from '../engine/conditions';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * RUMEURS D'AUBERGE (#352) — l'Activité canonique `recueillir-informations` (EDOC 8 l.151, skillId
@@ -24,7 +25,7 @@ function skill(c: Combatant, skillId: string, advances: number): void {
 }
 
 function hero(advances: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 'h-artur' });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 'h-artur' });
   skill(h, 'ragot', advances);
   return h;
 }

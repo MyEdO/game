@@ -58,6 +58,7 @@ import { postingTenu } from '../engine/activities';
 import { ecrireActeur } from './monde/combatants';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 const POSTE_ICON: Record<string, string> = {
   'plein-air': 'expedition/outdoors', approvisionnement: 'item/consumable', 'recueillir-informations': 'expedition/rumor', 'rester-aux-aguets': 'ui/eye',
@@ -334,7 +335,7 @@ export const TABLES = {
         const res = part.result;
         if (!hero || !res || res.success) { part.outcome = []; continue; }
         const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.86/127
-        applyOps(hero, [op], { rng: battleRng() });
+        applyOps(hero, [op], { idNeuf, rng: battleRng() });
         const lines = resultLines([{ ops: [op] }]);
         part.outcome = lines;
         for (const l of lines) get().log(l.text);
@@ -359,7 +360,7 @@ export const TABLES = {
         for (const h of party.filter((x) => !x.dead && !x.outOfRencontre)) {
           if (remaining <= 0) break;
           if (rationCount(h) >= 1) continue;
-          const ration = itemFromGive({ trappingId: 'ration' });
+          const ration = itemFromGive({ trappingId: 'ration' }, idNeuf);
           h.items = [...(h.items ?? []), ration];
           autoStowNewItem(h, ration); // #204 : rangement par défaut
           remaining -= 1;

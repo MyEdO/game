@@ -50,6 +50,7 @@ import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../../data/d
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { careerSkillAdditions } from '../../engine/talentEffects';
 import { spells, stars, celestialHouses, species as allSpecies, careersForSpecies } from '../../data';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 // Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
 // mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
@@ -157,6 +158,7 @@ describe('une voie : le héros créé est celui que l\'écran montre (#1897)', (
     const talents = (h: { talents: { talentId: string; times: number }[] }) => h.talents.map((t) => `${t.talentId}x${t.times}`);
     const viaBuild = talents(buildHero(d));
     const viaChoix = talents(createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
       speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
     }));
@@ -266,6 +268,7 @@ describe('utilisation d\'un Talent tiré « (un au choix) » (LDB 05 l.484, tabl
     const ecran = speciesTalentRandomDrawn(d)[0].ref;
     const specs = (h: { talents: { talentId: string; spec?: string }[] }) => h.talents.filter((t) => t.talentId === 'sens-aiguise').map((t) => t.spec).sort();
     const viaChoix = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: d.speciesId, careerId: d.careerId, label: 'x', seed: d.seed, careerTalent: d.careerTalent,
       speciesTalentChoices: d.speciesTalentChoices, randomSpecPicks: d.randomSpecPicks, talentRerolls: d.talentRerolls,
     });

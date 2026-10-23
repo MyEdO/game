@@ -13,6 +13,7 @@ import { refCouvre, memeSpecialisation } from '../../data/schemas/grammaire/ref'
 import { acquerirTalent, splitLabel } from '../../engine/careerSlots';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import type { Combatant, CharKey, SkillInstance, ItemInstance } from '../../engine/types';
+import { idNeuf } from '../../noyau/plateforme';
 
 /** Deep-clone d'un pré-tiré (données pures) pour le bricoler sans toucher la base. */
 export const clone = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) as Combatant;
@@ -62,7 +63,7 @@ export const ARC_DOMAINS = ['Feu', 'Mort', 'Cieux', 'Bête', 'Vie'];
  * Arcanes communs, ses Domaines, Nécromancie). Self-contained (tire son propre pré-tiré sorcier).
  */
 export function makeSorceress(id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
-  const sorc = clone(pregenParty(PREGEN.sorcier)[0]);
+  const sorc = clone(pregenParty(idNeuf, PREGEN.sorcier)[0]);
   sorc.id = id;
   sorc.label = name;
   setChars(sorc, { intelligence: 75, 'force-mentale': 70, agilite: 58, dexterite: 52, initiative: 62, endurance: 45 });
@@ -89,7 +90,7 @@ export function makeFlagellant(base: Combatant, id: string, name: string, cult: 
   const f = makePriest(base, id, name, cult, chars);
   addTalents(f, ['Frénésie']);
   boostSkill(f, 'Corps à corps', "Armes d'hast", 'capacite-de-combat', 45);
-  const axe = itemFromTrappingById('hache-d-armes');
+  const axe = itemFromTrappingById('hache-d-armes', idNeuf);
   if (axe) {
     f.items = [...(f.items ?? []), axe] as ItemInstance[];
     recomputeLoadout(f);

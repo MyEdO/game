@@ -5,9 +5,10 @@ import { testScene } from '../scenes/test-fixture';
 import { bus, EVT } from '../noyau/bus';
 import { resolveMovement } from '../noyau/combatFlow';
 import { useGame } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

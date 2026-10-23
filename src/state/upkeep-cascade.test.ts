@@ -9,6 +9,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { applyOps } from '../engine/ops';
 import type { Combatant } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #T3 — Cascade RAW d'horloge (`noyau/upkeep.ts`) : ce que le passage du temps déclenche sur les
@@ -82,7 +83,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     const t0 = 12 * 60;
     const c = hero({});
     // Buff posé comme le ferait applyCast pour une durée « 1 heure » : durée d horloge (untilTime, sans sentinelle).
-    applyOps(c, [{ op: 'charMod', char: 'force', mod: 10 }], { rng: desDuTest,
+    applyOps(c, [{ op: 'charMod', char: 'force', mod: 10 }], { idNeuf: idNeufDeBanc, rng: desDuTest,
       label: 'Tour de force', defaultUntilTime: t0 + 60,
     });
     useGame.setState({ party: [c], gameTime: t0, lastUpkeepDay: 0 });

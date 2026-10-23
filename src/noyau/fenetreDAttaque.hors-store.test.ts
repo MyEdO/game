@@ -7,8 +7,9 @@ import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, fenetreDAttaque, LOCALISATIONS_DE_COUP, type EntreesDeLaPartie, type FenetreDAttaque, type Partie } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
-const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
+const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {}, idNeuf: idNeufDeBanc };
 
 /** Le duel ouvert, le tour au héros, gardé puis repris par une seconde partie. */
 function duel() {

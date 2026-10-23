@@ -38,6 +38,7 @@ import type { Get } from '../flowTypes';
 import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
+import { idNeuf } from '../plateforme';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */
@@ -241,7 +242,7 @@ export const TABLES = {
       order: 10,
       run: ({ get, set, battle, sink }) => {
         for (const c of battle.combatants) {
-          endOfRound(c, battleRng()).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
+          endOfRound(c, battleRng(), idNeuf).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
           // Dispatch UNIQUE des effets `onRoundEnd` (États : dégâts/dissipation ; Traits/Talents : réactions) —
           // fireTriggers réunit toutes les sources, aucun chemin par-kind. Inerte sans donnée. Pas de réaction
           // de fin de Round pour un combattant HORS COMBAT (un cadavre ne brûle/saigne plus — le dispatcher

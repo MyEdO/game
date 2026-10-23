@@ -5,8 +5,8 @@
  * des stats déjà portées par les trappings (Dégâts, Allonge, Portée, Qualités, PA d'armure ;
  * Protection des boucliers via l'Atout « Protectrice N »). Présentation pure → testable hors UI.
  */
-import type { Combatant, ItemInstance, HitLocation, WeaponDamageSpec, QualityInstance } from './types';
-import { damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
+import type { Combatant, HitLocation, WeaponDamageSpec, QualityInstance } from './types';
+import { damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf, type GabaritDObjet } from './items';
 import { effectiveRange } from './weaponDamage';
 import { bonus, effectiveChar } from './characteristics';
 import { resolveQualities } from './qualities/dispatch';
@@ -37,7 +37,7 @@ const trendOf = (n: number): Trend => (n > 0 ? 'up' : n < 0 ? 'down' : 'same');
 /** Indice de l'Atout « Protectrice N » (PA d'un bouclier en parade, LDB 62 l.296) — lecture structurée. */
 const protectrice = (q: QualityInstance[]): number => q.find((x) => x.id === 'protectrice')?.value ?? 0;
 
-export function compareEquip(item: ItemInstance, hero: Combatant): EquipComparison {
+export function compareEquip(item: GabaritDObjet & { uid?: string }, hero: Combatant): EquipComparison {
   const items = hero.items ?? [];
   // « Actuellement équipé » pour une ARME = l'arme tenue dans le set actif (les Weapon dérivés `hero.weapons`),
   // plus `it.equipped` (devenu le seul seed du loadout par défaut). L'armure, elle, reste pilotée par `equipped`.

@@ -68,7 +68,7 @@ export function rederiveAttack(attacker: Combatant, target: Combatant, p: Pendin
   if (!compo) {
     // Symétrie avec `rederivePassiveAttack` : une re-dérivation qui recompose faute de Difficulté
     // transportée ne peut pas être SILENCIEUSE (patron `REDERIVATIONS`).
-    REDERIVATIONS.recomposees += 1;
+    REDERIVATIONS.passer();
     console.error('[combat] rederiveAttack : re-dérivation SANS Difficulté transportée — le détail d’origine n’en portait pas.');
   }
   if (r.defenderDetail) {

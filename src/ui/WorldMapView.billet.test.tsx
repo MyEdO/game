@@ -18,6 +18,7 @@ import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
 import { draineCascade } from '../state/cascade.testkit';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -54,7 +55,7 @@ const T2 = 'route-route-principale-sept-rayons';
 
 /** Le chapitre 1 lancé avec le groupe showcase et sa bourse, monté à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+  const groupe = makePregensWithWealth(idNeufDeBanc).filter((e) => SHOWCASE.includes(e.hero.id));
   useGame.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
@@ -75,7 +76,7 @@ async function cliquer(b: Element): Promise<void> {
 
 describe('billet de la diligence — chemin du joueur', () => {
   it('Marchander → Conclure → prix négocié par place → Payer et partir → 4 × 3/- débités', async () => {
-    const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+    const groupe = makePregensWithWealth(idNeufDeBanc).filter((e) => SHOWCASE.includes(e.hero.id));
     useGame.setState({ party: groupe.map((e) => e.hero) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);

@@ -17,11 +17,12 @@ import { condCtx } from '../../noyau/bourseFlow';
 import { snapshotSave } from '../../state/saves';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const SOSIE = 'campagne-sosie-heros';
 const get = () => useGame.getState();
-const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
+const heros = (label: string, seed: number) => ({ ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
 
 beforeEach(() => {
   get().setParty([heros('Vivant', 1), { ...heros('Tombé', 2), dead: true }, heros('Autre', 3)]);
@@ -79,7 +80,7 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
   let container: HTMLDivElement | undefined;
   let root: Root | undefined;
   afterEach(() => { if (root) act(() => root!.unmount()); container?.remove(); root = undefined; container = undefined; });
-  const naine = () => ({ ...createHero({ speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F', build: 0.5 } }), id: 'h-9' });
+  const naine = () => ({ ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'nains', careerId: 'soldat', label: 'Naine', seed: 9, apparence: { sex: 'F', build: 0.5 } }), id: 'h-9' });
 
   beforeEach(() => {
     get().setParty([heros('Vivant', 1), naine()]);

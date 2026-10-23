@@ -82,31 +82,17 @@ const mule = (ownerId: string): Omit<BetePossession, 'uid'> => ({
 });
 
 describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
-  it('addPossession attribue pos-1 puis pos-2 par scan du registre', () => {
+  it('addPossession attribue un uid libre parmi ceux du registre, distinct à chaque ajout', () => {
     const { get, set } = makeHarness([]);
-    const uid1 = addPossession(get, set, mule('h1'));
-    const uid2 = addPossession(get, set, mule('h1'));
-    expect(uid1).toBe('pos-1');
-    expect(uid2).toBe('pos-2');
-    expect(get().possessions).toHaveLength(2);
+    const uids = [addPossession(get, set, mule('h1')), addPossession(get, set, mule('h1')), addPossession(get, set, mule('h1'))];
+    expect(new Set(uids).size).toBe(3);
+    expect(get().possessions.map((p) => p.uid)).toEqual(uids);
   });
 
-  it('anti-collision par SCAN : pos-1 encore présent → un 3e ajout prend pos-3, jamais pos-1', () => {
-    const { get, set } = makeHarness([]);
-    addPossession(get, set, mule('h1')); // pos-1
-    addPossession(get, set, mule('h1')); // pos-2
-    const uid3 = addPossession(get, set, mule('h1'));
-    expect(uid3).toBe('pos-3');
-  });
-
-  it('anti-collision par SCAN : pos-1 retiré du registre → le prochain ajout reste au-delà du max restant', () => {
-    const { get, set } = makeHarness([]);
-    addPossession(get, set, mule('h1')); // pos-1
-    addPossession(get, set, mule('h1')); // pos-2
-    // pos-1 retiré directement (simule une consommation externe du registre)
-    set((s) => ({ possessions: s.possessions.filter((p) => p.uid !== 'pos-1') }));
-    const uid3 = addPossession(get, set, mule('h1'));
-    expect(uid3).toBe('pos-3'); // scanne le MAX (pos-2), pas un compteur qui réutiliserait pos-1
+  it('un uid neuf n’est celui d’aucune possession déjà au registre (registre chargé)', () => {
+    const { get, set } = makeHarness([], ['pos-0', 'pos-1', 'pos-3'].map((uid) => ({ ...mule('h1'), uid }) as Possession));
+    const uid = addPossession(get, set, mule('h1'));
+    expect(['pos-0', 'pos-1', 'pos-3']).not.toContain(uid);
   });
 
   it('renamePossession pose le label d’instance', () => {

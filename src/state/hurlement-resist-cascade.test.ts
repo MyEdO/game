@@ -14,14 +14,15 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
 import { cascadeDeTest, draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('Hurlement fantomatique — Test de Résistance influençable (héros manuel)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); resetCadence(); useGame.setState({ battle: null, pendingCascade: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetCadence(); });
 
   function setup() {
-    const H1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
-    const H2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
+    const H1 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 });
+    const H2 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H2', seed: 2 });
     useGame.setState({ party: [H1, H2] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

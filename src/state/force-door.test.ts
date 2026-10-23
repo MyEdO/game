@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2, « Portes ») — flux multi PARALLÈLE, métier =
  *  DÉGÂTS sur objet (BE / B). Chaque héros frappe indépendamment (Bagarre → DR + BF − BE) avec son
@@ -13,7 +14,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
 
   function heroes() {
     const mk = (name: string, seed: number) => {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed });
+      const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed });
       h.fortune = 2; h.resilience = 2; h.characteristics.force = 45; // Bonus de Force 4
       return h;
     };

@@ -3,7 +3,7 @@
  * se numérote dans l'ordre d'arrivée et se reprend une fois par son numéro ; un scénario se nomme par son id du catalogue.
  */
 import { describe, it, expect } from 'vitest';
-import { ErreurDeGeste, scenarioDeTest, tenueDesJetons } from './partie';
+import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie, scenarioDeTest, tenueDesJetons } from './partie';
 import { testScenarios } from '../scenes/test-scenarios';
 import type { Jeton, ResultatDeLAppel } from '../noyau/index';
 
@@ -53,5 +53,23 @@ describe('le scénario de test nommé par son id', () => {
     expect(scenarioDeTest(premier.id)).toBe(premier);
     const e = erreurDe(() => scenarioDeTest('zz-inconnu'));
     expect([e?.categorie, e?.message]).toEqual(['validation', 'scénario inconnu : zz-inconnu']);
+  });
+});
+
+describe('deux parties de la même en-tête fabriquent les mêmes ids (#2907)', () => {
+  /** Les uids que porte l'état d'une partie ouverte sur l'en-tête, dans l'ordre de l'état. */
+  const uidsDeLaPartie = (scenario: string): string[] => {
+    const { partie } = ouvrirLaPartie(nouvelEntete(scenario, { graine: 7 }));
+    try {
+      return [...JSON.stringify(partie.etat()).matchAll(/"(?:uid|id)":"((?:it|hero|conjure)-[^"]*)"/g)].map((m) => m[1]);
+    } finally {
+      partie.fermer();
+    }
+  };
+
+  it.each(['duel-naval', 'embuscade'])('%s : les deux parties d’un même processus portent les mêmes ids', (scenario) => {
+    const premiere = uidsDeLaPartie(scenario);
+    expect(premiere.length, 'la partie ne porte aucun id fabriqué : le témoin ne mesurerait rien').toBeGreaterThan(0);
+    expect(uidsDeLaPartie(scenario)).toEqual(premiere);
   });
 });

@@ -6,6 +6,7 @@ import type { WorldMap } from '../../noyau/worldMap';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 import { rigSpeciesId } from '../../data';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Voyage maritime » — la traversée en mer JOUABLE (MDG 13/15), pendant naval du « Voyage & temps long »
@@ -20,21 +21,21 @@ import { rigSpeciesId } from '../../data';
  *  (Progression), Timonier/Mousse (Manœuvre/Affaler/Entretien), Navigateur (Orientation), Vigie
  *  (Perception au phare). `shipRole` ÉPINGLE le rôle de chacun pour un défaut d'équipage lisible. */
 function crew(): Combatant[] {
-  const cap = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', seed: 4801, id: 'mar-cap' });
+  const cap = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Capitaine Brenner', motivation: 'Test', seed: 4801, id: 'mar-cap' });
   cap.shipRole = 'capitaine';
   renforcerCompetence(cap, 'commandement', 50);
   renforcerCompetence(cap, 'voile', 40, 'cogue');
-  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
+  cap.items = [...(cap.items ?? []), itemFromTrappingById('ration', idNeuf)!, itemFromTrappingById('ration', idNeuf)!];
   cap.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
-  const timo = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
+  const timo = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Timonière Hilda', motivation: 'Test', seed: 4802, id: 'mar-timo' });
   timo.shipRole = 'timonier';
   renforcerCompetence(timo, 'voile', 55, 'cogue');
   renforcerCompetence(timo, 'ramer', 45);
   renforcerCompetence(timo, 'metier', 40, 'charpentier'); // entretien de la coque au soir
   timo.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
-  const navi = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
+  const navi = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Navigateur Ansmann', motivation: 'Test', seed: 4803, id: 'mar-navi' });
   navi.shipRole = 'navigateur';
   renforcerCompetence(navi, 'orientation', 55);
   renforcerCompetence(navi, 'savoir', 40, 'oceans'); // bonus d'Orientation au phare (MDG 13 l.335)
@@ -45,7 +46,7 @@ function crew(): Combatant[] {
   navi.spells = ['bienfait-de-bel-shanaar'];
   navi.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.48 };
 
-  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
+  const vigie = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Vigie Perla', motivation: 'Test', seed: 4804, id: 'mar-vigie' });
   vigie.shipRole = 'vigie';
   renforcerCompetence(vigie, 'perception', 55);
   renforcerCompetence(vigie, 'voile', 35, 'cogue');

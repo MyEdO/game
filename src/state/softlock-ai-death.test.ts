@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { resumeSuspendedAI } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Anti soft-lock : l'IA active meurt PENDANT sa propre attaque (ex. le chargeur tué par un critique
@@ -12,7 +13,7 @@ import { testScene } from '../scenes/test-fixture';
  */
 function setupBattle(nHeroes: number) {
   const party = Array.from({ length: nHeroes }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
+    createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   useGame.setState({ party });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

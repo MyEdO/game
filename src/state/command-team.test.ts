@@ -12,6 +12,7 @@ import type { Combatant, ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * COMMANDANT D'ÉQUIPE (Talent, AA 13 l.29-35) — un Personnage doté du Talent peut, par un Test de
@@ -52,7 +53,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 7, y: 7 }): Combatant =>
     wounds: { current: 30, max: 30 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds });
+  ({ item: itemFromTrappingById(engineId, idNeufDeBanc)!, crewIds });
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 40, h: 40 }, ambiance: 'jour', metresPerTile: 2,
@@ -129,7 +130,7 @@ describe('(C) battleAidTeam — Test de Commandement réussi pose teamCommanderI
     // Commandement même ~110 échoue toujours sur un 96-00, donc piloter le dé rendrait ce test fragile (cf. le
     // flake observé). On vérifie la CONSÉQUENCE déterministe (l'op pose le marqueur sur le chef).
     const chiefAfter = useGame.getState().battle!.combatants.find((c) => c.id === 'chief')!;
-    applyOps(chiefAfter, [{ op: 'teamCommander', commanderId: 'cmd' }], { rng: desDuTest });
+    applyOps(chiefAfter, [{ op: 'teamCommander', commanderId: 'cmd' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(chiefAfter.teamCommanderId).toBe('cmd');
   });
 });

@@ -5,6 +5,7 @@ import { testFlow } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { createHero } from '../engine/character';
 import { adresseDeCreation } from '../engine/adresseDeCreation';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
 const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
@@ -15,7 +16,7 @@ describe('Test de Sociabilité vs groupe haï (dialogue) — malus psy appliqué
   });
 
   function hero(name: string, soc: number, traits: { type: string; cible: string }[] = []) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1, speciesTalentChoices: PERSPICACE });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1, speciesTalentChoices: PERSPICACE });
     h.characteristics.sociabilite = soc;
     h.skills = []; // pas d'avances → testValue = Soc brut
     h.psychTraits = traits as never;

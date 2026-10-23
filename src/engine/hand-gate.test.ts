@@ -8,6 +8,7 @@ import { applyOps } from './ops';
 import { attackHandGate } from './combat';
 import { addCondition, removeCondition } from './conditions';
 import { makeRNG } from './dice';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -24,24 +25,24 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 describe("op:'handGate' — marqueur PAR-MAIN keyé par la Localisation du coup (convention DROITIER)", () => {
   it('brasD → main, brasG → off (comme `disarm`)', () => {
     const cd = hero();
-    applyOps(cd, [{ op: 'handGate' }], { rng: makeRNG(1), location: 'brasD' });
+    applyOps(cd, [{ op: 'handGate' }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), location: 'brasD' });
     expect(cd.handGates).toEqual(['main']);
     const cg = hero();
-    applyOps(cg, [{ op: 'handGate' }], { rng: makeRNG(1), location: 'brasG' });
+    applyOps(cg, [{ op: 'handGate' }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), location: 'brasG' });
     expect(cg.handGates).toEqual(['off']);
   });
 
   it('idempotent : un 2ᵉ Critique sur la MÊME main ne duplique pas le marqueur', () => {
     const c = hero();
-    applyOps(c, [{ op: 'handGate' }], { rng: makeRNG(1), location: 'brasD' });
-    applyOps(c, [{ op: 'handGate' }], { rng: makeRNG(1), location: 'brasD' });
+    applyOps(c, [{ op: 'handGate' }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), location: 'brasD' });
+    applyOps(c, [{ op: 'handGate' }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), location: 'brasD' });
     expect(c.handGates).toEqual(['main']);
   });
 
   it('les deux mains peuvent être gatées (deux Critiques distincts)', () => {
     const c = hero();
-    applyOps(c, [{ op: 'handGate' }], { rng: makeRNG(1), location: 'brasD' });
-    applyOps(c, [{ op: 'handGate' }], { rng: makeRNG(1), location: 'brasG' });
+    applyOps(c, [{ op: 'handGate' }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), location: 'brasD' });
+    applyOps(c, [{ op: 'handGate' }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), location: 'brasG' });
     expect(new Set(c.handGates)).toEqual(new Set(['main', 'off']));
   });
 });

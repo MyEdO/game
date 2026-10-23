@@ -11,6 +11,7 @@ import { readSlot, deleteSlot } from './saves';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   ({
@@ -57,7 +58,7 @@ describe('#194 — persistance save/load de l\'historique de critiques', () => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
     vi.useFakeTimers();
     deleteSlot(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sourd', seed: 4 });
     useGame.setState({ party: [hero], battle: null });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();

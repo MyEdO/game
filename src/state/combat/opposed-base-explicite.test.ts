@@ -15,6 +15,8 @@ import { resolveRecoverTest } from '../../noyau/combat/recover';
 import { rollBatchParticipant } from '../../noyau/cascade';
 import { EMPTY_FLOW, type FlowTest } from '../../engine/flowCore';
 import type { Combatant, Weapon } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
+import { passagesDe } from '../../lib/sonde';
 
 /**
  * DÉPARTAGE À DR ÉGAL du canal `triggeredTest` (#1153 L3) — `LDB 12 l.160` : « Si les deux participants
@@ -65,9 +67,9 @@ afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
 describe('TÉMOIN — la sonde `REPLIS_DEUX_CIBLES` est vivante dans ce runtime', () => {
   it('deux jets SANS nue la font compter (sans quoi les preuves ci-dessous ne vaudraient rien)', () => {
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     resolveOpposed(evaluateTest(30, 50), evaluateTest(40, 50));
-    expect(REPLIS_DEUX_CIBLES.count).toBe(avant + 1);
+    expect(passagesDe(REPLIS_DEUX_CIBLES)).toBe(avant + 1);
   });
 });
 
@@ -89,7 +91,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     expect(testValue(def, 'resistance'), 'les CIBLES doivent s’inverser, sinon le test ne discrimine rien')
       .toBeLessThan(testValue(att, undefined, 'force'));
 
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     let joue = false;
     for (let seed = 1; seed <= 300 && !joue; seed += 1) {
       seedBattleRng(seed);
@@ -103,12 +105,12 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
       expect(roll.success, 'le résolveur de production applique le MÊME verdict (le défenseur résiste)').toBe(true);
     }
     expect(joue, 'aucun DR égal en 300 germes : le départage n’a pas été atteint').toBe(true);
-    expect(REPLIS_DEUX_CIBLES.count, 'un départage de la bande est retombé sur les cibles').toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'un départage de la bande est retombé sur les cibles').toBe(avant);
   });
 
   it('un `aT` EXTERNE sans nue est fail-closed : les DEUX camps retombent sur leurs cibles, jamais un mixte', () => {
     const { def, att } = bandeInversee();
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     // Freeze fabriqué HORS `rollFrozenOpposedAttacker` (producteur tiers, sauvegarde d'une version
     // antérieure) : il ne porte aucune nue.
     const externe: TestResult = evaluateTest(41, testValue(att, undefined, 'force'));
@@ -118,14 +120,14 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
     const verdict = resolveOpposed(externe, { roll: roll.roll, target: roll.target, success: roll.success, sl: roll.sl, isDouble: false, base: row.base });
     if (verdict.decidedBy === 'valeur') {
       // Le tout-ou-rien a bien joué : les grandeurs comparées sont les CIBLES des deux camps.
-      expect(REPLIS_DEUX_CIBLES.count, 'le repli doit se JOURNALISER, jamais passer pour un verdict').toBeGreaterThan(avant);
+      expect(passagesDe(REPLIS_DEUX_CIBLES), 'le repli doit se JOURNALISER, jamais passer pour un verdict').toBeGreaterThan(avant);
     }
   });
 });
 
 describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () => {
   function scene() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -153,7 +155,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     expect(skillBaseValue(H, 'resistance')).toBe(55);
     expect(testValue(H, 'resistance')).toBeLessThan(testValue(wielder, undefined, 'force'));
 
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     let joue = false;
     for (let seed = 1; seed <= 300 && !joue; seed += 1) {
       useGame.setState({ pendingCascade: null, pendingLogQueue: [] });
@@ -172,14 +174,14 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       expect(r.success, 'l’étape conclut « résiste » — l’issue suit la NUE').toBe(true);
     }
     expect(joue, 'aucun DR égal en 300 germes : le départage n’a pas été atteint').toBe(true);
-    expect(REPLIS_DEUX_CIBLES.count, 'un départage de la voie cascade est retombé sur les cibles').toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'un départage de la voie cascade est retombé sur les cibles').toBe(avant);
   });
 
   it('JET INLINE (victime ennemie) : le Test opposé se résout sans AUCUN repli deux-cibles', () => {
     const { wielder, prey } = scene();
     wielder.characteristics.force = 60;
     prey.characteristics.endurance = 30;
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     for (let seed = 1; seed <= 40; seed += 1) {
       seedBattleRng(seed);
       useGame.setState({ pendingLogQueue: [] });
@@ -188,7 +190,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       live.conditions = live.conditions.filter((x) => x.id !== 'sonne');
       expect(hasCondition(live, 'sonne'), 'la conséquence est bien rejouable germe après germe').toBe(false);
     }
-    expect(REPLIS_DEUX_CIBLES.count, 'la branche inline oppose deux jets dont l’un n’a pas de nue').toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'la branche inline oppose deux jets dont l’un n’a pas de nue').toBe(avant);
   });
 });
 
@@ -231,7 +233,7 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
   });
 
   it('le flux joueur roule ce Test sans AUCUN repli deux-cibles', () => {
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     for (let seed = 1; seed <= 30; seed += 1) {
       seedBattleRng(seed);
       const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
@@ -239,6 +241,6 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
       useGame.getState().battleRecoverState('empetre');
       useGame.getState().recoverRoll();
     }
-    expect(REPLIS_DEUX_CIBLES.count).toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES)).toBe(avant);
   });
 });

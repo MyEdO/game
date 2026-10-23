@@ -7,6 +7,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence } from '../../engine/cadence';
 import { humanControlled, aiDriven } from '../../noyau/netOwnership';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Bac-à-sable MJ × exécution DIFFÉRÉE (#918 phase 2a). `maybeRunEnemyTurn` (`combatFlow.ts`) évalue
@@ -31,7 +32,7 @@ describe('IA × siège MJ pris après planification — runEnemyAI rend la main 
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     seedBattleRng(777);

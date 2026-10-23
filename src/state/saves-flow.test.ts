@@ -36,6 +36,7 @@ import { findPropById, findSpellById } from '../data/index';
 import { spellEffectOps } from '../engine/flowCore';
 import { applyOps } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Porteur minimal : `stampCriticalEscalation` ne lit que ses séquelles. */
 const hero38 = (): Combatant => ({ id: 'h', label: 'H', kind: 'hero', conditions: [], skills: [], traumas: [] } as unknown as Combatant);
@@ -66,7 +67,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     vi.useFakeTimers();
     vi.clearAllTimers();
     deleteSlot(1); deleteSlot(2); deleteSlot(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sauvé', seed: 4 });
     useGame.setState({ party: [hero], battle: null });
     useGame.getState().startScene(testScene());
     vi.clearAllTimers();
@@ -131,7 +132,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
     const data = snapshotSave(useGame.getState() as unknown as Record<string, unknown>, initial, 'maintenant').data;
     const absents = champsDeDonnees.filter((k) => !(k in data));
     expect(absents.sort(), 'un champ de données hors save sans exclusion nommée')
-      .toEqual(['campaignNarratif', 'debugLabels', 'debugRoofCut', 'reveler']);
+      .toEqual(['campaignNarratif', 'debugLabels', 'debugRoofCut', 'refus', 'reveler']);
   });
 
   it('`reveler` (Alt maintenu) n’entre dans AUCUNE save : c’est un état de TOUCHE', () => {
@@ -186,7 +187,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   it('une `SkillInstance` s’apparie par `id` (#1548) : la graphie `skillId` perd ses Augmentations', () => {
     // Une instance à la graphie `skillId` n'est appariée par AUCUN Test — le moteur
     // apparie sur `id`, donc la valeur retombe sur la Caractéristique nue, Augmentations perdues.
-    const nu = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', seed: 1 }), skills: [] };
+    const nu = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sonde', seed: 1 }), skills: [] };
     const avecAncienneGraphie = { ...nu, skills: [{ skillId: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     const avecGraphieCourante = { ...nu, skills: [{ id: 'resistance', characteristic: 'endurance', advances: 20 }] } as unknown as typeof nu;
     expect(testValue(avecAncienneGraphie, 'resistance')).toBe(testValue(nu, 'resistance'));
@@ -225,8 +226,8 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(idDeSortVivant('alarme')).toBe('alerte');
   });
   it('une op de Talent hors grammaire (`grantTalent`) lève à `applyOps` (#1473)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { rng: makeRNG(1) })).toThrow();
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { idNeuf: idNeufDeBanc, rng: makeRNG(1) })).toThrow();
   });
   it('une save neuve d’Arène, rechargée, résout ses zones (#1692)', () => {
     expect(lancerCampagne(useGame.getState, null)).toBeNull();
@@ -259,7 +260,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const lumiere = spellEffectOps(findSpellById('lumiere')!.effects).find((o) => o.op === 'light')!;
     expect((lumiere as unknown as Record<string, unknown>).radiusTiles, 'graphie en cases ressuscitée').toBeUndefined();
     const porteur = hero38();
-    applyOps(porteur, [lumiere], { rng: desDuTest, label: 'Lumière' });
+    applyOps(porteur, [lumiere], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Lumière' });
     const effet = (porteur.activeEffects ?? []).find((e) => e.light)!;
     expect(effet.light!.radiusM, 'la forme PERSISTÉE porte les mètres du folio (LDB 74 l.58)').toBe(20);
     expect((effet.light as unknown as Record<string, unknown>).radiusTiles).toBeUndefined();

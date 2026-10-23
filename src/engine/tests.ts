@@ -9,6 +9,7 @@ import { d100, RNG } from './dice';
 import { Difficulty, DIFFICULTY_MODIFIERS } from './types';
 import { type TestPolicy, getTestPolicy } from './testPolicy';
 import type { ModLine } from './combat';
+import { sonde } from '../lib/sonde';
 
 /** Chiffre des dizaines d'un d100 (00 = 100 → 10). SOURCE UNIQUE du calcul de DR. */
 export const tens = (n: number): number => Math.floor(n / 10);
@@ -283,10 +284,9 @@ export function opposedTest(
   return resolveOpposed(attacker, defender);
 }
 
-/** Compteur DEV des départages retombés sur les CIBLES faute de nue (#1153) — sonde partagée, patron
- *  `ui/RollLine.ANONYMES` : un test ou un écran de recette y prouve qu'un chemin oppose bien deux nues.
+/** Compteur DEV des départages retombés sur les CIBLES faute de nue (#1153) — `sonde` (`src/lib/sonde.ts`) : un test ou un écran de recette y prouve qu'un chemin oppose bien deux nues.
  *  Inerte en PROD. */
-export const REPLIS_DEUX_CIBLES = { count: 0 };
+export const REPLIS_DEUX_CIBLES = sonde();
 
 /** Grandeurs COMPARABLES des deux jets pour le départage (LDB 12 l.160) : les valeurs NUES quand les
  *  DEUX côtés la portent, sinon les cibles des deux côtés. TOUT-OU-RIEN : opposer la valeur nue d'un
@@ -299,7 +299,7 @@ export const REPLIS_DEUX_CIBLES = { count: 0 };
 function openValues(attacker: TestResult, defender: TestResult): [number, number] {
   if (attacker.base == null || defender.base == null) {
     if (import.meta.env?.DEV) {
-      REPLIS_DEUX_CIBLES.count += 1;
+      REPLIS_DEUX_CIBLES.passer();
       console.error(`[resolveOpposed] départage sans valeur nue (attaquant ${attacker.base ?? '—'}, défenseur ${defender.base ?? '—'}) : repli sur les cibles ${attacker.target}/${defender.target} — poser la nue au PRODUCTEUR du jet (LDB 12 l.160).`);
     }
     return [attacker.target, defender.target];

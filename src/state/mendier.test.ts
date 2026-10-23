@@ -37,6 +37,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
 const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
@@ -52,7 +53,7 @@ const GAIN: Formula = {
 };
 
 function heros(soc: number): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mendiant', seed: 1, speciesTalentChoices: PERSPICACE });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Mendiant', seed: 1, speciesTalentChoices: PERSPICACE });
   h.characteristics.sociabilite = soc;
   return h;
 }
@@ -88,7 +89,7 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     const h = heros(45);
     h.items = (h.items ?? []).filter((i) => i.trappingId !== 'bourse');
     expect(bourseOf(h)).toEqual({ gold: 0, silver: 0, brass: 0 });
-    const lignes = applyOps(h, [{ op: 'money', montant: { brass: 37 } }], { rng: makeRNG(1), label: 'Mendier' });
+    const lignes = applyOps(h, [{ op: 'money', montant: { brass: 37 } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), label: 'Mendier' });
     expect(bourseBrass(h)).toBe(37);
     expect(h.items!.some((i) => i.trappingId === 'bourse')).toBe(true);
     expect(lignes.join(' ')).toContain('Mendiant');
@@ -97,8 +98,8 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
   it('débit BORNÉ à 0 : la bourse tombe à zéro ET la ligne dit ce qui a RÉELLEMENT été perdu', () => {
     const h = heros(45);
     h.items = (h.items ?? []).filter((i) => i.trappingId !== 'bourse');
-    applyOps(h, [{ op: 'money', montant: { brass: 10 } }], { rng: makeRNG(1) });
-    const lignes = applyOps(h, [{ op: 'money', montant: { brass: -50 } }], { rng: makeRNG(1) });
+    applyOps(h, [{ op: 'money', montant: { brass: 10 } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1) });
+    const lignes = applyOps(h, [{ op: 'money', montant: { brass: -50 } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1) });
     expect(bourseBrass(h)).toBe(0);
     // Le solde ne descend pas sous 0 : la ligne annonce les 10 sous réellement retirés, pas les 50 demandés.
     expect(lignes.join(' ')).toContain('10 sc');
@@ -109,7 +110,7 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     const h = heros(45);
     h.items = (h.items ?? []).filter((i) => i.trappingId !== 'bourse');
     setRule('mendier-heures-par-jour', 4);
-    applyOps(h, [{ op: 'money', montant: { brass: GAIN } }], { rng: makeRNG(1), sl: 3 });
+    applyOps(h, [{ op: 'money', montant: { brass: GAIN } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1), sl: 3 });
     expect(bourseBrass(h)).toBe(48);
     resetRule('mendier-heures-par-jour');
   });
@@ -129,16 +130,16 @@ describe('Exemption de Statut (LDB 09 l.99) — DÉRIVÉE du registre des carri�
   it('aucune étape de monde pour une Carrière sans ressources ; UNE pour les autres', () => {
     const def = activityById('mendier')!;
     for (const id of sansRessources) {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: id, label: id, seed: 1, speciesTalentChoices: PERSPICACE });
+      const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: id, label: id, seed: 1, speciesTalentChoices: PERSPICACE });
       expect(buildActivityWorldRollSteps(def, h), `exempté : ${id}`).toEqual([]);
     }
-    const soldat = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
+    const soldat = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
     expect(buildActivityWorldRollSteps(def, soldat)).toHaveLength(1);
   });
 
   it('l’exemption lit le Statut d’ENTRÉE de la carrière, pas l’avancement du porteur', () => {
     const def = activityById('mendier')!;
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'mendiant', label: 'M', seed: 1, speciesTalentChoices: PERSPICACE });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'mendiant', label: 'M', seed: 1, speciesTalentChoices: PERSPICACE });
     h.careerLevel = 4; // le Mendiant monté en grade reste d'une Carrière sans ressources
     expect(buildActivityWorldRollSteps(def, h)).toEqual([]);
   });
@@ -202,10 +203,10 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
     setRule('mendier-amende-sous', 12);
     for (const r of table.rows) {
       const h = heros(45);
-      applyOps(h, [{ op: 'money', montant: { brass: 100 } }], { rng: makeRNG(1) });
+      applyOps(h, [{ op: 'money', montant: { brass: 100 } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1) });
       const pvAvant = h.wounds.current;
       const bourseAvant = bourseBrass(h);
-      applyOps(h, r.ops, { rng: makeRNG(7) });
+      applyOps(h, r.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(7) });
       const marque =
         h.wounds.current !== pvAvant || (h.conditions ?? []).length > 0 || bourseBrass(h) !== bourseAvant;
       expect(marque, r.label).toBe(r.ops.length > 0);
@@ -230,23 +231,23 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
     const bourseNue = (soc: number, sous: number): Combatant => {
       const h = heros(soc);
       h.items = (h.items ?? []).filter((i) => i.trappingId !== 'bourse');
-      if (sous) applyOps(h, [{ op: 'money', montant: { brass: sous } }], { rng: makeRNG(1) });
+      if (sous) applyOps(h, [{ op: 'money', montant: { brass: sous } }], { idNeuf: idNeufDeBanc, rng: makeRNG(1) });
       return h;
     };
     const riche = bourseNue(45, 100);
-    applyOps(riche, gardes.ops, { rng: makeRNG(7) });
+    applyOps(riche, gardes.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(7) });
     expect(bourseBrass(riche), '100 − 30 d’amende').toBe(70);
     expect(gardes.ops.map((o) => o.op), 'la branche AMENDE exclut l’État de l’autre branche').toEqual(['money']);
     expect(riche.conditions ?? []).toEqual([]);
 
     const pauvre = bourseNue(45, 5);
-    applyOps(pauvre, gardes.ops, { rng: makeRNG(7) });
+    applyOps(pauvre, gardes.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(7) });
     expect(bourseBrass(pauvre), 'on ne doit jamais d’argent').toBe(0);
 
     // La valeur vient de la RÈGLE, pas d'une constante : la changer change l'amende.
     setRule('mendier-amende-sous', 7);
     const autre = bourseNue(45, 100);
-    applyOps(autre, gardes.ops, { rng: makeRNG(7) });
+    applyOps(autre, gardes.ops, { idNeuf: idNeufDeBanc, rng: makeRNG(7) });
     expect(bourseBrass(autre)).toBe(93);
     resetRule('mendier-amende-sous');
   });
@@ -305,7 +306,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
+    const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1, speciesTalentChoices: PERSPICACE });
     a.characteristics.sociabilite = 45; // Bonus de Sociabilité = 4
     useGame.setState({ party: [a], battle: null, interlude: null, bank: [], pendingActivity: null, journal: [], pendingCascade: null });
     useGame.getState().startScene(testScene());
@@ -482,7 +483,7 @@ describe('Dé de MONDE « surpris à mendier » (LDB 09 l.99) — par la PORTE, 
 
   it('la cible de l’étape EST la règle optionnelle (aucune constante au moteur)', () => {
     const def = activityById('mendier')!;
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'S', seed: 1, speciesTalentChoices: PERSPICACE });
     setRule('mendier-surpris-pct', 35);
     const [step] = buildActivityWorldRollSteps(def, h);
     expect(step.target).toBe(35);

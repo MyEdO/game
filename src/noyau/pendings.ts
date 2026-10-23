@@ -1640,7 +1640,7 @@ export interface FreeAttackFreeze {
   key: string;
 }
 /** Contexte SÉRIALISABLE de la CONSÉQUENCE d'un Test opposé de Piège-lame GAGNÉ (op `breakBlade`) porté par
- *  une étape de cascade : l'attaquant désarmé (`attackerId`), la lame visée (`weaponUid`, uid universel), le
+ *  une étape de cascade : l'attaquant désarmé (`attackerId`), la lame visée (`weaponUid`, son uid dans `c.weapons`), le
  *  bonus de DR de la défense (`defSL`, LDB 62 l.280) et le DR FIGÉ de l'attaquant (`attackerSL`). La marge
  *  nette = `(DR du défenseur + defSL) − attackerSL` ≥ 6 → la lame est BRISÉE (sauf Incassable), sinon
  *  ARRACHÉE. Reconstruit l'`exec` impur de l'applier (le bris/désarmement passe par `runCombatFlow` + le

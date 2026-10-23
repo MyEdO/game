@@ -19,6 +19,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
 import { makeShowcaseParty } from '../../data/pregens';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -235,7 +236,7 @@ describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sort
   });
 
   it('projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur', async () => {
-    useGame.getState().setParty(makeShowcaseParty());
+    useGame.getState().setParty(makeShowcaseParty(idNeufDeBanc));
     await monter(sceneSaine());
     await act(async () => { await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
     const { refus, titre, ecran } = await metALEssai();

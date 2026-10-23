@@ -13,6 +13,7 @@ import type { WorldMap } from '../noyau/worldMap';
 import type { LandMarketProfile, TradeRumour } from '../engine/landCargo';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * COMMERCE TERRESTRE/FLUVIAL — rumeur CROSS-LIEU (MSRC 13 l.180) : la rumeur entendue au marché désigne
@@ -48,7 +49,7 @@ const CARRIER_ID = 'convoi-1';
  *  POSSESSIONS #617/#618) — `launchAtA` le pose après `loadProject` (le registre est vidé+re-semé au
  *  démarrage de scène, `startScene`/`seedStartingPossessions`). */
 function trader(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'marchand', label: 'Artur', motivation: 'x', seed: 11, id: 't-artur' });
   h.characteristics = { ...h.characteristics, Fel: 60 } as Combatant['characteristics'];
   skill(h, 'ragot', 60);
   skill(h, 'marchandage', 60);

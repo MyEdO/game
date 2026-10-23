@@ -14,11 +14,12 @@ import { advanceCost } from '../engine/advancement';
 import { entrainementOptions, type EntrainementOption } from '../engine/activities';
 import { testScene } from '../scenes/test-fixture';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup() {
   vi.useFakeTimers();
   vi.clearAllTimers();
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, journal: [] });
   useGame.getState().startScene(testScene());
   vi.clearAllTimers();

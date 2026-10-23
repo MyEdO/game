@@ -3,6 +3,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Effets scriptés » (#96/#97) : quatre moteurs faits+testés Vitest (`fall`+`inflictTrauma`,
@@ -114,6 +115,6 @@ export const scenario: TestScenario = {
     '`petitePriere` (autel interactif, LDB 25, option `prayer-petites`), `ambitionLost` (dialogue du ' +
     'messager, ADE II Annexe I), `fall`+`inflictTrauma` (trappe vermoulue, LDB 15/18, repositionnement).',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireVillage() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireVillage() }),
   rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },
 };

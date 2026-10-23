@@ -21,11 +21,12 @@ import { combatStakeRef } from '../data';
 import { evaluateCombinedTest } from '../engine/tests';
 import type { CascadeStep } from '../noyau/pendings';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 
 function hero() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
   useGame.setState({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   return get().party[0];
 }

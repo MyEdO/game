@@ -5,6 +5,7 @@ import { createHero, competencesDeCarriere, repartitionDeCarriere } from '../../
 import { firstLevel } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { newDraft, withSpecies, withCareer, buildHero, careerSkillEntries, careerAdvTotal, evenCareerSkillAdvances, type CreatorDraft } from './draft';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /** Ce que la création produit — la forme des choix (clés, désignations) n'y figure pas : seules leurs
  *  conséquences sur le héros. */
@@ -79,7 +80,7 @@ const TEMOINS: Record<string, () => CreatorDraft> = {
 
 describe('création de personnage — golden (8 pré-tirés, 6 témoins du créateur)', () => {
   it('les 8 pré-tirés', async () => {
-    const pregens = makePregens();
+    const pregens = makePregens(idNeufDeBanc);
     expect(pregens).toHaveLength(8);
     await expect(JSON.stringify(pregens.map(empreinte), null, 1)).toMatchFileSnapshot('./__golden__/pregens.json');
   });
@@ -95,7 +96,7 @@ describe('40 Augmentations de carrière — plafond PAR Compétence (LDB 05 l.53
   // LDB 11 l.204).
   const choixVoyageur = { [adresseDeCreation.especeTalent(4)]: { id: 'voyageur-aguerri' } };
   it('10 Augmentations allouées à une Compétence donnent 10, même si un Talent l\'ajoute aussi', () => {
-    const hero = createHero({ speciesId: 'halflings-basseronce', careerId: 'intendant', label: 'x', seed: 1,
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'halflings-basseronce', careerId: 'intendant', label: 'x', seed: 1,
       speciesTalentChoices: choixVoyageur, skillAdvances: { 'savoir|region': 10 } });
     expect(hero.skills.find((s) => s.id === 'savoir' && s.spec === 'region')?.advances).toBe(10);
   });
@@ -106,15 +107,15 @@ describe('40 Augmentations de carrière — plafond PAR Compétence (LDB 05 l.53
   });
   it('une Compétence AJOUTÉE par un Talent est acquise hors des 40 Augmentations (LDB 05 l.535)', () => {
     const base = { speciesId: 'halflings-basseronce', careerId: 'artisan', label: 'x', speciesTalentChoices: choixVoyageur };
-    const entrees = competencesDeCarriere(firstLevel('artisan'), createHero({ ...base, seed: 1 }), {});
+    const entrees = competencesDeCarriere(firstLevel('artisan'), createHero({ idNeuf: idNeufDeBanc, ...base, seed: 1 }), {});
     const ajout = entrees.filter((c) => c.ajout);
     expect(ajout.map((c) => c.ref.id)).toContain('savoir');
     const allocation = Object.fromEntries(ajout.map((c) => [c.cle, 10]));
     const d = { ...withCareer(withSpecies(newDraft(1), 'halflings-basseronce'), 'artisan'), speciesTalentChoices: choixVoyageur, skillAdvances: allocation };
     expect(careerSkillEntries(d).some((c) => c.ajout)).toBe(false);
     expect(careerAdvTotal(d)).toBe(0);
-    const sans = createHero({ ...base, seed: 1 });
-    const avec = createHero({ ...base, seed: 1, skillAdvances: { ...repartitionDeCarriere(entrees), ...allocation } });
+    const sans = createHero({ idNeuf: idNeufDeBanc, ...base, seed: 1 });
+    const avec = createHero({ idNeuf: idNeufDeBanc, ...base, seed: 1, skillAdvances: { ...repartitionDeCarriere(entrees), ...allocation } });
     expect(avec.skills).toEqual(sans.skills);
   });
 });

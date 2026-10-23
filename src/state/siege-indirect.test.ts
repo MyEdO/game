@@ -9,6 +9,7 @@ import type { Combatant, ShipPoste, Weapon } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { BattleState } from '../noyau/etat';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * PILONNAGE INDIRECT (« Viser une CASE ») — AA 10 l.169-171 / ADE II : une pièce à TIR INDIRECT (mortier,
@@ -46,7 +47,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 0, y: 0 }): Combatant =>
     wounds: { current: 30, max: 30 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds });
+  ({ item: itemFromTrappingById(engineId, idNeufDeBanc)!, crewIds });
 
 /** Scène terrestre minimale (40×40 d'herbe, 2 m/case). */
 const groundScene = (): Scene =>
@@ -55,8 +56,8 @@ const groundScene = (): Scene =>
 
 /** Mortier + bombe Explosion 5 (Dégâts 12) = arme EFFECTIVE (qualité a-explosion fusionnée). */
 function mortarWithBomb(chef: Combatant): Weapon {
-  const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier')!, crewIds: ['chef'] })!;
-  const bomb = itemFromTrappingById('bombe-de-mortier')!;
+  const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idNeufDeBanc)!, crewIds: ['chef'] })!;
+  const bomb = itemFromTrappingById('bombe-de-mortier', idNeufDeBanc)!;
   return weaponWithAmmo(mortier, bomb);
 }
 
@@ -177,7 +178,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     const poste = mkPoste('mortier', ['gunner']);
     const gunner = mkGunner('gunner', { x: 0, y: 0 }, 90);
     gunner.skills = [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }] as never;
-    gunner.items = [itemFromTrappingById('bombe-de-mortier')!]; // munition Explosion 5 en inventaire (selectedAmmo)
+    gunner.items = [itemFromTrappingById('bombe-de-mortier', idNeufDeBanc)!]; // munition Explosion 5 en inventaire (selectedAmmo)
     const e1 = mkEnemy('e1', 9, 0);
     const e2 = mkEnemy('e2', 11, 0);
     const far = mkEnemy('far', 20, 0); // hors rayon (10 cases du point d'impact)
@@ -216,7 +217,7 @@ describe('(e) Routage live — placeur de case + pilonnage via la modale de tir 
     seedBattleRng(7);
     const poste = mkPoste('mortier', ['gunner']);
     const gunner = mkGunner('gunner', { x: 0, y: 0 }, 90);
-    gunner.items = [itemFromTrappingById('bombe-de-mortier')!];
+    gunner.items = [itemFromTrappingById('bombe-de-mortier', idNeufDeBanc)!];
     const far = mkEnemy('far', 30, 30);
     const all = [mkEmplacement(poste, { x: 0, y: 1 }), gunner, far];
     applyShipPostes(all);

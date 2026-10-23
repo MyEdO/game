@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { maybeOpenDefense } from '../noyau/combatFlow';
 import type { SuiteDeCoup } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const g = useGame.getState;
 
@@ -13,7 +14,7 @@ const g = useGame.getState;
  *  `applyTalentFreeAttack`) dont la défense se résout par `defenseRoll` puis `defenseConfirm`.
  *  `fileEpuisee` : la file du tour déjà vidée, état que pose `aiCreatureFreeAttacks` en fin de file. */
 function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
-  const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const A = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   useGame.setState({ party: [A] });
   g().seedRng(5);
   g().startScene(testScene());

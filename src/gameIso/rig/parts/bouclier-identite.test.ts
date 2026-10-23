@@ -15,12 +15,13 @@ import { resolveParts } from './resolve';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { rigDefenseDef } from '../anim/actorAnimSelect';
+import { idNeufDeBanc } from '../../../lib/entityId.testkit';
 
 // LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911
 const BOUCLIERS = ['bouclier', 'bouclier-grand', 'bouclier-targe', 'pavois', 'vision-de-vie'];
 // AA 08 l.290 ; ADE II 02 l.613, l.693-695
 const PROTECTRICES_NON_BOUCLIERS = ['filet-leste', 'poing-de-fer'];
-const w = (id: string) => weaponFromItem(itemFromTrappingById(id)!);
+const w = (id: string) => weaponFromItem(itemFromTrappingById(id, idNeufDeBanc)!);
 const porteur = { talents: [{ talentId: 'porte-bouclier', times: 2 }] } as unknown as Combatant;
 
 describe('bouclier = identité du livre, pas l’Atout Protectrice', () => {
@@ -53,7 +54,7 @@ describe('complétude : toute entrée marquée bouclier se dessine en une silhou
     expect(marquees.map((t) => t.id)).toContain('bouclier');
   });
   for (const t of marquees) it(t.id, () => {
-    expect(slugs.has(formeResolue(itemFromTrappingById(t.id)!) ?? ''), `forme « ${t.shape} »`).toBe(true);
+    expect(slugs.has(formeResolue(itemFromTrappingById(t.id, idNeufDeBanc)!) ?? ''), `forme « ${t.shape} »`).toBe(true);
   });
 });
 
@@ -73,14 +74,14 @@ describe('sens inverse : la forme d’une entrée suit sa marque', () => {
 });
 
 const heros = (ids: string[]): Combatant => {
-  const items = ids.map((id) => ({ ...itemFromGive({ trappingId: id }), equipped: true } as ItemInstance));
+  const items = ids.map((id) => ({ ...itemFromGive({ trappingId: id }, idNeufDeBanc), equipped: true } as ItemInstance));
   const c = { id: 'h', label: 'h', kind: 'hero', items, weapons: [], traits: [], activeEffects: [], mutations: [],
     talents: [{ talentId: 'porte-bouclier', times: 2 }], skills: [], characteristics: {} } as unknown as Combatant;
   recomputeLoadout(c);
   return c;
 };
 const geom = (id: string) => {
-  const html = renderToStaticMarkup(React.createElement(ItemIcon, { item: itemFromTrappingById(id)!, size: 64 }));
+  const html = renderToStaticMarkup(React.createElement(ItemIcon, { item: itemFromTrappingById(id, idNeufDeBanc)!, size: 64 }));
   return /item-icon-shield/.test(html) ? 'shield' : /item-icon-weapon/.test(html) ? 'weapon' : 'autre';
 };
 const parade = (c: Combatant, id: string) => {
@@ -103,7 +104,7 @@ describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => 
     expect(eq.shield, 'rig : os bouclier').toBeUndefined();
     expect(!!resolveParts('humain', 'M', 'soldat', eq, {}, 1).bouclier?.svg, 'os de main faible dessiné seulement si une arme y est tenue').toBe(mainFaible !== null);
     expect(parade(c, id)).toMatch(/:nu$/);
-    expect(compareEquip(itemFromTrappingById(id)!, c).slot).toBe('melee');
+    expect(compareEquip(itemFromTrappingById(id, idNeufDeBanc)!, c).slot).toBe('melee');
     expect(geom(id), 'icône').toBe('weapon');
   });
   it('témoin : arme-simple + bouclier', () => {

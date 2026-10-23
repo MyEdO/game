@@ -22,6 +22,7 @@ import * as percageModule from './percage';
 import { actorCapsuleOf } from './actorCapsule';
 import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, quads, respirer, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
 import { idsDeLActeur } from '../backends/webgl/sceneMeshes';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -50,7 +51,7 @@ const anim: StageWalkAnim = {
 
 /** Le même héros, tenant l'arme `trappingId` du catalogue : sa forme se résout au catalogue (#2113),
  *  changer d'arme change son dessin. */
-const BASE = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
+const BASE = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
 function héros(trappingId: string): Combatant {
   const arme = ({ uid: 'w1', trappingId, label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } satisfies Partial<Weapon>) as Weapon;
   return { ...BASE, id: 'h1', weapons: [arme] } as Combatant;

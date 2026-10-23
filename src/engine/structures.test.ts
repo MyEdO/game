@@ -11,6 +11,7 @@ import { resolveMeleePassive } from './combat';
 import { createHero } from './character';
 import type { Weapon, Combatant } from './types';
 import { makeRNG } from './dice';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Structures destructibles de siège — modèle de Dégâts (ADE II 8). Tests DÉTERMINISTES via
@@ -138,7 +139,7 @@ describe('Bonus d’Endurance compté par catégorie de Taille (AA 10 l.98)', ()
 
   it('Le journal du coup DIT le terme — canal existant de la ligne de Dégâts', () => {
     const mur = struct('mur-de-chateau');
-    const humain = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Humain', seed: 1 });
+    const humain = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Humain', seed: 1 });
     const atk = { roll: 5, target: 100, success: true, sl: 5, isDouble: false };
     expect(resolveMeleePassive(humain, mur, epee, atk, { rng: makeRNG(1595) }).log)
       .toContain('BE 6 × 3 (Taille Énorme contre Moyenne) = 18');

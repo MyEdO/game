@@ -19,6 +19,7 @@ import { t } from '../i18n';
 import { travelModeLabels } from '../engine/travel';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -28,7 +29,7 @@ const get = useGame.getState.bind(useGame);
 const set = useGame.setState.bind(useGame);
 
 function batelier(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'c-gunnar' });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'c-gunnar' });
   for (const id of ['ramer', 'voile']) {
     const ex = h.skills.find((s) => s.id === id && !s.spec);
     if (ex) ex.advances = Math.max(ex.advances, 50);

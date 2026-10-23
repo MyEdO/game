@@ -5,6 +5,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * CÂBLAGE des deux coutures d'intégration du modèle « Avantage de groupe » (AA 11) — par le STORE RÉEL,
@@ -14,7 +15,7 @@ import { testScene } from '../scenes/test-fixture';
  * quelqu'un les appelle en jeu. Ici, la seule entrée est `startCombat` / le franchissement de Round.
  */
 function startFixtureCombat() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   seedBattleRng(777);

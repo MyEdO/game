@@ -8,6 +8,7 @@ import type { Combatant } from '../engine/types';
 import { combatValue } from '../engine/combat';
 import { skillBaseValue } from '../engine/skills';
 import { skillAdvantageCap } from '../engine/skillCombatApps';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Réinitialise le store à un état combat neutre entre deux tests. */
 function reset() {
@@ -19,7 +20,7 @@ function reset() {
 }
 
 function combat(heroOver: Partial<Combatant> = {}) {
-  const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+  const H = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
   H.fortune = 0; H.resolve = 0; H.resilience = 0; H.advantage = 0;
   Object.assign(H, heroOver);
   const E: Combatant = JSON.parse(JSON.stringify(H));

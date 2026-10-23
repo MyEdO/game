@@ -14,6 +14,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { engage } from '../engine/engagement';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () => {
   beforeEach(() => {
@@ -29,7 +30,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
   /** Un héros (avec les deux Talents) face à UN ennemi armé et pourvu d'Avantage, adjacent. */
   function setup() {
     useGame.getState().seedRng(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
@@ -135,7 +136,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
   /** Un héros portant les deux Talents, face à UN ennemi armé, et la scène réelle du combat. */
   function terrain() {
     useGame.getState().seedRng(1);
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.talents = [{ talentId: 'battement', times: 1 }, { talentId: 'distraire', times: 1 }] as Combatant['talents'];
     useGame.setState({ party: [h] });
     useGame.getState().startScene(testScene());

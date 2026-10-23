@@ -5,13 +5,14 @@ import { parseStatus } from '../engine/creation';
 import { validateDataset } from './schemas/validate';
 import { toBrass } from '../engine/money';
 import { setDataset } from './overrides';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('Personnages pré-tirés', () => {
   it('se génèrent tous sans erreur (labels d’espèce/carrière valides)', () => {
     const errs: unknown[] = [];
     const orig = console.error;
     console.error = (...a: unknown[]) => errs.push(a);
-    const pregens = makePregens();
+    const pregens = makePregens(idNeufDeBanc);
     console.error = orig;
     expect(errs).toEqual([]); // aucun pré-tiré ignoré
     expect(pregens.length).toBe(8);
@@ -30,7 +31,7 @@ describe('Personnages pré-tirés', () => {
   });
 
   it('les incantateurs portent les Talents REQUIS par leurs sorts (RAW)', () => {
-    const pregens = makePregens();
+    const pregens = makePregens(idNeufDeBanc);
     const sorcier = pregens.find((h) => h.career === 'sorcier')!;
     const pretre = pregens.find((h) => h.career === 'pretre')!;
     // LDB 10 (Magie mineure) : « Vous pouvez apprendre des Sorts de Magie mineure » — requis pour Fléchette/Choc.
@@ -45,7 +46,7 @@ describe('Personnages pré-tirés', () => {
   /** Conformité RAW (#421) : chaque pré-tiré passe par le MÊME pipeline que le créateur (`buildHero`),
    *  seule l'identité (espèce/carrière/nom/motivation/talent de carrière/sorts) reste authorée. */
   describe('conformité aux règles de création (#421)', () => {
-    const entries = makePregensWithWealth();
+    const entries = makePregensWithWealth(idNeufDeBanc);
 
     it('Richesse initiale NON NULLE, cohérente avec le Standing de la carrière (LDB 05 l.578-583)', () => {
       for (const { hero, wealth } of entries) {
@@ -109,7 +110,7 @@ describe('Personnages pré-tirés', () => {
  * non-Base, Psychologie) pour empêcher une régression silencieuse vers les 4 premiers pré-tirés.
  */
 describe('makeShowcaseParty — couverture des règles', () => {
-  const party = makeShowcaseParty();
+  const party = makeShowcaseParty(idNeufDeBanc);
   const hasSkill = (name: string) =>
     party.some((h) => h.skills.some((s) => skillInstanceLabel(s).toLowerCase().includes(name.toLowerCase())));
 
@@ -119,7 +120,7 @@ describe('makeShowcaseParty — couverture des règles', () => {
   });
 
   it('n’est PAS le simple slice(0, 4) des pré-tirés (inclut un Chasseur)', () => {
-    const first4 = makePregens().slice(0, 4).map((h) => h.career);
+    const first4 = makePregens(idNeufDeBanc).slice(0, 4).map((h) => h.career);
     expect(party.map((h) => h.career)).not.toEqual(first4);
     expect(party.some((h) => h.career === 'chasseur')).toBe(true);
   });
@@ -154,17 +155,17 @@ describe('makeShowcaseParty — couverture des règles', () => {
  * les `slice(0, n)`/`find(name)`/indexations ad hoc accrétés. On choisit par seed STABLE, jamais par position.
  */
 describe('Sélection de groupe — pregen / pregenParty', () => {
-  it('pregen(seed) renvoie le bon pré-tiré (id stable pregen-<seed>)', () => {
-    expect(pregen(PREGEN.soldat).id).toBe('pregen-101');
-    expect(pregen(PREGEN.chasseur).career).toBe('chasseur');
+  it('pregen(idNeufDeBanc, seed) renvoie le bon pré-tiré (id stable pregen-<seed>)', () => {
+    expect(pregen(idNeufDeBanc, PREGEN.soldat).id).toBe('pregen-101');
+    expect(pregen(idNeufDeBanc, PREGEN.chasseur).career).toBe('chasseur');
   });
 
   it('pregenParty respecte l’ordre des seeds donnés', () => {
-    expect(pregenParty(PREGEN.sorcier, PREGEN.soldat).map((h) => h.career)).toEqual(['sorcier', 'soldat']);
+    expect(pregenParty(idNeufDeBanc, PREGEN.sorcier, PREGEN.soldat).map((h) => h.career)).toEqual(['sorcier', 'soldat']);
   });
 
   it('lève sur un seed inconnu (pas d’undefined silencieux d’un find/slice raté)', () => {
-    expect(() => pregen(9999)).toThrow();
+    expect(() => pregen(idNeufDeBanc, 9999)).toThrow();
   });
 
   /** Un sort hors Magie mineure est refusé AU PARSE (`idDe('spell', 'mineure')`, LDB 10 l.714), nommément. */
@@ -201,7 +202,7 @@ describe('Sélection de groupe — pregen / pregenParty', () => {
       const livres = [...definitions];
       setDataset('pregens', [...livres, def]);
       try {
-        expect(makePregens().some((h) => h.id === `pregen-${def.seed}`), 'le pré-tiré fautif a été construit').toBe(false);
+        expect(makePregens(idNeufDeBanc).some((h) => h.id === `pregen-${def.seed}`), 'le pré-tiré fautif a été construit').toBe(false);
       } finally {
         setDataset('pregens', livres);
         console.error = orig;
@@ -212,13 +213,13 @@ describe('Sélection de groupe — pregen / pregenParty', () => {
   });
 
   it('makeShowcaseParty = les 4 piliers (soldat, tueur, sorcier, chasseur)', () => {
-    expect(makeShowcaseParty().map((h) => h.career)).toEqual(['soldat', 'tueur', 'sorcier', 'chasseur']);
+    expect(makeShowcaseParty(idNeufDeBanc).map((h) => h.career)).toEqual(['soldat', 'tueur', 'sorcier', 'chasseur']);
   });
 });
 
 describe('Pré-tirés — apparence posée par createHero', () => {
   it('chaque héros porte l’apparence de sa définition (sexe, morphologie, graine) et l’espèce de rendu de son espèce', () => {
-    const heros = makePregens();
+    const heros = makePregens(idNeufDeBanc);
     expect(heros).toHaveLength(definitions.length);
     for (const [i, d] of definitions.entries()) {
       expect(heros[i].appearance, d.id).toEqual({ species: rigSpeciesId(d.species), sex: d.sex ?? 'M', build: d.build ?? 0.5, seed: d.seed });

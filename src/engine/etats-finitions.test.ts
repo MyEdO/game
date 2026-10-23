@@ -5,6 +5,7 @@ import { makeRNG } from './dice';
 import type { RNG } from './dice';
 import type { Combatant } from './types';
 import { deFixe, desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const C = (over: Partial<Combatant>): Combatant =>
   ({ id: 'c', name: 'C', kind: 'hero', conditions: [], skills: [], characteristics: { endurance: 90 }, wounds: { current: 20, max: 20 }, advantage: 3, armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over } as unknown as Combatant);
@@ -24,7 +25,7 @@ describe('Finitions d\'États (LDB 16)', () => {
 
   it('testMod (Malédiction de malchance −10) : stacke par-dessus l\'État, hors non-cumul/ignoreState', () => {
     const c = C({ conditions: [] });
-    applyOps(c, [{ op: 'testMod', amount: -10 }], { rng: desDuTest, label: 'Malédiction de malchance', defaultDurationRounds: 9999 });
+    applyOps(c, [{ op: 'testMod', amount: -10 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Malédiction de malchance', defaultDurationRounds: 9999 });
     expect(testStatePenalty(c)).toBe(-10); // tests hors combat
     expect(combatTestPenalty(c)).toBe(-10); // tests de combat
     addCondition(c, 'sonne'); // État −10 → STACKE avec le −10 du Sort (sources distinctes)
@@ -36,7 +37,7 @@ describe('Finitions d\'États (LDB 16)', () => {
 
   it('Empoisonné : endOfRound NE touche plus le poison — dégâts ET Test de Résistance migrés en DONNÉES (l.66-72)', () => {
     const c = C({ conditions: [{ id: 'empoisonne', value: 1 }], wounds: { current: 20, max: 20 } });
-    endOfRound(c, makeRNG(1)); // ni dégâts, ni Test de poison : tout est `effects: onRoundEnd` (etats.json), résolu par le dispatcher
+    endOfRound(c, makeRNG(1), idNeufDeBanc); // ni dégâts, ni Test de poison : tout est `effects: onRoundEnd` (etats.json), résolu par le dispatcher
     expect(hasCondition(c, 'empoisonne')).toBe(true); // endOfRound ne retire aucun pion de poison
     expect(c.wounds.current).toBe(20);                // ni dégât périodique (cf. state/round-upkeep-cascade.test pour la voie data-driven)
   });

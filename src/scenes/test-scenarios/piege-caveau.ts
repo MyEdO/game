@@ -4,6 +4,7 @@ import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
 import { type Condition } from '../../engine/flowCore';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Le Caveau piégé » — VITRINE du système Flow + Condition en DONNÉES pures (zéro code applicatif).
@@ -116,5 +117,5 @@ export const scenario: TestScenario = {
   title: 'Le Caveau piégé',
   tests: 'Vitrine Flow+Condition : interactions (levier/clé → flags), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

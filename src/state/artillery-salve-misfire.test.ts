@@ -6,6 +6,7 @@ import type { CascadeStep } from '../noyau/pendings';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import type { Combatant, Weapon } from '../engine/types';
 import { hydratePoste, recomputeLoadout } from '../engine/items';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #450 — branchement de la Table AA « Incidents de Tir d'Artillerie par Salve » (AA 10 l.270-277) :
@@ -116,7 +117,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
 // (`engine/weaponLoad.objetSourceDeLArme`) : la destruction y persiste, et la pièce n'est plus dérivée.
 describe('pièce SERVIE en poste, détruite par l’Incident de tir par Salve', () => {
   it('`poste.item.destroyed` est posé, et `recomputeLoadout` ne dérive plus la pièce', () => {
-    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never);
+    const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, idNeufDeBanc);
     const chef = mkHero('chef', { mannedPoste: poste });
     poste.crewIds = ['chef'];
     recomputeLoadout(chef);

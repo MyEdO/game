@@ -6,6 +6,7 @@ import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock, PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Recette du LOT C de #671 : trois PNJ de « L'Ennemi Intérieur » authorés en `presetsPnj` (base globale
@@ -165,7 +166,7 @@ export const scenario: TestScenario = {
     '(Knud Cratinx) déclenché depuis le dialogue.',
   partyNote: 'Soldat · Chasseur · Prêtre',
   construire: () => ({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur, PREGEN.pretre),
+    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.pretre),
     scene: construireScene(),
     narratif: construireNarratif(),
   }),

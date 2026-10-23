@@ -14,13 +14,14 @@ import { testScene } from '../scenes/test-fixture';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Combatant, Weapon } from '../engine/types';
 import type { GameOp } from '../engine/ops';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('L11 — zones persistantes posées par les sorts', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     useGame.setState({ party: [W] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

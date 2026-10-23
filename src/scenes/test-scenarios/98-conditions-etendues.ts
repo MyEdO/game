@@ -3,6 +3,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Recette des 4 nouveaux kinds de `Condition` PARTY-LEVEL (#711, moteur `f0de1956`) : `skill`,
@@ -78,5 +79,5 @@ export const scenario: TestScenario = {
     '`species`, `status` — gate de choix de dialogue sur les VIVANTS du groupe, convention ' +
     'de préfixe « [Descripteur] » côté prose.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construireScene() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construireScene() }),
 };

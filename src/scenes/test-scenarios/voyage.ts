@@ -9,6 +9,7 @@ import { WorldMap } from '../../noyau/worldMap';
 import { buildScene } from '../../noyau/mapSpec';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Voyage & temps long » : tout le temps long en un trajet. Réunit le Voyage & Nourriture (carte du
@@ -20,20 +21,20 @@ import type { Scene } from '../../noyau/monde/scene';
  *  parler le bilan de nuit (blessée, sans rations, Vérole contagieuse, cauchemars). */
 function groupe(): Combatant[] {
   // Chasseur — Plein air (Survie) : sa réussite dispense le groupe d'Exposition. Porte les rations du groupe.
-  const bjorn = createHero({ speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
+  const bjorn = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'chasseur', label: 'Bjorn (test)', motivation: 'Test', seed: 2401, id: 'bjorn' });
   bjorn.travelRole = { activityId: 'plein-air' };
   renforcerCompetence(bjorn, 'survie-en-exterieur', 60);
-  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, itemFromTrappingById('ration')!];
+  bjorn.items = [...(bjorn.items ?? []), itemFromTrappingById('ration', idNeuf)!, itemFromTrappingById('ration', idNeuf)!, itemFromTrappingById('ration', idNeuf)!];
   bjorn.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.55 };
 
   // Éclaireuse — Rester aux aguets (Perception) : le groupe ne peut être surpris cette Étape.
-  const mira = createHero({ speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
+  const mira = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'eclaireur', label: 'Mira (test)', motivation: 'Test', seed: 2402, id: 'mira' });
   mira.travelRole = { activityId: 'rester-aux-aguets' };
   renforcerCompetence(mira, 'perception', 50);
   mira.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.42 };
 
   // Érudit — Établir des cartes (Métier Cartographe) : Test étendu cumulé ; PX pour l'Apprentissage (interlude).
-  const aldric = createHero({ speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
+  const aldric = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'erudit', label: 'Aldric (test)', motivation: 'Test', seed: 2403, id: 'aldric' });
   aldric.travelRole = { activityId: 'etablir-cartes' };
   renforcerCompetence(aldric, 'metier', 70, 'cartographe');
   aldric.xp = 300;
@@ -41,7 +42,7 @@ function groupe(): Combatant[] {
 
   // Soldate — Approvisionnement (Survie FAIBLE → Rencontres dangereuses) ET « mauvais état » : blessée,
   // SANS rations (faim RAW), Vérole Urticante contagieuse (LDB 20), cauchemars (Test de Calme/nuit).
-  const greta = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', seed: 1502, id: 'greta' });
+  const greta = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Greta Hartmann', motivation: 'Ramener sa compagnie vivante — quel qu’en soit le prix.', seed: 1502, id: 'greta' });
   greta.travelRole = { activityId: 'approvisionnement' };
   renforcerCompetence(greta, 'survie-en-exterieur', 0);
   greta.wounds.current = Math.max(1, greta.wounds.max - 6);

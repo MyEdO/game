@@ -6,6 +6,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Lot 4b — un Sort dont le Flow d'effet porte un nœud `test` INTERNE (Chute : « la cible teste sa
@@ -28,9 +29,9 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
   /** Groupe : un sorcier (lanceur) + un second héros (cible « manuelle » du Test). Combat sur la scène
    *  de test (rencontre `enc-mutants`) → un ennemi disponible comme cible « inline ». */
   function setup() {
-    const wiz = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
+    const wiz = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     wiz.spells = ['chute', ...(wiz.spells ?? [])];
-    const ally = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
+    const ally = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 13 });
     useGame.setState({ party: [wiz, ally] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

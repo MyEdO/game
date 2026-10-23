@@ -3,13 +3,14 @@ import { combatantSections, codexLookup, type CodexRow } from './registry';
 import { pregen, PREGEN } from '../../data/pregens';
 import { itemFromTrappingById, weaponFromItem, buildWeapon, unarmedWeapon } from '../../engine/items';
 import type { Weapon } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /** Rangées de la section « Armes » du statbloc d'un combattant portant `weapons`. */
 function rangeesArmes(weapons: Weapon[]): CodexRow[] {
-  const c = { ...pregen(PREGEN.soldat), weapons };
+  const c = { ...pregen(idNeufDeBanc, PREGEN.soldat), weapons };
   return combatantSections(c).find((s) => s.title === 'Armes')?.rows ?? [];
 }
-const arme = (trappingId: string): Weapon => weaponFromItem(itemFromTrappingById(trappingId)!);
+const arme = (trappingId: string): Weapon => weaponFromItem(itemFromTrappingById(trappingId, idNeufDeBanc)!);
 
 describe('combatantSections — une arme se lie au Codex par son id de catalogue', () => {
   it.each(['gaffe-2', 'couteau-2', 'baliste-ade2'])('%s : lien par `trappingId`, jamais par son libellé homonyme', (id) => {

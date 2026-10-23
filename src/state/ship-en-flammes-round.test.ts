@@ -6,6 +6,7 @@ import { vehicleCombatant } from '../engine/vehicle';
 import { findVehicleById } from '../data';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // MDG 13 l.588 ; LDB 16 l.84 ; #1595 c.6242576877
 describe('En flammes (navire) — N États, N Blessures par Round, par le chemin réel de fin de Tour', () => {
@@ -38,7 +39,7 @@ describe('En flammes (navire) — N États, N Blessures par Round, par le chemin
 
   it('2 États En flammes, 4 combattants : −2 Blessures au 1er Round, −4 après le 2e', () => {
     seedBattleRng(1);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

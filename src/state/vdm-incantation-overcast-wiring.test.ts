@@ -10,6 +10,7 @@ import { createHero } from '../engine/character';
 import { setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const RULE = 'magic-vdm-incantation';
 
@@ -18,7 +19,7 @@ const RULE = 'magic-vdm-incantation';
 const critRes: CastResult = { cast: true, roll: 44, target: 90, sl: 8, isCritical: true, isFumble: false, log: 'critique' };
 
 function openCast() {
-  const W = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
+  const W = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });
   W.talents = [...(W.talents ?? []), { talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 }];
   W.spells = ['allure-demoniaque'];
   W.characteristics.sociabilite = 40;

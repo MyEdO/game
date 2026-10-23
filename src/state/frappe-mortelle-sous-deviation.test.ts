@@ -15,6 +15,7 @@ import { setRule, resetRule } from '../engine/policy';
 import { bus, EVT } from '../noyau/bus';
 import { draineCascade, type ChoisitCle } from './cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const LIEUX = LOCALISATIONS_DE_COUP;
 const harnois = (): ItemInstance =>
@@ -26,7 +27,7 @@ const SEED_NON_LETAL = 3;
 
 /** H1 tuée d'un coup par E, qui prend sa case : H2 et H3 au contact, H3 encore au contact depuis la case de H2. Toutes à 1 PB, tenues Surprises. */
 function monte() {
-  const heros = [1, 2, 3].map((i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
+  const heros = [1, 2, 3].map((i) => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
   useGame.setState({ party: heros });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

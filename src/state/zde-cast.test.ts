@@ -11,9 +11,10 @@ import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/ma
 import { findSpell } from '../data';
 import { currentTargetingMode } from '../noyau/targetingModes';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function wiz() {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', ...(w.spells ?? [])]; // Explosion : Projectile magique ZdE (LDB 47 l.453)

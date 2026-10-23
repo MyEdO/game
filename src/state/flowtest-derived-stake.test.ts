@@ -48,6 +48,7 @@ import { recomputeLoadout, parseDamage } from '../engine/items';
 import type { TriggeredEffect } from '../engine/flowCore';
 import { CATEGORY_BY_SOURCE_KIND, type Combatant, type HitLocation, type ItemInstance } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Familles dont l'ENJEU est POSÉ PAR LE PRODUCTEUR moteur (patron `miscast.mkTest`) — ni une exemption
@@ -306,7 +307,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'spell', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'spell', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
     const src = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
     const eff = src.effects[0];
     expect(eff.source, 'la provenance du sort est perdue en route').toEqual({ kind: 'spell', id: 'morsure-de-l-hiver' });
@@ -319,7 +320,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
 
   it('effet FONDU par un POISON bu : l’enjeu nomme le poison (même règle, autre nature de source)', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { rng: desDuTest, label: 'Lotus noir', source: { kind: 'trapping', id: 'lotus-noir' }, defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Lotus noir', source: { kind: 'trapping', id: 'lotus-noir' }, defaultDurationRounds: 4 });
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     const texte = resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text!;
     expect(texte).toContain(findById('trappings', 'lotus-noir')!.label);
@@ -339,7 +340,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
    *  rabat pas sur l'arme. C'est la règle du lot : se taire plutôt que mentir. */
   it('effet fondu SANS provenance : la dérivation se tait plutôt que de nommer l’arme', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { rng: desDuTest, label: 'Enchantement anonyme', defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Enchantement anonyme', defaultDurationRounds: 4 });
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     // Le dispatcher tague au porteur ce qui n'a pas de source : ici l'arme est SANS id de catalogue
     // (arme forgée pour la sonde) → aucune fiche à nommer, la dérivation rend `undefined`.

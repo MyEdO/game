@@ -11,6 +11,7 @@ import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneE
 import { type CustomStatblock } from '../engine/statblock';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from './campaignData';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -37,7 +38,7 @@ function scene(entities: SceneEntity[]): Scene {
 
 /** Héros au Calme bas (FM 1, 0 avance) → Test simple raté de façon déterministe (cible basse). */
 function timoreux(name: string, fm = 1) {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: name, seed: 1 });
   h.characteristics['force-mentale'] = fm;
   h.skills = []; // pas d'avance de Calme → calmeValue = FM brut
   return h;

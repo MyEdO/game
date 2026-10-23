@@ -34,6 +34,7 @@
 import type { Combatant, HitLocation } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { RNG } from './dice';
+import type { FabriqueDId } from '../lib/entityId';
 import { groupMatch } from './groups';
 import { bypassedAP } from './armourBypass';
 import { findDomainById } from '../data';
@@ -106,10 +107,10 @@ export function isSorceryDomain(spell: SpellDomainRef): boolean {
 /** Ops post-incantation appliquées AU LANCEUR après un Sort de Domaine réussi — PARAMÈTRE en données
  *  (`DomainData.casterOps` : `GameOp[]`). Ex. Bête (Ghur) : `grantTrait` Peur 1 pendant 1d10 Rounds.
  *  Exécutées via `applyOps` — source unique, pas de réimplémentation de grantTrait ici. */
-export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG): string[] {
+export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG, idNeuf: FabriqueDId): string[] {
   const ops = findDomainById(spell.domainId)?.casterOps;
   if (!ops?.length) return [];
-  return applyOps(caster, ops, { rng, label: 'Attribut de domaine' });
+  return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' });
 }
 
 /**

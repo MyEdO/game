@@ -11,6 +11,7 @@ import { testValue } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import type { Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * LA PORTE des Activités en mer (#1262 V2 L5) — `seaActivities.ts` ne monte plus ses étapes : elles
@@ -28,7 +29,7 @@ const sommeMods = (mods: ModLine[] | undefined): number => (mods ?? []).reduce((
 function freshState() {
   seedBattleRng(7);
   useGame.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     battle: null,
     travelPlan: null,
     travelRecap: null,

@@ -12,6 +12,7 @@ import { REFUS_FRANCHISSEMENT } from '../noyau/gesteDArete';
 import { setRule, resetRule } from '../engine/policy';
 import type { TombantParticipant } from '../noyau/pendings';
 import { t } from '../i18n';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Câblage de la chute VOLONTAIRE (LDB 15 l.82 ; EDO 01 l.231) : `fallAcross` ouvre une étape À
@@ -53,7 +54,7 @@ function drainerChutes(): (readonly [string | undefined, unknown])[] {
 describe('fallAcross — exploration, un tombant', () => {
   let H = '';
   beforeEach(() => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     H = hero.id;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null });
   });
@@ -173,8 +174,8 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
   let A = '';
   let B = '';
   beforeEach(() => {
-    const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const b = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     A = a.id;
     B = b.id;
     useGame.setState({ battle: null, party: [a, b], mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null, journal: [] });
@@ -250,7 +251,7 @@ describe('fallAcross — exploration, le groupe tombe (EDO 01 l.231)', () => {
 
 describe('fallAcross — exploration, compteur des Dégâts de chute (LDB 15 l.80)', () => {
   it('trois tombants : chaque 1d10 se situe sur les TROIS dés de la chute — 1/3, 2/3, 3/3', () => {
-    const heros = ['A', 'B', 'C'].map((label, i) => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 }));
+    const heros = ['A', 'B', 'C'].map((label, i) => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: i + 1 }));
     useGame.setState({ battle: null, party: heros, mode: 'exploration', partyPos: top, scene: cliffScene(), pendingFall: null, pendingCascade: null, journal: [] });
     g().fallAcross(top, foot);
     for (const h of heros) g().fallChoose(h.id, false);
@@ -277,7 +278,7 @@ describe('fallAcross — combat', () => {
   });
 
   function setup(atPos = top) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

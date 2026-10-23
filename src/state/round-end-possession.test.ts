@@ -33,13 +33,14 @@ import { ownsLocal, humanControlled } from '../noyau/netOwnership';
 import { seatOwns } from '../noyau/sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;
 
 /** Monte un combat réel, puis pose les sièges : HÔTE au siège 0, le héros appartient au siège 1 (invité). */
 function setupCoop(withTalent = false): Combatant {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   if (withTalent) hero.talents = [...hero.talents, { talentId: 'controle-de-la-frenesie', times: 1 }];
   useGame.setState({ party: [hero] });
   g().startScene(testScene());

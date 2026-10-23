@@ -7,6 +7,7 @@ import { t } from '../../i18n';
 import type { Scene } from '../../noyau/monde/scene';
 import type { Combatant, CharKey } from '../../engine/types';
 import { refCouvre } from '../../data/schemas/grammaire/ref';
+import { idNeuf } from '../../noyau/plateforme';
 
 /** Garantit qu'un héros peut TENTER une Compétence d'incantation (avancée ≥ 1, LDB 09-Compétences) —
  *  fixture de vérif : un pré-tiré peut avoir la Compétence à 0 avance (donc non tentable). */
@@ -42,7 +43,7 @@ export const scenario: TestScenario = {
 };
 
 function groupe(): Combatant[] {
-  const [wiz, priest] = pregenParty(PREGEN.sorcier, PREGEN.pretre);
+  const [wiz, priest] = pregenParty(idNeuf, PREGEN.sorcier, PREGEN.pretre);
   // Sorcier : ajoute un Sort d'Arcane FOCALISABLE (les sorts pré-tirés Fléchette/Choc sont de la
   // Magie mineure, NON focalisable) pour exercer le bouton « Focaliser » hors combat.
   if (!wiz.spells?.includes('armure-aethyrique')) wiz.spells = ['armure-aethyrique', ...(wiz.spells ?? [])];

@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Contre-sort à plusieurs CANDIDATS (Dissipation, LDB 46 l.156) — flux MULTI : le Sort ENNEMI est
@@ -21,7 +22,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
 
   function setup() {
     const mk = (name: string, seed: number) => {
-      const h = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, seed });
+      const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: name, careerTalent: { id: 'magie-mineure' }, seed });
       h.spells = ['flechette'];
       h.resilience = 1; // pour les tests de Résilience
       return h;

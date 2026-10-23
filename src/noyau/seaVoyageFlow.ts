@@ -122,6 +122,7 @@ import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `crew-test-zero-success` comprise) dans
@@ -1765,7 +1766,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   if (b.compartmentDamage != null && eng) {
     const boiler = buildWeapon({ label: t('sv.boilerBlast'), damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'perforante' }] }); // Dégâts passés directement (weaponHit) → la spec ne sert qu'aux qualités
 
-    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { rng, weapon: boiler, location: 'corps' });
+    const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf, rng, weapon: boiler, location: 'corps' });
     set({ party: [...get().party] });
     tell(get, set, [t('sv.blastWave', { name: eng.label, dmg: b.compartmentDamage }), ...lines]);
   }
@@ -1820,7 +1821,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   const eng = get().party.find((h) => h.id === p.actorId);
   // Le jet est DÉJÀ affiché par la rangée de `SteamSaveModal` (`p.roll`/`p.target`) — pas de re-print (#295 Lot 5).
   if (eng && !p.success) {
-    const lines = applyOps(eng, p.scaldOps, { rng: battleRng(), now: get().gameTime });
+    const lines = applyOps(eng, p.scaldOps, { idNeuf, rng: battleRng(), now: get().gameTime });
     set({ party: [...get().party] });
     tell(get, set, [t('sv.scalded', { name: eng.label }), ...lines]);
   } else if (eng) {
@@ -1989,7 +1990,7 @@ function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): vo
   const coque = get().travelPlan?.vehicle;
   if (!coque) return;
   const equipage = exposedCrew(get().party);
-  const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng());
+  const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng(), idNeuf);
   if (coup.hits.length) {
     set({ party: [...get().party] });
     tell(get, set, [t('shipCrit.crewTakes', { n: coup.hits.length, label: crit.label })]);
@@ -1997,7 +1998,7 @@ function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved): vo
   if (!coup.testFlow) return;
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
   pushStep(set, (index) => bandeTriggeredTest(
-    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { rng: battleRng(), label: crit.label, hull: coque },
+    get, set, victimes, coup.testFlow!, `sea-crew-hit-${crit.id}-${index}`, { idNeuf, rng: battleRng(), label: crit.label, hull: coque },
   ), 'travelDay');
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
@@ -2206,7 +2207,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
       const captain = partyAssisted(get().party, 'commandement');
       if (captain) {
         const until = get().gameTime + num('days', d10(rng)) * 24 * 60;
-        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
+        for (const l of applyOps(captain.actor, [{ op: 'grantTalent', talent: { id: 'chanceux' } }], { idNeuf, label: event.label, rng, defaultUntilTime: until })) tell(get, set, [l]);
         set({ party: [...get().party] });
       }
       break;
@@ -2219,7 +2220,7 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, rng: RNG, rol
           { op: 'skillDRBonus', skill: { id: 'focalisation' }, bonus: 2 },
           { op: 'skillDRBonus', skill: { id: 'guerison' }, bonus: 2 },
           { op: 'skillDRBonus', skill: { id: 'resistance' }, bonus: 2 },
-        ], { label: event.label, rng, defaultUntilTime: until });
+        ], { idNeuf, label: event.label, rng, defaultUntilTime: until });
       }
       set({ party: [...get().party] });
       tell(get, set, [t('sv.ghyranBlessing')]);

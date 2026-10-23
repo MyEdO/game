@@ -30,6 +30,7 @@ import * as svgTexture from '../backends/webgl/svgTexture';
 import { artRot, GameStage3D, setStageRendererFactory, type StageFrame } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { povArtRot, povYawDeg } from './regard';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -76,7 +77,7 @@ const SCENE: Scene = emptyScene('scene-test', 12, 12);
 const MPT = sceneMetresPerTile(SCENE);
 const TINT: TintAt = () => 1;
 const KEEP = () => true;
-const HÉROS = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+const HÉROS = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
 
 /** Un acteur au cap SUD, et un décor orienté : l'un juge la vue d'entité, l'autre le cran d'atlas. */
 const ACTEURS: ActorPose[] = [{ c: HÉROS, x: 4, y: 4, z: 0, facing: 'S' }];

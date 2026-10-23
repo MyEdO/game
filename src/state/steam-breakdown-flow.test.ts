@@ -7,6 +7,7 @@ import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { seedBattleRng, battleRng } from '../noyau/battleRng';
 import type { WorldMap } from '../noyau/worldMap';
 import type { PendingSteamSave } from '../noyau/pendings';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * PANNE DE VAPEUR (MDG 12 l.313-352) résolue au voyage (#184) : la table Panne de Vapeur ne se narre
@@ -32,7 +33,7 @@ const entry = (id: string) => STEAM_BREAKDOWNS.find((b) => b.id === id)!;
 function steamAtSea(milesToday = 80) {
   seedBattleRng(1);
   useGame.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,

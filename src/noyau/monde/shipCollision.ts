@@ -12,6 +12,7 @@ import { applyOps } from '../../engine/ops';
 import { type RNG } from '../../engine/dice';
 import { propulsionDuNavire, type MilieuDeNavigation } from '../../engine/shipBuild';
 import { garanti } from '../../lib/garanti';
+import { idNeuf } from '../plateforme';
 
 /** Mappe une coque-`Combatant` en `CollisionShip` (vue Dégâts) : IC = `collisionIndex` (Bonus d'Endurance +
  *  Bonus de Blessures) ; M = `propulsionDuNavire` dans le `milieu` du flux ; Bélier lu dans
@@ -33,7 +34,7 @@ export function applyShipCollision(
   const res = resolveCollision(toCollisionShip(causer, milieu), toCollisionShip(victim, milieu), opts);
   const lines = [`${causer.label} percute ${victim.label}${opts.frontal ? ' de plein fouet' : ''} !`];
   // Dégâts sur la Coque (l.464), mitigés DANS l'op : BE + PA de coque + extraAP (armorBonus situationnel).
-  lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { rng }));
-  lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { rng }));
+  lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { idNeuf, rng }));
+  lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { idNeuf, rng }));
   return { lines, causer: res.causer, victim: res.victim };
 }

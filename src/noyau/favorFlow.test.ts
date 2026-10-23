@@ -11,11 +11,12 @@ import { fromBrass } from '../engine/money';
 import { creditBourse } from './bourseFlow';
 import { testScene } from '../scenes/test-fixture';
 import { setRule, resetRule } from '../engine/policy';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function setup() {
   vi.useFakeTimers();
   vi.clearAllTimers();
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], favors: [], journal: [] });
   useGame.getState().startScene(testScene());
   vi.clearAllTimers();

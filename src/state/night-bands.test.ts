@@ -37,12 +37,13 @@ import { nightStakeRef } from '../data';
 import { cascadeDeTest } from './cascade.testkit';
 import type { GenreDEtape } from '../noyau/tablesPosees';
 import { deFixe } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState;
 const set = useGame.setState;
 
 function h(id: string, over: Partial<Combatant> = {}): Combatant {
-  const c = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
+  const c = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 4 });
   c.id = id;
   Object.assign(c, over);
   return c;

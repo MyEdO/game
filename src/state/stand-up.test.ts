@@ -3,6 +3,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { hasCondition } from '../engine/conditions';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () => {
   beforeEach(() => {
@@ -16,7 +17,7 @@ describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () =>
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

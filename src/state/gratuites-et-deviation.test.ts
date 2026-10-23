@@ -11,13 +11,14 @@ import type { Combatant, ItemInstance } from '../engine/types';
 import { resetCadence } from '../engine/cadence';
 import { draineCascade, type ChoisitCle } from './cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const LIEUX = LOCALISATIONS_DE_COUP;
 const harnois = (): ItemInstance =>
   ({ uid: 'harnois', name: 'Harnois', kind: 'armor', equipped: true, pa: 3, locs: [...LIEUX], qualities: [] } as unknown as ItemInstance);
 
 function monte() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

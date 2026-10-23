@@ -3,6 +3,7 @@ import { useGame } from '../store';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { REPLIS_DEUX_CIBLES, evaluateTest, resolveOpposed } from '../../engine/tests';
 import type { Combatant } from '../../engine/types';
+import { passagesDe } from '../../lib/sonde';
 
 /**
  * Départage d'égalité du Test de RÉCUPÉRATION opposé (`EtatData.recover`) — `LDB 12 l.160`.
@@ -101,15 +102,15 @@ describe('LDB 12 l.160 — la récupération opposée départage sur les valeurs
 
   it('CONTRAT : le flux de récupération ne déclenche AUCUN repli deux-cibles (sonde REPLIS_DEUX_CIBLES)', () => {
     // La sonde est vivante dans ce runtime : deux jets SANS nue la font compter.
-    const temoin = REPLIS_DEUX_CIBLES.count;
+    const temoin = passagesDe(REPLIS_DEUX_CIBLES);
     resolveOpposed(evaluateTest(30, 50), evaluateTest(40, 50));
-    expect(REPLIS_DEUX_CIBLES.count, 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(temoin + 1);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(temoin + 1);
 
-    const avant = REPLIS_DEUX_CIBLES.count;
+    const avant = passagesDe(REPLIS_DEUX_CIBLES);
     seedBattleRng(7);
     empetreCharge();
     useGame.getState().recoverRoll();
     useGame.getState().recoverReroll(); // Chance : re-oppose contre le jet FIGÉ de l'entrave
-    expect(REPLIS_DEUX_CIBLES.count, 'un départage du flux est retombé sur les cibles').toBe(avant);
+    expect(passagesDe(REPLIS_DEUX_CIBLES), 'un départage du flux est retombé sur les cibles').toBe(avant);
   });
 });

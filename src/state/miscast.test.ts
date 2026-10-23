@@ -4,6 +4,7 @@ import { applyMiscast } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Colère des dieux / Incantation Imparfaite — D'ABORD une étape à TABLE (le dé du Tableau, poussé
 // inconditionnellement, #1426), PUIS la révélation en étape d'affichage de la MÊME séquence : c'est
@@ -22,7 +23,7 @@ describe('Miscast en séquence (store)', () => {
   });
 
   function battle() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

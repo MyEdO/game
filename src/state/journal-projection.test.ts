@@ -10,6 +10,7 @@ import { FLOWS } from '../noyau/rollFlowSpecs';
 import type { CascadeStep, PendingReload, PendingTest } from '../noyau/pendings';
 import { avecLesTables, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1262 V3 Lj — LE JOURNAL EST UNE PROJECTION.
@@ -94,7 +95,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, tally: spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success })) } });
   });
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     useGame.setState({ party: [h] });
     return h;
   }
@@ -131,7 +132,7 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
   });
 
   it('canal NARRATIF (Test de scène) : `apply` journalise l’issue déclarée, et l’acquittement n’en écrit pas une seconde', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brawn', seed: 1 });
     useGame.setState({ party: [h] });
     const pt: PendingTest = {
       actorId: h.id, actorName: h.label, skill: 'Athlétisme', skillValue: 50, difficulty: 'intermediaire',

@@ -11,6 +11,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { buildSeaPlan, runSeaDay } from '../noyau/seaVoyageFlow';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import type { WorldMap } from '../noyau/worldMap';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 
 const get = useGame.getState.bind(useGame);
@@ -32,7 +33,7 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     expect(STEAM_BREAKDOWNS.some((b) => b.id === 'fuite-de-vapeur')).toBe(true);
     seedBattleRng(GRAINE);
     set({
-      party: makePregens().slice(0, 3),
+      party: makePregens(idNeufDeBanc).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingCrewTest: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], pendingSteamSave: null, gameTime: 8 * 60, lastUpkeepDay: 0, journal: [], partyWiped: false,

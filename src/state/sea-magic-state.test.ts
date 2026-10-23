@@ -10,9 +10,10 @@ import { useGame } from './store';
 import { draineEtLit } from './cascade.testkit';
 import { pregen, PREGEN } from '../data/pregens';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function wizard(domainId: string): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue' && s.id !== 'focalisation');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: domainId, advances: 30 } as never);

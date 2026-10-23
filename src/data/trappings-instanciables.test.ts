@@ -12,6 +12,7 @@ import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import { idsDeLaSousListe } from './schemas/grammaire/ref';
 import { giveTrappingSchema } from './schemas/defs-scenes/effets';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const LIVRES: TrappingData[] = [...trappings];
 afterEach(() => setDataset('trappings', LIVRES));
@@ -25,12 +26,12 @@ const forme = (form: string) => gameOpSchema.safeParse({ op: 'grantWeapon', labe
 
 describe('vue `trappingsInstanciables`', () => {
   it('tout id de la vue s’instancie sans lever', () => {
-    for (const id of idsDeLaVue()) expect(itemFromTrappingById(id), id).not.toBeNull();
+    for (const id of idsDeLaVue()) expect(itemFromTrappingById(id, idNeufDeBanc), id).not.toBeNull();
   });
 
   it('tout id du catalogue HORS de la vue lève à l’instanciation (témoin non vide)', () => {
     expect(horsDeLaVue().length).toBeGreaterThan(0);
-    for (const id of horsDeLaVue()) expect(() => itemFromTrappingById(id), id).toThrow(/INSTANCIABLE_PAR_ID/);
+    for (const id of horsDeLaVue()) expect(() => itemFromTrappingById(id, idNeufDeBanc), id).toThrow(/INSTANCIABLE_PAR_ID/);
   });
 
   it('la vue (jugée sur l’entrée) et les ids admis du registre (jugés sur l’id) ne font qu’un', () => {
@@ -49,7 +50,7 @@ describe('producteurs d’ids d’objet — aucun id hors de la vue', () => {
     const produits = produire().map((o) => o.id);
     expect(produits.length).toBeGreaterThan(0);
     expect(produits.filter((id) => !vue.has(id))).toEqual([]);
-    for (const id of produits) expect(() => itemFromTrappingById(id), id).not.toThrow();
+    for (const id of produits) expect(() => itemFromTrappingById(id, idNeufDeBanc), id).not.toThrow();
   });
 });
 
@@ -63,7 +64,7 @@ describe('régime vivant — le marqueur posé au seam déplace l’entrée part
     setDataset('trappings', LIVRES.map((t) => (t.id === objet.id ? { ...t, service: true } : t)));
     expect(idsDeLaVue()).not.toContain(objet.id);
     for (const r of [effet(objet.id), op(objet.id), forme(objet.id)]) expect(messages(r)).toMatch(/porte le marqueur « service »/);
-    expect(() => itemFromTrappingById(objet.id)).toThrow(/INSTANCIABLE_PAR_ID/);
+    expect(() => itemFromTrappingById(objet.id, idNeufDeBanc)).toThrow(/INSTANCIABLE_PAR_ID/);
   });
 
   it('retirer `service` d’un tarif le fait entrer dans la vue et dans le schéma', () => {
@@ -84,11 +85,11 @@ describe('objet de campagne — jugé sur l’entrée résolue', () => {
   };
 
   it('sans marqueur, il s’instancie par le résolveur de campagne', () => {
-    expect(itemFromTrappingById(OBJET.id, resoudre([OBJET]))?.label).toBe('Sceau du comte');
+    expect(itemFromTrappingById(OBJET.id, idNeufDeBanc, resoudre([OBJET]))?.label).toBe('Sceau du comte');
   });
 
   it('marqué `service`, il lève', () => {
-    expect(() => itemFromTrappingById(OBJET.id, resoudre([{ ...OBJET, service: true }]))).toThrow(/INSTANCIABLE_PAR_ID/);
+    expect(() => itemFromTrappingById(OBJET.id, idNeufDeBanc, resoudre([{ ...OBJET, service: true }]))).toThrow(/INSTANCIABLE_PAR_ID/);
   });
 
   it('l’Effet qui le cite passe le parse : la feuille est OUVERTE aux ids absents du catalogue', () => {

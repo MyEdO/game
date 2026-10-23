@@ -14,6 +14,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import type { EffectTrigger } from '../engine/flowCore';
 import { resetCadence } from '../engine/cadence';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #316 — les triggers ORPHELINS (jamais émis) sont désormais CÂBLÉS au bus (`emitCombatEvent`) à leur
@@ -89,7 +90,7 @@ describe('7bis — applyOpposedCritical émet onCrit (Taillade sur Critique oppo
 
   it('un Critique opposé de l’attaquant Taillade → la victime gagne Hémorragique', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

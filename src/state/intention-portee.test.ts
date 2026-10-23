@@ -32,10 +32,11 @@ import { chargeReach } from '../engine/movement';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Combat témoin : un héros au tour ENTIER, les ennemis parqués au loin (grille libre autour de lui). */
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

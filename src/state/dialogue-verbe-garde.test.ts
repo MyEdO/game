@@ -20,9 +20,10 @@ import { toBrass } from '../engine/money';
 import type { Combatant } from '../engine/types';
 import type { Dialogue } from '../noyau/monde/scene';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const hero = (brass = 0): Combatant =>
-  withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass });
+  withBourseMoney(createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold: 0, silver: 0, brass }, idNeufDeBanc);
 
 /** Un nœud, trois réponses : un Test, une MASQUÉE par son `when`, une PAYANTE hors de portée. */
 const dlg: Dialogue = {

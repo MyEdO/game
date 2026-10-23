@@ -33,6 +33,7 @@ import { RevealBody } from './RevealBody';
 import { CarnetScreen } from './CarnetScreen';
 import { DocumentModal } from './DocumentModal';
 import { Editor } from './editor/Editor';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -72,7 +73,7 @@ function sceneDuTest(): Scene {
 
 /** Le paquet du test chargé par la voie de toute partie (`loadProject`), sous `projet`. */
 function charger(projet: { id: string } | null): void {
-  useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+  useGame.setState({ party: makePregens(idNeufDeBanc).slice(0, 1), battle: null });
   get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif, projet });
 }
 
@@ -118,7 +119,7 @@ describe('L’id du projet est celui du DOCUMENT, par chaque voie de lancement',
 
   beforeEach(() => {
     resetSceneRegistry();
-    useGame.setState({ ...useGame.getInitialState(), party: makeShowcaseParty() });
+    useGame.setState({ ...useGame.getInitialState(), party: makeShowcaseParty(idNeufDeBanc) });
   });
 
   it('campagne du jeu (`campagneDuJeu` → `lancerCampagne`)', () => {
@@ -222,7 +223,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   });
 
   it.each([[true], [false]])('ouverture, sous-titre (`narratif.ouverture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
-    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    useGame.setState({ party: makePregens(idNeufDeBanc).slice(0, 1), battle: null });
     get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: { ...narratif, ouverture: { titre: 'Chapitre', pitch: NEUTRE, sousTitre: { texte: TEXTE } } }, projet: enCampagne ? { id: PROJET } : null });
     await monter(<CampaignOpeningScreen />);
     expect(container.textContent).toContain(TEXTE);
@@ -230,7 +231,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   });
 
   it.each([[true], [false]])('récapitulatif de chapitre, sous-titre (`narratif.cloture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
-    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    useGame.setState({ party: makePregens(idNeufDeBanc).slice(0, 1), battle: null });
     const clos: NarratifBlock = { ...narratif, ouverture: undefined, cloture: { when: { kind: 'flag', expr: 'fin' }, titre: 'Fin', sousTitre: { texte: TEXTE } } };
     get().loadProject({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: clos, projet: enCampagne ? { id: PROJET } : null });
     applyEffects(get, useGame.setState, [{ type: 'setFlag', flag: 'fin' }]);
@@ -240,7 +241,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   });
 
   it.each([[true], [false]])('entrée de zone (`scenes[].startMessage.texte`, `RevealBody`), en campagne = %s', async (enCampagne) => {
-    useGame.setState({ party: makePregens().slice(0, 1), battle: null });
+    useGame.setState({ party: makePregens(idNeufDeBanc).slice(0, 1), battle: null });
     const autre = sceneDuTest();
     autre.id = 'scene-autre';
     const cible = sceneDuTest();

@@ -15,6 +15,7 @@ import { critiquesDuCoup, relanceLaLocalisation } from '../engine/critical';
 import { setRule, resetRule } from '../engine/policy';
 import { t } from '../i18n';
 import { makeRNG } from '../engine/dice';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Coup qui touche une cible à 0 Blessure, ou qui l'y amène : navire (MDG 13 l.656, l.674), bateau fluvial
@@ -31,7 +32,7 @@ const coque = (ref: string, id: string, current: number): Combatant => {
   return c;
 };
 const tireur = (): Combatant => {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 1 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 1 });
   h.pos = { x: 5, y: 5 };
   return h;
 };
@@ -118,7 +119,7 @@ describe('Personnage : Critique par les Blessures et Mort subite selon combat-aa
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); resetRule('combat-aa-blessures'); });
 
   const figurant = (current: number): Combatant => {
-    const f = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Figurant', seed: 2 });
+    const f = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Figurant', seed: 2 });
     f.id = 'fig'; f.kind = 'enemy'; f.important = false; f.pos = { x: 6, y: 5 };
     f.items = []; f.loadouts = undefined; f.activeLoadoutId = undefined; recomputeLoadout(f); // sans armure : aucune Déviation (LDB 63 l.30)
     f.wounds = { ...f.wounds, current };

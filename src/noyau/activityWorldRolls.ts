@@ -21,6 +21,7 @@ import { worldStep, freeCons } from './rollSeam';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 export const ACTIVITY_WORLD_ROLL_KIND = 'activityWorldRoll';
 
@@ -62,6 +63,7 @@ export const TABLES = {
       // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
       if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'info' }]) };
       const lignes = applyOps(h, wr.ops, {
+        idNeuf,
         rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activity', id: def.id },
       });
       set({ party: [...get().party] });

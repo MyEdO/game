@@ -19,12 +19,13 @@ import { loadRegister } from '../../../engine/weaponLoad';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import { idNeufDeBanc } from '../../../lib/entityId.testkit';
 
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
 
 function combat(): { H: Combatant; E: Combatant } {
-  const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+  const H = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
   H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1, trappingId: 'arbalete' } as unknown as Weapon];
   H.items = [...(H.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 } as ItemInstance];
   loadRegister(H, H.weapons[0]).loaded = true;

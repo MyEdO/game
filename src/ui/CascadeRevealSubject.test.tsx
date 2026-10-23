@@ -17,6 +17,7 @@ import { CascadeBody } from './CascadeModal';
 import type { RevealEntry } from '../noyau/pendings';
 import { cascadeDeTest } from '../state/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -25,7 +26,7 @@ beforeAll(() => {
 let host: HTMLDivElement;
 let root: Root;
 
-const HERO = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
+const HERO = () => createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 1 });
 
 /** Ouvre une séquence d'affichage à UNE étape portant l'entrée bâtie par `make` (forme exacte de
  *  `revealToStep` : `actorId` = le sujet ; `autoCloseMs` n'existe que si le site l'a DÉCLARÉ — la

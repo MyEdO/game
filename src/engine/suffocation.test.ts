@@ -14,6 +14,7 @@ import { findSpell } from '../data';
 import { spellOps } from './flowCore';
 import { setRule, resetRule } from './policy';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Ops `on:'target'` d'un sort par label (les EFFETS vivent sur `SpellData.effects`, plus sur la spec). */
 const opsOf = (label: string) => spellOps(findSpell(label)?.effects, 'target');
@@ -196,7 +197,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
   });
   it('op suffocate : pose l’effet porteur à la durée du sort', () => {
     const c = mk({ activeEffects: [] });
-    applyOps(c, [{ op: 'suffocate' }], { rng: desDuTest, label: 'Ombres étrangleuses', defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'suffocate' }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Ombres étrangleuses', defaultDurationRounds: 4 });
     expect(c.activeEffects?.find((e) => e.suffocates)?.duration).toEqual({ scale: "rounds", left: 4 });
   });
 });

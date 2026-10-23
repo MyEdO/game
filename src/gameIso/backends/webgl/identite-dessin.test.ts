@@ -25,6 +25,7 @@ import { WEAPON_DEFS } from '../../rig/parts/weapons/_registry.generated';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import { idNeufDeBanc } from '../../../lib/entityId.testkit';
 
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
@@ -44,10 +45,10 @@ const catalogueDOrigine = trappings.slice();
 afterEach(() => setDataset('trappings', catalogueDOrigine));
 
 /** Arme d'une Possession du catalogue, construite comme au loadout (`itemFromTrappingById` → `weaponFromItem`). */
-const armeDuCatalogue = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id)!, 'main');
+const armeDuCatalogue = (id: string): Weapon => weaponFromItem(itemFromTrappingById(id, idNeufDeBanc)!, 'main');
 
 function arbalétrier(): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
   h.id = 'h1';
   h.weapons = [armeDuCatalogue('arbalete')];
   h.items = [...(h.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 } as ItemInstance];

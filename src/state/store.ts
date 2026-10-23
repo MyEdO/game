@@ -25,7 +25,7 @@ import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
 import { bus, EVT } from '../noyau/bus';
 import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
-import { graineDEntropie } from '../web/entropie';
+import { graineDEntropie, idDEntropie } from '../web/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { etatInitialDuJeu, type CampaignDoc, type Ecran, type Jeu } from '../noyau/etat';
@@ -356,13 +356,15 @@ brancherLeJeu(useGame.getState, useGame.setState, tablesDuJeu());
 seedBattleRng(graineDEntropie());
 
 // Plateforme web du noyau (#2817, D6) : ses appels différés passent par le registre tracé de
-// `web/minuteries` (#405, #415), son héros persisté par le roster. Son jeton est l'id du timer tracé :
+// `web/minuteries` (#405, #415), son héros persisté par le roster, ses ids neufs par l'entropie de l'hôte
+// (`idDEntropie`, #2907). Son jeton est l'id du timer tracé :
 // le noyau ne le reçoit que de `programmer` et ne le rend qu'à `enAttente`, d'où la seule conversion
 // vers le jeton à marque.
 const plateformeWeb: PlateformeDe<ReturnType<typeof scheduleCombatTimer>> = {
   programmer: scheduleCombatTimer,
   enAttente: timerEnVol,
   persisterLeHeros: rosterUpdate,
+  idNeuf: idDEntropie,
 };
 poserLaPlateforme(plateformeWeb as unknown as Plateforme);
 

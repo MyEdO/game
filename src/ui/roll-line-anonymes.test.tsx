@@ -1,5 +1,5 @@
 /**
- * SONDE « zéro chip anonyme » CÂBLÉE (#1153 L1a) — `ANONYMES.count` (`ui/RollLine.tsx`) était une
+ * SONDE « zéro chip anonyme » CÂBLÉE (#1153 L1a) — `ANONYMES` (`ui/RollLine.tsx`) était une
  * affordance MORTE : le compteur s'incrémentait au rendu, personne ne le lisait. Ici il est LU, et
  * c'est le rendu réel de `RollLine`/`PendingRollLine` qui l'alimente — pas un calcul de test.
  *
@@ -12,8 +12,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { RollLine, PendingRollLine, ANONYMES } from './RollLine';
 import { rollLine } from '../noyau/rollSeam';
 import type { RollBreakdown } from '../engine/combat';
+import { passagesDe } from '../lib/sonde';
 
-beforeEach(() => { ANONYMES.count = 0; });
+/** Les passages de la sonde `ANONYMES` au début du cas. */
+let anonymesAvant = 0;
+
+beforeEach(() => { anonymesAvant = passagesDe(ANONYMES); });
 
 describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#1153)', () => {
   it('la sonde MORD : une ligne dont les chips n’expliquent pas l’écart avoue « autres » ET l’incrémente', () => {
@@ -23,7 +27,7 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     } as RollBreakdown;
     const html = renderToStaticMarkup(<RollLine d={d} />);
     expect(html).toContain('autres');
-    expect(ANONYMES.count, 'la chip anonyme rendue se compte').toBe(1);
+    expect((passagesDe(ANONYMES) - anonymesAvant), 'la chip anonyme rendue se compte').toBe(1);
   });
 
   it('une ligne MONTÉE par `rollLine` ne produit aucune chip anonyme — compteur à 0', () => {
@@ -36,14 +40,14 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     } as RollBreakdown;
     const html = renderToStaticMarkup(<RollLine d={d} />);
     expect(html).not.toContain('autres');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
 
     // Le PRÉ-jet passe par la MÊME réconciliation : la ligne à lancer ne cache rien non plus.
     const pending = renderToStaticMarkup(
       <PendingRollLine p={{ label: 'Résistance', base: monte.base, target: monte.target, mods: monte.mods, difficulty: 'accessible', clamped: monte.clamped }} />,
     );
     expect(pending).not.toContain('autres');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   it('les ÉTATS du jeteur pèsent EN ENTIER : ni palier, ni plafond, ni « autres »', () => {
@@ -65,7 +69,7 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     );
     expect(html, 'aucune amputation à nommer : le plafond ne mord pas ici').not.toContain('plafond Difficultés');
     expect(html).not.toContain('autres');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   it('le PLAFOND des CIRCONSTANCES, lui, se lit dans le PALIER — et disparaît des chips', () => {
@@ -84,7 +88,7 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     expect(html).toContain('Très difficile (−30)');
     expect(html).not.toContain('plafond Difficultés');
     expect(html).not.toContain('autres');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   it('l’ÉCRÊTAGE mesuré se nomme « plafond », il n’est jamais avoué « autres »', () => {
@@ -95,7 +99,7 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     );
     expect(html).toContain('plafond');
     expect(html).not.toContain('autres');
-    expect(ANONYMES.count).toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
   });
 
   /**
@@ -134,6 +138,6 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     expect(rendus.length, 'le balayage doit VRAIMENT rendre des lignes').toBeGreaterThan(100);
     expect(rendus.some((h) => h.includes('Combinée')), 'et de VRAIES sommes hors échelle, sinon il ne juge que les crans').toBe(true);
     expect(rendus.filter((h) => h.includes('autres'))).toEqual([]);
-    expect(ANONYMES.count, 'le cliquet ne bouge d’aucun cran').toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant), 'le cliquet ne bouge d’aucun cran').toBe(0);
   });
 });

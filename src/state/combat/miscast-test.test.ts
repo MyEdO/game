@@ -9,6 +9,7 @@ import { hasCondition } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 import { resetCadence } from '../../engine/cadence';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Lot 4d — les Tests imbriqués des tables d'Imparfaites/Colère (« Résistance Accessible ou Sonné »,
@@ -34,7 +35,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

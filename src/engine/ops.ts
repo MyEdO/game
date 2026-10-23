@@ -41,14 +41,14 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
+import { damageLeatherArmour, gabaritDObjet, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { weaponMatchesFamily } from './weaponDamage';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
-import { norm } from '../lib/normalize';
+import { nextEntityId, type FabriqueDId } from '../lib/entityId';
 import { ConjureForm, conjureFormOptions, equipConjuredWeapon } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
@@ -1204,6 +1204,9 @@ export type PassiveKind =
 
 /** Attribut visé par `attrMod` → sa CLÉ d'affichage (#1318 V8c₅, 8ᵉ forme) : le nom rendu au joueur
  *  passait en paramètre de `t()` sous forme de littéral FR — il s'affichait donc hors catalogue. */
+/** Préfixe de l'id d'un enchantement : unique parmi les `enchants` de SON objet (`nextEntityId`). */
+const PREFIXE_D_ENCHANTEMENT = 'ench';
+
 const ATTR_KEY = { wounds: 'op.attrWounds', fortune: 'op.attrFortune', resolve: 'op.attrResolve' } as const satisfies Record<string, MsgKey>;
 
 /** Effet PASSIF porté par un élément (trauma/trait/mutation/qualité…) : une op + son profil d'annulation.
@@ -1232,6 +1235,9 @@ export interface PassiveMod {
 
 export interface OpsCtx {
   rng: RNG;
+  /** La fabrique d'ids neufs de la partie (`FabriqueDId`) : uid d'un objet donné, d'une Bourse créée, d'une
+   *  arme invoquée. */
+  idNeuf: FabriqueDId;
   /** Référent des formules « (Bonus de X) » (le lanceur d'un sort) ; défaut : la cible. */
   caster?: Combatant;
   /** Équipage d'une COQUE (`crewIds` résolus en Combattants) — pour les ops de navire : `removeShipPoste`
@@ -1633,9 +1639,9 @@ export const OPS_CTX_GELES = [
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
-/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng de la partie, le hook de Corruption branché sur la
- *  cible, et les dés eux-mêmes (relus sur les étapes sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'onCorruption', 'onGainAdvantage', 'des'] as const;
+/** REBÂTIS à la reprise par un chemin NOMMÉ : le rng et la fabrique d'ids de la partie, le hook de Corruption
+ *  branché sur la cible, et les dés eux-mêmes (relus sur les étapes sœurs — jamais recopiés). */
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'onCorruption', 'onGainAdvantage', 'des'] as const;
 /** HORS CANAL : hooks qu'aucun chemin ne sait rebâtir. Leur PRÉSENCE sur une feuille qui veut différer
  *  est un fail-fast NOMMÉ (`noyau/combatEffects`), jamais une perte muette — mesuré : aucune donnée du
  *  dépôt n'atteint la porte avec l'un d'eux (ils naissent d'`endOfRound`, de l'interlude, du bus de
@@ -2171,7 +2177,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));
           break;
         }
-        const enchantId = newUid();
+        const enchantId = nextEntityId(PREFIXE_D_ENCHANTEMENT, (item.enchants ?? []).map((e) => e.id));
         item.enchants = [
           ...(item.enchants ?? []),
           {
@@ -2506,7 +2512,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, source);
+          const it = itemFromGive(o, ctx.idNeuf, source);
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }
@@ -2517,7 +2523,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.round(resolveFormula(o.montant.brass, ref, rng, ctx.rolled, ctx.indice, ctx.stacks, ctx.engagedAdvantageGap, ctx.woundsDealt, ctx.sl));
         if (n === 0) break;
         const avant = bourseBrass(target);
-        const apres = setBourseBrass(target, avant + n); // plancher 0 : on ne doit jamais d'argent
+        const apres = setBourseBrass(target, avant + n, ctx.idNeuf); // plancher 0 : on ne doit jamais d'argent
         const delta = apres - avant;
         if (delta === 0) break;
         lines.push(t('op.money', {
@@ -2592,7 +2598,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantNaturalWeapon': {
         const n = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
-        const weapon = armeNaturelleAccordee(o, n, { uid: o.uid ?? { prefix: `nat-${norm(o.label)}` }, source });
+        const uid = o.uid ?? ctx.idNeuf('nat');
+        const weapon = { ...armeNaturelleAccordee(o, n, { uid, source }), uid };
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: ctx.label ?? o.label, bonus: 0,
@@ -2610,7 +2617,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // choisie par le lanceur (ctx.conjureForm, défaut = sa meilleure Spé de CC) ; sinon stats du
         // Sort. Seuls les Dégâts (= BFM…) et les Atouts du Sort surchargent le profil → un OBJET ordinaire.
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const tpl = form ? itemFromTrappingById(form.weapon) : null;
+        const tpl = form ? gabaritDObjet(form.weapon) : null;
         // L'objet vit dans un SET dédié (equipConjuredWeapon), hors Set I/II auto → `weaponItem` (conjured).
         // Silhouette de rendu : forme choisie (chooseForm) ou silhouette fixe du Sort → le rig dessine
         // l'arme réelle bien que nommée « Arme aethyrique » / « Faux de Shyish ».
@@ -2622,7 +2629,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           hands: form ? (tpl?.hands ?? 1) : (o.hands ?? 1),
           qualities: (o.qualities ?? []).map((id) => ({ id })), // Atouts du Sort (ids) — PAS ceux du gabarit ; copiés par buildWeapon
           conjured: true,
-          uid: { prefix: 'conjure' },
+          uid: ctx.idNeuf('conjure'),
           ...(o.skin ? { skin: o.skin } : {}), // teinte magique unique (aethyrique/améthyste/ardente)
           ...(form ? { form: form.weapon } : o.form ? { form: o.form } : {}),
           source,
@@ -2632,7 +2639,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;
         // equipConjuredWeapon recompose le loadout → repliés dans l'arme active. Pas d'enchantRef :
         // l'objet est retiré en bloc à l'expiration (dropExpiredGrantedWeapons).
-        if (o.onHitEffects?.length) item.enchants = [{ id: newUid(), onHitEffects: stampSource(o.onHitEffects, source) }];
+        if (o.onHitEffects?.length) item.enchants = [{ id: nextEntityId(PREFIXE_D_ENCHANTEMENT, []), onHitEffects: stampSource(o.onHitEffects, source) }];
         const conjuredSet = equipConjuredWeapon(target, item);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({

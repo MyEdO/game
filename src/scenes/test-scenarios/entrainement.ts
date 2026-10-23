@@ -10,6 +10,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import type { TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
 import { t } from '../../i18n';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * SANDBOX combat « un terrain bien agencé, des mannequins bien placés » : un seul lieu qui exerce une
@@ -37,6 +38,7 @@ const MANNEQUIN: CustomStatblock = { type: 'statblock',
 /** Tireur humain : arbalète (Recharge 1 → modale de rechargement) + carreaux + LANTERNE portée (halo). */
 function tireur(): Combatant {
   const h = createHero({
+    idNeuf,
     speciesId: 'humains-reiklander',
     careerId: 'soldat',
     label: 'Tireur (entraînement)',
@@ -44,10 +46,10 @@ function tireur(): Combatant {
     seed: 3101,
     id: 'tr-tireur',
   });
-  const arb = itemFromTrappingById('arbalete')!; // Recharge 1 + Empaleuse
+  const arb = itemFromTrappingById('arbalete', idNeuf)!; // Recharge 1 + Empaleuse
   arb.equipped = true;
-  const carreaux = itemFromTrappingById('carreau')!;
-  const lant = itemFromTrappingById('lanterne')!;
+  const carreaux = itemFromTrappingById('carreau', idNeuf)!;
+  const lant = itemFromTrappingById('lanterne', idNeuf)!;
   lant.equipped = true; // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)
   h.items = [arb, carreaux, lant];
   h.loadouts = undefined;
@@ -64,13 +66,13 @@ const BRETTEUR = 'Bretteur (entraînement)';
 
 /** Bretteur : deux armes de mêlée 1 main (Arme simple à FORME changeable + Dague) + talent dédié. */
 function bretteur(): Combatant {
-  const h = pregen(PREGEN.soldat);
+  const h = pregen(idNeuf, PREGEN.soldat);
   h.label = BRETTEUR;
   if (!h.talents.some((t) => t.talentId === 'maniement-de-deux-armes')) {
     acquerirTalent(h, { id: 'maniement-de-deux-armes' });
   }
-  const main = itemFromTrappingById('arme-simple'); // formChoices (épée→hache/masse/…), forme résolue au catalogue
-  const off = itemFromTrappingById('dague');
+  const main = itemFromTrappingById('arme-simple', idNeuf); // formChoices (épée→hache/masse/…), forme résolue au catalogue
+  const off = itemFromTrappingById('dague', idNeuf);
   h.items = [...(h.items ?? []), main, off].filter(Boolean) as ItemInstance[];
   if (main && off) {
     const id = loadoutCreate(h);
@@ -168,8 +170,8 @@ export const scenario: TestScenario = {
     'libre, +20 vs plus petit), Explosion en zone (Sorcière).',
   partyNote: 'Tireur (arbalète + lanterne) · Bretteur (deux armes, forme changeable) · Tueur nain (vision nocturne) · Sorcière (Lumière/Explosion)',
   construire: () => {
-    const sorciere = pregen(PREGEN.sorcier);
+    const sorciere = pregen(idNeuf, PREGEN.sorcier);
     sorciere.spells = ['lumiere', 'explosion', 'bouclier-magique', ...(sorciere.spells ?? [])];
-    return { party: [tireur(), bretteur(), pregen(PREGEN.tueur), sorciere], scene: construireScene() };
+    return { party: [tireur(), bretteur(), pregen(idNeuf, PREGEN.tueur), sorciere], scene: construireScene() };
   },
 };

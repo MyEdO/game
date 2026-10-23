@@ -14,6 +14,7 @@ import type { PendingSeaActivities, SeaActivityPick } from '../noyau/seaActiviti
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { poserLayoutJsdom } from './layoutJsdom.testkit';
 import { resetDismissLayers } from './useDismissLayer';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -43,7 +44,7 @@ const actif = () => (document.activeElement?.textContent ?? '').trim();
 
 describe('Activités en mer — le choix posé est RETENU, le focus va au geste qui valide', () => {
   it('à l’ouverture : « Repos » est retenue (`aria-pressed`), le focus est sur « Valider la semaine », Entrée valide', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
     const valides: Record<string, SeaActivityPick | null>[] = [];
     useGame.setState({
       party: [hero],

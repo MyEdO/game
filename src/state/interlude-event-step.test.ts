@@ -24,6 +24,7 @@ import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from '../noyau/netOwnership';
 import { draineCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */
 const PREVOT = 22; // « Le Prévôt arrive » — moneyPct −30
@@ -34,8 +35,8 @@ const MONSTRUEUX = 57; // « Complications monstrueuses » — Revenus interdits
 
 /** Groupe de deux héros, bourses créditées — remis à neuf pour chaque sonde. */
 function groupe(): Combatant[] {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+  const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const b = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
   useGame.setState({ party: [a, b], battle: null, interlude: null, bank: [], pendingOrders: [], journal: [], pendingCascade: null, suspendedCascades: [] });
   useGame.getState().startScene(testScene());
   vi.clearAllTimers();

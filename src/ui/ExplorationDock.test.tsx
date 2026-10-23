@@ -23,6 +23,7 @@ import { testScene } from '../scenes/test-fixture';
 import { CampaignView } from './CampaignView';
 import { TIME_COST } from '../engine/timeCost';
 import { t } from '../i18n';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -50,7 +51,7 @@ function monter() {
 
 /** Combat en cours (un héros, son tour) : la console de combat prend le pont. */
 function enCombat() {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
   h.id = 'h1';
   h.pos = { x: 5, y: 5 };
   useGame.setState({
@@ -182,7 +183,7 @@ describe('Fouiller la pièce (#700) — un GESTE du groupe, dans son groupe nomm
   });
 
   it('DANS une pièce : offert dans « Gestes du groupe », jamais parmi les écrans de campagne ; le clic fouille', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
     useGame.setState({ scene: avecPiece(), partyPos: { x: 1, y: 1 }, party: [h], dialogue: null });
     const el = monter();
     const bouton = gestes()?.querySelector('button');

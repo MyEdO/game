@@ -13,13 +13,14 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Possession } from '../engine/possession';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en pièce, #618)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null, possessions: [] }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     useGame.setState({ party: [W] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -18,6 +18,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import type { CastResult, MissileResult } from '../engine/magic';
 import { desEnSuite } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** RNG scripté (padding 5). */
 function seq(values: number[]): RNG {
@@ -29,8 +30,8 @@ describe('L13 — gates & redirections', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const P = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
+    const H = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const P = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'P', seed: 2 });
     useGame.setState({ party: [H, P] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

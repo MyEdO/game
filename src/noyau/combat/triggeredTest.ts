@@ -51,6 +51,7 @@ import { dataLabel } from '../../data';
 import { t } from '../../i18n';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { accorderLAttaqueGratuite, applyFocusInterruption, applyBladeTrap } from '../combatFlow';
+import { idNeuf } from '../plateforme';
 
 /** Pousse des lignes de journal d'un effet inline dans la file différée (déversée au rendu) — un hook
  *  profond fire AVANT le `set(battle.log)` final → on passe par la file (`drainPendingLog`, §5). */
@@ -74,7 +75,7 @@ export interface ExecCtx {
   /** Libellé de source (journal / ActiveEffect). */
   label: string;
   /** Contexte d'incantation des ops (combat) : sl/durée/location/woundsDealt… (cf. `OpsCtx`). */
-  opsCtx?: Omit<OpsCtx, 'rng'>;
+  opsCtx?: Omit<OpsCtx, 'rng' | 'idNeuf'>;
   /** Jet d'ATTAQUANT DÉJÀ FIGÉ pour les nœuds `test` OPPOSÉS de ce Flow : le producteur l'a jeté
    *  lui-même (`rollFrozenOpposedAttacker`) parce qu'UNE opposition vaut pour N défenseurs — l'embuscade
    *  oppose le MÊME Test de Discrétion à tous les guetteurs (LDB 13 l.77). Absent ⇒ `resolveFlowTest`
@@ -102,7 +103,7 @@ export interface ExecCtx {
  */
 export function condCtxFor(ctx: ExecCtx): ConditionCtx {
   if (ctx.mode === 'scene') return condCtx(ctx.get);
-  const o: Omit<OpsCtx, 'rng'> = ctx.opsCtx ?? {};
+  const o: Omit<OpsCtx, 'rng' | 'idNeuf'> = ctx.opsCtx ?? {};
   return {
     flags: {}, gameTime: o.now ?? 0, party: ctx.target ? [ctx.target] : [], sl: o.sl,
     location: o.location, woundsDealt: o.woundsDealt, engagedAdvantageGap: o.engagedAdvantageGap, attackKind: o.attackKind, startleCause: o.startleCause,
@@ -150,7 +151,7 @@ export function applyTriggeredTestBranch(
   // L'ENTITÉ PORTEUSE voyage AUSSI par la branche pure : un effet actif y est posé comme partout
   // ailleurs (`condition` récurrente d'une rangée de Colère, `LDB 40 l.75`), et sans son ancrage la
   // pastille du joueur s'afficherait nue — les deux branches relaient le MÊME contexte.
-  return runPureFlowLines(c, caster, branch, { rng: battleRng(), caster, sl: t.sl, ...(exec?.source ? { source: exec.source } : {}), ...(exec?.hull ? { hull: exec.hull } : {}) });
+  return runPureFlowLines(c, caster, branch, { idNeuf, rng: battleRng(), caster, sl: t.sl, ...(exec?.source ? { source: exec.source } : {}), ...(exec?.hull ? { hull: exec.hull } : {}) });
 }
 
 /** IDENTITÉ d'une étape `triggeredTest` — SOURCE UNIQUE des deux fabriques. La SITUATION entre dans
@@ -406,7 +407,7 @@ function suiteDeCombat(ctx: ExecCtx, porteur: Combatant, oc: OpsCtx, flow: Flow)
  */
 export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
   const stack: Flow[] = [structuredClone(flow)]; // #2097
-  const oc: OpsCtx = { rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
+  const oc: OpsCtx = { idNeuf, rng: battleRng(), caster: ctx.caster, ...ctx.opsCtx };
   while (stack.length) {
     const node = stack.shift()!;
     switch (node.kind) {
@@ -779,7 +780,7 @@ export function bandeTriggeredTest(
  *  ses lignes dans `pendingLogQueue`, SOURCE UNIQUE) — no-op pour la voie cascade (héros manuel, aucune
  *  ligne encore produite au retour de `routeTriggeredTest`, elle en poussera à la résolution du jet). */
 export function testerLaTraverseeDeZone(get: Get, set: SetFn, mover: Combatant, caster: Combatant, flow: Flow, label: string, source?: EffectSource): void {
-  routeTriggeredTest(get, set, mover, caster, flow, { rng: battleRng(), label, ...(source ? { source } : {}) });
+  routeTriggeredTest(get, set, mover, caster, flow, { idNeuf, rng: battleRng(), label, ...(source ? { source } : {}) });
   const battle = get().battle;
   if (!battle) return;
   const drained = drainPendingLog(get, set);

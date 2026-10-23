@@ -20,8 +20,9 @@ import { evaluateTest, type TestResult } from '../engine/tests';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { fixtureText } from '../i18n/fixtureText';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
-const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
+const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {}, idNeuf: idNeufDeBanc };
 
 /** Le duel ouvert, au tour du héros. */
 function leDuel() {

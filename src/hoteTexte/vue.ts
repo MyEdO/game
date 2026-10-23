@@ -198,7 +198,7 @@ export function rendreLaVue(p: Projection): string[] {
       lignes.push(...enPlus(x.gestes.enPlus, `gestes (${appelEcrit('lire', { quoi: 'offres' })})`));
     }
   }
-  if (p.refus) lignes.push(`dernier refus (#${p.refus.nonce}) : ${p.refus.texte}`);
+  if (p.refus) lignes.push(`dernier refus (${p.refus.nonce}) : ${p.refus.texte}`);
   return borner(lignes, 'vue');
 }
 

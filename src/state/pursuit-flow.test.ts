@@ -30,10 +30,11 @@ import type { CascadeStep } from '../noyau/pendings';
 import { avanceEtapeCascade } from './cascade.testkit';
 import { setCadence, resetCadence } from '../engine/cadence';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function heroes() {
-  const a = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
-  const b = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
+  const a = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Alix', seed: 1 });
+  const b = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brun', seed: 2 });
   useGame.setState({ party: [a, b] });
   return [a, b];
 }

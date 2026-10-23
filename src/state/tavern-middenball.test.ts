@@ -20,12 +20,13 @@ import { tavernGameValue } from '../noyau/tavernFlow';
 import { pnjAuProfil } from '../noyau/monde/sceneNpc';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const get = useGame.getState.bind(useGame);
 const MIDDENBALL = findTavernGameById('middenball')!;
 
 function equipe(n: number): Combatant[] {
-  const party = makePregens().slice(0, n) as Combatant[];
+  const party = makePregens(idNeufDeBanc).slice(0, n) as Combatant[];
   party.forEach((h) => { h.advantage = 0; });
   useGame.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return party;

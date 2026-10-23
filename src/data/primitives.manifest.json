@@ -1649,6 +1649,69 @@
     "verrou": "lectures de canonUnique.mjs (CONSTRUCTION_DE_TABLE_TOTALE), tableTotale.test.ts"
   },
   {
+    "id": "fabriqueDId",
+    "type": "primitives.manifest",
+    "label": "FabriqueDId/fabriqueEnSequence",
+    "fichier": "src/lib/entityId.ts",
+    "concept": "fabrique d'ids NEUFS (`idNeuf(genre)`) des identités qui circulent — uid d'objet, id de héros sans id authoré, arme invoquée, nonce de refus : distincte de tout id de l'état où elle naît et de tout id qui le rejoindra ; injectée sans défaut, comme le RNG ; `fabriqueEnSequence` rend `genre-n`, valable sur un état sans id de cette forme (partie d'hôte sur l'état initial, banc de test)",
+    "perimetre": "moteur (`createHero`, `itemFromTrappingById` et ses voisines, Bourse, `OpsCtx.idNeuf`), données (pré-tirés), hôte texte et Godot (`src/hote/partie.ts`), banc de test (`src/lib/entityId.testkit.ts`)",
+    "verrou": "src/lib/entityId.test.ts ; murs murs/fabrique-import (`fabriqueEnSequence` hors de src/hote et des kits de test) et murs/etat-de-module (aucune fabrique à fermeture évaluée au premier niveau d'un module d'engine, noyau, data, scenes) d'oxlint.config.mjs ; banc src/etat-de-module-lint.test.ts"
+  },
+  {
+    "id": "nextEntityId",
+    "type": "primitives.manifest",
+    "label": "nextEntityId",
+    "fichier": "src/lib/entityId.ts",
+    "concept": "id LOCAL d'une entité dans sa liste : le préfixe, départagé par le plus petit suffixe libre parmi les ids déjà pris ; rien n'est fabriqué hors de la liste",
+    "perimetre": "ids à portée locale : `enchants[].id`, uid d'arme synthétique (`avecUidDArme`), Possession, entités d'éditeur",
+    "verrou": "src/lib/entityId.test.ts"
+  },
+  {
+    "id": "idNeuf",
+    "type": "primitives.manifest",
+    "label": "idNeuf",
+    "fichier": "src/noyau/plateforme.ts",
+    "concept": "l'id neuf de genre `genre`, par la fabrique que l'hôte fournit à la partie (`EntreesDeLaPartie.idNeuf`)",
+    "perimetre": "tout site du noyau, des scénarios, du store et de l'UI qui fabrique une identité qui circule (objet, héros, refus) ; le moteur et les données la reçoivent en paramètre",
+    "verrou": "src/noyau/ids-neufs.hors-store.test.ts (contrat du noyau), src/state/ids-neufs.test.ts (contrat du store)"
+  },
+  {
+    "id": "idDEntropie",
+    "type": "primitives.manifest",
+    "label": "idDEntropie",
+    "fichier": "src/web/entropie.ts",
+    "concept": "fabrique d'ids neufs de l'hôte web (`FabriqueDId`) : horloge de l'hôte plus entropie, unique d'un projet, d'une sauvegarde, d'un onglet et d'un siège à l'autre ; sa forme ne rejoint jamais celle d'un compte",
+    "perimetre": "plateforme web du noyau (`src/state/store.ts`), ids de scène, carte, projet, lieu et trajet de l'atelier",
+    "verrou": "src/state/ids-neufs.test.ts ; mur murs/entropie (le seul `Math.random` de `src/`)"
+  },
+  {
+    "id": "gabaritDObjet",
+    "type": "primitives.manifest",
+    "label": "gabaritDObjet/GabaritDObjet",
+    "fichier": "src/engine/items.ts",
+    "concept": "l'objet de catalogue sans uid : ce qu'en lisent un aperçu, une icône, un comparatif ou une arme de créature, sans rien fabriquer ; `itemFromTrappingById` y ajoute l'uid neuf",
+    "perimetre": "aperçus du marchand et du créateur, icônes, galeries, armes de créature, munitions des scénarios, postes de navire",
+    "verrou": "src/engine/buildWeapon.test.ts"
+  },
+  {
+    "id": "uidDArme",
+    "type": "primitives.manifest",
+    "label": "uidDArme/avecUidDArme/cleDInstanceDeTrait",
+    "fichier": "src/engine/items.ts",
+    "concept": "l'uid d'une arme SANS objet tenu, posé par celui qui assemble la liste d'armes du combattant : la clé de son INSTANCE source (uid de l'objet porté, clé d'instance du trait, id de la mutation, uid né avec l'effet du sort, `mains-nues`), départagée par `nextEntityId` sur les uids déjà dans la liste ; stable tant que l'instance demeure",
+    "perimetre": "`recomputeLoadout` (armes dérivées d'un objet porté, armes naturelles de trait, de mutation et de sort), `mainsNuesSiDesarme`, armes de créature au spawn",
+    "verrou": "src/engine/items.test.ts (deux Crochets, deux armes d'un même Sort)"
+  },
+  {
+    "id": "sonde",
+    "type": "primitives.manifest",
+    "label": "sonde/Sonde/passagesDe",
+    "fichier": "src/lib/sonde.ts",
+    "concept": "compte de passages d'un chemin qu'un test prouve emprunté ou évité : son porteur ne fait que `passer()` et ne lit jamais le compte, que seul un test relève par `passagesDe` avant et après le geste observé",
+    "perimetre": "REDERIVATIONS, REPLIS_DEUX_CIBLES, SEPARABILITE, ARME_INTROUVABLE, ANONYMES",
+    "verrou": "murs murs/sonde-lecture (`passagesDe` hors des tests) et murs/etat-de-module (`const X = sonde()` lue par `X.passer()` seulement) d'oxlint.config.mjs ; banc src/etat-de-module-lint.test.ts"
+  },
+  {
     "id": "isDrawnView",
     "type": "primitives.manifest",
     "label": "isDrawnView",

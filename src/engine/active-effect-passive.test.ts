@@ -14,6 +14,7 @@ import { suspendSource } from './suspension';
 import { removeActiveEffects } from './conditions';
 import { effectiveMovement } from './encumbrance';
 import { deFixe, desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return {
@@ -41,7 +42,7 @@ const OPS = [
 
 function lanceLeSort(): Combatant {
   const c = hero();
-  applyOps(c, OPS, { ...CTX, rng: makeRNG(7) });
+  applyOps(c, OPS, { idNeuf: idNeufDeBanc, ...CTX, rng: makeRNG(7) });
   return c;
 }
 
@@ -97,7 +98,7 @@ describe('ActiveEffect.passive — les ops d’un effet portent leur source', ()
     applyOps(c, [
       { op: 'maxWeaponHands', hands: 1, durationRounds: 2 },
       { op: 'moveScale', num: 1, den: 2 },
-    ], { ...CTX, rng: makeRNG(7) });
+    ], { idNeuf: idNeufDeBanc, ...CTX, rng: makeRNG(7) });
     const mains = c.activeEffects!.find((e) => (e.passive ?? []).some((p) => p.op === 'maxWeaponHands'))!;
     const mouvement = c.activeEffects!.find((e) => (e.passive ?? []).some((p) => p.op === 'moveScale'))!;
     expect(mains.duration).toEqual({ scale: 'rounds', left: 2 });
@@ -109,28 +110,28 @@ describe('ActiveEffect.passive — les ops d’un effet portent leur source', ()
   it('PLANCHER de Rounds : porté par la FORMULE de l’entrée, jamais par le site d’appel', () => {
     // « Durée : (Bonus de Force Mentale) Rounds » (VDM 15 l.406) — aucun minimum : à FM < 10, zéro Round.
     const faible = hero({ characteristics: { ...hero().characteristics, 'force-mentale': 9 } });
-    applyOps(faible, [{ op: 'charMod', char: 'agilite', mod: -10, durationRounds: { bonusOf: 'force-mentale' } }], { rng: desDuTest, label: 'Écorce' });
+    applyOps(faible, [{ op: 'charMod', char: 'agilite', mod: -10, durationRounds: { bonusOf: 'force-mentale' } }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Écorce' });
     expect(faible.activeEffects![0].duration).toEqual({ scale: 'rounds', left: 0 });
 
     // « inutilisable pour 1d10 − (Bonus d'Endurance) Rounds (minimum de 1) » (AA 07 l.113) : BE 10, d10 = 1.
     const NUE: Formula = { sum: [{ dice: { n: 1, sides: 10 } }, { times: { of: { bonusOf: 'endurance' }, factor: -1 } }] };
     const costaud = hero({ characteristics: { ...hero().characteristics, endurance: 100 } });
-    applyOps(costaud, [{ op: 'maxWeaponHands', hands: 1, durationRounds: { minimum: 1, of: NUE } }], { label: 'Choc au bras', rng: deFixe(1) });
+    applyOps(costaud, [{ op: 'maxWeaponHands', hands: 1, durationRounds: { minimum: 1, of: NUE } }], { idNeuf: idNeufDeBanc, label: 'Choc au bras', rng: deFixe(1) });
     expect(costaud.activeEffects![0].duration).toEqual({ scale: 'rounds', left: 1 });
 
     // La MEME op sans la borne : le moteur ne la remet pas — zéro Round, comme toute autre durée.
     const sansBorne = hero({ characteristics: { ...hero().characteristics, endurance: 100 } });
-    applyOps(sansBorne, [{ op: 'maxWeaponHands', hands: 1, durationRounds: NUE }], { label: 'Choc au bras', rng: deFixe(1) });
+    applyOps(sansBorne, [{ op: 'maxWeaponHands', hands: 1, durationRounds: NUE }], { idNeuf: idNeufDeBanc, label: 'Choc au bras', rng: deFixe(1) });
     expect(sansBorne.activeEffects![0].duration).toEqual({ scale: 'rounds', left: -9 });
   });
 
   it('journal d’un `charMod` : fragment de durée en minutes seulement si l’op porte SON horloge', () => {
     const herite = hero();
-    const ligneHeritee = applyOps(herite, [{ op: 'charMod', char: 'agilite', mod: -10 }], { rng: desDuTest, label: 'Écorce', defaultUntilTime: 600 });
+    const ligneHeritee = applyOps(herite, [{ op: 'charMod', char: 'agilite', mod: -10 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Écorce', defaultUntilTime: 600 });
     expect(ligneHeritee[0]).toMatch(/durée hors combat/); // échéance du CONTEXTE : une date, pas un décompte
 
     const propre = hero();
-    const lignePropre = applyOps(propre, [{ op: 'charMod', char: 'agilite', mod: -10, durationHours: 1 }], { rng: desDuTest, label: 'Écorce', now: 0 });
+    const lignePropre = applyOps(propre, [{ op: 'charMod', char: 'agilite', mod: -10, durationHours: 1 }], { idNeuf: idNeufDeBanc, rng: desDuTest, label: 'Écorce', now: 0 });
     expect(lignePropre[0]).toMatch(/1 heure/);
   });
 

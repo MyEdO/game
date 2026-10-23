@@ -5,6 +5,7 @@ import { buildScene } from '../../noyau/mapSpec';
 import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * PASTILLES D'ENTITÉ (#1411 P2-C, spec HUD combat zone 4) — le banc de recette des gestes qui SORTENT
@@ -103,6 +104,6 @@ export const scenario: TestScenario = {
     'avec sa raison (`equipage-suffisant` si l’Équipe du bélier fond), l’annulation gratuite (Échap, ' +
     're-clic sur « Pousser »), et le picking : cliquer la pastille ne vaut jamais un clic-monde.',
   partyNote: 'Soldat solo, chef de pièce du bélier — cheval et coffre à une case.',
-  construire: () => ({ party: [pregen(PREGEN.soldat)], scene: construireScene() }),
+  construire: () => ({ party: [pregen(idNeuf, PREGEN.soldat)], scene: construireScene() }),
   autoCombat: 'enc-pastilles',
 };

@@ -3,6 +3,7 @@ import { compareEquip } from './equipCompare';
 import type { Combatant, ItemInstance, Weapon } from './types';
 import { REACH_LABELS } from './types';
 import { itemFromTrappingById } from './items';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // « Actuellement équipé » = l'arme tenue dans le set actif (Weapon dérivés `c.weapons`) ; l'armure reste pilotée
 // par `items.equipped`. On modélise donc l'équipement courant via `weapons` (armes) et `items` (armure).
@@ -105,7 +106,7 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('Atout Protectrice sans être un bouclier (ADE II 02 l.613) : comparé comme une arme de mêlée', () => {
-    const poing = itemFromTrappingById('poing-de-fer')!;
+    const poing = itemFromTrappingById('poing-de-fer', idNeufDeBanc)!;
     expect(poing.qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
     const c = compareEquip(poing, hero({}));
     expect(c.slot).toBe('melee');

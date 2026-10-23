@@ -11,6 +11,7 @@ import { applyEffects, runFlow } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 afterEach(() => demonterRacines());
 
@@ -23,7 +24,7 @@ const campaignNarratif = {
   ],
 };
 
-const heros = (label: string, seed: number) => ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
+const heros = (label: string, seed: number) => ({ ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed }), id: `h-${seed}` });
 
 describe('DesignationHerosModal — clic sur un portrait → état posé', () => {
   it('l’Effet ouvre la modale ; le portrait du vivant pose l’état ; le mort n’est pas proposé', () => {

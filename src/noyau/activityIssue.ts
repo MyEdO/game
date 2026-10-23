@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import { battleRng } from './battleRng';
 import type { Get } from './flowTypes';
 import { freeCons, type Consequence } from './rollSeam';
+import { idNeuf } from './plateforme';
 
 /** Applique à `hero` l'issue de l'Activité `def` dont la spec et le jet (déjà résolu, sans jet, ou `null`
  *  pour une Activité sans Test) sont donnés. Rend l'issue PURE (`TravelActivityResult`, que l'agrégation
@@ -28,7 +29,7 @@ export function appliquerIssueActivite(
   roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null,
 ): { result: TravelActivityResult; consequences: Consequence[] } {
   const r = applyTravelActivityResult({ ...spec, actorId: hero.id }, def, roll);
-  const opsCtx: OpsCtx = { label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } };
+  const opsCtx: OpsCtx = { idNeuf, label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } };
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
   else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });

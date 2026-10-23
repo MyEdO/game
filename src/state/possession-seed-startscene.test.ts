@@ -12,6 +12,7 @@ import type { Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { Get, Set } from '../noyau/flowTypes';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Harnais MINIMAL (get/set) — même patron que `possessionsFlow.test.ts`. */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
@@ -44,7 +45,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); deleteSlot(1); });
 
   it('dotation {vehicleId} (contrebandier niv.2 → barque-fluviale, careerLevels.json) → possession vehicule avec-le-groupe, owner = héros', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2; // la dotation barque-fluviale est portée par ce Niveau, pas le 1
     useGame.getState().setParty([hero]);
     const sc = emptyScene('scene-test', 6, 6);
@@ -68,7 +69,7 @@ describe('Semis de Possessions — startScene (#617/#618 Lot 1)', () => {
   });
 
   it('loadGame NE redéclenche PAS le semis — la save fait foi, jamais de doublon (#617/#618 §3)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'contrebandier', label: 'Contreb.', seed: 1 });
     hero.careerLevel = 2;
     useGame.getState().setParty([hero]);
     const sc = emptyScene('scene-test', 6, 6);

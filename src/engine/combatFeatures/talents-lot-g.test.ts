@@ -14,6 +14,7 @@ import { makeRNG } from '../dice';
 import { slugId } from '../../data/slug';
 import type { Combatant, Weapon } from '../types';
 import { modDeRegle } from '../reglesChiffrees';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /** Lot G — Talents à effet de jeu (LDB 10) : helpers du registre + câblages moteur purs. */
 const w = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], ...over });
@@ -110,7 +111,7 @@ describe('défense / récupération (LDB 10)', () => {
   });
   it('Endurci : niveau d’ignorance du saignement (la réduction des dégâts est data-driven, cf. state/etat-perround)', () => {
     const c = mk([{ name: 'Endurci', times: 1 }], { conditions: [{ id: 'hemorragique', value: 2 }] });
-    endOfRound(c, makeRNG(3));
+    endOfRound(c, makeRNG(3), idNeufDeBanc);
     expect(c.wounds.current).toBe(12); // endOfRound ne saigne plus (dégâts d'Hémorragique migrés en données)
     expect(bleedIgnoreLevel(c)).toBe(1); // 1 pion ignoré — lu par fireConditionEffects (stacksReducedBy)
   });

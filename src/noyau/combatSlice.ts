@@ -130,6 +130,7 @@ import { actionsAuthorees } from './monde/usable';
 import { fateSaveOptions } from '../engine/fortune';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { testDuCavalier } from '../engine/movement';
+import { idNeuf } from './plateforme';
 
 /** Un flux DIFFÉRÉ tient la main (modale de jet/révélation, ciblage par carte : Frappe Mortelle,
  *  2ᵉ frappe, Surincantation +Cible, pose de zone) :
@@ -2046,7 +2047,7 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
       // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD' });
+      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD' });
       const b1 = get().battle!;
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -2090,7 +2091,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!a) return;
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines = sr.struggleDamage != null
-        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { rng: battleRng(), caster: a })
+        ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { idNeuf, rng: battleRng(), caster: a })
         : [];
       const removed = recoveredStacks(sr.netSL, stacks(a, sr.state), sr.success); // 1 + DR, borné
       if (removed > 0) removeCondition(a, sr.state, removed);

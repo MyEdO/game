@@ -7,6 +7,7 @@ import { itemFromTrappingById } from '../items';
 import { parseQualityInstance } from './normalize';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /** Libellés FR (lisibles) → `QualityInstance[]` structurées (parseur d'authoring). */
 const q_ = (qs: string[]) => qs.map((s) => parseQualityInstance(s)!);
@@ -253,7 +254,7 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
   });
 
   it('l’Indice survit à la matérialisation en OBJET DE SAC et au round-trip JSON', () => {
-    const item = itemFromTrappingById('zweihander-flamberge')!;
+    const item = itemFromTrappingById('zweihander-flamberge', idNeufDeBanc)!;
     const porte = item.qualities.find((q) => q.id === 'taillade')!;
     expect(porte.value, 'l’Indice est perdu à la matérialisation (`qualityInstance`)').toBe(2);
     const relu = JSON.parse(JSON.stringify(item)) as typeof item;

@@ -2,6 +2,7 @@ import { makePregens } from '../../data/pregens';
 import { buildScene } from '../../noyau/mapSpec';
 import { toggleDoorIn, type Scene } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « La porte close » (#2898) : un réduit fermé par une porte FERMÉE, en exploration. Le geste démontré est
@@ -34,5 +35,5 @@ export const scenario: TestScenario = {
   title: 'La porte close',
   tests: 'Ouverture d’une porte FERMÉE en exploration (`actionnerLaPorte`), puis le passage du groupe : la porte s’ouvre au geste, le pas la franchit.',
   partyNote: 'Pré-tirés',
-  construire: () => ({ party: makePregens(), scene: construire() }),
+  construire: () => ({ party: makePregens(idNeuf), scene: construire() }),
 };

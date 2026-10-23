@@ -4,6 +4,7 @@ import { InspectPanel } from './InspectPanel';
 import { createHero } from '../engine/character';
 import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** L'inspection rend le statbloc COMPLET via le composant partagé du Codex (CodexSections) +
  *  une tête vivante (nom, PB, psychologie, États). On vérifie la présence des données clés. */
@@ -11,7 +12,7 @@ describe('InspectPanel', () => {
   const render = (c: Parameters<typeof InspectPanel>[0]['combatant']) =>
     renderToStaticMarkup(<InspectPanel combatant={c} onClose={() => {}} />);
 
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
 
   it('nom, PB (WoundsBadge courant/max) et statbloc (caractéristiques partagées)', () => {
     const html = render(hero);

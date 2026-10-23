@@ -17,7 +17,7 @@ import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
 import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
-import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
+import { gabaritDObjet, weaponFromItem } from '../src/engine/items';
 import { weaponFromTrait } from '../src/engine/creatureEquip';
 import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
@@ -33,7 +33,7 @@ const styles: string[] = [];
 let uidN = 0;
 
 function wep(arme: ArmeDePlanche): Weapon {
-  const w = 'trappingId' in arme ? weaponFromItem(itemFromTrappingById(arme.trappingId)!) : weaponFromTrait({ id: arme.trait, value: 4 });
+  const w = 'trappingId' in arme ? weaponFromItem(gabaritDObjet(arme.trappingId)!) : weaponFromTrait({ id: arme.trait, value: 4 });
   if (!w) throw new Error(`[anim-gallery] « ${arme.label} » ne s'arme pas`);
   return w;
 }

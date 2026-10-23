@@ -5,6 +5,7 @@ import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { cascadeDeTest } from './cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Verrou STRUCTUREL (#345, correction juge ronde 3) : `dispatchCascadeDone` (combatSlice.ts) re-vérifie
@@ -33,7 +34,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
 
   it('cascade purpose "test" (hypothétique) close en combat, dernier ennemi déjà mort → la Victoire s\'enchaîne (pas d\'écrasement, pas de silence)', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const heroClone = { ...hero, kind: 'hero' as const };
     useGame.setState({
       party: [hero],

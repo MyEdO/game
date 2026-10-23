@@ -20,6 +20,7 @@ import { pregen, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégraphe → nettoyage à la résolution)', () => {
   beforeEach(() => {
@@ -31,7 +32,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
 
   /** Une cible héros minimale (sans Dissipation : aucune fenêtre de Contre-sort ne s'ouvre). */
   function target(x: number, y: number, id: string): Combatant {
-    const h = pregen(PREGEN.sorcier);
+    const h = pregen(idNeufDeBanc, PREGEN.sorcier);
     h.id = id; h.label = id; h.pos = { x, y };
     h.wounds = { ...h.wounds, max: 30, current: 30 };
     h.skills = []; // pas de Langue (Magick) → ne peut pas Dissiper → pas de pendingCounterspell

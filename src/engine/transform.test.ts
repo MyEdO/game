@@ -9,6 +9,7 @@ import { selfManeuverApplicable } from './creatureAttacks';
 import { findManeuverById } from '../data';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Transformation durable & réversible (op `transform`/`endTransform`) — Métamorphose de l'Enfant d'Ulric
@@ -40,7 +41,7 @@ const TAG = 'ulric-hybride';
 describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW, Middenheim p.116)', () => {
   it('applique le DELTA du tableau + Traits hybrides + apparence, en une passe', () => {
     const c = human();
-    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(40); // +10
     expect(effectiveChar(c, 'force')).toBe(40);
     expect(effectiveChar(c, 'agilite')).toBe(40);
@@ -56,8 +57,8 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
 
   it('PERSISTE : la forme ne se dissipe pas seule en fin de Round (durée permanente)', () => {
     const c = human();
-    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });
-    endOfRound(c, desDuTest); endOfRound(c, desDuTest); // deux frontières de Round
+    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
+    endOfRound(c, desDuTest, idNeufDeBanc); endOfRound(c, desDuTest, idNeufDeBanc); // deux frontières de Round
     expect(effectiveChar(c, 'force')).toBe(40); // toujours transformé
     expect(liveMorphRef(c)).toBe('enfant-d-ulric');
     expect(hasTraitKey(c.traits, 'peur')).toBe(true);
@@ -65,8 +66,8 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
 
   it('endTransform : retour ATOMIQUE à la forme de base (Caractéristiques, Traits, apparence)', () => {
     const c = human();
-    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });
-    applyOps(c, [{ op: 'endTransform', tag: TAG }], { rng: desDuTest });
+    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
+    applyOps(c, [{ op: 'endTransform', tag: TAG }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(30);
     expect(effectiveChar(c, 'force')).toBe(30);
     expect(effectiveChar(c, 'sociabilite')).toBe(30);
@@ -79,7 +80,7 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
 
   it('endTransform sur une forme absente = no-op (idempotent)', () => {
     const c = human();
-    applyOps(c, [{ op: 'endTransform', tag: TAG }], { rng: desDuTest });
+    applyOps(c, [{ op: 'endTransform', tag: TAG }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(effectiveChar(c, 'force')).toBe(30);
     expect(liveMorphRef(c)).toBeUndefined();
   });
@@ -90,12 +91,12 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
     const decoy = { label: TAG, bonus: 5, char: 'force-mentale' as const, duration: { scale: 'permanent' as const } };
     c.activeEffects = [decoy];
 
-    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     const posed = (c.activeEffects ?? []).filter((e) => e !== decoy);
     expect(posed.length).toBeGreaterThan(0); // 8 charMod + 1 moveMod + 5 grantTrait + 1 morphRef
     expect(posed.every((e) => e.effectId === TAG)).toBe(true); // TOUT effet posé, y compris les charMod du profil
 
-    applyOps(c, [{ op: 'endTransform', tag: TAG }], { rng: desDuTest });
+    applyOps(c, [{ op: 'endTransform', tag: TAG }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(c.activeEffects).toEqual([decoy]); // retrait EXACT des effets taggés — le décoy (même libellé) survit
     expect(effectiveChar(c, 'force')).toBe(30); // bien retourné à la forme de base
   });
@@ -107,7 +108,7 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
     expect(selfManeuverApplicable(c, enter)).toBe(true); // hors forme → peut entrer
     expect(selfManeuverApplicable(c, exit)).toBe(false); // hors forme → ne peut PAS (déjà) en sortir
 
-    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { rng: desDuTest });
+    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, morphRef: 'enfant-d-ulric' }], { idNeuf: idNeufDeBanc, rng: desDuTest });
     expect(selfManeuverApplicable(c, enter)).toBe(false); // dans la forme → ne peut plus (re)entrer
     expect(selfManeuverApplicable(c, exit)).toBe(true); // dans la forme → peut en sortir
 

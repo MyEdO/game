@@ -4,6 +4,7 @@ import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { buildScene } from '../../noyau/mapSpec';
 import { renforcerCompetence, type TestScenario } from './_shared';
 import { rigSpeciesId } from '../../data';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Chute du gréement » — la CHUTE PASSE PAR LA PORTE DES DÉS (#1508 T2, MDG 13 l.684-688 + LDB 15 l.80).
@@ -30,14 +31,14 @@ import { rigSpeciesId } from '../../data';
  * sous « Dés fixés »).
  */
 function equipage(): Combatant[] {
-  const gabier = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
+  const gabier = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
   gabier.shipRole = 'mousse';
   gabier.shipStation = 'greement';
   renforcerCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
   renforcerCompetence(gabier, 'voile', 45, 'cogue');
   gabier.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'M', build: 0.45 };
 
-  const vigie = createHero({ speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
+  const vigie = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
   renforcerCompetence(vigie, 'athletisme', 5);

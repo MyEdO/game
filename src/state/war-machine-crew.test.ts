@@ -5,6 +5,7 @@ import { itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * ÉQUIPE des machines de guerre ADE II 8 l.233, câblée au point de tir (`firedWeapon`) et au gate
@@ -34,7 +35,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
     inert: true, wounds: { current: 0, max: 0 }, advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>
-  ({ item: itemFromTrappingById(engineId)!, crewIds });
+  ({ item: itemFromTrappingById(engineId, idNeufDeBanc)!, crewIds });
 
 const groundScene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 2,

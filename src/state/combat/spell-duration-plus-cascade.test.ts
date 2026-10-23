@@ -7,6 +7,7 @@ import { endOfRound, pendingPlusExtensions, addCondition, COND } from '../../eng
 import { testValue } from '../../engine/skills';
 import { testScene } from '../../scenes/test-fixture';
 import { desDuTest } from '../../engine/dice.testkit';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Durée « + » de fin de Round (LDB 47 l.311, #543), voie HÉROS manuel : offre opt-in (« vous pouvez »)
@@ -25,7 +26,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -36,7 +37,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true)); // aucun ennemi actif
     // Effet actif d'un sort marqué « + » (arme-aethyrique, LDB 47 l.319), sur le point d'expirer.
     H.activeEffects = [{ label: 'Arme aethyrique', bonus: 0, duration: { scale: 'rounds', left: 1 }, sourceSpellId: 'arme-aethyrique' }];
-    endOfRound(H, desDuTest); // simule le décompte de fin de Round → effet GELÉ (awaitingExtension)
+    endOfRound(H, desDuTest, idNeufDeBanc); // simule le décompte de fin de Round → effet GELÉ (awaitingExtension)
     expect(pendingPlusExtensions(H)).toHaveLength(1);
     useGame.setState({ battle: { ...b }, pendingCascade: null });
     return { H };

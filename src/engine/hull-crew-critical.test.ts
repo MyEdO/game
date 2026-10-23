@@ -5,6 +5,7 @@ import { findVehicleById } from '../data';
 import { makeRNG } from './dice';
 import { usesSuddenDeath, isOutOfAction, applyZeroWounds, tickDeath, hasCondition, addCondition, COND } from './conditions';
 import type { Combatant } from './types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Marin minimal (Combattant de personnage) — assez pour les Éclats (`applyOps`). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => ({
@@ -24,7 +25,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
   it('Équipage : le moteur désigne le premier marin exposé et ne résout rien sur lui', () => {
     const ship = hull();
     const crew = [sailor('mort', { dead: true }), sailor('marin-1', { label: 'Marin' }), sailor('marin-2')];
-    const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), 5);
+    const r = applyHullCritical(ship, crew, 'voile', makeRNG(2), idNeufDeBanc, 5);
     expect(r.location).toBe('equipage');
     expect(r.marinId).toBe('marin-1');
     expect(r.hullOps).toEqual([]);
@@ -35,7 +36,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
   });
 
   it('hors Équipage : aucun marin désigné', () => {
-    const r = applyHullCritical(hull(), [sailor('marin-1')], 'voile', makeRNG(1), 50, 8);
+    const r = applyHullCritical(hull(), [sailor('marin-1')], 'voile', makeRNG(1), idNeufDeBanc, 50, 8);
     expect(r.location).toBe('coque');
     expect(r.marinId).toBeUndefined();
   });
@@ -43,7 +44,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
   it('Coque (d100=50, d10=8) → Voie d’eau sur la coque + Éclats 6 : 6 marins encaissent l’effet (9 Dégâts − BE)', () => {
     const ship = hull();
     const crew = Array.from({ length: 8 }, (_, i) => sailor(`marin-${i}`));
-    const r = applyHullCritical(ship, crew, 'voile', makeRNG(1), 50, 8); // loc 50 → Coque ; d10 8 → Voie d'eau (Éclats 6)
+    const r = applyHullCritical(ship, crew, 'voile', makeRNG(1), idNeufDeBanc, 50, 8); // loc 50 → Coque ; d10 8 → Voie d'eau (Éclats 6)
     expect(r.location).toBe('coque');
     expect(r.hullOps).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
     expect(r.shrapnel.map((s) => s.crewId)).toEqual(['marin-0', 'marin-1', 'marin-2', 'marin-3', 'marin-4', 'marin-5']);
@@ -57,7 +58,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
   it('Éclats plafonnés au nombre de marins exposés (moins de marins que d’Indice)', () => {
     const ship = hull();
     const crew = [sailor('seul')]; // 1 seul marin pour Éclats 6
-    const r = applyHullCritical(ship, crew, 'voile', makeRNG(1), 50, 8);
+    const r = applyHullCritical(ship, crew, 'voile', makeRNG(1), idNeufDeBanc, 50, 8);
     expect(r.shrapnel).toHaveLength(1);
   });
 
@@ -65,7 +66,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     const ship = hull();
     const dead = [sailor('mort', { dead: true })];
     expect(exposedCrew(dead)).toHaveLength(0);
-    const r = applyHullCritical(ship, dead, 'voile', makeRNG(2), 5);
+    const r = applyHullCritical(ship, dead, 'voile', makeRNG(2), idNeufDeBanc, 5);
     expect(r.marinId).toBeUndefined();
     expect(r.lines.join(' ')).toMatch(/aucun marin exposé/);
   });

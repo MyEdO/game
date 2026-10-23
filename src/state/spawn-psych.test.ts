@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // Dérivation des propriétés psychologiques au spawn (parse des traits, LDB 21+85).
 describe('spawn — propriétés psychologiques', () => {
@@ -38,7 +39,7 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
     expect(c.psychTraits).toEqual([{ type: 'animosite', cible: 'elfe' }]);
   });
   it('createHero : groups = racial(espèce) + carrière (ids)', () => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     expect(h.groups).toEqual(expect.arrayContaining(['humain', 'soldat']));
   });
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {

@@ -8,6 +8,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1030 — la cadence AUTO résout les FENÊTRES RÉACTIVES de l'étape `jet:'cast'` (Contre-sort #1028,
@@ -23,6 +24,7 @@ const NET0 = { mode: 'local' as const, mySeat: 0, gmSeat: undefined, ownership: 
 /** Sorcier + `n` ennemis (`magick` = contre-lanceurs), siège MJ posé, aucune incantation en cours. */
 function setup(spells: string[], n = 1, magick = true) {
   const hero = createHero({
+    idNeuf: idNeufDeBanc,
     speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
     careerTalent: { id: 'magie-mineure' }, seed: 707,
   });

@@ -24,6 +24,7 @@ import { startSequence, activeSequence, sequenceCumRound, sequenceScoreOf } from
 import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** LA STRUCTURE = le contrat + son implémentation légère. Les deux sont sous garde. */
 const FICHIERS = ['./sequenceContract.ts', './sequenceCore.ts'];
@@ -153,7 +154,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
 
 describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 manches déroulées)', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Barreur', seed: 1 });
     useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     useGame.getState().seedRng(9);
   });

@@ -33,6 +33,7 @@ import { dataLabel } from '../data';
 import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
+import { idNeuf } from './plateforme';
 
 /** Forme d'un Test de Psychologie de rencontre résolu — conservée pour `describeEncounterPsych`
  *  (l'applier en construit une à partir de l'étape de cascade). */
@@ -182,14 +183,14 @@ function resolvePsychRow(hero: Combatant, ep: PsychBandDecl, r: { success: boole
   // marqueur d'immunité lui-même, jamais un Indice à 0 : la Peur héritée d'une Terreur se pose à PLEIN
   // Indice ici aussi (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
-    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice }), { rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
+    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice }), { idNeuf, rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
     return freeCons([t('cf.psychImmune', { name: hero.label })]);
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);
   // Le DR du jet est versé au contexte : la quantité d'État de l'échec (`valuePerSL{onFailure}` de la
   // branche) s'y résout — même arithmétique que `failConditionAmount`, une seule fois.
-  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0 }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
+  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0 }), { idNeuf, rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
   const pe: PendingEncounterPsych = {
     heroId: hero.id, kind: ep.kind, sourceId: ep.sourceId, sourceName: ep.sourceName, indice: ep.indice, cible: ep.cible,
     result: { success: r.success, brise, sl: r.sl },

@@ -18,6 +18,7 @@ import { spawnEnemy } from '../noyau/monde/spawn';
 import { pregen, PREGEN } from '../data/pregens';
 import { findSpell } from '../data';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTAGÉ castConfirm)', () => {
   beforeEach(() => {
@@ -29,7 +30,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
 
   /** Un héros LANCEUR (Langue (Magick)) capable de Dissiper, posé en (x,y). */
   function dispeller(x: number, y: number, id: string): Combatant {
-    const h = pregen(PREGEN.sorcier);
+    const h = pregen(idNeufDeBanc, PREGEN.sorcier);
     h.id = id; h.label = id; h.pos = { x, y };
     h.wounds = { ...h.wounds, max: 99, current: 99 };
     const sk = h.skills.find((s) => s.id === 'langue');

@@ -7,6 +7,7 @@ import { rederivePassiveAttack } from '../engine/combat';
 import { testScene } from '../scenes/test-fixture';
 import type { ArmourPoints, Combatant, Weapon } from '../engine/types';
 import { makeRNG } from '../engine/dice';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Martyr : LDB 43 l.107 ; le Critique reste sur la cible : LDB 14 l.3, LDB 13 l.159. */
 
@@ -22,7 +23,7 @@ interface Coup { sl: number; critical: boolean; martyr?: boolean; fenetre?: bool
  *  de Blessure critique et RÉ-ENTRE `applyAttackResult`. */
 function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, endurance, endurancePretre, pa = 0 }: Coup) {
   useGame.getState().seedRng(7);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   useGame.getState().startScene(structuredClone(testScene()));
   useGame.getState().startCombat('enc-mutants');

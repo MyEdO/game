@@ -4,6 +4,7 @@ import { applyEffects } from '../noyau/combatEffects';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { createHero } from '../engine/character';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * TRANCHE VERTICALE « zéro hardcode » : la bombe de « Une nuit à l'Opéra » composée UNIQUEMENT
@@ -16,7 +17,7 @@ describe('Tranche verticale — la bombe compose en données (Lot 0 + Lot 3)', (
   beforeEach(() => useGame.setState({ battle: null, flags: {}, scheduledEffects: [], gameTime: 20 * 60 + 2 }));
 
   function lonePartyAt(wounds: number) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     h.wounds = { current: wounds, max: wounds };
     useGame.setState({ party: [h] });
     return h;

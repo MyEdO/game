@@ -9,6 +9,7 @@ import { createHero } from '../engine/character';
 import { makeRNG } from '../engine/dice';
 import { testScene } from '../scenes/test-fixture';
 import type { Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * GÉNÉRALISATION inerte (`isInanimate`) : un VÉHICULE-coque (MDG) attaqué en MÊLÉE est traité EXACTEMENT comme
@@ -20,7 +21,7 @@ const hache = (): Weapon => ({ label: 'Hache', type: 'melee', damage: { plusBF: 
 /** Enrôle une diligence (coque à PV) comme ENNEMI dans la scène de fixture, puis démarre le combat. */
 function startWithVehicle() {
   useGame.getState().seedRng(1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   const scene = structuredClone(testScene());
   scene.entities.push({ id: 'veh', kind: 'personnage', ref: 'diligence', pos: { x: 7, y: 10 } } as never);
@@ -41,7 +42,7 @@ describe('Véhicule-coque attaqué en mêlée — inerte comme une structure (is
     const veh = vehicleCombatant(findVehicleById('diligence')!)!; // E45 / B50, bodyShape 'vehicule'
     expect(veh.bodyShape).toBe('vehicule');
     expect(isInanimate(veh)).toBe(true);
-    const atk = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const atk = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     atk.characteristics['capacite-de-combat'] = 90; // touche quasi-certaine → coup résolu
     const res = resolveMelee(atk, veh, hache(), makeRNG(2));
     expect(res.hit).toBe(true);

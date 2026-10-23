@@ -5,6 +5,7 @@ import type { TestScenario } from './_shared';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { MonsterPartsSel } from '../../engine/authoringAppearance';
 import { sizeFootprint } from '../../noyau/monde/footprint';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Galerie EN JEU (exploration, SANS combat) de TOUS les modèles rendus par le monde de campagne :
@@ -113,6 +114,6 @@ export const scenario: TestScenario = {
   // Les comptes vivants sont dans le `startMessage` de la scène construite.
   tests: 'Tous les modèles du monde de campagne : TOUTES les créatures (empreintes par Taille) + TOUTES les carrières + TOUTES les armes de mêlée et de distance + mutants + démo Monstrueuse. Exploration, SANS combat.',
   partyNote: 'Exploration libre, aucun combat',
-  construire: () => ({ party: pregenParty(PREGEN.soldat), scene: construireScene() }),
+  construire: () => ({ party: pregenParty(idNeuf, PREGEN.soldat), scene: construireScene() }),
   // pas d'autoCombat : pure galerie d'exploration.
 };

@@ -15,6 +15,7 @@ import { useGameKeyboard } from './clavier/useGameKeyboard';
 import { resetStageFrames } from '../gameIso/stage/stageFrames';
 import { PAS_TAP_DEG, SEUIL_MAINTIEN_MS, getStageYaw, resetStageYaw } from '../state/stageYaw';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -171,7 +172,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
     demonterRacines();
     // `hoverClickCommits` (pointerCaps) interroge le pointeur : jsdom n'a pas `matchMedia`.
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
-    const [h1, h2] = makePregens();
+    const [h1, h2] = makePregens(idNeufDeBanc);
     h1.id = 'h1'; h1.pos = { x: 6, y: 6 };
     h2.id = 'h2'; h2.pos = { x: 5, y: 6 };
     (h2 as { activeEffects?: unknown[] }).activeEffects = [1, 2].map((i) => ({
@@ -243,7 +244,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
     demonterRacines();
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const party = makePregens().slice(0, 1);
+    const party = makePregens(idNeufDeBanc).slice(0, 1);
     const avant = [...datasetArray('props')];
     useGame.setState({ screen: 'campaign', scene: null, mode: 'battle', povActive: false, massBattle: null, party, battle: defaite(party) });
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
@@ -275,7 +276,7 @@ describe('CampaignView — « Réduire » le hub de voyage pendant une halte (#2
   /** Hub de voyage actif ; `halte` = une nuit de halte attend (étape incrustée, hub forcé ouvert). */
   function monterHub(halte: boolean) {
     demonterRacines();
-    const [heros] = makePregens();
+    const [heros] = makePregens(idNeufDeBanc);
     useGame.setState({
       screen: 'campaign', scene: testScene(), mode: 'exploration', povActive: false, battle: null,
       party: [heros], worldMapOpen: false, travelRecap: null, pendingCascade: null, pendingShoreLeave: null,

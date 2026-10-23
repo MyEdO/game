@@ -5,10 +5,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PartyDock } from './PartyDock';
 import { createHero } from '../engine/character';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('PartyDock', () => {
-  const h1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
-  const h2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Elsa', seed: 4 });
+  const h1 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+  const h2 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Elsa', seed: 4 });
   h1.id = 'h1'; h2.id = 'h2';
 
   it('conserve Blessures et États sans porter l’ordre des tours', () => {
@@ -93,8 +94,8 @@ const ruleOf = (selector: string) => {
 };
 
 describe('PartyDock — micro-rendu (sondes pixel du juge vision, 2026-08-17)', () => {
-  const g1 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
-  const g2 = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Elsa', seed: 4 });
+  const g1 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+  const g2 = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Elsa', seed: 4 });
   g1.id = 'g1'; g2.id = 'g2';
   const monter = (props: Parameters<typeof PartyDock>[0]) => {
     const host = document.createElement('div');

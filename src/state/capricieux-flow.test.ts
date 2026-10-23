@@ -6,6 +6,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero } from '../engine/character';
 import { adresseDeCreation } from '../engine/adresseDeCreation';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
 const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
@@ -21,7 +22,7 @@ const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } }
  */
 describe('Capricieux — delta de DR sur le Test de Sociabilité résolu (MSRC 15 l.149-159)', () => {
   function openCharme(vsCapricieux?: boolean) {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Felix', seed: 1, speciesTalentChoices: PERSPICACE });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Felix', seed: 1, speciesTalentChoices: PERSPICACE });
     h.characteristics.sociabilite = 60;
     h.skills = []; // pas d'avances → testValue = Sociabilité brute
     useGame.setState({ party: [h], pendingTest: null, battle: null });

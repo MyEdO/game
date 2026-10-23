@@ -7,6 +7,7 @@ import { useGame } from './store';
 import { runFlow } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
 
@@ -42,7 +43,7 @@ describe('runFlow — séquence + branche if (état vivant)', () => {
 
 describe('runFlow — nœud test (suspension + continuation)', () => {
   function hero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     return h;
   }
 

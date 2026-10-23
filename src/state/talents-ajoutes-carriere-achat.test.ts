@@ -9,9 +9,10 @@ import { useGame } from './store';
 import { pregen, PREGEN } from '../data/pregens';
 import { buildAdvancementView } from '../noyau/monde/advancement';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function soldat(over: Partial<Combatant> = {}): Combatant {
-  return { ...pregen(PREGEN.soldat), xp: 500, ...over } as Combatant;
+  return { ...pregen(idNeufDeBanc, PREGEN.soldat), xp: 500, ...over } as Combatant;
 }
 
 const MARQUE = [{ id: 'marque-de-tzeentch' }];
@@ -23,7 +24,7 @@ beforeEach(() => {
 
 describe('buyTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)', () => {
   it('porteur de la Marque de Tzeentch : la rangée d’avancement s’ACHÈTE — PX débités, Talent acquis', () => {
-    const h = soldat({ traits: [...(pregen(PREGEN.soldat).traits ?? []), ...MARQUE] });
+    const h = soldat({ traits: [...(pregen(idNeufDeBanc, PREGEN.soldat).traits ?? []), ...MARQUE] });
     expect(h.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(buildAdvancementView(h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
     useGame.setState({ party: [h] });

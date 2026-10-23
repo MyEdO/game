@@ -19,6 +19,7 @@ import { ACTIONS, type ActionDef } from '../../data/index';
 import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * LES PASTILLES D'ENTITÉ (#1411 P2-C, spec HUD combat zone 4) — « le geste vit sur ce qui l'offre » :
@@ -139,7 +140,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 }
 
 // ── Fixtures des trois familles de porteurs ─────────────────────────────────────────────────────
-const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId)!, crewIds });
+const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idNeufDeBanc)!, crewIds });
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
   ({ id: 'hull', label: 'Bélier', name: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],

@@ -73,6 +73,7 @@ import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog } from './combatEffects';
 import { stepDetail, stepPrecision } from './rollSeam';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
+import { idNeuf } from './plateforme';
 
 /** SPÉCIALISATIONS de Métier lues par la réparation de bateau (l.107-117) — ids STABLES de
  *  `skills.json`, JAMAIS des libellés : `testValue` compare `s.spec === spec` à l'ID que porte
@@ -613,14 +614,14 @@ function applyBoatCritical(get: Get, set: Set, plan: TravelPlan, river: RiverVoy
   const equipage = exposedCrew(get().party);
   const resolu = rollShipCritical(location, rng, undefined, RIVER_CRIT_SET);
   if (resolu.crewHit) {
-    const coup = applyCrewHit(coque, equipage, resolu.crewHit, rng);
+    const coup = applyCrewHit(coque, equipage, resolu.crewHit, rng, idNeuf);
     if (coup.hits.length) {
       set({ party: [...get().party] });
       tell([t('shipCrit.crewTakes', { n: coup.hits.length, label: resolu.label })]);
     }
     if (coup.testFlow) {
       const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
-      const bande = bandeTriggeredTest(get, set, victimes, coup.testFlow, `${idPrefix}-crew-hit`, { rng: rng, label: resolu.label, hull: coque });
+      const bande = bandeTriggeredTest(get, set, victimes, coup.testFlow, `${idPrefix}-crew-hit`, { idNeuf, rng: rng, label: resolu.label, hull: coque });
       if (bande) insert.push(bande);
       // Voie INLINE (marin sans siège) : ses lignes partent dans la file différée — le voyage n'a pas
       // de `battle.log`, on les déverse dans SON journal (source unique `drainPendingLog`).

@@ -92,7 +92,7 @@ export interface Projection {
     /** Les entités de la scène (`scene.entities`) : décors, PNJ, objets. */
     entites: { liste: EntiteProjetee[]; enPlus: number };
   };
-  refus: { texte: string; nonce: number } | null;
+  refus: { texte: string; nonce: string } | null;
   journal: number;
 }
 

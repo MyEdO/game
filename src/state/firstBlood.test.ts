@@ -7,6 +7,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
 import type { Scene } from '../noyau/monde/scene';
 import type { Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * DUEL JUDICIAIRE (#471, NADJ 06 l.175-192) — deux mécaniques indépendantes de `EncounterDef` :
@@ -30,7 +31,7 @@ function drainCombatEndCascade(): void {
 }
 
 function setup(scene: Scene = testScene()) {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], battle: null });
   useGame.getState().startScene(scene);
   useGame.getState().startCombat('enc-mutants');

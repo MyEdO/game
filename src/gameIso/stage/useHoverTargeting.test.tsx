@@ -16,6 +16,7 @@ import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
 import { cascadeDeTest } from '../../state/cascade.testkit';
 import { cleDeFixture } from '../../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -36,7 +37,7 @@ function cliqueLaCase(pt: { x: number; y: number }) {
 }
 
 function setup() {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');

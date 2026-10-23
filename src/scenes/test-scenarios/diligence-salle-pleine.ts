@@ -4,6 +4,7 @@ import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { assignSeat, seatSlotsOf } from '../../noyau/monde/seating';
 import type { TestScenario } from './_shared';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
+import { idNeuf } from '../../noyau/plateforme';
 
 /** Où le groupe entre : au milieu de la salle, entre les tables (zone `zone-S-z0`) — case LIBRE, hors
  *  du passage d'entrée traversant (colonne 12), hors de l'allée de service du tenancier (à l'ouest du
@@ -100,5 +101,5 @@ export const scenario: TestScenario = {
   title: 'La Diligence — salle pleine',
   tests: 'La salle meublée VUE HABITÉE : 16 convives authorés assis, un par place des 3 tables rondes et des 2 tables murales, chacun posé sur l’abord effectif de sa place.',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — départ au milieu de la salle, aucun combat.',
-  construire: () => ({ party: makeShowcaseParty(), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
+  construire: () => ({ party: makeShowcaseParty(idNeuf), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
 };

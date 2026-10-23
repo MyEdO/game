@@ -13,6 +13,7 @@ import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { inexplique, soutienDe } from './cascade.testkit';
 import { resolveStake } from '../data';
 import { deMin } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * EMBRIGADEMENT — recouvrement d'équipage (MDG 15 l.245, #164). La perte de 2d10 marins est persistée,
@@ -32,7 +33,7 @@ const ones: RNG = deMin;
 function fresh() {
   seedBattleRng(1);
   useGame.setState({
-    party: makePregens().slice(0, 3),
+    party: makePregens(idNeufDeBanc).slice(0, 3),
     scene: { ...emptyScene('port', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     pendingCascade: null,
@@ -141,7 +142,7 @@ describe('Embrigadement — recouvrement (MDG 15 l.245, #164)', () => {
   });
 
   it('PAIEMENT bourse insuffisante : aucun débit, marins NON récupérés', () => {
-    set({ party: makePregens().slice(0, 3) }); // groupe neuf : bourses à 0 (aucun crédit)
+    set({ party: makePregens(idNeufDeBanc).slice(0, 3) }); // groupe neuf : bourses à 0 (aucun crédit)
     resolvePortArrival(get, set, undefined, ones);
     choose('tenter');
     jet(true);

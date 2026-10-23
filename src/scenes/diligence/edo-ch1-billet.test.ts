@@ -24,6 +24,7 @@ import { pnjAuPreset } from '../../noyau/monde/sceneNpc';
 import { draineCascade } from '../../state/cascade.testkit';
 import { presetPnjById } from '../../state/campaignData';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 const paquet = paquetDuJeu(diligenceCampaign);
 const map = paquet.worldMap!;
@@ -38,7 +39,7 @@ const SHOWCASE = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].
 
 /** Lance le chapitre 1 avec le groupe showcase et sa bourse, et fait monter à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth().filter((e) => SHOWCASE.includes(e.hero.id));
+  const groupe = makePregensWithWealth(idNeufDeBanc).filter((e) => SHOWCASE.includes(e.hero.id));
   expect(groupe).toHaveLength(4);
   useGame.setState({ party: groupe.map((e) => e.hero) });
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();

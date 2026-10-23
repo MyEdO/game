@@ -25,6 +25,7 @@ import type { Weapon, Combatant } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { effectiveWeapon } from '../engine/weaponDamage';
 import { spawnEnemy } from '../noyau/monde/spawn';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Structures destructibles JOUABLES en combat (AA 10 l.94-127) : enrôlement depuis les arêtes de mur,
@@ -53,7 +54,7 @@ function sceneWithStructure(structId: string, down = false): Scene {
  *  enrôlée (undefined si `down`), un héros attaquant et l'accès store. */
 function start(structId: string, opts?: { down?: boolean; seed?: number }) {
   useGame.getState().seedRng(opts?.seed ?? 1);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: opts?.seed ?? 1 });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithStructure(structId, opts?.down));
   useGame.getState().startCombat('enc-mutants');
@@ -457,7 +458,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
     const { S, H } = start('porte', { seed: 7 });
     const seg = { x: 2, y: 2, side: 'E' as const, structure: 'porte' };
     // Héros au CONTACT de l'ancrage (2,2), arme de mêlée, Combat/Force élevés → traverse les 8 Bl (BE 2).
-    const sword = itemFromTrappingById('arme-simple')!; sword.equipped = true;
+    const sword = itemFromTrappingById('arme-simple', idNeufDeBanc)!; sword.equipped = true;
     H.items = [sword]; H.loadouts = undefined; H.activeLoadoutId = undefined; recomputeLoadout(H);
     H.characteristics['capacite-de-combat'] = 80; H.characteristics.force = 60;
     H.pos = { x: 1, y: 2 };
@@ -483,7 +484,7 @@ describe('Structures de siège — CHEMIN DE CLIC joueur (overlay d’arête →
 
 describe('weaponContextOf — exceptions hors-spécialisation dégradées (LDB 62 l.184/188, #472)', () => {
   const attacker = (spec: string) => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.skills = [{ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances: 5 }];
     return hero;
   };

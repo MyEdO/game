@@ -17,6 +17,7 @@ import { FOG_GAMMA_DEFINE, type MatériauEmbrumable } from '../backends/webgl/sc
 import { GameStage3D, setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, scènes, viderCaptures } from './banc-volumique';
 import { toHex } from '../shade';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * BRUME & CIEL DE LA PREMIÈRE PERSONNE (#1176, P3-1c) — l'horizon du POV volumique cesse d'être tranché
@@ -38,7 +39,7 @@ brancherArdoise();
 
 /** Pose une scène jouable au store — `interieur` bascule le MILIEU (c'est `isIndoor` qui tranche). */
 function poser(ambiance: Scene['ambiance']): Scene {
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const scene = emptyScene('scene-test', 12, 12);
   scene.ambiance = ambiance;
   useGame.setState({

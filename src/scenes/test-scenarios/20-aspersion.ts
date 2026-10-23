@@ -3,6 +3,7 @@ import { itemFromTrappingById } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * ASPERSION (MDG 16 l.19, #497) : « Asperger d'eau » (`battleWater`) gate ses cibles
@@ -24,8 +25,8 @@ import type { Scene } from '../../noyau/monde/scene';
  * (`combatSlice.ts:2425`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
  */
 function porteurDOutre() {
-  const h = pregen(PREGEN.soldat);
-  const outre = itemFromTrappingById('outre-a-eau')!;
+  const h = pregen(idNeuf, PREGEN.soldat);
+  const outre = itemFromTrappingById('outre-a-eau', idNeuf)!;
   h.items = [...(h.items ?? []), outre];
   return h;
 }

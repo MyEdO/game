@@ -28,7 +28,6 @@ import { cadenceAuto, cadenceAutoCombat } from '../engine/cadence';
 import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
-import { sequence } from '../engine/sequences';
 import { REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 
 /**
@@ -218,8 +217,9 @@ function stepWindowDrive(s: Jeu): readonly (keyof Jeu)[] | typeof ATTENDRE | nul
   return null; // aucune fenêtre ouverte : l'étape garde son propre drive
 }
 
-/** Jeton anti-ré-entrance / double-advance : chaque séquence lancée invalide les précédentes. */
-const generations = sequence();
+/** Jeton anti-ré-entrance / double-advance : chaque séquence lancée pose le sien, comparé par identité, et
+ *  invalide les précédentes. */
+const generation: { courante: object } = { courante: {} };
 
 /**
  * Le SIÈGE LOCAL possède-t-il la modale active ? MÊME routage que la validation d'intent
@@ -236,10 +236,11 @@ function ownerLocal(s: Jeu): boolean {
 
 /** Enchaîne les actions `drive` (roll → confirm…) sur des ticks espacés, puis re-tick pour la suite. */
 function driveSelf(get: Get, set: Set, drive: readonly (keyof Jeu)[]): void {
-  const myGen = generations.suivant();
+  const myGen = {};
+  generation.courante = myGen;
   let i = 0;
   const step = () => {
-    if (myGen !== generations.courant()) return;                 // supersédé par un tick plus récent
+    if (myGen !== generation.courante) return;                    // supersédé par un tick plus récent
     if (!ownerLocal(get())) return;
     if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
     const fn = get()[drive[i++]] as undefined | (() => void);

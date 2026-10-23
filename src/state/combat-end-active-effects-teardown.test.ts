@@ -13,13 +13,14 @@ import { rollMutation } from '../data/mutations';
 import { attachMutation } from '../engine/corruption';
 import { TIME_COST } from '../engine/timeCost';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('finalizeBattle — un effet en Rounds revient au groupe et s’écoule hors combat', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ battle: null, pendingCast: null }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     useGame.setState({ party: [W] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

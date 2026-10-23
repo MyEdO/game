@@ -7,6 +7,7 @@ import { ensureBourse, bourseInstanceOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Get, Set } from '../noyau/flowTypes';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * RECRUTEMENT à quai (#228, escale-hub) — embauche/débarquement salariés (MDG 14 l.293-302).
@@ -14,7 +15,7 @@ import type { Get, Set } from '../noyau/flowTypes';
  * l'entretien hebdomadaire) — la bourse ne bouge donc jamais ici ; seule la solde hebdomadaire recalcule.
  */
 function mkStore(vessel: CampaignVessel | null) {
-  const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant);
+  const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant, idNeufDeBanc);
   bourseInstanceOf(hero)!.money = fromBrass(100000);
   let state = { vessel, party: [hero], journal: [] as string[] };
   const log = (msg: string | string[]) => {

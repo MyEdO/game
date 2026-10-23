@@ -11,8 +11,9 @@ import { FENETRE_DU_JET, JET_AUTO, VERBES_D_INTERACTION, verbesDeLaFenetre, verb
 import type { CascadeStep } from './pendings';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { cleDeFixture } from './noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
-const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
+const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {}, idNeuf: idNeufDeBanc };
 /** L'état d'une partie neuve : ses actions. */
 export const ETAT = creerPartie(etatInitialDuJeu(), ENTREES).etat();
 

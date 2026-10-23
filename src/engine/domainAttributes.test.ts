@@ -14,12 +14,13 @@ import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { applyTriggeredEffects } from '../noyau/triggeredEffects';
 import type { Get } from '../noyau/flowTypes';
 import { desDuTest, desEnSuite } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Applique les riders onHit AUTHORÉS d'un Domaine à `target` (gating par les Conditions Flow, contre
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
 const applyDomain = (caster: Combatant, target: Combatant, domainId: string, rng: RNG = seq([])): string[] => {
   const lines: string[] = [];
-  for (const eff of domainOnHitEffects({ domainId })) lines.push(...runPureFlowLines(target, caster, eff.flow, { rng, caster }));
+  for (const eff of domainOnHitEffects({ domainId })) lines.push(...runPureFlowLines(target, caster, eff.flow, { idNeuf: idNeufDeBanc, rng, caster }));
   return lines;
 };
 
@@ -242,7 +243,7 @@ describe('Magie des mers (MDG 02 l.178-186) — 4 Domaines, seaModifier (DomainD
 describe('Bete — Peur 1 pour 1d10 Rounds apres un Sort de la Bete reussi (LDB 48 l.9)', () => {
   it('pose le Trait peur (value 1) + activeEffect (scale rounds, left = de tire) via applyOps', () => {
     const w = mk({ id: 'w', traits: [] });
-    const lines = domainCasterOps(w, { domainId: 'bete' }, seq([7]));
+    const lines = domainCasterOps(w, { domainId: 'bete' }, seq([7]), idNeufDeBanc);
     expect(w.traits).toContainEqual({ id: 'peur', value: 1 });
     expect(w.activeEffects?.[0]).toMatchObject({
       grantedTrait: { id: 'peur', value: 1 },
@@ -252,7 +253,7 @@ describe('Bete — Peur 1 pour 1d10 Rounds apres un Sort de la Bete reussi (LDB 
   });
   it('aucun effet pour un Domaine sans casterOps', () => {
     const w = mk({ id: 'w' });
-    expect(domainCasterOps(w, { domainId: 'feu' }, seq([7]))).toEqual([]);
+    expect(domainCasterOps(w, { domainId: 'feu' }, seq([7]), idNeufDeBanc)).toEqual([]);
   });
 });
 

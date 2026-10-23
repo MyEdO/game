@@ -1,14 +1,17 @@
 import { describe, it, expect } from 'vitest';
-import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme } from './items';
+import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme, cleDInstanceDeTrait } from './items';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandName } from './combat';
 import { trappings, type TrappingRef } from '../data';
 import { Combatant, ItemInstance, Weapon } from './types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
+import { applyOps } from './ops';
+import { desDuTest } from './dice.testkit';
 
 /** Résolveur de test : résout un LIBELLÉ d'objet → instance par id (authoring). Inconnu → null. */
 const itemFromTrapping = (label: string): ItemInstance | null => {
   const t = trappings.find((x) => x.label === label);
-  return t ? itemFromTrappingById(t.id) : null;
+  return t ? itemFromTrappingById(t.id, idNeufDeBanc) : null;
 };
 /** Réfs de catalogue par libellé (pour buildInventory). */
 const refsByLabel = (labels: string[]): TrappingRef[] => labels.map((l) => ({ id: trappings.find((t) => t.label === l)!.id }));
@@ -18,14 +21,14 @@ const item = (o: Partial<ItemInstance>): ItemInstance =>
 
 describe('itemLabel — id STABLE → libellé FR (jamais l’id brut)', () => {
   it('un objet CATALOGUÉ rangé affiche le libellé FR, jamais son id kebab-case (même si name a dérivé)', () => {
-    const it = itemFromTrappingById('epee-batarde')!;
+    const it = itemFromTrappingById('epee-batarde', idNeufDeBanc)!;
     it.label = 'epee-large'; // name FAUTIF (save ancienne / donnée corrompue) : ne doit PAS fuir à l'affichage
     it.inside = 'sac-1'; // objet RANGÉ dans un contenant
     expect(itemLabel(it)).toBe('Épée bâtarde');
     expect(itemLabel(it)).not.toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)+$/); // aucun id kebab-case rendu
   });
   it('objet CUSTOM (hors-base, sans trappingId) : repli sur le nom libre', () => {
-    expect(itemLabel(customTrapping('Fiole de sang'))).toBe('Fiole de sang');
+    expect(itemLabel(customTrapping('Fiole de sang', idNeufDeBanc))).toBe('Fiole de sang');
   });
 });
 
@@ -271,7 +274,7 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
        talents: [], skills: [], conditions: [], wounds: { current: 10, max: 10 }, advantage: 0, ...lo } as unknown as Combatant);
 
   it('belier-ade2 (subType armes-de-siege) en `items` équipé : PAS d’arme dérivée — Mains nues seulement', () => {
-    const belier = itemFromTrappingById('belier-ade2')!;
+    const belier = itemFromTrappingById('belier-ade2', idNeufDeBanc)!;
     belier.equipped = true;
     const c = heroWith([belier]);
     recomputeLoadout(c);
@@ -385,7 +388,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   });
 
   it('buildInventory n’équipe qu’UNE pièce par couche × localisation (meilleure PA)', () => {
-    const items = buildInventory(refsByLabel(['Justaucorps de cuir', 'Veste de cuir', 'Chemise de mailles', 'Plastron']));
+    const items = buildInventory(refsByLabel(['Justaucorps de cuir', 'Veste de cuir', 'Chemise de mailles', 'Plastron']), idNeufDeBanc);
     const worn = items.filter((i) => i.equipped).map((i) => i.label).sort();
     // Justaucorps et Veste sont tous deux Cuir souple sur le Corps → une seule des deux portée.
     expect(worn).toContain('Chemise de mailles');
@@ -395,7 +398,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
 
   it('buildInventory fusionne les Atouts ATTACHÉS de la ref (`qualities`) aux qualités de base du catalogue (#657 Lot 1)', () => {
     const epeeBatarde = trappings.find((t) => t.label === 'Épée bâtarde')!;
-    const [item] = buildInventory([{ id: epeeBatarde.id, qualities: [{ id: 'solide' }] }]);
+    const [item] = buildInventory([{ id: epeeBatarde.id, qualities: [{ id: 'solide' }] }], idNeufDeBanc);
     const ids = item.qualities.map((q) => q.id);
     expect(ids).toContain('solide'); // Atout ATTACHÉ (joker de qualité résolu)
     expect(ids).toContain('devastatrice'); // qualité de BASE du catalogue, conservée
@@ -404,7 +407,7 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
 
   it('buildInventory préserve la `value` (Indice) d\'un Atout ATTACHÉ — « Solide 3 » (correctif juge Lot 1)', () => {
     const epeeBatarde = trappings.find((t) => t.label === 'Épée bâtarde')!;
-    const [item] = buildInventory([{ id: epeeBatarde.id, qualities: [{ id: 'solide', value: 3 }] }]);
+    const [item] = buildInventory([{ id: epeeBatarde.id, qualities: [{ id: 'solide', value: 3 }] }], idNeufDeBanc);
     expect(item.qualities.find((q) => q.id === 'solide')).toEqual({ id: 'solide', value: 3 });
   });
 });
@@ -746,9 +749,9 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   const chef = { characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, weapons: [] } as unknown as Combatant;
 
   it('forme NEUVE : `{ trappingId }` → item complet du catalogue, arme dérivée FONCTIONNELLE', () => {
-    const p = hydratePoste({ trappingId: 'canon-moyen', side: 'tribord', crewIds: ['g1'] });
+    const p = hydratePoste({ trappingId: 'canon-moyen', side: 'tribord', crewIds: ['g1'] }, idNeufDeBanc);
     expect(p.item.trappingId).toBe('canon-moyen');
-    const cat = itemFromTrappingById('canon-moyen')!;
+    const cat = itemFromTrappingById('canon-moyen', idNeufDeBanc)!;
     expect(p.item.damage).toEqual(cat.damage); // base RÉSOLUE (jamais copiée en donnée)
     expect(p.item.qualities.map((q) => q.id)).toEqual(cat.qualities.map((q) => q.id));
     expect(p.side).toBe('tribord');
@@ -760,12 +763,12 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   });
 
   it('uid : préservé s’il est authoré, sinon frais', () => {
-    expect(hydratePoste({ trappingId: 'pierrier', uid: 'itm-fixe-1' }).item.uid).toBe('itm-fixe-1');
-    expect(hydratePoste({ trappingId: 'pierrier' }).item.uid).toBeTruthy();
+    expect(hydratePoste({ trappingId: 'pierrier', uid: 'itm-fixe-1' }, idNeufDeBanc).item.uid).toBe('itm-fixe-1');
+    expect(hydratePoste({ trappingId: 'pierrier' }, idNeufDeBanc).item.uid).toBeTruthy();
   });
 
   it('fail-fast : `trappingId` inconnu → throw explicite', () => {
-    expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' })).toThrow(/trappingId inconnu/);
+    expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' }, idNeufDeBanc)).toThrow(/trappingId inconnu/);
   });
 });
 
@@ -877,7 +880,7 @@ describe('lacherLArme — idempotent sur les Mains nues', () => {
 // Arme DÉRIVÉE d'un objet porté (`derivedWeapon`) : son objet source est l'objet porté ; détruit, il ne dérive plus rien.
 describe('arme dérivée (Crochet) — objet source et destruction', () => {
   it('l’arme porte `derivedFromItem`, et un Crochet détruit n’est plus dérivé', () => {
-    const crochet = { ...itemFromTrappingById('crochet')!, uid: 'crochet-1', equipped: true };
+    const crochet = { ...itemFromTrappingById('crochet', idNeufDeBanc)!, uid: 'crochet-1', equipped: true };
     const c = { id: 'h', kind: 'hero', items: [crochet], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.find((w) => w.label === 'Crochet')?.derivedFromItem).toBe('crochet-1');
@@ -885,12 +888,51 @@ describe('arme dérivée (Crochet) — objet source et destruction', () => {
     recomputeLoadout(c);
     expect(c.weapons.some((w) => w.label === 'Crochet')).toBe(false);
   });
+
+  it('l’uid d’une arme dérivée est celui de son objet : déséquiper l’un de deux Crochets ne change pas l’uid de l’autre', () => {
+    const premier = { ...itemFromTrappingById('crochet', idNeufDeBanc)!, uid: 'crochet-a', equipped: true };
+    const second = { ...itemFromTrappingById('crochet', idNeufDeBanc)!, uid: 'crochet-b', equipped: true };
+    const c = { id: 'h', kind: 'hero', items: [premier, second], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
+    recomputeLoadout(c);
+    const uidDuSecond = c.weapons.find((w) => w.derivedFromItem === 'crochet-b')?.uid;
+    expect(uidDuSecond, 'le second Crochet ne dérive aucune arme').toBeDefined();
+    expect(c.weapons.find((w) => w.derivedFromItem === 'crochet-a')?.uid).not.toBe(uidDuSecond);
+    premier.equipped = false;
+    recomputeLoadout(c);
+    expect(c.weapons.filter((w) => w.label === 'Crochet').map((w) => [w.derivedFromItem, w.uid])).toEqual([['crochet-b', uidDuSecond]]);
+  });
+});
+
+describe('clé d’instance de trait (`cleDInstanceDeTrait`)', () => {
+  it('deux instances d’un même trait de sources distinctes ont des clés distinctes ; sans rien qui les distingue, la même', () => {
+    const natif = { id: 'tentacules' };
+    const accorde = { id: 'tentacules', src: { kind: 'spell', id: 'incarnation-de-wyssan' } } as const;
+    expect(cleDInstanceDeTrait(natif)).not.toBe(cleDInstanceDeTrait(accorde));
+    expect(cleDInstanceDeTrait({ ...accorde, arg: 'gauche' })).not.toBe(cleDInstanceDeTrait(accorde));
+    expect(cleDInstanceDeTrait({ ...accorde })).toBe(cleDInstanceDeTrait(accorde));
+  });
+});
+
+// Armes NATURELLES d'un Sort (op `grantNaturalWeapon`, Incarnation de Wyssan : Griffe et Morsure) : l'uid naît avec l'effet.
+describe('armes naturelles d’un même Sort — l’uid est celui de l’effet', () => {
+  it('quand l’une expire, l’autre garde son uid', () => {
+    const c = { id: 'h', kind: 'hero', label: 'H', characteristics: {}, conditions: [], items: [], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
+    applyOps(c, [{ op: 'grantNaturalWeapon', label: 'Griffe', damage: 2 }, { op: 'grantNaturalWeapon', label: 'Morsure', damage: 1 }], { idNeuf: idNeufDeBanc, rng: desDuTest, source: { kind: 'spell', id: 'incarnation-de-wyssan' } });
+    const uidDe = (label: string) => c.weapons.find((w) => w.label === label)?.uid;
+    const morsure = uidDe('Morsure');
+    expect(morsure, 'la Morsure n’est pas accordée').toBeDefined();
+    expect(uidDe('Griffe')).not.toBe(morsure);
+    c.activeEffects = c.activeEffects!.filter((e) => e.naturalWeapon?.label !== 'Griffe');
+    recomputeLoadout(c);
+    expect(uidDe('Griffe')).toBeUndefined();
+    expect(uidDe('Morsure')).toBe(morsure);
+  });
 });
 
 // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains ».
 describe('Cavalerie (2M) tenue par un cavalier MONTÉ', () => {
   const cavalier = (monte: boolean): Combatant => {
-    const c = { id: 'h', kind: 'hero', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin')!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier')!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', off: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
+    const c = { id: 'h', kind: 'hero', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin', idNeufDeBanc)!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier', idNeufDeBanc)!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', off: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
     if (monte) c.mountId = 'cheval';
     return c;
   };

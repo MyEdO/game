@@ -27,6 +27,7 @@ import { discCapPath } from '../builders/dynamicMarks';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -50,7 +51,7 @@ afterEach(() => {
 });
 
 const héros = (label: string, graine: number): Combatant =>
-  ({ ...createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: graine }), id: label }) as Combatant;
+  ({ ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: graine }), id: label }) as Combatant;
 
 function scène(): Scene {
   return emptyScene('scene-test', 12, 12);

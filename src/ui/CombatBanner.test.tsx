@@ -89,7 +89,7 @@ describe('CombatBanner', () => {
   it('le REFUS passe devant le télégraphe d’une IA en cours (sinon le clic reste sans réponse)', () => {
     monter([ev('attack', 'Gunnar frappe Rat géant', 'gunnar', 'rat')], {
       actorAim: { fromId: 'rat', toId: 'gunnar', kind: 'charge' },
-      refus: { texte: 'Trop loin pour marcher — armez la Course.', nonce: 1 },
+      refus: { texte: 'Trop loin pour marcher — armez la Course.', nonce: 'refus-1' },
     });
     expect(host.innerHTML).toContain('armez la Course');
     expect(host.innerHTML, 'le télégraphe a avalé le refus').not.toContain('charge Gunnar');
@@ -97,10 +97,10 @@ describe('CombatBanner', () => {
 
   it('deux refus IDENTIQUES d’affilée RÉ-ANIMENT la bannière (la clé porte le nonce)', () => {
     const texte = 'Trop loin pour marcher — armez la Course.';
-    monter([], { refus: { texte, nonce: 1 } });
+    monter([], { refus: { texte, nonce: 'refus-1' } });
     const premier = noeudAnnonce();
     expect(premier).not.toBeNull();
-    act(() => { useGame.setState({ refus: { texte, nonce: 2 } } as never); });
+    act(() => { useGame.setState({ refus: { texte, nonce: 'refus-2' } } as never); });
     expect(host.innerHTML).toContain('armez la Course');
     expect(noeudAnnonce(), 'le 2ᵉ refus n’a rien ré-animé : bannière figée sur un clic sans réponse').not.toBe(premier);
   });
@@ -108,7 +108,7 @@ describe('CombatBanner', () => {
   it('le refus S’ÉTEINT de lui-même après REFUS_MS (la bannière ne reste pas sur un clic ancien)', () => {
     vi.useFakeTimers();
     try {
-      monter([], { refus: { texte: 'Trop loin pour marcher — armez la Course.', nonce: 7 } });
+      monter([], { refus: { texte: 'Trop loin pour marcher — armez la Course.', nonce: 'refus-7' } });
       expect(host.innerHTML, 'témoin : le refus n’a jamais été affiché').toContain('armez la Course');
       act(() => { vi.advanceTimersByTime(REFUS_MS); }); // la minuterie de la bannière (`scheduleFlowTimer`)
       expect(useGame.getState().refus, 'la minuterie n’a pas éteint le refus').toBeNull();

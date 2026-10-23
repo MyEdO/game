@@ -14,6 +14,7 @@ import { propulsionDuNavire } from '../engine/shipBuild';
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 import { jete } from '../engine/tests.testkit';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #34 — CHANSONS DE MARIN (MDG 09 l.32-40 Talent + l.218-248 liste) : vocabulaire GÉNÉRIQUE
@@ -32,7 +33,7 @@ describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
   it('crewTestMod +10 (« Naviguons tous ensemble », MDG 09 l.224) → crewRoleValue du marin +10', () => {
     const c = mk('m1', { skills: [{ id: 'voile', spec: 'cogue', characteristic: 'agilite', advances: 20 } as SkillInstance] });
     const base = crewRoleValue(c, findCrewRoleById('timonier')!, NAVIGATION).value!;
-    applyOps(c, [{ op: 'crewTestMod', mod: 10 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
+    applyOps(c, [{ op: 'crewTestMod', mod: 10 }], { idNeuf: idNeufDeBanc, label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(crewTestModOf(c)).toBe(10);
     expect(crewRoleValue(c, findCrewRoleById('timonier')!, NAVIGATION).value).toBe(base + 10);
   });
@@ -40,14 +41,14 @@ describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
   it('skillDRBonus appliqué (« Jacques Bret », l.228) → lu par le lecteur skillDRBonus (effets actifs)', () => {
     const c = mk('m2');
     expect(skillDRBonus(c, 'corps-a-corps')).toBe(0);
-    applyOps(c, [{ op: 'skillDRBonus', skill: { id: 'corps-a-corps' }, bonus: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
+    applyOps(c, [{ op: 'skillDRBonus', skill: { id: 'corps-a-corps' }, bonus: 1 }], { idNeuf: idNeufDeBanc, label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(skillDRBonus(c, 'corps-a-corps')).toBe(1);
     expect(skillDRBonus(c, 'calme')).toBe(0); // pas de fuite vers une autre Compétence
   });
 
   it('charDRBonus Soc (« Camarades d’équipage », l.236) → charDRBonusOf', () => {
     const c = mk('m3');
-    applyOps(c, [{ op: 'charDRBonus', char: 'sociabilite', bonus: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
+    applyOps(c, [{ op: 'charDRBonus', char: 'sociabilite', bonus: 1 }], { idNeuf: idNeufDeBanc, label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(charDRBonusOf(c, 'sociabilite')).toBe(1);
     expect(charDRBonusOf(c, 'force-mentale')).toBe(0);
   });
@@ -56,7 +57,7 @@ describe('Vocabulaire des chansons (ops génériques → ActiveEffect)', () => {
     const c = mk('m4');
     addCondition(c, 'empoisonne'); // −10
     expect(testStatePenalty(c, 'calme')).toBe(-10);
-    applyOps(c, [{ op: 'ignoreStatePenalties', count: 1 }], { label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
+    applyOps(c, [{ op: 'ignoreStatePenalties', count: 1 }], { idNeuf: idNeufDeBanc, label: 'Chanson', rng: makeRNG(1), defaultUntilTime: 100 });
     expect(testStatePenalty(c, 'calme')).toBe(0); // l'unique État est ignoré
     addCondition(c, 'extenue'); addCondition(c, 'extenue'); // Exténué ×2 = −20 (pire) ; Empoisonné −10 reste
     expect(testStatePenalty(c, 'calme')).toBe(-10); // le pire (−20) ignoré → le suivant s'applique

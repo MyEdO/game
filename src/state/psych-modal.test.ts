@@ -9,6 +9,7 @@ import type { Combatant } from '../engine/types';
 import type { BatchParticipant, CascadeStep } from '../noyau/pendings';
 import { addCondition, COND } from '../engine/conditions';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Psychologie de COMBAT — régime CASCADE de Round (LDB 21). Les Traits ciblés et les NOUVELLES
@@ -41,7 +42,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
   /** Combat à `n` héros face à UNE source ennemie de Taille `enemySize` (LdV dégagée). */
   function setup(enemySize: Combatant['size'], n = 1) {
     const party = Array.from({ length: n }, (_, i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
+      createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i + 1}`, seed: i + 1 }));
     useGame.setState({ party });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -251,7 +252,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
   /** Combat à 2 héros face à 2 ennemis (LdV dégagée), sans Peur de Taille par défaut. */
   function duo() {
     const party = [1, 2].map((i) =>
-      createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
+      createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i }));
     useGame.setState({ party });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

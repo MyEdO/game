@@ -5,6 +5,7 @@ import { computeMoveReach, attackPlan } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Règle maison (LDB 15-Déplacement MUET sur le fractionnement) : le joueur peut DÉCOMPOSER son Mouvement
@@ -19,7 +20,7 @@ describe('Mouvement décomposable', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

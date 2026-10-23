@@ -9,6 +9,7 @@ import { hasCondition } from '../engine/conditions';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // ---------------------------------------------------------------------------
 // Tentacule épais (LDB 19) → trait Tentacules (LDB 85 l.405) : arme naturelle +
@@ -21,7 +22,7 @@ const mutCornes = () => rollMutation('physique', deFixe(83)); // Cornes asymétr
 
 describe('armes naturelles de mutation (recomputeLoadout)', () => {
   it('trait Tentacules → arme Tentacule (+BF) ; Cornes asymétriques → arme Cornes (+BF)', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     attachMutation(hero, mutTentacule(), desDuTest);
     attachMutation(hero, mutCornes(), desDuTest);
     recomputeLoadout(hero);
@@ -36,7 +37,7 @@ describe('armes naturelles de mutation (recomputeLoadout)', () => {
   });
 
   it('sans mutation : aucune arme naturelle dérivée', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     recomputeLoadout(hero);
     expect(hero.weapons.some((w) => w.uid === 'nat-tentacule' || w.label === 'Cornes')).toBe(false);
   });
@@ -54,7 +55,7 @@ describe('Attaque gratuite de Tentacule (store)', () => {
   });
 
   function setup(withTentacle = true) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

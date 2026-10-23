@@ -19,6 +19,7 @@ import { draineCascade } from './cascade.testkit';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { desEnSuite } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * MUTATION de Corruption en étapes à TABLE (#942 L5) — les TROIS tirages de la dissolution (LDB 19
@@ -36,7 +37,7 @@ import { desEnSuite } from '../engine/dice.testkit';
 const HUMAIN = 'humains-reiklander';
 
 function heroSolo(speciesId = HUMAIN, seed = 4): Combatant {
-  const h = createHero({ speciesId, careerId: 'soldat', label: 'H', seed });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId, careerId: 'soldat', label: 'H', seed });
   h.corruption = 6;
   useGame.setState({ battle: null, party: [h], pendingCascade: null, suspendedCascades: [] });
   return useGame.getState().party[0];

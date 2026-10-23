@@ -7,13 +7,12 @@ import { RNG, makeRNG } from '../engine/dice';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
-/** Graine du RNG de combat avant que l'hôte ne la pose (`seedBattleRng`, D8). */
-const GRAINE_INITIALE_DE_BATAILLE = 1;
-
-let _rng: RNG = makeRNG(GRAINE_INITIALE_DE_BATAILLE);
+/** Le RNG de combat que l'hôte a semé (`seedBattleRng` : `creerPartie`, le store au chargement), ou `null`. */
+let _rng: RNG | null = null;
 
 /** Le RNG de combat courant. */
 export function battleRng(): RNG {
+  if (!_rng) throw new Error('RNG de combat absent : l’hôte le sème par `seedBattleRng` (src/noyau/battleRng.ts) avant tout tirage.');
   return _rng;
 }
 

@@ -8,6 +8,7 @@ import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * « Bestiaire, traits & états » : une ménagerie qui réunit les anciens tests Traits de créature,
@@ -32,8 +33,8 @@ function mutate(c: Combatant, rolls: number[]): Combatant {
 }
 
 function groupe(): Combatant[] {
-  const heroes = makeShowcaseParty().map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
-  const ans = pregenParty(PREGEN.pretre)[0];
+  const heroes = makeShowcaseParty(idNeuf).map((c, i) => mutate(c, LOTS[i] ?? [])); // 4 héros mutés
+  const ans = pregenParty(idNeuf, PREGEN.pretre)[0];
   const shallya = makePriest(ans, 'h-shallya', 'Sœur Greta, Prêtresse de Shallya', 'shallya', { sociabilite: 66, 'force-mentale': 60, force: 40, endurance: 44 });
   return [...heroes, shallya];
 }

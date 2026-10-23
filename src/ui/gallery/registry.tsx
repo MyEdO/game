@@ -115,8 +115,8 @@ import { InspectPanel } from '../InspectPanel';
 import { EquipmentPanel } from '../EquipmentPanel';
 import { MediaSelect } from '../MediaSelect';
 import { RefField, refFieldCfg } from '../compendium/refField/RefField';
-import { itemFromTrappingById } from '../../engine/items';
-import type { ItemInstance } from '../../engine/types';
+import { gabaritDObjet, type GabaritDObjet } from '../../engine/items';
+import { idNeuf } from '../../noyau/plateforme';
 
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
@@ -140,7 +140,7 @@ export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] 
 export const carriereExemple = memoParVersion('careers', () => careers.find((c) => c.id === 'agitateur') ?? careers[0]);
 export const niveauxDeLaCarriereExemple = memoParVersion(['careers', 'careerLevels'], () => levelsForCareer(carriereExemple().id));
 export const signeAstralExemple = memoParVersion('stars', () => stars[0]);
-export const herosExemples = memoParVersion('pregens', () => makePregens());
+export const herosExemples = memoParVersion('pregens', () => makePregens(idNeuf));
 export const herosExemple = () => herosExemples()[0];
 export const herosExempleB = () => herosExemples()[1] ?? herosExemples()[0];
 
@@ -310,12 +310,11 @@ function OptionChooserDemo() {
   );
 }
 
-/** Objets RÉELS du catalogue (`trappings.json`), instanciés par la fabrique du moteur — jamais un
- *  objet forgé à la main : la galerie montre ce que le jeu rend. */
-function objetsExemple(): ItemInstance[] {
+/** Gabarits RÉELS du catalogue (`trappings.json`, `gabaritDObjet`) — jamais un objet forgé à la main : la
+ *  galerie montre ce que le jeu rend. Chacun se désigne par son id de catalogue. */
+function objetsExemple(): (GabaritDObjet & { trappingId: string })[] {
   return ['epee-batarde', 'hallebarde', 'arc', 'bouclier', 'justaucorps-de-cuir', 'corde']
-    .map((id) => itemFromTrappingById(id))
-    .filter((i): i is ItemInstance => i !== null);
+    .flatMap((id) => { const g = gabaritDObjet(id); return g ? [{ ...g, trappingId: id }] : []; });
 }
 
 /** Silhouette de rig pour arme/armure/bouclier, glyphe de catégorie sinon — aux trois tailles nommées. */
@@ -328,7 +327,7 @@ function ItemIconDemo() {
         <Row key={size} align="center" gap="lg">
           <span className="hint" style={{ width: 32 }}>{size}</span>
           {objets.map((item) => (
-            <span key={item.uid} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span key={item.trappingId} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <ItemIcon item={item} size={size} />
             </span>
           ))}
@@ -341,12 +340,12 @@ function ItemIconDemo() {
 /** Sélecteur visuel : rangées `média + libellé + détail`, là où un `<select>` natif ne porte pas d'icône. */
 function MediaSelectDemo() {
   const objets = objetsExemple();
-  const [choix, setChoix] = useState<string | undefined>(objets[0]?.uid);
+  const [choix, setChoix] = useState<string | undefined>(objets[0]?.trappingId);
   if (!objets.length) return <p className="hint">Aucun objet du catalogue n'a pu être instancié.</p>;
   return (
     <MediaSelect
       options={objets.map((item) => ({
-        key: item.uid,
+        key: item.trappingId,
         media: <ItemIcon item={item} size="sm" />,
         label: item.label,
         sub: item.kind,

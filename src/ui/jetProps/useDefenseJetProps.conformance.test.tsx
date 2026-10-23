@@ -19,6 +19,10 @@ import type { Combatant, Weapon } from '../../engine/types';
 import { RollShell } from '../RollShell';
 import { useDefenseJetProps } from './useDefenseJetProps';
 import { ANONYMES } from '../RollLine';
+import { passagesDe } from '../../lib/sonde';
+
+/** Les passages de la sonde `ANONYMES` au début du cas. */
+let anonymesAvant = 0;
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -302,7 +306,7 @@ describe('Défense : une cible écrêtée nomme son plafond ou son plancher, jam
   };
 
   it('Esquive Sonné 3 sous le plancher, attaque à fort Avantage au-dessus du plafond', () => {
-    ANONYMES.count = 0;
+    anonymesAvant = passagesDe(ANONYMES);
     openDefense(undefined, sonneEtAvantage);
     act(() => { useGame.getState().defenseSetMode('esquive'); });
     const [, maLigne] = blocs();
@@ -313,7 +317,7 @@ describe('Défense : une cible écrêtée nomme son plafond ou son plancher, jam
     expect(chips(temoin)).toEqual(['+70 Avantage', '−16 plafond 99']);
     expect(chips(resolue)).toEqual(['−30 Sonné', '+21 plancher 1']);
     expect(host!.textContent).not.toContain('autres');
-    expect(ANONYMES.count, 'la sonde DEV ne compte aucune chip anonyme').toBe(0);
+    expect((passagesDe(ANONYMES) - anonymesAvant), 'la sonde DEV ne compte aucune chip anonyme').toBe(0);
   });
 });
 
@@ -346,20 +350,20 @@ describe('Défense : un dé choisi sur une cible écrêtée nomme son plafond ou
   for (const resilience of [false, true]) {
     const dé = resilience ? 'dé de Résilience' : 'dé fixé';
     it(`${dé} au plancher : « plancher 1 », jamais « autres »`, () => {
-      ANONYMES.count = 0;
+      anonymesAvant = passagesDe(ANONYMES);
       openDefense(undefined, plancher);
       choisir(resilience, 1);
       expect(useGame.getState().pendingDefense!.def!.roll).toBe(1);
       expect(chips()).toEqual(['−30 Sonné', '+21 plancher 1']);
-      expect(ANONYMES.count).toBe(0);
+      expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
     });
     it(`${dé} au plafond : « plafond 99 », jamais « autres »`, () => {
-      ANONYMES.count = 0;
+      anonymesAvant = passagesDe(ANONYMES);
       openDefense(undefined, plafond);
       choisir(resilience, 40);
       expect(useGame.getState().pendingDefense!.def!.roll).toBe(40);
       expect(chips()).toEqual(['+30 Avantage', '−26 plafond 99']);
-      expect(ANONYMES.count).toBe(0);
+      expect((passagesDe(ANONYMES) - anonymesAvant)).toBe(0);
     });
   }
 });

@@ -171,7 +171,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('op loseTurn : pose les drapeaux lus au début du Round', () => {
     const c = mk();
-    runPureFlowLines(c, c, { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { rng: makeRNG(1), caster: c });
+    runPureFlowLines(c, c, { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { idNeuf: idNeufDeBanc, rng: makeRNG(1), caster: c });
     expect(c.loseNextAction).toBe(true);
     expect(c.loseNextMovement).toBe(true);
   });
@@ -202,7 +202,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('op rollThreshold : UN d10 → soin = la valeur du dé via Formula {rolled}', () => {
     const c = mk({ wounds: { current: 0, max: 20 } });
-    applyOps(c, [{ op: 'rollThreshold', sides: 10, thresholds: [{ atLeast: 1, ops: [{ op: 'heal', amount: { rolled: true } }] }] }], { rng: makeRNG(3) });
+    applyOps(c, [{ op: 'rollThreshold', sides: 10, thresholds: [{ atLeast: 1, ops: [{ op: 'heal', amount: { rolled: true } }] }] }], { idNeuf: idNeufDeBanc, rng: makeRNG(3) });
     expect(c.wounds.current).toBeGreaterThanOrEqual(1); // a soigné le dé (1..10)
     expect(c.wounds.current).toBeLessThanOrEqual(10);
   });
@@ -227,7 +227,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     };
     const attacker = mk({ id: 'a' });
     const victim = mk({ id: 'v', wounds: { current: 15, max: 15 } });
-    runPureFlowLines(victim, attacker, flow, { rng: makeRNG(3), caster: attacker });
+    runPureFlowLines(victim, attacker, flow, { idNeuf: idNeufDeBanc, rng: makeRNG(3), caster: attacker });
     expect(victim.wounds.current).toBeLessThan(15); // 1d10 Dégâts appliqués (ignore BE/PA par défaut)
     expect(empetre(victim)?.value).toBe(1);
   });
@@ -296,7 +296,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
 
   it('créature ENNEMIE Affamée tue → Test de FM inline ; échec (FM basse) → loseTurn', () => {
     seedBattleRng(1); // → jet de FM 97 / 21 → échec → festoie (loseTurn)
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -394,7 +394,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function combat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -445,7 +445,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
 
   it('SEAM CENTRAL `commitStep` (cumulard) : un Test d’ENTRETIEN raté déclenche les Crampes du porteur', () => {
     seedBattleRng(3);
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     addCrampes(hero);
     useGame.setState({
       party: [hero], battle: null,
@@ -464,13 +464,14 @@ import type { AttackResult } from '../engine/combat';
 import { resetCadence } from '../engine/cadence';
 import { cascadeDeTest } from './cascade.testkit';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); useGame.setState({ pendingCascade: null, battle: null, pendingLogQueue: [] }); });
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function combat() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

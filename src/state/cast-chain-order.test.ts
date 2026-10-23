@@ -4,6 +4,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { resolveCastChain } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * ORDRE de la chaîne d'incantation (`resolveCastChain`, src/noyau/combatFlow.ts) : Contre-sort, puis
@@ -22,6 +23,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
   /** Sorcier + une cible Démoniaque vivante (gate `onlyGroups` de Fauche-démon, Sort `opposed`). */
   function setup() {
     const hero = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W',
       careerTalent: { id: 'magie-mineure' }, seed: 707,
     });

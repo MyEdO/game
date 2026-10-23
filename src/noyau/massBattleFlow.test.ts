@@ -11,6 +11,7 @@ import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { addCondition } from '../engine/conditions';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Amorce une bataille avec un vrai groupe (pré-tirés) et le RNG seedé. Par défaut ouvre AUSSI un
  *  interlude doté du budget d'Activités (3 par héros) : c'est le budget UNIQUE dans lequel puise la
@@ -18,7 +19,7 @@ import { addCondition } from '../engine/conditions';
  *  bataille SANS interlude (aucune préparation possible → Round 1 direct). */
 function start(
   spec: Partial<MassBattleSpec> = {},
-  party = pregenParty(PREGEN.soldat, PREGEN.chasseur),
+  party = pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur),
   opts: { interludeLeft?: number } = {},
 ) {
   seedBattleRng(1234);
@@ -32,7 +33,7 @@ function start(
 }
 
 /** Le groupe doté de Savoir (Guerre) — Compétence Avancée que la Planification exige (LDB 09 l.30). */
-function partyWithWarLore(party = pregenParty(PREGEN.soldat, PREGEN.chasseur)): Combatant[] {
+function partyWithWarLore(party = pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur)): Combatant[] {
   return party.map((h) =>
     h.skills.some((s) => s.id === 'savoir' && s.spec === 'guerre' && (s.advances ?? 0) > 0)
       ? h
@@ -65,7 +66,7 @@ describe('startMassBattle / état', () => {
   });
 
   it('sans interlude : aucune préparation possible → bataille engagée directement (écran massBattle, phase round)', () => {
-    start({}, pregenParty(PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({}, pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
     const s = useGame.getState();
     expect(s.screen).toBe('massBattle');
     expect(s.massBattle?.phase).toBe('round'); // Round 1 direct (pas de prep sans budget)
@@ -202,7 +203,7 @@ describe('Personne qui puisse tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus
   });
 
   it('Planification : le héros DÉSIGNÉ sans Savoir (Guerre) n’est pas remplacé par celui qui l’a', () => {
-    const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur);
+    const [soldat, chasseur] = pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur);
     start({}, [partyWithWarLore([soldat])[0], chasseur]);
     useGame.getState().setMassBattleHero('planification', [chasseur.id]);
     useGame.getState().massBattleActivity('planification');
@@ -211,7 +212,7 @@ describe('Personne qui puisse tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus
   });
 
   it('Activité SOLO : le héros désigné Inconscient n’est pas remplacé (Discours inspirant)', () => {
-    const [soldat, chasseur] = pregenParty(PREGEN.soldat, PREGEN.chasseur);
+    const [soldat, chasseur] = pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur);
     start({}, [ko(soldat), chasseur]);
     useGame.getState().setMassBattleHero('inspire', [soldat.id]);
     useGame.getState().massBattleActivity('inspire');
@@ -220,14 +221,14 @@ describe('Personne qui puisse tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus
   });
 
   it('Activité COMBINÉE : personne en état de la tenter → refus nommé (Repérage)', () => {
-    start({}, pregenParty(PREGEN.soldat, PREGEN.chasseur).map(ko));
+    start({}, pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur).map(ko));
     useGame.getState().massBattleActivity('reperage');
     expect(pending()).toBeNull();
     expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Repérage ».');
   });
 
   it('Scène de Round : personne en état de la tenter → refus nommé (Motivation)', () => {
-    start({ situations: [['motivation']] }, pregenParty(PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({ situations: [['motivation']] }, pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
     useGame.setState({ party: useGame.getState().party.map(ko) });
     useGame.getState().massBattleScene('motivation');
     expect(pending()).toBeNull();
@@ -808,7 +809,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
   it('un héros ne peut faire que 3 Activités AU TOTAL (mix prépa bataille + interlude normale) — la 4ᵉ est REFUSÉE', () => {
     // GROUPE À UN SEUL HÉROS : son budget d'interlude (3) est le SEUL budget de préparation → l'épuiser
     // épuise toute la préparation (le budget est UNIQUE, l.65). Repérage réussi débloque le Sabotage.
-    start({}, partyWithWarLore(pregenParty(PREGEN.soldat)));
+    start({}, partyWithWarLore(pregenParty(idNeufDeBanc, PREGEN.soldat)));
     const [hero] = useGame.getState().party.map((h) => h.id);
     expect(leftOf(hero)).toBe(3);
 

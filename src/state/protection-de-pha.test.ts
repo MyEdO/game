@@ -10,6 +10,7 @@ import { findSpell } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import type { CastResult } from '../engine/magic';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Protection de Phâ (LDB 48 l.393) — Zone sacrée centrée sur le lanceur (diamètre BFM, durée BFM Rounds) :
@@ -81,7 +82,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('cast self → Zone sacrée centrée sur le lanceur (barrière profane + Brisé + noCorruption + durée BFM)', () => {
-    const W = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
+    const W = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     useGame.setState({ party: [W] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

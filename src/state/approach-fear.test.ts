@@ -18,6 +18,7 @@ import { refLabel } from '../data';
 
 import type { Combatant } from '../engine/types';
 import { resetCadence, setCadence } from '../engine/cadence';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const hero = (over: Partial<Combatant>): Combatant =>
   ({ id: 'h', kind: 'hero', name: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: { current: 10, max: 10 },
@@ -198,7 +199,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
 
   /** Champ de bataille RÉEL (scène + combat + tour du héros) : un ennemi craint le héros, à l'est. */
   function field() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
     useGame.setState({ party: [h] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

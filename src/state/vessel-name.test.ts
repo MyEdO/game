@@ -6,6 +6,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { findVehicleById } from '../data';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene } from '../noyau/monde/scene';
 import type { CampaignVessel } from '../noyau/etat';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 // #230 — le nom d'INSTANCE du navire de campagne (affichage) se propage aux coques spawnées.
 
@@ -49,7 +50,7 @@ describe('#230 — réconciliation combat : le nom d’instance ne touche QUE la
   });
 
   it('la coque « creatureId === vessel.vehicleId » prend le nom d’instance ; l’ennemie d’un autre vehicleId garde son label de type', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero], battle: null });
     useGame.getState().startScene(scene()); // remet le store à neuf → poser le vessel APRÈS
     useGame.setState({ vessel: vessel({ label: 'Le Cormoran' }) });

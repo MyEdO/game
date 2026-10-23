@@ -18,6 +18,7 @@ import { startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps } fr
 import { type SequenceParams, type SequenceRound, type SequenceVerdict } from '../noyau/sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /* ── (2) TABLE DE SCORE PAR PLAGE DE DR ──────────────────────────────────────────────────────────*/
 
@@ -117,7 +118,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
 
 describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arrête au bout de ses phases', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 1 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 1 });
     h.advantage = 0;
     useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     useGame.getState().seedRng(9);
@@ -271,7 +272,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
 
 describe('la BORNE tient compte des phases déclarées', () => {
   beforeEach(() => {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 2 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Jouteur', seed: 2 });
     useGame.setState({ battle: null, party: [h], journal: [], pendingCascade: null, sequence: null });
     useGame.getState().seedRng(4);
     passes.length = 0;

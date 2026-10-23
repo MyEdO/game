@@ -9,6 +9,7 @@ import { bonus, effectiveChar } from '../../engine/characteristics';
 import { setRule, resetRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * #38 — AA 07 l.5 : le Test de Résistance de l'Hémorragique à 0 PB, porté par le hook `aa-bleed-unconscious`
@@ -28,7 +29,7 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

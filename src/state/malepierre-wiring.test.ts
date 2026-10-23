@@ -16,13 +16,14 @@ import type { Combatant } from '../engine/types';
 import { evaluateTest } from '../engine/tests';
 import { castTestDRMods } from '../engine/magic';
 import { findSpellById } from '../data/index';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const RULE = 'magic-vdm-incantation';
 
 /** Sorcier quasi certain de réussir son Test d'Incantation (DR élevé) — isole le doublement du bruit
  *  du d100, comme les autres câblages de ce fichier (`sea-magic-state.test.ts`). */
 function sorcier(): Combatant {
-  const w = pregen(PREGEN.sorcier);
+  const w = pregen(idNeufDeBanc, PREGEN.sorcier);
   w.characteristics = { ...w.characteristics, intelligence: 95 };
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 40);
@@ -48,7 +49,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
 
   it('OFF (Livre de base) : le doublement reste ACTIF — règle INCONDITIONNELLE (`LDB 46 l.173`) — mais la réserve ne bouge JAMAIS (la finitude est un apport VDM seul)', () => {
     const w = sorcier();
-    const carried = itemFromTrappingById('malepierre-brute')!;
+    const carried = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     w.items = [carried];
     const res = rollWithMalepierre(w);
     expect(res.malepierreConsumed).toBeGreaterThan(0);
@@ -61,7 +62,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
   it('ON : le DR est doublé (bonus > 0) ET la réserve DÉCRÉMENTÉE au vrai confirm (`castConfirm`)', () => {
     setRule(RULE, true);
     const w = sorcier();
-    const carried = itemFromTrappingById('malepierre-brute')!;
+    const carried = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     w.items = [carried];
     useGame.setState({ party: [w] });
     useGame.getState().oocCastSpell(w.id, spellId, w.id);
@@ -81,7 +82,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     setRule(RULE, true);
     const w = sorcier();
     w.fortune = 1; // requis par `opBonusSL` pour dépenser la Chance
-    const carried = itemFromTrappingById('malepierre-brute')!;
+    const carried = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     w.items = [carried];
     useGame.setState({ party: [w] });
     useGame.getState().oocCastSpell(w.id, spellId, w.id);
@@ -100,9 +101,9 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
   it('une SECONDE malepierre reste ATTEIGNABLE une fois la première épuisée (jamais masquée pour toujours)', () => {
     setRule(RULE, true);
     const w = sorcier();
-    const epuisee = itemFromTrappingById('malepierre-brute')!;
+    const epuisee = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     epuisee.niReserve = 0;
-    const intacte = itemFromTrappingById('malepierre-brute')!;
+    const intacte = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     w.items = [epuisee, intacte];
     const res = rollWithMalepierre(w);
     expect(res.malepierreConsumed).toBeGreaterThan(0); // la SECONDE pierre est trouvée, pas ignorée en bloc
@@ -115,7 +116,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
   it('ÉPUISEMENT : réserve à 0 → plus de doublement, même option ON', () => {
     setRule(RULE, true);
     const w = sorcier();
-    const carried = itemFromTrappingById('malepierre-brute')!;
+    const carried = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     carried.niReserve = 0;
     w.items = [carried];
     const res = rollWithMalepierre(w);
@@ -124,7 +125,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
 
   it('« Se trouver à proximité d\'une malepierre » (LDB 19 l.40) : porter l\'objet expose le porteur aux Influences malveillantes, MÊME option OFF', () => {
     const w = sorcier();
-    w.items = [itemFromTrappingById('malepierre-brute')!];
+    w.items = [itemFromTrappingById('malepierre-brute', idNeufDeBanc)!];
     useGame.setState({ party: [w] });
     expect(castNearCorruption(useGame.getState)).toBe(true);
   });
@@ -132,7 +133,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
   it('LDB 46 l.173 « … entraîne une influence corruptrice » : câblée via le `corruptionExposure` DÉJÀ porté par l’entrée (réutilisé, pas un second chemin)', () => {
     setRule(RULE, true);
     const w = sorcier();
-    w.items = [itemFromTrappingById('malepierre-brute')!];
+    w.items = [itemFromTrappingById('malepierre-brute', idNeufDeBanc)!];
     useGame.setState({ party: [w], journal: [] });
     useGame.getState().oocCastSpell(w.id, spellId, w.id);
     useGame.getState().castRoll();
@@ -144,7 +145,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     setRule(RULE, true);
     const w = sorcier();
     w.resilience = 1; // requis pour ouvrir la Résilience (LDB 17 l.68)
-    const carried = itemFromTrappingById('malepierre-brute')!;
+    const carried = itemFromTrappingById('malepierre-brute', idNeufDeBanc)!;
     w.items = [carried];
     useGame.setState({ party: [w] });
     useGame.getState().oocCastSpell(w.id, spellId, w.id);

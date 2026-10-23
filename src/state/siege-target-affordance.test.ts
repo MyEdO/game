@@ -6,6 +6,7 @@ import { hoverTargeting } from '../noyau/targeting';
 import type { Scene } from '../noyau/monde/scene';
 import { testScene } from '../scenes/test-fixture';
 import type { Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * AFFORDANCE de ciblage joueur — une STRUCTURE de siège (mur Impénétrable, ADE II 8) n'est PAS une
@@ -25,7 +26,7 @@ function sceneWithStructure(structId: string): Scene {
 
 function start(structId: string, seed = 1) {
   useGame.getState().seedRng(seed);
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed });
   useGame.setState({ party: [hero] });
   useGame.getState().startScene(sceneWithStructure(structId));
   useGame.getState().startCombat('enc-mutants');
@@ -46,7 +47,7 @@ describe('Affordance — structures réservées aux armes de siège', () => {
   it('arme de mêlée ordinaire sur un Mur Impénétrable → aucun réticule (none) : le survol retombe sur le déplacement', () => {
     const { S, H } = start('mur-en-pierre');
     // Arme simple (épée, mêlée, SANS Atout Siège), au contact de la face de la structure.
-    const sword = itemFromTrappingById('arme-simple')!; sword.equipped = true;
+    const sword = itemFromTrappingById('arme-simple', idNeufDeBanc)!; sword.equipped = true;
     H.items = [sword]; H.loadouts = undefined; H.activeLoadoutId = undefined; recomputeLoadout(H);
     H.pos = { x: 1, y: 2 }; // adjacent à la face (2,2) de l'arête E
     expect(H.weapons.length).toBeGreaterThan(0); // sanity : une option d'arme existe

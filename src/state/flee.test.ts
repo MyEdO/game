@@ -10,6 +10,7 @@ import { stacks, hasCondition, COND } from '../engine/conditions';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from '../noyau/pendings';
 import { intentAllowedFor } from '../noyau/netOwnership';
 import { modalOwnerOf } from '../noyau/modalArbiter';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (LDB 15 l.68)', () => {
   const scene = emptyScene('scene-test', 14, 14);
@@ -42,7 +43,7 @@ describe('Fuite intégrée à la modale (store)', () => {
   });
 
   it('Fuir : coup dans le dos (témoin IA) + Test `fuite` DIFFÉRÉ (flux flee) ; fuite complétée au confirm, sans révélation', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
     useGame.getState().startScene(testScene());
@@ -89,7 +90,7 @@ describe('Fuite intégrée à la modale (store)', () => {
   });
 
   it("Fuir — Chance « +1 DR » réduit le nombre d'États Brisés sans réécrire `success` (LDB 17 l.24 ; LDB 12 l.11)", () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
     useGame.getState().startScene(testScene());
@@ -150,8 +151,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   /** Deux héros ENGAGÉS l'un contre l'autre (allié sous Frénésie/charme) : le frappeur est alors
    *  piloté-humain, ce qui rend son coup dans le dos INFLUENÇABLE (slot interactif). */
   function duelHeros(seed = 3) {
-    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const B = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const A = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const B = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     useGame.setState({ party: [A, B] });
     useGame.getState().seedRng(seed);
     useGame.getState().startScene(testScene());
@@ -263,7 +264,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   });
 
   it('100 % IA (ennemi qui fuit un ennemi) : résolution HEADLESS par le même flux, aucun pending qui traîne', () => {
-    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const A = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     useGame.setState({ party: [A] });
     useGame.getState().seedRng(6);
     useGame.getState().startScene(testScene());
@@ -298,7 +299,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
   // LDB 14 l.9 ; LDB 85 l.362.
   it('coup dans le dos d’un héros plus grand : le balayage suit, l’Action rendue à sa fermeture', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().seedRng(2);
     useGame.getState().startScene(testScene());
@@ -345,8 +346,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
   // LDB 15 l.63 ; LDB 85 l.362.
   it('IA plus grande qui frappe dans le dos un héros en fuite : le balayage suit', () => {
-    const A = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
-    const B = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
+    const A = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const B = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
     useGame.setState({ party: [A, B] });
     useGame.getState().seedRng(2);
     useGame.getState().startScene(testScene());

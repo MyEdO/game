@@ -6,6 +6,7 @@ import { makePregens } from '../../data/pregens';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { Combatant } from '../../engine/types';
 import { combatHighlightsView } from './highlightLayer';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 describe('combatHighlightsView — survol d’une entité SANS arme (#203 régression écran noir)', () => {
   it('ne lève pas, et ne produit AUCUNE bande de portée : une structure (porte, weapons: []) n’en a pas', () => {
@@ -35,8 +36,8 @@ describe('combatHighlightsView — survol d’une entité SANS arme (#203 régre
 describe('combatHighlightsView — anneaux de CANDIDATS, teinte déclarée par le mode', () => {
   /** Combat réel : héros actif (h1) + allié BLESSÉ adjacent (h2), deux ennemis. `over` patche `battle`. */
   function combat(over: Record<string, unknown> = {}) {
-    const hero = makePregens()[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-    const ally = makePregens()[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+    const hero = makePregens(idNeufDeBanc)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+    const ally = makePregens(idNeufDeBanc)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
     ally.wounds = { ...ally.wounds, current: ally.wounds.max - 3 }; // seul un blessé est soignable
     const e1 = spawnEnemy({ ref: 'brigand' }, 'e1', { x: 7, y: 6 });
     const battle = {

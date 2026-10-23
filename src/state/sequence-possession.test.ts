@@ -34,6 +34,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
 import { OPS_DIFFEREES } from '../noyau/combatEffects';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const NET0 = useGame.getState().net;
 const g = useGame.getState;
@@ -48,7 +49,7 @@ const parKind = (k: string) => etapes().find((s) => s.kind === k);
 function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number } = {}): { H: Combatant[]; E: Combatant[] } {
   const n = opts.heros ?? 1;
   const party = Array.from({ length: n }, (_, i) =>
-    createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
+    createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, seed: i + 1 }));
   useGame.setState({ party });
   g().startScene(testScene());
   g().startCombat('enc-mutants');

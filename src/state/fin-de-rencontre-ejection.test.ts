@@ -19,9 +19,10 @@ import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import type { BattleState } from '../noyau/etat';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 13 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 13 });
   h.id = id;
   h.pos = { x: 3, y: 3 };
   return h;

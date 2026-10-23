@@ -19,6 +19,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Flow } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { deFixe } from '../engine/dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Les ops du palier « −4 DR ou moins » de la rangée, telles que la donnée les déplie (même extraction
  *  que `src/engine/miscast-ops.test.ts`, qui éprouve le moteur — ici on éprouve le chemin du STORE). */
@@ -50,7 +51,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
 
   /** Héros ACTIF en combat, frappé par le palier de « Purifier la chair » — le journal de pose est rendu. */
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -60,7 +61,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     H.resolve = 1;
-    const pose = applyOps(H, opsDuPalier(), { rng: troisRounds, label: 'Purifier la chair' });
+    const pose = applyOps(H, opsDuPalier(), { idNeuf: idNeufDeBanc, rng: troisRounds, label: 'Purifier la chair' });
     useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null, pendingLogQueue: [] });
     return { H, pose };
   }

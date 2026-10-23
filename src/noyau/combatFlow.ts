@@ -16,7 +16,7 @@ import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './monde/tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
-import { programmer } from './plateforme';
+import { programmer, idNeuf } from './plateforme';
 import { facingToward, DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { rollWindsOfMagic, hasSecondeVue, windsModLine } from '../engine/windsOfMagic';
 import { setVesselHull, activeSeaPrecipitation } from './seaVoyageFlow';
@@ -1377,7 +1377,7 @@ export function startGrapple(_get: Get, set: SetFn, actor: Combatant, foe: Comba
 export function resolveGrappleWin(actor: Combatant, foe: Combatant, mode: 'damage' | 'entangle' | 'free', dr: number, forceRoll: number): string {
   const beforeW = foe.wounds.current;
   const beforeEmp = stacks(actor, COND.empetre);
-  applyOps(mode === 'free' ? actor : foe, GRAPPLE.win[mode], { rng: battleRng(), caster: actor, sl: dr, source: GRAPPLE_SOURCE });
+  applyOps(mode === 'free' ? actor : foe, GRAPPLE.win[mode], { idNeuf, rng: battleRng(), caster: actor, sl: dr, source: GRAPPLE_SOURCE });
   if (mode === 'damage') {
     const loc = locationLabel(hitLocationByShape(reverseRoll(forceRoll), foe.bodyShape), foe.bodyShape); // Localisation au lancer de Force (l.161)
     return tr('cs.grappleDamage', { name: actor.label, foe: foe.label, n: beforeW - foe.wounds.current, loc });
@@ -1844,7 +1844,7 @@ export function applyCriticalToTarget(
       revealLines.push(`  ↳ ${l}`);
       details.push({ text: l });
     };
-    applyOps(target, crit.ops, { rng: battleRng(), now: get().gameTime, location: loc, surLigne });
+    applyOps(target, crit.ops, { idNeuf, rng: battleRng(), now: get().gameTime, location: loc, surLigne });
     if (crit.desc) {
       log.push(`  ↳ ${crit.desc}`); // effet long terme journalisé, non simulé
       revealLines.push(`  ↳ ${crit.desc}`);
@@ -1871,7 +1871,7 @@ export function applyCriticalToTarget(
   // seul décide de la surface (porteur tenu → étape influençable ; sinon voie inline). Patron
   // `MiscastResult.testFlow` (`finishMiscast`). Létal : le RAW n'applique aucun effet supplémentaire (l'`applyOps`
   // ci-dessus est gaté pareillement) — le Test n'a plus d'objet.
-  if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { rng: battleRng(), label: crit.label });
+  if (crit.testFlow && !crit.lethal) routeTriggeredTest(get, set, target, target, crit.testFlow, { idNeuf, rng: battleRng(), label: crit.label });
   return crit.lethal; // « Mort » instantané → finalisé par le caller (sauvetage par Destin possible)
 }
 
@@ -1899,7 +1899,7 @@ export function applyHullCriticalToTarget(
   // Réfs data-driven : `navire`/`ship-criticals` (MDG, défaut) ou `navire-fluvial`/`river-criticals` (MSRC 7).
   // Les dés IMPOSÉS sont ceux que le moteur accepte déjà (`applyHullCritical`) : la recette s'en sert
   // pour atteindre une Localisation VOULUE sans chemin parallèle — le jeu applique le sien.
-  const outcome = applyHullCritical(target, crew, rig, battleRng(), forcedLocRoll, forcedCritRoll, {
+  const outcome = applyHullCritical(target, crew, rig, battleRng(), idNeuf, forcedLocRoll, forcedCritRoll, {
     locationTable: hull?.locationTable, criticalTable: hull?.criticalTable,
   });
   if (!outcome.marinId) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // MDG 13 l.584
@@ -1928,7 +1928,7 @@ export function applyHullCriticalToTarget(
     if (coup?.testFlow) {
       const victimes = coup.victims.map((id) => crew.find((c) => c.id === id)).filter(Boolean) as Combatant[];
       pushCombatStep(set, (index) => bandeTriggeredTest(
-        get, set, victimes, coup.testFlow!, `ship-crew-hit-${target.id}-${index}`, { rng: battleRng(), label: coup.label, hull: target },
+        get, set, victimes, coup.testFlow!, `ship-crew-hit-${target.id}-${index}`, { idNeuf, rng: battleRng(), label: coup.label, hull: target },
       ));
     }
   }
@@ -1973,7 +1973,7 @@ export function applyStructureCriticalToTarget(
   const outcome = rollStructureCritical(battleRng(), rolled.die);
   if (!outcome.entry.trivial) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // AA 07 l.79
   if (outcome.destroyed) target.effondree = true; // AA 10 l.127
-  applyOps(target, outcome.ops, { rng: battleRng() }); // Blessures supplémentaires (GameOp `wounds`, ignore BE+PA)
+  applyOps(target, outcome.ops, { idNeuf, rng: battleRng() }); // Blessures supplémentaires (GameOp `wounds`, ignore BE+PA)
   for (const l of outcome.log) log.push(l);
   if (outcome.note) log.push(`  ↳ ${outcome.note}`); // effets verbatim sur les personnes (débris/Tests), non simulés
   if (target.kind === 'hero' || ctx.attackerKind === 'hero') {
@@ -2713,7 +2713,7 @@ function appliquerLaTouche(
   }
   // LDB 14 l.159 — pose APRÈS `engage`.
   if (res.sansPrise === 'empoignade') {
-    applyOps(target, GRAPPLE.init, { rng: battleRng(), caster: attacker, source: GRAPPLE_SOURCE });
+    applyOps(target, GRAPPLE.init, { idNeuf, rng: battleRng(), caster: attacker, source: GRAPPLE_SOURCE });
     critLog.push(tr('cf.grappleInit', { name: attacker.label, foe: target.label }));
   }
   const ctxCrit: DeviationCtx = {
@@ -3773,7 +3773,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const gt = rollSansPilote(get, attacker, testValue(attacker, undefined, 'dexterite'), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
-    const lache = applyOps(attacker, [{ op: 'disarm' }], { rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD' });
+    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf, rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD' });
     if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('info', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'info', attacker.id)] } });
     return false;
   }
@@ -4695,6 +4695,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
   // que la même rangée porte (LDB 46 l.55-75, LDB 40 l.56-89).
   const opsCtx: OpsCtx = {
+    idNeuf,
     rng: battleRng(),
     label: m.label,
     now: get().gameTime,
@@ -5796,6 +5797,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     const baseClockMin = baseRounds == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
     const clockMin = baseClockMin != null ? baseClockMin * ocMult : null;
     lignes.push(...runCastFlow(get, set, cible, caster, spellFlowFor(spell.effects, 'target'), {
+      idNeuf,
       rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod),
       overcastDurationSteps: ch.overcastDurationSteps, chosenTableRolls: ch.chosenTableRolls,
       ...(rounds != null ? { defaultDurationRounds: rounds } : {}),
@@ -5812,7 +5814,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   {
     const dealt = Math.min(compte.compte.blessures, currentBefore);
     const lifeStealOps = spellOps(spell.effects, 'caster').filter((o) => o.op === 'lifeSteal');
-    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'spell', id: spell.id } }));
+    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'spell', id: spell.id } }));
   }
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
@@ -6140,6 +6142,7 @@ export function applyCast(
           // `on:'target'`) → `runCombatFlow` (exécuteur unique, after-aware) → applyOps. Les feuilles
           // `on:'caster'` sont appliquées à part.
           ...runCastFlow(get, set, t, caster, spellFlowFor(spell.effects, 'target'), {
+            idNeuf,
             rng: battleRng(),
             caster,
             label: spell.label,
@@ -6249,7 +6252,7 @@ export function applyCast(
     // (L'arc de zone des Cieux/Azyr est un `effects` AUTHORÉ du domaine — ciblage `on:{near:'victim'}` +
     //  op `wounds bypassArmour:'metal'` — dispatché par le `domainOnHitEffects` ci-dessus, plus de code dédié.)
     // Ops post-incantation au LANCEUR (Bête → Peur 1) — paramètre en données (DomainData.casterOps).
-    logLines.push(...domainCasterOps(caster, spell, battleRng()));
+    logLines.push(...domainCasterOps(caster, spell, battleRng(), idNeuf));
     // Effets sur le LANCEUR (op casterOps — Vol de vie « retirez tout État Exténué dont vous
     // souffrez », buffs de soi d'un sort offensif) : appliqués une seule fois par lancement.
     const castSpec = spell;
@@ -6271,6 +6274,7 @@ export function applyCast(
       const brutClockMin = base == null ? durationClockMinutes(spell.duration, caster, get().gameTime, battleRng()) : null;
       const clockMin = brutClockMin != null ? brutClockMin * durationMult : null;
       logLines.push(...runCastFlow(get, set, caster, caster, spellFlowFor(spell.effects, 'caster'), {
+        idNeuf,
         rng: battleRng(), caster, label: spell.label, now: get().gameTime, sl: slFor(caster), overcastDurationSteps, chosenTableRolls,
         ...(baseRounds != null ? { defaultDurationRounds: baseRounds } : {}),
         ...(clockMin != null ? { defaultUntilTime: get().gameTime + clockMin } : {}),
@@ -6615,7 +6619,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // borne quand `openSequence` suit) ; sinon voie inline de la porte, dont le journal est drainé ici.
   for (const c of battle.combatants) {
     if (c.dead) continue;
-    for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { rng: battleRng(), label: a.label });
+    for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { idNeuf, rng: battleRng(), label: a.label });
   }
   inlineLines.push(...drainPendingLog(get, set).map((e) => e.text));
   for (const c of battle.combatants) {
@@ -7786,7 +7790,7 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
   // CONSÉQUENCES de la branche réalisée, en ops dérivées de `psychology.json` — les MÊMES que la
   // surface annonce (`meta.onSuccess`/`onFail`). Le DR du jet est versé au contexte : la quantité
   // d'État de l'échec (`valuePerSL{onFailure}`) s'y résout, même arithmétique que `failConditionAmount`.
-  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR, round: battle?.round }), { rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
+  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR, round: battle?.round }), { idNeuf, rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
   if (res.mode === 'terreur') {
     // 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → État `failCondition` = Indice + |DR négatifs| ; devient
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.
@@ -8246,7 +8250,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       }
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines: string[] = rt.struggleDamage != null
-        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { rng: battleRng(), caster: enemy })
+        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { idNeuf, rng: battleRng(), caster: enemy })
         : [];
       const removed = recoveredStacks(netSL, stacks(enemy, action.state), success);
       if (removed > 0) removeCondition(enemy, action.state, removed);

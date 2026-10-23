@@ -11,6 +11,7 @@ import { validateScene } from '../noyau/validateScene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Effet `fall` — Chute (LDB 15 l.78-84) : 3 Dégâts par mètre + 1d10, réduits par le Bonus
@@ -21,7 +22,7 @@ describe('Effet fall — chute', () => {
   beforeEach(() => useGame.setState({ battle: null, partyPos: { x: 0, y: 0 } }));
 
   function loneHero() {
-    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
+    const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     h.wounds = { current: 40, max: 40 };
     useGame.setState({ party: [h] });
     return h;

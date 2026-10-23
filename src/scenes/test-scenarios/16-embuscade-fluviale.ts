@@ -3,6 +3,7 @@ import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 // Équipage de la barge amie = 2 héros du groupe (comme la vitrine navale). Les Critiques de coque MSRC 7
 // visent une PRÉSENCE NOMMÉE, pas « tout le monde » : Gréement (l.78) frappe `{stations:['pont']}`,
@@ -13,7 +14,7 @@ const CREW = [`pregen-${PREGEN.soldat}`, `pregen-${PREGEN.chasseur}`] as const;
 
 /** Le groupe de la vitrine, ses deux membres d'équipage postés SUR LE PONT (MSRC 07 l.78). */
 const groupe = (): Combatant[] =>
-  makeShowcaseParty().map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
+  makeShowcaseParty(idNeuf).map((h) => (CREW.includes(h.id as (typeof CREW)[number]) ? { ...h, shipStation: 'pont' } : h));
 
 /**
  * Embuscade fluviale (Mort sur le Reik – Compagnon, ch.5 + ch.12-13) — vitrine JOUABLE de la chaîne de

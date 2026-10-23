@@ -8,6 +8,7 @@ import { openAttackCascade, previewAttack, STANCE_BLOCK } from '../noyau/combatF
 import type { Combatant } from '../engine/types';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * POSTURE DE TIR PRÉ-ARMÉE (spec HUD combat §1a G5) — l'entrée `posture-tir` du registre cesse d'être
@@ -28,7 +29,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -156,7 +157,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -215,7 +216,7 @@ describe('G5 — posture « Dans le tas » (`intoCrowd`)', () => {
 
   /** `serre` : deux badauds AU CONTACT de la cible → groupe de 3 avec elle (seuil `crowdMod`). */
   function setup(serre: boolean) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

@@ -6,10 +6,11 @@ import { effectiveChar } from './characteristics';
 import { hasCondition, addClockCondition } from './conditions';
 import { applyOps } from './ops';
 import { deFixe, desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** Joue la MÉCANIQUE d'un résultat d'Ivresse (`drunkOps`) — reproduit `case 'intoxicate'` d'`applyOps`
  *  (`effectId:'ivresse'` marque les ActiveEffect posés, retirés en bloc par `soberUp`). */
-const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { rng: desDuTest, effectId: 'ivresse' });
+const applyDrunkOps = (c: Combatant, ops: import('./ops').GameOp[] | undefined) => applyOps(c, ops ?? [], { idNeuf: idNeufDeBanc, rng: desDuTest, effectId: 'ivresse' });
 
 function hero(E = 30): Combatant {
   return {

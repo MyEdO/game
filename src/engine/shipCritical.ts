@@ -14,6 +14,7 @@
  * récursion de Coque relèvent de la boucle de combat naval, qui connaît l'équipage du navire).
  */
 import { d10, d100, rollDice, parseDice, type RNG } from './dice';
+import type { FabriqueDId } from '../lib/entityId';
 import { findTableEntry } from './tables';
 import { applyOps, type GameOp } from './ops';
 import { shipHitLocation, type ShipRig, type ShipLocation } from './combat';
@@ -239,14 +240,14 @@ function crewHitVictims(hull: Combatant, crew: Combatant[], crewTarget: CrewTarg
  * touchés par un coup CERTAIN via `applyOps`) ; le RNG injecté sert au
  * SEUL tirage du poste (MDG 13 l.763), jamais à l'issue d'un Test.
  */
-export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCrewHit, rng: RNG): CrewHitOutcome {
+export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCrewHit, rng: RNG, idNeuf: FabriqueDId): CrewHitOutcome {
   const { victims, fermees } = crewHitVictims(hull, crew, crewHit.crewTarget, rng);
   const ids = victims.map((c) => c.id);
   if (crewHit.test) return { victims: ids, testFlow: crewHit.test, hits: [], stationsFermees: fermees };
   const ops = crewHit.ops ?? [];
   const hits: { crewId: string }[] = [];
   for (const sailor of victims) {
-    applyOps(sailor, ops, { rng, hull });
+    applyOps(sailor, ops, { rng, idNeuf, hull });
     hits.push({ crewId: sailor.id });
   }
   return { victims: ids, hits, stationsFermees: fermees };
@@ -262,7 +263,7 @@ export function applyCrewHit(hull: Combatant, crew: Combatant[], crewHit: ShipCr
  *    autant de marins exposés ; les Critiques de Coque supplémentaires (1d10…) sont résolus sur la coque.
  */
 export function applyHullCritical(
-  hull: Combatant, crew: Combatant[], rig: ShipRig, rng: RNG, forcedLocRoll?: number, forcedCritRoll?: number, opts?: HullCritOpts,
+  hull: Combatant, crew: Combatant[], rig: ShipRig, rng: RNG, idNeuf: FabriqueDId, forcedLocRoll?: number, forcedCritRoll?: number, opts?: HullCritOpts,
 ): HullCriticalOutcome {
   const set = shipCritSet(opts?.criticalTable);
   let hit = resolveShipCriticalHit(rig, rng, forcedLocRoll, forcedCritRoll, opts);
@@ -288,7 +289,7 @@ export function applyHullCritical(
   lines.push(crit.log);
   // Effets de coque en `GameOp` : États navals (Voie d'eau / En flammes) ET « Canon perdu » (op
   // `removeShipPoste`, qui démancipe le chef via `crew`). On capte leurs lignes de journal.
-  lines.push(...applyOps(hull, crit.ops, { rng, crew }));
+  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }));
 
   // Coup à l'équipage consécutif au Critique (`crewHit` data-driven) : l'équipage d'un poste tiré au
   // sort (MDG 13 l.763), les PRÉSENCES nommées (MDG 13 l.680/l.714/l.730/l.751, MSRC 07 l.78/l.82/
@@ -297,7 +298,7 @@ export function applyHullCritical(
   // l'appelant ouvre par la porte.
   let crewHitOut: (CrewHitOutcome & { label: string }) | undefined;
   if (crit.crewHit) {
-    const out = applyCrewHit(hull, crew, crit.crewHit, rng);
+    const out = applyCrewHit(hull, crew, crit.crewHit, rng, idNeuf);
     crewHitOut = { ...out, label: crit.label };
     for (const id of out.stationsFermees) lines.push(t('shipCrit.stationFermee', { loc: findShipStation(id)?.label ?? id }));
     if (out.hits.length) lines.push(t('shipCrit.crewTakes', { n: out.hits.length, label: crit.label }));
@@ -313,7 +314,7 @@ export function applyHullCritical(
   }
   for (let i = 0; i < crit.shrapnel && i < exposed.length; i++) {
     const sailor = exposed[i];
-    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng }));
+    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }));
     shrapnel.push({ crewId: sailor.id });
   }
   if (shrapnel.length) {
@@ -325,7 +326,7 @@ export function applyHullCritical(
   const extraHullCrits: ShipCriticalResolved[] = [];
   for (let i = 0; i < crit.extraHullCrits; i++) {
     const extra = rollShipCritical('coque', rng);
-    applyOps(hull, extra.ops, { rng });
+    applyOps(hull, extra.ops, { rng, idNeuf });
     extraHullCrits.push(extra);
   }
   if (extraHullCrits.length) lines.push(t('shipCrit.extraHull', { n: extraHullCrits.length }));

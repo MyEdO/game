@@ -20,6 +20,7 @@ import { withBourseMoney } from '../engine/bourse';
 import { spellMoney, toMoney } from '../engine/money';
 import { placeEntity } from './editor/editorState';
 import { creatureLabel } from '../data';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -160,7 +161,7 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
   let container: HTMLDivElement;
   let root: Root;
   const hero = (gold: number) =>
-    withBourseMoney(createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold, silver: 0, brass: 0 });
+    withBourseMoney(createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 }), { gold, silver: 0, brass: 0 }, idNeufDeBanc);
 
   beforeEach(() => {
     useGame.setState({

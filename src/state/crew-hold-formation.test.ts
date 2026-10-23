@@ -4,6 +4,7 @@ import { chooseEnemyAction, type EnemyTurnInput } from '../noyau/monde/ai';
 import { itemFromTrappingById } from '../engine/items';
 import { emptyScene } from '../noyau/monde/scene';
 import type { Combatant, ShipPoste } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #196 — un servant PNJ (`ai: true`) membre du crew d'un poste d'engin de siège ACTIF (bélier, batterie de
@@ -31,7 +32,7 @@ const mkHull = (poste: ShipPoste, pos = { x: 5, y: 10 }): Combatant =>
   }) as unknown as Combatant;
 
 const mkPoste = (crewIds: string[] = []): ShipPoste =>
-  ({ item: itemFromTrappingById('belier-ade2')!, crewIds });
+  ({ item: itemFromTrappingById('belier-ade2', idNeufDeBanc)!, crewIds });
 
 const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
   ({

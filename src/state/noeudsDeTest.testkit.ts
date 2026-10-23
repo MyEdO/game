@@ -33,6 +33,7 @@ import { battleRng } from '../noyau/battleRng';
 import { draineCascade } from './cascade.testkit';
 import { sceneLieu } from '../noyau/restFlow';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 const DATA = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'data');
 
@@ -102,6 +103,7 @@ export function noeudsDeTest(): Noeud[] {
  *  (défaut de `partyBest`) : une conséquence qui tombe sur h3 y est tombée par ROUTAGE. */
 export function groupeDeQuatre(): Combatant[] {
   return [1, 2, 3, 4].map((i) => createHero({
+    idNeuf: idNeufDeBanc,
     speciesId: 'humains-reiklander', careerId: 'soldat', label: `H${i}`, motivation: 'Sonde', seed: i, id: `h${i}`,
   }));
 }

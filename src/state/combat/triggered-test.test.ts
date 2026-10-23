@@ -9,6 +9,7 @@ import { DIFFICULTY_MODIFIERS } from '../../engine/types';
 
 import { testScene } from '../../scenes/test-fixture';
 import { resetCadence, setCadence } from '../../engine/cadence';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Mâchoires d'acier (LDB 10) en effet DÉCLENCHÉ `onGainCondition` data-driven, résolu cadence-aware
@@ -31,7 +32,7 @@ describe('Mâchoires d’acier — effet onGainCondition cadence-aware (brique t
   });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

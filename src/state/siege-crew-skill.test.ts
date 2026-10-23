@@ -5,6 +5,7 @@ import { crewedFireWeapon, simpleSoloFireWeapon } from '../engine/crewedWeapon';
 import { combatValue } from '../engine/combat';
 import { mannedPosteWeapon, itemFromTrappingById } from '../engine/items';
 import type { Combatant, ShipPoste, SkillInstance, Weapon } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * ARME D'ÉQUIPE — VALIDATION DE COMPÉTENCE D'ÉQUIPAGE & TIR EN SOLO (Aux Armes p.122-124).
@@ -43,7 +44,7 @@ const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
   ({ id: 'emplacement', name: 'Affût', kind: 'enemy', pos, conditions: [], weapons: [], wounds: { current: 30, max: 30 },
     advantage: 0, postes: [poste] }) as unknown as Combatant;
 
-const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId)!, crewIds });
+const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idNeufDeBanc)!, crewIds });
 const engineWeapon = (engineId: string): Weapon => mannedPosteWeapon(mkGunner('x', { x: 0, y: 0 }), mkPoste(engineId, ['x']))!;
 
 // ───────────────────────────────────────────────────────────────────────────────────────────────

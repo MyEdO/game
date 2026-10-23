@@ -21,6 +21,7 @@ import { tavernGameValue } from '../noyau/tavernFlow';
 import { activeSequence } from '../noyau/sequenceCore';
 import { ActiveModal } from './ActiveModal';
 import { ouvrirDialogue } from '../noyau/dialogue';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 const scenarioConstruit = scenario.construire();
 
 const PNJ = 'habitue-bras-de-fer';
@@ -35,7 +36,7 @@ beforeEach(() => {
   seedBattleRng(7);
   const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-bras-de-fer')!;
   useGame.setState({
-    party: pregenParty(PREGEN.soldat, PREGEN.chasseur),
+    party: pregenParty(idNeufDeBanc, PREGEN.soldat, PREGEN.chasseur),
     scene: scenarioConstruit.scene,
     screen: 'campaign',
     dialogue: ouvrirDialogue(g(), dlg, PNJ),

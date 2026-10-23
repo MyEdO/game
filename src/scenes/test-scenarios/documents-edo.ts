@@ -6,6 +6,7 @@ import type { DocumentNarratif, NarratifBlock } from '../../data/schemas/defs-sc
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { TestScenario } from './_shared';
 import type { DialogueChoice, DialogueNode, Scene } from '../../noyau/monde/scene';
+import { idNeuf } from '../../noyau/plateforme';
 
 /**
  * Recette des documents joueur de L'Ennemi dans l'Ombre (#679) : une liasse, dans un cabinet dédié,
@@ -135,6 +136,6 @@ export const scenario: TestScenario = {
   partyNote: 'Pré-tirés',
   construire: () => {
     const { documents } = paquetDuJeu(diligenceCampaign).narratif;
-    return { party: makePregens(), scene: construireScene(documents), narratif: construireNarratif(documents) };
+    return { party: makePregens(idNeuf), scene: construireScene(documents), narratif: construireNarratif(documents) };
   },
 };

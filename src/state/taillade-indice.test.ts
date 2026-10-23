@@ -21,10 +21,11 @@ import type { Combatant, Weapon } from '../engine/types';
 import { applyAttackResult } from '../noyau/combatFlow';
 import type { AttackResult } from '../engine/combat';
 import { avanceEtapeCascade } from './cascade.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** L'arme du catalogue, telle que le combat la porte (Atouts résolus depuis `trappings.json`). */
 function armeDuCatalogue(id: string): Weapon {
-  return weaponFromItem(itemFromTrappingById(id)!);
+  return weaponFromItem(itemFromTrappingById(id, idNeufDeBanc)!);
 }
 
 /** Nombre d'États Hémorragique portés (l'op `condition` empile la valeur du même État). */
@@ -59,7 +60,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   function setup() {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -238,7 +239,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
   afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
 
   it('une touche avec un fléau d’armes ouvre le choix « Renverser (2 Av) »', () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');
@@ -248,7 +249,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
     H.advantage = 3;
-    const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre')!); // Défensive, Taille, Déstabilisante
+    const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre', idNeufDeBanc)!); // Défensive, Taille, Déstabilisante
     emitCombatEvent('onHit', {
       get: useGame.getState, set: useGame.setState, battle: useGame.getState().battle!, self: H, sink: () => {},
       triggerCtx: { victim: E, weapon: arme, location: 'corps', woundsDealt: 3, attackType: arme.type, rng: battleRng() },

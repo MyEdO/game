@@ -5,6 +5,7 @@ import { createHero } from './character';
 import { adresseDeCreation } from './adresseDeCreation';
 import { testValue } from './skills';
 import type { Combatant, SkillInstance } from './types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #1342 L3 — VALIDITÉ ⊇ POOL sur les `specs[]` inline. Une entrée `pool: false` est VALIDE partout
@@ -50,6 +51,7 @@ describe('#1342 L3 — spécialisation hors pool : valide partout, jamais propos
 
   it('un héros créé sur « Savoir (Local) » stocke l\'id de la spécialisation', () => {
     const h = createHero({
+      idNeuf: idNeufDeBanc,
       speciesId: 'humains-reiklander', careerId: 'erudit', label: 'É', seed: 7,
       specChoices: { [adresseDeCreation.carriereCompetence(7)]: HORS_POOL.specId }, // erudit : « Savoir (Au choix) »
     });

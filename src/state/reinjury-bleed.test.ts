@@ -7,6 +7,7 @@ import { stacks } from '../engine/conditions';
 import { removeSurgicalTrauma } from '../engine/trauma';
 import type { AttackResult } from '../engine/combat';
 import type { Trauma } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * #190 — Réouverture (LDB 18 / AA 07) : tant qu'une plaie critique n'est pas recousue par Chirurgie,
@@ -27,7 +28,7 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
   });
 
   function setup(gate: Trauma) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

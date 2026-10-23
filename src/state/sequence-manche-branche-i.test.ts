@@ -12,6 +12,7 @@ import { monoStep } from '../noyau/rollSeam';
 import { startSequence, activeSequence } from '../noyau/sequenceCore';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from '../noyau/noyau.testkit';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 
 const get = useGame.getState.bind(useGame);
@@ -24,7 +25,7 @@ describe('#1595 — une manche résolue en branche I se clôt', () => {
   });
 
   it('porteur sans siège (héros conduit par l’IA) : la manche s’ouvre, se résout ET se clôt', () => {
-    const h = { ...createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'seq-otto' }), aiControlled: true };
+    const h = { ...createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'garde', label: 'Otto', motivation: 'x', seed: 12, id: 'seq-otto' }), aiControlled: true };
     set({ party: [h] } as never);
     const closes: number[] = [];
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeMancheI: () => undefined }, sequences: { ...tablesDuJeu().sequences, 'sonde-manche-branche-i': sequenceDeFixture<Record<string, never>>({

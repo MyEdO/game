@@ -3,6 +3,7 @@ import { endOfRound, pendingPlusExtensions, resolvePlusExtension, spellDurationP
 import type { ActiveEffect, Combatant } from './types';
 import { findSpellById } from '../data';
 import { desDuTest } from './dice.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * Durée « + » de fin de Round (LDB 47 l.311, #543) : « tous les Sorts marqués d'un « + » à la fin de
@@ -40,7 +41,7 @@ describe('spellDurationPlusSource — LDB 47 l.311, #543', () => {
 describe('tickDurations/endOfRound — gel à l’expiration au lieu du retrait (#543)', () => {
   it('un effet plus-éligible à 0 Round est GELÉ (awaitingExtension), pas retiré', () => {
     const c = dummy({ activeEffects: [plusEffect(1)] });
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idNeufDeBanc);
     expect(c.activeEffects).toHaveLength(1); // toujours présent
     expect(c.activeEffects![0].awaitingExtension).toBe(true);
     expect(pendingPlusExtensions(c)).toHaveLength(1);
@@ -48,7 +49,7 @@ describe('tickDurations/endOfRound — gel à l’expiration au lieu du retrait 
 
   it('un effet SANS marqueur expire NORMALEMENT (régression, retrait direct)', () => {
     const c = dummy({ activeEffects: [noPlusEffect(1)] });
-    const log = endOfRound(c, desDuTest);
+    const log = endOfRound(c, desDuTest, idNeufDeBanc);
     expect(c.activeEffects ?? []).toHaveLength(0);
     expect(log.join('\n')).toMatch(/se dissipe/);
     expect(pendingPlusExtensions(c)).toHaveLength(0);
@@ -80,7 +81,7 @@ describe('inventaire des sorts frenchy-bzh marqués « + » — non re-perdables
 describe('resolvePlusExtension — Test de Force Mentale (#543)', () => {
   it('succès → +1 Round, dégelé', () => {
     const c = dummy({ activeEffects: [plusEffect(1)] });
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idNeufDeBanc);
     const eff = pendingPlusExtensions(c)[0];
     const log = resolvePlusExtension(c, eff, true);
     expect(c.activeEffects).toHaveLength(1);
@@ -91,7 +92,7 @@ describe('resolvePlusExtension — Test de Force Mentale (#543)', () => {
 
   it('échec/refus → expiration NORMALE (retrait effectif)', () => {
     const c = dummy({ activeEffects: [plusEffect(1)] });
-    endOfRound(c, desDuTest);
+    endOfRound(c, desDuTest, idNeufDeBanc);
     const eff = pendingPlusExtensions(c)[0];
     const log = resolvePlusExtension(c, eff, false);
     expect(c.activeEffects ?? []).toHaveLength(0);
@@ -100,10 +101,10 @@ describe('resolvePlusExtension — Test de Force Mentale (#543)', () => {
 
   it('RÉPÉTABLE : une prolongation réussie ré-offre à l’expiration SUIVANTE (pas de compteur dédié)', () => {
     const c = dummy({ activeEffects: [plusEffect(1)] });
-    endOfRound(c, desDuTest); // Round 1 : expire → gelé
+    endOfRound(c, desDuTest, idNeufDeBanc); // Round 1 : expire → gelé
     resolvePlusExtension(c, pendingPlusExtensions(c)[0], true); // prolongé +1 Round
     expect(pendingPlusExtensions(c)).toHaveLength(0); // dégelé, actif de nouveau
-    endOfRound(c, desDuTest); // Round 2 : le Round prolongé s'écoule → re-propose
+    endOfRound(c, desDuTest, idNeufDeBanc); // Round 2 : le Round prolongé s'écoule → re-propose
     expect(pendingPlusExtensions(c)).toHaveLength(1);
   });
 });

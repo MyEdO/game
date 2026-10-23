@@ -1,5 +1,5 @@
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
-import { formeResolue, isCapeItem, isShieldItem, type SourceDeForme } from '../../../engine/items';
+import { formeResolue, isCapeItem, isShieldItem, type GabaritDObjet, type SourceDeForme } from '../../../engine/items';
 import type { Slot } from '../../../engine/authoringAppearance';
 import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
@@ -41,7 +41,7 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
 }
 
 export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), forme: formeResolue(w), bouclier: isShieldItem(w) });
-export const pieceDeDessin = (it: ItemInstance): PieceDeDessin => ({ ...projeter(it, CLES_PIECE), materiau: armourMaterial(it) });
+export const pieceDeDessin = (it: GabaritDObjet): PieceDeDessin => ({ ...projeter(it, CLES_PIECE), materiau: armourMaterial(it) });
 export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ forme: formeResolue(x) });
 
 /** Rang d'affichage des matériaux : la couche du DESSUS s'affiche (plaque sur maille sur cuir). */

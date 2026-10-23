@@ -24,13 +24,14 @@ import { ActiveModal } from './ActiveModal';
 import { CampaignView } from './CampaignView';
 import { cascadeDeTest } from '../state/cascade.testkit';
 import { cleDeFixture } from '../noyau/noyau.testkit';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
 function hero(id: string, label: string): Combatant {
-  const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 9 });
+  const h = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 9 });
   h.id = id;
   h.pos = { x: 5, y: 5 };
   return h;

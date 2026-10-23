@@ -6,6 +6,7 @@ import { CHROME_SLOTS, CHROME_ICON_MAX, tokenChrome } from './builders/tokenChro
 import { createHero } from '../engine/character';
 import type { IconId } from '../ui/icons';
 import type { Combatant } from '../engine/types';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * ALVÉOLES DU CHROME D'UN JETON — « rien ne bouge jamais » (état de l'art des interfaces de combat,
@@ -40,7 +41,7 @@ describe('Chrome de jeton — les alvéoles d’États sont RÉSERVÉES, jamais 
   });
 
   it('le rang tient dans SA réserve : le report « +N » occupe la dernière place', () => {
-    const c: Combatant = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
+    const c: Combatant = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
     c.conditions = [
       { id: 'aveugle', value: 1 }, { id: 'assomme', value: 1 }, { id: 'saignement', value: 1 },
       { id: 'terrifie', value: 1 }, { id: 'empoisonne', value: 1 },

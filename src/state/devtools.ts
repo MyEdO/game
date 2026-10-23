@@ -160,6 +160,7 @@ import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
 import { idDEntropie } from '../web/entropie';
+import { idNeuf } from '../noyau/plateforme';
 
 function entreeDeRecette(dataset: string, id: string): unknown {
   if (!(CLES_DE_DATASET as readonly string[]).includes(dataset))
@@ -1289,7 +1290,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const s = g();
       if (seed != null) s.seedRng(seed);
-      s.setParty(makeShowcaseParty()); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
+      s.setParty(makeShowcaseParty(idNeuf)); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
       s.setPendingCampaign(lancee);
       lancerCampagne(g, lancee, sceneId);
       s.setScreen('campaign');
@@ -1314,7 +1315,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const s = g();
       if (s.battle) return '✗ combat en cours — impossible d\'ouvrir un interlude (voir __wfrp.killEnemies())';
       if (s.interlude) return `interlude déjà ouvert (${Object.keys(s.interlude.perHero).length} héros) — écran 'interlude', à conduire à la main`;
-      if (!s.party.length) s.setParty(makeShowcaseParty()); // pas de groupe chargé → 4 piliers canoniques
+      if (!s.party.length) s.setParty(makeShowcaseParty(idNeuf)); // pas de groupe chargé → 4 piliers canoniques
       s.startInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';
@@ -1628,7 +1629,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!target) return `✗ « ${id} » introuvable dans le combat — voir __wfrp.battle()`;
       if (typeof n !== 'number' || !Number.isFinite(n)) return `✗ Dégâts « ${String(n)} » : un nombre fini est attendu`;
       const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
-      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { rng: battleRng(), caster });
+      const lines = applyOps(target, [{ op: 'wounds', amount: n }], { idNeuf, rng: battleRng(), caster });
       useGame.setState({
         battle: { ...s.battle, log: [...s.battle.log, ev('info', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('info', l))] },
       });
@@ -2043,8 +2044,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!weapon) return `✗ ${attacker.label} n'a pas d'arme active`;
       const parade = defender.weapons?.[0];
       if (!parade) return `✗ ${defender.label} n'a pas d'arme pour parer`;
-      if (!weapon.uid) weapon.uid = `dev-blade-${attackerId}`; // uid universel requis pour cibler la lame
-      if (!parade.uid) parade.uid = `dev-parry-${defenderId}`;
+      if (!parade.uid) return `✗ l'arme de parade de ${defender.label} n'a pas d'uid`;
       const pbt: PendingBladeTrap = { defenderId, attackerId, weapon, parryWeaponUid: parade.uid, defSL, roll: 33 };
       pushChoice(useGame.setState, choixPiegeLame(pbt, defender, attacker, parade));
       useGame.setState(touchActors);

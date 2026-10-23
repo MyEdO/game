@@ -18,6 +18,7 @@ import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { getStageFrame } from './spritePicker';
 import { BancRenderer, brancherArdoise, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -68,7 +69,7 @@ const capacites = (): string[] => (getStageFrame()?.aretes() ?? []).map((p) => p
 /** Combat : l'actif (héros, ou le premier ennemi si `actif = 'enemy'`) posté au sommet de la corniche. */
 function combat(actif: 'hero' | 'enemy' = 'hero') {
   vi.useFakeTimers();
-  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+  const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   useGame.setState({ party: [hero], net: NET0, battle: null });
   useGame.getState().startScene(testScene());
   useGame.getState().startCombat('enc-mutants');
@@ -93,7 +94,7 @@ function combat(actif: 'hero' | 'enemy' = 'hero') {
 
 describe('marqueurs de geste d’arête — l’écran monté répond comme l’action', () => {
   it('exploration : la chute est offerte, et ne l’est plus sous un dialogue ouvert', async () => {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({
       screen: 'campaign', scene: corniche(), mode: 'exploration', partyPos: sommet, party: [hero], battle: null, dialogue: null,
       explored: {}, facing: {}, camRot: 0, viewMode: 'iso', camEdge: false, povActive: false,

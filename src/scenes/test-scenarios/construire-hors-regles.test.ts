@@ -7,9 +7,13 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { testScenarios } from './index';
 import { resetRule, setRule } from '../../engine/policy';
 
-/** Le contenu construit, aux compteurs d'uid près : deux constructions successives numérotent à la suite. */
+/** Le contenu construit, aux ids neufs près : un id de la fabrique de la partie (`FabriqueDId`) est opaque et
+ *  neuf à chaque construction, un compteur local numérote à la suite. */
 const forme = (contenu: unknown): string =>
-  JSON.stringify(contenu, (_k, v) => (typeof v === 'function' ? 'fn' : v)).replace(/"(it|uid|c|e|n|p|ent|obj)-\d+"/g, '"$1-#"').replace(/-\d{3,}/g, '-#');
+  JSON.stringify(contenu, (_k, v) => (typeof v === 'function' ? 'fn' : v))
+    .replace(/"(it|hero|conjure)-[0-9a-z-]+"/g, '"$1-#"')
+    .replace(/"(uid|c|e|n|p|ent|obj)-\d+"/g, '"$1-#"')
+    .replace(/-\d{3,}/g, '-#');
 
 const aRegles = testScenarios.filter((sc) => sc.rules);
 

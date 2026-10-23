@@ -6,6 +6,7 @@ import { locationLabel, type Combatant } from '../engine/types';
 import { createHero } from '../engine/character';
 import { resetRule, setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /** LDB 17 l.68 ; LDB 18 l.53 ; #1595 c.6226467544. */
 const mk = (): Combatant =>
@@ -59,7 +60,7 @@ describe("attackSetCritLocation — « Je ne faillirai pas ! » sous (B) (LDB 17
 
   /** Le héros attaque une cible à `current` Blessures, `paBrasG` PA au Bras gauche et `autresPA` ailleurs, `chanceux` ou sous Mort subite ; la graine fait rater son jet. */
   function attaqueRatee(current: number, paBrasG = 0, autresPA = 0, chanceux = true) {
-    const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const hero = createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [hero] });
     useGame.getState().startScene(testScene());
     useGame.getState().startCombat('enc-mutants');

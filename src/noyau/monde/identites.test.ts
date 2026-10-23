@@ -12,6 +12,7 @@ import { narratifSchema, type NarratifBlock } from '../../data/schemas/defs-scen
 import { emptyScene } from './scene';
 import { useGame } from '../../state/store';
 import { runFlow } from '../combatEffects';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 const P27 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.114-125' } as const;
 const L127 = { book: 'ennemi-dans-l-ombre', page: 27, note: 'EDO 02 l.127' } as const;
@@ -35,7 +36,7 @@ const narratif = (): NarratifBlock => ({
 });
 
 const heros = (id: string, speciesId: string, sex?: 'M' | 'F') =>
-  ({ ...createHero({ speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex, build: 0.5 } } : {}) }), id });
+  ({ ...createHero({ idNeuf: idNeufDeBanc, speciesId, careerId: 'soldat', label: id, seed: 7, ...(sex ? { apparence: { sex, build: 0.5 } } : {}) }), id });
 
 const get = () => useGame.getState();
 const enVigueur = () => identitesResolues(get());

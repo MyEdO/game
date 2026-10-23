@@ -4,6 +4,7 @@ import { pregen, PREGEN } from '../../data/pregens';
 import { effectiveChar } from '../../engine/characteristics';
 import { skillBaseValue } from '../../engine/skills';
 import { charAbr } from '../../data';
+import { idNeufDeBanc } from '../../lib/entityId.testkit';
 
 /**
  * Contre-vérification au moteur (#498) : `combatantSections` (statbloc Codex/inspection) doit AFFICHER
@@ -12,7 +13,7 @@ import { charAbr } from '../../data';
  * CC) — un pregen SANS talent à charMod ne prouverait rien (effective === brute par coïncidence).
  */
 describe('combatantSections — affichage carac/compétence = moteur (#498)', () => {
-  const sigmund = pregen(PREGEN.soldat);
+  const sigmund = pregen(idNeufDeBanc, PREGEN.soldat);
 
   it('fixture pertinente : Sigmund porte un talent à charMod sur CC (effective > brute)', () => {
     expect(effectiveChar(sigmund, 'capacite-de-combat')).toBeGreaterThan(sigmund.characteristics['capacite-de-combat']);

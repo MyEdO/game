@@ -11,6 +11,7 @@ import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { idNeufDeBanc } from '../lib/entityId.testkit';
 
 /**
  * PORTE SECRÈTE — `EDO 08 l.404` (« Cette porte ne peut être découverte qu'après la réussite d'un Test
@@ -149,7 +150,7 @@ describe('porte secrète — enrôlement de sa Structure au combat (AA 10 l.94-1
     const s = structuredClone(testScene());
     s.walls = [{ x: 2, y: 2, side: 'E', door: true, closed: true, secret: SECRET, structure: 'solide-porte-en-bois' }];
     useGame.getState().seedRng(1);
-    useGame.setState({ party: [createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })] });
+    useGame.setState({ party: [createHero({ idNeuf: idNeufDeBanc, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })] });
     useGame.getState().startScene(reveler ? setDoorRevealed(s, 2, 2, 'E', 0, true) : s);
     useGame.getState().startCombat('enc-mutants');
     vi.clearAllTimers();
