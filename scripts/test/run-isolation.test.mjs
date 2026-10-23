@@ -28,7 +28,7 @@ import { PROLOGUE_DE_FAUX_VITEST, VITEST_DE_PARTIE } from './vitestDePartie.test
  *  `FAUX_VITEST_CODE`, ou attend indéfiniment sous `FAUX_VITEST_ATTENTE`. */
 const FAUX_VITEST =
   PROLOGUE_DE_FAUX_VITEST +
-  "if (process.env.TRACE_DOSSIER) fs.writeFileSync(traceDuCote(), JSON.stringify(process.argv.slice(2)))\n" +
+  "if (process.env.TRACE_DOSSIER) ecrireTrace(traceDuCote(), JSON.stringify(process.argv.slice(2)))\n" +
   "if (process.env.FAUX_VITEST_ATTENTE) setInterval(() => {}, 1000)\n" +
   "else process.exit(Number(process.env.FAUX_VITEST_CODE ?? 0))\n"
 
@@ -52,8 +52,11 @@ const fixturePartagee = (t) => {
   return { ...p, enumerer: () => suite }
 }
 
+/** Les traces ÉCRITES du dossier : une trace en cours (`.part`, `ecrireTrace`) n'en est pas une. */
+const tracesDe = (traces) => readdirSync(traces).filter((n) => n.endsWith('.json'))
+
 /** Les lancements tracés par le faux Vitest, côté node d'abord : `[côté, pid, argv]`. */
-const lancementsDe = (traces) => readdirSync(traces).sort((a, b) => (a.startsWith('node') ? 0 : 1) - (b.startsWith('node') ? 0 : 1))
+const lancementsDe = (traces) => tracesDe(traces).sort((a, b) => (a.startsWith('node') ? 0 : 1) - (b.startsWith('node') ? 0 : 1))
   .map((n) => [n.split('-')[0], Number(n.split('-')[1].slice(0, -5)), JSON.parse(readFileSync(join(traces, n), 'utf8'))])
 
 const relais = () => ['SIGINT', 'SIGTERM'].map((s) => process.listeners(s))
@@ -74,7 +77,7 @@ const espionDe = (vus, chemin) => (...a) => {
 const signalerAuxRelais = ({ traces, attendus, sig, avant, vus, etat, echeanceMs = 10000 }) => {
   const debut = Date.now()
   const guet = setInterval(() => {
-    if (readdirSync(traces).length !== attendus) return
+    if (tracesDe(traces).length !== attendus) return
     const poses = process.listeners(sig).filter((l) => !avant[sig === 'SIGINT' ? 0 : 1].includes(l))
     if (!poses.length && Date.now() - debut < echeanceMs) return
     clearInterval(guet)
@@ -109,7 +112,7 @@ test('lancerTests : annulation en cours relayée aux deux Vitest, atelier et ver
   const avant = relais()
   let nes
   const guet = setInterval(() => {
-    if (readdirSync(p.traces).length !== 2) return
+    if (tracesDe(p.traces).length !== 2) return
     nes = Date.now()
     controle.abort()
   }, 10)

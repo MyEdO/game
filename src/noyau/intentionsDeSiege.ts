@@ -132,9 +132,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   cascadeTableSetForcedRoll: 'invité',
   // DÉ NU (#1508) : les deux mêmes verbes pour l'autre lecture du même dé — même routage de possession.
   cascadeDieRoll: 'invité', cascadeDieSetForcedRoll: 'invité',
-  // désengagement : ouverture, jet, appliquer/fuir/annuler
+  // désengagement : ouverture, jet, appliquer/fuir
   disengageConfirmA: 'invité', disengageRoll: 'invité', disengageConfirm: 'invité',
-  disengageFlee: 'invité', disengageCancel: 'invité',
+  disengageFlee: 'invité',
   // « Au Contact » (LDB 62 l.176) : ouverture, jet, choix du vainqueur
   battleAuContact: 'invité', auContactRoll: 'invité', auContactConfirm: 'invité',
   auContactChoose: 'invité', auContactCancel: 'invité',
@@ -213,9 +213,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Identification + catalogue) ; `interludeCraftStart` engage l'ouvrage (setup, sans jet).
   interludeActivity: 'invité', interludeCraftStart: 'invité', interludeOrder: 'invité',
   interludeBank: 'invité', interludeWithdraw: 'invité',
-  // Jet d'Activité : verbes DÉRIVÉS (flux mono `activity`) ; l'application et l'annulation sont des
-  // actions de store hors `FLOW_VERBS`.
-  activityConfirm: 'invité', activityCancel: 'invité',
+  // Jet d'Activité : verbes DÉRIVÉS (flux mono `activity`, « Annuler » compris) ; l'application est une
+  // action de store hors `FLOW_VERBS`.
+  activityConfirm: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
@@ -309,7 +309,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `startInterlude`/`interludeEnd` sont `hôte` (l'hôte seul ouvre et clôt la période). */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
   'interludeActivity', 'interludeCraftStart', 'interludeOrder', 'interludeBank', 'interludeWithdraw',
-  'activityConfirm', 'activityCancel',
+  'activityConfirm',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */

@@ -50,9 +50,9 @@ import { rule } from '../engine/policy';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { resolveFrenzyEntry, spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
+import { refuserGeste } from './refusVisible';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -383,6 +383,8 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
   foeTR: (p: P) => TestResult | null | undefined;
   /** Le jet a-t-il été lancé ? Défaut : le jet de l'acteur est posé. */
   rolled?: (p: P) => boolean;
+  /** L'annulation métier du flux (`RollFlowSpec.onCancel`) ; absente, le teardown par défaut. */
+  onCancel?: RollFlowSpec<P>['onCancel'];
 }): RollFlowHandlers {
   const opposedPatch = (p: P, tr: TestResult): Partial<P> => {
     const foe = cfg.foeTR(p)!; // présent sur tous les chemins (resolve garde `foeTR != null` ; applyRoll = post-jet)
@@ -390,6 +392,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
   };
   return makeRollFlow<P>({
     key: cfg.key,
+    ...(cfg.onCancel ? { onCancel: cfg.onCancel } : {}),
     rolled: cfg.rolled ?? ((p) => cfg.actorTR(p) != null),
     actor: (s, p) => actorIn(s, cfg.actorId(p)),
     caps: { forced: true },
@@ -1166,6 +1169,14 @@ export const FLOWS = {
     rollActor: (s, actor) => rollMeleeDefender(actor, 'esquive', battleRng(), defenseDodgeMods(s, actor)), // Esquive du mover (= « attaquant »)
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk, // jet du foe FIGÉ (LDB 15 l.43-68)
+    // Renoncer : au menu seulement, refusé et dit au-delà (LDB 15 l.49, l.63 ; patron `castCancel`, #1031).
+    onCancel: (get, set, p) => {
+      if (p.phase !== 'choice') {
+        refuserGeste(get, set, t('disengage.refus.renoncerEngage', { name: actorIn(get(), p.moverId)?.label ?? p.moverId }));
+        return;
+      }
+      set({ pendingDisengage: null, pendingCascade: null });
+    },
   }),
 
   /**
@@ -2178,10 +2189,4 @@ function counterspellEngage(
   const grp = part.declared === 'soutenu' ? counterspellSoutenu(s, pcs) : null;
   for (const c of grp ? grp.unis : [actor]) c.dispelledThisRound = true;
   return true;
-}
-
-export function creerActionsDuJetDActivite(get: Get, set: Set) {
-  return {
-    activityCancel: () => FLOWS.activity.cancel(get, set),
-  } satisfies Partial<ActionsDuNoyau>;
 }

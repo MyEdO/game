@@ -3,6 +3,8 @@ import { buildRollFlowActions } from '../noyau/rollFlowSpecs';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
 import { COMBAT_INTENTS, MANUAL_COMBAT_INTENTS } from '../noyau/intentionsDeSiege';
 import type { Get, Set as SetFn } from '../noyau/flowTypes';
+import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
+import { sitesDeDelegueManuscrit } from '../../scripts/guards/lib/delegueDeVerbeManuscrit.mjs';
 
 /**
  * Garde de la SOURCE UNIQUE `FLOW_VERBS` (axe B) : prouve que les 3 miroirs d'un flux de jet — le TYPE
@@ -116,5 +118,27 @@ describe('câblage des flux de jet — source unique FLOW_VERBS', () => {
       .filter(([, w]) => w.verbs.includes('forceSuccess') && !w.verbs.includes('setForcedRoll'))
       .map(([prefix]) => prefix);
     expect(sans, 'flux à Résilience SANS choix du dé — déclarer son accesseur `die` puis le verbe').toEqual([]);
+  });
+
+  /** #2903 — un délégué `<prefix><Verbe>` se GÉNÈRE (`buildRollFlowActions`) : aucune action ne
+   *  rappelle le handler d'un verbe à la main, hors surface dérivée et hors possession par le porteur. */
+  describe('délégué de verbe manuscrit (`scripts/guards/lib/delegueDeVerbeManuscrit.mjs`)', () => {
+    const VERBES = new Set(ENTRIES.flatMap(([, w]) => w.verbs));
+    const site = (text: string) => sitesDeDelegueManuscrit({ rel: 'src/noyau/x.ts', text }, VERBES);
+
+    it('voit l’appel direct du handler d’un verbe, par nom de flux ou par index', () => {
+      expect(site('const a = { activityCancel: () => FLOWS.activity.cancel(get, set) };')).toEqual([{ ligne: 1, texte: 'FLOWS.activity.cancel(get, set)' }]);
+      expect(site('FLOW_HANDLERS[k].setForcedRoll(get, set, 12);').map((x) => x.texte)).toEqual(['FLOW_HANDLERS[k].setForcedRoll(get, set, 12)']);
+    });
+
+    it('laisse les membres d’un handler qui ne sont pas des verbes, et le générateur par paramètre', () => {
+      expect(site('FLOWS.reload.apply(get, { p });')).toEqual([]);
+      expect(site('const flow = FLOW_HANDLERS[prefix]; out[n] = () => flow[v](get, set);')).toEqual([]);
+    });
+
+    it('le code de production n’en porte aucun', () => {
+      const sites = readCorpus(['src']).flatMap((f) => sitesDeDelegueManuscrit(f, VERBES).map((x) => `${f.rel}:${x.ligne} ${x.texte}`));
+      expect(sites, 'délégué de verbe écrit à la main : porter le verbe dans `FLOW_VERBS` (le délégué se génère)').toEqual([]);
+    });
   });
 });
