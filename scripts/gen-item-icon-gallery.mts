@@ -28,7 +28,7 @@ const objets = trappingsInstanciables()
 const icone = (label: string, item: ItemInstance) => cell(label, React.createElement(ItemIcon, { item, size: 64 }));
 const weaponCells = objets.filter((it) => !isShieldItem(it)).flatMap((it) => {
   const choix = findTrappingById(it.trappingId!)?.formChoices ?? [];
-  return [icone(it.label, it), ...choix.filter((f) => f !== formeResolue(it)).map((f) => icone(`${it.label} · ${f}`, { ...it, formeChoisie: f }))];
+  return [icone(it.label, it), ...choix.filter((f) => f !== formeResolue(it)).map((f) => icone(`${it.label} · ${f}`, { ...it, apparence: f }))];
 });
 
 // Boucliers (art dédié à dégradés → ItemIcon injecte ses <defs>).

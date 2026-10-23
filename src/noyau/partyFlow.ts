@@ -5,7 +5,7 @@
  * Refacto pure — comportement préservé.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
-import { recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
+import { formeResolue, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, carriersCoLocated } from './monde/carrier';
@@ -38,7 +38,7 @@ import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost, verdictApprentissage } from '../engine/grimoire';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
+import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findApparenceById, findTalentById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
@@ -282,17 +282,17 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
-/** Change la FORME d'une arme ABSTRAITE (« Arme simple » → épée/hache/masse/marteau de guerre/demi-lance) :
- *  pose `item.formeChoisie` parmi les `formChoices` du trapping (forme hors-liste → no-op), puis recompute
- *  pour que l'arme active (si tenue) porte ce choix (`Weapon.formeChoisie`). Cosmétique RAW — toutes les formes d'une
- *  Arme simple partagent les mêmes stats (LDB 62). */
-export function choisirForme(_get: Get, set: Set, heroId: string, uid: string, forme: string): void {
+/** Choix d’une apparence admise ; la racine par défaut reste résolue au catalogue (#2113). */
+export function choisirApparence(_get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
-    const choices = findTrappingById(it.trappingId)?.formChoices;
-    if (!choices?.includes(forme)) return; // forme hors `formChoices` → ignorée
-    it.formeChoisie = forme;
+    const choix = findApparenceById(apparence);
+    if (!choix) return;
+    const racine = choix.forme ?? choix.id;
+    if (formeResolue({ trappingId: it.trappingId, apparence }) !== racine) return;
+    if (apparence === findTrappingById(it.trappingId)?.shape) delete it.apparence;
+    else it.apparence = apparence;
   });
 }
 
@@ -739,7 +739,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     setActiveLoadout: (heroId, id) => setActiveLoadout(get, set, heroId, id),
     setLoadoutSlot: (heroId, id, slot, uid) => setLoadoutSlot(get, set, heroId, id, slot, uid),
     transferItem: (uid, fromHeroId, toHeroId) => transferItem(get, set, uid, fromHeroId, toHeroId),
-    choisirForme: (heroId, uid, forme) => choisirForme(get, set, heroId, uid, forme),
+    choisirApparence: (heroId, uid, apparence) => choisirApparence(get, set, heroId, uid, apparence),
     grantXp: (heroId, amount) => grantXp(get, set, heroId, amount),
     buyCharAdvance: (heroId, char) => buyCharAdvance(get, set, heroId, char),
     buySkillAdvance: (heroId, skillId, spec) => buySkillAdvance(get, set, heroId, skillId, spec),

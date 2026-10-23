@@ -2004,7 +2004,7 @@
     "type": "primitives.manifest",
     "label": "formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
-    "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, `formeChoisie` parmi les `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
+    "concept": "FORME d'un objet porté résolue au catalogue courant par id stable (arme naturelle, arme invoquée `form`, racine de `apparence` admise par `shape` ou `formChoices`, `shape` du trapping) — l'UNIQUE résolution de forme, jamais recopiée dans une instance (#2113)",
     "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },

@@ -1239,7 +1239,7 @@ export interface TrappingData {
    *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
   shield?: true;
   /** Formes choisibles (racines de `apparences.json`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
-   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
+   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.apparence` ;
    *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
   /** Arme INHABITUELLE (ACE 12 l.17 « Entraînement avec une arme inhabituelle ») : exige la

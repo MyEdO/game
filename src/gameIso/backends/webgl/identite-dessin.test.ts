@@ -106,7 +106,7 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
     dessinChange: false,
     muter: (c) => void (c.weapons[0].qualities = [...c.weapons[0].qualities, { id: 'de-plaies-atroces' }]),
   },
-  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].formeChoisie = formeAlternative), dessinChange: true },
+  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = formeAlternative), dessinChange: true },
   { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',

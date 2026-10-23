@@ -451,9 +451,9 @@ export interface Weapon {
   /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
    *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par `formeResolue` (`engine/items`). */
   form?: string;
-  /** Forme CHOISIE par le joueur (`ItemInstance.formeChoisie`), propagée par `weaponFromItem`. La forme
-   *  dessinée se RÉSOUT par `formeResolue` (`engine/items`, #2113) ; absent = celle du catalogue. */
-  formeChoisie?: string;
+  /** Id du catalogue d’apparences porté par l’instance, propagé par `weaponFromItem`.
+   *  La forme dessinée se résout par `formeResolue` (#2113). */
+  apparence?: string;
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
    *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
@@ -1171,10 +1171,9 @@ export interface ItemInstance {
   /** PORTÉE MINIMALE de tir (bande, cf. `Weapon.minRangeBand`) — propagée à l'arme dérivée. Machines de
    *  siège à distance (ADE II 8 l.251/253). */
   minRangeBand?: RangeBandId;
-  /** Forme CHOISIE par le joueur parmi les `formChoices` du trapping (`choisirForme`), slug
-   *  `WeaponDef.slug`. Jamais une copie du catalogue : la forme dessinée se RÉSOUT par
-   *  `formeResolue` (`engine/items`, #2113) ; absent = `TrappingData.shape`. */
-  formeChoisie?: string;
+  /** Id du catalogue `apparences` : décision du joueur ou de l’auteur, ou défaut de naissance
+   *  distinct de la racine. Absent : racine de la `shape` courante, résolue par `formeResolue` (#2113). */
+  apparence?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
   /** Quantité (paquet de munitions, ex. « (12) » → 12). */
