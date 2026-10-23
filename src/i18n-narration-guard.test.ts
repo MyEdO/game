@@ -37,11 +37,11 @@ const SCAN_DIRS = ['src/engine', 'src/state', 'src/noyau'];
  *  hors-jeu. */
 const DEV_ONLY = new Set([
   'src/state/devtools.ts', // outillage `__wfrp` de la recette navigateur (docs/recette-navigateur.md)
-  // #1318 V8c₅ : export ASCII d'une scène — sa SEULE surface est la modale d'export de l'ÉDITEUR
-  // (`ui/editor/Editor.tsx`, consommateur unique) et sa sortie est un FICHIER SOURCE `.ts` commenté,
+  // #1318 V8c₅ : export ASCII d'une scène — ses surfaces sont la modale d'export de l'ÉDITEUR
+  // (`ui/editor/Editor.tsx`) et la console de recette (`state/devtools.ts`), et sa sortie est un FICHIER SOURCE `.ts` commenté,
   // recollé à la main par l'auteur de map (« `bind` (marqueurs → poses) … non réémis »). Une 2ᵉ langue
   // ne traduit pas du code d'authoring : même nature que `devtools.ts`, dispensé au même titre.
-  'src/state/sceneToAscii.ts',
+  'src/noyau/monde/sceneToAscii.ts',
 ]);
 
 /**

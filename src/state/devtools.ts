@@ -75,7 +75,7 @@ import { DIFFICULTY_LABELS } from '../engine/types';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
-import { sceneToAscii } from './sceneToAscii';
+import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';

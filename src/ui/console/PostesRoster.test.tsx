@@ -15,7 +15,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { describe, it, expect, afterEach } from 'vitest';
 import { PostesRoster, nextPinned } from './PostesRoster';
-import type { Poste } from '../../state/poste';
+import type { Poste } from '../../noyau/poste';
 import type { Combatant } from '../../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;

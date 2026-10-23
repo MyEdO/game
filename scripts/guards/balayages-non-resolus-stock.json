@@ -51,6 +51,12 @@
     },
     {
       "famille": "URL",
+      "fichier": "src/noyau/sequence-socle-naval.test.ts",
+      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
+      "occurrence": 1
+    },
+    {
+      "famille": "URL",
       "fichier": "src/state/action-atteignabilite.test.ts",
       "ref": "readFileSync : URL new URL(rel, import.meta.url)",
       "occurrence": 1
@@ -65,12 +71,6 @@
       "famille": "URL",
       "fichier": "src/state/roll-modal-invariant.test.ts",
       "ref": "readFileSync : URL new URL(f, import.meta.url)",
-      "occurrence": 1
-    },
-    {
-      "famille": "URL",
-      "fichier": "src/noyau/sequence-socle-naval.test.ts",
-      "ref": "readFileSync : URL new URL(fichier, import.meta.url)",
       "occurrence": 1
     },
     {

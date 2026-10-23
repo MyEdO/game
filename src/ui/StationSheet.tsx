@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { TopoScene } from '../gameIso/TopoScene';
-import type { Station } from '../state/stations';
+import type { Station } from '../noyau/stations';
 import type { Scene } from '../noyau/monde/scene';
 
 /**

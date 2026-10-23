@@ -10,7 +10,7 @@ import { scenario as operaPlan } from '../test-scenarios/opera-plan';
 import { tileAt, heightAt, isWalkable, wallBetween, type Scene } from '../../noyau/monde/scene';
 import { reachable, walkComponentAt, type Pt } from '../../noyau/monde/path';
 import { effectiveArchitecture } from '../../noyau/sceneEdit';
-import { unreachableDescriptiveZones, reachedFloors } from '../../state/mapQC';
+import { unreachableDescriptiveZones, reachedFloors } from '../../noyau/mapQC';
 import { scenePlanDefects } from '../../noyau/planDefects';
 import { METRES_PER_LEVEL } from '../../noyau/monde/relief';
 import { buildWalls } from '../../gameIso/builders/walls';

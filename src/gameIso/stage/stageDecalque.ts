@@ -19,7 +19,7 @@ import type { Dims } from '../../geometry/iso';
 import { materiauPlanTransparent } from '../backends/webgl/worldMaterials';
 import { withRenderRank } from '../backends/webgl/renderRanks';
 import { buildTraceQuad, TRACE_LIFT_M } from '../backends/webgl/traceQuad';
-import type { TraceTransform } from '../../state/traceCalibration';
+import type { TraceTransform } from '../../ui/editor/traceCalibration';
 
 /** La plaque telle que l'hôte la décrit (prop `decalque` de l'écran volumique). */
 export interface PlaqueDecalque {

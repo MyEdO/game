@@ -138,7 +138,7 @@ export interface PropMaterialData extends MatiereBase {
 export interface RoofMaterialDef extends MatiereBase {
   domain: 'roof';
   /** Ce matériau COUVRE-t-il un pan ? Seuls ceux-là sont posables sur une masse de toit (sélecteurs de
-   *  l'éditeur, `state/validateScene`). Absent = entrée de rendu qui ne couvre rien : le plan vu du
+   *  l'éditeur, `noyau/validateScene`). Absent = entrée de rendu qui ne couvre rien : le plan vu du
    *  dessus n'a ni pente ni égout. UNE seule graphie : le champ vaut `true` ou il est ABSENT — le
    *  schéma refuse `false` (`src/data/schemas/defs/materials.ts`). */
   couverture?: true;

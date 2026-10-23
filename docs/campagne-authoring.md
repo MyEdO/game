@@ -22,7 +22,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
   `src/scenes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/noyau/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
-  (`src/state/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
+  (`src/noyau/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
   confrontent le contenu. Un changement de forme réécrit les paquets commités dans le MÊME commit, par
   leur générateur ou, pour un paquet manuscrit, par un script one-shot non commité (#2404).
 - **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable

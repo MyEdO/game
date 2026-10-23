@@ -1,12 +1,12 @@
-import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene } from '../noyau/monde/scene';
+import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
-import { isRoomZone } from '../noyau/monde/rooms';
-import { footprintTiles, sizeFootprint } from '../noyau/monde/footprint';
-import { entitySize } from '../noyau/monde/spawn';
-import { METRES_PER_LEVEL } from '../noyau/monde/relief';
-import { realFloorAt } from '../noyau/sceneEdit';
+import { isRoomZone } from './monde/rooms';
+import { footprintTiles, sizeFootprint } from './monde/footprint';
+import { entitySize } from './monde/spawn';
+import { METRES_PER_LEVEL } from './monde/relief';
+import { realFloorAt } from './sceneEdit';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
@@ -17,18 +17,14 @@ import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
-// Registre des effets (réfs de validation `handler.refs`) — importé via le BARIL `combatFlow` (qui
-// ré-exporte combatEffects), comme le store : entrer le cycle d'effets/combat par le MÊME nœud
-// canonique préserve l'ordre d'évaluation (un import direct de `combatEffects` ici casse la
-// liaison vive `fireScheduledEffects` que le store lit du baril sous le bundler).
-import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from '../noyau/combatEffects';
-import { nomDEntite, sceneNpc } from '../noyau/monde/sceneNpc';
-import { presetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { placeServices, type WorldMap } from '../noyau/worldMap';
-import { allMusicDefs } from '../audio/music';
-import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from '../noyau/planDefects';
-import { seatAssignmentDefects } from '../noyau/monde/seating';
-import { memoByRefDeps } from '../noyau/monde/sceneMemo';
+// Registre des effets : les réfs que chaque handler valide (`handler.refs`).
+import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
+import { nomDEntite, sceneNpc } from './monde/sceneNpc';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { placeServices, type WorldMap } from './worldMap';
+import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
+import { seatAssignmentDefects } from './monde/seating';
+import { memoByRefDeps } from './monde/sceneMemo';
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -130,9 +126,10 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
 /**
  * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
- * zones hors-carte, ids dupliqués. PUR.
+ * zones hors-carte, ids dupliqués. `pistesDeMusique` : les ids des pistes que l'hôte sait jouer (son
+ * registre, `audio/music.ts` pour l'hôte web) ; sans elles, la musique d'une scène n'est pas jugée. PUR.
  */
-export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, pistesDeMusique?: ReadonlySet<string>): Warning[] {
   const presetDe = presetDuNarratif(narratif);
   const out: Warning[] = [];
   const sceneIds = new Set(project.map((s) => s.id));
@@ -187,7 +184,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       });
     }
   }
-  const musicIds = new Set(allMusicDefs().map((d) => d.id));
   for (const s of project) {
     const dlgIds = new Set(s.dialogues.map((d) => d.id));
     const encIds = new Set(s.encounters.map((e) => e.id));
@@ -226,8 +222,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       add('error', f.scope, f.element?.cle, messageDeFaute(f, faute.message), f.architectureRef);
     }
 
-    for (const [slot, v] of Object.entries(s.music ?? {}))
-      if (typeof v === 'string' && !musicIds.has(v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
+    if (pistesDeMusique) for (const [slot, v] of Object.entries(s.music ?? {}))
+      if (typeof v === 'string' && !pistesDeMusique.has(v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
 
     // Couches (`Scene.layers`) : ids d'étage valides pour rattacher les entités posées en hauteur.
     const layerZs = new Set(s.layers.map((l) => l.z));
@@ -245,7 +241,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // de bout en bout et tout le monde y flotte à bord. Mesuré sur les paquets livrés : les 3 scènes
     // d'abordage (10 m/case, 336 cases d'`eau`) rendaient 31 avertissements « non marchable », tous faux.
     const echelleDuPas = !isMerScene(s);
-    // CONNECTIVITÉ À PIED depuis le départ du groupe (`state/mapQC`, harnais #778 : la même marche que
+    // CONNECTIVITÉ À PIED depuis le départ du groupe (`noyau/mapQC`, harnais #778 : la même marche que
     // `walkNeighbors` au jeu). Une pièce nommée qu'aucun chemin ne rejoint est du contenu écrit pour rien.
     const start = startOf(s);
     const startEntity = s.entities.find((e) => e.kind === 'heroStart');

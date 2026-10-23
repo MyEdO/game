@@ -7,7 +7,7 @@ import { hasCondition } from '../engine/conditions';
 import { emptyScene, isWalkable, type Scene } from '../noyau/monde/scene';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
-import { validateScene } from './validateScene';
+import { validateScene } from '../noyau/validateScene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { draineCascade } from './cascade.testkit';
 import { t } from '../i18n';

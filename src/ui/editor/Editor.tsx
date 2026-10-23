@@ -2,7 +2,8 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
 import { resizeGrid, editEntity, TypeNonNomme } from '../../noyau/sceneEdit';
-import { validateScene, type Warning } from '../../state/validateScene';
+import { validateScene, type Warning } from '../../noyau/validateScene';
+import { idsDesPistesDeMusique } from '../../audio/music';
 import { planFocusTiles, type PlanDefectAt, type PlanDefectFamily } from '../../noyau/planDefects';
 import { testScene } from '../../scenes/test-fixture';
 import { creatures, premierOffert } from '../../data';
@@ -22,7 +23,7 @@ import { OpenProjectModal, SaveProjectModal, refusDeLaPorteDuProjet, refusMotive
 import { ChipDeRefus, type RefusRendu } from '../ChipDeRefus';
 import { projectSave, projectsLoad, projetDeLEntree, type EntreeListee } from '../../state/projectLibrary';
 import { downloadText } from '../../web/fileIo';
-import { sceneToAscii, type SceneAsciiExport } from '../../state/sceneToAscii';
+import { sceneToAscii, type SceneAsciiExport } from '../../noyau/monde/sceneToAscii';
 import { testScenarios, type TestScenario } from '../../scenes/test-scenarios';
 import { allBuiltinCampaigns, copieDuJeu, type BuiltinCampaign } from '../../scenes/campaign';
 import { WorldMap, parseProject, projetVersDepot, documentDeProjet, type ProjectDoc, type ProjectIdentite } from '../../noyau/worldMap';
@@ -42,7 +43,7 @@ import { Row } from '../Layout';
 import { TraceLayerPanel } from './TraceLayerPanel';
 import { useEditorAutosave } from './useEditorAutosave';
 import { autosaveDelete } from '../../state/editorAutosave';
-import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from '../../state/traceCalibration';
+import { advanceCalibration, identityTransform, nearestNode, type CalibProgress } from './traceCalibration';
 import {
   traceLayerLoad, takeCalqueEcarte, traceLayerSave, traceLayerDelete, panelExpandedLoad, panelExpandedSave, type TraceLayerRecord,
 } from '../../state/traceLayer';
@@ -640,7 +641,7 @@ export function Editor({
 
   // Avertissements de LA scène éditée + ceux de la carte du monde.
   const warnings = useMemo(
-    () => validateScene(scenesDuProjet, worldMap, narratif)
+    () => validateScene(scenesDuProjet, worldMap, narratif, idsDesPistesDeMusique())
       .filter((w) => w.sceneId === scene.id || w.scope === 'worldMap'),
     [scenesDuProjet, scene.id, worldMap, narratif],
   );
@@ -972,7 +973,7 @@ export function Editor({
     setAdvText(JSON.stringify({ dialogues: scene.dialogues, triggers: scene.triggers, encounters: scene.encounters }, null, 2));
     setAdvOpen(true);
   }
-  /** Export ASCII (grilles `walled`/`zoneMap` de la scène active, `state/sceneToAscii.ts`) — copiable/
+  /** Export ASCII (grilles `walled`/`zoneMap` de la scène active, `noyau/monde/sceneToAscii.ts`) — copiable/
    *  téléchargeable, prêt à coller dans un `*.ascii.ts` source. Voir `SceneAsciiExport.notRestored`
    *  pour ce que cet export NE restitue PAS (bind/cells/entities/architecture/…, cf. modale). */
   function exportAscii() {

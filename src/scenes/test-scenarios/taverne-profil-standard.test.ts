@@ -4,7 +4,7 @@ import { findSpeciesById } from '../../data';
 import { findTavernGameById } from '../../engine/tavernGame';
 import { sceneNpc } from '../../noyau/monde/sceneNpc';
 import { tavernGameValue, tavernNpcOffers } from '../../noyau/tavernFlow';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { presetPnjById } from '../../state/campaignData';
 const scenarioConstruit = scenario.construire();
 

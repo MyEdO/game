@@ -1,5 +1,5 @@
 /**
- * APPLICATION de la politique de visibilité (`state/visibility.ts`) en facteur multiplicatif de
+ * APPLICATION de la politique de visibilité (`noyau/visibility.ts`) en facteur multiplicatif de
  * couleur. La loi (qui est vu) est ailleurs et partagée ; ici ne vivent que le mappage état → teinte,
  * pris au catalogue d'ambiance (`AMBIANCE.fogTint`, donnée éditable), et son ÉCHANTILLONNAGE.
  *
@@ -11,7 +11,7 @@
  * coordonnées ENTIÈRES et retrouve exactement la valeur discrète. Hors carte, l'échantillon se rabat
  * sur le bord du champ : le pourtour de la carte ne s'assombrit pas d'un dehors inconnu.
  */
-import { visibilityOf } from '../../../state/visibility';
+import { visibilityOf } from '../../../noyau/visibility';
 import type { Visibility } from '../../../data/ambiance.types';
 import { AMBIANCE } from '../../catalog/ambiance';
 import type { TintAt } from './sceneMeshes';

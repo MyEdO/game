@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { buildScene, type MapSpec } from '../noyau/mapSpec';
-import { sceneToAscii } from './sceneToAscii';
+import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { labelEmplacement, type SeatAssignments } from '../noyau/monde/seating';
 import { PARTY_MAX } from '../noyau/monde/combatants';
-import { validateScene } from './validateScene';
+import { validateScene } from '../noyau/validateScene';
 
 /**
  * `MapSpec.seatAssignments` — l'authoring ASCII sait attabler, mais seulement des corps qu'il NOMME.

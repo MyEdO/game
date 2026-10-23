@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { buildScene } from '../noyau/mapSpec';
+import { buildScene } from './mapSpec';
 import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-pieces';
 import { reachableCells, unreachableDescriptiveZones, reachedFloors } from './mapQC';
-import { walkNeighbors, type Pt } from '../noyau/monde/path';
-import { startOf, type Scene } from '../noyau/monde/scene';
+import { walkNeighbors, type Pt } from './monde/path';
+import { startOf, type Scene } from './monde/scene';
 import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire();
 

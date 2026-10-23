@@ -1,21 +1,19 @@
 /**
- * STATIONS — index PUR des « postes » d'une scène pour une future vue top-down réutilisable : pièces d'artillerie
- * d'équipage (postes navals / emplacements de siège), et plus tard activités et scènes de bataille imbriquées.
- * Une Station est un point d'ancrage + une identité (label/icône/faction/équipage) ; AUCUN effet de règle — la
- * vérité mécanique reste la coque et ses `postes` (cf. `shipPostes.ts`). Module PUR (moteur + state pur, pas de store).
+ * STATIONS — index PUR des « postes » d'une scène pour la vue du dessus : pièces d'artillerie d'équipage (postes
+ * navals / emplacements de siège) et scènes de bataille imbriquées. Une Station est un point d'ancrage + une
+ * identité (label/icône/faction/équipage) ; AUCUN effet de règle — la vérité mécanique reste la coque et ses
+ * `postes` (cf. `monde/shipPostes.ts`). PUR.
  */
-import { isPosteManned } from '../noyau/monde/shipPostes';
-import { battleSceneById } from '../noyau/massBattleFlow';
+import { isPosteManned } from './monde/shipPostes';
+import { battleSceneById } from './massBattleFlow';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
-import type { Scene } from '../noyau/monde/scene';
+import type { Scene } from './monde/scene';
 
-export type StationKind = 'poste' | 'activity' | 'battleScene';
+export type StationKind = 'poste' | 'battleScene';
 
-/** Référence STABLE d'une Station vers son entité-source (l'union est figée dès maintenant ; seul `poste`
- *  est peuplé en phase 1, `activity`/`battleScene` viendront). */
+/** Référence STABLE d'une Station vers son entité-source. */
 export type StationRef =
   | { kind: 'poste'; hullId: string; posteUid: string }
-  | { kind: 'activity'; activityId: string }
   | { kind: 'battleScene'; sceneId: string };
 
 export interface Station {

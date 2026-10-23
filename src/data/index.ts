@@ -2551,7 +2551,7 @@ export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] 
   materials.filter((m): m is MatiereDe<D> => m.domain === domain);
 
 /** Matières POSABLES sur une masse de toit : les entrées de domaine `roof` que la DONNÉE déclare
- *  couvrantes (`couverture`) — SOURCE UNIQUE du validateur de scène (`state/validateScene.ts`) et des
+ *  couvrantes (`couverture`) — SOURCE UNIQUE du validateur de scène (`noyau/validateScene.ts`) et des
  *  sélecteurs de l'éditeur (`ui/editor/Inspector.tsx`), qui vivent dans deux couches et ne peuvent pas
  *  s'importer l'une l'autre. Lecture VIVANTE, comme `matieresDe`. */
 export const matieresCouvrantes = (): RoofMaterialDef[] => matieresDe('roof').filter((m) => m.couverture);

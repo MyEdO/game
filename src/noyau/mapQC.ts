@@ -3,9 +3,9 @@
  * en assertions MÉCANIQUES générales, réutilisables par le test de N'IMPORTE QUELLE scène (`buildScene`).
  * Node-safe (ZÉRO import ui/gameIso). RÉFUTE (échoue si une pièce est murée) plutôt que certifier.
  */
-import { walkReachableFrom } from '../noyau/monde/path';
-import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from '../noyau/monde/scene';
-import { zoneAreaTiles } from '../noyau/monde/zones';
+import { walkReachableFrom } from './monde/path';
+import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';
+import { zoneAreaTiles } from './monde/zones';
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 

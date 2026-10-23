@@ -14,7 +14,7 @@ import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { ThreatTier } from '../../engine/advantagePool';
 import { EMPTY_FLOW } from '../../engine/flowCore';
-import type { Warning } from '../../state/validateScene';
+import type { Warning } from '../../noyau/validateScene';
 import { nextEntityId } from '../../lib/entityId';
 import { removeMember, patchMember, flowEffectCount } from './editorState';
 import { LayerChip, sceneLayerZs } from './LayerField';

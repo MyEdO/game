@@ -33,7 +33,7 @@ describe('les teintes sont ANCRÉES sur la donnée de visibilité (`AMBIANCE.fog
   });
 });
 
-/** La TABLE DE VÉRITÉ de `visibilityOf` vit dans sa couche (`src/state/visibility.test.ts`) : ici on ne
+/** La TABLE DE VÉRITÉ de `visibilityOf` vit dans sa couche (`src/noyau/visibility.test.ts`) : ici on ne
  *  teste que l'APPLICATION — le mappage état → teinte. */
 describe('tintFor — l’APPLICATION : la politique, puis le mappage état → teinte', () => {
   const visible = new Set(['1,2,0']);

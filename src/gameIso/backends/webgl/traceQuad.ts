@@ -3,7 +3,7 @@
  * (`ui/editor`, #830), portée de la surcouche SVG au volume.
  *
  * ANCRAGE : ÉCRAN, comme la surcouche SVG qu'elle remplace — la sémantique ne change PAS. Le calage
- * (`state/traceCalibration.ts`) fige un `transform` dans le repère de PROJECTION, pas dans le monde :
+ * (`ui/editor/traceCalibration.ts`) fige un `transform` dans le repère de PROJECTION, pas dans le monde :
  * les coins MONDE calculés ici en sont l'INVERSE par la projection COURANTE, donc ils se déplacent
  * quand la vue tourne (mesuré : 62,17 m d'écart à un cran) et le quad se rebâtit à chaque changement
  * de cadrage pour retomber aux MÊMES pixels. La plaque reste donc collée à l'écran, exactement comme
@@ -19,7 +19,7 @@
 import * as THREE from 'three';
 import type { Dims } from '../../../geometry/iso';
 import { poseFromDims, screenToWorldAtLift } from '../../stage/projection';
-import type { TraceTransform } from '../../../state/traceCalibration';
+import type { TraceTransform } from '../../../ui/editor/traceCalibration';
 
 /** Coin de l'image (pixels natifs) → pixel ÉCRAN, par la MÊME transformation que le `<g>` SVG :
  *  `translate(tx,ty) rotate(deg) scale(k)`, appliquée dans cet ordre (droite à gauche sur le point). */

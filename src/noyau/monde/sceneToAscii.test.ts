@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildScene, type MapSpec } from '../noyau/mapSpec';
-import { heightAt, isDescriptiveZone, tileAt, type Scene, type SceneEffectZone } from '../noyau/monde/scene';
-import { sceneZoneTiles } from '../noyau/monde/zones';
+import { buildScene, type MapSpec } from '../mapSpec';
+import { heightAt, isDescriptiveZone, tileAt, type Scene, type SceneEffectZone } from './scene';
+import { sceneZoneTiles } from './zones';
 import { sceneToAscii } from './sceneToAscii';
-import { glypheDe, tousLesTerrains } from '../noyau/monde/terrain';
-import { setDataset } from '../data/overrides';
-import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
+import { glypheDe, tousLesTerrains } from './terrain';
+import { setDataset } from '../../data/overrides';
+import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
 
 /** Scène réelle la plus riche du dépôt (paquet éditeur : 32×38, 2 niveaux). */
 const diligenceScene = () => paquetDuJeu(diligenceCampaign).scenes[0];

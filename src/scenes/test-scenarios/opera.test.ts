@@ -1,6 +1,6 @@
 import { flowEffects, EMPTY_FLOW } from '../../engine/flowCore';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { isWalkable, layerTiles } from '../../noyau/monde/scene';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import { pathTo } from '../../noyau/monde/path';

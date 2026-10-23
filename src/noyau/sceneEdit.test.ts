@@ -26,7 +26,7 @@ import {
   toitureEffective,
 } from './sceneEdit';
 import { PARTY_MAX } from './monde/combatants';
-import { validateScene } from '../state/validateScene';
+import { validateScene } from './validateScene';
 import { estAbsent, terrainAbsent } from './monde/terrain';
 import { perimeterWallSegs } from '../state/sceneEdit.testkit';
 import { stairFlightCells } from './planDefects';

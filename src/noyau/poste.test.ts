@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { activityAsPoste, crewRoleAsPoste, stationAsPoste, reposAsPoste, postesOccupes, type Poste } from './poste';
-import { BENCHED } from '../noyau/shipCrew';
+import { BENCHED } from './shipCrew';
 import type { Combatant } from '../engine/types';
 import { activitiesFor } from '../engine/activities';
 import { crewRoles, findCrewRoleById, findShipStation, shipStations } from '../data';

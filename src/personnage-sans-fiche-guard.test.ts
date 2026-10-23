@@ -37,7 +37,7 @@ const GARDE = {
 /** Les tests dont le personnage sans fiche est le SUJET (refus, transition jugée) — le littéral fautif
  *  est ce qu'ils prouvent. */
 const SANS_FICHE_PROUVES: readonly { fichier: string; it: string }[] = [
-  { fichier: 'src/state/validateScene-contenu.test.ts', it: 'un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)' },
+  { fichier: 'src/noyau/validateScene-contenu.test.ts', it: 'un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)' },
   { fichier: 'src/state/spawn-fallback.test.ts', it: 'une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité' },
   { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`' },
   { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)' },

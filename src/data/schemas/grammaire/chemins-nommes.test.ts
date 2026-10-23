@@ -8,7 +8,7 @@ import { mesurerCheminsNommes } from '../../../../scripts/guards/lib/cheminsNomm
 import { emptyScene } from '../../../noyau/monde/scene';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
-import { validateScene } from '../../../state/validateScene';
+import { validateScene } from '../../../noyau/validateScene';
 import { refusDeLaPorteDuProjet } from '../../../ui/editor/ProjectModals';
 import { gameOpSchema } from './mecanique';
 import { listeCle } from './collection-cle';

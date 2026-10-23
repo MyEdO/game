@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { shipStations, findShipStation, findNavalTrait } from '../data';
-import { stationAsPoste } from '../state/poste';
+import { stationAsPoste } from '../noyau/poste';
 import { shipStationOuverte } from '../engine/shipCritical';
 import type { NavalTraitRef } from '../engine/types';
 import { PostesRoster } from './console/PostesRoster';

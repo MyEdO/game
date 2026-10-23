@@ -1,8 +1,7 @@
 /**
  * Calage 2 POINTS d'un calque de référence (planche de livre décalquée dans l'éditeur, #830) —
- * géométrie PURE, aucune dépendance React/DOM (couche `state`, jamais `ui` — règle 3 : `state/
- * traceLayer.ts` en a besoin pour typer sa persistance, et l'UI de l'éditeur la consomme comme
- * n'importe quel autre module `state`). Le calque est affiché via une transformation SIMILITUDE
+ * géométrie PURE, aucune dépendance React/DOM, de l'atelier de cartes (`COUCHES` : `state/traceLayer.ts`
+ * en lit le type pour sa persistance). Le calque est affiché via une transformation SIMILITUDE
  * (translation + échelle uniforme + rotation), qui se déduit ENTIÈREMENT de deux points repérés sur
  * l'image et du NŒUD de grille correspondant pour chacun (méthode standard des tables virtuelles) :
  * plus de curseurs à tâtonner à la main.

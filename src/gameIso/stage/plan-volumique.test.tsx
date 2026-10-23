@@ -7,7 +7,7 @@ import { planLights, setPlanRendererFactory, HEURE_INERTE, PLAN_PLAT, type PlanR
 import { viewPolicy } from './viewPolicy';
 import { stageLightScalars, stageLights } from './stageLights';
 import { emptyScene, type Scene } from '../../noyau/monde/scene';
-import type { Station } from '../../state/stations';
+import type { Station } from '../../noyau/stations';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 
 /**

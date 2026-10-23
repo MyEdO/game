@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { evalCondition, flowHasTest, flowEffects } from '../../engine/flowCore';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { useGame } from '../../state/store';
 import { runFlow, assignGearAt } from '../../noyau/combatEffects';
 import { layerTiles } from '../../noyau/monde/scene';

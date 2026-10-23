@@ -18,13 +18,13 @@
  * ce contenu — d'où l'avertissement explicite en tête de `text` et l'exigence de ne coller QUE les
  * grilles/legend/wallLegend/zoneLegend/relief dans le fichier `*.ascii.ts` + `*.ts` d'origine.
  */
-import { tableTotale } from '../lib/tableTotale';
-import type { Scene, SceneEffectZone, WallOverlay, WallSeg } from '../noyau/monde/scene';
-import type { Terrain } from '../data/schemas/defs-scenes/scene';
-import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from '../noyau/monde/scene';
-import { sceneZoneTiles } from '../noyau/monde/zones';
-import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from '../noyau/monde/terrain';
-import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../data/schemas/grammaire/carte-ascii';
+import { tableTotale } from '../../lib/tableTotale';
+import type { Scene, SceneEffectZone, WallOverlay, WallSeg } from './scene';
+import type { Terrain } from '../../data/schemas/defs-scenes/scene';
+import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
+import { sceneZoneTiles } from './zones';
+import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from './terrain';
+import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../../data/schemas/grammaire/carte-ascii';
 
 /** Alphabet BRUT de l'allocateur, moins les mots de la grammaire du plan (`carte-ascii.ts`). Les
  *  glyphes DÉCLARÉS par la donnée (`terrains.json › ascii`) en sont retirés à chaque export : ils
@@ -324,7 +324,7 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
   ];
 
   const header =
-    `// ATTENTION — EXPORT PARTIEL (state/sceneToAscii.ts) — grilles walled/zoneMap + legend/wallLegend/zoneLegend/relief SEULEMENT.\n` +
+    `// ATTENTION — EXPORT PARTIEL (noyau/monde/sceneToAscii.ts) — grilles walled/zoneMap + legend/wallLegend/zoneLegend/relief SEULEMENT.\n` +
     `// Ne PAS écraser le fichier *.ts source avec ceci : ce texte ne restitue PAS ${notRestored.length} catégorie(s) de contenu\n` +
     `// (liste ci-dessous). Ne remplacez QUE les constantes de grilles (*_ASCII/*_ZONES) et les tables\n` +
     `// (legend/wallLegend/zoneLegend/relief) dans le fichier source, en gardant intact tout le reste du MapSpec.\n` +

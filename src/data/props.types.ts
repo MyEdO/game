@@ -57,7 +57,7 @@ import type { PropMaterialData } from './materials.types';
  * rend en billboard d'ERREUR (`gameIso/builders/props.ts`, #877) sans lever. La chaîne : le schéma de
  * scène la refuse au parse (`schemas/defs-scenes/scene.ts`), `changePropRef` la fait retomber au cap
  * d'identité (`ui/editor/propDefaults.ts`), le sélecteur d'orientation ne l'offre pas
- * (`ui/editor/Inspector.tsx`), `state/validateScene.ts` la nomme à l'écran. PURE.
+ * (`ui/editor/Inspector.tsx`), `noyau/validateScene.ts` la nomme à l'écran. PURE.
  */
 export function capVolumique(facing: Dir8 | undefined): Dir4 | undefined {
   const cap = facing ?? CAP_IDENTITE_PROP;
@@ -96,7 +96,7 @@ export function rotatePropLocal(x: number, y: number, facing: Dir8): [number, nu
  * LE CAP DE CE DÉCOR EST-IL ADMIS ? Règle de décor, écrite UNE fois : un décor dont le type porte une
  * recette volumique ne prend qu'un cap CARDINAL (#1680 ligne 3) ; un billboard prend les huit, et une
  * entité sans cap n'en discute pas. Vit en `src/data` parce que son premier lecteur est le SCHÉMA de
- * scène (`schemas/defs-scenes/scene.ts`, refus au parse, que `state/validateScene.ts` nomme à
+ * scène (`schemas/defs-scenes/scene.ts`, refus au parse, que `noyau/validateScene.ts` nomme à
  * l'éditeur) ; ses autres lecteurs — `capVolumique` ci-dessus et `ui/editor/propDefaults.ts` —
  * dépendent de `src/data`, jamais l'inverse (règle 3, #421). PURE.
  */
