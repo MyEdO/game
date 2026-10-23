@@ -105,7 +105,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  règle optionnelle `fortune-mid-session` en mode 'manual'). Réutilise l'Effet `restoreFortune`
    *  (logique partagée via `engine/fortune.restoreFortune`) — pas de duplication. */
   restoreFortuneNow: () => void;
-  activityCancel: () => void;
   activityConfirm: () => void;
   /** Amorce une bataille de masse et bascule sur sa vue. */
   startMassBattle: (spec: MassBattleSpec) => void;
@@ -739,14 +738,13 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   battleDisengage: () => void;
   disengageConfirmA: () => void; // Sacrifier l'Avantage
   disengageRoll: () => void; // Esquiver (lance le Test opposé)
-  // disengage{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
+  // disengage{Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll,Cancel} : générés (RollFlowActionsMap).
   // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
   // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
   disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
   disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Test `fuite` du fuyard)
   // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
   fleeConfirm: () => void; // Appliquer : coup dans le dos (applicateur canonique) + États Brisés + libération/Course
-  disengageCancel: () => void;
   /** « Au Contact » (LDB 62 l.176, Option « Longueur d'arme ») : Test opposé de Corps à corps + choix du vainqueur. */
   battleAuContact: (targetId: IdDeCombattant) => void;
   auContactRoll: () => void; // Lancer le jet de Corps à corps du mover (Test opposé)

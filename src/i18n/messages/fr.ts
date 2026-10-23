@@ -965,6 +965,7 @@ export const fr = {
   'out.frenzyEnter': '{name} entre en Frénésie : +1 BF, immunité psy, attaque obligatoire.',
   'out.frenzyNo': '{name} reste de marbre — le sang ne monte pas ce tour.',
   'out.disengageSuccess': 'Désengagé ! (+1 Avantage)',
+  'disengage.refus.renoncerEngage': 'Renoncement refusé : {name} a déjà engagé son Désengagement, il se joue jusqu’au bout.',
   'out.disengageTie': 'Échange neutre — reste au contact',
   'out.disengageFail': "Échec — l'adversaire gagne l'Avantage",
   'out.disengageFlee': "Fuite ! {hit}Puis Course, si tu en es encore capable.",

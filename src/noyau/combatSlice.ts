@@ -800,7 +800,6 @@ export function createCombatSlice(get: Get, set: Set) {
       if (seq.participants.length > stepsBefore) get().cascadeNext(); // conséquence APPENDUE → avancer dessus
       else set({ pendingCascade: null }); // rien d'empilé : la cascade-hôte du Désengagement se ferme
     },
-    disengageCancel: () => set({ pendingDisengage: null, pendingCascade: null }), // renonce avant tout jet : aucun coût
 
     // ── « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`) :
     //    Test opposé de Corps à corps mover vs foe pour entrer dans la longueur d'arme ; le VAINQUEUR
