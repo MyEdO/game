@@ -1,5 +1,5 @@
 // Le contrat d'asset d'un personnage 3D modulaire (#2948) : lecture du GLB, validation du manifeste, import, Release.
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -249,7 +249,7 @@ describe('importerPersonnage', () => {
     expect(r.ok && r.publies).toEqual([]);
   });
 
-  it.each<[string, () => string, RegExp]>([
+  it.each<[string, () => string, RegExp | string]>([
     ['un manifeste d’un autre GLB', () => dossierDeProduction(() => {}, '0'.repeat(64)), /^empreinte SHA-256 du GLB [0-9a-f]{64}, manifest\.json déclare 0{64}$/],
     ['un manifeste sans empreinte', () => dossierDeProduction((m) => { delete (m as { model_sha256?: string }).model_sha256; }), /, manifest\.json déclare undefined$/],
     ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.components.bouclier.label_fr = '/home/x/bouclier'; }), /chemin-absolu/],
@@ -270,16 +270,18 @@ describe('importerPersonnage', () => {
       rmSync(join(d, MANIFESTE_DE_PRODUCTION));
       return d;
     }, /^fichier de production absent : manifest\.json$/],
-    ['un GLB que le manifeste nomme, absent du dossier', () => {
+    ...([
+      ['un GLB que le manifeste nomme, absent du dossier', 'character.glb'],
+      ['un model qui sort du dossier', '../animated.glb'],
+      ['un model « .. »', '..'],
+      ['un model « . »', '.'],
+      ['un model qui nomme un sous-dossier', 'sous'],
+    ] as const).map(([cas, model]): [string, () => string, string] => [cas, () => {
       const d = dossierDeProduction();
-      writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...production(), model: 'character.glb', model_sha256: EMPREINTE }));
+      mkdirSync(join(d, 'sous'));
+      writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...production(), model, model_sha256: EMPREINTE }));
       return d;
-    }, /^fichier de production absent : character\.glb, que manifest\.json nomme$/],
-    ['un model qui sort du dossier', () => {
-      const d = dossierDeProduction();
-      writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...production(), model: '../animated.glb', model_sha256: EMPREINTE }));
-      return d;
-    }, /model « \.\.\/animated\.glb », nom de fichier du dossier attendu/],
+    }, `${MANIFESTE_DE_PRODUCTION} : model « ${model} », fichier du dossier de production attendu`]),
     ['deux sources .blend', () => {
       const d = dossierDeProduction();
       writeFileSync(join(d, 'a.blend'), 'a');

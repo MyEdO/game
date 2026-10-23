@@ -69,12 +69,17 @@ def tetes(manifest):
     return ids or [None]
 
 
+def combinaison(head, preset):
+    """Le libellé d'une combinaison tête × preset, commun aux planches et au rapport de réimport."""
+    return f'{head or "sans-tete"}-{preset}'
+
+
 def manifest_selection(meshes, manifest, head=None, preset=None):
     if manifest is None:
         return list(meshes)
     tetes(manifest)
     selected_head = head or manifest['default_head']
-    selected = set(manifest['presets'][preset] if preset else manifest['defaults'])
+    selected = set(manifest['presets'][preset]['components'] if preset else manifest['defaults'])
     selected.add('body')
     if selected_head is not None:
         selected.add(selected_head)
@@ -229,7 +234,7 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
                     samples.append({'fraction': fraction, 'floor_m': floor, 'neck_seam_error_m': seam_error,
                                     'neck_seam_normal_degrees_lbs': skin_normal,
                                     'blender_modifier_neck_normal_degrees': seam_normal, 'passed': passed})
-                results[f'{head}/{preset}/{alias}'] = {'visible': [obj.name for obj in visible], 'samples': samples}
+                results[f'{combinaison(head, preset)}/{alias}'] = {'visible': [obj.name for obj in visible], 'samples': samples}
     manifest_selection(meshes, manifest)
     return results
 
@@ -606,7 +611,7 @@ def run(args):
         for head in tetes(manifest):
             for preset in manifest['presets']:
                 manifest_selection(meshes, manifest, head, preset)
-                planche_qa(bpy, rig, actions, output, f'{head or "sans-tete"}-{preset}')
+                planche_qa(bpy, rig, actions, output, combinaison(head, preset))
         manifest_selection(meshes, manifest)
     else:
         planche_qa(bpy, rig, actions, output, 'defaut')

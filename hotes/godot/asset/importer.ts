@@ -98,9 +98,9 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   }
   if (!estObjet(brut)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : objet JSON attendu`] };
   const { model, model_sha256: declaree } = brut;
-  if (typeof model !== 'string' || !model || nomDeFichier(model) !== model) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : model « ${String(model)} », nom de fichier du dossier attendu`] };
+  const entrees = readdirSync(dossier, { withFileTypes: true });
+  if (typeof model !== 'string' || !entrees.some((e) => e.isFile() && e.name === model)) return { ok: false, refus: [`${MANIFESTE_DE_PRODUCTION} : model « ${String(model)} », fichier du dossier de production attendu`] };
   const cheminDuGlb = join(dossier, model);
-  if (!existsSync(cheminDuGlb)) return { ok: false, refus: [`fichier de production absent : ${model}, que ${MANIFESTE_DE_PRODUCTION} nomme`] };
   const octets = readFileSync(cheminDuGlb);
   const empreinte = sha256(octets);
   if (declaree !== empreinte) return { ok: false, refus: [`empreinte SHA-256 du GLB ${empreinte}, ${MANIFESTE_DE_PRODUCTION} déclare ${String(declaree)}`] };
@@ -112,7 +112,7 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
     if (e instanceof GlbIllisible) return { ok: false, refus: [e.message] };
     throw e;
   }
-  const contenu = readdirSync(dossier).sort();
+  const contenu = entrees.filter((e) => e.isFile()).map((e) => e.name).sort();
   const sources = contenu.filter((f) => f.endsWith('.blend'));
   if (sources.length > 1) return { ok: false, refus: [`plusieurs sources .blend (${sources.join(', ')}) : une seule attendue`] };
   const licences: { fichier: string; octets: Buffer }[] = [];

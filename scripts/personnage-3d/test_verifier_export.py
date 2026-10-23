@@ -234,6 +234,17 @@ class Tetes(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'default_head'):
                     animation.tetes(self.manifeste(default_head, head_options))
 
+    def test_preset_selectionne_ses_composants(self):
+        manifest = {**self.manifeste(None, []), 'defaults': [],
+                    'presets': {'manteau': {'label_fr': 'Manteau', 'components': ['cape']}}}
+        meshes = [argparse.Namespace(name=piece['node'], hide_render=True) for piece in self.PIECES.values()]
+        visibles = animation.manifest_selection(meshes, manifest, preset='manteau')
+        self.assertEqual(sorted(obj.name for obj in visibles), ['cape', 'corps'])
+
+    def test_libelle_de_combinaison(self):
+        self.assertEqual(animation.combinaison(None, 'manteau'), 'sans-tete-manteau')
+        self.assertEqual(animation.combinaison('a', 'manteau'), 'a-manteau')
+
 
 class ModeleCommite(unittest.TestCase):
     def test_knight_passe(self):
