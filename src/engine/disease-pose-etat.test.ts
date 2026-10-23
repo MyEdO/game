@@ -13,7 +13,8 @@ import { MINUTES_PER_DAY } from './clock';
 import { contractDisease, tickDisease } from './disease';
 import { symptoms } from '../data';
 import { setDataset } from '../data/overrides';
-import { stacks } from './conditions';
+import { stacks, hasCondition } from './conditions';
+import { gabarit } from '../gabarit.testkit';
 import type { RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
 
@@ -53,5 +54,30 @@ describe('le cycle de maladie pose ses États par la source unique (LDB 16)', ()
     tickDisease(c, MINUTES_PER_DAY, seq([]), ignore); // 7ᵉ jour actif → la cloque éclate, État Sonné
     expect(stacks(c, 'sonne')).toBe(1);
     expect(c.advantage, 'l’Avantage a survécu au gain d’État').toBe(0);
+  });
+});
+
+/** Porteur du Vers du Reik au 6ᵉ jour actif, `pb` PB et 2 Hémorragique : la cloque éclate au prochain jour. */
+function versDuReikALaVeille(pb: number): Combatant {
+  const c = cobaye({ wounds: { current: pb, max: 12 }, conditions: [{ id: 'hemorragique', value: 2 }], diseases: [contractDisease('vers-du-reik', seq([]), { incubation: 0 })!] });
+  for (let d = 0; d < 6; d++) tickDisease(c, MINUTES_PER_DAY, seq([]), ignore);
+  return c;
+}
+
+describe('l’éclatement du Vers du Reik retire ses PB par la perte centralisée (LDB 16 l.105 ; MSRC 16 l.142)', () => {
+  it('à 1 PB, porteur de 2 Hémorragique : 0 PB, Inconscient et À Terre', () => {
+    const c = versDuReikALaVeille(1);
+    const log = tickDisease(c, MINUTES_PER_DAY, seq([]), ignore);
+    expect(c.wounds.current).toBe(0);
+    expect(hasCondition(c, 'inconscient'), 'LDB 16 l.105 : Inconscient à 0 PB').toBe(true);
+    expect(hasCondition(c, 'a-terre'), 'LDB 18 l.15 : À Terre à 0 PB').toBe(true);
+    expect(log.filter((l) => gabarit('op.wounds').test(l))).toEqual(['Cobaye subit 1 Blessure(s) (ignorant BE et PA).']);
+  });
+
+  it('à 0 PB : aucune Blessure au journal', () => {
+    const c = versDuReikALaVeille(0);
+    const log = tickDisease(c, MINUTES_PER_DAY, seq([]), ignore);
+    expect(stacks(c, 'sonne'), 'témoin : la cloque a bien éclaté').toBe(1);
+    expect(log.filter((l) => gabarit('op.wounds').test(l))).toEqual([]);
   });
 });

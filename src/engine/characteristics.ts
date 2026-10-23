@@ -7,6 +7,7 @@ import type { CodexTarget } from './ruleRefs';
 import { traumaCharPenaltiesLabeled, passiveCharSum } from './trauma';
 import { traitCharMods, traitCapability } from './traits/dispatch';
 import { SizeCategory, woundsForSize, effectiveSize } from './size';
+import { applyZeroWounds } from './conditions'; // cycle runtime (conditions→characteristics) : appelé à la perte de PB par expiration, jamais à l'init
 import { findTalentById, findSpellById } from '../data';
 import type { ModLine } from './combat';
 import type { TraitList } from './statEntry';
@@ -159,7 +160,8 @@ export function effectiveMaxWounds(c: Combatant): number {
 
 /**
  * Recale `wounds.max` sur `effectiveMaxWounds` et ajuste `wounds.current` du même delta : on GAGNE des
- * Points de Blessure quand un buff F/E/FM monte le max, on en PERD à l'expiration (clamp ≥ 0). Appelé
+ * Points de Blessure quand un buff F/E/FM monte le max, on en PERD à l'expiration (clamp ≥ 0, puis
+ * `applyZeroWounds` à l'arrivée à 0). Appelé
  * à chaque changement d'`activeEffects` (application d'un buff, dissipation en fin de Round). Idempotent.
  */
 export function refreshWounds(c: Combatant): void {
@@ -167,6 +169,8 @@ export function refreshWounds(c: Combatant): void {
   const delta = newMax - c.wounds.max;
   if (delta === 0) return;
   c.wounds.max = newMax;
-  if (delta > 0) c.wounds.current += delta;
-  else c.wounds.current = Math.max(0, c.wounds.current + delta);
+  if (delta > 0) { c.wounds.current += delta; return; }
+  const avant = c.wounds.current;
+  c.wounds.current = Math.max(0, avant + delta);
+  if (avant > 0 && c.wounds.current <= 0 && !c.dead) applyZeroWounds(c); // LDB 18 l.15 ; LDB 16 l.105
 }

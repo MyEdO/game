@@ -190,6 +190,6 @@ export function applyFall(c: Combatant, metres: number, d10Chute: number): void 
   const m = Math.max(0, metres);
   const be = Math.floor(effectiveChar(c, 'endurance') / 10);
   const lost = Math.max(0, 3 * m + d10Chute - be);
-  loseWounds(c, lost);
+  loseWounds(c, lost, null);
   if (lost > be) addCondition(c, 'a-terre');
 }

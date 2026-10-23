@@ -17,6 +17,7 @@ import { tablesDuJeu } from './tablesDuJeu';
 import { poserLaPlateforme, retirerLaPlateforme, type Jeton } from './plateforme';
 import { transitionDuJeu } from './transitionDuJeu';
 import { planifierLeTickAuto } from './combatAuto';
+import { reglerLesChutes } from './combatFlow';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from './intentionsDeSiege';
 import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
 import { bus, EVT } from './bus';
@@ -115,6 +116,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     capter();
     const transition = transitionDuJeu(prev, etat);
     if (transition) ecrire(transition);
+    reglerLesChutes(get, set);
     planifierLeTickAuto(get, set);
   };
   // Le `set` brut du propriétaire : il écrit aussi les clés réservées, pour leurs seuls écrivains.

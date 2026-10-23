@@ -241,7 +241,7 @@ export function surgeryNext(get: Get, set: Set): void {
   const recovery = sg.kind === 'recovery';
   const verb = recovery ? t('medic.verbRecovery') : t('medic.verbSurgery');
   const harm = recovery ? 0 : battleRng().int(1, 10);
-  if (!recovery) { loseWounds(patient, harm); addCondition(patient, 'hemorragique'); } // dégâts d'une passe de Chirurgie (LDB 10 l.184)
+  if (!recovery) { loseWounds(patient, harm, null); addCondition(patient, 'hemorragique'); } // dégâts d'une passe de Chirurgie (LDB 10 l.184)
   const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: patient.label, dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.targetDR, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
     log.push(t('medic.patientSinks', { patient: patient.label }));

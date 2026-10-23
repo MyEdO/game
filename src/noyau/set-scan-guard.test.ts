@@ -130,7 +130,7 @@ const BASELINE = { totalCalls: 786, totalAdHocResets: 329 }; // +1 (#1117 L3 : `
 // ne borne plus rien) — resets ad hoc 302 → 301.
 // Mesure exacte 743/301).
 // +1 (ASSISE, même lot : `combatFlow.releaseSeatsOfDowned` — la couture UNIQUE « un corps mis hors
-// d'action ne tient plus sa chaise », appelée là où la mort est ACTÉE (`notifySlain`, entretien hors
+// d'action ne tient plus sa chaise », appelée là où la mort est ACTÉE (`reglerLesChutes`, entretien hors
 // combat d'`advanceTime`). Un `set({ scene })` littéral et CONDITIONNEL : la scène n'est réécrite que
 // si un occupant est réellement tombé (sinon même référence). Aucun reset ad hoc de plus.
 // Mesure exacte 744/301).

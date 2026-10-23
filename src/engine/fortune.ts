@@ -35,10 +35,39 @@ export type FateSaveSource = 'hit' | 'slow';
 /** Option du sacrifice : `survive` LDB 17 l.31, `negate` LDB 17 l.32. */
 export type FateSaveOption = 'survive' | 'negate';
 
-/** Options OFFERTES selon la source, dans l'ordre du livre : LDB 17 l.31-32. Source unique de la
- *  fenêtre, de son enjeu, du verbe `fateNegate` et de l'auto-combat. */
-export function fateSaveOptions(source: FateSaveSource): readonly FateSaveOption[] {
-  return source === 'hit' ? ['survive', 'negate'] : ['survive'];
+/** Le porteur tel qu'il était juste avant le coup qui le tue : ce que rétablit LDB 17 l.32. */
+export type PorteurAvantLeCoup = Combatant;
+
+/** Photographie du porteur AVANT que le coup ne lui écrive quoi que ce soit (PB, Critiques, États,
+ *  Traumatismes, Avantage) — SOURCE UNIQUE des sites qui peuvent ouvrir le sauvetage `hit`, et SEUL
+ *  prédicat de son ouverture : `undefined` pour qui n'a aucun Point de Destin à brûler (LDB 17 l.29). */
+export function avantLeCoup(c: Combatant): PorteurAvantLeCoup | undefined {
+  return (c.fate ?? 0) > 0 ? structuredClone(c) : undefined;
+}
+
+/** « Comment ça a pu rater ? » (LDB 17 l.32) : le porteur redevient, en place, celui d'avant le coup, puis
+ *  brûle 1 Point de Destin. Chez les autres, la chute n'a rien écrit : `reglerLesChutes` attend. */
+export function rateParLeDestin(c: Combatant, avant: PorteurAvantLeCoup): void {
+  const porteur = c as unknown as Record<string, unknown>;
+  for (const cle of Object.keys(porteur)) if (!(cle in avant)) delete porteur[cle];
+  Object.assign(c, structuredClone(avant));
+  c.fate = (c.fate ?? 0) - 1;
+}
+
+/** Le sauvetage offert : sur le coup, avec le porteur d'avant le coup à rétablir (LDB 17 l.32), ou sur une
+ *  mort lente (LDB 17 l.29). */
+export type SauvetageDuDestin = { source: Extract<FateSaveSource, 'hit'>; avant: PorteurAvantLeCoup } | { source: Exclude<FateSaveSource, 'hit'> };
+
+/** Ce que rétablirait « Comment ça a pu rater ? » (LDB 17 l.32), `undefined` quand l'option n'est pas
+ *  offerte — SEULE ouverture de la négation. */
+export function avantANier(p: SauvetageDuDestin): PorteurAvantLeCoup | undefined {
+  return p.source === 'hit' ? p.avant : undefined;
+}
+
+/** Options OFFERTES, dans l'ordre du livre : LDB 17 l.31-32. Source unique de la fenêtre, de son enjeu et
+ *  de l'auto-combat. */
+export function fateSaveOptions(p: SauvetageDuDestin): readonly FateSaveOption[] {
+  return avantANier(p) ? ['survive', 'negate'] : ['survive'];
 }
 
 /** Mort certaine évitée en brûlant 1 Point de Destin (LDB 17 l.29-37) : Destin −1 et la cible

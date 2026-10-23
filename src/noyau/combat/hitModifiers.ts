@@ -30,7 +30,7 @@ import type { SeuilDeSauvegarde } from '../pendings';
 import { wardSaves, traitCapability } from '../../engine/traits/dispatch';
 import { tablesPosees } from '../tablesPosees';
 import { canPushback } from '../../engine/qualities/dispatch';
-import { isOutOfAction, loseWounds, applyZeroWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
+import { isOutOfAction, loseWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { woundsFromHit } from '../../engine/woundsCalc';
 import { combatDistance } from '../monde/footprint';
@@ -313,8 +313,7 @@ export const TABLES = {
             const loc = res.location ?? 'corps';
             // LDB 13 l.159, LDB 43 l.107.
             const taken = woundsFromHit(weapon, priest, loc, raw - bonus(effectiveChar(priest, 'endurance')), 0, 1, attacker.size);
-            loseWounds(priest, taken);
-            if (priest.wounds.current <= 0) applyZeroWounds(priest);
+            loseWounds(priest, taken, attacker);
             encaisse?.(priest, taken);
             res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })] };
           }

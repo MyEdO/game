@@ -39,7 +39,7 @@ afterEach(() => {
 const texte = (e: Element) => (e.textContent ?? '').trim();
 
 function monter(source: 'hit' | 'slow') {
-  useGame.setState({ battle: { combatants: [HERO] } as never, pendingFateSave: { heroId: 'H', source } });
+  useGame.setState({ battle: { combatants: [HERO] } as never, pendingFateSave: source === 'hit' ? { heroId: 'H', source, avant: HERO } : { heroId: 'H', source } });
   act(() => root.render(<FateSaveModal />));
   const corps = host.querySelector('.modal-body')!;
   const pied = host.querySelector('.cadre-pied');

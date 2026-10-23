@@ -73,7 +73,7 @@ export const REPORT_DE_COMBATTANT = {
   suffocationCountdown: rencontre('LDB 18 l.346'), breathHoldSeconds: rencontre('LDB 18 l.346'),
   wateredThisRound: rencontre(TOUR),
   soinRencontreUtilise: { sort: true, entree: false, raison: 'LDB 09 l.260' },
-  dead: PERSISTE, slainNotified: rencontre('garde d’unicité de l’émission `onSlain` dans la rencontre'), important: PERSISTE,
+  dead: PERSISTE, slainNotified: rencontre('garde d’unicité des conséquences de la chute dans la rencontre'), chuteImputeeA: rencontre('LDB 85 l.16'), important: PERSISTE,
   outOfRencontre: rencontre('LDB 17 l.31'), exitReason: rencontre('LDB 17 l.31'),
   summon: rencontre('invocation liée à la rencontre (`summonFlow`)'),
   shotsThisTurn: rencontre(TOUR), pushbackMode: rencontre('LDB 62 l.272-274'), auraMods: rencontre('LDB 85 l.262'),

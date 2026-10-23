@@ -7,6 +7,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { ev } from '../../noyau/combatLog';
 import { addCondition, hasCondition, loseWounds, stacks, COND } from '../../engine/conditions';
 import { testScene } from '../../scenes/test-fixture';
+import { gabarit } from '../../gabarit.testkit';
 import type { Combatant } from '../../engine/types';
 
 /**
@@ -58,7 +59,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   function saigneInconscient(c: Combatant, n: number) {
     c.wounds = { current: 3, max: c.wounds.max };
     addCondition(c, COND.hemorragique, n);
-    loseWounds(c, 10);
+    loseWounds(c, 10, null);
     expect(hasCondition(c, COND.inconscient), 'Inconscient posé par la règle, pas par la fixture').toBe(true);
   }
 
@@ -83,14 +84,24 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     expect(e.dead).toBeFalsy();
   });
 
-  it('porteur de 2 Hémorragique amené à 0 PAR LE SAIGNEMENT : Inconscient, puis jet de mort le même Round', () => {
+  /** Fixture nommée « Ilyanwe saignée » (jumelle de `src/engine/conditions-bleed.test.ts`) : l'ennemi de
+   *  `setup()`, conscient, 2 PB et 2 Hémorragique. */
+  function ilyanweSaignee(): Combatant {
     const { E } = setup();
-    seedBattleRng(7); // 1ᵉʳ d100 ≤ 20 → mort
+    E.label = 'Ilyanwe';
     E.wounds = { current: 2, max: 20 };
     addCondition(E, COND.hemorragique, 2);
+    return E;
+  }
+
+  it('Ilyanwe saignée amenée à 0 PAR LE SAIGNEMENT : Inconscient, puis jet de mort le même Round', () => {
+    const I = ilyanweSaignee();
+    seedBattleRng(7); // 1ᵉʳ d100 = 2 ≤ 20 → mort
     endRound();
-    const e = useGame.getState().battle!.combatants.find((x) => x.id === E.id)!;
-    expect(hasCondition(e, COND.inconscient)).toBe(true);
+    const e = useGame.getState().battle!.combatants.find((x) => x.id === I.id)!;
+    expect(e.wounds.current).toBe(0);
+    expect(hasCondition(e, COND.inconscient), 'Inconscient posé par la règle à 0 PB').toBe(true);
+    expect(useGame.getState().battle!.log.filter((l) => gabarit('cond.bleedDeath').test(l.text)).map((l) => l.text)).toEqual(["Ilyanwe succombe à l'hémorragie (2 ≤ 20)."]);
     expect(e.dead).toBe(true);
   });
 

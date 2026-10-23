@@ -11,7 +11,7 @@ import { indexParId } from '../data/versionDataset';
 import { slugId } from '../data/slug';
 import { t } from '../i18n';
 import { rule } from './policy';
-import { groupAdvantage } from './advantagePool';
+import { perdreToutLAvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool } from './characteristics';
 import { d100, RNG } from './dice';
 import { passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
@@ -130,16 +130,19 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
   if (existing.derivedFrom) existing.derivedFrom = { ...existing.derivedFrom, stacks: 0 };
 }
 
-/** Mort subite (LDB 18 l.44, l.46) : l'issue du coup qui dépasse les Blessures d'un figurant (#2654). */
-export function appliquerMortSubite(target: Combatant, log: string[]): void {
-  target.wounds.current = 0;
-  if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
+/** Mort subite (LDB 18 l.44, l.46) : l'issue du coup qui dépasse les Blessures d'un figurant (#2654) ; à
+ *  0 PB, LDB 18 l.15 et LDB 16 l.105 s'appliquent. */
+export function appliquerMortSubite(target: Combatant, log: string[], auteur: AuteurDuCoup): void {
+  const dejaHorsDeCombat = isOutOfAction(target);
+  infligerLeCoup(target, target.wounds.current, auteur);
+  if (!dejaHorsDeCombat) addCondition(target, COND.inconscient);
+  applyZeroWounds(target);
   log.push(t('cf.collapse', { name: target.label }));
 }
 
 export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks): void {
   const { lockedUntil, unlockBy } = locks ?? {};
-  if (!groupAdvantage()) c.advantage = 0; // « Si vous subissez un État quel qu'il soit, vous perdez immédiatement tout Avantage » (LDB 16 l.7) — pas de perte per-combattant en mode « Avantage de groupe » (la réserve du camp ne change pas)
+  perdreToutLAvantage(c); // LDB 16 l.7
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
     empileSurPionExistant(existing, value);
@@ -158,7 +161,13 @@ export function addCondition(c: Combatant, name: string, value = 1, escapeStreng
   } else {
     c.conditions.push({ id: name, value, ...(escapeStrength != null ? { escapeStrength } : {}), ...(escapeThreshold != null ? { escapeThreshold } : {}), ...(entangleOnFail ? { entangleOnFail } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(lockedUntil != null ? { lockedUntil } : {}), ...(unlockBy != null ? { unlockBy } : {}) });
   }
-  // L'État vient d'être GAGNÉ (nouveau ou empilé) → déclenche `onGainCondition` (Mâchoires d'acier).
+  etatGagne(c, name);
+}
+
+/** L'État vient d'être GAGNÉ (nouveau ou empilé) : SOURCE UNIQUE des trois poseurs. Gagner l'Hémorragique
+ *  à 0 PB fait sombrer (LDB 16 l.105), puis le déclencheur `onGainCondition` (Mâchoires d'acier). */
+function etatGagne(c: Combatant, name: string): void {
+  if (name === COND.hemorragique) sombrerParLeSaignement(c);
   onConditionGained?.(c, name);
 }
 
@@ -168,7 +177,7 @@ export function addCondition(c: Combatant, name: string, value = 1, escapeStreng
 export function addTimedCondition(c: Combatant, name: string, value: number, rounds: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number): void {
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
-    if (!groupAdvantage()) c.advantage = 0;
+    perdreToutLAvantage(c); // LDB 16 l.7
     empileSurPionExistant(existing, value);
     if (escapeStrength != null) existing.escapeStrength = Math.max(existing.escapeStrength ?? 0, escapeStrength);
     if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
@@ -176,7 +185,7 @@ export function addTimedCondition(c: Combatant, name: string, value: number, rou
     if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
     if (existing.roundsLeft != null) existing.roundsLeft = Math.max(existing.roundsLeft, rounds);
     // sinon : instance non temporisée — elle le reste.
-    onConditionGained?.(c, name); // État empilé (gagné) → déclenche `onGainCondition`
+    etatGagne(c, name);
   } else {
     addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage); // (déclenche déjà `onGainCondition`)
     c.conditions.find((x) => x.id === name)!.roundsLeft = rounds;
@@ -191,7 +200,7 @@ export function addTimedCondition(c: Combatant, name: string, value: number, rou
 export function addClockCondition(c: Combatant, name: string, value: number, until: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number): void {
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
-    if (!groupAdvantage()) c.advantage = 0; // Perte d'Avantage sur État (LDB 16 l.7) — inerte en mode « Avantage de groupe »
+    perdreToutLAvantage(c); // LDB 16 l.7
     empileSurPionExistant(existing, value);
     if (escapeStrength != null) existing.escapeStrength = Math.max(existing.escapeStrength ?? 0, escapeStrength);
     if (escapeThreshold != null) existing.escapeThreshold = Math.max(existing.escapeThreshold ?? 0, escapeThreshold);
@@ -199,7 +208,7 @@ export function addClockCondition(c: Combatant, name: string, value: number, unt
     if (struggleDamage != null) existing.struggleDamage = Math.max(existing.struggleDamage ?? 0, struggleDamage);
     if (existing.untilTime != null) existing.untilTime = Math.max(existing.untilTime, until);
     // sinon : instance non temporisée — elle le reste.
-    onConditionGained?.(c, name); // État empilé (gagné) → déclenche `onGainCondition`
+    etatGagne(c, name);
   } else {
     addCondition(c, name, value, escapeStrength, escapeThreshold, entangleOnFail, struggleDamage); // (déclenche déjà `onGainCondition`)
     c.conditions.find((x) => x.id === name)!.untilTime = until;
@@ -935,13 +944,14 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { ba
  * par État Hémorragique que vous possédez » (3 pions → mort sur 1-30). « Si vous faites un double sur ce
  * jet, vos blessures coagulent un peu et vous perdez 1 État Hémorragique » — le double prime (pas de mort,
  * mais coagulation). Pur ; renvoie `died` (la finalisation — sauvetage par Destin — revient à l'appelant).
+ * Mode `combat-aa-blessures: 'aa'` : AA 07 l.7.
  */
 export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: string[] } {
   const n = stacks(c, COND.hemorragique);
   const eligible = !c.dead && !c.outOfRencontre && n > 0 && hasCondition(c, COND.inconscient); // AA 07 l.7 ; LDB 16 l.105 ; #2915
   if (!eligible) return { died: false, log: [] };
   const r = d100(rng);
-  if (isDoubleRoll(r)) {
+  if (isDoubleRoll(r) && (rule('combat-aa-blessures') !== 'aa' || r > 10 * n)) { // AA 07 l.7
     removeCondition(c, COND.hemorragique, 1); // coagulation (le double prime sur la mort)
     const log = [t('cond.coagulate', { name: c.label, roll: r === 100 ? '00' : r })];
     if (!hasCondition(c, COND.hemorragique)) { addCondition(c, COND.extenue); log.push(t('cond.lastWoundExhausted', { name: c.label })); } // tous retirés → 1 Exténué
@@ -1024,6 +1034,13 @@ export function inDeathCondition(c: Combatant): boolean {
 export function applyZeroWounds(c: Combatant): void {
   if (isInanimate(c)) return;
   if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
+  sombrerParLeSaignement(c);
+}
+
+/** Porteur d'Hémorragique à 0 PB : l'Inconscient verrouillé, quel que soit l'ordre des deux faits. Lu à la
+ *  chute à 0 (`applyZeroWounds`) et au gain d'Hémorragique (`etatGagne`) : LDB 16 l.105 ; AA 07 l.5. */
+function sombrerParLeSaignement(c: Combatant): void {
+  if (c.dead || !c.wounds || isInanimate(c)) return;
   if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
 }
 
@@ -1045,19 +1062,32 @@ export function poserInconscientDeSaignement(c: Combatant): void {
   addCondition(c, COND.inconscient, 1, undefined, undefined, undefined, undefined, VERROU_DU_SAIGNEMENT);
 }
 
+/** L'auteur d'un coup, `null` quand aucun combattant ne le porte (saignement, chute, poison…) : LDB 85 l.16. */
+export type AuteurDuCoup = Pick<Combatant, 'id'> | null;
+
 /**
- * Perte de Blessures CENTRALISÉE avec ses conséquences RAW — à utiliser partout où l'on retire des PB
- * (hors flux d'attaque principal, qui gère déjà l'Avantage et la nuance Critique pour l'À Terre) :
- *  - perdre ≥1 PB → on perd TOUT l'Avantage (LDB 14 l.219) ;
- *  - tomber à 0 PB → État À Terre (LDB 18 l.15), sauf déjà Inconscient/mort.
- * Retourne le nombre de PB réellement perdus.
+ * Les Dégâts d'un coup sur `c` — SOURCE UNIQUE de leur écriture : le coup subi debout s'impute à son
+ * `auteur` (`chuteImputeeA`, LDB 85 l.16), les PB réellement perdus font perdre tout l'Avantage
+ * (LDB 14 l.219). Un Critique sans Blessure (`blessures` 0) impute seul. Rend les PB perdus.
  */
-export function loseWounds(c: Combatant, amount: number): number {
+export function infligerLeCoup(c: Combatant, blessures: number, auteur: AuteurDuCoup): number {
+  if (!isOutOfAction(c)) {
+    if (auteur) c.chuteImputeeA = auteur.id;
+    else delete c.chuteImputeeA;
+  }
+  const perdues = Math.min(Math.max(0, blessures), Math.max(0, c.wounds.current));
+  if (perdues <= 0) return 0;
+  c.wounds.current -= perdues;
+  perdreToutLAvantage(c); // LDB 14 l.219
+  return perdues;
+}
+
+/** Perte de PB hors flux d'attaque principal (qui pose 0 PB après ses Blessures critiques) : `infligerLeCoup`,
+ *  puis 0 PB → `applyZeroWounds` (LDB 18 l.15 ; LDB 16 l.105), sauf mort. Rend les PB perdus. */
+export function loseWounds(c: Combatant, amount: number, auteur: AuteurDuCoup): number {
   if (amount <= 0 || c.wounds.current <= 0) return 0;
-  const lost = Math.min(amount, c.wounds.current);
-  c.wounds.current -= lost;
-  if (!groupAdvantage()) c.advantage = 0; // perdre une Blessure → perdre tout l'Avantage (LDB 14 l.219) — inerte en mode « Avantage de groupe »
-  if (c.wounds.current <= 0 && !c.dead && !hasCondition(c, COND.inconscient)) applyZeroWounds(c);
+  const lost = infligerLeCoup(c, amount, auteur);
+  if (c.wounds.current <= 0 && !c.dead) applyZeroWounds(c);
   return lost;
 }
 

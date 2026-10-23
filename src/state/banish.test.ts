@@ -12,7 +12,7 @@ import { desDuTest } from '../engine/dice.testkit';
  * déclenchée par `onSlain` — donc QUEL QUE SOIT le chemin de mort (0 PB, Critique LÉTAL/démembrement, mort
  * comme attaquant sous un Critique défensif, mort-auto), sans branche en dur dans applyAttackResult. Le
  * porteur réagit à SA PROPRE chute (le dispatcher autorise `on:'self'` sur une cible hors-combat) ; `onSlain`
- * n'est tiré qu'UNE fois (garde `slainNotified`, posée par `notifySlain`).
+ * n'est tiré qu'UNE fois (garde `slainNotified`, posée par `reglerLesChutes`).
  */
 
 const mk = (over: Partial<Combatant> = {}): Combatant => ({

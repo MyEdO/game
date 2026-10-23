@@ -204,11 +204,11 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
       // 1. Nourriture (LDB 18 l.337-343).
       const r = dailyFoodUpkeep(h, testValue(h, 'resistance', 'endurance'), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (r.rationConsumed) rations++;
-      if (r.damage > 0) loseWounds(h, r.damage);
+      if (r.damage > 0) loseWounds(h, r.damage, null);
       lines.push(...r.log);
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
       const w = dailyWaterUpkeep(h, hasWater, testValue(h, 'resistance', 'endurance'), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
-      if (w.damage > 0) loseWounds(h, w.damage);
+      if (w.damage > 0) loseWounds(h, w.damage, null);
       lines.push(...w.log);
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).

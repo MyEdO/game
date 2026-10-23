@@ -26,6 +26,12 @@ export function groupAdvantage(): boolean {
   return rule('combat-aa-avantage-groupe') === true;
 }
 
+/** Perte de TOUT l'Avantage d'un combattant : LDB 14 l.219 ; LDB 16 l.7. Inerte en Avantage de groupe :
+ *  AA 11 l.11, l.42-44. */
+export function perdreToutLAvantage(c: Pick<Combatant, 'advantage'>): void {
+  if (!groupAdvantage()) c.advantage = 0;
+}
+
 /** Réserve d'un combattant : héros et PNJ alliés (`kind:'hero'`) → réserve des alliés ; PNJ hostile ou
  *  neutre (`enemy`/`npc`) → réserve des adversaires (AA 11 l.11-13). */
 export function advantageCampOf(c: Pick<Combatant, 'kind'>): AdvantageCamp {

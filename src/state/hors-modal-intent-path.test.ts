@@ -67,6 +67,9 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   return { h2, h3, e1, e2 };
 }
 
+/** Le sauvetage par le Destin de `h3` sur un coup : LDB 17 l.29, l.32. */
+const fateSaveDeH3 = () => ({ heroId: 'h3', source: 'hit' as const, avant: mk('h3', 'hero', { x: 5, y: 5 }) });
+
 /** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
@@ -77,13 +80,13 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
 
   it('précondition : le repli `modalOwnerOf` désigne bien la VICTIME du fateSave (pas l’attaquant)', () => {
     setup();
-    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: fateSaveDeH3() });
     expect(modalOwnerOf(useGame.getState())).toBe('h3');
   });
 
   it('balayage sous fateSave : l’ATTAQUANT clique et enchaîne ; la victime et l’hôte sont refusés', () => {
     setup();
-    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: fateSaveDeH3() });
     expect(applyIntent(2, 'battleClickEntity', ['e2']), 'la victime pilotait le balayage d’autrui').toBe('refusee');
     expect(applyIntent(0, 'battleClickEntity', ['e2']), 'l’hôte n’est pas le porteur du balayage').toBe('refusee');
     expect(useGame.getState().pendingAttack).toBeNull();
@@ -103,7 +106,7 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
 
   it('2ᵉ frappe sous fateSave : le clic appartient à l’attaquant, jamais à la victime', () => {
     setup();
-    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: fateSaveDeH3() });
     expect(applyIntent(2, 'battleClickEntity', ['e2'])).toBe('refusee');
     expect(useGame.getState().pendingAttack).toBeNull();
     expect(applyIntent(1, 'battleClickEntity', ['e2'])).toBe('appliquee');
@@ -114,7 +117,7 @@ describe('#1016 — CLIC de carte : le ciblage détenu par une fenêtre hors-mod
 
   it('pilonnage indirect (`pendingSiegeAim`) : le clic-CASE appartient à l’ARTILLEUR (AA 10)', () => {
     setup();
-    useGame.setState({ pendingSiegeAim: { gunnerId: 'h2', weaponUid: 'm', radius: 1, rangeTiles: null }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingSiegeAim: { gunnerId: 'h2', weaponUid: 'm', radius: 1, rangeTiles: null }, pendingFateSave: fateSaveDeH3() });
     expect(applyIntent(2, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('refusee');
     expect(useGame.getState().pendingSiegeAim, 'la victime posait le point d’impact de l’artilleur').not.toBeNull();
     expect(applyIntent(1, 'battleClickTile', [{ x: 3, y: 3 }])).toBe('appliquee');
@@ -161,7 +164,7 @@ describe('#1016 — hors détenteur, la route ne déplace AUCUN verdict (différ
 
   const ETATS: { nom: string; etat: Record<string, unknown> }[] = [
     { nom: 'tour normal, aucune fenêtre', etat: {} },
-    { nom: 'fateSave d’un AUTRE héros (aucun ciblage détenu)', etat: { pendingFateSave: { heroId: 'h3', source: 'hit' } } },
+    { nom: 'fateSave d’un AUTRE héros (aucun ciblage détenu)', etat: { pendingFateSave: fateSaveDeH3() } },
     { nom: 'balayage dont la frappe est OUVERTE (pendingAttack)', etat: { pendingCleave: { attackerId: 'h2', hitIds: [], count: 0 }, pendingAttack: { attackerId: 'h2', targetId: 'e1', location: null, result: null } } },
     { nom: 'Surincantation « +Cible » (fenêtre de MODALE)', etat: { pendingCast: { casterId: 'h2', spellId: 's', pickingTargets: true } } },
     { nom: 'pose de zone d’un SORT (placing, sans centre)', etat: { pendingCast: { casterId: 'h2', spellId: 's', zone: { placing: true, radius: 1 } } } },
@@ -184,7 +187,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 
   it('cleaveEnd (bouton « Terminer » de la barre) : seul l’attaquant clôt le balayage', () => {
     setup();
-    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: fateSaveDeH3() });
     expect(applyIntent(2, 'cleaveEnd', [])).toBe('refusee');
     expect(useGame.getState().pendingCleave).not.toBeNull();
     expect(applyIntent(1, 'cleaveEnd', [])).toBe('appliquee');
@@ -193,7 +196,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 
   it('dualStrikeSkip (bouton « Renoncer ») : seul l’attaquant renonce à sa 2ᵉ frappe', () => {
     setup();
-    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingDualStrike: { attackerId: 'h2', offWeaponUid: 'o', jet: 43 }, pendingFateSave: fateSaveDeH3() });
     expect(applyIntent(2, 'dualStrikeSkip', [])).toBe('refusee');
     expect(useGame.getState().pendingDualStrike).not.toBeNull();
     expect(applyIntent(1, 'dualStrikeSkip', [])).toBe('appliquee');
@@ -202,7 +205,7 @@ describe('#1016 — gestes TERMINAUX de ces mêmes fenêtres (barre d’action /
 
   it('cleaveAttack/dualStrikeAttack (aucun émetteur d’UI) sont routés QUAND MÊME sur le porteur', () => {
     setup();
-    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: { heroId: 'h3', source: 'hit' } });
+    useGame.setState({ pendingCleave: { attackerId: 'h2', hitIds: ['e1'], count: 0 }, pendingFateSave: fateSaveDeH3() });
     expect(applyIntent(2, 'cleaveAttack', ['e2'])).toBe('refusee');
     expect(applyIntent(1, 'cleaveAttack', ['e2'])).toBe('appliquee');
     expect(useGame.getState().pendingAttack?.cleave).toBe(true);

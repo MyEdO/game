@@ -427,10 +427,12 @@ describe('Boucle de jeu (store)', () => {
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
+    h.advantage = 2;
     useGame.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     useGame.getState().fumbleConfirm();
     const after = useGame.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
+    expect(after.advantage, 'LDB 14 l.219 : perdre une Blessure fait perdre tout l’Avantage').toBe(0);
     expect(useGame.getState().pendingCascade).toBeNull(); // l'étape Maladresse unique se ferme (donnée portée par l'étape)
   });
 

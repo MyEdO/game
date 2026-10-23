@@ -11,6 +11,9 @@ import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from './partieTexte';
 import { nouvelEntete } from '../hote/partie';
 import { fermerLaTable, partie, table, verbe } from './hote.testkit';
 import type { GesteDeLAgent } from './serveur';
+import { COND, hasCondition, stacks } from '../engine/conditions';
+import { t } from '../i18n';
+import { gabarit } from '../gabarit.testkit';
 
 /** Un fichier de partie committé à côté de ce test. */
 const fixture = (nom: string): string => readFileSync(new URL(`./${nom}`, import.meta.url), 'utf8');
@@ -141,7 +144,19 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     const r = lireLeFichier(fixture('defaite-dome.jsonl'));
     const rejouee = rejouer(r.entete, r.gestes);
     try {
-      expect(rejouee.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defeat');
+      const battle = rejouee.partie.etat().battle!;
+      expect(battle.over, 'témoin : la partie va jusqu’à la défaite').toBe('defeat');
+      // LDB 16 l.105 : Ilyanwe tombe à 0 PB, saignée ; Inconsciente, un jet de mort par fin de Round.
+      const ilyanwe = battle.combatants.find((c) => c.id === 'sorciere')!;
+      expect(ilyanwe.wounds.current).toBe(0);
+      expect(stacks(ilyanwe, COND.hemorragique)).toBe(2);
+      expect(hasCondition(ilyanwe, COND.inconscient)).toBe(true);
+      const deSaChute = battle.log.slice(battle.log.findIndex((l) => l.text === t('cf.outOfAction', { name: ilyanwe.label })));
+      const jetsDeMort = deSaChute.filter((l) => (['cond.bleedSurvive', 'cond.bleedDeath', 'cond.coagulate'] as const).some((cle) => gabarit(cle).test(l.text)));
+      expect(jetsDeMort.every((l) => l.text.startsWith(ilyanwe.label)), 'un jet de mort d’un autre porteur').toBe(true);
+      expect(jetsDeMort.length, 'un jet de mort par fin de Round après sa chute').toBe(deSaChute.filter((l) => l.kind === 'round').length);
+      expect(jetsDeMort.length, 'témoin : la chute précède au moins une fin de Round').toBeGreaterThan(0);
+      expect(deSaChute.filter((l) => gabarit('op.wounds').test(l.text) && l.text.startsWith(ilyanwe.label)), 'Blessures comptées à 0 PB').toEqual([]);
     } finally {
       rejouee.partie.fermer();
     }

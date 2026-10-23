@@ -109,7 +109,7 @@ export function suffocationTick(c: Combatant): string[] {
   const lines: string[] = [];
   const be = bonus(effectiveChar(c, 'endurance'));
   if (c.wounds.current > 0) {
-    loseWounds(c, 1);
+    loseWounds(c, 1, null);
     lines.push(t('suff.lose', { name: c.label }));
     if (c.wounds.current <= 0) {
       if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient');

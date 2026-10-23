@@ -360,6 +360,42 @@
     "verrou": "creatureFreeAttacks.test.ts"
   },
   {
+    "id": "perdreToutLAvantage",
+    "type": "primitives.manifest",
+    "label": "perdreToutLAvantage",
+    "fichier": "src/engine/advantagePool.ts",
+    "concept": "perte de tout l'Avantage individuel d'un combattant (LDB 14 l.219 ; LDB 16 l.7), inerte sous l'Avantage de groupe (AA 11 l.11, l.42-44)",
+    "perimetre": "toute perte de Blessure (arme, Projectile, Maladresse, onFail de maladie) et tout gain d'État",
+    "verrou": "src/state/store.test.ts, src/state/combat/sauvegardes-projectile-magique.test.ts"
+  },
+  {
+    "id": "avantLeCoup",
+    "type": "primitives.manifest",
+    "label": "avantLeCoup/rateParLeDestin",
+    "fichier": "src/engine/fortune.ts",
+    "concept": "photographie du porteur avant le coup létal, seul prédicat d'ouverture du sauvetage `hit` (Point de Destin à brûler, LDB 17 l.29), et restauration intégrale « Comment ça a pu rater ? » (LDB 17 l.32)",
+    "perimetre": "tout coup létal sur un héros : arme, Projectile, mort automatique, Critique opposé et déviation",
+    "verrou": "src/engine/fortune.test.ts, src/state/combat/destin-comment-ca-a-pu-rater.test.ts"
+  },
+  {
+    "id": "reglerLesChutes",
+    "type": "primitives.manifest",
+    "label": "reglerLesChutes/chuteEnSuspens",
+    "fichier": "src/noyau/combatFlow.ts",
+    "concept": "point canonique des conséquences d'une mise hors de combat (engagement, psychologie, effet « à la mise hors de combat » de l'auteur imputé, siège, onSlain), joué par le propriétaire de l'état après chaque écriture, une fois par chute (`slainNotified`), hors coup en vol et tant que le Destin peut annuler le coup (LDB 17 l.32)",
+    "perimetre": "toute chute en combat, quel qu'en soit le chemin : coup, Critique de parade, aire, manœuvre, sort, Maladresse, fin de Round, refus du Destin",
+    "verrou": "src/state/combat/destin-comment-ca-a-pu-rater.test.ts, src/state/combat/chutes-structurelles.test.ts"
+  },
+  {
+    "id": "infligerLeCoup",
+    "type": "primitives.manifest",
+    "label": "infligerLeCoup/loseWounds",
+    "fichier": "src/engine/conditions.ts",
+    "concept": "écriture unique des Dégâts : imputation du coup subi debout à son auteur (`chuteImputeeA`, LDB 85 l.16, paramètre requis `AuteurDuCoup`), PB perdus, perte de tout l'Avantage (LDB 14 l.219) ; `loseWounds` y ajoute 0 PB → `applyZeroWounds`",
+    "perimetre": "toute perte de PB et tout Critique sans Blessure",
+    "verrou": "src/engine/lose-wounds.test.ts, src/state/combat/chutes-structurelles.test.ts"
+  },
+  {
     "id": "shipDamage",
     "type": "primitives.manifest",
     "label": "damageHull/healHull/damageVesselHull/healVesselHull/damageCampaignVessel",

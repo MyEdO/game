@@ -172,7 +172,7 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
     return { log, wounds: 0 };
   }
   const dmg = Math.max(1, rng.int(1, 10));
-  loseWounds(c, dmg);
+  loseWounds(c, dmg, null);
   log.push(t('exp.wounds', { name: c.label, what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }));
   if (kind === 'froid' && c.wounds.current <= 0 && !hasCondition(c, 'inconscient')) {
     addCondition(c, 'inconscient');

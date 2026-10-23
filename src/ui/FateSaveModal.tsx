@@ -33,7 +33,7 @@ export function FateSaveModal() {
   const hero = battle.combatants.find((c) => c.id === p.heroId);
   if (!hero) return null;
   const fate = hero.fate ?? 0;
-  const offre = fateSaveOptions(p.source);
+  const offre = fateSaveOptions(p);
   const choisir: Record<FateSaveOption, () => void> = { survive, negate };
   const refus = flowStakeRef(FATE_SAVE_STAKE.choice);
 

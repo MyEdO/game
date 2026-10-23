@@ -285,7 +285,7 @@ Formule : `max(1, 1d10 + (pions - 1) - BE - PA_min)`
 - Pénalité de **-10** aux Tests pour résister à une *Blessure Purulente*, *Infection Mineure* ou *Infection du Sang* (LDB 16 ; cf. maladies.md).
 - À **0 PB** : plus de perte de PB supplémentaires, mais **chute Inconsciente** immédiate (gain État Inconscient).
 - **Jet de mort** : à la fin du Round, **10 % de chance de mourir par pion** Hémorragique (3 pions → mort sur 1-30 au d100).
-- **Double sur le jet de mort** : coagulation — perd 1 État Hémorragique (le double prime sur la mort).
+- **Double sur le jet de mort** : « Si vous faites un double sur ce jet, vos blessures coagulent un peu et vous perdez 1 État *Hémorragique*. » `LDB 16 l.105`. Le moteur fait coaguler tout double, même ≤ 10 × pions ; arbitrage utilisateur en attente (#2915).
 
 **Retrait** :
 - Test de **Guérison** réussi : retire 1 État Hémorragique (+ 1 par DR).
@@ -542,12 +542,12 @@ Les tableaux de Blessures Critiques (LDB 18) génèrent des États dont le **ret
 
 Le chapitre « Une Approche Alternative des Blessures » d'**Aux Armes** (AA) propose une **mise à jour de l'État Hémorragique** visant à réduire la complexité du système de base :
 
-**Différence clé par rapport au LDB 16** : dans la version LDB, tomber à 0 PB avec Hémorragique entraîne une **chute Inconsciente immédiate**. Dans la variante AA, à la place, à la fin de chaque Round à 0 PB :
-> « Vous devez réussir un Test de **Résistance Intermédiaire (+0)** sous peine de subir immédiatement l'État _Inconscient_. » — `AA 7 l.5`
+**Différence clé par rapport au LDB 16** : dans la version LDB, tomber à 0 PB avec Hémorragique entraîne une **chute Inconsciente immédiate**. Dans la variante AA, à la place, à la fin de chaque Tour à 0 PB :
+> « À la fin de chaque Tour, vous devez réussir un Test de **Résistance Intermédiaire (+0)** sous peine de subir immédiatement l'État *Inconscient*. » — `AA 07 l.5`
 
-Cette version ajoute donc un Test de Résistance comme étape intermédiaire avant l'inconscience, laissant une chance de survie Round par Round.
+Cette version ajoute donc un Test de Résistance comme étape intermédiaire avant l'inconscience, laissant une chance de survie Tour par Tour.
 
-Les autres règles Hémorragique (dégâts périodiques 1 PB/pion, jet de mort 10%/pion si Inconscient + Hémorragique, coagulation sur double, impossibilité de reprendre conscience, transition Exténué après dernier pion) restent **identiques** à LDB 16.
+Les autres règles Hémorragique (dégâts périodiques 1 PB/pion, jet de mort 10%/pion si Inconscient + Hémorragique, impossibilité de reprendre conscience, transition Exténué après dernier pion) restent **identiques** à LDB 16. La coagulation de la variante : « Si vous évitez la mort tout en faisant un double sur ce jet, vos blessures coagulent un peu et vous perdez 1 État *Hémorragique*. » `AA 07 l.7` ; un double ≤ 10 × pions tue.
 
 **Différence dans le retrait** : la difficulté du Test de Guérison passe de Intermédiaire (+0) dans le LDB à **Accessible (+20)** dans la variante AA.
 

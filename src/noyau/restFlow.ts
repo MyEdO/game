@@ -790,12 +790,12 @@ export const TABLES = {
     }),
     faim: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applyFaimTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
-      if (r.damage > 0) loseWounds(hero, r.damage); // 1d10 ignore les PA (LDB 18 l.342)
+      if (r.damage > 0) loseWounds(hero, r.damage, null); // 1d10 ignore les PA (LDB 18 l.342)
       return { consequences: freeCons(r.log) };
     }),
     soif: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applySoifTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
-      if (r.damage > 0) loseWounds(hero, r.damage); // 1d10 ignore les PA (LDB 18 l.340)
+      if (r.damage > 0) loseWounds(hero, r.damage, null); // 1d10 ignore les PA (LDB 18 l.340)
       return { consequences: freeCons(r.log) };
     }),
     dessoulage: bandeDeNuit((_get, _set, band, row, hero) => {

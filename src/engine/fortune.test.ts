@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canReroll, fateSaveOptions } from './fortune';
+import { canReroll, fateSaveOptions, avantLeCoup, rateParLeDestin } from './fortune';
 import { evaluateTest } from './tests';
 import { rederivePassiveAttack } from './combat';
 import { rederiveCastSL, type SpellLike } from './magic';
@@ -39,10 +39,26 @@ const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, fla
 
 describe('fateSaveOptions — options offertes du sacrifice de Destin (LDB 17 l.29-32)', () => {
   it('sur le coup qui porte : « Meurs un autre jour » puis « Comment ça a pu rater ? », ordre du livre', () => {
-    expect(fateSaveOptions('hit')).toEqual(['survive', 'negate']);
+    expect(fateSaveOptions({ source: 'hit', avant: cible() })).toEqual(['survive', 'negate']);
   });
   it('sur une mort lente : « Meurs un autre jour » seul (lecture de LDB 17 l.32)', () => {
-    expect(fateSaveOptions('slow')).toEqual(['survive']);
+    expect(fateSaveOptions({ source: 'slow' })).toEqual(['survive']);
+  });
+});
+
+describe('avantLeCoup / rateParLeDestin — « Comment ça a pu rater ? » (LDB 17 l.29, l.32)', () => {
+  const porteur = (fate: number): Combatant => ({ id: 'h', label: 'H', fate, advantage: 2, wounds: { current: 3, max: 10 }, conditions: [] } as unknown as Combatant);
+
+  it('sans Point de Destin à brûler, aucune photographie : le sauvetage ne peut s’ouvrir', () => {
+    expect(avantLeCoup(porteur(0))).toBeUndefined();
+  });
+
+  it('avec du Destin : le porteur redevient celui d’avant le coup, Destin −1', () => {
+    const c = porteur(2);
+    const avant = avantLeCoup(c)!;
+    Object.assign(c, { advantage: 0, wounds: { current: 0, max: 10 }, conditions: [{ id: 'hemorragique', value: 1 }], criticalWounds: 1 });
+    rateParLeDestin(c, avant);
+    expect(c).toEqual({ ...porteur(2), fate: 1 });
   });
 });
 

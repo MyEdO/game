@@ -25,7 +25,7 @@ import { isVehicle } from '../engine/coque';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
+import { isOutOfAction, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
@@ -91,7 +91,7 @@ export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, de
  * Application des EFFETS d'une manœuvre à UNE cible qui a PERDU l'opposition (ou n'en avait pas) — la
  * conséquence de `hitOne`, extraite en fonction PARTAGÉE : les effets AUTHORÉS (`def.effects`, GameOp :
  * Dégâts `wounds` + États + pétrification) sont appliqués avec la marge (`margin` : DR net + Avantage
- * variable) et l'`indice`, puis le chiffre flottant de Dégâts + la mise à 0 PB + la conséquence post-touche
+ * variable) et l'`indice`, puis le chiffre flottant de Dégâts + la conséquence post-touche
  * (entraînement de la Langue). SOURCE UNIQUE : appelée par le résolveur SILENCIEUX (`resolveManeuver`) ET
  * par l'applier de cascade `maneuverDefense` (héros influençable). Renvoie les lignes de journal.
  */
@@ -104,7 +104,6 @@ export function applyManeuverEffects(
   lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: tgt, margin, indice, rng, set }));
   const wl = before - tgt.wounds.current;
   if (wl > 0) floatDamage(tgt, wl);
-  if (tgt.wounds.current <= 0) applyZeroWounds(tgt);
   const pull = tablesPosees().apresToucheDeManoeuvre(get, set, attacker, def, tgt, hadEmpetre);
   if (pull && pull.length) lines.push(...pull);
   return lines;

@@ -1765,7 +1765,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // (Perforante/Empaleuse), armure à la `ctx.location` et BE, sans dupliquer la mitigation.
         if (o.weaponHit && ctx.weapon) {
           const n = woundsFromHit(ctx.weapon, target, ctx.location ?? 'corps', raw, o.extraAP ?? 0, o.min ?? 1, ctx.caster?.size);
-          ctx.woundsDealt = loseWounds(target, n); // PB réellement perdus (drain/Vol de vie suivant)
+          ctx.woundsDealt = loseWounds(target, n, ctx.caster ?? null); // PB réellement perdus (drain/Vol de vie suivant)
           if (ctx.woundsDealt > 0) lines.push(t('op.wounds', { name: target.label, n: ctx.woundsDealt, mitig: '' })); // LDB 16 l.105
           break;
         }
@@ -1781,7 +1781,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(o.min ?? 0, raw - tb - ap);
         // `ctx.woundsDealt` = PB RÉELLEMENT perdus (clampé par loseWounds) → un drain/Vol de vie qui SUIT
         // (`lifeSteal`) soigne « le même nombre » que la victime a effectivement perdu (Absorption EDO 11 l.222).
-        ctx.woundsDealt = loseWounds(target, n); // perte centralisée (−Avantage + À Terre à 0)
+        ctx.woundsDealt = loseWounds(target, n, ctx.caster ?? null); // perte centralisée (−Avantage + À Terre à 0)
         const mitig = o.ignoreTB === false || o.ignoreAP === false ? ` (${o.ignoreAP === false ? t('op.frag.apHit') : t('op.frag.apIgnored')}, ${o.ignoreTB === false ? t('op.frag.beDeduced') : t('op.frag.beIgnored')})` : t('op.frag.mitigNone');
         if (ctx.woundsDealt > 0) lines.push(t('op.wounds', { name: target.label, n: ctx.woundsDealt, mitig })); // LDB 16 l.105
         break;
@@ -2293,9 +2293,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'reduceToZero': {
-        // PB à 0 SEUL ; l'Inconscient ou l'Enflammé est posé par une op `condition` séparée
-        // dans l'entrée appelante (ex. Châtiment ajoute inconscient, Tonnerre ajoute en-flammes).
-        target.wounds.current = 0;
+        loseWounds(target, target.wounds.current, ctx.caster ?? null); // LDB 18 l.15 ; LDB 16 l.105
         lines.push(t('op.reduceToZero', { name: target.label }));
         break;
       }

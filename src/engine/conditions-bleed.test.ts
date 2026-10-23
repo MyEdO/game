@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { bleedDeathRoll, loseWounds, applyZeroWounds, hasCondition, removeCondition } from './conditions';
+import { bleedDeathRoll, loseWounds, applyZeroWounds, appliquerMortSubite, addCondition, hasCondition, removeCondition, stacks, setConditionGainedHook } from './conditions';
 import { applyOps } from './ops';
 import { applyHealWounds } from './healing';
 import { setRule, resetRule } from './policy';
@@ -8,8 +8,8 @@ import { deFixe, desDuTest } from './dice.testkit';
 
 const fixed = deFixe;
 /** Porteur à 0 PB et Inconscient (LDB 16 l.105), ou à `pb` PB conscient. */
-function mk(stacks: number, pb = 0): Combatant {
-  const conditions = [...(stacks ? [{ id: 'hemorragique', value: stacks }] : []), ...(pb ? [] : [{ id: 'inconscient', value: 1 }])];
+function mk(pions: number, pb = 0): Combatant {
+  const conditions = [...(pions ? [{ id: 'hemorragique', value: pions }] : []), ...(pb ? [] : [{ id: 'inconscient', value: 1 }])];
   return { name: 'X', label: 'X', wounds: { current: pb, max: 10 }, conditions } as unknown as Combatant;
 }
 
@@ -56,7 +56,7 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('atteindre 0 par un coup → Inconscient (et À Terre)', () => {
     const c = ilyanweSaignee();
-    expect(loseWounds(c, 10)).toBe(3);
+    expect(loseWounds(c, 10, null)).toBe(3);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(hasCondition(c, 'a-terre')).toBe(true);
   });
@@ -76,7 +76,7 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('sans Hémorragique, 0 PB ne fait pas perdre connaissance (LDB 18 l.15)', () => {
     const c = { ...ilyanweSaignee(), conditions: [] } as Combatant;
-    loseWounds(c, 10);
+    loseWounds(c, 10, null);
     expect(hasCondition(c, 'a-terre')).toBe(true);
     expect(hasCondition(c, 'inconscient')).toBe(false);
   });
@@ -84,7 +84,7 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
   it("variante Aux Armes : le Test d'AA 07 l.5 décide, 0 PB seul ne pose pas l'Inconscient", () => {
     setRule('combat-aa-blessures', 'aa');
     const c = ilyanweSaignee();
-    loseWounds(c, 10);
+    loseWounds(c, 10, null);
     expect(hasCondition(c, 'inconscient')).toBe(false);
   });
 
@@ -100,7 +100,7 @@ describe('Inconscient du saignement : verrou et jet de mort (LDB 16 l.105 ; AA 0
 
   it('un soin ne réveille pas le porteur tant qu’un État Hémorragique reste', () => {
     const c = ilyanweSaignee();
-    loseWounds(c, 10);
+    loseWounds(c, 10, null);
     const log = applyHealWounds(c, 2);
     expect(c.wounds.current).toBe(2);
     expect(hasCondition(c, 'inconscient'), 'verrou : Hémorragique encore porté').toBe(true);
@@ -113,7 +113,7 @@ describe('Inconscient du saignement : verrou et jet de mort (LDB 16 l.105 ; AA 0
   /** Soignée à 1 PB, toujours Inconsciente sous le verrou, 2 Hémorragique. */
   function soigneeA1PB(): Combatant {
     const c = ilyanweSaignee();
-    loseWounds(c, 10);
+    loseWounds(c, 10, null);
     applyHealWounds(c, 1);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     return c;
@@ -123,9 +123,77 @@ describe('Inconscient du saignement : verrou et jet de mort (LDB 16 l.105 ; AA 0
     expect(bleedDeathRoll(soigneeA1PB(), fixed(15)).died).toBe(true); // 15 ≤ 20 (2 pions)
   });
 
+  it('mode aa, 2 Hémorragique : le double 11 tue, le double 33 coagule (AA 07 l.7)', () => {
+    const [tue, coagule] = [soigneeA1PB(), soigneeA1PB()];
+    setRule('combat-aa-blessures', 'aa');
+    expect(bleedDeathRoll(tue, fixed(11)), 'un double ≤ 10×pions n’évite pas la mort').toEqual({ died: true, log: ['Ilyanwe succombe à l\'hémorragie (11 ≤ 20).'] });
+    expect(stacks(tue, 'hemorragique')).toBe(2);
+    expect(bleedDeathRoll(coagule, fixed(33)).died, 'le double qui évite la mort coagule').toBe(false);
+    expect(stacks(coagule, 'hemorragique')).toBe(1);
+  });
+
   it('mode aa : soignée à 1 PB, Inconsciente et Hémorragique → jet de mort', () => {
     const c = soigneeA1PB();
     setRule('combat-aa-blessures', 'aa');
     expect(bleedDeathRoll(c, fixed(15)).died).toBe(true);
+  });
+});
+
+/** Un soin d'1 PB réveille-t-il le porteur ? Non tant que le verrou du saignement tient : LDB 16 l.105. */
+const sombreSousLeVerrou = (c: Combatant): boolean => {
+  applyHealWounds(c, 1);
+  return hasCondition(c, 'inconscient');
+};
+
+describe('Inconscient du saignement, quel que soit l’ordre des deux faits (LDB 16 l.105 ; AA 07 l.5)', () => {
+  afterEach(() => resetRule('combat-aa-blessures'));
+
+  const sansHemorragique = (pb: number): Combatant => ({ ...ilyanweSaignee(pb), conditions: [] }) as Combatant;
+  const matrice: [string, () => Combatant][] = [
+    ['perte de PB, puis État', () => { const c = sansHemorragique(3); loseWounds(c, 10, null); addCondition(c, 'hemorragique'); return c; }],
+    ['État, puis perte de PB', () => { const c = ilyanweSaignee(3); loseWounds(c, 10, null); return c; }],
+    ['op `wounds` à 0 PB', () => { const c = ilyanweSaignee(2); applyOps(c, [{ op: 'wounds', amount: 2 }], { rng: desDuTest }); return c; }],
+    ['op `condition` Hémorragique sur une cible à 0 PB', () => { const c = sansHemorragique(3); loseWounds(c, 10, null); applyOps(c, [{ op: 'condition', id: 'hemorragique', value: 1 }], { rng: desDuTest }); return c; }],
+  ];
+
+  it.each(matrice)('mode ldb, %s : 0 PB, Inconscient verrouillé, À Terre', (_, porter) => {
+    const c = porter();
+    expect(c.wounds.current).toBe(0);
+    expect(hasCondition(c, 'a-terre'), 'LDB 18 l.15').toBe(true);
+    expect(sombreSousLeVerrou(c), 'LDB 16 l.105').toBe(true);
+  });
+
+  it.each(matrice)('mode aa, %s : le Test d’AA 07 l.5 décide, aucun Inconscient', (_, porter) => {
+    setRule('combat-aa-blessures', 'aa');
+    expect(hasCondition(porter(), 'inconscient')).toBe(false);
+  });
+
+  it('déjà Inconscient sans verrou, porté à 0 PB : À Terre et verrou du saignement (LDB 18 l.15 ; LDB 16 l.105)', () => {
+    const c = ilyanweSaignee(3);
+    c.conditions.push({ id: 'inconscient', value: 1 });
+    loseWounds(c, 10, null);
+    expect(hasCondition(c, 'a-terre')).toBe(true);
+    expect(sombreSousLeVerrou(c)).toBe(true);
+  });
+
+  it('Mort subite d’un figurant déjà Inconscient : aucun État regagné, aucun Avantage reperdu (LDB 16 l.7 ; LDB 18 l.44)', () => {
+    const c = { name: 'X', label: 'X', kind: 'enemy', advantage: 2, wounds: { current: 0, max: 10 }, conditions: [{ id: 'inconscient', value: 1 }, { id: 'a-terre', value: 1 }] } as unknown as Combatant;
+    const gagnes: string[] = [];
+    const precedent = setConditionGainedHook((_, name) => gagnes.push(name));
+    try {
+      appliquerMortSubite(c, [], null);
+    } finally {
+      setConditionGainedHook(precedent);
+    }
+    expect(gagnes).toEqual([]);
+    expect(c.advantage).toBe(2);
+  });
+
+  it('Mort subite d’un figurant saigné : À Terre et verrou du saignement (LDB 18 l.15, l.44 ; LDB 16 l.105)', () => {
+    const c = { ...ilyanweSaignee(3), kind: 'enemy' } as Combatant;
+    appliquerMortSubite(c, [], null);
+    expect(c.wounds.current).toBe(0);
+    expect(hasCondition(c, 'a-terre')).toBe(true);
+    expect(sombreSousLeVerrou(c)).toBe(true);
   });
 });

@@ -4,6 +4,7 @@
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
 import type { CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource } from '../engine/types';
+import type { PorteurAvantLeCoup } from '../engine/fortune';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
@@ -923,7 +924,7 @@ export type PendingDeviation =
       crit: CriticalResolved;
       origine: OrigineCritique;
       overkill: number; // dépassement (LDB 18 l.17)
-      woundsBefore: number; // PB avant CE coup → restauration Destin correcte au Subir
+      avant: PorteurAvantLeCoup | undefined; // LDB 17 l.32
       reveal: RevealEntry;
       resumeAfter: boolean;
       ctx: DeviationCtx;

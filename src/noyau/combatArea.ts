@@ -121,7 +121,7 @@ function hitSecondary(
 ): string[] {
   const wl = woundsFromHit(hit.weapon, victim, hit.location, damage, 0, 0, hit.attacker.size); // plancher 0 (navire/ricochet)
   const lines: string[] = [];
-  if (wl > 0) loseWounds(victim, wl);
+  if (wl > 0) loseWounds(victim, wl, hit.attacker);
   lines.push(tr(msgKey, { name: victim.label, wl }));
   // États « infligés par l'arme » via le MÊME dispatcher que le tir individuel (Empêtré, En flammes, Venin…),
   // déclenchés dès la touche — parité avec la cible PRIMAIRE (`applyAttackResult` fire l'onHit sur `res.hit` seul).
@@ -156,7 +156,7 @@ export function resolveWeaponArea(
       // (pilonnage indirect d'une case) il n'y a PAS de « cible seule » de Bout portant → on retombe sur la branche
       // d'aire (les N plus proches autour de la case), via la condition `&& target`.
       const extra = woundsFromHit(weapon, target, hit.location, hit.damage + indice, 0, 0, hit.attacker.size) - woundsFromHit(weapon, target, hit.location, hit.damage, 0, 0, hit.attacker.size);
-      if (extra > 0 && !isOutOfAction(target)) loseWounds(target, extra);
+      if (extra > 0 && !isOutOfAction(target)) loseWounds(target, extra, hit.attacker);
       lines.push(tr('cf.blastPointBlank', { name: target.label, indice }));
     } else {
       // Courte-Longue : cible + Indice plus proches. Extrême : idem mais −Indice aux Dégâts.

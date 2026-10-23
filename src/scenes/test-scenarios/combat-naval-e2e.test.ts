@@ -68,9 +68,9 @@ function meleeDown(attacker: Combatant, target: Combatant): number {
   while (!isOutOfAction(target) && blows < 20) {
     const res = rederivePassiveAttack(attacker, target, weapon, goodHit, 'melee', { rng: makeRNG(1595) });
     const before = target.wounds.current;
-    if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost);
+    if (res.hit && res.woundsLost) loseWounds(target, res.woundsLost, null);
     const lost = res.woundsLost ?? 0;
-    if (res.hit && critiquesDuCoup(target, { coupCritique: null, prise: true, current: before, touche: true, relance: relanceLaLocalisation(target, { coupCritique: null, prise: true, current: before }), blessures: lost }).mortSubite) appliquerMortSubite(target, []);
+    if (res.hit && critiquesDuCoup(target, { coupCritique: null, prise: true, current: before, touche: true, relance: relanceLaLocalisation(target, { coupCritique: null, prise: true, current: before }), blessures: lost }).mortSubite) appliquerMortSubite(target, [], null);
     blows++;
   }
   return blows;
@@ -226,7 +226,7 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     let shots = 0;
     while (cogue.wounds.current > 0 && shots < 20) {
       const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged', { rng: makeRNG(1595) });
-      if (res.hit && res.woundsLost) loseWounds(cogue, res.woundsLost);
+      if (res.hit && res.woundsLost) loseWounds(cogue, res.woundsLost, null);
       shots++;
     }
     expect(cogue.wounds.current).toBe(0); // coque à 0 par l'artillerie (Dégâts − BE − Blindage)

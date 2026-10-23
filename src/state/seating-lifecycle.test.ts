@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
-import { notifySlain, releaseSeatsOfDowned } from '../noyau/combatFlow';
+import { releaseSeatsOfDowned } from '../noyau/combatFlow';
 import { TIME_COST } from '../engine/timeCost';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -94,7 +94,7 @@ describe('transition de scène — une scène quittée ne garde pas un héros ab
 /**
  * MORT / INDISPONIBILITÉ — un corps mis hors d'action ne tient plus sa chaise. La couture est UNIQUE
  * (`combatFlow.releaseSeatsOfDowned`) et branchée aux deux endroits où la mise hors de combat est
- * ACTÉE : `notifySlain` (tous les chemins de mort d'un combattant) et l'entretien hors combat de
+ * ACTÉE : `reglerLesChutes` (toute écriture qui laisse un combattant hors de combat) et l'entretien hors combat de
  * `advanceTime` (agonie, Hémorragie, Poison, Flammes).
  */
 describe('mort / indisponibilité d’un occupant', () => {
@@ -127,7 +127,7 @@ describe('mort / indisponibilité d’un occupant', () => {
     expect(poseDe(1)).toBeNull();
   });
 
-  it('un PNJ attablé mis hors de combat libère sa place par `notifySlain`', () => {
+  it('un PNJ attablé mis hors de combat libère sa place à l’écriture qui l’y laisse (`reglerLesChutes`)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     useGame.setState({ party: [h], battle: null, journal: [] });
     useGame.getState().startScene(testScene());
@@ -138,10 +138,9 @@ describe('mort / indisponibilité d’un occupant', () => {
     useGame.setState({ scene: { ...sc, entities, seatAssignments: { [PROP]: { 'place-1': occupant } } } });
     expect(seatPoseOf(useGame.getState().scene!, occupant)).not.toBeNull();
 
-    // Le badaud est enrôlé au combat en cours et tombe : `notifySlain` acte la mise hors de combat.
+    // Le badaud est enrôlé au combat en cours et tombe : l'écriture acte la mise hors de combat.
     const mort = { id: 'badaud', label: 'Badaud', kind: 'enemy', wounds: { current: 0, max: 8 }, conditions: [], dead: true } as unknown as Combatant;
     useGame.setState({ battle: { combatants: [mort], log: [], order: ['badaud'], turn: 0, round: 1 } as never });
-    notifySlain(useGame.getState, useGame.setState, mort);
     expect(seatPoseOf(useGame.getState().scene!, occupant)).toBeNull();
   });
 });

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { notifySlain } from '../noyau/combatFlow';
+import { reglerLesChutes } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 import type { Scene } from '../noyau/monde/scene';
 
 /**
  * Trait Charnier (frenchy.bzh) — « si la créature est vaincue, 3D10 Zombies sortent de sa carcasse ».
  * Câblé 100% en DONNÉE via l'op IMPURE `summon` portée par un effet `onSlain` : `summon` est inerte dans
- * applyOps (grille/initiative) ; `notifySlain` la moissonne (`resolveTriggerImpureOps`, GÉNÉRIQUE — pas
+ * applyOps (grille/initiative) ; `reglerLesChutes` la moissonne (`resolveTriggerImpureOps`, GÉNÉRIQUE — pas
  * limité à summon) et la résout par `summonFlow.applySummon`, comme au lancement d'un sort d'invocation.
  */
 const charnier = (over: Partial<Combatant> = {}): Combatant => ({
@@ -20,11 +20,11 @@ const scene = (): Scene => ({ id: 's', name: 's', dimensions: { w: 14, h: 14 }, 
 const battle = (cs: Combatant[]): any => ({ combatants: cs, order: cs.map((c) => c.id), baseOrder: cs.map((c) => c.id), turn: 0, round: 1, log: [], zones: [], over: false });
 function harness(b: any) { let s: any = { battle: b, scene: scene() }; return { get: () => s, set: (p: any) => { s = { ...s, ...p }; }, state: () => s }; }
 
-describe('Trait Charnier — death-spawn de Zombies (op summon onSlain résolue par notifySlain)', () => {
+describe('Trait Charnier — death-spawn de Zombies (op summon onSlain résolue par reglerLesChutes)', () => {
   it('à la mort, invoque ≥3 Zombies hostiles au groupe (même camp que le défunt)', () => {
     const c = charnier();
     const h = harness(battle([c]));
-    notifySlain(h.get as never, h.set as never, c);
+    reglerLesChutes(h.get as never, h.set as never);
     const z = h.state().battle.combatants.filter((x: Combatant) => x.summon);
     expect(z.length).toBeGreaterThanOrEqual(3); // 3d10 → au moins 3
     expect(z.every((s: Combatant) => s.kind === 'enemy')).toBe(true); // camp du défunt (enemy) → attaquent le groupe
@@ -34,7 +34,7 @@ describe('Trait Charnier — death-spawn de Zombies (op summon onSlain résolue 
   it('sans le trait Charnier → aucun spawn à la mort', () => {
     const c = charnier({ traits: [] as never });
     const h = harness(battle([c]));
-    notifySlain(h.get as never, h.set as never, c);
+    reglerLesChutes(h.get as never, h.set as never);
     expect(h.state().battle.combatants.filter((x: Combatant) => x.summon).length).toBe(0);
   });
 });

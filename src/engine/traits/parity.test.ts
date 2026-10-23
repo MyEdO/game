@@ -69,7 +69,7 @@ const COUVERT_AILLEURS = new Map<string, string>([
   ['Maladie', 'contraction post-combat (disease.ts — Lot D) ; arg = la maladie (rats/skavens : fievre-du-rongeur)'],
   ['Infecté', 'Blessure Purulente post-combat (disease.ts — Lot D)'],
   ['Corruption', 'exposition du groupe (corruptionFlow — Lot E)'],
-  // Invocation à la mort — op `summon` du Flow `onSlain`, moissonnée par notifySlain → summonFlow.applySummon
+  // Invocation à la mort — op `summon` du Flow `onSlain`, moissonnée par reglerLesChutes → summonFlow.applySummon
   ['Charnier', 'death-spawn : 3d10 Zombies à la mort (op summon onSlain → resolveTriggerImpureOps/applySummon)'],
   // Reconstitution différée — op `scheduleRespawn` du Flow `onSlain` : programme la ré-invocation à
   // gameTime + d10 j (file scheduledEffects, horloge) ; fireScheduledEffects → applySummon ; précautions = cancelFlag.

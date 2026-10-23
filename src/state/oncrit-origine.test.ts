@@ -67,6 +67,9 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
   it('Blessure critique de DÉPASSEMENT : Taillade joue, la munition ne se loge pas (LDB 62 l.250 ; AA 08 l.87)', () => {
     const { H, E } = setup();
     E.wounds.current = 2;
+    // Graine dont la Blessure critique ne fait pas saigner : à 0 PB, l'Hémorragique la rendrait Inconsciente
+    // (LDB 16 l.105), hors d'atteinte de l'effet de Taillade sur la cible.
+    useGame.getState().seedRng(1);
     applyAttackResult(useGame.getState, useGame.setState, H, E, arcTailladeEmpaleuse(), touche({ woundsLost: 3 }));
     expect(offreDeTaillade(), 'onCrit n’est pas parti sur la Blessure critique du dépassement').toBeDefined();
     expect(munitions(cible(E.id)), 'Empaleuse a logé sa munition hors Coup Critique').toBe(0);

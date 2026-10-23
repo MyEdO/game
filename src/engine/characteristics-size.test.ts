@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { maxWounds, effectiveMaxWounds, refreshWounds } from './characteristics';
+import { hasCondition } from './conditions';
 import { Characteristics, Combatant } from './types';
 
 describe('maxWounds par catégorie de Taille (LDB 85 l.332-352)', () => {
@@ -83,5 +84,22 @@ describe('refreshWounds — recale max + ajuste current (buff/expiration)', () =
     refreshWounds(c);
     expect(c.wounds.max).toBe(12);
     expect(c.wounds.current).toBe(10); // 12 − 2 (en perd)
+  });
+});
+
+describe('refreshWounds — l’expiration qui ramène à 0 PB (LDB 18 l.15 ; LDB 16 l.105)', () => {
+  it('porteur de 2 Hémorragique à 2 PB sous buff +E : l’expiration le laisse à 0, Inconscient et À Terre', () => {
+    const c = {
+      label: 'Ilyanwe', kind: 'hero',
+      characteristics: { force: 30, endurance: 30, 'force-mentale': 30 } as Characteristics,
+      size: 'moyenne',
+      wounds: { current: 2, max: 14, base: 12 },
+      conditions: [{ id: 'hemorragique', value: 2 }],
+      activeEffects: [],
+    } as unknown as Combatant;
+    refreshWounds(c);
+    expect(c.wounds.current).toBe(0);
+    expect(hasCondition(c, 'inconscient')).toBe(true);
+    expect(hasCondition(c, 'a-terre')).toBe(true);
   });
 });

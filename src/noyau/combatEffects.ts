@@ -1618,7 +1618,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           lines.push(...r.log);
           damage += r.damage;
         }
-        if (damage > 0) loseWounds(c, damage);
+        if (damage > 0) loseWounds(c, damage, null);
       }
       if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
     },
@@ -1640,7 +1640,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           lines.push(...r.log);
           damage += r.damage;
         }
-        if (damage > 0) loseWounds(c, damage);
+        if (damage > 0) loseWounds(c, damage, null);
       }
       if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
     },

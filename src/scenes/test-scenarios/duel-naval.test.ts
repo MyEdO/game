@@ -11,7 +11,7 @@ import { isMerScene, sceneMetresPerTile } from '../../noyau/monde/scene';
 import { chebyshev } from '../../engine/grid';
 import { runEnemyAI, checkBattleOver } from '../../noyau/combatFlow';
 import type { Combatant, ShipPoste } from '../../engine/types';
-import { fr } from '../../i18n/messages/fr';
+import { gabarit } from '../../gabarit.testkit';
 import { draineCascade, poseSurDeNonTombe } from '../../state/cascade.testkit';
 const scenarioConstruit = scenario.construire();
 
@@ -25,10 +25,6 @@ function launch(seed: number) {
   g.startCombat('duel');
   if (useGame.getState().pendingRoundStart) useGame.getState().confirmRoundStart();
 }
-
-/** Gabarit d'un message du catalogue en RegExp (les `{param}` deviennent `.*`). */
-const gabarit = (cle: 'cs.bordee' | 'cs.bordeeManque'): RegExp =>
-  new RegExp(`^${fr[cle].split(/\{[a-z]+\}/).map((m) => m.replace(/[.*+?^$()|[\]\\]/g, '\\$&')).join('.*')}$`);
 
 const rangeM = (p: ShipPoste) => (typeof p.item.range === 'number' ? p.item.range : 0);
 const ship = (id: string): Combatant => useGame.getState().battle!.combatants.find((c) => c.id === id)!;

@@ -4,8 +4,8 @@
  * l'appelant ; `trauma.ts` lit `diseasePassiveOps` d'ici. N'importe `ops`
  * qu'en TYPE (`GameOp`), jamais `applyOps` — les conséquences `onFail` sont appliquées CÔTÉ STATE
  * (`restFlow`, via `applyOps`) → pas de cycle ops↔disease. Seule liaison croisée : `conditions.ts`
- * (pose d'État par la source unique `addCondition` ici, lecture de `symptomLockedUntilCured` là-bas) —
- * deux déclarations de fonction hissées, aucune évaluation croisée à l'initialisation des modules.
+ * (pose d'État par la source unique `addCondition` et perte de PB par `loseWounds` ici, lecture de `symptomLockedUntilCured` là-bas) —
+ * des déclarations de fonction hissées, aucune évaluation croisée à l'initialisation des modules.
  *
  * Cycle de vie (l.10-24) : Contraction (Test raté) → Incubation → symptômes ACTIFS → Durée → résolution
  * (capacité `endTest` : Test de fin, sinon guérison naturelle). Incubation/durée RAW en jours, heures OU
@@ -42,7 +42,7 @@ import type { GameOp, PassiveMod } from './ops';
 import type { PsychTrait, PsychType } from './psychology';
 import { t, type MsgKey } from '../i18n';
 import { fateSaveOrDie } from './fortune';
-import { addCondition } from './conditions';
+import { addCondition, loseWounds } from './conditions';
 import { sourceSuspended, suspendSource } from './suspension'; // module FEUILLE : suspension GÉNÉRALE d'une source passive
 import type { CodexTarget } from './ruleRefs';
 
@@ -404,8 +404,8 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
     else if (op.op === 'contractDisease') contractOnce(op.disease);
     else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.kill.fateSaved', { name: c.label }) : t('op.kill', { name: c.label }));
     else if (op.op === 'wounds') {
-      const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
-      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.wounds', { name: c.label, n, mitig: '' })); }
+      const perdues = loseWounds(c, typeof op.amount === 'number' ? op.amount : 0, null); // LDB 16 l.105 ; LDB 18 l.15
+      if (perdues > 0) log.push(t('op.wounds', { name: c.label, n: perdues, mitig: t('op.frag.mitigNone') }));
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;

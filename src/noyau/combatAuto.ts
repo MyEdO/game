@@ -347,7 +347,7 @@ export function tickCombatAuto(get: Get, set: Set): void {
       // `negate` s'il est offert (`fateSaveOptions`), sinon `survive`. En Rapide, on NE touche PAS (la
       // modale reste — vrai choix du joueur).
       if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
-        const negate = fateSaveOptions(s.pendingFateSave.source).includes('negate');
+        const negate = fateSaveOptions(s.pendingFateSave).includes('negate');
         programmer(() => (negate ? get().fateNegate() : get().fateSurvive()), beatHold(get, 'autoResolve'));
       }
       return;

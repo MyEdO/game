@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { notifySlain } from '../noyau/combatFlow';
+import { reglerLesChutes } from '../noyau/combatFlow';
 import { fireScheduledEffects } from '../noyau/combatEffects';
 import { seedBattleRng } from '../noyau/battleRng';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -13,7 +13,7 @@ import { findCreatureById } from '../data';
  * Trait Gardien éternel (Prédateur sanglant — Bestiaire de Middenheim, #19) : « si l'élémentaire incarné
  * qui garde la Source de Ghur est tué, il se reconstitue au bout de d10 jours, à moins que son pourfendeur
  * ne prenne les précautions appropriées… ». Câblé 100% en DONNÉE via l'op IMPURE `scheduleRespawn` portée
- * par un effet `onSlain` (MIROIR de Charnier/`summon`) : à la mort, `notifySlain` la moissonne
+ * par un effet `onSlain` (MIROIR de Charnier/`summon`) : à la mort, `reglerLesChutes` la moissonne
  * (`resolveTriggerImpureOps`) et PROGRAMME une entrée dans `scheduledEffects` (file horloge, Lot 0) à
  * `gameTime + d10 jours` ; l'échéance, franchie par `advanceTime`/`fireScheduledEffects`, RÉ-INVOQUE la
  * créature (`applySummon`) près de sa position de mort. Les « précautions » = le `cancelFlag` (un Effet de
@@ -42,7 +42,7 @@ function harness(over: Record<string, unknown> = {}) {
 function slayAndSchedule(gameTime = 0) {
   const c = guardian();
   const h = harness({ battle: battle([c]), gameTime });
-  notifySlain(h.get as never, h.set as never, c);
+  reglerLesChutes(h.get as never, h.set as never);
   const se = h.state().scheduledEffects;
   return { h, se, executeAt: se[0]?.executeAt as number };
 }
@@ -64,14 +64,14 @@ describe('Trait Gardien éternel — reconstitution différée (op scheduleRespa
   it('un défunt sans porteur de fiche est REFUSÉ, nommé : aucune reconstitution programmée', () => {
     const c = guardian({ porteurDeFiche: undefined });
     const h = harness({ battle: battle([c]) });
-    expect(() => notifySlain(h.get as never, h.set as never, c)).toThrow(/« gardien » n'a été spawné d'aucune fiche/);
+    expect(() => reglerLesChutes(h.get as never, h.set as never)).toThrow(/« gardien » n'a été spawné d'aucune fiche/);
     expect(h.state().scheduledEffects).toHaveLength(0);
   });
 
   it('sans le trait → aucune reconstitution programmée à la mort', () => {
     const c = guardian({ traits: [] as never });
     const h = harness({ battle: battle([c]) });
-    notifySlain(h.get as never, h.set as never, c);
+    reglerLesChutes(h.get as never, h.set as never);
     expect(h.state().scheduledEffects).toHaveLength(0);
   });
 
@@ -108,7 +108,7 @@ describe("Gardien éternel — `ref:'self'` reconstitue la FICHE du défunt, que
   const reconstitue = (defunt: Combatant): Combatant => {
     Object.assign(defunt, { pos: { x: 6, y: 6 }, dead: true, wounds: { ...defunt.wounds, current: 0 } });
     const h = harness({ battle: battle([defunt]) });
-    notifySlain(h.get as never, h.set as never, defunt);
+    reglerLesChutes(h.get as never, h.set as never);
     const se = h.state().scheduledEffects;
     expect(se).toHaveLength(1);
     h.set({ gameTime: se[0].executeAt });

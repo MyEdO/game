@@ -4,7 +4,8 @@ import { draineCascade } from './cascade.testkit';
 import { applyAttackResult } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { hasCondition } from '../engine/conditions';
+import { addCondition, hasCondition } from '../engine/conditions';
+import { applyHealWounds } from '../engine/healing';
 import type { AttackResult } from '../engine/combat';
 
 describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', () => {
@@ -64,5 +65,25 @@ describe('0 PB → État À Terre, MÊME sur overkill/Critique (LDB 18 l.15)', (
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.wounds.current).toBe(0);
     expect(hasCondition(h, 'a-terre')).toBe(true);
+  });
+
+  it('porteur de 2 Hémorragique déjà Inconscient sans verrou, porté à 0 par un coup d’arme : À Terre et verrou du saignement (LDB 16 l.105)', () => {
+    useGame.getState().seedRng(5);
+    const { H, E } = setup();
+    H.wounds = { current: 5, max: 12, base: 12 } as never;
+    H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
+    addCondition(H, 'hemorragique', 2);
+    H.conditions.push({ id: 'inconscient', value: 1 });
+    useGame.setState({ battle: { ...useGame.getState().battle! } });
+    const res: AttackResult = {
+      hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 5, woundsLost: 5,
+      critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+    };
+    applyAttackResult(useGame.getState, useGame.setState, E, H, E.weapons[0], res);
+    const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
+    expect(h.wounds.current).toBe(0);
+    expect(hasCondition(h, 'a-terre'), 'LDB 18 l.15').toBe(true);
+    applyHealWounds(h, 1);
+    expect(hasCondition(h, 'inconscient'), 'le soin ne réveille pas sous le verrou').toBe(true);
   });
 });

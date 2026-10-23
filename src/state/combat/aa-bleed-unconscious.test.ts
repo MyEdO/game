@@ -88,13 +88,9 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     expect(hasCondition(E, COND.inconscient)).toBe(true);
   });
 
-  it('mode LDB (défaut) : le hook AA est inerte — pas d’Inconscient par ce chemin (parité, non régressé)', () => {
+  it('mode LDB (défaut) : l’Inconscient vient du gain de l’Hémorragique à 0 PB, sans attendre la fin de Round (LDB 16 l.105)', () => {
     const { E } = setup(); // rule ldb par défaut
-    seedBattleRng(98);
     addCondition(E, COND.hemorragique, 1);
-    roundEndHooksOnly();
-    // En LDB, la chute Inconscient à 0 PB passe par `tick-death` (roundsAtZero > BE), pas par le hook AA :
-    // au 1er Round à 0 PB (roundsAtZero 0→1 ≤ BE), l'ennemi reste conscient.
-    expect(hasCondition(E, COND.inconscient)).toBe(false);
+    expect(hasCondition(E, COND.inconscient)).toBe(true);
   });
 });

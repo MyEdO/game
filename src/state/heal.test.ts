@@ -357,6 +357,23 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(useGame.getState().pendingSurgery).toBeNull(); // la passe est fermée à la réussite
   });
 
+  it('Chirurgie : la passe qui porte le patient à 0 PB puis lui inflige l’Hémorragique le fait sombrer (LDB 10 l.184 ; LDB 16 l.105)', () => {
+    const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: { current: 1, max: 40 }, traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });
+    useGame.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
+    useGame.getState().openMedic({ patientId: 'p' });
+    useGame.getState().medicAct('surgery');
+    const sg0 = useGame.getState().medic!.surgery!;
+    useGame.setState({ medic: { ...useGame.getState().medic!, surgery: { ...sg0, skill: 99 } } });
+    useGame.getState().openSurgeryPass();
+    useGame.getState().surgeryRoll();
+    useGame.getState().surgeryNext();
+    const p = useGame.getState().party.find((c) => c.id === 'p')!;
+    expect(p.wounds.current).toBe(0);
+    expect(p.conditions.some((c) => c.id === 'hemorragique'), 'témoin : la passe a fait saigner').toBe(true);
+    expect(p.conditions.some((c) => c.id === 'inconscient')).toBe(true);
+  });
+
   it('Chirurgie : à la cible atteinte, le Test d’infection du PATIENT est DIFFÉRÉ en étape cascade INFLUENÇABLE (Résistance +20, Menace : Maladie) — plus de jet silencieux, Infection non contractée avant l’influence', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: { current: 40, max: 40 }, traumas: [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })] });

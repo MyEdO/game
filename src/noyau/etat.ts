@@ -1,5 +1,5 @@
 import type { Combatant } from '../engine/types';
-import type { FateSaveSource } from '../engine/fortune';
+import type { SauvetageDuDestin } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from './actionRegistry';
 import type { ShipMoraleState } from '../engine/crewMorale';
@@ -530,10 +530,10 @@ export interface EtatDeJeu {
    *  frise) — le prochain clic sur un adversaire (carte OU frise) déclenche `preemptRangedShot`. `null` = aucune. */
   preemptAiming: string | null;
   /** Sauvetage par le Destin en attente (LDB 17 l.29-32). */
-  pendingFateSave: { heroId: string; source: FateSaveSource; restoreWounds?: number;
+  pendingFateSave: ({ heroId: string;
     /** Animosité & Haine (ADE II Annexe I, règle facultative) : Groupe (ou nom) de « l'individu ou
      *  l'élément qui l'a presque tué » — Cible de l'Animosité acquise si le héros dépense le Destin. */
-    foeCible?: string } | null;
+    foeCible?: string } & SauvetageDuDestin) | null;
   /** Récompenses de victoire capturées (écran de fin de combat) ; null hors victoire. */
   pendingVictory: PendingVictory | null;
   /** VOL TERRESTRE en cours (#327) : le combat courant est né d'une péripétie dangereuse terrestre —

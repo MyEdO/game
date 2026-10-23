@@ -20,6 +20,7 @@ import { poserLaPlateforme, type Plateforme, type PlateformeDe } from '../noyau/
 import { scheduleCombatTimer, timerEnVol } from '../web/minuteries';
 import { rosterUpdate } from './roster';
 import { planifierLeTickAuto } from '../noyau/combatAuto';
+import { reglerLesChutes } from '../noyau/combatFlow';
 import type { Scene } from '../noyau/monde/scene';
 import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
 import { bus, EVT } from '../noyau/bus';
@@ -386,9 +387,11 @@ bus.on(EVT.HEROS_A_CREER, () => {
   s.setScreen('creator');
 });
 
-// Transition du jeu (`transitionDuJeu`, #2817 D7), puis péremption du curseur (`curseurPerime`).
+// Transition du jeu (`transitionDuJeu`, #2817 D7), conséquences des chutes (`reglerLesChutes`), puis
+// péremption du curseur (`curseurPerime`).
 useGame.subscribe((s, prev) => {
   const ecriture = transitionDuJeu(prev, s);
   if (ecriture) useGame.setState(ecriture);
+  reglerLesChutes(useGame.getState, useGame.setState);
   if (curseurPerime(prev, s) && useGame.getState().combatCursor) useGame.setState({ combatCursor: null });
 });

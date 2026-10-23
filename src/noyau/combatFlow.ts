@@ -9,7 +9,7 @@ import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, 
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
 import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
-import type { FateSaveSource } from '../engine/fortune';
+import { avantANier, avantLeCoup, type PorteurAvantLeCoup } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
@@ -79,7 +79,7 @@ import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine
 import { engage, markAttacked, isEngaged, decayEngagement, chargeAdvantage, disengageFrom, clearEngagementOf, areInContact, reachTiles, meleeReachTiles } from '../engine/engagement';
 import { areGrappling, clearGrapple, grappleEnvMod } from '../engine/grapple';
 import { gainAdvantage, avantageApresPerte } from '../engine/advantage';
-import { groupAdvantage } from '../engine/advantagePool';
+import { groupAdvantage, perdreToutLAvantage } from '../engine/advantagePool';
 import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
@@ -169,7 +169,7 @@ import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from
 import { recomputeLoadout, weaponWithAmmo, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue } from '../engine/items';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
-import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
+import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, infligerLeCoup, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND } from '../engine/conditions';
 import { creatureAttacks, attaquesNaturelles, attaqueNaturelle, selfManeuversOf, selfManeuverApplicable, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { hasActiveFlag } from '../engine/activeFlags';
 
@@ -1657,35 +1657,88 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
   return { kind: 'moveAttack', dest, path: pathTo(scene, active.pos!, dest, env) ?? [], cost: reach.get(`${dest.x},${dest.y}`)! };
 }
 
-/** Mort d'un combattant : pour un héros à Destin, suspend (pendingFateSave) au lieu de mourir
- *  (LDB 17 l.29) ; sinon finalise la mort. `restoreWounds` = PB d'avant le coup létal.
- *  `foe` = « l'individu ou l'élément qui l'a presque tué » (coup direct) → Cible d'une éventuelle
- *  Animosité si le Destin est dépensé (ADE II Annexe I, règle facultative) ; absent pour la mort lente. */
-export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source: FateSaveSource, restoreWounds?: number, foe?: Pick<Combatant, 'label' | 'groups'>): void {
-  // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
-  // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
-  if ((hero.fate ?? 0) > 0) {
+/** Mort d'un combattant SUR LE COUP : s'il a de quoi brûler du Destin (`avant`, `avantLeCoup`), suspend
+ *  (pendingFateSave) au lieu de mourir (LDB 17 l.29) ; sinon finalise la mort. `avant` = le porteur d'avant
+ *  le coup létal (LDB 17 l.32). L'auteur imputé (`chuteImputeeA`) est « l'individu ou l'élément qui l'a
+ *  presque tué » → Cible d'une éventuelle Animosité si le Destin est dépensé (ADE II Annexe I, règle
+ *  facultative). */
+export function finalizeHeroDeath(get: Get, set: SetFn, hero: Combatant, avant: PorteurAvantLeCoup | undefined): void {
+  if (avant) {
+    const foe = hero.chuteImputeeA ? inBattleId(get().battle, hero.chuteImputeeA) : undefined;
     const foeCible = foe ? (foe.groups?.[0] ?? foe.label) : undefined;
-    set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
+    set({ pendingFateSave: { heroId: hero.id, source: 'hit', avant, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
   }
 }
 
-/** Émet le déclencheur `onSlain` UNE seule fois pour un combattant mis HORS DE COMBAT — effets de DONNÉE
- *  « à la mort » (Démoniaque banni, LDB 85 l.98 ; futur explose/se dédouble). Atteignable par plusieurs
- *  chemins de mort (0 PB, Critique létal, mort-auto, mort lente) → garde d'unicité `slainNotified`.
- *  Renvoie les lignes de journal de l'effet (tissées par l'appelant à sa position). */
-export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
-  if (!isOutOfAction(c) || c.slainNotified) return [];
+/** Le Destin peut encore annuler le coup qui a mis `c` hors de combat : LDB 17 l.32. */
+export function chuteEnSuspens(s: Jeu, c: Pick<Combatant, 'id'>): boolean {
+  const p = s.pendingFateSave;
+  return !!p && p.heroId === c.id && !!avantANier(p);
+}
+
+/** Coups en cours d'application (`sousLeCoup`) : leurs chutes attendent leur fin, le Destin pouvant encore
+ *  s'ouvrir sur le Critique suivant du même coup (LDB 17 l.32). */
+let coupsEnVol = 0;
+
+/** Applique un coup (Blessures, Critiques, mort) d'un seul tenant au regard de `reglerLesChutes`. */
+function sousLeCoup<T>(appliquer: () => T): T {
+  coupsEnVol++;
+  try {
+    return appliquer();
+  } finally {
+    coupsEnVol--;
+  }
+}
+
+let enReglement = false;
+
+/** LE POINT CANONIQUE des conséquences d'une mise hors de combat, joué par le propriétaire de l'état après
+ *  CHAQUE écriture (#2817 D7, `partie.ts`, `src/state/store.ts`) : tout combattant hors de combat et pas
+ *  encore traité (`slainNotified`) les reçoit, hors coup en vol et tant que le Destin peut annuler le coup
+ *  (`chuteEnSuspens`) ; puis l'imputation s'éteint chez les autres : elle ne vaut que pour le coup qui l'a
+ *  posée (LDB 85 l.16). */
+export function reglerLesChutes(get: Get, set: SetFn): void {
+  if (enReglement || coupsEnVol > 0 || !get().battle) return;
+  enReglement = true;
+  try {
+    const journal: ReturnType<typeof ev>[] = [];
+    for (;;) {
+      const s = get();
+      const c = s.battle?.combatants.find((x) => !x.slainNotified && isOutOfAction(x) && !chuteEnSuspens(s, x));
+      if (!c) break;
+      for (const line of consequencesDeLaChute(get, set, c)) journal.push(ev('death', line, c.id));
+    }
+    const s = get();
+    const battle = s.battle;
+    if (!battle) return;
+    for (const x of battle.combatants) if (x.chuteImputeeA && !chuteEnSuspens(s, x)) delete x.chuteImputeeA;
+    if (journal.length) set({ battle: { ...battle, log: [...battle.log, ...journal] } });
+  } finally {
+    enReglement = false;
+  }
+}
+
+/** Les conséquences de la mise hors de combat de `c`, une fois (`slainNotified`) : l'Engagement levé
+ *  (LDB 13 l.169-171), la psychologie qui le visait (LDB 21 l.75), l'effet « à la mise hors de combat »
+ *  de son auteur imputé (LDB 85 l.16), le siège libéré, l'effet « à la mort » (`onSlain`, LDB 85 l.98).
+ *  Rend les lignes de journal. */
+function consequencesDeLaChute(get: Get, set: SetFn, c: Combatant): string[] {
+  const battle = get().battle!;
   c.slainNotified = true;
+  clearEngagementOf(battle.combatants, c.id);
+  clearPsychOf(battle.combatants, c.id);
+  refreshAllDefendedPsych(battle.combatants); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
+  const lignes: string[] = [];
+  const tueur = c.chuteImputeeA ? inBattleId(battle, c.chuteImputeeA) : undefined;
+  if (tueur && !isOutOfAction(tueur)) emitCombatEvent('onKill', { get, set, battle, self: tueur, sink: (line) => lignes.push(line), triggerCtx: { rng: battleRng() } });
   releaseSeatsOfDowned(get, set); // un corps mis hors d'action ne tient plus sa chaise
-  const lines: string[] = [];
-  emitCombatEvent('onSlain', { get, set, battle: get().battle!, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
+  emitCombatEvent('onSlain', { get, set, battle: get().battle!, self: c, sink: (line) => lignes.push(line), triggerCtx: { rng: battleRng() } });
   // Ops IMPURES « à la mort » (Charnier : 3d10 Zombies ; toute zone laissée en mourant) — inertes dans
   // applyOps, résolues ici (grille/initiative) comme au lancement d'un sort d'invocation/zone.
-  lines.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
-  return lines;
+  lignes.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
+  return lignes;
 }
 
 /** Tables d'étape des Blessures critiques du LDB (une par table de rattachement — les six Localisations
@@ -2075,15 +2128,14 @@ function deflectCrit(target: Combatant, location: HitLocation, log: string[]): b
 }
 
 /** Triptyque PARTAGÉ d'application d'un Critique (mêlée/opposé/magie) : applique la table puis finalise
- *  une éventuelle mort par le chemin normal. `woundsBefore` = PB AVANT les dégâts de base (passé par
- *  l'appelant → restauration Destin correcte au Subir). */
+ *  une éventuelle mort par le chemin normal. `avant` = le porteur d'avant le coup (LDB 17 l.32). */
 function applyCritAndFinalize(
   get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
-  log: string[], ctx: DeviationCtx, woundsBefore: number, crit?: CriticalResolved, suppressReveal?: boolean,
+  log: string[], ctx: DeviationCtx, avant: PorteurAvantLeCoup | undefined, crit?: CriticalResolved, suppressReveal?: boolean,
   surLeCritique?: (crit: CriticalResolved) => void,
 ): boolean {
   const lethal = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
-  if (lethal) finalizeHeroDeath(get, set, target, 'hit', woundsBefore, inBattleId(get().battle, ctx.attackerId));
+  if (lethal) finalizeHeroDeath(get, set, target, avant);
   return lethal;
 }
 
@@ -2213,11 +2265,15 @@ export function applyOpposedCritical(
     const reveal = previewCritEntry(victim, crit, entree.origine, ctx);
     pushDeviationStep(set, { targetId: victim.id, offerte: true, pretire: {
       mode: 'self', attackerId: ctx.attackerId ?? '', targetId: victim.id, location: loc, crit,
-      origine: entree.origine, overkill: 0, woundsBefore: victim.wounds.current, reveal, resumeAfter: true, ctx: c2,
+      origine: entree.origine, overkill: 0, avant: avantLeCoup(victim), reveal, resumeAfter: true, ctx: c2,
     } });
     return;
   }
-  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, victim.wounds.current);
+  const lethal = sousLeCoup(() => {
+    const avant = avantLeCoup(victim);
+    infligerLeCoup(victim, 0, attacker ?? null); // LDB 14 l.3 : Critique sans Blessure du coup
+    return applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, avant);
+  });
   breakBacleArmour(victim, loc, log); // LDB 60 l.50
   apresLeCritiqueDe({ get, set, auteur: attacker, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
 }
@@ -2241,7 +2297,7 @@ function apresLeCritiqueDe(a: ApresLeCritique): (lethal: boolean, origine: Origi
   return (lethal, origine) => {
     const { get, set, auteur, cible, log } = a;
     if (!auteur || lethal) return;
-    const fb = loseWounds(cible, talentCritExtraWounds(auteur));
+    const fb = loseWounds(cible, talentCritExtraWounds(auteur), auteur);
     if (fb > 0) log.push(tr('cf.woundingStrike', { name: cible.label, n: fb }));
     const battle = get().battle;
     if (!battle) return;
@@ -2411,8 +2467,8 @@ interface ApplicationDesCritiques {
   plan: readonly DecisionDeCritique[];
   log: string[];
   ctx: DeviationCtx;
-  /** PB AVANT les Blessures du coup (restauration Destin au Subir). */
-  currentBefore: number;
+  /** Le porteur d'avant les Blessures du coup, s'il peut brûler du Destin (LDB 17 l.32). */
+  avant: PorteurAvantLeCoup | undefined;
   /** Le jet de toucher (révélation d'une Déviation de l'automate). */
   roll: number;
   /** Après une Blessure critique INFLIGÉE (Frappe blessante, `onCrit`). */
@@ -2428,7 +2484,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
   const { target, log, ctx } = a;
   const { compte, lieu, coupCritique } = a.compte;
   const heroConcerne = target.kind === 'hero' || ctx.attackerKind === 'hero';
-  if (compte.mortSubite) appliquerMortSubite(target, log);
+  if (compte.mortSubite) appliquerMortSubite(target, log, ctx.attackerId ? inBattleId(a.get().battle, ctx.attackerId) ?? null : null);
   // LDB 60 l.50 ; #1595 c.6225326419 : la casse suit le Coup Critique, dévié, subi ou ignoré.
   let bacle = coupCritique;
   const casse = (): void => { if (bacle) breakBacleArmour(target, lieu, log); bacle = false; };
@@ -2447,7 +2503,7 @@ function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: 
     if (!devie) {
       // « Subir » applique LA Blessure déjà montrée, sans la re-révéler ; le Critique d'une fenêtre sans voies
       // (pose du dé, #942 L4) garde sa révélation.
-      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.currentBefore, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
+      lethal = applyCritAndFinalize(a.get, a.set, target, lieu, entree.overkill, entree.origine, log, ctx, a.avant, decision.crit, !!decision.crit && !!decision.deviation, (crit) => { if (coupCritiqueEntree) lancerDuTableau = crit.naturel; });
       a.apres?.(lethal, entree.origine);
       infligees++;
     }
@@ -2474,34 +2530,32 @@ interface EncaissementDuCoup {
 /** Les Blessures d'un coup d'arme, puis ses Blessures critiques planifiées, sur la cible : LDB 13 l.161 ;
  *  LDB 18 l.53 ; AA 07 l.25. */
 function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; infligees: number } {
+  return sousLeCoup(() => encaisserSousLeCoup(e));
+}
+
+function encaisserSousLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; infligees: number } {
   const { get, set, cible, log } = e;
   const { lieu, compte: { blessures } } = e.compte;
   const currentBefore = cible.wounds.current;
-  cible.wounds.current = Math.max(0, currentBefore - blessures);
+  const avant = avantLeCoup(cible);
+  infligerLeCoup(cible, blessures, e.auteur);
   if (!isInanimate(cible)) {
     // Réouverture d’une plaie critique (LDB 18 / AA 07).
     const reinj = reinjuryBleed(cible, lieu);
     if (reinj > 0) { addCondition(cible, COND.hemorragique, reinj); log.push(tr('cf.reinjuryBleed', { name: cible.label, n: reinj, loc: locationLabel(lieu, cible.bodyShape) })); }
   }
   const applique = appliquerLesCritiques({
-    get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, currentBefore, roll: e.roll,
+    get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, avant, roll: e.roll,
     apres: apresLeCritiqueDe({ get, set, auteur: e.auteur, cible, lieu, log, arme: e.arme, woundsDealt: blessures }),
   });
   if (regimeDePorteur(cible).clore) cloreLeCoup(get, cible, currentBefore, log);
   return applique;
 }
 
-/** Coup finalisé : Premier sang (#471), 0 PB → À Terre (LDB 18 l.15), puis levée des liens d'une cible hors
- *  de combat (LDB 13). */
+/** Coup finalisé : Premier sang (#471), 0 PB → À Terre (LDB 18 l.15). */
 function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: string[]): void {
-  const battle = get().battle!;
-  resolveFirstBlood(cible, battle.victoryCondition, currentBefore - cible.wounds.current, log);
-  if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
-  if (isOutOfAction(cible)) {
-    clearEngagementOf(battle.combatants, cible.id);
-    clearPsychOf(battle.combatants, cible.id);
-    refreshAllDefendedPsych(battle.combatants); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
-  }
+  resolveFirstBlood(cible, get().battle!.victoryCondition, currentBefore - cible.wounds.current, log);
+  if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible);
 }
 
 /** La touche du marin d'un Critique de coque à l'Équipage, calculée contre LUI depuis le coup qui porte le
@@ -2653,14 +2707,11 @@ function appliquerLaTouche(
     attacker.aiming = false;
     if (weapon.type === 'melee' && !isInanimate(target)) engage(attacker, target); // Engagé symétrique (LDB 13 l.174-175) — jamais avec un objet INANIMÉ
     if (!isInanimate(target)) markAttacked(attacker, target); // trace orientée du Round (LDB 85 l.383, `agressifEnvers`)
-    const currentBefore = target.wounds.current;
-    target.wounds.current = 0;
-    finalizeHeroDeath(get, set, target, 'hit', currentBefore, attacker); // Destin possible (héros) ; sinon mort directe
-    if (isOutOfAction(target)) {
-      clearEngagementOf(get().battle?.combatants ?? [], target.id);
-      clearPsychOf(get().battle?.combatants ?? [], target.id);
-      refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
-    }
+    sousLeCoup(() => {
+      const avant = avantLeCoup(target);
+      infligerLeCoup(target, target.wounds.current, attacker);
+      finalizeHeroDeath(get, set, target, avant); // Destin possible (héros) ; sinon mort directe
+    });
     if (attacker.pos && target.pos) {
       set((s: Jeu) => ({ facing: { ...s.facing, [attacker.id]: facingToward(attacker.pos!, target.pos!), [target.id]: facingToward(target.pos!, attacker.pos!) } }));
     }
@@ -2668,7 +2719,6 @@ function appliquerLaTouche(
     const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
     const log = [...b.log, ev('attack', tr('cf.finishHelpless', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
     if (isOutOfAction(target)) log.push(ev('death', tr('cf.outOfAction', { name: target.label }), target.id));
-    for (const line of notifySlain(get, set, target)) log.push(ev('death', line, target.id)); // effet « à la mort » (banni…) — mort-auto du désespéré
     set({ battle: { ...b, action: null, log } });
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
@@ -2774,15 +2824,6 @@ function appliquerLaTouche(
     // Chanson de marin (MDG 09 l.38) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. »
     if (target.singingShanty) critLog.push(...endShanty(get, target));
   }
-  // Effet déclenché « à la mise hors de combat d'un adversaire » authoré (Affamé : Test de FM ou
-  // festoie — perd Action + Mouvement) — dispatcher générique (noyau/triggeredEffects).
-  if (res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
-    emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng() } });
-  }
-  // Effet « à la mort » du SLAIN lui-même (Démoniaque banni…) — pour TOUT chemin de mort de cette
-  // résolution : la CIBLE (touche, Critique létal, 0 PB) ET l'ATTAQUANT (Critique défensif opposé qui le
-  // tue PENDANT sa charge). Émis une fois (garde `slainNotified`).
-  for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c));
   // Taille (arme) : sur une touche réussie, endommage de 1 PA l'armure frappée (LDB 62 l.307).
   if (res.hit && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
@@ -2821,9 +2862,8 @@ function appliquerLaTouche(
       critLog.push(tr('cf.reversal', { name: target.label }));
     } else campGain(get, target);
     target.gainedAdvThisRound = true;
-    if (!groupAdvantage()) attacker.advantage = 0; // LDB 14 l.219 ; AA 11 l.30-38
+    perdreToutLAvantage(attacker); // LDB 14 l.219
   }
-  if (res.hit && res.woundsLost && !groupAdvantage()) target.advantage = 0; // LDB 14 l.219 ; AA 11 l.30-38
   // Porte-Bouclier (LDB 10 l.972)
   if (res.advantageTo === 'attacker') {
     const shieldAdv = shieldAdvantageLevel(target, res.parryWeapon);
@@ -3290,8 +3330,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   const units = r.roll % 10;
   switch (r.kind) {
     case 'selfWound':
-      c.wounds.current = Math.max(0, c.wounds.current - 1); // ignore BE+PA (l.18)
-      if (c.wounds.current <= 0) applyZeroWounds(c);
+      loseWounds(c, 1, null); // ignore BE+PA (l.18)
       break;
     case 'weaponDamageActLast':
       wearActiveWeapon(c, weapon, false); // 1 Dégât d'arme, persisté sur l'ItemInstance source
@@ -3318,9 +3357,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (allies.length) {
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
-        const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1 (l.165)
-        ally.wounds.current = Math.max(0, ally.wounds.current - lost);
-        if (ally.wounds.current <= 0) applyZeroWounds(ally);
+        const lost = loseWounds(ally, woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size), c); // plancher 1 (l.165)
         log.push(tr('cf.fumbleHitAlly', { name: ally.label, loc: locationLabel(loc, ally.bodyShape), lost }));
       } else {
         addCondition(c, COND.sonne); // « Si personne n'est à distance, vous vous frappez tout seul → Sonné » (l.45-46)
@@ -3329,9 +3366,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
     case 'misfire': {
-      const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size); // plancher 1
-      c.wounds.current = Math.max(0, c.wounds.current - lost);
-      if (c.wounds.current <= 0) applyZeroWounds(c);
+      const lost = loseWounds(c, woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size), null); // plancher 1
       log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.fumbleMisfireDetruite' : 'cf.fumbleMisfire', { lost }));
       // Arme d'équipe (MDG 12 l.464) : « Si une arme dotée du Défaut Arme d'équipe subit un Incident de
       // tir, tous les membres de son équipage sont affectés. » → CHAQUE servant APTE du poste (hors le
@@ -3342,9 +3377,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           .map((id) => inBattleId(battle, id))
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
-          const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size);
-          s.wounds.current = Math.max(0, s.wounds.current - sLost);
-          if (s.wounds.current <= 0) applyZeroWounds(s);
+          const sLost = loseWounds(s, woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, sb) + units, 0, 1, c.size), null);
           log.push(tr('cf.fumbleMisfireCrew', { name: s.label, lost: sLost }));
         }
       }
@@ -3368,9 +3401,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         for (let i = 0; i < salve.hits; i++) {
           for (const s of salveCrew) {
             const loc: HitLocation = salve.entry.location === 'brasPrincipal' ? 'brasD' : hitLocationByShape(reverseRoll(battleRng().int(1, 100)), s.bodyShape);
-            const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, sb) + battleRng().int(0, 9), 0, 1, c.size);
-            s.wounds.current = Math.max(0, s.wounds.current - sLost);
-            if (s.wounds.current <= 0) applyZeroWounds(s);
+            const sLost = loseWounds(s, woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, sb) + battleRng().int(0, 9), 0, 1, c.size), null);
             log.push(tr('cf.artillerySalveHit', { name: s.label, lost: sLost, loc: locationLabel(loc, s.bodyShape) }));
           }
         }
@@ -4386,23 +4417,21 @@ export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, de
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
-    apresLeCritiqueDe({ get, set, auteur: inBattleId(battle, dev.ctx.attackerId), cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
+    const auteur = inBattleId(battle, dev.ctx.attackerId);
+    const lethal = sousLeCoup(() => {
+      infligerLeCoup(target, 0, auteur ?? null); // LDB 14 l.3 : Critique sans Blessure du coup
+      return applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, dev.avant, dev.crit, true); // Subir : Critique pré-tiré
+    });
+    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).
-  if (target.wounds.current <= 0 && !target.dead && !hasCondition(target, COND.inconscient)) applyZeroWounds(target);
+  if (target.wounds.current <= 0 && !target.dead) applyZeroWounds(target);
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
 
-/** Fin d'une reprise auto-contenue (Test opposé, Projectile) : cible neutralisée → on lève engagement +
- *  effets psy (parité avec la mêlée), le journal de la reprise, la fin de combat. */
+/** Fin d'une reprise auto-contenue (Test opposé, Projectile) : le journal de la reprise, la fin de combat. */
 function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], attackerId: string): void {
-  if (isOutOfAction(target)) {
-    clearEngagementOf(get().battle?.combatants ?? [], target.id);
-    clearPsychOf(get().battle?.combatants ?? [], target.id);
-    refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
-  }
   if (log.length) {
     const b = get().battle;
     if (b) set({ battle: { ...b, log: [...b.log, ...evLines(log, 'crit', attackerId, target.id)] } }); // acteur = attaquant, sujet = cible (parité mode melee)
@@ -5771,17 +5800,20 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (!planifie) return { issue: 'suspendue-deviation', lignes };
   const { plan, compte } = planifie;
   const loc = compte.lieu;
-  cible.wounds.current = Math.max(0, currentBefore - compte.compte.blessures);
-  // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
-  const mReinj = reinjuryBleed(cible, loc);
-  if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
-  const { infligees } = appliquerLesCritiques({
-    get, set, target: cible, compte, plan, log: lignes, currentBefore, roll: mres.roll ?? 0,
-    ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
-    apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.compte.blessures }),
+  const { infligees } = sousLeCoup(() => {
+    const avant = avantLeCoup(cible);
+    infligerLeCoup(cible, compte.compte.blessures, caster);
+    // Réouverture d'une plaie critique (LDB 18 / AA 07) : jumeau du coup physique (applyAttackResult).
+    const mReinj = reinjuryBleed(cible, loc);
+    if (mReinj > 0) { addCondition(cible, COND.hemorragique, mReinj); lignes.push(tr('cf.reinjuryBleed', { name: cible.label, n: mReinj, loc: locationLabel(loc, cible.bodyShape) })); }
+    return appliquerLesCritiques({
+      get, set, target: cible, compte, plan, log: lignes, avant, roll: mres.roll ?? 0,
+      ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
+      apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.compte.blessures }),
+    });
   });
   // 0 PB → À Terre (LDB 18 l.15).
-  if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
+  if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible);
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À
   // Terre ; « Drain » : soigne le lanceur) — lus depuis `spell.effects` (Flow éditable, feuilles
   // `on:'target'`). Réservé aux sorts CURÉS : un sort sans spec n'a pas d'effet missile parsé (iso-POC).
@@ -6730,8 +6762,8 @@ export function openContractionCascade(get: Get, set: SetFn, patient: Combatant,
 /**
  * COUTURE UNIQUE « la mort ou l'indisponibilité libère la place » — le seul endroit qui
  * traduise « ce corps est hors d'action » en « sa chaise est rendue ». Appelée là où la mise hors de
- * combat est ACTÉE : `notifySlain` (tous les chemins de mort d'un combattant, garde d'unicité
- * `slainNotified`) et l'entretien hors combat de `advanceTime` (agonie, Hémorragie, Poison, Flammes —
+ * combat est ACTÉE : `reglerLesChutes` (toute écriture qui laisse un combattant hors de combat, garde
+ * d'unicité `slainNotified`) et l'entretien hors combat de `advanceTime` (agonie, Hémorragie, Poison, Flammes —
  * la seule voie par laquelle un corps s'éteint sans combat).
  *
  * L'oracle de disponibilité est bâti ICI, où le groupe ET le combat sont lisibles : un héros du
@@ -6748,10 +6780,10 @@ export function releaseSeatsOfDowned(get: Get, set: SetFn): void {
   const next = releaseUnavailableSeats(scene, (o) => {
     if (o.kind === 'party') {
       const hero = party[o.rang - 1];
-      return !!hero && !hero.dead && !isOutOfAction(hero);
+      return !!hero && !hero.dead && (!isOutOfAction(hero) || chuteEnSuspens(get(), hero));
     }
     const c = combattants?.find((x) => x.id === o.entityId);
-    return !c || !isOutOfAction(c);
+    return !c || !isOutOfAction(c) || chuteEnSuspens(get(), c); // LDB 17 l.32
   });
   if (next !== scene) set({ scene: next });
 }
@@ -6906,6 +6938,8 @@ function resolveFirstBlood(target: Combatant, vc: VictoryCondition | undefined, 
 
 export function checkBattleOver(get: Get, set: SetFn): boolean {
   if (!get().battle || get().battle!.over) return true;
+  const p = get().pendingFateSave;
+  if (p && avantANier(p)) return false; // LDB 17 l.32 : la chute attend le choix du Destin
   // Structure EFFONDRÉE (AA 10 l.127) : BRÈCHE et retrait, APRÈS le `set` de clôture de toute résolution.
   for (const s of get().battle!.combatants.filter((c) => c.effondree)) collapseStructure(get, set, s);
   const battle = get().battle;
@@ -7312,19 +7346,15 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
     set({ pendingFateSave: { heroId: dying.id, source: 'slow' } });
     return;
   }
-  // (2) Finaliser les morts lentes restantes (héros sans Destin) — + effet « à la mort » (onSlain) éventuel.
-  for (const c of battle.combatants) {
-    if (!inDeathCondition(c)) continue;
-    c.dead = true;
-    for (const line of notifySlain(get, set, c)) battle.log.push(ev('death', line, c.id));
-  }
+  // (2) Finaliser les morts lentes restantes (héros sans Destin).
+  for (const c of battle.combatants) if (inDeathCondition(c)) c.dead = true;
   // (2bis) LDB 16 l.105 ; AA 07 l.7 ; LDB 17 l.29 ; #1595 c.6240485441
   const doomedBleed = (battle.bleedDoomed ?? [])
     .map((d) => ({ c: inBattleId(battle, d.id), line: d.deathLine }))
     .filter((d): d is { c: Combatant; line: string } => !!d.c && !d.c.dead && !d.c.outOfRencontre);
   const bleedFateHero = doomedBleed.find((d) => d.c.kind === 'hero' && (d.c.fate ?? 0) > 0);
   if (bleedFateHero) { set({ pendingFateSave: { heroId: bleedFateHero.c.id, source: 'slow' } }); return; }
-  for (const d of doomedBleed) { d.c.dead = true; battle.log.push(ev('death', d.line, d.c.id)); for (const line of notifySlain(get, set, d.c)) battle.log.push(ev('death', line, d.c.id)); }
+  for (const d of doomedBleed) { d.c.dead = true; battle.log.push(ev('death', d.line, d.c.id)); }
   battle.bleedDoomed = undefined;
   // (3) Avantage : mode Livre de base → -1 si aucun gagné ce Round (LDB 14 l.219) ; mode « Avantage de
   //     groupe » (AA 11 l.44) → transfert de domination du camp majoritaire (REMPLACE décroissance +
@@ -7342,9 +7372,9 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   const swarms = battle.combatants.filter((s) => s.swarm && !isOutOfAction(s));
   if (swarms.length)
     for (const c of battle.combatants) {
-      if (c.swarm || isOutOfAction(c) || !(c.engagedWith ?? []).some((id) => swarms.some((s) => s.id === id))) continue;
-      c.wounds.current = Math.max(0, c.wounds.current - 1);
-      if (c.wounds.current <= 0) applyZeroWounds(c);
+      const nuee = swarms.find((s) => (c.engagedWith ?? []).includes(s.id));
+      if (c.swarm || isOutOfAction(c) || !nuee) continue;
+      loseWounds(c, 1, nuee);
     }
   decayEngagement(battle.combatants);
   // Zones persistantes (L11) : un Round de moins ; les zones épuisées se dissipent (fumée, Mur de feu…).

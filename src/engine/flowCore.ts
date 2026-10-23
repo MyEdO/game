@@ -574,7 +574,8 @@ export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'seq', steps: [] });
  *  `onCrit` : chaque Blessure critique non létale infligée ; son origine voyage dans le contexte
  *  (`origine`) et un effet `coupCritique` s'y restreint au Coup Critique.
  *  `onSlain` : le porteur vient d'être mis HORS DE COMBAT, par n'importe quel chemin de mort (0 PB,
- *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois (garde `slainNotified`).
+ *  Critique létal — démembrement —, mort-auto du désespéré, mort lente). Émis UNE fois par `reglerLesChutes`
+ *  (garde `slainNotified`).
  *  Couvre le « démon banni à sa mort » (Démoniaque, LDB 85 l.98) et tout futur effet « à la mort ».
  *  Cycle de vie du COMBAT (au point de hook correspondant — cf. `combatHooks`) : `onCombatStart` (le
  *  combat débute), `onCombatEnd` (le combat se résout, AVANT l'écran de victoire), `onRoundEnd` (fin de

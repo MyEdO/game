@@ -125,7 +125,7 @@ import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequence
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS } from './rollFlowSpecs';
 import { actionsAuthorees } from './monde/usable';
-import { fateSaveOptions } from '../engine/fortune';
+import { avantANier, rateParLeDestin } from '../engine/fortune';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { testDuCavalier } from '../engine/movement';
 
@@ -1796,45 +1796,46 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Destin sacrifié (LDB 17 l.29-32) — résolution de la suspension pendingFateSave ──
     fateNegate: () => {
       const { battle, pendingFateSave: p } = get();
-      if (!battle || !p || !fateSaveOptions(p.source).includes('negate')) return;
+      const avant = p && avantANier(p);
+      if (!battle || !p || !avant) return;
       const hero = inBattleId(battle, p.heroId);
+      if (hero) rateParLeDestin(hero, avant); // LDB 17 l.32 : rétabli AVANT que la chute ne cesse d'être suspendue
       set({ pendingFateSave: null });
       if (!hero) return;
-      hero.fate = (hero.fate ?? 0) - 1;
-      if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
-      hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
       const anim = acquireAnimositeOnFate(hero, p.foeCible); // ADE II Annexe I (règle facultative)
       set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
       resumeEnemyTurn(get, set);
     },
+    // Les refus écrivent le sort du héros DANS l'écriture qui lève la suspension : le point canonique
+    // (`reglerLesChutes`) y lit sa chute et son auteur imputé.
     fateSurvive: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
       const source = p.source;
-      set({ pendingFateSave: null });
-      if (!hero) return;
+      if (!hero) { set({ pendingFateSave: null }); return; }
       hero.fate = (hero.fate ?? 0) - 1;
       hero.outOfRencontre = true; // survit mais éjecté de la rencontre (vivant)
       hero.exitReason = 'destin'; // #237 : lu « hors-combat » (endState)
       if (!hero.conditions.some((c) => c.id === COND.inconscient)) addCondition(hero, COND.inconscient);
       const anim = acquireAnimositeOnFate(hero, p.foeCible); // ADE II Annexe I (règle facultative)
-      set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateFlee', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
+      const b = get().battle!;
+      set({ pendingFateSave: null, battle: { ...b, log: [...b.log, ev('info', t('cs.fateFlee', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
       if (source === 'slow') resolveRoundBoundary(get, set);
-      else resumeEnemyTurn(get, set);
+      else if (!checkBattleOver(get, set)) resumeEnemyTurn(get, set);
     },
     fateAccept: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
       const source = p.source;
-      set({ pendingFateSave: null });
       if (hero) {
         hero.dead = true;
-        set({ battle: { ...battle, log: [...battle.log, ev('death', t('cs.succumb', { name: hero.label }), hero.id)] } });
-      }
+        const b = get().battle!;
+        set({ pendingFateSave: null, battle: { ...b, log: [...b.log, ev('death', t('cs.succumb', { name: hero.label }), hero.id)] } });
+      } else set({ pendingFateSave: null });
       if (source === 'slow') resolveRoundBoundary(get, set);
-      else resumeEnemyTurn(get, set);
+      else if (!checkBattleOver(get, set)) resumeEnemyTurn(get, set);
     },
 
     battleDefendTotal: () => {

@@ -15,6 +15,8 @@ import { evaluateMissile, type CastResult } from '../../engine/magic';
 import { seedBattleRng, battleRng } from '../../noyau/battleRng';
 import { draineEtLit } from '../cascade.testkit';
 import { emptyScene } from '../../noyau/monde/scene';
+import { hasCondition } from '../../engine/conditions';
+import { applyHealWounds } from '../../engine/healing';
 import type { Combatant } from '../../engine/types';
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
@@ -171,5 +173,27 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
     setBattle([warden, cible, mage]);
     castMissile(mage, cible);
     expect(cible.wounds.current, 'le lanceur est sous le dôme').toBeLessThan(30);
+  });
+});
+
+describe('la perte de PB d’un Projectile porte ses conséquences (LDB 14 l.219 ; LDB 18 l.15 ; LDB 16 l.105)', () => {
+  it('la cible blessée perd tout son Avantage', () => {
+    const mage = mk('hero', 'mage');
+    const cible = mk('enemy', 'cible', { advantage: 3 });
+    setBattle([mage, cible]);
+    castMissile(mage, cible);
+    expect(cible.wounds.current, 'témoin : le Dard a blessé').toBeLessThan(30);
+    expect(cible.advantage).toBe(0);
+  });
+
+  it('porteur de 2 Hémorragique déjà Inconscient sans verrou, porté à 0 : À Terre et verrou du saignement', () => {
+    const mage = mk('hero', 'mage');
+    const cible = mk('enemy', 'cible', { important: true, wounds: { current: 3, max: 30 }, conditions: [{ id: 'hemorragique', value: 2 }, { id: 'inconscient', value: 1 }] });
+    setBattle([mage, cible]);
+    castMissile(mage, cible);
+    expect(cible.wounds.current).toBe(0);
+    expect(hasCondition(cible, 'a-terre'), 'LDB 18 l.15').toBe(true);
+    applyHealWounds(cible, 1);
+    expect(hasCondition(cible, 'inconscient'), 'LDB 16 l.105 : le soin ne réveille pas sous le verrou').toBe(true);
   });
 });
