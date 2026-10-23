@@ -1,6 +1,6 @@
 """Aller-retour d'export en lecture seule : un GLB ou un .blend réimporté dans bpy, squelette, poids, textures et
 déformation réelle de chaque clip déclaré mesurés. Les attentes propres à un personnage (os, clips, collections) sont
-des arguments ; les clips sont les valeurs de  du manifeste, ou leur liste explicite.
+des arguments ; les clips sont les valeurs de `clips` du manifeste, ou leur liste explicite.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/verifier_export.py \\
         --input <fichier.glb|.blend> --output-json <rapport.json> [--kind static|rig|blend] [--os N] \\

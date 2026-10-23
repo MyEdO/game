@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GlbIllisible, lireGlb } from './glb.ts';
-import { importerPersonnage, MANIFESTE_DE_PRODUCTION } from './importer.ts';
+import { chargerLicences, importerPersonnage, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './importer.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
@@ -356,6 +356,30 @@ const serveur = (fichiers: Record<string, Uint8Array>) => {
 };
 
 const muet = () => {};
+
+describe('chargerLicences', () => {
+  it('associe chaque texte de la table à un identifiant de forme SPDX', () => {
+    const horsForme = [...chargerLicences()].filter(([, spdx]) => !/^[A-Za-z0-9.+-]+$/.test(spdx));
+    expect(horsForme).toEqual([]);
+  });
+
+  it('connaît chaque alias CC0 de la Figurine', () => {
+    const table = chargerLicences();
+    expect(['CC0', 'CC-0', 'CC0 (official asset-pack page)'].map((t) => table.get(t))).toEqual(['CC0-1.0', 'CC0-1.0', 'CC0-1.0']);
+  });
+
+  it.each([
+    ['un tableau', '["CC0"]', /un objet attendu$/],
+    ['un identifiant non textuel', '{ "CC0": "CC0-1.0", "MIT": 1 }', /identifiant non textuel pour « MIT »$/],
+    ['un JSON illisible', '{ "CC0": ', /JSON/],
+  ])('refuse une table qui porte %s, en nommant le fichier', (_, contenu, raison) => {
+    const chemin = join(temporaire(), 'licences.json');
+    writeFileSync(chemin, contenu);
+    expect(() => chargerLicences(chemin)).toThrow(TableDesLicencesInvalide);
+    expect(() => chargerLicences(chemin)).toThrow(`(${chemin})`);
+    expect(() => chargerLicences(chemin)).toThrow(raison);
+  });
+});
 
 describe('modelesEpingles', () => {
   it('épingle chaque modèle par sa provenance', () => {

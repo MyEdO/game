@@ -3,14 +3,14 @@
  * empreinte (`model_sha256`), avec au plus une source `*.blend` et des licences `LICENSE*.txt`, devient, sous un id de
  * modèle, un GLB et sa source versés dans la Release des modèles sous leur empreinte (`release.ts`), puis le manifeste
  * réduit et validé (`manifeste.ts`), la provenance et les licences, déposés dans le dossier des modèles du projet Godot.
- * Les licences se comparent par leur identifiant SPDX (`licences.ts`). Tout se juge avant la première publication : un
+ * Les licences se comparent par leur identifiant SPDX (`licences.json`). Tout se juge avant la première publication : un
  * dossier refusé ne publie ni n'écrit rien.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { lireGlb, GlbIllisible, type ContenuGlb } from './glb.ts';
-import { IDENTIFIANT_SPDX } from './licences.ts';
 import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste, type Brut, type ManifesteDePersonnage } from './manifeste.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, sha256,
@@ -21,6 +21,33 @@ import {
 export const MANIFESTE_DE_PRODUCTION = 'manifest.json';
 
 const ID_DE_MODELE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+
+/** La table des licences : chaque texte qu'une production déclare (en-tête d'un fichier source, page d'un pack, ligne
+ *  `License:` d'un `LICENSE*.txt`), vers son identifiant SPDX (https://spdx.org/licenses/). */
+export const TABLE_DES_LICENCES = fileURLToPath(new URL('./licences.json', import.meta.url));
+
+export class TableDesLicencesInvalide extends Error {
+  constructor(chemin: string, raison: string) {
+    super(`table des licences invalide (${chemin}) : ${raison}`);
+    this.name = 'TableDesLicencesInvalide';
+  }
+}
+
+/** La table des licences de `chemin`, validée : un objet JSON de chaînes vers des chaînes. */
+export function chargerLicences(chemin: string = TABLE_DES_LICENCES): ReadonlyMap<string, string> {
+  let brut: unknown;
+  try {
+    brut = JSON.parse(readFileSync(chemin, 'utf8'));
+  } catch (e) {
+    throw new TableDesLicencesInvalide(chemin, e instanceof Error ? e.message : String(e));
+  }
+  if (!estObjet(brut)) throw new TableDesLicencesInvalide(chemin, 'un objet attendu');
+  const horsForme = Object.entries(brut).filter(([, v]) => typeof v !== 'string').map(([k]) => `« ${k} »`);
+  if (horsForme.length) throw new TableDesLicencesInvalide(chemin, `identifiant non textuel pour ${horsForme.join(', ')}`);
+  return new Map(Object.entries(brut as Record<string, string>));
+}
+
+const IDENTIFIANT_SPDX = chargerLicences();
 
 export type ResultatDImport =
   | { readonly ok: true; readonly ecrits: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteDePersonnage; readonly provenance: Provenance }
