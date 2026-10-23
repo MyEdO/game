@@ -16,10 +16,9 @@ import { animatedRig, sampleTimes } from './_lib-anim-rig';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
-import { armeDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
+import { armeDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
 import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 import { weaponFromTrait } from '../src/engine/creatureEquip';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
 import { assertWardrobeId } from './_lib-wardrobe';
 
 // Mannequin de la planche : ID de garde-robe (carrière ∪ classe ∪ tenue), validé fail-fast —

@@ -120,25 +120,30 @@ function idsDesignes(cle: string, site: string): ReadonlySet<string> {
 }
 
 /**
- * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant se lit aux clés
- * de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le paramètre
- * `espace.discriminant` du def — une seule déclaration, au nœud.
+ * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant qui porte cette
+ * valeur se lit aux clés de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le
+ * paramètre `espace.discriminant` du def — une seule déclaration, au nœud. Un espace à plusieurs champs
+ * discriminants (`weaponGroups.json` : `combat`, `kind`) désigne une sous-liste par une valeur qu'UN SEUL
+ * de ses champs porte.
  */
-const champsDiscriminants = new Map<string, string>();
+const champDeLaValeur = new Map<string, string>();
 function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string {
   const espace = espaceDe(type);
-  const connu = champsDiscriminants.get(espace);
+  const memo = `${espace}\u0000${valeur}`;
+  const connu = champDeLaValeur.get(memo);
   if (connu !== undefined) return cleFiltree(espace, { champ: connu, vaut: valeur });
   const champs = new Set(
     clesDeLIndex().flatMap((cle) => {
       const lue = lireCleDEspace(cle);
-      return baseDe(lue) === espace && lue.filtre?.vaut !== undefined ? [lue.filtre.champ] : [];
+      return baseDe(lue) === espace && lue.filtre?.vaut === valeur ? [lue.filtre.champ] : [];
     }),
   );
   if (champs.size !== 1)
-    throw new Error(`${site} : ${espace} ${champs.size ? `a ${champs.size} champs discriminants (${[...champs].join(', ')})` : "n'a aucun champ discriminant (paramètre `espace.discriminant` de son def)"}.`);
+    throw new Error(
+      `${site} : ${espace} ${champs.size ? `porte la valeur « ${valeur} » sous ${champs.size} champs discriminants (${[...champs].join(', ')})` : `n'a aucune sous-liste discriminée « ${valeur} » (paramètre \`espace.discriminant\` de son def)`}.`,
+    );
   const [champ] = champs;
-  champsDiscriminants.set(espace, champ);
+  champDeLaValeur.set(memo, champ);
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 

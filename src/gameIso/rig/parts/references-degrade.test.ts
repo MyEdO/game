@@ -25,7 +25,9 @@ import { lireDegradeDerive, tokensOf } from '../palette';
 import { FX_GRADIENT_IDS, rigFxGradients } from '../fxGradients';
 import { VIEWS } from '../facing';
 import { viewEntries } from '../viewArt';
-import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart, type ArmeDeDessin, type EquipCtx } from './equipment';
+import { armourPart, objetSansPorteur, shieldPart, weaponPart } from './equipment';
+import { equipDe, pieceDeDessin, type ArmeDeDessin, type EquipCtx } from '../../../noyau/equipementDessine';
+import { weaponGroups } from '../../../data';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { TENUE_DEFS } from './tenues/_registry.generated';
@@ -52,11 +54,11 @@ const SURCHARGES: (Appearance['colors'] | undefined)[] = [
 ];
 const SKINS = [undefined, { metal: '#ff0000', cuir: '#00ff00', peau: '#123456' }];
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
-const arme = (forme: string, skin?: Record<string, string>): ArmeDeDessin => ({ type: 'melee', forme, bouclier: false, ...(skin && { skin }) });
+const arme = (forme: string, skin?: Record<string, string>): ArmeDeDessin => ({ type: 'melee', forme, hands: 1, bouclier: false, ...(skin && { skin }) });
 const armes = (...weapons: ArmeDeDessin[]): EquipCtx => ({ ...equipDe([], []), weapons });
-const armure = (label: string, skin?: Record<string, string>) =>
-  ({ uid: 'a', kind: 'armor', label, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
-const MATIERES = ['Gambison', 'Jaque de cuir', 'Cotte de mailles', 'Plastron de plaque'];
+const armure = (subType: string, skin?: Record<string, string>) =>
+  ({ uid: 'a', kind: 'armor', label: subType, subType, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
+const MATIERES = weaponGroups.filter((g) => g.kind === 'armour').map((g) => g.id);
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** (1') Un `url(#id)` littéral du source vise un id global, un id défini dans son fichier, ou un `dg-`
  *  que lit `lireDegradeDerive`. */

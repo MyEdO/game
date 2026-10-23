@@ -13,6 +13,7 @@ import { assertTenueCatalogId } from './_lib-wardrobe';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
+import { equipDe } from '../src/noyau/equipementDessine';
 
 const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
 // `career` se résout par ID (`TENUE_BY_ID`) : la planche itère les ids du catalogue, le libellé
@@ -27,7 +28,7 @@ function cell(career: string, view: View) {
     React.createElement('svg', { viewBox: '0 0 120 150', width: 92, height: 115 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
       React.createElement('rect', { x: 0, y: 0, width: 120, height: 150, fill: view === 'back' ? '#241a1a' : '#1b1f2b' }),
-      React.createElement(RigSprite, { comp: rigComposition(app, { weapons: [], armour: [] }, career, view) }),
+      React.createElement(RigSprite, { comp: rigComposition(app, equipDe([], []), career, view) }),
     ),
   );
   return `<figure style="margin:0;text-align:center"><div>${svg}</div><figcaption style="color:#bcd;font:10px sans-serif">${view}</figcaption></figure>`;

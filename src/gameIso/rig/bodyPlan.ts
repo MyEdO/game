@@ -10,7 +10,7 @@ import type { BonePose } from './poses';
 import type { ResolvedBone } from './composeRig';
 import type { View } from './facing';
 import { asRigSpeciesId } from './appearance';
-import type { EquipCtx } from './parts/equipment';
+import type { EquipCtx } from '../../noyau/equipementDessine';
 import { PLAN_LIST } from './plans/_registry.generated';
 import { defById, speciesScale } from './creatures';
 import { findCreatureById, findTrappingById, findVehicleById, DEFAULT_RACE_ID } from '../../data';

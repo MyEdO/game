@@ -12,7 +12,8 @@ import { sexeSchema } from '../../../../data/schemas/grammaire/valeurs';
 import { resolveRig } from '../../composeRig';
 import { bonesToSvg } from '../../renderBones';
 import { asRigSpeciesId } from '../../appearance';
-import { armourPart, equipDe, objetSansPorteur, pieceDeDessin, weaponPart, type FormeDArme } from '../equipment';
+import { armourPart, matiereDuDef, objetSansPorteur, weaponPart } from '../equipment';
+import { equipDe, pieceDeDessin, type FormeDArme } from '../../../../noyau/equipementDessine';
 import { TENUE_DEFS } from './_registry.generated';
 import { WEAPON_DEFS } from '../weapons/_registry.generated';
 import { ARMOUR_DEFS } from '../armour/_registry.generated';
@@ -51,8 +52,6 @@ function mortes(ou: string, palette: { [k: string]: string | undefined }, art: s
 }
 
 const texte = (x: unknown) => JSON.stringify(x);
-/** Libellé qui route `armourMaterial` vers le matériau du def. */
-const LIBELLE_DE_MATIERE: Record<string, string> = { rembourre: 'Gambison', cuir: 'Jaque de cuir', maille: 'Cotte de mailles', plaque: 'Plastron de plaque' };
 
 describe('déclarations de palette mortes (#1903)', () => {
   it('aucune clé déclarée par une tenue, une arme ou une armure n’est peinte par aucun rendu', () => {
@@ -65,7 +64,9 @@ describe('déclarations de palette mortes (#1903)', () => {
       fautes.push(...mortes(`arme:${d.slug}`, d.palette, texte(d.art), () => vues(objetSansPorteur(weaponPart(w))).join('\n')));
     }
     for (const d of ARMOUR_DEFS) if (d.palette) {
-      const item = { uid: 'a', kind: 'armor', label: LIBELLE_DE_MATIERE[d.id] ?? d.id, locs: LOCS, equipped: true, qualities: [], enc: 0, pa: 0 } as unknown as ItemInstance;
+      const subType = matiereDuDef(d.id);
+      expect(subType, `armure:${d.id} : aucune matière ne la peint`).toBeDefined();
+      const item = { uid: 'a', kind: 'armor', label: d.id, subType, locs: LOCS, equipped: true, qualities: [], enc: 0, pa: 0 } as unknown as ItemInstance;
       const slots = ['tete', 'torse', 'bras', 'jambes', 'pied', 'main', 'cou'] as const;
       fautes.push(...mortes(`armure:${d.id}`, d.palette, texte(d.set), () => slots.flatMap((s) => vues(armourPart(pieceDeDessin(item), s))).join('\n')));
     }

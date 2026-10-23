@@ -88,10 +88,11 @@ import { QUAD_SPECIES, WINGED_SPECIES } from '../../src/gameIso/rig/creatures';
 import { resolveQuadFromProps } from '../../src/gameIso/rig/quadruped/composeQuad';
 import { QUAD_REST } from '../../src/gameIso/rig/quadruped/quadPose';
 import type { QuadBoneId } from '../../src/gameIso/rig/quadruped/quadSkeleton';
+import { equipDe } from '../../src/noyau/equipementDessine';
 
 // ── Rig de référence (figé) ───────────────────────────────────────────────────────────────
 const REF_APPEARANCE: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
-const REF_EQUIP = { weapons: [], armour: [] };
+const REF_EQUIP = equipDe([], []);
 const VB_W = 120, VB_H = 150;
 const RENDER_W = 480;
 const PX_PER_U = RENDER_W / VB_W;

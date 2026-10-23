@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { resolveParts } from './resolve';
 import { tenueFor } from './career';
-import { armourPart, equipDe, pieceDeDessin } from './equipment';
+import { armourPart } from './equipment';
+import { equipDe, pieceDeDessin, type EquipCtx } from '../../../noyau/equipementDessine';
 import { viewOrFront } from './types';
-import type { EquipCtx } from './equipment';
 import type { ItemInstance, Weapon } from '../../../engine/types';
 
 const empty: EquipCtx = equipDe([], []);
 const wep = (name: string, type: 'melee' | 'ranged'): Weapon => ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: [] } as Weapon);
-const plastron: ItemInstance = { uid: '1', label: 'Plastron', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
+const plastron: ItemInstance = { uid: '1', label: 'Plastron', kind: 'armor', subType: 'plate', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
 
 describe('resolveParts — priorité', () => {
   it('sans rien : torse = tenue de la carrière (par-carrière)', () => {

@@ -56,9 +56,9 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
   it('le profil de combat porte bien la couche ARMURE (synthétisée des PA du trait Armure 3)', () => {
     const prof = enemyRigProfile(allyCombatant());
     expect(armourShape(prof).length).toBeGreaterThan(0);
-    // Armure 3 : matériau par palier de PA (`armourMaterial`), dessiné sur le torse.
+    // Armure 3 : matière par palier de PA (`pieceDeDessin`, #2948), dessinée sur le torse.
     const corps = prof!.equip.armour.find((a) => a.locs?.includes('corps'))!;
-    expect(corps.materiau).toBe('maille');
+    expect(corps.matiere).toBe('mailles');
     expect(armourPart(corps, 'torse')).not.toBeNull();
   });
 

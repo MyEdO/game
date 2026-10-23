@@ -21,7 +21,7 @@ import { planById, planOptsForRecord, resolveRender } from '../../rig/bodyPlan';
 import { harnaisDeMonture, mountedRest, seatRiderOnMount } from '../../rig/mountedRig';
 import { resolveRig } from '../../rig/composeRig';
 import { bonesToSvg } from '../../rig/renderBones';
-import { armePrincipale } from '../../rig/parts/equipment';
+import { armePrincipale } from '../../../noyau/equipementDessine';
 import { VIEWS, type View } from '../../rig/facing';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../../noyau/monde/scene';
 import type { BattleState } from '../../../noyau/etat';

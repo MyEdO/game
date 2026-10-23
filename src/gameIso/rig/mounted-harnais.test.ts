@@ -19,7 +19,7 @@ import { apply, worldTransforms } from './kinematics';
 import type { BoneId } from './bones';
 import { weaponRest } from './anim/weaponClips';
 import { buildWeapon } from '../../engine/items';
-import { armeDeDessin } from './parts/equipment';
+import { armeDeDessin } from '../../noyau/equipementDessine';
 import { resolveById, planById, planOptsForRecord } from './bodyPlan';
 import { QUAD_HARNAIS, DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_REST } from './quadruped/quadPose';

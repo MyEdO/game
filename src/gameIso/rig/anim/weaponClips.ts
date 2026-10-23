@@ -15,7 +15,7 @@
 import type { Pose } from '../poses';
 import type { Clip, ClipStep } from './clips';
 import { handlingClass, isRangedHandling, type Handling } from './handling';
-import type { ArmeDeDessin, BouclierDeDessin, FormeDArme } from '../parts/equipment';
+import type { ArmeDeDessin, BouclierDeDessin, FormeDArme } from '../../../noyau/equipementDessine';
 
 const REST: Pose = {};
 const c = (steps: ClipStep[], onImpact?: number): Clip => ({ steps, onImpact });

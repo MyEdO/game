@@ -80,7 +80,7 @@ function armureEquipee(c: Combatant): ItemInstance {
 
 function soldatEnArmure(): Combatant {
   const h = arbalétrier();
-  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
+  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
   return h;
 }
 

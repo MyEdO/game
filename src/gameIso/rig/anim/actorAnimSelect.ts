@@ -17,7 +17,7 @@ import { ambientClip } from './ambientClips';
 import { handlingClass } from './handling';
 import { mountedAttackClip, mountedParryClip, seatedClip, weaponAttackClip, weaponParryClip } from './weaponClips';
 import { isSupportiveCast, spellCastClip, spellCastStyle } from './spellClips';
-import { armeDeDessin, type FormeDArme } from '../parts/equipment';
+import { armeDeDessin, type FormeDArme } from '../../../noyau/equipementDessine';
 import type { BodyPlan, WingState } from '../bodyPlan';
 import { planGroundPose, rigGroundPose, type GroundState, type Pose } from '../../groundPose';
 import { lerpPose, scalePose } from '../poses';

@@ -292,6 +292,22 @@ describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en l
     expect(c.weapons.map((w) => w.label)).not.toContain('Engin');
   });
 
+  it('set par défaut : une baliste équipée n’amorce aucun set, l’arme ordinaire seule y entre', () => {
+    const epee = { ...itemFromTrappingById('arme-simple')!, uid: 'e', equipped: true };
+    const baliste = { ...itemFromTrappingById('baliste')!, uid: 'b', equipped: true };
+    const c = heroWith([epee, baliste]);
+    recomputeLoadout(c);
+    expect(c.loadouts!.map((lo) => [lo.main, lo.off])).toEqual([['e', undefined], [undefined, undefined]]);
+  });
+
+  it('élagage : un set qui désigne une baliste (sauvegarde existante) se vide au premier recalcul', () => {
+    const baliste = { ...itemFromTrappingById('baliste')!, uid: 'b', equipped: true };
+    const c = heroWith([baliste], { loadouts: [{ id: 'l', main: 'b', off: 'b' }], activeLoadoutId: 'l' });
+    recomputeLoadout(c);
+    expect(c.loadouts).toEqual([{ id: 'l' }]);
+    expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']);
+  });
+
   it('arme ORDINAIRE (ni armes-de-siege, ni Qualité equipe) : non-régression, dérivée normalement', () => {
     const epee = { uid: 'e', label: 'Epee', kind: 'melee', subType: 'base', qualities: [], enc: 1, equipped: true, hands: 1, damage: { plusBF: true, flat: 4 } } as unknown as ItemInstance;
     const c = heroWith([epee], { loadouts: [{ id: 'l', main: 'e' }], activeLoadoutId: 'l' });

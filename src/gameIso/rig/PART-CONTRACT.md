@@ -76,7 +76,7 @@ dessinant :
 | Registre | Clé de stock | Gardé |
 |---|---|---|
 | **Tenues** (`parts/tenues/defs/`) | `<tenueId>:<slot>` | oui |
-| **Armures** (`parts/armour/defs/`) | `armure:<materiau>:<slot>` | oui — elles **priment** sur la tenue (`resolve.ts`, `armed ?? tenuePart`) |
+| **Armures** (`parts/armour/defs/`) | `armure:<matiere>:<slot>` | oui — elles **priment** sur la tenue (`resolve.ts`, `armed ?? tenuePart`) |
 
 Registres **hors** garde :
 
@@ -117,7 +117,7 @@ la vue, jamais en allongeant la liste.**
   cliquet `palette-literal.test.ts` comme un `stop-color`. L'art du rig ne définit aucun
   `<linearGradient>`/`<radialGradient>` local (gardé, `parts/references-degrade.test.ts`).
   Sinon couleurs hex — MAIS **jamais pour la CHAIR** (voir ci-dessous). Matériaux d'armure : cuir
-  `#6a4a2a`, maille `url(#g_steelD)`, plaque `url(#g_steel)`, rembourré `#9a8a6a`.
+  `#6a4a2a`, maille `url(#g_steelD)`, plaque `url(#g_steel)`.
 - **MATIÈRE vs PORTEUR — distinction obligatoire (#583 chair, #599 flanc jumeau cheveux).** Une
   couleur en dur est légitime pour la **matière propre à la tenue** (le cuir de CETTE veste, son
   acier — une couleur qui lui appartient, à elle, pas au porteur). Elle est **INTERDITE pour les
@@ -191,7 +191,7 @@ override éditeur (appearance.parts[slot]) → armure équipée (zone) → tenue
 
 **Armure PRIME sur la tenue** (`resolve.ts`, `armed ?? tenuePart`) sur les 4 slots de corps de base
 ET sur les extrémités. Une **armure SYNTHÉTISÉE depuis les PA d'un statblock sans inventaire**
-(`synthArmour`, `enemyProfile.ts`) ne produit **par défaut AUCUN item** — les PA restent une
+(`synthArmour`, `src/noyau/equipementDessine.ts`) ne produit **par défaut AUCUN item** — les PA restent une
 mécanique PURE (dégâts/zoneBadges/enc), sans impact sur l'apparence — sauf si l'entrée bestiaire
 coche `appearance.armurePortee` (`src/data/creatures.json`) : optée, l'armure synthétisée rend
 alors son art **PLEINEMENT**, zones dérivées `pied`/`main`/`cou` comprises (gantelets/solerets/

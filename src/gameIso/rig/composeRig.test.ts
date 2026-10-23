@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveRig } from './composeRig';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
-import { equipDe } from './parts/equipment';
-import type { EquipCtx } from './parts/equipment';
+import { equipDe, type EquipCtx } from '../../noyau/equipementDessine';
 
 const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 7 };
 const equip: EquipCtx = equipDe([], []);

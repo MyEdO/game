@@ -5,8 +5,9 @@ import { SLOT_LAYER } from './bones';
 import { APPEARANCE_ELEMENTS } from './parts/elements';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
+import { equipDe } from '../../noyau/equipementDessine';
 
-const NO_EQUIP = { weapons: [], armour: [] };
+const NO_EQUIP = equipDe([], []);
 const EAR = 'M-8 7 Q-15 4 -14 -3'; // début du path de l'oreille pointue (élément 'oreilles-pointues')
 const HEAUME = 'Q-10.5 -17.5 0 -18.5'; // début du path du heaume (tenue 'guerrier-du-chaos', slot tete)
 const elfInHelm: Appearance = { species: asRigSpeciesId('haut-elfe'), sex: 'M', build: 0.5, seed: 7 };

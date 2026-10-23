@@ -9,6 +9,7 @@ import { SPECIFIC_TENUES } from '../src/gameIso/rig/parts/tenues';
 import { assertTenueCatalogId } from './_lib-wardrobe';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
+import { equipDe } from '../src/noyau/equipementDessine';
 
 // Le rig s'habille par ID de garde-robe (tenue de `rigComposition` = id de carrière/tenue) : la galerie
 // itère les IDS du catalogue et n'affiche le `label` qu'en légende. Le résolveur VALIDE (fail-fast) :
@@ -24,7 +25,7 @@ const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.
 
 const cells = tenues
   .map(({ id, label }) => {
-    const inner = renderToStaticMarkup(React.createElement(RigSprite, { comp: rigComposition(app, { weapons: [], armour: [] }, id) }));
+    const inner = renderToStaticMarkup(React.createElement(RigSprite, { comp: rigComposition(app, equipDe([], []), id) }));
     return (
       `<figure class="cell"><svg viewBox="0 0 ${CW} ${CH}" width="${CW}" height="${CH}"><defs>${defsGlobaux()}</defs>` +
       `<ellipse cx="${CW / 2}" cy="${CH - 14}" rx="${Math.round(30 * SC)}" ry="${Math.round(8 * SC)}" fill="#000" opacity="0.35"/>` +

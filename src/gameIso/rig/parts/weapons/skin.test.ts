@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { weaponPart, type FormeDArme } from '../equipment';
+import { weaponPart } from '../equipment';
+import { type FormeDArme } from '../../../../noyau/equipementDessine';
 import { tokensOf } from '../../palette';
 
 /** Projection de forme déjà RÉSOLUE (id de forme stable) — plus aucun routage par libellé. */
