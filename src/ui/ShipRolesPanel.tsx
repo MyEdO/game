@@ -1,6 +1,6 @@
 import { useGame } from '../state/store';
 import { crewRoles } from '../data';
-import { crewRoleAsPoste, reposAsPoste } from '../state/poste';
+import { crewRoleAsPoste, reposAsPoste } from '../noyau/poste';
 import { PostesRoster } from './console/PostesRoster';
 import type { Combatant } from '../engine/types';
 

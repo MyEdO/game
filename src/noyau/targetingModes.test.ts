@@ -5,8 +5,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
-import { combatantClickActs } from './combatOrParty';
-import { cursorCommitIntent } from '../state/combatCursor';
+import { combatantClickActs, intentionDuClicDeCase } from './combatOrParty';
 import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
 import { runAction } from './actionRegistry';
@@ -38,7 +37,7 @@ function combat(over: Record<string, unknown> = {}) {
 }
 
 /** Le clic d'une SURFACE réelle (curseur clavier/manette) : même porte partagée que la carte et la
- *  frise (`cursorCommitIntent` → `combatantClickActs` → `battleClickEntity`). Jamais `battleClickEntity`
+ *  frise (`intentionDuClicDeCase` → `combatantClickActs` → `battleClickEntity`). Jamais `battleClickEntity`
  *  en direct — il court-circuiterait justement la porte qu'on mesure. */
 function cliqueParLeCurseur(c: Combatant) {
   useGame.setState({ combatCursor: { tile: { ...c.pos! }, snappedId: c.id } });
@@ -298,7 +297,7 @@ describe('porte de clic — elle laisse passer l’infaisable pour qu’il soit 
 
   it('sa PROPRE case ne commet rien (mode neutre) : aucun geste, aucun refus', () => {
     const { hero } = combat();
-    expect(cursorCommitIntent(useGame.getState, { tile: { ...hero.pos! } }), 'se cliquer soi-même n’est pas un geste').toBeNull();
+    expect(intentionDuClicDeCase(useGame.getState, { ...hero.pos! }), 'se cliquer soi-même n’est pas un geste').toBeNull();
     expect(useGame.getState().refus).toBeNull();
   });
 });

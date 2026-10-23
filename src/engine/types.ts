@@ -446,9 +446,8 @@ export interface Weapon {
   bypass?: ArmourBypass;
   /** Dégâts subis par l'arme (LDB 62 l.135) : réduit les Dégâts de 1/point ; à +0 → improvisée. */
   damageTaken?: number;
-  /** SKIN cosmétique (objets uniques/légendaires) : override de palette clé→hex appliqué au
-   *  rendu de l'arme (ex. { metal:'#caa64a' } → lame dorée). Données opaques côté moteur. */
-  skin?: Record<string, string>;
+  /** Id de matière du domaine objet. */
+  teinte?: string;
   /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
    *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par `formeResolue` (`engine/items`). */
   form?: string;
@@ -1197,9 +1196,8 @@ export interface ItemInstance {
    *  ou malepierre encore à sa réserve pleine).
    */
   niReserve?: number;
-  /** SKIN cosmétique (objet unique/légendaire) : override de palette clé→hex, propagé au
-   *  `Weapon.skin` actif par `recomputeLoadout` → l'arme se rend recolorée. */
-  skin?: Record<string, string>;
+  /** Id de matière du domaine objet. */
+  teinte?: string;
   /** Objet NON identifié (objet magique/légendaire trouvé) : ses qualités sont MASQUÉES à l'affichage
    *  (elles restent ACTIVES mécaniquement) tant qu'une Évaluation ne l'a pas révélé. Absent/true = identifié. */
   identified?: boolean;

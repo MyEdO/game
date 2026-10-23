@@ -248,7 +248,6 @@ export const fr = {
   'parametre.roll': 'Résultat du dé',
   'parametre.scenes': 'Scènes',
   'parametre.scope': 'Portée',
-  'parametre.seat': 'Siège',
   'parametre.shantyId': 'Chanson',
   'parametre.skipGate': 'Test déjà passé',
   'parametre.steps': 'Pas de virage',
@@ -337,6 +336,11 @@ export const fr = {
   'ecran.offre': '{libelle} ({cout})',
   'ecran.apercu': 'Coût : {cout} de Mouvement',
   'ecran.apercu.cible': 'Cible : {cible}',
+  // Qui tient la main d'une fenêtre (`ProprietaireDeLaFenetre`, `src/hote/projection.ts`), dit par l'hôte texte
+  // (`src/hoteTexte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.
+  'ecran.proprietaire.aucun': 'l’hôte',
+  'ecran.proprietaire.tous': 'tous',
+  'ecran.proprietaire.sansNom': 'un porteur sans nom',
   // Le corps de la fenêtre qui tient la main (`corpsDeLaFenetre`, `src/hote/ecran.ts`) : qui agit contre qui, ses jets.
   'ecran.attaque.cible': 'Cible : {cible}',
   'ecran.jet.aJeter': '{test} : {base}, à atteindre {cible}, {difficulte}',
@@ -961,6 +965,7 @@ export const fr = {
   'out.frenzyEnter': '{name} entre en Frénésie : +1 BF, immunité psy, attaque obligatoire.',
   'out.frenzyNo': '{name} reste de marbre — le sang ne monte pas ce tour.',
   'out.disengageSuccess': 'Désengagé ! (+1 Avantage)',
+  'disengage.refus.renoncerEngage': 'Renoncement refusé : {name} a déjà engagé son Désengagement, il se joue jusqu’au bout.',
   'out.disengageTie': 'Échange neutre — reste au contact',
   'out.disengageFail': "Échec — l'adversaire gagne l'Avantage",
   'out.disengageFlee': "Fuite ! {hit}Puis Course, si tu en es encore capable.",
@@ -1018,6 +1023,7 @@ export const fr = {
   'cs.refusCaseHorsPortee': 'Case hors d’atteinte pour ce Tour.',
   'cs.refusMouvementEpuise': 'Mouvement déjà dépensé ce Tour.',
   'cs.refusAucunChemin': 'Aucun chemin jusqu’à cette case.',
+  'cs.refusFormationBloquee': 'La formation ne passe pas : une case d’arrivée est occupée ou hors de la carte.',
   'cs.refusBordeeHorsPortee': 'Cible hors de portée des pièces de {ship}.',
   'cs.refusTirArmeDeMelee': '{weapon} n’est pas une arme à distance.',
   'cs.runStumble': '{name} trébuche dans sa Course : sur place.',
@@ -1679,7 +1685,7 @@ export const fr = {
   // ── #1318 V8a₁ — LIBELLÉS D'ÉTAPE de cascade (`step.*`). Namespace DISTINCT de `out.*` (narration
   // d'ISSUE, l.462) et de `cf.*`/`cs.*` (narration de combatFlow/combatSlice) : une étape se NOMME
   // avant tout jet, alors que ces deux-là racontent ce qui vient d'arriver. Patrons byte-identiques
-  // aux littéraux d'origine (stock gelé par `state/player-text-ratchet.test.ts`).
+  // aux littéraux d'origine (stock gelé par `src/player-text-ratchet.test.ts`).
   // Les trois premiers sont les GABARITS que les fabriques du seam (`noyau/rollSeam.ts`) rendent.
   'step.sujetDetail': '{sujet} — {detail}',
   'step.sujetPrecision': '{sujet} ({precision})',
@@ -2664,6 +2670,7 @@ export const fr = {
   'medic.patientSinks': "{patient} sombre sur la table — l'opération est interrompue (stabilisez-le d'abord).",
   'medic.afterSurgery': 'Suites de l’opération',
   'medic.interrupted': "{healer} interrompt l'opération — le travail est à refaire.",
+  'medic.plaie': '{plaie} · {localisation}',
 
   // ── #1318 V8c₄ — COOP EN LIGNE (`state/netFlow.ts`, `coop.*` — le namespace du salon, déjà posé).
   'coop.intentRefused': 'Action refusée : elle ne revient pas au joueur qui l’a demandée.',

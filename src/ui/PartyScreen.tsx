@@ -126,11 +126,7 @@ export function PartyScreen() {
         refusComposition={refusDeComposition}
         onAddHero={addHero}
         onRemoveHero={removeHero}
-        onReplaceHero={(oldId, hero) => {
-          // Le remplaçant prend le siège qui possédait l'ancien (solo : hôte, siège 0).
-          const seat = net.ownership[oldId] ?? net.mySeat ?? 0;
-          replaceHero(oldId, hero, seat);
-        }}
+        onReplaceHero={(oldId, hero) => replaceHero(oldId, hero)}
         onAssignSlot={assignSlot}
         onStart={startCampaign}
         onResume={() => setScreen('campaign')}

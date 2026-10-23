@@ -50,14 +50,12 @@ const stripComments = (src: string) =>
 
 
 /**
- * Stock hors-propriétaire : VIDE (2026-08-16). Les 12 recopies mesurées à la pose de la garde ont été
- * migrées dans la MÊME vague (V10) — sous-composants de primitive (`MenuCardHead`, `DetailIdentity`,
- * `EmbeddedShell`), slot ajouté (`ActivityPane lead`), composition directe (`MenuCard`, `ScreenMeta`,
- * `DetailFrame`) et classes propres pour les sites qui n'étaient PAS la primitive (`.cart-step-cell`,
- * `.btn-sq`, `.market-carrier`). La garde reste sans baseline : toute recopie NEUVE rougit.
+ * ABSOLUE (2026-08-16) : les 12 recopies mesurées à la pose de la garde ont été migrées dans la MÊME
+ * vague (V10) — sous-composants de primitive (`MenuCardHead`, `DetailIdentity`, `EmbeddedShell`), slot
+ * ajouté (`ActivityPane lead`), composition directe (`MenuCard`, `ScreenMeta`, `DetailFrame`) et classes
+ * propres pour les sites qui n'étaient PAS la primitive (`.cart-step-cell`, `.btn-sq`,
+ * `.market-carrier`). Toute recopie rougit.
  */
-const BASELINE: Record<string, string[]> = {};
-
 const MARKERS = Object.keys(OWNERS);
 const STRING_LITERAL = /"([^"\n]*)"|'([^'\n]*)'|`([^`]*)`/g;
 
@@ -77,13 +75,12 @@ function markersIn(src: string): { marker: string; line: number }[] {
   return out;
 }
 
-/** Les RECOPIES : marqueurs posés hors de leur fichier propriétaire, au-delà du stock mesuré. */
+/** Les RECOPIES : marqueurs posés hors de leur fichier propriétaire. */
 function recopies(fichiers: readonly { chemin: string; code: string }[]): string[] {
   const offenders: string[] = [];
   for (const { chemin, code } of fichiers) {
     for (const { marker, line } of markersIn(stripComments(code))) {
       if (OWNERS[marker].includes(chemin)) continue;
-      if (BASELINE[chemin]?.includes(marker)) continue;
       offenders.push(
         `${chemin}:${line} → "${marker}" recopié — composer ${OWNERS[marker].join(' / ')} au lieu de réécrire son markup`,
       );
@@ -97,7 +94,7 @@ describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (r
     composants().map(({ chemin, code }) => ({ path: chemin, hits: markersIn(stripComments(code)) })),
   );
 
-  it('aucune recopie de marqueur hors du fichier propriétaire au-delà du stock mesuré', () => {
+  it('aucune recopie de marqueur hors du fichier propriétaire', () => {
     const offenders = recopies(composants());
     expect(offenders, offenders.join('\n')).toEqual([]);
   });
@@ -115,17 +112,6 @@ describe('#1318 P8/D10 — marqueurs structurels = propriété des primitives (r
       '"cadre-pied"', '"modal-body"', '"modal-title"', '"modal-overlay"', '"modal"', '"cadre-fermer"',
     ]);
     expect(recopies([{ chemin: 'FauxEcran.tsx', code: compose }])).toEqual([]);
-  });
-
-  it('la baseline est DÉCROISSANTE — aucune entrée périmée', () => {
-    const live = new Set(
-      found().flatMap(({ path, hits }) => hits.filter((h) => !OWNERS[h.marker].includes(path)).map((h) => `${path}|${h.marker}`)),
-    );
-    const stale = Object.entries(BASELINE)
-      .flatMap(([path, marks]) => marks.map((m) => `${path}|${m}`))
-      .filter((k) => !live.has(k))
-      .map((k) => `${k.replace('|', ' → ')} : recopie disparue, RETIRER l'entrée de BASELINE`);
-    expect(stale, stale.join('\n')).toEqual([]);
   });
 
   it('chaque primitive propriétaire pose bien son marqueur (table non périmée)', () => {

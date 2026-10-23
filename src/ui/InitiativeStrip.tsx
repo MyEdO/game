@@ -99,7 +99,8 @@ export function InitiativeStrip(p: InitiativeStripProps) {
               onMouseEnter={() => p.onHover?.(id)}
               onMouseLeave={() => p.onHover?.(null)}
             >
-              {p.turn === -1 && (
+              {/* Un combattant inscrit en cours de Round (invocation, `inscrireEnBataille`) agit à son rang sans score tiré. */}
+              {p.turn === -1 && c.initiative !== undefined && (
                 <span className={`is-score${strikesLast(c.weapons) ? ' lente' : ''}`}
                   title={strikesLast(c.weapons) ? `${initiativeTitle(c)} — arme Lente : frappe en dernier` : initiativeTitle(c)}>
                   {c.initiative}{strikesLast(c.weapons) ? <> <Icon id="ui/wait" size={10} /></> : null}

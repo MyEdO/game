@@ -25,7 +25,7 @@ const HUMAIN = asRigSpeciesId('humain');
 const LOCS = LOCALISATIONS_DE_COUP;
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
 const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', forme, hands: 1, bouclier: false });
-const plaque = (skin?: Record<string, string>) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', subType: 'plate', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(skin && { skin }) }) as unknown as ItemInstance;
+const plaque = (teinte?: string) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', subType: 'plate', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(teinte && { teinte }) }) as unknown as ItemInstance;
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** Vrai si le texte porte un jeton `@clé`. */
 const aUnJeton = (s: string) => tokensOf(s).length > 0;
@@ -58,7 +58,7 @@ describe('préséance objet/porteur (#1903)', () => {
     expect(poing).toContain(`url(#dg-v-${d.peauH.slice(1)}-${d.peauO.slice(1)})`);
   });
 
-  describe('armure à skin : `dg-` résolu à la passe d’objet puis repassé par la table du porteur', () => {
+  describe('armure à teinte : `dg-` résolu à la passe d’objet puis repassé par la table du porteur', () => {
     const avant = { bras: ARMOUR.plaque.bras, torse: ARMOUR.plaque.torse };
     afterEach(() => { ARMOUR.plaque.bras = avant.bras; ARMOUR.plaque.torse = avant.torse; });
 
@@ -66,7 +66,7 @@ describe('préséance objet/porteur (#1903)', () => {
       const dg = '<path d="M0 0h4v4z" fill="url(#dg-v3-@metalH-@metal-@metalO)" stroke="@peau"/>';
       ARMOUR.plaque.bras = dg + (declaredView(avant.bras, 'front') ?? '');
       ARMOUR.plaque.torse = dg + (declaredView(avant.torse, 'front') ?? '');
-      const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, equipDe([], [plaque({ metal: '#ff0000' })]), {}, 'soldat', 'front');
+      const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, equipDe([], [plaque('aethyrique')]), {}, 'soldat', 'front');
       const contenus = new Map<string, Set<string>>();
       let vus = 0;
       for (const b of bones) for (const p of b.parts) {

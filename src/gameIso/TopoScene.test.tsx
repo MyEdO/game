@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { TopoScene } from './TopoScene';
 import { emptyScene } from '../noyau/monde/scene';
-import type { Station } from '../state/stations';
+import type { Station } from '../noyau/stations';
 
 /**
  * SMOKE SSR de TopoScene (env node : rendu serveur, pas de DOM interactif — le contrat de CLIC est

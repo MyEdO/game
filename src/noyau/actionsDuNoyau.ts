@@ -22,7 +22,10 @@ import type { RestLodging, RestFood } from './restFlow';
 import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
 import type { RoomPortal } from './monde/roomPortals';
-import type { IdDeCombattant, IdDeHeros, IdDePorteur, IdDePossession, IdDObjet, IdDeScene, IdDEntiteDeScene, IdDEtapeDeCascade } from './designations';
+import type {
+  IdDeChanson, IdDeChoixDePaie, IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet, IdDeScene,
+  IdDEntiteDeScene, IdDEtapeDeCascade, IdDeTireurRapide,
+} from './designations';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { EtatDeJeu, PaquetALancer, PendingInteract, ShootingStanceKey } from './etat';
 
@@ -60,13 +63,13 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Abandon de la séquence en cours, quand sa définition en déclare un (`SequenceDef.abandon`). */
   sequenceAbandon: () => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
-  armPreempt: (heroId: IdDeCombattant | null) => void;
-  /** Coop : marque le siège PRÊT au ready-check d'ouverture (round 1) ; l'hôte lance quand tous ✓. */
-  roundStartReady: (seat: number) => void;
+  armPreempt: (heroId: IdDeTireurRapide | null) => void;
+  /** Coop : marque PRÊT au ready-check d'ouverture (round 1) le siège qui décide (`decidingSeat`) ; l'hôte lance quand tous ✓. */
+  roundStartReady: () => void;
   /** Attribue un objet d'équipement (giveTrapping) du butin de victoire au héros choisi. */
   assignVictoryGear: (index: number, heroId: IdDeHeros) => void;
   /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
-  harvestCreature: (creatureId: string) => void;
+  harvestCreature: (creatureId: IdDeCreatureADepecer) => void;
   /** Ferme l'écran de victoire et revient à l'exploration. */
   dismissVictory: () => void;
   /** Ferme l'écran de défaite ; dans une Scène de combat de bataille de masse, la bataille CONTINUE
@@ -82,8 +85,8 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
    *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
   appraiseGear: (scope: 'loot' | 'victory', index: number, mode?: 'evaluate' | 'detect') => void;
-  /** Coop : ✓ d'un siège sur l'écran de victoire — l'hôte ferme quand tous les requis ont validé. */
-  victoryReady: (seat: number) => void;
+  /** Coop : ✓ du siège qui décide (`decidingSeat`) sur l'écran de victoire — l'hôte ferme quand tous les requis ont validé. */
+  victoryReady: () => void;
   /** Coop : demande la pause du prochain début de Round (fenêtre Chance). */
   raiseHand: () => void;
   lowerHand: () => void;
@@ -102,7 +105,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  règle optionnelle `fortune-mid-session` en mode 'manual'). Réutilise l'Effet `restoreFortune`
    *  (logique partagée via `engine/fortune.restoreFortune`) — pas de duplication. */
   restoreFortuneNow: () => void;
-  activityCancel: () => void;
   activityConfirm: () => void;
   /** Amorce une bataille de masse et bascule sur sa vue. */
   startMassBattle: (spec: MassBattleSpec) => void;
@@ -139,13 +141,13 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  Identification (`itemUid`), Convalescence (ADE II), Activités d'Altdorf (ACE Annexe I). Cibles
    *  éventuelles selon le résolveur : objet / sort / dépôt / Talent. */
   interludeActivity: (heroId: IdDeHeros, activityId: string, opts?: { itemUid?: IdDObjet; spellId?: string; depositIndex?: number; talentId?: string }) => void;
-  /** Composition d'équipe : ajoute un héros dans un emplacement du siège (intent côté invité ;
-   *  l'hôte injecte le siège autoritaire) / retire un héros (propriétaire seul). */
-  partyAddHero: (hero: Combatant, wealth?: import('../engine/money').Money, seat?: number) => void;
+  /** Composition d'équipe : ajoute un héros dans un emplacement du siège qui décide (`decidingSeat`) / retire un
+   *  héros (propriétaire seul). */
+  partyAddHero: (hero: Combatant, wealth?: import('../engine/money').Money) => void;
   partyRemoveHero: (heroId: IdDeHeros) => void;
-  /** Remplace EN PLACE le héros `oldId` par `hero` (substitution atomique, possession transférée au
-   *  siège ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer » du slot. */
-  partyReplaceHero: (oldId: IdDeHeros, hero: Combatant, seat?: number) => void;
+  /** Remplace EN PLACE le héros `oldId` par `hero` (substitution atomique, possession transférée au siège qui
+   *  possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer » du slot. */
+  partyReplaceHero: (oldId: IdDeHeros, hero: Combatant) => void;
   setParty: (p: Combatant[]) => void;
   toggleEquip: (heroId: IdDePorteur, uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet d'un héros d'un contenant (LDB 64). */
@@ -159,7 +161,6 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   transferItem: (uid: IdDObjet, fromHeroId: IdDePorteur, toHeroId: IdDePorteur) => void;
   /** Skin cosmétique d'un objet (override de palette clé→hex ; clé à `undefined` = reset).
    *  Propagé à l'arme active via recomputeLoadout → le rendu se recolore (objet légendaire). */
-  setItemSkin: (heroId: IdDePorteur, uid: IdDObjet, patch: Record<string, string | undefined>) => void;
   /** Change la FORME (silhouette) d'une arme abstraite parmi ses `formChoices` (« Arme simple » →
    *  épée/hache/masse/…). Pose `ItemInstance.formeChoisie` puis recompute → l'arme tenue change de silhouette. */
   choisirForme: (heroId: IdDeHeros, uid: IdDObjet, forme: string) => void;
@@ -341,11 +342,12 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé. */
   openRest: (opts: restFlow.OpenRestOpts) => void;
   restSet: (heroId: IdDeHeros, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => void;
-  restReady: (seat: number) => void;
+  /** Coop : marque PRÊT au repos le siège qui décide (`decidingSeat`). */
+  restReady: () => void;
   restSleep: () => void;
   restCancel: () => void;
   /** CONSEIL DE BORD (#229) : arrête la paie de la semaine, puis clôt le bilan de Moral. */
-  councilPay: (decision: string) => void;
+  councilPay: (decision: IdDeChoixDePaie) => void;
   councilClose: () => void;
   // heal{Roll,Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
   healConfirm: () => void;
@@ -510,15 +512,17 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   cancelMove: () => void;
   battleEndTurn: () => void;
   armEndTurn: () => void;
+  /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
+  battleClearPreview: () => void;
   /** Reprise après un changement de Cadence de combat en plein combat (passage en Auto/Rapide) :
    *  ré-entre la boucle (auto-résolution de modale + tour de l'IA). No-op en manuel / hors combat. */
   resumeCadence: () => void;
   /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
    *  contre 1 point de Chance (pré-emption d'initiative). */
-  roundStartPromote: (heroId: IdDeCombattant) => void;
+  roundStartPromote: (heroId: IdDeCombattantPromouvable) => void;
   /** Tir rapide (talent, LDB 10) : INTERRUPTION à distance en début de Round (hors de l'ordre) ; le tir
    *  se résout par la modale de jet normale et épuise le tour normal du tireur (Action + Mouvement). */
-  preemptRangedShot: (heroId: IdDeCombattant, targetId: IdDeCombattant) => void;
+  preemptRangedShot: (heroId: IdDeTireurRapide, targetId: IdDeCombattant) => void;
   /** Ferme la modale d'ordre de Round et reprend le combat (active le 1er combattant valide). */
   confirmRoundStart: () => void;
   /** « Comment ça a pu rater ? » (Destin, coup létal) : annule le coup, reste en combat. */
@@ -632,7 +636,7 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
   battleSingShanty: (shipId: IdDeCombattant) => void;
   /** Choix de la chanson (pré-jet, parmi les specs CONNUES du Talent). */
-  shantySetSong: (shantyId: string) => void;
+  shantySetSong: (shantyId: IdDeChanson) => void;
   shantyConfirm: () => void;
   shantyCancel: () => void;
   // shanty{Roll,Reroll,BonusSL,ForceSuccess,DarkPact} : générés (RollFlowActionsMap).
@@ -733,14 +737,13 @@ export interface ActionsDuNoyau extends RollFlowActionsMap {
   battleDisengage: () => void;
   disengageConfirmA: () => void; // Sacrifier l'Avantage
   disengageRoll: () => void; // Esquiver (lance le Test opposé)
-  // disengage{Reroll,BonusSL,DarkPact,ForceSuccess} : générés (RollFlowActionsMap).
+  // disengage{Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll,Cancel} : générés (RollFlowActionsMap).
   // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) + « vous choisissez le résultat » (dé forcé) :
   // {test,attack,defense,cast,disengage}ForceSuccess et {defense,cast}SetForcedRoll sont aussi générés.
   disengageConfirm: () => void; // Appliquer l'issue de l'Esquive
   disengageFlee: () => void; // Fuir : ouvre le flux MULTI `flee` (coup dans le dos du frappeur + Test `fuite` du fuyard)
   // flee{Roll,Reroll,BonusSL,DarkPact,ForceSuccess,SetForcedRoll}(pid) : générés (RollFlowActionsMap) — `pid` = id de l'acteur du slot.
   fleeConfirm: () => void; // Appliquer : coup dans le dos (applicateur canonique) + États Brisés + libération/Course
-  disengageCancel: () => void;
   /** « Au Contact » (LDB 62 l.176, Option « Longueur d'arme ») : Test opposé de Corps à corps + choix du vainqueur. */
   battleAuContact: (targetId: IdDeCombattant) => void;
   auContactRoll: () => void; // Lancer le jet de Corps à corps du mover (Test opposé)

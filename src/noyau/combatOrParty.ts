@@ -24,6 +24,8 @@ import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
 import type { SeaWind } from '../engine/domainAttributes';
 import { inBattleId } from './monde/combatants';
+import { combatantAtTile } from './monde/combatGeometry';
+import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
@@ -32,18 +34,6 @@ export function touchActors(state: Jeu): PatchDeFlux {
   return state.battle ? { battle: { ...state.battle, combatants: [...state.battle.combatants] } } : { party: [...state.party] };
 }
 
-/**
- * Cliquer un combattant — son TOKEN sur la carte OU son PORTRAIT dans la frise/dock — déclenche-t-il
- * une ACTION de combat ? L'inspection n'emprunte jamais ce geste : elle est le geste SECONDAIRE
- * (clic droit, appui long, touche Menu, touche `inspecter`). DÉRIVÉ du MODE de ciblage courant
- * (`targetingModes`) : « le mode courant cible des combattants ET `t` ∈ ses cibles » — un mode-CASE pur
- * (téléportation) ne cible aucun combattant ; un mode à liste (soin/Surincantation/Frappe Mortelle/2ᵉ
- * frappe) consulte ses `candidates` ; un mode à réticule (attaque/cast/bordée) consulte l'affordance
- * (≠ 'none') ; une pose de zone (commit sans affordance) agit sur la case de tout combattant cliqué.
- * Condition UNIQUE partagée par la carte (`IsoStage.performClick`), la frise (`onStripPortrait`) et le
- * curseur (`cursorCommitIntent`) — les surfaces ne peuvent plus diverger. L'autorisation COOP
- * (`controlsActive`) reste gardée par l'APPELANT.
- */
 /**
  * Contexte « Magie des mers » (MDG 02 l.178-186, `DomainData.seaModifier`) pour `resolveFocus`/
  * `resolveCasting` : en mer = en VOYAGE maritime (`travelPlan.mode === 'mer'`) OU en COMBAT
@@ -73,6 +63,18 @@ export function windsMagicLineOf(battle: Jeu['battle']): ModLine | null {
   return windsModLine(battle?.windsOfMagic);
 }
 
+/**
+ * Cliquer un combattant — son TOKEN sur la carte OU son PORTRAIT dans la frise/dock — déclenche-t-il
+ * une ACTION de combat ? L'inspection n'emprunte jamais ce geste : elle est le geste SECONDAIRE
+ * (clic droit, appui long, touche Menu, touche `inspecter`). DÉRIVÉ du MODE de ciblage courant
+ * (`targetingModes`) : « le mode courant cible des combattants ET `t` ∈ ses cibles » — un mode-CASE pur
+ * (téléportation) ne cible aucun combattant ; un mode à liste (soin/Surincantation/Frappe Mortelle/2ᵉ
+ * frappe) consulte ses `candidates` ; un mode à réticule (attaque/cast/bordée) consulte l'affordance
+ * (≠ 'none') ; une pose de zone (commit sans affordance) agit sur la case de tout combattant cliqué.
+ * Condition UNIQUE partagée par le clic de case (`intentionDuClicDeCase` : carte et curseur), la frise
+ * (`onStripPortrait`) et la frappe d'une structure (`useStagePointer`, `frapper`). L'autorisation COOP
+ * (`controlsActive`) reste gardée par l'APPELANT.
+ */
 export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): boolean {
   const battle = get().battle;
   if (!battle || battle.over) return false;
@@ -99,4 +101,22 @@ export function combatantClickActs(get: Get, combatant: Pick<Combatant, 'id'>): 
   // le clic : un mode sans affordance (pose de zone) retombe sur eux, sinon sur tout combattant cliqué.
   if (mode.affordance) return hoverTargeting(get, active, target).kind !== 'none';
   return mode.candidates ? mode.candidates(get, active).some((c) => c.id === combatant.id) : true;
+}
+
+type IntentionDuClicDeCase = { kind: 'entity'; id: string } | { kind: 'tile'; pt: Pt };
+
+/**
+ * Ce que joue un clic sur une CASE de combat, source unique du clic-sol (`useStagePointer.performClick`)
+ * et du commit du curseur clavier/manette (`commitCursor`) : l'occupant d'une tuile de son empreinte, à
+ * l'étage `z`, se joue s'il passe `combatantClickActs` ; un occupant qui ne la passe pas ne joue rien
+ * (jamais de clic-case sous un combattant) ; une case libre se joue en déplacement. `null` hors combat.
+ */
+export function intentionDuClicDeCase(get: Get, tuile: Pt): IntentionDuClicDeCase | null {
+  const battle = get().battle;
+  if (!battle || battle.over) return null;
+  const { x, y } = tuile;
+  const z = tuile.z ?? 0;
+  const occupant = combatantAtTile(battle.combatants, x, y, z);
+  if (occupant) return combatantClickActs(get, occupant) ? { kind: 'entity', id: occupant.id } : null;
+  return { kind: 'tile', pt: pointDeCase(x, y, z) };
 }

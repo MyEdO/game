@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGame } from '../state/store';
 import { ownsLocal } from '../noyau/netOwnership';
-import { harvestProfileFor } from '../engine/harvest';
+import { creaturesADepecer } from '../noyau/combatEffects';
 import { ReadyRow } from './ReadyRow';
 import { GearAssignList } from './GearAssignList';
 import { RewardRecap, type RecapSection } from './RewardRecap';
@@ -77,14 +77,15 @@ export function VictoryScreen() {
     });
   }
   if (defeated.length > 0) {
+    const aDepecer = creaturesADepecer(state);
     sections.push({
       id: 'vaincus',
       titre: 'Ennemis vaincus',
       children: (
         <Row gap="sm">
           {defeated.map((d) => {
-            const canHarvest = !!harvestProfileFor(d.creatureId) && net.mode !== 'guest';
             const done = (pv?.harvested ?? []).includes(d.creatureId ?? '');
+            const canHarvest = (done || aDepecer.includes(d.creatureId ?? '')) && net.mode !== 'guest';
             return (
               <Row key={d.label} className="chip">
                 {d.label}{d.count > 1 ? ` ×${d.count}` : ''}
@@ -117,7 +118,7 @@ export function VictoryScreen() {
       footer={online ? (
         <>
           <ReadyRow ready={ready} />
-          <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={() => victoryReady(net.mySeat)}>
+          <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={() => victoryReady()}>
             {ready[net.mySeat] ? <><Icon id="ui/wait" size="sm" /> En attente des autres…</> : 'Continuer'}
           </button>
         </>

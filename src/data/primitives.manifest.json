@@ -362,7 +362,7 @@
   {
     "id": "shipDamage",
     "type": "primitives.manifest",
-    "label": "damageHull/healHull/damageVesselHull/healVesselHull",
+    "label": "damageHull/healHull/damageVesselHull/healVesselHull/damageCampaignVessel",
     "fichier": "src/noyau/monde/shipDamage.ts",
     "concept": "dégâts/soin de coque, source unique de state.vessel.wounds",
     "perimetre": "voyage fluvial/maritime + combat naval",
@@ -867,7 +867,7 @@
     "fichier": "src/noyau/combatEffects.ts",
     "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
     "perimetre": "walkers de Flow de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
-    "verrou": "src/state/chute-a-la-porte.test.ts, src/state/roll-seam-exclusivity-guard.test.ts"
+    "verrou": "src/state/chute-a-la-porte.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
   },
   {
     "id": "creatorDice",
@@ -1979,7 +1979,7 @@
     "fichier": "src/i18n/playerText.ts",
     "concept": "marque de TYPE du texte destiné à l'œil du joueur, sorti d'un minteur ; un `string` nu ne lui est pas assignable",
     "perimetre": "tout champ de texte AFFICHÉ au joueur (étape de cascade, portes du seam de jet)",
-    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+    "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
   },
   {
     "id": "dataLabel",
@@ -1988,7 +1988,7 @@
     "fichier": "src/data/index.ts",
     "concept": "minteur (b) : passage d'un texte AUTHORÉ de la donnée à l'affichage, rendu en `PlayerText`",
     "perimetre": "tout libellé de donnée montré au joueur (clé : l'id, `docs/doctrines.md`, user-doctrine-ids-stables-labels-affichage)",
-    "verrou": "src/state/built-brand-lint.test.ts, src/state/player-text-ratchet.test.ts"
+    "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
   },
   {
     "id": "equipementDeDessin",

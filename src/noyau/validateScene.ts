@@ -1,0 +1,468 @@
+import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
+import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { unreachableDescriptiveZones } from './mapQC';
+import { isRoomZone } from './monde/rooms';
+import { footprintTiles, sizeFootprint } from './monde/footprint';
+import { entitySize } from './monde/spawn';
+import { METRES_PER_LEVEL } from './monde/relief';
+import { realFloorAt } from './sceneEdit';
+import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
+import { formatMoney, spellMoney } from '../engine/money';
+import { termeRecopie, type VocabulaireDuTag } from './dialogueLibelle';
+import { type Condition, walkFlow, walkConditionTimes, flowHasTest, carriedFlows, racinesDeFlow } from '../engine/flowCore';
+import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
+import { byId, stakeSpeaks, matieresDe } from '../data';
+import { versionDesDatasets } from '../data/versionDataset';
+import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
+import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
+// Registre des effets : les réfs que chaque handler valide (`handler.refs`).
+import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
+import { nomDEntite, sceneNpc } from './monde/sceneNpc';
+import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { placeServices, type WorldMap } from './worldMap';
+import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
+import { seatAssignmentDefects } from './monde/seating';
+import { memoByRefDeps } from './monde/sceneMemo';
+
+/** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
+const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
+  competence: (id) => byId('skill', id)?.label,
+  carac: CHAR_LABELS,
+  difficultes: DIFFICULTY_LABELS,
+  monnaie: { formater: formatMoney, epeler: spellMoney },
+};
+/** Ids de la sous-liste `roof` que la DONNÉE ne déclare PAS couvrants (`materials.json`, champ
+ *  `couverture` — le plan vu du dessus) : le schéma prouve l'appartenance à `roof`, ce sous-filtre de
+ *  SCÈNE dit le reste (`couvertureSchema`, `defs-scenes/scene.ts`). CALCULÉ À L'APPEL : le document des
+ *  matières se mute EN PLACE à l'édition, un ensemble cuit à l'import refuserait encore une couverture
+ *  qui vient d'être déclarée. */
+const roofNonCoveringIds = (): ReadonlySet<string> =>
+  new Set(matieresDe('roof').filter((material) => !material.couverture).map((material) => material.id));
+
+export interface Warning {
+  level: 'error' | 'warn';
+  sceneId: string;
+  scope: 'architecture' | 'entity' | 'trigger' | 'dialogue' | 'encounter' | 'scene' | 'worldMap' | 'plan';
+  /** Id du fautif (pour clic → sélection dans l'éditeur). */
+  refId?: string;
+  architectureRef?: ArchitectureWarningRef;
+  /** Défaut de PLAN (`scope: 'plan'`) : famille + endroit à corriger, pour que l'éditeur y emmène. */
+  plan?: { family: PlanDefectFamily; at: PlanDefectAt };
+  message: string;
+}
+
+/** Avertissement d'un dialogue qu'aucun ouvreur de sa scène ne cite — le texte est l'IDENTITÉ de la
+ *  famille (la garde de corpus `scenes/dialogue-jamais-ouvert.test.ts` le relit). */
+export const avisDialogueJamaisOuvert = (dialogueId: string): string =>
+  `Dialogue « ${dialogueId} » : aucune entité ni aucun effet de la scène ne l'ouvre — il est injouable. Donne-le à une entité, ou ouvre-le par un effet « ${EFFECT_HANDLERS.startDialogue.label} ».`;
+
+/** Avertissement d'un libellé de réponse qui recopie ce que la fenêtre annonce (Test, coût). */
+export const avisLibelleRecopie = (dialogueId: string, label: string, terme: string): string =>
+  `Dialogue « ${dialogueId} » : le libellé « ${label} » recopie ce que la fenêtre annonce déjà (« ${terme} ») — le Test et le coût d'une réponse s'affichent d'eux-mêmes.`;
+
+export type ArchitectureWarningRef =
+  | { type: 'architectureBody'; id: string }
+  | { type: 'architectureStorey'; bodyId: string; id: string }
+  | { type: 'architecturePart'; bodyId: string; storeyId: string; id: string }
+  | { type: 'facadeSection'; bodyId: string; id: string }
+  | { type: 'roofSection'; bodyId: string; id: string };
+
+/** Verdict d'un SCHÉMA par objet validé (une scène, la carte), par le mémo CANONIQUE (`memoByRefDeps`),
+ *  daté par la version des datasets : les éditions de l'éditeur sont IMMUABLES (`useSceneHistory`),
+ *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
+ *  verdicts — les réfs se résolvent au catalogue VIVANT. */
+const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
+const fautesDeSchema = (schema: Parameters<typeof validerFormeVivante>[0], objet: object): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [versionDesDatasets(), schema], () => validerFormeVivante(schema, objet)?.fautes ?? null);
+
+/** PORTÉE d'une faute pour l'éditeur (clic → sélection), par la suite des LISTES à clé que son lieu
+ *  traverse depuis la racine ; les clés rencontrées nomment la sélection. Choix d'ÉCRAN : une façade
+ *  et son ornement se sélectionnent par la façade, une masse par sa section de toiture. */
+type Portee = { scope: Warning['scope']; architectureRef?: ArchitectureWarningRef };
+const PORTEE_DU_LIEU: Readonly<Record<string, (cles: readonly string[]) => Portee>> = {
+  entities: () => ({ scope: 'entity' }),
+  triggers: () => ({ scope: 'trigger' }),
+  dialogues: () => ({ scope: 'dialogue' }),
+  encounters: () => ({ scope: 'encounter' }),
+  effectZones: () => ({ scope: 'scene' }),
+  architecture: ([id]) => ({ scope: 'architecture', architectureRef: { type: 'architectureBody', id } }),
+  'architecture › storeys': ([bodyId, id]) => ({ scope: 'architecture', architectureRef: { type: 'architectureStorey', bodyId, id } }),
+  'architecture › storeys › parts': ([bodyId, storeyId, id]) => ({ scope: 'architecture', architectureRef: { type: 'architecturePart', bodyId, storeyId, id } }),
+  'architecture › facades': ([bodyId, id]) => ({ scope: 'architecture', architectureRef: { type: 'facadeSection', bodyId, id } }),
+  'architecture › facades › features': ([bodyId, id]) => ({ scope: 'architecture', architectureRef: { type: 'facadeSection', bodyId, id } }),
+  'architecture › masses': ([bodyId, id]) => ({ scope: 'architecture', architectureRef: { type: 'roofSection', bodyId, id } }),
+  places: () => ({ scope: 'worldMap' }),
+  'places › poi': () => ({ scope: 'worldMap' }),
+  routes: () => ({ scope: 'worldMap' }),
+};
+
+/** L'élément qu'une faute désigne pour l'éditeur : le plus PROFOND élément à clé de la tête de son
+ *  lieu que la table de portée connaît ; le reste du lieu est le champ fautif DANS cet élément. */
+function fautifDe(lieu: readonly SegmentDeLieu[], portees: 'scene' | 'worldMap'): Portee & { element?: ElementDeLieu; reste: readonly SegmentDeLieu[] } {
+  const listes: string[] = [];
+  const cles: string[] = [];
+  let trouve: (Portee & { element: ElementDeLieu; reste: readonly SegmentDeLieu[] }) | undefined;
+  for (const [k, segment] of lieu.entries()) {
+    if (segment.genre !== 'element') break;
+    listes.push(segment.liste);
+    cles.push(segment.cle);
+    const portee = PORTEE_DU_LIEU[listes.join(' › ')];
+    if (!portee) break;
+    trouve = { ...portee(cles), element: segment, reste: lieu.slice(k + 1) };
+  }
+  return trouve ?? { scope: portees, reste: lieu };
+}
+
+/** Le message d'une faute de schéma à l'écran de l'éditeur : l'élément par son LIBELLÉ d'auteur, puis
+ *  le lieu du champ fautif, puis le message du schéma. */
+const nomDAuteur = (element: ElementDeLieu): string => element.libelle ?? element.cle;
+function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string {
+  const ou = cheminLisible([...(f.element ? [f.element] : []), ...f.reste], nomDAuteur);
+  return ou ? `${ou} : ${message}` : message;
+}
+
+/**
+ * Vérifie un PROJET (liste de scènes + carte du monde optionnelle) avant le runtime : réfs cassées
+ * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte),
+ * zones hors-carte, ids dupliqués. `pistesDeMusique` : les ids des pistes que l'hôte sait jouer (son
+ * registre, `audio/music.ts` pour l'hôte web) ; sans elles, la musique d'une scène n'est pas jugée. PUR.
+ */
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, pistesDeMusique?: ReadonlySet<string>): Warning[] {
+  const presetDe = presetDuNarratif(narratif);
+  const out: Warning[] = [];
+  const sceneIds = new Set(project.map((s) => s.id));
+  if (worldMap) {
+    const addWm = (refId: string, message: string) =>
+      out.push({ level: 'error', sceneId: worldMap.id, scope: 'worldMap', refId, message });
+    // Le SCHÉMA de carte (`worldMapSchema`) : unicité des lieux, routes et POI, cibles exclusives d'un
+    // POI — une carte VIVANTE de l'éditeur ne repasse pas par le parse, l'auteur l'apprend ici.
+    for (const faute of fautesDeSchema(worldMapSchema, worldMap) ?? []) {
+      const f = fautifDe(faute.lieu, 'worldMap');
+      out.push({ level: 'error', sceneId: worldMap.id, scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
+    }
+    const placeIds = new Set(worldMap.places.map((p) => p.id));
+    for (const p of worldMap.places) {
+      if (!sceneIds.has(p.scene)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene} »`);
+      // Cible RÉSOLUE via `placeServices` (source unique, `noyau/worldMap.ts`) — pas le seul catalogue
+      // `lieux-services.json` : un POI peut aussi cibler le port/marché AUTOMATIQUES du lieu (`id`
+      // `'port'`/`'marche'`), exactement ce que `CityHubScreen` résout à l'affichage (#360).
+      const resolvedServiceIds = new Set(placeServices(p).map((s) => s.id));
+      for (const poi of p.poi ?? []) {
+        if (poi.sceneId != null && !sceneIds.has(poi.sceneId)) addWm(poi.id, `POI « ${poi.label} » → scène inexistante « ${poi.sceneId} »`);
+        if (poi.serviceKind != null && !resolvedServiceIds.has(poi.serviceKind)) addWm(poi.id, `POI « ${poi.label} » → service inconnu « ${poi.serviceKind} »`);
+      }
+    }
+    for (const r of worldMap.routes) {
+      for (const end of [r.a, r.b] as const) if (!placeIds.has(end)) addWm(r.id, `Route « ${r.id} » → lieu inexistant « ${end} »`);
+      const amb = r.ambush;
+      if (amb) {
+        const target = project.find((s) => s.id === amb.scene);
+        if (!target) addWm(r.id, `Route « ${r.id} » → scène d'embuscade inexistante « ${amb.scene} »`);
+        else if (!target.encounters.some((e) => e.id === amb.encounter))
+          addWm(r.id, `Route « ${r.id} » → rencontre d'embuscade inexistante « ${amb.encounter} » dans « ${amb.scene} »`);
+      }
+    }
+    // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`noyau/entreeEnScene.ts` : `startScene`
+    // prend `findFreeTile` à défaut de `heroStart` ; `transitionTo` prend `pos`, puis le point d'arrivée
+    // NOMMÉ, puis `heroStart`, puis `findFreeTile`) — d'où un `warn`, jamais une erreur. Ne sont
+    // concernées que les scènes où l'on débarque SANS point d'arrivée nommé : un lieu qui déclare son
+    // `entry` (`MapPlace.entry`) désigne déjà sa case, un POI de plan n'en porte aucun.
+    const portesSansEntree = new Map<string, string>();
+    for (const p of worldMap.places) {
+      if (!p.entry) portesSansEntree.set(p.scene, `le lieu « ${p.label} »`);
+      for (const poi of p.poi ?? [])
+        if (poi.sceneId) portesSansEntree.set(poi.sceneId, `le point d'intérêt « ${poi.label} » du lieu « ${p.label} »`);
+    }
+    for (const [sceneId, porte] of portesSansEntree) {
+      const cible = project.find((s) => s.id === sceneId);
+      if (!cible || startOf(cible)) continue;
+      out.push({
+        level: 'warn', sceneId, scope: 'scene', refId: sceneId,
+        message: `Aucun départ du groupe (heroStart) dans « ${cible.label} », où mène ${porte} sans point d'arrivée nommé — le jeu posera le groupe sur la première case libre venue. Pose un départ, ou nomme un point d'arrivée sur la porte.`,
+      });
+    }
+  }
+  for (const s of project) {
+    const dlgIds = new Set(s.dialogues.map((d) => d.id));
+    const encIds = new Set(s.encounters.map((e) => e.id));
+    const { w, h } = s.dimensions;
+    const within = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
+    const add = (
+      level: Warning['level'],
+      scope: Warning['scope'],
+      refId: string | undefined,
+      message: string,
+      architectureRef?: ArchitectureWarningRef,
+    ) => out.push({ level, sceneId: s.id, scope, refId, message, architectureRef });
+    // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
+    // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
+    const refCtx: EffectRefCtx = {
+      sceneIds, dialogueIds: dlgIds, encounterIds: encIds,
+      entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
+      npcSheet: (id) => sceneNpc(s, id, presetDe),
+      within,
+      walkable: (x, y, z) => groupePosable(s, { x, y, z }),
+    };
+    // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
+    // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).
+    const dialoguesOuverts = new Set(s.entities.flatMap((e) => (e.dialogueId ? [e.dialogueId] : [])));
+    const checkEffect = (eff: Effect, refId: string, scope: Warning['scope']) => {
+      const handler = EFFECT_HANDLERS[eff.type] as EffectHandler;
+      if (handler.refs) for (const issue of handler.refs(eff, refCtx)) add(issue.level, scope, refId, issue.message);
+      const ouvert = handler.ouvreDialogue?.(eff);
+      if (ouvert) dialoguesOuverts.add(ouvert);
+    };
+    // Le SCHÉMA de scène (`sceneSchema`) : il prouve au parse toutes les références de catalogue, la
+    // forme de la scène et l'unicité des clés de ses listes ; une scène VIVANTE de l'éditeur ne repasse
+    // pas par le parse, l'auteur l'apprend donc ici, rattaché à son fautif (#877, #1897).
+    for (const faute of fautesDeSchema(sceneSchema, s) ?? []) {
+      const f = fautifDe(faute.lieu, 'scene');
+      add('error', f.scope, f.element?.cle, messageDeFaute(f, faute.message), f.architectureRef);
+    }
+
+    if (pistesDeMusique) for (const [slot, v] of Object.entries(s.music ?? {}))
+      if (typeof v === 'string' && !pistesDeMusique.has(v)) add('warn', 'scene', undefined, `Musique (${slot === 'ambient' ? 'ambiance' : 'combat'}) inconnue au registre « ${v} »`);
+
+    // Couches (`Scene.layers`) : ids d'étage valides pour rattacher les entités posées en hauteur.
+    const layerZs = new Set(s.layers.map((l) => l.z));
+    const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
+    for (const e of s.entities) {
+      if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
+      if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
+      if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
+    }
+    // ASSISE AUTHORÉE (`Scene.seatAssignments`) : les règles vivent dans `noyau/monde/seating`, source
+    // unique partagée avec le compilateur d'authoring (`mapSpec.buildScene`, fail-fast).
+    for (const defect of seatAssignmentDefects(s)) add('error', 'entity', defect.at, defect.message);
+    // Les familles qui MARCHENT (départ, connectivité, empreinte au sol) n'ont de sujet qu'à l'échelle du
+    // PAS : à l'échelle MER (`isMerScene`, source unique — case ≥ 4 m, navire-unité), la grille est de l'eau
+    // de bout en bout et tout le monde y flotte à bord. Mesuré sur les paquets livrés : les 3 scènes
+    // d'abordage (10 m/case, 336 cases d'`eau`) rendaient 31 avertissements « non marchable », tous faux.
+    const echelleDuPas = !isMerScene(s);
+    // CONNECTIVITÉ À PIED depuis le départ du groupe (`noyau/mapQC`, harnais #778 : la même marche que
+    // `walkNeighbors` au jeu). Une pièce nommée qu'aucun chemin ne rejoint est du contenu écrit pour rien.
+    const start = startOf(s);
+    const startEntity = s.entities.find((e) => e.kind === 'heroStart');
+    if (start && startEntity && echelleDuPas) {
+      if (!isWalkable(s, start.x, start.y, start.z)) {
+        add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
+      } else {
+        // Zones évaluées SEULEMENT depuis un départ praticable : depuis une case murée, la marche ne
+        // rejoint rien et TOUTES les pièces se signaleraient — un seul défaut, pas N faux.
+        for (const zone of unreachableDescriptiveZones(s, start))
+          add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z ?? 0}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
+      }
+    }
+    const validRect = (rect: { x: number; y: number; w: number; h: number }) =>
+      Number.isInteger(rect.x) && Number.isInteger(rect.y) && Number.isInteger(rect.w) && Number.isInteger(rect.h)
+      && rect.w > 0 && rect.h > 0 && within(rect.x, rect.y) && within(rect.x + rect.w - 1, rect.y + rect.h - 1);
+    const zoneInterior = (id: string) => s.effectZones?.find((zone) => zone.id === id && isRoomZone(zone));
+    /** `revealBelow` : une TOITURE révèle par cutaway les pièces qu'elle COUVRE, potentiellement à
+     *  un étage inférieur au sien (`architectureVisibility.ts` ne compare aucun z — seule
+     *  l'appartenance de la zone à l'ensemble `roomZoneIds` compte) — jamais au-dessus (une toiture
+     *  ne découvre pas ce qu'il y a au-dessus d'elle). Un ÉTAGE (`ArchitectureStorey.roomZoneIds`)
+     *  n'a AUCUN consommateur de rendu (seul `mapSpec.ts` le recopie) : sa règle reste STRICTE
+     *  (`revealBelow` par défaut `false`, comme les façades) — une zone d'un autre étage doit
+     *  échouer, l'authoring dérive `storey.roomZoneIds` des SEULES zones de son propre étage
+     *  (`floorplan.ts`). */
+    const checkZoneRefs = (
+      ids: string[],
+      z: number,
+      refId: string,
+      architectureRef?: ArchitectureWarningRef,
+      revealBelow = false,
+    ) => {
+      for (const id of ids) {
+        const zone = zoneInterior(id);
+        if (!zone) { add('error', 'architecture', refId, `Architecture « ${refId} » → zone intérieure « ${id} » inexistante`, architectureRef); continue; }
+        const zoneZ = zone.z ?? 0;
+        if (revealBelow ? zoneZ <= z : zoneZ === z) continue;
+        const message = revealBelow
+          ? `Architecture « ${refId} » → zone intérieure « ${id} » à l’étage ${zoneZ}, au-dessus de la section (étage ${z})`
+          : `Architecture « ${refId} » → zone intérieure « ${id} » inexistante à l’étage ${z}`;
+        add('error', 'architecture', refId, message, architectureRef);
+      }
+    };
+    const checkEdge = (
+      edge: { x: number; y: number; side: string; z?: number },
+      z: number,
+      refId: string,
+      architectureRef: ArchitectureWarningRef,
+    ) => {
+      if (edge.side !== 'N' && edge.side !== 'E') add('error', 'architecture', refId, `Architecture « ${refId} » : arête non canonique « ${edge.side} »`, architectureRef);
+      if (!Number.isInteger(edge.x) || !Number.isInteger(edge.y) || !within(edge.x, edge.y)) add('error', 'architecture', refId, `Architecture « ${refId} » : arête hors carte`, architectureRef);
+      if (edge.z !== undefined && edge.z !== z) add('error', 'architecture', refId, `Architecture « ${refId} » : arête sur étage ${edge.z} différent de la section ${z}`, architectureRef);
+    };
+    const nonCouvrantes = roofNonCoveringIds();
+    for (const body of s.architecture ?? []) {
+      // Intention de toiture (`RoofDefaults`) : un appentis sans côté d'égout ne se devine pas — la
+      // dérivation ne pose alors AUCUN `eaveSide` et chaque masse produite est invalide. Nommé sur le
+      // CORPS, là où le réglage se fait.
+      if (body.roofDefaults?.profile === 'shed' && !body.roofDefaults.eaveSide)
+        add('error', 'architecture', body.id, `Corps « ${body.label ?? body.id} » : toiture en appentis sans côté d’égout — déclare le versant bas (N/E/S/O)`, { type: 'architectureBody', id: body.id });
+      for (const storey of body.storeys) {
+        const storeyRef: ArchitectureWarningRef = { type: 'architectureStorey', bodyId: body.id, id: storey.id };
+        if (storey.z !== 0 && !layerZs.has(storey.z)) add('error', 'architecture', storey.id, `Étage ${storey.z} inexistant`, storeyRef);
+        for (const part of storey.parts) {
+          const partRef: ArchitectureWarningRef = { type: 'architecturePart', bodyId: body.id, storeyId: storey.id, id: part.id };
+          if (!validRect(part.foot)) add('error', 'architecture', part.id, `Partie « ${part.id} » hors carte ou d’emprise invalide`, partRef);
+        }
+        checkZoneRefs(storey.roomZoneIds, storey.z, storey.id, storeyRef);
+      }
+      for (const facade of body.facades) {
+        const facadeRef: ArchitectureWarningRef = { type: 'facadeSection', bodyId: body.id, id: facade.id };
+        if (facade.z !== 0 && !layerZs.has(facade.z)) add('error', 'architecture', facade.id, `Étage ${facade.z} inexistant`, facadeRef);
+        for (const edge of facade.edges) checkEdge(edge, facade.z, facade.id, facadeRef);
+        checkZoneRefs(facade.roomZoneIds ?? [], facade.z, facade.id, facadeRef);
+        for (const feature of facade.features ?? []) {
+          checkEdge(feature.edge, facade.z, feature.id, facadeRef);
+          if (feature.offset !== undefined && (feature.offset < 0 || feature.offset > 1))
+            add('error', 'architecture', feature.id, `Feature « ${feature.id} » : offset hors 0-1`, facadeRef);
+          if (feature.width !== undefined && feature.width <= 0)
+            add('error', 'architecture', feature.id, `Feature « ${feature.id} » : largeur invalide`, facadeRef);
+        }
+      }
+      for (const mass of body.masses) {
+        const massRef: ArchitectureWarningRef = { type: 'roofSection', bodyId: body.id, id: mass.id };
+        if (mass.z !== 0 && !layerZs.has(mass.z)) add('error', 'architecture', mass.id, `Étage ${mass.z} inexistant`, massRef);
+        if (mass.footprint.length === 0)
+          add('error', 'architecture', mass.id, `Masse « ${mass.id} » sans partie`, massRef);
+        for (const part of mass.footprint)
+          if (!validRect(part)) add('error', 'architecture', mass.id, `Masse « ${mass.id} » hors carte ou d’emprise invalide`, massRef);
+        if (mass.profile === 'shed' && !mass.eaveSide) add('error', 'architecture', mass.id, `Masse « ${mass.id} » : profil appentis sans côté d’égout`, massRef);
+        if (nonCouvrantes.has(mass.material))
+          add('error', 'architecture', mass.id, `Masse « ${mass.id} » : « ${mass.material} » n’est pas une couverture de toit`, massRef);
+        if (!Number.isInteger(mass.levels) || mass.levels < 1) add('error', 'architecture', mass.id, `Masse « ${mass.id} » : niveaux invalides`, massRef);
+        if (mass.pitchDeg < PENTE_TOIT_DEG.min || mass.pitchDeg > PENTE_TOIT_DEG.max)
+          add('error', 'architecture', mass.id, `Masse « ${mass.id} » : pente hors plage`, massRef);
+        // INVARIANT d'ALTITUDE — les deux encodages de la même hauteur (l'INDEX d'étage `z` et la COTE
+        // métrique que `layer.height` porte, lue par `heightAt`) ne peuvent pas diverger sans le dire.
+        // L'égout dérivé (`gameIso/builders/roofs.resolveMass`) et les murs qui le portent
+        // (`buildWalls`) lisent tous deux la COTE : le relief est donc libre — une masse sur une butte,
+        // une terrasse, un quai surélevé est une carte légitime. Ce qui reste falsifiable est
+        // l'EMPILEMENT : le plancher de l'étage `z` doit dominer celui de l'étage `z-1` d'au moins la
+        // hauteur qu'un étage REPRÉSENTE (`METRES_PER_LEVEL`, `noyau/monde/relief`), sinon ce qui remplit
+        // l'étage du dessous traverse le plancher du dessus — et le toit posé dessus descend dedans.
+        // Cas nommé par la garde : une couche d'étage laissée SANS cote (`layer.height` absent) — ses
+        // planchers, ses murs et sa toiture retombent tous au rez sans un mot.
+        // L'invariant ne porte QUE là où l'étage a un PLANCHER RÉEL (`realFloorAt`, la même vérité que la
+        // dérivation et `validateBuildingMasses`) : une masse couvre aussi les colonnes OUVERTES qu'elle
+        // adopte — trémie de volée, puits de rampe — où il n'y a rien à empiler, et où la case du dessous
+        // rejoint précisément la cote du dessus : c'est par là qu'on MONTE.
+        if (mass.z > 0 && layerZs.has(mass.z - 1)) {
+          const plancherHaut = realFloor(mass.z);
+          const tropBas = mass.footprint.flatMap((rect) => {
+            const out: { x: number; y: number; h: number; sous: number }[] = [];
+            for (let y = rect.y; y < rect.y + rect.h; y++)
+              for (let x = rect.x; x < rect.x + rect.w; x++) {
+                if (!plancherHaut.has(`${x},${y}`)) continue;
+                const h = heightAt(s, x, y, mass.z);
+                const sous = heightAt(s, x, y, mass.z - 1);
+                if (h - sous < METRES_PER_LEVEL - 1e-6) out.push({ x, y, h, sous });
+              }
+            return out;
+          });
+          if (tropBas.length) {
+            const { x, y, h, sous } = tropBas[0];
+            add('error', 'architecture', mass.id, `Masse « ${mass.id} » : plancher (${x},${y}) à ${h} m alors que l’étage ${mass.z - 1} y est coté ${sous} m — un étage se pose sur le dessus de celui du dessous (${METRES_PER_LEVEL} m) ; côte la couche ${mass.z} ou change l’étage de la masse`, massRef);
+          }
+        }
+      }
+    }
+    /** Bornes des fenêtres horaires d'une Condition — chaque site de l'énumérateur unique (`sitesDeLaScene`,
+     *  `sites-de-paquet.ts` : `when`, `if`, `gate`, `difficultyBy`, `crossTest`). */
+    const checkCondTimes = (cond: Condition, refId: string, scope: Warning['scope']) =>
+      walkConditionTimes(cond, (tc) => {
+        for (const [k, v] of [['afterHour', tc.afterHour], ['beforeHour', tc.beforeHour]] as const)
+          if (v != null && (v < 0 || v > 23)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-23`);
+        for (const [k, v] of [['afterMinute', tc.afterMinute], ['beforeMinute', tc.beforeMinute]] as const)
+          if (v != null && (v < 0 || v > 59)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-59`);
+      });
+    /** Parcours RÉCURSIF d'un Flow (branches `if`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
+     *  effets référencés + ENJEU des jets (les Conditions passent par `sitesDeLaScene`).
+     *
+     *  FLOWS PORTÉS par une feuille : trouvés PAR LA FORME (`carriedFlows`, `engine/flowCore`) — l'échéance
+     *  d'un `delayedEffect`, la récompense d'une `petitePriere`, et tout champ `Flow` d'un effet à écrire.
+     *  Une liste nominative serait périmée au prochain effet porteur, et ce qui échappe à ce parcours
+     *  échappe à TOUTE validation d'arbre (réfs cassées et jets muets compris).
+     *
+     *  ENJEU (#1117, arbitrage user 2026-08-12 / #1262) : un nœud `test` LANCE un jet, et son enjeu
+     *  s'AUTHORE dans le document (`FlowTest.stake`, champ de l'éditeur de Flow) — la validation le
+     *  refuse muet. C'est la porte que le catalogue app-owned ne peut pas servir : ce qu'un jet de scène
+     *  met en jeu appartient à la scène. Le critère est celui du RUNTIME (`stakeSpeaks`, `src/data`) :
+     *  un enjeu authoré BLANC est un enjeu absent — sans ce partage, l'authoring déclarerait bon un
+     *  document que `resolveStake` refuse d'afficher. */
+    const checkFlow = (flow: Flow, refId: string, scope: Warning['scope']) => {
+      walkFlow(flow, (node) => {
+        if (node.kind === 'do') {
+          checkEffect(node.effect, refId, scope);
+          for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
+        } else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
+          add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
+        }
+      });
+    };
+
+    for (const t of s.triggers) {
+      if (!within(t.rect.x, t.rect.y) || !within(t.rect.x + t.rect.w - 1, t.rect.y + t.rect.h - 1)) add('warn', 'trigger', t.id, `Zone « ${t.id} » déborde de la carte`);
+    }
+    // Chaque RACINE de Flow authoré (`racinesDeFlow`) passe le même parcours : réfs d'effets, fenêtres
+    // horaires, enjeu des jets.
+    for (const r of racinesDeFlow(s)) checkFlow(r.flow as Flow, r.porteur.id, r.porteur.genre);
+    for (const site of sitesDeLaScene(s).conditions)
+      checkCondTimes(site.condition as Condition, site.porteur.id, PORTEE_DU_LIEU[site.porteur.liste]?.([site.porteur.id]).scope ?? 'scene');
+    for (const d of s.dialogues) {
+      const nodeIds = new Set(d.nodes.map((n) => n.id));
+      if (!nodeIds.has(d.start)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : départ « ${d.start} » inexistant`);
+      for (const n of d.nodes)
+        for (const c of n.choices) {
+          if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
+          const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
+          if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
+        }
+    }
+    const entById = new Map(s.entities.map((e) => [e.id, e] as const));
+    for (const e of s.encounters) {
+      // onVictory est APPLIQUÉ À PLAT à la victoire (finishVictory → flattenFlow), pour préserver la
+      // déférence transition/dialogue → « Continuer ». flattenFlow lève sur un nœud interactif → on
+      // l'interdit ici (les `if` conditionnels restent permis, eux, car flattenFlow les évalue).
+      if (e.onVictory && flowHasTest(e.onVictory)) add('error', 'encounter', e.id, `Rencontre « ${e.id} » : onVictory ne peut pas contenir de jet interactif (Test/Choix) — il est appliqué à plat à la victoire`);
+      for (const m of e.members ?? []) {
+        const membre = entById.get(m.entityId);
+        if (!membre) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → membre inexistant « ${m.entityId} »`);
+        if (m.ridesEntityId && !entById.has(m.ridesEntityId)) add('error', 'encounter', e.id, `Rencontre « ${e.id} » → monture inexistante « ${m.ridesEntityId} »`);
+        if (!membre) continue;
+        // EMPREINTE du combattant (`noyau/monde/footprint`, la même géométrie qu'au spawn) : une Grande 2×2 posée
+        // au ras d'un mur déborde sur des cases qui ne l'accueillent pas — le placement se corrige à
+        // l'authoring, pas au jeu. L'ancre seule ne suffit donc pas à juger la pose.
+        const n = sizeFootprint(entitySize(membre));
+        const z = membre.z ?? 0;
+        const tuiles = footprintTiles(membre.pos, n);
+        const nom = membre.label ?? membre.ref ?? membre.id;
+        const dehors = tuiles.filter((t) => !within(t.x, t.y));
+        if (dehors.length)
+          add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} débordant hors de la carte — ${dehors.map((t) => `(${t.x},${t.y})`).join(' ')}.`);
+        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !isWalkable(s, t.x, t.y, z)) : [];
+        if (barrees.length)
+          add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} posée sur ${barrees.length} case(s) non marchable(s) (mur, eau ou décor) — ${barrees.map((t) => `(${t.x},${t.y})`).join(' ')} à l'étage ${z}.`);
+      }
+    }
+    for (const d of s.dialogues)
+      if (!dialoguesOuverts.has(d.id))
+        add('warn', 'dialogue', d.id, avisDialogueJamaisOuvert(d.id));
+    // Défauts de PLAN (`noyau/planDefects`, la MÊME détection que `npm run map:check`) : l'auteur les
+    // corrige dans l'éditeur, pas en ligne de commande — chaque défaut porte sa famille et l'endroit.
+    for (const d of scenePlanDefects(s))
+      out.push({
+        level: 'warn',
+        sceneId: s.id,
+        scope: 'plan',
+        refId: d.at.kind === 'zone' ? d.at.zoneId : undefined,
+        plan: { family: d.family, at: d.at },
+        message: d.message,
+      });
+  }
+  return out;
+}

@@ -195,7 +195,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
     <>
         {!p.travelHalt && <button className="btn btn-ghost" onClick={() => restCancel()}>Annuler</button>}
         {online && !ready[net.mySeat] && (
-          <button className="btn" onClick={() => restReady(net.mySeat)}><Icon id="action/attack" size="sm" /> Prêt</button>
+          <button className="btn" onClick={() => restReady()}><Icon id="action/attack" size="sm" /> Prêt</button>
         )}
         {(!online || net.mode === 'host') && (
           <GatedAction

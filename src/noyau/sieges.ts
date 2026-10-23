@@ -1,10 +1,24 @@
 /**
  * Tenue d'un porteur de dé par un siège, lue sur `s.net` (#1426).
  */
-import type { Jeu } from './etat';
+import type { Jeu, NetState } from './etat';
 import type { Combatant } from '../engine/types';
 import { inBattleId, porteurParId } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
+
+/**
+ * Le réseau après la FERMETURE définitive d'un siège : ses héros et ses emplacements reviennent à l'hôte
+ * (siège 0), et s'il portait le rôle MJ, le rôle tombe — `gmSeat` ne désigne jamais un siège absent,
+ * sans quoi `pilotedByHuman` rendrait les ennemis à personne. Tout hôte coop l'applique au départ d'un siège.
+ */
+export function fermerLeSiege(net: NetState, seat: number): NetState {
+  const seatNames = { ...net.seatNames };
+  delete seatNames[seat];
+  const presence = { ...net.presence };
+  delete presence[seat];
+  const ownership = Object.fromEntries(Object.entries(net.ownership).map(([h, s]) => [h, s === seat ? 0 : s]));
+  return { ...net, seatNames, presence, ownership, slots: net.slots.map((s) => (s === seat ? 0 : s)), gmSeat: net.gmSeat === seat ? undefined : net.gmSeat };
+}
 
 /**
  * LE SIÈGE DU MONDE — celui qui tient l'environnement (météo, périls, marché, désertion) : le siège

@@ -40,14 +40,14 @@ const enJeu = (c: Combatant): Combatant => ({ ...c, pos: { x: 1, y: 1 } });
 
 describe('coutures donnée → état (#2097)', () => {
   it('A — un effet `giveTrapping` d’une scène gelée : l’objet reçu n’atteint pas la scène', () => {
-    const eff = { type: 'giveTrapping', trappingId: 'dague', skin: { metal: '#7faaff' } };
+    const eff = { type: 'giveTrapping', trappingId: 'dague', teinte: { id: 'aethyrique' } };
     const scene = { ...emptyScene('partage-a', 4, 4), triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'do', effect: eff } }] } as unknown as Scene;
     geler(scene);
     const gele = (scene as unknown as { triggers: { flow: { effect: typeof eff } }[] }).triggers[0].flow.effect;
-    expect(Object.isFrozen(gele.skin)).toBe(true);
+    expect(Object.isFrozen(gele.teinte)).toBe(true);
     useGame.setState({ party: [pregen(PREGEN.soldat)], scene });
     applyEffects(useGame.getState, useGame.setState, [gele as never]);
-    expect(useGame.getState().party[0].items!.some((i) => i.trappingId === 'dague' && i.skin?.metal === '#7faaff')).toBe(true);
+    expect(useGame.getState().party[0].items!.some((i) => i.trappingId === 'dague' && i.teinte === 'aethyrique')).toBe(true);
     expect(partagesDe(useGame.getState().party, [scene])).toEqual([]);
   });
 
@@ -104,7 +104,7 @@ describe('coutures donnée → état (#2097)', () => {
 
   it('D — une zone d’une scène gelée (`onCross` → `applyOps`) : le combattant n’atteint pas la scène', () => {
     const onCross = [
-      { op: 'grantWeapon', label: 'Lame de zone', damage: 3, skin: { metal: '#ff0000' } },
+      { op: 'grantWeapon', label: 'Lame de zone', damage: 3, teinte: { id: 'aethyrique' } },
       { op: 'perRound', ops: [{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }] },
     ];
     const scene = { ...emptyScene('partage-d', 4, 4), effectZones: [{ id: 'z', tiles: [{ x: 1, y: 1 }], onCross }] } as unknown as Scene;

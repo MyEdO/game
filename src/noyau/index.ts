@@ -3,7 +3,7 @@
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
  * la fenêtre d'attaque en données, l'exploration, le plateau de la scène, l'équipement dessiné d'un porteur. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
- * module de `src/noyau` qui réexporte (`scripts/guards/lib/reexportations.mjs`).
+ * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
 export { etatInitialDuJeu, type EtatDeJeu, type Jeu } from './etat';
@@ -35,6 +35,8 @@ export { plateauDeLaScene } from './monde/scene';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';
 export { fenetreDAttaque, type FenetreDAttaque } from './fenetreDAttaque';
 export { fenetreDeDefense, type FenetreDeDefense } from './fenetreDeDefense';
+export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
+export { fenetreDeLOperation, REGLAGES_DE_L_OPERATION } from './medicFlow';
 export { libelleDuVerbe, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet } from './libelles';
 export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, type Reglage, type ValeurDuReglage } from './reglages';
 export { avecSigne, texteDuMod } from './difficultyText';

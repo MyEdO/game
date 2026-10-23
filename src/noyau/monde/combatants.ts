@@ -3,15 +3,12 @@
  * (combat OU groupe), `inBattleId` (en combat seulement), et leur jumelle d'écriture `ecrireActeur`,
  * qui rend un patch d'état sans jamais l'appliquer. Fonctions pures de l'état.
  *
- * Module VOLONTAIREMENT LÉGER (patron `targetingHolder`, #1054) : aucun import runtime vers
- * `src/state`, le type de l'état seulement. INVARIANT — `netOwnership` ne demande que « qui est ce
- * combattant ? » et doit pouvoir s'importer seul (énumérer `ROUTES` dans un script ou une garde CI
- * légère) ; or `combatOrParty` importe `targetingModes` pour son affordance de clic, donc le moteur
- * de combat — chaîne runtime LOURDE ; l'import isolé est gardé par
- * `netownership-import-isole.test.ts`. Ces primitives descendent donc ici, et la dépendance va du
- * LOURD vers le LÉGER : `combatOrParty` consomme ce module, jamais l'inverse. Le SEUL import runtime
- * admis vise `src/engine` (couche PURE, qui n'atteint jamais `src/state` — AGENTS.md règle 3) : y
- * ajouter un import de `src/state` rouvre la chaîne et rend cette garde ROUGE.
+ * Module VOLONTAIREMENT LÉGER (patron `targetingHolder`, #1054) : le type de l'état seulement.
+ * `netOwnership` ne demande que « qui est ce combattant ? » ; or `combatOrParty` importe
+ * `targetingModes` pour son affordance de clic, donc le moteur de combat — chaîne runtime LOURDE. Ces
+ * primitives descendent donc ici, et la dépendance va du LOURD vers le LÉGER : `combatOrParty`
+ * consomme ce module, jamais l'inverse. `src/state` est fermé au noyau, même pour un type (`COUCHES`,
+ * `scripts/guards/lib/couches.mjs`).
  */
 import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
@@ -98,7 +95,7 @@ export function coqueParId(state: Jeu, id: string): Combatant | undefined {
  * (`engine/conditions.ts`, qui attrape mort, `outOfRencontre` et l'État Inconscient) et des Blessures
  * restantes — un héros à 0 Blessure reste EN JEU (À Terre, LDB 18 l.15) mais ne marche plus. Une
  * seconde définition de « hors d'action » ferait mener, pivoter et grimper un Inconscient. Prédicat
- * CANONIQUE de l'ÉLECTION DU MENEUR. Garde : `src/state/hero-debout-guard.test.ts`.
+ * CANONIQUE de l'ÉLECTION DU MENEUR. Garde : `src/hero-debout-guard.test.ts`.
  */
 export function estDebout(h: Combatant): boolean {
   return !isOutOfAction(h) && h.wounds.current > 0;

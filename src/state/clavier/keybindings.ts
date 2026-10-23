@@ -18,7 +18,6 @@
  *  • la CAPTURE de touche du panneau de remap lui-même (`ui/KeyBindingsPanel.tsx`).
  */
 import type { GameState } from '../store';
-import { useGame } from '../store';
 import { activeCombatant } from '../../noyau/combatFlow';
 import { controlsActive } from '../../noyau/netOwnership';
 import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../../noyau/dialogue';
@@ -36,7 +35,7 @@ import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stage
 import { arreterMarche, demarrerMarche } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
-import { roomFocusAt } from '../../noyau/monde/rooms';
+import { fouilleOuverte } from '../../noyau/interactionsDExploration';
 
 /** Code physique de la touche d'ANNULATION — le registre en est la source, `resoudreEchap` et la
  *  pile de couches s'y réfèrent ; seule écriture du littéral sous `src/` (mur `murs/echap`). */
@@ -290,11 +289,10 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => exploring(s) || inBattle(s),
     run: (g) => g().setReveler(true), runUp: (g) => g().setReveler(false),
   },
-  // FOUILLER LA PIÈCE : geste d'exploration du GROUPE, offert là où l'offre du pont l'est — DANS une
-  // pièce (`roomFocusAt`) ; le verbe dit lui-même ses refus.
+  // FOUILLER LA PIÈCE : geste d'exploration du GROUPE, offert là où le verbe l'ouvre (`fouilleOuverte`).
   {
     id: 'fouiller-piece', codes: ['KeyR'], labelKey: 'fouille.geste', section: 'exploration',
-    when: (s) => exploring(s) && !!s.scene && !!roomFocusAt(s.scene, s.partyPos),
+    when: (s) => exploring(s) && !('refus' in fouilleOuverte(s)),
     run: (g) => g().fouillerLaPiece(),
   },
   // INSPECTER : la surface CLAVIER du geste secondaire d'une entité (clic droit, appui long, touche
@@ -305,12 +303,15 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => !!cibleDInspection(s),
     run: (g) => { const id = cibleDInspection(g()); if (id) g().setInspectId(id); },
   },
-  // Commuter le SET d'armes au poing (LDB 13 l.106 — Action gratuite ; plafond maison 1×/tour porté
-  // par `battleSwitchLoadout`) : la touche FAIT TOURNER les sets de la colonne de la console, dans
-  // l'ordre où ils y sont dessinés. Gardée sur ≥ 2 sets — un porteur d'un seul set n'a rien à commuter.
+  // Commuter le SET d'armes au poing (LDB 13 l.106) : la touche FAIT TOURNER les sets de la colonne de la
+  // console, dans l'ordre où ils y sont dessinés. Sa garde EST le gate du registre (`set-commutable`).
   {
     id: 'switch-loadout', codes: ['KeyX'], labelKey: 'key.switchLoadout', section: 'combat',
-    when: (s) => cur(s) && (activeCombatant(s.battle!)?.loadouts?.length ?? 0) >= 2,
+    when: (s) => {
+      if (!cur(s)) return false;
+      const active = activeCombatant(s.battle!);
+      return !!active && actionGate('switch-loadout', { active, battle: s.battle!, netMode: s.net.mode }).ok;
+    },
     // La touche CHOISIT le set suivant (geste de clavier) ; l'EXÉCUTION passe par le registre
     // d'actions (`runAction('switch-loadout')`) — le clavier est un CONSOMMATEUR du registre, pas
     // un 5ᵉ espace d'ids qui appellerait le store en direct.
@@ -318,7 +319,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const s = g();
       const active = s.battle ? activeCombatant(s.battle) : undefined;
       const sets = active?.loadouts ?? [];
-      if (!active || sets.length < 2) return;
+      if (!active || !sets.length) return;
       const i = sets.findIndex((l) => l.id === active.activeLoadoutId);
       runAction('switch-loadout', g, { loadoutId: sets[(i + 1) % sets.length].id });
     },
@@ -393,7 +394,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
-    run: (g) => { if (g().preemptAiming) g().armPreempt(null); g().clearCursor(); const s = g(); if (s.battle?.preview) useGame.setState({ battle: { ...s.battle, preview: null } }); },
+    run: (g) => { if (g().preemptAiming) g().armPreempt(null); g().clearCursor(); if (g().battle?.preview) g().battleClearPreview(); },
   },
   {
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],
@@ -404,7 +405,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'clear-preview', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.battle?.preview,
-    run: (g) => { const s = g(); if (s.battle?.preview) useGame.setState({ battle: { ...s.battle, preview: null } }); },
+    run: (g) => g().battleClearPreview(),
   },
   // ANNULER LE DÉPLACEMENT du tour (`undo-move`) : la touche du geste adossé à la gouttière de
   // Mouvement de la console. Sa garde EST le gate du registre (`deplacement-annulable`) — la touche

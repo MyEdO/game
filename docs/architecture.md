@@ -75,22 +75,76 @@ Sites trop divergents pour une source unique propre — ne pas « globaliser » 
 - `StatChip` / `itemStatParts` : trois formes de données différentes (chaîne d'`ItemInstance`,
   `Combatant.weapons` résolues, table par famille).
 - Sweep `actorIn` dans les fabriques d'actions du noyau : `battle` y reste en portée pour le `set` final.
+- Une porte unique du noyau pour les zones de `src/` : elle réexposerait quelque 400 symboles à 258
+  importeurs (#2882), tous dans des zones qui ne survivent pas à la bascule sauf `scenes`. Les zones de
+  `src/` importent le module qui déclare ; seuls les hôtes passent par `src/noyau/index.ts`.
+- Le découpage en paquets npm (`workspaces`, `exports`) : `COUCHES` tient la même frontière sans déplacer
+  3 000 fichiers ni réécrire les chemins des gardes (#2882). À réévaluer si un mur se révèle contournable.
+
+## Couches (#2882)
+
+Le dépôt se range en zones dont les sens d'import sont tenus par le lint, pas par une garde : un
+branchement hors du chemin prévu est refusé par `murs/purete-imports`. Une zone qui survit à la bascule
+vers Godot (#2794) n'importe rien d'une zone qui n'y survit pas, même pour un type ; seule `state` lit
+`ui`, en type seul. La table `COUCHES` ne porte aucune arête transitoire : un arc contraire à cette cible
+se déclare de zone à zone, jamais par fichier, avec la sous-issue qui le retire de la table dans le commit
+qui le rend inutile.
+
+| Zone | Rôle | Importe | Survit à la bascule |
+|---|---|---|---|
+| `lib`, `geometry`, `i18n` | feuilles | rien d'autre sous `src/` | oui |
+| `engine` | règles WFRP pures | `data`, feuilles | oui |
+| `data` | base app-owned et son chargement | `engine`, feuilles | oui |
+| `noyau` | orchestration pure : (état, intention) → (état, journal, événements) ; modèle du monde (`noyau/monde/`) ; outils d'auteur purs que lisent le contenu et l'éditeur ; modèles-vues que tout hôte dessine | `engine`, `data`, feuilles | oui |
+| `scenes` | contenu de campagne | `noyau`, `data`, `engine`, feuilles | oui |
+| `hote` | module commun aux hôtes du noyau | la porte du noyau, `scenes`, feuilles | oui |
+| `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
+| `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`audio` : et `web`) | non |
+| `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède ; `ui` en type seul | non |
+| `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède | non |
+| racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
+
+- **`src/state` ne décide d'aucun effet de jeu** (#2942) : chaque décision a une seule implémentation, au
+  noyau, lue par le web, la recette et tout hôte. Un module pur qui n'est pas un adaptateur va dans la zone
+  qui le lit : au noyau s'il sert le contenu ou un hôte, dans la présentation s'il ne sert que l'atelier.
+- **Le noyau ne lit de l'hôte que ce que l'hôte lui fournit** (mur `murs/sans-hote`) : la graine du RNG de
+  bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), et,
+  pour `validateScene`, les pistes de musique que l'hôte sait jouer.
+- **Registres fermés** : au noyau, un registre d'effets ou de crochets est une table statique typée par une
+  union fermée (une entrée manquante ne compile pas), jamais une fonction d'inscription appelée à l'import.
+- **Gel structurel de `ui` et `gameIso`** : ces deux zones seront remplacées. On n'y investit aucune
+  restructuration, et les gardes de #2724 dont tout le périmètre y est restent en l'état jusqu'à la
+  bascule, où elles partent avec leur code. Le gel porte sur la structure, pas sur le jeu.
+- **Question reportée : les outils d'auteur.** Le Compendium, l'atelier de cartes et les galeries de
+  contrôle restent-ils web après la bascule ? laurent a choisi « Plus tard » sur une carte le 2026-10-21,
+  conséquence affichée : « On migre d'abord l'écran de jeu, et on tranche quand le premier écran Godot
+  tourne. » D'ici là, ce qui ne sert que l'atelier reste dans `src/ui/editor/` (le calage du calque,
+  `traceCalibration.ts`).
 
 ## Arborescence
 
-Zones du dépôt (#2882, #2928, plan `docs/plans/2026-10-19-restructuration.md`) : une zone est un dossier,
+Zones du dépôt (#2882, #2928, § Couches) : une zone est un dossier,
 `src/<zone>` sauf déclaration (`dossier`), et les fichiers posés à même `src/` forment la zone `racine`. La
 table `COUCHES` (`scripts/guards/lib/couches.mjs`) est la seule source des zones, de leurs dossiers
 (`dossierDe`, `zoneDe`) et de leurs sens d'import : par zone, ce qu'elle importe librement, ce qu'elle ne lit
-qu'en type (`import type`), et ses portes : pour une zone importée, le seul module qu'elle en lit (`portes`).
-Deux murs la lisent (`scripts/guards/lib/couchesLint.mjs`) : `murs/zone` refuse un fichier de `src/` dont le
-dossier n'est celui d'aucune zone (un sous-dossier `hotes` ou `racine` de `src/` compris), et `murs/purete-imports` refuse, hors tests, un arc d'import qu'elle n'ouvre pas ou qui
-manque une porte, sur toutes les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, sous chaque racine
-des zones (`RACINES_DES_ZONES`). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le
-code des zones en dérivent : les murs d'oxlint, le périmètre des gardes et les lectures des gates
-(`RACINES_PRESENTES`, les racines que l'arbre porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour
-témoin `src/suites-jouees-guard.test.ts`, qui refuse aussi, sous ces racines, une suite qu'aucune suite
-Vitest ne joue.
+qu'en type (`import type`), ses portes : pour une zone importée, le seul module qu'elle en lit (`portes`), et
+si elle survit à la bascule vers Godot (`survit`) : une telle zone n'ouvre que des zones qui survivent, ne
+charge aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), n'écrit aucun JSX et ne lit aucun module de code hors
+des zones, sauf, pour un script d'outillage de la zone (lancé par Node, jamais chargé par l'hôte), les modules que
+sa ligne déclare (`outillage`).
+Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
+(`RACINES_DES_ZONES`) : `murs/zone` refuse un fichier de `src/` dont le dossier n'est celui d'aucune zone (un
+sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, hors tests, un arc d'import
+qu'elle n'ouvre pas ou qui manque une porte, sur toutes les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`,
+un paquet de l'hôte web, du JSX ou un module de code hors des zones et hors de son `outillage` dans une zone qui
+survit, et un motif d'`import.meta.glob` dont le dossier de zone
+est un joker ; `murs/suite-jouee` refuse une suite qu'aucune suite Vitest ne joue (`racinesDeLaSuite.mjs`) ;
+`murs/reexportation` refuse, en production de `src/state/` et `src/noyau/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
+du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
+(le batch générique de cascade et le domaine naval, #328). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le code des zones en dérivent :
+les murs d'oxlint, le périmètre des gardes et les lectures des gates (`RACINES_PRESENTES`, les racines que l'arbre
+porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour témoin `src/racines-des-zones-json-guard.test.ts`.
 
 Hôtes du noyau (#2898, #2928) : une zone qui ne lit le noyau que par sa porte `src/noyau/index.ts`
 (`HOTES_DU_NOYAU`). Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
@@ -338,8 +392,15 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             (services que l'hôte pose : appel différé et état de son jeton, persistance d'un héros), `triggeredEffects.ts`,
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
-                            `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`, et les flux
-                            de jeu ci-dessous. Sans hôte (mur `murs/sans-hote`) : le RNG de bataille
+                            `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`,
+                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte), et les flux
+                            de jeu ci-dessous. Outils d'auteur purs, lus par l'éditeur et par les tests du
+                            contenu : `validateScene.ts` (un projet avant le runtime ; l'hôte y passe ses
+                            pistes de musique), `mapQC.ts` (harnais d'atteignabilité d'une carte),
+                            `planDefects.ts`, `dialogueLibelle.ts` (le libellé d'une réponse qui recopie
+                            ce que la fenêtre annonce, lu aussi par `scripts/guards/lib/dialogueLabelTest.mjs`).
+                            Modèles-vues que tout hôte dessine : `poste.ts` (l'assignation à un poste),
+                            `stations.ts` (les stations d'une scène pour la vue du dessus). Sans hôte (mur `murs/sans-hote`) : le RNG de bataille
                             (`battleRng.ts`) naît de la graine fixe `GRAINE_INITIALE_DE_BATAILLE`, que
                             l'hôte ré-ensemence (`seedBattleRng(graineDEntropie())`, `state/store.ts`). Les ACTIONS de jeu (`ActionsDuNoyau`) naissent de fabriques
                             `(get, set) => actions`, une par concept, rangées dans le module du concept
@@ -356,9 +417,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             scénario de test et sa séquence unique, jouée par la partie et par
                             `state/scenarioFlow.ts`. `index.ts` : la SURFACE du noyau pour un tel hôte, seule
                             réexportation admise ; ailleurs chaque importeur nomme le module qui déclare
-                            (garde `scripts/guards/lib/reexportations.mjs`). Sa fermeture d'exécution, et
-                            celle des scénarios de test, n'atteint aucun hôte
-                            (`scripts/guards/lib/fermetureDuNoyau.mjs`). Les tests
+                            (`murs/reexportation`). Le noyau, les scénarios et les hôtes survivent à la
+                            bascule (`survit`, `COUCHES`) : ils n'atteignent aucune zone de l'hôte web ni
+                            aucun de ses paquets. Les tests
                             `*.hors-store.test.ts` jouent dans la suite du noyau (`npm run test:noyau`,
                             `vitest.noyau.config.ts`), sans le store, que la suite principale exclut
                             (`MOTIF_HORS_STORE`, `scripts/guards/lib/racinesDeLaSuite.mjs`).
@@ -417,7 +478,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `zones.ts`, `usable.ts`, `combatants.ts`, `combatGeometry.ts`, et les modules qui
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
-                            campagne, pièces, vision, authoring ASCII (`asciiMap.ts`).
+                            campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
   monde/scene.ts            SCÈNE : 48 fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
                             dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 10
                             MANUSCRITS : `Scene`, `SceneEntity`,
@@ -495,7 +556,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             jetons armés en minuteurs. `construire.mjs --sonde` l'importe et contrôle chaque script
                             avec l'éditeur épinglé (`npm run godot:sonde`, étape de la CI) ; `--export --sortie`
                             produit l'export Web, que `recette.mjs` joue au navigateur, un tour complet.
-src/state/                  ADAPTATEUR de l'hôte web : store Zustand, saves, coop, vues.
+src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
+                            pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
+                            décider d'aucun effet de jeu (§ Couches).
   audioWiring.ts            câblage audio de l'hôte : sons ponctuels sur le bus (`brancherLesSons`), musique
                             de fond depuis l'état du store (`musicSelectionOf`, `initAudioWiring`) ;
                             `src/audio/` garde le registre et la lecture.

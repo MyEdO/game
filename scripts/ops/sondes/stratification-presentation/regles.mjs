@@ -24,10 +24,10 @@ export const CATEGORIES = Object.freeze([
 /** @type {ReadonlyArray<Readonly<Regle>>} */
 export const REGLES = Object.freeze([
   {
-    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/state/(frontiere-state-gameiso|netownership-import-isole|rollflow-no-drift|pilote-cascade)\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee|state/(combat-event-emission-coverage|condition-event-counter|guest-surface-class))\.test\.ts$`),
+    motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(-guard|-ratchet|-lint)\.test\.tsx?$|^src/gameIso/(renderer-no-hardcoded-color|rig/composition-rig-garde|rig/parts/monster/rig-part-views|rig/parts/tenues/(palette-literal|part-view-format))\.test\.ts$|^src/ui/(component-conformance|atelier-conformance|css-valeur-en-test|no-emoji-affordance|no-phantom-icon|placeholder-charte|prose-sites|rule-action-wiring|roll-row-styles|tab-systems|ui-ratchets|noms-accessibles-uniques|compendium/no-json-fields)\.test\.tsx?$|^src/(gameIso/backends/webgl/(materiau-plan-transparent|mutateurs-signales)|gameIso/builders/matieres-en-donnee|gameIso/stage/anim-css-branchee)\.test\.ts$`),
     categorie: 'outillage',
     raison: 'Gardes de dépôt (garde structurelle, cliquet à stock, lint de source) : outillage de développement dans les trois zones, quel que soit le code gardé.',
-    preuve: 'src/state/frontiere-state-gameiso.test.ts:2 (« garde STRUCTURELLE ») ; src/state/pilote-cascade.test.ts:2 (« garde de cliquet ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts ; src/state/guest-surface-class.test.ts:2 (« GARDE DE CLASSE »)',
+    preuve: 'src/gameIso/catalog/decor/defs-directional-guard.test.ts:8 (« Garde STRUCTURELLE ») ; src/gameIso/rig/parts/tenues/palette-literal.test.ts:2 ; src/gameIso/rig/composition-rig-garde.test.ts:2 (« GARDE ») ; src/ui/ui-ratchets.test.ts',
   },
   {
     motif: new RegExp(String.raw`^src/(state|ui|gameIso)/(.*/)?[^/]*(\.testkit|\.fixture|\.bench|TestKit)\.tsx?$|^src/gameIso/stage/banc-volumique(\.test)?\.ts$`),
@@ -39,7 +39,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(devtools|devtoolsTimers|scenarioFlow|editorAutosave|editeurBridge|projectLibrary|mapQC|planDefects|validateScene)(\.|-)`),
     categorie: 'outillage',
     raison: 'devtools/__wfrp, lancement de scénario de test, outils d\'éditeur (autosave, pont clavier, bibliothèque de projets), QC de carte, validation de scène pour l\'éditeur',
-    preuve: 'src/state/scenarioFlow.ts:1-4 ; src/state/editorAutosave.ts:1-5 ; src/noyau/planDefects.ts:1-6 ; src/state/mapQC.ts:2 (« Harnais QC de cartes »)',
+    preuve: 'src/state/scenarioFlow.ts:1-4 ; src/state/editorAutosave.ts:1-5 ; src/noyau/planDefects.ts:1-6 ; src/noyau/mapQC.ts:2 (« Harnais QC de cartes »)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(documentDeProjet|parseProject-porte)\.test\.`),
@@ -75,7 +75,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(asciiMap|mapSpec|mapSpec-seating|sceneToAscii|sceneEdit|stairFlight|encounterAuthoring|entityId|traceLayer|traceCalibration)(\.test)?\.tsx?$`),
     categorie: 'moteur-generique',
     raison: 'Authoring de carte (exemple du ticket pour moteur-generique) : ASCII <-> Scene, compilateur MapSpec, mutations pures de Scene, volée d\'escalier, génération d\'id, calque de décalque de l\'éditeur.',
-    preuve: 'src/noyau/mapSpec.ts:1-8 ; src/state/sceneToAscii.ts:1-6 ; src/noyau/sceneEdit.ts:1-4 ; src/state/traceLayer.ts:5 (« aide d\'AUTHORING »)',
+    preuve: 'src/noyau/mapSpec.ts:1-8 ; src/noyau/monde/sceneToAscii.ts:1-6 ; src/noyau/sceneEdit.ts:1-4 ; src/state/traceLayer.ts:5 (« aide d\'AUTHORING »)',
   },
   {
     motif: new RegExp(String.raw`^src/ui/editor/(EditorCanvas|Palette|TraceLayerPanel|editorLayers|lowerLayerGabarit|lampMarker|propDefaults|useEditorView|editorState|editor-layers|editor-stair-flight|editor-walls-height|palette-empreinte|traceLayer-export-safety|editeur-monde-volumique|editor-monde-sous-filet)[.-]`),
@@ -96,34 +96,16 @@ export const REGLES = Object.freeze([
     preuve: 'src/state/clavier/keybindings.ts:308-409 ; src/state/clavier/resoudreEchap.ts:1-11 (pile puis « ÉCHELLE MÉTIER du registre ») ; src/ui/useGamepad.ts:1-4 (dispatche runBindingById) ; src/ui/useDismissLayer.ts imports ../state/clavier/resoudreEchap',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(vision|visionState)(\.|-)`),
-    categorie: 'orchestration-regles',
-    raison: 'Brouillard de guerre : moteur pur de visibilité et de champ de lumière couplé à Scene, lu par les règles (découverte de porte secrète, combatFlow) ; même classe que lineOfSight.ts.',
-    preuve: 'src/noyau/monde/vision.ts:2 ; src/noyau/visionState.ts:1-15',
-  },
-  {
-    motif: new RegExp(String.raw`^src/state/(rooms|roomPortals)(\.|-)`),
-    categorie: 'moteur-generique',
-    raison: 'Pièces : zone intérieure authorée et ses portails, requête spatiale lue par l\'état et par le rendu ; même classe que path.ts.',
-    preuve: 'src/noyau/monde/rooms.ts:1-16',
-  },
-  {
     motif: new RegExp(String.raw`^src/state/(stageYaw|stagePan|stageWalk|stageGestes|lacet-libre)(\.|-)`),
     categorie: 'moteur-generique',
     raison: 'gestes vivants de la caméra du stage (lacet, panoramique, marche tenue) hors store et hors partie',
     preuve: 'src/state/stagePan.ts:1-8 ; src/state/stageGestes.ts:1-6',
   },
   {
-    motif: new RegExp(String.raw`^src/state/(path|path-[a-z-]+|dir8|sceneMemo|relief|wallIndex|decorIndex|bus|visibility|viewLevel|entreeEnScene)(\.test)?\.tsx?$`),
+    motif: new RegExp(String.raw`^src/state/(path-[a-z-]+|viewLevel|entreeEnScene)(\.test)?\.tsx?$`),
     categorie: 'moteur-generique',
-    raison: 'Pathfinding sur grille, orientation 8 directions, mémoïsation de scène, relief, index spatiaux, bus d\'évènements ; politique de visibilité et étage affiché consommés par les seuls rendus ; rendez-vous de fin de cuisson du monde.',
-    preuve: 'src/noyau/monde/path.ts:1-5 ; src/geometry/dir8.ts:2 ; src/state/visibility.ts:2 (importeur : gameIso/backends/webgl/visibilityTint seulement) ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
-  },
-  {
-    motif: new RegExp(String.raw`^src/state/(poste|advancement|stations)(\.test)?\.ts$`),
-    categorie: 'interface-wfrp',
-    raison: 'Modèle-vue d\'une surface d\'écran logé dans src/state, sans effet de règle, aucun importeur hors test dans src/state ; `poste-ammo.test.ts` (teste shipPostes et combatFlow) reste en orchestration.',
-    preuve: 'src/state/poste.ts:2-3 (« modèle-VUE ») ; src/noyau/monde/advancement.ts:2-3 ; src/state/stations.ts:2-4 (« AUCUN effet de règle ») ; src/state/poste-ammo.test.ts:5-7',
+    raison: 'Tests du pathfinding sur grille ; étage affiché consommé par les seuls rendus ; rendez-vous de fin de cuisson du monde.',
+    preuve: 'src/noyau/monde/path.ts:1-5 ; src/state/viewLevel.ts:2 (importeurs : gameIso/stage ×3, devtools) ; src/state/entreeEnScene.ts:2-6 (importeurs : gameIso/stage/GameStage3D, devtools)',
   },
   {
     motif: new RegExp(String.raw`^src/state/(refusVisible|registreOffres|offreRendue|offresUtilisables|recapLine|fixedDieMark|dialogueLibelle|dialogueHistory|identites|hotbarBridge|localIntent|modalArbiter|mapHover|codexFocus|combatCursor|preferences|dispositionConsole|revealStep)(\.|-)`),

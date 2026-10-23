@@ -105,7 +105,7 @@ export interface HaloRegime {
  *
  *  CE QUE L'ÉTAT NE DIT PAS : si le geste PASSERA. Un meuble dont toutes les places sont prises reste
  *  un utilisable — halo, plaque et main au survol — et c'est sa PASTILLE qui porte la raison du refus
- *  au survol (`state/offresUtilisables:porteDOffre`, arbitrage 2026-08-24). */
+ *  au survol (`noyau/interactionsDExploration:porteDOffre`, arbitrage 2026-08-24). */
 function etatDe(regime: HaloRegime, entId: string, visible: boolean): HaloEtat {
   if (!visible) return 'muet';
   if (regime.survol === entId) return 'survole';

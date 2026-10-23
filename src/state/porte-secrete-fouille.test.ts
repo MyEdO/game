@@ -7,6 +7,8 @@ import { rule, setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { fouilleOuverte } from '../noyau/interactionsDExploration';
+import { bindingParId } from './clavier/keybindings';
 
 /**
  * FOUILLER LA PIÈCE (#700) — second déclencheur de la découverte d'une porte secrète : `EDO 08 l.404`,
@@ -149,6 +151,19 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     fouiller();
     expect(useGame.getState().pendingTest).toBeNull();
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('geste.refus.dialogue'));
+  });
+  it('la touche R s’offre exactement là où le verbe ouvre la fouille (`fouilleOuverte`)', () => {
+    const touche = bindingParId('fouiller-piece')!;
+    explorer(plan([A]), { x: 1, y: 2 });
+    useGame.setState({ screen: 'campaign' });
+    expect(fouilleOuverte(useGame.getState())).toMatchObject({ piece: { id: 'cave' } });
+    expect(touche.when(useGame.getState()), 'dans la pièce').toBe(true);
+    useGame.setState({ partyPos: { x: 8, y: 2 } });
+    expect(fouilleOuverte(useGame.getState())).toEqual({ refus: 'fouille.refus.horsPiece', vars: {} });
+    expect(touche.when(useGame.getState()), 'hors de toute pièce').toBe(false);
+    useGame.setState({ partyPos: { x: 1, y: 2 }, dialogue: { entityId: 'x', nodeId: 'n' } as never });
+    expect(fouilleOuverte(useGame.getState())).toMatchObject({ refus: 'geste.refus.dialogue' });
+    expect(touche.when(useGame.getState()), 'en dialogue').toBe(false);
   });
 });
 

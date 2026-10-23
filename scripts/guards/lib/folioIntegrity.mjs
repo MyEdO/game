@@ -719,26 +719,4 @@ export function renderStock(violations, entete) {
   return `${entete}\n/** @type {ReadonlySet<string>} */\nexport const FOLIO_RATCHET = new Set([\n${lignes.join('\n')}\n])\n`
 }
 
-/**
- * Même office pour le stock de la voie C (`folioTitleRatchetStock.mjs`) : le format des deux stocks
- * vit dans ce module, jamais dans une ligne recopiée à la main. Le diagnostic dit ce qui est PROUVÉ —
- * « un titre homonyme est à tel folio » — jamais un emplacement réel que la voie C n'a pas établi.
- * @param {ReturnType<typeof auditFolios>['titleViolations']} violations @param {string} entete
- * @returns {string}
- */
-export function renderTitleStock(violations, entete) {
-  const lignes = []
-  let fichier = null
-  for (const v of [...violations].sort((a, b) => parUnitesDeCode(a.key, b.key))) {
-    if (v.file !== fichier) {
-      fichier = v.file
-      lignes.push(`  // ${fichier}`)
-    }
-    const r = v.proche ?? v.ranges[0]
-    const folio = r ? (r.hi === null ? `${r.lo}+` : r.lo === r.hi ? `${r.lo}` : `${r.lo}-${r.hi}`) : '?'
-    lignes.push(`  '${v.key}', // p.${v.page} -> titre le plus proche : folio ${folio} (${r?.file ?? '?'}), écart ${v.ecart}`)
-  }
-  return `${entete}\n/** @type {ReadonlySet<string>} */\nexport const FOLIO_TITLE_RATCHET = new Set([\n${lignes.join('\n')}\n])\n`
-}
-
 export { basename }

@@ -27,7 +27,7 @@ import path from 'node:path';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { mesurerLibellesDeReponse } from '../../scripts/guards/lib/dialogueLabelTest.mjs';
-import { avisLibelleRecopie, validateScene } from '../state/validateScene';
+import { avisLibelleRecopie, validateScene } from '../noyau/validateScene';
 import { testScenarios } from './test-scenarios';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';

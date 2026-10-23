@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { siegesRequis, quorumAtteint } from '../noyau/netOwnership';
+import { siegesRequis, quorumAtteint, withActingSeat } from '../noyau/netOwnership';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
@@ -81,23 +81,23 @@ describe('les dispatchers de ready-check CONSOMMENT le quorum (aucune recopie)',
   it('pause de Round : l’hôte seul requis (héros distant mort) → le Round part au 1ᵉʳ ✓', () => {
     table({ dead: true });
     useGame.setState({ pendingRoundStart: { round: 2 } });
-    useGame.getState().roundStartReady(0);
+    useGame.getState().roundStartReady();
     expect(useGame.getState().pendingRoundStart, 'l’hôte attendait un siège qui n’a plus personne à jouer').toBeNull();
   });
 
   it('pause de Round : les DEUX sièges requis (héros distant vivant) → il faut les deux ✓', () => {
     table();
     useGame.setState({ pendingRoundStart: { round: 2 } });
-    useGame.getState().roundStartReady(0);
+    useGame.getState().roundStartReady();
     expect(useGame.getState().pendingRoundStart, 'le Round est parti sans le siège du héros vivant').not.toBeNull();
-    useGame.getState().roundStartReady(1);
+    withActingSeat(1, () => useGame.getState().roundStartReady());
     expect(useGame.getState().pendingRoundStart).toBeNull();
   });
 
   it('victoire : même quorum (le siège sans héros vivant ne retient pas l’écran)', () => {
     table({ dead: true });
     useGame.setState({ pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] } as never });
-    useGame.getState().victoryReady(0);
+    useGame.getState().victoryReady();
     expect(useGame.getState().pendingVictory, 'l’écran de victoire attendait un siège non requis').toBeNull();
   });
 

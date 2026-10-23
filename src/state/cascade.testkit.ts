@@ -98,7 +98,7 @@ function jetteLeDe(get: () => GameState, cur: CascadeStep, poser?: PoseDe): void
  *
  * Pilote CANONIQUE de la cascade en test (#1426) : une copie par fichier dérive, et c'est ainsi qu'un
  * flux refondu se voit reproché SA refonte par un pilote périmé. Les copies qui restent sont MESURÉES
- * par la garde `src/state/pilote-cascade.test.ts` (stock `scripts/guards/lib/piloteCascadeStock.mjs`,
+ * par la garde `src/noyau/pilote-cascade.test.ts` (stock `scripts/guards/lib/piloteCascadeStock.mjs`,
  * qui ne fait que décroître).
  *
  * Une table que le socle a résolue lui-même (cadence déférée à un automate, `cascade.poserLeCurseur`)

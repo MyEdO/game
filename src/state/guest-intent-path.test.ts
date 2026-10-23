@@ -13,7 +13,7 @@
  * ouvreurs : `battleBattement` (exposé par #1017) et `battleDisengage` (exposé bien AVANT — il
  * souffrait du même mal, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
@@ -22,6 +22,9 @@ import { testScene } from '../scenes/test-fixture';
 import { initialNet } from '../noyau/etat';
 import { makePregens } from '../data/pregens';
 import type { Combatant, Weapon } from '../engine/types';
+import { createHero } from '../engine/character';
+import { draineCascade } from './cascade.testkit';
+import { modalOwnerOf } from '../noyau/modalArbiter';
 
 const NET0 = useGame.getState().net;
 const chars = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -55,7 +58,7 @@ function setup(net: Record<string, unknown> = {}) {
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
 describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’allowlist', () => {
-  beforeEach(() => { useGame.setState({ net: NET0, battle: null, pendingBattement: null, pendingDisengage: null }); });
+  beforeEach(() => { useGame.setState({ net: NET0, battle: null, pendingBattement: null, pendingDisengage: null, pendingRoundStart: null, pendingVictory: null, pendingRest: null }); });
 
   it('battleBattement (ouvreur exposé par #1017) : le siège du héros OUVRE réellement le jet', () => {
     setup();
@@ -131,5 +134,98 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
     expect(applyIntent(1, 'partyReplaceHero', ['g1', pregen('g2'), 0])).toBe('appliquee');
     expect(useGame.getState().net.ownership.g2, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
+  });
+
+  it.each([
+    ['roundStartReady', 'pendingRoundStart', { round: 2 }],
+    ['victoryReady', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
+    ['restReady', 'pendingRest', { phase: 'setup', perHero: {}, readyBySeat: {} }],
+  ] as const)('marquage : `%s` émis par le siège 1 ne marque que le siège 1, quels que soient ses args (#2439)', (verbe, cle, pending) => {
+    setup();
+    useGame.setState({ [cle]: pending } as never);
+    expect(applyIntent(1, verbe, [0])).toBe('appliquee');
+    expect((useGame.getState()[cle] as { readyBySeat?: Record<number, boolean> } | null)?.readyBySeat, `${verbe} a marqué un autre siège que l’émetteur`).toEqual({ 1: true });
+  });
+});
+
+/**
+ * #2903 — « Annuler » un jet, demandé par un siège : le PORTEUR du jet le referme, un autre siège ne
+ * le referme pas. Contrat de possession de la clôture d'un flux de jet (`FLOW_VERBS`), joué par
+ * `appliquerLIntentionDUnSiege` comme `netFlow` le joue chez l'hôte.
+ */
+describe('#2903 — Annuler un jet par intention : seul le siège du porteur referme', () => {
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+
+  /** Interlude coop : le héros du siège 1 ouvre son Activité « Revenus » par SA propre intention. */
+  function activiteOuverte() {
+    vi.useFakeTimers();
+    const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    useGame.setState({ net: NET0, party: [h], battle: null, interlude: null, bank: [], pendingOrders: [], pendingActivity: null, pendingCascade: null, journal: [] });
+    useGame.getState().startScene(testScene());
+    vi.clearAllTimers();
+    useGame.getState().seedRng(13);
+    useGame.getState().startInterlude(3);
+    draineCascade(useGame.getState);
+    const itl = useGame.getState().interlude!;
+    itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 2 };
+    useGame.setState({
+      interlude: { ...itl },
+      net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
+    });
+    expect(applyIntent(1, 'interludeActivity', [h.id, 'revenus'])).toBe('appliquee');
+    expect(useGame.getState().pendingActivity?.heroId).toBe(h.id);
+    return h;
+  }
+
+  it('Activité : un siège tiers est refusé et le jet reste ouvert ; le siège du héros le referme', () => {
+    const h = activiteOuverte();
+    expect(applyIntent(2, 'activityCancel')).toBe('refusee');
+    expect(useGame.getState().pendingActivity?.heroId, 'le jet d’autrui reste ouvert').toBe(h.id);
+    expect(applyIntent(1, 'activityCancel')).toBe('appliquee');
+    expect(useGame.getState().pendingActivity).toBeNull();
+  });
+
+  it('Désengagement : un siège tiers est refusé ; le siège du héros renonce et la cascade-hôte se ferme', () => {
+    setup();
+    expect(applyIntent(1, 'battleDisengage', [])).toBe('appliquee');
+    expect(useGame.getState().pendingCascade, 'l’étape hôte est ouverte').toBeTruthy();
+    expect(applyIntent(2, 'disengageCancel')).toBe('refusee');
+    expect(useGame.getState().pendingDisengage, 'le choix d’autrui reste ouvert').toBeTruthy();
+    expect(applyIntent(1, 'disengageCancel')).toBe('appliquee');
+    expect(useGame.getState().pendingDisengage).toBeNull();
+    expect(useGame.getState().pendingCascade).toBeNull();
+  });
+
+  /** Le Désengagement ENGAGÉ (LDB 15 l.49 : l'Esquive est l'Action ; l.63 : la Fuite donne aussitôt
+   *  +1 Avantage) : le siège du héros demande à renoncer, l'action le REFUSE et le dit, rien ne bouge. */
+  it.each([
+    ['esquive', 'disengageRoll'],
+    ['fuir', 'disengageFlee'],
+  ] as const)('Désengagement en phase %s : renoncer est refusé, visiblement, et ne change rien', (phase, geste) => {
+    const { enemy } = setup();
+    expect(applyIntent(1, 'battleDisengage', [])).toBe('appliquee');
+    expect(applyIntent(1, geste, [])).toBe('appliquee');
+    const avant = useGame.getState();
+    expect(avant.pendingDisengage?.phase).toBe(phase);
+    const avantageDuFoe = avant.battle!.combatants.find((c) => c.id === enemy.id)!.advantage;
+    expect(applyIntent(1, 'disengageCancel')).toBe('appliquee');
+    const apres = useGame.getState();
+    expect(apres.pendingDisengage, 'le Désengagement engagé reste ouvert').toBe(avant.pendingDisengage);
+    expect(apres.pendingCascade, 'sa cascade-hôte aussi').toBe(avant.pendingCascade);
+    expect(apres.battle!.combatants.find((c) => c.id === enemy.id)!.advantage).toBe(avantageDuFoe);
+    expect(apres.refus?.texte).toBe('Renoncement refusé : h2 a déjà engagé son Désengagement, il se joue jusqu’au bout.');
+  });
+
+  it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {
+    setup();
+    expect(applyIntent(1, 'battleDisengage', [])).toBe('appliquee');
+    expect(applyIntent(1, 'disengageFlee', [])).toBe('appliquee');
+    const c = useGame.getState().pendingCascade!;
+    useGame.setState({ pendingCascade: { ...c, participants: c.participants.map((p, i) => (i === c.cursor ? { ...p, groupOwner: true } : p)) } });
+    expect(modalOwnerOf(useGame.getState()), 'la fenêtre est à tous').toBe('*');
+    const avant = useGame.getState();
+    expect(applyIntent(2, 'disengageCancel')).toBe('refusee');
+    expect(useGame.getState().pendingDisengage).toBe(avant.pendingDisengage);
+    expect(useGame.getState().pendingCascade).toBe(avant.pendingCascade);
   });
 });

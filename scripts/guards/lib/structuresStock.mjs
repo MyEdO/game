@@ -73,6 +73,7 @@
  *  `CONCEPTS` est testée. Faire passer une graphie en `cible` (donc hors du dénominateur)
  *  exige de toucher CE fichier — un mot du lexique ne solde plus des centaines d'occurrences. */
 export const STRUCTURES_CIBLES = [
+  { concept: "palette-d-objet", signature: "accent,cuir,metal", date: "2026-10-23" },
   { concept: "prose-nommee", signature: "texte", date: "2026-10-08" },
   { concept: "prose-nommee", signature: "texte+…", date: "2026-10-08" },
   { concept: "reference", signature: "id", date: "2026-08-23" },
@@ -1082,8 +1083,8 @@ export const STRUCTURES_OPS = [
   { op: "grantTrait", signature: "indice,op,range,traitId", dataset: "tables.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "indice,op,traitId", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "onlyGroups,op,traitId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantWeapon", signature: "damage,damagePlus,form,hands,label,op,qualities,reach,skin,subType", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantWeapon", signature: "damage,form,hands,label,onHitEffects,op,qualities,reach,skin,subType", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantWeapon", signature: "damage,damagePlus,form,hands,label,op,qualities,reach,subType,teinte", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
+  { op: "grantWeapon", signature: "damage,form,hands,label,onHitEffects,op,qualities,reach,subType,teinte", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "handGate", signature: "op", dataset: "criticals.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
   { op: "ignoreAnimosity", signature: "op", dataset: "drunkenness.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "ignoreStatePenalties", signature: "op", dataset: "spells.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },

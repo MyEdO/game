@@ -464,6 +464,18 @@ export function visiblePlaces(map: WorldMap, ctx?: ConditionCtx): MapPlace[] {
   return map.places.filter((p) => p.when == null || ctx == null || evalCondition(p.when, ctx));
 }
 
+/** Routes que la carte du monde TRACE et rend cliquables depuis `placeId`, dans l'ordre de `map.routes` :
+ *  les deux extrémités parmi `visiblePlaces`, et offertes par `routesEtat` (ouvertes ou fermées-consultables).
+ *  Lue par le rendu (`WorldMapView`) et l'outillage de recette (`__wfrp.routes`/`clickRoute`). */
+export function routesCliquables(map: WorldMap, placeId: string, ctx?: ConditionCtx): { route: MapRoute; ouverte: boolean }[] {
+  const visibles = new Set(visiblePlaces(map, ctx).map((p) => p.id));
+  const etats = new Map(routesEtat(map, placeId, ctx).map((e) => [e.route.id, e]));
+  return map.routes.flatMap((r) => {
+    const e = etats.get(r.id);
+    return e && visibles.has(r.a) && visibles.has(r.b) ? [e] : [];
+  });
+}
+
 /** L'autre extrémité d'une route. */
 export function otherEnd(route: MapRoute, placeId: string): string {
   return route.a === placeId ? route.b : route.a;

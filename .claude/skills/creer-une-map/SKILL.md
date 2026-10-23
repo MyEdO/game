@@ -42,7 +42,7 @@ bout ; « le format le permet déjà » n'est pas un résultat.
 
 ## Harnais QC — CHEMIN OBLIGATOIRE avant de déclarer une carte finie (réfute, ne certifie jamais)
 
-- **Gardes mécaniques** (`src/state/mapQC.ts`, démontré par `src/state/mapQC.test.ts`) dans le test de la
+- **Gardes mécaniques** (`src/noyau/mapQC.ts`, démontré par `src/noyau/mapQC.test.ts`) dans le test de la
   scène : dimensions + murs/portes témoins ; `unreachableDescriptiveZones(scene, startOf(scene))` **vide**
   (chaque pièce nommée atteignable, BFS `reachableCells`/`walkNeighbors`) ; `reachedFloors` couvre tous les
   étages habités (connexité verticale par `stair`).

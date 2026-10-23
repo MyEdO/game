@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Warning } from '../../state/validateScene';
+import type { Warning } from '../../noyau/validateScene';
 import { PLAN_DEFECT_FAMILIES, type PlanDefectFamily } from '../../noyau/planDefects';
 import { Icon } from '../Icon';
 import { ListRow } from '../ListRow';

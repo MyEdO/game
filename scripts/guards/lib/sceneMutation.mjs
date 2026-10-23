@@ -6,7 +6,7 @@ import { ast } from './dialecte.mjs';
 // réassigne JAMAIS l'un de ses champs/tableaux EN PLACE — toute mise à jour produit une NOUVELLE
 // scène par spread (`set({ scene: { ...scene, champ: nouvelleValeur } })`). Module ESM pur, AST
 // réelle (compilateur TypeScript, pas un grep textuel) — consommé par
-// `src/state/scene-mutation-guard.test.ts`.
+// `src/scene-mutation-guard.test.ts`.
 import * as tsModule from 'typescript/unstable/ast';
 
 // Liaison LOCALE de l'API du compilateur — FAIT mesuré 2026-08-23 : sous Vitest, ce module est

@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyWorldMap } from '../noyau/worldMap';
-import { validateScene } from './validateScene';
+import { validateScene } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { lireBlocsAvances } from '../ui/editor/Editor';

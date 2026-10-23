@@ -283,7 +283,7 @@ import {
   freeCons, resultLines, rollLine, rollStep, rollSansPilote, surfaceOf, monoStep, pousseSi,
   hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory,
   stepDetail, stepPrecision, stepPsych,
-  type Consequence, type TableSpec,
+  type ChoiceSpec, type Consequence, type TableSpec,
 } from './rollSeam';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -2748,16 +2748,7 @@ function appliquerLaTouche(
         // Folding P3b : le choix Piéger/Critique devient une ÉTAPE de la séquence (texte + options),
         // au lieu d'une modale `pendingBladeTrap` séparée. L'applier 'bladeTrap' appelle resolveBladeTrap.
         const pbt: PendingBladeTrap = { defenderId: target.id, attackerId: attacker.id, weapon, parryWeaponUid: res.parryWeapon.uid!, defSL: dd.sl, roll: dd.roll };
-        pushChoice(set, {
-          id: `cons-bladetrap-${target.id}`, kind: 'bladeTrap', actorId: target.id, icon: 'item/weapon',
-          label: tr('step.paradePiegerLame'),
-          options: [{ key: 'trap', label: tr('opt.piegerLame') }, { key: 'crit', label: tr('opt.coupCritique') }],
-          defaultChoice: 'crit', bladeTrap: pbt,
-          outcome: toRecapLines([
-            tr('cf.piegeLamePortee', { name: target.label, parade: res.parryWeapon.label, foe: attacker.label, weapon: weapon.label }),
-            tr('cf.piegeLameIssue', { dr: dd.sl, foe: attacker.label }),
-          ]),
-        });
+        pushChoice(set, choixPiegeLame(pbt, target, attacker, res.parryWeapon));
       } else {
         critLog.push(tr('cf.critOnDefense', { name: target.label }));
         applyOpposedCritical(get, set, attacker, dd.roll, { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog);
@@ -3462,6 +3453,21 @@ export function defenseEnCours(s: Pick<Jeu, 'pendingDefense'>): boolean {
   return s.pendingDefense != null;
 }
 
+/** L'étape de choix Piéger ou Critique d'une parade Piège-lame (LDB 62 l.278-280), avec ses lignes de portée et
+ *  d'issue : le flux de la mêlée et l'outillage de recette la poussent (`pushChoice`). */
+export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, attaquant: Combatant, parade: Weapon): ChoiceSpec {
+  return {
+    id: `cons-bladetrap-${pbt.defenderId}`, kind: 'bladeTrap', actorId: pbt.defenderId, icon: 'item/weapon',
+    label: tr('step.paradePiegerLame'),
+    options: [{ key: 'trap', label: tr('opt.piegerLame') }, { key: 'crit', label: tr('opt.coupCritique') }],
+    defaultChoice: 'crit', bladeTrap: pbt,
+    outcome: toRecapLines([
+      tr('cf.piegeLamePortee', { name: defenseur.label, parade: parade.label, foe: attaquant.label, weapon: pbt.weapon.label }),
+      tr('cf.piegeLameIssue', { dr: pbt.defSL, foe: attaquant.label }),
+    ]),
+  };
+}
+
 /** REFUS d'ouverture : un producteur déclare une frappe par-dessus une défense vivante. DEV = throw
  *  (le producteur fautif se voit au premier passage) ; PROD = journal. CE QUI EST GARANTI : la frappe
  *  n'est jamais résolue SANS la fenêtre de son défenseur (LDB 85 l.41-43), et le `true` rendu empêche
@@ -3493,9 +3499,34 @@ function openDefenseCascade(get: Get, set: SetFn, target: Combatant): boolean {
   return true;
 }
 
-/** Ouvre la fenêtre de défense réactive quand le DÉFENSEUR est surfacé (`defenseSurfaced` — le pilote de
- *  l'attaquant n'entre PAS dans la condition), en mêlée, à portée, cible CAPABLE de se défendre (pas
- *  Surpris). Fige le jet d'attaque et suspend le tour de l'attaquant. Retourne true si la fenêtre s'est
+/** Pourquoi la fenêtre de Défense réactive ne s'ouvre pas (`maybeOpenDefense`) ; `null` : elle s'ouvre. */
+type RefusDeDefenseReactive = 'defense-en-cours' | 'non-surfacee' | 'tir-non-opposable' | 'sans-arme-de-coup' | 'hors-allonge' | 'ne-peut-se-defendre';
+
+/** Le verdict de la fenêtre de Défense réactive : son refus, ou son ouverture avec, contre un tir, les modes
+ *  de défense que la fenêtre offrira. */
+function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant, weapon: Weapon | undefined):
+  { refus: RefusDeDefenseReactive } | { refus: null; modesDeTir?: ReturnType<typeof rangedDefenseModes> } {
+  if (defenseEnCours(s)) return { refus: 'defense-en-cours' };
+  if (!defenseSurfaced(s, target)) return { refus: 'non-surfacee' };
+  // TIR : LDB 62 l.296 ; LDB 14 l.40 ; LDB 14 l.44. LoS acquise : l'IA ne tire que si elle voit (doAttack).
+  if (weapon?.type === 'ranged') {
+    const modesDeTir = rangedDefenseModes(attacker, target, weapon, combatDistance(attacker, target), true, sceneMetresPerTile(s.scene));
+    return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
+  }
+  if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
+  if (combatDistance(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
+  return { refus: null };
+}
+
+/** La raison qui ferme la fenêtre de Défense réactive de `target` contre `weapon`, ou `null`. Lue par
+ *  l'outillage de recette qui nomme son refus ; `maybeOpenDefense` lit le verdict entier. */
+export function refusDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant, weapon: Weapon | undefined): RefusDeDefenseReactive | null {
+  return verdictDeDefenseReactive(s, attacker, target, weapon).refus;
+}
+
+/** Ouvre la fenêtre de défense réactive quand rien ne la ferme (`verdictDeDefenseReactive` — le pilote de
+ *  l'attaquant n'entre PAS dans la condition). Fige le jet d'attaque et suspend le tour de l'attaquant. Retourne true si la fenêtre s'est
  *  ouverte. Chemin d'attaque INSTANTANÉE (IA, attaques gratuites) ; le chemin d'attaque PILOTÉE (modale
  *  d'attaque) interpose sa défense à l'application, cf. `openSurfacedDefense`. */
 export function maybeOpenDefense(
@@ -3507,16 +3538,13 @@ export function maybeOpenDefense(
   suite?: SuiteDeCoup,
   fromCharge?: boolean,
 ): boolean {
-  if (defenseEnCours(get())) return refuserLaDefense(attacker, target);
-  if (!defenseSurfaced(get(), target)) return false;
-  // TIR sur un héros : ouvre la défense réactive UNIQUEMENT si le RAW l'autorise (Protectrice 2+ en
-  // Ligne de Vue LDB 62 l.296 / Bout Portant LDB 14 l.40 / tireur Engagé LDB 14 l.44). Vide = tir non
-  // opposable → résolution simple (resolveAttack). LoS acquise : l'IA ne tire que si elle voit (doAttack).
-  if (weapon?.type === 'ranged') {
+  const verdict = verdictDeDefenseReactive(get(), attacker, target, weapon);
+  if (verdict.refus === 'defense-en-cours') return refuserLaDefense(attacker, target);
+  if (verdict.refus) return false;
+  if (verdict.modesDeTir) {
+    const modes = verdict.modesDeTir;
     const mpt = sceneMetresPerTile(get().scene);
     const dist = combatDistance(attacker, target);
-    const modes = rangedDefenseModes(attacker, target, weapon, dist, true, mpt);
-    if (!modes.length) return false;
     const { env } = attackEnv(get, attacker, target, weapon);
     const atk = rollRangedAttacker(attacker, target, weapon, battleRng(), dist, undefined, env, mpt); // tir figé
     const best = bestRangedDefense(attacker, target, weapon, dist, true, mpt);
@@ -3531,9 +3559,6 @@ export function maybeOpenDefense(
     });
     return openDefenseCascade(get, set, target);
   }
-  if (weapon?.type !== 'melee') return false;
-  if (combatDistance(attacker, target) > reachTiles(weapon)) return false; // Allonge incluse (RAW-3)
-  if (cannotDefend(target)) return false; // Surpris → résolution instantanée (LDB 16 l.135)
   applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée, AVANT le jet (une seule fois)
   // Le MÊME env que resolveAttack (météo, Flanc/dos +20, Surnombre, Combat monté) : le jet figé de la
   // défense réactive l'omettait — un cavalier IA attaquait un héros sans son +20 (LDB 14 l.180). Le
@@ -4407,6 +4432,22 @@ function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspe
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
 
+/** La file des attaques gratuites d'une créature, telle que son tour la pose (`aiCreatureFreeAttacks`) :
+ *  - `zone` : ses attaques de ZONE/spéciales, dans l'ordre Souffle → Vomi → Langue → Hurlement, jouées d'abord ; une
+ *    manœuvre de zone qui touche des HÉROS ouvre une cascade de défense INFLUENÇABLE (elle SUSPEND) ;
+ *  - `melee` : Cornes quand elle a chargé ce tour (LDB 85), puis une entrée par gratuite de MÊLÉE RESTANTE de ses
+ *    traits (`gratuitesRestantes`, même plafond que le héros), dans l'ordre de `attaquesNaturelles`.
+ *  LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405 */
+export function fileDesGratuites(enemy: Combatant): { zone: AttackKind[]; melee: AttackKind[] } {
+  const atks = attaquesNaturelles(enemy.traits ?? []);
+  const zone = (['souffle', 'vomi', 'langue', 'hurlement'] as const).filter((k) => atks.some((a) => a.kind === k));
+  const cornes: AttackKind[] = enemy.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : [];
+  const traits = atks
+    .filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind))
+    .flatMap((a) => Array.from({ length: gratuitesRestantes(enemy, a.kind, a) }, () => a.kind));
+  return { zone, melee: [...cornes, ...traits] };
+}
+
 /** L'IA enchaîne ses attaques gratuites de créature après l'attaque principale (chacune 1 Avantage,
  *  OPPOSÉE). File initialisée au 1er appel (Morsure/Attaque caudale des traits, PUIS Piétinement de
  *  Taille — les Indices d'abord), puis poursuivie après chaque modale de défense résolue. Retourne
@@ -4441,21 +4482,11 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
         checkBattleOver(get, set);
       }
     }
-    // Attaques de ZONE/spéciales (Souffle/Vomi/Langue/Hurlement) : des UNITÉS de la file — une
-    // manœuvre de zone qui touche des HÉROS ouvre une cascade de défense INFLUENÇABLE (elle SUSPEND), donc
-    // elle doit être RÉSUMABLE : la file est persistée sur l'ennemi ; la reprise re-appelle
-    // `aiCreatureFreeAttacks` (file DÉFINIE → bloc d'init sauté, on enchaîne l'unité suivante). Ordre RAW
-    // conservé : Souffle → Vomi → Langue → Hurlement, AVANT les gratuites de mêlée.
-    const zoneKinds = (['souffle', 'vomi', 'langue', 'hurlement'] as const).filter((k) => atks.some((a) => a.kind === k));
-    // Gratuites de MÊLÉE : mêmes options et même plafond que le héros (`availableAttacks`) — une entrée
-    // par gratuite RESTANTE (`gratuitesRestantes`). LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405
-    const traitKinds: AttackKind[] = atks
-      .filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind))
-      .flatMap((a) => Array.from({ length: gratuitesRestantes(enemy, a.kind, a) }, () => a.kind));
-    // Cornes : Attaque gratuite gagnée EN CHARGEANT (LDB 85), sans coût d'Avantage.
-    const cornes: AttackKind[] = enemy.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes'] : [];
+    // La file est persistée sur l'ennemi : la reprise re-appelle `aiCreatureFreeAttacks` (file DÉFINIE → bloc
+    // d'init sauté, on enchaîne l'unité suivante).
+    const file = fileDesGratuites(enemy);
     enemy.chargedThisTurn = false; // consommée
-    enemy.pendingFreeAttacks = [...zoneKinds, ...cornes, ...traitKinds]; // zone d'abord, puis l'ordre de `attaquesNaturelles`
+    enemy.pendingFreeAttacks = [...file.zone, ...file.melee];
   }
   while (enemy.pendingFreeAttacks.length) {
     const kind = enemy.pendingFreeAttacks[0];

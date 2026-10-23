@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { emptyScene, isDescriptiveZone, Scene } from '../../noyau/monde/scene';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { entityAt } from '../../noyau/sceneEdit';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { buildProps } from '../../gameIso/builders/props';
 import { estPropVolumique } from '../../gameIso/builders/types';
 import { findCreatureById, creatureLabel, siegeEngines } from '../../data';

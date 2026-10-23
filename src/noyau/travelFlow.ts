@@ -70,7 +70,7 @@ import { t } from '../i18n';
 import type { CascadeStep, PendingCascade } from './pendings';
 import type { RecapLine } from './recapLine';
 import { toRecapLines, phaseOfKind } from './recapLine';
-import { buildSeaPlan, runSeaDay, startFastVoyage, syncHullWoundsFromVessel } from './seaVoyageFlow';
+import { buildSeaPlan, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
 import { buildRiverPlan, descenteJouee, runRiverDays } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { Combatant } from '../engine/types';
@@ -460,8 +460,9 @@ export function resumeTravel(get: Get, set: Set): void {
   // écraserait la valeur fraîche avec l'ancienne (persistance au coup par coup, `damageVesselHull`).
   let vehicle = plan.vehicle;
   const vessel = get().vessel;
-  if (vehicle && vessel && vehicle.creatureId === vessel.vehicleId) {
-    vehicle = { ...vehicle };
+  const coque = coqueDuNavireDeCampagne(plan, vessel);
+  if (coque && vessel) {
+    vehicle = { ...coque };
     syncHullWoundsFromVessel(vehicle, vessel);
   }
   // Le jour INTERROMPU, resté sur `plan.recap` (l'embuscade a lu sa météo), est un jour FINI : il entre

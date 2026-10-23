@@ -1,5 +1,5 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { CALIB_INSTRUCTIONS, type CalibStep } from '../../state/traceCalibration';
+import { CALIB_INSTRUCTIONS, type CalibStep } from './traceCalibration';
 import { OptionChooser } from '../OptionChooser';
 import { layerLabel } from './LayerField';
 import { Row } from '../Layout';

@@ -193,8 +193,8 @@ unique sous `interne/` ; fabriques de coque `seaVoyageFlow.ts:372,383,2663`,
 
 **Rang 7 nommés, sans liste** : `creator-ossature` (la marque ne traverse pas JSX : `<X/>` est un
 `JSX.Element` ; l'invariant « chaque emplacement une fois, action avant choix » se vérifie au
-rendu), `targeting-holder-vs-mode`, `netownership-import-isole`, `scene-prose-graphie-guard`,
-`generateurs-contrat`.
+rendu), `targeting-holder-vs-mode`, `scene-prose-graphie-guard`, `generateurs-contrat`.
+`netownership-import-isole` est supprimé par #2942 : `src/state` est fermé au noyau (`COUCHES`).
 
 **Vague 3 — fichiers chauds** (`src/state/combatFlow.ts`, `scripts/guards/lib/rollSeamWhitelist.mjs`) :
 `combatEventPort` (rang 2, `src/state/combat/interne/`, `combatFlow.ts:263` `export *` réécrit),
@@ -235,7 +235,7 @@ fichiers touchés. Chaque commit chaud reste petit pour qu'un conflit se résolv
 | `arbreProcessus.mjs` | OUTIL | non | - | - | - |
 | `balayagesNonResolus.mjs` | F2 | oui (103) | - | - | outillage de tests |
 | `bandeEnLigne.mjs` | F1->F2 | oui (2) | - | - | forme d'un gabarit de chaîne |
-| `batchNavalQuarantine.mjs` | F1 | non | suppression (0 site vivant) ou lint-declaratif | S | - |
+| `batchNavalQuarantine.mjs` | F1 | non | suppression (0 site vivant) ou lint-declaratif | S | supprimé par #2942 : `murs/quarantaine` (`couchesLint.mjs`), toutes formes d'arc |
 | `battleRngEngineLeak.mjs` | F1 | oui (21) | jeton SeamRng fabriqué par le seam | L | #1595 |
 | `battleRngEngineLeakWhitelist.mjs` | F1 | oui (21) | suppression avec battleRngEngineLeak | L | #1595 |
 | `bindingsVivants.mjs` | F1 | non | type-ferme ReadonlyArray des datasets ; accesseur | L | - |
@@ -287,7 +287,7 @@ fichiers touchés. Chaque commit chaud reste petit pour qu'un conflit se résolv
 | `folioLineAlignAudit.ts` | OUTIL | non | - | - | - |
 | `folioLineAlignStock.mjs` | F2 | oui (40+8) | - | - | Cohérence citations JSON/Source |
 | `folioRatchetStock.mjs` | F2 | oui (108) | - | - | folios JSON vs Source |
-| `folioTitleRatchetStock.mjs` | F2 | oui (0, Set vide) | - | - | folios JSON vs Source |
+| `folioTitleRatchetStock.mjs` | F2 | oui (0, Set vide) | - | - | supprimé par #2942 : la voie C de `book-source-integrity.test.ts` est absolue |
 | `formeDeWorkflow.mjs` | F2 | non | - | - | workflows Claude |
 | `fuitesPartageesStock.mjs` | F2 | oui (29) | - | - | CSS |
 | `fusionPr.mjs` | OUTIL | non | - | - | file de fusion |
@@ -467,6 +467,6 @@ F2, NON-GARDE et faces de test d'un module déjà classé (DEJA) sont dans les r
 | `seam-assise-guard.test.ts` | HORS_SEAM 2 | 1 | 1b | §7 |
 | `mono-stake-ratchet.test.ts` | BASELINE 10 | 4 | 2 | `stake` requis sur `RollShell` (`ui/RollShell.tsx:125`) |
 | `roll-line-difficulty-guard.test.ts` | BASELINE 0 | 4 | 2 | §7 |
-| `netownership-import-isole.test.ts` | - | 7 | - | fermeture transitive, pas une arête |
+| `netownership-import-isole.test.ts` | - | 7 | - | supprimé par #2942 : `netOwnership.ts` vit au noyau, auquel `COUCHES` ferme `src/state` |
 | `refus-en-francais.test.ts` | - | 1 | 2 | entrée zod unique (locale posée) + `no-restricted-imports 'zod'` ; 142 fichiers |
 | `banc-volumique.test.ts` | - | 5 / 7 | 2 | imports rang 5, le reste rang 7 |

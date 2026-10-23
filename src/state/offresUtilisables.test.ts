@@ -1,5 +1,5 @@
 /**
- * LA PASTILLE HORS COMBAT (#1687) — `offresUtilisables` est la PROJECTION d'`actionsDe`
+ * LA PASTILLE HORS COMBAT (#1687) — `offresUtilisables` est la PROJECTION d'`offresDExploration` (noyau)
  * dans l'invariant d'affichage `OffreRendue`, pas une seconde source d'offre : ce qui est offert se
  * dit au dériveur unique, ce qui est joué passe par `jouerAction`.
  *
@@ -8,7 +8,8 @@
 import { tableTotale } from '../lib/tableTotale';
 import { describe, expect, it, vi } from 'vitest';
 import { emptyScene, type Scene, type SceneEntity } from '../noyau/monde/scene';
-import { offresUtilisables, porteDOffre } from './offresUtilisables';
+import { offresUtilisables } from './offresUtilisables';
+import { porteDOffre } from '../noyau/interactionsDExploration';
 import { useGame, type GameState } from './store';
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -47,6 +48,9 @@ describe('offresUtilisables — la pastille de toute entité À PORTÉE, sans su
   it('rien à offrir, ou hors de portée : aucune pastille', () => {
     poser([{ id: 'caisse', kind: 'prop', pos: { x: 5, y: 5 } } as SceneEntity]);
     expect(offresUtilisables(useGame.getState()), 'décor sans offre').toEqual([]);
+
+    poser([coffre({ combat: { hiddenUntilCombat: true } } as never)]);
+    expect(offresUtilisables(useGame.getState()), 'un ennemi d’embuscade n’offre rien').toEqual([]);
 
     poser([coffre()], { x: 7, y: 7 });
     expect(offresUtilisables(useGame.getState()), 'une case de trop : le clic marche, la pastille ne promet rien').toEqual([]);

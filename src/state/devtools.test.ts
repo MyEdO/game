@@ -11,6 +11,7 @@ import { itemFromTrappingById, formeResolue } from '../engine/items';
 import { makePregens } from '../data/pregens';
 import { seedBattleRng } from '../noyau/battleRng';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
+import { advanceTurn, choixPiegeLame } from '../noyau/combatFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { BattleState } from '../noyau/etat';
 import type { Combatant, ShipPoste } from '../engine/types';
@@ -20,7 +21,7 @@ import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { editeur } from './editeurBridge';
 import { signalerEntreeEnScene } from './entreeEnScene';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
-import { sceneToAscii } from './sceneToAscii';
+import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { careerTalentAdditions } from '../engine/talentEffects';
 import { projectsLoad } from './projectLibrary';
@@ -761,6 +762,48 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(s.pendingCascade).toBeNull();
   });
 
+  it('attaqueGratuite : la file du noyau compte le plafond par tour — une Morsure déjà déclarée ce tour n’est plus disponible (LDB 85 l.237)', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
+    const h = combattant().pos!;
+    api.place(mutant.id, { x: h.x + 1, y: h.y });
+    expect(api.quality(mutant.id, null, 1)).toMatch(/^✓/);
+    useGame.getState().battle!.combatants.find((c) => c.id === mutant.id)!.freeAttacksThisTurn = { morsure: 1 };
+    expect(api.attaqueGratuite(mutant.id, heroId)).toMatch(/^✗ .*aucune attaque gratuite disponible/);
+    expect(useGame.getState().pendingDefense).toBeNull();
+  });
+
+  it('spawn : le combattant apparu garde sa place à l’initiative au Round suivant (`inscrireEnBataille`, ordre canonique)', () => {
+    const api = buildApi();
+    ouvrirLeRoundAuHeros(api);
+    expect(api.spawn('gobelin', undefined, { id: 'renfort' })).toMatch(/^✓/);
+    const avant = useGame.getState().battle!;
+    expect(avant.order[avant.order.length - 1], 'apparu en fin d’ordre').toBe('renfort');
+    expect(avant.baseOrder, 'inscrit aussi dans l’ordre d’où repart chaque Round').toContain('renfort');
+    expect(api.turn('renfort')).toMatch(/^✓/);
+    advanceTurn(useGame.getState, useGame.setState);
+    const apres = useGame.getState().battle!;
+    expect(apres.round, 'le Round a été franchi').toBe(avant.round + 1);
+    expect(apres.order, 'au Round suivant, l’apparu a toujours son tour').toContain('renfort');
+  });
+
+  it('bladeTrap : l’étape de choix est celle du flux de la mêlée (`choixPiegeLame`), lignes de portée et d’issue comprises', () => {
+    const api = buildApi();
+    const attaquant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    expect(api.bladeTrap(heroId, attaquant.id, 3)).toMatch(/^✓/);
+    const etape = useGame.getState().pendingCascade!.participants.find((p) => p.kind === 'bladeTrap')!;
+    const pbt = etape.bladeTrap!;
+    const parade = combattant().weapons[0];
+    expect(pbt.parryWeaponUid).toBe(parade.uid);
+    const attendu = choixPiegeLame(pbt, combattant(), attaquant, parade);
+    expect(etape.outcome, 'les lignes de portée et d’issue du flux').toEqual(attendu.outcome);
+    expect(etape.outcome?.length).toBe(2);
+    expect(etape.options).toEqual(attendu.options);
+    expect(etape.defaultChoice).toBe('crit');
+  });
+
   it('quality : `null` (un `undefined` passé par CDP) vaut absent — qualité par défaut, Avantage inchangé', () => {
     const api = buildApi();
     const avant = combattant().advantage;
@@ -862,6 +905,21 @@ describe('__wfrp.place — piège composite (coque à postes / membre de crew)',
     expect(find(hull.id).pos).toEqual({ x: from.hull.x + delta.x, y: from.hull.y + delta.y });
     expect(find(chef.id).pos).toEqual({ x: from.chef.x + delta.x, y: from.chef.y + delta.y });
     expect(find(s2.id).pos).toEqual({ x: from.s2.x + delta.x, y: from.s2.y + delta.y });
+  });
+
+  it('place() : la formation garde son étage, et se refuse ENTIÈRE si une case d’arrivée est tenue (`translaterFormation`)', () => {
+    const { hull, chef, s1, s2 } = setup();
+    for (const c of [hull, chef, s1, s2]) c.pos = { ...c.pos!, z: 1 };
+    const intrus = mkServant('intrus', { x: 7, y: 7 }); // le servant s1 (6,6) y arriverait au delta (+1,+1), même étage
+    intrus.pos = { x: 7, y: 7, z: 1 };
+    useGame.getState().battle!.combatants.push(intrus);
+    const avant = useGame.getState().battle!.combatants.map((c) => ({ ...c.pos! }));
+    expect(buildApi().place('chef', { x: 6, y: 7 })).toMatch(/^✗/);
+    expect(useGame.getState().battle!.combatants.map((c) => ({ ...c.pos! })), 'rien n’a bougé').toEqual(avant);
+    intrus.pos = { x: 7, y: 7 }; // au sol : l’étage 1 est libre
+    const out = buildApi().place('chef', { x: 6, y: 7 }) as { moved: string[] };
+    expect(out.moved.sort()).toEqual(['chef', 'hull', 's1', 's2'].sort());
+    expect(useGame.getState().battle!.combatants.find((c) => c.id === 's1')!.pos).toMatchObject({ x: 7, y: 7, z: 1 });
   });
 
   it('place() d’un combattant SIMPLE (ni coque ni crew) reste une téléportation directe inchangée', () => {
@@ -1056,7 +1114,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
     expect(useGame.getState().travelPlan!.vehicle!.wounds.current).toBe(before - 7); // deux copies en phase
   });
 
-  it('dealShipDamage() au port (pas de voyage en cours) écrit directement vessel.wounds', () => {
+  it('dealShipDamage() au port (pas de voyage en cours) passe par la coque bâtie du navire et écrit vessel.wounds', () => {
     useGame.setState({ vessel: { ...useGame.getState().vessel!, wounds: { current: 20, max: 30 } } });
 
     const msg = buildApi().dealShipDamage(5);

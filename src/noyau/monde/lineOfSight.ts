@@ -11,7 +11,7 @@ import { Scene, tileAt, areteOcculteEntre, heightAt, sceneMetresPerTile, edgeOf,
 import { terrainOpaque } from './terrain';
 import { findPropById, findStructureById } from '../../data';
 import { decorEnCase } from './decorIndex';
-import { Pt } from './path';
+import { pointDeCase, type Pt } from './path';
 import type { Combatant, CoverClass } from '../../engine/types';
 import { couvertDepuisDifficulte, couvertLePlusProtecteur, cranDeCouvertEnMoins } from '../../engine/cover';
 import { chebyshev } from '../../engine/grid';
@@ -77,19 +77,16 @@ export function wallOnSight(scene: Scene, from: Pt, to: Pt, z = 0, edgeBlocks?: 
  * n'est PAS enfumée (la créature souffle DEPUIS sa case vers la cible).
  */
 export function smokeZone(from: Pt, center: Pt, radius: number): Pt[] {
-  // #805 : les cases de zone portent désormais l'étage (`z` du souffleur/centre) — la fumée d'un étage
-  // ne masque plus un tir sur un autre (filtrée par `lineOfSightCover`, cf. `smoky`/`shotZ` ci-dessous).
-  // Convention `z=0` omis (même esprit que `path.ts` `pt`) : un souffle au sol reste byte-identique à
-  // l'ancien `{x,y}`.
+  // #805 : les cases de zone portent l'étage (`z` du souffleur/centre), que `lineOfSightCover` filtre
+  // (`smoky`/`shotZ` ci-dessous). `pointDeCase` omet `z` au sol.
   const z = center.z ?? from.z ?? 0;
-  const pt = (x: number, y: number): Pt => (z ? { x, y, z } : { x, y });
   const seen = new Map<string, Pt>();
   for (let dy = -radius; dy <= radius; dy++)
     for (let dx = -radius; dx <= radius; dx++) {
-      const t = pt(center.x + dx, center.y + dy);
+      const t = pointDeCase(center.x + dx, center.y + dy, z);
       seen.set(`${t.x},${t.y}`, t);
     }
-  for (const t of tilesBetween(from, center)) seen.set(`${t.x},${t.y}`, pt(t.x, t.y));
+  for (const t of tilesBetween(from, center)) seen.set(`${t.x},${t.y}`, pointDeCase(t.x, t.y, z));
   seen.delete(`${from.x},${from.y}`); // immunisée à son propre Souffle : la créature ne s'aveugle pas (même si elle est dans le disque)
   return [...seen.values()];
 }

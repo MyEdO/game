@@ -8,14 +8,15 @@
  * Le fichier porte UNE forme d'entrée (schéma `schemas/defs/materials.ts` : toutes les clés de charge
  * optionnelles, la disjonction portée par un refine ⟺, patron `defs/oups.ts`). La VUE TS, elle, est
  * l'union DISCRIMINÉE ci-dessous : le handle de la fabrique scelle ses nœuds (`z.infer` vaut
- * `unknown`), aucun type n'est dérivé du schéma. Les trois types nommés que les catalogues de rendu
- * consomment sont les trois membres de cette union, servis par `Extract` sur `domain`.
+ * `unknown`), aucun type n'est dérivé du schéma. Les types nommés que les catalogues de rendu
+ * consomment sont les membres de cette union, servis par `Extract` sur `domain`.
  *
  * Il porte aussi, pour que `src/data` n'importe rien du rendu ni du noyau (#2884) : `DetailRecipe` et
  * `MaterialRef`, que les données d'apparence composent et que le rendu consomme ; `Grade`, le lien
  * vertical entre deux surfaces, que `PARTS_RELIEF` compose et que le noyau lit pour le déplacement
  * (`gradeBetween`, `src/noyau/monde/relief.ts`).
  */
+import type { Slot } from './palette.types';
 
 /**
  * Recette de DÉTAIL de surface — appareillage de pierre, bardeaux, colombage,
@@ -105,13 +106,12 @@ export const PARTS_RELIEF = ['cliff', 'ramp', 'deck', 'pilier'] as const satisfi
 export type PartRelief = (typeof PARTS_RELIEF)[number];
 
 /**
- * Domaines de matière que CE dataset porte — SOUS-ENSEMBLE des domaines de `MaterialRef`
- * (ci-dessus), vérifié PAR CONSTRUCTION : `satisfies` refuse à la compilation
- * un domaine que le pivot du rendu ne déclare pas. Les deux domaines restants sont hors du dataset et
- * le disent nommément dans `materials-identite.test.ts` : `terrain` porte le sien (`terrains.json`,
- * #1690), `structure` un dataset d'apparence composite qui RÉFÉRENCE des matières.
+ * Domaines du catalogue des matières : sous-ensemble des domaines de `MaterialRef`, plus `objet`,
+ * vérifié par `satisfies`. `terrain` et `structure` gardent leurs datasets propres
+ * (`terrains.json` et `structureAppearance.json`).
+ * `objet` vit hors du pivot de rendu du sol ; le rig lit sa palette par l’id `teinte`.
  */
-export const DOMAINES_MATIERE = ['prop', 'roof', 'relief'] as const satisfies readonly MaterialRef['domain'][];
+export const DOMAINES_MATIERE = ['prop', 'roof', 'relief', 'objet'] as const satisfies readonly (MaterialRef['domain'] | 'objet')[];
 export type MaterialDomain = (typeof DOMAINES_MATIERE)[number];
 
 /** Enveloppe commune à toute matière — la CHARGE commune est vide : chaque domaine peint autre chose. */
@@ -138,7 +138,7 @@ export interface PropMaterialData extends MatiereBase {
 export interface RoofMaterialDef extends MatiereBase {
   domain: 'roof';
   /** Ce matériau COUVRE-t-il un pan ? Seuls ceux-là sont posables sur une masse de toit (sélecteurs de
-   *  l'éditeur, `state/validateScene`). Absent = entrée de rendu qui ne couvre rien : le plan vu du
+   *  l'éditeur, `noyau/validateScene`). Absent = entrée de rendu qui ne couvre rien : le plan vu du
    *  dessus n'a ni pente ni égout. UNE seule graphie : le champ vaut `true` ou il est ABSENT — le
    *  schéma refuse `false` (`src/data/schemas/defs/materials.ts`). */
   couverture?: true;
@@ -204,8 +204,14 @@ export interface ReliefMaterialDef extends MatiereBase {
   shadeDark?: number;
 }
 
+/** Palette d’une teinte d’objet, résolue par son id au rendu du rig. */
+export interface TeinteDObjet extends MatiereBase {
+  domain: 'objet';
+  palette: Partial<Record<Slot, string>>;
+}
+
 /** UNE entrée de `materials.json`, discriminée par `domain`. */
-export type MaterialEntry = PropMaterialData | RoofMaterialDef | ReliefMaterialDef;
+export type MaterialEntry = PropMaterialData | RoofMaterialDef | ReliefMaterialDef | TeinteDObjet;
 
 /** L'entrée d'un domaine donné — `MatiereDe<'roof'>` = `RoofMaterialDef`. */
 export type MatiereDe<D extends MaterialDomain> = Extract<MaterialEntry, { domain: D }>;

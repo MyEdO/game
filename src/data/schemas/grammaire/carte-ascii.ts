@@ -4,7 +4,7 @@
  *
  * Une carte s'écrit en box-drawing : les lignes/colonnes IMPAIRES portent les CASES, les PAIRES les
  * ARÊTES. Chaque glyphe ci-dessous est un mot de cette grammaire — il vaut la même chose dans le
- * lecteur (`noyau/monde/asciiMap.ts`), dans l'exporteur (`state/sceneToAscii.ts`) et au schéma, qui refuse
+ * lecteur (`noyau/monde/asciiMap.ts`), dans l'exporteur (`noyau/monde/sceneToAscii.ts`) et au schéma, qui refuse
  * qu'un terrain déclare son glyphe d'authoring (`terrains.json › ascii`) dans ce vocabulaire.
  *
  * La table vit à la GRAMMAIRE (`src/data/schemas`) parce que c'est le SCHÉMA qui la VALIDE (il refuse

@@ -5,7 +5,7 @@
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
-import { buildRollFlowActions, creerActionsDuJetDActivite } from './rollFlowSpecs';
+import { buildRollFlowActions, type RollFlowActionsMap } from './rollFlowSpecs';
 import { createCombatSlice } from './combatSlice';
 import { creerActionsDuRegistre } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
@@ -45,51 +45,59 @@ import { creerActionsDuMarcheTerrestre } from './landMarketFlow';
 import { creerActionsDeLAuberge } from './innFlow';
 import { creerActionsDesActivitesEnMer } from './seaActivities';
 
+/** Les actions MANUSCRITES : aucune ne porte le nom d'un délégué de jet (`RollFlowActionsMap`), qui
+ *  écraserait en silence celui que `buildRollFlowActions` génère — une clé redéclarée ne compile pas.
+ *  Toute fabrique manuscrite s'étale DANS cet appel : hors de lui, le verrou ne la voit pas. */
+function horsDelegues<T extends object>(actions: T & { [K in Extract<keyof T, keyof RollFlowActionsMap>]: 'délégué de jet : généré par buildRollFlowActions' }): T {
+  return actions;
+}
+
 /** Les actions du noyau sur le propriétaire `get`/`set` (le `set` brut, qui écrit aussi les clés
  *  réservées de leurs seuls écrivains), une fabrique par concept. */
 export function creerActionsDuNoyau(get: Get, set: SetDesClesReservees): ActionsDuNoyau {
   return {
-    ...createCombatSlice(get, set),
-    ...creerActionsDuRegistre(get),
-    // Les délégués de jet (mono et multi), dérivés de `FLOW_WIRING`.
+    // Les délégués de jet (mono et multi), dérivés de `FLOW_VERBS` : leur SEUL écrivain.
     ...buildRollFlowActions(get, set),
-    ...creerActionsDuJetDActivite(get, set),
-    ...creerActionsDOrientation(get, set),
-    ...creerActionsDeManoeuvre(get, set),
-    ...creerActionsDuChapitre(get, set),
-    ...creerActionsDeCampagne(get, set),
-    ...creerActionsDeVision(get, set),
-    ...creerActionsDEntreeEnScene(get, set),
-    ...creerActionsDInterlude(get, set),
-    ...creerActionsDeBatailleDeMasse(get, set),
-    ...creerActionsDesFaveurs(get, set),
-    ...creerActionsDuGroupe(get, set),
-    ...creerActionsDesPossessions(get, set),
-    ...creerActionsDeMarche(get, set),
-    ...creerActionsDeFranchissement(get, set),
-    ...creerActionsDInteraction(get, set),
-    ...creerActionsDeConversation(get, set),
-    ...creerActionsDuMarchand(get, set),
-    ...creerActionsDeTaverne(get, set),
-    ...creerActionsDesDes(get, set),
-    ...creerActionsDIssueDeCombat(get, set),
-    ...creerActionsDuMedecin(get, set),
-    ...creerActionsDuRepos(get, set),
-    ...creerActionsDeLEquipage(get, set),
-    ...creerActionsDesConsommables(get, set),
-    ...creerActionsDesTestsDeScene(get, set),
-    ...creerActionsDuLotDEtal(get, set),
-    ...creerActionsDeCorruption(get, set),
-    ...creerActionsDuJournal(get, set),
-    ...creerActionsDAvanceeDHorloge(get, set),
-    ...creerActionsDHorloge(get, set),
-    ...creerActionsDuVoyage(get, set),
-    ...creerActionsDesPostesDeVoyage(get, set),
-    ...creerActionsDuBillet(get, set),
-    ...creerActionsDuPort(get, set),
-    ...creerActionsDuVoyageEnMer(get, set),
-    ...creerActionsDuMarcheTerrestre(get, set),
-    ...creerActionsDeLAuberge(get, set),
-    ...creerActionsDesActivitesEnMer(get, set),
+    ...horsDelegues({
+      ...createCombatSlice(get, set),
+      ...creerActionsDuRegistre(get),
+      ...creerActionsDOrientation(get, set),
+      ...creerActionsDeManoeuvre(get, set),
+      ...creerActionsDuChapitre(get, set),
+      ...creerActionsDeCampagne(get, set),
+      ...creerActionsDeVision(get, set),
+      ...creerActionsDEntreeEnScene(get, set),
+      ...creerActionsDInterlude(get, set),
+      ...creerActionsDeBatailleDeMasse(get, set),
+      ...creerActionsDesFaveurs(get, set),
+      ...creerActionsDuGroupe(get, set),
+      ...creerActionsDesPossessions(get, set),
+      ...creerActionsDeMarche(get, set),
+      ...creerActionsDeFranchissement(get, set),
+      ...creerActionsDInteraction(get, set),
+      ...creerActionsDeConversation(get, set),
+      ...creerActionsDuMarchand(get, set),
+      ...creerActionsDeTaverne(get, set),
+      ...creerActionsDesDes(get, set),
+      ...creerActionsDIssueDeCombat(get, set),
+      ...creerActionsDuMedecin(get, set),
+      ...creerActionsDuRepos(get, set),
+      ...creerActionsDeLEquipage(get, set),
+      ...creerActionsDesConsommables(get, set),
+      ...creerActionsDesTestsDeScene(get, set),
+      ...creerActionsDuLotDEtal(get, set),
+      ...creerActionsDeCorruption(get, set),
+      ...creerActionsDuJournal(get, set),
+      ...creerActionsDAvanceeDHorloge(get, set),
+      ...creerActionsDHorloge(get, set),
+      ...creerActionsDuVoyage(get, set),
+      ...creerActionsDesPostesDeVoyage(get, set),
+      ...creerActionsDuBillet(get, set),
+      ...creerActionsDuPort(get, set),
+      ...creerActionsDuVoyageEnMer(get, set),
+      ...creerActionsDuMarcheTerrestre(get, set),
+      ...creerActionsDeLAuberge(get, set),
+      ...creerActionsDesActivitesEnMer(get, set),
+    }),
   };
 }

@@ -549,7 +549,7 @@ export function casesDeFace(seg: { x: number; y: number; side: WallSide }, face:
 /** Les propriétés d'un `WallSeg` qu'un char de LÉGENDE d'arête peut ÉCRIRE (`MapSpec.wallLegend`) :
  *  la MATIÈRE mécanique (`structure`, id de `structures.json`) et/ou le LOOK pur (`appearance`, id de
  *  `structureAppearance.json`). Liste UNIQUE — parse (`noyau/monde/asciiMap`), recopie (`noyau/mapSpec`) et
- *  clé d'export (`state/sceneToAscii`) itèrent dessus, jamais sur une énumération locale.
+ *  clé d'export (`noyau/monde/sceneToAscii`) itèrent dessus, jamais sur une énumération locale.
  *  N+1 propriété = DEUX lignes : ici, et dans `wallSegSchema` (`data/schemas/defs-scenes/scene.ts`). */
 export const WALL_OVERLAY_KEYS = ['structure', 'appearance'] as const;
 

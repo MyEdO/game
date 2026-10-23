@@ -1,7 +1,7 @@
 /** AMBIANCE de rendu partagée iso ⇄ POV — vue TS de `ambiance.json` (objet RACINE unique, schéma
  *  `schemas/defs/ambiance.ts`), lue par `AMBIANCE` et ses fonctions (`src/gameIso/catalog/ambiance.ts`). */
 
-/** État de visibilité d'une case, du plus au moins connu (`visibilityOf`, `src/state/visibility.ts`). */
+/** État de visibilité d'une case, du plus au moins connu (`visibilityOf`, `src/noyau/visibility.ts`). */
 export type Visibility = 'visible' | 'explored' | 'unknown';
 
 /** Halo radial (voile chaud / vignette) : centre + rayon en %, couleur et alpha au bord utile. */
@@ -62,7 +62,7 @@ export interface AmbianceDef {
    *  du clamp de lumière des DEUX vues — POV (`tint`, `gameIso/pov/camera.ts`) et voile d'occlusion des sols iso
    *  (`gameIso/authoring/floorsSvg.ts`) → les deux répondent d'un cran égal. */
   ambientFloor: number;
-  /** APPLICATION de la politique de visibilité (`visibilityOf`, `src/state/visibility.ts`) en facteur multiplicatif, par
+  /** APPLICATION de la politique de visibilité (`visibilityOf`, `src/noyau/visibility.ts`) en facteur multiplicatif, par
    *  état de case. Source UNIQUE des rendus : couleur de sommet du monde three (`visibilityTint`) et
    *  lumière d'ambiance d'une surface non vue au POV. Un rendu 3D garde, pour une case inconnue, un
    *  facteur bas mais NON nul — une silhouette noire y serait illisible. */

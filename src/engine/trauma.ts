@@ -730,16 +730,15 @@ export function handAmputated(c: Combatant, hand: 'main' | 'off'): boolean {
   return (c.traumas ?? []).some((t) => t.location === loc && !prosthesisCancels(c, t, 'all') && opsOfType(traumaOps(t), 'maxWeaponHands').some((o) => o.hands < 2));
 }
 
-/** Retire un trauma chirurgical (opération réussie) ; décrémente `criticalWounds`. Mute `c`, renvoie le journal.
- *  Les DÉGÂTS de l'opération (1d10 + Hémorragique) et le risque d'Infection sont appliqués par l'appelant
- *  (le store) — ils dépendent de `loseWounds`/`addCondition`, hors de ce module pur (cycle d'import évité). */
 /** Les Blessures Critiques d'un personnage qui nécessitent la Chirurgie (amputation, fracture majeure). */
 export function surgeryTraumas(c: Combatant): Trauma[] {
   return (c.traumas ?? []).filter((t) => t.needsSurgery);
 }
 
 /** Retire le trauma chirurgical d'INDICE `idx` PARMI les blessures chirurgicales (le joueur choisit
- *  quelle Blessure Critique opérer s'il y en a plusieurs ; défaut = la première). */
+ *  quelle Blessure Critique opérer s'il y en a plusieurs ; défaut = la première), opération réussie ;
+ *  décrémente `criticalWounds`. Mute `c`, renvoie le journal. Les dégâts et l'Infection de l'opération (LDB 10 l.184)
+ *  sont appliqués par l'appelant (`medicFlow`) : ils dépendent de `loseWounds`/`addCondition`, hors de ce module pur. */
 export function removeSurgicalTrauma(c: Combatant, idx = 0): string[] {
   const surg = surgeryTraumas(c);
   const t = surg[idx] ?? surg[0];

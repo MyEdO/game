@@ -16,8 +16,8 @@
  * `pendingRoundStart` (pause « Commencer le combat ») est HORS registre : le joueur arpente le champ
  * avant d'engager, le survol y RESTE actif.
  *
- * Vit hors de `modalArbiter`, qui est un module FEUILLE (garde `netownership-import-isole`) : la
- * lecture du registre d'actions monterait le store dans sa chaîne d'imports.
+ * Vit hors de `modalArbiter`, module LÉGER (#1054) : la lecture du registre d'actions y monterait le
+ * moteur de combat (`combatEffects`, `targetingModes`) dans sa chaîne d'imports.
  */
 import { modalHolds } from '../noyau/modalArbiter';
 import { currentInterludeAction } from '../noyau/actionRegistry';

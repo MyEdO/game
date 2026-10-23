@@ -1,5 +1,5 @@
 // CLI de la lentille « set() bruts des flows » (#321 lentille 3) — mécanique dans
-// `scripts/guards/lib/setScan.mjs` (partagée avec la garde `src/state/set-scan-guard.test.ts`).
+// `scripts/guards/lib/setScan.mjs` (partagée avec la garde `src/noyau/set-scan-guard.test.ts`).
 // MESURE seule (aucune correction) : compte par fichier + classification (reset ad hoc de champ
 // `pending*`/`STATE_FIELDS` vs écriture métier normale du flow).
 import { mkdirSync, writeFileSync } from 'node:fs';

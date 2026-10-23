@@ -20,5 +20,8 @@ export default {
     ['interne', interne],
     ['purete-imports', couches.purete],
     ['zone', couches.zone],
+    ['reexportation', couches.reexportation],
+    ['suite-jouee', couches.suiteJouee],
+    ['quarantaine', couches.quarantaine],
   ]),
 }

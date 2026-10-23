@@ -33,7 +33,7 @@ import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR } from './shipCrew';
-import { harvestSizeOf, harvestYield } from '../engine/harvest';
+import { harvestProfileFor, harvestSizeOf, harvestYield } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
@@ -278,7 +278,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
 }
 
 /** Attribue la ligne `index` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
- *  l'Effet d'origine s'applique avec ce heroId (qualités/skin/identification conservés), la
+ *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
  *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot). */
 export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', index: number, heroId: string) {
   const bucket = get()[key];
@@ -290,23 +290,30 @@ export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pending
   set(retrait);
 }
 
+/** Les créatures que `harvestCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
+ *  récoltées. ZI 13. */
+export function creaturesADepecer(s: Jeu): string[] {
+  const pv = s.pendingVictory;
+  if (!pv) return [];
+  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) && !pv.harvested?.includes(d.creatureId) ? [d.creatureId] : [])))];
+}
+
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
  *  l'échec une quantité réduite (un cran de Taille en moins). Les pièces portent leur valeur de marché
  *  (`giveTrapping.price`), revendable au marchand / composant ZI. */
 export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string) {
-  const c = findCreatureById(creatureId);
-  const p = c?.harvest;
-  if (!c || !p) return;
-  const name = c.label; // affichage depuis le record (résolu par id)
   const pv = get().pendingVictory;
-  if (pv?.harvested?.includes(creatureId)) return; // déjà récolté
+  if (!pv || !creaturesADepecer(get()).includes(creatureId)) return;
+  const c = garanti(findCreatureById(creatureId), creatureId, 'créature à dépecer');
+  const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
+  const name = c.label; // affichage depuis le record (résolu par id)
   const size = harvestSizeOf(c);
   const full = harvestYield(p, size, 0, 'Frais');
   const lo = harvestYield(p, size, -1, 'Frais');
   const part = (enc: number) => t('eff.harvestPart', { creature: name, enc }); // objet CUSTOM (hors catalogue)
   const titre = stepDetail(t('eff.harvest'), dataLabel(name));
-  if (pv) set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
+  set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
     { skill: { id: 'savoir', spec: 'betes-sauvages' }, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: full.enc, encEchec: lo.enc } }) },
     flowFromEffects([{ type: 'giveTrapping', custom: part(full.enc), price: full.total }]),
@@ -1340,10 +1347,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
       const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif));
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
-      // Évaluation, #2), skin légendaire. Les qualités restent ACTIVES mécaniquement (registre).
+      // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
       if (e.identified === false) it.identified = false;
-      if (e.skin) it.skin = e.skin;
       if (e.magicKnown) it.magicKnown = true; // aura détectée en fenêtre de loot → suit l'objet
       if (e.detectTried) it.detectTried = true;
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;

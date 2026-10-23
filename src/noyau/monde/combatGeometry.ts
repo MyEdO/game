@@ -31,18 +31,8 @@ import { chebyshev } from '../../engine/grid';
 export function occupied(battle: BattleState, mover: Combatant | string): Set<string> {
   const exceptId = typeof mover === 'string' ? mover : mover.id;
   const moverSize = typeof mover === 'string' ? undefined : mover.size;
-  const s = new Set<string>();
-  for (const c of battle.combatants) {
-    // Une STRUCTURE de siège occupe une ARÊTE (mur), pas l'intérieur de sa case d'ancrage : le blocage
-    // physique vit sur l'arête (`wallBetween`/`wallEdges`), pas dans `occupied`. On peut donc se tenir sur
-    // sa case (un défenseur au pied de la herse) et un mobile pré-placé peut co-occuper — sa `pos` n'est
-    // qu'un point d'ancrage pour le CIBLAGE, pas une emprise au sol.
-    if (c.id === exceptId || isOutOfAction(c) || !c.pos || isStructure(c)) continue;
-    if (moverSize !== undefined && sizeGap(c.size, moverSize) < 0) continue; // plus petit → dégagé du chemin (85 l.373-374)
-    // Clé z-aware (convention `path.ts:tileKey`) : un bloqueur n'occupe que SON étage. z=0 → « x,y »
-    // (byte-identique à l'ancien) ; un bloqueur z>0 produit « x,y,z », invisible au `footFits(...,0)` du sol.
-    for (const t of footprintTiles(c.pos, footprintN(c))) s.add(tileKey(t.x, t.y, c.pos.z ?? 0));
-  }
+  // Plus petit → dégagé du chemin (85 l.373-374).
+  const s = casesTenues(battle.combatants, (c) => c.id !== exceptId && !(moverSize !== undefined && sizeGap(c.size, moverSize) < 0));
   // BARRIÈRES (zones authorées/sorts) : leurs cases sont infranchissables pour le mover gaté — point
   // d'injection UNIQUE → tout déplacement (reachable joueur, IA, poussée, téléport) les respecte.
   // Clé z-aware (même convention que les bloqueurs ci-dessus) : suit le `z` PROPRE à chaque tuile de
@@ -67,12 +57,23 @@ export function occupied(battle: BattleState, mover: Combatant | string): Set<st
  * ne déplace personne → il ne peut finir sur AUCUNE autre créature (les ≥ via `occupied`, les < via ici).
  */
 export function cannotStopOn(battle: BattleState, mover: Combatant): Set<string> {
+  if (footprintN(mover) > 1) return new Set();
+  // Taille ≥ → déjà dans `occupied` (transit-bloqué).
+  return casesTenues(battle.combatants, (c) => c.id !== mover.id && c.id !== mover.riderId && sizeGap(c.size, mover.size) < 0);
+}
+
+/**
+ * Cases TENUES par les combattants que `retenu` garde, en clés z-aware (`path.ts:tileKey`, un combattant
+ * n'occupe que SON étage) : l'empreinte (LDB 15 l.12) de chaque combattant positionné et debout. Une
+ * STRUCTURE de siège occupe une ARÊTE (mur), pas l'intérieur de sa case d'ancrage : sa `pos` n'est qu'un
+ * point d'ancrage pour le CIBLAGE (`wallBetween`/`wallEdges` portent le blocage). Socle de `occupied`,
+ * `cannotStopOn` et `translaterFormation`.
+ */
+export function casesTenues(combatants: readonly Combatant[], retenu: (c: Combatant) => boolean): Set<string> {
   const s = new Set<string>();
-  if (footprintN(mover) > 1) return s;
-  for (const c of battle.combatants) {
-    if (c.id === mover.id || c.id === mover.riderId || isOutOfAction(c) || !c.pos || isStructure(c)) continue; // structure = arête, pas la case
-    if (sizeGap(c.size, mover.size) >= 0) continue; // Taille ≥ → déjà dans `occupied` (transit-bloqué)
-    for (const t of footprintTiles(c.pos, footprintN(c))) s.add(tileKey(t.x, t.y, c.pos.z ?? 0)); // par étage (cf. occupied)
+  for (const c of combatants) {
+    if (isOutOfAction(c) || !c.pos || isStructure(c) || !retenu(c)) continue;
+    for (const t of footprintTiles(c.pos, footprintN(c))) s.add(tileKey(t.x, t.y, c.pos.z ?? 0));
   }
   return s;
 }

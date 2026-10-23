@@ -84,7 +84,7 @@ function bodyOf(src: string, name: string): string {
 
 /** Sites de surfaçage connus (B1/B2 + Famille A) → prédicat de contrôleur qu'ils DOIVENT référencer. */
 const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
-  { file: 'combatFlow', fn: 'maybeOpenDefense', pred: /defenseSurfaced/ },
+  { file: 'combatFlow', fn: 'verdictDeDefenseReactive', pred: /defenseSurfaced/ }, // la porte de `maybeOpenDefense`
   { file: 'combatFlow', fn: 'surfacedDefensePending', pred: /defenseSurfaced/ },
   { file: 'combatFlow', fn: 'openSurfacedDefense', pred: /surfacedDefensePending/ },
   { file: 'combatFlow', fn: 'resolveDualSecond', pred: /defenseSurfaced/ }, // #998 : la 2ᵉ frappe d'un défenseur surfacé passe par SA fenêtre

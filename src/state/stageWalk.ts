@@ -19,6 +19,7 @@
 import type { GameState } from './store';
 import type { ScreenDir } from './combatCursor';
 import { surfaceTientLaMain, type ArbiterState } from '../noyau/modalArbiter';
+import { marcheOuverte } from '../noyau/marcheDuGroupe';
 import { modaleDuDessus } from './dismissStack';
 import { walkMs } from '../geometry/walk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../web/minuteries';
@@ -35,13 +36,12 @@ const cle = (p: PasTenu): string => (p.vue === 'iso' ? `iso:${p.dir}` : `pov:${p
 /**
  * La carte accepte-t-elle un pas MAINTENANT ? Deux sources, aucune liste : les surfaces PARTAGÉES
  * (`surfaceTientLaMain`, l'arbitre) et l'écran de CE siège (une couche MODALE de la pile
- * `dismissStack` — fiche, menu système, codex, écran plein-champ ; un popover ne l'arrête pas). S'y ajoute ce que la MARCHE
- * exige : le mode exploration et aucune conversation (une surface pour la marche, jamais pour
- * elle-même).
+ * `dismissStack` — fiche, menu système, codex, écran plein-champ ; un popover ne l'arrête pas). S'y ajoute la garde
+ * de la MARCHE du noyau (`marcheOuverte`).
  * `pas` fourni : la vue qui a armé doit être encore celle qui joue (bascule POV en plein maintien).
  */
 export function marcheAutorisee(s: GameState, pas?: PasTenu): boolean {
-  if (s.mode !== 'exploration' || s.dialogue) return false;
+  if (!marcheOuverte(s)) return false;
   if (surfaceTientLaMain(s as ArbiterState) || modaleDuDessus()) return false;
   if (!pas) return true;
   return pas.vue === 'pov' ? !!s.povActive : !s.povActive;

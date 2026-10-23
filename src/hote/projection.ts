@@ -60,7 +60,7 @@ export interface Projection {
   scene: { id: string; nom: string } | null;
   /** La fenêtre qui tient la main, en combat comme hors combat, ses verbes et l'id que ses verbes prennent en premier
    *  argument (`pid`) ; pour la cascade, son étape courante (`stepInteraction`, les clés d'un choix). */
-  fenetre: { cle: string; proprietaire: string | null; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
+  fenetre: { cle: string; proprietaire: ProprietaireDeLaFenetre; verbes: string[]; pid: string | null; etape?: { id: string; genre: string; interaction: string; choix: string[] } } | null;
   /** Les jets de la fenêtre qui tient la main (`jetsEnVue`), jetés ou à jeter, et le DR net d'un Test opposé tranché. */
   jets: JetEnVue[];
   combat: null | {
@@ -104,10 +104,16 @@ export interface Apercu {
   cout: number | null;
 }
 
-const nomDe = (etat: Jeu, id: string | undefined | null): string | null => {
-  if (id == null) return null;
-  if (id === '*') return 'tous';
-  return porteurParId(etat, id)?.label ?? id;
+/** Qui tient la main d'une fenêtre : `tous` les sièges, `aucun` propriétaire (l'hôte), ou un `porteur`, nommé par
+ *  l'état (`null` : l'état ne le nomme pas). Un hôte le dit en ses mots ; jamais un id. */
+export type ProprietaireDeLaFenetre = { genre: 'tous' } | { genre: 'aucun' } | { genre: 'porteur'; nom: string | null };
+
+/** Le propriétaire d'une fenêtre (`fenetreDuJeu`) : `'*'`, tous ; sans id, aucun (`modalOwnerOf`) ; un id, son porteur
+ *  (`porteurParId`). */
+export const proprietaireDeLaFenetre = (etat: Jeu, id: string | undefined | null): ProprietaireDeLaFenetre => {
+  if (id == null) return { genre: 'aucun' };
+  if (id === '*') return { genre: 'tous' };
+  return { genre: 'porteur', nom: porteurParId(etat, id)?.label ?? null };
 };
 
 function combattant(c: Combatant, actif: Combatant | undefined): CombattantProjete {
@@ -198,7 +204,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     pas,
     ecran: etat.screen,
     scene: etat.scene ? { id: etat.scene.id, nom: etat.scene.label } : null,
-    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: nomDe(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
+    fenetre: fenetre ? { cle: fenetre.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), verbes: [...fenetre.verbes], pid: fenetre.pid ?? null, ...etapeDe(fenetre) } : null,
     jets: jetsEnVue(etat),
     combat: b
       ? {

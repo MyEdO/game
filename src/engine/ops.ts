@@ -835,9 +835,8 @@ export type GameOp =
   | { op: 'grantWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean;
       qualities?: string[]; subType?: string /* `id` de Groupe d'arme (WeaponGroupData.id) */; reach?: ReachValue; hands?: 1 | 2;
       onHitEffects?: TriggeredEffect[];
-      /** SKIN cosmétique magique (clé→hex, ex. lame aethyrique bleutée / améthyste / ardente) —
-       *  propagé à `Weapon.skin` par recomputeLoadout, l'arme se rend recolorée (système d'objet unique). */
-      skin?: Record<string, string>;
+      /** Id de matière du domaine objet. */
+      teinte?: { id: string };
       /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
        *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`,
        *  `gameIso/rig/parts/equipment.ts`). `chooseForm` la prend du choix du lanceur. */
@@ -2621,7 +2620,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           qualities: (o.qualities ?? []).map((id) => ({ id })), // Atouts du Sort (ids) — PAS ceux du gabarit ; copiés par buildWeapon
           conjured: true,
           uid: { prefix: 'conjure' },
-          ...(o.skin ? { skin: o.skin } : {}), // teinte magique unique (aethyrique/améthyste/ardente)
+          ...(o.teinte ? { teinte: o.teinte.id } : {}),
           ...(form ? { form: form.weapon } : o.form ? { form: o.form } : {}),
           source,
         });

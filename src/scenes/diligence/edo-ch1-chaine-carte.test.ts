@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from '../../state/store';
 import { routesEtat, routesFrom, visiblePlaces } from '../../noyau/worldMap';
-import { reachableCells } from '../../state/mapQC';
+import { reachableCells } from '../../noyau/mapQC';
 import { aPorteeDe } from '../../noyau/monde/exploreNav';
 import { startOf } from '../../noyau/monde/scene';
 import type { ConditionCtx } from '../../engine/flowCore';

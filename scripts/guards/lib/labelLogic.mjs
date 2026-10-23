@@ -1,7 +1,7 @@
 import { ast, analyserCorpus, declarationQuiPorte } from './dialecte.mjs';
 // Mécanique de scan du garde-fou « logique par LABEL interdite » (#142, doctrine AGENTS.md bloc
 // agents). Module ESM pur (opère sur du texte source), consommé par
-// src/state/label-logic-guard.test.ts ET le hook au stylo (scripts/hooks/poison-postcheck.mjs) —
+// src/label-logic-guard.test.ts ET le hook au stylo (scripts/hooks/poison-postcheck.mjs) —
 // SOURCE UNIQUE du corpus (`estDansLeCorpus`),
 // du contexte inter-fichiers (`contexteDeLaGarde`), de la composition des volets
 // (`scanLabelLogicFichier`, en fin de fichier) et des volets sans stock (`clesInterditesAuStock`),

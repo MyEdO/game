@@ -75,7 +75,7 @@ export const FLOW_VERBS = {
   attack:       { kind: 'mono',  verbs: ['reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse'], jetOwner: { pending: 'pendingAttack', field: 'attackerId' } },
   defense:      { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse'], jetOwner: { pending: 'pendingDefense', field: 'defenderId' } },
   cast:         { kind: 'mono',  verbs: ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingCast', field: 'casterId' } },
-  disengage:    { kind: 'mono', verbs: ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingDisengage', field: 'moverId' } },
+  disengage:    { kind: 'mono', verbs: ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'], jetOwner: { pending: 'pendingDisengage', field: 'moverId' } },
   // « Fuir » : MULTI hétérogène (coup dans le dos du frappeur + Test `fuite` du fuyard) — `setForcedRoll`
   // sert le dé CHOISI du coup dans le dos (double 11 → Coup Critique, LDB 13 l.183).
   flee:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'], coop: true, resolution: ['fleeConfirm'] },
@@ -109,7 +109,7 @@ export const FLOW_VERBS = {
   // `determine` = Détermination (LDB 17 l.59) : même verbe que `cascadeBatch`, corps dans `FLOWS.test.caps`.
   test:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse'], jetOwner: { pending: 'pendingTest', field: 'actorId' } },
   steamSave:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingSteamSave', field: 'actorId' } },
-  activity:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'], jetOwner: { pending: 'pendingActivity', field: 'heroId' } },
+  activity:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel'], jetOwner: { pending: 'pendingActivity', field: 'heroId' } },
   // Marchandage / Évaluation : fenêtres rendues HORS `ActiveModal` (`CampaignView`), absentes de
   // `MODAL_DEFS` et hors combat — leurs `resolution` sont routées par le porteur, sans quoi il joue
   // son jet sans pouvoir le clore.

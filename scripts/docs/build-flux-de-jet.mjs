@@ -28,7 +28,7 @@ function rendu() {
   const SPECS = 'src/noyau/rollFlowSpecs.ts'
   const FACTORY = 'src/noyau/rollFlowFactory.ts'
   const ARBITER = 'src/noyau/modalArbiter.ts'
-  const DRIFT = 'src/state/rollflow-no-drift.test.ts'
+  const DRIFT = 'src/rollflow-no-drift.test.ts'
 
   function abandon(msg) {
     console.error(`${OUTIL} — ${msg}`)

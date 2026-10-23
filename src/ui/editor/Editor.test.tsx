@@ -8,7 +8,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { architectureSelectionForWarning, Editor, planDefectKey, planFocusAt } from './Editor';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { Inspector } from './Inspector';
 import { allBuiltinCampaigns } from '../../scenes/campaign';
 import diligenceProjet from '../../scenes/diligence/diligence-projet.json';
@@ -25,7 +25,7 @@ import { basculerSur, boutonParTitre, scenesDuSelecteur, selecteurDeScene } from
 import { parseProject } from '../../noyau/worldMap';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { traceLayerSave } from '../../state/traceLayer';
-import { identityTransform } from '../../state/traceCalibration';
+import { identityTransform } from './traceCalibration';
 
 const BIBLIOTHEQUE = 'wfrp4-library';
 const AUTOSAVE = 'wfrp4-editor-autosave';

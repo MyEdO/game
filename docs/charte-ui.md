@@ -580,7 +580,7 @@ Conséquences concrètes :
 compétence, ajoutée par `composeRollLabel` ; le **tiret long** est le séparateur acteur/action. Donc
 l'`actionLabel` écrit au call-site est un **groupe nominal capitalisé sans ponctuation** (« Forcer le
 rythme », « Mal de mer par mauvais temps »), jamais une valeur dynamique entre parenthèses, un usage
-(« … (boire) ») ni une situation après un tiret. Cliquet : `src/state/roll-action-label-guard.test.ts`.
+(« … (boire) ») ni une situation après un tiret. Cliquet : `src/roll-action-label-guard.test.ts`.
 
 **Bande de table** : le **tiret demi-cadratin** « – » sépare ses bornes (« 1d100 01–35 », « 1d10 9–10 »,
 « 81+ m »), jamais le trait d'union, qui est le signe d'un modificateur (« -20 »), ni le tiret long,

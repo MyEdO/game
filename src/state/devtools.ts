@@ -63,10 +63,10 @@ export function setImageRendue(image: ImageRendue): void {
   e.toile ??= image.toile;
   if (e.toile === image.toile) e.tampon.push({ image: image.rendus, corps: image.corps(e.id) });
 }
-import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageVesselHull, setVesselHull } from '../noyau/seaVoyageFlow';
+import { portRepairVessel, portCareenVessel, portInstallUpgrade, damageCampaignVessel } from '../noyau/seaVoyageFlow';
 import { seaBoardEventById } from '../engine/seaVoyage';
 import { beginShipwreck } from '../noyau/shipwreck';
-import { placeOfScene, placeById, routesEtat, visiblePlaces, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
+import { placeOfScene, placeById, routesCliquables, documentDeProjet, exigerUnRefus, type MapRoute, type WorldMap } from '../noyau/worldMap';
 import { MAISON_PROJET_AUTHORE } from '../data/schemas/defs-scenes/projet';
 import { buildRiverDayCascade } from '../noyau/riverVoyageFlow';
 import { findVehicleById, refLabel } from '../data';
@@ -75,17 +75,18 @@ import { DIFFICULTY_LABELS } from '../engine/types';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
-import { sceneToAscii } from './sceneToAscii';
+import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { routeDistanceLabel } from '../engine/travel';
-import { mirrorPools } from '../engine/advantagePool';
+import { inscrireEnBataille } from '../noyau/summonFlow';
+import { translaterFormation } from '../noyau/monde/shipPostes';
 import { actorIn, ecrireActeur, inBattleId } from '../noyau/monde/combatants';
 import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
-import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, type PlacingZone } from '../noyau/combatFlow';
-import { aiDriven, defenseSurfaced } from '../noyau/netOwnership';
+import { checkBattleOver, etatDeTourNeuf, resolveFreeAttacks, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
+import { aiDriven } from '../noyau/netOwnership';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
 import { canonEdge } from '../noyau/sceneEdit';
@@ -103,7 +104,7 @@ import { spawnEnemy } from '../noyau/monde/spawn';
 import type { PendingBladeTrap } from '../noyau/pendings';
 import { bus, EVT } from '../noyau/bus';
 import { ev } from '../noyau/combatLog';
-import { isOutOfAction, syncDerivedConditions, cannotDefend, etatConnu, etatIdsConnus } from '../engine/conditions';
+import { isOutOfAction, syncDerivedConditions, etatConnu, etatIdsConnus } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';
 import { battleRng } from '../noyau/battleRng';
 import { applyOps } from '../engine/ops';
@@ -130,8 +131,8 @@ import { willAutoResolve } from '../noyau/combatAuto';
 import { combatAdvanceBlocked } from '../noyau/combatGate';
 import { endTurnArmed } from '../noyau/endTurnGuard';
 import { activeLoadout, isShieldItem, loadoutLabel, formeResolue } from '../engine/items';
-import { bestDefenseMode, freeAttackCost, freeAttackTargetOk, MELEE_MANEUVER_KINDS } from '../noyau/combatManeuvers';
-import { attaquesNaturelles, attaqueNaturelle, type AttackKind } from '../engine/creatureAttacks';
+import { bestDefenseMode, freeAttackCost, freeAttackTargetOk } from '../noyau/combatManeuvers';
+import { attaqueNaturelle } from '../engine/creatureAttacks';
 import type { Combatant } from '../engine/types';
 import { makeRNG } from '../engine/dice';
 import { partyMoneyTotal, distributeCredit, condCtx } from '../noyau/bourseFlow';
@@ -227,21 +228,11 @@ function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: strin
 let lastRollTrace: { actorId: string; success: boolean; sl: number; roll: number | null; target: number } | null = null;
 bus.on(EVT.TEST_RESOLVED, (payload) => { lastRollTrace = payload as typeof lastRollTrace; });
 
-/** Routes qui portent un tracé de HIT au DOM de la carte du monde, dans le MÊME ORDRE et sous les
- *  MÊMES prédicats que le rendu (`WorldMapView.tsx` — extrémités dans `visiblePlaces`, route offerte
- *  par `routesEtat` depuis le lieu courant, ouverte OU fermée-consultable). SOURCE UNIQUE du mapping
- *  DOM ↔ id, partagée par `routes()` et `clickRoute()` : sans elle, une route partant vers un lieu
- *  caché décale l'index et `clickRoute` clique une AUTRE route que celle nommée (#684). */
+/** Routes qui portent un tracé de HIT au DOM de la carte du monde (`routesCliquables` depuis le lieu
+ *  courant) : SOURCE UNIQUE du mapping DOM ↔ id, partagée par `routes()` et `clickRoute()` (#684). */
 function routesRendues(map: WorldMap, sceneId: string | undefined): { route: MapRoute; ouverte: boolean }[] {
   const here = placeOfScene(map, sceneId);
-  if (!here) return [];
-  const ctx = condCtx(useGame.getState);
-  const visibles = new Set(visiblePlaces(map, ctx).map((p) => p.id));
-  const etats = routesEtat(map, here.id, ctx);
-  return map.routes.flatMap((r) => {
-    const e = etats.find((x) => x.route.id === r.id);
-    return e && visibles.has(r.a) && visibles.has(r.b) ? [e] : [];
-  });
+  return here ? routesCliquables(map, here.id, condCtx(useGame.getState)) : [];
 }
 
 /**
@@ -341,8 +332,8 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *                           SUIVANT, l'arrivée ou un combat — MÊME machinerie que le voyage maritime
  *   __wfrp.forceEncounter(id) → force un événement de bord maritime NOMMÉ (`sea-events.json`, id ou kind
  *                           ex. 'navire-hostile') au prochain jour — à dérouler avec `advanceSeaDay()`
- *   __wfrp.dealShipDamage(n) → inflige n Dégâts de coque HORS COMBAT (VRAI pipeline `damageVesselHull`/
- *                           `setVesselHull` — SOURCE UNIQUE `state.vessel.wounds`, cf. `docs/recette-
+ *   __wfrp.dealShipDamage(n) → inflige n Dégâts de coque HORS COMBAT (VRAI pipeline `damageCampaignVessel`
+ *                           — SOURCE UNIQUE `state.vessel.wounds`, cf. `docs/recette-
  *                           navigateur.md` § piège des deux copies de coque) ; symétrique de `dealDamage`
  *   __wfrp.clickRoute(id) → calcule le point ON-PATH (milieu du tracé, `getPointAtLength`/`getScreenCTM`)
  *                           d'une route de la carte du monde CLIQUABLE depuis ici → `{x,y}` ÉCRAN à
@@ -1315,7 +1306,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** RECETTE #380 : arme un INTERLUDE de démonstration jouable sans voyager jusqu'à Altdorf. MÊME
      *  chemin que le flux réel (`startInterlude` : `state.interlude` peuplé — Événement d100 par héros,
-     *  budget d'Activités `min(3, semaines)`, écran 'interlude') — le catalogue d'Activités reste dérivé
+     *  budget d'Activités `perHero[*].granted`, écran 'interlude') — le catalogue d'Activités reste dérivé
      *  de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé. Sans groupe chargé, pose le
      *  groupe canonique (`makeShowcaseParty`, comme `campaign()`/`scenario()`). À conduire à la main
      *  ensuite (Activités, clôture). `weeks` (défaut 3) fixe le budget d'Activités observable. */
@@ -1327,7 +1318,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       s.startInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';
-      const budget = Math.min(3, Math.max(1, Math.floor(weeks)));
+      const budget = [...new Set(Object.values(after.interlude.perHero).map((h) => h.granted))].join('/');
       return `✓ interlude ouvert (${weeks} sem., ${after.party.length} héros, ${budget} Activité(s) max/héros) — catalogue réel, écran 'interlude' (à conduire à la main)`;
     },
 
@@ -1414,11 +1405,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         return `✓ ${att.label} attaque ${def.label} — modale de Défense ouverte`;
       }
       const arme = att.weapons[0];
-      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
-      if (arme?.type === 'melee' && combatDistance(att, def) > reachTiles(arme)) {
-        return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
-      }
-      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      const refus = refusDeDefenseReactive(g(), att, def, arme);
+      if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (refus === 'hors-allonge') return `✗ ${att.label} n'est pas au contact de ${def.label} (distance ${combatDistance(att, def)} > allonge ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       return `✗ ${def.label} n'a aucune Défense opposable à l'attaque de ${att.label}${arme ? ` (${arme.label})` : ''}`;
     },
 
@@ -1449,17 +1439,15 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
       if (att.kind !== 'enemy') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
-      const atks = attaquesNaturelles(att.traits ?? []);
-      const disponibles: AttackKind[] = [
-        ...(att.chargedThisTurn && atks.some((a) => a.kind === 'cornes') ? ['cornes' as const] : []),
-        ...atks.filter((a) => a.trigger === 'free' && MELEE_MANEUVER_KINDS.includes(a.kind) && freeAttackTargetOk(b, att, a.kind, def)).map((a) => a.kind),
-      ];
+      const disponibles = [...new Set(fileDesGratuites(att).melee)].filter((k) => freeAttackTargetOk(b, att, k, def));
       if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
       const kind = disponibles.find((k) => k === (type ?? disponibles[0]));
       if (!kind) return `✗ « ${type} » n'est pas une gratuite disponible de ${att.label} contre ${def.label} — disponibles : ${disponibles.join(', ')}`;
-      if (combatDistance(att, def) > 1) return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > 1) — __wfrp.place() d'abord`;
-      if (!defenseSurfaced(g(), def)) return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
-      if (cannotDefend(def)) return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
+      const arme = armeDeLaGratuite(att, kind)!;
+      const refus = refusDeDefenseReactive(g(), att, def, arme);
+      if (refus === 'hors-allonge') return `✗ ${def.label} est hors de portée de ${att.label} (distance ${combatDistance(att, def)} > ${reachTiles(arme)}) — __wfrp.place() d'abord`;
+      if (refus === 'non-surfacee') return `✗ ${def.label} n'est pas surfacé (piloté par l'IA) : aucune modale de Défense`;
+      if (refus === 'ne-peut-se-defendre') return `✗ ${def.label} ne peut pas se défendre (cannotDefend)`;
       donnerLeTour(b, idx);
       const auTour = g().battle!;
       const porteur = inBattleId(auTour, att.id)!;
@@ -1479,37 +1467,26 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✗ la file a écarté ${kind} de ${att.label} : ${att.advantage} Avantage pour un coût de ${cout} — __wfrp.quality('${att.id}', null, ${cout}) d'abord`;
     },
 
-    /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée). Cible une
-     *  COQUE à postes (`postes` non vide) ou un membre d'ÉQUIPAGE de poste (`ShipPoste.crewIds`) →
-     *  déplace la FORMATION SOLIDAIRE (coque + tout l'équipage des postes de la coque, MÊME delta —
-     *  sémantique de `pushCommitTile`, targetingModes.ts : `pushCommitTile` n'est pas réutilisable ici,
-     *  liée à `battle.reachable`/Action/Mouvement du chef ; delta ré-implémenté ici) — téléporter la
-     *  coque SEULE désynchronise aperçu (postes) et vérité de portée (équipage resté en arrière), piège
-     *  vécu en recette. Combattant simple (ni coque ni crew) : téléportation directe inchangée. */
+    /** TRICHE de recette : téléporte un COMBATTANT (mise en place de situations LdV/portée) par
+     *  `translaterFormation`, à son étage. Cible une COQUE à postes (`postes` non vide) ou un membre d'ÉQUIPAGE de
+     *  poste (`ShipPoste.crewIds`) → déplace la FORMATION SOLIDAIRE (coque + tout l'équipage des postes de la
+     *  coque) — téléporter la coque SEULE désynchronise aperçu (postes) et vérité de portée (équipage resté en
+     *  arrière), piège vécu en recette. Combattant simple (ni coque ni crew) : formation d'un seul. Une case
+     *  d'arrivée invalide (occupée, hors scène) refuse le tout. */
     place: (id: string, pt: { x: number; y: number }) => {
       const b = g().battle;
       const c = inBattleId(b, id);
       if (!b || !c || !c.pos) return '✗ combattant introuvable (combat uniquement — hors combat : goto)';
       const hull = c.postes?.length ? c : b.combatants.find((h) => h.postes?.some((p) => p.crewIds?.includes(c.id)));
-      if (!hull?.pos) {
-        c.pos = { ...pt };
-        useGame.setState({ battle: { ...b } });
-        bus.emit(EVT.SCENE_DIRTY);
-        return `✓ ${c.label} → (${pt.x},${pt.y})`;
-      }
+      const coque = hull?.pos ? hull : c;
       const delta = { x: pt.x - c.pos.x, y: pt.y - c.pos.y };
-      const crewIds = new Set<string>();
-      for (const p of hull.postes ?? []) for (const cid of p.crewIds ?? []) crewIds.add(cid);
-      const movers = [hull, ...[...crewIds]
-        .map((cid) => inBattleId(b, cid))
-        .filter((x): x is Combatant => !!x?.pos && x.id !== hull.id)];
-      const moved = movers.map((m) => {
-        m.pos = { x: m.pos!.x + delta.x, y: m.pos!.y + delta.y };
-        return m.id;
-      });
+      const crewIds = (coque.postes ?? []).flatMap((p) => p.crewIds ?? []);
+      const deplaces = translaterFormation(b.combatants, g().scene, coque, crewIds, delta);
+      if (!deplaces) return `✗ (${pt.x},${pt.y}) : une case d'arrivée est occupée ou hors scène — rien n'a bougé`;
       useGame.setState({ battle: { ...b } });
       bus.emit(EVT.SCENE_DIRTY);
-      return { msg: `✓ formation (${hull.label}) → delta (${delta.x},${delta.y}) — ${moved.length} déplacé(s)`, moved };
+      const moved = deplaces.map(({ mobile }) => mobile.id);
+      return coque === c && !crewIds.length ? `✓ ${c.label} → (${pt.x},${pt.y})` : { msg: `✓ formation (${coque.label}) → delta (${delta.x},${delta.y}) — ${moved.length} déplacé(s)`, moved };
     },
 
     /** TRICHE de recette : VIRE le cap d'un NAVIRE (manœuvre, MDG 13) → re-mappe ses arcs de bordée.
@@ -2045,8 +2022,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const side = opts?.side ?? 'enemy';
       if (side === 'hero') { c.kind = 'hero'; c.aiControlled = true; }
       else if (side === 'npc') c.kind = 'npc';
-      if (b.advantagePools) mirrorPools(b.advantagePools, [c]); // AA 11 l.11-13
-      useGame.setState({ battle: { ...b, combatants: [...b.combatants, c], order: [...b.order, id] } });
+      inscrireEnBataille(b, c);
+      useGame.setState({ battle: { ...b } });
       bus.emit(EVT.SCENE_DIRTY);
       return `✓ ${c.label} (${creatureId}) apparu — ${side}, (${basePos.x},${basePos.y})`;
     },
@@ -2064,14 +2041,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!defender || !attacker) return `✗ défenseur/attaquant introuvable (${defenderId}/${attackerId})`;
       const weapon = attacker.weapons?.[0];
       if (!weapon) return `✗ ${attacker.label} n'a pas d'arme active`;
+      const parade = defender.weapons?.[0];
+      if (!parade) return `✗ ${defender.label} n'a pas d'arme pour parer`;
       if (!weapon.uid) weapon.uid = `dev-blade-${attackerId}`; // uid universel requis pour cibler la lame
-      const pbt: PendingBladeTrap = { defenderId, attackerId, weapon, parryWeaponUid: defender.weapons?.[0]?.uid ?? 'parry', defSL, roll: 33 };
-      pushChoice(useGame.setState, {
-        id: `cons-bladetrap-${defenderId}`, kind: 'bladeTrap', actorId: defenderId, icon: 'item/weapon',
-        label: t('step.paradePiegerLame'),
-        options: [{ key: 'trap', label: t('opt.piegerLame') }, { key: 'crit', label: t('opt.coupCritique') }],
-        defaultChoice: 'crit', bladeTrap: pbt,
-      });
+      if (!parade.uid) parade.uid = `dev-parry-${defenderId}`;
+      const pbt: PendingBladeTrap = { defenderId, attackerId, weapon, parryWeaponUid: parade.uid, defSL, roll: 33 };
+      pushChoice(useGame.setState, choixPiegeLame(pbt, defender, attacker, parade));
       useGame.setState(touchActors);
       return `✓ Piège-lame : ${defender.label} pare ${attacker.label} (${weapon.label}, +${defSL} DR) → choix Piéger/Critique`;
     },
@@ -2342,30 +2317,17 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     advanceRiverDay: (opts: { stopOnEveryEvent?: boolean; maxIters?: number; stopAt?: string } = {}) =>
       driveSeaVoyage(true, opts.maxIters ?? 400, opts.stopOnEveryEvent ?? false, opts.stopAt),
 
-    /** RECETTE #297 : inflige `n` Dégâts de coque HORS COMBAT (VRAI pipeline — `damageVesselHull` si un
-     *  voyage est en cours sur le navire de campagne, sinon `setVesselHull` directement au port) —
-     *  SOURCE UNIQUE `state.vessel.wounds` (#296 ; le piège des DEUX copies de coque — `vessel.wounds`
-     *  ET la coque de trajet `travelPlan.vehicle` — est documenté dans `docs/recette-navigateur.md`).
-     *  Symétrique de `__wfrp.dealDamage` (combat). */
+    /** RECETTE #297 : inflige `n` Dégâts de coque HORS COMBAT par `damageCampaignVessel`, en voyage comme
+     *  au port — SOURCE UNIQUE `state.vessel.wounds` (#296 ; le piège des DEUX copies de coque est documenté
+     *  dans `docs/recette-navigateur.md`). Symétrique de `__wfrp.dealDamage` (combat). */
     dealShipDamage: (n = 5) => {
       const s = g();
       if (s.battle) return '✗ combat en cours — voir __wfrp.dealDamage (coque en combat, armure de coque comprise)';
-      const vessel = s.vessel;
-      if (!vessel) return '✗ aucun navire de campagne (state.vessel)';
-      const plan = s.travelPlan;
-      // EN VOYAGE : `vessel.wounds` peut être encore ABSENT (jamais persisté depuis l'appareillage,
-      // `travelPlan.vehicle` porte alors seul les Blessures réelles, pleines par défaut) — `damageVesselHull`
-      // PERSISTE dans les deux cas (#296), donc pas de garde sur `vessel.wounds` sur ce chemin.
-      if (plan?.vehicle && plan.vehicle.creatureId === vessel.vehicleId) {
-        const lines = damageVesselHull(() => useGame.getState(), useGame.setState, plan.vehicle, n);
-        const after = useGame.getState().vessel?.wounds;
-        return after ? `✓ coque (voyage) : ${after.current}/${after.max} PB${lines.length ? ' — ' + lines.join(' ') : ''}` : '✗ persistance échouée — voir __wfrp.state()';
-      }
-      if (!vessel.wounds) return '✗ coque non initialisée (state.vessel.wounds) — hors voyage, embarquer/appareiller ou réparer au port d\'abord';
-      const cur = Math.max(0, vessel.wounds.current - n);
-      setVesselHull(() => useGame.getState(), useGame.setState, cur, vessel.wounds.max);
+      if (!s.vessel) return '✗ aucun navire de campagne (state.vessel)';
+      const lines = damageCampaignVessel(() => useGame.getState(), useGame.setState, n);
       const after = useGame.getState().vessel?.wounds;
-      return after ? `✓ coque (au port) : ${after.current}/${after.max} PB` : '✗ persistance échouée — voir __wfrp.state()';
+      if (!lines || !after) return '✗ aucune coque pour ce navire (donnée du véhicule) — voir __wfrp.state()';
+      return `✓ coque : ${after.current}/${after.max} PB${lines.length ? ' — ' + lines.join(' ') : ''}`;
     },
 
     /** RECETTE #332 : déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ — PAS le pipeline de dégâts

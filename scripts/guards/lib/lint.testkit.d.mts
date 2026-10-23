@@ -16,6 +16,7 @@ export function directivesLintCiblees(texte: string, fichier: string, regles: st
 export function porteCommentaireEslint(texte: string): boolean
 export function directivesLint(texte: string, fichier: string, regles: string[] | ((nom: string) => boolean)): number[]
 export function configPourFichier(fichier: string): { rules: Record<string, unknown> }
+export function blocsDeRegle(regle: string): { files: string[]; options: unknown[] }[]
 export function lintFixtures(fixtures: FixtureLint[], configuration?: object): ResultatLint[]
 export function selectionnerMessages(resultat: ResultatLint, predicate: (message: MessageLint) => boolean): MessageLint[]
 export function creerBancLint(): {

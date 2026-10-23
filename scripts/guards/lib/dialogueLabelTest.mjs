@@ -9,7 +9,7 @@
 // dès que le flux change de Compétence ou de difficulté, et la réponse dit deux fois la même chose.
 // Le coût suit la même loi : la fenêtre le rend en puce (`Coins`), « — 4 pa » dans le libellé le redouble.
 //
-// MASQUE : `termeRecopie` (`src/state/dialogueLibelle.ts`), le MÊME que la validation de scène rend à
+// MASQUE : `termeRecopie` (`src/noyau/dialogueLibelle.ts`), le MÊME que la validation de scène rend à
 // l'éditeur — cette garde n'en porte que le parcours du corpus et le `fichier:ligne`.
 //
 // PORTÉE : les projets livrés (`projetsLivres.mjs`).
@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_LIVRES } from './projetsLivres.mjs';
-import { termeRecopie } from '../../../src/state/dialogueLibelle';
+import { termeRecopie } from '../../../src/noyau/dialogueLibelle';
 
 /** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
 export const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));

@@ -1,5 +1,5 @@
 import type { Combatant } from '../../engine/types';
-import { type Poste, postesOccupes } from '../../state/poste';
+import { type Poste, postesOccupes } from '../../noyau/poste';
 import { AssignRow, type ParametreAffectation } from './AssignRow';
 import { CodexRef } from '../compendium/CodexRef';
 

@@ -2227,10 +2227,8 @@
                   "magique"
                 ],
                 "chooseForm": true,
-                "skin": {
-                  "metal": "#8fd4ff",
-                  "cuir": "#34557f",
-                  "accent": "#bfe6ff"
+                "teinte": {
+                  "id": "aethyrique"
                 }
               }
             ]
@@ -5001,10 +4999,8 @@
                   "percutante"
                 ],
                 "form": "arme-simple",
-                "skin": {
-                  "metal": "#ff8a3a",
-                  "cuir": "#5a2410",
-                  "accent": "#ffce4a"
+                "teinte": {
+                  "id": "ardente-de-rhuin"
                 },
                 "onHitEffects": [
                   {
@@ -6847,10 +6843,8 @@
                   "magique"
                 ],
                 "form": "serpe-de-guerre",
-                "skin": {
-                  "metal": "#b07fdc",
-                  "cuir": "#2b1b3d",
-                  "accent": "#d6acff"
+                "teinte": {
+                  "id": "shyish"
                 }
               },
               {

@@ -208,7 +208,7 @@ export const MODAL_DEFS = [
   //  useTestJetProps) — `pendingTest` coexiste comme porteur de données, comme `pendingAttack` pour l'attaque.)
   // Jet d'Activité d'interlude (LDB 23) — hors combat, même règle coop qu'en combat : le PROPRIÉTAIRE
   // du héros joue, les autres voient « X joue… ».
-  { key: 'activity', when: (s) => !!s.pendingActivity, owner: (s) => s.pendingActivity?.heroId, auto: { mode: 'hostOnly' }, covers: ['pendingActivity'], flux: ['activity'], verbes: ['activityConfirm', 'activityCancel'] },
+  { key: 'activity', when: (s) => !!s.pendingActivity, owner: (s) => s.pendingActivity?.heroId, auto: { mode: 'hostOnly' }, covers: ['pendingActivity'], flux: ['activity'], verbes: ['activityConfirm'] },
   { key: 'corruption', when: (s) => !!s.pendingCorruption, owner: (s) => s.pendingCorruption?.heroId, auto: { mode: 'self', drive: ['corruptionRoll', 'resolveCorruption'] }, covers: ['pendingCorruption'], flux: ['corruption'], verbes: ['corruptionSetNature'] },
 ] as const satisfies readonly ModalDef[];
 

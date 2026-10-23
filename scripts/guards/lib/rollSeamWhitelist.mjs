@@ -1,5 +1,5 @@
 // Whitelist PARTAGÉE du garde « exclusivité du seam de jet » (#274) — SOURCE UNIQUE consommée par
-// `src/state/roll-seam-exclusivity-guard.test.ts` (Vitest, refus) ET `scripts/git-hooks/pre-commit.mjs`
+// `src/noyau/roll-seam-exclusivity-guard.test.ts` (Vitest, refus) ET `scripts/git-hooks/pre-commit.mjs`
 // (avertissement au commit). Deux listes DISJOINTES, de nature différente :
 //
 //  1. `ROLL_SEAM_CORE` — exclusion de PRINCIPE : ces fichiers SONT le seam (la porte, la fabrique, le

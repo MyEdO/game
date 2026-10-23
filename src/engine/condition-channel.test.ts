@@ -6,7 +6,7 @@
  * d'État à durée de sort, et l'interprète inline des maladies. Ce n'est PAS tout le moteur : d'autres
  * émetteurs journalisent des États sans notifier (Exécuté/Inconscient de `conditions.ts`, `healing`,
  * `exposure`, `suffocation`, `travel`…). Ils seront branchés PAR FAMILLES en V8d-B/C ; leur reste à
- * faire se lit au cliquet `state/condition-event-counter.test.ts`. N'héritez donc AUCUN contrat total
+ * faire se lit au cliquet `src/condition-event-counter.test.ts`. N'héritez donc AUCUN contrat total
  * de cette sonde.
  *
  * Ce qu'elle verrouille, sur ce périmètre :

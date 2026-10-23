@@ -28,7 +28,7 @@ const SCENE_M = 1;
 
 /** Hauteur métrique de l'ÉTAGE (loges/galeries) : un plein niveau (`METRES_PER_LEVEL`) au-dessus du
  *  point HAUT du plancher qu'il coiffe — la scène, pas le parterre. C'est l'INVARIANT D'EMPILEMENT que
- *  `validateScene` (`state/validateScene.ts`, « un étage se pose sur le dessus de celui du dessous »)
+ *  `validateScene` (`noyau/validateScene.ts`, « un étage se pose sur le dessus de celui du dessous »)
  *  mesure case par case sous l'emprise de la masse. Les rampes la rejoignent. */
 const ETAGE_M = SCENE_M + METRES_PER_LEVEL;
 

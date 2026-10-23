@@ -81,7 +81,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // `armEndTurn` = 1er temps du garde-fou « tour gâché » : l'armement vit dans `battle` (état d'hôte),
   // donc l'invité le DEMANDE comme tout geste de son tour — sinon son 1er appui serait sans effet.
   battleClickEntity: 'invité', battleClickTile: 'invité', battleEndTurn: 'invité',
-  armEndTurn: 'invité', cancelMove: 'invité', battleSelectAction: 'invité',
+  armEndTurn: 'invité', battleClearPreview: 'invité', cancelMove: 'invité', battleSelectAction: 'invité',
   // actions de la hotbar — rendues dès `controlsCombatant` (le combattant ACTIF), et autorisées par
   // le REPLI universel de `intentAllowedFor` (aucune modale ouverte → le propriétaire de l'actif).
   battleAim: 'invité', battleDefendTotal: 'invité', battleDisengage: 'invité', battleRun: 'invité',
@@ -132,9 +132,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   cascadeTableSetForcedRoll: 'invité',
   // DÉ NU (#1508) : les deux mêmes verbes pour l'autre lecture du même dé — même routage de possession.
   cascadeDieRoll: 'invité', cascadeDieSetForcedRoll: 'invité',
-  // désengagement : ouverture, jet, appliquer/fuir/annuler
+  // désengagement : ouverture, jet, appliquer/fuir
   disengageConfirmA: 'invité', disengageRoll: 'invité', disengageConfirm: 'invité',
-  disengageFlee: 'invité', disengageCancel: 'invité',
+  disengageFlee: 'invité',
   // « Au Contact » (LDB 62 l.176) : ouverture, jet, choix du vainqueur
   battleAuContact: 'invité', auContactRoll: 'invité', auContactConfirm: 'invité',
   auContactChoose: 'invité', auContactCancel: 'invité',
@@ -204,8 +204,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
   victoryReady: 'invité', assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
   // ═══ invité : GROUPE — composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet
-  // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). L'hôte injecte le siège
-  // du transport dans `partyAddHero`/`partyReplaceHero` (`ARGS_AU_SIEGE_DU_TRANSPORT`). ═══
+  // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   partyAddHero: 'invité', partyRemoveHero: 'invité', partyReplaceHero: 'invité', toggleCluePin: 'invité',
   markCluesSeen: 'invité',
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
@@ -214,9 +213,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Identification + catalogue) ; `interludeCraftStart` engage l'ouvrage (setup, sans jet).
   interludeActivity: 'invité', interludeCraftStart: 'invité', interludeOrder: 'invité',
   interludeBank: 'invité', interludeWithdraw: 'invité',
-  // Jet d'Activité : verbes DÉRIVÉS (flux mono `activity`) ; l'application et l'annulation sont des
-  // actions de store hors `FLOW_VERBS`.
-  activityConfirm: 'invité', activityCancel: 'invité',
+  // Jet d'Activité : verbes DÉRIVÉS (flux mono `activity`, « Annuler » compris) ; l'application est une
+  // action de store hors `FLOW_VERBS`.
+  activityConfirm: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
@@ -235,7 +234,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   oocCastSpell: 'hôte', oocFocusSpell: 'hôte', oocDispelSpell: 'hôte', openMedic: 'hôte',
   usePartyItem: 'hôte', appraiseItem: 'hôte', appraiseGear: 'hôte',
   // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
-  toggleEquip: 'hôte', stowItem: 'hôte', transferItem: 'hôte', setItemSkin: 'hôte', choisirForme: 'hôte',
+  toggleEquip: 'hôte', stowItem: 'hôte', transferItem: 'hôte', choisirForme: 'hôte',
   setLoadoutSlot: 'hôte', createLoadout: 'hôte', deleteLoadout: 'hôte', setActiveLoadout: 'hôte',
   abandonPossession: 'hôte', renamePossession: 'hôte', retrievePossession: 'hôte',
   stablePossession: 'hôte', embark: 'hôte', disembark: 'hôte',
@@ -310,7 +309,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `startInterlude`/`interludeEnd` sont `hôte` (l'hôte seul ouvre et clôt la période). */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
   'interludeActivity', 'interludeCraftStart', 'interludeOrder', 'interludeBank', 'interludeWithdraw',
-  'activityConfirm', 'activityCancel',
+  'activityConfirm',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */
@@ -381,13 +380,6 @@ type FluxHorsModalSansResolution = {
 const _fluxHorsModalClos: [FluxHorsModalSansResolution] extends [never] ? true : ['flux mono HORS_MODAL sans `resolution`', FluxHorsModalSansResolution] = true;
 void _fluxHorsModalClos;
 
-/** Args d'une intention que le siège émetteur ne choisit pas : le siège vient du TRANSPORT, jamais des args
- *  de l'invité. `partyAddHero` = [hero, wealth, seat] ; `partyReplaceHero` = [oldId, hero, seat]. */
-const ARGS_AU_SIEGE_DU_TRANSPORT: Partial<Record<ActionDeClasse<'invité'>, (args: readonly unknown[], siege: number) => unknown[]>> = {
-  partyAddHero: ([hero, wealth], siege) => [hero, wealth, siege],
-  partyReplaceHero: ([oldId, hero], siege) => [oldId, hero, siege],
-};
-
 /** Sort d'une intention de siège : ignorée hors allowlist, refusée hors possession, sinon appliquée. */
 export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
 
@@ -395,8 +387,7 @@ export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
  * Intention d'un SIÈGE appliquée dans l'état du propriétaire (spec coop §4bis, #1017). Ordre :
  *  1. allowlist `GUEST_INTENTS` : hors liste, rien, ni effet ni journal ;
  *  2. possession `intentAllowedFor` : refus au journal ;
- *  3. siège du transport dans les args de composition (`ARGS_AU_SIEGE_DU_TRANSPORT`) ;
- *  4. l'action AU NOM du siège (`withActingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
+ *  3. l'action AU NOM du siège (`withActingSeat`), seul canal du siège (`decidingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
  *     (`controlsCombatant`) jugent l'émetteur, et l'intention armée du propriétaire ne s'y lit pas
  *     (`localIntent.intentionDuProprietaire`) : seul compte le verdict joint aux args.
  */
@@ -406,9 +397,7 @@ export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: str
     get().log(t('coop.intentRefused'));
     return 'refusee';
   }
-  const reecriture = Object.prototype.hasOwnProperty.call(ARGS_AU_SIEGE_DU_TRANSPORT, action) ? ARGS_AU_SIEGE_DU_TRANSPORT[action as ActionDeClasse<'invité'>] : undefined;
-  const argsDuSiege = reecriture?.(args, siege) ?? args;
   const fn = (get() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...argsDuSiege));
+  if (typeof fn === 'function') withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...args));
   return 'appliquee';
 }

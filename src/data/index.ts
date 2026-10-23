@@ -54,7 +54,7 @@ import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
 import structureAppearanceJson from './structureAppearance.json';
 import materialsJson from './materials.json';
-import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef } from './materials.types';
+import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet } from './materials.types';
 import terrainsJson from './terrains.json';
 import type { TerrainDef } from './terrains.types';
 import buildingsJson from './buildings.json';
@@ -2553,7 +2553,7 @@ export const matieresDe = <D extends MaterialDomain>(domain: D): MatiereDe<D>[] 
   materials.filter((m): m is MatiereDe<D> => m.domain === domain);
 
 /** Matières POSABLES sur une masse de toit : les entrées de domaine `roof` que la DONNÉE déclare
- *  couvrantes (`couverture`) — SOURCE UNIQUE du validateur de scène (`state/validateScene.ts`) et des
+ *  couvrantes (`couverture`) — SOURCE UNIQUE du validateur de scène (`noyau/validateScene.ts`) et des
  *  sélecteurs de l'éditeur (`ui/editor/Inspector.tsx`), qui vivent dans deux couches et ne peuvent pas
  *  s'importer l'une l'autre. Lecture VIVANTE, comme `matieresDe`. */
 export const matieresCouvrantes = (): RoofMaterialDef[] => matieresDe('roof').filter((m) => m.couverture);
@@ -2845,6 +2845,8 @@ export const refEstVolumique = (ref: string | undefined): boolean => ref !== und
  *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
  *  `data/materials-identite.test.ts` (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
+/** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
+export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
  *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId`, cf.
  *  `findDomainById`). */
@@ -3551,14 +3553,14 @@ export function specLabel(category: string, refId: string, specId: string): Play
  *
  * CE QU'IL N'EST PAS : le fossile `rawText` sous un autre nom — d'autant moins négociable que ce fossile
  * est MORT (#1318 E7-FINAL). Il gelait un LITTÉRAL FR écrit au call-site ; ici l'argument est TOUJOURS lu
- * dans la donnée. Le cliquet nominatif `state/player-text-ratchet.test.ts` tient cette différence à ZÉRO,
+ * dans la donnée. Le cliquet nominatif `src/player-text-ratchet.test.ts` tient cette différence à ZÉRO,
  * sans gel : un littéral FR passé à `dataLabel(` rougit la CI — la garde, pas le nom, ferme le retour.
  *
  * `repli` : la dégradation quand la donnée ne porte pas de texte — un ID, ou un libellé DÉJÀ dérivé du
  * catalogue (`refLabel`, `CHAR_LABELS`). Jamais un littéral FR : même cliquet.
  */
 export function dataLabel(texte: string | undefined | null, repli?: string): PlayerText {
-  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `state/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
+  // eslint-disable-next-line murs/marques -- #1318 V8a₁ : l'unique cast de ce minteur (b) — forger la marque EST son corps de métier (cf. JSDoc), et le cliquet `src/player-text-ratchet.test.ts` refuse qu'un littéral FR y entre.
   return (texte ?? repli ?? '') as PlayerText;
 }
 

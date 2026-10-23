@@ -108,7 +108,7 @@ const NOMMES = [
   'physique|mentale',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
-  'prop|roof|relief',
+  'prop|roof|relief|objet',
   // `specialSchema.effet` (#1921) : l'effet d'un Spécial de jeu de taverne (NADJ 16 l.82).
   'cran|difficulte',
   // `difficultySchema` (#1921) : l'échelle canon des Difficultés (LDB 12 l.143-151, EDO App.2), nommée

@@ -6,7 +6,7 @@ import { MenuCard } from './MenuCard';
 import { ActiveModal } from './ActiveModal';
 import { StationSheet } from './StationSheet';
 import { AssignRow } from './console/AssignRow';
-import { battleScenesToStations, type Station } from '../state/stations';
+import { battleScenesToStations, type Station } from '../noyau/stations';
 import {
   massBattleThreatPenalty, armyMight, armyStartMight,
   battleSceneById, battleSceneEffectLabel, battleActionRefus,

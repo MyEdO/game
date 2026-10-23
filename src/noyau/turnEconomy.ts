@@ -1,8 +1,10 @@
 import type { Combatant } from '../engine/types';
-import type { BattleState } from './etat';
+import type { BattleState, Jeu } from './etat';
 import { isOutOfAction } from '../engine/conditions';
 import { canStrikeFirst } from '../engine/qualities/dispatch';
 import { ACTION_GATES, freeDisengage, type ActionCtx } from './actionRegistry';
+import { controlsCombatant } from './netOwnership';
+import { inBattleId } from './monde/combatants';
 
 /**
  * Le héros actif a-t-il ENCORE une option UTILE ce tour ? (R6 du diagnostic lisibilité-combat). Sert au
@@ -29,22 +31,28 @@ export function hasMeaningfulOption(active: Combatant, battle: BattleState): boo
 }
 
 /**
- * Ce combattant peut-il choisir d'AGIR EN PREMIER ce Round (pré-emption d'initiative, LDB 17 l.25 :
- * « Au début du Round, choisissez le moment où vous allez agir, sans tenir compte de l'Ordre
- * d'Initiative ») ? Affiché dans la frise d'initiative (InitiativeStrip) pendant la pause de début de Round.
- *
- * Aujourd'hui : un combattant avec ≥1 point de Chance (ou une arme Rapide), pas déjà en tête de l'ordre, et
- * toujours en état d'agir. Le CONTRÔLE (qui peut réordonner) est filtré par l'appelant (`controlsCombatant`).
- * Point d'extension pour les RÉORDONNANCEMENTS d'initiative (Chance, arme Rapide). Tir rapide n'est PAS un
- * réordonnancement (interruption hors de l'ordre, LDB 10) → il ne passe PAS par ici. Pur.
+ * Ce combattant peut-il AGIR EN PREMIER ce Round (réordonnancement d'initiative) ? LDB 17 l.25, LDB 62 l.298-300.
+ * Lu par la frise d'initiative pendant la pause de début de Round ; le CONTRÔLE (qui réordonne qui) est filtré par
+ * `actFirstIds` (`controlsCombatant`). Tir rapide (LDB 11 l.97-103) : `preemptRangedShot`. Pur.
  */
 export function canActFirst(c: Combatant, battle: BattleState): boolean {
   // ÉLIGIBILITÉ par RESSOURCE/position (Chance ou arme Rapide) — le `kind` n'est PAS un gate ici : le
-  // CONTRÔLE (qui peut réordonner qui) est appliqué par l'appelant UI (`controlsCombatant`, CampaignView).
+  // CONTRÔLE (qui peut réordonner qui) est appliqué par `actFirstIds` (`controlsCombatant`).
   if (isOutOfAction(c)) return false;
   if (battle.order[0] === c.id) return false; // déjà en tête de l'ordre du Round
   // Réordonnancement d'initiative : Chance (LDB 17 l.25) ou arme Rapide (LDB 62 l.298-300).
   return (c.fortune ?? 0) > 0 || canStrikeFirst(c.weapons);
+}
+
+/** Les héros que `roundStartPromote` accepte pendant la pause de début de Round : ceux que le siège qui décide
+ *  contrôle (`controlsCombatant`) et qui peuvent agir en premier (`canActFirst`). Vide hors pause. LDB 17 l.25. */
+export function actFirstIds(s: Jeu): string[] {
+  const battle = s.battle;
+  if (!battle || battle.over || !s.pendingRoundStart) return [];
+  return battle.order.filter((id) => {
+    const c = inBattleId(battle, id);
+    return !!c && controlsCombatant(s, c) && canActFirst(c, battle);
+  });
 }
 
 /** Le RÉORDONNANCEMENT d'initiative est-il gratuit pour `c` ? (arme Rapide LDB 62 l.298-300 ; sinon il coûte
