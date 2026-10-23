@@ -139,6 +139,11 @@ jobs:
           path: ~/.cache/wfrp-godot
           key: godot-${{ hashFiles('hotes/godot/construire.mjs') }}
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/wfrp-modeles-3d
+          key: modeles-3d-${{ hashFiles('hotes/godot/projet/modeles/*.provenance.json') }}
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint

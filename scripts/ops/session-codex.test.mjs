@@ -602,7 +602,7 @@ for (const etape of ['version', 'schéma']) {
   test(`protocole : timeout de mesure ${etape} retentable, erreur native conservée`, () => {
     const erreur = Object.assign(new Error(`spawnSync codex ${etape} ETIMEDOUT`), { code: 'ETIMEDOUT' })
     assert.throws(() => verifierProtocoleCodex({ executable: 'timeout', executer(exe, args) {
-      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.164.0\n' }
       return { status: null, error: erreur }
     } }), (e) => {
       assert.equal(e.message, `${prefixeDeRefus('transitoire')} ${etape === 'version' ? 'Version' : 'Schéma'} Codex invérifiable`)
@@ -612,11 +612,11 @@ for (const etape of ['version', 'schéma']) {
   })
 }
 test('version protocole : binaire mesuré, schéma nécessaire et refus fermés', () => {
-  assert.equal(VERSION_PROTOCOLE_CODEX, '0.163.0')
+  assert.equal(VERSION_PROTOCOLE_CODEX, '0.164.0')
   assert.throws(() => verifierProtocoleCodex({ executable: 'missing', executer: () => ({ status: 1, stderr: 'absent' }) }), /\[panne/)
   assert.throws(() => verifierProtocoleCodex({ executable: 'old', executer: () => ({ status: 0, stdout: 'codex-cli 0.162.0\n' }) }), /\[validation/)
   const appels = []
-  assert.throws(() => verifierProtocoleCodex({ executable: 'future', executer: (exe, args) => { appels.push([exe, args]); return args[0] === '--version' ? { status: 0, stdout: 'codex-cli 0.164.0\n' } : { status: 0 } } }), /\[panne/)
+  assert.throws(() => verifierProtocoleCodex({ executable: 'future', executer: (exe, args) => { appels.push([exe, args]); return args[0] === '--version' ? { status: 0, stdout: 'codex-cli 0.165.0\n' } : { status: 0 } } }), /\[panne/)
   assert.equal(appels[1][1][0], 'app-server')
   assert.equal(appels[1][0], 'future')
 })
@@ -663,7 +663,7 @@ test('protocole : formes consommées requises, types, enums et nullabilité ; ex
   function verifier(changer = () => {}) {
     return verifierProtocoleCodex({ executable: 'audited', executer(exe, args) {
       assert.equal(exe, 'audited')
-      if (args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      if (args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.164.0\n' }
       const corpus = corpusProtocole()
       const defs = Object.fromEntries(Object.entries(corpus).map(([n, s]) => [n.split('/')[1], s]))
       const enveloppe = (methodes, request = false) => ({ definitions: defs, oneOf: Object.entries(methodes).map(([m, n]) => ({ type: 'object', properties: { method: { type: 'string', enum: [m] }, ...(n ? { params: { $ref: `#/definitions/${n}` } } : {}) }, required: ['method', ...(n ? ['params'] : []), ...(request ? ['id'] : [])] })) })
@@ -678,8 +678,9 @@ test('protocole : formes consommées requises, types, enums et nullabilité ; ex
       return { status: 0 }
     } })
   }
-  assert.equal(verifier().version, '0.163.0')
-  assert.equal(verifier((c) => { c['v2/ThreadStartResponse'].description = 'prose'; c['v2/ThreadStartResponse'].properties.nouveau = { type: 'boolean' } }).version, '0.163.0')
+  assert.equal(verifier().version, '0.164.0')
+  assert.equal(verifier((c) => { c['v2/ThreadStartResponse'].description = 'prose'; c['v2/ThreadStartResponse'].properties.nouveau = { type: 'boolean' } }).version, '0.164.0')
+  assert.equal(verifier((c) => { for (const n of ['v2/ItemStartedNotification', 'v2/ItemCompletedNotification']) c[n].properties.item.oneOf.find((b) => b.properties.type.enum[0] === 'imageGeneration').anyOf = [{ required: ['result'] }, { required: ['savedPath'] }] }).version, '0.164.0')
   for (const changer of [
     (c) => { c['v2/ThreadStartResponse'].properties.thread.properties.id = { type: 'integer' } },
     (c) => { c['v2/ThreadStartResponse'].properties.thread.required = [] },

@@ -5,6 +5,9 @@ import { tokenBodyKind } from './tokenBodyKind';
 import { resolveRender } from './rig/bodyPlan';
 import type { Combatant } from '../engine/types';
 import type { SceneEntity } from '../noyau/monde/scene';
+import { creatureToCombatant } from '../noyau/monde/spawn';
+import { findCreatureById } from '../data';
+import { rigDuCombattant } from './rig/enemyProfile';
 
 const hero = { id: 'h1', kind: 'hero', species: 'humains-reiklander', name: 'Soldat', career: 'Soldat', appearance: { species: 'humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
 
@@ -35,6 +38,17 @@ describe('tokenBodyKind — jeton du GROUPE : un disque-portrait, et rien d’au
     expect(iso.flat, 'un seul rendu possible pour ce sujet : le disque').toBe(true);
     expect(iso).toEqual(tokenBodyKind({ kind: 'partyLeader', leader: hero }, 'top'));
     expect(renderToStaticMarkup(<svg>{iso.body}</svg>), 'le visage du MENEUR').toContain('data-bone="tete"');
+  });
+
+  it('le visage du MENEUR se résout par `rigDuCombattant`, comme au combat — meneur issu du bestiaire compris', () => {
+    const orc = creatureToCombatant(findCreatureById('orc')!, 'orc-1', { x: 0, y: 0 });
+    const meneur = { ...orc, kind: 'hero', aiControlled: false } as Combatant;
+    const rig = rigDuCombattant(meneur);
+    expect(rig.tenue, 'la sonde mord : le profil du record habille le meneur, sa carrière est vide').toBeDefined();
+    expect(meneur.career).toBeUndefined();
+    const visage = (tokenBodyKind({ kind: 'partyLeader', leader: meneur }).body as ReactElement<typeof rig>).props;
+    expect(visage).toEqual(rig);
+    expect(visage).toEqual((tokenBodyKind({ kind: 'combatant', combatant: meneur }).body as ReactElement<typeof rig>).props);
   });
 });
 

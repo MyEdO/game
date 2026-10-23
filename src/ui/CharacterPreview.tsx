@@ -1,14 +1,13 @@
 /**
  * CharacterPreview — LA primitive d'aperçu « perso en pied » hors combat (roster, créateur,
- * fiche, marchand…). Rend le rig réel (`RigSprite`) : l'aperçu reflète EXACTEMENT le rendu jeu
- * (mêmes briques que tokenBodyKind, branche rig) — apparence d'état, équipement porté, tenue de
- * carrière, calques de mutations/blessures.
+ * fiche, marchand…). Rend le rig réel (`RigSprite`) : l'aperçu d'un héros passe par `rigDuCombattant`,
+ * la résolution unique du rendu jeu — apparence d'état, équipement porté, tenue, calques de
+ * mutations/blessures.
  *
  * Deux entrées exclusives :
  *  - bas niveau : `appearance` (+ `equip`/`career`/`overlays`) — créateur/éditeur, avant qu'un
  *    Combatant n'existe ;
- *  - haut niveau : `hero` (Combatant) — tout est dérivé via les briques canoniques
- *    (combatantAppearance/combatantOverlays/equipPorte).
+ *  - haut niveau : `hero` (Combatant) — tout est dérivé par `rigDuCombattant`.
  *
  * AUCUN `<defs>` local : les dégradés fixes du rig (`defsGlobaux()`) sont montés UNE fois au niveau App
  * (GlobalSvgDefs). Tailles et ambiances en CSS (`.charprev`, components.css).
@@ -16,10 +15,9 @@
 import { memo, useMemo } from 'react';
 import type { Combatant } from '../engine/types';
 import { RigSprite, GROUND_Y, bodyHeight, useCompositionRig } from '../gameIso/rig/composeRig';
-import { defaultAppearance } from '../gameIso/rig/appearance';
 import type { Appearance } from '../engine/authoringAppearance';
-import { equipPorte, type EquipCtx } from '../gameIso/rig/parts/equipment';
-import { combatantAppearance, combatantOverlays } from '../gameIso/rig/parts/combatantVisuals';
+import { equipDe, type EquipCtx } from '../noyau/equipementDessine';
+import { rigDuCombattant } from '../gameIso/rig/enemyProfile';
 import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { RigOverlay } from '../gameIso/rig/bones';
 import type { Pose } from '../gameIso/rig/poses';
@@ -70,7 +68,7 @@ interface HeroProps extends CommonProps {
 }
 export type CharacterPreviewProps = RawProps | HeroProps;
 
-const EMPTY_EQUIP: EquipCtx = { weapons: [], armour: [] };
+const EMPTY_EQUIP: EquipCtx = equipDe([], []);
 
 /** viewBox statique de repli (repère de corps 120×150, pieds ancrés en y=150) — hors mode `fill`. */
 const STATIC_BOX = '0 0 120 150';
@@ -91,16 +89,12 @@ const AMBIANCE_CLASS: Record<CharacterPreviewAmbiance, string> = {
 
 function CharacterPreviewBase(props: CharacterPreviewProps) {
   const { view = 'front', pose, mirror = false, size = 'md', ambiance = 'none', fillFraction = FILL_FRACTION, scaleRef, className, hero } = props;
-  // Dérivation « héros » = MÊMES briques que le rendu jeu (cf. tokenBodyKind, branche rig).
-  const appearance = useMemo(
-    () => (hero ? combatantAppearance(hero.appearance ?? defaultAppearance(hero), hero) : props.appearance),
-    [hero, props.appearance],
-  );
   // La projection RÉSOUT la forme au catalogue (`formeResolue`) : sa version entre dans le mémo (#2113).
   const versionDesDatasets = useVersionDesDatasets();
-  const equip = useMemo(() => (hero ? equipPorte(hero) : props.equip ?? EMPTY_EQUIP), [hero, props.equip, versionDesDatasets]);
-  const overlays = useMemo(() => (hero ? combatantOverlays(hero) : props.overlays), [hero, props.overlays]);
-  const career = hero ? hero.career : props.career; // id de garde-robe (carrière), jamais un libellé
+  const { appearance, equip, tenue: career, overlays } = useMemo(
+    () => (hero ? rigDuCombattant(hero) : { appearance: props.appearance, equip: props.equip ?? EMPTY_EQUIP, tenue: props.career, overlays: props.overlays }),
+    [hero, props.appearance, props.equip, props.career, props.overlays, versionDesDatasets],
+  );
   // Composition retenue (`useCompositionRig`) ; l'élément sur la composition et la pose (rendu en
   // listes de 8-15) : mêmes entrées → même élément, React saute le sous-arbre.
   const comp = useCompositionRig(appearance, equip, career, view, overlays, mirror);

@@ -8,7 +8,7 @@
  * arc / arme à feu…) — donc on dérive le maniement de la FORME (silhouette dessinée), qui
  * encode la prise, et on ne retombe sur le Groupe que pour les armes NON dessinées.
  */
-import type { FormeDArme } from '../parts/equipment';
+import type { FormeDArme } from '../../../noyau/equipementDessine';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
 
 export type Handling =
@@ -82,10 +82,6 @@ export function handlingClass(w?: FormeDArme): Handling {
   if (h) return h;
   return w.type === 'ranged' ? 'arc' : 'lame1m';
 }
-
-/** Classes maniées à DEUX mains (la main gauche vient tenir l'arme/la hampe/l'arc/le fût). */
-const TWO_HANDED = new Set<Handling>(['lourde2m', 'hampe', 'arc', 'arbalete', 'arme_feu']);
-export const isTwoHanded = (w?: FormeDArme): boolean => !!w && TWO_HANDED.has(handlingClass(w));
 
 /** Classes à DISTANCE (geste de tir/jet, esquive au lieu de parer en mêlée). */
 const RANGED = new Set<Handling>(['arc', 'arbalete', 'arme_feu', 'fronde', 'jet', 'entraves', 'explosif']);

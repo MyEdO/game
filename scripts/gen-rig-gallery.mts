@@ -10,9 +10,9 @@ import { defsGlobaux } from '../src/gameIso/sprites';
 import type { Appearance } from '../src/engine/authoringAppearance';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
-import { bouclierDeDessin, equipDe } from '../src/gameIso/rig/parts/equipment';
-import type { EquipCtx } from '../src/gameIso/rig/parts/equipment';
-import type { Weapon, ItemInstance } from '../src/engine/types';
+import { bouclierDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
+import type { Weapon } from '../src/engine/types';
+import { itemFromGive } from '../src/engine/items';
 import { raceAppearance } from '../src/data';
 import { sexeSchema } from '../src/data/schemas/grammaire/valeurs';
 import { tenueLabel } from '../src/gameIso/rig/parts/career';
@@ -30,8 +30,8 @@ for (const id of [...TENUES_QC, 'soldat'])
 const SPECIES = raceAppearance.map((r) => ({ id: asRigSpeciesId(r.id), label: r.label }));
 const wep = (trappingId: string, type: 'melee' | 'ranged', formeChoisie?: string): Weapon =>
   ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId, ...(formeChoisie && { formeChoisie }) });
-const plate: ItemInstance = { uid: '1', label: 'Plastron de plaque', kind: 'armor', qualities: [], pa: 4, locs: ['corps'], enc: 1, equipped: true };
-const helm: ItemInstance = { uid: '2', label: 'Heaume', kind: 'armor', qualities: [], pa: 2, locs: ['tete'], enc: 1, equipped: true };
+const plate = { ...itemFromGive({ trappingId: 'plastron' }), equipped: true };
+const helm = { ...itemFromGive({ trappingId: 'heaume' }), equipped: true };
 
 function cell(label: string, app: Appearance, equip: EquipCtx, career: string, view: View = 'front') {
   const svg = renderToStaticMarkup(

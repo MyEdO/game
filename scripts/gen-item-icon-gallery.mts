@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { ItemIcon } from '../src/ui/ItemIcon';
-import { findTrappingById, trappingsInstanciables } from '../src/data';
+import { findTrappingById, trappingsInstanciables, weaponGroups } from '../src/data';
 import { formeResolue, isShieldItem, itemFromTrappingById } from '../src/engine/items';
 import type { HitLocation, ItemInstance } from '../src/engine/types';
 
@@ -34,14 +34,15 @@ const weaponCells = objets.filter((it) => !isShieldItem(it)).flatMap((it) => {
 // Boucliers (art dédié à dégradés → ItemIcon injecte ses <defs>).
 const shieldCells = objets.filter(isShieldItem).map((it) => icone(it.label, it));
 
-// Armures : matériau × emplacement (ItemIcon choisit le slot réellement couvert par la pièce).
-const MATS = ['Rembourré', 'Cuir', 'Maille', 'Plaque'];
+// Armures : matériau × emplacement (ItemIcon choisit le slot réellement couvert par la pièce). Les
+// matériaux sont les Groupes d'armure de `weaponGroups.json`.
+const MATS = weaponGroups.filter((g) => g.kind === 'armour');
 const SLOTS: [label: string, loc: HitLocation][] = [['tête', 'tete'], ['torse', 'corps'], ['bras', 'brasG'], ['jambes', 'jambeG']];
 const armourCells: string[] = [];
-for (const mat of MATS) {
+for (const { id: mat, label: matiere } of MATS) {
   for (const [slotLabel, loc] of SLOTS) {
-    const item: ItemInstance = { uid: `${mat}-${loc}`, label: `${mat} ${slotLabel}`, kind: 'armor', qualities: [], enc: 0, equipped: false, pa: 1, locs: [loc] };
-    armourCells.push(cell(`${mat} · ${slotLabel}`, React.createElement(ItemIcon, { item, size: 56 })));
+    const item: ItemInstance = { uid: `${mat}-${loc}`, label: `${matiere} ${slotLabel}`, kind: 'armor', subType: mat, qualities: [], enc: 0, equipped: false, pa: 1, locs: [loc] };
+    armourCells.push(cell(`${matiere} · ${slotLabel}`, React.createElement(ItemIcon, { item, size: 56 })));
   }
 }
 

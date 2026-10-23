@@ -28,7 +28,7 @@ import { spellCastClip } from './spellClips';
 import { CORPSE_POSE, PRONE_POSE, planGroundPose } from '../../groundPose';
 import { planById } from '../bodyPlan';
 import { STEP_MS } from '../../../geometry/walk';
-import { armeDeDessin } from '../parts/equipment';
+import { armeDeDessin } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
 
 const w = (label: string, type: Weapon['type'], extra: Partial<Weapon> = {}): Weapon =>

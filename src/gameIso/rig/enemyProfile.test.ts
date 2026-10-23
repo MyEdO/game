@@ -10,7 +10,8 @@ import { baseSpeciesOf } from './skeletons';
 import { resolveParts } from './parts/resolve';
 import { viewOrFront } from './parts/types';
 import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
-import { armeDeDessin, armourPart, pieceDeDessin, weaponFamily } from './parts/equipment';
+import { armourPart, weaponFamily } from './parts/equipment';
+import { armeDeDessin, pieceDeDessin } from '../../noyau/equipementDessine';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { isShieldTrapping } from '../../engine/items';
 import { hairstylesForSex } from './parts/hairstyles';
@@ -77,7 +78,7 @@ describe('enemyRigProfile', () => {
     const c = mkEnemy('Bandit');
     const p = enemyRigProfile(c)!;
     expect(p).not.toBeNull();
-    expect(p.equip.weapons).toEqual(c.weapons.map(armeDeDessin));
+    expect(p.equip.weapons).toEqual(c.weapons.map((w) => armeDeDessin(w)));
   });
 
   it('déterministe : même id ⇒ même apparence', () => {
@@ -201,7 +202,7 @@ describe('enemyRigProfile', () => {
 
   it('utilise l’inventaire du combattant s’il en a un', () => {
     const item: ItemInstance = {
-      uid: 'a1', label: 'Brigandine', kind: 'armor', qualities: [], pa: 2,
+      uid: 'a1', label: 'Brigandine', kind: 'armor', subType: 'cuir-bouilli', qualities: [], pa: 2,
       locs: ['corps'], enc: 1, equipped: true,
     };
     const c = mkEnemy('Bandit', { items: [item], armour: { ...noArmour, corps: 9 } });
@@ -349,7 +350,7 @@ describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combatt
   });
 });
 
-describe('#2097 C4 — équipement PORTÉ : une production (`equipPorte`), parité combat ↔ explo', () => {
+describe('#2097 C4 — équipement PORTÉ : une production (`equipementDessine`), parité combat ↔ explo', () => {
   it('cape d’ennemi portée : dessinée, comme celle d’un héros', () => {
     const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
     expect(enemyRigProfile(mkEnemy('Bandit', { items: [cape] }))!.equip.cape).toBe(true);
@@ -364,9 +365,7 @@ describe('#2097 C4 — équipement PORTÉ : une production (`equipPorte`), parit
 
   it('armure synthétisée : pièces triées par matériau, chaque zone couverte par UNE pièce (ordre sans effet de dessin)', () => {
     const p = enemyRigProfile(mkEnemy('Soldat', { armour: { ...noArmour, corps: 1, tete: 5 }, appearanceOverride: { armurePortee: true } as never }))!;
-    const rang = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 } as const;
-    const rangs = p.equip.armour.map((a) => rang[a.materiau]);
-    expect(rangs).toEqual([...rangs].sort((a, b) => b - a));
+    expect(p.equip.armour.map((a) => [a.locs, a.matiere]), 'matière par palier de PA, plate avant cuir (#2948)').toEqual([[['tete'], 'plate'], [['corps'], 'cuir-souple']]);
     const zones = p.equip.armour.flatMap((a) => a.locs ?? []);
     expect(zones.length, 'PRÉMISSE : des pièces sont synthétisées').toBeGreaterThan(0);
     expect(new Set(zones).size).toBe(zones.length);

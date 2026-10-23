@@ -546,7 +546,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
-  projet/                   le projet Godot 4.7 (GDScript, scènes, modèles KayKit et leur licence) : il dessine la
+  asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
+                            les GLB vivent dans la Release `modeles-3d`, nommés par leur SHA-256, que la provenance
+                            commitée épingle (`asset/release.ts` : `recupererModeles` avant Godot, `publierAssets` à l'import).
+  projet/                   le projet Godot 4.7 (GDScript, scènes, manifestes et provenances des modèles KayKit, leur licence) : il dessine la
                             vue et rend chaque geste en intention, sans règle, l'arithmétique de la mise en page dans
                             le seul `hotes/godot/projet/scripts/mise_en_page.gd` (gardes `src/hote/derive-du-noyau.hors-store.test.ts`,
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;

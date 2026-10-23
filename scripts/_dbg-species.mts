@@ -8,7 +8,7 @@ import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
 import { raceAppearance } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
-import { equipDe } from '../src/gameIso/rig/parts/equipment';
+import { equipDe } from '../src/noyau/equipementDessine';
 
 // Mannequin de la planche : ID de garde-robe (carrière ∪ classe ∪ tenue), validé fail-fast —
 // un id qui retombe sur « nu » fausserait l'ancrage mesuré ici (#1338).

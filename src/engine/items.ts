@@ -8,6 +8,7 @@ import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, W
 import { bonus, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants } from './weaponDamage';
+import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
@@ -451,7 +452,10 @@ export function emptyArmour(ap = 0): ArmourPoints {
  *  `itemFromTrapping` sur l'ItemInstance. Repli pour les armes BRUTES sans `hands` typé (statblocs
  *  d'ennemis, armes synthétiques) : Groupe « Deux-mains » typé (`subType==='deux-mains'`). Aucun parse
  *  de chaîne d'affichage. */
-export function weaponHands(it: { hands?: 1 | 2; subType?: string }, ctx?: { mounted?: boolean }): 1 | 2 {
+/** Contexte de MANIEMENT d'une arme : son porteur est-il monté (`weaponHands`, LDB 62 l.143). */
+export interface ContexteDeManiement { mounted?: boolean }
+
+export function weaponHands(it: { hands?: 1 | 2; subType?: string }, ctx?: ContexteDeManiement): 1 | 2 {
   // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe
   // d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains. » La donnée porte `hands:2`.
   if (ctx?.mounted && it.subType === 'cavalerie' && it.hands === 2) return 1;
@@ -675,9 +679,7 @@ function warMachineResolveChar(it: Pick<ItemInstance, 'kind' | 'weaponGroup'>): 
 }
 
 /** Machine de guerre nécessitant une ÉQUIPE (ADE II 8 l.233, Qualité `equipe` ; catégorie `armes-de-siege`) :
- *  ne se manie JAMAIS en loadout solo — elle doit être SERVIE en poste (`mannedPosteWeapon`/`serveAtPoste`, qui
- *  dérivent la même arme SANS passer par `toWeapon`). Même famille de veto que `cannotWieldTwoHanded`
- *  (amputation) : un item qui ne devient PAS une arme de loadout normal. */
+ *  n'occupe aucun slot de set (`objetDeSlot`) ; elle se sert en poste (`mannedPosteWeapon`/`serveAtPoste`). */
 function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): boolean {
   return it.subType === 'armes-de-siege' || hasQuality(it, 'equipe');
 }
@@ -690,10 +692,10 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
  * prévue) puis replie les altérations PORTÉES PAR L'OBJET (`applyEnchants`) → l'arme rendue est déjà
  * Magique/+Dégâts/onHit, visible partout ET appliquée à la résolution.
  * `hand` = main qui la tient (absent hors loadout) ; `ctx.mounted` alimente `weaponHands` (LDB 62 l.142-143).
- * Les VETOS de port (arme détruite, machine à Équipe, amputation) restent chez l'appelant : ils dépendent
- * du PORTEUR, pas du profil de l'arme.
+ * Les VETOS de port restent chez l'appelant : arme détruite et machine à Équipe (`objetDeSlot`),
+ * amputation (`recomputeLoadout`, `mannedPosteWeapon`).
  */
-export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { mounted?: boolean }): Weapon {
+export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: ContexteDeManiement): Weapon {
   return applyEnchants(buildWeapon({
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'ranged',
     // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
@@ -708,21 +710,26 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { 
   }), it.enchants ?? []);
 }
 
+/** Objet qu'un slot `main`/`off` d'un set désigne par `uid`, s'il peut y être : présent dans l'inventaire,
+ *  non DÉTRUIT (LDB 14/62), hors contenant (`inside`), arme de mêlée ou à distance, sans Équipe
+ *  (`requiresCrewedPoste`, ADE II 8 l.233). Lu par l'amorce des sets (`ensureDefaultLoadout`), leur auto-élagage,
+ *  les mains du set actif (`recomputeLoadout`) et les armes RANGÉES du dessin (`equipementDessine`). */
+export function objetDeSlot(c: Combatant, uid?: string): ItemInstance | undefined {
+  return uid == null ? undefined
+    : (c.items ?? []).find((i) => i.uid === uid && !i.destroyed && !i.inside && (i.kind === 'melee' || i.kind === 'ranged') && !requiresCrewedPoste(i));
+}
+
 /** Recalcule armes/armure actives + encombrement. Les ARMES viennent du loadout actif (contrainte 2 mains,
  *  tag `hand`) ; si aucun loadout, ensureDefaultLoadout en crée un automatiquement — UN SEUL modèle. */
 export function recomputeLoadout(c: Combatant): void {
   const items = c.items ?? [];
-  // Auto-prune : un slot référençant une arme ABSENTE de l'inventaire (vente/transfert/perte), DÉTRUITE
-  // (Incident de Tir / usure, LDB 14/62) ou RANGÉE dans un contenant (`inside`) est vidé, sur TOUS les
-  // loadouts : l'arme n'est plus en main.
-  const slotDead = (uid?: string) => uid != null && !items.some((i) => i.uid === uid && !i.destroyed && !i.inside);
+  // Auto-prune : un slot dont l'objet ne peut plus y être (`objetDeSlot`) est vidé, sur TOUS les loadouts.
+  const slotDead = (uid?: string) => uid != null && !objetDeSlot(c, uid);
   for (const lo of c.loadouts ?? []) {
     if (slotDead(lo.main)) lo.main = undefined;
     if (slotDead(lo.off)) lo.off = undefined;
   }
   const toWeapon = (it: ItemInstance, hand: 'main' | 'off'): Weapon | null => {
-    if (it.destroyed) return null; // arme détruite : inutilisable (LDB 14 — Incident de Tir)
-    if (requiresCrewedPoste(it)) return null; // machine de guerre à Équipe (ADE II 8 l.233) : pas de loadout solo, doit être SERVIE en poste
     const mounted = !!c.mountId; // Cavalerie (2M) à pied → vraies 2 mains (LDB 62 l.142-143)
     if (mainsDuPorteur(c, it) === 2 && cannotWieldTwoHanded(c)) return null; // amputation : pas d'arme à 2 mains (LDB 18 l.263)
     return weaponFromItem(it, hand, { mounted });
@@ -740,12 +747,12 @@ export function recomputeLoadout(c: Combatant): void {
     // (bouclier / 2e arme) tombe dès qu'une main manque. Les DEUX mains perdues → Mains nues.
     const mainLost = handAmputated(c, 'main');
     const offLost = handAmputated(c, 'off');
-    const mainIt = !(mainLost && offLost) && lo.main ? items.find((i) => i.uid === lo.main && (i.kind === 'melee' || i.kind === 'ranged')) : undefined;
+    const mainIt = !(mainLost && offLost) ? objetDeSlot(c, lo.main) : undefined;
     const mainW = mainIt ? toWeapon(mainIt, 'main') : null;
     if (mainW) weapons.push(mainW);
     const mainTwoHanded = mainW?.hands === 2;
     if (!mainTwoHanded && !mainLost && !offLost && lo.off) {
-      const offIt = items.find((i) => i.uid === lo.off && (i.kind === 'melee' || i.kind === 'ranged'));
+      const offIt = objetDeSlot(c, lo.off);
       const offW = offIt ? toWeapon(offIt, 'off') : null;
       if (offW) weapons.push(offW);
     }
@@ -855,12 +862,13 @@ export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
   return poste;
 }
 
-/** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas : le 1er = meilleure arme de
- *  mêlée (+ bouclier/2e arme à 1 main en secondaire), le 2nd = 1re arme à distance (sinon vide).
- *  Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`), pas stocké. */
+/** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets qui peuvent occuper
+ *  un slot (`objetDeSlot`, seul filtre) : le 1er = meilleure arme de mêlée, et sous une arme à 1 main un
+ *  bouclier en secondaire, sinon une 2e arme éligible (`isOffHandEligible`) ; le 2nd = 1re arme à distance
+ *  (sinon vide). Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
 export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
-  const items = (c.items ?? []).filter((i) => i.equipped && (i.kind === 'melee' || i.kind === 'ranged'));
+  const items = (c.items ?? []).filter((i) => objetDeSlot(c, i.uid) === i);
   const melee = items.filter((i) => i.kind === 'melee');
   const ranged = items.filter((i) => i.kind === 'ranged');
 
@@ -868,7 +876,10 @@ export function ensureDefaultLoadout(c: Combatant): void {
   if (melee.length) {
     const main = [...melee].sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0];
     set1.main = main.uid;
-    if (mainsDuPorteur(c, main) === 1) set1.off = melee.find((i) => i.uid !== main.uid && mainsDuPorteur(c, i) === 1)?.uid;
+    if (mainsDuPorteur(c, main) === 1) {
+      const secondaires = items.filter((i) => i.uid !== main.uid && isOffHandEligible(i));
+      set1.off = (secondaires.find(isShieldItem) ?? secondaires[0])?.uid;
+    }
   }
   const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
   c.loadouts = [set1, set2];
@@ -1032,11 +1043,11 @@ export function damageArmour(c: Combatant, loc: HitLocation): boolean {
 /** Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — endommage de
  *  1 PA la première pièce de CUIR portée encore intacte, re-dérive l'armure. Retourne la
  *  localisation touchée, ou null si rien en cuir (ennemi à armure plate : matière inconnue → MJ).
- *  Matière détectée par l'id de TYPE d'armure `subType` (« cuir-souple »/« cuir-bouilli ») — réf STABLE
- *  qui PORTE le matériau (≠ nom — multilangue-safe ; cohérent avec l'op `damageArmour{material:'cuir'}`). */
+ *  Matière lue au Groupe du TYPE d'armure `subType` (`armourMaterialOf`, champ `material` de
+ *  `weaponGroups.json`). */
 export function damageLeatherArmour(c: Combatant): HitLocation | null {
   const piece = (c.items ?? []).find(
-    (i) => i.equipped && i.kind === 'armor' && !!i.subType?.startsWith('cuir') && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
+    (i) => i.equipped && i.kind === 'armor' && armourMaterialOf(i) === 'leather' && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
   );
   if (!piece) return null;
   piece.damageTaken = (piece.damageTaken ?? 0) + 1;

@@ -15,7 +15,7 @@ import { apply, worldTransforms, type Matrix } from './kinematics';
 import type { BoneId } from './bones';
 import { handlingClass, type Handling } from './anim/handling';
 import { seatedPose, weaponRest } from './anim/weaponClips';
-import type { FormeDArme } from './parts/equipment';
+import type { FormeDArme } from '../../noyau/equipementDessine';
 import type { ResolveOpts } from './bodyPlan';
 import { DEFAUT_HARNAIS_MONTE } from './quadruped/harnais';
 import { QUAD_RIDER_Z } from './quadruped/quadZ';

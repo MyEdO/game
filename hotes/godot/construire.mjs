@@ -13,9 +13,9 @@
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
-// du profil Godot (`export_templates`).
+// du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde` et `--export` déposent les GLB du projet, tirés
+// de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée (`recupererModeles`, #2948).
 import { fileURLToPath } from 'node:url'
-import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -27,13 +27,14 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme } from './asset/release.ts'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 const PONT = 'wfrp-pont.js'
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier>
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
-  --sonde             le projet importé, puis chaque script contrôlé, par l'éditeur Godot épinglé
+  --sonde             les GLB tirés de la Release des modèles, puis le projet importé, puis chaque script contrôlé, par l'éditeur Godot épinglé
   --export            le bundle et l'export Web du projet, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
@@ -192,15 +193,6 @@ async function extraire({ taille, lire }, noms) {
 /** L'URL de `fichier` dans la publication de la version épinglée. */
 const publie = (fichier) => `https://github.com/godotengine/godot/releases/download/${EDITEUR.version}/${fichier}`
 
-/** La somme SHA-256 de `octets`, hexadécimale. */
-const sha256 = (octets) => createHash('sha256').update(octets).digest('hex')
-
-/** Lève, au nom de `nom`, si la somme de `octets` n'est pas `attendue`. */
-function verifierSomme(nom, octets, attendue) {
-  const somme = sha256(octets)
-  if (somme !== attendue) throw new Error(`${nom} : SHA-256 ${somme}, ${attendue} attendue`)
-}
-
 /** La version que le binaire `binaire` imprime. */
 const versionDe = (binaire) => spawnSync(binaire, ['--version'], { encoding: 'utf8', timeout: 60_000 }).stdout?.trim() ?? ''
 
@@ -251,15 +243,14 @@ async function modeleWeb() {
   const attendue = EDITEUR.modeles.sha256[entree]
   if (!attendue) throw new Error(`${entree} : aucune somme épinglée (EDITEUR.modeles)`)
   const chemin = join(CACHE, basename(entree))
-  if (existsSync(chemin) && sha256(readFileSync(chemin)) === attendue) return chemin
-  const url = publie(EDITEUR.modeles.archive)
-  console.log(`[godot] modèle d'export ${entree}, tiré de ${url}`)
-  const archive = await aDistance(url)
-  const [{ octets: modele }] = await extraire(archive, [entree])
-  verifierSomme(entree, modele, attendue)
-  mkdirSync(CACHE, { recursive: true })
-  writeFileSync(chemin, modele)
-  console.log(`[godot] ${octets(archive.telecharges())} téléchargés sur ${octets(archive.taille)}, ${basename(entree)} (${octets(modele.length)}) gardé dans ${CACHE}`)
+  await enCacheOuTire(chemin, attendue, entree, async () => {
+    const url = publie(EDITEUR.modeles.archive)
+    console.log(`[godot] modèle d'export ${entree}, tiré de ${url}`)
+    const archive = await aDistance(url)
+    const [{ octets: modele }] = await extraire(archive, [entree])
+    console.log(`[godot] ${octets(archive.telecharges())} téléchargés sur ${octets(archive.taille)}, ${basename(entree)} (${octets(modele.length)}) pour ${CACHE}`)
+    return modele
+  })
   return chemin
 }
 
@@ -348,10 +339,14 @@ async function principal() {
     return 2
   }
   if (options.mode === 'pont') return pont(options.sortie)
-  if (options.mode === 'sonde') return verdict(sonder(await editeur()))
+  if (options.mode === 'sonde') {
+    await recupererModeles({ dossier: DOSSIER_DES_MODELES })
+    return verdict(sonder(await editeur()))
+  }
   mkdirSync(options.sortie, { recursive: true })
   const code = await pont(options.sortie)
   if (code) return code
+  await recupererModeles({ dossier: DOSSIER_DES_MODELES })
   const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb()))
   if (!sortie) console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return sortie

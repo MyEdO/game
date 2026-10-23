@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { WEAPON_FORMS, SHIELD_FORMS } from './weaponForms';
-import { weaponFamily, shieldPart, type FormeDArme } from './equipment';
+import { weaponFamily, shieldPart } from './equipment';
+import { type FormeDArme } from '../../../noyau/equipementDessine';
 import { declaredView } from '../viewArt';
 import { trappings } from '../../../data';
 import { WEAPON_DEFS } from './weapons/_registry.generated';

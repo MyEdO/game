@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { handlingClass } from './handling';
 import { weaponAttackClip, weaponParryClip, weaponRest } from './weaponClips';
 import { findTrappingById } from '../../../data';
-import { armeDeDessin, type ArmeDeDessin } from '../parts/equipment';
+import { armeDeDessin, type ArmeDeDessin } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
 
 // Arme portant son id de Possession et son Groupe (`subType`), projetée (forme RÉSOLUE) ; les attaques

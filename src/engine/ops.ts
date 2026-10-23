@@ -41,7 +41,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme } from './items';
+import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { weaponMatchesFamily } from './weaponDamage';
@@ -2162,10 +2162,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const dmg = o.damageBonus != null ? Math.max(0, resolveFormula(o.damageBonus, ref, rng)) : undefined;
         // L'altération se pose SUR L'ARME TENUE (set actif : main puis 2nde) qui matche la famille requise
         // (Épée de justice → une épée ; ungated → la main). Aucune arme valable tenue → fizzle journalisé.
+        // « Tenue » = la résolution du set actif (`objetDeSlot`, `isWeaponActive`) : l'objet `off` d'un set
+        // à deux mains n'est pas tenu.
         const lo = activeLoadout(target);
         const held = [lo?.main, lo?.off]
-          .map((u) => (target.items ?? []).find((i) => i.uid === u))
-          .filter((i): i is ItemInstance => !!i && (i.kind === 'melee' || i.kind === 'ranged'));
+          .map((u) => objetDeSlot(target, u))
+          .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
         const item = held.find((i) => weaponMatchesFamily(i, o.requiresWeapon));
         if (!item) {
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));

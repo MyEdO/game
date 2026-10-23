@@ -16,10 +16,19 @@ import { gameOpSchema, flowSchema, triggeredEffectSchema } from '../grammaire/me
  *  mesurée par `grammaire/formes-partagees.test.ts` à défaut d'être refinée au parse. */
 import { qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
+import { refusDeLEntree } from '../grammaire/ref';
 
 
 export const file = 'trappings.json';
 export const famille = 'entite';
+
+/** Une armure porte son TYPE d'armure : `subType` = id de la sous-liste `armour` des Groupes
+ *  (`weaponGroups.json?kind=armour`). Matière que le dessin et les exemptions de matériau
+ *  (`armourMaterialOf`, `src/engine/armourBypass.ts`) lisent. Jugé par le refus de la sous-liste
+ *  (`refusDeLEntree`, celui de `idDe('weaponGroup', 'armour')`) : une feuille `idDe` exécutée hors de l'arbre
+ *  du schéma échappe à la marche du parse de mesure (`grammaire/parse-de-mesure.test.ts`, COUVERTURE). */
+const refusDuTypeDArmure = (subType: string | null): string | null =>
+  subType === null ? 'aucun type d’armure' : refusDeLEntree('weaponGroup', 'armour', { id: subType });
 
 /** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
 export const trappingCategorieSchema = enumNomme({
@@ -288,7 +297,17 @@ const doc = document(
   },
   // `categorie` : univers des sources `weaponsMelee`/`weaponsRanged` (`grammaire/sourcesDeSpecs.ts`).
   // `service` : marqueur de la sous-liste `INSTANCIABLE_PAR_ID` (`grammaire/sousListes.ts`).
-  { exiges: ['source'], espace: { discriminant: 'categorie', marqueurs: ['service'] } },
+  {
+    exiges: ['source'],
+    espace: { discriminant: 'categorie', marqueurs: ['service'] },
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        const e = v as { id: string; categorie: string; subType: string | null };
+        if (e.categorie !== 'armor') return;
+        const refus = refusDuTypeDArmure(e.subType);
+        if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });
+      }),
+  },
 );
 
 export const schema = doc.schema;

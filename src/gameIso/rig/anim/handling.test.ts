@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { handlingClass, isTwoHanded, isRangedHandling, type Handling } from './handling';
+import { handlingClass, isRangedHandling, type Handling } from './handling';
 import { WEAPON_FORMS } from '../parts/weaponForms';
 import { findTrappingById } from '../../../data';
-import { armeDeDessin, type FormeDArme } from '../parts/equipment';
+import { armeDeDessin, type FormeDArme } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
 
 // Le maniement est routé PAR ID STABLE : l'arme porte son id de Possession, la projection en RÉSOUT la forme.
@@ -65,21 +65,6 @@ describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () 
     const invoquee: Weapon = { label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: 'arbalete' };
     expect(findTrappingById('arbalete')?.shape, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
     expect(handlingClass(armeDeDessin(invoquee))).toBe('arbalete');
-  });
-});
-
-describe('isTwoHanded — la main gauche vient tenir l’arme', () => {
-  it('vrai pour lourde2m / hampe / arc / arbalète / arme à feu', () => {
-    expect(isTwoHanded(w('zweihander'))).toBe(true);
-    expect(isTwoHanded(w('hallebarde'))).toBe(true);
-    expect(isTwoHanded(w('arc-long', 'ranged'))).toBe(true);
-    expect(isTwoHanded(w('arbalete', 'ranged'))).toBe(true);
-    expect(isTwoHanded(w('arquebuse', 'ranged'))).toBe(true);
-  });
-  it('faux pour les armes à une main', () => {
-    expect(isTwoHanded(w('dague'))).toBe(false);
-    expect(isTwoHanded(w('rapiere'))).toBe(false);
-    expect(isTwoHanded(w('coup-de-poing'))).toBe(false);
   });
 });
 

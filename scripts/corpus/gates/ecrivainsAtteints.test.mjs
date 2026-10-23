@@ -857,10 +857,16 @@ const ATTENDU = {
   'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
   // #2928 : sans `--sortie`, `vite build` du pont de Godot n'écrit rien (`write: false`) ; l'arbre n'est jamais écrit.
   // +1 le 2026-10-22 (#2928) : `construire.mjs` écrit sous `--sortie` (absent de la gate) et sous le cache de l'éditeur.
-  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
+  // +3 le 2026-10-23 (#2948) : `construire.mjs` charge au module `asset/release.ts`, écrivain par `ecritureJsonAtomique.mjs`
+  // et `renommageResilient.mjs` ; sous `--pont-seul`, aucun de leurs écrivains n'est appelé (ECRIT_LU, `pont:godot`).
+  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs',
+    'hotes/godot/asset/release.ts', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs'],
   // #2928 : la sonde importe et contrôle une copie du projet sous un `mkdtempSync` d'os.tmpdir(), retirée par `rmSync` ;
-  // l'éditeur épinglé s'écrit sous `~/.cache/wfrp-godot/`. L'arbre n'est jamais écrit.
-  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs'],
+  // l'éditeur épinglé s'écrit sous `~/.cache/wfrp-godot/`.
+  // +3 le 2026-10-23 (#2948) : `recupererModeles` (`asset/release.ts`) écrit le cache `~/.cache/wfrp-modeles-3d/`, hors de
+  // l'arbre, et les GLB gitignorés de hotes/godot/projet/modeles/ par renommage atomique (ECRIT_LU, `ecritFerme`).
+  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs',
+    'hotes/godot/asset/release.ts', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs'],
   'server:typecheck': [],
 }
 

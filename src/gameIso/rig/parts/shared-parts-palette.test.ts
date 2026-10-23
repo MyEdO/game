@@ -20,9 +20,9 @@ import { couchesDuRig, tenuePaletteFor } from './career';
 import { buildTokenMap, applyTokenMap, tokensOf, type PaletteDeclaree } from '../palette';
 import { CLASS_TENUE_BY_ID, SPECIFIC_TENUES } from './tenues';
 import { VIEWS, type View } from '../facing';
-import type { EquipCtx } from './equipment';
+import { equipDe, type EquipCtx } from '../../../noyau/equipementDessine';
 
-const empty: EquipCtx = { weapons: [], armour: [] };
+const empty: EquipCtx = equipDe([], []);
 const TENUE_IDS = [...SPECIFIC_TENUES.map((t) => t.id), ...Object.keys(CLASS_TENUE_BY_ID)];
 const SHARED_SLOTS = ['pied', 'main'] as const;
 /** Bruns de l'art d'origine (pied système) — aucun ne doit survivre à une `botte` déclarée. */
