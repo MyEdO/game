@@ -7,7 +7,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
 import { extendedTestStep } from '../engine/tests';
 import { rule } from '../engine/policy';
-import { t } from '../i18n';
+import { t, pluriel } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose } from './cascade';
 import { tablesPosees, type FragmentDeTables } from './tablesPosees';
@@ -97,13 +97,13 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       const doorB = p.doorB - dmg;
       if (doorB <= 0) {
         set({ pendingForceDoor: null, pendingCascade: null }); // la porte cède → ferme la situation (data + cascade hôte)
-        get().log(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
+        get().log(t('store.doorYields', { label: p.label, n: dmg, s: pluriel(dmg) }));
         if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
         reprendreLaSuite(get, set, p.suite);
       } else {
         // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
         set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
-        get().log(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
+        get().log(t('store.doorHolds', { label: p.label, n: dmg, s: pluriel(dmg), left: doorB, sB: pluriel(doorB) }));
       }
     },
     // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.

@@ -16,7 +16,7 @@
  */
 import { RNG, roll } from './dice';
 import { findTableEntry } from './tables';
-import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant, STATUS_TIERS } from './types';
 import { Money } from './money';
 import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
@@ -109,7 +109,7 @@ export function validatePointBuy(alloc: Record<CharKey, number>): { ok: boolean;
 }
 
 export interface Status {
-  tier: 'Bronze' | 'Argent' | 'Or';
+  tier: (typeof STATUS_TIERS)[number];
   standing: number;
 }
 

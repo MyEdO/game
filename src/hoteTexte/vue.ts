@@ -5,7 +5,7 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
+  avecSigne, effectiveArmourAt, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLICS_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS,
   type GesteDExploration, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
@@ -135,14 +135,12 @@ export function replier(texte: string): string[] {
 const ligneDeVerbes = (f: NonNullable<Projection['fenetre']>): string[] =>
   f.verbes.length ? replier(`verbes${f.pid ? ` (pid ${f.pid})` : ''} : ${f.verbes.map((v) => signature(v, VERBES[v] ?? [])).join(' · ')}`) : [];
 
-const signe = (n: number): string => (n > 0 ? `+${n}` : String(n));
-
 /** Une ligne de jet : qui jette, quoi, puis le dé tombé (un Test : d100 sur la cible, DR, verdict ; une table : d100, la
  *  valeur lue et sa ligne ; un dé : naturel, total et lecture), ou ce qu'il reste à jeter. */
 function texteDeLigneDeJet(l: LigneDeJet): string {
   const qui = l.qui ? `${l.qui} ` : '';
   switch (l.genre) {
-    case 'test': return `${qui}${l.test} ${l.jet ? `${l.jet.d100}/${l.cible ?? '—'} DR ${signe(l.jet.dr)} ${l.jet.reussi ? 'réussi' : 'raté'}` : `à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`}`;
+    case 'test': return `${qui}${l.test} ${l.jet ? `${l.jet.d100}/${l.cible ?? '—'} DR ${avecSigne(l.jet.dr)} ${l.jet.reussi ? 'réussi' : 'raté'}` : `à jeter${l.cible === null ? '' : ` (cible ${l.cible})`}`}`;
     case 'table': return `${qui}${l.table} ${l.jet ? `${l.jet.d100} (${l.jet.effectif}) : ${l.jet.ligne}` : 'à tirer'}`;
     case 'de': return `${qui}${l.de} ${l.jet ? `${l.jet.naturel} → ${l.jet.total}${l.jet.lecture ? ` : ${l.jet.lecture}` : ''}` : 'à jeter'}`;
   }
@@ -150,7 +148,7 @@ function texteDeLigneDeJet(l: LigneDeJet): string {
 
 /** Les jets d'un flux : chaque ligne, puis le vainqueur et le DR net du Test opposé tranché. */
 const ligneDeJets = (j: JetEnVue): string[] => replier(`jet ${j.flux} : ${j.lignes.map(texteDeLigneDeJet).join(' · ')}${
-  j.oppose ? ` · ${j.oppose.gagnante === null ? 'égalité' : `gagne : ${j.lignes[j.oppose.gagnante]?.qui ?? `ligne ${j.oppose.gagnante + 1}`}`} · DR net ${signe(j.oppose.drNet)}` : ''}`);
+  j.oppose ? ` · ${j.oppose.gagnante === null ? 'égalité' : `gagne : ${j.lignes[j.oppose.gagnante]?.qui ?? `ligne ${j.oppose.gagnante + 1}`}`} · DR net ${avecSigne(j.oppose.drNet)}` : ''}`);
 
 const ligneDApercu = (a: Apercu): string =>
   `aperçu : ${a.genre} → ${versEcrit(a)}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;

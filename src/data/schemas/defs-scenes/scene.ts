@@ -20,7 +20,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, settlementSchema } from '../grammaire/valeurs';
 import { conditionSchema, flowTestSchema, gameOpSchema } from '../grammaire/mecanique';
 import { refIndiceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -145,7 +145,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   merchant: nommerChamps(z
     .strictObject({
       archetype: z.string(),
-      settlement: z.enum(['village', 'ville', 'cite']).optional(),
+      settlement: settlementSchema.optional(),
       resaleRate: z.number().optional(),
       buyMarkup: z.number().optional(),
       restockDays: z.number().optional(),

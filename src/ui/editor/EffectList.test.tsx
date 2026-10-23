@@ -14,6 +14,8 @@ import { choisirDansMenu, entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit
 import { CIBLES_D_EFFET_DE_SCENE } from '../../noyau/combatEffects';
 import { talents } from '../../data';
 import { DAY_PHASES } from '../../engine/clock';
+import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
+import { natureDonnableSchema } from '../../data/schemas/grammaire/valeurs';
 import { startMassBattleSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
 
 beforeAll(() => {
@@ -565,5 +567,14 @@ describe('#679 — les références narratives s’éditent par le sélecteur un
       await act(async () => { root.unmount(); });
       container.remove();
     }
+  });
+});
+
+describe('#2938 — résumé de `givePossession` : la nature se nomme par son nœud', () => {
+  it('bête, serviteur et véhicule lisent le libellé de `natureDonnableSchema`', () => {
+    const c = ctxDeCatalogue('sort');
+    expect(effectSummary({ type: 'givePossession', nature: 'vehicule', ref: { vehicleId: 'charrette' } }, c)).toBe(`Possession : ${libelleDeValeur(natureDonnableSchema, 'vehicule')} — Charrette`);
+    expect(effectSummary({ type: 'givePossession', nature: 'serviteur', ref: { custom: { type: 'statblock', label: 'Greta', char: {} } } } as Effect, c)).toBe(`Possession : ${libelleDeValeur(natureDonnableSchema, 'serviteur')} — Greta`);
+    expect(effectSummary({ type: 'givePossession', nature: 'bete', ref: { custom: { type: 'statblock', label: 'Mule', char: {} } } } as Effect, c)).toBe(`Possession : ${libelleDeValeur(natureDonnableSchema, 'bete')} — Mule`);
   });
 });

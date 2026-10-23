@@ -27,7 +27,7 @@ import { traumaLabelOf } from '../../engine/trauma';
 import { formatMoney } from '../../engine/money';
 import { rule, ruleDef } from '../../engine/policy';
 import {
-  conditionLabel, psychologyLabel, groupLabel, symptomLabel, creatureLabel,
+  conditionLabel, psychologyLabel, psychologieEtCibleLabel, groupLabel, symptomLabel, creatureLabel,
   diseaseLabel, refLabel, qualityRefLabel, testSkillLabel,
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
@@ -399,7 +399,7 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
     case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type)}`;
-    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${o.cible})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
+    case 'beginPsych': return `tombe sous ${psychologieEtCibleLabel(o.type, o.cible)}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
     case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;
     case 'corruption': return `gagne ${o.amount >= 0 ? '+' : ''}${o.amount} point(s) de Corruption`;
@@ -420,7 +420,7 @@ export function humanizeOp(o: GameOp): string {
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range })}${o.indice != null && typeof o.indice !== 'number' ? ` ${humanizeFormula(o.indice)}` : ''}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${formatTrait({ id: o.traitId })}`;
-    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${o.cible})` : ''}`;
+    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologieEtCibleLabel(o.psychType, o.cible)}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;

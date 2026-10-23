@@ -89,6 +89,8 @@ import {
 import { navalMoveMod, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { windDirectionSchema } from '../data/schemas/defs-scenes/worldmap';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { crewRoleValue, crewTestModParts, moraleBand, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, SUCCES_MINIME_CAP } from '../engine/crewMorale';
@@ -114,7 +116,7 @@ import { dataLabel } from '../data';
 // Tuile de PONT d'une scène de bord : défaut de compilation (`defauts-de-compilation.json`), éditable
 // au Codex — la scène d'abordage est compilée, elle n'authore pas son sol.
 import { defautsDeCompilation } from '../data';
-import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
+import { t, t as tr, avecSigne, pluriel } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
 import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, equipageApte } from './monde/combatants';
@@ -335,7 +337,7 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   set({ vessel: { ...vessel, provisions: left, morale: { ...vessel.morale, factors } } });
   return [short
     ? t('sv.crewFoodOut')
-    : t('sv.crewFoodLeft', { need, left, s: left > 1 ? 's' : '' })];
+    : t('sv.crewFoodLeft', { need, left, s: pluriel(left) })];
 }
 
 /** RECHARGE les Blessures du Combattant-coque de trajet depuis `vessel.wounds` — SOURCE UNIQUE (#296).
@@ -1099,7 +1101,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     const crewDR = fast.crewDR ?? 0;
     const manannTens = fast.manannTens ?? 0;
     tell(get, set, [
-      t('sv.fastResult', { roll: String(fast.roll), weeks: fast.weeks, crewDR: `${crewDR >= 0 ? '+' : ''}${crewDR}`, manann: `${manannTens >= 0 ? '+' : ''}${manannTens}`, result: String(fast.result), palier: palier.label }),
+      t('sv.fastResult', { roll: String(fast.roll), weeks: fast.weeks, crewDR: avecSigne(crewDR), manann: avecSigne(manannTens), result: String(fast.result), palier: palier.label }),
       palier.desc,
     ]);
   }
@@ -1203,7 +1205,7 @@ export function runSeaDay(get: Get, set: Set): void {
   // Météo du jour (ch.13 l.164) : déjà TIRÉE (à l'ouverture pour le 1ᵉʳ jour, `buildSeaPlan` — sinon à
   // la CLÔTURE du jour précédent, `continueSeaDayAfterCascade` — décision 1 #275 Ronde 2 cran 3, aligné
   // sur le fluvial `tickRiverWindDay`/`finishRiverDay`) — cette ligne l'ANNONCE seulement.
-  tell(get, set, [t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: sea.windFrom, heading: sea.heading })]);
+  tell(get, set, [t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: libelleDeValeur(windDirectionSchema, sea.windFrom), heading: libelleDeValeur(windDirectionSchema, sea.heading) })]);
   if (resolveSeaDayEvent(get, set, rng)) return;
   const { steps, log: lines } = buildSeaDayCascade(get, set);
   for (const l of lines) log(get, set, [l]);
@@ -1268,7 +1270,7 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
   // M effectif qui a servi à CETTE Progression, pour que le Test de survitesse (#443) le lise sans le
   // recalculer après coup (un recalcul manquerait le bonus déjà consommé de la journée).
   patchSea(get, set, { milesToday: miles, eventMMod: undefined, effMToday: eff.m, modeToday: eff.mode ?? undefined });
-  return [t('sv.progressOfDay', { miles, dr: `${progressionDR >= 0 ? '+' : ''}${progressionDR}` })];
+  return [t('sv.progressOfDay', { miles, dr: avecSigne(progressionDR) })];
 }
 
 /** Étapes du tonneau d'eau contaminé (MDG 14 l.209) — DEUX volets INDÉPENDANTS, dans CET ordre : (a)
@@ -1674,7 +1676,7 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
     const foe = rollTest(c.foeSkill, 'intermediaire', rng);
     const gain = pursuitDistanceGain(myM, total + pursuitLowMPenalty(myM)) - pursuitDistanceGain(c.foeM, foe.sl + pursuitLowMPenalty(c.foeM));
     const distance = c.distance + gain;
-    const j = [t('sv.chase', { label: c.label, issue: gain >= 0 ? t('sv.chaseGain') : t('sv.chaseLoss'), gain: `${gain >= 0 ? '+' : ''}${gain}`, distance, escapeAt: c.escapeAt })];
+    const j = [t('sv.chase', { label: c.label, issue: gain >= 0 ? t('sv.chaseGain') : t('sv.chaseLoss'), gain: avecSigne(gain), distance, escapeAt: c.escapeAt })];
     const outcome = pursuitOutcome(distance, c.escapeAt);
     if (outcome === 'escaped') {
       patchSea(get, set, { crisis: undefined, boarding: undefined });
@@ -2237,7 +2239,7 @@ function tellManann(get: Get, set: Set, deltaD10: number): void {
   if (!vessel) return;
   const delta = Math.sign(deltaD10) * rollDice(Math.abs(deltaD10), 10, rng);
   set({ vessel: { ...vessel, manann: addManann(vesselManann(vessel), delta) } });
-  tell(get, set, [t('sv.manannMood', { delta: `${delta >= 0 ? '+' : ''}${delta}`, score: vesselManann(get().vessel).score })]);
+  tell(get, set, [t('sv.manannMood', { delta: avecSigne(delta), score: vesselManann(get().vessel).score })]);
 }
 
 // ── Services PORTUAIRES (#30 — réparation, carénage, Améliorations, construction) ────────────────
@@ -2827,7 +2829,7 @@ export const TABLES = {
         const hull = get().travelPlan!.vehicle!;
         const healed = Math.min(hull.wounds.max - hull.wounds.current, rollDice(1, 10, rng));
         healVesselHull(get, set, hull, healed);
-        j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
+        j = [t('sv.juryRepairs', { n: healed, dr: avecSigne(adj) })];
       } else j = [t('sv.juryRepairsKo', { dr: adj })];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };

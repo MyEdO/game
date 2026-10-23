@@ -3,8 +3,8 @@ import globals from 'globals';
 import { fileURLToPath } from 'node:url';
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 
-const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation)$/';
-const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText`/`AdresseDeCreation` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), ou par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`).';
+const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|TrousVerifies)$/';
+const MSG_FORGE = 'Marque d’origine (#1262/#1318) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`TrousVerifies` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), ou par `trous()` pour des paramètres de message.';
 
 const VERROU_MARQUES = [{
   selector: `TSAsExpression TSTypeReference > Identifier[name=${MARQUES}]`,

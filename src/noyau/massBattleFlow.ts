@@ -42,7 +42,7 @@ import {
   battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus,
   type ClashResult, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
@@ -712,13 +712,12 @@ function applyBattleBands(
 
 /** Libellé chiffré d'une issue appliquée (journal). */
 function outcomeLabel(o: BattleOutcomeDelta, amount: number): string {
-  const sign = amount >= 0 ? '+' : '';
   switch (o.target) {
-    case 'might': return t('mbf.outMight', { side: t((o.side ?? 'enemy') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
-    case 'startMight': return t('mbf.outStartMight', { side: t((o.side ?? 'ally') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
-    case 'allyTestMod': return t('mbf.outAllyTestMod', { amount: `${sign}${amount}` });
-    case 'firstRoundBonus': return t('mbf.outFirstRound', { amount: `${sign}${amount}` });
-    case 'planningBonus': return t('mbf.outPlanning', { amount: `${sign}${amount}` });
+    case 'might': return t('mbf.outMight', { side: t((o.side ?? 'enemy') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: avecSigne(amount) });
+    case 'startMight': return t('mbf.outStartMight', { side: t((o.side ?? 'ally') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: avecSigne(amount) });
+    case 'allyTestMod': return t('mbf.outAllyTestMod', { amount: avecSigne(amount) });
+    case 'firstRoundBonus': return t('mbf.outFirstRound', { amount: avecSigne(amount) });
+    case 'planningBonus': return t('mbf.outPlanning', { amount: avecSigne(amount) });
   }
 }
 
@@ -947,7 +946,7 @@ function shortOutcomeLabel(o: BattleOutcomeDelta): string {
     allyTestMod: t('mbf.shortAllyTestMod'), firstRoundBonus: t('mbf.shortFirstRound'), planningBonus: t('mbf.shortPlanning'),
   };
   const per = o.scale === 'perDR' ? t('mbf.perDR') : o.scale === 'perHit' ? t('mbf.perHit') : o.scale === 'perKill' ? t('mbf.perKill') : '';
-  return t('mbf.shortOutcome', { amount: `${o.amount >= 0 ? '+' : ''}${o.amount}`, per, target: target[o.target] });
+  return t('mbf.shortOutcome', { amount: avecSigne(o.amount), per, target: target[o.target] });
 }
 
 const BATTLE_WHEN_LABEL = (): Record<string, string> => ({

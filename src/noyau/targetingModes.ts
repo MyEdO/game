@@ -30,6 +30,8 @@ import { isFrenzied } from '../engine/psychology';
 import { healableTargets, combatHealModes } from '../engine/healing';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
 import { findSpellById } from '../data';
+import { posteSideSchema } from '../data/schemas/defs/vehicles';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { isStructure, structureImmune } from '../engine/structures';
 import { overcastSourceOf } from '../engine/overcast';
 import { tileKey, type Pt } from './monde/path';
@@ -48,7 +50,7 @@ import { afterApproach } from './combatDirector';
 import { ev } from './combatLog';
 import { refuserGeste } from './refusVisible';
 import { chargeArmee } from './localIntent';
-import { t, type MsgKey } from '../i18n';
+import { t, pluriel, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
 import type { Jeu } from './etat';
@@ -222,7 +224,7 @@ export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById
 export function batteryBlock(get: Get, ship: Combatant, target: Combatant): { reason: 'arc' | 'range'; detail: PlayerText } | null {
   const side = targetArc(get().facing[ship.id] ?? 'N', ship.pos!, target.pos!);
   const postes = bearingPostes(ship, side); // sur ce bord ET chargées (pas en cours de recharge, ch.12)
-  if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side }) };
+  if (!postes.length) return { reason: 'arc', detail: t('cs.bordeeNoArc', { ship: ship.label, side: libelleDeValeur(posteSideSchema, side) }) };
   // PORTÉE : les BANDES du socle (`rangeBandModifier`, rangées de `portee-d-une-arme`, LDB 62 l.198-206).
   // En deçà, le tir passe AVEC son modificateur de bande ; au-delà seulement, refus. Jamais
   // un seuil écrit ici : la pièce la plus longue du bord donne la Portée moyenne, le socle fait le reste.
@@ -773,7 +775,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
     const c = inBattleId(battle, id);
     if (c) c.loseNextMovement = true;
   }
-  const log = [...battle.log, ev('move', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
+  const log = [...battle.log, ev('move', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: pluriel(dist) }), active.id)];
   set({ battle: { ...get().battle!, moveSnapshot: snapshot, movementUsed: mountMovement(get().battle!, active), action: null, reachable: new Map(), preview: null, log } });
   bus.emit(EVT.SCENE_DIRTY);
 }

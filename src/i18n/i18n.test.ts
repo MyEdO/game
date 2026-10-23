@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { t, interpolate, getLocale } from './index';
+import { t, trous, interpolate, getLocale, avecSigne, pluriel } from './index';
+import type { TrousVerifies } from './index';
 import { fr } from './messages/fr';
 import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, BODY_SHAPE_LOC_LABELS } from '../engine/types';
 import { DEFENSE_LABEL } from '../engine/combat';
 import { cibleLabel } from '../engine/psychology';
 import { psychologyLabel } from '../data';
+import type { PsychType } from '../engine/psychology';
 
 describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
   it('résout une clé en texte FR', () => {
@@ -39,6 +41,52 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     // pas du catalogue t().
     expect(cibleLabel('animosite')!.label).toBe(psychologyLabel('animosite'));
     expect(cibleLabel('haine')!.icon).toBe('flag/anger'); // icône du registre <Icon>, portée par la donnée
+  });
+
+  it('trous de message (#2938) : un id de vocabulaire fermé ne compile pas ; texte, libellé et nombre passent', () => {
+    const psy = 'animosite' as PsychType;
+    // @ts-expect-error — `PsychType` est un vocabulaire fermé : il se nomme par `psychologyLabel`
+    const brut = t('turn.recompose', { name: 'Gob', type: psy });
+    const nomme = t('turn.recompose', { name: 'Gob', type: psychologyLabel(psy) });
+    const texte = t('op.cond', { name: 'Gob', v: 2, cond: 'texte libre' });
+    expect([brut, nomme, texte]).toEqual(['Gob se ressaisit (animosite).', `Gob se ressaisit (${psychologyLabel(psy)}).`, 'Gob reçoit 2 État texte libre.']);
+  });
+
+  it('trous de message (#2938) : élargir l\'id ou le marier à un texte ne le fait pas passer', () => {
+    const psyOpt = undefined as PsychType | undefined;
+    const psy = 'haine' as PsychType;
+    const cond = psy === 'haine';
+    const n = 2 as number;
+    const rendus = [
+      // @ts-expect-error — repli vide : l'union reste un vocabulaire fermé
+      t('turn.recompose', { name: 'Gob', type: psyOpt ?? '' }),
+      // @ts-expect-error — repli texte : idem
+      t('turn.recompose', { name: 'Gob', type: psyOpt ?? '?' }),
+      // @ts-expect-error — ternaire vers un littéral
+      t('turn.recompose', { name: 'Gob', type: cond ? psy : 'autre' }),
+      // @ts-expect-error — gabarit qui recopie l'id
+      t('turn.recompose', { name: 'Gob', type: `${psy}` }),
+      // @ts-expect-error — accord écrit au site : il se dit par `pluriel`
+      t('turn.recompose', { name: 'Gob', type: n > 1 ? 's' : '' }),
+      // @ts-expect-error — signe écrit au site : il se dit par `avecSigne`
+      t('turn.recompose', { name: 'Gob', type: `${n >= 0 ? '+' : '-'}${n}` }),
+    ];
+    expect(rendus).toHaveLength(6);
+  });
+
+  it('accords hors du site (#2938) : signe typographique et pluriel d\'un compte', () => {
+    expect([avecSigne(2), avecSigne(-3), avecSigne(0)]).toEqual(['+2', '−3', '+0']);
+    expect([pluriel(0), pluriel(1), pluriel(-1), pluriel(2), pluriel(-2)]).toEqual(['', '', '', 's', 's']);
+  });
+
+  it('trous de message (#2938) : les canaux `Record` stockés passent par `trous()`, seul émetteur de la marque', () => {
+    const psy = 'animosite' as PsychType;
+    const verifies: TrousVerifies = trous({ name: 'Gob', type: psychologyLabel(psy) });
+    // @ts-expect-error — un objet brut n'est pas un jeu de trous vérifiés
+    const brut: TrousVerifies = { name: 'Gob', type: psy };
+    // @ts-expect-error — `trous()` applique le même typage que `t()`
+    const viaTrous = trous({ name: 'Gob', type: psy });
+    expect([verifies, brut, viaTrous].map((v) => v.name)).toEqual(['Gob', 'Gob', 'Gob']);
   });
 
   it('garde `out.*` : aucune clé ne re-imprime le jet (roll/sl/drow, ou {target} en paire avec {roll}) — #295 Lot 0 Décision 1b/ceinture', () => {

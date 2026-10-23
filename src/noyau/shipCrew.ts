@@ -23,7 +23,7 @@ import { maxBy } from '../engine/pick';
 import { applyOps } from '../engine/ops';
 import { removeActiveEffects, isOutOfAction } from '../engine/conditions';
 import { battleRng } from './battleRng';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import type { Get, Set as SetFn } from './flowTypes';
 import { equipageApte, ecrireActeur, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
@@ -309,7 +309,7 @@ export function applyShipMoraleDelta(get: Get, set: SetFn, ship: Combatant, delt
   const before = vessel.morale.score;
   const after = before + delta;
   set({ vessel: { ...vessel, morale: { ...vessel.morale, score: after } } });
-  const lines = [t('crew.moraleDelta', { delta: `${delta > 0 ? '+' : ''}${delta}`, before, after })];
+  const lines = [t('crew.moraleDelta', { delta: avecSigne(delta), before, after })];
   const bandAfter = moraleBand(after);
   if (bandAfter.id !== moraleBand(before).id) lines.push(t('crew.moraleBand', { titre: bandAfter.label }));
   return lines;
@@ -446,7 +446,7 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
     id: `council-factor-${i}`,
     icon: 'scenario/naval',
     label: f.label,
-    text: t('crew.factorMorale', { delta: `${f.rolled >= 0 ? '+' : ''}${f.rolled}` }),
+    text: t('crew.factorMorale', { delta: avecSigne(f.rolled) }),
     tone: f.rolled > 0 ? 'ok' : f.rolled < 0 ? 'bad' : 'info',
   }));
 }
@@ -493,7 +493,7 @@ export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string
   const after = Math.max(0, Math.min(nominal, before + delta));
   if (after === before) return [];
   set({ vessel: { ...vessel, crewLost: after } });
-  return [t('crew.crewDelta', { delta: `${after > before ? '−' : '+'}${Math.abs(after - before)}`, left: Math.max(0, nominal - after), nominal })];
+  return [t('crew.crewDelta', { delta: avecSigne(before - after), left: Math.max(0, nominal - after), nominal })];
 }
 
 /**

@@ -34,7 +34,7 @@ import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stageYaw';
 import { arreterMarche, demarrerMarche } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
-import { t, type MsgKey } from '../../i18n';
+import { t, trous, type MsgKey, type TrousVerifies } from '../../i18n';
 import { fouilleOuverte } from '../../noyau/interactionsDExploration';
 
 /** Code physique de la touche d'ANNULATION — le registre en est la source, `resoudreEchap` et la
@@ -133,7 +133,7 @@ export interface KeyBinding {
    *  chargement : ce tableau est construit à l'évaluation du module. */
   labelKey: MsgKey;
   /** Paramètres du patron de libellé (slot de barre d'action : son numéro). */
-  labelParams?: Record<string, string | number>;
+  labelParams?: TrousVerifies;
   /** Section de regroupement de l'écran Options (remap) — voir `keySectionLabel`. */
   section: KeyBindingSection;
   /** Contexte d'application (lit l'état du jeu). */
@@ -430,7 +430,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    s'offre pas quand `chooseDialogue` refuserait — sous la fenêtre de jet, le marché ou l'écran
   //    plein qu'une réponse vient d'ouvrir.
   ...Array.from({ length: 9 }, (_, i): KeyBinding => ({
-    id: `dialogue-choice-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.dialogueChoice', labelParams: { n: i + 1 }, section: 'dialogue',
+    id: `dialogue-choice-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.dialogueChoice', labelParams: trous({ n: i + 1 }), section: 'dialogue',
     ...(i < TOUCHES_IMPRIMEES ? { sharedBy: [`hotbar-${i + 1}`] } : {}),
     coucheDialogue: true,
     when: conversationRepond,
@@ -444,7 +444,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // `CombatConsole`. La touche d'un rang vide ou fermé ne déclenche rien, et ne glisse pas au voisin.
   // Inactif hors de son tour / pendant une modale.
   ...Array.from({ length: TOUCHES_IMPRIMEES }, (_, i): KeyBinding => ({
-    id: `hotbar-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.hotbarSlot', labelParams: { n: i + 1 }, section: 'hotbar',
+    id: `hotbar-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.hotbarSlot', labelParams: trous({ n: i + 1 }), section: 'hotbar',
     sharedBy: [`dialogue-choice-${i + 1}`],
     when: (s) => inBattle(s) && controlsActive(s) && noModal(s),
     run: () => { const sl = hotbar.capacites[i]; if (sl?.run && !sl.disabled) sl.run(); },

@@ -36,7 +36,7 @@ import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
 import { applyHealWounds } from './healing';
 import { diseaseLabel } from '../data';
-import { t } from '../i18n';
+import { t, pluriel } from '../i18n';
 
 /** États à dégâts périodiques qui empêchent un repos réparateur (LDB 16 l.105 : on ne « reprend pas ses
  *  esprits » tant qu'un Hémorragique subsiste — on étend à En flammes/Empoisonné, qu'on ne traverse pas
@@ -117,7 +117,7 @@ export function blessDiseaseDuration(c: Combatant, days = 1, opts: { disease?: s
   if (opts.once) dz.convalescenceBlessed = true;
   dz.minutesLeft = Math.max(MINUTES_PER_DAY, dz.minutesLeft - days * MINUTES_PER_DAY); // −`days` jour(s), min 1 jour restant
   const resteJ = Math.round(dz.minutesLeft / MINUTES_PER_DAY);
-  return [t('rest.diseaseShortened', { name: c.label, disease: diseaseLabel(dz.id), days, s: days > 1 ? 's' : '', left: resteJ })];
+  return [t('rest.diseaseShortened', { name: c.label, disease: diseaseLabel(dz.id), days, s: pluriel(days), left: resteJ })];
 }
 
 /** Jet d'une nuit (bilan structuré de la modale de Repos) : récupération ou cauchemars. */
@@ -227,6 +227,6 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
   if (healed > 0) log.unshift(t('rest.healed', { name: c.label, n: healed, span }));
   if (isDeprived(c)) log.push(t('rest.deprived', { name: c.label, etat: isStarving(c) && isThirsty(c) ? t('rest.deprivedBoth') : isThirsty(c) ? t('rest.deprivedThirst') : t('rest.deprivedHunger') }));
   if (hadFatigue && stacks(c, 'extenue') === 0) log.push(t('rest.fatigueGone', { name: c.label }));
-  if (nightmareNights > 0) log.push(t('rest.nightmares', { name: c.label, n: nightmareNights, total: days, s: days > 1 ? 's' : '' }));
+  if (nightmareNights > 0) log.push(t('rest.nightmares', { name: c.label, n: nightmareNights, total: days, s: pluriel(days) }));
   return log;
 }

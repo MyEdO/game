@@ -13,7 +13,7 @@ import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evLines, journaliser, type CombatEventKind } from './combatLog';
-import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
+import { t as tr, pluriel } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './monde/tempo';
 import { beatHold, approachMs, afterApproach } from './combatDirector';
 import { programmer } from './plateforme';
@@ -140,6 +140,7 @@ import type { ConjureForm } from '../engine/conjuredWeapons';
 import { gainCorruption, testDExposition } from './corruptionFlow';
 import { corruptionGain } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { classeDeCouvertSchema } from '../data/schemas/grammaire/valeurs';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { canCastFromGrimoire } from '../engine/grimoire';
 import { effectiveCastingNumber } from '../engine/castingNumber';
@@ -287,7 +288,7 @@ import {
 } from './rollSeam';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
-import { dataLabel } from '../data';
+import { dataLabel, groupLabel, psychologieEtCibleLabel } from '../data';
 import { zoneEnPose, type ZoneEnPose } from './targetingHolder';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -744,7 +745,7 @@ export function attackEnv(
     // des deux (`DeckCoverClass ⊂ CoverClass`). `crewPosteOf` couvre tout l'équipage (chef ET support).
     const posteCover = crewPosteOf(target.id, battle.combatants)?.poste.cover;
     const cover = posteCover ? couvertLePlusProtecteur(los.cover, posteCover) : los.cover;
-    if (cover !== 'none') env.push({ label: tr('cf.coverLabel', { cover }), value: coverModifier(cover), famille: 'circonstance' });
+    if (cover !== 'none') env.push({ label: dataLabel(libelleDeValeur(classeDeCouvertSchema, cover)), value: coverModifier(cover), famille: 'circonstance' });
     // Vision nocturne / Infravision (LDB 85) ou Talent Vision nocturne : annule la pénalité d'obscurité.
     // Cible dissimulée (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le plafond de `combineMods` (LDB 14 l.95).
     if (sc.concealed && !seesInDark(attacker)) env.push({ label: sc.concealedLabel, value: -20, famille: 'circonstance', ref: RULE_REF['cible-dissimulee'] });
@@ -6401,7 +6402,7 @@ function scheduleRespawnFromOp(
     summon: { porteur, count, allyOfCaster: op.allyOfCaster },
   };
   set((s: Jeu) => ({ scheduledEffects: [...s.scheduledEffects, { executeAt: s.gameTime + days * MINUTES_PER_DAY, cancelFlag: op.cancelFlag, respawn }] }));
-  return [tr('cf.sourceRebuilds', { name: actor.label, days, s: days > 1 ? 's' : '' })];
+  return [tr('cf.sourceRebuilds', { name: actor.label, days, s: pluriel(days) })];
 }
 
 /** Type de Souffle « correspondant le mieux » au Domaine du lanceur (sort Souffle, LDB 47 l.509 :
@@ -7631,7 +7632,7 @@ function psychDueFor(get: Get, c: Combatant, collect: (get: Get, c: Combatant) =
       meta: { prevDR: t.prevDR, ...(sansPeur ? { sansPeur: true } : {}) },
     },
     icon: cl?.icon ?? (t.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
-    label: cl ? (t.cible ? stepPrecision(dataLabel(cl.label), dataLabel(t.cible)) : dataLabel(cl.label)) : stepPsych(t.kind, t.indice),
+    label: cl ? psychologieEtCibleLabel(t.kind, t.cible) : stepPsych(t.kind, t.indice),
   };
 }
 
@@ -7802,17 +7803,18 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;
-        phobieLine = `${hero.label} développe une Phobie durable : ${gained.phobie.cible}.`;
+        phobieLine = tr('cf.phobieGained', { name: hero.label, cible: groupLabel(gained.phobie.cible) });
       }
     }
   } else if (cible) {
     // Trait ciblé : échec → affliction active ; succès → marqueur inerte (pas de re-déclenchement).
-    const cl = cibleLabel(cp.kind);
-    line = r.success ? tr('out.cibleMaster', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind }) : tr('out.cibleGrip', { name: hero.label, kind: cl?.label.toLowerCase() ?? cp.kind });
+    const trait = psychologieEtCibleLabel(cp.kind, cp.cible);
+    line = r.success ? tr('out.cibleMaster', { name: hero.label, trait }) : tr('out.cibleGrip', { name: hero.label, trait });
   } else {
-    line = (calmeDR ?? 0) >= cp.indice
-      ? `${hero.label} ${rm.sansPeur ? 'ignore la Peur' : 'surmonte sa peur'}${cp.sourceName ? ` de ${cp.sourceName}` : ''}${rm.sansPeur ? ' (Sans Peur)' : ''}.`
-      : `${hero.label} reste sous l'emprise de la Peur (${calmeDR ?? 0}/${cp.indice} DR).`;
+    const foe = cp.sourceName;
+    line = (calmeDR ?? 0) < cp.indice ? tr('cf.fearHeld', { name: hero.label, dr: calmeDR ?? 0, indice: cp.indice })
+      : rm.sansPeur ? (foe ? tr('cf.fearIgnored', { name: hero.label, foe }) : tr('cf.fearIgnoredNoSource', { name: hero.label }))
+      : foe ? tr('out.fearOvercome', { name: hero.label, foe }) : tr('turn.fearOvercome', { name: hero.label });
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant.
   return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero, hero.label)]);

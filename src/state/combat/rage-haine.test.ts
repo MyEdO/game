@@ -7,6 +7,8 @@ import { isFrenzied } from '../../engine/psychology';
 import { psychDRAdjust } from '../../engine/combat';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { groupLabel } from '../../data';
+import { t } from '../../i18n';
 
 /**
  * Trait Rage — LDB 85 l.281-283 : « Elle peut dépenser tous ses Avantages (minimum 1) pour que celui
@@ -63,6 +65,16 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
     // La Haine FAIT quelque chose : +1 DR aux Tests de Combat contre le groupe haï (LDB 21, psychDRAdjust).
     expect(psychDRAdjust(E, H)).toBe(1);
     expect(useGame.getState().battle!.log.some((l) => l.text.includes('Haine'))).toBe(true);
+  });
+
+  it('journal : la Haine née de la Rage nomme le Groupe-Cible par son libellé (#2938)', () => {
+    const { H, E } = setup();
+    H.groups = ['peau-verte'];
+    expect(groupLabel('peau-verte'), 'la fixture distingue libellé et id').not.toBe('peau-verte');
+    E.advantage = 1;
+    auTourDe(E.id);
+    runEnemyAI(useGame.getState, useGame.setState, E.id);
+    expect(useGame.getState().battle!.log.map((l) => l.text)).toContain(t('turn.rageHate', { name: E.label, cible: groupLabel('peau-verte') }));
   });
 
   it('Avantage ≥ 3 → la branche FRÉNÉSIE prime (politique historique conservée)', () => {

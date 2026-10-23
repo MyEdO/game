@@ -1991,6 +1991,24 @@
     "verrou": "src/noyau/built-brand-lint.test.ts, src/player-text-ratchet.test.ts"
   },
   {
+    "id": "trousDeMessage",
+    "type": "primitives.manifest",
+    "label": "trous/TrousVerifies",
+    "fichier": "src/i18n/index.ts",
+    "concept": "trous d'un message du catalogue : une union de littéraux (id de vocabulaire fermé, accord ou signe écrit au site) ne compile pas, dans `t()` comme dans un jeu de trous STOCKÉ, que seul `trous()` marque `TrousVerifies`",
+    "perimetre": "tout appel de `t()`, et tout `Record` de trous rendu plus tard (`Consequence.vars`, `RefusGeste.vars`, `labelParams` des raccourcis)",
+    "verrou": "src/i18n/i18n.test.ts ; oxlint murs/marques"
+  },
+  {
+    "id": "accordsDeMessage",
+    "type": "primitives.manifest",
+    "label": "avecSigne/pluriel",
+    "fichier": "src/i18n/index.ts",
+    "concept": "signe d'un modificateur (`+n`, `−n` au signe moins typographique, `+0`) et marque du pluriel d'un compte, mis en mots hors du site d'appel",
+    "perimetre": "tout modificateur ou compte interpolé dans un message joueur (noyau, moteur, UI, hôte texte)",
+    "verrou": "src/i18n/i18n.test.ts"
+  },
+  {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
     "label": "EquipCtx/equipDe/equipPorte/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",

@@ -787,7 +787,15 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
   it('une op IMBRIQUÉE rend ses lignes à l’op qui la porte, une seule fois', () => {
     const recues: [number | null, string][] = [];
     const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: 'sonne', value: 1 }] }] as never[], { rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
-    expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
-    expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
+    expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose.']);
+    expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose.']]);
+  });
+
+  it('la métamorphose nomme sa forme par le libellé de la créature, jamais par son id (#2938)', () => {
+    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [], morphRef: 'enfant-d-ulric' }, { op: 'endTransform', tag: 'forme' }] as never[], { rng: makeRNG(1) });
+    expect(lignes).toEqual([
+      "Cible se métamorphose (Enfant d'Ulric).",
+      "Cible retrouve sa forme initiale (forme quittée : Enfant d'Ulric).",
+    ]);
   });
 });

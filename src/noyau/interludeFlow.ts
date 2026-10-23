@@ -50,7 +50,8 @@ import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
 import { effectiveEntry } from '../engine/variants';
 import type { ChaosAlign, ExposureLevel } from '../engine/corruption';
-import type { NatureDInfluence } from '../data/schemas/grammaire/valeurs';
+import { availabilitySchema, exposureLevelSchema, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { buyTalent as engineBuyTalent, talentCost, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
 import { talentAcquisitions } from '../engine/careerSlots';
 import { skillCharacteristicById } from '../engine/character';
@@ -61,7 +62,7 @@ import { findTableEntry } from '../engine/tables';
 import { CHAR_LABELS, type CharKey, type Combatant, type Difficulty, type QualityInstance } from '../engine/types';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
-import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
+import { t, t as msg, avecSigne, pluriel } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
 
 import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
@@ -181,7 +182,7 @@ export function startInterlude(get: Get, set: Set, weeks = 1): void {
   const party = get().party.filter((h) => !h.dead);
   if (!party.length) return;
   const w = Math.max(1, Math.floor(weeks));
-  const lines: string[] = [msg('if.openBanner', { n: w, s: w > 1 ? 's' : '' })];
+  const lines: string[] = [msg('if.openBanner', { n: w, s: pluriel(w) })];
   // L'aventure qui vient de s'achever purge ses effets « pour la prochaine aventure » (LDB 23 l.209/
   // 218/234 — statusMod de Réputation, jetons d'inversion) : cet interlude EST la borne de fin.
   // (Journalise ses propres lignes — pas de double comptage dans `lines`.)
@@ -791,7 +792,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Événements : ±% sur les Revenus (Fausse monnaie −20, Profits +50 pour une Classe…, LDB 22).
       if (st.fx?.revenuePct && (!st.fx.revenueClasses || st.fx.revenueClasses.includes(heroClass(h)))) {
         brass = Math.max(0, Math.floor((brass * (100 + st.fx.revenuePct)) / 100));
-        lines.push(msg('if.eventRevenue', { event: eventLabelOf(st), sign: st.fx.revenuePct > 0 ? '+' : '', pct: st.fx.revenuePct }));
+        lines.push(msg('if.eventRevenue', { event: eventLabelOf(st), pct: avecSigne(st.fx.revenuePct) }));
       }
       lines.push(msg('if.incomeWeek', { name: h.label, money: formatMoney(fromBrass(brass)) }));
       return { lines, patch: { didRevenus: true, revenueBrass: st.revenueBrass + brass } };
@@ -818,7 +819,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
         return {
           lines: [msg('if.craftDone', {
             name: h.label, label: doneLabel,
-            atouts: atL.length ? ` (${atL.join(', ')})` : '', defauts: dfL.length ? ` [${dfL.join(', ')}]` : '',
+            atouts: atL.length ? msg('frag.parentheses', { x: atL.join(', ') }) : '', defauts: dfL.length ? msg('frag.crochets', { x: dfL.join(', ') }) : '',
           })],
         };
       }
@@ -1096,7 +1097,7 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
     return;
   }
   if (block === 'stock-ordinaire') {
-    get().log(msg('if.orderInShops', { label: t.label, availability: String(t.availability) }));
+    get().log(msg('if.orderInShops', { label: t.label, availability: libelleDeValeur(availabilitySchema, t.availability ?? '') }));
     return;
   }
   const price = toBrass(priceToMoney(t.price));
@@ -1240,7 +1241,7 @@ export function confirmActivity(get: Get, set: Set): void {
           onCorruptionExposure: (level: ExposureLevel, nature?: NatureDInfluence) => {
             // LA PORTE du slot (#1282) : un Test de Corruption déjà affiché ne se fait plus écraser — celui-ci prend rang.
             poseCorruptionPending(get, set, expositionPending(h.id, level, nature));
-            return [msg('if.corruptionTest', { name: h.label, level })];
+            return [msg('if.corruptionTest', { name: h.label, level: libelleDeValeur(exposureLevelSchema, level) })];
           },
         }));
       }

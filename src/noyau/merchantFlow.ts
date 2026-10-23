@@ -20,7 +20,9 @@ import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
 import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
 import type { Availability } from '../engine/types';
-import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
+import { t, t as msg, pluriel } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema, settlementSchema } from '../data/schemas/grammaire/valeurs';
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type StatusTier, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -234,7 +236,7 @@ function rollFreshStock(
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): { id: string; qty: number }[] {
   const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-  if (tested.length) get().log(t('mf.marketRoll', { settlement, lignes: tested.map((l) => t('mf.stockLine', { label: l.label, qty: l.qty })).join(', ') }));
+  if (tested.length) get().log(t('mf.marketRoll', { settlement: libelleDeValeur(settlementSchema, settlement), lignes: tested.map((l) => t('mf.stockLine', { label: l.label, qty: l.qty })).join(', ') }));
   persistStock(set, entityId, stock, now);
   return stock;
 }
@@ -511,7 +513,7 @@ export function payCart(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { ...persisted, stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
-  get().log(t('mf.paid', { total: formatMoney(total), count, s: count > 1 ? 's' : '' }));
+  get().log(t('mf.paid', { total: formatMoney(total), count, s: pluriel(count) }));
 }
 
 export function assignDistribution(_get: Get, set: Set, index: number, heroId: string): void {
@@ -661,7 +663,7 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   get().log(t('mf.barterDone', {
     giveCount: quote.giveCount, giveLabel: donne,
     getCount, getLabel: recu,
-    giveAv: quote.giveAv, ratio: `${quote.ratio.give}:${quote.ratio.get}`, getAv: quote.getAv,
+    giveAv: libelleDeValeur(availabilitySchema, quote.giveAv), ratio: `${quote.ratio.give}:${quote.ratio.get}`, getAv: libelleDeValeur(availabilitySchema, quote.getAv),
   }));
 }
 

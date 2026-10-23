@@ -137,14 +137,18 @@ export const AVAILABILITIES = ['Commune', 'Limitée', 'Rare', 'Exotique'] as con
  *  décalage par qualité (`craftEconomy`). `HarvestRarity` l'étend de `'Unique'` (récolte/trophées). */
 export type Availability = (typeof AVAILABILITIES)[number];
 /** Les Disponibilités qui se TESTENT au d100 (LDB 59 l.25-30) : Commune est toujours en stock,
- *  Exotique jamais — seules ces deux-là portent un %. Sous-ensemble NOMMÉ dérivé du canon : c'est le
- *  SEUL site qui nomme ce couple, et `unions-canon.test.ts` verrouille son égalité avec le schéma zod
- *  qui le sélectionne (`availabilitySchema.extract([…])`). */
-export type TestedAvailability = Extract<Availability, 'Limitée' | 'Rare'>;
+ *  Exotique jamais — seules ces deux-là portent un %. Sous-ensemble NOMMÉ du canon (`satisfies` le
+ *  tuple) : c'est le SEUL site qui nomme ce couple, et `unions-canon.test.ts` verrouille son égalité
+ *  avec le schéma zod qui le nomme (`dispoPctAvailabilitySchema`). */
+export const TESTED_AVAILABILITIES = ['Limitée', 'Rare'] as const satisfies readonly Availability[];
+export type TestedAvailability = (typeof TESTED_AVAILABILITIES)[number];
 /** Les Disponibilités dont l'Évaluation ne rend qu'une FOURCHETTE (LDB 59 l.41) — 2ᵉ et dernier
  *  sous-ensemble MÉTIER du canon, nommé ICI comme le premier : `satisfies` le tuple, donc un palier
  *  renommé ou retiré ne compile plus. Consommé par `engine/appraisal`. */
 export const APPRAISED_AVAILABILITIES = ['Rare', 'Exotique'] as const satisfies readonly Availability[];
+
+/** Échelons de Statut, du plus bas au plus haut (LDB 08 l.115) — chaque mot est le libellé imprimé. */
+export const STATUS_TIERS = ['Bronze', 'Argent', 'Or'] as const;
 
 /** Propulsion d'un véhicule/embarcation — pilote la table de localisation des dégâts (terre : roues/
  *  attelage ; fleuve/mer : voiles/avirons/coque). EDOC 7 (terrestre), MoR ch.5 (fluvial), MDG 13 (maritime). */

@@ -27,7 +27,7 @@ import {
 // façade `index.ts` — réutilisés TELS QUELS (même patron que `POWER_ESTIMATE` etc. ci-dessous, déjà
 // importés directement d'`engine/massBattle`).
 import type { FoyerDeRegle, RaceKey, SourceRef } from '../../data/schemas/grammaire/valeurs';
-import { symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
+import { availabilitySchema, symptomSeveritySchema } from '../../data/schemas/grammaire/valeurs';
 import { buildingAnchorSchema } from '../../data/schemas/defs/buildings';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
@@ -1453,7 +1453,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
         : fact('Allonge', t.reach);
       return depuisEnveloppe(t, {
         sub: join(libelleDeValeur(trappingCategorieSchema, t.categorie), weaponGroupLabel(t.subType) || undefined),
-        meta: facts(fact('Prix', priceLabel(t.price)), fact('Enc', t.enc), fact('Disponibilité', t.availability), fact('Emplacement', t.loc), fact('Dégâts', damageFact(t)), fact('PA', t.pa), reachFact),
+        meta: facts(fact('Prix', priceLabel(t.price)), fact('Enc', t.enc), fact('Disponibilité', t.availability && libelleDeValeur(availabilitySchema, t.availability)), fact('Emplacement', t.loc), fact('Dégâts', damageFact(t)), fact('PA', t.pa), reachFact),
         sections: sections(
           chips('Qualités', resolveQualities({ qualities: t.qualities, subType: t.subType }).map((r) => idRefRow('qualities', r.id, undefined, qualityRefLabel({ id: r.id, value: r.indice })))),
           props.length ? { title: 'Propriétés', layout: 'list', rows: [{ t: 'text', text: props.join(' · ') }] } : null,
@@ -1473,7 +1473,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
       // Aperçu rig de l'affût, résolu comme une créature (par id + apparence species).
       appearance: { species: t.siegeRig! }, previewRef: t.siegeRig!,
       meta: facts(
-        fact('Prix', priceLabel(t.price)), fact('Enc', t.enc), fact('Disponibilité', t.availability),
+        fact('Prix', priceLabel(t.price)), fact('Enc', t.enc), fact('Disponibilité', t.availability && libelleDeValeur(availabilitySchema, t.availability)),
         fact('Dégâts', damageFact(t)), fact('PA', t.pa),
         fact('Portée', rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod)),
       ),
@@ -1872,7 +1872,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'massBattleWarMachines', label: 'Bataille de masse — Machines de guerre', group: 'Tables', cluster: 'Bataille de masse',
     build: () => WAR_MACHINES.map((w) => depuisEnveloppe(w, {
       meta: facts(
-        fact('Prix', formatMoney(w.price)), fact('Équipe', w.crew), fact('Disponibilité', w.availability),
+        fact('Prix', formatMoney(w.price)), fact('Équipe', w.crew), fact('Disponibilité', libelleDeValeur(availabilitySchema, w.availability)),
         fact('Portée', w.range), fact('Dégâts', w.damage), fact('Atouts', w.traits),
       ),
     })),
@@ -2050,7 +2050,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     key: 'vehicles', label: 'Véhicules', group: 'Monde',
     build: () => vehicles.map((v) => depuisEnveloppe(v, {
       meta: facts(
-        fact('Prix', priceLabel(v.purchase?.price)), fact('Disponibilité', v.purchase?.availability ?? null),
+        fact('Prix', priceLabel(v.purchase?.price)), fact('Disponibilité', v.purchase?.availability ? libelleDeValeur(availabilitySchema, v.purchase.availability) : null),
         fact('Enc', v.enc), fact('Mouvement (voyage)', v.travel?.movement),
         fact('Endurance', v.hull?.char.endurance), fact('Blessures', v.hull?.char.B),
       ),

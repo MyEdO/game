@@ -66,7 +66,7 @@ import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type Voy
 import type { CascadeStep, CascadeStepMeta } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import { shipLocationLabel, rollShipCritical, applyCrewHit, exposedCrew } from '../engine/shipCritical';
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
 import { bandeTriggeredTest } from './combat/triggeredTest';
@@ -457,7 +457,7 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   const kmDay = sunk ? 0
     : ctx?.forceDrift ? riverDriftKm(baseKm)
     : riverDayKm(baseKm, ctx?.windPct ?? 0, river.dayAgilityFactor ?? 1);
-  if (!sunk) log(get, set, [t('rv.progress', { km: Math.round(kmDay), note: ctx?.forceDrift ? t('rv.fragDrift') : (ctx?.windPct ? t('rv.fragWind', { pct: `${ctx.windPct >= 0 ? '+' : ''}${ctx.windPct}` }) : t('rv.fragDot')) })]);
+  if (!sunk) log(get, set, [t('rv.progress', { km: Math.round(kmDay), note: ctx?.forceDrift ? t('rv.fragDrift') : (ctx?.windPct ? t('rv.fragWind', { pct: avecSigne(ctx.windPct) }) : t('rv.fragDot')) })]);
 
   // RÉCAP du jour (affiché en tête de la halte de nuit) = la tranche de journal écrite depuis le repère.
   const dayLines = ctx ? get().journal.slice(ctx.journalMark) : [];

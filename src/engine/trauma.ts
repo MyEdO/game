@@ -30,7 +30,7 @@ import type { GameOp, PairedSense, PassiveKind, PassiveMod } from './ops';
 import { resolveFormula } from './ops';
 import traumasJson from '../data/traumas.json';
 import { indexParId, memoParVersion } from '../data/versionDataset';
-import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
+import { t as tr, avecSigne } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
 
 export type TraumaKind = 'dechirure' | 'fracture';
 export type TraumaSeverity = 'mineur' | 'majeur';
@@ -453,7 +453,7 @@ function sequelleEffet(f: TraumaFiche): string {
     else if (o.op === 'maxWeaponHands') autres.push(tr('tra.effetUneMain'));
     else if (o.op === 'senseLoss') autres.push(tr(o.sense === 'vue' ? 'tra.effetVue' : 'tra.effetOuie'));
   }
-  const chiffres = [...parMod].map(([mod, noms]) => tr('tra.effetMod', { sign: mod >= 0 ? '+' : '−', n: Math.abs(mod), noms: noms.join(', ') }));
+  const chiffres = [...parMod].map(([mod, noms]) => tr('tra.effetMod', { mod: avecSigne(mod), noms: noms.join(', ') }));
   return [...chiffres, ...autres].join(' · ');
 }
 

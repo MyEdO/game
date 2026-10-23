@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { nomDuNavire } from '../noyau/carriers';
 import { useGame } from '../state/store';
 import { DEFAULT_VOYAGE_ORDERS, type VoyageCadence } from '../noyau/voyageCadence';
-import { t, deElide } from '../i18n';
+import { t, deElide, pluriel } from '../i18n';
 import { placeOfScene, placeById, routesCliquables, routesEtat, visiblePlaces, otherEnd, declutterPositions, MapRoute, MapPlace } from '../noyau/worldMap';
 import { baseHoursPerDay, maxHoursPerDay, passagePayant, hoursTravelledToday, travelDayBudget, routeDuJourFaite, MOUNT_MAX_HOURS } from '../noyau/travelFlow';
 import { clockLabel } from '../engine/duration';
@@ -653,7 +653,7 @@ export function WorldMapView({ initialRouteId, hereSceneId }: { initialRouteId?:
               <>
                 {aLAube && <>{t('wm.departAvantAube')}{' '}</>}
                 {t('wm.allureDuree', { kmh, duree: plan ? fmtDuration(plan) : '—' })}
-                {cost && <>{t('wm.total', { places: placesPayees(passengers), s: placesPayees(passengers) > 1 ? 's' : '' })}<Coins money={cost} />{!affordable && t('wm.bourseInsuffisante')}</>}
+                {cost && <>{t('wm.total', { places: placesPayees(passengers), s: pluriel(placesPayees(passengers)) })}<Coins money={cost} />{!affordable && t('wm.bourseInsuffisante')}</>}
                 {mode === 'pied' && plan && plan.days > 1 && (
                   <>{t('wm.rations', { besoin: rationsNeeded, porte: rationsOwned })}</>
                 )}

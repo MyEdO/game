@@ -15,7 +15,7 @@ import {
 import { partyRemoveHero } from './partyFlow';
 import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
-import type { Possession } from '../engine/possession';
+import { possessionLabel, type Possession } from '../engine/possession';
 import type { Combatant } from '../engine/types';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
@@ -153,8 +153,14 @@ describe('possessionsFlow — registre (#615 SOCLE POSSESSIONS T1-c1)', () => {
     const { get, set } = makeHarness([]);
     const uidA = addPossession(get, set, barge('h1'));
     const uidB = addPossession(get, set, barge('h1'));
+    const journal: string[] = [];
+    set({ log: (l: string) => { journal.push(l); } } as never);
     embark(get, set, uidA, uidB);
     expect(get().possessions.find((p) => p.uid === uidA)?.location).toEqual({ kind: 'avec-le-groupe' });
+    const [a, b] = [uidA, uidB].map((uid) => possessionLabel(get().possessions.find((p) => p.uid === uid)!));
+    expect(journal, 'la nature se nomme par son libellé, sans article').toEqual([
+      `Embarquement refusé : ${a} (Navire) ne peut pas embarquer sur ${b} (Navire).`,
+    ]);
   });
 
   it('embark refuse si la capacité libre de l’hôte est dépassée', () => {

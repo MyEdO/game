@@ -5,7 +5,7 @@ import { useGame } from './store';
 import { createHero } from '../engine/character';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
-import { t } from '../i18n';
+import { t, trous } from '../i18n';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { bindingParId } from './clavier/keybindings';
@@ -159,7 +159,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     expect(fouilleOuverte(useGame.getState())).toMatchObject({ piece: { id: 'cave' } });
     expect(touche.when(useGame.getState()), 'dans la pièce').toBe(true);
     useGame.setState({ partyPos: { x: 8, y: 2 } });
-    expect(fouilleOuverte(useGame.getState())).toEqual({ refus: 'fouille.refus.horsPiece', vars: {} });
+    expect(fouilleOuverte(useGame.getState())).toEqual({ refus: 'fouille.refus.horsPiece', vars: trous({}) });
     expect(touche.when(useGame.getState()), 'hors de toute pièce').toBe(false);
     useGame.setState({ partyPos: { x: 1, y: 2 }, dialogue: { entityId: 'x', nodeId: 'n' } as never });
     expect(fouilleOuverte(useGame.getState())).toMatchObject({ refus: 'geste.refus.dialogue' });

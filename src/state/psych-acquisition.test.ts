@@ -7,6 +7,8 @@ import type { Combatant } from '../engine/types';
 import { emptyScene } from '../noyau/monde/scene';
 import { applyEffects } from '../noyau/combatEffects';
 import { carryOverState } from '../engine/persistence';
+import { groupLabel } from '../data';
+import { t } from '../i18n';
 
 /**
  * Acquisition de Traits psychologiques — ADE II Annexe I « Troubles psychologiques » (règle facultative
@@ -42,23 +44,35 @@ describe('#62 — Animosité & Haine sur dépense de Destin (fateSurvive / fateN
 
   it('règle ON + Calme ÉCHOUE → Animosité envers la Cible ; un 2ᵉ échec même Cible → Haine (remplace)', () => {
     const h = hero();
-    setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'skavens' });
+    setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'skaven' });
     seedBattleRng(1); // Calme (FM 30) échoue
     useGame.getState().fateSurvive();
     let got = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(got.psychTraits).toEqual([{ type: 'animosite', cible: 'skavens' }]);
+    expect(got.psychTraits).toEqual([{ type: 'animosite', cible: 'skaven' }]);
 
     // Deuxième frôlement de la mort face aux mêmes Skavens → l'Animosité devient une Haine.
-    setBattle([got], { heroId: 'h1', source: 'hit', foeCible: 'skavens' });
+    setBattle([got], { heroId: 'h1', source: 'hit', foeCible: 'skaven' });
     seedBattleRng(1);
     useGame.getState().fateSurvive();
     got = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(got.psychTraits).toEqual([{ type: 'haine', cible: 'skavens' }]); // Animosité remplacée, pas doublée
+    expect(got.psychTraits).toEqual([{ type: 'haine', cible: 'skaven' }]); // Animosité remplacée, pas doublée
+  });
+
+  it('journal : l’Animosité puis la Haine acquises nomment leur Groupe-Cible par son libellé (#2938)', () => {
+    expect(groupLabel('peau-verte'), 'la fixture distingue libellé et id').not.toBe('peau-verte');
+    const acquerir = (h: Combatant, cle: 'cs.fateAnimosite' | 'cs.fateHaine'): Combatant => {
+      setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'peau-verte' });
+      seedBattleRng(1); // Calme (FM 30) échoue
+      useGame.getState().fateSurvive();
+      expect(useGame.getState().battle!.log.find((l) => l.kind === 'fear')?.text).toBe(t(cle, { name: 'Hardi', cible: groupLabel('peau-verte') }));
+      return useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
+    };
+    expect(acquerir(acquerir(hero({ label: 'Hardi' }), 'cs.fateAnimosite'), 'cs.fateHaine').psychTraits).toEqual([{ type: 'haine', cible: 'peau-verte' }]);
   });
 
   it('règle ON + Calme RÉUSSIT → aucun Trait acquis', () => {
     const h = hero();
-    setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'skavens' });
+    setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'skaven' });
     seedBattleRng(7); // Calme (FM 30) réussit
     useGame.getState().fateSurvive();
     const got = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
@@ -68,7 +82,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (fateSurvive / fateN
   it('règle OFF → aucune acquisition même sur échec de Calme', () => {
     resetRule('psych-acquisition-optional'); // défaut = OFF
     const h = hero();
-    setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'skavens' });
+    setBattle([h], { heroId: 'h1', source: 'hit', foeCible: 'skaven' });
     seedBattleRng(1);
     useGame.getState().fateSurvive();
     const got = useGame.getState().battle!.combatants.find((c) => c.id === 'h1')!;
@@ -109,9 +123,9 @@ describe('#62 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`
 
 describe('#62 — persistance des Traits psy acquis + compteur de Phobie (writeback de combat)', () => {
   it('carryOverState reporte psychTraits acquis SANS mutation + le compteur briseFromTerreur', () => {
-    const h = hero({ psychTraits: [{ type: 'phobie', cible: 'Morts-vivants', indice: 1 }], briseFromTerreur: 2 });
+    const h = hero({ psychTraits: [{ type: 'phobie', cible: 'mort-vivant', indice: 1 }], briseFromTerreur: 2 });
     const co = carryOverState(h);
-    expect(co.psychTraits).toEqual([{ type: 'phobie', cible: 'Morts-vivants', indice: 1 }]);
+    expect(co.psychTraits).toEqual([{ type: 'phobie', cible: 'mort-vivant', indice: 1 }]);
     expect(co.briseFromTerreur).toBe(2);
   });
 

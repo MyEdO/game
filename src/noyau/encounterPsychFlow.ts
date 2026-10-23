@@ -29,8 +29,8 @@ import { describeEncounterPsych } from './flowOutcomes';
 import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { touchActors } from './combatOrParty';
-import { dataLabel } from '../data';
-import { stepDetail, stepPrecision, stepPsych } from './rollSeam';
+import { dataLabel, psychologieEtCibleLabel } from '../data';
+import { stepDetail, stepPsych } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
 
@@ -131,7 +131,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: src.label, indice: trig.indice, cible: trig.cible },
       icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
       label: cl
-        ? (trig.cible ? stepPrecision(dataLabel(cl.label), dataLabel(trig.cible)) : dataLabel(cl.label))
+        ? psychologieEtCibleLabel(trig.kind, trig.cible)
         : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(src?.label, '?')),
     });
   }

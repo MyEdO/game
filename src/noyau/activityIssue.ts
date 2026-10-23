@@ -8,7 +8,7 @@ import { applyTravelActivityResult, type ActivityDef, type TravelActivityResult,
 import { applyOps, type GameOp, type OpsCtx } from '../engine/ops';
 import type { EchecSansJet } from '../engine/tests';
 import type { Combatant } from '../engine/types';
-import { t } from '../i18n';
+import { t, trous } from '../i18n';
 import { battleRng } from './battleRng';
 import type { Get } from './flowTypes';
 import { freeCons, type Consequence } from './rollSeam';
@@ -31,7 +31,7 @@ export function appliquerIssueActivite(
   const opsCtx: OpsCtx = { label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } };
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
-  else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });
+  else if (roll == null) cons.push({ say: 'out.activityDone', vars: trous({ name: hero.label, activity: def.label }) });
   if (r.ops.length) cons.push(...freeCons(applyOps(hero, r.ops, opsCtx)));
   if (r.extenue) {
     const extenue: GameOp = { op: 'condition', id: 'extenue', value: 1 };

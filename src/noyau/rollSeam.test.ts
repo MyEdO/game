@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { trous } from '../i18n';
 import { useGame } from '../state/store';
 import { type CascadeApplier } from './cascade';
 import { spyApplier } from '../state/cascade.testkit';
@@ -226,7 +227,7 @@ describe('resultLine — dénouement sans roll/target/sl/won (#295 Lot 0, Décis
   });
 
   it('{say} résout la clé i18n out.* (sans placeholder de jet)', () => {
-    const cons: Consequence[] = [{ say: 'out.consHeal', vars: { n: 2 } }];
+    const cons: Consequence[] = [{ say: 'out.consHeal', vars: trous({ n: 2 }) }];
     expect(resultLine(cons)).toBe('2 Blessure(s) récupérée(s).');
   });
 
@@ -243,5 +244,14 @@ describe('resultLine — dénouement sans roll/target/sl/won (#295 Lot 0, Décis
       return { consequences: ['réussi !'] };
     };
     void applier;
+  });
+});
+
+describe('canal stocké (#2938) : les trous d’une conséquence sont vérifiés par `trous()`', () => {
+  it('type : un objet brut n’est pas accepté en `vars`', () => {
+    // @ts-expect-error — `vars` n'accepte que la sortie de `trous()`
+    const brut: Consequence = { say: 'out.consHeal', vars: { n: 2 } };
+    const verifie: Consequence = { say: 'out.consHeal', vars: trous({ n: 2 }) };
+    expect(resultLine([brut, verifie])).toBe('2 Blessure(s) récupérée(s). 2 Blessure(s) récupérée(s).');
   });
 });

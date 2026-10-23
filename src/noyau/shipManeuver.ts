@@ -25,12 +25,14 @@ import { crewRoleValue, crewRoleTestMods, crewTalentDR, moraleBand, capToSuccesM
 import { placementPenalty, translaterFormation } from './monde/shipPostes';
 import { inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import { t } from '../i18n';
+import { t, pluriel } from '../i18n';
 import { refuserGeste } from './refusVisible';
 import { findCrewRoleById } from '../data';
 import { profilNavalDe, estNavire } from '../engine/coque';
 import { propulsionDuNavire, milieuDuVoyage, type MilieuDeNavigation } from '../engine/shipBuild';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { dir8Schema } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { RNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import type { PairedSense } from '../engine/ops';
@@ -264,7 +266,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       set({ facing: { ...facing, [shipId]: next } });
       // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent facing[shipId].
       const ship = inBattleId(battle, shipId);
-      get().log(t('store.shipTack', { ship: ship?.label ?? shipId, dir: next }));
+      get().log(t('store.shipTack', { ship: ship?.label ?? shipId, dir: libelleDeValeur(dir8Schema, next) }));
       bus.emit(EVT.SCENE_DIRTY);
     },
     shipAdvance: (shipId, cases) => {
@@ -298,7 +300,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         victim = undefined;
       }
       for (const { mobile, depart } of deplaces ?? []) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
-      if (moved > 0) get().log(t('store.shipAdvance', { ship: hull.label, n: moved, s: moved > 1 ? 's' : '', dir }));
+      if (moved > 0) get().log(t('store.shipAdvance', { ship: hull.label, n: moved, s: pluriel(moved), dir: libelleDeValeur(dir8Schema, dir) }));
       else if (voulu > 0) refuserGeste(get, set, t('cs.refusFormationBloquee'));
       // Éperonnage (MDG 13) : on percute de la PROUE (avance vers l'avant) ; FRONTAL si la victime tient un cap
       // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).

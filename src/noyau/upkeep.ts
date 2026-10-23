@@ -37,7 +37,7 @@ import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
 import { conditionLabel } from '../data';
-import { t } from '../i18n';
+import { t, pluriel } from '../i18n';
 import { rule } from '../engine/policy';
 import { dropExpiredGrantedTraits } from '../engine/grantedTraits';
 import { dropExpiredGrantedResources } from '../engine/grantedResources';
@@ -239,12 +239,12 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     if (missed > 0) {
       for (const h of party) {
         if (h.dead) continue;
-        lines.push(t('upkeep.sleepDeprived', { name: h.label, n: missed, s: missed > 1 ? 's' : '' }));
+        lines.push(t('upkeep.sleepDeprived', { name: h.label, n: missed, s: pluriel(missed) }));
         lines.push(...applyOps(h, [{ op: 'condition', id: 'extenue', value: missed }], { rng: battleRng() }));
       }
     }
   }
-  if (rations > 0) lines.unshift(t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }));
+  if (rations > 0) lines.unshift(t('upkeep.rationsUsed', { n: rations, s: pluriel(rations) }));
   // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, une
   // fois par semaine calendaire (garde interne à `tickCampaignVesselWeek` ; un saut de plusieurs jours ne
   // recalcule qu'au franchissement de semaine). #216.

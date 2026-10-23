@@ -5,7 +5,9 @@
  * navires/immeubles) : aucun mirroir, aucune copie par kind.
  */
 import type { Possession, PossessionLocation, PossessionInput } from '../engine/possession';
-import { canEmbark, possessionCapacity, possessionTotalEnc, embarkedEnc } from '../engine/possession';
+import { canEmbark, possessionCapacity, possessionLabel, possessionTotalEnc, embarkedEnc } from '../engine/possession';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { natureDePossessionSchema } from '../data/schemas/grammaire/valeurs';
 import { possessionGrantsFromRefs } from '../engine/possessionGrants';
 import { resolveTrappingChoices } from '../engine/trappingChoices';
 import type { Get, Set } from './flowTypes';
@@ -85,7 +87,7 @@ export function embark(get: Get, set: Set, uid: string, hostUid: string): void {
   const host = all.find((p) => p.uid === hostUid);
   if (!child || !host) { get().log(t('pos.embarkNotFound')); return; }
   if (!canEmbark(child, host)) {
-    get().log(t('pos.embarkNatureRefused', { childNature: child.nature, hostNature: host.nature }));
+    get().log(t('pos.embarkNatureRefused', { child: possessionLabel(child), childNature: libelleDeValeur(natureDePossessionSchema, child.nature), host: possessionLabel(host), hostNature: libelleDeValeur(natureDePossessionSchema, host.nature) }));
     return;
   }
   const capacity = possessionCapacity(host);

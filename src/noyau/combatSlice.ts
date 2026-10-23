@@ -30,6 +30,8 @@ import { discreetPrayerDifficulty } from '../engine/prayer';
 import { emitCombatEvent } from './combatEvents';
 import { turnEconomyStamp } from './endTurnGuard';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
+import { posteSideSchema } from '../data/schemas/defs/vehicles';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre, coupFerme } from './targetingHolder';
@@ -42,7 +44,7 @@ import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent
 import { refuserGeste } from './refusVisible';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest } from './combatEffects';
 import type { MovementBlockReason } from './combatFlow';
-import { t, type MsgKey } from '../i18n';
+import { t, avecSigne, type MsgKey } from '../i18n';
 import { combatValue, rollMeleeDefender, rollDisengageAttack, rollGrappleForce, backstabWeapon, attackHandGate, issueAuJet, coupAApplique, type DefenseMode } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, clearContact, meleeReachRank } from '../engine/engagement';
 import { areGrappling, clearGrapple } from '../engine/grapple';
@@ -86,7 +88,7 @@ import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbu
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
 import { knownShanties } from '../engine/combatFeatures/dispatch';
-import { findSeaShantyById, conditionLabel, libelleOuAbsence } from '../data';
+import { findSeaShantyById, conditionLabel, groupLabel, libelleOuAbsence } from '../data';
 import { findCrewTestTypeById, findCrewRoleById, findStructureById, combatStakeRef } from '../data';
 import { structureCombatant } from '../engine/structures';
 import { targetArc, headingToBear } from './monde/fireArc';
@@ -149,9 +151,7 @@ function acquireAnimositeOnFate(hero: Combatant, foeCible: string | undefined): 
   if (!res?.trait) return null;
   if (res.replacesAnimosite) hero.psychTraits = (hero.psychTraits ?? []).filter((p) => !(p.type === 'animosite' && p.cible === foeCible));
   hero.psychTraits = [...(hero.psychTraits ?? []), res.trait];
-  return res.trait.type === 'haine'
-    ? `${hero.label} voue désormais une Haine à ${foeCible} (frôler la mort a durci son cœur).`
-    : `${hero.label} développe une Animosité envers ${foeCible} (frôler la mort a laissé une marque).`;
+  return t(res.trait.type === 'haine' ? 'cs.fateHaine' : 'cs.fateAnimosite', { name: hero.label, cible: groupLabel(foeCible) });
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
@@ -201,6 +201,9 @@ function openCrewTestPending(get: Get, ship: Combatant, testTypeId: string): {
 /** Ligne de journal des SERVANTS d'une bordée (MDG 14 l.39 — l'équipage s'exprime, jamais un poste muet) : un PJ
  *  tenant le rôle d'Artilleur DIRIGE la batterie (nominé, l.9) ; sinon l'équipage ABSTRAIT du bord fait feu (couche
  *  Mer, l.39). PUR (lit les assignations de rôle du navire pour ce Test). */
+/** Le bord d'une bordée DANS une phrase (« Bordée de tribord ») : le libellé du nœud, en minuscule. */
+const bordDansLaPhrase = (side: FireArc): string => libelleDeValeur(posteSideSchema, side).toLocaleLowerCase('fr');
+
 function bordeeGunnersLine(get: Get, ship: Combatant, side: FireArc): string {
   const battle = get().battle;
   const partyIds = new Set(get().party.map((h) => h.id));
@@ -208,8 +211,8 @@ function bordeeGunnersLine(get: Get, ship: Combatant, side: FireArc): string {
     ? shipCrewAssignments(ship, battle.combatants, 'batterie', navigationDuNavire(get, ship)).find((a) => a.roleId === 'artilleur' && partyIds.has(a.crew.id))?.crew
     : undefined;
   return chief
-    ? t('cs.bordeeGunnersChief', { chief: chief.label, side, ship: ship.label })
-    : t('cs.bordeeGunnersCrew', { side, ship: ship.label });
+    ? t('cs.bordeeGunnersChief', { chief: chief.label, side: bordDansLaPhrase(side), ship: ship.label })
+    : t('cs.bordeeGunnersCrew', { side: bordDansLaPhrase(side), ship: ship.label });
 }
 
 /**
@@ -230,10 +233,10 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
   }
   get().log(bordeeGunnersLine(get, ship, side)); // MDG 14 l.39
   const n = shots.length;
-  const drTxt = dr >= 0 ? `+${dr}` : `${dr}`;
+  const drTxt = avecSigne(dr);
   get().log(success
-    ? t('cs.bordee', { side, ship: ship.label, target: target.label, dr: drTxt, n })
-    : t('cs.bordeeManque', { side, ship: ship.label, target: target.label, dr: drTxt, n }));
+    ? t('cs.bordee', { side: bordDansLaPhrase(side), ship: ship.label, target: target.label, dr: drTxt, n })
+    : t('cs.bordeeManque', { side: bordDansLaPhrase(side), ship: ship.label, target: target.label, dr: drTxt, n }));
   return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet })) });
 }
 
@@ -1458,7 +1461,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingCrewTest: null });
       const testType = findCrewTestTypeById(p.testTypeId);
       const label = testType?.label ?? p.testTypeId;
-      get().log(t('cs.crewTest', { label, ship: ship.label, dr: total >= 0 ? `+${total}` : `${total}`, outcome: crewTestSuccess(total) ? t('cs.crewTestOk') : t('cs.crewTestKo') })); // MDG 14 l.13
+      get().log(t('cs.crewTest', { label, ship: ship.label, dr: avecSigne(total), outcome: crewTestSuccess(total) ? t('cs.crewTestOk') : t('cs.crewTestKo') })); // MDG 14 l.13
       // ISSUE PAR TYPE — le type de Test DÉCLARE que son total négatif coûte du Moral (MDG 14 l.110).
       // Persiste sur le navire de campagne.
       if (testType?.moraleOnNegativeDR) {
@@ -3560,7 +3563,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // (`skillDRBonus` vs `skillMod`, `ops.ts:180-184`) — un DR vaut une dizaine (`tests.ts:98`).
       const ownSl = res.sl + dispelOwnSpellDR(pd.spellCasterId === pd.casterId);
       const { total, done } = extendedTestStep(prev, { success: res.success, sl: ownSl }, pd.ni, !!rule('test-extended-min-sl'));
-      const logLines = [t('cs.dispelRoll', { name: caster.label, spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];
+      const logLines = [t('cs.dispelRoll', { name: caster.label, spell: pd.label, roll: res.roll, target: res.target, sl: avecSigne(ownSl), total, ni: pd.ni })];
       if (done) {
         // Réussite (DR cumulé ≥ NI, LDB 46 l.160) : retire les effets du sort de tous ses porteurs.
         // Dissipation COMMUNE combat/hors-combat (couture D, #461) : le porteur du sort peut être

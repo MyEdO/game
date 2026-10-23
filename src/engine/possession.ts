@@ -15,7 +15,7 @@ import { mountIncidentEffects } from './travelTables';
 import type { CrewHire, ShipMoraleState } from './crewMorale';
 import type { ManannMood } from './seaVoyage';
 import type { CustomStatblock } from './statblock';
-import { findVehicleById, findCreatureById, tailleDuProfil } from '../data';
+import { findVehicleById, findCreatureById, findBuildingById, tailleDuProfil } from '../data';
 import { SIZE_SHIPBOARD_ENC, type SizeCategory } from './size';
 
 export type PossessionLocation =
@@ -161,7 +161,7 @@ export function possessionLabel(p: Possession): string {
     case 'navire':
       return findVehicleById(p.vehicleId)?.label ?? p.vehicleId;
     case 'immeuble':
-      return p.buildingId; // catalogue immeuble = T4 (#356), pas encore de label
+      return findBuildingById(p.buildingId)?.label ?? p.buildingId;
   }
 }
 

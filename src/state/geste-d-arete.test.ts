@@ -11,7 +11,7 @@ import { computeMoveReach, resolveMovement } from '../noyau/combatFlow';
 import { intentAllowedFor, withActingSeat } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { planFranchissement, phaseDeChute } from '../noyau/fallMove';
-import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant } from '../noyau/gesteDArete';
+import { REFUS_FRANCHISSEMENT, gesteDArete, type GesteDeplacant, type RefusGeste } from '../noyau/gesteDArete';
 import { climbMovementCost } from '../engine/movement';
 import { sceneMetresPerTile } from '../noyau/monde/scene';
 import { t, type MsgKey } from '../i18n';
@@ -379,5 +379,13 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     useGame.setState({ net: { ...NET0, gmSeat: 0 }, battle: { ...g().battle!, turn: g().battle!.order.indexOf(foe.id) } });
     g().climbAcross(foot, top);
     expect(g().pendingTest?.actorId).toBe(foe.id);
+  });
+});
+
+describe('canal stocké (#2938) : les trous d’un refus de geste sont vérifiés par `trous()`', () => {
+  it('type : un objet brut n’est pas accepté en `vars`', () => {
+    // @ts-expect-error — `vars` n'accepte que la sortie de `trous()`
+    const brut: RefusGeste = { refus: 'geste.refus.combatTermine', vars: { name: 'Gob' } };
+    expect(brut.vars).toEqual({ name: 'Gob' });
   });
 });

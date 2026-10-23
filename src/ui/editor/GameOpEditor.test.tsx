@@ -6,7 +6,7 @@ import { OP_LABEL, OP_REF_FIELDS, opMissingRefs, opsMissingRefs } from './refsDO
 import { formulaSummary, opSummary } from './interne/resumeDOp';
 import { datasetArray } from '../../data/overrides';
 import { fallTables } from '../../data/shipCriticals';
-import { lightTones } from '../../data';
+import { lightTones, psychologyLabel, groupLabel } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
 import { entreeDe, menuDe, ouvrirMenu } from './AddMenu.testkit';
@@ -41,6 +41,14 @@ describe('GameOpEditor — Formule sans perte (correction du bug num()→0)', ()
     expect(opSummary({ op: 'wounds', amount: { bonusOf: 'force-mentale' } })).toContain('BFM Blessure');
     expect(opSummary({ op: 'wounds', amount: { charOf: 'force-mentale' } })).toContain('FM Blessure');
     expect(opSummary({ op: 'heal', amount: { dice: { n: 1, sides: 10, plus: 2 } } })).toContain('1d10+2');
+  });
+
+  it('opSummary nomme les ops psy par leurs libellés : état psychologique et Groupe-Cible (#2938)', () => {
+    expect(opSummary({ op: 'endPsych', type: 'peur' })).toContain(psychologyLabel('peur'));
+    for (const o of [{ op: 'beginPsych', type: 'animosite', cible: 'peau-verte' }, { op: 'grantPsychTrait', psychType: 'animosite', cible: 'peau-verte' }] as GameOp[]) {
+      expect(opSummary(o), o.op).toContain(psychologyLabel('animosite'));
+      expect(opSummary(o), o.op).toContain(groupLabel('peau-verte'));
+    }
   });
 
   it('formulaSummary couvre les 4 formes (jamais « 0 » pour une formule réelle)', () => {

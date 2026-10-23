@@ -10,6 +10,8 @@ import type { Get, Set } from './flowTypes';
 import { rule } from '../engine/policy';
 import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/favor';
 import { t } from '../i18n';
+import { favorLevelSchema } from '../data/schemas/defs-scenes/effets';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { nextEntityId } from '../lib/entityId';
 
@@ -19,7 +21,7 @@ export function grantFavor(get: Get, set: Set, heroId: string, level: FavorLevel
   const favor: Favor = { id: nextEntityId('favor', (get().favors ?? []).map((f) => f.id)), heroId, level, owedTo, desc, progress: 0 };
   set({ favors: [...(get().favors ?? []), favor] });
   const h = get().party.find((x) => x.id === heroId);
-  get().log(t('favor.granted', { name: h?.label ?? heroId, level, owedTo }));
+  get().log(t('favor.granted', { name: h?.label ?? heroId, level: libelleDeValeur(favorLevelSchema, level), owedTo }));
   return favor;
 }
 
@@ -44,8 +46,8 @@ export function settleFavorActivity(get: Get, set: Set, heroId: string, favorId:
   itl.perHero[heroId] = { ...st, left: st.left - 1, favorProgress: [...(st.favorProgress ?? []), favorId] };
   set({ interlude: { ...itl } });
   get().log(done
-    ? t('favor.settled', { name: h.label, level: favor.level, owedTo: favor.owedTo })
-    : t('favor.progressed', { name: h.label, level: favor.level, owedTo: favor.owedTo, progress, required }));
+    ? t('favor.settled', { name: h.label, level: libelleDeValeur(favorLevelSchema, favor.level), owedTo: favor.owedTo })
+    : t('favor.progressed', { name: h.label, level: libelleDeValeur(favorLevelSchema, favor.level), owedTo: favor.owedTo, progress, required }));
 }
 
 /** Remet à 0 la progression des Faveurs qui n'ont PAS reçu d'Activité cet interlude — appelé par
@@ -84,9 +86,9 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
   if (rule('favor-rumor-spreads')) {
     h.careerLevel = Math.max(0, (h.careerLevel ?? 1) - 1);
     set({ party: [...get().party] });
-    get().log(t('favor.brokenRumor', { name: h.label, level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));
+    get().log(t('favor.brokenRumor', { name: h.label, level: libelleDeValeur(favorLevelSchema, favor.level), owedTo: favor.owedTo, lvl: h.careerLevel }));
   } else {
-    get().log(t('favor.brokenSilent', { name: h.label, level: favor.level, owedTo: favor.owedTo }));
+    get().log(t('favor.brokenSilent', { name: h.label, level: libelleDeValeur(favorLevelSchema, favor.level), owedTo: favor.owedTo }));
   }
 }
 

@@ -16,7 +16,7 @@
  * locale ajoutée ne le fait pas mentir — elle ne passe simplement pas par lui.
  */
 import { describe, it, expect } from 'vitest';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import { stepDetail, stepFraction, stepPrecision } from '../noyau/rollSeam';
 import { dataLabel } from '../data';
 import { riverForceLabel } from '../engine/riverNavigation';
@@ -159,8 +159,8 @@ const MARQUAGE: Site[] = [
 
 /* ── Le DR d'une rangée de poursuite : le SIGNE est porté par l'appelant, jamais par le gabarit ──*/
 
-const drAvant = (sl: number): string => `${sl >= 0 ? '+' : ''}${sl} DR`;
-const drApres = (sl: number): string => t('pursuit.dr', { dr: `${sl >= 0 ? '+' : ''}${sl}` });
+const drAvant = (sl: number): string => `${sl >= 0 ? '+' : '−'}${Math.abs(sl)} DR`;
+const drApres = (sl: number): string => t('pursuit.dr', { dr: avecSigne(sl) });
 
 const SIGNES: Site[] = [3, 0, -2].map((sl) => ({
   site: `pursuitFlow.ts:369 — issue de jet, DR ${sl}`,
@@ -700,7 +700,7 @@ const V8C5: Site[] = [
   {
     site: 'social.ts:127 — modificateur de Statut en mendicité (LDB 08 l.63)',
     avant: `Statut (${'mendicité '}${'Bronze<Argent'}) ${'+'}${10}`,
-    apres: t('social.statusMod', { beg: t('social.fragBegging'), side: 'Bronze<Argent', sign: '+', mod: 10 }),
+    apres: t('social.statusMod', { beg: t('social.fragBegging'), side: 'Bronze<Argent', mod: avecSigne(10) }),
   },
   {
     site: 'structureCritical.ts:47 — Critique de Structure (Blessures supplémentaires en fragment)',

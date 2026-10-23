@@ -1,5 +1,7 @@
 import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { windForces, windForceLabel, type SeaWindForceId } from '../engine/seaWeather';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { dir8Schema } from '../data/schemas/grammaire/valeurs';
 
 /**
  * Rose des vents compacte (SVG) — 8 directions (vocabulaire `Dir8` du projet), flèche de PROVENANCE
@@ -42,7 +44,7 @@ export function WindRose({ dir, force, heading, size = 'md', className }: WindRo
         viewBox="0 0 100 100"
         className="wind-rose__svg"
         role="img"
-        aria-label={`Vent ${forceLabel} de ${dir}${heading != null ? `, cap ${heading}` : ''}`}
+        aria-label={`Vent ${forceLabel} de ${libelleDeValeur(dir8Schema, dir)}${heading != null ? `, cap ${libelleDeValeur(dir8Schema, heading)}` : ''}`}
       >
         <circle className="wind-rose__ring" cx="50" cy="50" r="46" />
         {DIR8_ORDER.map((d) => {

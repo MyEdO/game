@@ -22,7 +22,7 @@
  * RENDU du toit (masses de `ArchitectureBody`, `gameIso/builders/roofs.ts`), qui se lève en cutaway
  * quand un allié entre dans l'empreinte.
  */
-import { buildings } from '../../data/index';
+import { buildings, findBuildingById } from '../../data/index';
 import { memoParVersion } from '../../data/versionDataset';
 import type { BuildingDef, BuildingFeature } from '../../data/buildings.types';
 import type { ArchitectureRect } from './scene';
@@ -31,18 +31,13 @@ import type { ArchitectureRect } from './scene';
 /** Ce qu'un porteur de type de bâtiment NOMME à l'écran : l'id qu'il référence et son libellé FR. */
 export type BuildingMeta = Pick<BuildingDef, 'id' | 'label'>;
 
-/** UN mémo pour le dataset : les deux vues (entrée complète, méta d'écran) se reconstruisent au MÊME
- *  témoin de version — deux cellules sur la même clé recalculeraient deux fois le même balayage. */
-const vues = memoParVersion('buildings', () => ({
-  parId: Object.fromEntries(buildings.map((b) => [b.id, b])) as Readonly<Record<string, BuildingDef>>,
-  metas: Object.fromEntries(
-    buildings.map((b) => [b.id, { id: b.id, label: b.label }]),
-  ) as Readonly<Record<string, BuildingMeta>>,
-}));
+const metas = memoParVersion('buildings', () => Object.fromEntries(
+  buildings.map((b) => [b.id, { id: b.id, label: b.label }]),
+) as Readonly<Record<string, BuildingMeta>>);
 
 /** Les métas indexées par id — reconstruites à la première lecture qui suit une écriture. */
 export function buildingsMeta(): Readonly<Record<string, BuildingMeta>> {
-  return vues().metas;
+  return metas();
 }
 
 /** COUVERTURE de référence d'un TYPE de bâtiment (`buildings.json › roofMaterial`) : une forge est
@@ -50,14 +45,14 @@ export function buildingsMeta(): Readonly<Record<string, BuildingMeta>> {
  *  entre la surcharge du corps et la toiture de la scène. Corps SANS type, ou type inconnu du dataset
  *  (un id hors dataset est refusé au parse) : `undefined` — l'étage suivant tranche. */
 export function buildingRoofMaterial(style: string | undefined): string | undefined {
-  return style === undefined ? undefined : vues().parId[style]?.roofMaterial;
+  return findBuildingById(style)?.roofMaterial;
 }
 
 /** Ornements d'identité d'un type de bâtiment (clocheton/cheminée/enseigne/étal), repli `[]` — lus par
  *  `builders/props` pour émettre un billboard par ornement. SÉPARÉ des métas d'éditeur.
  *  Un corps SANS type de bâtiment (`ArchitectureBody.style` absent : bourg, hameau) n'en porte aucun. */
 export function buildingFeatures(style: string | undefined): BuildingFeature[] {
-  return style === undefined ? [] : vues().parId[style]?.features ?? [];
+  return findBuildingById(style)?.features ?? [];
 }
 
 /** Boîte englobante d'une empreinte de masse (`BuildingMass.footprint`, plusieurs rectangles). */

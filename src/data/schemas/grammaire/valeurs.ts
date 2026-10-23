@@ -7,9 +7,12 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
+import type { Settlement } from '../../../engine/disponibilite';
+import type { TraumaKind } from '../../../engine/trauma';
+import type { Possession } from '../../../engine/possession';
 import { z } from 'zod';
 
-import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { AVAILABILITIES, STATUS_TIERS, type DeckCoverClass, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
@@ -153,14 +156,56 @@ export const dir8Schema = enumNomme({
  * retaper ses 4 paliers : c'est la porte unique des defs (`disponibilite`, `creatures`, `vehicles`,
  * `trappings`).
  */
-export const availabilitySchema = z.enum(AVAILABILITIES);
+export const availabilitySchema = enumNomme(tableTotale(AVAILABILITIES, (palier) => palier));
 
 /**
  * Rareté d'une pièce de créature récoltée (`HarvestRarity`, `src/data/index.ts`) = les paliers de
  * Disponibilité + `'Unique'`. Le 5ᵉ palier est RAW, pas une dérive : la table « COÛT DE BASE POUR
  * 1 ENC DE PIÈCES DE CRÉATURE BRUTES » imprime cinq colonnes (`ZI 13 l.286`).
  */
-export const harvestRaritySchema = z.enum([...AVAILABILITIES, 'Unique']);
+export const harvestRaritySchema = enumNomme(tableTotale([...AVAILABILITIES, 'Unique'] as const, (palier) => palier));
+
+/** Taille d'agglomération d'un marché (`Settlement`, `src/engine/disponibilite.ts` ; LDB 59 l.25-30) — UNE
+ *  déclaration pour l'archétype de marchand (`defs/merchants.ts`) et sa surcharge en Scène (`defs-scenes/scene.ts`). */
+export const settlementSchema = enumNomme({ village: 'Village', ville: 'Ville', cite: 'Cité' } satisfies Record<Settlement, string>);
+
+/** Classe de couvert gradué (`DeckCoverClass`, `src/engine/types.ts` ; LDB 14 l.72, l.81, l.86) — UNE
+ *  déclaration pour le décor (`defs/props.ts`), le poste de pont (`defs/vehicles.ts`) et le Trait naval
+ *  (`defs/naval-traits.ts`). */
+export const classeDeCouvertSchema = enumNomme({
+  imparfaite: 'Couverture imparfaite',
+  moyenne: 'Couverture moyenne',
+  totale: 'Couverture totale',
+} satisfies Record<DeckCoverClass, string>);
+
+/** Genre de blessure infligée par un effet de scène (`inflictTrauma.kind`, `defs-scenes/effets.ts` ; LDB 18). */
+const LIBELLES_DE_BLESSURE = { dechirure: 'Déchirure', fracture: 'Fracture', amputation: 'Amputation' } as const;
+export const genreDeBlessureSchema = enumNomme(LIBELLES_DE_BLESSURE);
+/** Sous-univers des fiches de Traumatisme (`TraumaKind`, `defs/traumas.ts`) : son propre `enumNomme`. */
+export const genreDeTraumaSchema = enumNomme({
+  dechirure: LIBELLES_DE_BLESSURE.dechirure,
+  fracture: LIBELLES_DE_BLESSURE.fracture,
+} satisfies Record<TraumaKind, string>);
+
+/** Nature d'une possession (`Possession['nature']`, `src/engine/possession.ts`) — nom sans article : une
+ *  phrase qui en veut un le porte dans son motif. */
+const LIBELLES_DE_NATURE = {
+  bete: 'Bête',
+  serviteur: 'Serviteur',
+  vehicule: 'Véhicule',
+  navire: 'Navire',
+  immeuble: 'Immeuble',
+} as const satisfies Record<Possession['nature'], string>;
+export const natureDePossessionSchema = enumNomme(LIBELLES_DE_NATURE);
+/** Sous-univers que l'effet de scène `givePossession` sait donner (`defs-scenes/effets.ts`). */
+export const natureDonnableSchema = enumNomme({
+  bete: LIBELLES_DE_NATURE.bete,
+  serviteur: LIBELLES_DE_NATURE.serviteur,
+  vehicule: LIBELLES_DE_NATURE.vehicule,
+});
+
+/** Échelon de Statut (`STATUS_TIERS`, `src/engine/types.ts` ; LDB 08 l.115). */
+export const statusTierSchema = enumNomme(tableTotale(STATUS_TIERS, (echelon) => echelon));
 
 /**
  * Forme déclarée d'un texte d'enjeu (`StakeForm`, `src/engine/types.ts`) — porte unique des 6 defs

@@ -160,6 +160,19 @@ const NOMMES = [
   'porteuse|voisine|les-deux',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
+  // `availabilitySchema` (#2938) : la Disponibilité (LDB 11), et ses sous-univers `harvestRaritySchema`
+  // (+ Unique) et `dispoPctAvailabilitySchema` (paliers testés) ; `settlementSchema` : la taille d'un lieu.
+  'Commune|Limitée|Rare|Exotique',
+  'Commune|Limitée|Rare|Exotique|Unique',
+  'Limitée|Rare',
+  'village|ville|cite',
+  // `natureDonnableSchema` (#2938), sous-univers de `natureDePossessionSchema` : la nature d'une possession donnée.
+  'bete|serviteur|vehicule',
+  // `genreDeTraumaSchema` / `genreDeBlessureSchema` (#2938) : le genre d'une blessure grave.
+  'dechirure|fracture',
+  'dechirure|fracture|amputation',
+  // `classeDeCouvertSchema` (#2938) : la classe d'un couvert (LDB 14 l.72-86).
+  'imparfaite|moyenne|totale',
 ].sort();
 
 /**
@@ -172,10 +185,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   '5m|10m|unite',
   '>=|<=|==|<|>',
   'CC|CT|F|E|I|Ag|Dex|Int|FM|Soc',
-  'Commune|Limitée|Rare|Exotique',
-  'Commune|Limitée|Rare|Exotique|Unique',
   'Inoffensive|Inquiétante|Menaçante|Mortelle',
-  'Limitée|Rare',
   'N|E|S|O',
   'N|E|\\|/',
   'Variable|Personnelle|Très courte|Courte|Moyenne|Longue|Très longue|Considérable',
@@ -189,7 +199,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'auberge|maison|camp',
   'aucune|legeres|abondantes|tres-abondantes',
   'aucun|retard|quart-de-tour|demi-tour',
-  'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
@@ -204,8 +213,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
   'days|hours|minutes',
-  'dechirure|fracture',
-  'dechirure|fracture|amputation',
   'declare|tirage',
   'deduite-du-set|geste-d-etat|grille|gouttiere-arche|selecteur-de-sets|coin-de-tour|bandeau-de-phase|interlude|pastille-etat|pastille-entite|frise|geste-secondaire',
   'defense|attack|both',
@@ -224,7 +231,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'froid|chaleur',
   'heldGround|intoCrowd',
   'heure|minute|round',
-  'imparfaite|moyenne|totale',
   'incantation|focalisation|seconde-vue',
   'income|craftExtended|learnTalent|identify|entrainement|mecenat|ritualFocus|masterWeapon|identifyByResearch|memorizeDiscount|combatTraining|punchausen|knowledgeResearch|reputation|wrathOfTheGods|dissensionScout|dissensionEmeute|contremaitre|forage|seaChart|opportunityTrade|crewTraining',
   'indice|rumeur',
@@ -285,7 +291,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'veillee|parchemin',
   'verbatim|descripteur',
   'victim|self',
-  'village|ville|cite',
   'wounds|bleed|trauma|surgery',
   'x+|x-|y+|y-',
   'x|y',
@@ -337,9 +342,8 @@ const RX_SELECTION_INLINE = /enumNomme\s*\(\s*\{[^{}]*\}\s*\)\s*\.\s*(extract|ex
  * GARDE STRUCTURELLE (#1694) : `.extract(`/`.exclude(` posé sur un enum NOMMÉ. Le refus posé par
  * `enumNomme` sur l'instance ne survit pas à un clone (`.describe(…)`, `.meta(…)` rendent un nœud
  * neuf dont les méthodes zod sont intactes) — un sous-enum naîtrait alors SANS libellés, en silence.
- * Le récepteur se reconnaît par sa DÉCLARATION `const X = enumNomme(` où qu'elle vive dans `src/**`
- * (les deux sélections réelles, `defs/disponibilite.ts` et `grammaire/valeurs.ts`, portent sur
- * `availabilitySchema`/`difficultySchema`, deux `z.enum` NUS : elles restent légitimes).
+ * Le récepteur se reconnaît par sa DÉCLARATION `const X = enumNomme(` où qu'elle vive dans `src/**` ;
+ * une sélection sur un `z.enum` NU reste légitime.
  * Fonction PURE des sources — jouable sur une COPIE (contrôle positif).
  */
 export function selectionsSurEnumNomme(fichiers: readonly Fichier[]): string[] {
@@ -388,7 +392,9 @@ describe('un sous-univers se déclare par son propre enumNomme, jamais par .extr
   });
 
   it('une sélection sur un enum NU (jamais nommé) reste légitime', () => {
-    const copie: Fichier[] = [{ chemin: 'a.ts', source: "const s = availabilitySchema.extract(['Limitée']);\n" }];
+    const copie: Fichier[] = [
+      { chemin: 'a.ts', source: "const nu = z.enum(['a', 'b']);\nconst s = nu.extract(['a']);\n" },
+    ];
     expect(selectionsSurEnumNomme(copie)).toEqual([]);
   });
 });

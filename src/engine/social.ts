@@ -25,7 +25,9 @@ import { Status, parseStatus } from './creation';
 import { rule } from './policy';
 import type { Combatant } from './types';
 import { findCareerById, levelsForCareer } from '../data';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { statusTierSchema } from '../data/schemas/grammaire/valeurs';
 
 /** Rang numérique d'un Échelon (Bronze < Argent < Or) pour la comparaison RAW. */
 const TIER_RANK: Record<Status['tier'], number> = { Bronze: 0, Argent: 1, Or: 2 };
@@ -119,11 +121,11 @@ export function statusCharmLabel(
 ): string | undefined {
   const mod = statusCharmMod(actor, target, opts); // affichage = base RAW (jamais le 1d10 caché)
   if (!mod) return undefined;
-  const sign = mod > 0 ? '+' : '−';
   const cmp = mod > 0 ? '>' : '<'; // le comparateur SUIT le sens du mod (cohérent même en mendicité)
   const beg = rule('social-begging-bonus') && opts?.begging && actor.tier === 'Bronze' && target.tier === 'Argent';
+  const echelon = (s: Status): string => libelleDeValeur(statusTierSchema, s.tier);
   const side = actor.tier === target.tier && !beg
-    ? `${actor.tier} ${actor.standing}${cmp}${target.standing}` // intra-Échelon : compare le Standing
-    : `${actor.tier}${cmp}${target.tier}`;
-  return t('social.statusMod', { beg: beg ? t('social.fragBegging') : '', side, sign, mod: Math.abs(mod) });
+    ? `${echelon(actor)} ${actor.standing}${cmp}${target.standing}` // intra-Échelon : compare le Standing
+    : `${echelon(actor)}${cmp}${echelon(target)}`;
+  return t('social.statusMod', { beg: beg ? t('social.fragBegging') : '', side, mod: avecSigne(mod) });
 }

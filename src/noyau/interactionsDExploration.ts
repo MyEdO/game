@@ -5,7 +5,7 @@ import { type SceneEntity, Scene } from './monde/scene';
 import { ouvrirDialogue } from './dialogue';
 import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type SeatPose, assignSeat } from './monde/seating';
 import { meneurDuMonde, poserCapDuGroupe } from './monde/combatants';
-import { t } from '../i18n';
+import { t, trous } from '../i18n';
 import { bus, EVT } from './bus';
 import { cloturer, runFlow, flowRestant } from './combatEffects';
 import { removeEntity } from './combatPlacement';
@@ -147,12 +147,12 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
 /** La fouille de la pièce : la scène et la pièce où le groupe se tient, ou le refus nommé. Le verbe `fouillerLaPiece`,
  *  sa touche et son bouton la lisent. */
 export function fouilleOuverte(s: Jeu): { scene: Scene; piece: RoomFocus } | RefusGeste {
-  if (!s.scene) return { refus: 'geste.refus.aucuneScene', vars: {} };
-  if (s.mode !== 'exploration') return { refus: 'fouille.refus.horsExploration', vars: {} };
+  if (!s.scene) return { refus: 'geste.refus.aucuneScene', vars: trous({}) };
+  if (s.mode !== 'exploration') return { refus: 'fouille.refus.horsExploration', vars: trous({}) };
   const porteur = porteurDExploration(s);
   if ('refus' in porteur) return porteur;
   const piece = roomFocusAt(s.scene, s.partyPos);
-  return piece ? { scene: s.scene, piece } : { refus: 'fouille.refus.horsPiece', vars: {} };
+  return piece ? { scene: s.scene, piece } : { refus: 'fouille.refus.horsPiece', vars: trous({}) };
 }
 
 export function creerActionsDInteraction(get: Get, set: Set) {

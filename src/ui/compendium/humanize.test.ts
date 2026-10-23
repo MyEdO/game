@@ -3,7 +3,7 @@ import {
   humanizeFlowSentence, humanizeCondition, humanizeOp, humanizeFormula, humanizeCastBonus,
 } from './humanize';
 import {
-  domains, spells, etats, talents, traits, groups, maladies, symptoms, skills, creatures,
+  domains, spells, etats, talents, traits, groups, maladies, symptoms, skills, creatures, groupLabel,
 } from '../../data';
 import { CHAR_KEYS } from '../../engine/types';
 import { useGame } from '../../state/store';
@@ -147,6 +147,13 @@ describe('humanize — registre JOUEUR', () => {
     const op: GameOp = { op: 'condition', id: 'en-flammes' };
     expect(humanizeOp(op)).toBe("gagne l'État *En flammes*");
     expect(firstKebab(humanizeOp(op))).toBeUndefined();
+  });
+
+  it('humanizeOp : Trait psy ciblé — le Groupe-Cible en libellé, jamais l’id (#2938)', () => {
+    for (const o of [{ op: 'beginPsych', type: 'animosite', cible: 'peau-verte' }, { op: 'grantPsychTrait', psychType: 'animosite', cible: 'peau-verte' }] as GameOp[]) {
+      expect(humanizeOp(o), o.op).toContain(groupLabel('peau-verte'));
+      expect(firstKebab(humanizeOp(o)), o.op).toBeUndefined();
+    }
   });
 
   it('humanizeCastBonus : français JOUEUR, sans jargon ni Markdown (contexte plein texte)', () => {

@@ -11,10 +11,7 @@
  */
 import { DIFFICULTY_LABELS, type Difficulty } from '../engine/types';
 import type { DifficultyShown, ModLine } from '../engine/combat';
-import { t } from '../i18n';
-
-/** Un nombre signé tel qu'il se lit (« +10 », « −20 », « +0 ») : le signe moins typographique. */
-export const avecSigne = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
+import { t, avecSigne } from '../i18n';
 
 /** Un modificateur TEL QU'IL SE LIT (« +10 Soutien », « −20 Localisation visée ») — source UNIQUE : la chip du web le
  *  rend, le popover du palier dérivé énumère sa composition avec la MÊME écriture, et tout hôte l'écrit ainsi. */

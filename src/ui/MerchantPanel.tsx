@@ -33,6 +33,8 @@ import { SpeakerBanner } from './SpeakerBanner';
 import { TradeTable, type TradeColumn, type TradeGroup } from './TradeTable';
 import { QtyStepper } from './QtyStepper';
 import { AVAILABILITIES } from '../engine/types';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { availabilitySchema } from '../data/schemas/grammaire/valeurs';
 import { nomDEntite } from '../noyau/monde/sceneNpc';
 import { presetPnjById } from '../state/campaignData';
 
@@ -73,7 +75,7 @@ export const MERCHANT_COL_RENDERERS: Record<string, { label: string; get: (id: s
   range: { label: 'Portée', get: trapCol((t) => rangeSpecLabel(t.range) ?? (ammoRangeModLabel(t.ammoRangeMod) || DASH)) },
   protection: { label: 'Protection', get: trapCol((t) => { const q = (t.qualities ?? []).find((x) => x.id === 'protectrice'); return q ? `Protectrice ${q.value ?? ''}`.trim() : DASH; }) },
   pa: { label: 'PA', get: trapCol((t) => (t.pa != null ? String(t.pa) : DASH)) },
-  availability: { label: 'Disponibilité', get: (id) => catalogEntryOf(id)?.availability ?? DASH },
+  availability: { label: 'Disponibilité', get: (id) => { const av = catalogEntryOf(id)?.availability; return av ? libelleDeValeur(availabilitySchema, av) : DASH; } },
   capacity: { label: 'Capacité', get: unitCapacity },
 };
 
@@ -537,7 +539,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
               return (
                 <span className="sell-haggle" title="Baisser le prix de moitié augmente la Disponibilité d'un acheteur d'un cran">
                   <QtyStepper
-                    center={<span className="sell-av">acheteur {sellBuyerAvailability(it, h)}{h > 0 ? ` (÷${2 ** h})` : ''}</span>}
+                    center={<span className="sell-av">acheteur {libelleDeValeur(availabilitySchema, sellBuyerAvailability(it, h) ?? '')}{h > 0 ? ` (÷${2 ** h})` : ''}</span>}
                     onDec={() => onSellHalving(it.uid, -1)}
                     onInc={() => onSellHalving(it.uid, 1)}
                     decDisabled={h <= 0}
@@ -647,7 +649,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             </label>
             {quote && give && (
               <p className="tavern-detail">
-                Ratio {quote.giveAv} <b>{quote.ratio.give}:{quote.ratio.get}</b> {quote.getAv} → céder <b>{quote.giveCount}</b> × {findTrappingById(give.trappingId)?.label} contre <b>{count}</b> × {labelOf(getId)}.
+                Ratio {libelleDeValeur(availabilitySchema, quote.giveAv)} <b>{quote.ratio.give}:{quote.ratio.get}</b> {libelleDeValeur(availabilitySchema, quote.getAv)} → céder <b>{quote.giveCount}</b> × {findTrappingById(give.trappingId)?.label} contre <b>{count}</b> × {labelOf(getId)}.
                 {give.count < quote.giveCount && <span className="cart-warn"> Exemplaires insuffisants ({give.count}/{quote.giveCount}).</span>}
                 {getStockQty < count && <span className="cart-warn"> Stock insuffisant.</span>}
               </p>

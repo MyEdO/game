@@ -9,7 +9,7 @@ import { useRollFrisson } from './useRollFrisson';
 import { DiceRoll } from './DiceRoll';
 import { d100Faces } from './Dice';
 import { FLOW_VERBS } from '../noyau/flowVerbs';
-import { avecSigne } from '../noyau/difficultyText';
+import { avecSigne } from '../i18n';
 import { rowForcedDie, useDieCommit, useDieCommitRegistry, withPickedDie } from './forcedDieRow';
 import { useGame } from '../state/store';
 import { RecapLineRow } from './RecapLine';

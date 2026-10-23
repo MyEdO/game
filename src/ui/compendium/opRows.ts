@@ -17,7 +17,7 @@ import { facesDuDe, fourchette } from '../../engine/tables';
 import type { DeDeTable } from '../../data/schemas/grammaire/valeurs';
 import { statName } from '../../engine/statEntry';
 import {
-  conditionLabel, psychologyLabel, diseaseLabel, symptomLabel, creatureLabel,
+  conditionLabel, psychologyLabel, groupLabel, diseaseLabel, symptomLabel, creatureLabel,
   refLabel, findTrappingById, findEffectTableById, mutationTables, findPsychologyById,
 } from '../../data';
 
@@ -90,7 +90,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
     }
     case 'grantPsychTrait': {
       const label = psychologyLabel(o.psychType);
-      return { t: 'ref', category: 'psychologies', id: o.psychType, label, show: label, badge: o.cible };
+      return { t: 'ref', category: 'psychologies', id: o.psychType, label, show: label, badge: o.cible ? groupLabel(o.cible) : undefined };
     }
     case 'removePsychTrait': {
       if (!o.psychType) return textRow(o); // « au choix » : pas d'ancre
@@ -108,7 +108,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       // modificateur social « contenu » déclaré par l'entrée (`containedSocialMod`).
       const mod = o.active === false ? findPsychologyById(o.type)?.containedSocialMod : undefined;
       const badge = [
-        o.cible ?? (o.indice != null ? humanizeFormula(o.indice) : undefined),
+        o.cible ? groupLabel(o.cible) : (o.indice != null ? humanizeFormula(o.indice) : undefined),
         mod != null ? `${mod < 0 ? '−' : '+'}${Math.abs(mod)} Sociabilité` : undefined,
       ].filter((s): s is string => !!s).join(' · ') || undefined;
       return { t: 'ref', category: 'psychologies', id: o.type, label, show: label, badge };

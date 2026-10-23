@@ -30,7 +30,8 @@ import { battementRemoval } from './combatManeuvers';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { PendingEncounterPsych } from './encounterPsychFlow';
 import type { PendingActivity } from './interludeFlow';
-import { estCibleType, cibleLabel } from '../engine/psychology';
+import { estCibleType } from '../engine/psychology';
+import { psychologieEtCibleLabel } from '../data';
 import { activityById, matchOutcomes } from '../engine/activities';
 import { isFumble } from '../engine/oups';
 import { extendedTestStep, isImpressiveSuccess, isImpressiveFailure, isAstoundingFailure, SL_ASTOUNDING } from '../engine/tests';
@@ -38,7 +39,7 @@ import { bargainPct, bargainSellBonusPct, type BargainOutcome } from '../engine/
 import { healWoundsDelta, cappedHealAmount } from '../engine/healing';
 import { corruptionGain } from '../engine/corruption';
 import type { Combatant } from '../engine/types';
-import { t } from '../i18n';
+import { t, avecSigne, pluriel } from '../i18n';
 
 /** Test de scène (LDB 12) : réussite / échec / réussite garantie par Résilience. Le DR figure déjà
  *  dans le breakdown au-dessus — l'issue reste une phrase courte. */
@@ -68,9 +69,8 @@ export function describeEncounterPsych(pe: PendingEncounterPsych, name: string):
   const r = pe.result;
   if (!r) return '';
   if (estCibleType(pe.kind)) {
-    const cl = cibleLabel(pe.kind);
-    const kind = cl?.label.toLowerCase() ?? pe.kind;
-    return r.success ? t('out.cibleMaster', { name, kind }) : t('out.cibleGrip', { name, kind });
+    const trait = psychologieEtCibleLabel(pe.kind, pe.cible);
+    return r.success ? t('out.cibleMaster', { name, trait }) : t('out.cibleGrip', { name, trait });
   }
   if (pe.kind === 'terreur') {
     return r.success ? t('out.terreurHold', { name }) : t('out.terreurTerrified', { name, foe: pe.sourceName, brise: String(r.brise) });
@@ -114,7 +114,7 @@ export function describeCorruption(pc: PendingCorruption, name: string): string 
   const gain = corruptionGain(pc.level ?? 'mineure', !!pc.success, pc.sl ?? 0);
   return gain === 0
     ? t('out.corruptRepel', { name })
-    : t('out.corruptGain', { name, gain, s: gain > 1 ? 's' : '' });
+    : t('out.corruptGain', { name, gain, s: pluriel(gain) });
 }
 
 /** Jet d'Activité d'interlude (LDB 23) : issue de la popin (Revenus / Artisanat / Apprentissage /
@@ -230,7 +230,7 @@ export function describeStateRecovery(sr: PendingStateRecovery, name: string): s
   if (sr.roll == null) return '';
   const removed = sr.success ? Math.min(sr.stacks, 1 + Math.max(0, sr.netSL)) : 0;
   const body = sr.success
-    ? t('out.stateRecoveryWin', { sign: sr.netSL >= 0 ? '+' : '', netSL: sr.netSL, removed, s: removed > 1 ? 's' : '' })
+    ? t('out.stateRecoveryWin', { netSL: avecSigne(sr.netSL), removed, s: pluriel(removed) })
     : t('out.stateRecoveryFail');
   return t('out.stateRecovery', { name, body });
 }
@@ -302,6 +302,6 @@ export function describeDisengageFlee(pd: PendingDisengage): string {
   const jet = fleeTouche(pd)?.jet;
   if (!jet) return ''; // coup qui touche : Test `fuite` pas encore lancé
   const broken = jet.success ? 0 : 1 + Math.max(0, -jet.sl);
-  const hit = t('out.fleeHit', { wounds, s: wounds > 1 ? 's' : '', broken: broken ? t('out.fleeBroken', { broken, s: broken > 1 ? 's' : '' }) : '' });
+  const hit = t('out.fleeHit', { wounds, s: pluriel(wounds), broken: broken ? t('out.fleeBroken', { broken, s: pluriel(broken) }) : '' });
   return t('out.disengageFlee', { hit });
 }

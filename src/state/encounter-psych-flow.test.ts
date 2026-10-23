@@ -11,6 +11,8 @@ import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneE
 import { type CustomStatblock } from '../engine/statblock';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { presetPnjById } from './campaignData';
+import { psychologyLabel, groupLabel } from '../data';
+import { stepPrecision } from '../noyau/rollSeam';
 
 /**
  * Flux de Psychologie À LA RENCONTRE, hors combat (couture C). Depuis 2026-06-10 : la Peur/Terreur de
@@ -110,6 +112,13 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(step.target).toBeUndefined();
     expect(step.participants?.map((p) => p.id)).toEqual([h.id]);
     expect(step.participants?.[0].result).toBeNull();
+  });
+
+  it('l’étape d’un Trait ciblé nomme son Groupe-Cible par son libellé (#2938)', () => {
+    expect(groupLabel('elfe'), 'la fixture distingue libellé et id').not.toBe('elfe');
+    useGame.setState({ party: [animosite('H')] });
+    useGame.getState().startScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
+    expect(useGame.getState().pendingCascade!.participants[0].label).toBe(stepPrecision(psychologyLabel('animosite'), groupLabel('elfe')));
   });
 
   it('Animosité ratée + Continuer → affliction active en psychState ; cascade close (1 héros)', () => {

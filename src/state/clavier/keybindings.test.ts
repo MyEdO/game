@@ -370,3 +370,12 @@ describe('raccourcis — une touche-MODIFICATEUR est son propre modificateur', (
     expect(modsMatch(['ctrl'], ['ctrl', 'alt'], 'AltLeft')).toBe(true);
   });
 });
+
+describe('canal stocké (#2938) : les trous d’un libellé de raccourci sont vérifiés par `trous()`', () => {
+  it('type : un objet brut n’est pas accepté en `labelParams`', () => {
+    const base = KEYBINDINGS[0];
+    // @ts-expect-error — `labelParams` n'accepte que la sortie de `trous()`
+    const brut: KeyBinding = { ...base, labelParams: { n: 1 } };
+    expect(brut.labelParams).toEqual({ n: 1 });
+  });
+});

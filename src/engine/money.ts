@@ -6,7 +6,7 @@
  * (couronne d'or), notation `/` pour les
  * pistoles d'argent (« 6/8 », « 20/– »), sc (sou de cuivre). `formatMoney` = SOURCE UNIQUE d'affichage.
  */
-import { t } from '../i18n';
+import { t, pluriel } from '../i18n';
 export interface Money { gold: number; silver: number; brass: number; }
 export const PA_PER_SC = 12;
 export const PA_PER_CO = 240; // 20 × 12
@@ -90,8 +90,8 @@ export function formatMoney(m: Money): string {
  *  jamais dupliquée par écran. */
 export function spellMoney(m: Money): string {
   const parts: string[] = [];
-  if (m.gold) parts.push(t('money.gold', { n: m.gold, s: m.gold > 1 ? 's' : '' }));
-  if (m.silver) parts.push(t('money.silver', { n: m.silver, s: m.silver > 1 ? 's' : '' }));
-  if (m.brass) parts.push(t('money.brass', { n: m.brass, s: m.brass > 1 ? 's' : '' }));
+  if (m.gold) parts.push(t('money.gold', { n: m.gold, s: pluriel(m.gold) }));
+  if (m.silver) parts.push(t('money.silver', { n: m.silver, s: pluriel(m.silver) }));
+  if (m.brass) parts.push(t('money.brass', { n: m.brass, s: pluriel(m.brass) }));
   return parts.length ? parts.join(', ') : t('money.none');
 }

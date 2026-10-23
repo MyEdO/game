@@ -51,7 +51,7 @@ import type { RNG } from '../engine/dice';
 import type { BatchParticipant, CascadeStep } from './pendings';
 import type { Jeu } from './etat';
 import { traceLineOf } from '../engine/traceLine';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import { dataLabel } from '../data';
 import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
@@ -149,10 +149,9 @@ const PURSUIT_CHOICE_KIND = 'pursuitChoice';
 const PURSUIT_DIFFICULTY: Difficulty = 'intermediaire';
 
 /** DR SIGNÉ — la forme sous laquelle la poursuite chiffre un Degré de Réussite (rangée, issue de jet). */
-const drSigne = (sl: number): string => `${sl >= 0 ? '+' : ''}${sl}`;
 
 /** L'issue en clair d'un jet d'adversaire : son DR (`TraceRow.issue`). */
-const drDit = (sl: number): PlayerText => t('pursuit.dr', { dr: drSigne(sl) });
+const drDit = (sl: number): PlayerText => t('pursuit.dr', { dr: avecSigne(sl) });
 
 /** La DISTANCE en cours, telle que les TITRES DE MANCHE la précisent (`SequenceRound.title`). */
 const distanceDite = (p: PursuitPayload): PlayerText => t('pursuit.titreDistance', { distance: p.distance, evasion: p.escapeAt });
@@ -392,7 +391,7 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; 
   const distance = p.distance + delta;
   log.push(t('pursuit.round', {
     round: p.manche, mouvement: t(delta >= 0 ? 'pursuit.roundGain' : 'pursuit.roundLoss'),
-    delta: `${delta >= 0 ? '+' : ''}${delta}`, distance, evasion: p.escapeAt,
+    delta: avecSigne(delta), distance, evasion: p.escapeAt,
   }));
   const outcome = pursuitOutcome(distance, p.escapeAt);
   if (outcome === 'ongoing') return { go: 'continue', payload: { ...p, distance, phase: 'course' }, log };
@@ -468,7 +467,7 @@ function recalcul(seq: PursuitSequence, p: PursuitPayload, arreteId: string | un
   const delta = deltaOf(seq, { fleeing, pursuers: pris.pursuers });
   const distance = pris.distanceAvant + delta;
   log.push(t('pursuit.recompute', {
-    who: pris.laggard.label, delta: `${delta >= 0 ? '+' : ''}${delta}`, distance, evasion: p.escapeAt,
+    who: pris.laggard.label, delta: avecSigne(delta), distance, evasion: p.escapeAt,
   }));
   // Sorties de course : le sacrifié, et le poursuivant qui s'est arrêté.
   const sortis = [pris.laggard, ...(arreteId ? pris.pursuers.filter((r) => r.id === arreteId) : [])];
@@ -520,7 +519,7 @@ export const TABLES = {
       for (const row of step.participants) {
         const dr = row.result?.sl ?? 0;
         const who = actorIn(get(), row.id)?.label ?? row.id;
-        lines.push(t('pursuit.row', { who, label: row.label ?? t('step.pursuitMouvement'), dr: drSigne(dr) }));
+        lines.push(t('pursuit.row', { who, label: row.label ?? t('step.pursuitMouvement'), dr: avecSigne(dr) }));
       }
       return { consequences: freeCons(lines) };
     },

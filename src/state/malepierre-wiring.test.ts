@@ -16,6 +16,8 @@ import type { Combatant } from '../engine/types';
 import { evaluateTest } from '../engine/tests';
 import { castTestDRMods } from '../engine/magic';
 import { findSpellById } from '../data/index';
+import { exposureLevelSchema } from '../data/schemas/grammaire/valeurs';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 
 const RULE = 'magic-vdm-incantation';
 
@@ -137,7 +139,7 @@ describe('Malepierre — câblage PROD (Incantation, `oocCastSpell`/`castRoll`/`
     useGame.getState().oocCastSpell(w.id, spellId, w.id);
     useGame.getState().castRoll();
     useGame.getState().castConfirm();
-    expect(useGame.getState().journal.some((l) => l.includes('Exposition moderee'))).toBe(true); // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure)
+    expect(useGame.getState().journal.some((l) => l.includes(`Exposition ${libelleDeValeur(exposureLevelSchema, 'moderee')}`))).toBe(true); // « être en contact » (LDB 19 l.51) — pas « à proximité » (l.40, mineure)
   });
 
   it('dé CHOISI (Résilience `castSetForcedRoll`) : le doublement porte sur le NOUVEAU DR, une seule consommation (pas le montant du jet d’origine, périmé)', () => {

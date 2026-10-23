@@ -193,7 +193,7 @@ function refLessProducers(): string[] {
  *    par le pending (`PendingTest.mods`), donc hors de ce stock : l'affichage n'en produit plus.
  */
 const RATCHET = [
-  "src/noyau/combatFlow.ts · tr('cf.coverLabel', { cover })",
+  "src/noyau/combatFlow.ts · dataLabel(libelleDeValeur(classeDeCouvertSchema, cover))",
   'src/noyau/combatFlow.ts · sc.label',
   'src/noyau/combatFlow.ts · sc.label',
   'src/noyau/combatFlow.ts · sc.label',

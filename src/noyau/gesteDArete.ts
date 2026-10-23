@@ -11,7 +11,7 @@
 import type { Jeu, BattleState } from './etat';
 import type { Combatant } from '../engine/types';
 import type { Pt } from './monde/path';
-import type { MsgKey } from '../i18n';
+import type { MsgKey, TrousVerifies } from '../i18n';
 import { caseOpposee, type AreteUtilisable, type CapaciteArete } from './aretes';
 import { mouvementDeLaChute, type RefusFranchissement, metresRetenus, planFranchissement, refusDesRangeesDues, tombantsNommes, mouvementDeLAllege } from './fallMove';
 import { sceneMetresPerTile, type Scene, isWalkable, heightAt } from './monde/scene';
@@ -23,7 +23,7 @@ import { findActionById } from '../data';
 import type { PendingFall } from './pendings';
 import { jouerFlowEntier, applyEffects, ouvrirChute, effectTargets, runFlow, openSkillTest } from './combatEffects';
 import { placeCombatant } from './monde/spawn';
-import { t } from '../i18n';
+import { t, trous } from '../i18n';
 import { tileKey } from './monde/path';
 import { moveEnv } from './monde/combatGeometry';
 import { bus, EVT } from './bus';
@@ -67,7 +67,7 @@ export function gesteDeLArete(a: AreteUtilisable): GesteDuNoyau | null {
 export const aretesOffertes = (aretes: readonly AreteUtilisable[], ouverts: boolean): AreteUtilisable[] =>
   ouverts ? [...aretes] : aretes.filter((a) => !estDeplacant(a.capacite));
 
-export type RefusGeste = { refus: MsgKey; vars: Record<string, string | number> };
+export type RefusGeste = { refus: MsgKey; vars: TrousVerifies };
 export type VerdictGeste = { mobile: Combatant; case: Pt } | RefusGeste;
 /** Geste accordé : le mobile, sa case, et le monde où il se joue — `battle` nul hors combat. */
 export type GesteOuvert = { mobile: Combatant; case: Pt; scene: Scene; battle: BattleState | null };
@@ -84,7 +84,7 @@ const REFUS_DU_TOUR: Readonly<Record<RefusDuTour, MsgKey>> = {
 /** LDB 14 l.179 ; CRB 032 l.53 ; #2205. */
 const REFUS_MONTE: MsgKey = 'geste.refus.monte';
 
-const refus = (cle: MsgKey, vars: Record<string, string | number> = {}): RefusGeste => ({ refus: cle, vars });
+const refus = (cle: MsgKey, vars: TrousVerifies = trous({})): RefusGeste => ({ refus: cle, vars });
 
 /** Libellé de l'action « Descendre » (`actions.json`, id `dismount`) — l'issue que le refus monté nomme. */
 const libelleDescendre = (): string => garanti(findActionById('dismount'), 'dismount', 'action').label;
@@ -112,7 +112,7 @@ function porteurDeCombat(s: Jeu, battle: BattleState): VerdictGeste {
   const tour = mobileDuTour(s, battle);
   if (!('refus' in tour)) return tour;
   if (!tour.mobile) return refus(REFUS_DU_TOUR[tour.refus]);
-  const vars = { name: tour.mobile.label };
+  const vars = trous({ name: tour.mobile.label });
   // `canMove` refuse deux cas : Mouvement épuisé, ou Mouvement → Action → Mouvement (`mount.ts:canMove`).
   if (tour.refus === 'movement-spent' && movementRemaining(battle, tour.mobile) > 0) {
     return refus('geste.refus.mouvementEntrelace', vars);
@@ -128,7 +128,7 @@ export function gesteDArete(s: Jeu): GesteOuvert | RefusGeste {
     ? porteurDExploration(s)
     : battle ? porteurDeCombat(s, battle) : refus('geste.refus.horsJeu');
   if ('refus' in v) return v;
-  if (isRider(v.mobile) || isMount(v.mobile)) return refus(REFUS_MONTE, { action: libelleDescendre() });
+  if (isRider(v.mobile) || isMount(v.mobile)) return refus(REFUS_MONTE, trous({ action: libelleDescendre() }));
   return { ...v, scene, battle };
 }
 
@@ -138,7 +138,7 @@ export function gesteDepuis(s: Jeu, from: Pt): GesteOuvert | RefusGeste {
   if ('refus' in v) return v;
   const c = v.case;
   if (c.x !== from.x || c.y !== from.y || (c.z ?? 0) !== (from.z ?? 0)) {
-    return refus('geste.refus.caseDuMobile', { name: v.mobile.label });
+    return refus('geste.refus.caseDuMobile', trous({ name: v.mobile.label }));
   }
   return v;
 }
@@ -149,7 +149,7 @@ export function gesteDepuis(s: Jeu, from: Pt): GesteOuvert | RefusGeste {
 export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
   if (!b?.acted) return null;
-  return refus('fall.actionDejaPrise', { name: garanti(inBattleId(b, tombantId), tombantId, 'sauteur').label });
+  return refus('fall.actionDejaPrise', trous({ name: garanti(inBattleId(b, tombantId), tombantId, 'sauteur').label }));
 }
 
 /** Se suspendre d'abord coûte, en combat, le Mouvement de `mouvementDeLaChute` : refusé quand le
@@ -160,7 +160,7 @@ export function refusDeLaSuspension(s: Jeu, tombantId: string): RefusGeste | nul
   if (!b || !s.pendingFall || !s.scene) return null;
   const c = garanti(inBattleId(b, tombantId), tombantId, 'sauteur');
   const cout = mouvementDeLaChute(s.pendingFall, true, sceneMetresPerTile(s.scene));
-  return movementRemaining(b, c) < cout ? refus('fall.suspension.mouvementInsuffisant', { name: c.label, cout }) : null;
+  return movementRemaining(b, c) < cout ? refus('fall.suspension.mouvementInsuffisant', trous({ name: c.label, cout })) : null;
 }
 
 /** Le mobile peut-il accomplir un geste déplaçant MAINTENANT ? (sélecteur de store, valeur primitive). */

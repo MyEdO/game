@@ -53,7 +53,7 @@ import { tenuParUnHumain } from './sieges';
 import { followsCharacterRules } from '../engine/relations';
 import { resultLine, freeCons, tableStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { t, deElide } from '../i18n';
+import { t, deElide, pluriel } from '../i18n';
 import { stepDetail } from './rollSeam';
 import { NATURES_D_INFLUENCE, type NatureDInfluence } from '../data/schemas/grammaire/valeurs';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -104,7 +104,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
     return [t('cor.phaWard', { name: hero.label })];
   }
   hero.corruption = (hero.corruption ?? 0) + n;
-  lines.push(t('cor.gain', { name: hero.label, n, s: n > 1 ? 's' : '', total: hero.corruption }));
+  lines.push(t('cor.gain', { name: hero.label, n, s: pluriel(n), total: hero.corruption }));
 
   // Seuil « Corrompu » (LDB 19 l.70) : à CHAQUE gain au-delà de BFM+BE (+ Âme pure), le Test de la fiche
   // `corrompu` ; succès = contenu « pour cette fois », échec = mutation.

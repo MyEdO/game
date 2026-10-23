@@ -17,9 +17,9 @@ import { EMPTY_FLOW } from '../../engine/flowCore';
 import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCatalogue, type TableDeCibles } from '../../noyau/combatEffects';
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
-import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
+import { diseaseLabel, spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
 import { useId, useMemo } from 'react';
-import { giveTrappingSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
+import { favorLevelSchema, giveTrappingSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -37,7 +37,7 @@ import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import { CHAR_KEYS, CHAR_LABELS, CharKey, DIFFICULTY_LABELS, Difficulty } from '../../engine/types';
 import { ChaosAlign } from '../../engine/corruption';
-import { chaosAlignSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import { chaosAlignSchema, natureDonnableSchema, NATURES_D_INFLUENCE, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { POWER_ESTIMATE, clampMight, type MassBattleSpec } from '../../engine/massBattle';
@@ -223,7 +223,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'discreditClue': return `Fausse piste : ${ref('indiceId', e.indiceId)}`;
     case 'giveTrapping': return `Objet : ${giveTrappingLabel(e, (id) => trappingDesObjetsPuisDuCatalogue(new Map(objetsDuProjet(ctx).map((o) => [o.id, o])), id)) || '?'}${e.qualities?.length ? ` (+${e.qualities.length} qualité(s))` : ''}`;
     case 'givePossession': {
-      const natureLabel = e.nature === 'bete' ? 'Bête' : e.nature === 'serviteur' ? 'Serviteur' : 'Véhicule';
+      const natureLabel = libelleDeValeur(natureDonnableSchema, effect.nature);
       const refLabelStr = e.nature === 'vehicule'
         ? (findVehicleById(e.ref?.vehicleId)?.label ?? e.ref?.vehicleId ?? '?')
         : (e.ref?.creatureId ? refLabel('creatures', { id: e.ref.creatureId }) : e.ref?.custom?.label ?? '?');
@@ -235,7 +235,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'sessionEnd': return `Fin de séance (Ambitions / Motivation)`;
     case 'openCharacterCreator': return `Créer un personnage (assistant)`;
     case 'inflictNightmares': return `Cauchemars${e.heroId ? ` → ${e.heroId}` : ''}`;
-    case 'inflictDisease': return `Maladie : ${e.disease || '?'}`;
+    case 'inflictDisease': return `Maladie : ${e.disease ? diseaseLabel(e.disease) : '?'}`;
     case 'inflictHunger': return `Faim ×${e.days ?? 1} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'inflictThirst': return `Soif ×${e.days ?? 1} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'exposureNight': return `Exposition ${e.kind === 'chaleur' ? 'chaleur' : 'froid'} ×${e.count ?? 2} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
@@ -269,7 +269,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality === 'pietre' ? ', piètre' : ''})`;
     case 'mealParty': return `Repas du groupe`;
     case 'interlude': return `Interlude : ${e.weeks ?? 1} semaine(s)`;
-    case 'grantFavor': return `Faveur ${e.level} envers ${e.owedTo || '?'} (${e.heroId || '1ᵉʳ héros'})`;
+    case 'grantFavor': return `${libelleDeValeur(favorLevelSchema, e.level)} envers ${e.owedTo || '?'} (${e.heroId || '1ᵉʳ héros'})`;
     case 'startCombat': return `Combat : ${e.encounter || '?'}`;
     case 'startPursuit': return `Poursuite (${e.partyRole === 'pursuing' ? 'groupe poursuit' : 'groupe fuit'}) — Distance ${e.distance ?? 4}, ${(e.foes ?? []).length} adversaire(s)${e.encounter ? ` → ${e.encounter}` : ''}`;
     case 'startMassBattle': {

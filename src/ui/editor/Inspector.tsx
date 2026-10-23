@@ -54,6 +54,7 @@ import { poseToitureDeCorps, rederiveRoofMasses, renameActionAuthoree, toitureEf
 import { activitiesFor } from '../../engine/activities';
 import { hintDeValeur, libelleDeValeur, valeursDe } from '../../data/schemas/grammaire/meta';
 import { idsDe } from '../../data/schemas/grammaire/ref';
+import { settlementSchema } from '../../data/schemas/grammaire/valeurs';
 import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfileSchema, sceneWeatherSchema, type ReliefDefaults } from '../../data/schemas/defs-scenes/scene';
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
@@ -1596,9 +1597,7 @@ function EntityPanel({
                     onChange={(e) => updateSel({ merchant: { ...ent.merchant!, settlement: (e.target.value || undefined) as Settlement | undefined } })}
                   >
                     <option value="">— défaut (archétype) —</option>
-                    <option value="village">Village</option>
-                    <option value="ville">Ville</option>
-                    <option value="cite">Cité</option>
+                    {Object.entries(valeursDe(settlementSchema) ?? {}).map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}
                   </select>
                 </label>
                 <label className="ed-field">

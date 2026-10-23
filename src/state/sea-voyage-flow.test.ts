@@ -2690,7 +2690,7 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
     runSeaDay(get, set);
 
     const journal = get().journal.join(' | ');
-    expect(journal, 'la Progression du jour n’est pas journalisée au plancher').toMatch(/Progression du jour[^|]*DR d'équipage -2/);
+    expect(journal, 'la Progression du jour n’est pas journalisée au plancher').toMatch(/Progression du jour[^|]*DR d'équipage −2/);
     expect(get().pendingCrewTest, 'un Test d’équipage a été posé sans personne pour le tenir').toBeNull();
     const etapes: CascadeStep[] = get().pendingCascade?.participants ?? [];
     expect(etapes.some((e) => e.kind === 'progression'), 'une étape de Progression a été posée sans PJ apte').toBe(false);

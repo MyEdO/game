@@ -103,6 +103,11 @@ describe('possessionLabel — label d’instance sinon libellé du catalogue (do
     const p: Possession = { uid: 'pos-2', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [], nature: 'vehicule', vehicleId: 'charrette' };
     expect(possessionLabel(p)).toBe('Charrette');
   });
+
+  it('immeuble sans label d’instance : libellé du type de bâtiment (« Chapelle »)', () => {
+    const p: Possession = { uid: 'pos-3', ownerId: 'hero-1', location: { kind: 'au-lieu', placeId: 'ville-x' }, items: [], nature: 'immeuble', buildingId: 'chapelle' };
+    expect(possessionLabel(p)).toBe('Chapelle');
+  });
 });
 
 describe('possessionTotalEnc — scénario-étalon TERRESTRE (§5, T1-c2, #616)', () => {

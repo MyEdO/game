@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 18 ; LDB 18 l.61/72 */
 import { z } from 'zod';
-import { formulaSchema } from '../grammaire/valeurs';
+import { formulaSchema, genreDeTraumaSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { gameOpSchema } from '../grammaire/mecanique';
 
@@ -51,7 +51,7 @@ const doc = document(
   famille,
   {
     ops: z.array(gameOpSchema).optional(),
-    kind: z.enum(['dechirure', 'fracture']).optional(),
+    kind: genreDeTraumaSchema.optional(),
     severity: z.enum(['mineur', 'majeur']).optional(),
     prosthesis: z
       .array(

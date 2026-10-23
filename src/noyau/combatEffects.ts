@@ -7,7 +7,7 @@ import { tablesPosees, type ClotureApplier, type FragmentDeTables, type PartDeTa
 import type { LootGear, CascadeStep, CascadeStepMeta, CascadeTableDone, Cloture, OpsCtxPorte, PendingCascade, PendingTest, ScheduledEffect, Suite, RevealEntry } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
-import { Combatant, type ModLine } from '../engine/types';
+import { Combatant, locationLabel, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, roll as rollDice } from '../engine/dice';
@@ -77,9 +77,12 @@ import { garanti } from '../lib/garanti';
 import { addPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type LivingRef, type PossessionInput } from '../engine/possession';
 import { ev } from './combatLog';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { genreDeBlessureSchema } from '../data/schemas/grammaire/valeurs';
+import { waterAppliesToSchema } from '../data/schemas/defs/water-exposure';
 import { stepPrecision, stepDetail } from './rollSeam';
-import { dataLabel, type WaterExposureMode } from '../data';
+import { dataLabel, groupLabel, type WaterExposureMode } from '../data';
 import { actionsAuthorees, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks } from './combat/advantagePool';
@@ -815,7 +818,7 @@ export function openSkillTest(
   const socialDetail = (c: Combatant): string | undefined => {
     const parts: string[] = [];
     const pl = psychMod ? socialPsychLabel(c, spec.vsGroups!) : undefined;
-    if (pl) parts.push(`${pl} envers ${spec.vsGroups!.join('/')}`);
+    if (pl) parts.push(`${pl} envers ${spec.vsGroups!.map(groupLabel).join('/')}`);
     const sl = tgtStatus ? statusCharmLabel(actorStatus(c), tgtStatus, { begging: spec.begging }) : undefined;
     if (sl) parts.push(sl);
     return parts.length ? parts.join(' · ') : undefined;
@@ -1388,7 +1391,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (net > 0) distributeCredit(env.get, env.set, fromBrass(net));
       else if (net < 0) drainGroup(env.get, env.set, fromBrass(-net));
       const parts = [m.gold && t('eff.coin.gold', { n: m.gold }), m.silver && t('eff.coin.silver', { n: m.silver }), m.brass && t('eff.coin.brass', { n: m.brass })].filter(Boolean); // noms canon FR (couronne/pistole/sou)
-      if (parts.length) env.log(t('eff.purse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') }));
+      if (parts.length) env.log(t(net < 0 ? 'eff.purseLoss' : 'eff.purseGain', { parts: parts.join(' ') }));
     },
   },
   giveXp: {
@@ -1701,10 +1704,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const labels = traumas.map((tr) => tr.label);
       const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: [...(h.traumas ?? []), ...structuredClone(traumas)], criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
-        const line = t('eff.criticalSuffered', { name: who.label, kind: e.kind, location: e.location });
+        const line = t('eff.criticalSuffered', { name: who.label, kind: libelleDeValeur(genreDeBlessureSchema, e.kind), location: locationLabel(e.location, who.bodyShape) });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId, severity: 'grave' });
+        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: libelleDeValeur(genreDeBlessureSchema, e.kind) }), lines: [line, ...labels], subjectId: whoId, severity: 'grave' });
       }
     },
   },
@@ -1917,13 +1920,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const { mood: next, delta, label } = applyManannFactor(mood, e.factorId, battleRng());
         if (already) { env.log(t('eff.manannAlready', { factor: label ?? e.factorId })); return; }
         env.set({ vessel: { ...vessel, manann: next } });
-        env.log(t('eff.manannFactor', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? e.factorId }));
+        env.log(t('eff.manannFactor', { delta: avecSigne(delta), factor: label ?? e.factorId }));
         return;
       }
       if (e.delta) {
         const rolled = e.delta.sign * (e.delta.flat + (e.delta.d10 > 0 ? rollDice(e.delta.d10, 10, battleRng()) : 0));
         env.set({ vessel: { ...vessel, manann: addManann(mood, rolled) } });
-        env.log(t('eff.manannRolled', { delta: `${rolled >= 0 ? '+' : ''}${rolled}` }));
+        env.log(t('eff.manannRolled', { delta: avecSigne(rolled) }));
       }
     },
     refs: (e) => (e.factorId && !findManannFactor(e.factorId)) ? [{ level: 'error', message: `Effet → facteur Manann inexistant « ${e.factorId} »` }] : [],
@@ -2122,14 +2125,14 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
   const steps = heroes.flatMap((h) => {
     const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
     const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
-    const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
+    const detail = parts.map((m) => `${m.label} ${avecSigne(m.mod)}`).join(' · ');
     // Ligne montée par le MONTEUR CANONIQUE (dans le mint) : la base est le Niveau de Résistance NU,
     // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
     // fiche qui les octroie (MSRC 16).
     const step = monoStep({
       id: `${kind}-${h.id}`, kind, actor: h, icon: 'travel/wave',
       rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
-      label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
+      label: t('eff.waterExposure', { mode: libelleDeValeur(waterAppliesToSchema, e.mode), detail: detail ? t('frag.parentheses', { x: detail }) : '' }),
       difficulty: WATER_EXPOSURE.test.difficulty,
       ligne: {
         test: { skill: WATER_EXPOSURE.test.skill.id, spec: WATER_EXPOSURE.test.skill.spec },

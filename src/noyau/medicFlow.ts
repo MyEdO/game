@@ -28,7 +28,7 @@ import { addCondition, loseWounds, releaseConditionLocks } from '../engine/condi
 import { hasSurgerySkill, availableHealModes, isHealable, healDifficulty, HEAL_SKILL, type HealMode } from '../engine/healing';
 import { removeSurgicalTrauma, surgeryTraumas, recoverableTraumas, recoverDisabledLimb } from '../engine/trauma';
 import { toMoney, canAfford } from '../engine/money';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
 import { touchActors } from './combatOrParty';
 import { finishPlayerAction, openContractionCascade } from './combatFlow';
@@ -242,7 +242,7 @@ export function surgeryNext(get: Get, set: Set): void {
   const verb = recovery ? t('medic.verbRecovery') : t('medic.verbSurgery');
   const harm = recovery ? 0 : battleRng().int(1, 10);
   if (!recovery) { loseWounds(patient, harm); addCondition(patient, 'hemorragique'); } // dégâts d'une passe de Chirurgie (LDB 10 l.184)
-  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: patient.label, dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.targetDR, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
+  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: patient.label, dr: avecSigne(ps.sl), cum, target: sg.targetDR, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
     log.push(t('medic.patientSinks', { patient: patient.label }));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });

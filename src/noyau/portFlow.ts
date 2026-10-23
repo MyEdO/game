@@ -33,7 +33,7 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit } from './bourseFlow';
 import { findVehicleById, findCrewRoleById, combatStakeRef, refLabel } from '../data';
-import { t } from '../i18n';
+import { t, avecSigne } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
   rollCargoAvailability, rollMerchantSkill, rollMerchantOpposition, buySellerDR, cargoBasePrice, rollRandomCargo,
@@ -155,7 +155,6 @@ export function closePort(_get: Get, set: Set): void {
 
 /** DR de camp SIGNÉ pour l'enjeu affiché (`combat-stakes`, achat et vente) : le gabarit dit « compte
  *  {sellerDR} DR », le signe fait partie de la valeur — source UNIQUE des deux Marchandages. */
-const signedDR = (dr: number) => (dr >= 0 ? `+${dr}` : String(dr));
 
 /** Finalise l'ACHAT une fois le Marchandage résolu (pct connu) : prix = Enc × prix de base × (1 + pct %),
  *  débité, cargaison ajoutée à la cale (Enc re-clampé au plafond DUR de surcharge, MDG 12 l.75), offre
@@ -215,7 +214,7 @@ export function portBuyCargo(get: Get, set: Set, cargoId: string, enc: number): 
     skill: 'marchandage',
     actionLabel: t('port.actionBuy'),
     difficulty: 'intermediaire',
-    stake: combatStakeRef(PORT_BUY_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
+    stake: combatStakeRef(PORT_BUY_BARGAIN_KIND, { values: { sellerDR: avecSigne(sellerDR) } }),
   }, PORT_BUY_BARGAIN_KIND, { cargoId, want, basePrice: offer.basePrice, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
 }
 
@@ -274,7 +273,7 @@ function openPortSellBargainStep(get: Get, set: Set, cargoIndex: number, sellEnc
     skill: 'marchandage',
     actionLabel: t('port.actionSell'),
     difficulty: 'intermediaire',
-    stake: combatStakeRef(PORT_SELL_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
+    stake: combatStakeRef(PORT_SELL_BARGAIN_KIND, { values: { sellerDR: avecSigne(sellerDR) } }),
   }, PORT_SELL_BARGAIN_KIND, { cargoIndex, sellEnc, offerPct, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
 }
 
@@ -449,7 +448,7 @@ export const TABLES = {
       let bargainPctVal = 0;
       if (opp.winner === 'attacker') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(actor)); // le PJ monte le prix
       else if (opp.winner === 'defender') bargainPctVal = -bargainPct(true, netSL, merchantNegotiator); // l'acheteur le baisse
-      const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
+      const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: avecSigne(sellerDR) }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: avecSigne(bargainPctVal) }) });
       return { consequences: freeCons([finalizePortSale(get, set, cargoIndex, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
     },
     [PORT_SELL_BUYER_KIND]: (get, set, step) => {

@@ -8,7 +8,7 @@ import { datasetArray } from '../../data/overrides';
 import { opRow, opRows, tableRows } from './opRows';
 import { humanizeFormula, humanizeOp } from './humanize';
 import { codexLookupById } from './registry';
-import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables } from '../../data';
+import { characteristics, talents, skills, traits, psychologies, etats, trappings, maladies, symptoms, creatures, mutations, findSymptomById, effectTables, groupLabel } from '../../data';
 import type { CharKey } from '../../engine/types';
 import { psychBranchOps } from '../../engine/psychology';
 import { spellOps } from '../../engine/flowCore';
@@ -234,18 +234,24 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
    *  Tests de Sociabilité envers ce groupe ». La branche de RÉUSSITE du Test de Psychologie n'est donc
    *  pas une issue vide : sa chip DIT la pénalité, dérivée de la MÊME donnée que `socialPsychMod`. */
   it('la chip de la branche RÉUSSIE d’un Trait ciblé dit son modificateur social « contenu »', () => {
-    const [resiste] = psychBranchOps({ kind: 'animosite', cible: 'hommes-betes', indice: 0 }, { success: true });
+    const [resiste] = psychBranchOps({ kind: 'animosite', cible: 'homme-bete', indice: 0 }, { success: true });
     const row = opRow(resiste);
     expect(row.t).toBe('ref');
     if (row.t === 'ref') {
       expect(row.category).toBe('psychologies');
       expect(row.show).toBe('Animosité');
-      expect(row.badge).toBe('hommes-betes · −20 Sociabilité');
+      expect(row.badge).toBe(`${groupLabel('homme-bete')} · −20 Sociabilité`);
     }
     // La branche d'ÉCHEC (affliction SUBIE) ne porte pas ce malus : le porteur est sous compulsion.
-    const [subi] = psychBranchOps({ kind: 'animosite', cible: 'hommes-betes', indice: 0 }, { success: false });
+    const [subi] = psychBranchOps({ kind: 'animosite', cible: 'homme-bete', indice: 0 }, { success: false });
     const rowFail = opRow(subi);
-    if (rowFail.t === 'ref') expect(rowFail.badge).toBe('hommes-betes');
+    if (rowFail.t === 'ref') expect(rowFail.badge).toBe(groupLabel('homme-bete'));
+  });
+
+  it('la chip d’un Trait psy accordé nomme son Groupe-Cible par son libellé (#2938)', () => {
+    expect(groupLabel('homme-bete'), 'la fixture distingue libellé et id').not.toBe('homme-bete');
+    const row = opRow({ op: 'grantPsychTrait', psychType: 'animosite', cible: 'homme-bete' });
+    expect(row.t === 'ref' ? row.badge : undefined).toBe(groupLabel('homme-bete'));
   });
 
   /** #1646 (L-ref-3) — la donnée porte l'ID de la spécialisation (`spec: 'odorat'`), l'ÉCRAN rend le

@@ -8,11 +8,10 @@ import { z } from 'zod';
 import { refs } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
+import { settlementSchema } from '../grammaire/valeurs';
 
 export const file = 'merchants.json';
 export const famille = 'entite';
-
-const settlementSchema = z.enum(['village', 'ville', 'cite']);
 
 const doc = document(
   'merchants',

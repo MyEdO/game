@@ -16,7 +16,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
-import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema, surchargePaletteSchema } from '../grammaire/valeurs';
+import { chaosAlignSchema, enumNomme, exposureLevelSchema, genreDeBlessureSchema, hitLocationSchema, natureDonnableSchema, moneyPartialSchema, natureDInfluenceSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { conditionSchema, effectOpSchema, extendedTestSchema, gameOpSchema, noeudTest } from '../grammaire/mecanique';
 import { idDe, refOuSpec } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
@@ -174,7 +174,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
 const idDeVehicule: z.ZodType<string, string> = idDe('vehicle');
 export const givePossessionSchema = nommerChamps(z.strictObject({
   type: z.literal('givePossession'),
-  nature: z.enum(['bete', 'serviteur', 'vehicule']),
+  nature: natureDonnableSchema,
   ref: z.union([livingRefSchema, nommerChamps(z.strictObject({ vehicleId: idDeVehicule }), { vehicleId: { label: "véhicule" , texte: { regime: "technique"} } })]),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, nature: { label: "nature"  }, ref: { label: "référence" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
@@ -353,7 +353,7 @@ export const exposureNightSchema = nommerChamps(z.strictObject({
 
 export const inflictTraumaSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictTrauma'),
-  kind: z.enum(['dechirure', 'fracture', 'amputation']),
+  kind: genreDeBlessureSchema,
   severity: z.enum(['mineur', 'majeur']).optional(),
   location: hitLocationSchema,
   heroId: z.string().optional(),

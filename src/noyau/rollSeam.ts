@@ -61,7 +61,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
 import { conditionLabel, dataLabel, testSkillLabel, type StakeRef } from '../data';
-import { t, type OutKey, type OutVars } from '../i18n';
+import { t, trous, type OutKey, type TrousVerifies } from '../i18n';
 import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
 import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
@@ -226,7 +226,7 @@ export function rollTitle(get: Get, req: RollRequest): string {
  */
 export type Consequence =
   | { ops: GameOp[]; tone?: RecapTone }
-  | { say: OutKey; vars?: OutVars; tone?: RecapTone; icon?: string };
+  | { say: OutKey; vars?: TrousVerifies; tone?: RecapTone; icon?: string };
 
 /** Ligne d'un `GameOp` DÉJÀ appliqué — le montant est un LITTÉRAL résolu par l'applier (jamais une
  *  `Formula` à re-tirer ici : `resultLine` ne reçoit ni cible ni RNG, cf. Décision 1b). Étend au fil
@@ -286,7 +286,7 @@ export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: str
 export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
   .map((x): { text: string; tone?: RecapTone; icon?: string } => (typeof x === 'string' ? { text: x } : x))
   .filter((x) => x.text.length > 0)
-  .map(({ text, tone, icon }) => ({ say: 'out.free' as OutKey, vars: { text }, tone, icon }));
+  .map(({ text, tone, icon }) => ({ say: 'out.free' as OutKey, vars: trous({ text }), tone, icon }));
 
 /** Résout le côté d'un jet MONO (`hero-test`/`enemy`/`subi` non-`batch`) en acteur + éventuelle valeur
  *  DÉJÀ CALCULÉE (mandat coordinateur — le call-site ne calcule plus rien) :

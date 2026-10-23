@@ -1547,7 +1547,7 @@ function potBoard(game: TavernGame, p: TavernPayload): SequenceBoard {
         score: p.gains?.[s.id] ?? 0,
         ...(out.includes(s.id) ? { note: t('tavern.potSorti') } : {}),
         ...(mouvement != null && !out.includes(s.id)
-          ? { note: t('tavern.potSolde', { montant: formatMoney(fromBrass(Math.abs(mouvement))), signe: mouvement < 0 ? '−' : '+' }) }
+          ? { note: t(mouvement < 0 ? 'tavern.potPerte' : 'tavern.potGain', { montant: formatMoney(fromBrass(Math.abs(mouvement))) }) }
           : {}),
       };
     }),

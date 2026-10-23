@@ -30,6 +30,16 @@ import { critTableSchema } from './criticals';
 import { favorLevelSchema } from '../defs-scenes/effets';
 import { entityKindSchema, roofProfileSchema, sceneWeatherSchema } from '../defs-scenes/scene';
 import { windDirectionSchema } from '../defs-scenes/worldmap';
+import {
+  availabilitySchema, classeDeCouvertSchema, genreDeBlessureSchema, genreDeTraumaSchema, harvestRaritySchema,
+  natureDePossessionSchema, natureDonnableSchema, settlementSchema, statusTierSchema,
+} from '../grammaire/valeurs';
+import { dispoPctAvailabilitySchema } from './disponibilite';
+import { AVAILABILITIES, TESTED_AVAILABILITIES } from '../../../engine/types';
+
+/** Paliers dont le libellé EST l'id (Disponibilité, LDB 11 ; rareté de récolte, ZI 13 l.286) : le tuple canon les donne. */
+const nommesParEuxMemes = (paliers: readonly string[]): Record<string, string> =>
+  Object.fromEntries(paliers.map((palier) => [palier, palier]));
 
 /** Un vocabulaire migré : son nœud, et la table FR ATTENDUE — dans l'ordre de ses options. */
 const MIGRES: readonly [string, unknown, Record<string, string>][] = [
@@ -111,6 +121,20 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
   ['worldmap.routes[].windFrom (WindDirection)', windDirectionSchema, {
     nord: 'Nord', sud: 'Sud', est: 'Est', ouest: 'Ouest',
   }],
+  ['Availability (disponibilite, creatures, vehicles, trappings)', availabilitySchema, nommesParEuxMemes(AVAILABILITIES)],
+  ['HarvestRarity (creatures[].harvest)', harvestRaritySchema, nommesParEuxMemes([...AVAILABILITIES, 'Unique'])],
+  ['disponibilite.pct (TestedAvailability)', dispoPctAvailabilitySchema, nommesParEuxMemes(TESTED_AVAILABILITIES)],
+  ['Settlement (merchants.settlement, scene.settlement)', settlementSchema, { village: 'Village', ville: 'Ville', cite: 'Cité' }],
+  ['DeckCoverClass (props, vehicles, naval-traits)', classeDeCouvertSchema, {
+    imparfaite: 'Couverture imparfaite', moyenne: 'Couverture moyenne', totale: 'Couverture totale',
+  }],
+  ['effets.inflictTrauma.kind', genreDeBlessureSchema, { dechirure: 'Déchirure', fracture: 'Fracture', amputation: 'Amputation' }],
+  ['traumas.kind (TraumaKind)', genreDeTraumaSchema, { dechirure: 'Déchirure', fracture: 'Fracture' }],
+  ['Possession.nature', natureDePossessionSchema, {
+    bete: 'Bête', serviteur: 'Serviteur', vehicule: 'Véhicule', navire: 'Navire', immeuble: 'Immeuble',
+  }],
+  ['effets.givePossession.nature', natureDonnableSchema, { bete: 'Bête', serviteur: 'Serviteur', vehicule: 'Véhicule' }],
+  ['Status.tier', statusTierSchema, { Bronze: 'Bronze', Argent: 'Argent', Or: 'Or' }],
 ];
 
 describe('enums de def NOMMÉS (#1694 B1) — le libellé de chaque VALEUR vit sur son nœud', () => {

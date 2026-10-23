@@ -7,7 +7,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  * 22/25, `ship` 20/25, `travel` 3/25, `deck` 1/25). `icon` est une clé d'ENVELOPPE, posée par la fabrique.
  */
 import { z } from 'zod';
-import { availabilitySchema, cell2Schema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
+import { availabilitySchema, cell2Schema, classeDeCouvertSchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { ref } from '../grammaire/ref';
 
@@ -30,7 +30,7 @@ const navalTraitRefSchema = ref('navalTrait', { value: nommerNoeud(z.number().op
 const deckPosteSlotSchema = nommerChamps(z.strictObject({
   pos: cell2Schema,
   side: posteSideSchema,
-  cover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
+  cover: classeDeCouvertSchema.optional(),
 }), { pos: { label: "position" }, side: { label: "côté" }, cover: { label: "couvert" } });
 
 const shipDeckSchema = nommerChamps(z.strictObject({

@@ -6,7 +6,7 @@ import { nommerChamps } from '../grammaire/meta';
  * (`src/data/props.types.ts`) ; l'ENTRÉE elle-même est rendue par `document()`.
  */
 import { z } from 'zod';
-import { cell2Schema, dir8Schema } from '../grammaire/valeurs';
+import { cell2Schema, classeDeCouvertSchema, dir8Schema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 import { document } from '../grammaire/document';
 import { CAP_IDENTITE_PROP, PROP_CYLINDER_AXES, PROP_CYLINDER_SIDES } from '../../props.types';
@@ -102,7 +102,7 @@ const doc = document(
   {
     solid: z.boolean().optional(),
     opaque: z.boolean().optional(),
-    cover: z.enum(['imparfaite', 'moyenne', 'totale']).optional(),
+    cover: classeDeCouvertSchema.optional(),
     // `tone` (#1245, L4) = APPARENCE seule (`lightTones.json` : couleur/intensité/vacillement),
     // résolue au bord du rendu ; le RAYON reste la seule chose que le moteur lise d'une source.
     light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: z.string().optional() }), { radiusM: { label: 'Rayon en mètres' }, tone: { label: 'Ton' } }).optional(),

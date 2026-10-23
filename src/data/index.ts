@@ -2537,6 +2537,7 @@ export const terrains = terrainsJson as unknown as TerrainDef[];
  *  émis en billboard. Binding muté EN PLACE par `setDataset` (`data/overrides.ts`) : la façade
  *  `src/noyau/monde/buildings` le lit VIVANT. */
 export const buildings = buildingsJson as unknown as BuildingDef[];
+export const findBuildingById: (id: string | null | undefined) => BuildingDef | undefined = indexParId('buildings', buildings);
 
 /**
  * Les matières d'UN domaine — vue DÉRIVÉE du document, jamais un second catalogue, et jamais un
@@ -3048,6 +3049,11 @@ export function conditionLabel(id: string): PlayerText {
  *  résolveur de libellé GÉNÉRIQUE (`refLabel`), jamais une copie locale du motif `MAP.get(id)?.label ?? id`. */
 export function psychologyLabel(id: string): PlayerText {
   return refLabel('psychologies', { id });
+}
+/** Libellé d'un Trait psy et de sa Cible (« Haine (Peaux-vertes) ») — LA composition partagée par le
+ *  journal, les étapes de jet, la fiche et le Codex ; sans Cible, le libellé du Trait seul. */
+export function psychologieEtCibleLabel(type: string, cible?: string | null): PlayerText {
+  return cible ? t('step.sujetPrecision', { sujet: psychologyLabel(type), precision: groupLabel(cible) }) : psychologyLabel(type);
 }
 /** ids d'États du catalogue, dans l'ordre du dataset — vue VIVANTE (`memoParVersion`), reconstruite
  *  après une édition au Codex. Consommée par le scan du journal (`engine/conditions.conditionIdInText`)
