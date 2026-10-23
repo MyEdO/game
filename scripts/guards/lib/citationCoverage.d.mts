@@ -10,3 +10,4 @@ export interface DatasetCoverage {
 export function auditDataset(data: unknown): DatasetCoverage;
 
 export const EXEMPT_DATASETS: Record<string, string>;
+export function exemptionDeDataset(fichier: string): string | undefined;
