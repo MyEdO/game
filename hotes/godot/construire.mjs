@@ -27,8 +27,7 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { DOSSIER_DES_MODELES } from './asset/importer.ts'
-import { recupererModeles, sha256 } from './asset/release.ts'
+import { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme } from './asset/release.ts'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
@@ -194,12 +193,6 @@ async function extraire({ taille, lire }, noms) {
 /** L'URL de `fichier` dans la publication de la version épinglée. */
 const publie = (fichier) => `https://github.com/godotengine/godot/releases/download/${EDITEUR.version}/${fichier}`
 
-/** Lève, au nom de `nom`, si la somme de `octets` n'est pas `attendue`. */
-function verifierSomme(nom, octets, attendue) {
-  const somme = sha256(octets)
-  if (somme !== attendue) throw new Error(`${nom} : SHA-256 ${somme}, ${attendue} attendue`)
-}
-
 /** La version que le binaire `binaire` imprime. */
 const versionDe = (binaire) => spawnSync(binaire, ['--version'], { encoding: 'utf8', timeout: 60_000 }).stdout?.trim() ?? ''
 
@@ -250,15 +243,14 @@ async function modeleWeb() {
   const attendue = EDITEUR.modeles.sha256[entree]
   if (!attendue) throw new Error(`${entree} : aucune somme épinglée (EDITEUR.modeles)`)
   const chemin = join(CACHE, basename(entree))
-  if (existsSync(chemin) && sha256(readFileSync(chemin)) === attendue) return chemin
-  const url = publie(EDITEUR.modeles.archive)
-  console.log(`[godot] modèle d'export ${entree}, tiré de ${url}`)
-  const archive = await aDistance(url)
-  const [{ octets: modele }] = await extraire(archive, [entree])
-  verifierSomme(entree, modele, attendue)
-  mkdirSync(CACHE, { recursive: true })
-  writeFileSync(chemin, modele)
-  console.log(`[godot] ${octets(archive.telecharges())} téléchargés sur ${octets(archive.taille)}, ${basename(entree)} (${octets(modele.length)}) gardé dans ${CACHE}`)
+  await enCacheOuTire(chemin, attendue, entree, async () => {
+    const url = publie(EDITEUR.modeles.archive)
+    console.log(`[godot] modèle d'export ${entree}, tiré de ${url}`)
+    const archive = await aDistance(url)
+    const [{ octets: modele }] = await extraire(archive, [entree])
+    console.log(`[godot] ${octets(archive.telecharges())} téléchargés sur ${octets(archive.taille)}, ${basename(entree)} (${octets(modele.length)}) pour ${CACHE}`)
+    return modele
+  })
   return chemin
 }
 

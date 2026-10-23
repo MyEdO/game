@@ -1,14 +1,15 @@
 // Le contrat d'asset d'un personnage 3D modulaire (#2948) : lecture du GLB, validation du manifeste, import, Release.
-import { createHash } from 'node:crypto';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GlbIllisible, lireGlb } from './glb.ts';
-import { DOSSIER_DES_MODELES, FICHIERS_DE_PRODUCTION, fichiersDuModele, importerPersonnage } from './importer.ts';
+import { FICHIERS_DE_PRODUCTION, importerPersonnage } from './importer.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
-import { modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, TAG, urlDAsset, type AssetAPublier, type Gh } from './release.ts';
+import {
+  DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
+  sha256, TAG, urlDAsset, type AssetAPublier, type Gh,
+} from './release.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[]): Uint8Array {
@@ -42,7 +43,7 @@ const production = () => ({
     bouclier: { node: 'bouclier', component: 'bouclier', headVariant: null, hiddenBy: [] },
   },
   components: {
-    corps: { label_fr: 'Corps', asset: { file: 'C:\\Users\\x\\corps.mhclo', license_basis: 'explicit asset header', explicit_header: ['# author A', '# license CC0'], packs: [{ pack: 'p', announced_license: 'CC0 (official asset-pack page)' }] } },
+    corps: { label_fr: 'Corps', asset: { file: 'C:\\Users\\x\\corps.mhclo', license_basis: 'explicit asset header', explicit_header: ['# author A', '# license CC0'], packs: [{ pack: 'p', announced_license: 'CC0' }] } },
     casque: { label_fr: 'Casque', occupations: ['head_cover'] },
     bouclier: { label_fr: 'Bouclier' },
   },
@@ -73,6 +74,15 @@ describe('lireGlb', () => {
     expect(() => lireGlb(v1)).toThrow(/version 1/);
     expect(() => lireGlb(GLB.subarray(0, 30))).toThrow(/longueur déclarée/);
     expect(() => lireGlb(new Uint8Array(4))).toThrow(/en-tête incomplet/);
+  });
+  it.each<[string, (vue: DataView) => void, RegExp]>([
+    ['un premier chunk autre que JSON', (vue) => vue.setUint32(16, 0x004e4942, true), /premier chunk autre que JSON/],
+    ['un chunk JSON plus long que le fichier', (vue) => vue.setUint32(12, GLB.byteLength, true), /chunk JSON tronqué/],
+    ['un chunk JSON qui ne se parse pas', (vue) => vue.setUint8(20, 0x7d), /chunk JSON invalide/],
+  ])('refuse %s', (_, muter, motif) => {
+    const faux = GLB.slice();
+    muter(new DataView(faux.buffer));
+    expect(() => lireGlb(faux)).toThrow(motif);
   });
 });
 
@@ -133,7 +143,7 @@ const temporaire = () => {
 };
 afterEach(() => dossiers.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })));
 
-const EMPREINTE = createHash('sha256').update(GLB).digest('hex');
+const EMPREINTE = sha256(GLB);
 
 describe('importerPersonnage', () => {
   /** Une publication qui consigne ce qu'on lui verse. */
@@ -144,12 +154,11 @@ describe('importerPersonnage', () => {
 
   const dossierDeProduction = (muter: (m: ReturnType<typeof production>) => void = () => {}, empreinte?: string) => {
     const d = temporaire();
-    const sha = createHash('sha256').update(GLB).digest('hex');
-    const m = { ...production(), model_sha256: empreinte ?? sha };
+    const m = { ...production(), model_sha256: empreinte ?? EMPREINTE };
     muter(m);
     writeFileSync(join(d, FICHIERS_DE_PRODUCTION.glb), GLB);
     writeFileSync(join(d, FICHIERS_DE_PRODUCTION.manifeste), JSON.stringify(m));
-    writeFileSync(join(d, FICHIERS_DE_PRODUCTION.rapport), JSON.stringify({ model_sha256: empreinte ?? sha, donor: 'C:\\Users\\x\\donor.blend' }));
+    writeFileSync(join(d, FICHIERS_DE_PRODUCTION.rapport), JSON.stringify({ model_sha256: empreinte ?? EMPREINTE, donor: 'C:\\Users\\x\\donor.blend' }));
     return d;
   };
 
@@ -169,7 +178,7 @@ describe('importerPersonnage', () => {
       model: 'Essai.glb',
       model_sha256: EMPREINTE,
       importe_le: '2026-10-23',
-      licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0 (official asset-pack page)'] } },
+      licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0'] } },
       licences_de_pack: [],
       animation_sources: [{ fichier: 'UAL1_Standard.glb', sha256: 'abc' }],
     });
@@ -185,7 +194,7 @@ describe('importerPersonnage', () => {
     const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-23', publier });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    const empreinteBlend = createHash('sha256').update(blend).digest('hex');
+    const empreinteBlend = sha256(blend);
     expect(verses[0]?.map((a) => a.nom)).toEqual([`${EMPREINTE}.glb`, `${empreinteBlend}.blend`]);
     expect(r.provenance.source_sha256).toBe(empreinteBlend);
     expect(r.provenance.licences_de_pack).toEqual([{ fichier: 'LICENSE-Pack.txt', licence: '(Creative Commons Zero, CC0)' }]);
@@ -200,6 +209,16 @@ describe('importerPersonnage', () => {
   it.each<[string, () => string, RegExp]>([
     ['une empreinte fausse', () => dossierDeProduction(() => {}, '0'.repeat(64)), /empreinte SHA-256/],
     ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.components.bouclier.label_fr = '/home/x/bouclier'; }), /chemin-absolu/],
+    ['un manifeste d’un autre GLB, le rapport juste', () => {
+      const d = dossierDeProduction();
+      const chemin = join(d, FICHIERS_DE_PRODUCTION.manifeste);
+      writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), model_sha256: '0'.repeat(64) }));
+      return d;
+    }, /^empreinte SHA-256 du GLB [0-9a-f]{64}, le manifeste déclare 0{64}$/],
+    ['une licence d’en-tête que le pack n’annonce pas', () => dossierDeProduction((m) => {
+      m.components.corps.asset.explicit_header = ['# license AGPL3'];
+      m.components.corps.asset.packs = [{ pack: 'p', announced_license: 'CC0' }];
+    }), /licence du composant corps : l'en-tête déclare « AGPL3 », le pack annonce « CC0 »/],
     ['un rapport d’un autre GLB', () => {
       const d = dossierDeProduction();
       writeFileSync(join(d, FICHIERS_DE_PRODUCTION.rapport), JSON.stringify({ model_sha256: '1'.repeat(64) }));
@@ -229,6 +248,34 @@ describe('importerPersonnage', () => {
     if (r.ok) return;
     expect(r.refus.join('\n')).toMatch(motif);
     expect(verses).toEqual([]);
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  it('refuse une licence de pack homonyme d’un autre texte déjà déposé, sans rien publier ni écrire', () => {
+    const destination = temporaire();
+    writeFileSync(join(destination, 'LICENSE-Pack.txt'), 'Autre pack\nLicense: CC-BY 4.0\n');
+    const dossier = dossierDeProduction();
+    writeFileSync(join(dossier, 'LICENSE-Pack.txt'), 'Pack\nLicense: CC0\n');
+    const { verses, publier } = publication();
+    const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-23', publier });
+    expect(r.ok ? [] : r.refus).toEqual([`LICENSE-Pack.txt : un autre texte porte déjà ce nom dans ${destination}`]);
+    expect(verses).toEqual([]);
+    expect(readFileSync(join(destination, 'LICENSE-Pack.txt'), 'utf8')).toContain('CC-BY 4.0');
+    expect(existsSync(join(destination, fichiersDuModele('Essai').provenance))).toBe(false);
+  });
+
+  it('accepte une licence de pack homonyme du même texte', () => {
+    const destination = temporaire();
+    writeFileSync(join(destination, 'LICENSE-Pack.txt'), 'Pack\nLicense: CC0\n');
+    const dossier = dossierDeProduction();
+    writeFileSync(join(dossier, 'LICENSE-Pack.txt'), 'Pack\nLicense: CC0\n');
+    expect(importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-23', publier: null }).ok).toBe(true);
+  });
+
+  it('n’écrit rien quand la publication lève', () => {
+    const destination = join(temporaire(), 'modeles');
+    const publier = () => { throw new Error('gh release upload : code 1'); };
+    expect(() => importerPersonnage({ dossier: dossierDeProduction(), id: 'Essai', destination, date: '2026-10-23', publier })).toThrow(/code 1/);
     expect(existsSync(destination)).toBe(false);
   });
 });
@@ -264,6 +311,7 @@ describe('modelesEpingles', () => {
     ['un manifeste sans provenance', (d) => rmSync(join(d, 'Essai.provenance.json')), /provenance Essai\.provenance\.json absente/],
     ['une provenance sans manifeste', (d) => rmSync(join(d, 'Essai.manifeste.json')), /manifeste Essai\.manifeste\.json absent/],
     ['une empreinte qui n’est pas un SHA-256', (d) => writeFileSync(join(d, 'Essai.provenance.json'), JSON.stringify({ model: 'Essai.glb', model_sha256: 'abc' })), /n'est pas un SHA-256/],
+    ['une provenance illisible', (d) => writeFileSync(join(d, 'Essai.provenance.json'), '{'), /Essai\.provenance\.json : JSON illisible/],
     ['un model qui n’est pas <id>.glb', (d) => writeFileSync(join(d, 'Essai.provenance.json'), JSON.stringify({ model: 'Autre.glb', model_sha256: EMPREINTE })), /Essai\.glb attendu/],
   ])('refuse %s', (_, muter, motif) => {
     const d = dossierDeModeles();
@@ -285,12 +333,49 @@ describe('recupererModeles', () => {
     expect(demandes).toEqual([url]);
     expect(existsSync(join(dossier, 'Essai.glb'))).toBe(true);
   });
-  it('lève ModeleIntrouvable quand l’empreinte est absente de la Release', async () => {
+  it('lève ModeleIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
     await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(ModeleIntrouvable);
   });
+  const sansCorps = async () => new ArrayBuffer(0);
+  it.each<[string, Parameters<typeof recupererModeles>[0]['telecharger']]>([
+    ['hors ligne', async () => { throw new TypeError('fetch failed'); }],
+    ['sur un HTTP 503', async () => ({ ok: false, status: 503, arrayBuffer: sansCorps })],
+    ['sur un HTTP 403', async () => ({ ok: false, status: 403, arrayBuffer: sansCorps })],
+  ])('lève ReleaseInjoignable %s, le cache vide', async (_, telecharger) => {
+    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(ReleaseInjoignable);
+  });
+  it('accepte hors ligne le GLB du projet à la somme épinglée et en amorce le cache', async () => {
+    const dossier = dossierDeModeles();
+    const cache = temporaire();
+    writeFileSync(join(dossier, 'Essai.glb'), GLB);
+    const { demandes, telecharger } = serveur({});
+    await recupererModeles({ dossier, cache, telecharger, journal: muet });
+    expect(demandes).toEqual([]);
+    expect(readFileSync(join(cache, nomDAsset(EMPREINTE, 'glb')))).toEqual(Buffer.from(GLB));
+  });
+  it('tire de nouveau un fichier corrompu du cache', async () => {
+    const dossier = dossierDeModeles();
+    const cache = temporaire();
+    writeFileSync(join(cache, nomDAsset(EMPREINTE, 'glb')), 'corrompu');
+    const { demandes, telecharger } = serveur({ [url]: GLB });
+    await recupererModeles({ dossier, cache, telecharger, journal: muet });
+    expect(demandes).toEqual([url]);
+    expect(readFileSync(join(cache, nomDAsset(EMPREINTE, 'glb')))).toEqual(Buffer.from(GLB));
+  });
+  it('remplace le GLB périmé du projet par celui du cache', async () => {
+    const dossier = dossierDeModeles();
+    const cache = temporaire();
+    writeFileSync(join(cache, nomDAsset(EMPREINTE, 'glb')), GLB);
+    writeFileSync(join(dossier, 'Essai.glb'), glb(['corps'], []));
+    const { demandes, telecharger } = serveur({});
+    await recupererModeles({ dossier, cache, telecharger, journal: muet });
+    expect(demandes).toEqual([]);
+    expect(readFileSync(join(dossier, 'Essai.glb'))).toEqual(Buffer.from(GLB));
+  });
   it('lève quand le fichier reçu n’a pas la somme épinglée', async () => {
-    const telecharger = serveur({ [url]: glb(['corps'], []) }).telecharger;
-    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(/le fichier reçu a la somme/);
+    const autre = glb(['corps'], []);
+    const telecharger = serveur({ [url]: autre }).telecharger;
+    await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(`Essai.glb : SHA-256 ${sha256(autre)}, ${EMPREINTE} attendue`);
   });
   it('lève quand le manifeste ne se valide pas contre le GLB tiré', async () => {
     const dossier = dossierDeModeles();
@@ -302,23 +387,28 @@ describe('recupererModeles', () => {
 });
 
 describe('publierAssets', () => {
-  /** Un `gh` simulé : la Release porte `presents`, ou n'existe pas (`null`) ; il consigne ses appels. */
-  const ghSimule = (presents: string[] | null) => {
+  /** Un `gh` simulé : la vue de la Release rend les noms `vue`, ou l'échec `vue` ; `create` et `upload` rendent
+   *  `reponses` (succès par défaut) ; toute autre commande lève. Il consigne ses appels. */
+  const ghSimule = (vue: string[] | { status: number; stderr: string }, reponses: Partial<Record<'create' | 'upload', ReturnType<Gh>>> = {}) => {
     const appels: string[][] = [];
+    const ok = { status: 0, stdout: '', stderr: '' };
     const gh: Gh = (args) => {
       appels.push([...args]);
-      if (args[1] !== 'view') return { status: 0, stdout: '', stderr: '' };
-      return presents ? { status: 0, stdout: JSON.stringify({ assets: presents.map((name) => ({ name })) }), stderr: '' } : { status: 1, stdout: '', stderr: 'release not found' };
+      const sous = args[1];
+      if (sous === 'view') return Array.isArray(vue) ? { ...ok, stdout: JSON.stringify({ assets: vue.map((name) => ({ name })) }) } : { stdout: '', ...vue };
+      if (sous === 'create' || sous === 'upload') return reponses[sous] ?? ok;
+      throw new Error(`gh ${args.join(' ')} : commande inattendue`);
     };
     return { appels, gh };
   };
+  const absente = { status: 1, stderr: 'release not found' };
   const asset = () => {
     const d = temporaire();
     writeFileSync(join(d, FICHIERS_DE_PRODUCTION.glb), GLB);
     return { chemin: join(d, FICHIERS_DE_PRODUCTION.glb), nom: `${EMPREINTE}.glb` };
   };
   it('crée la Release absente, puis y verse le fichier sous son nom d’asset', () => {
-    const { appels, gh } = ghSimule(null);
+    const { appels, gh } = ghSimule(absente);
     expect(publierAssets([asset()], gh)).toEqual([`${EMPREINTE}.glb`]);
     expect(appels.map((a) => a.slice(0, 3))).toEqual([['release', 'view', TAG], ['release', 'create', TAG], ['release', 'upload', TAG]]);
     expect(appels[2]?.[appels[2].length - 1]?.endsWith(`${EMPREINTE}.glb`)).toBe(true);
@@ -327,6 +417,15 @@ describe('publierAssets', () => {
     const { appels, gh } = ghSimule([`${EMPREINTE}.glb`]);
     expect(publierAssets([asset()], gh)).toEqual([]);
     expect(appels).toHaveLength(1);
+  });
+  it('lève, avec la sortie de gh, quand la vue échoue autrement que par une Release absente', () => {
+    const { appels, gh } = ghSimule({ status: 4, stderr: 'HTTP 401: Bad credentials' });
+    expect(() => publierAssets([asset()], gh)).toThrow(`gh release view ${TAG} : code 4\nHTTP 401: Bad credentials`);
+    expect(appels).toHaveLength(1);
+  });
+  it('lève, avec la sortie de gh, quand le versement échoue', () => {
+    const { gh } = ghSimule([], { upload: { status: 1, stdout: '', stderr: 'HTTP 422: asset exists' } });
+    expect(() => publierAssets([asset()], gh)).toThrow(/^gh release upload modeles-3d .* : code 1\nHTTP 422: asset exists$/s);
   });
 });
 
@@ -338,8 +437,5 @@ describe('les modèles commités', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);
     expect(modeles.length).toBeGreaterThan(0);
-  });
-  it('le dossier des modèles est celui du projet Godot', () => {
-    expect(DOSSIER_DES_MODELES).toBe(fileURLToPath(new URL('../projet/modeles', import.meta.url)));
   });
 });

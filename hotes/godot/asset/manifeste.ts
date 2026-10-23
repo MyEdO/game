@@ -70,8 +70,9 @@ export function cheminsAbsolus(valeur: unknown, ou = ''): ErreurDeManifeste[] {
   });
 }
 
-type Brut = Record<string, unknown>;
-const estObjet = (v: unknown): v is Brut => !!v && typeof v === 'object' && !Array.isArray(v);
+/** Un objet JSON brut, avant réduction. */
+export type Brut = Record<string, unknown>;
+export const estObjet = (v: unknown): v is Brut => !!v && typeof v === 'object' && !Array.isArray(v);
 const estListeDeChaines = (v: unknown): v is string[] => Array.isArray(v) && v.every((e) => typeof e === 'string');
 
 /** La réduction de `brut` aux clés du schéma, ou les écarts de forme qui l'empêchent. */

@@ -3,6 +3,11 @@ import hashlib
 import math
 from pathlib import Path
 
+INFLUENCES_MAX = 4
+"""Influences d'os par sommet d'une peau de jeu : un seul jeu JOINTS_0/WEIGHTS_0 glTF."""
+IMAGES_PAR_SECONDE = 24
+"""Cadence des clips que la chaîne produit et échantillonne."""
+
 
 def world_vertices(bpy, objects):
     """Sommets évalués (déformés) de chaque objet, en coordonnées monde : {nom: tableau (n, 3)}."""
@@ -124,7 +129,7 @@ def prepare_game_textures(objects, output):
             'encoded_texture_bytes': sum(record['bytes'] for record in records)}
 
 
-def normalize_deform_influences(obj, armature, maximum=4):
+def normalize_deform_influences(obj, armature, maximum=INFLUENCES_MAX):
     deform_names = {bone.name for bone in armature.data.bones if bone.use_deform}
     groups = {group.index: group for group in obj.vertex_groups if group.name in deform_names}
     report = {"vertices": len(obj.data.vertices), "maximum": maximum,

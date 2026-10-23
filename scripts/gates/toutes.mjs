@@ -414,10 +414,20 @@ export const ECRIT_LU = {
       '`vite build` du pont de Godot (hotes/godot/construire.mjs, #2928) sans `--sortie` : `write: false`, le bundle reste ' +
       'en mémoire, exécuté dans un `node:vm`, et rien ne s’écrit ; `configFile: false`, donc aucune config recompilée ; LIT les zones, scripts/ ' +
       '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
-      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite)',
+      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite) ; `construire.mjs` charge au module le contrat ' +
+      'd’asset (`hotes/godot/asset/release.ts`, et par lui `ecritureJsonAtomique.mjs` et `renommageResilient.mjs`) sans ' +
+      'en appeler l’écrivain : `recupererModeles` ne joue que sous `--sonde` et `--export` (#2948)',
   },
   'godot:sonde': {
     ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        '`recupererModeles` (hotes/godot/asset/release.ts, #2948) y dépose `<id>.glb`, tiré de la Release ou du cache ' +
+        '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre), seulement s’il y manque ou n’a pas la somme de sa provenance commitée, ' +
+        'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
+        'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
+        'et aucune autre gate ne lit de GLB : le lint lit des modules, la suite du noyau n’en lit que les provenances',
+    },
     lit: ['hotes/', 'scripts/', 'src/data/', 'src/lib/', 'package.json'],
     raison:
       '`godot --headless --import` puis `--check-only` de chaque script (hotes/godot/construire.mjs, #2928, plan M-f) sur ' +
@@ -425,7 +435,8 @@ export const ECRIT_LU = {
       'le binaire épinglé vit hors de l’arbre (`~/.cache/wfrp-godot/`, ou `GODOT`) ; LIT hotes/ (le projet et son ' +
       'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose que le constructeur importe au ' +
       'chargement), src/lib/ (`tableTotale`) et src/data/ (la prose source que le greffon charge), mesurés à ' +
-      'l’enregistreur de lectures le 2026-10-22, et package.json',
+      'l’enregistreur de lectures le 2026-10-22, et package.json ; écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
+      '(`ecritFerme`)',
   },
   lint: {
     ecrit: [],

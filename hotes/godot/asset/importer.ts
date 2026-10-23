@@ -5,57 +5,25 @@
  * provenance et les licences, déposés dans le dossier des modèles du projet Godot. Tout se juge avant la première
  * publication : un dossier refusé ne publie ni n'écrit rien.
  */
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { lireGlb, GlbIllisible, type ContenuGlb } from './glb.ts';
-import { cheminsAbsolus, ligneDErreur, validerManifeste, type ManifesteDePersonnage } from './manifeste.ts';
-import { nomDAsset, sha256, type AssetAPublier } from './release.ts';
+import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste, type Brut, type ManifesteDePersonnage } from './manifeste.ts';
+import {
+  DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, sha256,
+  type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
+} from './release.ts';
 
 /** Les trois fichiers d'un dossier de production. */
 export const FICHIERS_DE_PRODUCTION = Object.freeze({ glb: 'animated.glb', manifeste: 'manifest.json', rapport: 'report.json' });
 
-/** Le dossier des modèles du projet Godot, où l'import dépose. */
-export const DOSSIER_DES_MODELES = fileURLToPath(new URL('../projet/modeles', import.meta.url));
-
-/** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
-export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
-
 const ID_DE_MODELE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-/** La licence d'un composant, telle que la production la déclare dans `components.<id>.asset`. */
-export interface LicenceDeComposant {
-  /** `license_basis` : sur quoi la production fonde la licence. */
-  readonly base: string;
-  /** La valeur des lignes `# license` de `explicit_header`, l'en-tête du fichier source. */
-  readonly en_tete: readonly string[];
-  /** `packs[].announced_license` : la licence que la page du pack annonce. */
-  readonly annoncees: readonly string[];
-}
-
-/** La licence d'un pack, lue sur la ligne `License:` d'un fichier `LICENSE*.txt` du dossier de production. */
-export interface LicenceDePack {
-  readonly fichier: string;
-  readonly licence: string;
-}
-
-export interface Provenance {
-  readonly model: string;
-  readonly model_sha256: string;
-  /** L'empreinte de la source `.blend`, versée dans la Release à côté du GLB, si la production en livre une. */
-  readonly source_sha256?: string;
-  readonly importe_le: string;
-  readonly licences: Readonly<Record<string, LicenceDeComposant>>;
-  readonly licences_de_pack: readonly LicenceDePack[];
-  readonly animation_sources: readonly { readonly fichier: string; readonly sha256: string }[];
-}
 
 export type ResultatDImport =
   | { readonly ok: true; readonly ecrits: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteDePersonnage; readonly provenance: Provenance }
   | { readonly ok: false; readonly refus: readonly string[] };
 
-type Brut = Record<string, unknown>;
-const estObjet = (v: unknown): v is Brut => !!v && typeof v === 'object' && !Array.isArray(v);
 const chaines = (v: unknown): string[] => (Array.isArray(v) ? v.filter((e): e is string => typeof e === 'string') : []);
 
 const LIGNE_DE_LICENCE = /^#\s*license\s+(.+)$/;
@@ -72,6 +40,14 @@ function licencesDe(manifeste: Brut): Record<string, LicenceDeComposant> {
   }));
 }
 
+/** Les composants dont la licence de l'en-tête et celle que le pack annonce sont toutes deux déclarées et diffèrent. */
+function conflitsDeLicence(licences: Readonly<Record<string, LicenceDeComposant>>): string[] {
+  const valeurs = (l: readonly string[]) => [...new Set(l)].sort().join(' | ');
+  return Object.entries(licences).flatMap(([id, l]) => (l.en_tete.length && l.annoncees.length && valeurs(l.en_tete) !== valeurs(l.annoncees)
+    ? [`licence du composant ${id} : l'en-tête déclare « ${valeurs(l.en_tete)} », le pack annonce « ${valeurs(l.annoncees)} »`]
+    : []));
+}
+
 const nomDeFichier = (chemin: string): string => chemin.split(/[\\/]/).pop() ?? '';
 
 /** `animation_sources.<n>.{path, sha256}`, le chemin réduit au nom de fichier. */
@@ -84,6 +60,7 @@ function sourcesDAnimation(manifeste: Brut): { fichier: string; sha256: string }
 const FICHIER_DE_LICENCE = /^LICENSE.*\.txt$/;
 const LIGNE_LICENSE = /^\s*License:\s*(.+?)\s*$/m;
 
+const memesOctets = (a: Uint8Array, b: Uint8Array): boolean => Buffer.compare(a, b) === 0;
 const lireJson = (chemin: string): unknown => JSON.parse(readFileSync(chemin, 'utf8'));
 const enJson = (v: unknown): string => `${JSON.stringify(v, null, 2)}\n`;
 
@@ -148,16 +125,23 @@ export function importerPersonnage({ dossier, id, destination = DOSSIER_DES_MODE
   };
   const fuites = cheminsAbsolus(provenance, 'provenance');
   if (fuites.length) return { ok: false, refus: fuites.map(ligneDErreur) };
+  const conflits = conflitsDeLicence(provenance.licences);
+  if (conflits.length) return { ok: false, refus: conflits };
+  const licences = licencesDePack.map(({ fichier }) => ({ fichier, octets: readFileSync(join(dossier, fichier)) }));
+  const collisions = licences.flatMap(({ fichier, octets }) => {
+    const deja = join(destination, fichier);
+    return existsSync(deja) && !memesOctets(readFileSync(deja), octets) ? [`${fichier} : un autre texte porte déjà ce nom dans ${destination}`] : [];
+  });
+  if (collisions.length) return { ok: false, refus: collisions };
 
   const assets: AssetAPublier[] = [
     { chemin: join(dossier, FICHIERS_DE_PRODUCTION.glb), nom: nomDAsset(empreinte, 'glb') },
     ...(sources[0] && provenance.source_sha256 ? [{ chemin: join(dossier, sources[0]), nom: nomDAsset(provenance.source_sha256, 'blend') }] : []),
   ];
   const publies = publier ? publier(assets) : [];
-  mkdirSync(destination, { recursive: true });
-  writeFileSync(join(destination, fichiers.manifeste), enJson(verdict.manifeste));
-  writeFileSync(join(destination, fichiers.provenance), enJson(provenance));
-  for (const { fichier } of licencesDePack) copyFileSync(join(dossier, fichier), join(destination, fichier));
-  const ecrits = [fichiers.manifeste, fichiers.provenance, ...licencesDePack.map((l) => l.fichier)].map((f) => join(destination, f));
+  ecrireTexteAtomique(join(destination, fichiers.manifeste), enJson(verdict.manifeste));
+  ecrireTexteAtomique(join(destination, fichiers.provenance), enJson(provenance));
+  for (const { fichier, octets } of licences) ecrireTexteAtomique(join(destination, fichier), octets);
+  const ecrits = [fichiers.manifeste, fichiers.provenance, ...licences.map((l) => l.fichier)].map((f) => join(destination, f));
   return { ok: true, ecrits, publies, manifeste: verdict.manifeste, provenance };
 }

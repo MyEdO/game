@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
@@ -69,7 +69,7 @@ function installer() {
   writeFileSync(TEMOIN, `${EMPREINTE}\n`)
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+if (import.meta.main) {
   installer()
   const [script, ...args] = process.argv.slice(2)
   if (!script) {

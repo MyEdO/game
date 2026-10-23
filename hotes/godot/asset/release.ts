@@ -7,11 +7,13 @@
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { lireGlb } from './glb.ts';
-import { ligneDErreur, validerManifeste } from './manifeste.ts';
+import { estObjet, ligneDErreur, validerManifeste } from './manifeste.ts';
 
 /** Le dépôt dont la Release porte les modèles. */
 export const DEPOT = 'MyEdO/game';
@@ -25,15 +27,80 @@ export const CACHE_DES_MODELES = join(homedir(), '.cache', 'wfrp-modeles-3d');
 /** La somme SHA-256 de `octets`, hexadécimale. */
 export const sha256 = (octets: Uint8Array): string => createHash('sha256').update(octets).digest('hex');
 
+/** Lève, au nom de `nom`, si la somme de `octets` n'est pas `attendue`. */
+export function verifierSomme(nom: string, octets: Uint8Array, attendue: string): void {
+  const somme = sha256(octets);
+  if (somme !== attendue) throw new Error(`${nom} : SHA-256 ${somme}, ${attendue} attendue`);
+}
+
+/** La somme SHA-256 du fichier `chemin`, ou `null` s'il est absent. */
+const sommeDuFichier = (chemin: string): string | null => (existsSync(chemin) ? sha256(readFileSync(chemin)) : null);
+
+/** Le fichier `chemin` gardé s'il a la somme `attendue` ; sinon les octets de `tirer()`, vérifiés au nom de `nom`
+ *  (`verifierSomme`), écrits atomiquement sous `chemin` (`ecrireTexteAtomique`). */
+export async function enCacheOuTire(chemin: string, attendue: string, nom: string, tirer: () => Promise<Uint8Array>): Promise<void> {
+  if (sommeDuFichier(chemin) === attendue) return;
+  const octets = await tirer();
+  verifierSomme(nom, octets, attendue);
+  ecrireTexteAtomique(chemin, octets);
+}
+
 /** Le nom, dans la Release, du fichier d'empreinte `empreinte`. */
 export const nomDAsset = (empreinte: string, extension: 'glb' | 'blend'): string => `${empreinte}.${extension}`;
 
 /** L'URL publique du fichier `nom` de la Release. */
 export const urlDAsset = (nom: string): string => `https://github.com/${DEPOT}/releases/download/${TAG}/${nom}`;
 
-const SUFFIXE_MANIFESTE = '.manifeste.json';
-const SUFFIXE_PROVENANCE = '.provenance.json';
+/** Le dossier des modèles du projet Godot : l'import y dépose, `recupererModeles` y tire les GLB. */
+export const DOSSIER_DES_MODELES = fileURLToPath(new URL('../projet/modeles', import.meta.url));
+
+/** Les fichiers du modèle `id` dans le projet : le GLB (tiré de la Release, ignoré de git), le manifeste et la provenance (commités). */
+export const fichiersDuModele = (id: string) => ({ glb: `${id}.glb`, manifeste: `${id}.manifeste.json`, provenance: `${id}.provenance.json` });
+
+/** La licence d'un composant, telle que la production la déclare dans `components.<id>.asset`. */
+export interface LicenceDeComposant {
+  /** `license_basis` : sur quoi la production fonde la licence. */
+  readonly base: string;
+  /** La valeur des lignes `# license` de `explicit_header`, l'en-tête du fichier source. */
+  readonly en_tete: readonly string[];
+  /** `packs[].announced_license` : la licence que la page du pack annonce. */
+  readonly annoncees: readonly string[];
+}
+
+/** La licence d'un pack, lue sur la ligne `License:` d'un fichier `LICENSE*.txt` du dossier de production. */
+export interface LicenceDePack {
+  readonly fichier: string;
+  readonly licence: string;
+}
+
+/** La provenance commitée d'un modèle (`fichiersDuModele(id).provenance`). */
+export interface Provenance {
+  readonly model: string;
+  readonly model_sha256: string;
+  /** L'empreinte de la source `.blend`, versée dans la Release à côté du GLB, si la production en livre une. */
+  readonly source_sha256?: string;
+  readonly importe_le: string;
+  readonly licences: Readonly<Record<string, LicenceDeComposant>>;
+  readonly licences_de_pack: readonly LicenceDePack[];
+  readonly animation_sources: readonly { readonly fichier: string; readonly sha256: string }[];
+}
+
 const EMPREINTE = /^[0-9a-f]{64}$/;
+
+/** Les ids des fichiers de `fichiers` qui portent le nom `nom` de `fichiersDuModele`. */
+const idsPar = (fichiers: readonly string[], nom: 'manifeste' | 'provenance'): Set<string> => {
+  const suffixe = fichiersDuModele('')[nom];
+  return new Set(fichiers.filter((f) => f.endsWith(suffixe)).map((f) => f.slice(0, -suffixe.length)));
+};
+
+/** Le JSON du fichier `chemin`, ou l'écart qui nomme le fichier illisible. */
+function lireJsonNomme(chemin: string, nom: string): { readonly valeur: unknown } | { readonly erreur: string } {
+  try {
+    return { valeur: JSON.parse(readFileSync(chemin, 'utf8')) };
+  } catch (e) {
+    return { erreur: `${nom} : JSON illisible (${(e as Error).message})` };
+  }
+}
 
 /** Un modèle que sa provenance épingle : le nom de son GLB dans le projet, son empreinte. */
 export interface ModeleEpingle {
@@ -43,39 +110,70 @@ export interface ModeleEpingle {
 }
 
 /** Les modèles du dossier `dossier`, épinglés par leur provenance, ou les écarts : un manifeste sans provenance, une
- *  provenance sans manifeste, un `model` autre que `<id>.glb`, une empreinte qui n'est pas un SHA-256. */
+ *  provenance sans manifeste, une provenance illisible, un `model` autre que `<id>.glb`, une empreinte qui n'est pas
+ *  un SHA-256. */
 export function modelesEpingles(dossier: string): { readonly modeles: readonly ModeleEpingle[]; readonly erreurs: readonly string[] } {
   const fichiers = readdirSync(dossier).sort();
-  const ids = (suffixe: string) => new Set(fichiers.filter((f) => f.endsWith(suffixe)).map((f) => f.slice(0, -suffixe.length)));
-  const manifestes = ids(SUFFIXE_MANIFESTE);
-  const provenances = ids(SUFFIXE_PROVENANCE);
+  const manifestes = idsPar(fichiers, 'manifeste');
+  const provenances = idsPar(fichiers, 'provenance');
   const erreurs = [
-    ...[...manifestes].filter((id) => !provenances.has(id)).map((id) => `${id}${SUFFIXE_MANIFESTE} : provenance ${id}${SUFFIXE_PROVENANCE} absente`),
-    ...[...provenances].filter((id) => !manifestes.has(id)).map((id) => `${id}${SUFFIXE_PROVENANCE} : manifeste ${id}${SUFFIXE_MANIFESTE} absent`),
+    ...[...manifestes].filter((id) => !provenances.has(id)).map((id) => `${fichiersDuModele(id).manifeste} : provenance ${fichiersDuModele(id).provenance} absente`),
+    ...[...provenances].filter((id) => !manifestes.has(id)).map((id) => `${fichiersDuModele(id).provenance} : manifeste ${fichiersDuModele(id).manifeste} absent`),
   ];
   const modeles: ModeleEpingle[] = [];
   for (const id of provenances) {
-    const p = JSON.parse(readFileSync(join(dossier, `${id}${SUFFIXE_PROVENANCE}`), 'utf8')) as { model?: unknown; model_sha256?: unknown };
-    if (p.model !== `${id}.glb`) erreurs.push(`${id}${SUFFIXE_PROVENANCE} : model « ${String(p.model)} », ${id}.glb attendu`);
-    else if (typeof p.model_sha256 !== 'string' || !EMPREINTE.test(p.model_sha256)) erreurs.push(`${id}${SUFFIXE_PROVENANCE} : model_sha256 « ${String(p.model_sha256)} » n'est pas un SHA-256`);
-    else modeles.push({ id, model: p.model, empreinte: p.model_sha256 });
+    const f = fichiersDuModele(id);
+    const lu = lireJsonNomme(join(dossier, f.provenance), f.provenance);
+    if ('erreur' in lu) {
+      erreurs.push(lu.erreur);
+      continue;
+    }
+    const p = estObjet(lu.valeur) ? lu.valeur : {};
+    if (p.model !== f.glb) erreurs.push(`${f.provenance} : model « ${String(p.model)} », ${f.glb} attendu`);
+    else if (typeof p.model_sha256 !== 'string' || !EMPREINTE.test(p.model_sha256)) erreurs.push(`${f.provenance} : model_sha256 « ${String(p.model_sha256)} » n'est pas un SHA-256`);
+    else modeles.push({ id, model: f.glb, empreinte: p.model_sha256 });
   }
   return { modeles, erreurs };
 }
 
-/** Un modèle absent de la Release, ou dont la Release ne répond pas. */
+/** Un modèle absent de la Release : elle répond 404 sur son empreinte. */
 export class ModeleIntrouvable extends Error {
-  constructor(modele: ModeleEpingle, raison: string) {
-    super(`${modele.model} (${modele.empreinte}) : ${raison}, absent de la Release ${TAG} de ${DEPOT}`);
+  constructor(modele: ModeleEpingle, url: string) {
+    super(`${modele.model} (${modele.empreinte}) : HTTP 404 sur ${url}, absent de la Release ${TAG} de ${DEPOT}`);
     this.name = 'ModeleIntrouvable';
+  }
+}
+
+/** Une Release qui ne répond pas : réseau coupé, ou tout statut HTTP autre que 404. */
+export class ReleaseInjoignable extends Error {
+  constructor(modele: ModeleEpingle, url: string, raison: string) {
+    super(`${modele.model} (${modele.empreinte}) : Release ${TAG} de ${DEPOT} injoignable sur ${url} (${raison})`);
+    this.name = 'ReleaseInjoignable';
   }
 }
 
 type Telecharger = (url: string) => Promise<{ readonly ok: boolean; readonly status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
 
-/** Dépose dans `dossier` le GLB de chaque modèle épinglé : celui du cache `cache` si sa somme est l'épinglée, sinon tiré
- *  de la Release et vérifié. Chaque manifeste se valide ensuite contre son GLB. Lève à la première provenance fausse,
- *  au premier fichier introuvable ou de somme fausse, au premier manifeste refusé. */
+/** Les octets du GLB de `modele` tirés de la Release : `ModeleIntrouvable` sur un 404, `ReleaseInjoignable` sur une
+ *  erreur réseau ou tout autre statut. */
+async function tirerDeLaRelease(modele: ModeleEpingle, telecharger: Telecharger, journal: (ligne: string) => void): Promise<Uint8Array> {
+  const url = urlDAsset(nomDAsset(modele.empreinte, 'glb'));
+  journal(`[modèles] ${modele.model} : téléchargement de ${url}`);
+  let reponse: Awaited<ReturnType<Telecharger>>;
+  try {
+    reponse = await telecharger(url);
+  } catch (e) {
+    throw new ReleaseInjoignable(modele, url, (e as Error).message);
+  }
+  if (reponse.status === 404) throw new ModeleIntrouvable(modele, url);
+  if (!reponse.ok) throw new ReleaseInjoignable(modele, url, `HTTP ${reponse.status}`);
+  return new Uint8Array(await reponse.arrayBuffer());
+}
+
+/** Dépose dans `dossier` le GLB de chaque modèle épinglé et le garde dans le cache `cache` : le GLB du projet s'il a
+ *  la somme épinglée (le cache s'en amorce), sinon celui du cache, sinon tiré de la Release ; tout fichier se vérifie
+ *  par sa somme et s'écrit atomiquement. Chaque manifeste se valide ensuite contre son GLB. Lève à la première
+ *  provenance fausse, au premier fichier introuvable ou de somme fausse, au premier manifeste refusé. */
 export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, telecharger = fetch, journal = console.log }: {
   dossier: string;
   cache?: string;
@@ -86,21 +184,15 @@ export async function recupererModeles({ dossier, cache = CACHE_DES_MODELES, tel
   if (erreurs.length) throw new Error(`modèles mal épinglés :\n  ${erreurs.join('\n  ')}`);
   for (const modele of modeles) {
     const enCache = join(cache, nomDAsset(modele.empreinte, 'glb'));
-    if (!existsSync(enCache) || sha256(readFileSync(enCache)) !== modele.empreinte) {
-      const url = urlDAsset(nomDAsset(modele.empreinte, 'glb'));
-      journal(`[modèles] ${modele.model} : téléchargement de ${url}`);
-      const reponse = await telecharger(url);
-      if (!reponse.ok) throw new ModeleIntrouvable(modele, `HTTP ${reponse.status} sur ${url}`);
-      const octets = new Uint8Array(await reponse.arrayBuffer());
-      const somme = sha256(octets);
-      if (somme !== modele.empreinte) throw new ModeleIntrouvable(modele, `le fichier reçu a la somme ${somme}`);
-      mkdirSync(cache, { recursive: true });
-      writeFileSync(enCache, octets);
-    }
     const dansLeProjet = join(dossier, modele.model);
-    if (!existsSync(dansLeProjet) || sha256(readFileSync(dansLeProjet)) !== modele.empreinte) copyFileSync(enCache, dansLeProjet);
-    const verdict = validerManifeste(JSON.parse(readFileSync(join(dossier, `${modele.id}${SUFFIXE_MANIFESTE}`), 'utf8')), lireGlb(readFileSync(dansLeProjet)));
-    if (!verdict.ok) throw new Error(`${modele.id}${SUFFIXE_MANIFESTE} refusé contre ${modele.model} :\n  ${verdict.erreurs.map(ligneDErreur).join('\n  ')}`);
+    const duProjet = sommeDuFichier(dansLeProjet) === modele.empreinte;
+    await enCacheOuTire(enCache, modele.empreinte, modele.model, async () => (duProjet ? readFileSync(dansLeProjet) : tirerDeLaRelease(modele, telecharger, journal)));
+    if (!duProjet) ecrireTexteAtomique(dansLeProjet, readFileSync(enCache));
+    const manifeste = fichiersDuModele(modele.id).manifeste;
+    const lu = lireJsonNomme(join(dossier, manifeste), manifeste);
+    if ('erreur' in lu) throw new Error(lu.erreur);
+    const verdict = validerManifeste(lu.valeur, lireGlb(readFileSync(dansLeProjet)));
+    if (!verdict.ok) throw new Error(`${manifeste} refusé contre ${modele.model} :\n  ${verdict.erreurs.map(ligneDErreur).join('\n  ')}`);
   }
   journal(`[modèles] ${modeles.map((m) => m.model).join(', ')} : vérifiés (SHA-256), manifestes validés, cache ${cache}`);
   return modeles;

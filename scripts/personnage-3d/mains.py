@@ -71,7 +71,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     before = hashlib.sha256(source.read_bytes()).hexdigest()
     import bpy
-    bpy.ops.wm.open_mainfile(filepath=str(source))
+    bpy.ops.wm.open_mainfile(filepath=str(source), use_scripts=False)
     rig = next(obj for obj in bpy.data.objects if obj.type == "ARMATURE" and "index_01_l" in obj.data.bones)
     report = {"source": source.name, "source_sha256_before": before, "bone_count": len(rig.data.bones),
               "rest": {b.name: {"head": list(b.head_local), "tail": list(b.tail_local)} for b in rig.data.bones if b.name.startswith(FINGERS + ("hand",))}}
@@ -80,12 +80,18 @@ def main():
         report["renders"] = render_fixture(bpy, rig, output)
         bpy.ops.wm.save_as_mainfile(filepath=str(output / "hand-fixture.blend"))
     report["source_sha256_after"] = hashlib.sha256(source.read_bytes()).hexdigest()
-    assert before == report["source_sha256_after"]
+    exiger(before == report["source_sha256_after"], "source changed")
     (output / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     print("HAND CHECKS OK", f"{len(FINGERS) * 3} finger bones per hand, both hands:",
           ", ".join(name for name, value in report["checks"].items() if value is True))
     print("SOURCE UNCHANGED", report["source_sha256_after"])
     bpy.ops.wm.quit_blender()
+
+
+def exiger(condition, controle):
+    """Lève RuntimeError si le contrôle de prise nommé échoue."""
+    if not condition:
+        raise RuntimeError(f"Hand grip check failed: {controle}")
 
 
 def check_grips(bpy, rig):
@@ -101,27 +107,27 @@ def check_grips(bpy, rig):
             full = apply_hand_grip(rig, side, 1, "sword")
             matrices = {name: rig.pose.bones[name].matrix_basis.copy() for name in names}
             apply_hand_grip(rig, side, 2, "sword")
-            assert all(matrix_error(matrices[name], rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "upper clamp"
+            exiger(all(matrix_error(matrices[name], rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "upper clamp")
             apply_hand_grip(rig, side, 1, "sword")
-            assert all(matrix_error(matrices[name], rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "accumulation"
-            assert all(matrix_error(matrix, rig.pose.bones[name].matrix_basis) < 1e-6 for name, matrix in untouched.items()), "nonfinger changed"
+            exiger(all(matrix_error(matrices[name], rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "accumulation")
+            exiger(all(matrix_error(matrix, rig.pose.bones[name].matrix_basis) < 1e-6 for name, matrix in untouched.items()), "nonfinger changed")
             hand = rig.pose.bones[f"hand_{side}"]
             hand.rotation_mode = "QUATERNION"
             hand.rotation_quaternion = Quaternion((0.2, 0.6, 0.8), 0.73)
             apply_hand_grip(rig, side, 1, "sword")
-            assert all(matrix_error(matrices[name], rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "posed parent changed grip"
+            exiger(all(matrix_error(matrices[name], rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "posed parent changed grip")
             hand.matrix_basis.identity()
             for kind in ("sword", "pistol", "fist"):
                 apply_hand_grip(rig, side, 1, kind)
                 bpy.context.view_layer.update()
-                assert all(math.isfinite(value) for name in names for row in rig.pose.bones[name].matrix for value in row), "nonfinite matrix"
+                exiger(all(math.isfinite(value) for name in names for row in rig.pose.bones[name].matrix for value in row), "nonfinite matrix")
             apply_hand_grip(rig, side, -1, "sword")
             from mathutils import Matrix
-            assert all(matrix_error(Matrix.Identity(4), rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "rest reset"
+            exiger(all(matrix_error(Matrix.Identity(4), rig.pose.bones[name].matrix_basis) < 1e-6 for name in names), "rest reset")
             results.append(full)
         left, right = results
-        assert abs(left["palm_normal"][0] + right["palm_normal"][0]) < 1e-4
-        assert max(abs(left["palm_normal"][i] - right["palm_normal"][i]) for i in (1, 2)) < 1e-4
+        exiger(abs(left["palm_normal"][0] + right["palm_normal"][0]) < 1e-4, "left/right mirror x")
+        exiger(max(abs(left["palm_normal"][i] - right["palm_normal"][i]) for i in (1, 2)) < 1e-4, "left/right mirror yz")
         return {"pass": True, "clamp": True, "idempotent": True, "reset": True,
                 "nonfinger_unchanged": True, "parent_pose_invariant": True, "left_right_mirror": True,
                 "grips": results,

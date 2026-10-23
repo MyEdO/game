@@ -1,10 +1,20 @@
 """Normalisation de la pose de bind d'un personnage habillé, transfert de clips squelettiques sous licence vers son
-squelette commun, et vérification par réimport.
+squelette commun, et vérification par réimport. Un seul manifeste sort, `manifest.json` : `model`, `model_sha256`, les
+rôles du jeu dans `clips`, les poses de production dans `production_clips`.
+
+La correspondance avec le pack de clips source est une donnée (`--correspondance <fichier.json>`, celle du pack
+KayKit : `correspondances/kaykit.json`) :
+    bones             {os source: os du squelette commun}
+    height_bones      [os source dont les sommets mesurent la hauteur du pack]
+    clips             {rôle du jeu: nom du clip exporté}
+    source_clips      {rôle du jeu: nom du clip source}
+    production_clips  {nom du clip exporté: nom du clip source}, poses hors rôles (facultatif)
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/animation.py \\
-        --input-glb <modulaire.glb> --source-glb <clips.glb> --output <dossier vide> [--manifest <manifest.json>] \\
-        [--os 53] [--licence-source <LICENSE.txt>]
-    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/animation.py --verify <animated.glb> [--manifest …]
+        --input-glb <modulaire.glb> --source-glb <clips.glb> --correspondance <correspondance.json> \\
+        --output <dossier vide> [--manifest <manifest du personnage>] [--os 53] [--licence-source <LICENSE.txt>]
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/animation.py --verify <animated.glb> \\
+        --manifest <manifest.json> [--os 53]
 """
 import argparse
 import hashlib
@@ -15,18 +25,28 @@ import subprocess
 import sys
 
 from glb import lire_glb
-from mesure import world_vertices
+from mesure import IMAGES_PAR_SECONDE, world_vertices
 from rendu import qa_studio
 
 sys.dont_write_bytecode = True
-CLIPS = {'idle': 'Idle', 'walk': 'Walking_A', 'melee': '1H_Melee_Attack_Chop', 'hit': 'Hit_A',
-         'death': 'Death_A', 'parry': 'Block', 'ranged': '1H_Ranged_Shooting',
-         'cast': 'Spellcast_Shoot', 'dodge': 'Dodge_Backward'}
-MAPPING = {'root': 'Root', 'hips': 'pelvis', 'spine': 'spine_01', 'chest': 'spine_03', 'head': 'head'}
-for side in ('l', 'r'):
-    for source, target in [('upperarm', 'upperarm'), ('lowerarm', 'lowerarm'), ('wrist', 'hand'),
-                           ('upperleg', 'thigh'), ('lowerleg', 'calf'), ('foot', 'foot'), ('toes', 'ball')]:
-        MAPPING[source + '.' + side] = target + '_' + side
+SOL_TOLERANCE_M = .005
+"""Pénétration du sol admise sous les pieds, en mètres."""
+FRACTIONS_QA = (.5, 1.)
+"""Instants de chaque clip rendus dans les planches de QA, en fraction de sa durée."""
+DELAI_VERIFICATION_S = 600
+"""Durée maximale du processus de réimport qui vérifie l'export."""
+
+
+def clips_a_cuire(correspondance):
+    """[(nom exporté, nom source, rôle ou None)] : les rôles du jeu, puis les poses de production."""
+    if set(correspondance['source_clips']) != set(correspondance['clips']):
+        raise ValueError('source_clips and clips must name the same roles')
+    roles =[(name, correspondance['source_clips'][role], role) for role, name in correspondance['clips'].items()]
+    production = [(name, source, None) for name, source in correspondance.get('production_clips', {}).items()]
+    names = [name for name, _, _ in roles + production]
+    if len(set(names)) != len(names):
+        raise ValueError(f'Exported clip names collide: {names}')
+    return roles + production
 
 
 def write_json(path, value):
@@ -165,8 +185,8 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
     for head in (option['id'] for option in manifest['head_options']):
         for preset in manifest['presets']:
             visible = manifest_selection(meshes, manifest, head, preset)
-            for alias in ('idle', 'walk', 'melee', 'hit', 'death'):
-                action = actions[CLIPS[alias]]
+            for alias, name in manifest['clips'].items():
+                action = actions[name]
                 assign_action(rig, action)
                 start, end = action.frame_range
                 samples = []
@@ -191,7 +211,7 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
                                                    skin_world_normal(rig, objects[part], pi, rest_normals[part][pi][hn]))
                                       for variant, body, bi, part, pi, bn, hn in pairs if variant == head)
                     floor = min(float(points[obj.name][:, 2].min()) for obj in visible)
-                    passed = seam_error <= 5e-5 and floor >= -.005 and skin_normal <= .1
+                    passed = seam_error <= 5e-5 and floor >= -SOL_TOLERANCE_M and skin_normal <= .1
                     samples.append({'fraction': fraction, 'floor_m': floor, 'neck_seam_error_m': seam_error,
                                     'neck_seam_normal_degrees_lbs': skin_normal,
                                     'blender_modifier_neck_normal_degrees': seam_normal, 'passed': passed})
@@ -294,72 +314,75 @@ def normalize_bind(bpy, rig, meshes, diagnostic_output=None, pose_setup=None):
 def verify(args):
     import bpy
     import numpy as np
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=str(args.verify))
-    rigs = [o for o in bpy.context.scene.objects if o.type == 'ARMATURE']
-    if len(rigs) != 1 or len(rigs[0].data.bones) != args.os:
-        raise RuntimeError(f'Expected one {args.os}-bone armature: {[len(r.data.bones) for r in rigs]}')
-    rig = rigs[0]
+    from verifier_export import verify as verifier_export
+    manifest = json.loads(args.manifest.read_text(encoding='utf-8'))
+    export = verifier_export(args.verify, 'rig', bones=args.os, clips=manifest['clips'].values())
+    if export['errors']:
+        raise RuntimeError(f"Export verification failed: {export['errors']}")
+    rig = next(o for o in bpy.context.scene.objects if o.type == 'ARMATURE')
     meshes = meshes_for(bpy, rig)
-    manifest = json.loads(args.manifest.read_text(encoding='utf-8')) if args.manifest else None
-    visible = manifest_selection(meshes, manifest)
+    pieces = manifest if 'pieces' in manifest else None
+    visible = manifest_selection(meshes, pieces)
     actions = {a.name: a for a in bpy.data.actions}
-    result = {'bones': len(rig.data.bones), 'clips': {}, 'textures': [], 'meshes': len(meshes)}
+    result = {'export': export, 'clips': {}}
     clear_animation(rig)
     bpy.context.view_layer.update()
-    pairs, seam_report = seam_contract(bpy, meshes, manifest)
+    pairs, seam_report = seam_contract(bpy, meshes, pieces)
     result['rest_neck_seams'] = seam_report
-    for name in CLIPS.values():
+    for name in [*manifest['clips'].values(), *manifest.get('production_clips', {})]:
         matches = [a for key, a in actions.items() if key == name]
         if len(matches) != 1:
             raise RuntimeError(f'Clip reimport ambiguity: {name}: {[a.name for a in matches]}')
         action = matches[0]
         assign_action(rig, action)
         start, end = action.frame_range
-        bpy.context.scene.frame_set(int(start))
-        initial = world_vertices(bpy, visible)
-        maximum = 0.
-        low, high = np.full(3, np.inf), np.full(3, -np.inf)
+        low = np.inf
         samples = []
         for frame in np.linspace(start, end, 9):
             bpy.context.scene.frame_set(int(frame), subframe=float(frame % 1))
-            pose = world_vertices(bpy, visible)
-            for obj in visible:
-                points = pose[obj.name]
-                if not np.isfinite(points).all():
-                    raise RuntimeError('Nonfinite deformed vertices')
-                maximum = max(maximum, float(np.max(np.linalg.norm(points - initial[obj.name], axis=1))))
-                low = np.minimum(low, points.min(axis=0))
-                high = np.maximum(high, points.max(axis=0))
-            samples.append({'frame': float(frame), 'min_z': float(min(p[:, 2].min() for p in pose.values()))})
-        if maximum < 1e-5:
-            raise RuntimeError(f'No actual deformation: {name}')
-        if low[2] < -.005:
-            raise RuntimeError(f'Ground penetration exceeds 5 mm: {name}: {low[2]}')
-        result['clips'][name] = {'range': list(action.frame_range), 'max_vertex_motion': maximum,
-                                  'bounds': [low.tolist(), high.tolist()], 'samples': samples}
-    if manifest:
-        result['combinations'] = verify_combinations(bpy, rig, meshes, actions, manifest, pairs)
-    for image in bpy.data.images:
-        if image.type == 'IMAGE':
-            pixel_count = len(image.pixels)
-            if not image.has_data or not all(image.size) or pixel_count == 0:
-                raise RuntimeError(f'Undecoded texture: {image.name}')
-            result['textures'].append({'name': image.name, 'size': list(image.size)})
-    maximum_influences = 0
-    for obj in meshes:
-        for vertex in obj.data.vertices:
-            weights = [g.weight for g in vertex.groups if g.weight > 1e-6]
-            maximum_influences = max(maximum_influences, len(weights))
-            if not weights or abs(sum(weights) - 1) > .001:
-                raise RuntimeError(f'Invalid weights {obj.name}:{vertex.index}')
-    assert maximum_influences <= 4
-    result['max_influences'] = maximum_influences
+            floor = float(min(points[:, 2].min() for points in world_vertices(bpy, visible).values()))
+            low = min(low, floor)
+            samples.append({'frame': float(frame), 'min_z': floor})
+        if low < -SOL_TOLERANCE_M:
+            raise RuntimeError(f'Ground penetration exceeds {SOL_TOLERANCE_M} m: {name}: {low}')
+        result['clips'][name] = {'range': list(action.frame_range), 'samples': samples}
+    if pieces:
+        result['combinations'] = verify_combinations(bpy, rig, meshes, actions, pieces, pairs)
     write_json(args.verify.parent / 'reimport-report.json', result)
     failures = [key for key, value in result.get('combinations', {}).items() if not all(sample['passed'] for sample in value['samples'])]
     if failures:
         raise RuntimeError(f'Combination verification failed: {failures}; see reimport-report.json')
-    print('REIMPORT_OK', json.dumps({'bones': args.os, 'clips': len(result['clips']), 'max_influences': maximum_influences}), flush=True)
+    print('REIMPORT_OK', json.dumps({'bones': args.os, 'clips': len(result['clips'])}), flush=True)
+
+
+def planche_qa(bpy, rig, actions, output, label):
+    """Rend chaque clip aux FRACTIONS_QA et les assemble en une planche : une ligne par fraction, une colonne par clip."""
+    import numpy as np
+    scene = bpy.context.scene
+    width, height = scene.render.resolution_x, scene.render.resolution_y
+    rows = []
+    for fraction in FRACTIONS_QA:
+        row = []
+        for name, action in actions.items():
+            assign_action(rig, action)
+            start, end = action.frame_range
+            scene.frame_set(int(start + (end - start) * fraction))
+            image_path = output / f'qa-{label}-{name}-{int(fraction * 100)}.png'
+            scene.render.filepath = str(image_path)
+            bpy.ops.render.render(write_still=True)
+            image = bpy.data.images.load(str(image_path), check_existing=False)
+            pixels = np.empty(width * height * 4, dtype=np.float32)
+            image.pixels.foreach_get(pixels)
+            row.append(pixels.reshape(height, width, 4))
+            bpy.data.images.remove(image)
+        rows.append(np.concatenate(row, axis=1))
+    board = bpy.data.images.new(f'QA {label}', width=width * len(actions), height=height * len(rows), alpha=True)
+    board.colorspace_settings.name = 'sRGB'
+    board.pixels.foreach_set(np.concatenate(rows[::-1], axis=0).ravel())
+    board.filepath_raw = str(output / f'qa-planche-{label}.png')
+    board.file_format = 'PNG'
+    board.save()
+    bpy.data.images.remove(board)
 
 
 def run(args):
@@ -369,10 +392,12 @@ def run(args):
     output = args.output
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f'Output must be empty: {output}')
+    correspondance = json.loads(args.correspondance.read_text(encoding='utf-8'))
+    a_cuire = clips_a_cuire(correspondance)
     output.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     scene = bpy.context.scene
-    scene.render.fps = 24
+    scene.render.fps = IMAGES_PAR_SECONDE
     bpy.ops.import_scene.gltf(filepath=str(args.input_glb))
     rig = next(o for o in scene.objects if o.type == 'ARMATURE')
     if len(rig.data.bones) != args.os:
@@ -397,8 +422,7 @@ def run(args):
     bpy.context.view_layer.update()
     source_meshes = meshes_for(bpy, source)
     source_geometry = world_vertices(bpy, source_meshes)
-    height_bones = {'head', 'spine', 'chest', 'hips'} | {
-        name for name in MAPPING if name.startswith(('upperleg.', 'lowerleg.', 'foot.', 'toes.'))}
+    height_bones = set(correspondance['height_bones'])
     height_points = []
     for obj in source_meshes:
         groups = {group.index: group.name for group in obj.vertex_groups}
@@ -410,7 +434,7 @@ def run(args):
     ratio = target_height / float(np.ptp(source_points[:, 2]))
     source_rest = {b.name: source.matrix_world @ b.matrix_local for b in source.data.bones}
     target_rest = {b.name: rig.matrix_world @ b.matrix_local for b in rig.data.bones}
-    inverse_map = {target: original for original, target in MAPPING.items()}
+    inverse_map = {target: original for original, target in correspondance['bones'].items()}
     ordered = sorted(rig.pose.bones, key=lambda b: len(b.parent_recursive))
     baseline_floor = 0.
     report = {'normalization_error': errors, 'normalization_normal_error_degrees': normal_errors,
@@ -419,14 +443,11 @@ def run(args):
               'source_height_m': float(np.ptp(source_points[:, 2])),
               'source_height_basis': 'Head, torso and leg weighted vertices; arm and hand equipment excluded',
               'input_floor_m': float(all_points[:, 2].min()), 'animation_floor_m': baseline_floor, 'clips': {},
-              'mapping': MAPPING, 'rest_neck_seams': rest_seams,
+              'mapping': correspondance['bones'], 'rest_neck_seams': rest_seams,
               'all_skinned_meshes': len(meshes), 'default_visible_meshes': [obj.name for obj in ground_meshes],
-              'input_sha256': hashlib.sha256(args.input_glb.read_bytes()).hexdigest(),
-              'source_sha256': hashlib.sha256(args.source_glb.read_bytes()).hexdigest(),
               'limitations': ['Individual finger articulation inherits the target rest pose; source aggregate hand controls are not finger joints.']}
     baked = []
-    for alias, name in CLIPS.items():
-        source_name = 'Unarmed_Idle' if alias == 'idle' else name
+    for name, source_name, alias in a_cuire:
         candidates = [a for a in source_actions if a.name == source_name]
         if len(candidates) != 1:
             raise RuntimeError(f'Missing/ambiguous source action {name}: {[a.name for a in candidates]}')
@@ -512,7 +533,7 @@ def run(args):
             root.keyframe_insert(data_path='location', frame=frame)
         result.use_fake_user = True
         baked.append((name, result))
-        report['clips'][name] = {'alias': alias, 'source_clip': source_name,
+        report['clips'][name] = {'role': alias, 'source_clip': source_name,
                                  'frames': [min(frames), max(frames)],
                                  'interpolation_ground_margin_max_m': max(ground_margins.values()),
                                  'floor_correction_range': [min(floor_corrections), max(floor_corrections)]}
@@ -542,71 +563,43 @@ def run(args):
     if len(document['skins']) != 1 or len(document['skins'][0]['joints']) != args.os:
         raise RuntimeError(f"Expected one {args.os}-joint skin: {[len(s['joints']) for s in document['skins']]}")
     exported_names = [a['name'] for a in document.get('animations', [])]
-    if set(exported_names) != set(CLIPS.values()):
+    if sorted(exported_names) != sorted(name for name, _, _ in a_cuire):
         raise RuntimeError(f'Incorrect exported clips: {exported_names}')
     report['exported_clips'] = exported_names
-    report['output_sha256'] = hashlib.sha256((output / 'animated.glb').read_bytes()).hexdigest()
     if manifest:
         exported_nodes = {node['name'] for node in document['nodes'] if 'skin' in node}
         if exported_nodes != {piece['node'] for piece in manifest['pieces'].values()}:
             raise RuntimeError('Export changed the stable skinned node set')
-        manifest['model'] = 'animated.glb'
-        manifest['model_sha256'] = report['output_sha256']
-        manifest['clips'] = CLIPS
-        manifest['source_clips'] = {alias: 'Unarmed_Idle' if alias == 'idle' else name for alias, name in CLIPS.items()}
-        manifest['retarget'] = {'fps': 24, 'root_motion': 'in_place',
-                                'input_sha256': report['input_sha256'], 'source_sha256': report['source_sha256'],
-                                'hands': 'Open rest fingers; no individual finger retarget', 'rest_neck_seams': rest_seams}
-        write_json(output / 'manifest.json', manifest)
-    write_json(output / 'animation-report.json', report)
-    licence = None
+    published = dict(manifest) if manifest else {'schema_version': 1}
+    published['model'] = 'animated.glb'
+    published['model_sha256'] = hashlib.sha256((output / 'animated.glb').read_bytes()).hexdigest()
+    published['clips'] = dict(correspondance['clips'])
+    published['source_clips'] = dict(correspondance['source_clips'])
+    if correspondance.get('production_clips'):
+        published['production_clips'] = dict(correspondance['production_clips'])
+    published['retarget'] = {'fps': IMAGES_PAR_SECONDE, 'root_motion': 'in_place',
+                             'input_sha256': hashlib.sha256(args.input_glb.read_bytes()).hexdigest(),
+                             'source_sha256': hashlib.sha256(args.source_glb.read_bytes()).hexdigest(),
+                             'hands': 'Open rest fingers; no individual finger retarget', 'rest_neck_seams': rest_seams}
     if args.licence_source:
-        licence = {'file': args.licence_source.name, 'sha256': hashlib.sha256(args.licence_source.read_bytes()).hexdigest()}
-    write_json(output / 'animation-manifest.json', {'schema_version': 1, 'model': 'animated.glb', 'clips': CLIPS,
-                                                  'source_clips': {alias: 'Unarmed_Idle' if alias == 'idle' else name for alias, name in CLIPS.items()},
-                                                  'fps': 24, 'root_motion': 'in_place', 'license_source': licence})
+        published['license_source'] = {'file': args.licence_source.name,
+                                       'sha256': hashlib.sha256(args.licence_source.read_bytes()).hexdigest()}
+    write_json(output / 'manifest.json', published)
+    write_json(output / 'animation-report.json', report)
     qa_studio(bpy)
-    for alias, fraction in ([] if manifest else [('idle', .5), ('walk', 0.), ('walk', .25), ('walk', .5), ('walk', .75),
-                            ('hit', .5), ('cast', .5),
-                            ('melee', 0.), ('melee', .25), ('melee', .5), ('melee', .75), ('melee', 1.),
-                            ('death', 0.), ('death', .5), ('death', 1.)]):
-        action = dict(baked)[CLIPS[alias]]
-        assign_action(rig, action)
-        start, end = action.frame_range
-        scene.frame_set(int(start + (end - start) * fraction))
-        scene.render.filepath = str(output / ('qa-' + alias + '-' + str(int(fraction * 100)) + '.png'))
-        bpy.ops.render.render(write_still=True)
+    actions = dict(baked)
     if manifest:
         for head in (option['id'] for option in manifest['head_options']):
             for preset in manifest['presets']:
                 manifest_selection(meshes, manifest, head, preset)
-                contact_pixels = []
-                for alias in ('idle', 'walk', 'melee', 'death'):
-                    action = dict(baked)[CLIPS[alias]]
-                    assign_action(rig, action)
-                    start, end = action.frame_range
-                    scene.frame_set(int(end if alias == 'death' else start + (end - start) * .5))
-                    image_path = output / f'qa-{head}-{preset}-{alias}.png'
-                    scene.render.filepath = str(image_path)
-                    bpy.ops.render.render(write_still=True)
-                    image = bpy.data.images.load(str(image_path), check_existing=False)
-                    pixels = np.empty(640 * 720 * 4, dtype=np.float32)
-                    image.pixels.foreach_get(pixels)
-                    contact_pixels.append(pixels.reshape(720, 640, 4))
-                    bpy.data.images.remove(image)
-                board = bpy.data.images.new(f'QA {head} {preset}', width=2560, height=720, alpha=True)
-                board.colorspace_settings.name = 'sRGB'
-                board.pixels.foreach_set(np.concatenate(contact_pixels, axis=1).ravel())
-                board.filepath_raw = str(output / f'qa-planche-{head}-{preset}.png')
-                board.file_format = 'PNG'
-                board.save()
-                bpy.data.images.remove(board)
+                planche_qa(bpy, rig, actions, output, f'{head}-{preset}')
         manifest_selection(meshes, manifest)
-    verification_command = [sys.executable, '-X', 'utf8', '-u', str(Path(__file__).resolve()),
-                            '--verify', str(output / 'animated.glb'), '--os', str(args.os)]
-    if manifest:
-        verification_command.extend(['--manifest', str(output / 'manifest.json')])
-    verification = subprocess.run(verification_command, timeout=120, check=False)
+    else:
+        planche_qa(bpy, rig, actions, output, 'defaut')
+    verification_command = [sys.executable, '-E', '-s', '-X', 'utf8', '-u', str(Path(__file__).resolve()),
+                            '--verify', str(output / 'animated.glb'), '--os', str(args.os),
+                            '--manifest', str(output / 'manifest.json')]
+    verification = subprocess.run(verification_command, timeout=DELAI_VERIFICATION_S, check=False)
     if verification.returncode:
         raise RuntimeError(f'Reimport process failed: {verification.returncode}')
     print('RETARGET_OK', output, flush=True)
@@ -620,13 +613,16 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--verify', type=Path)
     parser.add_argument('--os', type=int, default=53, help="nombre d'os du squelette commun")
+    parser.add_argument('--correspondance', type=Path, help='correspondance JSON avec le pack de clips source')
     parser.add_argument('--licence-source', type=Path, help='licence des clips sources, consignée par nom et empreinte')
     args = parser.parse_args()
     if args.verify:
+        if not args.manifest:
+            parser.error('--verify requires --manifest')
         verify(args)
     else:
-        if not all((args.input_glb, args.source_glb, args.output)):
-            parser.error('--input-glb, --source-glb and --output are required')
+        if not all((args.input_glb, args.source_glb, args.correspondance, args.output)):
+            parser.error('--input-glb, --source-glb, --correspondance and --output are required')
         run(args)
 
 

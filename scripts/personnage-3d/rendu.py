@@ -45,7 +45,9 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
     import bpy
+    import numpy as np
     from mathutils import Vector
+    from mesure import world_vertices
     start = time.monotonic()
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=str(source))
@@ -53,15 +55,9 @@ def main():
     if not actors:
         raise ValueError('No skinned character meshes found')
     bpy.context.view_layer.update()
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    coordinates = []
-    for obj in actors:
-        evaluated = obj.evaluated_get(depsgraph)
-        mesh = evaluated.to_mesh()
-        coordinates.extend(evaluated.matrix_world @ vertex.co for vertex in mesh.vertices)
-        evaluated.to_mesh_clear()
-    low = Vector(tuple(min(vertex[i] for vertex in coordinates) for i in range(3)))
-    high = Vector(tuple(max(vertex[i] for vertex in coordinates) for i in range(3)))
+    coordinates = np.concatenate(list(world_vertices(bpy, actors).values()))
+    low = Vector(coordinates.min(axis=0).tolist())
+    high = Vector(coordinates.max(axis=0).tolist())
     height = high.z - low.z
     center = (low + high) / 2
     materials = []
@@ -92,8 +88,9 @@ def main():
     scene.view_settings.view_transform = 'AgX'
     world = bpy.data.worlds.new('Studio')
     world.use_nodes = True
-    world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.32, 0.35, 0.40, 1)
-    world.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.45
+    background = next(node for node in world.node_tree.nodes if node.type == 'BACKGROUND')
+    background.inputs['Color'].default_value = (0.32, 0.35, 0.40, 1)
+    background.inputs['Strength'].default_value = 0.45
     scene.world = world
     bpy.ops.mesh.primitive_plane_add(size=200, location=(0, 0, low.z - 0.005))
     floor = bpy.context.object

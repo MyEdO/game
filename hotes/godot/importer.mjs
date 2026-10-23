@@ -3,8 +3,8 @@
 // le GLB et sa source dans la Release des modèles (`asset/release.ts`, par `gh`), sauf `--sans-publier`, puis dit les
 // fichiers écrits ; ou chaque refus, et sort alors en 1 sans rien publier ni écrire.
 import { resolve } from 'node:path'
-import { DOSSIER_DES_MODELES, importerPersonnage } from './asset/importer.ts'
-import { publierAssets, TAG } from './asset/release.ts'
+import { importerPersonnage } from './asset/importer.ts'
+import { DOSSIER_DES_MODELES, publierAssets, TAG } from './asset/release.ts'
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier]
   <dossier de production>  animated.glb, manifest.json et report.json ; au plus un *.blend ; des LICENSE*.txt

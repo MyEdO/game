@@ -6,6 +6,8 @@ from pathlib import Path
 MAGIE_GLB = 0x46546C67
 CHUNK_JSON = 0x4E4F534A
 CHUNK_BIN = 0x004E4942
+COMPOSANTES = {'SCALAR': 1, 'VEC2': 2, 'VEC3': 3, 'VEC4': 4, 'MAT2': 4, 'MAT3': 9, 'MAT4': 16}
+TYPES_DE_COMPOSANTE = {5120: '<i1', 5121: '<u1', 5122: '<i2', 5123: '<u2', 5125: '<u4', 5126: '<f4'}
 
 
 def lire_glb(path):
@@ -28,6 +30,32 @@ def lire_glb(path):
             raise ValueError('Second GLB chunk is not BIN')
         binary = data[offset + 8:offset + 8 + bin_length]
     return document, binary
+
+
+def lire_accesseur(document, binary, index):
+    """Valeurs d'un accesseur en tableau numpy float64 (count, composantes), normalisation glTF appliquée ; un
+    accesseur sans bufferView vaut zéro. Refuse un accesseur creux (sparse) ou hors du chunk BIN."""
+    import numpy as np
+    accessor = document['accessors'][index]
+    if 'sparse' in accessor:
+        raise ValueError(f'Sparse accessor not supported: {index}')
+    width = COMPOSANTES[accessor['type']]
+    dtype = np.dtype(TYPES_DE_COMPOSANTE[accessor['componentType']])
+    count = accessor['count']
+    if 'bufferView' not in accessor:
+        return np.zeros((count, width))
+    view = document['bufferViews'][accessor['bufferView']]
+    if view.get('buffer', 0) != 0:
+        raise ValueError(f'Accessor outside the GLB BIN chunk: {index}')
+    stride = view.get('byteStride') or width * dtype.itemsize
+    offset = view.get('byteOffset', 0) + accessor.get('byteOffset', 0)
+    if count and offset + (count - 1) * stride + width * dtype.itemsize > len(binary):
+        raise ValueError(f'Accessor overruns the BIN chunk: {index}')
+    values = np.ndarray((count, width), dtype, buffer=binary, offset=offset,
+                        strides=(stride, dtype.itemsize)).astype(np.float64)
+    if accessor.get('normalized') and dtype.kind in 'iu':
+        values = np.maximum(values / np.iinfo(dtype).max, -1.)
+    return values
 
 
 def resume_glb(path):
