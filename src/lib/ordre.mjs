@@ -18,7 +18,7 @@ const LIGATURES = { œ: 'oe', æ: 'ae' }
 /** REPLI d'un libellé : marques retirées (NFD puis `\p{M}`), casse repliée, ligatures décomposées ;
  *  la ponctuation est gardée. Déterministe sans ICU — `normalize`/`toLowerCase` ne consultent aucune
  *  locale. Le composent : `norm` (`src/lib/normalize.ts`), la recherche et l'auto-liage du Codex
- *  (`src/ui/compendium/search.ts`, `relations.ts`), `src/state/dialogueLibelle.ts`,
+ *  (`src/ui/compendium/search.ts`, `relations.ts`), `src/noyau/dialogueLibelle.ts`,
  *  `parseSizeLabel` (`src/engine/size.ts`).
  *  @type {(s: string) => string} */
 export const replier = (s) =>

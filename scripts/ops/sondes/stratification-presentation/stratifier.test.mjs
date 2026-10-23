@@ -2,8 +2,10 @@
 // première règle, comptes `wc -l`, lecture du `--numstat`, imports relatifs résolus, échantillon
 // déterministe. Lancé par `npm run test:ops`.
 import { test } from 'node:test'
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { CATEGORIES, REGLES } from './regles.mjs'
+import { gitDeLArbreReel } from '../../../test/gitDeBanc.mjs'
 import { cheminDestination, compterLignes, importsRelatifs, lireNumstat, ranger, resoudreImport, tirerEchantillon } from './stratifier.mjs'
 
 const REGLES_BANC = [
@@ -35,6 +37,14 @@ test('REGLES : chaque catégorie est un id de CATEGORIES ou douteux, et seule un
     assert.equal(r.famille !== undefined, r.categorie === 'douteux', r.motif.source)
     assert.ok(r.raison && r.preuve, r.motif.source)
   }
+})
+
+test('REGLES : chaque règle range au moins un fichier de l\'arbre — une règle qui ne gagne plus aucun fichier se retire', () => {
+  const fichiers = gitDeLArbreReel(fileURLToPath(new URL('../../../..', import.meta.url)))('ls-files', '--', 'src/state', 'src/ui', 'src/gameIso')
+    .split('\n').filter((f) => /\.(ts|tsx|css)$/.test(f))
+  const gagnantes = new Set(fichiers.map((f) => ranger(f, REGLES)?.indice).filter((i) => i !== undefined))
+  const mortes = REGLES.flatMap((r, i) => (gagnantes.has(i) ? [] : [r.motif.source]))
+  assert.deepEqual(mortes, [], `règle(s) sans fichier : ${mortes.join(' · ')}`)
 })
 
 test('compterLignes : le nombre de \\n, comme wc -l — la dernière ligne sans \\n final ne compte pas', () => {

@@ -1,17 +1,17 @@
 /**
  * Défauts de CONTENU rendus à l'auteur par `validateScene` : départ du groupe, connectivité à pied des
- * pièces nommées (`state/mapQC`), réf de créature irrésoluble (le même faisceau qu'au spawn), empreinte
+ * pièces nommées (`noyau/mapQC`), réf de créature irrésoluble (le même faisceau qu'au spawn), empreinte
  * d'un combattant de rencontre. Fixtures SYNTHÉTIQUES uniquement — une scène livrée bouge dès que son
  * auteur la corrige, et son verdict n'appartient pas à ce banc.
  */
 import { describe, expect, it } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
-import { emptyScene, type Scene, type WallSeg } from '../noyau/monde/scene';
-import { RefIrresoluble, spawnEnemy } from '../noyau/monde/spawn';
-import { flowFromEffects } from '../noyau/monde/flow';
+import { emptyScene, type Scene, type WallSeg } from './monde/scene';
+import { RefIrresoluble, spawnEnemy } from './monde/spawn';
+import { flowFromEffects } from './monde/flow';
 import { creatures, siegeEngines, spells, vehicles } from '../data';
 import { resetData, setDataset } from '../data/overrides';
-import type { MapPlace, WorldMap } from '../noyau/worldMap';
+import type { MapPlace, WorldMap } from './worldMap';
 
 /** Ids LUS AUX REGISTRES (jamais un littéral : le bestiaire et les catalogues vivent). */
 const REF_CREATURE = creatures[0].id;

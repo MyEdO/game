@@ -7,7 +7,7 @@ import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneE
 import { auditFacade, auditStairwells, auditUnsupportedFloor, auditWallDeadEndsInside, auditZoneCoverage, groundTerrains, interiorCells, outdoorCells, PLAN_DEFECT_FAMILIES, scenePlanDefects, stairFlightCells, supportedFloorCells, zoneOutsideBuildingTiles, type PlanDefectFamily } from './planDefects';
 import { perimeterWallSegs } from '../state/sceneEdit.testkit';
 import { terrainWalkable } from './monde/terrain';
-import { validateScene } from '../state/validateScene';
+import { validateScene } from './validateScene';
 
 function makeScene(w: number, h: number, layers: { z: number; tiles: string[]; height?: number[] }[], zones: SceneEffectZone[], walls: WallSeg[] = []): Scene {
   return {

@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseProject, parseSceneDeProjet, declutterPositions, resolvePortRef, portVersDepot, placeServices, type RenderPoint, type MapPlace } from './worldMap';
 import { lieuxServices, navalPorts } from '../data';
-import { validateScene } from '../state/validateScene';
+import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
 

@@ -24,7 +24,7 @@ import { IconG } from '../ui/Icon';
 import { MARKER_R, stationMarker, colocationOffsets } from './topoMarkers';
 import { relationColor } from './teamColors';
 import type { Scene } from '../noyau/monde/scene';
-import type { Station } from '../state/stations';
+import type { Station } from '../noyau/stations';
 import type { Combatant } from '../engine/types';
 
 /** Rayon écran (px) d'une pastille de combattant. */

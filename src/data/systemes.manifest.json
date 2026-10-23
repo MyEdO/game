@@ -177,7 +177,7 @@
       "src/noyau/shipCrew.ts",
       "src/engine/crewMorale.ts",
       "src/engine/warMachineCrew.ts",
-      "src/state/stations.ts",
+      "src/noyau/stations.ts",
       "src/ui/CrewTestModal.tsx",
       "src/ui/ShipRolesPanel.tsx"
     ],
@@ -226,7 +226,7 @@
     "label": "Éditeur de scène / campagne",
     "modules": [
       "src/noyau/sceneEdit.ts",
-      "src/state/validateScene.ts",
+      "src/noyau/validateScene.ts",
       "src/noyau/mapSpec.ts",
       "src/ui/editor/Editor.tsx"
     ],

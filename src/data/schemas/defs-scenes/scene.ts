@@ -297,7 +297,7 @@ export const eaveSideSchema = z.enum(['N', 'E', 'S', 'O']);
  * `z.infer` LUS par l'éditeur et par la dérivation, où la matière est une valeur de `<select>` et un
  * littéral d'authoring — y faire remonter la marque de type imposerait un `as` à chaque site de saisie.
  * Que la matière COUVRE vraiment un pan (champ `couverture`) reste un sous-filtre de SCÈNE, dit par
- * `state/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du dessus.
+ * `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du dessus.
  */
 const couvertureSchema: z.ZodType<string, string> = idDe('material', 'roof');
 /**
@@ -775,7 +775,7 @@ const cleDArete = { nom: 'x,y,side,z', de: (w: z.infer<typeof wallSegSchema>): s
 /** Ancre AUTHORÉE d'une Scène de bataille (S2) sur le plan : `MassBattleState.pool` = l'id d'une
  *  Scène de bataille, `ActivityDef` contexte 'bataille-round', posée sur une case de la carte. La
  *  Puissance des armées reste une abstraction NON rendue — seul l'emplacement de l'ACTION est posé.
- *  Consommé par `battleScenesToStations` (state/stations.ts) ; absence d'ancre → repli déterministe
+ *  Consommé par `battleScenesToStations` (noyau/stations.ts) ; absence d'ancre → repli déterministe
  *  côté consommateur. */
 export const sceneStationAnchorSchema = nommerChamps(z.strictObject({
   sceneId: z.string(),

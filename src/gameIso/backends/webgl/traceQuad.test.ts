@@ -6,7 +6,7 @@ import { RENDER_ORDER } from './renderRanks';
 import { stage3dFramingFor, viewBoxScreen } from '../../stage/stage3dCamera';
 import { viewBoxScreenPixel } from '../../stage/stageCam';
 import { stageSize, type Dims, type Rot } from '../../../geometry/iso';
-import type { TraceTransform } from '../../../state/traceCalibration';
+import type { TraceTransform } from '../../../ui/editor/traceCalibration';
 
 /**
  * PLAQUE DE DÉCALQUAGE en QUAD MONDE (#1176, P3-3, vague B). Ce qui se prouve : la plaque tombe au

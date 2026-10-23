@@ -3,7 +3,7 @@
  * La part FACTUELLE est DÉRIVÉE par AST de `src/noyau/mapSpec.ts` : champs de `MapSpec`,
  * `WallSpec`, `CellRecipe`, `EncounterSpec` (nom, type, 1re phrase de JSDoc), formes des unions
  * `BindSpec`/`ReliefSpec`, ordre de compilation lu au JSDoc de tête du module ; les gardes du
- * harnais QC viennent des exports de `src/state/mapQC.ts` ; les exemples vivants sont MESURÉS
+ * harnais QC viennent des exports de `src/noyau/mapQC.ts` ; les exemples vivants sont MESURÉS
  * (quel scénario de `src/scenes/` emploie quel champ). La part ÉDITORIALE (procédure image →
  * grille, pièges, doctrine « une primitive plutôt qu'un bricolage ») vit ICI, en dur.
  *
@@ -26,7 +26,7 @@ import { fileExports } from './lib/engineExports.mjs'
 function rendu() {
   const OUTIL = 'build-map-authoring'
   const MAPSPEC = 'src/noyau/mapSpec.ts'
-  const MAPQC = 'src/state/mapQC.ts'
+  const MAPQC = 'src/noyau/mapQC.ts'
   const SCENES = 'src/scenes'
   /** Où vivent les parents d'interface hérités par `mapSpec.ts` (`WallSpec extends WallOverlay`) et le
    *  schéma zod d'où ces parents tirent leurs champs. */
@@ -580,7 +580,7 @@ ${ORDRE}
 
 Le harnais transforme les critères flous (« chaque pièce accessible », « passage réel z0↔z1 ») en
 assertions MÉCANIQUES générales, réutilisables par le test de N'IMPORTE QUELLE scène compilée.
-Fonctions de \`${MAPQC}\` (démontrées par \`src/state/mapQC.test.ts\`) :
+Fonctions de \`${MAPQC}\` (démontrées par \`src/noyau/mapQC.test.ts\`) :
 
 ${table(QC, ['Fonction', 'Site', 'Rôle (JSDoc)'], (e) => `| \`${e.name}\` | \`${MAPQC}:${e.line}\` | ${e.role ?? '—'} |`)}
 
@@ -612,7 +612,7 @@ ${
     out,
     path: 'docs/map-authoring.md',
     staleMsg:
-      'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/noyau/mapSpec.ts, src/state/mapQC.ts, des scénarios de src/scenes/, ou du script).',
+      'docs:map-authoring — docs/map-authoring.md est PÉRIMÉ (diverge de src/noyau/mapSpec.ts, src/noyau/mapQC.ts, des scénarios de src/scenes/, ou du script).',
     rerunMsg: '  → relancer `npm run docs:map-authoring` (dérivé jamais commité, #2203).',
     okMsg: 'docs:map-authoring — OK (docs/map-authoring.md à jour)',
     writeMsg: `docs/map-authoring.md — ${MAP_FIELDS.length} champs de MapSpec, ${ETAPES} étapes de compilation, ${DOCS_MESURES.length} documents mesurés.`,

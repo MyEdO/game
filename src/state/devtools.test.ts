@@ -21,7 +21,7 @@ import { testScenarios, type TestScenario } from '../scenes/test-scenarios';
 import { editeur } from './editeurBridge';
 import { signalerEntreeEnScene } from './entreeEnScene';
 import { buildOperaFloorplan } from '../scenes/opera/floorplan';
-import { sceneToAscii } from './sceneToAscii';
+import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { GLYPHES_RESERVES } from '../data/schemas/grammaire/carte-ascii';
 import { careerTalentAdditions } from '../engine/talentEffects';
 import { projectsLoad } from './projectLibrary';

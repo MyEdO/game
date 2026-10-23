@@ -1,11 +1,11 @@
-import { flowFromEffects, testFlow } from '../noyau/monde/flow';
+import { flowFromEffects, testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { describe, it, expect } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
 import { resolveStake, matieresDe } from '../data';
-import { emptyScene, type Scene } from '../noyau/monde/scene';
-import { METRES_PER_LEVEL } from '../noyau/monde/relief';
-import type { WorldMap, MapPlace } from '../noyau/worldMap';
+import { emptyScene, type Scene } from './monde/scene';
+import { METRES_PER_LEVEL } from './monde/relief';
+import type { WorldMap, MapPlace } from './worldMap';
 
 function base() {
   const s = emptyScene('scene-test', 5, 5);
@@ -489,11 +489,13 @@ describe('validateScene', () => {
     expect(validateScene([s]).filter((w) => /zone/i.test(w.message))).toEqual([]);
   });
 
-  it('musique de scène inconnue au registre → avertissement ; piste réelle / silence / auto = OK', () => {
+  it('musique de scène inconnue au registre de l’hôte → avertissement ; piste réelle / silence / auto = OK', () => {
     const s = base();
-    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }])).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
-    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }])).toEqual([]); // silence + piste réelle
-    expect(validateScene([{ ...s, music: undefined }])).toEqual([]); // automatique
+    const pistes = new Set(['musique-combat']);
+    expect(msgs(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: 'musique-combat' } }], null, undefined, pistes)).some((m) => /Musique .*piste-fantome/.test(m))).toBe(true);
+    expect(validateScene([{ ...s, music: { ambient: null, combat: 'musique-combat' } }], null, undefined, pistes)).toEqual([]); // silence + piste réelle
+    expect(validateScene([{ ...s, music: undefined }], null, undefined, pistes)).toEqual([]); // automatique
+    expect(validateScene([{ ...s, music: { ambient: 'piste-fantome', combat: null } }]), 'sans registre fourni, la musique n’est pas jugée').toEqual([]);
   });
 });
 

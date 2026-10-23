@@ -1,7 +1,6 @@
 // LES ZONES DU DÉPÔT ET LEURS SENS D'IMPORT (#2882, #2928 ; AGENTS.md règle 3). Une seule source : les murs de
 // `couchesLint.mjs`, la suite du noyau (`racinesDeLaSuite.mjs`), les couches CSS (`cssCouches.mjs`) et les racines
-// que l'arbre porte (`racinesPresentes.mjs`) la lisent, `docs/architecture.md` la décrit. Plan :
-// `docs/plans/2026-10-19-restructuration.md`.
+// que l'arbre porte (`racinesPresentes.mjs`) la lisent, `docs/architecture.md` (§ Couches) la décrit.
 //
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
 // (entrée de l'hôte web, tests transverses). Par zone :

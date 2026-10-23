@@ -40,7 +40,7 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
  * Au plus UN marin par rôle : en cas de collision, le MEILLEUR pour ce rôle (`crewRoleValue`). PUR.
  */
 /** Marqueur « au repos » : valeur de `shipRole` qui dit « ce marin ne tient AUCUN rôle ». Épinglée comme un
- *  poste (ligne « Repos » du roster, `state/poste.reposAsPoste`), elle est respectée telle quelle par
+ *  poste (ligne « Repos » du roster, `noyau/poste.reposAsPoste`), elle est respectée telle quelle par
  *  `shipDefaultRoles` — donc exclue de tout Test d'équipage. */
 export const BENCHED = 'repos';
 

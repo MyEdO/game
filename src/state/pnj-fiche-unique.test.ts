@@ -19,7 +19,7 @@ import { EFFECT_HANDLERS } from '../noyau/combatEffects';
 import { startPursuitSchema, givePossessionSchema } from '../data/schemas/defs-scenes/effets';
 import { findCreatureById, findVehicleById } from '../data';
 import { sceneEntitySchema } from '../data/schemas/defs-scenes/scene';
-import { validateScene } from './validateScene';
+import { validateScene } from '../noyau/validateScene';
 import { presetPnjById } from './campaignData';
 
 const get = useGame.getState.bind(useGame);

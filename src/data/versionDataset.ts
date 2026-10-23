@@ -34,7 +34,7 @@ export function versionDuDataset(cle: CleDeDataset): number {
 /** Version de TOUS les datasets à la fois : la somme de leurs compteurs, qui croît strictement à chaque
  *  écriture au seam sur n'importe quelle clé (`bumperDataset` n'incrémente jamais que d'un). Le témoin
  *  d'une valeur dérivée d'un document qui référence le catalogue ENTIER — le verdict de schéma d'une
- *  scène (`state/validateScene.ts`). */
+ *  scène (`noyau/validateScene.ts`). */
 export function versionDesDatasets(): number {
   let v = 0;
   for (const c of VERSIONS.values()) v += c.v;

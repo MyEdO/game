@@ -10,7 +10,7 @@ import { PortraitTile } from '../PortraitTile';
 import { CharFrame } from '../CharFrame';
 import { ShipRolesPanel } from '../ShipRolesPanel';
 import { StationSheet } from '../StationSheet';
-import { postesToStations } from '../../state/stations';
+import { postesToStations } from '../../noyau/stations';
 import { posteAnchor } from '../../noyau/monde/shipPostes';
 import { isVehicle } from '../../engine/coque';
 import type { Combatant, NavalTraitRef } from '../../engine/types';

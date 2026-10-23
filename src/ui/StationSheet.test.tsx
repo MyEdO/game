@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { StationChips } from './StationSheet';
-import type { Station } from '../state/stations';
+import type { Station } from '../noyau/stations';
 
 /**
  * Bande de puces de Stations : un poste VIDE se voit d'un coup d'œil (recette navigateur 2c —

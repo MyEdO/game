@@ -8,7 +8,7 @@ import { lightTones } from '../../data';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { facadeFeatureKindSchema, roofProfileSchema, sceneSchema } from '../../data/schemas/defs-scenes/scene';
 import type { Sel } from './editorState';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { hairstylesForSex } from '../../gameIso/rig/parts/hairstyles';
 import { MISSING_TONE } from '../../gameIso/rig/viewArt';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
@@ -269,7 +269,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
    * CE QUE LE SÉLECTEUR DIT EST CE QUE LA DONNÉE PORTE (#877) — « Rien en dure, pas de fallback ».
    * Un `<select>` sans valeur correspondant à une option AFFICHE la première du catalogue : l'auteur
    * lirait « Abreuvoir » là où l'instance ne nomme aucun type, ou nomme un type disparu. L'inspecteur
-   * annonce donc l'ÉTAT, du même constat que `state/validateScene.ts`, et sur une option non élisible.
+   * annonce donc l'ÉTAT, du même constat que `noyau/validateScene.ts`, et sur une option non élisible.
    */
   const selecteurDeDecor = (container: HTMLElement): HTMLSelectElement =>
     Array.from(container.querySelectorAll('select'))

@@ -66,7 +66,7 @@ interface AncrageDecorBase {
 
 /** ÉMETTEUR UNIQUE d'un décor : c'est ICI, et nulle part ailleurs dans le rendu, que se DÉCIDE la voie
  *  d'un décor. La règle elle-même vit dans le CATALOGUE (`refEstVolumique`, `src/data/index.ts`) — cet
- *  émetteur la LIT, comme la lisent le validateur de scène (`state/validateScene.ts`) et le sélecteur
+ *  émetteur la LIT, comme la lisent le validateur de scène (`noyau/validateScene.ts`) et le sélecteur
  *  d'orientation de l'éditeur (`ui/editor/Inspector.tsx`) ; aucun d'eux ne la redevine. Volume = la
  *  recette compilée sur l'ancre (`buildPropVolumes`) ; billboard = le dessin ancré aux pieds, décalé de
  *  `ancre − cell`. Les deux portent la MÊME identité, la même empreinte et les mêmes vérités de scène. */

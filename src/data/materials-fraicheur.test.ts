@@ -5,7 +5,7 @@ import type { MaterialEntry } from './materials.types';
 import { propMaterial } from '../gameIso/catalog/propMaterials';
 import { roofMaterial } from '../gameIso/catalog/roofs';
 import { reliefMaterial } from '../gameIso/catalog/relief';
-import { validateScene } from '../state/validateScene';
+import { validateScene } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 
 /**

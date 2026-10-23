@@ -58,7 +58,7 @@ import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfil
 
 /** Cibles d'une ANCRE de bataille (`Scene.stations[].sceneId`) : les Scènes de Round du catalogue
  *  d'Activités (contexte `bataille-round`) — le SEUL espace d'ids que le consommateur sait résoudre
- *  (`state/stations.battleScenesToStations` → `battleSceneById`). Les Scènes du PROJET sont un autre
+ *  (`noyau/stations.battleScenesToStations` → `battleSceneById`). Les Scènes du PROJET sont un autre
  *  espace : une ancre qui en nomme une est ignorée sans un mot (#841). */
 const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
@@ -1373,7 +1373,7 @@ function EntryRename({ label, caption = 'Nom (référencé par les transitions)'
  * L'état est dit DEUX fois, et ce n'est pas une redite : un `<option>` natif est TRONQUÉ à la largeur
  * du champ — or l'id fautif EST l'information utile —, donc il se relit ENTIER hors du champ
  * (primitive `ChipDeRefus`) et au survol (`title`). L'option, elle,
- * n'est pas ÉLISIBLE : on n'élit pas une absence. Les mots sont ceux de `state/validateScene.ts` —
+ * n'est pas ÉLISIBLE : on n'élit pas une absence. Les mots sont ceux de `noyau/validateScene.ts` —
  * l'inspecteur et le validateur disent la MÊME chose. Élire un vrai type l'ÉCRIT (`changePropRef`).
  */
 function SelecteurDeDecor({ scene, ent, setScene }: { scene: Scene; ent: SceneEntity; setScene: (s: Scene) => void }) {

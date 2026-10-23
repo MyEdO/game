@@ -2,7 +2,7 @@ import { useGame } from '../state/store';
 import { activitiesFor, activityById, competencesAPratiquer, posteEpingle, refusCandidatActivite } from '../engine/activities';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { refLabel } from '../data';
-import { activityAsPoste } from '../state/poste';
+import { activityAsPoste } from '../noyau/poste';
 import { PostesRoster } from './console/PostesRoster';
 
 /**

@@ -9,7 +9,7 @@ import { losClear, tileBlocksSight } from '../../noyau/monde/lineOfSight';
 import { emptyScene, isWalkable, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { entityAt } from '../../noyau/sceneEdit';
 import { seatSlotsOf } from '../../noyau/monde/seating';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { buildOpaque } from '../../noyau/monde/vision';
 import { interactionHalos } from '../builders/interactHalos';
 import { buildProps } from '../builders/props';
@@ -29,7 +29,7 @@ import { buildProps } from '../builders/props';
  * - rendu d'entité : `buildProps` (`gameIso/builders/props.ts`) ;
  * - halo d'interaction : `interactionHalos` (`gameIso/builders/interactHalos.ts`) ;
  * - places assises : `seatSlotsOf` (`noyau/monde/seating.ts`) ;
- * - validateur de scène : `validateScene` (`state/validateScene.ts`).
+ * - validateur de scène : `validateScene` (`noyau/validateScene.ts`).
  * Une SCÈNE authorée qui pose un meuble neuf exige son id au registre généré
  * (`src/data/schemas/_ids.generated.ts`, `npm run gen`) : ce test pose le catalogue par `setDataset`
  * et sa scène en mémoire, sans passer par ce registre.
@@ -151,7 +151,7 @@ describe('meuble multi-case NEUF : la donnée suffit, aucune couture ne le conna
 
     // VALIDATEUR : un cap cardinal sur un décor volumique est licite, la scène ne dit rien du meuble.
     expect(validateScene([scene]).filter((w0) => w0.refId === 'banquette-1')).toEqual([]);
-    // PRÉMISSE — la MÊME pose au cap diagonal est signalée (`state/validateScene.ts:165`, cap d'un décor
+    // PRÉMISSE — la MÊME pose au cap diagonal est signalée par `validateScene` (cap d'un décor
     // volumique) : le validateur lit bien le meuble neuf comme VOLUMIQUE, par sa donnée.
     const diagonale: Scene = { ...scene, entities: scene.entities.map((e) => ({ ...e, facing: 'NE' as const })) };
     expect(

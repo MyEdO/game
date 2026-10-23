@@ -12,7 +12,7 @@ import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { ActivityDef } from '../engine/activities';
 import type { Combatant } from '../engine/types';
 import type { CrewRoleData, ShipStationData } from '../data';
-import { BENCHED } from '../noyau/shipCrew';
+import { BENCHED } from './shipCrew';
 
 /** Identité assignable commune : ce qu'il faut pour NOMMER une ligne et l'ouvrir au Codex. L'`icon` est
  *  optionnelle (absente pour un rôle d'équipage). `skills` est la Compétence que le poste met en jeu,

@@ -32,7 +32,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    (`src/noyau/worldMap.ts`) refuse un document mal formé ; au démarrage en DEV, `src/dev-validate.ts`
    le confronte à son schéma. `src/scenes/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
    au GLOB : `parseProject` sans lever, identité valide, apparence et nom résolus, aucune `error` de
-   `validateScene` (`src/state/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus
+   `validateScene` (`src/noyau/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus
    du jargon technique dans un texte joueur. Un changement de forme réécrit les paquets commités dans le MÊME
    commit (#2404) : par leur générateur, ou par un script one-shot non commité pour un paquet manuscrit. Une MÉCANIQUE à prouver se prouve sur une scène de FIXTURE (skill `creer-un-scenario-de-test`),
    jamais sur la carte livrée.

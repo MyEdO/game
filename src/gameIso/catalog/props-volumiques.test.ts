@@ -13,7 +13,7 @@ import { bakeWorldGeometry, collectBillboards, wholeSceneBillboardEls } from '..
 import { facePoly, fanTriangles, polyNormal, type Vec3 } from '../backends/webgl/worldTris';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { detenteur } from '../../detenteur.testkit';

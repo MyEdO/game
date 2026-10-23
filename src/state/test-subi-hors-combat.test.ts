@@ -27,7 +27,7 @@ import { runFlow, openSkillTest, messageCibleHorsScene } from '../noyau/combatEf
 import { flowFromEffects } from '../noyau/monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { decorHorsCombat, noeudsDeTest, rendreMalade, nuitDuMalade, type NoeudTest } from './noeudsDeTest.testkit';
-import { validateScene } from './validateScene';
+import { validateScene } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { Combatant, EffectSource } from '../engine/types';

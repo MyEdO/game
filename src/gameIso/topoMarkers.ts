@@ -6,7 +6,7 @@
  */
 import { tileCenter, type Dims } from '../geometry/iso';
 import { ALLY_TINT, ENEMY_TINT, NEUTRAL_TINT } from './teamColors';
-import type { Station } from '../state/stations';
+import type { Station } from '../noyau/stations';
 import type { FireArc } from '../engine/types';
 
 /** Rayon écran (px) du disque d'un marqueur — assez grand pour porter l'icône à ~0.4 échelle. */

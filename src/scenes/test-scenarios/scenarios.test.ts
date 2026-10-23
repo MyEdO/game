@@ -1,6 +1,6 @@
 import { describe, it, expect, assert } from 'vitest';
 import { testScenarios } from './index';
-import { validateScene } from '../../state/validateScene';
+import { validateScene } from '../../noyau/validateScene';
 import { ficheDEntite } from '../../noyau/monde/sceneNpc';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { refs } from '../../data/schemas/grammaire/ref';

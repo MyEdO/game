@@ -19,3 +19,8 @@ export function musicDefsFor(ctx: MusicContext): SoundDef[] {
 export function allMusicDefs(): SoundDef[] {
   return SOUND_DEFS.filter((d) => !!d.music);
 }
+
+/** Les ids des pistes de musique du registre : ce que l'hôte web sait jouer, passé à `validateScene`. */
+export function idsDesPistesDeMusique(): ReadonlySet<string> {
+  return new Set(allMusicDefs().map((d) => d.id));
+}

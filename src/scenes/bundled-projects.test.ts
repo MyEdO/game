@@ -7,7 +7,7 @@ import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { parseProject, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
-import { validateScene } from '../state/validateScene';
+import { validateScene } from '../noyau/validateScene';
 import { emptyScene } from '../noyau/monde/scene';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { books, buildings, findCrewRoleById, findNavalTrait, findVehicleById, merchantArchetypeById } from '../data';
@@ -148,7 +148,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   /**
    * `validateScene` est le juge du CONTENU d'un projet (réfs cassées, connectivité, empreinte de spawn,
    * porte orpheline, arrivée de carte du monde — familles couvertes sur fixtures par
-   * `state/validateScene-contenu.test.ts`). Un paquet livré ne part avec AUCUNE de ses erreurs : la garde
+   * `noyau/validateScene-contenu.test.ts`). Un paquet livré ne part avec AUCUNE de ses erreurs : la garde
    * ne nomme ni scène ni contenu, elle relit le verdict du moteur sur ce que le glob trouve.
    */
   it.each(bundledFiles.map((f) => [f] as const))('%s : validateScene ne rend AUCUNE erreur', (file) => {
