@@ -544,5 +544,23 @@
     "classes": [
       "guerriers"
     ]
+  },
+  {
+    "id": "bouclier_blason",
+    "type": "apparences",
+    "label": "Bouclier à blason",
+    "forme": "rond"
+  },
+  {
+    "id": "bouclier_rectangle",
+    "type": "apparences",
+    "label": "Bouclier rectangulaire",
+    "forme": "rond"
+  },
+  {
+    "id": "bouclier_pointes",
+    "type": "apparences",
+    "label": "Bouclier à pointes",
+    "forme": "rond"
   }
 ]

@@ -47,6 +47,8 @@ export const COUCHES = Object.freeze({
     ...DROITS_DES_HOTES,
     outillage: {
       'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/lister.mjs'],
+      'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
+      'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/recette.mjs': ['scripts/recette/lib.mjs'],
     },
   },

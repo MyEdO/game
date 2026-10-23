@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "model": "Knight.glb",
   "default_head": "tete",
   "head_options": [
@@ -101,34 +101,44 @@
   },
   "components": {
     "corps": {
-      "label_fr": "Corps"
+      "label_fr": "Corps",
+      "apparence": null
     },
     "bouclier_blason": {
-      "label_fr": "Bouclier à blason"
+      "label_fr": "Bouclier à blason",
+      "apparence": "bouclier_blason"
     },
     "bouclier_rectangle": {
-      "label_fr": "Bouclier rectangulaire"
+      "label_fr": "Bouclier rectangulaire",
+      "apparence": "bouclier_rectangle"
     },
     "bouclier_rond": {
-      "label_fr": "Bouclier rond"
+      "label_fr": "Bouclier rond",
+      "apparence": "rond"
     },
     "bouclier_pointes": {
-      "label_fr": "Bouclier à pointes"
+      "label_fr": "Bouclier à pointes",
+      "apparence": "bouclier_pointes"
     },
     "epee_main_gauche": {
-      "label_fr": "Épée en main gauche"
+      "label_fr": "Épée en main gauche",
+      "apparence": "epee"
     },
     "epee": {
-      "label_fr": "Épée"
+      "label_fr": "Épée",
+      "apparence": "epee"
     },
     "epee_deux_mains": {
-      "label_fr": "Épée à deux mains"
+      "label_fr": "Épée à deux mains",
+      "apparence": "zweihander"
     },
     "casque": {
-      "label_fr": "Casque"
+      "label_fr": "Casque",
+      "apparence": "heaume"
     },
     "cape": {
-      "label_fr": "Cape"
+      "label_fr": "Cape",
+      "apparence": "cape"
     }
   },
   "incompatibilities": [

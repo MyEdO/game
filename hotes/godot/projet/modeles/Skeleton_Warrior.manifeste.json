@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "model": "Skeleton_Warrior.glb",
   "default_head": "tete",
   "head_options": [
@@ -71,13 +71,16 @@
   },
   "components": {
     "corps": {
-      "label_fr": "Corps"
+      "label_fr": "Corps",
+      "apparence": null
     },
     "casque": {
-      "label_fr": "Casque"
+      "label_fr": "Casque",
+      "apparence": "heaume"
     },
     "cape": {
-      "label_fr": "Cape"
+      "label_fr": "Cape",
+      "apparence": "cape"
     }
   },
   "incompatibilities": [],

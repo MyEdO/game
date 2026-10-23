@@ -15,6 +15,7 @@ export { conditionLabel } from '../data';
 export { CADENCE_MODES, type Cadence } from '../engine/cadence';
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
+export { findApparenceById } from '../data/index';
 export { mouvementDuTour } from './mount';
 export { combatDistance } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
