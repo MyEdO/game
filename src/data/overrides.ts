@@ -16,7 +16,7 @@ import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, props, eyes, hairs, stars, locations, books, raceAppearance, gods, structures,
-  materials, terrains, buildings,
+  materials, terrains, buildings, apparences,
   pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
@@ -166,6 +166,8 @@ const ARRAYS = {
   pregens, oups, interludeEvents, peripeties, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
+  // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
+  apparences,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   // #168 : catalogue UNIQUE des Activités (interlude/voyage/mer/bataille de masse) exposé au Codex —

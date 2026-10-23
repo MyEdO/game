@@ -800,7 +800,7 @@ describe('augmentWeapon — l’arme tenue est celle du set actif résolu', () =
     loadoutSetSlot(c, lo.id, 'main', 'grande-hache');
     loadoutSetSlot(c, lo.id, 'off', 'dague');
     recomputeLoadout(c);
-    const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: 'dague' }], { rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 });
+    const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: ['dague'] }], { rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 });
     expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).']);
     expect(c.items!.find((i) => i.uid === 'dague')!.enchants).toBeUndefined();
   });

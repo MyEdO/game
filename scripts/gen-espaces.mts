@@ -154,7 +154,6 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
         if (table.has(cle)) throw new Error(`gen-espaces: clé d'espace « ${cle} » rendue deux fois.`);
         const ids = idsDeLEspace(cle, lire);
         if (!ids) throw new Error(`gen-espaces: « ${cle} » n'est aucun espace de son document.`);
-        if (cle.includes('?') && !ids.length) throw new Error(`gen-espaces: ${cle} : filtre qu'aucun élément ne retient.`);
         table.set(cle, ids);
       }
   for (const [nom, source] of Object.entries(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>))

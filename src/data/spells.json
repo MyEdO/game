@@ -11772,7 +11772,14 @@
             "ops": [
               {
                 "op": "augmentWeapon",
-                "requiresWeapon": "lance",
+                "requiresWeapon": [
+                  "lance",
+                  "lance_cavalerie",
+                  "demi_lance",
+                  "pique",
+                  "pique_armes",
+                  "javelot"
+                ],
                 "addQualities": [
                   "percutante",
                   "magique"
@@ -14275,7 +14282,13 @@
             "ops": [
               {
                 "op": "augmentWeapon",
-                "requiresWeapon": "hache",
+                "requiresWeapon": [
+                  "hache",
+                  "grande_hache",
+                  "hache_armes",
+                  "hache_lancer",
+                  "hache_arquebuse"
+                ],
                 "addQualities": [
                   "magique"
                 ],
@@ -14484,7 +14497,17 @@
             "ops": [
               {
                 "op": "augmentWeapon",
-                "requiresWeapon": "épée",
+                "requiresWeapon": [
+                  "epee",
+                  "epee_batarde",
+                  "epee_cour",
+                  "rapiere",
+                  "fleuret",
+                  "sabre",
+                  "cimeterre",
+                  "zweihander",
+                  "zweihander_flamberge"
+                ],
                 "addQualities": [
                   "magique"
                 ],

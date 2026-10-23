@@ -79,6 +79,10 @@ export const TYPES = {
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
   steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
+  // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
+  apparence: { espace: 'apparences.json', catalogue: 'apparences' },
+  classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

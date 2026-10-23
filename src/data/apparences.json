@@ -1,0 +1,548 @@
+[
+  {
+    "id": "ahlspiess",
+    "type": "apparences",
+    "label": "Ahlspiess"
+  },
+  {
+    "id": "arbalete",
+    "type": "apparences",
+    "label": "Arbalète"
+  },
+  {
+    "id": "arbalete_lourde",
+    "type": "apparences",
+    "label": "Arbalète lourde"
+  },
+  {
+    "id": "arbalete_poing",
+    "type": "apparences",
+    "label": "Arbalète de poing"
+  },
+  {
+    "id": "arc",
+    "type": "apparences",
+    "label": "Arc"
+  },
+  {
+    "id": "arc_court",
+    "type": "apparences",
+    "label": "Arc court"
+  },
+  {
+    "id": "arc_elfique",
+    "type": "apparences",
+    "label": "Arc elfique"
+  },
+  {
+    "id": "arc_long",
+    "type": "apparences",
+    "label": "Arc long"
+  },
+  {
+    "id": "arquebus_rep",
+    "type": "apparences",
+    "label": "Arquebus à répétition"
+  },
+  {
+    "id": "arquebuse",
+    "type": "apparences",
+    "label": "Arquebuse"
+  },
+  {
+    "id": "arquebuse_double",
+    "type": "apparences",
+    "label": "Arquebuse à double canon"
+  },
+  {
+    "id": "arquebuse_meche",
+    "type": "apparences",
+    "label": "Arquebuse à mèche"
+  },
+  {
+    "id": "attrape_coquin",
+    "type": "apparences",
+    "label": "Attrape-coquin"
+  },
+  {
+    "id": "baton",
+    "type": "apparences",
+    "label": "Bâton de combat"
+  },
+  {
+    "id": "bec_de_corbin",
+    "type": "apparences",
+    "label": "Marteau à bec-de-corbin"
+  },
+  {
+    "id": "bolas",
+    "type": "apparences",
+    "label": "Bolas"
+  },
+  {
+    "id": "bombe",
+    "type": "apparences",
+    "label": "Bombe"
+  },
+  {
+    "id": "bombe_incendiaire",
+    "type": "apparences",
+    "label": "Bombe incendiaire"
+  },
+  {
+    "id": "brise_epee",
+    "type": "apparences",
+    "label": "Brise-épée"
+  },
+  {
+    "id": "broyeur_os",
+    "type": "apparences",
+    "label": "Broyeur d'os"
+  },
+  {
+    "id": "canne_pistolet",
+    "type": "apparences",
+    "label": "Canne-pistolet"
+  },
+  {
+    "id": "canon_ratling",
+    "type": "apparences",
+    "label": "Canon ratling"
+  },
+  {
+    "id": "cape",
+    "type": "apparences",
+    "label": "Cape"
+  },
+  {
+    "id": "cimeterre",
+    "type": "apparences",
+    "label": "Cimeterre"
+  },
+  {
+    "id": "couteau",
+    "type": "apparences",
+    "label": "Couteau"
+  },
+  {
+    "id": "couteau_lancer",
+    "type": "apparences",
+    "label": "Couteau de lancer"
+  },
+  {
+    "id": "dague",
+    "type": "apparences",
+    "label": "Dague"
+  },
+  {
+    "id": "dague_ballock",
+    "type": "apparences",
+    "label": "Dague ballock"
+  },
+  {
+    "id": "dague_funeste",
+    "type": "apparences",
+    "label": "Dague Funeste"
+  },
+  {
+    "id": "demi_lance",
+    "type": "apparences",
+    "label": "Demi-lance de cavalerie"
+  },
+  {
+    "id": "epee",
+    "type": "apparences",
+    "label": "Épée"
+  },
+  {
+    "id": "epee_batarde",
+    "type": "apparences",
+    "label": "Épée bâtarde"
+  },
+  {
+    "id": "epee_cour",
+    "type": "apparences",
+    "label": "Épée de cour"
+  },
+  {
+    "id": "filet_leste",
+    "type": "apparences",
+    "label": "Filet lesté"
+  },
+  {
+    "id": "fleau",
+    "type": "apparences",
+    "label": "Fléau"
+  },
+  {
+    "id": "fleau_armes",
+    "type": "apparences",
+    "label": "Fléau d'armes"
+  },
+  {
+    "id": "fleau_grain",
+    "type": "apparences",
+    "label": "Fléau à grain"
+  },
+  {
+    "id": "flechette",
+    "type": "apparences",
+    "label": "Fléchette"
+  },
+  {
+    "id": "fleuret",
+    "type": "apparences",
+    "label": "Fleuret"
+  },
+  {
+    "id": "fouet",
+    "type": "apparences",
+    "label": "Fouet"
+  },
+  {
+    "id": "fronde",
+    "type": "apparences",
+    "label": "Fronde"
+  },
+  {
+    "id": "fustibale",
+    "type": "apparences",
+    "label": "Fustibale"
+  },
+  {
+    "id": "gaffe",
+    "type": "apparences",
+    "label": "Gaffe"
+  },
+  {
+    "id": "gantelet_pointes",
+    "type": "apparences",
+    "label": "Gantelet à pointes"
+  },
+  {
+    "id": "gantelet_verrouille",
+    "type": "apparences",
+    "label": "Gantelet verrouillé"
+  },
+  {
+    "id": "grande_hache",
+    "type": "apparences",
+    "label": "Grande hache"
+  },
+  {
+    "id": "griffe_tigre",
+    "type": "apparences",
+    "label": "Griffes de Tigre"
+  },
+  {
+    "id": "hache",
+    "type": "apparences",
+    "label": "Hache"
+  },
+  {
+    "id": "hache_armes",
+    "type": "apparences",
+    "label": "Hache d'armes"
+  },
+  {
+    "id": "hache_arquebuse",
+    "type": "apparences",
+    "label": "Hache-arquebuse"
+  },
+  {
+    "id": "hache_lancer",
+    "type": "apparences",
+    "label": "Hache de lancer"
+  },
+  {
+    "id": "hallebarde",
+    "type": "apparences",
+    "label": "Hallebarde"
+  },
+  {
+    "id": "hallebarde_arquebuse",
+    "type": "apparences",
+    "label": "Hallebarde-arquebuse"
+  },
+  {
+    "id": "haquebute",
+    "type": "apparences",
+    "label": "Haquebute"
+  },
+  {
+    "id": "hochland",
+    "type": "apparences",
+    "label": "Long fusil d'Hochland"
+  },
+  {
+    "id": "improvisee",
+    "type": "apparences",
+    "label": "Arme improvisée"
+  },
+  {
+    "id": "javelot",
+    "type": "apparences",
+    "label": "Javelot"
+  },
+  {
+    "id": "jezail",
+    "type": "apparences",
+    "label": "Jezaïl à malepierre"
+  },
+  {
+    "id": "lacet_etrangleur",
+    "type": "apparences",
+    "label": "Lacet étrangleur"
+  },
+  {
+    "id": "lame_bois_cerf",
+    "type": "apparences",
+    "label": "Lame à poignée en bois de cerf"
+  },
+  {
+    "id": "lance",
+    "type": "apparences",
+    "label": "Lance"
+  },
+  {
+    "id": "lance_cavalerie",
+    "type": "apparences",
+    "label": "Lance de cavalerie"
+  },
+  {
+    "id": "lasso",
+    "type": "apparences",
+    "label": "Lasso"
+  },
+  {
+    "id": "main_gauche",
+    "type": "apparences",
+    "label": "Main Gauche"
+  },
+  {
+    "id": "marteau_guerre",
+    "type": "apparences",
+    "label": "Marteau de guerre"
+  },
+  {
+    "id": "masse",
+    "type": "apparences",
+    "label": "Masse"
+  },
+  {
+    "id": "massue",
+    "type": "apparences",
+    "label": "Massue"
+  },
+  {
+    "id": "mortier_main",
+    "type": "apparences",
+    "label": "Mortier à main"
+  },
+  {
+    "id": "pertuisane",
+    "type": "apparences",
+    "label": "Pertuisane/Fauchard"
+  },
+  {
+    "id": "pioche_2m",
+    "type": "apparences",
+    "label": "Pioche à deux mains"
+  },
+  {
+    "id": "pique",
+    "type": "apparences",
+    "label": "Pique"
+  },
+  {
+    "id": "pique_armes",
+    "type": "apparences",
+    "label": "Pique d'armes"
+  },
+  {
+    "id": "pistolet",
+    "type": "apparences",
+    "label": "Pistolet"
+  },
+  {
+    "id": "pistolet_griffon",
+    "type": "apparences",
+    "label": "Pistolet patte de griffon"
+  },
+  {
+    "id": "pistolet_malepierre",
+    "type": "apparences",
+    "label": "Pistolet à malepierre"
+  },
+  {
+    "id": "pistolet_rep",
+    "type": "apparences",
+    "label": "Pistolet à répétition"
+  },
+  {
+    "id": "poing",
+    "type": "apparences",
+    "label": "Coup-de-poing"
+  },
+  {
+    "id": "poivriere",
+    "type": "apparences",
+    "label": "Poivrière"
+  },
+  {
+    "id": "rapiere",
+    "type": "apparences",
+    "label": "Rapière"
+  },
+  {
+    "id": "rocher",
+    "type": "apparences",
+    "label": "Rocher"
+  },
+  {
+    "id": "sabre",
+    "type": "apparences",
+    "label": "Sabre"
+  },
+  {
+    "id": "serpe_guerre",
+    "type": "apparences",
+    "label": "Serpe de guerre"
+  },
+  {
+    "id": "silence",
+    "type": "apparences",
+    "label": "Silence"
+  },
+  {
+    "id": "surin_aigle",
+    "type": "apparences",
+    "label": "Surin de l'aigle"
+  },
+  {
+    "id": "tromblon",
+    "type": "apparences",
+    "label": "Tromblon"
+  },
+  {
+    "id": "tromblon_meche",
+    "type": "apparences",
+    "label": "Tromblon à mèche"
+  },
+  {
+    "id": "zweihander",
+    "type": "apparences",
+    "label": "Zweihänder"
+  },
+  {
+    "id": "zweihander_flamberge",
+    "type": "apparences",
+    "label": "Zweihänder flamberge"
+  },
+  {
+    "id": "rond",
+    "type": "apparences",
+    "label": "Bouclier"
+  },
+  {
+    "id": "grand",
+    "type": "apparences",
+    "label": "Bouclier (Grand)"
+  },
+  {
+    "id": "pavois",
+    "type": "apparences",
+    "label": "Pavois"
+  },
+  {
+    "id": "targe",
+    "type": "apparences",
+    "label": "Bouclier (Targe)"
+  },
+  {
+    "id": "calotte",
+    "type": "apparences",
+    "label": "Calotte"
+  },
+  {
+    "id": "coiffe",
+    "type": "apparences",
+    "label": "Coiffe"
+  },
+  {
+    "id": "heaume",
+    "type": "apparences",
+    "label": "Heaume"
+  },
+  {
+    "id": "heaume-ouvert",
+    "type": "apparences",
+    "label": "Heaume ouvert"
+  },
+  {
+    "id": "justaucorps",
+    "type": "apparences",
+    "label": "Justaucorps"
+  },
+  {
+    "id": "plastron",
+    "type": "apparences",
+    "label": "Plastron"
+  },
+  {
+    "id": "veste",
+    "type": "apparences",
+    "label": "Veste"
+  },
+  {
+    "id": "brassards",
+    "type": "apparences",
+    "label": "Brassards"
+  },
+  {
+    "id": "jambieres",
+    "type": "apparences",
+    "label": "Jambières"
+  },
+  {
+    "id": "armure-complete",
+    "type": "apparences",
+    "label": "Armure complète"
+  },
+  {
+    "id": "epee_ebrechee",
+    "type": "apparences",
+    "label": "Épée ébréchée",
+    "forme": "epee",
+    "qualites": [
+      "laid"
+    ]
+  },
+  {
+    "id": "epee_sertie",
+    "type": "apparences",
+    "label": "Épée sertie",
+    "forme": "epee",
+    "qualites": [
+      "raffine"
+    ]
+  },
+  {
+    "id": "hache_naine",
+    "type": "apparences",
+    "label": "Hache naine",
+    "forme": "hache",
+    "especes": [
+      "nains"
+    ]
+  },
+  {
+    "id": "epee_soldat",
+    "type": "apparences",
+    "label": "Épée de soldat",
+    "forme": "epee",
+    "classes": [
+      "guerriers"
+    ]
+  }
+]
