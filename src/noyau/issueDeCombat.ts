@@ -5,7 +5,7 @@ import { resumeSuspendedCascade } from './cascade';
 import { applyLandCargoRaid } from './carriers';
 import { t } from '../i18n';
 import { flowFromEffects } from './monde/flow';
-import { quorumAtteint } from './netOwnership';
+import { decidingSeat, quorumAtteint } from './netOwnership';
 import type { Get, Set } from './flowTypes';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
@@ -80,10 +80,10 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
     /** Attribue un objet d'équipement du butin de victoire au héros choisi (qualités/skin conservés). */
     assignVictoryGear: (index, heroId) => assignGearAt(get, set, 'pendingVictory', index, heroId),
     harvestCreature: (creatureId) => harvestVictoryCreature(get, set, creatureId),
-    victoryReady: (seat) => {
+    victoryReady: () => {
       const pv = get().pendingVictory;
       if (!pv) return;
-      const readyBySeat = { ...(pv.readyBySeat ?? {}), [seat]: true };
+      const readyBySeat = { ...(pv.readyBySeat ?? {}), [decidingSeat(get())]: true };
       set({ pendingVictory: { ...pv, readyBySeat } });
       const s = get();
       if (s.net.mode === 'guest') return; // l'invité ne fait que marquer

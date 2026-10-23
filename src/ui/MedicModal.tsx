@@ -12,8 +12,8 @@ import { DrBar } from './DrBar';
 import { useHealJetProps } from './jetProps/useHealJetProps';
 import { EmbeddedShell, useRollShell } from './RollShell';
 import { isHealable, lodgedAmmoCount, type HealMode } from '../engine/healing';
-import { hasTreatableTrauma, hasSurgeryTrauma, surgeryTraumas, recoverableTraumas, hasLimbAwaitingAid } from '../engine/trauma';
-import { bestHealerFor, HEAL_STAKE } from '../noyau/medicFlow';
+import { hasTreatableTrauma, hasSurgeryTrauma, recoverableTraumas, hasLimbAwaitingAid } from '../engine/trauma';
+import { bestHealerFor, fenetreDeLOperation, HEAL_STAKE } from '../noyau/medicFlow';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { toMoney } from '../engine/money';
 import type { Combatant } from '../engine/types';
@@ -137,7 +137,7 @@ export function MedicModal() {
         <div className="medic-dossier" hidden={!!ph} inert={!!ph}>
           {sg && (() => {
             const recovery = sg.kind === 'recovery';
-            const pool = recovery ? recoverableTraumas(patient) : surgeryTraumas(patient);
+            const plaies = fenetreDeLOperation(useGame.getState())?.plaie?.options ?? [];
             const acte = HEAL_ACT[sg.kind];
             // Le chirurgien n'est un `Combatant` que s'il est du GROUPE : un PNJ tarifé (`healerId`
             // sentinelle, `medicFlow.medicAct`) n'a ni portrait ni fiche — son nom EST le titre de la
@@ -160,11 +160,11 @@ export function MedicModal() {
               ) : (
                 <p className="rm-note">{acte.label} — {patient.label}</p>
               )}
-              {!sg.last && pool.length > 1 && (
+              {plaies.length > 1 && (
                 <OptionChooser
                   layout="grid"
                   idPrefix="medic-plaie"
-                  options={pool.map((t, i) => ({ key: String(i), label: `${t.label} (${t.location})`, selected: i === sg.traumaIdx, onSelect: () => setWound(i) }))}
+                  options={plaies.flatMap(({ valeur, libelle }) => (valeur === null ? [] : [{ key: String(valeur), label: libelle, selected: valeur === sg.traumaIdx, onSelect: () => setWound(valeur) }]))}
                 />
               )}
               {/* EXCEPTION nommée au site unique `RollRow.extendedDr` (arbitrage user 2026-07-11, verrou

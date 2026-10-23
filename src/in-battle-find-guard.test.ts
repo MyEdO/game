@@ -44,7 +44,7 @@ const BASELINES: Record<string, number> = {
   'src/ui/ApproachModal.tsx': 1,
   'src/ui/AuContactModal.tsx': 2,
   'src/ui/BattementModal.tsx': 2,
-  'src/ui/CampaignView.tsx': 5,
+  'src/ui/CampaignView.tsx': 4,
   'src/ui/CharacterSheet.tsx': 1,
   'src/ui/CrewTestModal.tsx': 1,
   'src/ui/DisengageModal.tsx': 2,

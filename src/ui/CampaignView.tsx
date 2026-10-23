@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useGame } from '../state/store';
-import { canActFirst, freeActFirst } from '../noyau/turnEconomy';
+import { actFirstIds, freeActFirst } from '../noyau/turnEconomy';
 import { preemptShooterIds } from '../noyau/targeting';
 import { findActionById } from '../data/index';
 import { actionGate, runAction } from '../noyau/actionRegistry';
@@ -61,7 +61,7 @@ import { placeOfScene, atLocationPlace, placeServices } from '../noyau/worldMap'
 import { restPlacesHere, sceneLieu } from '../noyau/restFlow';
 import { fouilleOuverte } from '../noyau/interactionsDExploration';
 import { hoverClickCommits } from './pointerCaps';
-import { controlsActive, controlsCombatant } from '../noyau/netOwnership';
+import { controlsActive } from '../noyau/netOwnership';
 import { combatantClickActs } from '../noyau/combatOrParty';
 import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
@@ -193,12 +193,7 @@ export function CampaignView() {
     ...(battle?.combatants.filter((c) => (isVehicle(c) || isEngin(c)) && c.kind === 'hero') ?? []),
   ];
   // LDB 17 l.25.
-  const canFirstIds = battle && pendingRoundStart
-    ? battle.order.filter((id) => {
-        const c = battle.combatants.find((x) => x.id === id);
-        return !!c && canActFirst(c, battle) && controlsCombatant(useGame.getState(), c);
-      })
-    : [];
+  const canFirstIds = pendingRoundStart ? actFirstIds(useGame.getState()) : [];
   // LDB 62 l.298-300.
   const freeFirstIds = canFirstIds.filter((id) => {
     const c = battle?.combatants.find((x) => x.id === id);

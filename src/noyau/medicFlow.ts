@@ -15,7 +15,11 @@
  * débit au clic d'acte ; « Annuler » AVANT le jet rembourse ; arrêter une opération jamais
  * commencée rembourse aussi.
  */
-import { type Combatant, type Difficulty } from '../engine/types';
+import { locationLabel, type Combatant, type Difficulty, type Trauma } from '../engine/types';
+import type { ChoixNomme } from './reglages';
+import { fenetreDuJeu } from './combatAuto';
+import { libelleDuParametre } from './libelles';
+import { garanti } from '../lib/garanti';
 import { rollLine } from './rollSeam';
 import { battleRng } from './battleRng';
 import { d10 } from '../engine/dice';
@@ -78,6 +82,7 @@ export interface MedicState {
 }
 
 import type { Get, Set } from './flowTypes';
+import type { Jeu } from './etat';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 
 /** Meilleur soigneur du groupe pour un acte (Opérer exige AUSSI le Talent Chirurgie, LDB 10 ; la récupération
@@ -188,11 +193,40 @@ export function medicAct(get: Get, set: Set, act: HealMode): void {
   });
 }
 
-/** Choix de la Blessure Critique à opérer — possible tant qu'aucune passe n'a été tentée. */
+/** Choix de la Blessure Critique à opérer, parmi `plaiesDeLOperation`. */
 export function medicSetWound(get: Get, set: Set, idx: number): void {
   const m = get().medic;
-  if (!m?.surgery || m.surgery.last) return;
+  if (!m?.surgery || !plaiesDeLOperation(get())[idx]) return;
   set({ medic: { ...m, surgery: { ...m.surgery, traumaIdx: idx } } });
+}
+
+/** Les Blessures Critiques que l'opération armée (`medic.surgery`) peut viser, au rang que `medicSetWound` reçoit et que
+ *  `surgeryNext` lit : à rééduquer (`recoverableTraumas`) ou à opérer (`surgeryTraumas`) ; vide sans opération armée
+ *  ou une passe tentée. */
+export function plaiesDeLOperation(s: Jeu): Trauma[] {
+  const m = s.medic;
+  const patient = m?.surgery && !m.surgery.last ? s.party.find((h) => h.id === m.patientId) : undefined;
+  if (!m?.surgery || !patient) return [];
+  return m.surgery.kind === 'recovery' ? recoverableTraumas(patient) : surgeryTraumas(patient);
+}
+
+/** Les verbes que la fenêtre de l'opération règle (`fenetreDeLOperation`), comme ceux de l'attaque. */
+export const REGLAGES_DE_L_OPERATION = ['medicSetWound'] as const satisfies readonly (keyof ActionsDuNoyau)[];
+
+/** La fenêtre de l'infirmerie en données : la Blessure Critique que l'opération armée vise (`plaiesDeLOperation`),
+ *  chacune nommée avec sa Localisation, réglée par `medicSetWound` ; `null` hors de l'infirmerie. PUR. */
+export function fenetreDeLOperation(s: Jeu): { plaie: ChoixNomme<number> | null } | null {
+  const m = s.medic;
+  if (!m || fenetreDuJeu(s)?.cle !== 'medic') return null;
+  const plaies = plaiesDeLOperation(s);
+  const patient = s.party.find((h) => h.id === m.patientId);
+  if (!plaies.length || !m.surgery || !patient) return { plaie: null };
+  return {
+    plaie: {
+      verbe: 'medicSetWound', parametre: 'idx', libelle: garanti(libelleDuParametre('medicSetWound', 'idx'), 'medicSetWound', 'libellé de la plaie'), choisie: m.surgery.traumaIdx,
+      options: plaies.map((p, i) => ({ valeur: i, libelle: t('medic.plaie', { plaie: p.label, localisation: locationLabel(p.location, patient.bodyShape) }) })),
+    },
+  };
 }
 
 /** OUVRE le jet INFLUENÇABLE d'UNE passe de Chirurgie (`pendingSurgery`) depuis l'opération armée

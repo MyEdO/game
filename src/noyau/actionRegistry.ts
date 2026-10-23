@@ -565,7 +565,7 @@ export const ACTION_RUN: Record<string, Dispatcher> = {
   roundStart: (get) => {
     const s = get();
     if (s.net.mode === 'local') { s.confirmRoundStart(); return; }
-    if (!s.pendingRoundStart?.readyBySeat?.[s.net.mySeat]) s.roundStartReady(s.net.mySeat);
+    if (!s.pendingRoundStart?.readyBySeat?.[s.net.mySeat]) s.roundStartReady();
   },
   /** Demande de pause au prochain Round — INTERRUPTEUR : `toggleOff` retire la demande (annulation
    *  gratuite, `lowerHand`), même porte et même routage réseau que la pose. */

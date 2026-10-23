@@ -252,7 +252,7 @@ describe('#1016 — pause de début de Round (`turn: -1`) : la FENÊTRE est à t
   it('roundStartReady reste ouvert à TOUS les sièges (c’est LA voie de l’invité)', () => {
     setup({}, -1);
     useGame.setState({ pendingRoundStart: { round: 2 } });
-    for (const seat of [0, 1, 2]) expect(intentAllowedFor(useGame.getState(), seat, 'roundStartReady', [seat])).toBe(true);
+    for (const seat of [0, 1, 2]) expect(intentAllowedFor(useGame.getState(), seat, 'roundStartReady', [])).toBe(true);
   });
 });
 

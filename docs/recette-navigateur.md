@@ -1734,13 +1734,13 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   autre siège, ou tant qu'une fenêtre (dialogue, pause de Round, cascade) est ouverte, rien ne répond.
   Fermer la fenêtre, ou rendre la main au bon siège, AVANT de conclure à une régression clavier.
 - **Ready-check de début de Round — le combat n'est PAS bloqué** : dès `net.mode !== 'local'`, l'hôte ne
-  lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`roundStartReady(net.mySeat)`,
-  `src/noyau/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
+  lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`roundStartReady()` marque le siège qui
+  décide, `src/noyau/combatSlice.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
   ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
   (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
   « Commencer le combat » SOLO (`confirmRoundStart`) ; en recette coop, piloter par
-  `store.getState().roundStartReady(<siège>)` sur la page du siège concerné.
+  `store.getState().roundStartReady()` sur la page du siège concerné.
 - **Sous-bandes successives INDISCERNABLES au DOM** : une bande peut en appeler une autre (chaque rangée
   vaincue ré-appende SON Test à la cascade — Surprise → Vigilance, `src/noyau/combat/triggeredTest.ts`).
   Deux étapes consécutives présentent alors le MÊME libellé et les MÊMES boutons : la présence de

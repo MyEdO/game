@@ -153,6 +153,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { tableTotale } from '../lib/tableTotale';
 import { type FragmentDeTables, type PartDeTable } from './tablesPosees';
+import { decidingSeat } from './netOwnership';
 
 /** Libellé de la Compétence lancée, lu à la DONNÉE par id STABLE — jamais un littéral au call-site (#1341). */
 const SKILL_RESISTANCE = (): string => refLabel('skills', { id: 'resistance' });
@@ -625,10 +626,10 @@ export function restSet(get: Get, set: Set, heroId: string, patch: Partial<{ lod
   set({ pendingRest: { ...p, perHero: { ...p.perHero, [heroId]: { ...p.perHero[heroId], ...patch } } } });
 }
 
-export function restReady(get: Get, set: Set, seat: number): void {
+export function restReady(get: Get, set: Set): void {
   const p = get().pendingRest;
   if (!p || p.phase !== 'setup') return;
-  set({ pendingRest: { ...p, readyBySeat: { ...(p.readyBySeat ?? {}), [seat]: true } } });
+  set({ pendingRest: { ...p, readyBySeat: { ...(p.readyBySeat ?? {}), [decidingSeat(get())]: true } } });
 }
 
 export function restCancel(get: Get, set: Set): void {
@@ -731,7 +732,7 @@ export function creerActionsDuRepos(get: Get, set: Set) {
   return {
     openRest: (opts) => openRest(get, set, opts),
     restSet: (heroId, patch) => restSet(get, set, heroId, patch),
-    restReady: (seat) => restReady(get, set, seat),
+    restReady: () => restReady(get, set),
     restSleep: () => restSleep(get, set),
     restCancel: () => restCancel(get, set),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).

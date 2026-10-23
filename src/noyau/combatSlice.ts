@@ -62,8 +62,8 @@ import { isFrenzyCapable, isFrenzied, spendResolveForPsychImmunity, animositeOrH
 import { weaponLoaded, reloadProgressOf } from '../engine/weaponLoad';
 import { recomputeLoadout, giveTrappingLabel, loadedAmmo, loadWeapon, unloadWeapon, setReloadProgress, setAmmoChoice, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
-import { canPushback, canStrikeFirst, reloadDRTarget } from '../engine/qualities/dispatch';
-import { talentFearIndice, canPreemptRanged, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
+import { canPushback, reloadDRTarget } from '../engine/qualities/dispatch';
+import { talentFearIndice, reloadDRBonus, reloadGrantsAssessAdvantage, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { isConsumable } from '../engine/consumables';
 import { battleConsumeItem, runConsumable } from './consumableFlow';
@@ -81,7 +81,9 @@ import { ficheDEntite } from './monde/sceneNpc';
 import { applyShipPostes, autoFormCrews, servingCrewPresent, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned } from './monde/shipPostes';
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
-import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed } from './shipCrew';
+import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShipMoraleDelta, applyShantyToCrew, quartIndex, withCrewActed, chansonsDuChanteur } from './shipCrew';
+import { actFirstIds, freeActFirst } from './turnEconomy';
+import { preemptShooterIds } from './targeting';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
 import { resolveCrewTestByRoles, rudeEpreuveMoraleDelta, crewTestSuccess, capToSuccesMinime, crewRoleValue } from '../engine/crewMorale';
@@ -1493,7 +1495,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     shantySetSong: (shantyId: string) => {
       const p = get().pendingShanty;
-      if (p && !p.result) set({ pendingShanty: { ...p, shantyId } }); // choix pré-jet (chanson ⟂ dé)
+      if (p && chansonsDuChanteur(get()).includes(shantyId)) set({ pendingShanty: { ...p, shantyId } }); // choix pré-jet (chanson ⟂ dé)
     },
     shantyConfirm: () => {
       const { battle, pendingShanty: p } = get();
@@ -1696,14 +1698,11 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // ── Chance, 3e usage : pré-emption d'initiative en début de Round (LDB 17 l.25) ──
     roundStartPromote: (heroId: string) => {
-      const { battle, pendingRoundStart } = get();
-      if (!battle || !pendingRoundStart) return;
-      const hero = inBattleId(battle, heroId);
-      // Réordonnancement d'initiative : arme Rapide (LDB 62 l.298-300) → gratuit ; sinon 1 point de Chance
-      // (LDB 17 l.25). Tir rapide (interruption hors de l'ordre, LDB 11 l.97-103) ne passe PAS par ici (`preemptRangedShot`).
-      const free = !!hero && canStrikeFirst(hero.weapons);
-      if (!hero || !controlsCombatant(get(), hero) || (!free && (hero.fortune ?? 0) <= 0)) return;
-      if (battle.order[0] === heroId) return; // déjà en tête
+      const battle = get().battle;
+      if (!battle || !actFirstIds(get()).includes(heroId)) return;
+      const hero = garanti(inBattleId(battle, heroId), heroId, 'héros promu');
+      // LDB 62 l.298-300, LDB 17 l.25 ; Tir rapide (LDB 11 l.97-103) : `preemptRangedShot`.
+      const free = freeActFirst(hero);
       if (!free) hero.fortune = (hero.fortune ?? 0) - 1;
       const order = [heroId, ...battle.order.filter((id) => id !== heroId)]; // en tête de l'ordre du Round
       set({ battle: { ...battle, order, log: [...battle.log, ev('info', t('cs.actFirst', { name: hero.label, reason: free ? t('cs.reasonFast') : t('cs.reasonLuck') }), hero.id)] } });
@@ -1711,11 +1710,10 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // ── Tir rapide (talent, LDB 11 l.97-103) : INTERRUPTION à distance en début de Round, hors de l'ordre d'Initiative ──
     preemptRangedShot: (heroId: string, targetId: string) => {
-      const { battle, pendingRoundStart } = get();
-      if (!battle || !pendingRoundStart || get().pendingAttack) return;
-      const hero = inBattleId(battle, heroId);
+      const battle = get().battle;
+      if (!battle || get().pendingAttack || !preemptShooterIds(get).includes(heroId)) return;
+      const hero = garanti(inBattleId(battle, heroId), heroId, 'tireur');
       const target = inBattleId(battle, targetId);
-      if (!hero || !controlsCombatant(get(), hero) || !canPreemptRanged(hero) || hero.loseNextAction) return; // 1 interruption / Round (loseNext = déjà tiré)
       if (!target || target.kind === hero.kind || isOutOfAction(target)) return;
       // Cible VALIDE seulement (arme à distance + bande de portée + Ligne de Vue) — sinon on N'OUVRE PAS la
       // modale (le tir résolu hors-tour heurterait la cascade). Le refus se DIT au point du geste
@@ -1737,16 +1735,13 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // ── Tir rapide : ARMER/DÉSARMER la visée d'un héros pendant la pause (badge de la frise → clic adversaire) ──
     armPreempt: (heroId: string | null) => {
-      const { battle, pendingRoundStart } = get();
-      if (!battle || !pendingRoundStart || heroId === null) { set({ preemptAiming: null }); return; }
-      const hero = inBattleId(battle, heroId);
-      if (!hero || !controlsCombatant(get(), hero) || !canPreemptRanged(hero) || hero.loseNextAction) { set({ preemptAiming: null }); return; }
+      if (heroId === null || !preemptShooterIds(get).includes(heroId)) { set({ preemptAiming: null }); return; }
       set({ preemptAiming: get().preemptAiming === heroId ? null : heroId }); // bascule
     },
-    roundStartReady: (seat: number) => {
+    roundStartReady: () => {
       const prs = get().pendingRoundStart;
       if (!prs) return;
-      const readyBySeat = { ...(prs.readyBySeat ?? {}), [seat]: true };
+      const readyBySeat = { ...(prs.readyBySeat ?? {}), [decidingSeat(get())]: true };
       set({ pendingRoundStart: { ...prs, readyBySeat } });
       // L'HÔTE lance quand TOUS les sièges requis ont validé (quorum UNIQUE : `siegesRequis`).
       const s = get();

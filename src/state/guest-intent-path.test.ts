@@ -55,7 +55,7 @@ function setup(net: Record<string, unknown> = {}) {
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(useGame.getState, seat, action, args);
 
 describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’allowlist', () => {
-  beforeEach(() => { useGame.setState({ net: NET0, battle: null, pendingBattement: null, pendingDisengage: null }); });
+  beforeEach(() => { useGame.setState({ net: NET0, battle: null, pendingBattement: null, pendingDisengage: null, pendingRoundStart: null, pendingVictory: null, pendingRest: null }); });
 
   it('battleBattement (ouvreur exposé par #1017) : le siège du héros OUVRE réellement le jet', () => {
     setup();
@@ -131,5 +131,16 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(applyIntent(1, 'partyAddHero', [pregen('g1')])).toBe('appliquee');
     expect(applyIntent(1, 'partyReplaceHero', ['g1', pregen('g2'), 0])).toBe('appliquee');
     expect(useGame.getState().net.ownership.g2, 'l’invité a posé son héros au siège qu’il a choisi').toBe(1);
+  });
+
+  it.each([
+    ['roundStartReady', 'pendingRoundStart', { round: 2 }],
+    ['victoryReady', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
+    ['restReady', 'pendingRest', { phase: 'setup', perHero: {}, readyBySeat: {} }],
+  ] as const)('marquage : `%s` émis par le siège 1 ne marque que le siège 1, quels que soient ses args (#2439)', (verbe, cle, pending) => {
+    setup();
+    useGame.setState({ [cle]: pending } as never);
+    expect(applyIntent(1, verbe, [0])).toBe('appliquee');
+    expect((useGame.getState()[cle] as { readyBySeat?: Record<number, boolean> } | null)?.readyBySeat, `${verbe} a marqué un autre siège que l’émetteur`).toEqual({ 1: true });
   });
 });

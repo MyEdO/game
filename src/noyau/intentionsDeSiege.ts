@@ -204,8 +204,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
   victoryReady: 'invité', assignVictoryGear: 'invité', raiseHand: 'invité', lowerHand: 'invité',
   // ═══ invité : GROUPE — composition (chaque siège SES emplacements, tranchée par `ROUTES`) et carnet
-  // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). L'hôte injecte le siège
-  // du transport dans `partyAddHero`/`partyReplaceHero` (`ARGS_AU_SIEGE_DU_TRANSPORT`). ═══
+  // d'enquête (#670, `TOUJOURS` : épingle de groupe, nouveauté vue par siège). ═══
   partyAddHero: 'invité', partyRemoveHero: 'invité', partyReplaceHero: 'invité', toggleCluePin: 'invité',
   markCluesSeen: 'invité',
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
@@ -381,13 +380,6 @@ type FluxHorsModalSansResolution = {
 const _fluxHorsModalClos: [FluxHorsModalSansResolution] extends [never] ? true : ['flux mono HORS_MODAL sans `resolution`', FluxHorsModalSansResolution] = true;
 void _fluxHorsModalClos;
 
-/** Args d'une intention que le siège émetteur ne choisit pas : le siège vient du TRANSPORT, jamais des args
- *  de l'invité. `partyAddHero` = [hero, wealth, seat] ; `partyReplaceHero` = [oldId, hero, seat]. */
-const ARGS_AU_SIEGE_DU_TRANSPORT: Partial<Record<ActionDeClasse<'invité'>, (args: readonly unknown[], siege: number) => unknown[]>> = {
-  partyAddHero: ([hero, wealth], siege) => [hero, wealth, siege],
-  partyReplaceHero: ([oldId, hero], siege) => [oldId, hero, siege],
-};
-
 /** Sort d'une intention de siège : ignorée hors allowlist, refusée hors possession, sinon appliquée. */
 export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
 
@@ -395,8 +387,7 @@ export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
  * Intention d'un SIÈGE appliquée dans l'état du propriétaire (spec coop §4bis, #1017). Ordre :
  *  1. allowlist `GUEST_INTENTS` : hors liste, rien, ni effet ni journal ;
  *  2. possession `intentAllowedFor` : refus au journal ;
- *  3. siège du transport dans les args de composition (`ARGS_AU_SIEGE_DU_TRANSPORT`) ;
- *  4. l'action AU NOM du siège (`withActingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
+ *  3. l'action AU NOM du siège (`withActingSeat`), seul canal du siège (`decidingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
  *     (`controlsCombatant`) jugent l'émetteur, et l'intention armée du propriétaire ne s'y lit pas
  *     (`localIntent.intentionDuProprietaire`) : seul compte le verdict joint aux args.
  */
@@ -406,9 +397,7 @@ export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: str
     get().log(t('coop.intentRefused'));
     return 'refusee';
   }
-  const reecriture = Object.prototype.hasOwnProperty.call(ARGS_AU_SIEGE_DU_TRANSPORT, action) ? ARGS_AU_SIEGE_DU_TRANSPORT[action as ActionDeClasse<'invité'>] : undefined;
-  const argsDuSiege = reecriture?.(args, siege) ?? args;
   const fn = (get() as unknown as Record<string, unknown>)[action];
-  if (typeof fn === 'function') withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...argsDuSiege));
+  if (typeof fn === 'function') withActingSeat(siege, () => (fn as (...a: readonly unknown[]) => void)(...args));
   return 'appliquee';
 }

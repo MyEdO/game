@@ -38,6 +38,7 @@ import { baseSection, mediaBlock } from '../../../scripts/guards/lib/cssCouches.
 import { hpColor, ENEMY_TINT } from '../../gameIso/teamColors';
 import { srgbToLinear } from '../../gameIso/shade';
 import { testDeRegle } from '../../engine/reglesChiffrees';
+import { withActingSeat } from '../../noyau/netOwnership';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -3244,7 +3245,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
     pause('host');
     act(() => bouton()!.click());
     expect(useGame.getState().pendingRoundStart!.readyBySeat).toEqual({ 0: true });
-    act(() => { useGame.getState().roundStartReady(1); });
+    act(() => { withActingSeat(1, () => useGame.getState().roundStartReady()); });
     expect(useGame.getState().pendingRoundStart, 'quorum atteint : le Round devait s’ouvrir').toBeNull();
   });
 

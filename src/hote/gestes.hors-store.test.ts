@@ -10,6 +10,7 @@ import { DESIGNATIONS, libelleDuLitteral, libelleDuParametre } from '../noyau/in
 import { VERBES_DES_FENETRES } from '../noyau/fenetres.testkit';
 import type { Forme } from './formes';
 import { VERBES } from './verbes.generated';
+import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 
 /** Ce qui manque à la forme `f` de l'argument `ou` du verbe `verbe` pour se dessiner. */
 function fautes(verbe: string, nom: string, f: Forme, ou: string): string[] {
@@ -36,5 +37,29 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 
   it.each([...VERBES_DES_FENETRES].filter((v) => VERBES[v]?.length).map((v) => [v] as const))('%s', (verbe) => {
     expect(VERBES[verbe].flatMap((p) => fautes(verbe, p.nom, p.forme, `${verbe}.${p.nom}`))).toEqual([]);
+  });
+});
+
+describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
+  it.each([
+    ['shantySetSong', 'shantyId', 'IdDeChanson'],
+    ['councilPay', 'decision', 'IdDeChoixDePaie'],
+    ['harvestCreature', 'creatureId', 'IdDeCreatureADepecer'],
+    ['roundStartPromote', 'heroId', 'IdDeCombattantPromouvable'],
+    ['armPreempt', 'heroId', 'IdDeTireurRapide'],
+    ['preemptRangedShot', 'heroId', 'IdDeTireurRapide'],
+  ])('%s.%s désigne %s', (verbe, nom, cle) => {
+    const p = VERBES[verbe].find((x) => x.nom === nom)!;
+    const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];
+    expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual([cle]);
+  });
+
+});
+
+describe('aucun intent invité ne prend de siège en argument : le siège vient du transport (`decidingSeat`, #2439)', () => {
+  it('chaque verbe de `GUEST_INTENTS` a sa signature, sans paramètre de siège', () => {
+    const intents = [...GUEST_INTENTS];
+    expect(intents.filter((v) => !(v in VERBES)), 'un intent invité sans signature échappe à la garde').toEqual([]);
+    expect(intents.flatMap((v) => VERBES[v].filter((p) => /seat|si[eè]ge/i.test(p.nom)).map((p) => `${v}.${p.nom}`))).toEqual([]);
   });
 });

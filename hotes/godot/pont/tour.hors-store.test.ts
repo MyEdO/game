@@ -104,7 +104,7 @@ describe('un tour complet par le pont', () => {
     const defense = suite.vue.projection.fenetre!;
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'defenseJet' } });
     expect(suite.vue.defense, 'la Défense dit qui attaque qui').toMatchObject({ attaquantId: adversaire.id, jete: false });
-    expect(suite.vue.fenetre!.proprietaire, 'la Défense est au héros attaqué').toBe(suite.vue.projection.combat!.voisins.liste.find((v) => v.id === suite.vue.defense!.defenseurId)!.nom);
+    expect(suite.vue.fenetre!.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: suite.vue.projection.combat!.voisins.liste.find((v) => v.id === suite.vue.defense!.defenseurId)!.nom });
     expect(attendu(suite), 'avant le jet de Défense, le jet est attendu').toBe('defenseRoll');
     const lignes = [...journal];
     ({ suite, journal } = jouerLeGeste(suite, attendu(suite)));
@@ -117,7 +117,7 @@ describe('un tour complet par le pont', () => {
     expect(attaque, 'l’attaque adverse entre au journal, sa cible nommée').toBeDefined();
     const vise = suite.vue.projection.combat!.voisins.liste.find((v) => attaque!.de === 'combat' && v.id === attaque!.evenement.targetId)!;
     expect(vise.camp, 'l’adversaire vise un héros').toBe('hero');
-    expect(defense.proprietaire, 'la Défense est au héros attaqué').toBe(vise.nom);
+    expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
     expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['roundStart', 'cascade:attackJet', 'cascade:defenseJet']));
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
   });
