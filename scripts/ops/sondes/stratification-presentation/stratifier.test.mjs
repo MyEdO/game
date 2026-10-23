@@ -2,9 +2,10 @@
 // première règle, comptes `wc -l`, lecture du `--numstat`, imports relatifs résolus, échantillon
 // déterministe. Lancé par `npm run test:ops`.
 import { test } from 'node:test'
-import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { CATEGORIES, REGLES } from './regles.mjs'
+import { gitDeLArbreReel } from '../../../test/gitDeBanc.mjs'
 import { cheminDestination, compterLignes, importsRelatifs, lireNumstat, ranger, resoudreImport, tirerEchantillon } from './stratifier.mjs'
 
 const REGLES_BANC = [
@@ -39,8 +40,7 @@ test('REGLES : chaque catégorie est un id de CATEGORIES ou douteux, et seule un
 })
 
 test('REGLES : chaque règle range au moins un fichier de l\'arbre — une règle qui ne gagne plus aucun fichier se retire', () => {
-  const racine = new URL('../../../..', import.meta.url)
-  const fichiers = execFileSync('git', ['ls-files', 'src/state', 'src/ui', 'src/gameIso'], { cwd: racine, encoding: 'utf8' })
+  const fichiers = gitDeLArbreReel(fileURLToPath(new URL('../../../..', import.meta.url)))('ls-files', '--', 'src/state', 'src/ui', 'src/gameIso')
     .split('\n').filter((f) => /\.(ts|tsx|css)$/.test(f))
   const gagnantes = new Set(fichiers.map((f) => ranger(f, REGLES)?.indice).filter((i) => i !== undefined))
   const mortes = REGLES.flatMap((r, i) => (gagnantes.has(i) ? [] : [r.motif.source]))
