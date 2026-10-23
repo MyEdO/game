@@ -213,6 +213,28 @@ class VerificationDuReimport(Base):
             self.verifier(uv=False)
 
 
+class Tetes(unittest.TestCase):
+    PIECES = {'body': {'node': 'corps', 'component': 'body', 'headVariant': None},
+              'cape': {'node': 'cape', 'component': 'cape', 'headVariant': None, 'hiddenBy': ['capuche']}}
+
+    def manifeste(self, default_head, head_options):
+        return {'default_head': default_head, 'head_options': head_options, 'defaults': ['cape'], 'presets': {},
+                'pieces': self.PIECES}
+
+    def test_personnage_sans_tete(self):
+        manifest = self.manifeste(None, [])
+        self.assertEqual(animation.tetes(manifest), [None])
+        meshes = [argparse.Namespace(name=piece['node'], hide_render=True) for piece in self.PIECES.values()]
+        visibles = animation.manifest_selection(meshes, manifest)
+        self.assertEqual(sorted(obj.name for obj in visibles), ['cape', 'corps'])
+
+    def test_tete_par_defaut_hors_de_ses_options_refusee(self):
+        for default_head, head_options in ((None, [{'id': 'a'}]), ('a', []), ('b', [{'id': 'a'}])):
+            with self.subTest(default_head=default_head, head_options=head_options):
+                with self.assertRaisesRegex(RuntimeError, 'default_head'):
+                    animation.tetes(self.manifeste(default_head, head_options))
+
+
 class ModeleCommite(unittest.TestCase):
     def test_knight_passe(self):
         manifest = json.loads((MODELES / 'Knight.manifeste.json').read_text(encoding='utf-8'))

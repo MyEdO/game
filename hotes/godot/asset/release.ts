@@ -69,6 +69,7 @@ export interface LicenceDeComposant {
 
 /** La licence d'un pack, lue sur la ligne `License:` d'un fichier `LICENSE*.txt` du dossier de production. */
 export interface LicenceDePack {
+  /** Le nom du texte déposé, dérivé de son identifiant SPDX et de son empreinte (`importer.ts`). */
   readonly fichier: string;
   readonly licence: string;
 }
@@ -155,7 +156,7 @@ export class ReleaseInjoignable extends Error {
 type Telecharger = (url: string) => Promise<{ readonly ok: boolean; readonly status: number; arrayBuffer(): Promise<ArrayBuffer> }>;
 
 /** Les octets du GLB de `modele` tirés de la Release : `ModeleIntrouvable` sur un 404, `ReleaseInjoignable` sur une
- *  erreur réseau ou tout autre statut. */
+ *  erreur réseau, avant ou pendant le corps de la réponse, ou tout autre statut. */
 async function tirerDeLaRelease(modele: ModeleEpingle, telecharger: Telecharger, journal: (ligne: string) => void): Promise<Uint8Array> {
   const url = urlDAsset(nomDAsset(modele.empreinte, 'glb'));
   journal(`[modèles] ${modele.model} : téléchargement de ${url}`);
@@ -167,7 +168,11 @@ async function tirerDeLaRelease(modele: ModeleEpingle, telecharger: Telecharger,
   }
   if (reponse.status === 404) throw new ModeleIntrouvable(modele, url);
   if (!reponse.ok) throw new ReleaseInjoignable(modele, url, `HTTP ${reponse.status}`);
-  return new Uint8Array(await reponse.arrayBuffer());
+  try {
+    return new Uint8Array(await reponse.arrayBuffer());
+  } catch (e) {
+    throw new ReleaseInjoignable(modele, url, `corps de la réponse interrompu : ${(e as Error).message}`);
+  }
 }
 
 /** Dépose dans `dossier` le GLB de chaque modèle épinglé et le garde dans le cache `cache` : le GLB du projet s'il a

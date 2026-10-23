@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { GlbIllisible, lireGlb } from './glb.ts';
-import { FICHIERS_DE_PRODUCTION, importerPersonnage } from './importer.ts';
+import { importerPersonnage, MANIFESTE_DE_PRODUCTION } from './importer.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
@@ -43,7 +43,7 @@ const production = () => ({
     bouclier: { node: 'bouclier', component: 'bouclier', headVariant: null, hiddenBy: [] },
   },
   components: {
-    corps: { label_fr: 'Corps', asset: { file: 'C:\\Users\\x\\corps.mhclo', license_basis: 'explicit asset header', explicit_header: ['# author A', '# license CC0'], packs: [{ pack: 'p', announced_license: 'CC0' }] } },
+    corps: { label_fr: 'Corps', asset: { file: 'C:\\Users\\x\\corps.mhclo', license_basis: 'explicit asset header', explicit_header: ['# author A', '# license CC0'], packs: [{ pack: 'p', announced_license: 'CC0 (official asset-pack page)' }] } },
     casque: { label_fr: 'Casque', occupations: ['head_cover'] },
     bouclier: { label_fr: 'Bouclier' },
   },
@@ -53,6 +53,15 @@ const production = () => ({
   clips: { idle: 'Idle', death: 'Death_A' },
   animation_sources: { 1: { path: '/home/x/anims/UAL1_Standard.glb', sha256: 'abc', bones: 65 } },
 });
+
+/** `production()` sans tête interchangeable : aucune `head_options`, aucune pièce de tête. */
+const sansTete = () => {
+  const m: Omit<ReturnType<typeof production>, 'default_head'> & { default_head: string | null } = production();
+  m.default_head = null;
+  m.head_options = [];
+  delete (m.pieces as Partial<typeof m.pieces>).tete_a;
+  return m;
+};
 
 const codes = (brut: unknown, contenu = lireGlb(GLB)): CodeDErreur[] => {
   const v = validerManifeste(brut, contenu);
@@ -121,6 +130,21 @@ describe('validerManifeste', () => {
   it('accepte une variante de tête comme composant de pièce', () => {
     expect(codes(production())).toEqual([]);
   });
+
+  it('accepte un personnage sans tête : default_head null, head_options vide', () => {
+    const v = validerManifeste(sansTete(), lireGlb(GLB));
+    expect(v.ok && v.manifeste.default_head).toBeNull();
+  });
+
+  it.each<[string, (m: ReturnType<typeof sansTete>) => void, CodeDErreur]>([
+    ['une tête par défaut null malgré des têtes déclarées', (m) => { m.head_options = [{ id: 'tete_a', label_fr: 'Visage' }]; }, 'tete-inconnue'],
+    ['une tête par défaut sans aucune tête déclarée', (m) => { m.default_head = 'tete_a'; }, 'tete-inconnue'],
+    ['une tête par défaut ni chaîne ni null', (m) => { (m as { default_head: unknown }).default_head = 1; }, 'forme'],
+  ])('refuse %s', (_, muter, code) => {
+    const m = sansTete();
+    muter(m);
+    expect(codes(m)).toEqual([code]);
+  });
 });
 
 describe('cheminsAbsolus', () => {
@@ -156,11 +180,13 @@ describe('importerPersonnage', () => {
     const d = temporaire();
     const m = { ...production(), model_sha256: empreinte ?? EMPREINTE };
     muter(m);
-    writeFileSync(join(d, FICHIERS_DE_PRODUCTION.glb), GLB);
-    writeFileSync(join(d, FICHIERS_DE_PRODUCTION.manifeste), JSON.stringify(m));
-    writeFileSync(join(d, FICHIERS_DE_PRODUCTION.rapport), JSON.stringify({ model_sha256: empreinte ?? EMPREINTE, donor: 'C:\\Users\\x\\donor.blend' }));
+    writeFileSync(join(d, m.model), GLB);
+    writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify(m));
     return d;
   };
+
+  /** Le nom sous lequel se dépose le texte de licence CC0 `texte`. */
+  const nomCC0 = (texte: string) => `LICENSE-CC0-1.0-${sha256(Buffer.from(texte)).slice(0, 16)}.txt`;
 
   it('publie le GLB sous son empreinte, puis dépose le manifeste réduit et la provenance sans chemin', () => {
     const destination = temporaire();
@@ -170,7 +196,7 @@ describe('importerPersonnage', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     const f = fichiersDuModele('Essai');
-    expect(verses).toEqual([[{ chemin: join(dossier, FICHIERS_DE_PRODUCTION.glb), nom: `${EMPREINTE}.glb` }]]);
+    expect(verses).toEqual([[{ chemin: join(dossier, 'animated.glb'), nom: `${EMPREINTE}.glb` }]]);
     expect(r.publies).toEqual([`${EMPREINTE}.glb`]);
     expect([f.glb, f.manifeste, f.provenance].map((n) => existsSync(join(destination, n)))).toEqual([false, true, true]);
     expect(JSON.parse(readFileSync(join(destination, f.manifeste), 'utf8')).model).toBe('Essai.glb');
@@ -178,7 +204,7 @@ describe('importerPersonnage', () => {
       model: 'Essai.glb',
       model_sha256: EMPREINTE,
       importe_le: '2026-10-23',
-      licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0'] } },
+      licences: { corps: { base: 'explicit asset header', en_tete: ['CC0'], annoncees: ['CC0 (official asset-pack page)'] } },
       licences_de_pack: [],
       animation_sources: [{ fichier: 'UAL1_Standard.glb', sha256: 'abc' }],
     });
@@ -189,7 +215,8 @@ describe('importerPersonnage', () => {
     const dossier = dossierDeProduction();
     const blend = Buffer.from('BLENDER-source');
     writeFileSync(join(dossier, 'source.blend'), blend);
-    writeFileSync(join(dossier, 'LICENSE-Pack.txt'), 'Pack\n\tLicense: (Creative Commons Zero, CC0)\n');
+    const texte = 'Pack\n\tLicense: (Creative Commons Zero, CC0)\n';
+    writeFileSync(join(dossier, 'LICENSE-Pack.txt'), texte);
     const { verses, publier } = publication();
     const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-23', publier });
     expect(r.ok).toBe(true);
@@ -197,8 +224,24 @@ describe('importerPersonnage', () => {
     const empreinteBlend = sha256(blend);
     expect(verses[0]?.map((a) => a.nom)).toEqual([`${EMPREINTE}.glb`, `${empreinteBlend}.blend`]);
     expect(r.provenance.source_sha256).toBe(empreinteBlend);
-    expect(r.provenance.licences_de_pack).toEqual([{ fichier: 'LICENSE-Pack.txt', licence: '(Creative Commons Zero, CC0)' }]);
-    expect(readFileSync(join(destination, 'LICENSE-Pack.txt'), 'utf8')).toContain('License:');
+    expect(r.provenance.licences_de_pack).toEqual([{ fichier: nomCC0(texte), licence: '(Creative Commons Zero, CC0)' }]);
+    expect(readFileSync(join(destination, nomCC0(texte)), 'utf8')).toBe(texte);
+  });
+
+  it('importe un personnage sans tête', () => {
+    expect(importerPersonnage({ dossier: dossierDeProduction((m) => Object.assign(m, sansTete())), id: 'Essai', destination: temporaire(), date: '2026-10-23', publier: null }).ok).toBe(true);
+  });
+
+  it.each([
+    ['trousers, boots_viking', 'CC0', 'CC0 (official asset-pack page)'],
+    ['boots_leather, helmet_chaos', 'CC-0', 'CC0 (official asset-pack page)'],
+  ])('accepte la licence de %s : l’en-tête « %s » et le pack « %s » sont CC0-1.0', (_, enTete, annonce) => {
+    const dossier = dossierDeProduction((m) => {
+      m.components.corps.asset.explicit_header = [`# license ${enTete}`];
+      m.components.corps.asset.packs = [{ pack: 'p', announced_license: annonce }];
+    });
+    const r = importerPersonnage({ dossier, id: 'Essai', destination: temporaire(), date: '2026-10-23', publier: null });
+    expect(r.ok ? [] : r.refus).toEqual([]);
   });
 
   it('ne publie rien sans publication (--sans-publier)', () => {
@@ -207,28 +250,36 @@ describe('importerPersonnage', () => {
   });
 
   it.each<[string, () => string, RegExp]>([
-    ['une empreinte fausse', () => dossierDeProduction(() => {}, '0'.repeat(64)), /empreinte SHA-256/],
+    ['un manifeste d’un autre GLB', () => dossierDeProduction(() => {}, '0'.repeat(64)), /^empreinte SHA-256 du GLB [0-9a-f]{64}, manifest\.json déclare 0{64}$/],
+    ['un manifeste sans empreinte', () => dossierDeProduction((m) => { delete (m as { model_sha256?: string }).model_sha256; }), /, manifest\.json déclare undefined$/],
     ['un chemin absolu laissé', () => dossierDeProduction((m) => { m.components.bouclier.label_fr = '/home/x/bouclier'; }), /chemin-absolu/],
-    ['un manifeste d’un autre GLB, le rapport juste', () => {
-      const d = dossierDeProduction();
-      const chemin = join(d, FICHIERS_DE_PRODUCTION.manifeste);
-      writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), model_sha256: '0'.repeat(64) }));
-      return d;
-    }, /^empreinte SHA-256 du GLB [0-9a-f]{64}, le manifeste déclare 0{64}$/],
     ['une licence d’en-tête que le pack n’annonce pas', () => dossierDeProduction((m) => {
       m.components.corps.asset.explicit_header = ['# license AGPL3'];
-      m.components.corps.asset.packs = [{ pack: 'p', announced_license: 'CC0' }];
-    }), /licence du composant corps : l'en-tête déclare « AGPL3 », le pack annonce « CC0 »/],
-    ['un rapport d’un autre GLB', () => {
+      m.components.corps.asset.packs = [{ pack: 'p', announced_license: 'CC0 (official asset-pack page)' }];
+    }), /^licence du composant corps : l'en-tête déclare « AGPL-3\.0-only », le pack annonce « CC0-1\.0 »$/],
+    ['une licence de composant hors de la table', () => dossierDeProduction((m) => {
+      m.components.corps.asset.explicit_header = ['# license AGPL3 (see also http://www.makehuman.org/doc/node/external_tools_license.html)'];
+    }), /^\[licence-inconnue\] licence du composant corps : « AGPL3 \(see also http:\/\/www\.makehuman\.org\/doc\/node\/external_tools_license\.html\) »$/],
+    ['une licence de pack hors de la table', () => {
       const d = dossierDeProduction();
-      writeFileSync(join(d, FICHIERS_DE_PRODUCTION.rapport), JSON.stringify({ model_sha256: '1'.repeat(64) }));
+      writeFileSync(join(d, 'LICENSE-Pack.txt'), 'Pack\nLicense: MIT\n');
       return d;
-    }, /rapport déclare/],
-    ['un fichier de production absent', () => {
+    }, /^\[licence-inconnue\] LICENSE-Pack\.txt : « MIT »$/],
+    ['un manifeste absent', () => {
       const d = dossierDeProduction();
-      rmSync(join(d, FICHIERS_DE_PRODUCTION.rapport));
+      rmSync(join(d, MANIFESTE_DE_PRODUCTION));
       return d;
-    }, /absent : report\.json/],
+    }, /^fichier de production absent : manifest\.json$/],
+    ['un GLB que le manifeste nomme, absent du dossier', () => {
+      const d = dossierDeProduction();
+      writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...production(), model: 'character.glb', model_sha256: EMPREINTE }));
+      return d;
+    }, /^fichier de production absent : character\.glb, que manifest\.json nomme$/],
+    ['un model qui sort du dossier', () => {
+      const d = dossierDeProduction();
+      writeFileSync(join(d, MANIFESTE_DE_PRODUCTION), JSON.stringify({ ...production(), model: '../animated.glb', model_sha256: EMPREINTE }));
+      return d;
+    }, /model « \.\.\/animated\.glb », nom de fichier du dossier attendu/],
     ['deux sources .blend', () => {
       const d = dossierDeProduction();
       writeFileSync(join(d, 'a.blend'), 'a');
@@ -251,25 +302,26 @@ describe('importerPersonnage', () => {
     expect(existsSync(destination)).toBe(false);
   });
 
-  it('refuse une licence de pack homonyme d’un autre texte déjà déposé, sans rien publier ni écrire', () => {
+  it('dépose deux textes distincts d’une même licence, de deux packs homonymes, sous deux noms', () => {
     const destination = temporaire();
-    writeFileSync(join(destination, 'LICENSE-Pack.txt'), 'Autre pack\nLicense: CC-BY 4.0\n');
-    const dossier = dossierDeProduction();
-    writeFileSync(join(dossier, 'LICENSE-Pack.txt'), 'Pack\nLicense: CC0\n');
-    const { verses, publier } = publication();
-    const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-23', publier });
-    expect(r.ok ? [] : r.refus).toEqual([`LICENSE-Pack.txt : un autre texte porte déjà ce nom dans ${destination}`]);
-    expect(verses).toEqual([]);
-    expect(readFileSync(join(destination, 'LICENSE-Pack.txt'), 'utf8')).toContain('CC-BY 4.0');
-    expect(existsSync(join(destination, fichiersDuModele('Essai').provenance))).toBe(false);
+    const textes = ['Pack A\nLicense: CC0\n', 'Pack B\nLicense: (Creative Commons Zero, CC0)\n'];
+    for (const [i, texte] of textes.entries()) {
+      const dossier = dossierDeProduction();
+      writeFileSync(join(dossier, 'LICENSE.txt'), texte);
+      expect(importerPersonnage({ dossier, id: `Essai${i}`, destination, date: '2026-10-23', publier: null }).ok).toBe(true);
+    }
+    expect(textes.map((t) => readFileSync(join(destination, nomCC0(t)), 'utf8'))).toEqual(textes);
   });
 
-  it('accepte une licence de pack homonyme du même texte', () => {
+  it('redépose sous le même nom le même texte de licence', () => {
     const destination = temporaire();
-    writeFileSync(join(destination, 'LICENSE-Pack.txt'), 'Pack\nLicense: CC0\n');
-    const dossier = dossierDeProduction();
-    writeFileSync(join(dossier, 'LICENSE-Pack.txt'), 'Pack\nLicense: CC0\n');
-    expect(importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-23', publier: null }).ok).toBe(true);
+    const texte = 'Pack\nLicense: CC0\n';
+    for (const id of ['Essai', 'Autre']) {
+      const dossier = dossierDeProduction();
+      writeFileSync(join(dossier, 'LICENSE-Pack.txt'), texte);
+      const r = importerPersonnage({ dossier, id, destination, date: '2026-10-23', publier: null });
+      expect(r.ok && r.provenance.licences_de_pack).toEqual([{ fichier: nomCC0(texte), licence: 'CC0' }]);
+    }
   });
 
   it('n’écrit rien quand la publication lève', () => {
@@ -341,6 +393,7 @@ describe('recupererModeles', () => {
     ['hors ligne', async () => { throw new TypeError('fetch failed'); }],
     ['sur un HTTP 503', async () => ({ ok: false, status: 503, arrayBuffer: sansCorps })],
     ['sur un HTTP 403', async () => ({ ok: false, status: 403, arrayBuffer: sansCorps })],
+    ['sur un corps coupé après un 200', async () => ({ ok: true, status: 200, arrayBuffer: async () => { throw new TypeError('terminated'); } })],
   ])('lève ReleaseInjoignable %s, le cache vide', async (_, telecharger) => {
     await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger, journal: muet })).rejects.toThrow(ReleaseInjoignable);
   });
@@ -404,8 +457,8 @@ describe('publierAssets', () => {
   const absente = { status: 1, stderr: 'release not found' };
   const asset = () => {
     const d = temporaire();
-    writeFileSync(join(d, FICHIERS_DE_PRODUCTION.glb), GLB);
-    return { chemin: join(d, FICHIERS_DE_PRODUCTION.glb), nom: `${EMPREINTE}.glb` };
+    writeFileSync(join(d, 'animated.glb'), GLB);
+    return { chemin: join(d, 'animated.glb'), nom: `${EMPREINTE}.glb` };
   };
   it('crée la Release absente, puis y verse le fichier sous son nom d’asset', () => {
     const { appels, gh } = ghSimule(absente);

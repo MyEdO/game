@@ -22,7 +22,8 @@ export interface PieceDuManifeste {
 export interface ManifesteDePersonnage {
   readonly schema_version: typeof VERSION_DU_SCHEMA;
   readonly model: string;
-  readonly default_head: string;
+  /** `null` si et seulement si `head_options` est vide : un personnage sans tête interchangeable. */
+  readonly default_head: string | null;
   readonly head_options: readonly { readonly id: string }[];
   readonly pieces: Readonly<Record<string, PieceDuManifeste>>;
   readonly components: Readonly<Record<string, { readonly label_fr: string }>>;
@@ -97,7 +98,8 @@ function reduire(brut: unknown): { manifeste?: ManifesteDePersonnage; erreurs: E
 
   if (brut.schema_version !== VERSION_DU_SCHEMA) erreurs.push({ code: 'version-inconnue', ou: 'schema_version', detail: `${String(brut.schema_version)}, ${VERSION_DU_SCHEMA} attendue` });
   const model = chaine('model');
-  const default_head = chaine('default_head');
+  const default_head = brut.default_head === null || typeof brut.default_head === 'string' ? brut.default_head : null;
+  if (default_head !== brut.default_head) forme('default_head', 'chaîne ou null attendu');
   const tetes = Array.isArray(brut.head_options) ? brut.head_options : [];
   if (!Array.isArray(brut.head_options)) forme('head_options', 'liste attendue');
   const head_options = tetes.flatMap((t, i) => {
@@ -141,7 +143,7 @@ function ecarts(m: ManifesteDePersonnage, glb: ContenuGlb): ErreurDeManifeste[] 
   const refus = (code: CodeDErreur, ou: string, detail: string) => erreurs.push({ code, ou, detail });
   const composants = new Set(Object.keys(m.components));
   const tetes = new Set(m.head_options.map((t) => t.id));
-  if (!tetes.has(m.default_head)) refus('tete-inconnue', 'default_head', m.default_head);
+  if (m.default_head === null ? tetes.size > 0 : !tetes.has(m.default_head)) refus('tete-inconnue', 'default_head', `${String(m.default_head)}, têtes déclarées : ${[...tetes].join(', ') || 'aucune'}`);
   for (const [cle, p] of Object.entries(m.pieces)) {
     const ou = `pieces.${cle}`;
     if (!composants.has(p.component) && !tetes.has(p.component)) refus('composant-inconnu', `${ou}.component`, p.component);

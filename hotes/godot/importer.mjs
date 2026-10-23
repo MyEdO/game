@@ -7,7 +7,7 @@ import { importerPersonnage } from './asset/importer.ts'
 import { DOSSIER_DES_MODELES, publierAssets, TAG } from './asset/release.ts'
 
 const USAGE = `Usage : node hotes/godot/importer.mjs <dossier de production> <id de modèle> [--destination <dossier>] [--sans-publier]
-  <dossier de production>  animated.glb, manifest.json et report.json ; au plus un *.blend ; des LICENSE*.txt
+  <dossier de production>  manifest.json et le GLB qu'il nomme (model) ; au plus un *.blend ; des LICENSE*.txt
   <id de modèle>           le nom des fichiers déposés : <id>.manifeste.json, <id>.provenance.json (et <id>.glb tiré de la Release)
   --destination <dossier>  où les déposer (défaut : ${DOSSIER_DES_MODELES})
   --sans-publier           ne verse rien dans la Release ${TAG} (tests et sondes)`

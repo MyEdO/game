@@ -27,6 +27,7 @@ import sys
 from glb import lire_glb
 from mesure import IMAGES_PAR_SECONDE, world_vertices
 from rendu import qa_studio
+from verifier_export import POIDS_NEGLIGEABLE
 
 sys.dont_write_bytecode = True
 SOL_TOLERANCE_M = .005
@@ -58,12 +59,25 @@ def meshes_for(bpy, rig):
             any(m.type == 'ARMATURE' and m.object == rig for m in o.modifiers)]
 
 
+def tetes(manifest):
+    """Les têtes à parcourir : chaque `head_options`, ou `[None]` pour un personnage sans tête interchangeable.
+    `default_head` vaut `None` si et seulement si `head_options` est vide, sinon il en est un `id`."""
+    ids = [option['id'] for option in manifest['head_options']]
+    defaut = manifest['default_head']
+    if (defaut is None) != (not ids) or (defaut is not None and defaut not in ids):
+        raise RuntimeError(f'default_head {defaut!r}: None if and only if head_options is empty, else one of {ids}')
+    return ids or [None]
+
+
 def manifest_selection(meshes, manifest, head=None, preset=None):
     if manifest is None:
         return list(meshes)
+    tetes(manifest)
     selected_head = head or manifest['default_head']
     selected = set(manifest['presets'][preset] if preset else manifest['defaults'])
-    selected.update(('body', selected_head))
+    selected.add('body')
+    if selected_head is not None:
+        selected.add(selected_head)
     objects = {obj.name: obj for obj in meshes}
     if set(objects) != {piece['node'] for piece in manifest['pieces'].values()}:
         raise RuntimeError('Manifest node set differs from the complete skinned mesh set')
@@ -81,7 +95,7 @@ def manifest_selection(meshes, manifest, head=None, preset=None):
 
 def vertex_weights(obj, index):
     names = {group.index: group.name for group in obj.vertex_groups}
-    return {names[group.group]: group.weight for group in obj.data.vertices[index].groups if group.weight > 1e-7}
+    return {names[group.group]: group.weight for group in obj.data.vertices[index].groups if group.weight > POIDS_NEGLIGEABLE}
 
 
 def vertex_normals(obj, mesh=None, indices=None):
@@ -182,7 +196,7 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
         required.setdefault(body, set()).add(bi)
         required.setdefault(part, set()).add(pi)
     rest_normals = {name: vertex_normals(objects[name], indices=indices) for name, indices in required.items()}
-    for head in (option['id'] for option in manifest['head_options']):
+    for head in tetes(manifest):
         for preset in manifest['presets']:
             visible = manifest_selection(meshes, manifest, head, preset)
             for alias, name in manifest['clips'].items():
@@ -194,8 +208,8 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
                     frame = start + (end - start) * fraction
                     bpy.context.scene.frame_set(int(frame), subframe=float(frame % 1))
                     points = world_vertices(bpy, meshes)
-                    seam_error = max(float(np.linalg.norm(points[body][bi] - points[part][pi]))
-                                     for variant, body, bi, part, pi, bn, hn in pairs if variant == head)
+                    seam_error = max((float(np.linalg.norm(points[body][bi] - points[part][pi]))
+                                      for variant, body, bi, part, pi, bn, hn in pairs if variant == head), default=0.)
                     normal_maps = {}
                     graph = bpy.context.evaluated_depsgraph_get()
                     needed = {name for variant, body, bi, part, pi, bn, hn in pairs if variant == head for name in (body, part)}
@@ -205,11 +219,11 @@ def verify_combinations(bpy, rig, meshes, actions, manifest, pairs):
                             mesh = evaluated.to_mesh()
                             normal_maps[obj.name] = vertex_normals(evaluated, mesh, required[obj.name])
                             evaluated.to_mesh_clear()
-                    seam_normal = max(normal_angle(normal_maps[body][bi][bn], normal_maps[part][pi][hn])
-                                      for variant, body, bi, part, pi, bn, hn in pairs if variant == head)
-                    skin_normal = max(normal_angle(skin_world_normal(rig, objects[body], bi, rest_normals[body][bi][bn]),
-                                                   skin_world_normal(rig, objects[part], pi, rest_normals[part][pi][hn]))
-                                      for variant, body, bi, part, pi, bn, hn in pairs if variant == head)
+                    seam_normal = max((normal_angle(normal_maps[body][bi][bn], normal_maps[part][pi][hn])
+                                       for variant, body, bi, part, pi, bn, hn in pairs if variant == head), default=0.)
+                    skin_normal = max((normal_angle(skin_world_normal(rig, objects[body], bi, rest_normals[body][bi][bn]),
+                                                    skin_world_normal(rig, objects[part], pi, rest_normals[part][pi][hn]))
+                                       for variant, body, bi, part, pi, bn, hn in pairs if variant == head), default=0.)
                     floor = min(float(points[obj.name][:, 2].min()) for obj in visible)
                     passed = seam_error <= 5e-5 and floor >= -SOL_TOLERANCE_M and skin_normal <= .1
                     samples.append({'fraction': fraction, 'floor_m': floor, 'neck_seam_error_m': seam_error,
@@ -589,10 +603,10 @@ def run(args):
     qa_studio(bpy)
     actions = dict(baked)
     if manifest:
-        for head in (option['id'] for option in manifest['head_options']):
+        for head in tetes(manifest):
             for preset in manifest['presets']:
                 manifest_selection(meshes, manifest, head, preset)
-                planche_qa(bpy, rig, actions, output, f'{head}-{preset}')
+                planche_qa(bpy, rig, actions, output, f'{head or "sans-tete"}-{preset}')
         manifest_selection(meshes, manifest)
     else:
         planche_qa(bpy, rig, actions, output, 'defaut')
