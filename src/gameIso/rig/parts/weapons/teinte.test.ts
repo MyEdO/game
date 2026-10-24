@@ -7,6 +7,7 @@ import { giveTrappingSchema } from '../../../../data/schemas/defs-scenes/effets'
 import { applyOps, type GameOp } from '../../../../engine/ops';
 import { desDuTest } from '../../../../engine/dice.testkit';
 import { pregen, PREGEN } from '../../../../data/pregens';
+import { findTrappingById } from '../../../../data';
 
 const w = (forme: string, teinte?: string): FormeDArme => ({ type: 'melee', candidats: [forme], ...(teinte ? { teinte } : {}) });
 
@@ -21,7 +22,7 @@ describe('teinte d’objet', () => {
     const arme = c.weapons.find((a) => a.teinte === 'aethyrique');
     expect(arme).toBeDefined();
     expect(c.items?.some((i) => i.teinte === 'aethyrique')).toBe(true);
-    const art = weaponPart(armeDeDessin(arme!)) as string;
+    const art = weaponPart(armeDeDessin(findTrappingById, arme!)) as string;
     expect(art.toLowerCase()).toContain('#8fd4ff');
   });
   it('une teinte inconnue ou d’un autre domaine est refusée aux portes', () => {

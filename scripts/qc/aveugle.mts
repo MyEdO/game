@@ -58,7 +58,7 @@ export function svgDeCase(c: CaseAveugle, view: View, idx: number): { svg: strin
   if (!findCreatureById(c.id) || r.kind !== 'rig' || r.repli) throw new Error(`case « ${c.id} » : ni def non bipède, ni record bipède à espèce`);
   const arme = c.arme ? findTrappingById(c.arme) : undefined;
   if (c.arme && (arme?.categorie !== 'melee' && arme?.categorie !== 'ranged')) throw new Error(`case « ${c.id} » : « ${c.arme} » n'est pas une arme du catalogue`);
-  const prof = entityRigProfile(c.id, hashSeed(c.id + idx), c.arme ? { weapon: c.arme } : {});
+  const prof = entityRigProfile(findTrappingById, c.id, hashSeed(c.id + idx), c.arme ? { weapon: c.arme } : {});
   if (!prof) throw new Error(`case « ${c.id} » : aucun profil de rig`);
   return { svg: bonesToSvg(resolveRig(prof.appearance, prof.equip, {}, prof.tenue, view)), sl: 1 };
 }

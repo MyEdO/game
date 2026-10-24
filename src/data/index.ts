@@ -8,7 +8,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
@@ -3484,15 +3484,18 @@ const LIBELLE_DE_SOURCE: Record<SpecsSource, (id: string) => string> = {
 };
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
  *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
+ *  `admetEntree()` juge une entrée résolue par le filtre déclaré de l'univers, campagne comprise.
  *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
 export const SPEC_SOURCES = tableTotale(
   Object.keys(SOURCES_DE_SPECS) as SpecsSource[],
-  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean } => {
+  (src): { pool(): string[]; label(id: string): string; resolves(id: string): boolean; admetEntree(entree: { readonly id: string }): boolean } => {
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
+    const { filtre } = lireCleDEspace(decl.univers);
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
       label: LIBELLE_DE_SOURCE[src],
       resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
+      admetEntree: (entree) => filtre ? retenuParFiltre(filtre, entree as Readonly<Record<string, unknown>>) : (lireLEspace(decl.univers)?.has(entree.id) ?? false),
     };
   },
 );

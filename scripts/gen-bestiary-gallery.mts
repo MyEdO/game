@@ -16,6 +16,7 @@ import { planById, bodyPlanById, resolveById, planOptsForRecord, type BodyPlanId
 import { mul, translate, type Matrix } from '../src/gameIso/rig/kinematics';
 import { animatedRig } from './_lib-anim-rig';
 import { creatures } from '../src/data/index';
+import { findTrappingById } from '../src/data';
 
 const IDLE_MS = 1600;
 const NB = 12; // échantillons idle non-bipède
@@ -51,7 +52,7 @@ function creatureFrames(id: string): { samples: ResolvedBone[][]; dur: number } 
     return { samples: [scaleBones(plan.resolve(species, 'front', plan.restPose(), planOptsForRecord(id)), z)], dur: IDLE_MS };
   }
   // Humanoïde → rig + respiration (clip idle).
-  const prof = entityRigProfile(id, 7);
+  const prof = entityRigProfile(findTrappingById, id, 7);
   const dur = clipDuration(CLIPS.idle);
   if (!prof) return { samples: [[]], dur };
   const N = 8;

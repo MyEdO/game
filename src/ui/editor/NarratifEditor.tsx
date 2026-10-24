@@ -1117,7 +1117,7 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
                 nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
             </div>
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)} appearance={appearance} onChange={poserApparence}
-              weapons={armesDEntite(undefined, { traits: base ? mergeCreatureProfile(base, profil).traits : profil.traits })} />
+              weapons={armesDEntite(objetDuNarratif(narratif), undefined, { traits: base ? mergeCreatureProfile(base, profil).traits : profil.traits })} />
             <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
             <label className="ed-field">
               Portrait (id d'illustration)

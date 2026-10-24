@@ -13,6 +13,7 @@ import { CAP_GROUPE, poserCapDuGroupe } from '../../noyau/monde/combatants';
 import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
 import { discCapPath, discR, teamRingDecor } from '../builders/dynamicMarks';
 import { NEUTRAL_TINT } from '../teamColors';
+import { findTrappingById } from '../../data';
 
 /**
  * LE CAP DU PION SE LIT — DANS LES HUIT DIRECTIONS, ET SANS ÉQUIPE (#1176, P3-5c).
@@ -57,7 +58,7 @@ function marque(c: Combatant, team: TokenChromeMark['team']): TokenChromeMark {
     cell: { x: c.pos!.x, y: c.pos!.y, z: 0 },
     n: 1,
     scaleK: combatantTokenScale(c),
-    bodyTopFrac: combatantBodyTopFrac(c),
+    bodyTopFrac: combatantBodyTopFrac(findTrappingById, c),
     team,
     subject: { kind: 'combatant', combatant: c },
     ...tokenChrome(c, { ghostIds: new Set<string>(), hoveredId: null }),
@@ -170,7 +171,7 @@ describe('Cap du pion — appartenance et lisibilité (#1176 P3-5c)', () => {
   it('le disque du GROUPE tourne avec le cap du GROUPE, jamais avec celui de l’id du meneur', () => {
     // La marque telle que le builder la dérive pour le jeton de groupe : IDENTITÉ du meneur (bus,
     // chrome, caméra), CLÉ DE CAP du groupe (`partyTokenOf` → `capKey`).
-    const groupe = tokenChromes([], { ghostIds: new Set<string>(), hoveredId: null }, { leader: H1, pos: { x: 3, y: 3 }, capKey: CAP_GROUPE })[0];
+    const groupe = tokenChromes(findTrappingById, [], { ghostIds: new Set<string>(), hoveredId: null }, { leader: H1, pos: { x: 3, y: 3 }, capKey: CAP_GROUPE })[0];
     expect(groupe.id, 'témoin : la marque porte bien l’id du meneur').toBe('h1');
     useGame.setState({ facing: poserCapDuGroupe({ h1: 'S' }, 'E') } as never); // le cap du héros CONTREDIT celui du groupe
     conteneur = document.createElement('div');

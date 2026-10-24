@@ -27,6 +27,7 @@ import { discCapPath } from '../builders/dynamicMarks';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';
 import { BancRenderer, brancherArdoise, respirer, simulerRasterisation, viderCaptures } from './banc-volumique';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -111,7 +112,7 @@ describe('Cap du GROUPE — sur l’écran MONTÉ (#1362)', () => {
     const { facingMonté, pose } = sujetDuGroupe(espion);
     expect(facingMonté, 'le cap porté par le SUJET monté').toBe(cap);
     expect(pose.facing, 'et la pose qui le lui donne').toBe(cap);
-    expect(actorPoseKey(pose), 'la clé de mémo retient le même cap').toMatch(new RegExp(`:${cap}(:|$)`));
+    expect(actorPoseKey(findTrappingById, pose), 'la clé de mémo retient le même cap').toMatch(new RegExp(`:${cap}(:|$)`));
   });
 
   it('VUE DU DESSUS : le disque du groupe, monté par l’hôte, porte le quartier du cap de GROUPE', async () => {

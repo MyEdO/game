@@ -25,11 +25,12 @@ import { WEAPON_DEFS } from '../../rig/parts/weapons/_registry.generated';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
 const pose = (c: Combatant, seat?: SeatPose): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S', ...(seat ? { seat } : {}) });
-const sujet = (p: ActorPose): BillboardSubject => actorBillboards([p], scene, mpt)[0];
+const sujet = (p: ActorPose): BillboardSubject => actorBillboards(findTrappingById, [p], scene, mpt)[0];
 
 /** Tous les couples (vue, sens) d'un sujet, repos ET frame de geste. */
 const couples = VIEWS.flatMap((view) => [false, true].map((mirror) => ({ view, mirror })));
@@ -139,7 +140,7 @@ describe('#2097 — les trois états du tir (chargée, déchargée, rechargée) 
     const états: { identity: string; clés: string[]; dessins: string[] }[] = [];
     const relever = () => {
       const s = sujet(pose(c));
-      états.push({ identity: s.identity, clés: [actorPoseKey(pose(c)), actorIdentityKey(pose(c))], dessins: dessins(s) });
+      états.push({ identity: s.identity, clés: [actorPoseKey(findTrappingById, pose(c)), actorIdentityKey(findTrappingById, pose(c))], dessins: dessins(s) });
     };
     relever();
     unloadWeapon(c, c.weapons[0]);
@@ -165,13 +166,13 @@ describe('#2113 B1 — forme d’arme changée au catalogue : le dessin change, 
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
-      const clés = [actorPoseKey(pose(c)), actorIdentityKey(pose(c))];
+      const clés = [actorPoseKey(findTrappingById, pose(c)), actorIdentityKey(findTrappingById, pose(c))];
       éditer();
       const neuf = sujet(pose(c));
       expect(dessins(neuf).some((d, i) => d !== avant[i]), 'la forme éditée se dessine').toBe(true);
       expect(neuf.identity).not.toBe(s.identity);
-      expect(actorPoseKey(pose(c))).not.toBe(clés[0]);
-      expect(actorIdentityKey(pose(c))).not.toBe(clés[1]);
+      expect(actorPoseKey(findTrappingById, pose(c))).not.toBe(clés[0]);
+      expect(actorIdentityKey(findTrappingById, pose(c))).not.toBe(clés[1]);
     });
 });
 
@@ -207,7 +208,7 @@ describe('#2113 B2 — figurant de scène : son identité hache ses entrées de 
     ({ id: 'f1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, facing: 'S', appearance }) as SceneEntity;
   const jeton = (ent: SceneEntity): TokenEl =>
     ({ kind: 'token', key: `fig:${ent.id}`, id: ent.id, cell: { x: 2, y: 2, z: 0 }, subject: { kind: 'figurant', ent, enrolled: false, inBattle: false } }) as unknown as TokenEl;
-  const sujetFigurant = (ent: SceneEntity) => collectBillboards(scene, mpt, { tokens: [jeton(ent)], props: [] })[0];
+  const sujetFigurant = (ent: SceneEntity) => collectBillboards(findTrappingById, scene, mpt, { tokens: [jeton(ent)], props: [] })[0];
   const base = sujetFigurant(figurant({ species: 'humain' } as SceneEntity['appearance']));
 
   const VARIANTES: [string, SceneEntity['appearance']][] = [
@@ -246,6 +247,6 @@ describe('assise — la hauteur de la place dessine, donc elle entre dans l’id
     const haut = sujet(pose(c, place(0.8)));
     expect(haut.svg('front', false, 0), 'la sonde mord').not.toBe(bas.svg('front', false, 0));
     expect(haut.identity).not.toBe(bas.identity);
-    expect(actorIdentityKey(pose(c, place(0.8)))).not.toBe(actorIdentityKey(pose(c, place(0.45))));
+    expect(actorIdentityKey(findTrappingById, pose(c, place(0.8)))).not.toBe(actorIdentityKey(findTrappingById, pose(c, place(0.45))));
   });
 });

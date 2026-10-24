@@ -23,6 +23,7 @@ import type { RigOverlay } from '../src/gameIso/rig/bones';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import type { Weapon } from '../src/engine/types';
 import { assertWardrobeId } from './_lib-wardrobe';
+import { findTrappingById } from '../src/data';
 
 // la tenue de `rigComposition` se résout par ID de garde-robe (carrière ∪ classe ∪ tenue) — ids seulement,
 // validés fail-fast : un id qui retombe sur « nu » masquerait la mutation sous un corps nu (#1338).
@@ -32,7 +33,7 @@ for (const id of [TENUE_DEFAUT, TENUE_SOLDAT])
   assertWardrobeId(id, 'mutations-gallery');
 
 const APP: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 };
-const NU: EquipCtx = equipDe([], []);
+const NU: EquipCtx = equipDe(findTrappingById, [], []);
 const mut = (id: string): Mutation => mutationById(id)!;
 
 function cell(label: string, app: Appearance, overlays: RigOverlay[], opts: { view?: View; equip?: EquipCtx; career?: string; bg?: string; tint?: string } = {}): string {
@@ -68,7 +69,7 @@ section('Vues — les détails de visage disparaissent de dos/profil', VUES.flat
 // 3) Collisions avec l'armure équipée + arme en main (Soldat cuirassé).
 const ARMOUR = ['chemise-de-mailles', 'coiffe-de-mailles', 'veste-de-cuir', 'jambieres-en-cuir'].map((trappingId) => ({ ...itemFromGive({ trappingId }), equipped: true }));
 const EPEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] };
-const SOLDAT: Parameters<typeof cell>[3] = { equip: equipDe([EPEE], ARMOUR), career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
+const SOLDAT: Parameters<typeof cell>[3] = { equip: equipDe(findTrappingById, [EPEE], ARMOUR), career: TENUE_SOLDAT, bg: '#222a24', tint: '#be9' };
 section('Sur armure équipée (épée en main)', [
   'suintement-de-pus', 'bouche-supplementaire', 'ecailles-epineuses', 'plumes-eparses', 'peau-d-acier',
   'tentacule-epais', 'doigts-distendus', 'pattes-d-animaux', 'cornes-asymetriques',

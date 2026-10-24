@@ -39,6 +39,7 @@ import {
   type Rasterisation,
 } from './banc-volumique';
 import { createHero } from '../../engine/character';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -106,7 +107,7 @@ function écran(
   acteurs: readonly ActorPose[] = SANS_ACTEUR,
 ): JSX.Element {
   return (
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}

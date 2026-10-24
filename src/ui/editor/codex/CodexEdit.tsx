@@ -77,6 +77,7 @@ import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/p
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
 import { Grid } from '../../Layout';
+import { findTrappingById } from '../../../data';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
  *  LUES des defs (`VARIANT_RESOLVED_FIELDS`), jamais recopiées : `VariantsField` en déduit les sous-
@@ -929,7 +930,7 @@ function AppearanceField({ label, porteur, nuee, value, onChange, traits }: { tr
           {' '}Armure du profil visible sur la figurine
         </label>
       </div>
-      <ApparencesObjetsField appearance={a} onChange={onChange} weapons={armesDEntite(undefined, { traits })} />
+      <ApparencesObjetsField appearance={a} onChange={onChange} weapons={armesDEntite(findTrappingById, undefined, { traits })} />
       <MonsterPartsFields
         appearance={a}
         onChange={onChange}

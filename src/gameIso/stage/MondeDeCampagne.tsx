@@ -75,6 +75,7 @@ import { SurcouchePov } from '../pov/SurcouchePov';
 // pastilles d'état des jetons, faune et ambiance. Elles servent les DEUX regards, donc elles entrent
 // par l'hôte — la feuille qui les porte peut se démonter, le monde non.
 import '../anim.css';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 /** À HAUTEUR D'ŒIL, TOUT SE DESSINE (#1176, P3-1a) : le dégagement d'architecture est une loi de la vue
  *  de PLATEAU (retirer ce qui coiffe le groupe pour voir dedans depuis le dessus). Appliqué en première
@@ -98,6 +99,7 @@ export function MondeDeCampagne() {
 function CorpsDuMonde() {
   // ── État (store) ────────────────────────────────────────────────────────────────────────────────
   const scene = useGame((s) => s.scene);
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   const mode = useGame((s) => s.mode);
   const partyPos = useGame((s) => s.partyPos);
   const flags = useGame((s) => s.flags); // B4 : masquer le halo d'un décor déjà fouillé (__fouille_<id>)
@@ -649,8 +651,8 @@ function CorpsDuMonde() {
   // matériau de ses quads. Dérivée SANS condition de mode : un figurant d'exploration est un jeton, et
   // sous ce verdict c'est ici qu'il se dessine (le chrome, lui, reste vide pour lui).
   const chromes = useMemo<TokenChromeMark[]>(
-    () => tokenChromes(tokenEls, { ghostIds: visée.ghostIds, hoveredId: visée.hoveredId }, partyToken),
-    [tokenEls, visée.ghostIds, visée.hoveredId, partyToken],
+    () => tokenChromes(resolveTrapping, tokenEls, { ghostIds: visée.ghostIds, hoveredId: visée.hoveredId }, partyToken),
+    [tokenEls, visée.ghostIds, visée.hoveredId, partyToken, resolveTrapping],
   );
   // PASTILLES D'ENTITÉ (#1411 P2-C, spec zone 4) : ce que les CHOSES du champ offrent — en combat à
   // l'actif contrôlé, lu au REGISTRE (`state/entityGestes`, aucun id d'action ici) ; hors combat au
@@ -663,8 +665,8 @@ function CorpsDuMonde() {
     [combatBattle, scene, flags, myTurn, partyPos],
   );
   const gesteEls = useMemo<GesteMark[]>(
-    () => tokenGesteMarks(tokenEls, propEls, offresDEntite),
-    [tokenEls, propEls, offresDEntite],
+    () => tokenGesteMarks(resolveTrapping, tokenEls, propEls, offresDEntite),
+    [tokenEls, propEls, offresDEntite, resolveTrapping],
   );
   // HALOS D'INTERACTION (P3-0g ; régime de révélation #1687) : même partage que les marques dynamiques
   // — dérivés UNE fois (`builders/interactHalos`), et servis aux DEUX peintres (anneaux du monde
@@ -674,8 +676,8 @@ function CorpsDuMonde() {
   // résolue par le pointeur) et la révélation tenue (Alt). Aucun mode n'y entre : ce que le monde offre
   // ne dépend pas du combat.
   const halos = useMemo<readonly InteractHalo[]>(
-    () => (scene ? interactionHalos(tokenEls, propEls, scene, flags, { survol: pointeur.entiteSurvolee, reveler }) : NO_INTERACTION_HALOS),
-    [tokenEls, propEls, scene, flags, pointeur.entiteSurvolee, reveler],
+    () => (scene ? interactionHalos(resolveTrapping, tokenEls, propEls, scene, flags, { survol: pointeur.entiteSurvolee, reveler }) : NO_INTERACTION_HALOS),
+    [tokenEls, propEls, scene, flags, pointeur.entiteSurvolee, reveler, resolveTrapping],
   );
 
   if (!scene) return null;

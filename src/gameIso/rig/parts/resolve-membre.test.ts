@@ -7,6 +7,7 @@ import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { buildTokenMap, applyTokenMap, applyTokenMapArt } from '../palette';
 import { equipDe, type EquipCtx } from '../../../noyau/equipementDessine';
 import { declaredView } from '../viewArt';
+import { findTrappingById } from '../../../data';
 
 /** Enregistre une tenue FIXTURE sous un id à elle, la sert au test, puis la retire du registre.
  *  `tenueFor` lit `TENUE_BY_ID` à l'APPEL : le chemin exercé est le vrai (résolution par id de
@@ -18,11 +19,11 @@ function withTenue<T>(id: string, set: TenueSet, run: () => T): T {
   try { return run(); } finally { delete TENUE_BY_ID[id]; }
 }
 
-const NO_EQUIP: EquipCtx = equipDe([], []);
+const NO_EQUIP: EquipCtx = equipDe(findTrappingById, [], []);
 const resolve = (tenueKey: string | undefined) =>
   resolveParts('humain', 'M', tenueKey, NO_EQUIP, {}, 0, 'front');
 
-const PLAQUE: EquipCtx = equipDe([], [
+const PLAQUE: EquipCtx = equipDe(findTrappingById, [], [
   { uid: 'harnois-qc', kind: 'armor', subType: 'plate', equipped: true, label: 'Harnois de plaque', pa: 5, qualities: [], enc: 3,
     locs: ['corps', 'brasG', 'brasD', 'jambeG', 'jambeD'] },
 ]);

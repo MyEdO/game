@@ -20,6 +20,7 @@ import { armeDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDes
 import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 import { weaponFromTrait } from '../src/engine/creatureEquip';
 import { assertWardrobeId } from './_lib-wardrobe';
+import { findTrappingById } from '../src/data';
 
 // Mannequin de la planche : ID de garde-robe (carrière ∪ classe ∪ tenue), validé fail-fast —
 // un id qui retombe sur « nu » déshabillerait toutes les tuiles en silence (#1338).
@@ -76,8 +77,8 @@ const rows: string[] = [];
 for (const arme of WEAPONS) {
   const name = arme.label;
   const w = wep(arme);
-  const equip: EquipCtx = equipDe([w], []);
-  const dessin = armeDeDessin(w);
+  const equip: EquipCtx = equipDe(findTrappingById, [w], []);
+  const dessin = armeDeDessin(findTrappingById, w);
   const hold = weaponRest(dessin);
   const cells = [
     still(w, equip, hold, 'porté'),

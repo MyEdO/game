@@ -21,6 +21,7 @@ import type { Dims } from '../../geometry/iso';
 import { GameStage3D, setStageRendererFactory } from './GameStage3D';
 import { battreStageFrames } from './stageFrames';
 import { BancRenderer, brancherArdoise, caméras, viderCaptures } from './banc-volumique';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -39,7 +40,7 @@ const DIMS: Dims = { w: SCENE.dimensions.w, h: SCENE.dimensions.h, rot: 0, view:
 /** L'écran, sur l'un ou l'autre regard — les deux seuls cadres que `dessiner` sait dériver. */
 function écran(pov: boolean): JSX.Element {
   return (
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={pov

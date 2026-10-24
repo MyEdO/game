@@ -27,6 +27,7 @@ import {
 } from '../../rig/anim/actorAnimSelect';
 import type { TokenEl } from '../../builders/types';
 import type { Combatant, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -45,7 +46,7 @@ function acteur(patch: Partial<Combatant> = {}): Combatant {
 const HALLEBARDE: Weapon = { id: 'hallebarde', label: 'Hallebarde', damage: 5, group: 'hast', trappingId: 'hallebarde' } as unknown as Weapon;
 
 const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' });
-const sujet = (c: Combatant) => actorBillboards([pose(c)], scene, mpt)[0];
+const sujet = (c: Combatant) => actorBillboards(findTrappingById, [pose(c)], scene, mpt)[0];
 
 /** Les fragments des `n` frames d'un geste, dans l'ordre — ce que le cuiseur rasteriserait. */
 function frames(s: ReturnType<typeof sujet>, def: Parameters<NonNullable<typeof s.frameSvg>>[2], n: number): string[] {
@@ -84,7 +85,7 @@ describe('BillboardSubject.frameSvg — rig bipède', () => {
 
   it('couple MONTÉ : composite à deux corps → aucune couture de frame', () => {
     const monture = { id: 'm1', label: 'Cheval', kind: 'enemy', creatureId: 'cheval', pos: { x: 1, y: 1 }, size: 'grande', conditions: [], wounds: { current: 10, max: 10 }, riderId: 'a1' } as unknown as Combatant;
-    const couple = actorBillboards([{ c: monture, rider: acteur(), x: 1, y: 1, z: 0 }], scene, mpt)[0];
+    const couple = actorBillboards(findTrappingById, [{ c: monture, rider: acteur(), x: 1, y: 1, z: 0 }], scene, mpt)[0];
     expect(couple.svg('front', false, 0).length).toBeGreaterThan(0);
     expect(couple.frameSvg).toBeUndefined();
   });
@@ -247,7 +248,7 @@ function tokenEl(ent: SceneEntity): TokenEl {
 }
 
 const figurantSujet = (ent: SceneEntity) =>
-  collectBillboards(scene, mpt, { tokens: [tokenEl(ent)], props: [] })[0];
+  collectBillboards(findTrappingById, scene, mpt, { tokens: [tokenEl(ent)], props: [] })[0];
 
 describe('Figurant à ambiance authorée — la donnée éditable JOUE en volumique', () => {
   it('avec `anim` : un occupant `eid`, une couture de frame, et l’ambiance déclarée', () => {

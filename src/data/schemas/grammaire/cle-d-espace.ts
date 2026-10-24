@@ -132,7 +132,7 @@ export function porteLeChampMarqueur(e: Readonly<Record<string, unknown>>, champ
 }
 
 /** L'élément `e` est-il retenu par le filtre ? SEUL prédicat de filtre, lu par `idsDeCollection`. */
-function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
+export function retenuParFiltre(filtre: FiltreDEspace, e: Readonly<Record<string, unknown>>): boolean {
   return filtre.vaut === undefined ? porteLeChampMarqueur(e, filtre.champ) : e[filtre.champ] === filtre.vaut;
 }
 

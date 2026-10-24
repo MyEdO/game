@@ -7,7 +7,7 @@ import type { Weapon } from '../../../engine/types';
 
 // Le maniement est routé PAR ID STABLE : l'arme porte son id de Possession, la projection en RÉSOUT la forme.
 const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme =>
-  armeDeDessin({ label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id });
+  armeDeDessin(findTrappingById, { label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id });
 /** Projection de forme déjà résolue (pas de libellé). */
 const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: forme ? [forme] : [] });
 
@@ -64,7 +64,7 @@ describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () 
   it('#2113 S3 — arme invoquée : le maniement suit la forme résolue de `form`, comme son dessin', () => {
     const invoquee: Weapon = { label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], form: 'arbalete' };
     expect(findTrappingById('arbalete')?.shape?.id, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
-    expect(handlingClass(armeDeDessin(invoquee))).toBe('arbalete');
+    expect(handlingClass(armeDeDessin(findTrappingById, invoquee))).toBe('arbalete');
   });
 });
 

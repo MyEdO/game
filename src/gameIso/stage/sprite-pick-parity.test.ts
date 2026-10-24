@@ -12,6 +12,7 @@ import { actorBillboards, bakeWorldGeometry, billboardPose, type BillboardSubjec
 import { ndcAt, pickNearestTarget, type PickTarget } from '../backends/webgl/spriteRaycast';
 import { actorCapsuleOf } from './actorCapsule';
 import { stage3dFraming } from './stage3dCamera';
+import { findTrappingById } from '../../data';
 
 /**
  * HIT-TEST DE SPRITE — CE QUE CHAQUE VOIE RÉPOND (#1176 lot P2-3, #1297 lot B).
@@ -66,7 +67,7 @@ const cidLePlusProche = (
 
 /** Sujet de billboard d'un combattant posé sur une case (le chemin de production `actorBillboards`). */
 function sujet(scene: Scene, mpt: number, c: Combatant, x: number, y: number): BillboardSubject {
-  const [s] = actorBillboards([{ c, x, y, z: 0 }], scene, mpt);
+  const [s] = actorBillboards(findTrappingById, [{ c, x, y, z: 0 }], scene, mpt);
   expect(s, 'aucun sujet de billboard — le rig ne se résout pas').toBeTruthy();
   return s;
 }

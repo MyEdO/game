@@ -13,6 +13,7 @@ import { interactionHalos } from '../gameIso/builders/interactHalos';
 import type { BillboardPropEl } from '../gameIso/builders/types';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { findTrappingById } from '../data';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -158,7 +159,7 @@ describe('meuble à places ET fouillable — les deux affordances restent atteig
     // RÉGIME de révélation (#1687) : Alt tenu, donc ce qui APPELLE est allumé — ce que le halo dit ici,
     // c'est l'appartenance à la liste des utilisables, pas la variante peinte.
     const sc = () => useGame.getState().scene!;
-    const halos = () => interactionHalos([], [el], sc(), useGame.getState().flags, { survol: null, reveler: true });
+    const halos = () => interactionHalos(findTrappingById, [], [el], sc(), useGame.getState().flags, { survol: null, reveler: true });
     expect(halos()).toHaveLength(1);
 
     useGame.getState().interactEntity(PROP); // fouille consommée

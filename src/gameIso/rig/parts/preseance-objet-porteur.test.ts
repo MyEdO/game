@@ -20,6 +20,7 @@ import { asRigSpeciesId } from '../appearance';
 import type { ItemInstance } from '../../../engine/types';
 import type { PartArt } from './types';
 import { LOCALISATIONS_DE_COUP } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const HUMAIN = asRigSpeciesId('humain');
 const LOCS = LOCALISATIONS_DE_COUP;
@@ -35,7 +36,7 @@ describe('préséance objet/porteur (#1903)', () => {
     const app = { species: HUMAIN, sex: 'M' as const, build: 0.5, seed: 1, colors: { peau: '#3a2a1a' } };
     const t = buildTokenMap(couchesDuRig(racePalette('humain', 'M'), 'nu'), app.colors);
     const id = `dg-v-${t.peauH.slice(1)}-${t.peauO.slice(1)}`;
-    const armeSvg = resolveRig(app, { ...equipDe([], []), weapons: [arme('poing')] }, {}, 'nu', 'front').find((b) => b.id === 'arme')!.parts.map((p) => p.svg).join('');
+    const armeSvg = resolveRig(app, { ...equipDe(findTrappingById, [], []), weapons: [arme('poing')] }, {}, 'nu', 'front').find((b) => b.id === 'arme')!.parts.map((p) => p.svg).join('');
     expect(armeSvg).toContain(`url(#${id})`);
     expect(armeSvg).toContain(`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${t.peauH}"/><stop offset="100%" stop-color="${t.peauO}"/>`);
   });
@@ -66,7 +67,7 @@ describe('préséance objet/porteur (#1903)', () => {
       const dg = '<path d="M0 0h4v4z" fill="url(#dg-v3-@metalH-@metal-@metalO)" stroke="@peau"/>';
       ARMOUR.plaque.bras = dg + (declaredView(avant.bras, 'front') ?? '');
       ARMOUR.plaque.torse = dg + (declaredView(avant.torse, 'front') ?? '');
-      const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, equipDe([], [plaque('aethyrique')]), {}, 'soldat', 'front');
+      const bones = resolveRig({ species: HUMAIN, sex: 'M', build: 0.5, seed: 1 }, equipDe(findTrappingById, [], [plaque('aethyrique')]), {}, 'soldat', 'front');
       const contenus = new Map<string, Set<string>>();
       let vus = 0;
       for (const b of bones) for (const p of b.parts) {

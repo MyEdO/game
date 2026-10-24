@@ -7,6 +7,7 @@ import { enemyRigProfile } from './enemyProfile';
 import { combatantAppearance, combatantOverlays } from './parts/combatantVisuals';
 import { mutationById } from '../../data/mutations';
 import type { Combatant, Weapon, ArmourPoints } from '../../engine/types';
+import { findTrappingById } from '../../data';
 
 const noArmour: ArmourPoints = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 function mkEnemy(name: string, over: Partial<Combatant> = {}): Combatant {
@@ -21,7 +22,7 @@ function mkEnemy(name: string, over: Partial<Combatant> = {}): Combatant {
 }
 
 function render(c: Combatant, view: View = 'front') {
-  const p = enemyRigProfile(c)!;
+  const p = enemyRigProfile(findTrappingById, c)!;
   // Chemin RÉEL de prod : les visuels d'état (mutations/blessures/traits) viennent du combattant.
   return renderToStaticMarkup(
     React.createElement(RigSprite, { comp: rigComposition(combatantAppearance(p.appearance, c), p.equip, p.tenue, view, combatantOverlays(c)) }),

@@ -89,10 +89,11 @@ import { resolveQuadFromProps } from '../../src/gameIso/rig/quadruped/composeQua
 import { QUAD_REST } from '../../src/gameIso/rig/quadruped/quadPose';
 import type { QuadBoneId } from '../../src/gameIso/rig/quadruped/quadSkeleton';
 import { equipDe } from '../../src/noyau/equipementDessine';
+import { findTrappingById } from '../../src/data';
 
 // ── Rig de référence (figé) ───────────────────────────────────────────────────────────────
 const REF_APPEARANCE: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 };
-const REF_EQUIP = equipDe([], []);
+const REF_EQUIP = equipDe(findTrappingById, [], []);
 const VB_W = 120, VB_H = 150;
 const RENDER_W = 480;
 const PX_PER_U = RENDER_W / VB_W;

@@ -19,6 +19,7 @@ import { loadRegister } from '../../../engine/weaponLoad';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
 import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
@@ -48,15 +49,15 @@ const vivants = (): Combatant[] => useGame.getState().battle!.combatants;
 function tracerTout(): void {
   for (const c of vivants()) {
     const p: ActorPose = { c, x: c.pos!.x, y: c.pos!.y, z: 0, facing: 'S' };
-    actorPoseKey(p);
-    actorIdentityKey(p);
-    for (const s of actorBillboards([p], scene, mpt))
+    actorPoseKey(findTrappingById, p);
+    actorIdentityKey(findTrappingById, p);
+    for (const s of actorBillboards(findTrappingById, [p], scene, mpt))
       for (const view of VIEWS)
         for (const mirror of [false, true]) {
           s.svg(view, mirror, 0);
           s.frameSvg?.(view, mirror, rigIdleDef(), 2, 8);
         }
-    renderToStaticMarkup(<svg>{tokenBodyKind({ kind: 'combatant', combatant: c }, 'top').body}</svg>);
+    renderToStaticMarkup(<svg>{tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: c }, 'top').body}</svg>);
   }
 }
 

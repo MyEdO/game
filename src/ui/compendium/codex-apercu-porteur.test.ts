@@ -9,6 +9,7 @@ import { resolveRig } from '../../gameIso/rig/composeRig';
 import { bonesToSvg } from '../../gameIso/rig/renderBones';
 import { hashSeed } from '../../engine/dice';
 import { findCreatureById, traits } from '../../data';
+import { findTrappingById } from '../../data';
 
 /**
  * Aucun aperçu du Codex ne tombe dans la branche « aucune espèce résolue » (#1693).
@@ -96,7 +97,7 @@ describe('Codex — tout aperçu rig résout son rendu, jamais par diagnostic (#
       const species = a.species ?? porteur;
       const r = resolveRender(species, findCreatureById(nom)?.traits, nom);
       if (r.kind !== 'rig') return `PLAN:${r.plan}`;
-      const p = entityRigProfile(nom, hashSeed(nom), {
+      const p = entityRigProfile(findTrappingById, nom, hashSeed(nom), {
         seed: a.seed, species, tenue: a.tenue, monster: a.monster, features: a.features, colors: a.colors,
         parts: a.parts, sex: a.sex, build: a.build, eyes: a.eyes,
       });

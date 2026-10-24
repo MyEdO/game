@@ -19,6 +19,7 @@ import type { WorldGeometry } from '../../gameIso/backends/webgl/sceneMeshes';
 import { effectiveLowerLayerMode, layerHidden, LOWER_LAYER_ISOLATE_BELOW } from './lowerLayerGabarit';
 import type { PlanDefectAt } from '../../noyau/planDefects';
 import { brancherArdoise } from '../../gameIso/stage/banc-volumique';
+import { findTrappingById } from '../../data';
 const scenarioToitsConstruit = scenarioToits.construire();
 
 /**
@@ -218,7 +219,7 @@ async function monter(
   const vue = vueTop();
   const rendre = () =>
     root!.render(
-      <EditorCanvas
+      <EditorCanvas resolveTrapping={findTrappingById}
         scene={scene}
         view={vue as never}
         {...baseProps()}

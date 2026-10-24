@@ -42,6 +42,7 @@ import { GROUND_Y, bodyHeight } from '../rig/composeRig';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { contactShadow } from '../backends/webgl/sceneMeshes';
 import type { BillboardSubject } from '../backends/webgl/sceneMeshes';
+import { findTrappingById } from '../../data';
 
 /**
  * CHROME D'ÉCRAN des jetons de combat (#1176, P3-0f) — barre de PV, icônes d'États (report « +N »),
@@ -211,7 +212,7 @@ describe('Chrome des jetons — UNE dérivation, UN peintre (#1176 P3-0f)', () =
   it('le chrome volumique s’ancre à la TÊTE DESSINÉE en losange, et au DISQUE-PORTRAIT en vue du dessus', () => {
     const h = combatChromé().combatants[0];
     const scaleK = combatantTokenScale(h);
-    const frac = combatantBodyTopFrac(h);
+    const frac = combatantBodyTopFrac(findTrappingById, h);
     const marque = { scaleK, n: 1, bodyTopFrac: frac }; // le héros de la sonde : taille moyenne, empreinte d'une case
     const el = monter();
     const h1 = chromeVolumique(el, 'h1')!;
@@ -536,15 +537,15 @@ describe('Ancre du chrome — la TOISE du gabarit, jamais une constante par fami
   const app = (sp: string) => ({ species: sp, sex: 'M', build: 0.5, seed: 1 } as unknown as Appearance);
   const perso = (sp: string): Combatant => ({ ...hero('h1', { x: 3, y: 3 }), appearance: app(sp) } as unknown as Combatant);
   /** Ancre volumique d'un combattant, par le chemin de production (builder → `chromeHeadPx`). */
-  const ancreVol = (c: Combatant) => chromeHeadPx(false, { scaleK: combatantTokenScale(c), n: 1, bodyTopFrac: combatantBodyTopFrac(c) });
+  const ancreVol = (c: Combatant) => chromeHeadPx(false, { scaleK: combatantTokenScale(c), n: 1, bodyTopFrac: combatantBodyTopFrac(findTrappingById, c) });
 
   it('cinq espèces, cinq ancres : la fraction sort de `bodyHeight`, pas d’un nombre par famille', () => {
-    const fracs = ESPÈCES.map((sp) => combatantBodyTopFrac(perso(sp)));
+    const fracs = ESPÈCES.map((sp) => combatantBodyTopFrac(findTrappingById, perso(sp)));
     ESPÈCES.forEach((sp, i) => {
       expect(fracs[i], sp).toBeCloseTo(Math.min(1, bodyHeight(app(sp)) / GROUND_Y), 12);
     });
     expect(new Set(fracs).size, 'cinq toises distinctes').toBe(ESPÈCES.length);
-    expect(combatantBodyTopFrac(perso('nain'))).toBeLessThan(combatantBodyTopFrac(perso('humain')));
+    expect(combatantBodyTopFrac(findTrappingById, perso('nain'))).toBeLessThan(combatantBodyTopFrac(findTrappingById, perso('humain')));
     // Et l'ancre d'écran en hérite : une par espèce, là où la constante de famille n'en donnait qu'une.
     expect(new Set(ESPÈCES.map((sp) => ancreVol(perso(sp)))).size, 'cinq ancres volumiques distinctes').toBe(ESPÈCES.length);
   });
@@ -572,7 +573,7 @@ describe('Ancre du chrome — la TOISE du gabarit, jamais une constante par fami
 
     // La toise du gabarit, et elle seule, décide de la hauteur d'ancre : les pixels dépendent du quad,
     // la FRACTION non — c'est elle que la dérivation partagée (`combatantBodyTopFrac`) fournit.
-    const attendu = combatantBodyTopFrac(nain) / combatantBodyTopFrac(humain);
+    const attendu = combatantBodyTopFrac(findTrappingById, nain) / combatantBodyTopFrac(findTrappingById, humain);
     expect(volNain / volHumain, 'ancre peinte à l’écran').toBeCloseTo(attendu, 9);
     expect(attendu, 'un nain n’arrive pas à la tête d’un humain').toBeLessThan(0.7);
   });
@@ -620,7 +621,7 @@ describe('Pions en disques — la vue du dessus n’a plus un seul billboard de 
     // disque — c'est la classification du classifieur qui décide, elle n'est pas rejouée ici.
     const portrait = g.querySelector('svg[viewBox]');
     expect(portrait, 'le corps est un portrait cadré').toBeTruthy();
-    expect(portrait!.getAttribute('viewBox')).toBe(tokenBodyKind({ kind: 'combatant', combatant: combatChromé().combatants[0] }, 'top').portraitBox);
+    expect(portrait!.getAttribute('viewBox')).toBe(tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: combatChromé().combatants[0] }, 'top').portraitBox);
     expect(portrait!.closest('g[clip-path]'), 'et il est CLIPPÉ au disque').toBeTruthy();
     // L'ANNEAU d'équipe : la MÊME dérivation que l'anneau au sol du plateau iso, au rayon du disque.
     const anneau = cercles.find((c) => c.getAttribute('fill') === 'none');
