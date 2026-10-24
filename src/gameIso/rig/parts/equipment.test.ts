@@ -16,7 +16,7 @@ const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: nu
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
 const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(armeDeDessin(wep(name, type))), 'front');
 /** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé au runtime. */
-const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
+const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: [forme] });
 const famShape = (shape: string, type: 'melee' | 'ranged' = 'melee') => weaponFamily(wepShape(shape, type));
 
 describe('weaponPart', () => {

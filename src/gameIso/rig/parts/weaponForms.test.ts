@@ -8,7 +8,7 @@ import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 
 /** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé. */
-const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
+const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: forme ? [forme] : [] });
 
 /** Sous-types NON tenus en main → hors contrat de silhouette : engins de siège servis par un équipage
  *  et munitions/projectiles. Le rig ne dessine pas d'arme portée pour eux. */
@@ -68,7 +68,7 @@ describe('routage de l’art PAR ID (shape) — plus aucun libellé', () => {
   });
 
   it('une attaque naturelle (natural:true) → aucune arme tenue', () => {
-    expect(weaponFamily({ type: 'melee', forme: undefined, natural: true })).toBe('');
+    expect(weaponFamily({ type: 'melee', candidats: [], natural: true })).toBe('');
   });
 
   it('un shape inconnu retombe sur le Groupe (pas de crash, pas de routage par nom)', () => {

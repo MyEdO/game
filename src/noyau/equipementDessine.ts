@@ -4,15 +4,15 @@
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, formeResolue, isCapeItem, isShieldItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme } from '../engine/items';
+import { emptyArmour, apparencesCandidates, isCapeItem, isShieldItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitList } from '../engine/statEntry';
 import { findCreatureById } from '../data';
 import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
 
 /** Clés d'une arme que le dessin LIT telles quelles (#2097) : le type `FormeDArme` et le sélecteur
- *  `armeDeDessin` en dérivent ; l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et la forme
- *  RÉSOLUE, et elles seules. */
+ *  `armeDeDessin` en dérivent ; l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et les candidats
+ *  RÉSOLUS, et elles seules. */
 const CLES_ARME = ['attackKind', 'hand', 'hands', 'natural', 'teinte', 'subType', 'type'] as const;
 /** Clés d'une pièce d'armure que le dessin LIT (#2097). */
 const CLES_PIECE = ['locs', 'teinte'] as const;
@@ -21,13 +21,12 @@ const CLES_PIECE = ['locs', 'teinte'] as const;
  *  `weaponGroups.json?kind=armour`). */
 export type MatiereDArmure = 'cuir-souple' | 'cuir-bouilli' | 'mailles' | 'plate' | 'armure-du-chaos';
 
-/** Ce que le dessin lit d'une arme : ses clés lues telles quelles, et sa forme RÉSOLUE (`formeResolue`).
- *  `forme` n'existe pas sur `Weapon` : une arme brute ne s'y substitue pas (#2113). */
-export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { forme: string | undefined };
+/** Ce que le dessin lit d'une arme : ses clés et ses candidats résolus, dont la dernière entrée est la racine. */
+export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { candidats: readonly string[] };
 /** `hands` : mains qu'occupe l'arme pour SON porteur (`weaponHands`, monté ou non). */
 export type ArmeDeDessin = FormeDArme & { bouclier: boolean; hands: 1 | 2 };
 export type PieceDeDessin = Pick<ItemInstance, (typeof CLES_PIECE)[number]> & { matiere: MatiereDArmure };
-export type BouclierDeDessin = { forme: string | undefined };
+export type BouclierDeDessin = { candidats: readonly string[] };
 
 /** Équipement DESSINÉ d'un porteur : projection de son état par `armeDeDessin`/`pieceDeDessin`
  *  (#2097), jamais une copie. */
@@ -58,7 +57,7 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
 }
 
 export const armeDeDessin = (w: Weapon, maniement?: ContexteDeManiement): ArmeDeDessin =>
-  ({ ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), forme: formeResolue(w), bouclier: isShieldItem(w) });
+  ({ ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(w), bouclier: isShieldItem(w) });
 /** Pièce d'armure dessinée : sa matière est son `subType`, qu'une pièce d'armure porte toujours (schéma de
  *  `trappings.json`, `synthArmour`) ; une pièce sans type d'armure est un état invalide, refusé. */
 export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
@@ -66,7 +65,7 @@ export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
   if (!estMatiere(matiere)) throw new Error(`pieceDeDessin : « ${it.uid} » n'a pas de type d'armure (subType « ${matiere ?? ''} »).`);
   return { ...projeter(it, CLES_PIECE), matiere };
 }
-export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ forme: formeResolue(x) });
+export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ candidats: apparencesCandidates(x) });
 
 /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou

@@ -9,7 +9,7 @@ import type { Weapon } from '../../../engine/types';
 const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme =>
   armeDeDessin({ label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id });
 /** Projection de forme déjà résolue (pas de libellé). */
-const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, forme });
+const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: forme ? [forme] : [] });
 
 describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () => {
   it('mappe un représentant de chaque classe', () => {

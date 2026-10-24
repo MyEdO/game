@@ -7,6 +7,7 @@ import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
+import { racineDesCandidats } from '../../../engine/items';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
 
 /** Ensemble des slugs de FORME catalogués (clés de l'art rig) — pour valider une forme résolue.
@@ -27,7 +28,8 @@ const ART_BY_GROUP: Record<string, string> = {
  *  sinon la forme résolue (`formeResolue`) si l'art la connaît, sinon le repli par Groupe canonique. */
 export function weaponFamily(w: FormeDArme): string {
   if (w.natural) return ''; // attaque naturelle (corps) : la part du rig fait foi, rien en main
-  if (w.forme && ART_BY_SLUG.has(w.forme)) return w.forme;
+  const forme = racineDesCandidats(w.candidats);
+  if (forme && ART_BY_SLUG.has(forme)) return forme;
   return ART_BY_GROUP[weaponGroupKey(w)] ?? (w.type === 'ranged' ? 'arc' : 'epee');
 }
 
@@ -61,7 +63,8 @@ const SHIELD_BY_SLUG = new Map(SHIELD_DEFS.map((d) => [d.slug, d]));
 const SHIELD_FALLBACK = SHIELD_DEFS.find((d) => d.fallback) ?? SHIELD_DEFS[0];
 const TABLE_BOUCLIER = tableDObjet([]);
 export function shieldPart(x: BouclierDeDessin): PartArt {
-  const d = (x.forme ? SHIELD_BY_SLUG.get(x.forme) : undefined) ?? SHIELD_FALLBACK;
+  const forme = racineDesCandidats(x.candidats);
+  const d = (forme ? SHIELD_BY_SLUG.get(forme) : undefined) ?? SHIELD_FALLBACK;
   return applyTokenMapArt(d.art, TABLE_BOUCLIER);
 }
 

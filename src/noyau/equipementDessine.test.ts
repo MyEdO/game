@@ -5,8 +5,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { equipementDessine, equipementDEntite } from './index';
-import { pieceDeDessin, RANG_DE_MATIERE } from './equipementDessine';
-import { emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout } from '../engine/items';
+import { armeDeDessin, bouclierDeDessin, pieceDeDessin, RANG_DE_MATIERE } from './equipementDessine';
+import { emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
 import { findCreatureById } from '../data';
 import weaponGroups from '../data/weaponGroups.json';
@@ -15,6 +15,29 @@ import type { Combatant, ItemInstance } from '../engine/types';
 const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;
 const porte = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }), equipped: true });
 const matieres = (c: Combatant) => equipementDessine(c).armour.map((p) => [p.locs, p.matiere]);
+
+describe('equipementDessine — candidats publiés (#2948)', () => {
+  it('publie les candidats des armes tenues, rangées et du bouclier', () => {
+    const tenue = { ...porte('arme-simple'), uid: 'tenue', apparence: 'epee_ebrechee' };
+    const rangee = { ...porte('arme-simple'), uid: 'rangee', apparence: 'hache_naine' };
+    const bouclier = { ...porte('bouclier'), uid: 'bouclier', apparence: 'bouclier_blason' };
+    const c = porteur({
+      items: [tenue, rangee, bouclier],
+      weapons: [weaponFromItem(tenue, 'main'), weaponFromItem(bouclier, 'off')],
+      loadouts: [{ id: 'a', main: tenue.uid, off: bouclier.uid }, { id: 'b', main: rangee.uid }],
+      activeLoadoutId: 'a',
+    });
+    const equip = equipementDessine(c);
+    expect(equip.weapons.map((w) => w.candidats)).toEqual([['epee_ebrechee', 'epee'], ['bouclier_blason', 'rond']]);
+    expect(equip.rangees.map((w) => w.candidats)).toEqual([['hache_naine', 'hache']]);
+    expect(equip.shield?.candidats).toEqual(['bouclier_blason', 'rond']);
+  });
+
+  it('ignore une apparence non admise sur l’arme et le bouclier projetés', () => {
+    expect(armeDeDessin({ ...weaponFromItem(porte('arme-simple')), apparence: 'zweihander' }).candidats).toEqual(['epee']);
+    expect(bouclierDeDessin({ trappingId: 'bouclier', apparence: 'hache_naine' }).candidats).toEqual(['rond']);
+  });
+});
 
 describe('equipementDessine — matière par id (#2948)', () => {
   it('« Plastron de cuir » porté se dessine en cuir bouilli, l’id de son trapping', () => {

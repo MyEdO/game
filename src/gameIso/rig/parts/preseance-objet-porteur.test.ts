@@ -24,7 +24,7 @@ import { LOCALISATIONS_DE_COUP } from '../../../engine/types';
 const HUMAIN = asRigSpeciesId('humain');
 const LOCS = LOCALISATIONS_DE_COUP;
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
-const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', forme, hands: 1, bouclier: false });
+const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hands: 1, bouclier: false });
 const plaque = (teinte?: string) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', subType: 'plate', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(teinte && { teinte }) }) as unknown as ItemInstance;
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** Vrai si le texte porte un jeton `@clé`. */
@@ -47,7 +47,7 @@ describe('préséance objet/porteur (#1903)', () => {
   it('un objet rendu SANS porteur ne garde aucun `@` ni `dg-` à `@` (armes, boucliers, armures)', () => {
     const fautes: string[] = [];
     for (const d of WEAPON_DEFS) if (vues(objetSansPorteur(weaponPart(arme(d.slug)))).some(aUnJeton)) fautes.push(`arme:${d.slug}`);
-    for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ forme: d.slug }))).some(aUnJeton)) fautes.push(`bouclier:${d.slug}`);
+    for (const d of SHIELD_DEFS) if (vues(objetSansPorteur(shieldPart({ candidats: [d.slug] }))).some(aUnJeton)) fautes.push(`bouclier:${d.slug}`);
     for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
       const p = armourPart(pieceDeDessin(plaque()), slot);
       if (p && vues(objetSansPorteur(p)).some(aUnJeton)) fautes.push(`armure:plaque:${slot}`);

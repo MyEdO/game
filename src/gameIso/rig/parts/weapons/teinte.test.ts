@@ -8,7 +8,7 @@ import { applyOps, type GameOp } from '../../../../engine/ops';
 import { desDuTest } from '../../../../engine/dice.testkit';
 import { pregen, PREGEN } from '../../../../data/pregens';
 
-const w = (forme: string, teinte?: string): FormeDArme => ({ type: 'melee', forme, ...(teinte ? { teinte } : {}) });
+const w = (forme: string, teinte?: string): FormeDArme => ({ type: 'melee', candidats: [forme], ...(teinte ? { teinte } : {}) });
 
 describe('teinte d’objet', () => {
   it('au défaut, l’art est résolu', () => {

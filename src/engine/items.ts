@@ -202,24 +202,30 @@ export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTra
 export type SourceDeForme = Pick<Weapon, 'form' | 'apparence' | 'natural' | 'trappingId'>;
 
 /**
- * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
- * d'inventaire, sélecteur de forme et outillage de recette la lisent. Routage PAR ID STABLE :
- *  1. attaque naturelle → aucune forme ;
+ * CANDIDATS d'apparence d'un objet porté, au catalogue courant (#2113, #2948) — l'UNIQUE résolution.
+ * La dernière entrée est la racine de la forme dessinée. Routage PAR ID STABLE :
+ *  1. attaque naturelle → aucun candidat ;
  *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
- *  3. racine de l’apparence choisie, si admise par `shape` ou `formChoices` ;
+ *  3. apparence choisie puis sa racine, si admise par `shape` ou `formChoices` ;
  *  4. `shape` du catalogue, par `trappingId`.
- * `undefined` : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
+ * Liste vide : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
  */
-export function formeResolue(x: SourceDeForme): string | undefined {
-  if (x.natural) return undefined;
+export function apparencesCandidates(x: SourceDeForme): string[] {
+  if (x.natural) return [];
   const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
-  if (invoquee) return invoquee;
+  if (invoquee) return [invoquee];
   const t = x.trappingId ? findTrappingById(x.trappingId) : undefined;
   const apparence = findApparenceById(x.apparence);
   const forme = apparence?.forme ?? apparence?.id;
-  if (forme && (forme === t?.shape || t?.formChoices?.includes(forme))) return forme;
-  return t?.shape;
+  if (apparence && forme && (forme === t?.shape || t?.formChoices?.includes(forme)))
+    return apparence.id === forme ? [forme] : [apparence.id, forme];
+  return t?.shape ? [t.shape] : [];
 }
+
+/** Racine de la forme dessinée : dernière entrée des candidats. */
+export const racineDesCandidats = (candidats: readonly string[]): string | undefined => candidats[candidats.length - 1];
+
+export const formeResolue = (x: SourceDeForme): string | undefined => racineDesCandidats(apparencesCandidates(x));
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
