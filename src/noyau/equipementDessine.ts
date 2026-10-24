@@ -182,15 +182,19 @@ export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee'
   enrolled?: boolean;
 }
 
-/** Équipement DESSINÉ d'une entité de scène de réf `ref` (id de créature), MÊME dérivation qu'au combat :
- *  traits du statbloc d'éditeur, sinon du record ; l'armure s'en dérive toujours, les armes seulement pour
- *  un statbloc d'éditeur ou une entité enrôlée (`renderWeaponsFromTraits`, armes EXPLICITES). `weapon` ne
- *  s'ajoute que si les traits n'ont pas déjà produit une arme du même type (`spawn.ts`, #126/#145). */
-export function equipementDEntite(ref: string | undefined, opts: EquipementDAuteur = {}): EquipCtx {
+/** Armes du porteur d’auteur : traits explicites ou d’une entité enrôlée, puis arme équipée
+ *  si son type n’est pas déjà représenté (`spawn.ts`, #126/#145). */
+export function armesDEntite(ref: string | undefined, opts: EquipementDAuteur = {}): Weapon[] {
   const traits = opts.traits ?? findCreatureById(ref)?.traits ?? [];
   const traitWeapons = renderWeaponsFromTraits(opts.traits || opts.enrolled ? traits : []);
   const idWeaponInst = opts.weapon ? weaponFromId(opts.weapon) : undefined;
   const idWeapon = idWeaponInst && !traitWeapons.some((w) => w.type === idWeaponInst.type) ? [idWeaponInst] : [];
+  return [...idWeapon, ...traitWeapons];
+}
+
+/** Équipement dessiné du porteur d’auteur (#2948). */
+export function equipementDEntite(ref: string | undefined, opts: EquipementDAuteur = {}): EquipCtx {
+  const traits = opts.traits ?? findCreatureById(ref)?.traits ?? [];
   const armourPA: ArmourPoints = opts.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
-  return equipDe([...idWeapon, ...traitWeapons], synthArmour(armourPA, armurePorteeDe(opts, ref)), { apparenceDe: apparenceDesArmes(opts, ref) });
+  return equipDe(armesDEntite(ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)), { apparenceDe: apparenceDesArmes(opts, ref) });
 }

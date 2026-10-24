@@ -24,6 +24,7 @@ import {
   type FaceDArete,
   type WallSecret,
   isDescriptiveZone,
+  enrolledEntityIds,
   porteAuteur,
   sceneMetresPerTile,
   secretAuteur,
@@ -62,8 +63,9 @@ import { entityKindSchema, facadeFeatureKindSchema, faceDAreteSchema, roofProfil
  *  espace : une ancre qui en nomme une est ignorée sans un mot (#841). */
 const battleAnchorTargets = (): { id: string; label: string }[] =>
   activitiesFor('bataille-round').map((def) => ({ id: def.id, label: def.label }));
-import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
+import { armesDEntite } from '../../noyau/equipementDessine';
 import { effectCtxOf } from './EffectList';
 import { RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
@@ -1530,6 +1532,11 @@ function EntityPanel({
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
               reglages={['monster', 'eyes', 'features', 'tenue', 'colors']}
+              apresArme={<ApparencesObjetsField
+                appearance={ent.appearance ?? {}}
+                onChange={(appearance) => updateSel({ appearance })}
+                weapons={armesDEntite(ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id) })}
+              />}
               weapon={ent.weapon}
               onWeapon={(w) => updateSel({ weapon: w })}
             />

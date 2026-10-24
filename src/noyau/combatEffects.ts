@@ -27,7 +27,7 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet, type TrappingResolver } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
@@ -1345,10 +1345,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
-      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif));
+      const destinataire = env.hero(e.heroId);
+      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
       // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
-      it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
       if (e.identified === false) it.identified = false;
       if (e.magicKnown) it.magicKnown = true; // aura détectée en fenêtre de loot → suit l'objet
       if (e.detectTried) it.detectTried = true;

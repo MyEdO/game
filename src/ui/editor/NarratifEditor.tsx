@@ -4,8 +4,9 @@ import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../composites/Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
-import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
+import { armesDEntite } from '../../noyau/equipementDessine';
 import { mergeCreatureProfile } from '../../noyau/monde/resolveursDuNarratif';
 import { charAbr, creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
@@ -1114,6 +1115,8 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
               <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
                 nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
             </div>
+            <ApparencesObjetsField appearance={appearance} onChange={poserApparence}
+              weapons={armesDEntite(undefined, { traits: base ? mergeCreatureProfile(base, profil).traits : profil.traits })} />
             <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
             <label className="ed-field">
               Portrait (id d'illustration)

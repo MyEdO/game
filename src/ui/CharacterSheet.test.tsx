@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -7,7 +7,9 @@ import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
-import { findTrappingById } from '../data';
+import { apparences, findTrappingById } from '../data';
+import { setDataset } from '../data/overrides';
+import { apparencesAdmissibles, apparencesCandidates, itemFromTrappingById } from '../engine/items';
 import { useGame } from '../state/store';
 import { t } from '../i18n';
 
@@ -37,6 +39,86 @@ const hero = (): Combatant =>
     motivation: 'Devoir',
     details: { age: 27, ambitionShort: 'Survivre à la prochaine campagne', ambitionLong: 'Commander sa propre compagnie' },
   }) as unknown as Combatant;
+
+describe('CharacterSheet — Apparence sur l’objet', () => {
+  beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
+  let catalogue: typeof apparences;
+  beforeEach(() => {
+    catalogue = apparences.slice();
+    setDataset('apparences', [...catalogue.filter((a) => !a.forme),
+      { type: 'apparences', id: 'choix-epee', label: 'Épée ouvragée', forme: 'epee' },
+      { type: 'apparences', id: 'choix-hache', label: 'Hache ouvragée', forme: 'hache' },
+      { type: 'apparences', id: 'choix-cape', label: 'Cape ouvragée', forme: 'cape' },
+      { type: 'apparences', id: 'choix-armure', label: 'Maille ouvragée', forme: findTrappingById('chemise-de-mailles')!.shape! },
+      { type: 'apparences', id: 'choix-bouclier', label: 'Bouclier ouvragé', forme: findTrappingById('bouclier')!.shape! },
+    ]);
+    useGame.setState({ party: [], battle: null, sheetTab: 'possessions' });
+  });
+  afterEach(() => {
+    demonterRacines();
+    setDataset('apparences', catalogue);
+    useGame.setState({ party: [], battle: null });
+  });
+  const ouvrir = (...ids: string[]) => {
+    const h = { ...hero(), items: ids.map((id) => itemFromTrappingById(id)!) };
+    useGame.setState({ party: [h], sheetId: h.id });
+    const { container } = monterRacine(<CharacterSheet heroId={h.id} onClose={() => {}} />);
+    act(() => container.querySelector<HTMLElement>('.inv-item .plaque-row')!.click());
+    return { h, container };
+  };
+  const choisir = (container: HTMLElement, label: string) => {
+    const option = [...container.querySelectorAll<HTMLElement>('.ir-form [role="option"]')].find((e) => e.querySelector('.ms-label')?.textContent === label);
+    expect(option, label).toBeTruthy();
+    act(() => container.querySelector<HTMLElement>('.ir-form [role="combobox"]')!.click());
+    act(() => option!.click());
+  };
+
+  it('Arme simple : toutes les racines admises et leurs variantes, sans apparence étrangère', () => {
+    const { h, container } = ouvrir('arme-simple');
+    const opts = [...container.querySelectorAll('.ir-form [role="option"] .ms-label')].map((e) => e.textContent);
+    const racines = findTrappingById('arme-simple')!.formChoices!;
+    expect(opts).toEqual(expect.arrayContaining(racines.map((id) => apparences.find((a) => a.id === id)!.label)));
+    expect(opts).toContain('Épée ouvragée');
+    expect(opts).toContain('Hache ouvragée');
+    expect(opts).not.toContain('Cape ouvragée');
+    expect(opts).toHaveLength(new Set([...racines, findTrappingById('arme-simple')!.shape]).size + 2);
+    for (const a of apparencesAdmissibles(h.items![0])) {
+      act(() => useGame.getState().choisirApparence(h.id, h.items![0].uid, a.id));
+      expect(apparencesCandidates(useGame.getState().party[0].items![0])[0]).toBe(a.id);
+    }
+  });
+
+  it('choisir une variante écrit son id ; revenir à la racine par défaut retire la clé', () => {
+    const { container } = ouvrir('arme-simple');
+    choisir(container, 'Hache ouvragée');
+    expect(useGame.getState().party[0].items![0].apparence).toBe('choix-hache');
+    expect(container.querySelector('.ir-form .ms-trigger')?.textContent).toContain('Hache ouvragée');
+    const defaut = findTrappingById('arme-simple')!.shape!;
+    choisir(container, apparences.find((a) => a.id === defaut)!.label);
+    expect(Object.prototype.hasOwnProperty.call(useGame.getState().party[0].items![0], 'apparence')).toBe(false);
+    expect(container.querySelector('.ir-form [aria-selected="true"] .ms-label')?.textContent).toBe(apparences.find((a) => a.id === defaut)!.label);
+  });
+
+  it('bouclier, armure et cape proposent aussi leurs variantes', () => {
+    const { container } = ouvrir('bouclier', 'chemise-de-mailles', 'cape');
+    for (const [index, label] of ['Bouclier ouvragé', 'Maille ouvragée', 'Cape ouvragée'].entries()) {
+      if (index) act(() => container.querySelectorAll<HTMLElement>('.inv-item .plaque-row')[index].click());
+      expect(container.querySelectorAll('.ir-form')).toHaveLength(1);
+      choisir(container, label);
+    }
+    expect(useGame.getState().party[0].items!.map((it) => it.apparence)).toEqual(['choix-bouclier', 'choix-armure', 'choix-cape']);
+  });
+
+  it('la variante courante vient des candidats et le sélecteur reste fermé en combat', () => {
+    const h = { ...hero(), items: [{ ...itemFromTrappingById('arme-simple')!, apparence: 'choix-epee' }] };
+    useGame.setState({ party: [h], sheetId: h.id });
+    const { container } = monterRacine(<CharacterSheet heroId={h.id} onClose={() => {}} />);
+    act(() => container.querySelector<HTMLElement>('.inv-item .plaque-row')!.click());
+    expect(container.querySelector('.ir-form [aria-selected="true"] .ms-label')?.textContent).toBe('Épée ouvragée');
+    act(() => useGame.setState({ battle: { combatants: [h], order: [h.id], log: [] } as never }));
+    expect(container.querySelector('.ir-form')).toBeNull();
+  });
+});
 
 describe('AdvancementPanel (rendu)', () => {
   it('rend le bandeau PX, les Caractéristiques, Compétences, Talents et le bloc Carrière', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme } from './items';
+import { apparencesCandidates, apparencesAdmissibles, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme } from './items';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
@@ -409,6 +409,13 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
     const calotte = { ...itemFromTrapping('Calotte de cuir')!, equipped: true };
     const justau = itemFromTrapping('Justaucorps de cuir')!;
     expect(equipConflicts(hero([calotte, justau]), justau)).toEqual([]);
+  });
+
+  it('la cape du catalogue publie sa racine sans recopier le défaut sur l’instance', () => {
+    const cape = itemFromTrappingById('cape')!;
+    expect(apparencesCandidates(cape)).toEqual(['cape']);
+    expect(apparencesAdmissibles(cape).map((a) => a.id)).toContain('cape');
+    expect(Object.prototype.hasOwnProperty.call(cape, 'apparence')).toBe(false);
   });
 
   it('isCapeItem reconnaît Cape/Manteau (trappings sans stats) ; une seule cape portée', () => {

@@ -48,7 +48,8 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
 import structureCriticalsRawJson from './structure-criticals.json';
 import artilleryMisfireRawJson from './artillery-misfire.json';
 import miscastRawJson from './miscast.json';
-import trappingsJson from './trappings.json';
+import { trappings, findTrappingById } from './apparencesObjets';
+export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
 import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
@@ -120,7 +121,6 @@ import combatStakesJson from './combat-stakes.json';
 import activitiesStakeJson from './activities.json';
 import actionsJson from './actions.json';
 import axesJson from './axes.json';
-import apparencesJson from './apparences.json';
 import navalProgressionJson from './naval-progression.json';
 import seaNavigationJson from './sea-navigation.json';
 import seaPerilsJson from './sea-perils.json';
@@ -140,7 +140,6 @@ import type { InterludeEvent } from './interludeEvents';
 import type { Peripetie } from './peripeties';
 import type { CharacteristicsData } from './schemas/defs/characteristics';
 import type { AxesData } from './schemas/defs/axes';
-import type { ApparenceData } from './schemas/defs/apparences';
 import type { NavalProgressionData } from './schemas/defs/naval-progression';
 import type { SeaNavigationData } from './schemas/defs/sea-navigation';
 import type { SeaPerilsData } from './schemas/defs/sea-perils';
@@ -2481,7 +2480,7 @@ export function findMutationById(id: string | null | undefined): MutationData | 
 export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
-export const trappings = trappingsJson as TrappingData[];
+
 /** Engins de siège POSABLES = trappings portant un art d'affût (`siegeRig`). FOYER UNIQUE du filtre :
  *  l'invariant « posable ⇔ l'engin a un art d'affût, et c'est ce rig qui rend l'affût inerte en
  *  éditeur comme en combat » ne vit QU'ICI — partagé par l'outil emplacement de l'éditeur
@@ -2870,10 +2869,6 @@ const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
 /** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
 export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
-/** Catalogue des APPARENCES d'objet (#2948, `schemas/defs/apparences.ts`) : une entrée sans `forme` est
- *  une forme et son apparence par défaut, une entrée avec `forme` en est une variante. */
-export const apparences = apparencesJson as ApparenceData[];
-export const findApparenceById: (id: string | null | undefined) => ApparenceData | undefined = indexParId('apparences', apparences);
 export const eyes = eyesJson as DetailColorData[];
 export const hairs = hairsJson as DetailColorData[];
 /** Calendrier impérial — tables de CONTENU éditables au Codex (cf. `engine/clock.ts` pour la mécanique). */
@@ -3322,11 +3317,6 @@ export function findStarById(id: string | null | undefined): StarData | undefine
   return signeAstralParId(id);
 }
 
-const possessionParId = indexParId('trappings', trappings);
-/** Résout une Possession par son `id` STABLE. */
-export function findTrappingById(id: string): TrappingData | undefined {
-  return possessionParId(id);
-}
 /** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
  *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`objetDuNarratif`,
  *  `noyau/monde/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */
