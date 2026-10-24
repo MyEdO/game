@@ -42,7 +42,7 @@ import { weatherTestMods } from '../engine/weatherTestMod'; // #341
 import { hasCoat, partyHasTent, applyExposureFailure, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
-import { itemFromGive, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromGive, autoStowNewItem } from '../engine/items';
 import { effectiveSkillCharKey } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
@@ -359,7 +359,7 @@ export const TABLES = {
         for (const h of party.filter((x) => !x.dead && !x.outOfRencontre)) {
           if (remaining <= 0) break;
           if (rationCount(h) >= 1) continue;
-          const ration = itemFromGive({ trappingId: 'ration' });
+          const ration = itemFromGive({ trappingId: 'ration' }, undefined, undefined, contexteDeNaissanceDObjet(h));
           h.items = [...(h.items ?? []), ration];
           autoStowNewItem(h, ration); // #204 : rangement par défaut
           remaining -= 1;

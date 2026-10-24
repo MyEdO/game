@@ -6,7 +6,7 @@
 import type { Jeu } from './etat';
 import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type CharKey } from '../engine/types';
-import { recomputeLoadout, itemFromTrappingById, avecObjet } from '../engine/items';
+import { recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
 import { bargainBuyFactor, bargainSellFactor, type BargainOutcome } from '../engine/bargain';
 import { SL_ASTOUNDING, estJete } from '../engine/tests';
@@ -405,7 +405,7 @@ export function buyItem(get: Get, set: Set, id: string, heroId?: string): void {
   const dest = heroId ?? get().party[0]?.id;
   const destHero = dest ? actorIn(get(), dest) : undefined;
   if (!free && (!destHero || !canAfford(bourseOf(destHero), cost))) { get().log(t('mf.purseKo', { label: entry.label })); return; }
-  const objet = entry.unit ? null : itemFromTrappingById(id);
+  const objet = entry.unit ? null : itemFromTrappingById(id, undefined, destHero ? contexteDeNaissanceDObjet(destHero) : undefined);
   if (!entry.unit && !objet) return; // objet de sac introuvable → abandon (parité comportement)
   if (!free) payWithAllocation(get, set, { debits: soloPayer(dest!, cost), recipient: dest, purpose: 'achat' });
   const decr = (st: { id: string; qty: number }[]) => st.map((l) => (l.id === id ? { ...l, qty: l.qty - 1 } : l));
@@ -643,7 +643,7 @@ export function barterExchange(get: Get, set: Set, opts: { giveHeroId: string; g
   if (givable.length < quote.giveCount) { get().log(t('mf.barterNeed', { n: quote.giveCount, label: donne, dispo: givable.length })); return; }
   if (stockLine.qty < getCount) { get().log(t('mf.barterNoStock')); return; }
   const soldUids = givable.slice(0, quote.giveCount).map((i) => i.uid);
-  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId)).filter((i) => i !== null);
+  const acquis = Array.from({ length: getCount }, () => itemFromTrappingById(opts.getStockId, undefined, contexteDeNaissanceDObjet(hero))).filter((i) => i !== null);
   const newStock = m.stock.map((l) => (l.id === opts.getStockId ? { ...l, qty: l.qty - getCount } : l));
   set((s) => {
     const eid = s.merchant!.entityId;

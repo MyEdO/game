@@ -11,15 +11,6 @@ import { isAtoutQuality, isUnbreakable, qualityIndice, resolveQualities } from '
 import { longerThanShort } from './engagement';
 import { norm } from '../lib/normalize';
 
-/** L'arme matche-t-elle la FAMILLE requise par un enchantement (mot-clé sur nom/sous-type — « épée »,
- *  « hache », « lance ») ? Pas de famille requise → toujours vrai. Sert à CHOISIR l'arme tenue à
- *  enchanter au lancement (Épée de justice ne lie qu'une épée, etc.). */
-export function weaponMatchesFamily(w: { label: string; subType?: string } | undefined, requires?: string): boolean {
-  if (!requires) return true;
-  if (!w) return false;
-  return norm(`${w.label} ${w.subType ?? ''}`).includes(norm(requires));
-}
-
 /** Dégâts d'arme encaissés EFFECTIFS (pour la pénalité) : l'Atout Solide(N) absorbe les N premiers
  *  Points de Dégâts sans pénalité (LDB 60 l.30). */
 function effectiveDamageTaken(w: Weapon): number {

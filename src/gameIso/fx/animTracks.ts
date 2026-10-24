@@ -17,8 +17,7 @@ import { bus, EVT } from '../../noyau/bus';
 import { useGame } from '../../state/store';
 import { inBattleId } from '../../noyau/monde/combatants';
 import { combatantRender } from '../sizeScale';
-import { enemyRigProfile, rendersFromOwnInventory } from '../rig/enemyProfile';
-import { armePrincipale, equipPorte, type EquipCtx } from '../rig/parts/equipment';
+import { armePrincipale, equipementDessine, type EquipCtx } from '../../noyau/equipementDessine';
 import { hasShieldEquipped } from '../rig/anim/weaponClips';
 import {
   clipTotalMs,
@@ -109,14 +108,13 @@ let timerIsRaf = false;
 
 /**
  * Contexte d'un acteur lu dans le store — MÊME résolution que le stage affine (`tokenBodyKind` :
- * classification par la donnée, profil d'ennemi sauf inventaire propre). Défaut du registre.
+ * classification par la donnée, équipement dessiné `equipementDessine`). Défaut du registre.
  */
 export function combatantAnimCtx(id: string): AnimActorCtx | undefined {
   const c = inBattleId(useGame.getState().battle, id);
   if (!c) return undefined;
   if (combatantRender(c).kind !== 'rig') return { voie: 'plan', kind: c.kind };
-  const equip = (rendersFromOwnInventory(c) ? null : enemyRigProfile(c))?.equip ?? equipPorte(c);
-  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equip) };
+  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equipementDessine(c)) };
 }
 
 /** Contexte de GESTE d'un bipède, lu de son équipement dessiné : l'arme que l'os `arme` porte, et la

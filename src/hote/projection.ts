@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import {
-  activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed,
+  activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine,
   porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey,
   type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt,
 } from '../noyau/index';
@@ -26,6 +26,7 @@ export interface CombattantProjete {
   /** Ses États (`conditions`), chacun avec sa valeur. */
   etats: { id: string; valeur: number }[];
   horsCombat: boolean;
+  equipement: ReturnType<typeof equipementDessine>;
 }
 
 /** Une entité de la scène en exploration : id, genre, nom, case. */
@@ -129,6 +130,7 @@ function combattant(c: Combatant, actif: Combatant | undefined): CombattantProje
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
+    equipement: equipementDessine(c),
   };
 }
 

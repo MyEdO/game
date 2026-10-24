@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
 import { isCapeItem, isShieldItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
-import { armeDeDessin, armourPart, bouclierDeDessin, objetSansPorteur, pieceDeDessin, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
+import { armourPart, objetSansPorteur, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
+import { armeDeDessin, bouclierDeDessin, pieceDeDessin } from '../noyau/equipementDessine';
 import { viewOrFront } from '../gameIso/rig/parts/types';
 import type { Slot } from '../engine/authoringAppearance';
 import { defsGlobaux } from '../gameIso/sprites';
@@ -29,9 +30,9 @@ type Resolved = { art: string; geom: Geom } | { glyph: IconId };
 const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
 
 /** Arme minimale pour le routage d'art à partir d'un objet : ce dont sa forme se résout (`trappingId`,
- *  `form`, `formeChoisie`, cf. `formeResolue`), `skin` et `subType` — la MÊME forme que le pion. */
+ *  `form`, `apparence`, cf. `formeResolue`), `teinte` et `subType` — la MÊME forme que le pion. */
 function asWeapon(item: ItemInstance): Weapon {
-  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], skin: item.skin, form: item.form, formeChoisie: item.formeChoisie, trappingId: item.trappingId, subType: item.subType };
+  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], ...(item.teinte ? { teinte: item.teinte } : {}), form: item.form, apparence: item.apparence, trappingId: item.trappingId, subType: item.subType };
 }
 
 function resolve(item: ItemInstance | Weapon): Resolved {

@@ -20,8 +20,8 @@ import type { Combatant, Weapon } from '../../engine/types';
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const slugs = new Set(WEAPON_DEFS.map((d) => d.slug));
-const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape))!;
-const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape)!;
+const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape.id))!;
+const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape?.id)!;
 const catalogueDOrigine = trappings.slice();
 const bestiaireDOrigine = creatures.slice();
 
@@ -31,7 +31,7 @@ function héros(arme: Weapon): Combatant {
   h.weapons = [arme];
   return h;
 }
-const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape } : t)));
+const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape: { id: shape } } : t)));
 
 let root: Root | null = null;
 let hôte: HTMLDivElement | null = null;

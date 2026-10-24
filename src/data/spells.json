@@ -2227,10 +2227,8 @@
                   "magique"
                 ],
                 "chooseForm": true,
-                "skin": {
-                  "metal": "#8fd4ff",
-                  "cuir": "#34557f",
-                  "accent": "#bfe6ff"
+                "teinte": {
+                  "id": "aethyrique"
                 }
               }
             ]
@@ -4993,18 +4991,20 @@
                 "op": "grantWeapon",
                 "label": "Épée ardente de Rhuin",
                 "damage": 6,
-                "subType": "base",
+                "subType": {
+                  "id": "base"
+                },
                 "reach": "Moyenne",
                 "hands": 1,
                 "qualities": [
                   "magique",
                   "percutante"
                 ],
-                "form": "arme-simple",
-                "skin": {
-                  "metal": "#ff8a3a",
-                  "cuir": "#5a2410",
-                  "accent": "#ffce4a"
+                "form": {
+                  "id": "arme-simple"
+                },
+                "teinte": {
+                  "id": "ardente-de-rhuin"
                 },
                 "onHitEffects": [
                   {
@@ -6840,17 +6840,19 @@
                   "bonusOf": "force-mentale"
                 },
                 "damagePlus": 3,
-                "subType": "armes-d-hast",
+                "subType": {
+                  "id": "armes-d-hast"
+                },
                 "reach": "Longue",
                 "hands": 2,
                 "qualities": [
                   "magique"
                 ],
-                "form": "serpe-de-guerre",
-                "skin": {
-                  "metal": "#b07fdc",
-                  "cuir": "#2b1b3d",
-                  "accent": "#d6acff"
+                "form": {
+                  "id": "serpe-de-guerre"
+                },
+                "teinte": {
+                  "id": "shyish"
                 }
               },
               {
@@ -11778,7 +11780,14 @@
             "ops": [
               {
                 "op": "augmentWeapon",
-                "requiresWeapon": "lance",
+                "requiresWeapon": [
+                  "lance",
+                  "lance_cavalerie",
+                  "demi_lance",
+                  "pique",
+                  "pique_armes",
+                  "javelot"
+                ],
                 "addQualities": [
                   "percutante",
                   "magique"
@@ -14281,7 +14290,13 @@
             "ops": [
               {
                 "op": "augmentWeapon",
-                "requiresWeapon": "hache",
+                "requiresWeapon": [
+                  "hache",
+                  "grande_hache",
+                  "hache_armes",
+                  "hache_lancer",
+                  "hache_arquebuse"
+                ],
                 "addQualities": [
                   "magique"
                 ],
@@ -14490,7 +14505,17 @@
             "ops": [
               {
                 "op": "augmentWeapon",
-                "requiresWeapon": "épée",
+                "requiresWeapon": [
+                  "epee",
+                  "epee_batarde",
+                  "epee_cour",
+                  "rapiere",
+                  "fleuret",
+                  "sabre",
+                  "cimeterre",
+                  "zweihander",
+                  "zweihander_flamberge"
+                ],
                 "addQualities": [
                   "magique"
                 ],

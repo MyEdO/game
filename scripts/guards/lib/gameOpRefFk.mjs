@@ -96,7 +96,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'augmentWeapon.removeQualities': { registry: 'qualities' },
   'grantWeapon.qualities': { registry: 'qualities' },
   'grantNaturalWeapon.qualities': { registry: 'qualities' },
-  'grantWeapon.subType': { registry: 'weaponGroups' },
   'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
   // ── Tables ──
   'rollMutation.table': { registry: 'mutationTables' },
@@ -116,7 +115,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },
   'teamCommander.commanderId': { nonRef: 'id de combattant RUNTIME (posé par le flux de combat), jamais authoré en donnée' },
   'grantTrait.arg': { nonRef: 'argument d\'INSTANCE du trait, polymorphe selon le trait porteur (id de Groupe, niveau de Difficulté, portée, prose) — aucun registre unique' },
-  'augmentWeapon.requiresWeapon': { nonRef: 'mot-clé de FAMILLE d\'arme, matché par normalisation de `label`+`subType` (src/engine/weaponDamage.ts › weaponMatchesFamily)' },
 };
 
 const norm = (p) => p.replace(/\\/g, '/');

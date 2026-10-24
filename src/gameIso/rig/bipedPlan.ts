@@ -8,12 +8,12 @@ import type { BodyPlan, ResolveOpts } from './bodyPlan';
 import type { View } from './facing';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
-import type { EquipCtx } from './parts/equipment';
+import { equipDe, type EquipCtx } from '../../noyau/equipementDessine';
 import { resolveRig, type ResolvedBone } from './composeRig';
 import { bipedSpeciesNames } from './creatures';
 
 const DEFAULT_BIPED: Omit<Appearance, 'species'> = { sex: 'M', build: 0.5, seed: 1 };
-const EMPTY_EQUIP: EquipCtx = { weapons: [], armour: [] };
+const EMPTY_EQUIP: EquipCtx = equipDe([], []);
 
 function resolveBiped(species: string, view: View, pose: BonePose, opts?: ResolveOpts): ResolvedBone[] {
   const appearance: Appearance = opts?.appearance ?? { ...DEFAULT_BIPED, species: asRigSpeciesId(species), colors: opts?.colors };

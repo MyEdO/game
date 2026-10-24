@@ -8,16 +8,19 @@ import { Combatant, ItemInstance, ItemKind, HitLocation, ArmourPoints, Weapon, W
 import { bonus, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
 import { applyEnchants } from './weaponDamage';
+import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef } from '../data';
 import { t } from '../i18n';
+import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
-export type TrappingResolver = (id: string) => TrappingData | undefined;
+export type { TrappingResolver } from '../data/apparencesObjets';
+import type { TrappingResolver } from '../data/apparencesObjets';
 import { slugId } from '../data/slug';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
@@ -27,6 +30,48 @@ import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
 import { sequence } from './sequences';
+
+/** Contexte explicite de la naissance d’un objet (#2948). */
+export interface ContexteDeNaissanceDObjet {
+  espece?: string;
+  classe?: string;
+}
+
+/** Contexte du destinataire au moment de la naissance, sans lecture d’état global. */
+export function contexteDeNaissanceDObjet(porteur: Pick<Combatant, 'species' | 'career'>): ContexteDeNaissanceDObjet {
+  return { espece: porteur.species, classe: findCareerById(porteur.career)?.class };
+}
+
+function deciderApparenceALaNaissance(
+  objet: ItemInstance,
+  contexte: ContexteDeNaissanceDObjet | undefined,
+  resolveTrapping: TrappingResolver,
+  auteur?: { id: string },
+): ItemInstance {
+  if (auteur) {
+    const refus = messageDApparenceDObjet(objet.trappingId, auteur.id, resolveTrapping);
+    if (refus) throw new Error(refus);
+    objet.apparence = auteur.id;
+    return objet;
+  }
+  if (!contexte || !objet.trappingId) return objet;
+  const forme = resolveTrapping(objet.trappingId)?.shape?.id;
+  const qualites = objet.qualities.map((q) => q.id);
+  const candidates = apparencesAdmissiblesDObjet(objet, resolveTrapping).flatMap((a) => {
+    if (!a.forme || a.forme.id !== forme) return [];
+    const criteres: [string[] | undefined, readonly string[]][] = [
+      [a.especes, contexte.espece ? [contexte.espece] : []],
+      [a.classes, contexte.classe ? [contexte.classe] : []],
+      [a.qualites, qualites],
+    ];
+    const axes = criteres.filter(([etiquettes]) => etiquettes?.length);
+    if (!axes.length || !axes.every(([etiquettes, valeurs]) => etiquettes!.some((id) => valeurs.includes(id)))) return [];
+    return [{ id: a.id, specificite: axes.length }];
+  });
+  candidates.sort((a, b) => b.specificite - a.specificite || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  if (candidates[0]) objet.apparence = candidates[0].id;
+  return objet;
+}
 
 const prochainUid = sequence();
 export function newUid(): string {
@@ -109,10 +154,10 @@ export interface WeaponSpec {
   mountSide?: FireArc;
   resolveChar?: CharKey;
   uid?: string | { prefix: string };
-  skin?: Record<string, string>;
+  teinte?: string;
   form?: string;
-  /** Forme choisie par le joueur — propagée de `ItemInstance.formeChoisie` vers `Weapon.formeChoisie`. */
-  formeChoisie?: string;
+  /** Id du catalogue d’apparences choisi sur l’instance, propagé vers `Weapon.apparence`. */
+  apparence?: string;
   /** Attaque naturelle de corps (aucune arme dessinée) — propagé vers `Weapon.natural`. */
   natural?: boolean;
   /** Nature d'attaque naturelle STAMPÉE (morsure/cornes/caudale/tentacules/pietinement…) — pour la
@@ -152,9 +197,9 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   if (spec.reload !== undefined) w.reload = spec.reload;
   if (spec.subType !== undefined) w.subType = spec.subType;
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
-  if (spec.skin !== undefined) w.skin = spec.skin;
+  if (spec.teinte !== undefined) w.teinte = spec.teinte;
   if (spec.form !== undefined) w.form = spec.form;
-  if (spec.formeChoisie !== undefined) w.formeChoisie = spec.formeChoisie;
+  if (spec.apparence !== undefined) w.apparence = spec.apparence;
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
   if (spec.builtinId !== undefined) w.builtinId = spec.builtinId;
@@ -198,25 +243,34 @@ export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTra
 
 /** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
  *  invoquée, le choix du joueur. */
-export type SourceDeForme = Pick<Weapon, 'form' | 'formeChoisie' | 'natural' | 'trappingId'>;
+export type SourceDeForme = Pick<Weapon, 'form' | 'apparence' | 'natural' | 'trappingId'>;
 
 /**
- * FORME d'un objet porté, RÉSOLUE au catalogue courant (#2113) — l'UNIQUE résolution : rig, icône
- * d'inventaire, sélecteur de forme et outillage de recette la lisent. Routage PAR ID STABLE :
- *  1. attaque naturelle → aucune forme ;
+ * CANDIDATS d'apparence d'un objet porté, au catalogue courant (#2113, #2948) — l'UNIQUE résolution.
+ * La dernière entrée est la racine de la forme dessinée. Routage PAR ID STABLE :
+ *  1. attaque naturelle → aucun candidat ;
  *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
- *  3. choix du joueur, s'il est parmi les `formChoices` du catalogue ;
+ *  3. apparence choisie puis sa racine, si admise par `shape` ou `formChoices` ;
  *  4. `shape` du catalogue, par `trappingId`.
- * `undefined` : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
+ * Liste vide : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
  */
-export function formeResolue(x: SourceDeForme): string | undefined {
-  if (x.natural) return undefined;
-  const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
-  if (invoquee) return invoquee;
-  const t = x.trappingId ? findTrappingById(x.trappingId) : undefined;
-  if (x.formeChoisie && t?.formChoices?.includes(x.formeChoisie)) return x.formeChoisie;
-  return t?.shape;
+export function apparencesCandidates(x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string[] {
+  if (x.natural) return [];
+  const invoquee = x.form ? resolveTrapping(x.form)?.shape?.id : undefined;
+  if (invoquee) return [invoquee];
+  return candidatsDApparenceDObjet(x.trappingId, x.apparence, resolveTrapping);
 }
+
+/** Apparences du catalogue admises pour un objet, selon l’unique résolution des candidats (#2948). */
+export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>, resolveTrapping: TrappingResolver = findTrappingById): typeof apparences {
+  return apparencesAdmissiblesDObjet(x, resolveTrapping);
+}
+
+/** Racine de la forme dessinée : dernière entrée des candidats. */
+export const racineDesCandidats = (candidats: readonly string[]): string | undefined => candidats[candidats.length - 1];
+
+/** Forme résolue d'une SourceDeForme : racine de ses apparences candidates. */
+export const formeResolue = (x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string | undefined => racineDesCandidats(apparencesCandidates(x, resolveTrapping));
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
@@ -273,7 +327,7 @@ function kindOf(categorie: string): ItemKind {
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
  *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
  *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
-export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
+export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance | null {
   const resolu = resolveTrapping(id);
   if (!resolu) return null;
   if (!dansLaSousListe(INSTANCIABLE_PAR_ID, resolu))
@@ -289,7 +343,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
   // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
   // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
   // POSSÈDE, et une édition du catalogue ne les repeint pas.
-  return {
+  const objet: ItemInstance = {
     uid: newUid(),
     trappingId: t.id,
     label: t.label,
@@ -327,6 +381,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     // `capabilities`), via `engine/capabilities` — comme `passive`. Une seule source de vérité.
     ...(t.container ? { container: t.container } : {}), // Contenant (LDB 64) : capacité de rangement
   };
+  return deciderApparenceALaNaissance(objet, contexte, resolveTrapping);
 }
 
 /**
@@ -339,18 +394,17 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
 export function itemFromTrappingRef(
   ref: Extract<TrappingRef, { id: string }>,
   resolveTrapping: TrappingResolver = findTrappingById,
+  contexte?: ContexteDeNaissanceDObjet,
 ): ItemInstance | null {
   const it = itemFromTrappingById(ref.id, resolveTrapping);
   if (!it) return null;
   if (ref.spec) it.spec = ref.spec;
   if (it.kind === 'ammo' && ref.count && 'fixed' in ref.count) it.qty = ref.count.fixed; // quantité de la carrière
   if (ref.qualities?.length) {
-    // Atouts ATTACHÉS d'une dotation (joker de qualité résolu, #657 Lot 1) — même patron d'APPEND que
-    // `withGiveQualities` (giveTrapping magique), mais via `qualityInstance` (préserve `value` —
-    // « Solide 3 » — que le merge par id nu de `withGiveQualities` perdrait, correctif juge Lot 1).
+    // #657
     it.qualities = [...(it.qualities ?? []), ...ref.qualities.map(qualityInstance)];
   }
-  return it;
+  return deciderApparenceALaNaissance(it, contexte, resolveTrapping);
 }
 
 /** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
@@ -363,10 +417,12 @@ export function customTrapping(name: string): ItemInstance {
 /** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
  *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
  *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
-export function itemFromGive(give: { trappingId?: string; custom?: string }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
+export function itemFromGive(give: { trappingId?: string; custom?: string; teinte?: { id: string }; apparence?: { id: string }; qualities?: string[] }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance {
   const it = (give.trappingId ? itemFromTrappingById(give.trappingId, resolveTrapping) : null) ?? customTrapping(give.custom ?? give.trappingId ?? 'Objet');
   if (source) it.source = source;
-  return it;
+  if (give.teinte) it.teinte = give.teinte.id;
+  it.qualities = withGiveQualities(it.qualities, give);
+  return deciderApparenceALaNaissance(it, contexte, resolveTrapping, give.apparence);
 }
 
 /** Fusionne les qualités MAGIQUES ajoutées d'un `giveTrapping` (`give.qualities` = ids de scène) aux
@@ -379,8 +435,7 @@ export function withGiveQualities(base: QualityInstance[], give: { qualities?: s
  *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
  *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
 export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  const resolved = resolveQualities(itemFromGive(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
-  return withGiveQualities(resolved, give);
+  return resolveQualities(itemFromGive(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
 }
 
 /** Libellé d'affichage d'un Effet `giveTrapping` (catalogue → label, sinon nom custom). */
@@ -451,7 +506,10 @@ export function emptyArmour(ap = 0): ArmourPoints {
  *  `itemFromTrapping` sur l'ItemInstance. Repli pour les armes BRUTES sans `hands` typé (statblocs
  *  d'ennemis, armes synthétiques) : Groupe « Deux-mains » typé (`subType==='deux-mains'`). Aucun parse
  *  de chaîne d'affichage. */
-export function weaponHands(it: { hands?: 1 | 2; subType?: string }, ctx?: { mounted?: boolean }): 1 | 2 {
+/** Contexte de MANIEMENT d'une arme : son porteur est-il monté (`weaponHands`, LDB 62 l.143). */
+export interface ContexteDeManiement { mounted?: boolean }
+
+export function weaponHands(it: { hands?: 1 | 2; subType?: string }, ctx?: ContexteDeManiement): 1 | 2 {
   // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe
   // d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains. » La donnée porte `hands:2`.
   if (ctx?.mounted && it.subType === 'cavalerie' && it.hands === 2) return 1;
@@ -675,9 +733,7 @@ function warMachineResolveChar(it: Pick<ItemInstance, 'kind' | 'weaponGroup'>): 
 }
 
 /** Machine de guerre nécessitant une ÉQUIPE (ADE II 8 l.233, Qualité `equipe` ; catégorie `armes-de-siege`) :
- *  ne se manie JAMAIS en loadout solo — elle doit être SERVIE en poste (`mannedPosteWeapon`/`serveAtPoste`, qui
- *  dérivent la même arme SANS passer par `toWeapon`). Même famille de veto que `cannotWieldTwoHanded`
- *  (amputation) : un item qui ne devient PAS une arme de loadout normal. */
+ *  n'occupe aucun slot de set (`objetDeSlot`) ; elle se sert en poste (`mannedPosteWeapon`/`serveAtPoste`). */
 function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): boolean {
   return it.subType === 'armes-de-siege' || hasQuality(it, 'equipe');
 }
@@ -690,10 +746,10 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
  * prévue) puis replie les altérations PORTÉES PAR L'OBJET (`applyEnchants`) → l'arme rendue est déjà
  * Magique/+Dégâts/onHit, visible partout ET appliquée à la résolution.
  * `hand` = main qui la tient (absent hors loadout) ; `ctx.mounted` alimente `weaponHands` (LDB 62 l.142-143).
- * Les VETOS de port (arme détruite, machine à Équipe, amputation) restent chez l'appelant : ils dépendent
- * du PORTEUR, pas du profil de l'arme.
+ * Les VETOS de port restent chez l'appelant : arme détruite et machine à Équipe (`objetDeSlot`),
+ * amputation (`recomputeLoadout`, `mannedPosteWeapon`).
  */
-export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { mounted?: boolean }): Weapon {
+export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: ContexteDeManiement): Weapon {
   return applyEnchants(buildWeapon({
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'ranged',
     // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
@@ -703,26 +759,31 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: { 
     weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
     bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
     minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    skin: it.skin, form: it.form, formeChoisie: it.formeChoisie, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    ...(it.teinte ? { teinte: it.teinte } : {}), form: it.form, apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
   }), it.enchants ?? []);
+}
+
+/** Objet qu'un slot `main`/`off` d'un set désigne par `uid`, s'il peut y être : présent dans l'inventaire,
+ *  non DÉTRUIT (LDB 14/62), hors contenant (`inside`), arme de mêlée ou à distance, sans Équipe
+ *  (`requiresCrewedPoste`, ADE II 8 l.233). Lu par l'amorce des sets (`ensureDefaultLoadout`), leur auto-élagage,
+ *  les mains du set actif (`recomputeLoadout`) et les armes RANGÉES du dessin (`equipementDessine`). */
+export function objetDeSlot(c: Combatant, uid?: string): ItemInstance | undefined {
+  return uid == null ? undefined
+    : (c.items ?? []).find((i) => i.uid === uid && !i.destroyed && !i.inside && (i.kind === 'melee' || i.kind === 'ranged') && !requiresCrewedPoste(i));
 }
 
 /** Recalcule armes/armure actives + encombrement. Les ARMES viennent du loadout actif (contrainte 2 mains,
  *  tag `hand`) ; si aucun loadout, ensureDefaultLoadout en crée un automatiquement — UN SEUL modèle. */
 export function recomputeLoadout(c: Combatant): void {
   const items = c.items ?? [];
-  // Auto-prune : un slot référençant une arme ABSENTE de l'inventaire (vente/transfert/perte), DÉTRUITE
-  // (Incident de Tir / usure, LDB 14/62) ou RANGÉE dans un contenant (`inside`) est vidé, sur TOUS les
-  // loadouts : l'arme n'est plus en main.
-  const slotDead = (uid?: string) => uid != null && !items.some((i) => i.uid === uid && !i.destroyed && !i.inside);
+  // Auto-prune : un slot dont l'objet ne peut plus y être (`objetDeSlot`) est vidé, sur TOUS les loadouts.
+  const slotDead = (uid?: string) => uid != null && !objetDeSlot(c, uid);
   for (const lo of c.loadouts ?? []) {
     if (slotDead(lo.main)) lo.main = undefined;
     if (slotDead(lo.off)) lo.off = undefined;
   }
   const toWeapon = (it: ItemInstance, hand: 'main' | 'off'): Weapon | null => {
-    if (it.destroyed) return null; // arme détruite : inutilisable (LDB 14 — Incident de Tir)
-    if (requiresCrewedPoste(it)) return null; // machine de guerre à Équipe (ADE II 8 l.233) : pas de loadout solo, doit être SERVIE en poste
     const mounted = !!c.mountId; // Cavalerie (2M) à pied → vraies 2 mains (LDB 62 l.142-143)
     if (mainsDuPorteur(c, it) === 2 && cannotWieldTwoHanded(c)) return null; // amputation : pas d'arme à 2 mains (LDB 18 l.263)
     return weaponFromItem(it, hand, { mounted });
@@ -740,12 +801,12 @@ export function recomputeLoadout(c: Combatant): void {
     // (bouclier / 2e arme) tombe dès qu'une main manque. Les DEUX mains perdues → Mains nues.
     const mainLost = handAmputated(c, 'main');
     const offLost = handAmputated(c, 'off');
-    const mainIt = !(mainLost && offLost) && lo.main ? items.find((i) => i.uid === lo.main && (i.kind === 'melee' || i.kind === 'ranged')) : undefined;
+    const mainIt = !(mainLost && offLost) ? objetDeSlot(c, lo.main) : undefined;
     const mainW = mainIt ? toWeapon(mainIt, 'main') : null;
     if (mainW) weapons.push(mainW);
     const mainTwoHanded = mainW?.hands === 2;
     if (!mainTwoHanded && !mainLost && !offLost && lo.off) {
-      const offIt = items.find((i) => i.uid === lo.off && (i.kind === 'melee' || i.kind === 'ranged'));
+      const offIt = objetDeSlot(c, lo.off);
       const offW = offIt ? toWeapon(offIt, 'off') : null;
       if (offW) weapons.push(offW);
     }
@@ -855,12 +916,13 @@ export function hydratePoste(a: AuthoredShipPoste): ShipPoste {
   return poste;
 }
 
-/** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas : le 1er = meilleure arme de
- *  mêlée (+ bouclier/2e arme à 1 main en secondaire), le 2nd = 1re arme à distance (sinon vide).
- *  Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`), pas stocké. */
+/** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets qui peuvent occuper
+ *  un slot (`objetDeSlot`, seul filtre) : le 1er = meilleure arme de mêlée, et sous une arme à 1 main un
+ *  bouclier en secondaire, sinon une 2e arme éligible (`isOffHandEligible`) ; le 2nd = 1re arme à distance
+ *  (sinon vide). Idempotent. Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
 export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
-  const items = (c.items ?? []).filter((i) => i.equipped && (i.kind === 'melee' || i.kind === 'ranged'));
+  const items = (c.items ?? []).filter((i) => objetDeSlot(c, i.uid) === i);
   const melee = items.filter((i) => i.kind === 'melee');
   const ranged = items.filter((i) => i.kind === 'ranged');
 
@@ -868,7 +930,10 @@ export function ensureDefaultLoadout(c: Combatant): void {
   if (melee.length) {
     const main = [...melee].sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0];
     set1.main = main.uid;
-    if (mainsDuPorteur(c, main) === 1) set1.off = melee.find((i) => i.uid !== main.uid && mainsDuPorteur(c, i) === 1)?.uid;
+    if (mainsDuPorteur(c, main) === 1) {
+      const secondaires = items.filter((i) => i.uid !== main.uid && isOffHandEligible(i));
+      set1.off = (secondaires.find(isShieldItem) ?? secondaires[0])?.uid;
+    }
   }
   const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
   c.loadouts = [set1, set2];
@@ -1032,11 +1097,11 @@ export function damageArmour(c: Combatant, loc: HitLocation): boolean {
 /** Putréfaction (LDB 47) : « le cuir se racornit (perdant 1 PA à 1 Localisation) » — endommage de
  *  1 PA la première pièce de CUIR portée encore intacte, re-dérive l'armure. Retourne la
  *  localisation touchée, ou null si rien en cuir (ennemi à armure plate : matière inconnue → MJ).
- *  Matière détectée par l'id de TYPE d'armure `subType` (« cuir-souple »/« cuir-bouilli ») — réf STABLE
- *  qui PORTE le matériau (≠ nom — multilangue-safe ; cohérent avec l'op `damageArmour{material:'cuir'}`). */
+ *  Matière lue au Groupe du TYPE d'armure `subType` (`armourMaterialOf`, champ `material` de
+ *  `weaponGroups.json`). */
 export function damageLeatherArmour(c: Combatant): HitLocation | null {
   const piece = (c.items ?? []).find(
-    (i) => i.equipped && i.kind === 'armor' && !!i.subType?.startsWith('cuir') && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
+    (i) => i.equipped && i.kind === 'armor' && armourMaterialOf(i) === 'leather' && (i.pa ?? 0) - (i.damageTaken ?? 0) > 0,
   );
   if (!piece) return null;
   piece.damageTaken = (piece.damageTaken ?? 0) + 1;
@@ -1053,12 +1118,12 @@ export function damageScore(d?: WeaponDamageSpec): number {
  *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; le `count` d'une munition
  *  donne sa quantité. Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
  *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). */
-export function buildInventory(refs: TrappingRef[]): ItemInstance[] {
+export function buildInventory(refs: TrappingRef[], contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
     if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
     if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
-    const it = itemFromTrappingRef(ref);
+    const it = itemFromTrappingRef(ref, undefined, contexte);
     if (it) items.push(it);
   }
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
@@ -1139,7 +1204,7 @@ export function selectedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undef
 
 /** Munition RÉELLEMENT dans l'arme — celle que le tir consomme et qui augmente le coup (`weaponWithAmmo`,
  *  bandes de portée). Capturée au chargement par `loadWeapon` (PROPRIÉTAIRE UNIQUE de `loadedAmmoUid`).
- *  Arbitrage utilisateur 2026-08-16 « La munition se fixe au CHARGEMENT » (`docs/plans/2026-08-16-hud-combat.md` §1).
+ *  `docs/plans/2026-08-16-hud-combat.md` §1.
  *  Lue dans le REGISTRE de l'arme (pièce servie → la pièce). Sans cycle de chargement (`reload` 0 : Arc,
  *  fronde) il n'y a rien à capturer → le choix courant vaut coup. Repli sur le choix courant quand rien
  *  n'est capturé (arme authorée « prête » sans capture posée). PUR. */
@@ -1151,8 +1216,7 @@ export function loadedAmmo(c: Combatant, weapon: Weapon): ItemInstance | undefin
 }
 
 /** CHARGE une arme : pose ENSEMBLE, DANS SON REGISTRE, l'état de charge (`loaded`, `reloadProgress`,
- *  `chambered`) et la munition CAPTURÉE (`loadedAmmoUid`) — arbitrage utilisateur 2026-08-16 « quand on
- *  charge une arme on sélectionne une munition ». PROPRIÉTAIRE UNIQUE de la pose : fin de rechargement
+ *  `chambered`) et la munition CAPTURÉE (`loadedAmmoUid`). PROPRIÉTAIRE UNIQUE de la pose : fin de rechargement
  *  (joueur ET IA), début de combat, spawn, prise d'une pièce. Mute en place. */
 export function loadWeapon(c: Combatant, weapon?: Weapon, poste?: ShipPoste): void {
   if (!weapon && !poste) return;
@@ -1168,7 +1232,7 @@ export function loadWeapon(c: Combatant, weapon?: Weapon, poste?: ShipPoste): vo
 
 /** DÉCHARGE une arme : efface ENSEMBLE, DANS SON REGISTRE, l'état de charge et la munition capturée.
  *  PROPRIÉTAIRE UNIQUE de l'effacement : coup parti, bordée, bascule de munition sur une arme chargée
- *  (arbitrage utilisateur 2026-08-16). `poste` fourni SANS arme = décharge de la seule pièce (bordée).
+ *  (`docs/plans/2026-08-16-hud-combat.md` §1). `poste` fourni SANS arme = décharge de la seule pièce (bordée).
  *  Aucune munition n'est détruite : le décompte du stock n'a lieu qu'au tir (`consumeAmmo`). Mute en place. */
 export function unloadWeapon(c?: Combatant, weapon?: Weapon, poste?: ShipPoste): void {
   const regs: WeaponLoadState[] = [];
@@ -1196,8 +1260,8 @@ export function setReloadProgress(c: Combatant | undefined, weapon: Weapon | und
 
 /** CHOIX de munition « à charger au prochain rechargement » (`ammoUid`) — écrivain UNIQUE : hotbar du
  *  joueur, sélecteur de pièce du navire (MDG 12). Ne touche NI l'état de charge NI le coup capturé :
- *  changer d'avis ne décharge rien par lui-même (c'est l'appelant qui décide de décharger, arbitrage
- *  utilisateur 2026-08-16). Mute en place. */
+ *  changer d'avis ne décharge rien par lui-même (c'est l'appelant qui décide de décharger).
+ *  `docs/plans/2026-08-16-hud-combat.md` §1. Mute en place. */
 export function setAmmoChoice(c: Combatant | undefined, weapon: Weapon | undefined, uid: string | undefined, poste?: ShipPoste): void {
   const reg: WeaponLoadState | undefined = poste ?? (c && weapon ? loadRegister(c, weapon) : undefined);
   if (reg) reg.ammoUid = uid;

@@ -8,14 +8,15 @@
  * arc / arme à feu…) — donc on dérive le maniement de la FORME (silhouette dessinée), qui
  * encode la prise, et on ne retombe sur le Groupe que pour les armes NON dessinées.
  */
-import type { FormeDArme } from '../parts/equipment';
+import type { FormeDArme } from '../../../noyau/equipementDessine';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
+import { racineDesCandidats } from '../../../engine/items';
 
 export type Handling =
   | 'lame1m' | 'escrime' | 'lourde2m' | 'hampe' | 'lance_cav' | 'fleau' | 'parade' | 'poings'
   | 'arc' | 'arbalete' | 'arme_feu' | 'fronde' | 'jet' | 'entraves' | 'explosif' | 'cornes';
 
-/** FORME (slug d'art résolu, `FormeDArme.forme`) → classe de maniement. Clés = slugs des formes (weaponForms.ts). */
+/** Racine des candidats résolus → classe de maniement. Clés = slugs des formes (weaponForms.ts). */
 const FORM_HANDLING: Record<string, Handling> = {
   // Lame/percussion à UNE main (taille au côté). bec-de-corbin = pic 1-main (≠ son Groupe Cavalerie).
   couteau: 'lame1m', dague: 'lame1m', improvisee: 'lame1m', bec_de_corbin: 'lame1m',
@@ -67,25 +68,22 @@ const NATURAL_HANDLING: Record<string, Handling> = {
 };
 
 /** Classe de maniement d'une arme — routage PAR ID STABLE (plus aucun lookup de libellé au runtime) :
- *  kind naturel (`attackKind`) d'abord, puis FORME résolue (`forme`, encode la prise), repli Groupe/type. */
+ *  kind naturel (`attackKind`) d'abord, puis racine des candidats (encode la prise), repli Groupe/type. */
 export function handlingClass(w?: FormeDArme): Handling {
   if (!w) return 'lame1m';
   if (w.attackKind) {
     const nat = NATURAL_HANDLING[w.attackKind];
     if (nat) return nat;
   }
-  if (w.forme) {
-    const h = FORM_HANDLING[w.forme];
+  const forme = racineDesCandidats(w.candidats);
+  if (forme) {
+    const h = FORM_HANDLING[forme];
     if (h) return h;
   }
   const h = GROUP_HANDLING[weaponGroupKey(w)];
   if (h) return h;
   return w.type === 'ranged' ? 'arc' : 'lame1m';
 }
-
-/** Classes maniées à DEUX mains (la main gauche vient tenir l'arme/la hampe/l'arc/le fût). */
-const TWO_HANDED = new Set<Handling>(['lourde2m', 'hampe', 'arc', 'arbalete', 'arme_feu']);
-export const isTwoHanded = (w?: FormeDArme): boolean => !!w && TWO_HANDED.has(handlingClass(w));
 
 /** Classes à DISTANCE (geste de tir/jet, esquive au lieu de parer en mêlée). */
 const RANGED = new Set<Handling>(['arc', 'arbalete', 'arme_feu', 'fronde', 'jet', 'entraves', 'explosif']);

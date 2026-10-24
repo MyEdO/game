@@ -12,13 +12,14 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { alternationDe } from '../../../lib/regex';
-import { sourceRefSchema, entityAppearanceSchema, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
+import { sourceRefSchema, entityAppearanceSchema, validerReferencesDObjetsDansCampagne, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { listeCle } from '../grammaire/collection-cle';
 import { champAdapteDe, proseNommee, refineAdapteDe, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
+import { apparenceDObjetSchema } from '../defs/trappings';
 import { findCreatureById, findTrappingById, byId, findTalentById, specResolves, porteCatalogueDeSpecs } from '../../index';
 import type { CreatureData, TrappingData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
@@ -205,6 +206,7 @@ export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureBy
  * global (`specResolves`). Attachée à `narratifSchema`, elle porte donc le chemin complet (`narratif.indices.3.affaireId`) quand le projet la compose.
  */
 function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx): void {
+  validerReferencesDObjetsDansCampagne(nb.objets, ctx);
   const faute = (path: (string | number)[], message: string): void => ctx.addIssue({ code: 'custom', path, message });
 
   /** Registre qui a déclaré chaque id, dans l'ordre de la table. */
@@ -282,11 +284,13 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
  *  `source` sont requis, là où un objet EMBARQUÉ de campagne porte un type libre et se passe de
  *  l'enveloppe de catalogue. Échéance : `TROUS_DE_VALIDATION['narratif.ts:objets']`
  *  (`trous-de-validation.ts`), UNIQUE source du lot de mort de ce trou. */
+const objets: z.ZodType<TrappingData> = z.custom<TrappingData>().and(apparenceDObjetSchema);
+
 const formeNarratif = nommerChamps(z.strictObject({
   affaires: listeCle(affaireSchema, 'id'),
   indices: listeCle(indiceSchema, 'id'),
   presetsPnj: listeCle(presetPnjSchema, 'id'),
-  objets: listeCle(z.custom<TrappingData>(), 'id'),
+  objets: listeCle(objets, 'id'),
   documents: listeCle(documentNarratifSchema, 'id'),
   etats: listeCle(etatNarratifSchema, 'id'),
   ouverture: ouvertureSchema.optional(),

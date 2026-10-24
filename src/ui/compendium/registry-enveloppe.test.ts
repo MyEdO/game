@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { CODEX, depuisEnveloppe } from './registry';
 import { books } from '../../data';
+import { EXEMPTS } from '../../data/schemas/exposition-derivee';
 
 /**
  * Gel de FORME du Codex + cliquet de PROVENANCE (#1467 L1b V-CODEX).
@@ -26,7 +27,7 @@ import { books } from '../../data';
  *     « Source » : le canal en double se lit à l'écran, aucune mesure de forme ne l'attrape.
  *     Son second volet gèle la VALEUR : tout `source.book` projeté est une ABRÉVIATION du
  *     catalogue `books`, jamais l'id brut qu'un site oubliant `src()` laisserait passer.
- *  5. PROVENANCE — pour chaque entrée de `src/data/*.json` portant `source` ou `desc`, l'item Codex
+ *  5. PROVENANCE — hors vocabulaire interne explicitement exempté, pour chaque entrée portant `source` ou `desc`, l’item Codex
  *     de MÊME id doit les porter aussi. Le mapping dataset→catégorie est DÉDUIT (inclusion des ids),
  *     jamais une table à maintenir ; son ANGLE MORT (les tableaux qu'aucune catégorie ne couvre
  *     ENTIÈREMENT) est lui-même gelé, cf. `PARTIELS`/`ORPHELINS`.
@@ -97,12 +98,8 @@ const CLES: Record<string, string> = {
   "maladies": '25e48bb168ea15e0',
   "symptoms": 'f903df541e9b7ff5',
   "mutations": 'bd3a933e0e43e9fd',
-  // #1686 lot 3a-2 : la catégorie « Matières » ouvre (16 items, 3 groupes titrés par le libellé de
-  // valeur du discriminant `domain`) — elle QUITTE du même geste la liste des orphelins ci-dessous.
-  // Le retrait de la matière `plafond` (relief, 0 émetteur — 4c052ca9a) enlève un item à la catégorie :
-  // l'empreinte porte la LISTE des ids, elle est recalée à la MESURE (15 items). #1343 lot C : la matière
-  // `feuillage` (décor volumique) y entre, recalée à la MESURE (16 items).
-  "materials": '4c8000fc317602f0',
+  // #2948
+  "materials": '557cc47f1fd6db47',
   "mutationTables": '0d6e17a2d2e12dca',
   // #1612 : la table MAISON `mendier-ennuis` entre au dataset, et sa rangée de gardes porte l'AMENDE
   // (op `money` à `Formula`, rendue par `opRows` comme toute autre op de rangée).
@@ -443,26 +440,14 @@ const MUETS: Record<string, number> = {};
  *  Ce qui est gelé est le TABLEAU (fichier + rang), jamais son nombre d'entrées : un dataset
  *  app-owned croît légitimement, et un cardinal gelé ferait payer un recalage à chaque ajout (#1812). */
 const PARTIELS: string[] = [
-  "actions.json#0",
-  "breath-types.json#0",
-  "damage-types.json#0",
   "land-cargo.json#0",
-  "lightLevels.json#0",
-  "lightTones.json#0",
-  "merchantFamilies.json#0",
   "merchants.json#0",
-  // Le catalogue de décor est app-owned : aucune page ne le source — MÊME angle mort source/desc que
-  // les autres tableaux ci-dessus.
-  "props.json#0",
-  "qualitySubtypes.json#0",
   "river-navigation.json#0",
   "sea-cargo.json#0",
   "sea-perils.json#0",
   "sea-perils.json#1",
   "sea-perils.json#2",
   "sea-weather.json#3",
-  "structureAppearance.json#0",
-  "systemes.manifest.json#0",
   "water-exposure.json#0",
 ];
 
@@ -474,15 +459,7 @@ const ORPHELINS: string[] = [
   // ce que le Codex expose, ce sont leurs RANGÉES, jamais le document porteur. Un document sans item
   // Codex propre n'est donc pas un manque, c'est la charge qui compte.
   "criticals.json#0",
-  "donnees.manifest.json#0",
-  "lieux-services.json#0",
   "miscast.json#0",
-  // Manifeste d'OUTILLAGE : aucune catégorie Codex ne l'expose — une primitive neuve y entre sans
-  // toucher ce cliquet (#1812).
-  "primitives.manifest.json#0",
-  "qualityTypes.json#0",
-  // Entrées de manifeste sans catégorie Codex (même angle mort : dette de règle, jamais une fiche).
-  "raw.manifest.json#0",
   "reseau-routier.json#0",
   "river-navigation.json#1",
   "sea-cargo.json#1",
@@ -561,12 +538,18 @@ describe('Codex — défaut d’enveloppe (#1467 L1b)', () => {
     expect(bruts).toEqual([]);
   });
 
+  it('le vocabulaire interne explicitement exempté ne constitue pas une dette de provenance', () => {
+    expect([...PARTIELS, ...ORPHELINS].filter((cle) => EXEMPTS[cle.split('#')[0]]?.kind === 'vocabulaire-app-interne')).toEqual([]);
+    expect(EXEMPTS['apparences.json']?.kind).toBe('vocabulaire-app-interne');
+  });
+
   it('PROVENANCE : un item dont la donnée porte source/desc les porte au Codex — et l’angle mort du mapping est gelé', () => {
     const muets: Record<string, number> = {};
     const apparies: string[] = [];
     const partiels: string[] = [];
     const orphelins: string[] = [];
     for (const f of DATASETS) {
+      if (EXEMPTS[f]?.kind === 'vocabulaire-app-interne') continue;
       for (const [n, arr] of tableauxIdentifies(JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'))).entries()) {
         const ids = arr.map((e) => e.id as string);
         let etat: 'total' | 'partiel' | 'orphelin' = 'orphelin';

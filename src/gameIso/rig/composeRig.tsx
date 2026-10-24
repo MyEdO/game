@@ -18,7 +18,7 @@ import { monsterInjection } from './parts/monstrous';
 import { HEADS, ARMS, LEGS } from './parts/monster';
 import { buildTokenMap, applyTokenMap } from './palette';
 import { tenueOverlaysFor, couchesDuRig, coucheDEspece } from './parts/career';
-import type { EquipCtx } from './parts/equipment';
+import type { EquipCtx } from '../../noyau/equipementDessine';
 import { useMemo } from 'react';
 import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { dorsalOverlays } from './parts/dorsal';

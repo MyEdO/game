@@ -18,8 +18,9 @@ import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCa
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
-import { useId, useMemo } from 'react';
-import { giveTrappingSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
+import { useId } from 'react';
+import { ObjetDonneField } from './ObjetDonneField';
+import { type Effect } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -320,25 +321,6 @@ export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
 }
 
-/** Objet donné par l'Effet `giveTrapping` : le sélecteur résout la saisie dans les objets du projet puis le
- *  catalogue, sous la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`) ; l'id
- *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`. */
-function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData[]; value: string | undefined; upd: (patch: object) => void }) {
-  const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
-  return (
-    <RefField
-      cfg={{ ds: 'trappings', freeText: true }}
-      noeud={giveTrappingSchema.shape.trappingId}
-      entreesEnTete={objets}
-      value={value}
-      onChange={(v) => {
-        const val = v as string | undefined;
-        upd(val && trappingDesObjetsPuisDuCatalogue(parId, val) ? { trappingId: val, custom: undefined } : { custom: val, trappingId: undefined });
-      }}
-    />
-  );
-}
-
 /** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
@@ -441,7 +423,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'giveTrapping' && (
           <>
-            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e.trappingId ?? e.custom} upd={upd} />
+            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e} onChange={onChange} />
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}
@@ -830,7 +812,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 )}
               </div>
             )}
-            <GameOpEditor ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor objets={objetsDuProjet(ctx)} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'setLight' && (
@@ -890,7 +872,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <label className="dr">Centre <NumberField variant="nu" label="Centre — X" value={e.center?.x ?? 0} onChange={(x) => upd({ center: { x, y: e.center?.y ?? 0 } })} />,<NumberField variant="nu" label="Centre — Y" value={e.center?.y ?? 0} onChange={(y) => upd({ center: { x: e.center?.x ?? 0, y } })} /></label>
               <label className="dr">Rayon <NumberField variant="nu" label="Rayon" min={0} value={e.radius ?? 0} onChange={(radius) => upd({ radius })} /></label>
             </div>
-            <GameOpEditor ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
+            <GameOpEditor objets={objetsDuProjet(ctx)} ops={e.ops ?? []} onChange={(ops) => upd({ ops })} />
           </div>
         )}
         {effect.type === 'startCombat' && (

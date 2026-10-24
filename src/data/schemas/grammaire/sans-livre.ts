@@ -2,7 +2,7 @@
  * Part DÉFINITIVE de `SANS_LIVRE` : configuration de rendu, manifestes d’outillage, vocabulaire des actes, index
  * d’app des livres et artefacts générés dont la provenance est portée par bande. Aucun sourçage n’y est dû.
  */
-const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
+export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   ambiance: 'configuration de rendu — ambiances lumineuses/sonores de scène, aucun folio ne les imprime',
   decorPalette: 'configuration de rendu — palette de teintes du décor, valeurs d’art',
   lightLevels: 'configuration de rendu — paliers d’éclairage du monde volumique',
@@ -12,6 +12,8 @@ const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
   raceAppearance: 'configuration de rendu — apparences par race pour le rig, art maison',
   materials:
     'configuration de rendu — LES matières du monde (décor volumique, toiture, relief : couleur, réponse à la lumière, recettes de détail de surface) ; aucun folio n’imprime une teinte de surface',
+  apparences:
+    'configuration de rendu — LE catalogue des apparences d’objet (formes et leurs variantes : id, libellé, étiquettes de naissance) ; aucun folio n’imprime à quoi ressemble un objet',
   renduMonte: 'configuration de rendu — réglages d’assiette de la monture à l’écran',
   structureAppearance: 'configuration de rendu — apparences de structures bâties',
   buildings:
@@ -94,14 +96,6 @@ export const CONTENU_A_SOURCER: Readonly<Record<string, string>> = {
  * Les configurations de RENDU et les manifestes d'outillage de cette liste sont des données de
  * l'application, pas des règles ; `actions.json` est le vocabulaire des actes du moteur (12 de ses
  * 55 entrées citent malgré tout un folio, d'où une source optionnelle et non interdite).
- *
- * Une entrée d'ici n'est PAS un blanc-seing : `axes.json` est resté DEHORS (#1467 L1b V-Src) parce
- * que « pas de livre » et « arbitrage maison » sont deux choses différentes — ses 9 entrées portent
- * désormais `maison`. Mesuré le 2026-09-05 (après la fusion des trois catalogues de matières en
- * `materials`, #1686 lot 2 — 49 → 47) : 47 datasets de `src/data` n'ont aucune provenance de
- * premier niveau, et les 47 sont couverts — 31 ici, 16 dans `SOURCE_EN_PROFONDEUR` (régime DISTINCT,
- * déclaré plus bas) : aucun dataset muet hors régime. Cette liste compte donc 32 clés = ces 31
- * muets + `actions`, seule clé dont le dataset porte MALGRÉ TOUT des provenances (12/55 folios).
  *
  * Clé = `type` du document, égal au nom de base de son dataset. Une entrée ne se retire que par le
  * commit qui SOURCE le document ; aucune entrée ne s'ajoute sans sa raison mesurée.

@@ -1,82 +1,14 @@
-import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
-import { formeResolue, isCapeItem, isShieldItem, type SourceDeForme } from '../../../engine/items';
+import { findTeinteById } from '../../../data';
+import type { ItemInstance, HitLocation } from '../../../engine/types';
+import type { BouclierDeDessin, FormeDArme, MatiereDArmure, PieceDeDessin } from '../../../noyau/equipementDessine';
 import type { Slot } from '../../../engine/authoringAppearance';
 import type { PartArt } from './types';
 import { ARMOUR, ARMOUR_PALETTES } from './armour';
 import { WEAPON_DEFS } from './weapons/_registry.generated';
 import { SHIELD_DEFS } from './shields/_registry.generated';
 import { weaponGroupKey } from '../../../engine/weaponGroup';
-import { norm as wnorm } from './weaponForms';
+import { racineDesCandidats } from '../../../engine/items';
 import { buildTokenMap, tableDObjet, applyTokenMapArt } from '../palette';
-
-/** Clés d'une arme que le rig LIT telles quelles (#2097) : le type `FormeDArme` et le sélecteur
- *  `armeDeDessin` en dérivent ; l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et la forme
- *  RÉSOLUE, et elles seules. */
-const CLES_ARME = ['attackKind', 'hand', 'natural', 'skin', 'subType', 'type'] as const;
-/** Clés d'une pièce d'armure que le rig LIT (#2097). */
-const CLES_PIECE = ['locs', 'skin'] as const;
-
-/** Ce que le rig lit d'une arme : ses clés lues telles quelles, et sa forme RÉSOLUE (`formeResolue`).
- *  `forme` n'existe pas sur `Weapon` : une arme brute ne s'y substitue pas (#2113). */
-export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { forme: string | undefined };
-export type ArmeDeDessin = FormeDArme & { bouclier: boolean };
-export type PieceDeDessin = Pick<ItemInstance, (typeof CLES_PIECE)[number]> & { materiau: Materiau };
-export type BouclierDeDessin = { forme: string | undefined };
-export type Materiau = 'rembourre' | 'cuir' | 'maille' | 'plaque';
-
-/** Équipement DESSINÉ d'un porteur : projection de son état par `armeDeDessin`/`pieceDeDessin`
- *  (#2097), jamais une copie. */
-export interface EquipCtx {
-  weapons: ArmeDeDessin[];
-  armour: PieceDeDessin[];           // couche VISIBLE d'abord
-  shield?: BouclierDeDessin;
-  cape?: boolean;
-}
-
-/** Copie DÉTACHÉE des seules clés listées : aucune référence vivante ne survit à la projection. */
-function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[]): Pick<T, K> {
-  const out = {} as Pick<T, K>;
-  for (const k of cles) if (src[k] !== undefined) out[k] = structuredClone(src[k]);
-  return out;
-}
-
-export const armeDeDessin = (w: Weapon): ArmeDeDessin => ({ ...projeter(w, CLES_ARME), forme: formeResolue(w), bouclier: isShieldItem(w) });
-export const pieceDeDessin = (it: ItemInstance): PieceDeDessin => ({ ...projeter(it, CLES_PIECE), materiau: armourMaterial(it) });
-export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ forme: formeResolue(x) });
-
-/** Rang d'affichage des matériaux : la couche du DESSUS s'affiche (plaque sur maille sur cuir). */
-const MATERIAL_RANK: Record<Materiau, number> = { plaque: 3, maille: 2, cuir: 1, rembourre: 0 };
-
-/** Équipement dessiné : armes, pièces d'armure, bouclier (tenu parmi les armes), cape. */
-export function equipDe(weapons: Weapon[], armour: ItemInstance[], cape?: ItemInstance): EquipCtx {
-  // Pièces TRIÉES par matériau décroissant : par slot, le rendu (resolve.ts) prend la 1re pièce qui
-  // le couvre → un héros en cuir + maille montre la maille, la plate par-dessus tout.
-  const pieces = armour.map(pieceDeDessin).sort((a, b) => MATERIAL_RANK[b.materiau] - MATERIAL_RANK[a.materiau]);
-  const dessins = weapons.map(armeDeDessin);
-  const iBouclier = dessins.findIndex((w) => w.bouclier); // un bouclier tenu est dans le set actif → présent dans c.weapons
-  return {
-    weapons: dessins,
-    armour: pieces,
-    ...(iBouclier >= 0 ? { shield: bouclierDeDessin(weapons[iBouclier]) } : {}),
-    ...(cape ? { cape: true } : {}),
-  };
-}
-
-/** Pièces d'armure ÉQUIPÉES d'un combattant (locs renseignés). */
-const piecesPortees = (c: Combatant): ItemInstance[] =>
-  (c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped && (i.locs?.length ?? 0) > 0);
-
-/** Arme PRINCIPALE : la première qui n'est pas un bouclier, celle que l'os `arme` DESSINE (`resolve.ts`)
- *  — d'où se dérivent aussi la prise (`weaponRest`) et le geste par défaut. Un porteur de bouclier seul
- *  n'en a pas. */
-export const armePrincipale = (equip: EquipCtx): ArmeDeDessin | undefined => equip.weapons.find((w) => !w.bouclier);
-
-/** Équipement PORTÉ d'un combattant : ses armes, ses pièces portées — sinon `repliArmure` (armure
- *  synthétisée d'un profil, `enemyRigProfile`) —, sa cape. */
-export function equipPorte(c: Combatant, repliArmure: () => ItemInstance[] = () => []): EquipCtx {
-  const portees = piecesPortees(c);
-  return equipDe(c.weapons ?? [], portees.length ? portees : repliArmure(), (c.items ?? []).find((i) => i.equipped && isCapeItem(i)));
-}
 
 /** Ensemble des slugs de FORME catalogués (clés de l'art rig) — pour valider une forme résolue.
  *  `epee` (forme générique, repli du Groupe `base` + défaut final) est une def du registre comme les autres. */
@@ -96,7 +28,8 @@ const ART_BY_GROUP: Record<string, string> = {
  *  sinon la forme résolue (`formeResolue`) si l'art la connaît, sinon le repli par Groupe canonique. */
 export function weaponFamily(w: FormeDArme): string {
   if (w.natural) return ''; // attaque naturelle (corps) : la part du rig fait foi, rien en main
-  if (w.forme && ART_BY_SLUG.has(w.forme)) return w.forme;
+  const forme = racineDesCandidats(w.candidats);
+  if (forme && ART_BY_SLUG.has(forme)) return forme;
   return ART_BY_GROUP[weaponGroupKey(w)] ?? (w.type === 'ranged' ? 'arc' : 'epee');
 }
 
@@ -117,10 +50,9 @@ const WEAPONS: Record<string, PartArt> = FORM_ART;
 export function weaponPart(w: FormeDArme): PartArt {
   const f = weaponFamily(w);
   if (f === '') return ''; // mains nues : pas d'arme
-  // SKIN d'objet légendaire : re-résout l'art du def contre SA palette + l'override d'instance
-  // (≠ tenues qui suivent la palette du PORTEUR). Sans skin → art @défaut précalculé.
-  const def = w.skin ? FORM_DEF.get(f) : undefined;
-  if (def) return applyTokenMapArt(def.art, tableDObjet([def.palette ?? {}], w.skin));
+  const palette = findTeinteById(w.teinte)?.palette;
+  const def = palette ? FORM_DEF.get(f) : undefined;
+  if (def) return applyTokenMapArt(def.art, tableDObjet([def.palette ?? {}], palette));
   return WEAPONS[f] ?? WEAPONS.epee;
 }
 
@@ -131,20 +63,16 @@ const SHIELD_BY_SLUG = new Map(SHIELD_DEFS.map((d) => [d.slug, d]));
 const SHIELD_FALLBACK = SHIELD_DEFS.find((d) => d.fallback) ?? SHIELD_DEFS[0];
 const TABLE_BOUCLIER = tableDObjet([]);
 export function shieldPart(x: BouclierDeDessin): PartArt {
-  const d = (x.forme ? SHIELD_BY_SLUG.get(x.forme) : undefined) ?? SHIELD_FALLBACK;
+  const forme = racineDesCandidats(x.candidats);
+  const d = (forme ? SHIELD_BY_SLUG.get(forme) : undefined) ?? SHIELD_FALLBACK;
   return applyTokenMapArt(d.art, TABLE_BOUCLIER);
 }
 
-/** Matériau inféré du nom (sinon palier de PA). Cuir AVANT plaque (« Plastron de cuir »). */
-export function armourMaterial(item: Pick<ItemInstance, 'label' | 'pa'>): Materiau {
-  const n = wnorm(item.label);
-  if (/cuir|jaque/.test(n)) return 'cuir';
-  if (/maille|cotte|haubert/.test(n)) return 'maille';
-  if (/plaque|plastron|harnois|heaume|brassard|acier|gantelet|greve/.test(n)) return 'plaque';
-  if (/rembourr|gambison|matelass/.test(n)) return 'rembourre';
-  const pa = item.pa ?? 0;
-  return pa >= 4 ? 'plaque' : pa >= 2 ? 'maille' : pa >= 1 ? 'cuir' : 'rembourre';
-}
+/** Def d'art (`armour/defs/`) qui peint chaque matière d'armure. */
+export const ART_DE_MATIERE: Record<MatiereDArmure, string> = { 'cuir-souple': 'cuir', 'cuir-bouilli': 'cuir', mailles: 'maille', plate: 'plaque', 'armure-du-chaos': 'plaque' };
+/** Une matière que le def `defId` peint (galeries, audits d'art), `undefined` pour un def qu'aucune matière n'atteint. */
+export const matiereDuDef = (defId: string): MatiereDArmure | undefined =>
+  (Object.keys(ART_DE_MATIERE) as MatiereDArmure[]).find((m) => ART_DE_MATIERE[m] === defId);
 
 /** Slot de corps couvert par cet item (via ses locs WFRP4) — false si pas ce slot.
  *  `pied`/`main`/`cou` : couverture DÉRIVÉE des HitLocation existantes (pied←jambes, main←bras,
@@ -163,14 +91,14 @@ function coversSlot(item: Pick<ItemInstance, 'locs'>, slot: Slot): boolean {
 
 export function armourPart(item: PieceDeDessin, slot: Slot): PartArt | null {
   if (!coversSlot(item, slot)) return null;
-  const mat = item.materiau;
+  const mat = ART_DE_MATIERE[item.matiere];
   // Art dessiné par le workflow (matériau × emplacement) en priorité, COULEUR résolue contre la
-  // palette du matériau (défaut sans perte) + le SKIN de l'objet (override par-objet, légendaire).
+  // palette du matériau (défaut sans perte) + la teinte de l'objet.
   const art = ARMOUR[mat]?.[slot as 'tete' | 'torse' | 'bras' | 'jambes' | 'pied' | 'main' | 'cou'];
-  // Les 4 matériaux couvrent tete/torse/bras/jambes ; pour un slot qu'aucun def ne dessine (pied/main/cou),
+  // Les defs d'art couvrent tete/torse/bras/jambes ; pour un slot qu'aucun def ne dessine (pied/main/cou),
   // art est absent → null, et la zone retombe sur son repli de chair (resolve.ts).
   return art
-    ? applyTokenMapArt(art, tableDObjet([ARMOUR_PALETTES[mat] ?? {}], item.skin))
+    ? applyTokenMapArt(art, tableDObjet([ARMOUR_PALETTES[mat] ?? {}], findTeinteById(item.teinte)?.palette))
     : null;
 }
 

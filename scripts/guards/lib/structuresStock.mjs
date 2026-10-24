@@ -73,6 +73,7 @@
  *  `CONCEPTS` est testée. Faire passer une graphie en `cible` (donc hors du dénominateur)
  *  exige de toucher CE fichier — un mot du lexique ne solde plus des centaines d'occurrences. */
 export const STRUCTURES_CIBLES = [
+  { concept: "palette-d-objet", signature: "accent,cuir,metal", date: "2026-10-23" },
   { concept: "prose-nommee", signature: "texte", date: "2026-10-08" },
   { concept: "prose-nommee", signature: "texte+…", date: "2026-10-08" },
   { concept: "reference", signature: "id", date: "2026-08-23" },
@@ -535,7 +536,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "count,ref,size+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CRÉATURE invoquée" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "count,ref+…", statut: "divergente", strate: "Référence", occurrences: 14, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CRÉATURE invoquée" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "disease+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "spells.json", champ: "ops", signature: "form,subType+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "id,onlyIfCondition+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "id,unlessCondition+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "id,value+…", statut: "divergente", strate: "Référence", occurrences: 25, lot: "L3 #1463", date: "2026-08-23" },
@@ -545,7 +545,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "psychType+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "ref+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CRÉATURE invoquée" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "removeType+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "spells.json", champ: "ops", signature: "requiresWeapon+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "tableId+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "spells.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 35, lot: "L3 #1463", date: "2026-08-23" },
@@ -633,7 +632,6 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "trappings.json", champ: "ops", signature: "traitId+…", statut: "divergente", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "passive", signature: "tone+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "qualities", signature: "id,value", statut: "historique", strate: "Référence", occurrences: 120, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "trappings.json", champ: "shape", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 43, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "siegeRig", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 18, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "subject", signature: "condition+…", statut: "divergente", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "trappings.json", champ: "subType", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 441, lot: "L3 #1463", date: "2026-08-30", motif: "SOUS-TYPE d’objet" },
@@ -1122,8 +1120,6 @@ export const STRUCTURES_OPS = [
   { op: "grantTrait", signature: "indice,op,range,traitId", dataset: "tables.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "indice,op,traitId", dataset: "trappings.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "grantTrait", signature: "onlyGroups,op,traitId", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantWeapon", signature: "damage,damagePlus,form,hands,label,op,qualities,reach,skin,subType", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
-  { op: "grantWeapon", signature: "damage,form,hands,label,onHitEffects,op,qualities,reach,skin,subType", dataset: "spells.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "handGate", signature: "op", dataset: "criticals.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },
   { op: "ignoreAnimosity", signature: "op", dataset: "drunkenness.json", occurrences: 1, lot: "L1c #1468", date: "2026-08-23" },
   { op: "ignoreStatePenalties", signature: "op", dataset: "spells.json", occurrences: 2, lot: "L1c #1468", date: "2026-08-23" },

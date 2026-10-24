@@ -550,6 +550,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   ) as z.ZodObject<z.ZodRawShape>;
   const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));
   const clesEntree: readonly string[] = Object.keys(corps.shape);
+  // Un MARQUEUR d'espace est un champ de l'entrée : un nom hors de ses clés ouvrirait une sous-liste
+  // qu'aucune donnée ne saurait jamais remplir (`gen-espaces` admet une sous-liste marquée VIDE).
+  for (const marqueur of espace.marqueurs ?? [])
+    if (!clesEntree.includes(marqueur))
+      throw new Error(`document('${type}') : le marqueur d’espace « ${marqueur} » n’est aucun champ de l’entrée.`);
   // PROVENANCE : `source` OU `maison`, jamais NI L'UN NI L'AUTRE. Une entrée sans folio n'est pas
   // interdite — elle doit DIRE pourquoi. `exigeSource` consulte l'UNION `SANS_PROVENANCE_EXIGEE`
   // (`SANS_LIVRE` ∪ `SOURCE_EN_PROFONDEUR`) : sont hors régime les documents SANS aucun livre comme

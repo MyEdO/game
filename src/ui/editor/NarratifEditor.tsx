@@ -4,9 +4,10 @@ import { ScreenShell } from '../ScreenShell';
 import { Tabs, type TabItem } from '../composites/Tabs';
 import { Icon } from '../Icon';
 import { MasterDetail } from '../MasterDetail';
-import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { isSwarm } from '../../engine/traits/dispatch';
-import { mergeCreatureProfile } from '../../noyau/monde/resolveursDuNarratif';
+import { armesDEntite } from '../../noyau/equipementDessine';
+import { mergeCreatureProfile, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import { charAbr, creatures, findCreatureById, memoParVersion } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { FORMES_D_ETAT, valeursDeclarees, type FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-etat';
@@ -521,7 +522,7 @@ export function NarratifEditor({ projet, onChange, onClose }: {
           }
           detail={
             selected
-              ? <PresetForm
+              ? <PresetForm narratif={narratif}
                   porteur={`pnj:${clesPnj[narratif.presetsPnj.indexOf(selected)]}`}
                   preset={selected}
                   porteurDe={porteurDe('presetsPnj', selected.id)}
@@ -1025,7 +1026,8 @@ const ongletsDuPnj = (preset: PresetPnj): TabItem<OngletDuPnj>[] => [
 
 /** Formulaire d'un preset de PNJ, en onglets : profil (identité, base, caracs, source), apparence (réglages,
  *  portrait), couverture des entrées de fiche. */
-function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRemove }: {
+function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRemove, narratif }: {
+  narratif: NarratifBlock;
   /** Identité STABLE du PNJ, tenue par `NarratifEditor` à travers ses renommages. */
   porteur: string;
   preset: PresetPnj;
@@ -1114,6 +1116,8 @@ function PresetForm({ porteur, preset, porteurDe, onRename, onPatch, refus, onRe
               <ReglagesApparence appearance={appearance} onChange={poserApparence} reglages={['species', 'sex', 'build', 'hairstyle']}
                 nuee={isSwarm(base ? mergeCreatureProfile(base, profil).traits : profil.traits)} />
             </div>
+            <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)} appearance={appearance} onChange={poserApparence}
+              weapons={armesDEntite(undefined, { traits: base ? mergeCreatureProfile(base, profil).traits : profil.traits })} />
             <MonsterPartsFields appearance={appearance} onChange={poserApparence} reglages={['monster', 'eyes', 'features', 'tenue', 'colors']} />
             <label className="ed-field">
               Portrait (id d'illustration)

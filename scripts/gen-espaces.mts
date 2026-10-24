@@ -24,7 +24,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import type { SchemaDef } from '../src/data/schemas/types';
 import type { AccesAuxDocuments, CollectionDeFichier, MarqueDeCollection } from '../src/data/schemas/grammaire/collection-cle';
-import { cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
+import { champsDiscriminants, cleDesSpecs, cleFiltree, HORS_DE_LA_GRAPHIE, pasDeLaSuite, suiteAvecPas, suivreLeChemin, type PasResolu } from '../src/data/schemas/grammaire/cle-d-espace';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from '../src/data/schemas/grammaire/sourcesDeSpecs';
 import { parUnitesDeCode } from './guards/lib/lister.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
@@ -59,8 +59,7 @@ function elementsCles(c: CollectionDeFichier): [Record<string, unknown>, string]
 function clesDe(c: CollectionDeFichier): string[] {
   const espace = c.marque.espace!;
   const cles = [c.cle];
-  if (espace.discriminant !== undefined) {
-    const champ = espace.discriminant;
+  for (const champ of champsDiscriminants(espace)) {
     const valeurs = new Set<string>();
     for (const [el, cle] of elementsCles(c)) {
       const vaut = el[champ];
@@ -155,7 +154,6 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
         if (table.has(cle)) throw new Error(`gen-espaces: clé d'espace « ${cle} » rendue deux fois.`);
         const ids = idsDeLEspace(cle, lire);
         if (!ids) throw new Error(`gen-espaces: « ${cle} » n'est aucun espace de son document.`);
-        if (cle.includes('?') && !ids.length) throw new Error(`gen-espaces: ${cle} : filtre qu'aucun élément ne retient.`);
         table.set(cle, ids);
       }
   for (const [nom, source] of Object.entries(SOURCES_DE_SPECS as Record<string, SourceDeSpecs>))

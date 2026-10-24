@@ -79,6 +79,8 @@ export interface EntityAppearance {
    *  (#774, #775) : le statblock de PA ne pilote pas l'apparence. Absent = les PA restent mécaniques
    *  PURS, aucun art d'armure synthétisé (`synthArmour`). */
   armurePortee?: boolean;
+  /** Apparence des objets sans instance : id de trapping → id du catalogue des apparences. */
+  apparencesObjets?: Record<string, string>;
   /** Coiffure IMPOSÉE — id STABLE d'une coiffure (`hairstyles/defs`, jamais un index ni un libellé, #637).
    *  Vide = tirage sexe+ordre dérivé du seed. Hors du pool espèce×sexe : chevelure d'erreur visible au rendu. */
   hairstyle?: string;

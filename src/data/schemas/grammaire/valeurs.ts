@@ -8,6 +8,8 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import { z } from 'zod';
+import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
+import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../index';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
@@ -615,8 +617,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 
 /** SURCHARGE de palette persistée (`Palette`, `src/engine/authoringAppearance.ts`) : clés dans `SLOTS`, valeurs
  *  `couleurHexSchema` (#1903). `buildTokenMap` ne lit une surcharge que sur une base : une clé de rôle
- *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, `skin` d'objet, d'op et
- *  d'effet de scène. */
+ *  (`…O`/`…H`) n'est pas une clé de surcharge. `colors` d'apparence et d'espèce, palette des matières d'objet. */
 export const surchargePaletteSchema = z.partialRecord(z.enum(SLOTS), couleurHexSchema);
 
 /** Palette d'ESPÈCE persistée (`raceAppearance.palette`/`paletteF`, `PaletteDEspece`) : clés dans
@@ -797,6 +798,38 @@ function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | nul
   return null;
 }
 
+/** #2948 */
+export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
+  const message = messageDApparenceDObjet(trappingId, apparence);
+  if (message) ctx.addIssue({ code: 'custom', message, path, params: { referenceDObjet: { trappingId, apparence } } });
+}
+
+export function validerApparenceDonnee(v: { op?: string; trappingId?: string; apparence?: { id: string } }, ctx: z.RefinementCtx): void {
+  if (v.op && v.trappingId && !findTrappingById(v.trappingId)) ctx.addIssue({ code: 'custom', message: `Objet inconnu « ${v.trappingId} ».`, path: ['trappingId'], params: { referenceDObjet: { trappingId: v.trappingId } } });
+  if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
+}
+
+/** #2948 */
+export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingData[], ctx: z.RefinementCtx): void {
+  const parId = new Map(objets.map((objet) => [objet.id, objet]));
+  const resolve: TrappingResolver = (id) => trappingDesObjetsPuisDuCatalogue(parId, id);
+  for (let i = ctx.issues.length - 1; i >= 0; i--) {
+    const issue = ctx.issues[i];
+    if (issue.code !== 'custom') continue;
+    const reference = issue.params?.referenceDObjet as { trappingId?: string; apparence?: string } | undefined;
+    if (!reference) continue;
+    const message = reference.apparence
+      ? messageDApparenceDObjet(reference.trappingId, reference.apparence, resolve)
+      : reference.trappingId && resolve(reference.trappingId) ? undefined : issue.message;
+    if (message) ctx.issues[i] = { ...issue, message };
+    else ctx.issues.splice(i, 1);
+  }
+}
+
+const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping', undefined, { ouverte: true }), idDe('apparence')).superRefine((v, ctx) => {
+  for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence, ctx, [trappingId]);
+});
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
@@ -829,6 +862,7 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
   /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée (#774) — défaut
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
+  apparencesObjets: apparencesDObjetsSchema.optional(),
   /** Coiffure IMPOSÉE — id stable d'une coiffure du rig (`gameIso/rig/parts/hairstyles/defs`, #637). */
   hairstyle: z.string().optional(),
   eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: "gauche" }, D: { label: "droit" } }).optional(),
@@ -836,7 +870,7 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
 }).superRefine((a, ctx) => {
   const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle, a.sex);
   if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle'], message: faute });
-}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
+}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON

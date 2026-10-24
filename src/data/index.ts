@@ -48,13 +48,14 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
 import structureCriticalsRawJson from './structure-criticals.json';
 import artilleryMisfireRawJson from './artillery-misfire.json';
 import miscastRawJson from './miscast.json';
-import trappingsJson from './trappings.json';
+import { trappings, findTrappingById } from './apparencesObjets';
+export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
 import vehiclesJson from './vehicles.json';
 import merchantsJson from './merchants.json';
 import structuresJson from './structures.json';
 import structureAppearanceJson from './structureAppearance.json';
 import materialsJson from './materials.json';
-import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef } from './materials.types';
+import type { MaterialDomain, MaterialEntry, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet } from './materials.types';
 import terrainsJson from './terrains.json';
 import type { TerrainDef } from './terrains.types';
 import buildingsJson from './buildings.json';
@@ -1220,11 +1221,11 @@ export interface TrappingData {
    *  en donnée (2, belier-ade2, #210) reste éditable au Compendium plutôt que codée en dur ailleurs. Absent
    *  = empreinte 1 (affûts compacts type baliste/canon). */
   siegeFootprint?: number;
-  /** Slug de FORME (`WeaponDef`/`ShieldDef.slug`) — id STABLE de routage de l'art d'arme/bouclier (rig),
-   *  ≠ libellé. Posé à la migration par jointure `norm(label)` → forme. Absent pour munitions/armes de
-   *  siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance : `formeResolue` (`engine/items`) le
-   *  résout par `trappingId` (#2113). */
-  shape?: string;
+  /** FORME de l'objet — id d'une RACINE de `apparences.json` (#2948), refiné au parse, ≠ libellé. Portée
+   *  par les armes, les boucliers et les armures (dont `subType` reste la matière). Absent pour
+   *  munitions/armes de siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance :
+   *  `formeResolue` (`engine/items`) le résout par `trappingId` (#2113). */
+  shape?: { id: string };
   /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
    *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
    *  arme tenue (`EquipmentPanel`, choix d'attaque/parade) et ne sont pas invocables (`conjuredWeapons`). */
@@ -1236,8 +1237,8 @@ export interface TrappingData {
   /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911), lue par `isShieldTrapping`
    *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
   shield?: true;
-  /** Formes choisibles (slugs `WeaponDef.slug`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
-   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.formeChoisie` ;
+  /** Formes choisibles (racines de `apparences.json`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
+   *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.apparence` ;
    *  défaut = `shape` du trapping. Absent pour une arme à forme unique. */
   formChoices?: string[];
   /** Arme INHABITUELLE (ACE 12 l.17 « Entraînement avec une arme inhabituelle ») : exige la
@@ -2479,7 +2480,7 @@ export function findMutationById(id: string | null | undefined): MutationData | 
 export function mutationLabel(id: string | null | undefined): PlayerText {
   return dataLabel(id ? (mutationParId(id)?.label ?? id) : '');
 }
-export const trappings = trappingsJson as TrappingData[];
+
 /** Engins de siège POSABLES = trappings portant un art d'affût (`siegeRig`). FOYER UNIQUE du filtre :
  *  l'invariant « posable ⇔ l'engin a un art d'affût, et c'est ce rig qui rend l'affût inerte en
  *  éditeur comme en combat » ne vit QU'ICI — partagé par l'outil emplacement de l'éditeur
@@ -2843,6 +2844,8 @@ export const refEstVolumique = (ref: string | undefined): boolean => ref !== und
  *  jamais un index cuit au chargement. Unicité des ids sur tout le périmètre des matières :
  *  `data/materials-identite.test.ts` (#1686). */
 export const findPropMaterialById = (id: string): PropMaterialData | undefined => matieresDe('prop').find((m) => m.id === id);
+/** Teinte d’objet par id — lecture vivante du catalogue, absence si l’id est inconnu. */
+export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined => matieresDe('objet').find((m) => m.id === id);
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
  *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId`, cf.
  *  `findDomainById`). */
@@ -3314,11 +3317,6 @@ export function findStarById(id: string | null | undefined): StarData | undefine
   return signeAstralParId(id);
 }
 
-const possessionParId = indexParId('trappings', trappings);
-/** Résout une Possession par son `id` STABLE. */
-export function findTrappingById(id: string): TrappingData | undefined {
-  return possessionParId(id);
-}
 /** Possession résolue par id STABLE parmi des `objets` d'abord (objets d'une campagne, #767), puis au
  *  catalogue (`findTrappingById`) — SEULE définition de la chaîne, lue par le jeu (`objetDuNarratif`,
  *  `noyau/monde/resolveursDuNarratif.ts`) et par l'éditeur (objets du projet édité, `ui/editor/EffectList.tsx`). */

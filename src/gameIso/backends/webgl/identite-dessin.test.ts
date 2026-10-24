@@ -5,9 +5,9 @@
  * Deux faces, indissociables :
  *  - un sujet déjà construit est une VALEUR : muter l'état vivant (arme déchargée ou retirée en place,
  *    catalogue édité) ne change pas un octet de ce qu'il dessine ;
- *  - le sujet RECONSTRUIT après la mutation change d'identité SI ET SEULEMENT SI son dessin change —
+ *  - le sujet RECONSTRUIT après la mutation change d'identité quand sa projection de dessin change —
  *    l'acteur (identité de texture, `actorPoseKey`, `actorIdentityKey`) comme le figurant de scène.
- * Le « seulement si » est faux devant une édition de catalogue SANS rapport : l'instantané hache
+ * Les candidats d’apparence sont hachés même si le SVG ne dessine que leur racine. L'instantané hache
  * `version` (#2113 phase B, `it.fails` ci-dessous).
  */
 import { afterEach, describe, expect, it } from 'vitest';
@@ -38,8 +38,8 @@ const dessins = (s: BillboardSubject): string[] =>
 
 /** Arme dont la FORME vient du catalogue (`form` → `findTrappingById(...).shape`), et une autre forme connue. */
 const slugs = new Set(WEAPON_DEFS.map((d) => d.slug));
-const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape))!;
-const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape)!;
+const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape.id))!;
+const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape?.id)!;
 const catalogueDOrigine = trappings.slice();
 afterEach(() => setDataset('trappings', catalogueDOrigine));
 
@@ -69,7 +69,7 @@ function porteurDArmeSimple(): Combatant {
   return h;
 }
 const formeAlternative = trappings.find((t) => t.id === 'arme-simple')!.formChoices!.find((f) => f !== 'epee')!;
-const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape } : t)));
+const éditerLaForme = (id: string, shape: string) => setDataset('trappings', trappings.map((t) => (t.id === id ? { ...t, shape: { id: shape } } : t)));
 
 /** Pièce d'armure équipée du porteur — l'exiger fait mordre la mutation qui la vise. */
 function armureEquipee(c: Combatant): ItemInstance {
@@ -80,14 +80,14 @@ function armureEquipee(c: Combatant): ItemInstance {
 
 function soldatEnArmure(): Combatant {
   const h = arbalétrier();
-  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
+  h.items = [...(h.items ?? []), { uid: 'arm-1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], pa: 2, locs: ['corps', 'brasG', 'brasD'], enc: 2, equipped: true } as ItemInstance];
   return h;
 }
 
-/** `dessinChange` : ce que la mutation fait au dessin du sujet RECONSTRUIT. L'état de jeu d'une arme ou
+/** `dessinChange` : ce que la mutation fait au SVG du sujet RECONSTRUIT. L'état de jeu d'une arme ou
  *  d'une pièce (chargement, dégâts subis, qualité) ne se dessine pas ; retirer l'arme, changer sa forme
  *  (en place ou au catalogue), si. */
-const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void; dessinChange: boolean }[] = [
+const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) => void; dessinChange: boolean; identiteChange?: boolean }[] = [
   { nom: 'unloadWeapon', porteur: arbalétrier, muter: (c) => unloadWeapon(c, c.weapons[0]), dessinChange: false },
   {
     nom: 'unloadWeapon puis rechargement',
@@ -106,20 +106,22 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
     dessinChange: false,
     muter: (c) => void (c.weapons[0].qualities = [...c.weapons[0].qualities, { id: 'de-plaies-atroces' }]),
   },
-  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].formeChoisie = formeAlternative), dessinChange: true },
+  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = formeAlternative), dessinChange: true },
+  { nom: 'variante admise de même racine', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = 'epee_ebrechee'), dessinChange: false, identiteChange: true },
+  { nom: 'apparence non admise ignorée', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = 'zweihander'), dessinChange: false },
   { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',
     porteur: porteurDeCatalogue,
     dessinChange: true,
-    muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t))),
+    muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: { id: autreForme } } : t))),
   },
   { nom: 'setDataset (forme de l’arme PORTÉE, par `trappingId`)', porteur: arbalétrier, muter: () => éditerLaForme('arbalete', 'hache_lancer'), dessinChange: true },
 ];
 
-describe('un sujet est une VALEUR, et son identité change SI ET SEULEMENT SI son dessin change', () => {
-  for (const { nom, porteur, muter, dessinChange } of MUTATIONS)
-    it(`${nom} : le sujet déjà composé rend le MÊME octet ; le reconstruit change d’identité ⇔ son dessin change`, () => {
+describe('un sujet est une VALEUR, et son identité suit sa projection de dessin', () => {
+  for (const { nom, porteur, muter, dessinChange, identiteChange = dessinChange } of MUTATIONS)
+    it(`${nom} : le sujet déjà composé rend le MÊME octet ; l’identité du reconstruit suit la projection`, () => {
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
@@ -127,7 +129,7 @@ describe('un sujet est une VALEUR, et son identité change SI ET SEULEMENT SI so
       expect(dessins(s)).toEqual(avant);
       const neuf = sujet(pose(c));
       expect(dessins(neuf).some((d, i) => d !== avant[i]), 'le dessin du sujet reconstruit').toBe(dessinChange);
-      expect(neuf.identity !== s.identity, 'l’identité du sujet reconstruit').toBe(dessinChange);
+      expect(neuf.identity !== s.identity, 'l’identité du sujet reconstruit').toBe(identiteChange);
     });
 });
 
@@ -193,7 +195,7 @@ describe('catalogue édité : le témoin notifie le stage, et le sujet reconstru
     const désabonner = abonnerAuxDatasets(() => {
       notifications += 1;
     });
-    setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: autreForme } : t)));
+    setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: { id: autreForme } } : t)));
     désabonner();
     expect(notifications, 'l’abonné du stage est notifié').toBeGreaterThan(0);
     expect(sujet(pose(c)).identity).not.toBe(s.identity);

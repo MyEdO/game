@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { auditDataset, EXEMPT_DATASETS, isCitedItem } from '../../scripts/guards/lib/citationCoverage.mjs';
+import { auditDataset, EXEMPT_DATASETS, exemptionDeDataset, isCitedItem } from '../../scripts/guards/lib/citationCoverage.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { SANS_LIVRE_DEFINITIF } from './schemas/grammaire/sans-livre';
 
 /**
  * Garde-fou « citation par ENTRÉE » (#309, phase 1 — suite #278/#281). #278/#281 gardent la FORME
@@ -12,15 +13,8 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
  * ABSOLUE : aucun dataset non exempté ne porte d'entrée SANS citation (tolérance zéro depuis la
  * phase 3, #309, 2026-07-11, qui a curé les 16 derniers manques).
  *
- * EXEMPTION nominative (`EXEMPT_DATASETS`, `citationCoverage.mjs`) : vocabulaires app-internes
- * SANS mécanique RAW à sourcer (props/groupes/matériaux de rendu, palettes, prégénérés, réf
- * `_source` unique d'`aa-criticals.json`…) — jamais scannés par ce garde.
- *
- * PHASE 3 (#309, 2026-07-11) : les 16 derniers datasets (miscast/interludeEvents/
- * advancementCosts/calendrier ×3/crew-roles/peripeties/oups/steam-breakdown/drunkenness/
- * driving-mishap/encumbranceTiers/weather/grapple) sont curés à 100% (`calendarPhases.json` exempté :
- * découpage app-interne de lumière/vision, introuvable comme table RAW nommée — cf.
- * `EXEMPT_DATASETS`). Zéro entrée extraite sans source sur `src/data/*.json`.
+ * `exemptionDeDataset` lit SANS_LIVRE_DEFINITIF puis les exemptions résiduelles EXEMPT_DATASETS.
+ * L’auto-purge porte sur ces exemptions résiduelles : une couverture intégrale les rend périmées.
  */
 
 const DATA_DIR = __dirname;
@@ -33,7 +27,7 @@ const DATASETS = listerDossier(DATA_DIR).filter((f) => f.endsWith('.json'));
 function missingByFile(): Record<string, number> {
   const missing: Record<string, number> = {};
   for (const f of DATASETS) {
-    if (EXEMPT_DATASETS[f]) continue;
+    if (exemptionDeDataset(f)) continue;
     const data = JSON.parse(readFileSync(join(DATA_DIR, f), 'utf8'));
     const { total, cited } = auditDataset(data);
     const n = total - cited;
@@ -41,6 +35,17 @@ function missingByFile(): Record<string, number> {
   }
   return missing;
 }
+
+describe('exemptions de citation — source unique', () => {
+  it('une exemption résiduelle ne recopie aucun dataset définitivement sans livre', () => {
+    const doublons = Object.keys(EXEMPT_DATASETS).filter((f) => Object.keys(SANS_LIVRE_DEFINITIF).includes(f.replace(/\.json$/, '')));
+    expect(doublons).toEqual([]);
+  });
+
+  it('une clé héritée sans déclaration ne dispense pas un dataset de citation', () => {
+    expect(exemptionDeDataset('constructor.json')).toBeUndefined();
+  });
+});
 
 describe('EXEMPT_DATASETS s’auto-purge — une exemption intégralement citée est morte (#1467 L1b)', () => {
   it('aucune entrée d’EXEMPT_DATASETS n’a `cited === total` (elle ne sert plus qu’à mentir)', () => {
@@ -61,10 +66,6 @@ describe('EXEMPT_DATASETS s’auto-purge — une exemption intégralement citée
     ).toEqual([]);
   });
 
-  it('chaque exemption nomme un fichier QUI EXISTE (une exemption fantôme ne protège rien)', () => {
-    const fantomes = Object.keys(EXEMPT_DATASETS).filter((f) => !existsSync(join(DATA_DIR, f)));
-    expect(fantomes).toEqual([]);
-  });
 });
 
 describe('garde-fou « citation par entrée » — couverture source:{book,page} (#309)', () => {

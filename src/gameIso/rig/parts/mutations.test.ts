@@ -7,9 +7,10 @@ import { resolveRig } from '../composeRig';
 import type { Combatant } from '../../../engine/types';
 import type { Appearance } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
+import { equipDe } from '../../../noyau/equipementDessine';
 
 const APP: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 };
-const NO_EQUIP = { weapons: [], armour: [] };
+const NO_EQUIP = equipDe([], []);
 /** Combatant minimal porteur de mutations, résolues PAR ID (les autres champs lus — traits/traumas —
  *  sont undefined). */
 const cm = (...ids: string[]): Combatant =>

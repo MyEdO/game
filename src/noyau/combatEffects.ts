@@ -27,7 +27,7 @@ import { easeDifficulty } from '../engine/tests';
 import { restoreFortune } from '../engine/fortune';
 import { hasTalent } from '../engine/magic';
 import { traumaOnImpossibleAmbition } from '../engine/psychology';
-import { itemFromGive, giveTrappingLabel, withGiveQualities, avecObjet, type TrappingResolver } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
@@ -278,7 +278,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
 }
 
 /** Attribue la ligne `index` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
- *  l'Effet d'origine s'applique avec ce heroId (qualités/skin/identification conservés), la
+ *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
  *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot). */
 export function assignGearAt(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', index: number, heroId: string) {
   const bucket = get()[key];
@@ -1345,12 +1345,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
-      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif));
+      const destinataire = env.hero(e.heroId);
+      const it = itemFromGive(e, undefined, objetDuNarratif(env.get().campaignNarratif), destinataire ? contexteDeNaissanceDObjet(destinataire) : undefined);
       // Butin MAGIQUE (optionnel) : qualités ajoutées, objet non identifié (qualités masquées jusqu'à
-      // Évaluation, #2), skin légendaire. Les qualités restent ACTIVES mécaniquement (registre).
-      it.qualities = withGiveQualities(it.qualities, e); // def du catalogue + magiques (ids de scène)
+      // Évaluation, #2), teinte légendaire. Les qualités restent ACTIVES mécaniquement (registre).
       if (e.identified === false) it.identified = false;
-      if (e.skin) it.skin = e.skin;
       if (e.magicKnown) it.magicKnown = true; // aura détectée en fenêtre de loot → suit l'objet
       if (e.detectTried) it.detectTried = true;
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;

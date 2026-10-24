@@ -79,6 +79,10 @@ export const TYPES = {
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
   steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  // APPARENCE d'objet (#2948) : `trappings.json › shape`/`formChoices` résolvent AU PARSE contre les
+  // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
+  apparence: { espace: 'apparences.json', catalogue: 'apparences' },
+  classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -120,25 +124,30 @@ function idsDesignes(cle: string, site: string): ReadonlySet<string> {
 }
 
 /**
- * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant se lit aux clés
- * de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le paramètre
- * `espace.discriminant` du def — une seule déclaration, au nœud.
+ * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant qui porte cette
+ * valeur se lit aux clés de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le
+ * paramètre `espace.discriminant` du def — une seule déclaration, au nœud. Un espace à plusieurs champs
+ * discriminants (`weaponGroups.json` : `combat`, `kind`) désigne une sous-liste par une valeur qu'UN SEUL
+ * de ses champs porte.
  */
-const champsDiscriminants = new Map<string, string>();
+const champDeLaValeur = new Map<string, string>();
 function cleDeSousListe(type: TypeEntite, valeur: string, site: string): string {
   const espace = espaceDe(type);
-  const connu = champsDiscriminants.get(espace);
+  const memo = `${espace}\u0000${valeur}`;
+  const connu = champDeLaValeur.get(memo);
   if (connu !== undefined) return cleFiltree(espace, { champ: connu, vaut: valeur });
   const champs = new Set(
     clesDeLIndex().flatMap((cle) => {
       const lue = lireCleDEspace(cle);
-      return baseDe(lue) === espace && lue.filtre?.vaut !== undefined ? [lue.filtre.champ] : [];
+      return baseDe(lue) === espace && lue.filtre?.vaut === valeur ? [lue.filtre.champ] : [];
     }),
   );
   if (champs.size !== 1)
-    throw new Error(`${site} : ${espace} ${champs.size ? `a ${champs.size} champs discriminants (${[...champs].join(', ')})` : "n'a aucun champ discriminant (paramètre `espace.discriminant` de son def)"}.`);
+    throw new Error(
+      `${site} : ${espace} ${champs.size ? `porte la valeur « ${valeur} » sous ${champs.size} champs discriminants (${[...champs].join(', ')})` : `n'a aucune sous-liste discriminée « ${valeur} » (paramètre \`espace.discriminant\` de son def)`}.`,
+    );
   const [champ] = champs;
-  champsDiscriminants.set(espace, champ);
+  champDeLaValeur.set(memo, champ);
   return cleFiltree(espace, { champ, vaut: valeur });
 }
 
@@ -496,16 +505,18 @@ const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'id
 
 /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
  *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>) {
-  return nommerChamps(z.strictObject({ id: idDe(type), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe) {
+  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
 }
 
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
   type: T,
   extra?: E,
-): z.ZodType<unknown> {
-  return objetDeRef(type, (extra ?? {}) as Record<string, z.ZodType>, metasExtra(extra));
+  sousListe?: SousListe,
+): z.ZodType<{ id: Id<T> }>;
+export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousListe?: SousListe): z.ZodType<unknown> {
+  return objetDeRef(type, extra ?? {}, metasExtra(extra), sousListe);
 }
 
 /** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */

@@ -16,12 +16,13 @@ import { bonesToSvg } from '../renderBones';
 import { entityRigProfile } from '../enemyProfile';
 import { findCreatureById } from '../../../data';
 import { weaponFromId } from '../../../engine/creatureEquip';
+import { itemFromGive } from '../../../engine/items';
 import { resolveSpecies } from '../bodyPlan';
 import { slugId } from '../../../data/slug';
 import { VIEWS } from '../facing';
 import type { Appearance } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
-import { bouclierDeDessin, equipDe, type EquipCtx } from '../parts/equipment';
+import { bouclierDeDessin, equipDe, type EquipCtx } from '../../../noyau/equipementDessine';
 
 // Espèces bipèdes couvertes (LIBELLÉS canoniques) + rôles génériques. Comme un outil, on part d'un
 // libellé → on le slugue → espèce EXPLICITE (resolveSpecies(slug) : id de def, ou Humain si rôle
@@ -84,8 +85,8 @@ describe('golden master — héros équipés (anti-régression chemins arme/armu
   const appGuardien: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.6, seed: 11 };
   const equipGuardien: EquipCtx = {
     ...equipDe([weaponFromId('grande-hache')!], [
-      { uid: 'syn-corps', label: 'Cotte de mailles', kind: 'armor', qualities: [], pa: 2, locs: ['corps'], enc: 1, equipped: true },
-      { uid: 'syn-tete',  label: 'Heaume',            kind: 'armor', qualities: [], pa: 2, locs: ['tete'],  enc: 1, equipped: true },
+      { ...itemFromGive({ trappingId: 'cotte-de-mailles' }), locs: ['corps'], equipped: true },
+      { ...itemFromGive({ trappingId: 'heaume' }), locs: ['tete'], equipped: true },
     ]),
     shield: bouclierDeDessin({ trappingId: 'bouclier' }), // rondache
   };

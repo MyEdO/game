@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { weaponRest, weaponAttackClip, weaponParryClip, mountedAttackClip, mountedParryClip, seatedClip, isRangedFamily } from './weaponClips';
 import { clipDuration, CLIPS } from './clips';
 import { findTrappingById } from '../../../data';
-import { armeDeDessin, type ArmeDeDessin } from '../parts/equipment';
+import { armeDeDessin, type ArmeDeDessin } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
 
 // L'arme porte son id de Possession ; la projection en RÉSOUT la forme, et le maniement est routé PAR ID

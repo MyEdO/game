@@ -70,7 +70,7 @@ describe('ItemIcon — même forme que le pion (#2113)', () => {
   const arme = (w: Weapon) => renderToStaticMarkup(<ItemIcon item={w} />);
 
   it('la forme CHOISIE se dessine sur l’objet comme sur l’arme tenue', () => {
-    const it = { ...itemFromTrappingById('arme-simple')!, formeChoisie: 'hache' };
+    const it = { ...itemFromTrappingById('arme-simple')!, apparence: 'hache' };
     expect(html(it), 'la sonde mord : le choix change l’icône').not.toBe(html(itemFromTrappingById('arme-simple')!));
     expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
   });
@@ -78,7 +78,7 @@ describe('ItemIcon — même forme que le pion (#2113)', () => {
   it('une édition de la forme au catalogue repeint l’objet ET l’arme tenue', () => {
     const it = itemFromTrappingById('arbalete')!;
     const avant = html(it);
-    setDataset('trappings', trappings.map((t) => (t.id === 'arbalete' ? { ...t, shape: 'hache_lancer' } : t)));
+    setDataset('trappings', trappings.map((t) => (t.id === 'arbalete' ? { ...t, shape: { id: 'hache_lancer' } } : t)));
     expect(html(it)).not.toBe(avant);
     expect(html(it)).toBe(arme(weaponFromItem(it, 'main')));
   });

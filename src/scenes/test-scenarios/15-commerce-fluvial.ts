@@ -1,5 +1,5 @@
 import { createHero } from '../../engine/character';
-import { itemFromTrappingById } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { Scene } from '../../noyau/monde/scene';
@@ -37,7 +37,7 @@ function traders(): Combatant[] {
   // Chariot de convoi (porteur RÉEL de la cargaison, #327) : la contenance devient un plafond réel — le
   // vrac vit sur `ItemInstance.cargo`, embarqué sur la barge à la descente (Décision 5, EDOC 7).
   const convoi = { uid: 'com-convoi', name: 'Chariot de convoi', trappingId: 'diligence', kind: 'misc', qualities: [], enc: 0, equipped: false } as never;
-  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration')!, itemFromTrappingById('ration')!, convoi];
+  berta.items = [...(berta.items ?? []), itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(berta))!, itemFromTrappingById('ration', undefined, contexteDeNaissanceDObjet(berta))!, convoi];
   berta.appearance = { species: rigSpeciesId('humains-reiklander'), sex: 'F', build: 0.5 };
 
   // Spécialisation Chaland de la Voile (Au choix) du Batelier : valeur d'ADAPTATION du scénario. LDB 09 l.40

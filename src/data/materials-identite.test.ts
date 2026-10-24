@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { materials, matieresDe, structureAppearances } from './index';
+import { materials, matieresDe, findTeinteById, structureAppearances } from './index';
 import { DOMAINES_MATIERE, type MaterialEntry } from './materials.types';
 import { propMaterial } from '../gameIso/catalog/propMaterials';
 import { roofMaterial } from '../gameIso/catalog/roofs';
@@ -9,7 +9,7 @@ import { terrains } from './index';
 
 /**
  * IDENTITÉ D'UNE MATIÈRE DU MONDE (#1686) — l'identité est le couple (DOMAINE, id), et l'id est
- * UNIQUE dans TOUT le document `materials.json`, dont le périmètre est `prop`, `roof`, `relief`.
+ * UNIQUE dans TOUT le document `materials.json`, y compris ses palettes d’objet.
  * `MaterialRef.domain` en déclare CINQ (`src/data/materials.types.ts` : terrain, relief,
  * structure, roof, prop) ; les deux autres portent chacun SON dataset — `terrain` a le sien
  * (`terrains.json`, #1690 : règle et rendu dans la même entrée), `structure` un dataset d'apparence
@@ -29,6 +29,7 @@ const VUES: { domaine: string; entrees: readonly MaterialEntry[]; resout: (id: s
   { domaine: 'prop', entrees: matieresDe('prop'), resout: propMaterial },
   { domaine: 'roof', entrees: matieresDe('roof'), resout: roofMaterial },
   { domaine: 'relief', entrees: matieresDe('relief'), resout: reliefMaterial },
+  { domaine: 'objet', entrees: matieresDe('objet'), resout: (id) => findTeinteById(id)! },
 ];
 
 describe('identité des matières du monde — (domaine, id), id unique sur tout le document', () => {
@@ -104,8 +105,8 @@ describe('collisions d’id sur les CINQ domaines — cliquet décroissant', () 
     expect(union, '`MaterialRef.domain` ne se lit plus comme une union de littéraux').not.toBeNull();
     const declares = [...union![1].matchAll(/'([a-z]+)'/g)].map((m) => m[1]).sort();
     expect(declares).toEqual(Object.keys(DOMAINES).sort());
-    // Et le périmètre du DATASET est un SOUS-ENSEMBLE de ces domaines — il n'en invente aucun.
-    expect(declares).toEqual(expect.arrayContaining([...DOMAINES_MATIERE]));
+    // Les domaines de surface du catalogue appartiennent au pivot de rendu.
+    expect(declares).toEqual(expect.arrayContaining(DOMAINES_MATIERE.filter((d) => d !== 'objet')));
   });
 
   it('le stock nominatif des collisions vivantes est EXACT — une de plus est rouge, une résolue le fait baisser', () => {

@@ -16,6 +16,7 @@ import { estFichierVitest } from '../../scripts/guards/lib/fichierVitest.mjs';
  *  Codex (qui montre tout le catalogue). */
 const FOYER = [
   'src/data/index.ts',
+  'src/data/apparencesObjets.ts',
   'src/data/overrides.ts',
   'src/data/schemas/_racines-vivantes.generated.ts',
   'src/ui/compendium/registry.ts',
@@ -39,6 +40,7 @@ const PARAMETRES = {
   nom: 'LECTURE_BRUTE_DES_TRAPPINGS',
   liaisons: [
     { module: 'src/data/index.ts', exporte: 'trappings' },
+    { module: 'src/data/apparencesObjets.ts', exporte: 'trappings' },
     { module: 'src/data/schemas/_racines-vivantes.generated.ts', exporte: 'RACINES_VIVANTES' },
   ],
   json: 'trappings.json',
@@ -55,6 +57,7 @@ describe('lecture brute des trappings hors de la vue', () => {
   /** La frontière de la garde est une DONNÉE : chaque forme, son verdict (`[2]` vue, `[]` non vue). */
   const FORMES: readonly (readonly [string, string, string, number[]])[] = [
     ['vue', 'import nommé', 'const x = 1;', "import { trappings } from '../data';"],
+    ['vue', 'catalogue partagé avec le parse', 'const x = 1;', "import { trappings } from '../data/apparencesObjets';"],
     ['vue', 'import nommé renommé', 'const x = 1;', "import { trappings as tout } from '../data/index';"],
     ['vue', 'espace de noms', "import * as D from '../data';", 'D.trappings.length;'],
     ['vue', 'réexportation', "const x = 1;", "export { trappings } from '../data';"],

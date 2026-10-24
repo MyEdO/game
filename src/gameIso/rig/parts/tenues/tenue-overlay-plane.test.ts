@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { resolveRig } from '../../composeRig';
 import type { Appearance } from '../../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../../appearance';
+import { equipDe } from '../../../../noyau/equipementDessine';
 
 // Canal `TenueDef.overlays` (#pelisse-loup-blanc) : une tenue peut déclarer un calque
 // ASYMÉTRIQUE attaché à un os précis, à PLAN dédié (échappe au z inégal des bras
@@ -13,7 +14,7 @@ const app: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.
 
 describe('canal TenueDef.overlays — pauldron asymétrique (plane)', () => {
   it('epauleD porte DEUX entrées (bras normal z=8 + calque à plan z=99), jamais mirroité', () => {
-    const bones = resolveRig(app, { weapons: [], armour: [] }, {}, 'chevalier-du-loup-blanc', 'back');
+    const bones = resolveRig(app, equipDe([], []), {}, 'chevalier-du-loup-blanc', 'back');
     const epauleD = bones.filter((b) => b.id === 'epauleD');
     expect(epauleD.length).toBe(2);
     const planeEntry = epauleD.find((b) => b.z === 99);
@@ -22,13 +23,13 @@ describe('canal TenueDef.overlays — pauldron asymétrique (plane)', () => {
   });
 
   it("le calque n'est JAMAIS dupliqué sur epauleG (asymétrie réelle, pas un miroir)", () => {
-    const bones = resolveRig(app, { weapons: [], armour: [] }, {}, 'chevalier-du-loup-blanc', 'back');
+    const bones = resolveRig(app, equipDe([], []), {}, 'chevalier-du-loup-blanc', 'back');
     const epauleG = bones.filter((b) => b.id === 'epauleG');
     expect(epauleG.length).toBe(1); // seul le bras normal (slot `bras`), aucun plan-overlay
   });
 
   it('une tenue SANS overlays (défaut des 117 autres) ne produit aucune entrée à plan supplémentaire', () => {
-    const bones = resolveRig(app, { weapons: [], armour: [] }, {}, 'citadins', 'front');
+    const bones = resolveRig(app, equipDe([], []), {}, 'citadins', 'front');
     const epauleD = bones.filter((b) => b.id === 'epauleD');
     expect(epauleD.length).toBe(1); // une seule epauleD : le bras normal, aucun plan-overlay
   });

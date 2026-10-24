@@ -11,7 +11,7 @@ import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 
-export const VERSION_PROTOCOLE_CODEX = '0.163.0'
+export const VERSION_PROTOCOLE_CODEX = '0.164.0'
 export const MAX_MESSAGE_CODEX = 64 * 1024
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const refus = (categorie, message, native) => Object.assign(new Error(`${prefixeDeRefus(categorie)} ${message}`), { native })
@@ -69,7 +69,7 @@ function forme(schema, segments, definitions = schema?.definitions || {}) {
   if (!segments.length) return base
   if (segments[0].startsWith('@') && schema.properties?.type?.enum?.includes(segments[0].slice(1))) return forme(schema, segments.slice(1), definitions)
   const alternatives = schema.oneOf || schema.anyOf || schema.allOf
-  if (alternatives) {
+  if (alternatives && !Object.hasOwn(schema.properties ?? {}, segments[0])) {
     const branches = alternatives.map((s) => s.type === 'null' ? { type: 'null' } : forme(s, segments, definitions)).filter(Boolean)
     return branches.length ? { ...base, branches } : null
   }

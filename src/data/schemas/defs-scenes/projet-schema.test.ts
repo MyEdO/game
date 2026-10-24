@@ -79,6 +79,53 @@ const fautesCodees = (valeur: unknown, schema: typeof projetSchema = projetSchem
   });
 };
 
+describe('apparence des objets de campagne', () => {
+  const objet = { id: 'hache-du-projet', label: 'Hache du projet', kind: 'melee', shape: { id: 'hache' }, formChoices: ['hache'] };
+  const document = (apparence: string) => projet({
+    narratif: { ...emptyNarratif(), objets: [objet] },
+    scenes: [sceneMinimale({ entities: [{
+      id: 'coffre', kind: 'prop', ref: 'coffre', pos: { x: 1, y: 1 },
+      usable: { actions: [{ id: 'fouiller', flow: { kind: 'do', effect: {
+        type: 'giveTrapping', trappingId: objet.id, apparence: { id: apparence },
+      } } }] },
+    }] })],
+  });
+  it('le document juge la référence donnée avec ses propres objets', () => {
+    const result = projetSchema.safeParse(document('hache_naine'));
+    expect(result.success, result.success ? '' : JSON.stringify(result.error.issues)).toBe(true);
+  });
+  it.each(['op', 'apparencesObjets'])('%s emploie aussi les objets du document', (surface) => {
+    const doc = document('hache_naine') as any;
+    const entite = doc.scenes[0].entities[0];
+    if (surface === 'op') entite.usable.actions[0].flow.effect = {
+      type: 'ops', ops: [{ op: 'giveTrapping', trappingId: objet.id, apparence: { id: 'hache_naine' } }],
+    };
+    else {
+      delete entite.usable;
+      entite.appearance = { apparencesObjets: { [objet.id]: 'hache_naine' } };
+    }
+    const result = projetSchema.safeParse(doc);
+    expect(result.success, result.success ? '' : JSON.stringify(result.error.issues)).toBe(true);
+    if (surface === 'op') entite.usable.actions[0].flow.effect.ops[0].apparence.id = 'cape';
+    else entite.appearance.apparencesObjets[objet.id] = 'cape';
+    expect(projetSchema.safeParse(doc).success).toBe(false);
+  });
+  it('la forme du registre narratif compose la référence fermée du catalogue', () => {
+    for (const shape of ['hache', { id: 'forme-inconnue' }]) {
+      const doc = document('hache_naine') as any;
+      doc.narratif.objets[0].shape = shape;
+      expect(projetSchema.safeParse(doc).success, JSON.stringify(shape)).toBe(false);
+    }
+    const doc = document('hache_naine') as any;
+    doc.narratif.objets[0].formChoices = ['forme-inconnue'];
+    expect(projetSchema.safeParse(doc).success).toBe(false);
+  });
+  it('une apparence étrangère reste refusée et nomme les deux ids', () => {
+    expect(fautes(document('cape')).join('\n')).toContain('hache-du-projet');
+    expect(fautes(document('cape')).join('\n')).toContain('cape');
+  });
+});
+
 describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resolvePortRef)', () => {
   it('un projet minimal parse : les collections que `normalizeScene` comble sont OPTIONNELLES', () => {
     const res = projetSchema.safeParse(projet());

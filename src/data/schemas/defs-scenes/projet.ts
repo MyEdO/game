@@ -25,7 +25,8 @@ import { refs } from '../grammaire/ref';
 import { listeCle } from '../grammaire/collection-cle';
 import { sceneSchema } from './scene';
 import { worldMapSchema } from './worldmap';
-import { narratifSchema } from './narratif';
+import { validerReferencesDObjetsDansCampagne } from '../grammaire/valeurs';
+import { narratifSchema, type NarratifBlock } from './narratif';
 import { refsNarrativesPendantes, type NarratifAReferences } from './refs-narratives';
 
 /** Provenance d'une campagne AUTHORÉE À L'ÉDITEUR : aucun livre ne la publie, et un folio ne se
@@ -82,7 +83,8 @@ export const projetDoc = document(
         maison: { label: 'Maison', texte: { regime: 'technique', usage: 'diagnostic de provenance documentaire du projet' } },
         icon: { label: 'Icône', texte: { regime: 'technique', usage: 'id de l’icône du projet' } },
       }).superRefine((valeur, ctx) => {
-        const doc = valeur as { scenes: unknown[]; worldMap?: unknown; narratif: NarratifAReferences };
+        const doc = valeur as { scenes: unknown[]; worldMap?: unknown; narratif: NarratifAReferences & NarratifBlock };
+        validerReferencesDObjetsDansCampagne(doc.narratif.objets, ctx);
         /** FK INTRA-document (#671, #679) : toute référence narrative des scènes (`presetId` d'entité,
          *  `documentId`/`indiceId`/`stade` d'Effect, Flows portés compris) et de la carte du monde résout
          *  au narratif du document — visiteur unique `./refs-narratives.ts`. */

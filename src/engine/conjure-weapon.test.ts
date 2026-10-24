@@ -4,6 +4,7 @@ import { endOfRound } from './conditions';
 import { effectiveWeaponDamage } from './weaponDamage';
 import { damageString, isImprovisedTrapping, isShieldTrapping, isUnarmedTrapping } from './items';
 import { trappings } from '../data';
+import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { conjureFormOptions } from './conjuredWeapons';
 import { runPureFlowLines } from '../noyau/combat/flowEval';
 import { bonus } from './characteristics';
@@ -96,10 +97,34 @@ describe('grantNaturalWeapon — armes naturelles accordées (Dent et griffe)', 
   });
 });
 
+describe('grantWeapon — référence de forme emboîtée', () => {
+  it.each([['arme-simple', 'base'], ['serpe-de-guerre', 'armes-d-hast']])('la référence %s devient la forme de l’objet et de son arme', (id, groupe) => {
+    const op = gameOpSchema.parse({ op: 'grantWeapon', label: 'Arme de forme fixe', damage: 3, form: { id }, subType: { id: groupe } });
+    const c = mage();
+    applyOps(c, [op], { rng: desDuTest });
+    expect(c.items?.find((i) => i.conjured)?.form).toBe(id);
+    expect(c.weapons[0].form).toBe(id);
+    expect(c.items?.find((i) => i.conjured)?.subType).toBe(groupe);
+    expect(c.weapons[0].subType).toBe(groupe);
+  });
+
+  it('la référence est fermée : id connu admis, id inconnu, service, chaîne et clé étrangère refusés', () => {
+    const op = { op: 'grantWeapon', label: 'Arme de forme fixe', damage: 3 };
+    expect(gameOpSchema.safeParse({ ...op, form: { id: 'arme-simple' }, subType: { id: 'base' } }).success).toBe(true);
+    for (const subType of [{ id: 'groupe-inconnu' }, 'base', { id: 'base', autre: true }]) {
+      expect(gameOpSchema.safeParse({ ...op, subType }).success, JSON.stringify(subType)).toBe(false);
+    }
+    const service = trappings.find((t) => t.service)!;
+    for (const form of [{ id: 'forme-inconnue' }, { id: service.id }, 'arme-simple', { id: 'arme-simple', autre: true }]) {
+      expect(gameOpSchema.safeParse({ ...op, form }).success, JSON.stringify(form)).toBe(false);
+    }
+  });
+});
+
 describe('grantWeapon — variantes de domaine (stats fixes du Sort)', () => {
   it('Faux de Shyish : Armes d’hast à 2 mains, Dégâts = BFM+3', () => {
     const c = mage(); // BFM 4
-    applyOps(c, [{ op: 'grantWeapon', label: 'Faux de Shyish', damage: { bonusOf: 'force-mentale' }, damagePlus: 3, subType: 'armes-d-hast', reach: 'Longue', hands: 2, qualities: ['magique'] }],
+    applyOps(c, [{ op: 'grantWeapon', label: 'Faux de Shyish', damage: { bonusOf: 'force-mentale' }, damagePlus: 3, subType: { id: 'armes-d-hast' }, reach: 'Longue', hands: 2, qualities: ['magique'] }],
       { rng: desDuTest, label: 'La Faux de Shyish', defaultDurationRounds: 4 });
     expect(c.weapons[0].label).toBe('Faux de Shyish');
     expect(c.weapons[0].hands).toBe(2);
@@ -109,7 +134,7 @@ describe('grantWeapon — variantes de domaine (stats fixes du Sort)', () => {
 
   it('Épée ardente de Rhuin : Dégâts +6, Percutante + En flammes à la touche', () => {
     const c = mage();
-    applyOps(c, [{ op: 'grantWeapon', label: 'Épée ardente de Rhuin', damage: 6, subType: 'base', reach: 'Moyenne', hands: 1, qualities: ['magique', 'percutante'], onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }],
+    applyOps(c, [{ op: 'grantWeapon', label: 'Épée ardente de Rhuin', damage: 6, subType: { id: 'base' }, reach: 'Moyenne', hands: 1, qualities: ['magique', 'percutante'], onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }],
       { rng: desDuTest, label: "L'Épée ardente de Rhuin", defaultDurationRounds: 4 });
     expect(damageString(c.weapons[0].damage)).toBe('+6');
     expect(c.weapons[0].qualities.map((q) => q.id)).toEqual(expect.arrayContaining(['magique', 'percutante']));

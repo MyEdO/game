@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { meta } from '../data/schemas/defs/trappings';
 import { trappings, trappingsInstanciables } from '../data';
 import { setDataset } from '../data/overrides';
-import { itemFromTrappingById, weaponFromItem } from './items';
+import { itemFromGive, itemFromTrappingById, weaponFromItem } from './items';
 
 const RENDU_PUR = Object.entries(meta)
   .filter(([, m]) => m.renduPur)
@@ -18,6 +18,19 @@ const catalogueDOrigine = trappings.slice();
 afterEach(() => setDataset('trappings', catalogueDOrigine));
 
 describe('rendu pur : aucune instance ne recopie un champ de rendu du catalogue', () => {
+  it('sans décision, aucune naissance ne pose de clé apparence', () => {
+    const objets = trappingsInstanciables().flatMap((t) => [
+      itemFromTrappingById(t.id)!,
+      itemFromGive({ trappingId: t.id }),
+    ]);
+    objets.push(itemFromGive({ custom: 'Objet sans contexte' }));
+    for (const objet of objets) {
+      expect(objet, objet.trappingId ?? objet.label).not.toHaveProperty('apparence');
+      if (objet.kind === 'melee' || objet.kind === 'ranged')
+        expect(weaponFromItem(objet), objet.trappingId).not.toHaveProperty('apparence');
+    }
+  });
+
   it('le tag est posé (la garde mord sur au moins un champ)', () => {
     expect(RENDU_PUR).toContain('shape');
   });
