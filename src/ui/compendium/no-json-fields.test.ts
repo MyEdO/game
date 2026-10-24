@@ -10,8 +10,10 @@
 import { describe, it, expect } from 'vitest';
 import { CODEX } from './registry';
 import { inferFields } from './editFields';
+import { datasetFile, datasetObject, datasetObjectFile } from '../../data/overrides';
+import { metaPourFichier, noeudDeLEntree } from '../../data/schemas/validate';
 import { refFieldCfg } from './refField/RefField';
-import { isEditableCategory, editableEntries, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
+import { isEditableCategory, editableEntries, editableDataset, editableObjectDataset, dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 
 describe('Codex — aucun champ éditable n’infère kind:json (E3b)', () => {
   const editable = CODEX.filter((c) => isEditableCategory(c.key));
@@ -26,9 +28,15 @@ describe('Codex — aucun champ éditable n’infère kind:json (E3b)', () => {
       // `<JsonField>` UNIQUEMENT s'il n'est ni couvert par un éditeur dédié (`dedicatedFieldKeys`),
       // ni par un `RefField` (`refFieldCfg`), ET que son kind inféré est 'json'.
       const handled = dedicatedFieldKeys(cat.key);
-      const json = inferFields(editableEntries(cat.key))
-        .filter((f) => !handled.has(f.key) && !refFieldCfg(cat.key, f.key) && f.kind === 'json')
-        .map((f) => f.key);
+      const entrees = editableEntries(cat.key);
+      const objet = editableObjectDataset(cat.key);
+      const dataset = objet?.ds ?? editableDataset(cat.key)!;
+      const fichier = objet ? datasetObjectFile(objet.ds) : datasetFile(editableDataset(cat.key)!);
+      const racines = objet ? [datasetObject(objet.ds)] : entrees;
+      const json = racines.flatMap((entree) => inferFields(entrees, {
+        meta: metaPourFichier(fichier), noeud: noeudDeLEntree(dataset, entree as object),
+      }).filter((f) => !handled.has(f.key) && !refFieldCfg(cat.key, f.key) && f.kind === 'json')
+        .map((f) => f.key));
       expect(json, `champs ${cat.key} encore en json : ${json.join(', ')}`).toEqual([]);
     });
   }

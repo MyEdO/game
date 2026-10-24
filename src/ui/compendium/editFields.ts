@@ -8,7 +8,7 @@ import { derouleEnum, metaDesChamps, valeursDe, type MetaChamp } from '../../dat
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { defDe, enfantsDe, ouverts } from '../../data/schemas/grammaire/descente';
 
-export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
+export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList' | 'selectOneOrList';
 
 export interface FieldDesc {
   key: string;
@@ -156,6 +156,16 @@ export function offreDesRangees(field: FieldDesc, value: unknown): boolean {
   return Array.isArray(value) && value.every((x) => x != null && typeof x === 'object' && !Array.isArray(x));
 }
 
+// #2968
+function enumScalaireOuListe(noeud: unknown): unknown | undefined {
+  const union = ouverts([noeud]).find((n) => defDe(n)?.type === 'union');
+  if (!union) return undefined;
+  const branches = enfantsDe(union).map((e) => derouleEnum(e.noeud));
+  if (branches.length !== 2 || branches.some((b) => !b)) return undefined;
+  const [a, b] = branches;
+  return a!.noyau === b!.noyau && a!.liste !== b!.liste ? a!.noyau : undefined;
+}
+
 /**
  * Le champ `cle` est-il DÉRIVÉ d'un autre champ de CETTE entrée ? Un champ dérivé ne s'offre pas à
  * l'édition : sa valeur ne vient pas de l'auteur, et la saisir serait écrite nulle part (la porte de
@@ -262,11 +272,12 @@ export function inferFields(entries: Record<string, unknown>[], regime: RegimeDe
     // reste proposable, et une valeur inconnue de l'enum n'est pas proposée. Le NŒUD vaut à TOUTE
     // profondeur : un champ énuméré de sous-formulaire se nomme comme un champ de racine.
     const noeud = ferme.flatMap(enfantsDe).find((e) => e.cle === key)?.noeud;
-    const valeurs = valeursDe(noeud);
+    const mixte = enumScalaireOuListe(noeud);
+    const valeurs = valeursDe(mixte ?? noeud);
     // Le VIDABLE et la valeur vide se lisent sur le NŒUD ; l'échantillon ne tranche qu'un champ hors schéma.
     const absence = absenceDuNoeud(noeud);
     const nullable = absence === undefined ? sawNull || sample === undefined : absence !== false;
-    if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: (derouleEnum(noeud)?.liste ? 'selectList' : 'select') as FieldKind, nullable, valeurs, noeud };
+    if (valeurs) return { key, label: libelleDuChamp(key, regime), kind: (mixte ? 'selectOneOrList' : derouleEnum(noeud)?.liste ? 'selectList' : 'select') as FieldKind, nullable, valeurs, noeud };
     // Un champ qui porte ici un tableau, là un scalaire (union `booléen | chaînes`) n'a aucun contrôle
     // structuré qui rende ses deux formes : il s'édite en JSON.
     const kind = tableaux && scalaires ? 'json' : !vues.includes(key) ? kindDuNoeud(key, noeud) : kindDuChampVu(key, noeud, echantillon);

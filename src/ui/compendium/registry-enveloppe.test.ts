@@ -60,6 +60,7 @@ const DATASETS = listerDossier(DATA_DIR).filter((x) => x.endsWith('.json'));
  * `appearance` en donnée — aucun de leurs items ne gagne la clé, CLES et FORME les gèlent sans elle.
  */
 const CLES: Record<string, string> = {
+  actions: '3e6fde806c5f71af',
   "arcanePhenomena": '68318e5ed9e81981',
   "advancementCosts": '3fca5e9752e2dfab',
   "disponibilite": '5bf0efe0e06d3102',
@@ -242,6 +243,7 @@ const CLES: Record<string, string> = {
 /** Union des clés PRÉSENTES par catégorie (diagnostic lisible — un item isolé qui gagne une clé que
  *  ses voisins portent déjà lui échappe : c'est `CLES` qui l'attrape). */
 const FORME: Record<string, string> = {
+  actions: 'id label maison sections source',
   "arcanePhenomena": 'desc group id label meta sections source sub',
   "advancementCosts": 'id label meta source sub',
   "disponibilite": 'id label sections source',
@@ -443,7 +445,6 @@ const MUETS: Record<string, number> = {};
  *  Ce qui est gelé est le TABLEAU (fichier + rang), jamais son nombre d'entrées : un dataset
  *  app-owned croît légitimement, et un cardinal gelé ferait payer un recalage à chaque ajout (#1812). */
 const PARTIELS: string[] = [
-  "actions.json#0",
   "breath-types.json#0",
   "damage-types.json#0",
   "land-cargo.json#0",

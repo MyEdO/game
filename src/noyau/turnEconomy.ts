@@ -26,8 +26,8 @@ export function hasMeaningfulOption(active: Combatant, battle: BattleState): boo
     'pietinement-gratuit',
     'attaque-libre-frenesie',
     'determination-en-reserve',
-  ];
-  return gates.some((g) => ACTION_GATES[g](ctx).ok) || freeDisengage(ctx);
+  ] as const;
+  return gates.some((g) => ACTION_GATES[g].test(ctx).ok) || freeDisengage(ctx);
 }
 
 /**

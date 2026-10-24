@@ -13,12 +13,14 @@
  */
 import { readFileSync } from 'node:fs';
 import { listerDossier } from './guards/lib/lister.mjs';
-import { join } from 'node:path';
+import { join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { estFichierVitest } from './guards/lib/fichierVitest.mjs';
 import { litteralJs } from './guards/lib/litteralJs.mjs';
 import { ecrireOuVerifier } from './docs/lib/ecriture-derives.mjs';
+import { analyserTexte } from './guards/lib/dialecte.mjs';
+import { lectureDeModule } from './guards/lib/racinesBalayees.mjs';
 
 import { REGISTRIES, SORTIE_ART } from './docs/lib/cibles-registres.mjs';
 export { REGISTRIES, SORTIES_DES_ESPACES, SORTIES } from './docs/lib/cibles-registres.mjs';
@@ -206,28 +208,70 @@ export function projeterDefs(dir, projection) {
   return lignes.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
+// #2968
+export function projeterSource(source, projection, text = readFileSync(source.module, 'utf8')) {
+  const ref = `${source.module} : ${source.symbole}`;
+  const refus = (detail) => { throw new Error(`gen-registry: ${ref} : ${detail}`); };
+  const objet = (valeur, chemin) => {
+    if (valeur?.k !== 'objet') refus(`${chemin} indéterminé (${valeur?.raison ?? valeur?.k ?? 'absent'}).`);
+    if (valeur.etales?.length) refus(`${chemin} contient une clé ou un étalement non résolu.`);
+    return valeur.v;
+  };
+  const { sourceFile, diagnostics } = analyserTexte({ rel: source.module, text });
+  if (diagnostics.length || !sourceFile) refus(`syntaxe TypeScript invalide (${diagnostics.map((d) => d.code).join(', ') || 'arbre absent'}).`);
+  const lecture = lectureDeModule(source.module, sourceFile);
+  const table = objet(lecture.exports[source.symbole], source.symbole);
+  return Object.entries(table).map(([cle, valeur]) => {
+    if (!projection.champ) return [cle];
+    const champ = objet(valeur, cle)[projection.champ];
+    if (champ?.k !== 'lit' || typeof champ.v !== 'string')
+      refus(`${cle}.${projection.champ} non littéral (${champ?.raison ?? champ?.k ?? 'absent'}).`);
+    return [cle, champ.v];
+  }).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+}
+
 /** Le module des projections (`projection` des `REGISTRIES`) rendu, et le compte de chaque bloc. */
-function renduDesProjections(registres = REGISTRIES) {
+export function renduDesProjections(registres = REGISTRIES, lireSource = (module) => readFileSync(module, 'utf8')) {
   const blocs = registres.filter((r) => r.projection).map((r) => {
-    const lignes = projeterDefs(r.dir, r.projection);
-    const tete = `/** Projection GÉNÉRÉE de \`${r.dir}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
+    const lignes = r.source ? projeterSource(r.source, r.projection, lireSource(r.source.module)) : projeterDefs(r.dir, r.projection);
+    const origine = r.source ? `${r.source.module}#${r.source.symbole}` : r.dir;
+    const tete = `/** Projection GÉNÉRÉE de \`${origine}\`${r.projection.champ ? ` : id → \`${r.projection.champ}\`` : ' : ids'} (${lignes.length}). */\n`;
+    const commun = { out: r.projection.out ?? SORTIE_ART, nom: r.projection.nom, n: lignes.length };
+    if (r.projection.enumNomme) {
+      if (!r.projection.champ) throw new Error(`gen-registry: ${origine} : enumNomme exige un champ de libellé.`);
+      const valeurs = `{\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}}`;
+      return { ...commun, enumNomme: true, texte: `${tete}export const ${r.projection.nom} = enumNomme(${valeurs});\n` };
+    }
+    if (r.source) {
+      const valeur = r.projection.champ
+        ? `{\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}}`
+        : `[\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}]`;
+      return { ...commun, texte: `${tete}export const ${r.projection.nom} = ${valeur} as const;\n` };
+    }
     if (!r.projection.champ)
-      return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}];\n` };
+      return { ...commun, texte: `${tete}export const ${r.projection.nom}: readonly string[] = [\n${lignes.map(([id]) => `  ${litteralJs(id)},\n`).join('')}];\n` };
     const valeurs = [...new Set(lignes.map(([, v]) => v))].sort().map((v) => litteralJs(v)).join(' | ');
-    return { nom: r.projection.nom, n: lignes.length, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}};\n` };
+    return { ...commun, texte: `${tete}export const ${r.projection.nom}: Readonly<Record<string, ${valeurs}>> = {\n${lignes.map(([id, v]) => `  ${litteralJs(id)}: ${litteralJs(v)},\n`).join('')}};\n` };
   });
-  const body =
-    `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
-    `// Régénérer : \`npm run gen\` (option \`projection\` des REGISTRIES).\n\n` +
-    blocs.map((b) => b.texte).join('\n');
-  return { body, blocs: blocs.map((b) => `${b.nom}=${b.n}`) };
+  return [...new Set(blocs.map((b) => b.out))].map((out) => {
+    const duFichier = blocs.filter((b) => b.out === out);
+    const moduleEnum = posix.relative(posix.dirname(out), 'src/data/schemas/grammaire/valeurs');
+    const imports = duFichier.some((b) => b.enumNomme)
+      ? `import { enumNomme } from ${litteralJs(moduleEnum.startsWith('.') ? moduleEnum : `./${moduleEnum}`)};\n\n`
+      : '';
+    const body =
+      `// GÉNÉRÉ par scripts/gen-registry.mjs — NE PAS ÉDITER À LA MAIN.\n` +
+      `// Régénérer : \`npm run gen\` (option \`projection\` des REGISTRIES).\n\n` +
+      imports + duFichier.map((b) => b.texte).join('\n');
+    return { out, body, blocs: duFichier.map((b) => `${b.nom}=${b.n}`) };
+  });
 }
 
 /** Module des projections, écrit seulement s'il change. */
-function genArt(check, out = SORTIE_ART) {
-  const { body, blocs } = renduDesProjections();
-  const changed = !ecrireOuVerifier({ out: body, path: out, check, ...MESSAGES_DE(out) });
-  return { out, blocs, changed };
+function genProjections(check) {
+  return renduDesProjections().map(({ out, body, blocs }) => ({
+    out, blocs, changed: !ecrireOuVerifier({ out: body, path: out, check, ...MESSAGES_DE(out) }),
+  }));
 }
 
 /** Un processus enfant `node --import tsx <args>` à la racine du dépôt : la PHASE 2 (`scripts/gen-espaces.mts`)
@@ -247,13 +291,13 @@ function espacesRendus() {
  *  texte, sans écrire. */
 export function rendre() {
   const rendu = new Map();
-  for (const r of REGISTRIES) {
+  for (const r of REGISTRIES.filter((r) => !r.source)) {
     const c = renduDuRegistre(r);
     if (!c) continue;
     rendu.set(r.out, c.body);
     if (c.union) rendu.set(c.union.out, c.union.body);
   }
-  rendu.set(SORTIE_ART, renduDesProjections().body);
+  for (const { out, body } of renduDesProjections()) rendu.set(out, body);
   for (const [chemin, texte] of espacesRendus()) rendu.set(chemin, texte);
   return rendu;
 }
@@ -274,7 +318,7 @@ function genEspaces(verbose, check) {
 }
 
 /**
- * Régénère TOUS les registres (phase 1), les projections d'art (`genArt`), puis l'INDEX DES IDS
+ * Régénère TOUS les registres (phase 1), les projections (`genProjections`), puis l'INDEX DES IDS
  * (phase 2). `verbose` (défaut `false`) : en mode silencieux (appel `buildStart` du plugin Vite de
  * `vite.config.ts`, que chaque run Vitest déclenche), n'imprime QUE les registres réellement RÉGÉNÉRÉS ou en erreur
  * (dossier absent), + UNE ligne agrégée pour le reste — évite les ~15 lignes « [inchangé] » qui
@@ -298,7 +342,7 @@ export function genAll(verbose = false, { check = false } = {}) {
     check
       ? `gen-registry --check: ${nom} ${changed ? 'PÉRIMÉ' : 'à jour'} (${detail})`
       : `gen-registry: ${nom} ← ${detail}${changed ? '' : ' [inchangé]'}`;
-  const results = REGISTRIES.map((r) => jouer(() => genOne(r, check))).filter(Boolean);
+  const results = REGISTRIES.filter((r) => !r.source).map((r) => jouer(() => genOne(r, check))).filter(Boolean);
   let unchangedCount = 0;
   for (const res of results) {
     if (res.missing) {
@@ -311,11 +355,12 @@ export function genAll(verbose = false, { check = false } = {}) {
       unchangedCount++;
     }
   }
-  const artRes = jouer(() => genArt(check));
-  if (artRes && (artRes.changed || verbose)) {
-    console.log(libelle("projections d'art", `${artRes.blocs.join(', ')}, ${artRes.out}`, artRes.changed));
-  } else if (artRes) {
-    unchangedCount++;
+  for (const projection of jouer(() => genProjections(check)) ?? []) {
+    if (projection.changed || verbose) {
+      console.log(libelle('projections', `${projection.blocs.join(', ')}, ${projection.out}`, projection.changed));
+    } else {
+      unchangedCount++;
+    }
   }
   if (!verbose && unchangedCount > 0) {
     console.log(`gen-registry: ${unchangedCount} registre${unchangedCount > 1 ? 's' : ''} à jour`);

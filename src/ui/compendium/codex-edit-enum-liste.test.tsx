@@ -14,6 +14,8 @@ import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, setDataset } from '../../data/overrides';
 import { noeudDuChamp, noeudObjet } from '../../data/schemas/validate';
 import { metaDesChamps } from '../../data/schemas/grammaire/meta';
+import { valeursDe } from '../../data/schemas/grammaire/meta';
+import { gateDActionSchema } from '../../data/schemas/_domaines.generated';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -67,7 +69,54 @@ describe('atelier du Codex — une liste de valeurs d’enum est un ensemble de 
       expect(posee.windModifiers![0].when, 'le schéma a refusé l’enregistrement, ou `when: []` a été posé').toBeUndefined();
       expect(posee.windModifiers![1].when).toEqual(d!.windModifiers![1].when);
     } finally {
-      setDataset('domains', avant as never);
+      act(() => { setDataset('domains', avant as never); });
     }
+  });
+});
+
+describe('#2968 — prédicats d’action dans le Codex', () => {
+  const avant = datasetArray('actions').slice();
+  const action = avant.find((a) => typeof a.gate === 'string')!;
+  const groupe = () => container.querySelector<HTMLElement>('[role="group"][aria-label="Prédicat d’autorisation"]')!;
+  const monterAction = () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    act(() => { root.render(<CodexEdit categoryKey="actions" id={action.id} onClose={() => {}} />); });
+  };
+  const enregistrer = () => container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
+
+  it('propose exactement les libellés du nœud et enregistre une ou plusieurs gates', async () => {
+    try {
+      monterAction();
+      const attendus = valeursDe(gateDActionSchema)!;
+      expect(groupe()).toBeTruthy();
+      const cases = [...groupe().querySelectorAll<HTMLInputElement>('input')];
+      expect(cases.map((c) => c.getAttribute('aria-label'))).toEqual(Object.values(attendus).map((l) => `${l} — Prédicat d’autorisation`));
+      const libre = cases.find((c) => !c.checked)!;
+      act(() => { libre.click(); });
+      await act(async () => { enregistrer().click(); });
+      expect(Array.isArray(datasetArray('actions').find((a) => a.id === action.id)!.gate)).toBe(true);
+      act(() => { libre.click(); });
+      await act(async () => { enregistrer().click(); });
+      expect(datasetArray('actions').find((a) => a.id === action.id)!.gate).toBe(action.gate);
+    } finally { act(() => { setDataset('actions', avant); }); }
+  });
+
+  it('refuse à Enregistrer une gate inconnue sans poser la retouche', async () => {
+    try {
+      monterAction();
+      const autre = avant.find((a) => a.id !== action.id)!;
+      act(() => { setDataset('actions', avant.map((a) => a.id === autre.id ? { ...a, gate: 'inconnue' } : a) as never); });
+      const libelle = [...container.querySelectorAll<HTMLInputElement>('input')].find((c) => c.value === action.label)!;
+      act(() => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(libelle, `${action.label} modifiée`);
+        libelle.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(enregistrer().disabled).toBe(false);
+      await act(async () => { enregistrer().click(); });
+      expect(datasetArray('actions').find((a) => a.id === action.id)!.label).toBe(action.label);
+      expect(container.querySelector('.codex-edit-errors')?.textContent).toContain('Prédicat d’autorisation');
+    } finally { act(() => { setDataset('actions', avant); }); }
   });
 });

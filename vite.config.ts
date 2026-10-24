@@ -12,13 +12,15 @@ import { TAS_WORKER_MO } from './scripts/test/partition.mjs';
 import { EXCLUSIONS_DE_LA_SUITE, RACINES_DE_LA_SUITE } from './scripts/guards/lib/racinesDeLaSuite.mjs';
 import { argumentsDeGenerationCode, verdictDeGenerationCode } from './scripts/gates/generationCode.mjs';
 
-/** Les cibles de CODE (`genererCode`, scripts/docs/build-all.mjs : registres « dépose un fichier →
- *  intégré » et INDEX DES IDS) produites au démarrage et à chaque ajout/suppression dans un dossier
- *  `defs/` (HMR récupère ensuite). Un rouge ARRÊTE le démarrage : le code ne compile pas sans elles. Un
- *  DIFFÉRÉ (`verdictDeGenerationCode`, #2603) avertit et continue : le tenant de l'écrivain des dérivés les écrit. */
+/** #2603 ; #2968 */
 function registryGen() {
-  const dirs = (REGISTRIES as { dir: string }[]).map((r) => r.dir.replace(/\\/g, '/'));
-  const touched = (f: string) => dirs.some((d) => f.replace(/\\/g, '/').includes(d));
+  const normaliser = (f: string) => f.replace(/\\/g, '/');
+  const cibles = (REGISTRIES as { dir?: string; source?: { module: string } }[]).flatMap((r) => {
+    const chemin = r.source?.module ?? r.dir;
+    return chemin ? [{ chemin: normaliser(fileURLToPath(new URL(chemin, import.meta.url))), fichier: !!r.source }] : [];
+  });
+  const touched = (f: string, fichiersSeuls = false) => cibles.some((c) =>
+    (!fichiersSeuls || c.fichier) && (c.fichier ? normaliser(f) === c.chemin : normaliser(f).startsWith(c.chemin + '/')));
   const produire = () => {
     const mode = argumentsDeGenerationCode(process.env.VITEST === 'true');
     const r = spawnSync(process.execPath, ['scripts/docs/build-all.mjs', ...mode], {
@@ -31,10 +33,12 @@ function registryGen() {
   return {
     name: 'registry-gen',
     buildStart() { produire(); },
-    configureServer(server: { watcher: { on(e: string, cb: (f: string) => void): void } }) {
+    configureServer(server: { watcher: { add(paths: string[]): void; on(e: string, cb: (f: string) => void): void } }) {
       const on = (f: string) => { if (touched(f)) produire(); };
+      server.watcher.add(cibles.map((c) => c.chemin));
       server.watcher.on('add', on);
       server.watcher.on('unlink', on);
+      server.watcher.on('change', (f) => { if (touched(f, true)) produire(); });
     },
   };
 }

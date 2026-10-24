@@ -25,7 +25,7 @@ import { hotbar } from '../../state/hotbarBridge';
 import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../../data/index';
 import { ActiveModal } from '../ActiveModal';
 import { vehicleCombatant } from '../../engine/vehicle';
-import { actionGate, ACTION_CANDIDATES, REMEDES } from '../../noyau/actionRegistry';
+import { actionGate, ACTION_CANDIDATES, remedes } from '../../noyau/actionRegistry';
 import { emptyScene } from '../../noyau/monde/scene';
 import { mdToText } from '../Prose';
 import { CombatConsole } from './CombatConsole';
@@ -3926,9 +3926,9 @@ describe('remède d’État — offre et dispatcher rendent le MÊME verdict', (
   it('tous les États de remède portés : les cases sortent dans l’ordre de la donnée', () => {
     const h = hero('h1', 'Gunnar');
     // Le porteur a TOUS les États que le registre sait soigner : les cases naissent donc toutes.
-    h.conditions = REMEDES.map((a) => ({ id: a.rule!.id, value: 1 })) as ConditionInstance[];
+    h.conditions = remedes().map((a) => ({ id: a.rule!.id, value: 1 })) as ConditionInstance[];
     monter(h, { foes: [foe('e1', 9, 9)] });
-    const attendus = REMEDES.map((a) => a.id);
+    const attendus = remedes().map((a) => a.id);
     expect(attendus.length, 'aucun remède au registre : la sonde ne mesurerait rien').toBeGreaterThan(0);
     const rendus = [...host.querySelectorAll('.cc-cell[data-action]')]
       .map((c) => c.getAttribute('data-action')!)

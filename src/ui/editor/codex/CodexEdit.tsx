@@ -1864,12 +1864,14 @@ function Field({ chemin, sujet, field, value, onChange }: { chemin: string; suje
       </label>
     );
   }
-  if (kind === 'selectList' && field.valeurs) {
+  if ((kind === 'selectList' || kind === 'selectOneOrList') && field.valeurs) {
+    const selection = kind === 'selectOneOrList' && typeof value === 'string' ? [value] : value as string[] | undefined;
+    const changer = (next: string[] | undefined) => onChange(kind === 'selectOneOrList' && next?.length === 1 ? next[0] : next);
     return (
       <div className="ed-field">
         <span>{label}</span>
-        <EnsembleDeCases nom={nom} options={Object.entries(field.valeurs)} value={value as string[] | undefined}
-          facultatif={field.nullable} onChange={onChange} />
+        <EnsembleDeCases nom={nom} options={Object.entries(field.valeurs)} value={selection}
+          facultatif={field.nullable} onChange={changer} />
       </div>
     );
   }
@@ -1928,7 +1930,7 @@ function EnsembleDeCases<V extends string>({ nom, options, value, facultatif, on
   return (
     <div className="tf-row" role="group" aria-label={nom}>
       {toutes.map(([v, l]) => (
-        <label className="dr" key={v}><input type="checkbox" aria-label={`${l} — ${nom}`} checked={cur.includes(v)} onChange={() => basculer(v)} /> {l}</label>
+        <label className="radio" key={v}><input type="checkbox" aria-label={`${l} — ${nom}`} checked={cur.includes(v)} onChange={() => basculer(v)} /> <span>{l}</span></label>
       ))}
     </div>
   );

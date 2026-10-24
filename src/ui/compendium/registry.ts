@@ -1081,6 +1081,12 @@ export function optionBody(o: { label: string; desc: string }): string {
 
 const CODEX_SPECS: CodexCategorySpec[] = [
   {
+    key: 'actions', label: 'Actions', group: 'Tables', sourceRef: 'LDB 14',
+    build: () => datasetArray('actions').map((a) => depuisEnveloppe(a, {
+      sections: sections(regleChips(a.rule)),
+    })),
+  },
+  {
     key: 'arcanePhenomena', label: 'Magie environnementale', group: 'Magie', sourceRef: 'VDM 14',
     build: () => {
       const d = datasetObject('arcanePhenomena') as {

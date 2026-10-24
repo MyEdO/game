@@ -12,13 +12,19 @@
  * `constFields` (option PAR registre, avec `fields`) : champs de VALEUR LITTÉRALE ajoutés à chaque
  * entrée générée — ce que le def ne déclare pas parce que c'est une propriété du REGISTRE (la
  * racine `root` d'un dataset : le def dit son fichier, le registre dit d'où il vient).
- * `projection` (option PAR registre) : projette les ids des defs (et, avec `champ`, la valeur de ce champ
- * par id) dans `src/data/schemas/_art.generated.ts` (`genArt`) — la forme partagée extraite vers une
+ * `source` : module et symbole d'une table déclarée, lus statiquement sans importer son implémentation.
+ * `projection` (option PAR registre) : projette les ids des defs ou les clés de `source` (et, avec `champ`,
+ * la valeur de ce champ) dans `projection.out`, par défaut `src/data/schemas/_art.generated.ts` — la forme partagée extraite vers une
  * couche neutre (table `COUCHES`, `scripts/guards/lib/couches.mjs`) : la donnée juge un id d'art d'auteur sans importer
  * le rendu.
- * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type:string, typeFrom:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string } }[]}
+ * @type {{ dir?:string, out?:string, source?:{module:string,symbole:string}, exportName?:string, arrayName?:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string, out?:string, enumNomme?:boolean } }[]}
  */
 export const REGISTRIES = [
+  {
+    // #2968
+    source: { module: 'src/noyau/actionRegistry.ts', symbole: 'ACTION_GATES' },
+    projection: { nom: 'gateDActionSchema', champ: 'label', out: 'src/data/schemas/_domaines.generated.ts', enumNomme: true },
+  },
   {
     dir: 'src/gameIso/rig/creatures/defs',
     out: 'src/gameIso/rig/creatures/_registry.generated.ts',
@@ -347,7 +353,7 @@ export const REGISTRIES = [
   },
 ];
 
-/** Les projections d'art (`genArt`). */
+/** La sortie par défaut des projections d'art. */
 export const SORTIE_ART = 'src/data/schemas/_art.generated.ts';
 
 /** Les sorties de la PHASE 2 (`scripts/gen-espaces.mts`, qui les lit ici). */
@@ -358,7 +364,11 @@ export const SORTIES_DES_ESPACES = {
 };
 
 /** Tous les fichiers que ce générateur écrit EN ENTIER, phase 2 comprise — ses cibles dans `GENERATORS` (build-all.mjs). */
-export const SORTIES = [...REGISTRIES.flatMap((r) => [r.out, ...(r.idUnion?.out ? [r.idUnion.out] : [])]), SORTIE_ART, ...Object.values(SORTIES_DES_ESPACES)];
+export const SORTIES = [...new Set([...REGISTRIES.flatMap((r) => [
+  ...(r.out ? [r.out] : []),
+  ...(r.idUnion?.out ? [r.idUnion.out] : []),
+  ...(r.projection ? [r.projection.out ?? SORTIE_ART] : []),
+]), ...Object.values(SORTIES_DES_ESPACES)])];
 
 export const SORTIE_FORMATS = 'src/state/formats.generated.ts'
 

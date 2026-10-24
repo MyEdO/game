@@ -32,7 +32,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ACTIONS } from '../data/index';
-import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, REMEDES, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from '../noyau/actionRegistry';
+import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, remedes, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from '../noyau/actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from '../noyau/targetingModes';
 import { KEYBINDINGS } from './clavier/keybindings';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
@@ -100,7 +100,7 @@ const GESTE_2E_KEYS = GESTE_2E_BRANCHE
  *  branchement, mesuré à sa source ; la preuve structurelle (la case naît de l'État porté, porte sa
  *  raison, exécute son dispatcher) est au DOM dans `CombatConsole.test.tsx`. */
 const REMEDE_BRANCHE = /remedesPertinents\(/.test(CONSOLE_SRC);
-const REMEDE_KEYS = REMEDE_BRANCHE ? REMEDES.map((a) => a.id) : [];
+const REMEDE_KEYS = REMEDE_BRANCHE ? remedes().map((a) => a.id) : [];
 
 /** Une PASTILLE D'ENTITÉ n'a pas de case : elle naît de la chose qui l'offre, sur le champ (spec zone
  *  4). Sa surface est le lecteur du registre qui la fabrique — `state/entityGestes`, qui énumère les
@@ -140,8 +140,8 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
   // Un gate de remède LIT l'État que son entrée déclare : sans cette déclaration il lève (fail-fast).
   // La donnée ne peut donc pas naître dans la forme que le code refuse.
   it('toute entrée de remède déclare un État (l’id résout au parse dans `etats.json`)', () => {
-    expect(REMEDES.length, 'aucun remède au registre : la garde ne mesure rien').toBeGreaterThan(0);
-    const bad = REMEDES.filter((a) => a.rule?.type !== 'etat');
+    expect(remedes().length, 'aucun remède au registre : la garde ne mesure rien').toBeGreaterThan(0);
+    const bad = remedes().filter((a) => a.rule?.type !== 'etat');
     expect(bad.map((a) => `${a.id} → ${a.rule ? `${a.rule.type}:${a.rule.id}` : '(aucun foyer)'}`), 'État non déclaré').toEqual([]);
   });
   it('chaque `candidates` déclaré existe dans ACTION_CANDIDATES', () => {

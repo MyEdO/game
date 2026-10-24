@@ -404,7 +404,7 @@ describe('Piétinement en combat (store)', () => {
     const { H, E } = setup();
     H.size = 'grande';
     H.advantage = 3;
-    expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: useGame.getState().battle! }).ok).toBe(true);
+    expect(ACTION_GATES['pietinement-gratuit'].test({ active: H, battle: useGame.getState().battle! }).ok).toBe(true);
     pietiner(E.id);
     useGame.getState().attackRoll();
     useGame.getState().attackConfirm();
@@ -412,7 +412,7 @@ describe('Piétinement en combat (store)', () => {
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.id === H.id)!;
     expect(h.advantage, 'il reste de l’Avantage').toBeGreaterThan(0);
-    expect(ACTION_GATES['pietinement-gratuit']({ active: h, battle: b }).ok).toBe(false);
+    expect(ACTION_GATES['pietinement-gratuit'].test({ active: h, battle: b }).ok).toBe(false);
   });
 
   it('gate « pietinement-gratuit » : Se cabrer à 0 Avantage, Mouvement intact, la gate est ouverte', () => {
@@ -420,7 +420,7 @@ describe('Piétinement en combat (store)', () => {
     H.size = 'grande';
     H.traits = [{ id: 'se-cabrer' }] as unknown as Combatant['traits'];
     H.advantage = 0;
-    expect(ACTION_GATES['pietinement-gratuit']({ active: H, battle: useGame.getState().battle! }).ok).toBe(true);
+    expect(ACTION_GATES['pietinement-gratuit'].test({ active: H, battle: useGame.getState().battle! }).ok).toBe(true);
   });
 
   /** Le CHEMIN DU JOUEUR au clavier : l'option armée, Tab aimante la cible, Entrée commet. */

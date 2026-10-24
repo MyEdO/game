@@ -1,11 +1,5 @@
 // @vitest-environment jsdom
-/**
- * L'ÉNUMÉRATION UNIQUE DES OFFRES (#2911, #2898 M1) : la pertinence d'une offre se décide au registre du noyau
- * (`GATES_DE_PERTINENCE`, sélecteurs de candidats), et la barre de la console comme l'hôte texte lisent la même
- * énumération (`offresDeLActif`). Contrat : sur quatre porteurs nommés — à pied, en selle, à un poste, une coque de
- * navire —, l'énumérateur rend EXACTEMENT les actions attendues, et la barre montée au DOM n'a une case que pour une
- * action offerte, avec toutes les cases de situation (geste d'état, cases navales) que l'énumérateur offre.
- */
+/** #2911 ; #2968 */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';

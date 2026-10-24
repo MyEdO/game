@@ -270,9 +270,8 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     // CLÉ ≠ NOM DE FICHIER : `miscast.json` porte `miscastMinor`/`miscastMajor`/`miscastWrath`.
     const documentNiche = `import miscastJson from '../data/miscast.json';\nconst TABLES = miscastJson as MiscastTableDef[];\nconst PAR_ID = new Map(TABLES.map((t) => [t.id, t]));\n`;
     expect(indexFiges('src/engine/copie.ts', documentNiche, parBinding)).toHaveLength(1);
-    // Un JSON sans clé de dataset (`actions.json`), ou le même nom de fichier ailleurs que sous
-    // `src/data`, n'entre pas au vocabulaire.
-    expect(nomsVivantsDuFichier('src/engine/copie.ts', `import x from '../data/actions.json';\n`, parBinding).size).toBe(0);
+    // #2968
+    expect(nomsVivantsDuFichier('src/engine/copie.ts', `import x from '../data/structureAppearance.json';\n`, parBinding).size).toBe(0);
     expect(nomsVivantsDuFichier('src/engine/copie.ts', `import x from './vehicles.json';\n`, parBinding).size).toBe(0);
   });
 

@@ -144,104 +144,85 @@ const et =
     return ok;
   };
 
-/** Les PRÉDICATS d'offre du registre, par id (`gate` de `actions.json`). */
-export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
-  toujours: () => ok,
-  'action-libre': actionLibre,
-  'action-libre-hors-frenesie': (ctx) =>
-    isFrenzied(ctx.active) ? no(t('agate.frenzyOnly')) : actionLibre(ctx),
-  'action-libre-hors-frenesie-fantassin': (ctx) =>
-    et(fantassin, ACTION_GATES['action-libre-hors-frenesie'])(ctx),
-  'mouvement-intact': mouvementIntact,
-  'mouvement-restant-fantassin': (ctx) => et(fantassin, ACTION_GATES['mouvement-restant'])(ctx),
-  /** MIROIR de la garde de `cancelMove` (`combatSlice.ts:976-980`) : le segment restaurable est le
-   *  SNAPSHOT, pas le compteur — `battleStandUp` écrit `movementUsed` sans en poser un, et le
-   *  dispatcher n'aurait rien à défaire. Le contrôle du siège n'entre pas ici (il est au dispatcher
-   *  et aux contextes de surface : `live` pour la console, `cur` pour la touche). */
-  'deplacement-annulable': ({ battle }) => {
+/** #2968 */
+export interface DefinitionDeGate {
+  label: string;
+  test: (ctx: ActionCtx) => ActionGate;
+  pertinente?: true;
+}
+
+/** #2968 */
+export const ACTION_GATES = {
+  toujours: { label: 'Toujours', test: () => ok },
+  'action-libre': { label: 'Action disponible', test: actionLibre },
+  'action-libre-hors-frenesie': { label: 'Action hors Frénésie', test: (ctx: ActionCtx): ActionGate =>
+    isFrenzied(ctx.active) ? no(t('agate.frenzyOnly')) : actionLibre(ctx) },
+  'action-libre-hors-frenesie-fantassin': { label: 'Action de fantassin hors Frénésie', test: (ctx: ActionCtx): ActionGate =>
+    et(fantassin, ACTION_GATES['action-libre-hors-frenesie'].test)(ctx) },
+  'mouvement-intact': { label: 'Mouvement intact', test: mouvementIntact },
+  'mouvement-restant-fantassin': { label: 'Mouvement de fantassin restant', test: (ctx: ActionCtx): ActionGate => et(fantassin, ACTION_GATES['mouvement-restant'].test)(ctx) },
+  'deplacement-annulable': { label: 'Déplacement annulable', test: ({ battle }) => {
     if (!battle.moveSnapshot || (battle.movementUsed ?? 0) === 0) return no(t('agate.noMoveToUndo'));
     return battle.acted ? no(t('agate.actionSpent')) : ok;
-  },
-  /** Charge — fiche `regles/charger` (`LDB 15 l.35-37`), foyer du verbatim au Codex. */
-  'charge-possible': (ctx) => (isEngaged(ctx.active) ? no(t('agate.alreadyEngaged')) : mouvementIntact(ctx)),
-  'mouvement-restant': ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))),
-  desengagement: desengagementGate,
-  // Deux refus, un seul gate : plus de point en réserve, OU un État que rien ne lève (le fait porteur
-  // le déclare — LDB 20 l.188 ; source unique `raisonRefusDetermination`). `conditionId` absent (dépenses
-  // Psychologie/Critique de LDB 17 l.59-60) : seule la réserve compte.
-  'determination-en-reserve': ({ active, args }) => {
+  } },
+  /** LDB 15 l.35-37 */
+  'charge-possible': { label: 'Charge possible', test: (ctx: ActionCtx): ActionGate => (isEngaged(ctx.active) ? no(t('agate.alreadyEngaged')) : mouvementIntact(ctx)) },
+  'mouvement-restant': { label: 'Mouvement restant', test: ({ active, battle }) => (canMove(battle, active) ? ok : no(t('agate.noMovementLeft'))) },
+  desengagement: { label: 'Désengagement', test: desengagementGate },
+  /** LDB 20 l.188 ; LDB 17 l.59-60 */
+  'determination-en-reserve': { label: 'Détermination en réserve', test: ({ active, args }) => {
     if ((active.resolve ?? 0) <= 0) return no(t('agate.noResolve'));
     const refus = args?.conditionId ? raisonRefusDetermination(active, args.conditionId) : undefined;
     return refus ? no(refus) : ok;
-  },
-  'attaque-libre-frenesie': ({ active }) =>
-    hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')),
-  'pietinement-gratuit': ({ active, battle }) =>
-    availableAttacks(active, battle).some((o) => o.freeKind === 'pietinement') ? ok : no(t('agate.noTrample')),
-  'set-commutable': ({ active, battle }) =>
+  } },
+  'attaque-libre-frenesie': { label: 'Attaque gratuite de Frénésie', test: ({ active }) =>
+    hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')) },
+  'pietinement-gratuit': { label: 'Piétinement gratuit', test: ({ active, battle }) =>
+    availableAttacks(active, battle).some((o) => o.freeKind === 'pietinement') ? ok : no(t('agate.noTrample')) },
+  'set-commutable': { label: 'Changement d’équipement', test: ({ active, battle }) =>
     (active.loadouts?.length ?? 0) < 2
       ? no(t('agate.singleLoadout'))
       : battle.loadoutSwapped
         ? no(t('agate.loadoutSwapped'))
-        : ok,
-  /** PERTINENCE d'un remède : le porteur a l'État que l'entrée déclare. */
-  [GATE_ETAT_PORTE]: (ctx) => (instanceDeLEtat(ctx) ? ok : no(t('agate.stateNotCarried'))),
-  /** REMÈDE ATTEIGNABLE : le porteur n'est pas hors d'état d'agir (`isOutOfAction`, lu aussi par
-   *  `battleStandUp`), et l'instance de l'État n'est pas VERROUILLÉE — verrou de type (`etats.json`),
-   *  d'instance, ou acte de soin attendu. Ce verrou (`raisonVerrouEtat`) est l'invariant que les deux
-   *  dispatchers de remède partagent avec cette case. `LDB 18 l.15`. */
-  'remede-atteignable': (ctx) => {
+        : ok },
+  'etat-porte': { label: 'État porté', pertinente: true, test: (ctx: ActionCtx): ActionGate => (instanceDeLEtat(ctx) ? ok : no(t('agate.stateNotCarried'))) },
+  /** LDB 18 l.15 */
+  'remede-atteignable': { label: 'Remède atteignable', test: (ctx: ActionCtx): ActionGate => {
     const inst = instanceDeLEtat(ctx);
     if (!inst) return no(t('agate.stateNotCarried'));
     if (isOutOfAction(ctx.active)) return no(t('agate.unableToAct'));
     const verrou = raisonVerrouEtat(inst, ctx.active);
     return verrou ? no(verrou) : ok;
-  },
-  /** L'État se retire-t-il par un TEST ? Prérequis du dispatcher `battleRecoverState` (`EtatData.recover`),
-   *  pas une propriété du remède : un remède-GESTE ne le porte pas. */
-  'etat-recuperable-par-test': (ctx) =>
-    findConditionById(etatDeclare(ctx.def))?.recover ? ok : no(t('agate.stateNoRecoverTest')),
-  /** Cumuler l'Avantage (LDB 09 l.305-308) : chaque méthode a SON plafond (`skillAdvantageCap`), et
-   *  au plafond le Test ne peut plus rien rendre. Le refus est DIT (« Avantage au plafond (N) ») et la
-   *  case reste dessinée : la faire disparaître privait le joueur de la raison. La méthode visée vient
-   *  des ARGS de la case — les mêmes que le dispatcher `battleGainAdvantage` reçoit. */
-  'avantage-sous-plafond': (ctx) =>
-    et(ACTION_GATES['action-libre-hors-frenesie'], ({ active, args }) => {
+  } },
+  'etat-recuperable-par-test': { label: 'État récupérable par Test', test: (ctx: ActionCtx): ActionGate =>
+    findConditionById(etatDeclare(ctx.def))?.recover ? ok : no(t('agate.stateNoRecoverTest')) },
+  /** LDB 09 l.305-308 */
+  'avantage-sous-plafond': { label: 'Avantage sous plafond', test: (ctx: ActionCtx): ActionGate =>
+    et(ACTION_GATES['action-libre-hors-frenesie'].test, ({ active, args }) => {
       const methode = combatAdvantageSkills(active).find((s) => s.skillId === args?.skillId);
       return methode && active.advantage >= methode.cap
         ? no(t('agate.advantageCapped', { n: methode.cap }))
         : ok;
-    })(ctx),
-  /** Postures de tir (spec §1a G5) — PRÉDICATS UNIQUES de `combatFlow`, partagés avec le store
-   *  (`battleToggleStance`), le versement dans le pending et la fenêtre de jet. Le refus est celui
-   *  du prédicat : la raison appartient à `STANCE_BLOCK`, jamais au gate. */
-  'tir-immobile-armable': ({ active, battle }) => {
+    })(ctx) },
+  'tir-immobile-armable': { label: 'Tir immobile armable', test: ({ active, battle }) => {
     const refus = STANCE_BLOCK.heldGround(battle, active);
     return refus ? no(refus) : ok;
-  },
-  'tir-dans-le-tas-armable': ({ active, battle }) => {
+  } },
+  'tir-dans-le-tas-armable': { label: 'Tir dans le tas armable', test: ({ active, battle }) => {
     const refus = STANCE_BLOCK.intoCrowd(battle, active);
     return refus ? no(refus) : ok;
-  },
-  /** Battement (`LDB 10 l.103` · `AA 13 l.11-17` · `LDB 13 l.114`) : la case porte le prédicat du
-   *  dispatcher (`battementFoes`, `combatManeuvers.ts`) — offerte si et seulement si `battleBattement`
-   *  a un adversaire à traiter, sinon refusée AVEC sa raison. */
-  'battement-cible-eligible': ({ active, battle }) =>
-    battementFoes(active, battle).length > 0 ? ok : no(t('agate.noBattementTarget')),
-  /** Distraire (`LDB 10 l.364` · `AA 13 l.46-51`) : même prédicat que le dispatcher (`distraireFoes`) —
-   *  offerte si et seulement si `battleDistraire` a un adversaire à traiter. */
-  'distraire-cible-eligible': ({ active, battle }) =>
-    distraireFoes(active, battle).length > 0 ? ok : no(t('agate.noDistraireTarget')),
-  /** Focalisation (`LDB 46` — fiche `regles/focalisation-etendue`) : le SORT visé vient des ARGS de
-   *  l'alvéole (le geste secondaire de la case d'un sort), et le verdict porte donc sur CE sort.
-   *  MÊMES prédicats que le dispatcher `battleFocusSpell` (`isArcaneSpell`, `castBlockedBy`) et que
-   *  `resolveFocus` (`focusSkillFor`) : le refus se DIT au point du geste au lieu de partir au
-   *  journal. */
-  'sort-focalisable': ({ active, args }) => {
+  } },
+  /** LDB 10 l.103 ; AA 13 l.11-17 ; LDB 13 l.114 */
+  'battement-cible-eligible': { label: 'Cible de Battement éligible', test: ({ active, battle }) =>
+    battementFoes(active, battle).length > 0 ? ok : no(t('agate.noBattementTarget')) },
+  /** LDB 10 l.364 ; AA 13 l.46-51 */
+  'distraire-cible-eligible': { label: 'Cible de Distraire éligible', test: ({ active, battle }) =>
+    distraireFoes(active, battle).length > 0 ? ok : no(t('agate.noDistraireTarget')) },
+  /** LDB 46 */
+  'sort-focalisable': { label: 'Focalisation possible', test: ({ active, args }) => {
     const spell = args?.spellId ? findSpellById(args.spellId) : undefined;
     if (!spell || !isArcaneSpell(spell)) return no(t('agate.spellNotFocusable'));
-    // Focalisation est une Compétence AVANCÉE (`LDB 09 l.30`), spécialisée par Vent (`LDB 46`) : le
-    // MÊME prédicat que l'offre de l'IA (`combatFlow.ts`) et que `resolveFocus`.
+
     if (!focusSkillFor(active, spell)) {
       const wind = focusWindLabel(spell);
       return no(wind
@@ -250,42 +231,31 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
     }
     const bloque = castBlockedBy(active, 'focalisation');
     return bloque ? no(t('agate.focusBlocked', { reason: bloque })) : ok;
-  },
-  coop: ({ netMode }) => (netMode && netMode !== 'local' ? ok : no(t('agate.localGame'))),
-  /** ÉQUIPAGE de poussée SUFFISANT — verdict de la source unique (`pushSlot.undercrew`, seuil ADE II
-   *  8 l.233). Le geste reste OFFERT et porte sa raison : un engin sous-servi se voit, il ne disparaît
-   *  pas (loi du refus visible au point du geste, arbitrage 2026-08-19). */
-  'equipage-suffisant': ({ active, battle }) =>
-    (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok),
-  'navire-action': ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok),
-  // ── PERTINENCE (#2911) : l'entrée a-t-elle lieu d'être offerte à CE porteur (`GATES_DE_PERTINENCE`) ?
-  fantassin,
-  'set-de-melee': (ctx) => et(fantassin, ({ active }) => (setDeMelee(active) ? ok : no(t('agate.noMeleeSet'))))(ctx),
-  tireur: ({ active }) => (armesADistance(active).length > 0 ? ok : no(t('agate.noRangedWeapon'))),
-  'arme-de-repousse': ({ active }) =>
-    (active.weapons.some((w) => w.type === 'melee' && canPushback(w)) ? ok : no(t('agate.noPushbackWeapon'))),
-  engage: ({ active }) => (isEngaged(active) ? ok : no(t('agate.notEngaged'))),
-  'battement-connu': ({ active }) => (hasBattement(active) ? ok : no(t('agate.noBattement'))),
-  'distraire-connu': ({ active }) => (hasDistraire(active) ? ok : no(t('agate.noDistraire'))),
-  'frenesie-possible': ({ active }) => (isFrenzyCapable(active) && !isFrenzied(active) ? ok : no(t('agate.noFrenzy'))),
-  'equipe-a-aider': ({ active, battle }) => (canAidTeam(active, battle.combatants) ? ok : no(t('agate.noTeamToAid'))),
-  monte: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))),
-  'poste-servi': ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))),
-  /** La barre : le BARREUR la tient (`shipOfCrew`), et la COQUE elle-même (`battleShipManeuver` accepte l'un ou l'autre). */
-  'a-la-barre': ({ active, battle }) =>
-    (estNavire(active) || shipOfCrew(battle.combatants, active.id) ? ok : no(t('agate.notAtHelm'))),
-  navire: ({ active }) => (estNavire(active) ? ok : no(t('agate.notAVessel'))),
-  vehicule: ({ active }) => (isVehicle(active) ? ok : no(t('agate.notAVehicle'))),
-  /** La pause de début de Round (`LDB 17 l.25`) : personne n'agit encore (`turn: -1`, `enterRoundStartPause`). */
-  'pause-de-round': ({ battle }) => (battle.turn < 0 ? ok : no(t('agate.notRoundStart'))),
-};
-
-/** Les gates de PERTINENCE (#2911) : une entrée dont l'un refuse n'a pas lieu d'être pour ce porteur, et
- *  `offresDeLActif` ne l'offre pas ; tout autre refus FERME l'offre en gardant sa raison. */
-export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
-  'fantassin', 'set-de-melee', 'tireur', 'arme-de-repousse', 'engage', 'battement-connu', 'distraire-connu',
-  'frenesie-possible', 'equipe-a-aider', 'monte', 'poste-servi', 'a-la-barre', 'navire', 'vehicule', 'pause-de-round', GATE_ETAT_PORTE,
-]);
+  } },
+  coop: { label: 'Coopération', test: ({ netMode }) => (netMode && netMode !== 'local' ? ok : no(t('agate.localGame'))) },
+  /** ADE II 8 l.233 */
+  'equipage-suffisant': { label: 'Équipage suffisant', test: ({ active, battle }) =>
+    (pushSlot(active, battle.combatants).undercrew ? no(t('agate.pushUndercrew')) : ok) },
+  'navire-action': { label: 'Action du navire', test: ({ battle }) => (battle.acted ? no(t('agate.vesselActionSpent')) : ok) },
+  fantassin: { label: 'Fantassin', pertinente: true, test: fantassin },
+  'set-de-melee': { label: 'Équipement de mêlée', pertinente: true, test: (ctx: ActionCtx): ActionGate => et(fantassin, ({ active }) => (setDeMelee(active) ? ok : no(t('agate.noMeleeSet'))))(ctx) },
+  tireur: { label: 'Tireur', pertinente: true, test: ({ active }) => (armesADistance(active).length > 0 ? ok : no(t('agate.noRangedWeapon'))) },
+  'arme-de-repousse': { label: 'Arme de repousse', pertinente: true, test: ({ active }) =>
+    (active.weapons.some((w) => w.type === 'melee' && canPushback(w)) ? ok : no(t('agate.noPushbackWeapon'))) },
+  engage: { label: 'Engagé', pertinente: true, test: ({ active }) => (isEngaged(active) ? ok : no(t('agate.notEngaged'))) },
+  'battement-connu': { label: 'Battement connu', pertinente: true, test: ({ active }) => (hasBattement(active) ? ok : no(t('agate.noBattement'))) },
+  'distraire-connu': { label: 'Distraire connu', pertinente: true, test: ({ active }) => (hasDistraire(active) ? ok : no(t('agate.noDistraire'))) },
+  'frenesie-possible': { label: 'Frénésie possible', pertinente: true, test: ({ active }) => (isFrenzyCapable(active) && !isFrenzied(active) ? ok : no(t('agate.noFrenzy'))) },
+  'equipe-a-aider': { label: 'Équipe à aider', pertinente: true, test: ({ active, battle }) => (canAidTeam(active, battle.combatants) ? ok : no(t('agate.noTeamToAid'))) },
+  monte: { label: 'Monté', pertinente: true, test: ({ active }) => (active.mountId ? ok : no(t('agate.notMounted'))) },
+  'poste-servi': { label: 'Poste servi', pertinente: true, test: ({ active }) => (active.mannedPoste ? ok : no(t('agate.noPosteManned'))) },
+  'a-la-barre': { label: 'À la barre', pertinente: true, test: ({ active, battle }) =>
+    (estNavire(active) || shipOfCrew(battle.combatants, active.id) ? ok : no(t('agate.notAtHelm'))) },
+  navire: { label: 'Navire', pertinente: true, test: ({ active }) => (estNavire(active) ? ok : no(t('agate.notAVessel'))) },
+  vehicule: { label: 'Véhicule', pertinente: true, test: ({ active }) => (isVehicle(active) ? ok : no(t('agate.notAVehicle'))) },
+  /** LDB 17 l.25 */
+  'pause-de-round': { label: 'Pause de Round', pertinente: true, test: ({ battle }) => (battle.turn < 0 ? ok : no(t('agate.notRoundStart'))) },
+} satisfies Record<string, DefinitionDeGate>;
 
 /** Les armes à distance du porteur — population du sélecteur `armes-a-distance` et du gate `tireur`. */
 function armesADistance(active: Combatant) {
@@ -303,19 +273,19 @@ function setDeMelee(active: Combatant): boolean {
 }
 
 /** Les entrées de REMÈDE du registre — celles que la donnée porte au gate `etat-porte`. */
-export const REMEDES = ACTIONS.filter((a) => [a.gate].flat().includes(GATE_ETAT_PORTE));
+export const remedes = () => ACTIONS.filter((a) => [a.gate].flat().includes(GATE_ETAT_PORTE));
 
 /** LE GESTE QUI REMÈDE À CET ÉTAT — source unique de son libellé pour les surfaces qui le nomment
  *  (fenêtre du Test de récupération). */
 export function remedeDeLEtat(stateId: string): ActionDef | undefined {
-  return REMEDES.find((a) => a.rule?.type === 'etat' && a.rule.id === stateId);
+  return remedes().find((a) => a.rule?.type === 'etat' && a.rule.id === stateId);
 }
 
 /** Les remèdes PERTINENTS pour ce porteur : ceux dont l'État est porté (le verdict du gate, pris une
  *  fois). Lecture UNIQUE des surfaces — elles n'indexent pas `ACTION_GATES`. L'ordre est celui de la
  *  donnée. */
 export function remedesPertinents(ctx: ActionCtx): ActionDef[] {
-  return REMEDES.filter((def) => ACTION_GATES[GATE_ETAT_PORTE]({ ...ctx, def }).ok);
+  return remedes().filter((def) => ACTION_GATES[GATE_ETAT_PORTE].test({ ...ctx, def }).ok);
 }
 
 /** Verdict d'offre d'une action, par son id — porte de lecture UNIQUE pour les surfaces.
@@ -328,7 +298,7 @@ export function actionGate(actionId: string, ctx: ActionCtx): ActionGate {
   const noms = Array.isArray(def.gate) ? def.gate : [def.gate];
   const inconnu = noms.find((g) => !ACTION_GATES[g]);
   if (inconnu) return no(`gate inconnu : ${inconnu}`);
-  return et(...noms.map((g) => ACTION_GATES[g]))({ ...ctx, def });
+  return et(...noms.map((g) => ACTION_GATES[g].test))({ ...ctx, def });
 }
 
 /** Contexte des sélecteurs : impurs par nature (ils lisent le combat, parfois la scène). */
@@ -644,9 +614,9 @@ export interface OffresParPorteur {
   offres: Offre[];
 }
 
-/** L'entrée est-elle PERTINENTE pour ce porteur ? Aucun de ses gates de `GATES_DE_PERTINENCE` ne refuse. */
+/** #2968 */
 function pertinente(def: ActionDef, ctx: ActionCtx): boolean {
-  return [def.gate].flat().every((g) => !GATES_DE_PERTINENCE.has(g) || ACTION_GATES[g]({ ...ctx, def }).ok);
+  return [def.gate].flat().every((g) => !('pertinente' in ACTION_GATES[g]) || ACTION_GATES[g].test({ ...ctx, def }).ok);
 }
 
 /**

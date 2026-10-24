@@ -32,7 +32,6 @@ export const SLOTS_INATTEIGNABLES = [
 
 export const SLOTS_SANS_DECLARATION = [
   { dataset: "actions.json", champ: "armed", occurrences: 3, lot: "L2/L3 #1473", date: "2026-08-26" },
-  { dataset: "actions.json", champ: "gate", occurrences: 2, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "actions.json", champ: "hote", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "actions.json", champ: "keys", occurrences: 27, lot: "L2/L3 #1473", date: "2026-08-26" },
   { dataset: "actions.json", champ: "mode", occurrences: 4, lot: "L2/L3 #1473", date: "2026-08-26" },

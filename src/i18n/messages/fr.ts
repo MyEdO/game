@@ -3106,7 +3106,7 @@ export const fr = {
   'agate.noFocusSkillWind': '{name} ne maîtrise pas Focalisation ({wind})',
   // ADE II 8 l.233 (seuil de la moitié de l'Équipe requise, `noyau/siegePush.pushCrewOk`).
   'agate.pushUndercrew': 'équipe trop réduite pour pousser l’engin',
-  // PERTINENCE d'une entrée (`GATES_DE_PERTINENCE`, #2911) : ce que le porteur n'a pas pour que l'offre ait lieu d'être.
+  // #2911 ; #2968
   'agate.noMeleeSet': 'le set au poing n’ouvre aucun corps à corps',
   'agate.noRangedWeapon': 'aucune arme à distance',
   'agate.noPushbackWeapon': 'aucune arme qui repousse',

@@ -2,6 +2,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { blocageDeLivraison, foyerDeRegleSchema } from '../grammaire/valeurs';
+import { gateDActionSchema } from '../_domaines.generated';
 
 export const file = 'actions.json';
 export const famille = 'entite';
@@ -61,10 +62,8 @@ const doc = document(
   famille,
   {
     surface: surfaceSchema,
-    /** Id de PRÉDICAT enregistré dans `ACTION_GATES` (`src/noyau/actionRegistry.ts`), ou LISTE d'ids :
-     *  ils se composent alors par l'ET séquentiel d'`actionGate` (toutes passent, sinon la première
-     *  raison refusée est rendue). Une condition de plus sur une action = un id de plus ici. */
-    gate: z.union([z.string(), z.array(z.string()).min(2)]),
+    /** #2968 */
+    gate: z.union([gateDActionSchema, z.array(gateDActionSchema).min(2)]),
     /** Id de SÉLECTEUR impur enregistré dans `ACTION_CANDIDATES` (liste des cibles/objets offerts). */
     candidates: z.string().optional(),
     /** Id de DISPATCHER enregistré dans `ACTION_RUN` (méthode `battle*` du store). Absent = `blocked`. */
@@ -136,14 +135,8 @@ const doc = document(
     panneau: { label: 'Ouvre un panneau-paramètre', hint: 'L’action fait naître un panneau ancré à sa propre alvéole' },
   },
   {
-    codex: {
-      exempt: {
-        kind: 'vocabulaire-app-interne',
-        raison:
-          "registre de ROUTAGE des actions de combat (id → icône, surface, gate/candidates/run, mode armé) : chaque entrée POINTE vers la fiche qui porte sa règle (`rule`, référence `{ id, type }` → règle/talent/état/qualité/compétence/caractéristique), elle n'en héberge aucune — aucun verbatim à exposer, la fiche l'est déjà.",
-      },
-    },
-    edit: { none: 'registre de routage édité au fichier — absent de `CodexEdit.CATEGORY_DATASET`' },
+    codex: { keys: ['actions'] },
+    edit: { dataset: 'actions' },
   },
   {
     exiges: ['icon'],
