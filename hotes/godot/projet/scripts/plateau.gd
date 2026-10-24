@@ -53,7 +53,7 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			_combattants.add_child(modele)
 			modele.configurer(c, lieu)
 			_modeles[c.id] = modele
-		_modeles[c.id].montrer(c, lieu, c.id == actif)
+		_modeles[c.id].montrer(c, lieu, c.id == actif, vue.equipements[c.id])
 	for ligne in journal:
 		var e: Variant = ligne.get("evenement")
 		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")) and e.actorId != e.targetId:

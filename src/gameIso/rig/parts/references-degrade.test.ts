@@ -54,7 +54,7 @@ const SURCHARGES: (Appearance['colors'] | undefined)[] = [
 ];
 const TEINTES = [undefined, 'aethyrique'];
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
-const arme = (forme: string, teinte?: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hands: 1, bouclier: false, ...(teinte && { teinte }) });
+const arme = (forme: string, teinte?: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hand: 'main', hands: 1, bouclier: false, ...(teinte && { teinte }) });
 const armes = (...weapons: ArmeDeDessin[]): EquipCtx => ({ ...equipDe([], []), weapons });
 const armure = (subType: string, teinte?: string) =>
   ({ uid: 'a', kind: 'armor', label: subType, subType, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(teinte && { teinte }) }) as unknown as ItemInstance;

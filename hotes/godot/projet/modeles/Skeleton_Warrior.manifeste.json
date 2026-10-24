@@ -96,5 +96,62 @@
     "melee": "1H_Melee_Attack_Chop",
     "hit": "Hit_A",
     "death": "Death_A"
+  },
+  "montage": {
+    "attaches": {
+      "main": {
+        "os": "handslot.r",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "off": {
+        "os": "handslot.l",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "dos": {
+        "os": "chest",
+        "position": [
+          0,
+          0,
+          -0.15
+        ],
+        "rotation": [
+          0,
+          0,
+          3.141592653589793
+        ]
+      },
+      "ceinture": {
+        "os": "hips",
+        "position": [
+          0.18,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "composants": {}
   }
 }

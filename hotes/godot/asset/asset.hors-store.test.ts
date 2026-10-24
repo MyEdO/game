@@ -12,8 +12,8 @@ import {
 } from './release.ts';
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
-function glb(noeuds: readonly string[], animations: readonly string[]): Uint8Array {
-  const texte = JSON.stringify({ asset: { version: '2.0' }, nodes: noeuds.map((name) => ({ name })), animations: animations.map((name) => ({ name })) });
+function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
+  const texte = JSON.stringify({ asset: { version: '2.0' }, nodes: noeuds.map((name, mesh) => ({ name, mesh, ...(mesh === 0 ? { children: noeuds.map((_, i) => i).slice(1) } : {}), ...(options.skinned?.includes(name) ? { skin: 0 } : {}) })), meshes: noeuds.map(() => ({ primitives: [{ material: 0 }] })), materials: [{ name: 'texture_de_lame' }], skins: [{ joints: (options.joints ?? noeuds).map(n => noeuds.indexOf(n)) }], animations: animations.map((name) => ({ name })) });
   const brut = new TextEncoder().encode(texte);
   const longueur = Math.ceil(brut.byteLength / 4) * 4;
   const octets = new Uint8Array(20 + longueur).fill(0x20);
@@ -33,6 +33,10 @@ const GLB = glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Dea
 const production = () => ({
   schema_version: 2,
   rig: 'codex_rig',
+  montage: {
+    attaches: Object.fromEntries(['main', 'off', 'dos', 'ceinture'].map(n => [n, { os: 'corps', position: [0, 0, 0], rotation: [0, 0, 0] }])),
+    composants: { epee: { prise: 'main', rangement: 'ceinture', matieres: [{ cle: 'metal', piece: 'epee', surface: 0 }] }, bouclier: { prise: 'off', rangement: 'dos', matieres: [{ cle: 'accent', piece: 'bouclier', surface: 0 }] } },
+  },
   model: 'animated.glb',
   default_head: 'tete_a',
   head_options: [{ id: 'tete_a', label_fr: 'Visage' }],
@@ -75,6 +79,7 @@ describe('lireGlb', () => {
     const c = lireGlb(GLB);
     expect([...c.noeuds]).toEqual(['corps', 'tete_a', 'casque', 'bouclier', 'epee']);
     expect([...c.animations]).toEqual(['Idle', 'Death_A']);
+    expect(c.materiauxParPiece.get('epee')).toEqual(['texture_de_lame']);
   });
   it('refuse un conteneur qui n’est pas un glTF binaire 2', () => {
     const faux = GLB.slice();
@@ -102,7 +107,7 @@ describe('validerManifeste', () => {
     const v = validerManifeste(production(), lireGlb(GLB));
     expect(v.ok).toBe(true);
     if (!v.ok) return;
-    expect(Object.keys(v.manifeste)).toEqual(['schema_version', 'model', 'default_head', 'head_options', 'pieces', 'components', 'incompatibilities', 'defaults', 'presets', 'clips']);
+    expect(Object.keys(v.manifeste)).toEqual(['schema_version', 'model', 'default_head', 'head_options', 'pieces', 'components', 'incompatibilities', 'defaults', 'presets', 'clips', 'montage']);
     expect(v.manifeste.pieces.corps).toEqual({ node: 'corps', component: 'corps', headVariant: null, hiddenBy: [] });
     expect(v.manifeste.components.corps).toEqual({ label_fr: 'Corps', apparence: null });
     expect(v.manifeste.presets.garde).toEqual({ components: ['corps', 'bouclier'] });
@@ -159,6 +164,86 @@ describe('validerManifeste', () => {
     const m = sansTete();
     muter(m);
     expect(codes(m)).toEqual([code]);
+  });
+});
+
+describe('montage validé contre le GLB (#2948 L3-b)', () => {
+  it('conserve les attaches et les portages déclarés', () => {
+    const m = production();
+    const v = validerManifeste(m, lireGlb(GLB));
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.manifeste.montage).toEqual(m.montage);
+  });
+
+  it.each([
+    ['une surface absente du GLB', { cle: 'metal', piece: 'epee', surface: 1 }, 'matiere-absente'],
+    ['une pièce hors du composant', { cle: 'metal', piece: 'bouclier', surface: 0 }, 'matiere-absente'],
+    ['une clé hors du vocabulaire des palettes', { cle: 'inconnue', piece: 'epee', surface: 0 }, 'forme'],
+    ['un indice négatif', { cle: 'metal', piece: 'epee', surface: -1 }, 'forme'],
+    ['un indice fractionnaire', { cle: 'metal', piece: 'epee', surface: 0.5 }, 'forme'],
+  ] as const)('refuse %s', (_, liaison, code) => {
+    const m = production();
+    m.montage.composants.epee.matieres = [liaison];
+    expect(codes(m)).toContain(code);
+  });
+
+  it('refuse deux clés qui teintent la même surface', () => {
+    const m = production();
+    m.montage.composants.epee.matieres.push({ cle: 'cuir', piece: 'epee', surface: 0 });
+    expect(codes(m)).toContain('matiere-ambigue');
+  });
+
+  it('exige les emplacements de matière pour chaque composant montable', () => {
+    const m = production();
+    delete (m.montage.composants.epee as { matieres?: unknown }).matieres;
+    expect(codes(m)).toContain('forme');
+  });
+
+  it('refuse un nœud existant qui n’est pas un os du skin', () => {
+    const contenu = lireGlb(glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Death_A'], { joints: ['tete_a'] }));
+    expect(contenu.noeuds.has('corps')).toBe(true);
+    expect(codes(production(), contenu)).toContain('os-absent');
+  });
+
+  it('refuse une pièce donneuse skinnée', () => {
+    const contenu = lireGlb(glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Death_A'], { skinned: ['epee'] }));
+    expect(codes(production(), contenu)).toContain('piece-non-rigide');
+  });
+
+  it('refuse une prise dont l’os n’est pas le parent de la pièce rigide', () => {
+    const m = production();
+    m.montage.attaches.main.os = 'tete_a';
+    expect(codes(m)).toContain('attache-incompatible');
+  });
+
+  it('exige la déclaration de montage', () => {
+    const m = production();
+    delete (m as { montage?: unknown }).montage;
+    expect(codes(m)).toContain('forme');
+  });
+
+  it.each(['main', 'off', 'dos', 'ceinture'])('exige l’attache %s', nom => {
+    const m = production();
+    delete m.montage.attaches[nom];
+    expect(codes(m)).toContain('forme');
+  });
+
+  it('refuse une position non finie', () => {
+    const m = production();
+    m.montage.attaches.main.position = [NaN, 0, 0];
+    expect(codes(m)).toContain('forme');
+  });
+
+  it('refuse un composant de portage inconnu', () => {
+    const m = production();
+    (m.montage.composants as Record<string, unknown>).fantome = { prise: 'main', rangement: 'dos', matieres: [{ cle: 'metal', piece: 'epee', surface: 0 }] };
+    expect(codes(m)).toContain('composant-inconnu');
+  });
+
+  it('refuse un corps déclaré comme objet montable', () => {
+    const m = production();
+    (m.montage.composants as Record<string, unknown>).corps = { prise: 'main', rangement: 'dos', matieres: [{ cle: 'metal', piece: 'corps', surface: 0 }] };
+    expect(codes(m)).toContain('composant-inconnu');
   });
 });
 
@@ -434,6 +519,14 @@ describe('recupererModeles', () => {
     await recupererModeles({ dossier, cache, telecharger, journal: muet });
     expect(demandes).toEqual([url]);
     expect(existsSync(join(dossier, 'Essai.glb'))).toBe(true);
+  });
+  it('refuse au chargement Release une attache absente du GLB', async () => {
+    const dossier = dossierDeModeles();
+    const chemin = join(dossier, 'Essai.manifeste.json');
+    const m = JSON.parse(readFileSync(chemin, 'utf8'));
+    m.montage.attaches.main.os = 'os-absent';
+    writeFileSync(chemin, JSON.stringify(m));
+    await expect(recupererModeles({ dossier, cache: temporaire(), telecharger: serveur({ [url]: GLB }).telecharger, journal: muet })).rejects.toThrow(/\[os-absent\]/);
   });
   it('lève ModeleIntrouvable quand la Release répond 404 sur l’empreinte', async () => {
     await expect(recupererModeles({ dossier: dossierDeModeles(), cache: temporaire(), telecharger: serveur({}).telecharger, journal: muet })).rejects.toThrow(ModeleIntrouvable);

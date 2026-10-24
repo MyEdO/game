@@ -175,5 +175,98 @@
     "melee": "1H_Melee_Attack_Chop",
     "hit": "Hit_A",
     "death": "Death_A"
+  },
+  "montage": {
+    "attaches": {
+      "main": {
+        "os": "handslot.r",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "off": {
+        "os": "handslot.l",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      },
+      "dos": {
+        "os": "chest",
+        "position": [
+          0,
+          0,
+          -0.15
+        ],
+        "rotation": [
+          0,
+          0,
+          3.141592653589793
+        ]
+      },
+      "ceinture": {
+        "os": "hips",
+        "position": [
+          0.18,
+          0,
+          0
+        ],
+        "rotation": [
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "composants": {
+      "bouclier_blason": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Badge_Shield", "surface": 0 }]
+      },
+      "bouclier_rectangle": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Rectangle_Shield", "surface": 0 }]
+      },
+      "bouclier_rond": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Round_Shield", "surface": 0 }]
+      },
+      "bouclier_pointes": {
+        "prise": "off",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "Spike_Shield", "surface": 0 }]
+      },
+      "epee_main_gauche": {
+        "prise": "off",
+        "rangement": "ceinture",
+        "matieres": [{ "cle": "metal", "piece": "1H_Sword_Offhand", "surface": 0 }]
+      },
+      "epee": {
+        "prise": "main",
+        "rangement": "ceinture",
+        "matieres": [{ "cle": "metal", "piece": "1H_Sword", "surface": 0 }]
+      },
+      "epee_deux_mains": {
+        "prise": "main",
+        "rangement": "dos",
+        "matieres": [{ "cle": "metal", "piece": "2H_Sword", "surface": 0 }]
+      }
+    }
   }
 }

@@ -169,10 +169,10 @@ const mirrorPose = (p: Pose): Pose =>
 const mirrorClip = (cl: Clip): Clip => ({ ...cl, steps: cl.steps.map((s) => ({ ...s, pose: mirrorPose(s.pose) })) });
 /** L'attaque de cette arme se joue-t-elle sur le bras GAUCHE ? Routage PAR ID STABLE (kind
  *  `attackKind`, jamais le libellé) : main secondaire, ou tentacule (membre gauche muté). */
-const leftHanded = (w: FormeDArme): boolean => w.hand === 'off' || w.attackKind === 'tentacules';
+const leftHanded = (w: ArmeDeDessin): boolean => w.hand === 'off' || w.attackKind === 'tentacules';
 
 /** Geste d'attaque selon la classe de maniement (défaut : lame1m), MIROITÉ pour le bras gauche. */
-export function weaponAttackClip(w?: FormeDArme): Clip {
+export function weaponAttackClip(w?: ArmeDeDessin): Clip {
   if (!w) return ATTACK.lame1m;
   const base = ATTACK[handlingClass(w)];
   return leftHanded(w) ? mirrorClip(base) : base;
@@ -213,7 +213,7 @@ const MELEE_TWO_HANDED = new Set<Handling>(['lourde2m', 'hampe', 'lance_cav']);
 /** Geste de parade : bouclier > tireur (esquive) > 2-mains (blocage) > escrime/poings/garde.
  *  Comme l'attaque, le geste se joue sur LE BRAS QUI TIENT l'arme de parade : une main-gauche/
  *  brise-épée/2e arme (`hand:'off'`) pare du bras gauche (clip miroité). */
-export function weaponParryClip(w?: FormeDArme, hasShield = false): Clip {
+export function weaponParryClip(w?: ArmeDeDessin, hasShield = false): Clip {
   if (hasShield) return SHIELD_PARRY; // déjà à gauche (bras de bouclier)
   if (!w) return SWORD_GUARD;
   const h = handlingClass(w);
@@ -288,14 +288,14 @@ const MOUNTED_ATTACK: Partial<Record<Handling, Clip>> = {
 
 /** Geste d'attaque EN SELLE : clip monté dédié, sinon le clip à pied assis (sans bassin/jambes).
  *  Comme à pied, le geste se joue sur le bras qui tient l'arme (miroir main gauche/tentacule). */
-export function mountedAttackClip(w?: FormeDArme): Clip {
+export function mountedAttackClip(w?: ArmeDeDessin): Clip {
   const base = w && MOUNTED_ATTACK[handlingClass(w)];
   const clip = base ?? seatedClip(w ? ATTACK[handlingClass(w)] : ATTACK.lame1m);
   return w && leftHanded(w) ? mirrorClip(clip) : clip;
 }
 
 /** Garde EN SELLE : la parade à pied, assise (les parades vivent déjà dans les bras). */
-export function mountedParryClip(w?: FormeDArme, hasShield = false): Clip {
+export function mountedParryClip(w?: ArmeDeDessin, hasShield = false): Clip {
   return seatedClip(weaponParryClip(w, hasShield));
 }
 
