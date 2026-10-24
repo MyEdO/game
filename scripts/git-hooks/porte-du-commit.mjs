@@ -70,7 +70,9 @@
 // `scripts/git-hooks/commit-msg.mjs`) ; `--no-verify` de `commit`/`merge`/`pull` et `core.hooksPath`
 // (`scripts/hooks/hooks-git-contournes-guard.mjs`) ; `git push --no-verify` : #2184.
 import { readFileSync, statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { estPorteurDeStock, nonCouvertesDuBilan, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
 import { bilanDuCommit, entreeDeFusion, lecturesDeFusion } from '../guards/lib/plageStock.mjs'
 import {
@@ -78,6 +80,7 @@ import {
 } from '../guards/lib/reclassementCss.mjs'
 import { coteCss, sourceGit } from '../guards/lib/cssImages.mjs'
 import { memosDAnalyse } from '../guards/lib/memosDAnalyse.mjs'
+import { clotureDImports, estModule } from '../guards/lib/importGraph.mjs'
 import {
   estCheminDuBudget, importsDe, mesurerBudget, refusDeBudget,
 } from '../guards/budget-contexte.mjs'
@@ -969,8 +972,33 @@ export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAu
   } : null)
   let memosCss
   const memos = () => (memosCss ??= memosDAnalyse(depot, { racine: dir }))
+  let modulesDuDetecteur
+  const toucheLeDetecteur = (chemins) => {
+    if (!chemins.some(estModule)) return false
+    modulesDuDetecteur ??= new Set([sourceDeLaBase(), sourceDuCommit()].flatMap((s) => {
+      const fichiers = s.lister('.')
+      const abs = (rel) => resolve(dir, rel).split('\\').join('/')
+      const rel = (a) => relative(dir, a).split('\\').join('/')
+      const ensemble = new Set(fichiers)
+      const arbre = {
+        existe: (a) => ensemble.has(rel(a)),
+        lire: (abss) => {
+          const lus = s.lireTout(abss.map(rel))
+          return new Map(abss.map((a) => {
+            const texte = lus.get(rel(a)) ?? null
+            if (texte === null && ensemble.has(rel(a))) throw new Error(`Module du détecteur illisible : ${rel(a)}`)
+            return [a, texte]
+          }))
+        },
+        fichiers: fichiers.map(abs),
+      }
+      return [...clotureDImports([POINT_DES_COMPTES], { racine: dir, arbre, typesEffaces: true, retenir: estModule })]
+    }))
+    return chemins.some((c) => modulesDuDetecteur.has(c))
+  }
   return {
     base,
+    toucheLeDetecteur,
     stages,
     numstat: () => vers().numstat([]),
     diff: (chemins) => (chemins?.length === 0 ? '' : vers().diff(chemins ?? [])),
@@ -1099,6 +1127,37 @@ export function mtimeMaxDe(fichiers, racine = process.cwd()) {
 // toujours le chemin le plus court vers une CI verte. La porte le rend VISIBLE au commit : la
 // croissance passe si, et seulement si, le message la DIT.
 
+const POINT_DES_COMPTES = 'scripts/guards/lib/corpusDesComptes.mts'
+const RACINE_DES_COMPTES = fileURLToPath(new URL('../../', import.meta.url))
+
+/** #2948 */
+export function mesurerLesComptesDeLIndex({ dir, base, message }, lancer = execFileResilient) {
+  const argv = [join(RACINE_DES_COMPTES, 'node_modules/tsx/dist/cli.mjs'),
+    join(RACINE_DES_COMPTES, 'scripts/guards/comptes-plage.mts'), '--index', '--base', base]
+  try {
+    const texte = lancer(process.execPath, argv, { cwd: dir, input: message, encoding: 'utf8', timeout: 260_000, maxBuffer: 1 << 26 }, { site: 'porte-du-commit/comptes' })
+    return texte.trim() ? { ok: true, texte: texte.trim() } : { ok: false, texte: '⛔ Comptes de l’index injugeables : la porte canonique ne publie aucun verdict.' }
+  } catch (e) {
+    const texte = [e.stdout, e.stderr].filter(Boolean).join('\n').trim()
+    if (e.status === 1 && texte) return { ok: false, texte }
+    return { ok: false, texte: `⛔ Comptes de l’index injugeables : ${e.message}${texte ? `\n${texte}` : ''}` }
+  }
+}
+
+/** #2948 */
+export function evaluateComptesDuCommit({ message, commentaire, fichiers, disponible, base, mesurer, toucheLeDetecteur }) {
+  const lu = lectureDeLaPorte({ message, commentaire })
+  const declare = /^[ \t]*FAUX-POSITIF\s*:/m.test(lu.satisfactions)
+  try {
+    if (!declare && !toucheLeDetecteur(fichiers)) return null
+    if (!disponible()) return declare ? { reason: '⛔ FAUX-POSITIF sans porte des comptes dans l’index ni sa base.' } : null
+    const verdict = mesurer({ base: base(), message: lu.satisfactions })
+    return verdict?.ok === true ? null : { reason: verdict?.texte || '⛔ Comptes de l’index injugeables : aucun verdict canonique.' }
+  } catch (e) {
+    return { reason: `⛔ Comptes de l’index injugeables : ${e.message}` }
+  }
+}
+
 /**
  * Décision « un stock nominatif a grossi sans que le message le dise ». `diff` = diff unifié de ce que
  * le commit emporte (les fichiers porteurs suffisent), `images` = les lecteurs de pré/post-image qui
@@ -1192,7 +1251,7 @@ const ouDeLaLecture = (dir) => ({ cwd: dir, horsDepot: racineSurDisque(dir) === 
 
 /** Les décisions de la porte sur `commit` (`diffDuCommit`) pour `entree` = `{ message, commentaire }`.
  *  Tout ce qui se lit sur DISQUE se lit dans `dir`, la racine de l'arbre qui committe. */
-async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
+async function decisionsDuCommit(entree, { commit, dir, today, pannes, mesurerComptes }) {
   const lu = lectureDeLaPorte(entree)
   const { fichiers } = analyzeDiffDuCommit(commit.numstat())
   const apport = apportDeLaResolution(patchsParChemin(commit.diff()))
@@ -1270,6 +1329,13 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
       ? { fusion: fusion.entree }
       : { diff: commit.diff(), images: { ...commit.images(porteursDeStock), renommages: commit.renommages() } }),
   }) : null
+  const comptes = evaluateComptesDuCommit({
+    ...entree, fichiers,
+    toucheLeDetecteur: commit.toucheLeDetecteur,
+    disponible: () => commit.contenu(POINT_DES_COMPTES) !== null || commit.lirePreImage(POINT_DES_COMPTES) !== null,
+    base: commit.base,
+    mesurer: (p) => mesurerComptes({ ...p, dir }),
+  })
   const reclassements = evaluateReclassementsCss({
     ...entree,
     deplace: () => commit.deplaceLaFrontiereCss(fichiers),
@@ -1277,7 +1343,7 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
   })
   commit.sauverLesMemos()
   const hunks = jugerOuConfier(() => evaluateHunksEmportes({ stages: commit.stages(fichiers) }), pannes)
-  return [decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, stocks, reclassements, hunks]
+  return [decision, porteDuTicket, antiEsquive, juge, registresPorteurs, tombale, budget, stocks, comptes, reclassements, hunks]
 }
 
 /**
@@ -1289,9 +1355,9 @@ async function decisionsDuCommit(entree, { commit, dir, today, pannes }) {
  * @param {{ message: string, commentaire?: string, commit?: ReturnType<typeof diffDuCommit>, dir?: string, today: string, pannes?: string[] }} p
  * @returns {Promise<{ reason: string } | null>}
  */
-export async function jugerLeCommit({ message, commentaire = '#', dir = process.cwd(), today, pannes = [], commit = diffDuCommit(dir, { pannes }) }) {
+export async function jugerLeCommit({ message, commentaire = '#', dir = process.cwd(), today, pannes = [], commit = diffDuCommit(dir, { pannes }), mesurerComptes = mesurerLesComptesDeLIndex }) {
   try {
-    const decisions = await decisionsDuCommit({ message, commentaire }, { commit, dir, today, pannes })
+    const decisions = await decisionsDuCommit({ message, commentaire }, { commit, dir, today, pannes, mesurerComptes })
     return decisionCumulee([...decisions, refusDesPannes(pannes, ouDeLaLecture(dir))])
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e

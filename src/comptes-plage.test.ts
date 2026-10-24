@@ -72,9 +72,9 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
     expect(verdict.texte).toContain('[détecteur de la base (b)] SLOTS_SANS_DECLARATION : voyage-stakes.json | rule — HAUSSE 34 > 33');
   });
 
-  it('une paire qui ne se lie pas est sautée ET nommée ; l’autre juge seule', () => {
+  it('une paire qui ne se lie pas est nommée et empêche d’attribuer une baisse à la donnée', () => {
     const verdict = verdictDesDetecteurs(plage, [{ detecteur: 'détecteur de la tête', sautee: 'mesure de l’image en échec' }, { detecteur: 'détecteur de la base (b)', ...stable }]);
-    expect(verdict.ok).toBe(true);
+    expect(verdict.ok).toBe(false);
     expect(verdict.texte).toContain('paire sautée — détecteur de la tête : mesure de l’image en échec');
     expect(verdictDesDetecteurs(plage, [{ detecteur: 'détecteur de la tête', sautee: 'x' }, { detecteur: 'détecteur de la base (b)', ...hausse }]).ok).toBe(false);
   });
@@ -105,6 +105,61 @@ describe('verdictDesDetecteurs — deux détecteurs constants, la tête et la ba
       rmSync(racine, { recursive: true, force: true });
       rmSync(image, { recursive: true, force: true });
     }
+  });
+});
+
+describe('baisses attribuables au détecteur — #2948', () => {
+  const site = { concept: 'reference', dataset: 'trappings.json', champ: 'shape', signature: 'id-nu', occurrences: 2 };
+  const compte = (n: number): Comptes => new Map([['STRUCTURES_FORMES', n ? [{ ...site, occurrences: n }] : []]]) as Comptes;
+  const paire = (base: number, tete: number) => ({ base: compte(base), tete: compte(tete) });
+  const mesures = (a: number, b: number, c: number, d: number) => [
+    { detecteur: 'détecteur de la tête', ...paire(a, b) },
+    { detecteur: 'détecteur de la base (b)', ...paire(c, d) },
+  ];
+  const ligne = (n: number, cle = 'reference | trappings.json | shape | id-nu') =>
+    'FAUX-POSITIF: ' + JSON.stringify(['STRUCTURES_FORMES', cle, n]) + ' — le schéma classe cette occurrence comme une valeur sans référence';
+  const juger = (m = mesures(0, 0, 2, 2), message = '') => verdictDesDetecteurs('fixture id-declare', m, message);
+
+  it('le reclassement id-nu en id-declare sans changer la donnée ne fait pas disparaître la dette', () => {
+    expect(juger().ok).toBe(false);
+    expect(juger().texte).toContain('FAUX-POSITIF');
+  });
+  it('la même baisse mesurée par le détecteur de base est une migration de donnée', () => {
+    expect(juger(mesures(2, 0, 2, 0)).ok).toBe(true);
+  });
+  it('chaque occurrence retirée exactement déclarée est admise', () => {
+    expect(juger(undefined, ligne(1) + '\n' + ligne(2)).ok).toBe(true);
+  });
+  it.each([
+    ['manquante', ligne(1)], ['en trop', ligne(1) + '\n' + ligne(2) + '\n' + ligne(3)],
+    ['dupliquée', ligne(1) + '\n' + ligne(1)], ['autre site', ligne(1) + '\n' + ligne(2, 'reference | autre.json | shape | id-nu')],
+    ['preuve vide', 'FAUX-POSITIF: ["STRUCTURES_FORMES","reference | trappings.json | shape | id-nu",1] — '],
+    ['malformée', 'FAUX-POSITIF: ceci ne nomme aucune occurrence — une preuve assez longue mais sans identité'],
+  ])('une déclaration %s refuse', (_nom, message) => {
+    expect(juger(undefined, message).ok).toBe(false);
+  });
+  it('une déclaration sans baisse est surnuméraire', () => {
+    expect(juger(mesures(2, 2, 2, 2), ligne(1)).ok).toBe(false);
+  });
+  it('un trailer ne couvre jamais une hausse', () => {
+    expect(juger(mesures(2, 3, 2, 3), ligne(1)).ok).toBe(false);
+  });
+  it('la baisse partagée par la donnée ne demande pas un trailer', () => {
+    expect(juger(mesures(0, 0, 2, 1), ligne(1)).ok).toBe(true);
+    expect(juger(mesures(0, 0, 2, 1), ligne(1) + '\n' + ligne(2)).ok).toBe(false);
+  });
+  it('une migration partielle ne couvre que la baisse réellement mesurée à la base', () => {
+    expect(juger(mesures(1, 1, 5, 3), ligne(2) + '\n' + ligne(3)).ok).toBe(true);
+    expect(juger(mesures(1, 1, 5, 3), ligne(2)).ok).toBe(false);
+    expect(juger(mesures(1, 1, 5, 3), ligne(1) + '\n' + ligne(2) + '\n' + ligne(3)).ok).toBe(false);
+  });
+  it('SOURCE_FORMAT passe par la même règle et son compte nombre', () => {
+    const s = { famille: 'sup-nu', fichier: 'Source/X/01 - A.md', ref: '<sup>', occurrence: 1 };
+    const c = (nombre: number): Comptes => new Map([['scripts/raw/source-format-stock.json', nombre ? [{ ...s, nombre }] : []]]) as unknown as Comptes;
+    const m = [{ detecteur: 'tête', base: c(0), tete: c(0) }, { detecteur: 'base', base: c(1), tete: c(1) }];
+    expect(verdictDesDetecteurs('source', m).ok).toBe(false);
+    const message = 'FAUX-POSITIF: ' + JSON.stringify(['scripts/raw/source-format-stock.json', cleDeSite(s), 1]) + ' — cette occurrence est un exemple littéral du format de la source';
+    expect(verdictDesDetecteurs('source', m, message).ok).toBe(true);
   });
 });
 

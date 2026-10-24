@@ -1687,9 +1687,9 @@
   {
     "id": "porteDesComptes",
     "type": "primitives.manifest",
-    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
-    "concept": "porte des comptes : les collections à compte et le volet SOURCE_FORMAT qu'elle juge, leurs fichiers porteurs, et le verdict d'une plage dont chaque borne est mesurée dans son image par deux détecteurs constants — aucun compte ne monte, aucun site ne naît, aucun `CLIQUET:` ne l'admet",
+    "concept": "porte des comptes : collections à compte et volet SOURCE_FORMAT, images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
     "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
     "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
   },
