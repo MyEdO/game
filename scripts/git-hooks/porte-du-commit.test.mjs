@@ -36,6 +36,8 @@ import {
   refusDesPannes,
   evaluateBudgetContexte,
   evaluateReclassementsCss,
+  evaluateComptesDuCommit,
+  mesurerLesComptesDeLIndex,
   fichiersCitantTickets,
   listeurDuBudget,
   jugerLeCommit,
@@ -44,7 +46,7 @@ import {
 import { apportDeLaResolution, estFichierEcran, sectionDe } from '../guards/lib/livraison.mjs'
 import { tombalesDansSource, evaluateTombale, EXEMPTIONS_TOMBALE } from './solde-tombale.mjs'
 import { lignesDuContenu } from '../guards/lib/stock.mjs'
-import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead, patchsParChemin } from '../guards/lib/gitPorte.mjs'
+import { GitIndisponible, INDEX, ceQueFaitLeCommit, depotDe, histoireDeHead, patchsParChemin, ecrireBlob, poserDansIndex, reussi } from '../guards/lib/gitPorte.mjs'
 import { depotReel, envDeDepotForge, envGitFeint, ENV_GIT_FEINT, instanceDeDepot, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gitDe, gitDeLArbreReel, lancerGit, lancesDeGit, resultatDeGit, sousCommande } from '../test/gitDeBanc.mjs'
 
@@ -86,6 +88,106 @@ test('#2774 commit : seule la substance sous src déclenche les deux preuves', a
     const preuve = 'preuve indépendante sur le diff complet et les contournements discriminants'
     assert.equal(await evaluer(`chore: refs #2774\n\nJUGE: ${preuve}\nREFUTATION: ${preuve}`), null)
   } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : un détecteur modifié sans stock délègue les comptes de l’INDEX, pas le WIP', async () => {
+  const point = 'scripts/guards/lib/corpusDesComptes.mts'
+  const { racine } = instanceDeDepot({ fichiers: { [point]: 'export const base = 1;\n', 'src/donnee.json': '["base"]\n' }, message: 'socle' })
+  const git = gitDe(racine)
+  try {
+    writeFileSync(join(racine, point), 'export const base = 2;\n')
+    git('add', point)
+    writeFileSync(join(racine, 'src/donnee.json'), '["WIP non emporte"]\n')
+    const message = 'chore: refs #2948\n\nFAUX-POSITIF: ["C","site",1] — preuve ciblée du site refusé'
+    const appels = []
+    const verdict = await jugerLeCommit({
+      message, dir: racine, today: TODAY,
+      mesurerComptes: (entree) => {
+        appels.push(entree)
+        assert.equal(lancerGit(['show', ':src/donnee.json'], { cwd: racine }), '["base"]\n')
+        return { ok: false, texte: 'refus canonique : le détecteur retire le site' }
+      },
+    })
+    assert.equal(appels.length, 1)
+    assert.equal(appels[0].base, git('rev-parse', 'HEAD').trim())
+    assert.equal(appels[0].message, message)
+    assert.match(verdict?.reason ?? '', /refus canonique : le détecteur retire le site/)
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : seuls les modules de la fermeture du détecteur et les faux positifs lancent la mesure', async () => {
+  const point = 'scripts/guards/lib/corpusDesComptes.mts'
+  const intermediaire = 'scripts/guards/lib/classer.mjs'
+  const classeur = 'src/classement.mjs'
+  const donnee = 'src/data/donnee.json'
+  const fichiers = {
+    [point]: "export { classer } from './classer.mjs';\nimport donnees from '../../../src/data/donnee.json';\n",
+    [intermediaire]: "export { classer } from '../../../src/classement.mjs';\n",
+    [classeur]: 'export const classer = () => 1;\n',
+    [donnee]: '[1]\n',
+    'src/hors-fermeture.mjs': 'export const autre = 1;\n',
+  }
+  const { racine } = instanceDeDepot({ fichiers, message: 'socle' })
+  const depot = depotDe(racine, { env: envDeDepotForge() })
+  const poser = (rel, texte) => {
+    writeFileSync(join(racine, rel), texte)
+    const blob = ecrireBlob(depot, texte)
+    assert.ok(reussi(blob))
+    assert.ok(reussi(poserDansIndex(depot, { index: join(racine, '.git/index'), entrees: [{ chemin: rel, mode: '100644', sha: blob.valeur.stdout.trim() }] })))
+  }
+  let appels = 0
+  const mesurerComptes = () => { appels++; return { ok: true, texte: 'mesure canonique' } }
+  const juger = (message = 'chore: refs #2948') => jugerLeCommit({ message, dir: racine, today: TODAY, mesurerComptes })
+  try {
+    poser(donnee, '[2]\n')
+    const debut = performance.now()
+    assert.equal(await juger(), null)
+    console.log(JSON.stringify({ banc: 'commit-donnee-seule', dureeMs: performance.now() - debut, mesures: appels }))
+    assert.equal(appels, 0, 'la donnée JSON importée est hors des modules exécutés')
+
+    poser(classeur, 'export const classer = () => 2;\n')
+    writeFileSync(join(racine, point), "export const sansImport = true;\n")
+    assert.equal(await juger(), null)
+    assert.equal(appels, 1, 'la fermeture est celle de l’index, pas du WIP')
+
+    poser(classeur, fichiers[classeur])
+    poser('src/hors-fermeture.mjs', 'export const autre = 2;\n')
+    assert.equal(await juger(), null)
+    assert.equal(appels, 1, 'un module extérieur ne déclenche aucune mesure')
+
+    poser(point, "export const sansImport = true;\n")
+    assert.equal(diffDuCommit(racine).toucheLeDetecteur([classeur]), true, 'la fermeture de base reste prise en compte après retrait de l’import')
+    assert.equal(await juger('chore: refs #2948\n\nFAUX-POSITIF: ["C","site",1] — preuve explicite de cette occurrence'), null)
+    assert.equal(appels, 2, 'un trailer impose la mesure indépendamment des fichiers')
+  } finally { rmSync(racine, { recursive: true, force: true }) }
+})
+
+test('#2948 commit : les comptes refusent une mesure absente, ses erreurs et les faux positifs sans univers', () => {
+  const entree = { message: 'refs #2948', fichiers: ['scripts/docs/lib/structures-scan.mts'], disponible: () => true, base: () => 'base', toucheLeDetecteur: () => true }
+  assert.deepEqual(evaluateComptesDuCommit({ ...entree, mesurer: () => ({ ok: false, texte: 'refus exact du canonique' }) }), { reason: 'refus exact du canonique' })
+  assert.equal(evaluateComptesDuCommit({ ...entree, mesurer: () => ({ ok: true, texte: 'vert' }) }), null)
+  assert.match(evaluateComptesDuCommit({ ...entree, mesurer: () => { throw new Error('spawn indisponible') } }).reason, /spawn indisponible/)
+  assert.match(evaluateComptesDuCommit({ ...entree, mesurer: () => undefined }).reason, /aucun verdict canonique/)
+  const sansUnivers = { ...entree, fichiers: [], disponible: () => false, mesurer: () => assert.fail('univers absent') }
+  assert.equal(evaluateComptesDuCommit(sansUnivers), null)
+  assert.match(evaluateComptesDuCommit({ ...sansUnivers, message: 'refs #2948\nFAUX-POSITIF: ["C","site",1] — preuve assez longue du site' }).reason, /sans porte des comptes/)
+  assert.equal(evaluateComptesDuCommit({ ...sansUnivers, message: 'refs #2948\n# FAUX-POSITIF: ["C","site",1] — commentaire ignoré' }), null)
+})
+
+test('#2948 commit : l’hôte des comptes transmet base et message, et conserve les deux flux du refus', () => {
+  const entree = { dir: 'racine du depot', base: 'arbre-de-fusion', message: 'refs #2948\nFAUX-POSITIF: site exact' }
+  assert.deepEqual(mesurerLesComptesDeLIndex(entree, (executable, argv, options) => {
+    assert.equal(executable, process.execPath)
+    assert.equal(argv[0].endsWith(join('node_modules', 'tsx', 'dist', 'cli.mjs')), true)
+    assert.equal(argv[1].endsWith(join('scripts', 'guards', 'comptes-plage.mts')), true)
+    assert.deepEqual(argv.slice(2), ['--index', '--base', entree.base])
+    assert.equal(options.cwd, entree.dir)
+    assert.equal(options.input, entree.message)
+    return 'verdict vert\n'
+  }), { ok: true, texte: 'verdict vert' })
+  assert.deepEqual(mesurerLesComptesDeLIndex(entree, () => { throw Object.assign(new Error('exit 1'), { status: 1, stdout: 'mesure nommée', stderr: 'refus du site' }) }), { ok: false, texte: 'mesure nommée\nrefus du site' })
+  assert.match(mesurerLesComptesDeLIndex(entree, () => { throw Object.assign(new Error('spawn absent'), { code: 'ENOENT' }) }).texte, /injugeables.*spawn absent/)
+  assert.match(mesurerLesComptesDeLIndex(entree, () => '').texte, /aucun verdict/)
 })
 
 const TODAY = '2026-07-14'

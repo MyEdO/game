@@ -3,19 +3,22 @@
 // site naisse entre la base d'une plage et sa tête.
 //
 // DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
-// par le détecteur de la tête (le `scripts/` qui tourne) et par celui de la base (`scripts/` du commit de base).
+// par le détecteur de la tête (`scripts/` de son image git) et par celui de la base (`scripts/` de son image git).
 // La constance couvre la MESURE ; les GÉNÉRATEURS appartiennent à l'image. L'image est celle de SON commit :
 // `src/` — donnée, defs, grammaire, `OP_DEFS` — et ses cibles de code, produites par son propre `genererCode`
 // (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
 // cibles se rejoue sous celles des générateurs du DÉTECTEUR (`comptesDuCommit`) : une borne se mesure si UNE des deux
-// configurations aboutit, sinon sa paire est sautée et nommée avec les deux raisons ; aucune paire liée, la porte
-// refuse. Ce qui monte sous l'un ou l'autre détecteur est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et
+// configurations aboutit, sinon sa paire est sautée et nommée avec les deux raisons ; une paire sautée refuse.
+// Ce qui monte sous l'un ou l'autre détecteur est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et
 // refuse la plage. Aucune ligne de message n'admet une hausse.
 // ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711) ; une forme
-// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, ne se mesure sous aucune
-// configuration — la paire est sautée, la porte refuse sans paire liée.
+// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher une mesure.
+// `c.site` peut agréger plusieurs datasets (homonymes) ; l’ordinal d’un compte n’est pas l’adresse d’une valeur.
+// La preuve d’un FAUX-POSITIF est du texte, sans vérification de sa vérité ; `SOUS_LA_PORTE`, ses identités et
+// la politique du juge courant restent des entrées de confiance.
+// Le classement `estFeuilleDId`/`descente` et `OP_DEFS`, importé de `src/`, suit l’image : sa modification peut masquer une baisse sous les deux détecteurs (#2969).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -26,7 +29,7 @@ import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mec
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
-import { GitIndisponible, TRONC, baseCommune, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
+import { GitIndisponible, INDEX, TRONC, baseCommune, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
@@ -85,7 +88,7 @@ export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
   });
 }
 
-/** La racine du code qui TOURNE : le détecteur de la tête. */
+/** La racine de l’outillage qui lance les mesures. */
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url));
 /** Ce que le détecteur apporte à une image : son code et sa configuration de modules. */
 const DU_DETECTEUR = ['scripts', 'package.json', 'tsconfig.json'];
@@ -113,13 +116,6 @@ function ecrireDeLImage(depot: Depot, arbre: string, dossier: string, dossiers: 
 
 /** Un DÉTECTEUR : son nom, sa clé de mémo, et la pose de son code (`DU_DETECTEUR`) dans une image. */
 type Detecteur = { readonly nom: string; readonly cle: string; readonly poser: (dossier: string) => void };
-
-/** Le détecteur de la tête : le code qui tourne (`RACINE`). */
-const DETECTEUR_DE_LA_TETE: Detecteur = {
-  nom: 'détecteur de la tête',
-  cle: 'tête',
-  poser: (dossier) => { for (const rel of DU_DETECTEUR) cpSync(join(RACINE, rel), join(dossier, rel), { recursive: true }); },
-};
 
 /** Le détecteur du commit `sha` : son `scripts/`, son `package.json` et son `tsconfig.json`, lus par git. */
 export const detecteurDuCommit = (depot: Depot, sha: string): Detecteur => ({
@@ -172,6 +168,7 @@ function mesurerImage(dossier: string, configuration: string): Comptes {
 /** L'image de chaque commit, générée par son propre code, une fois par processus : son dossier, ou la raison de son
  *  échec. Les dossiers s'effacent à la sortie du processus. */
 const IMAGES_GENEREES = new Map<string, string | MesureImpossible>();
+let sortieObservee = false;
 const effacerLesImages = (): void => {
   for (const image of IMAGES_GENEREES.values()) if (typeof image === 'string') rmSync(image, { recursive: true, force: true });
 };
@@ -180,7 +177,7 @@ const effacerLesImages = (): void => {
  *  `genererCode` (`genererLesCibles`). */
 function imageGeneree(depot: Depot, sha: string, configuration: string): string {
   if (!IMAGES_GENEREES.has(sha)) {
-    if (!IMAGES_GENEREES.size) process.once('exit', effacerLesImages);
+    if (!sortieObservee) { process.once('exit', effacerLesImages); sortieObservee = true; }
     const dossier = dossierDImage();
     try {
       ecrireDeLImage(depot, sha, dossier, [...DE_L_IMAGE, ...DU_DETECTEUR]);
@@ -259,19 +256,60 @@ function mesurerLaPaire(depot: Depot, shaBase: string, shaTete: string, detecteu
   }
 }
 
-/**
- * Le verdict de la `plage` sur les mesures de ses détecteurs : refus si l'UN voit un compte monter ou un site
- * naître (`refusDesComptes`), refus si AUCUNE paire ne se lie ; chaque paire sautée est nommée. PURE.
- */
-export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnDetecteur[]): { ok: boolean; texte: string } {
+/** #2948. */
+type FauxPositif = readonly [collection: string, site: string, occurrence: number];
+
+export function baissesDuDetecteur(base: Comptes, teteSousBase: Comptes, tete: Comptes): FauxPositif[] {
+  return SOUS_LA_PORTE.flatMap((c) => {
+    const parSite = (comptes: Comptes): Map<string, number> => new Map((comptes.get(c.nom) ?? []).map((e) => [c.site(e), c.nombre(e)]));
+    const natifs = parSite(base);
+    const anciens = parSite(teteSousBase);
+    const nouveaux = parSite(tete);
+    return [...natifs].flatMap(([site, nombre]) => {
+      const borne = Math.min(nombre, anciens.get(site) ?? 0);
+      const debut = (nouveaux.get(site) ?? 0) + 1;
+      return Array.from({ length: Math.max(0, borne - debut + 1) }, (_, i) => [c.nom, site, debut + i] as const);
+    });
+  });
+}
+
+export function refusDesFauxPositifs(attendus: readonly FauxPositif[], message: string): string[] {
+  const restants = new Map(attendus.map((a) => [JSON.stringify(a), a]));
+  const vus = new Set<string>();
+  const refus: string[] = [];
+  for (const ligne of message.split(/\r?\n/).filter((l) => /^[ \t]*FAUX-POSITIF[ \t]*:/.test(l))) {
+    const lu = /^[ \t]*FAUX-POSITIF:[ \t]*(\[[^\r\n]*\])[ \t]+—[ \t]+(.+)$/.exec(ligne);
+    let tuple: unknown;
+    try { tuple = lu && JSON.parse(lu[1]); } catch { tuple = null; }
+    if (!lu || lu[2].trim().length < 20 || !Array.isArray(tuple) || tuple.length !== 3
+      || typeof tuple[0] !== 'string' || typeof tuple[1] !== 'string' || !Number.isSafeInteger(tuple[2]) || tuple[2] < 1) {
+      refus.push(`  FAUX-POSITIF malformé : ${ligne}`);
+      continue;
+    }
+    const cle = JSON.stringify(tuple);
+    if (vus.has(cle)) refus.push(`  FAUX-POSITIF dupliqué : ${cle}`);
+    else if (!restants.delete(cle)) refus.push(`  FAUX-POSITIF surnuméraire ou site inconnu : ${cle}`);
+    vus.add(cle);
+  }
+  refus.push(...[...restants.keys()].map((cle) => `  FAUX-POSITIF manquant : ${cle} — <preuve d’au moins 20 caractères>`));
+  return refus;
+}
+
+export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnDetecteur[], message = ''): { ok: boolean; texte: string } {
   const sautees = mesures.flatMap((m) => ('sautee' in m ? [`  paire sautée — ${m.detecteur} : ${m.sautee}`] : []));
   const liees = mesures.flatMap((m) => ('sautee' in m ? [] : [m]));
   const suite = sautees.length ? `\n${sautees.join('\n')}` : '';
   if (!liees.length) return { ok: false, texte: `⛔ ${plage} : aucune paire de détecteur ne se lie — la porte ne juge pas ce qu’elle n’a pas mesuré.${suite}` };
   const refus = liees.flatMap((m) => refusDesComptes(m.base, m.tete).map((l) => `  [${m.detecteur}] ${l}`));
-  return refus.length
-    ? { ok: false, texte: `⛔ ${plage} : ${refus.length} compte(s) de collection à compte MONTENT ou NAISSENT — aucune donnée n’y entre, aucun \`CLIQUET:\` ne les couvre (#2705) :\n${refus.join('\n')}${suite}` }
-    : { ok: true, texte: `${plage} : aucun compte des ${SOUS_LA_PORTE.length} collections sous la porte ne monte, aucun site n’y naît (${liees.map((m) => m.detecteur).join(', ')}).${suite}` };
+  const croissance = refus.length ? { ok: false, texte: `⛔ ${plage} : ${refus.length} compte(s) de collection à compte MONTENT ou NAISSENT — aucune donnée n’y entre, aucun \`CLIQUET:\` ne les couvre (#2705) :\n${refus.join('\n')}${suite}` } : null;
+  const [tete, base] = mesures;
+  if (!tete || !base || 'sautee' in tete || 'sautee' in base)
+    return croissance ?? { ok: false, texte: `⛔ ${plage} : les deux détecteurs sont nécessaires pour attribuer une baisse à la donnée.${suite}` };
+  const declarations = refusDesFauxPositifs(baissesDuDetecteur(base.base, base.tete, tete.tete), message);
+  if (croissance) return { ...croissance, texte: croissance.texte + (declarations.length ? '\n' + declarations.join('\n') : '') };
+  return declarations.length
+    ? { ok: false, texte: `⛔ ${plage} : baisse de détecteur non justifiée exactement par FAUX-POSITIF:\n${declarations.join('\n')}${suite}` }
+    : { ok: true, texte: `${plage} : aucun compte des ${SOUS_LA_PORTE.length} collections sous la porte ne monte, aucun site n’y naît ; baisses de détecteur justifiées (${liees.map((m) => m.detecteur).join(', ')}).${suite}` };
 }
 
 /**
@@ -280,23 +318,35 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
  * posée sous `os.tmpdir()` et mesurée dans son image (`comptesDuCommit`) ; un détecteur de base sans point d'entrée
  * (`POINT_D_ENTREE`) est sauté sans poser d'image.
  */
-export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD' }: { depot: Depot; base?: string; tete?: string }): { ok: boolean; texte: string } {
+export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD', message }: { depot: Depot; base?: string; tete?: string; message?: string }): { ok: boolean; texte: string } {
+  const index = tete === INDEX;
+  const viderLesMesures = (): void => { effacerLesImages(); IMAGES_GENEREES.clear(); COMPTES_PAR_MESURE.clear(); };
+  if (index) viderLesMesures();
   try {
-    const shaTete = shaDe(depot, tete);
-    const shaBase = shaTete && baseCommune(depot, base, shaTete);
+    const shaTete = index ? INDEX : shaDe(depot, tete);
+    const shaBase = index ? base : shaTete && baseCommune(depot, base, shaTete);
     if (!shaTete || !shaBase) return { ok: false, texte: `⛔ ${base}..${tete} : base commune illisible — la porte ne juge pas une plage sans borne.` };
     const plage = `${base} (base ${shaBase.slice(0, 9)})..${tete} (${shaTete.slice(0, 9)})`;
-    if (shaBase === shaTete) return { ok: true, texte: `${plage} : plage vide.` };
+    if (shaBase === shaTete) {
+      const refus = refusDesFauxPositifs([], message ?? '');
+      return { ok: refus.length === 0, texte: refus.length ? `⛔ ${plage} :\n${refus.join('\n')}` : `${plage} : plage vide.` };
+    }
     const deLaBase = detecteurDuCommit(depot, shaBase);
+    const deLaTete = { ...detecteurDuCommit(depot, shaTete), nom: 'détecteur de la tête' };
+    const journal = message === undefined && !index ? journalDe(depot, [`${shaBase}..${shaTete}`]) : [];
+    if (journal === null) throw new GitIndisponible('messages de la plage illisibles');
+    if (index && message === undefined) return { ok: false, texte: `⛔ ${plage} : message du commit absent pour l’index.` };
     return verdictDesDetecteurs(plage, [
-      mesurerLaPaire(depot, shaBase, shaTete, DETECTEUR_DE_LA_TETE),
+      mesurerLaPaire(depot, shaBase, shaTete, deLaTete),
       listerImage(depot, shaBase, POINT_D_ENTREE).length
         ? mesurerLaPaire(depot, shaBase, shaTete, deLaBase)
         : { detecteur: deLaBase.nom, sautee: `\`${POINT_D_ENTREE}\` absent de la base` },
-    ]);
+    ], message ?? journal.map((c) => c.message).join('\n'));
   } catch (e) {
     if (!(e instanceof GitIndisponible)) throw e;
     return { ok: false, texte: `⛔ lecture git indisponible : ${refusDeGit(e)} — la porte ne juge pas ce que git n’a pas lu.` };
+  } finally {
+    if (index) viderLesMesures();
   }
 }
 
