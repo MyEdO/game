@@ -602,7 +602,7 @@ for (const etape of ['version', 'schéma']) {
   test(`protocole : timeout de mesure ${etape} retentable, erreur native conservée`, () => {
     const erreur = Object.assign(new Error(`spawnSync codex ${etape} ETIMEDOUT`), { code: 'ETIMEDOUT' })
     assert.throws(() => verifierProtocoleCodex({ executable: 'timeout', executer(exe, args) {
-      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      if (etape === 'schéma' && args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.164.0\n' }
       return { status: null, error: erreur }
     } }), (e) => {
       assert.equal(e.message, `${prefixeDeRefus('transitoire')} ${etape === 'version' ? 'Version' : 'Schéma'} Codex invérifiable`)
@@ -612,9 +612,9 @@ for (const etape of ['version', 'schéma']) {
   })
 }
 test('version protocole : binaire mesuré, schéma nécessaire et refus fermés', () => {
-  assert.equal(VERSION_PROTOCOLE_CODEX, '0.163.0')
+  assert.equal(VERSION_PROTOCOLE_CODEX, '0.164.0')
   assert.throws(() => verifierProtocoleCodex({ executable: 'missing', executer: () => ({ status: 1, stderr: 'absent' }) }), /\[panne/)
-  assert.throws(() => verifierProtocoleCodex({ executable: 'old', executer: () => ({ status: 0, stdout: 'codex-cli 0.162.0\n' }) }), /\[validation/)
+  assert.throws(() => verifierProtocoleCodex({ executable: 'old', executer: () => ({ status: 0, stdout: 'codex-cli 0.163.0\n' }) }), /\[validation/)
   const appels = []
   assert.throws(() => verifierProtocoleCodex({ executable: 'future', executer: (exe, args) => { appels.push([exe, args]); return args[0] === '--version' ? { status: 0, stdout: 'codex-cli 0.164.0\n' } : { status: 0 } } }), /\[panne/)
   assert.equal(appels[1][1][0], 'app-server')
@@ -637,6 +637,7 @@ function corpusProtocole() {
     imageGeneration: { status: chaine },
   }
   const item = { oneOf: [objet({ type: { type: 'string', enum: ['agentMessage'] }, text: chaine }), ...outils.map((v) => objet({ type: { type: 'string', enum: [v] }, id: chaine, ...champs[v] }))] }
+  item.oneOf.find((b) => b.properties.type.enum[0] === 'imageGeneration').anyOf = [objet({ fileId: chaine }), objet({ result: chaine })]
   const tour = objet({ id: chaine, status: { type: 'string', enum: ['completed', 'interrupted', 'failed', 'inProgress'] }, items: { type: 'array', items: item }, durationMs: { type: ['integer', 'null'] }, error: nullable(objet({ message: chaine })) }, ['id', 'items', 'status'])
   const input = { type: 'array', items: { oneOf: [texte] } }
   return {
@@ -663,7 +664,7 @@ test('protocole : formes consommées requises, types, enums et nullabilité ; ex
   function verifier(changer = () => {}) {
     return verifierProtocoleCodex({ executable: 'audited', executer(exe, args) {
       assert.equal(exe, 'audited')
-      if (args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.163.0\n' }
+      if (args[0] === '--version') return { status: 0, stdout: 'codex-cli 0.164.0\n' }
       const corpus = corpusProtocole()
       const defs = Object.fromEntries(Object.entries(corpus).map(([n, s]) => [n.split('/')[1], s]))
       const enveloppe = (methodes, request = false) => ({ definitions: defs, oneOf: Object.entries(methodes).map(([m, n]) => ({ type: 'object', properties: { method: { type: 'string', enum: [m] }, ...(n ? { params: { $ref: `#/definitions/${n}` } } : {}) }, required: ['method', ...(n ? ['params'] : []), ...(request ? ['id'] : [])] })) })
@@ -678,9 +679,44 @@ test('protocole : formes consommées requises, types, enums et nullabilité ; ex
       return { status: 0 }
     } })
   }
-  assert.equal(verifier().version, '0.163.0')
-  assert.equal(verifier((c) => { c['v2/ThreadStartResponse'].description = 'prose'; c['v2/ThreadStartResponse'].properties.nouveau = { type: 'boolean' } }).version, '0.163.0')
+  assert.equal(verifier().version, '0.164.0')
+  assert.equal(verifier((c) => { c['v2/ThreadStartResponse'].description = 'prose'; c['v2/ThreadStartResponse'].properties.nouveau = { type: 'boolean' } }).version, '0.164.0')
+  const variante = (c, nom, outil) => c[nom].properties.item.oneOf.find((b) => b.properties.type.enum[0] === outil)
+  assert.equal(verifier((c) => {
+    for (const nom of ['v2/ItemCompletedNotification', 'v2/ItemStartedNotification']) delete variante(c, nom, 'imageGeneration').anyOf
+  }).version, '0.164.0')
+  for (const nom of ['v2/ItemCompletedNotification', 'v2/ItemStartedNotification']) {
+    for (const champ of ['id', 'status']) {
+      assert.throws(() => verifier((c) => { variante(c, nom, 'imageGeneration').properties[champ] = { type: 'integer' } }), /\[validation.*incompatible/)
+      assert.throws(() => verifier((c) => { const b = variante(c, nom, 'imageGeneration'); b.required = b.required.filter((k) => k !== champ) }), /\[validation.*incompatible/)
+    }
+    for (const operateur of ['anyOf', 'allOf', 'oneOf']) {
+      for (const contrainte of [{ type: 'integer' }, { type: 'string', enum: ['completed', 'failed'] }, { const: 'completed' }]) {
+        assert.throws(() => verifier((c) => {
+          variante(c, nom, 'imageGeneration')[operateur] = [{ properties: { status: contrainte } }, {}]
+        }), /\[validation.*incompatible/)
+      }
+      assert.throws(() => verifier((c) => {
+        c[nom][operateur] = [{ required: ['turnId'] }]
+      }), /\[validation.*incompatible/)
+    }
+    assert.throws(() => verifier((c) => {
+      variante(c, nom, 'imageGeneration').anyOf = ['completed', 'failed'].map((s) => ({ properties: { status: { type: 'string', enum: [s] } } }))
+    }), /\[validation.*incompatible/)
+    for (const champ of ['tool', 'status']) assert.throws(() => verifier((c) => {
+      variante(c, nom, 'collabAgentToolCall').properties[champ].allOf[0].enum = ['changed']
+    }), /\[validation.*incompatible/)
+  }
+  for (const nom of ['ItemCompletedNotification', 'ItemStartedNotification']) {
+    for (const champ of ['id', 'status']) assert.throws(() => verifier((c) => {
+      c.ServerNotification.definitions = structuredClone(c.ServerNotification.definitions)
+      const b = c.ServerNotification.definitions[nom].properties.item.oneOf.find((s) => s.properties.type.enum[0] === 'imageGeneration')
+      b.properties[champ] = { type: 'integer' }
+    }), /\[validation.*incompatibles/)
+  }
   for (const changer of [
+    (c) => { c['v2/TurnStartParams'].properties.outputSchema = { $ref: '#/definitions/Inconnu' } },
+    (c) => { c.ServerNotification.oneOf.find((b) => b.properties.method.enum[0] === 'turn/started').properties.params = { $ref: '#/definitions/Inconnu' } },
     (c) => { c['v2/ThreadStartResponse'].properties.thread.properties.id = { type: 'integer' } },
     (c) => { c['v2/ThreadStartResponse'].properties.thread.required = [] },
     (c) => { c['v2/TurnCompletedNotification'].properties.turn.properties.status.enum = ['completed'] },
