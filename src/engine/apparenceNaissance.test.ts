@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { itemFromTrappingRef, itemFromTrappingById, itemFromGive, contexteDeNaissanceDObjet, recomputeLoadout } from './items';
+import { apparencesCandidates } from './items';
+import { findTrappingById } from '../data';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
+import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { applyOps } from './ops';
 import { makeRNG } from './dice';
 import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
@@ -9,6 +13,20 @@ import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaiss
 afterEach(restaurerApparencesDeNaissance);
 
 describe('apparence décidée à la naissance', () => {
+  it('la naissance et les candidats lisent le même objet de campagne absent du catalogue', () => {
+    poserVariantesDeNaissance(varianteDeNaissance({ forme: 'hache' }));
+    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: 'hache', formChoices: ['hache'] };
+    const resolve = objetDuNarratif({ ...emptyNarratif(), objets: [objet] });
+    const instance = itemFromGive({ trappingId: objet.id }, undefined, resolve, { espece: 'nains' });
+    expect(instance.apparence).toBe('naissance-naine');
+    expect(apparencesCandidates(instance, resolve)).toEqual(['naissance-naine', 'hache']);
+  });
+
+  it('une apparence d’auteur de campagne est jugée sur sa définition de campagne', () => {
+    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: 'hache', formChoices: ['hache'] };
+    const resolve = objetDuNarratif({ ...emptyNarratif(), objets: [objet] });
+    expect(itemFromGive({ trappingId: objet.id, apparence: { id: 'hache_naine' } }, undefined, resolve).apparence).toBe('hache_naine');
+  });
   it.each([
     { patch: { especes: ['nains'] }, contexte: { espece: 'nains' } },
     { patch: { especes: undefined, classes: ['guerriers'] }, contexte: { classe: 'guerriers' } },

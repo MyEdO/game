@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useGame, type SheetTab } from '../state/store';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { appraiseRefus } from '../noyau/merchantFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
@@ -185,7 +186,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
       memoire={{ cle: tab, lire: () => useGame.getState().sheetScroll[tab] ?? 0, retenir: (top) => setSheetScroll(tab, top) }}
       aside={(
         <>
-          {/* Arbitrage utilisateur 2026-07-17 (#492) : « arrête de polluer l'écran de gauche ». */}
+          {/* #492 */}
           <div className="sheet-portrait">
             <FigTile
               preview={{ hero }}
@@ -535,13 +536,15 @@ function HandPicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
 /** #2948 */
 function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   useVersionDesDatasets();
+  const narratif = useGame((s) => s.campaignNarratif);
+  const resolveTrapping = objetDuNarratif(narratif);
   const choisirApparence = useGame((s) => s.choisirApparence);
-  const choices = apparencesAdmissibles(it);
+  const choices = apparencesAdmissibles(it, resolveTrapping);
   if (choices.length < 2) return null;
   return (
     <div className="ir-form" title="Apparence">
       <MediaSelect
-        value={apparencesCandidates(it)[0]}
+        value={apparencesCandidates(it, resolveTrapping)[0]}
         title="Apparence"
         options={choices.map((a) => ({
           key: a.id,

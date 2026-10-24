@@ -27,11 +27,11 @@ import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, effectTables, mutationTables, lightTones, memoParVersion } from '../../data';
+import { etats, effectTables, mutationTables, lightTones, memoParVersion, type TrappingData } from '../../data';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { RefField } from '../compendium/refField/RefField';
-import { ObjetDonneField } from './MonsterPartsFields';
+import { ObjetDonneField } from './ObjetDonneField';
 import { parseTraitInstance, formatTrait } from '../../engine/traits/dispatch';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
@@ -177,6 +177,8 @@ const admetLeTermeDePeche = (d: DialecteDeFormule): boolean => d !== 'general';
 
 /** Dialecte que porte le schéma d'un champ (`admetLePeche`). */
 const dialecteDuNoeud = (noeud: unknown): DialecteDeFormule => (admetLePeche(noeud) ? 'peche' : 'general');
+
+const ObjetsDOpContext = createContext<readonly TrappingData[]>([]);
 
 /** NŒUD de l'op éditée : la VARIANTE de la liste d'ops (`GameOpEditor.noeud`) dont le champ `op`
  *  accepte cette op. Chaque `FormulaField` d'op y lit le nœud de SON champ (`champ`). */
@@ -585,6 +587,7 @@ function sansClesVides<T extends object>(o: T): T {
 }
 
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
+  const objets = useContext(ObjetsDOpContext);
   const identite = useId();
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
   const o = op as any;
@@ -606,7 +609,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
       />
       <div className="tf-row">
         {op.op === 'giveTrapping' && <>
-          <ObjetDonneField value={o} onChange={onChange} />
+          <ObjetDonneField objets={objets} value={o} onChange={onChange} />
           <NumberField label="Nombre d’objets" vide value={o.count} onChange={(count) => upd({ count })} />
           <JsonField label="Quantité par DR" value={o.perSL} onChange={(perSL) => upd({ perSL: perSL ?? undefined })} />
         </>}
@@ -1013,7 +1016,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
 
 /** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
  *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `formulaSchema` partout. */
-export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
+export function GameOpEditor({ ops, onChange, noeud, objets }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown; objets?: readonly TrappingData[] }) {
+  const herites = useContext(ObjetsDOpContext);
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];
@@ -1022,7 +1026,7 @@ export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange
   };
   const cles = useClesDeRangees(ops);
   return (
-    <div className="eff-list">
+    <ObjetsDOpContext.Provider value={objets ?? herites}><div className="eff-list">
       {ops.map((o, i) => (
         <details className="eff-row" key={cles[i]}>
           <summary>
@@ -1041,6 +1045,6 @@ export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange
         label="+ Op mécanique"
         groups={pickable(OP_MENU_GROUPS, (key) => onChange([...ops, newOp(key)]))}
       />
-    </div>
+    </div></ObjetsDOpContext.Provider>
   );
 }

@@ -81,12 +81,13 @@ import { ActivityPane } from '../ActivityPane';
 import { MenuCard, MenuSection, MenuButton, MenuToggle } from '../MenuCard';
 import { CreatorDice } from '../creator/CreatorDice';
 import { GameOpEditor } from '../editor/GameOpEditor';
+import { ObjetDonneField, type ObjetDonne } from '../editor/ObjetDonneField';
 import { ReglagesApparence, MonsterPartsFields } from '../editor/MonsterPartsFields';
 import { CouvreField } from '../editor/CouvreField';
 import { ENTREES_DE_DOSSIER } from '../../data/dossiers';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { GameOp } from '../../engine/ops';
-import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById } from '../../data';
+import { species, careers, levelsForCareer, stars, mutations, rigSpeciesId, allAxes, charAbr, spells, etats, memoParVersion, findPsychologyById, findTrappingById, type TrappingData } from '../../data';
 import { makePregens } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
@@ -1251,6 +1252,30 @@ function BandDemo() {
   );
 }
 
+function ObjetDonneFieldDemo() {
+  const [catalogue, setCatalogue] = useState<ObjetDonne>({ trappingId: 'arme-simple' });
+  const [campagne, setCampagne] = useState<ObjetDonne>({ trappingId: 'hache-de-campagne' });
+  const [objets] = useState<TrappingData[]>(() => [{
+    ...findTrappingById('arme-simple')!,
+    id: 'hache-de-campagne',
+    label: 'Hache de campagne',
+    shape: 'hache',
+    formChoices: ['hache'],
+  }]);
+  return (
+    <Stack gap="lg">
+      <Stack>
+        <h4>Catalogue</h4>
+        <ObjetDonneField value={catalogue} onChange={setCatalogue} />
+      </Stack>
+      <Stack>
+        <h4>Campagne</h4>
+        <ObjetDonneField objets={objets} value={campagne} onChange={setCampagne} />
+      </Stack>
+    </Stack>
+  );
+}
+
 function GameOpEditorDemo() {
   const [ops, setOps] = useState<GameOp[]>([]);
   return <GameOpEditor ops={ops} onChange={setOps} />;
@@ -1709,10 +1734,7 @@ function CombatConsoleMock() {
           </div>
         </div>
       </div>
-      {/* FORME SPECTATRICE — l'ARCHE SEULE, sans bande (arbitrage utilisateur 2026-09-20) : c'est ce
-          que le pont montre au tour d'un adversaire et avant le début du combat. L'ennemi porte la
-          teinte d'équipe à ses Blessures et l'anneau en tirets de son camp ; le bandeau de phase se
-          centre au-dessus de l'arche. */}
+      {/* src/ui/console/CombatConsole.tsx */}
       <div className="combat-console" data-forme="spectatrice">
         <PhaseBanner label={<><Icon id="ui/wait" size="sm" /> Tour de l’ennemi</>} actions={[]} adresse="spectatrice" />
         {/* La BANDE reste montée, comme à l'écran : c'est elle qui tient l'arche immobile d'une forme
@@ -1881,6 +1903,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'chipderefus', label: 'ChipDeRefus', file: 'src/ui/ChipDeRefus.tsx', category: 'Atomes', render: ChipDeRefusDemo },
   { id: 'parchmentcard', label: 'ParchmentCard', file: 'src/ui/ParchmentCard.tsx', category: 'Négoce & activités', render: ParchmentCardDemo },
   { id: 'prose', label: 'Prose', file: 'src/ui/Prose.tsx', category: 'Texte', render: ProseDemo },
+  { id: 'objetdonnefield', label: 'ObjetDonneField', file: 'src/ui/editor/ObjetDonneField.tsx', category: 'Éditeur', render: ObjetDonneFieldDemo, note: 'Objet de campagne de démonstration dérivé de l’Arme simple, de forme Hache.' },
   { id: 'gameopeditor', label: 'GameOpEditor', file: 'src/ui/editor/GameOpEditor.tsx', category: 'Éditeur', render: GameOpEditorDemo },
   { id: 'couvrefield', label: 'CouvreField', file: 'src/ui/editor/CouvreField.tsx', category: 'Éditeur', render: CouvreFieldDemo },
   { id: 'reglagesapparence', label: 'ReglagesApparence / MonsterPartsFields', file: 'src/ui/editor/MonsterPartsFields.tsx', category: 'Éditeur', render: ReglagesApparenceDemo },

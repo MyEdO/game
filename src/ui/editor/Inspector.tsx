@@ -41,7 +41,7 @@ import { TIME_COST } from '../../engine/timeCost';
 import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
-import { presetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
+import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 import type { Settlement } from '../../engine/disponibilite';
 import { SCENE_ANIMS } from '../../gameIso/sceneAnims';
 import { tokenBodyKind } from '../../gameIso/tokenBodyKind';
@@ -1532,7 +1532,7 @@ function EntityPanel({
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
               reglages={['monster', 'eyes', 'features', 'tenue', 'colors']}
-              apresArme={<ApparencesObjetsField
+              apresArme={<ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
                 appearance={ent.appearance ?? {}}
                 onChange={(appearance) => updateSel({ appearance })}
                 weapons={armesDEntite(ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id) })}

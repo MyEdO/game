@@ -38,6 +38,7 @@ import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost, verdictApprentissage } from '../engine/grimoire';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
@@ -282,13 +283,14 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
-/** Choix d’une apparence admise ; la racine par défaut reste résolue au catalogue (#2113). */
-export function choisirApparence(_get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
+/** Choix d’une apparence admise ; la racine par défaut reste résolue dans la couche de campagne (#2113). */
+export function choisirApparence(get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
+  const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
-    if (!apparencesAdmissibles(it).some((a) => a.id === apparence)) return;
-    if (apparence === findTrappingById(it.trappingId)?.shape) delete it.apparence;
+    if (!apparencesAdmissibles(it, resolveTrapping).some((a) => a.id === apparence)) return;
+    if (apparence === resolveTrapping(it.trappingId)?.shape) delete it.apparence;
     else it.apparence = apparence;
   });
 }

@@ -12,14 +12,15 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
  *  d'objet (défaut = règle GLOBALE) pour que le state route la couche de campagne (`objetDuNarratif`,
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
-export type TrappingResolver = (id: string) => TrappingData | undefined;
+export type { TrappingResolver } from '../data/apparencesObjets';
+import type { TrappingResolver } from '../data/apparencesObjets';
 import { slugId } from '../data/slug';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
@@ -48,7 +49,7 @@ function deciderApparenceALaNaissance(
   auteur?: { id: string },
 ): ItemInstance {
   if (auteur) {
-    const refus = messageDApparenceDObjet(objet.trappingId, auteur.id);
+    const refus = messageDApparenceDObjet(objet.trappingId, auteur.id, resolveTrapping);
     if (refus) throw new Error(refus);
     objet.apparence = auteur.id;
     return objet;
@@ -56,7 +57,7 @@ function deciderApparenceALaNaissance(
   if (!contexte || !objet.trappingId) return objet;
   const forme = resolveTrapping(objet.trappingId)?.shape;
   const qualites = objet.qualities.map((q) => q.id);
-  const candidates = apparences.flatMap((a) => {
+  const candidates = apparencesAdmissiblesDObjet(objet, resolveTrapping).flatMap((a) => {
     if (!a.forme || a.forme !== forme) return [];
     const criteres: [string[] | undefined, readonly string[]][] = [
       [a.especes, contexte.espece ? [contexte.espece] : []],
@@ -253,23 +254,23 @@ export type SourceDeForme = Pick<Weapon, 'form' | 'apparence' | 'natural' | 'tra
  *  4. `shape` du catalogue, par `trappingId`.
  * Liste vide : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
  */
-export function apparencesCandidates(x: SourceDeForme): string[] {
+export function apparencesCandidates(x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string[] {
   if (x.natural) return [];
-  const invoquee = x.form ? findTrappingById(x.form)?.shape : undefined;
+  const invoquee = x.form ? resolveTrapping(x.form)?.shape : undefined;
   if (invoquee) return [invoquee];
-  return candidatsDApparenceDObjet(x.trappingId, x.apparence);
+  return candidatsDApparenceDObjet(x.trappingId, x.apparence, resolveTrapping);
 }
 
 /** Apparences du catalogue admises pour un objet, selon l’unique résolution des candidats (#2948). */
-export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>): typeof apparences {
-  return apparencesAdmissiblesDObjet(x);
+export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>, resolveTrapping: TrappingResolver = findTrappingById): typeof apparences {
+  return apparencesAdmissiblesDObjet(x, resolveTrapping);
 }
 
 /** Racine de la forme dessinée : dernière entrée des candidats. */
 export const racineDesCandidats = (candidats: readonly string[]): string | undefined => candidats[candidats.length - 1];
 
 /** Forme résolue d'une SourceDeForme : racine de ses apparences candidates. */
-export const formeResolue = (x: SourceDeForme): string | undefined => racineDesCandidats(apparencesCandidates(x));
+export const formeResolue = (x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string | undefined => racineDesCandidats(apparencesCandidates(x, resolveTrapping));
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
  *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues

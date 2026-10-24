@@ -3,7 +3,8 @@ import { choisirApparence, transferItem, toggleEquip, stowItem, setLoadoutSlot }
 import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { setDataset } from '../data/overrides';
-import { trappings } from '../data';
+import { emptyNarratif } from './monde/campaignNarratif';
+import { trappings, findTrappingById } from '../data';
 import type { Possession } from '../engine/possession';
 import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
@@ -12,7 +13,7 @@ import type { Get, Set } from './flowTypes';
  *  les deux ; `choisirApparence` (loadout, héros seul) ne lit/écrit que `party` (via mutLoadout). Le `set`
  *  fonctionnel de Zustand est miroité (merge du partiel renvoyé). */
 function makeHarness(party: Combatant[], possessions: Possession[] = []): { get: Get; set: Set } {
-  let state = { party, possessions, log: () => {} } as unknown as Jeu;
+  let state = { party, possessions, campaignNarratif: emptyNarratif(), log: () => {} } as unknown as Jeu;
   const get: Get = () => state;
   const set: Set = (p) => { state = { ...state, ...(typeof p === 'function' ? p(state) : p) }; };
   return { get, set };
@@ -61,6 +62,19 @@ describe('choisirApparence — apparence d’un objet', () => {
   ])('cas canonique : apparence %s → forme %s', (apparence, forme) => {
     const objet = { ...itemFromTrappingById('arme-simple')!, ...(apparence ? { apparence } : {}) };
     expect(formeResolue(objet)).toBe(forme);
+  });
+
+  it('admet la variante de l’objet de campagne puis retire son défaut local', () => {
+    const hero = heroWithArmeSimple();
+    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: 'hache', formChoices: ['hache'] };
+    hero.items![0].trappingId = objet.id;
+    const { get, set } = makeHarness([hero]);
+    set({ campaignNarratif: { ...emptyNarratif(), objets: [objet] } });
+    const uid = hero.items![0].uid;
+    choisirApparence(get, set, hero.id, uid, 'hache_naine');
+    expect(get().party[0].items![0].apparence).toBe('hache_naine');
+    choisirApparence(get, set, hero.id, uid, 'hache');
+    expect(get().party[0].items![0]).not.toHaveProperty('apparence');
   });
 
   it('admet une variante et la propage à l’arme active', () => {

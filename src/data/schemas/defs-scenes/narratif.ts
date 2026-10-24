@@ -12,7 +12,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { alternationDe } from '../../../lib/regex';
-import { sourceRefSchema, entityAppearanceSchema, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
+import { sourceRefSchema, entityAppearanceSchema, validerReferencesDObjetsDansCampagne, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
@@ -205,6 +205,7 @@ export const collisionneAvecLeGlobal = (id: string): boolean => !!findCreatureBy
  * global (`specResolves`). Attachée à `narratifSchema`, elle porte donc le chemin complet (`narratif.indices.3.affaireId`) quand le projet la compose.
  */
 function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx): void {
+  validerReferencesDObjetsDansCampagne(nb.objets, ctx);
   const faute = (path: (string | number)[], message: string): void => ctx.addIssue({ code: 'custom', path, message });
 
   /** Registre qui a déclaré chaque id, dans l'ordre de la table. */

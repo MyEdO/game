@@ -9,6 +9,10 @@ import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
 import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
+import { ObjetDonneField } from './ObjetDonneField';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
+import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
+import { findTrappingById } from '../../data';
 import { EffectFields } from './EffectList';
 import { GameOpEditor } from './GameOpEditor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
@@ -32,6 +36,29 @@ const selectDe = (container: HTMLElement, libelle: string): HTMLSelectElement =>
   [...container.querySelectorAll('label')].find((l) => l.textContent?.startsWith(libelle))!.querySelector('select')!;
 
 describe('apparence donnée — effets et ops', () => {
+  it('les options de l’objet de campagne suivent sa shape locale et son défaut', () => {
+    const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', label: 'Hache du projet', shape: 'hache', formChoices: ['hache'] };
+    let value: { trappingId: string; apparence?: { id: string } } = { trappingId: objet.id };
+    const root = monterRacine(null);
+    const render = () => root.rendre(<ObjetDonneField objets={[objet]} value={value} onChange={(next) => { value = next; render(); }} />);
+    act(render);
+    const labels = [...root.container.querySelectorAll('[role="option"] .ms-label')].map((e) => e.textContent);
+    expect(labels).toContain('Hache naine');
+    expect(labels).not.toContain('Épée');
+    choisirMediaSelect(root.container, 'Apparence de l’objet donné', 'Hache naine');
+    expect(value.apparence).toEqual({ id: 'hache_naine' });
+    choisirMediaSelect(root.container, 'Apparence de l’objet donné', 'Hache');
+    expect(value).not.toHaveProperty('apparence');
+    let appearance: EntityAppearance = {};
+    const renderEntity = () => root.rendre(<ApparencesObjetsField appearance={appearance}
+      weapons={[{ trappingId: objet.id }]} resolveTrapping={objetDuNarratif({ ...emptyNarratif(), objets: [objet] })}
+      onChange={(next) => { appearance = next; renderEntity(); }} />);
+    act(renderEntity);
+    choisirMediaSelect(root.container, 'Apparence — Hache du projet', 'Hache naine');
+    expect(appearance.apparencesObjets).toEqual({ [objet.id]: 'hache_naine' });
+    choisirMediaSelect(root.container, 'Apparence — Hache du projet', 'Hache');
+    expect(appearance).not.toHaveProperty('apparencesObjets');
+  });
   it.each(['effet', 'op'])('%s : options admissibles, choix, défaut et changement d’objet', (surface) => {
     let valeur: Effect | GameOp = surface === 'effet'
       ? { type: 'giveTrapping', trappingId: 'arme-simple' }

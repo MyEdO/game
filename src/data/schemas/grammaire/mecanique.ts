@@ -251,7 +251,7 @@ const DECLARATIONS_D_OPS = {
   giveTrapping: nommerChamps(z.strictObject({
     op: z.literal('giveTrapping'),
     apparence: ref('apparence').optional(),
-    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID).optional(),
+    trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { ouverte: true }).optional(),
     custom: z.string().optional(),
     count: z.number().optional(),
     perSL: perSLSchema.optional(),

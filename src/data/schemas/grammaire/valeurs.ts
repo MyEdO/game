@@ -8,7 +8,8 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import { z } from 'zod';
-import { messageDApparenceDObjet } from '../../apparencesObjets';
+import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
+import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../index';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
@@ -800,14 +801,32 @@ function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | nul
 /** #2948 */
 export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
   const message = messageDApparenceDObjet(trappingId, apparence);
-  if (message) ctx.addIssue({ code: 'custom', message, path });
+  if (message) ctx.addIssue({ code: 'custom', message, path, params: { referenceDObjet: { trappingId, apparence } } });
 }
 
-export function validerApparenceDonnee(v: { trappingId?: string; apparence?: { id: string } }, ctx: z.RefinementCtx): void {
+export function validerApparenceDonnee(v: { op?: string; trappingId?: string; apparence?: { id: string } }, ctx: z.RefinementCtx): void {
+  if (v.op && v.trappingId && !findTrappingById(v.trappingId)) ctx.addIssue({ code: 'custom', message: `Objet inconnu « ${v.trappingId} ».`, path: ['trappingId'], params: { referenceDObjet: { trappingId: v.trappingId } } });
   if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
 }
 
-const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping'), idDe('apparence')).superRefine((v, ctx) => {
+/** #2948 */
+export function validerReferencesDObjetsDansCampagne(objets: readonly TrappingData[], ctx: z.RefinementCtx): void {
+  const parId = new Map(objets.map((objet) => [objet.id, objet]));
+  const resolve: TrappingResolver = (id) => trappingDesObjetsPuisDuCatalogue(parId, id);
+  for (let i = ctx.issues.length - 1; i >= 0; i--) {
+    const issue = ctx.issues[i];
+    if (issue.code !== 'custom') continue;
+    const reference = issue.params?.referenceDObjet as { trappingId?: string; apparence?: string } | undefined;
+    if (!reference) continue;
+    const message = reference.apparence
+      ? messageDApparenceDObjet(reference.trappingId, reference.apparence, resolve)
+      : reference.trappingId && resolve(reference.trappingId) ? undefined : issue.message;
+    if (message) ctx.issues[i] = { ...issue, message };
+    else ctx.issues.splice(i, 1);
+  }
+}
+
+const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping', undefined, { ouverte: true }), idDe('apparence')).superRefine((v, ctx) => {
   for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence, ctx, [trappingId]);
 });
 

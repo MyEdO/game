@@ -3,10 +3,7 @@
  * est la liste des réglages rendus, en donnée (patron des `slots` de `ColorPalettePickers`) ; toute
  * écriture passe par `apparenceSuivante`. Styles : `styles/reglages-apparence.css`.
  */
-import { useMemo, type ReactNode } from 'react';
-import { RefField } from '../compendium/refField/RefField';
-import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
-import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../data';
+import type { ReactNode } from 'react';
 import { MONSTER_HEAD_OPTIONS, MONSTER_ARM_OPTIONS, MONSTER_LEG_OPTIONS } from '../../gameIso/rig/parts/monstrous';
 import { EYE_OPTIONS } from '../../gameIso/rig/parts/eyes';
 import { ColorPalettePickers, MONSTER_COLOR_SLOTS } from '../ColorPalettePickers';
@@ -25,72 +22,33 @@ import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { Icon } from '../Icon';
 import type { Weapon } from '../../engine/types';
-import { apparencesAdmissibles, apparencesCandidates } from '../../engine/items';
+import { apparencesAdmissibles, apparencesCandidates, type TrappingResolver } from '../../engine/items';
 import { MediaSelect } from '../MediaSelect';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 
-export interface ObjetDonne {
-  trappingId?: string;
-  custom?: string;
-  apparence?: { id: string };
-}
-
-/** Écrivain commun des objets donnés par effet ou op (#2948). */
-export function ObjetDonneField<T extends ObjetDonne>({ objets = [], value, onChange }: {
-  objets?: readonly TrappingData[];
-  value: T;
-  onChange: (next: T) => void;
-}) {
-  useVersionDesDatasets();
-  const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
-  const choices = apparencesAdmissibles(value);
-  const poser = (patch: ObjetDonne) => {
-    const next = { ...value, ...patch };
-    for (const cle of ['trappingId', 'custom', 'apparence'] as const) if (next[cle] === undefined) delete next[cle];
-    onChange(next);
-  };
-  return <>
-    <RefField label="Objet" ariaLabel="Objet donné" cfg={{ ds: 'trappings', freeText: true }} noeud={giveTrappingSchema.shape.trappingId}
-      entreesEnTete={objets} value={value.trappingId ?? value.custom}
-      onChange={(v) => {
-        const id = typeof v === 'string' ? v : undefined;
-        const trappingId = id && trappingDesObjetsPuisDuCatalogue(parId, id) ? id : undefined;
-        const apparence = value.apparence && apparencesAdmissibles({ trappingId }).some((a) => a.id === value.apparence?.id)
-          && value.apparence.id !== findTrappingById(trappingId)?.shape ? value.apparence : undefined;
-        poser({ trappingId, custom: trappingId ? undefined : id, apparence });
-      }} />
-    {choices.length > 0 && <div className="ed-field">
-      <span>Apparence</span>
-      <MediaSelect title="Apparence de l’objet donné" triggerClassName="btn"
-        value={value.apparence?.id ?? findTrappingById(value.trappingId)?.shape}
-        options={choices.map((a) => ({ key: a.id, label: a.label }))}
-        onSelect={(id) => poser({ apparence: id === findTrappingById(value.trappingId)?.shape ? undefined : { id } })} />
-    </div>}
-  </>;
-}
-
 /** #2948 */
-export function ApparencesObjetsField({ appearance, onChange, weapons }: {
+export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTrapping = findTrappingById }: {
   appearance: EntityAppearance;
   onChange: (next: EntityAppearance) => void;
   weapons: readonly Pick<Weapon, 'trappingId'>[];
+  resolveTrapping?: TrappingResolver;
 }) {
   useVersionDesDatasets();
   const ids = [...new Set(weapons.flatMap((w) => w.trappingId ? [w.trappingId] : []))];
-  const objets = ids.map((id) => ({ id, choices: apparencesAdmissibles({ trappingId: id }) })).filter((o) => o.choices.length > 1);
+  const objets = ids.map((id) => ({ id, choices: apparencesAdmissibles({ trappingId: id }, resolveTrapping) })).filter((o) => o.choices.length > 1);
   if (!objets.length) return null;
   return <div className="ed-field">
     <span>Apparences d’objets</span>
     {objets.map(({ id, choices }) => <div className="reglage-apparence" key={id}>
-      <span>{findTrappingById(id)?.label ?? id}</span>
+      <span>{resolveTrapping(id)?.label ?? id}</span>
       <MediaSelect
-        title={`Apparence — ${findTrappingById(id)?.label ?? id}`}
+        title={`Apparence — ${resolveTrapping(id)?.label ?? id}`}
         triggerClassName="btn"
-        value={apparencesCandidates({ trappingId: id, apparence: appearance.apparencesObjets?.[id] })[0]}
+        value={apparencesCandidates({ trappingId: id, apparence: appearance.apparencesObjets?.[id] }, resolveTrapping)[0]}
         options={choices.map((a) => ({ key: a.id, label: a.label }))}
         onSelect={(choix) => {
           const record = { ...appearance.apparencesObjets };
-          if (choix === findTrappingById(id)?.shape) delete record[id];
+          if (choix === resolveTrapping(id)?.shape) delete record[id];
           else record[id] = choix;
           onChange(apparenceSuivante(appearance, { apparencesObjets: Object.keys(record).length ? record : undefined }));
         }}
