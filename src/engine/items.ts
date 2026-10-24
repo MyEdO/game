@@ -262,6 +262,11 @@ export function apparencesCandidates(x: SourceDeForme): string[] {
   return t?.shape ? [t.shape] : [];
 }
 
+/** Apparences du catalogue admises pour un objet, selon l’unique résolution des candidats (#2948). */
+export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>): typeof apparences {
+  return apparences.filter((a) => apparencesCandidates({ trappingId: x.trappingId, apparence: a.id })[0] === a.id);
+}
+
 /** Racine de la forme dessinée : dernière entrée des candidats. */
 export const racineDesCandidats = (candidats: readonly string[]): string | undefined => candidats[candidats.length - 1];
 

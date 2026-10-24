@@ -2002,10 +2002,10 @@
   {
     "id": "formeResolue",
     "type": "primitives.manifest",
-    "label": "apparencesCandidates/racineDesCandidats/formeResolue/SourceDeForme",
+    "label": "apparencesCandidates/apparencesAdmissibles/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
     "concept": "CANDIDATS d’apparence d’un objet porté au catalogue courant par id stable : arme naturelle sans candidat, arme invoquée `form` vers sa forme seule, apparence admise par `shape` ou `formChoices` puis racine sans doublon, sinon `shape` du trapping — résolution unique ; `racineDesCandidats` lit la dernière entrée, racine de la forme dessinée, que `formeResolue` rend (#2113, #2948)",
-    "perimetre": "tout lecteur d'une forme d'arme ou de bouclier : rig (`armeDeDessin`, `bouclierDeDessin`), icône d'inventaire, sélecteur de forme de la fiche, outillage de recette (`__wfrp.battle`)",
+    "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `apparencesAdmissibles`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {

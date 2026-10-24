@@ -248,7 +248,7 @@
   padding-bottom: 5px;
 }
 /* Barre d'actions dépliée EN PLACE sous la rangée élue — les contrôles existants (boutons `.btn`,
-   `MediaSelect`, `HandPicker`/`FormPicker`) s'enroulent comme l'ancienne rangée `.inv-row`. */
+   `MediaSelect`, `HandPicker`/`ApparencePicker`) s'enroulent comme l'ancienne rangée `.inv-row`. */
 .inv-actionbar {
   display: flex;
   align-items: center;

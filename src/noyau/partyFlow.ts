@@ -5,7 +5,7 @@
  * Refacto pure — comportement préservé.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
-import { formeResolue, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
+import { apparencesAdmissibles, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, carriersCoLocated } from './monde/carrier';
@@ -38,7 +38,7 @@ import { castingKindOf } from '../engine/combatFeatures/dispatch';
 import { canAfford, toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { spellCost, verdictApprentissage } from '../engine/grimoire';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findApparenceById, findTalentById, refLabel, dataLabel } from '../data/index';
+import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, findTalentById, refLabel, dataLabel } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { PARTY_MAX, actorIn, ecrireActeur } from './monde/combatants';
@@ -287,10 +287,7 @@ export function choisirApparence(_get: Get, set: Set, heroId: string, uid: strin
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
-    const choix = findApparenceById(apparence);
-    if (!choix) return;
-    const racine = choix.forme ?? choix.id;
-    if (formeResolue({ trappingId: it.trappingId, apparence }) !== racine) return;
+    if (!apparencesAdmissibles(it).some((a) => a.id === apparence)) return;
     if (apparence === findTrappingById(it.trappingId)?.shape) delete it.apparence;
     else it.apparence = apparence;
   });
