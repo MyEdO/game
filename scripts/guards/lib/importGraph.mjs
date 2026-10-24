@@ -307,7 +307,8 @@ const arbreDesCaches = new WeakMap();
 export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots } = {}) {
   if (!Number.isSafeInteger(tailleLot) || tailleLot <= 0) throw new Error(`clotureDImports : tailleLot positive entière attendue : ${tailleLot}`);
   const base = resolve(racine);
-  const alias = aliasDuDepot(base);
+  const config = resolve(base, CHEMIN_TSCONFIG).split(sep).join('/');
+  const alias = arbre === ARBRE_DU_DISQUE ? aliasDuDepot(base) : aliasDe(arbre.lire([config]).get(config) ?? null, base);
   const regime = `${typesEffaces ? 'typesEffaces' : 'typage'}, racine ${base}`;
   const deja = regimeDesCaches.get(cache);
   if (deja === undefined) regimeDesCaches.set(cache, regime);

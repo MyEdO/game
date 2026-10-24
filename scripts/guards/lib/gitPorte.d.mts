@@ -71,6 +71,8 @@ export function lireEnLot(depot: Depot, arbre: string, rels: readonly string[]):
 export function baseCommune(depot: Depot, a: string, b: string): string | null;
 /** Le sha du commit `ref`, `null` s'il est absent. */
 export function shaDe(depot: Depot, ref: string, opts?: { court?: boolean }): string | null;
+/** Les commits d'une plage, du plus ancien au plus récent. */
+export function journalDe(depot: Depot, revisions: readonly string[], opts?: { depuis?: string }): { sha: string; date: string; message: string }[] | null;
 /** Le commit des `chemins` nommés, message par l'entrée standard. */
 export function commitDe(depot: Depot, p: { message: string; chemins: readonly string[]; vide?: boolean }): ResultatGit;
 /** Le tronc : son nom, sa branche, sa ref de suivi. */

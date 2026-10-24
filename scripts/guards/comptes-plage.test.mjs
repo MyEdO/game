@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { envDeDepotForge, forgerDepot } from './lib/depotGabarit.mjs'
-import { commitDe, depotDe, listerImage, reussi, shaDe } from './lib/gitPorte.mjs'
+import { INDEX, commitDe, depotDe, ecrireBlob, listerImage, poserDansIndex, reussi, shaDe } from './lib/gitPorte.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 
@@ -65,7 +65,7 @@ function jugerDansTsx(racine, plages) {
     `import { jugerLesComptes } from ${module('scripts/guards/lib/corpusDesComptes.mts')};`,
     'const [racine, plages] = JSON.parse(process.argv[1]);',
     'const depot = depotDe(racine);',
-    'const verdicts = plages.map(([base, tete]) => jugerLesComptes({ depot, base, tete }));',
+    'const verdicts = plages.map(([base, tete, message]) => jugerLesComptes({ depot, base, tete, message }));',
     'process.stdout.write(JSON.stringify(verdicts));',
   ].join('\n')
   const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), '--input-type=module', '-e', code, '--', JSON.stringify([racine, plages])], {
@@ -83,6 +83,74 @@ const remplacer = (avant, apres) => (texte) => {
 
 /** `texte` suivi de `ajout`. */
 const ajouter = (ajout) => (texte) => `${texte}${ajout}`
+
+test('un détecteur qui reclasse id-nu sans migrer la donnée refuse ; la migration emboîtée passe', { timeout: 240_000 }, () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'comptes-reclassement-'))
+  const entree = 'scripts/guards/lib/corpusDesComptes.mts'
+  const source = (signature) => [
+    "import { readFileSync } from 'node:fs';",
+    "const objets = JSON.parse(readFileSync('src/data/fixture.json', 'utf8'));",
+    "const occurrences = objets.filter((o) => typeof o.shape === 'string').length;",
+    "const signature = " + JSON.stringify(signature) + ";",
+    "const formes = signature === 'id-nu' && occurrences ? [{ concept: 'reference', dataset: 'fixture.json', champ: 'shape', signature, occurrences }] : [];",
+    "process.stdout.write(JSON.stringify([['STRUCTURES_FORMES', formes]]));",
+  ].join('\n')
+  try {
+    const fichiers = {
+      'package.json': '{"type":"module"}',
+      'tsconfig.json': '{}',
+      'scripts/docs/build-all.mjs': 'export const genererCode = () => 0;',
+      [entree]: source('id-nu'),
+      'src/data/fixture.json': '[{"shape":"epee"},{"shape":"hache"}]',
+    }
+    const depot = forgerDepot(dossier)
+    for (const [rel, texte] of Object.entries(fichiers)) {
+      mkdirSync(dirname(join(dossier, rel)), { recursive: true })
+      writeFileSync(join(dossier, rel), texte)
+    }
+    assert.ok(reussi(commitDe(depot, { message: 'fondation', chemins: Object.keys(fichiers) })))
+    const base = shaDe(depot, 'HEAD')
+    const blob = ecrireBlob(depot, source('id-declare'))
+    assert.ok(reussi(blob))
+    assert.ok(reussi(poserDansIndex(depot, { index: join(dossier, '.git/index'), entrees: [{ chemin: entree, mode: '100644', sha: blob.valeur.stdout.trim() }] })))
+    writeFileSync(join(dossier, entree), source('id-nu'))
+    const [indexRefuse] = jugerDansTsx(dossier, [[base, INDEX, '']])
+    assert.equal(indexRefuse.ok, false, indexRefuse.texte)
+    assert.match(indexRefuse.texte, /FAUX-POSITIF/)
+    const donnees = ecrireBlob(depot, '[{"shape":{"id":"epee"}},{"shape":{"id":"hache"}}]')
+    assert.ok(reussi(donnees))
+    assert.ok(reussi(poserDansIndex(depot, { index: join(dossier, '.git/index'), entrees: [{ chemin: 'src/data/fixture.json', mode: '100644', sha: donnees.valeur.stdout.trim() }] })))
+    const [indexAdmis] = jugerDansTsx(dossier, [[base, INDEX, '']])
+    assert.equal(indexAdmis.ok, true, indexAdmis.texte)
+    writeFileSync(join(dossier, entree), source('id-declare'))
+    assert.ok(reussi(commitDe(depot, { message: 'reclasse sans migration', chemins: [entree] })))
+    const reclasse = shaDe(depot, 'HEAD')
+    const fauxPositif = (n) => 'FAUX-POSITIF: ' + JSON.stringify(['STRUCTURES_FORMES', 'reference | fixture.json | shape | id-nu', n]) + ' — le schéma classe cette occurrence comme une valeur sans référence'
+    const [exact, manque, trop] = jugerDansTsx(dossier, [
+      [base, reclasse, fauxPositif(1) + '\n' + fauxPositif(2)],
+      [base, reclasse, fauxPositif(1)],
+      [base, reclasse, fauxPositif(1) + '\n' + fauxPositif(2) + '\n' + fauxPositif(3)],
+    ])
+    assert.equal(exact.ok, true, exact.texte)
+    assert.equal(manque.ok, false, manque.texte)
+    assert.equal(trop.ok, false, trop.texte)
+    writeFileSync(join(dossier, entree), source('id-nu'))
+    writeFileSync(join(dossier, 'src/data/fixture.json'), '[{"shape":{"id":"epee"}},{"shape":{"id":"hache"}}]')
+    assert.ok(reussi(commitDe(depot, { message: 'migre les valeurs', chemins: [entree, 'src/data/fixture.json'] })))
+    const migre = shaDe(depot, 'HEAD')
+    const [refus, admis] = jugerDansTsx(dossier, [[base, reclasse], [base, migre]])
+    assert.equal(refus.ok, false, refus.texte)
+    assert.match(refus.texte, /FAUX-POSITIF/)
+    assert.match(refus.texte, /fixture\.json.*shape.*id-nu/)
+    assert.equal(admis.ok, true, admis.texte)
+    writeFileSync(join(dossier, 'src/data/fixture.json'), '[]')
+    assert.ok(reussi(commitDe(depot, { message: 'retire les valeurs', chemins: ['src/data/fixture.json'] })))
+    const [retrait] = jugerDansTsx(dossier, [[base, shaDe(depot, 'HEAD')]])
+    assert.equal(retrait.ok, true, retrait.texte)
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+})
 
 test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse et une op NON TYPÉE ajoutée sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient',{ timeout: 600_000 }, () => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
