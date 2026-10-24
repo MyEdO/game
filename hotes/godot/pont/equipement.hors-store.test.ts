@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from '../../../src/hote/partie';
 import { combattantsTries } from '../../../src/hote/projection';
-import { equipementDessine } from '../../../src/noyau/index';
+import { equipementDessine, findTeinteById } from '../../../src/noyau/index';
 import { itemFromGive, weaponFromItem } from '../../../src/engine/items';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +29,7 @@ const manifesteDeLame: ManifesteMontable = {
       dos: { os: 'torse', position: [0, 0, 0], rotation: [0, 0, 0] },
       ceinture: { os: 'bassin', position: [0, 0, 0], rotation: [0, 0, 0] },
     },
-    composants: { droite: { prise: 'main', rangement: 'ceinture' }, gauche: { prise: 'off', rangement: 'ceinture' }, garde: { prise: 'off', rangement: 'dos' } },
+    composants: { droite: { prise: 'main', rangement: 'ceinture', matieres: [{ cle: 'metal', piece: 'Lame_D', surface: 0 }] }, gauche: { prise: 'off', rangement: 'ceinture', matieres: [{ cle: 'metal', piece: 'Lame_G', surface: 0 }] }, garde: { prise: 'off', rangement: 'dos', matieres: [{ cle: 'accent', piece: 'Garde', surface: 0 }] } },
   },
 };
 const indexDeLame = indexDesApparences([manifesteDeLame]);
@@ -51,6 +51,18 @@ function heros(apparence: string, main: 'main' | 'off' = 'main') {
 }
 
 describe('équipement publié au pont Godot (#2948 L3)', () => {
+  it('résout la teinte des objets tenus et rangés par le lecteur du noyau, sans modifier les autres instances', () => {
+    const { projete } = heros('epee_ebrechee');
+    projete.equipement.weapons[0].teinte = 'aethyrique';
+    projete.equipement.rangees[0].teinte = 'shyish';
+    const avant = structuredClone(projete);
+    const dessin = modelesDesCombattants([projete], indexDeLame).equipements[projete.id];
+    expect(dessin.tenues[0].palette).toEqual(findTeinteById('aethyrique')!.palette);
+    expect(dessin.rangees[0].palette).toEqual(findTeinteById('shyish')!.palette);
+    expect(dessin.tenues[1].palette).toBeNull();
+    expect(projete).toEqual(avant);
+  });
+
   it('projette sans recalcul les candidats ordonnés, les rangées et le bouclier', () => {
     const { c, projete } = heros('epee_ebrechee');
     expect(projete.equipement).toEqual(equipementDessine(c));

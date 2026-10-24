@@ -86,6 +86,41 @@ describe('equipementDessine — candidats publiés (#2948)', () => {
     expect([deuxMains.hand, deuxMains.hands]).toEqual(['main', 2]);
   });
 
+  it('répartit deux armes de statbloc sans main entre les attaches libres, sans écrire leurs mains', () => {
+    const traits: TraitList = [{ id: 'arme', arg: 'arme-simple', value: 7 }, { id: 'arme', arg: 'dague', value: 4 }];
+    const armes = renderWeaponsFromTraits(traits);
+    const avant = structuredClone(armes);
+    expect(equipDe(armes, []).weapons.map(w => w.hand)).toEqual(['main', 'off']);
+    expect(equipementDEntite(undefined, { traits }).weapons.map(w => w.hand)).toEqual(['main', 'off']);
+    expect(armes).toEqual(avant);
+  });
+
+  it('réserve les mains explicites sans changer l’ordre publié des armes sources', () => {
+    const armes = [weaponFromItem(porte('dague')), weaponFromItem(porte('arme-simple'), 'main')];
+    expect(equipDe(armes, []).weapons.map(w => [w.candidats, w.hand])).toEqual([[['dague'], 'off'], [['epee'], 'main']]);
+  });
+
+  it('une arme rangée ne publie aucune main, même si sa source en porte une', () => {
+    const source = weaponFromItem(porte('arme-simple'), 'off');
+    const avant = structuredClone(source);
+    const rangee = equipDe([], [], { rangees: [source] }).rangees[0];
+    expect(rangee.candidats).toEqual(['epee']);
+    expect(rangee).not.toHaveProperty('hand');
+    expect(source).toEqual(avant);
+    expect(armeDeDessin(source)).toEqual(equipDe([source], []).weapons[0]);
+  });
+
+  it('range le surplus graphique, y compris derrière une arme à deux mains', () => {
+    const deuxMains = weaponFromItem(porte('zweihander'));
+    const autre = weaponFromItem(porte('dague'));
+    const dessin = equipDe([deuxMains, autre], []);
+    expect(dessin.weapons.map(w => [w.candidats, w.hand, w.hands])).toEqual([[['zweihander'], 'main', 2]]);
+    expect(dessin.rangees.map(w => w.candidats)).toEqual([['dague']]);
+    const trois = equipDe([weaponFromItem(porte('arme-simple')), autre, weaponFromItem(porte('hache-de-lancer'))], []);
+    expect(trois.weapons.map(w => w.hand)).toEqual(['main', 'off']);
+    expect(trois.rangees.map(w => w.candidats)).toEqual([['hache_lancer']]);
+  });
+
   it('publie les candidats des armes tenues, rangées et du bouclier', () => {
     const tenue = { ...porte('arme-simple'), uid: 'tenue', apparence: 'epee_ebrechee' };
     const rangee = { ...porte('arme-simple'), uid: 'rangee', apparence: 'hache_naine' };

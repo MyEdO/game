@@ -92,6 +92,10 @@ func _monter(squelette: Skeleton3D, porteur: Dictionary, objet: Dictionary, empl
 			copie.skeleton = NodePath()
 			copie.visible = true
 			pieces.append(copie)
+			if not _teinter(copie, portage.matieres, objet.palette):
+				source.free()
+				_abandonner(pieces, "matiere-incompatible : %s/%s" % [composant.modele, nom])
+				return
 		source.free()
 	var declaration: Dictionary = porteur.montage.attaches[nom_attache]
 	if squelette.find_bone(declaration.os) == -1:
@@ -109,6 +113,25 @@ func _monter(squelette: Skeleton3D, porteur: Dictionary, objet: Dictionary, empl
 	for piece in pieces:
 		support.add_child(piece)
 	_montes.append(attache)
+
+
+func _teinter(piece: MeshInstance3D, matieres: Array, palette: Variant) -> bool:
+	if palette == null:
+		return true
+	for surface in piece.mesh.get_surface_count():
+		piece.set_surface_override_material(surface, piece.get_active_material(surface))
+	piece.material_override = null
+	for liaison in matieres:
+		if liaison.piece != str(piece.name) or not palette.has(liaison.cle):
+			continue
+		var surface := int(liaison.surface)
+		var original := piece.get_active_material(surface) as BaseMaterial3D
+		if original == null:
+			return false
+		var local := original.duplicate() as BaseMaterial3D
+		local.albedo_color = Color(str(palette[liaison.cle]))
+		piece.set_surface_override_material(surface, local)
+	return true
 
 
 func _abandonner(pieces: Array[Node3D], raison: String) -> void:

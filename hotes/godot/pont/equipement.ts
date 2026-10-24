@@ -1,5 +1,6 @@
 import type { CombattantProjete } from '../../../src/hote/projection';
 import type { ManifesteMontable, Montage } from '../asset/montage';
+import { findTeinteById } from '../../../src/noyau/index';
 
 export interface ComposantDeModele {
   modele: string;
@@ -47,9 +48,11 @@ export function premierModele(candidats: readonly string[], index: IndexDesAppar
 }
 
 type ArmeProjetee = CombattantProjete['equipement']['weapons'][number];
-export interface ObjetADessiner {
-  arme: ArmeProjetee;
+type ArmeRangeeProjetee = CombattantProjete['equipement']['rangees'][number];
+export interface ObjetADessiner<A extends ArmeRangeeProjetee> {
+  arme: A;
   modele: ChoixDeModele | null;
+  palette: NonNullable<ReturnType<typeof findTeinteById>>['palette'] | null;
 }
 
 export interface AbsenceDeModele {
@@ -60,8 +63,8 @@ export interface AbsenceDeModele {
 }
 
 export interface DessinDEquipement {
-  tenues: ObjetADessiner[];
-  rangees: ObjetADessiner[];
+  tenues: ObjetADessiner<ArmeProjetee>[];
+  rangees: ObjetADessiner<ArmeRangeeProjetee>[];
 }
 
 export interface CouvertureDesModeles {
@@ -73,15 +76,17 @@ export function modelesDesCombattants(combattants: readonly CombattantProjete[],
   const equipements: Record<string, DessinDEquipement> = {};
   const couverture: CouvertureDesModeles['couverture'] = { demandes: 0, absences: [] };
   for (const c of combattants) {
-    const dessiner = (armes: readonly ArmeProjetee[], emplacement: AbsenceDeModele['emplacement']): ObjetADessiner[] => armes.flatMap((arme, position) => {
+    const dessiner = <A extends ArmeRangeeProjetee>(arme: A, position: number, usage: EmplacementDeModele): ObjetADessiner<A>[] => {
       if (arme.natural) return [];
       couverture.demandes++;
-      const usage: EmplacementDeModele = emplacement === 'tenues' ? { emplacement, main: arme.hand } : { emplacement };
       const modele = premierModele(arme.candidats, index, usage);
-      if (!modele) couverture.absences.push({ porteur: c.id, emplacement, position, candidats: [...arme.candidats] });
-      return [{ arme, modele }];
-    });
-    equipements[c.id] = { tenues: dessiner(c.equipement.weapons, 'tenues'), rangees: dessiner(c.equipement.rangees, 'rangees') };
+      if (!modele) couverture.absences.push({ porteur: c.id, emplacement: usage.emplacement, position, candidats: [...arme.candidats] });
+      return [{ arme, modele, palette: structuredClone(findTeinteById(arme.teinte)?.palette ?? null) }];
+    };
+    equipements[c.id] = {
+      tenues: c.equipement.weapons.flatMap((arme, position) => dessiner(arme, position, { emplacement: 'tenues', main: arme.hand })),
+      rangees: c.equipement.rangees.flatMap((arme, position) => dessiner(arme, position, { emplacement: 'rangees' })),
+    };
   }
   return { equipements, couverture };
 }

@@ -54,6 +54,8 @@ export type CodeDErreur =
   | 'os-absent'
   | 'piece-non-rigide'
   | 'attache-incompatible'
+  | 'matiere-absente'
+  | 'matiere-ambigue'
   | 'chemin-absolu';
 
 export interface ErreurDeManifeste {

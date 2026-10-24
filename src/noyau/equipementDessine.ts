@@ -11,10 +11,9 @@ import type { EntityAppearance } from '../engine/authoringAppearance';
 import { findCreatureById } from '../data';
 import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
 
-/** Clés d'une arme que le dessin LIT telles quelles (#2097) : le type `FormeDArme` et le sélecteur
- *  `armeDeDessin` en dérivent ; l'identité de dessin (`sceneMeshes.stableStr`) hache ces clés et les candidats
- *  RÉSOLUS, et elles seules. */
-const CLES_ARME = ['attackKind', 'hand', 'hands', 'natural', 'teinte', 'subType', 'type'] as const;
+/** Clés d'objet lues par le dessin (#2097) : `FormeDArme` en dérive. La projection ajoute les candidats,
+ *  le nombre de mains et, pour une arme tenue, la main attribuée. L'identité hache la projection publiée. */
+const CLES_ARME = ['attackKind', 'hands', 'natural', 'teinte', 'subType', 'type'] as const;
 /** Clés d'une pièce d'armure que le dessin LIT (#2097). */
 const CLES_PIECE = ['locs', 'teinte'] as const;
 
@@ -25,7 +24,8 @@ export type MatiereDArmure = 'cuir-souple' | 'cuir-bouilli' | 'mailles' | 'plate
 /** Ce que le dessin lit d'une arme : ses clés et ses candidats résolus, dont la dernière entrée est la racine. */
 export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { candidats: readonly string[] };
 /** `hands` : mains qu'occupe l'arme pour SON porteur (`weaponHands`, monté ou non). */
-export type ArmeDeDessin = FormeDArme & { bouclier: boolean; hands: 1 | 2; hand: 'main' | 'off' };
+export type ObjetDArme = FormeDArme & { bouclier: boolean; hands: 1 | 2 };
+export type ArmeDeDessin = ObjetDArme & { hand: 'main' | 'off' };
 export type PieceDeDessin = Pick<ItemInstance, (typeof CLES_PIECE)[number]> & { matiere: MatiereDArmure };
 export type BouclierDeDessin = { candidats: readonly string[] };
 
@@ -33,8 +33,8 @@ export type BouclierDeDessin = { candidats: readonly string[] };
  *  (#2097), jamais une copie. */
 export interface EquipCtx {
   weapons: ArmeDeDessin[];
-  /** Armes des sets (`c.loadouts`) qui ne sont PAS tenues : portées au fourreau, au dos, à la ceinture. */
-  rangees: ArmeDeDessin[];
+  /** Armes portées hors des mains : sets inactifs et surplus graphique du statbloc. */
+  rangees: ObjetDArme[];
   armour: PieceDeDessin[];           // couche VISIBLE d'abord
   shield?: BouclierDeDessin;
   cape?: boolean;
@@ -57,10 +57,14 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
   return out;
 }
 
-export function armeDeDessin(w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ArmeDeDessin {
+function objetDArme(w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ObjetDArme {
   const source: SourceDeForme = apparence === undefined ? w : { ...w, apparence };
   const bouclier = isShieldItem(w);
-  return { ...projeter(w, CLES_ARME), hand: w.hand ?? (bouclier ? 'off' : 'main'), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source), bouclier };
+  return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source), bouclier };
+}
+
+export function armeDeDessin(w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ArmeDeDessin {
+  return equipDe([w], [], { ...maniement, apparenceDe: () => apparence }).weapons[0];
 }
 /** Pièce d'armure dessinée : sa matière est son `subType`, qu'une pièce d'armure porte toujours (schéma de
  *  `trappings.json`, `synthArmour`) ; une pièce sans type d'armure est un état invalide, refusé. */
@@ -79,14 +83,27 @@ export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { ran
   // Pièces TRIÉES par matière décroissante : par slot, le rendu prend la 1re pièce qui le couvre → un
   // héros en cuir + mailles montre les mailles, la plate par-dessus tout.
   const pieces = armour.map(pieceDeDessin).sort((a, b) => RANG_DE_MATIERE[b.matiere] - RANG_DE_MATIERE[a.matiere]);
-  const dessiner = (w: Weapon) => armeDeDessin(w, maniement, apparenceDe?.(w));
-  const dessins = weapons.map(dessiner);
-  const iBouclier = dessins.findIndex((w) => w.bouclier); // un bouclier tenu est dans le set actif → présent dans c.weapons
+  const dessiner = (w: Weapon) => objetDArme(w, maniement, apparenceDe?.(w));
+  const libres = new Set<'main' | 'off'>(['main', 'off']);
+  const dessins: { position: number; arme: ArmeDeDessin }[] = [];
+  const surplus: { position: number; arme: ObjetDArme }[] = [];
+  const priorites = weapons.map((w, position) => ({ w, position })).sort((a, b) => Number(a.w.hand === undefined) - Number(b.w.hand === undefined));
+  for (const { w, position } of priorites) {
+    const dessin = dessiner(w);
+    const hand = w.hand ?? (dessin.bouclier ? 'off' : w.natural || libres.has('main') ? 'main' : 'off');
+    if (w.natural) { dessins.push({ position, arme: { ...dessin, hand } }); continue; }
+    if (!libres.has(hand) || (dessin.hands === 2 && libres.size !== 2)) { surplus.push({ position, arme: dessin }); continue; }
+    dessins.push({ position, arme: { ...dessin, hand } });
+    libres.delete(hand);
+    if (dessin.hands === 2) libres.clear();
+  }
+  const tenues = dessins.sort((a, b) => a.position - b.position).map(d => d.arme);
+  const iBouclier = tenues.findIndex((w) => w.bouclier);
   return {
-    weapons: dessins,
+    weapons: tenues,
     armour: pieces,
-    rangees: rangees.map(dessiner),
-    ...(iBouclier >= 0 ? { shield: { candidats: dessins[iBouclier].candidats } } : {}),
+    rangees: [...rangees.map(dessiner), ...surplus.sort((a, b) => a.position - b.position).map(d => d.arme)],
+    ...(iBouclier >= 0 ? { shield: { candidats: tenues[iBouclier].candidats } } : {}),
     ...(cape ? { cape: true } : {}),
   };
 }

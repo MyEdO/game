@@ -13,7 +13,7 @@ import {
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
-  const texte = JSON.stringify({ asset: { version: '2.0' }, nodes: noeuds.map((name, mesh) => ({ name, mesh, ...(mesh === 0 ? { children: noeuds.map((_, i) => i).slice(1) } : {}), ...(options.skinned?.includes(name) ? { skin: 0 } : {}) })), skins: [{ joints: (options.joints ?? noeuds).map(n => noeuds.indexOf(n)) }], animations: animations.map((name) => ({ name })) });
+  const texte = JSON.stringify({ asset: { version: '2.0' }, nodes: noeuds.map((name, mesh) => ({ name, mesh, ...(mesh === 0 ? { children: noeuds.map((_, i) => i).slice(1) } : {}), ...(options.skinned?.includes(name) ? { skin: 0 } : {}) })), meshes: noeuds.map(() => ({ primitives: [{ material: 0 }] })), materials: [{ name: 'texture_de_lame' }], skins: [{ joints: (options.joints ?? noeuds).map(n => noeuds.indexOf(n)) }], animations: animations.map((name) => ({ name })) });
   const brut = new TextEncoder().encode(texte);
   const longueur = Math.ceil(brut.byteLength / 4) * 4;
   const octets = new Uint8Array(20 + longueur).fill(0x20);
@@ -35,7 +35,7 @@ const production = () => ({
   rig: 'codex_rig',
   montage: {
     attaches: Object.fromEntries(['main', 'off', 'dos', 'ceinture'].map(n => [n, { os: 'corps', position: [0, 0, 0], rotation: [0, 0, 0] }])),
-    composants: { epee: { prise: 'main', rangement: 'ceinture' }, bouclier: { prise: 'off', rangement: 'dos' } },
+    composants: { epee: { prise: 'main', rangement: 'ceinture', matieres: [{ cle: 'metal', piece: 'epee', surface: 0 }] }, bouclier: { prise: 'off', rangement: 'dos', matieres: [{ cle: 'accent', piece: 'bouclier', surface: 0 }] } },
   },
   model: 'animated.glb',
   default_head: 'tete_a',
@@ -79,6 +79,7 @@ describe('lireGlb', () => {
     const c = lireGlb(GLB);
     expect([...c.noeuds]).toEqual(['corps', 'tete_a', 'casque', 'bouclier', 'epee']);
     expect([...c.animations]).toEqual(['Idle', 'Death_A']);
+    expect(c.materiauxParPiece.get('epee')).toEqual(['texture_de_lame']);
   });
   it('refuse un conteneur qui n’est pas un glTF binaire 2', () => {
     const faux = GLB.slice();
@@ -174,6 +175,30 @@ describe('montage validé contre le GLB (#2948 L3-b)', () => {
     if (v.ok) expect(v.manifeste.montage).toEqual(m.montage);
   });
 
+  it.each([
+    ['une surface absente du GLB', { cle: 'metal', piece: 'epee', surface: 1 }, 'matiere-absente'],
+    ['une pièce hors du composant', { cle: 'metal', piece: 'bouclier', surface: 0 }, 'matiere-absente'],
+    ['une clé hors du vocabulaire des palettes', { cle: 'inconnue', piece: 'epee', surface: 0 }, 'forme'],
+    ['un indice négatif', { cle: 'metal', piece: 'epee', surface: -1 }, 'forme'],
+    ['un indice fractionnaire', { cle: 'metal', piece: 'epee', surface: 0.5 }, 'forme'],
+  ] as const)('refuse %s', (_, liaison, code) => {
+    const m = production();
+    m.montage.composants.epee.matieres = [liaison];
+    expect(codes(m)).toContain(code);
+  });
+
+  it('refuse deux clés qui teintent la même surface', () => {
+    const m = production();
+    m.montage.composants.epee.matieres.push({ cle: 'cuir', piece: 'epee', surface: 0 });
+    expect(codes(m)).toContain('matiere-ambigue');
+  });
+
+  it('exige les emplacements de matière pour chaque composant montable', () => {
+    const m = production();
+    delete (m.montage.composants.epee as { matieres?: unknown }).matieres;
+    expect(codes(m)).toContain('forme');
+  });
+
   it('refuse un nœud existant qui n’est pas un os du skin', () => {
     const contenu = lireGlb(glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Death_A'], { joints: ['tete_a'] }));
     expect(contenu.noeuds.has('corps')).toBe(true);
@@ -211,13 +236,13 @@ describe('montage validé contre le GLB (#2948 L3-b)', () => {
 
   it('refuse un composant de portage inconnu', () => {
     const m = production();
-    (m.montage.composants as Record<string, unknown>).fantome = { prise: 'main', rangement: 'dos' };
+    (m.montage.composants as Record<string, unknown>).fantome = { prise: 'main', rangement: 'dos', matieres: [{ cle: 'metal', piece: 'epee', surface: 0 }] };
     expect(codes(m)).toContain('composant-inconnu');
   });
 
   it('refuse un corps déclaré comme objet montable', () => {
     const m = production();
-    (m.montage.composants as Record<string, unknown>).corps = { prise: 'main', rangement: 'dos' };
+    (m.montage.composants as Record<string, unknown>).corps = { prise: 'main', rangement: 'dos', matieres: [{ cle: 'metal', piece: 'corps', surface: 0 }] };
     expect(codes(m)).toContain('composant-inconnu');
   });
 });
