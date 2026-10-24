@@ -1,4 +1,4 @@
-# Contrat du pont `wfrpPont` (v2, #2928)
+# Contrat du pont `wfrpPont` (v3, #2928, #2948)
 
 Godot est un hôte du noyau, au même titre que l'hôte texte (`src/hoteTexte/`) : il envoie des gestes et lit une vue faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes (`src/hote/`). Plan : `docs/plans/2026-10-21-vague6-hote-godot.md`. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
 
@@ -52,6 +52,8 @@ type Suite = {
 ```ts
 type Vue = {
   projection: Projection;               // projeter, src/hote/projection.ts, sans borne
+  equipements: Record<string, DessinDEquipement>; // par id de combattant
+  couverture: { demandes: number; absences: AbsenceDeModele[] };
   fenetre: FenetreADessiner | null;     // fenetreADessiner, src/hote/gestes.ts
   attaque: FenetreDAttaque | null;      // fenetreDAttaque, src/noyau/fenetreDAttaque.ts
   defense: FenetreDeDefense | null;     // fenetreDeDefense, src/noyau/fenetreDeDefense.ts
@@ -69,6 +71,16 @@ type Vue = {
 - `cases` liste les cases que le champ peint au tour de l'actif (`porteesDuTour`), et rien hors de ce tour.
 - `plateau` est le plateau de la scène (`plateauDeLaScene`, `src/noyau/monde/scene.ts`) : ses dimensions et les cases que nul ne franchit à pied ; `null` sans scène.
 - `champ` nomme le verbe du clic du champ qui désigne un combattant, et celui qui désigne une case.
+
+## Équipement et couverture des modèles
+
+Chaque combattant (`combat.actif` et `combat.voisins.liste`) porte `equipement`, le résultat de `equipementDessine` : `weapons`, `rangees`, `armour`, `shield?` et `cape?`. Les armes tenues et rangées portent les `candidats` ordonnés du noyau ; le bouclier est déjà une arme tenue et `shield` en reprend les candidats. `cape` est un booléen, les pièces d’armure portent une matière ; ces deux champs ne déclarent pas de candidats de modèle.
+
+`equipements[id]` contient `tenues` et `rangees` : chacune est une liste `{ arme, modele }`, sans les armes naturelles dessinées par le corps. `arme` est la projection du noyau. `modele` est `null` si aucun candidat n’a de modèle ; sinon `{ apparence, composants: { modele, composant, pieces }[] }`, avec le premier id disponible dans l’ordre publié. Plusieurs composants peuvent dessiner un même id, notamment pour les deux mains.
+
+L’index est dérivé au build Vite des `components.<id>.apparence` et des pièces de chaque manifeste sous `projet/modeles/*.manifeste.json`. Aucun index de modèles n’est commité. Les composants corporels (`apparence: null`) et les composants sans pièce ne sont pas des modèles d’objet disponibles.
+
+`couverture` est le rapport de la vue courante, recalculé à chaque appel : `demandes` compte les objets tenus ou rangés à dessiner ; chaque absence porte `{ porteur, emplacement: 'tenues' | 'rangees', position, candidats }`. Le bouclier est compté une fois, parmi les armes tenues. Une absence totale reste publiée, avec `modele: null` et tous les candidats demandés.
 
 ## Écran publié
 

@@ -108,13 +108,14 @@ function executer(code) {
     return typeof brut === 'string' ? JSON.parse(brut) : { ok: null, brut }
   }
   const attendus = [
-    ['demarrer', { scenario: SCENARIO }, (r) => r.ok === true && r.vue?.projection != null],
-    ['vue', undefined, (r) => r.ok === true && r.vue?.projection != null],
+    ['demarrer', { scenario: SCENARIO }, (r) => r.ok === true && r.vue?.projection != null && r.vue?.equipements != null && r.vue?.couverture != null],
+    ['vue', undefined, (r) => r.ok === true && r.vue?.projection != null && r.vue?.equipements != null && r.vue?.couverture != null],
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === false && r.erreur?.categorie === 'validation'],
     ['erreursGlobales', undefined, (r) => r.ok === true && Array.isArray(r.erreurs) && r.erreurs.length === 0],
   ]
   return attendus.flatMap(([methode, entree, tient]) => {
     const r = appel(methode, entree)
+    if (methode === 'vue' && r.ok && r.vue?.couverture) console.log(`[couverture] ${SCENARIO} : ${r.vue.couverture.demandes} demande(s), ${r.vue.couverture.absences.length} absence(s)\n${JSON.stringify(r.vue.couverture.absences, null, 2)}`)
     return tient(r) ? [] : [`${methode} ${JSON.stringify(entree ?? null)} : ${JSON.stringify(r).slice(0, 400)}`]
   })
 }
