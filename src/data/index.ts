@@ -1122,6 +1122,8 @@ export interface TalentData {
  *  par le nom FR de l'objet. Lues par `engine/capabilities` (`itemCapability` par-objet, `hasCapability`
  *  agrégat par-personnage cross-source). */
 export interface ItemCapabilities {
+  /** LDB 62 l.58 ; AA 08 l.212 */
+  improvisedWithoutCharge?: boolean;
   /** Gantelet verrouillé (AA folio 94) : le porteur NE LÂCHE PAS l'arme tenue dans la main gantée la 1re
    *  fois que les circonstances l'y forceraient (désarmement / Piège-lame) — lu par `applyBladeTrap`
    *  (GATÉ sur le port). */

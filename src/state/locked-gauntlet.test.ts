@@ -1,15 +1,10 @@
-/**
- * #40 — Gantelet verrouillé (AA, folio 94) : anti-lâcher. Le porteur ne LÂCHE PAS l'arme tenue dans la
- * main gantée la 1re fois que les circonstances l'y obligeraient (désarmement / Piège-lame) — il subit
- * à la place une pénalité de −20 pendant 1 Round (min). Si un SECOND évènement de lâcher survient pendant
- * cette période, l'arme EST lâchée. Capacité portée par la DONNÉE (`preventForcedDrop` sur le trapping),
- * lue génériquement (aucun code par nom dans le moteur).
- */
+/** AA 08 l.234-238 */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import type { BattleState } from '../noyau/etat';
 import { applyBladeTrap } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
+import { objetDeTest } from '../objetsDeTest.testkit';
 import type { BladeTrapFreeze } from '../noyau/pendings';
 
 const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -20,7 +15,7 @@ function setup(withGauntlet: boolean): { attacker: Combatant; defender: Combatan
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ uid: 'w1', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    items: withGauntlet ? [{ uid: 'g1', trappingId: 'gantelet-verrouille', name: 'Gantelet verrouillé', kind: 'melee', qualities: [], enc: 1, equipped: true }] : [],
+    items: withGauntlet ? [objetDeTest('gantelet-verrouille', { uid: 'g1', equipped: true })] : [],
   } as unknown as Combatant;
   const defender = {
     id: 'h1', name: 'Bretteur', kind: 'hero', characteristics: chars, wounds: { current: 20, max: 20 },

@@ -9,6 +9,7 @@ import { applyOps, skillDRBonus } from './ops';
 import { desDuTest } from './dice.testkit';
 import { isMagicWeapon } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
+import { effectiveWeapon } from './weaponDamage';
 import { combatantLights } from '../noyau/monde/vision';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 
@@ -16,6 +17,19 @@ const catalogue = trappings.slice();
 afterEach(() => setDataset('trappings', catalogue));
 
 describe('propriétés intrinsèques de l’objet (#2967)', () => {
+  /** LDB 62 l.58 ; AA 08 l.212 */
+  it('le profil hors Charge suit la capacité née sur un objet de campagne atypique', () => {
+    const { item, objet } = porteurDObjetDeCampagne('hache_naine', { capabilities: { improvisedWithoutCharge: true } });
+    const arme = objets.weaponFromItem(item);
+    expect(arme.capabilities).toEqual({ improvisedWithoutCharge: true });
+    expect(arme.capabilities).not.toBe(item.capabilities);
+    expect(arme.capabilities).not.toBe(objet.capabilities);
+    expect(effectiveWeapon(arme, { charged: false }).damage).toEqual({ plusBF: true, flat: 1 });
+    expect(effectiveWeapon(arme, { charged: true })).toBe(arme);
+    const ordinaire = porteurDObjetDeCampagne('lance_cavalerie', { shape: { id: 'lance_cavalerie' }, formChoices: [] }).item;
+    const sansCapacite = objets.weaponFromItem(ordinaire);
+    expect(effectiveWeapon(sansCapacite, { charged: false })).toBe(sansCapacite);
+  });
   /** #2967 */
   it('la racine de campagne traverse la naissance puis les deux projections sans relire la fiche', () => {
     const { item, objet, resolveTrapping } = porteurDObjetDeCampagne('epee_ebrechee');

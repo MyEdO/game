@@ -6,6 +6,18 @@ import type { Weapon, Combatant } from './types';
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
 const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
 
+/** LDB 62 l.58 ; AA 08 l.212 */
+describe('profil hors Charge des armes nées au catalogue', () => {
+  it.each(['lance-de-cavalerie', 'demi-lance-de-cavalerie'])('%s déclare sa capacité et la projette', (id) => {
+    const item = itemFromTrappingById(id)!;
+    const arme = weaponFromItem(item);
+    expect(item.capabilities?.improvisedWithoutCharge).toBe(true);
+    expect(arme.capabilities?.improvisedWithoutCharge).toBe(true);
+    expect(effectiveWeapon(arme, { charged: false }).damage).toEqual({ plusBF: true, flat: 1 });
+    expect(effectiveWeapon(arme, { charged: true })).toBe(arme);
+  });
+});
+
 describe('effectiveWeaponDamage (LDB 62 l.135)', () => {
   it('réduit les Dégâts de damageTaken', () => {
     expect(effectiveWeaponDamage(sword({ damageTaken: 2 }), 3)).toBe(5); // BF3 + (4-2)

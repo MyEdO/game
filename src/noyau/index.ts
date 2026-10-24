@@ -43,5 +43,4 @@ export { libelleDuVerbe, libelleDuParametre, libelleDuLitteral, libelleDeLaFenet
 export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, type Reglage, type ValeurDuReglage } from './reglages';
 export { avecSigne, texteDuMod } from './difficultyText';
 export { objetDuNarratif } from './monde/resolveursDuNarratif';
-export type { TrappingResolver } from '../engine/items';
 export { equipementDessine, equipementDEntite } from './equipementDessine';

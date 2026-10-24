@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Combatant, HitLocation, Weapon } from '../../engine/types';
+import { armeDeTest } from '../../objetsDeTest.testkit';
 import { openAttackCascade } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { ev } from '../../noyau/combatLog';
@@ -543,7 +544,7 @@ describe('Attaque — l’annonce du Coup Critique lit le compte du coup (LDB 17
 
 describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
   it('Empoigner coché, touche : la ligne d’issue annonce l’Empoignade sans chiffrer Dégâts ni Blessures', () => {
-    const poings = { ...sword, name: 'Mains nues', label: 'Mains nues', uid: 'poings', trappingId: 'mains-nues' } as Weapon;
+    const poings = armeDeTest('mains-nues', { uid: 'poings' });
     const vue = renderAttack({ armes: [poings] });
     // Aucun siège MJ : la Défense du Gobelin ne s'interpose pas, l'issue s'affiche dans la popin d'attaque.
     act(() => useGame.setState({ net: { ...useGame.getState().net, gmSeat: undefined } }));
@@ -566,7 +567,7 @@ describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
   });
 
   it('Empoigner coché, cible devenue inerte : l’issue suit le coup normal, Blessures chiffrées', () => {
-    const poings = { ...sword, name: 'Mains nues', label: 'Mains nues', uid: 'poings', trappingId: 'mains-nues' } as Weapon;
+    const poings = armeDeTest('mains-nues', { uid: 'poings' });
     const vue = renderAttack({ armes: [poings] });
     act(() => useGame.setState({ net: { ...useGame.getState().net, gmSeat: undefined } }));
     const empoigner = [...vue.querySelectorAll('button')].find((b) => b.textContent?.includes('Empoigner'))!;

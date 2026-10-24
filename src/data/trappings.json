@@ -655,6 +655,9 @@
     },
     "shape": {
       "id": "lance_cavalerie"
+    },
+    "capabilities": {
+      "improvisedWithoutCharge": true
     }
   },
   {
@@ -8901,6 +8904,9 @@
     },
     "shape": {
       "id": "demi_lance"
+    },
+    "capabilities": {
+      "improvisedWithoutCharge": true
     }
   },
   {

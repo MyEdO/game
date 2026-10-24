@@ -141,7 +141,7 @@ export const CLES_INTRINSEQUES_D_OBJET = {
   niConsumedPerDR: false,
   passive: false,
   prosthesisTraining: false,
-  capabilities: false,
+  capabilities: true,
   improvised: false,
   container: false,
   consumable: false,

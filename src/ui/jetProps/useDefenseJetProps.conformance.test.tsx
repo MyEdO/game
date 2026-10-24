@@ -16,6 +16,7 @@ import { openAttackCascade, aiCreatureFreeAttacks } from '../../noyau/combatFlow
 import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant, Weapon } from '../../engine/types';
+import { armeDeTest } from '../../objetsDeTest.testkit';
 import { RollShell } from '../RollShell';
 import { useDefenseJetProps } from './useDefenseJetProps';
 import { ANONYMES } from '../RollLine';
@@ -178,7 +179,7 @@ describe('Défense : les modificateurs de la VALEUR sont des lignes NOMMÉES', (
 /** Les volets de Talent de la fenêtre : titre ouvrant la fiche, option hors de portée refusée avec sa cause. */
 describe('Défense : volets Riposte et Porte-bouclier', () => {
   const RAPIERE = { ...sword, name: 'Rapière', label: 'Rapière', uid: 'rp', qualities: [{ id: 'rapide' }] } as unknown as Weapon;
-  const BOUCLIER = { name: 'Bouclier', label: 'Bouclier', uid: 'sh', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 2, bare: false }, qualities: [] } as unknown as Weapon;
+  const BOUCLIER = armeDeTest('bouclier', { uid: 'sh' });
   const volet = (titre: string) => [...host!.querySelectorAll('.rm-loc-inline')].find((el) => el.querySelector('.mini-title')?.textContent?.startsWith(titre)) ?? null;
   const segment = (titre: string, libelle: string) => [...(volet(titre)?.querySelectorAll('.seg button') ?? [])].find((b) => b.textContent === libelle) as HTMLButtonElement | undefined;
   const riposteur = (portees: number) => (h: Combatant) => {
@@ -263,7 +264,8 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 30);
       act(() => { useGame.getState().defenseSetShieldReaction('damage'); });
-      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(65); });
+      // LDB 12 l.160 ; LDB 62 l.240
+      act(() => { useGame.getState().defenseRoll(); useGame.getState().defenseSetForcedRoll(75); });
       const res = useGame.getState().pendingDefense!.result!;
       expect(res.hit).toBe(false);
       expect(res.advantageTo).toBeNull();

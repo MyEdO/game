@@ -1,13 +1,8 @@
-/**
- * « Asperger d'eau » (MDG 16 l.19, #497) — flux combat (`battleWater`, `combatSlice.ts`). Contre-mesure
- * MAISON à la suffocation « hors terrain » d'une Créature marine : Action DIRECTE (aucun jet), gate =
- * contenant d'eau porté (`waterContainer`, `Outre à eau`/`Seau`), cible = allié marine adjacent hors de
- * l'eau. Pose `wateredThisRound`, consomme l'Action ; `suffocationTick` (engine/suffocation.ts) lit et
- * consomme ce flag.
- */
+/** MDG 16 l.19 ; #497 */
 import { describe, it, expect } from 'vitest';
 import { useGame } from './store';
-import type { Combatant, ItemInstance } from '../engine/types';
+import type { Combatant } from '../engine/types';
+import { objetDeTest } from '../objetsDeTest.testkit';
 import { suffocationTick } from '../engine/suffocation';
 
 function hero(p: Partial<Combatant>): Combatant {
@@ -21,7 +16,7 @@ function hero(p: Partial<Combatant>): Combatant {
   } as Combatant;
 }
 
-const outreAEau = (): ItemInstance => ({ uid: 'outre1', trappingId: 'outre-a-eau' } as unknown as ItemInstance);
+const outreAEau = () => objetDeTest('outre-a-eau', { uid: 'outre1' });
 
 function marine(p: Partial<Combatant>): Combatant {
   return hero({

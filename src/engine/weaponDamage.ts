@@ -133,11 +133,6 @@ export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = 
   };
 }
 
-/** LDB 62 l.58 ; AA 08 l.212 */
-function isCavalryLance(w: Weapon): boolean {
-  return w.shape?.id === 'lance_cavalerie' || w.shape?.id === 'demi_lance';
-}
-
 /** Contexte d'usage d'une arme — règles d'arme CONTEXTUELLES de Groupe (LDB 62), dérivé de l'attaquant
  *  au moment où l'arme est liée à l'attaque (cf. `firedWeapon`). */
 export interface WeaponContext {
@@ -165,45 +160,20 @@ export interface WeaponContext {
   harpoonRopeCut?: boolean;
 }
 
-/**
- * Profil de combat EFFECTIF d'une arme, contexte d'usage compris. Sans `ctx` : seule l'usure→improvisée
- * (LDB 62 l.135) s'applique — Dégâts `+BF+1`, Atout `Inoffensive`, plus aucun autre Atout ; une arme non
- * altérée est renvoyée TELLE QUELLE (même référence). Avec `ctx`, deux règles de Groupe contextuelles
- * s'ajoutent :
- *  - Lance de cavalerie utilisée hors d'un Round de Charge → **Arme improvisée** (LDB 62 l.58).
- *  - Fléau manié **sans la Spécialisation** appropriée → Défaut **Dangereuse**, et **aucun autre Atout**
- *    n'est utilisé (LDB 62 l.146-147).
- *  - Arme à distance couverte en mode **`'degraded'`** (`WeaponContext.groupSkillMode`, Arbalète/Lancer
- *    par toute autre Spé de Tir l.184, Ingénierie par Poudre noire l.188) → perd **tous ses Atouts**, ses
- *    Défauts sont conservés.
- *  - Lance-harpon, corde séparée (`WeaponContext.harpoonRopeCut`, ADE II 02 l.677) → Portée 60, perte de
- *    l'Atout Immobilisante.
- * À appliquer LÀ où l'arme se lie à l'attaque pour que la transformation atteigne la touche, les Dégâts ET
- * le jet RATÉ (la Dangereuse se déclenche sur un échec). Idempotent : ré-appliquer sur un profil déjà
- * transformé (ex. l'usure recalculée dans `applyHit`) ne le ré-altère pas.
- */
+/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.212 ; ADE II 02 l.677 */
 export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
-  if (isImprovised(w)) return improvisedProfile(w); // usure jusqu'à +0 (LDB 62 l.135)
-  if (ctx?.charged === false && isCavalryLance(w)) return improvisedProfile(w); // Lance hors Charge (l.59)
-  // Combat « au contact » (LDB 62 l.176) : « n'importe quelle arme plus longue que Courte est considérée
-  // comme une Arme improvisée » (l'adversaire est entré dans la longueur d'arme). Allonge ≤ Courte
-  // (mains nues / dague) → inchangée. MÊME branche que la Lance hors Charge (profil improvisé partagé).
+  if (isImprovised(w)) return improvisedProfile(w); // LDB 62 l.135
+  if (ctx?.charged === false && w.capabilities?.improvisedWithoutCharge) return improvisedProfile(w); // LDB 62 l.58 ; AA 08 l.212
+  // LDB 62 l.176
   if (ctx?.auContact && longerThanShort(w)) return improvisedProfile(w);
-  if (ctx?.improvised) return improvisedProfile(w); // improvisation dérivée du contexte par le funnel (ex. Bélier hors-porte, ADE II 8 l.249)
-  // Lance-harpon, corde séparée (ADE II 02 l.677) : Portée 60 (au lieu de la Portée de base), perte de l'Atout Immobilisante.
+  if (ctx?.improvised) return improvisedProfile(w); // ADE II 8 l.249
+  // ADE II 02 l.677
   if (ctx?.harpoonRopeCut) return { ...w, range: 60, qualities: w.qualities.filter((q) => q.id !== 'immobilisante') };
 
-  // Fléau sans la Spécialisation : Défaut Dangereuse + AUCUN autre Atout (l.146-147). Le Test reste sur la
-  // Caractéristique brute — déjà assuré par `combatValue` (pas de Spé → pas d'avances, LU par `subType`,
-  // gardé INTACT). `noFamilyQualities` bloque juste la ré-injection de Perturbante/À Enroulement (famille
-  // du Groupe Fléau) que cette règle retire explicitement.
+  // LDB 62 l.146-147
   if (ctx?.hasGroupSkill === false && w.subType === 'fleau') return { ...w, qualities: [{ id: 'dangereuse' }], noFamilyQualities: true };
 
-  // Arme à distance couverte en mode dégradé (Arbalète/Lancer par toute autre Spé de Tir l.184,
-  // Ingénierie par Poudre noire l.188) : perd tous ses Atouts, garde ses Défauts. `resolveQualities` (avec
-  // Groupe) sert à ÉNUMÉRER l'ensemble propre+famille avant de filtrer, pour qu'un Atout de FAMILLE soit
-  // aussi retiré (pas seulement les Atouts listés sur l'instance) ; `subType`/`weaponGroup` restent
-  // INTACTS (`combatValue` doit voir la MÊME Spé de tir dégradée).
+  // LDB 62 l.184,188
   if (ctx?.groupSkillMode === 'degraded') {
     const kept = resolveQualities(w).filter((r) => !isAtoutQuality(r.id)).map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
     return { ...w, qualities: kept, noFamilyQualities: true };

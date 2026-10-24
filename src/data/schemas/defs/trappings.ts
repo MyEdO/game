@@ -68,6 +68,7 @@ const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   disarmImmune: z.boolean().optional(),
   ropeMode: z.boolean().optional(),
   waterContainer: z.boolean().optional(),
+  improvisedWithoutCharge: z.boolean().optional(),
 }), {
   preventForcedDrop: { label: 'Empêche la perte forcée' },
   weatherProtection: { label: 'Protection contre les intempéries' },
@@ -81,6 +82,7 @@ const itemCapabilitiesSchema = nommerChamps(z.strictObject({
   disarmImmune: { label: 'Immunité au désarmement' },
   ropeMode: { label: 'Usage de la corde' },
   waterContainer: { label: 'Récipient d’eau' },
+  improvisedWithoutCharge: { label: 'Improvisée sans Charge' },
 });
 
 /** LDB 73 */

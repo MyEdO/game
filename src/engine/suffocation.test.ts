@@ -1,12 +1,7 @@
-/**
- * Noyade et Suffocation (LDB 18 l.346) : « Vous perdez 1 Point de blessure par Round que
- * vous passez à suffoquer. Si vos Points de blessure passent à 0, gagnez immédiatement l'État
- * Inconscient. Après cela, et au bout d'un nombre de Rounds égal à votre Bonus d'Endurance,
- * vous mourez par suffocation ou par noyade. »
- * Bénédiction de Souffle (LDB 41) : « n'a pas besoin de respirer et ignore les règles de suffocation ».
- */
+/** LDB 18 l.346 ; LDB 41 */
 import { describe, expect, it } from 'vitest';
-import type { Combatant, ItemInstance } from './types';
+import type { Combatant } from './types';
+import { objetDeTest } from '../objetsDeTest.testkit';
 import { suffocationTick, prepareBreathHold, breathHoldSeconds, hasWaterContainer, isWaterSprayTarget, waterSprayCandidates } from './suffocation';
 import { inDeathCondition, hasCondition } from './conditions';
 import { applyOps } from './ops';
@@ -153,7 +148,7 @@ describe('Créature marine hors de l’eau — pont offTerrain→suffocation (MD
 
   describe('« Asperger d’eau » (#497) — hasWaterContainer / isWaterSprayTarget / waterSprayCandidates', () => {
     it('hasWaterContainer : vrai avec une Outre à eau/un Seau dans le sac, faux sans', () => {
-      const item = (trappingId: string): ItemInstance => ({ uid: 'i1', trappingId } as unknown as ItemInstance);
+      const item = (trappingId: string) => objetDeTest(trappingId, { uid: 'i1' });
       expect(hasWaterContainer(mk({ items: [item('outre-a-eau')] }))).toBe(true);
       expect(hasWaterContainer(mk({ items: [] }))).toBe(false);
       expect(hasWaterContainer(mk({ items: [item('seau')] }))).toBe(true);
