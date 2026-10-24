@@ -1030,11 +1030,11 @@
   {
     "id": "reglagesApparence",
     "type": "primitives.manifest",
-    "label": "ReglagesApparence/MonsterPartsFields/ApparencesObjetsField",
+    "label": "ReglagesApparence/MonsterPartsFields/ApparencesObjetsField/ObjetDonneField",
     "fichier": "src/ui/editor/MonsterPartsFields.tsx",
     "css": "src/ui/styles/reglages-apparence.css",
     "concept": "réglages d’une apparence, liste des réglages rendus en donnée, toute écriture par apparenceSuivante",
-    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur",
+    "perimetre": "rubrique Apparence de l’Inspecteur, du Narratif, du Codex et du créateur ; objet et apparence donnés par effet ou op, options par apparencesAdmissibles",
     "verrou": "apparence-une-rubrique.test.tsx"
   },
   {
@@ -2007,6 +2007,15 @@
     "concept": "CANDIDATS d’apparence d’un objet porté au catalogue courant par id stable : arme naturelle sans candidat, arme invoquée `form` vers sa forme seule, apparence admise par `shape` ou `formChoices` puis racine sans doublon, sinon `shape` du trapping — résolution unique ; `racineDesCandidats` lit la dernière entrée, racine de la forme dessinée, que `formeResolue` rend (#2113, #2948)",
     "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `apparencesAdmissibles`, outillage de recette (`__wfrp.battle`)",
     "verrou": "src/engine/apparences-candidates.test.ts, src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+  },
+  {
+    "id": "admissionApparenceDObjet",
+    "type": "primitives.manifest",
+    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/messageDApparenceDObjet",
+    "fichier": "src/data/apparencesObjets.ts",
+    "concept": "résolution canonique des candidats d’un trapping : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; refus commun aux références d’auteur",
+    "perimetre": "apparencesCandidates/apparencesAdmissibles du moteur, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets",
+    "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
     "id": "successionDesCorps",

@@ -8,6 +8,7 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import { z } from 'zod';
+import { messageDApparenceDObjet } from '../../apparencesObjets';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
@@ -796,7 +797,19 @@ function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | nul
   return null;
 }
 
-const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping'), idDe('apparence'));
+/** #2948 */
+export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {
+  const message = messageDApparenceDObjet(trappingId, apparence);
+  if (message) ctx.addIssue({ code: 'custom', message, path });
+}
+
+export function validerApparenceDonnee(v: { trappingId?: string; apparence?: { id: string } }, ctx: z.RefinementCtx): void {
+  if (v.apparence) validerApparenceDObjet(v.trappingId, v.apparence.id, ctx, ['apparence', 'id']);
+}
+
+const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping'), idDe('apparence')).superRefine((v, ctx) => {
+  for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence, ctx, [trappingId]);
+});
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */

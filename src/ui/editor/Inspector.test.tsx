@@ -72,6 +72,8 @@ describe('Inspector — apparences d’objets', () => {
   it('choisit une variante sur l’entité, conserve les autres réglages et retire le défaut', async () => {
     const h = mount({ id: 'garde', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'humain', weapon: 'arme-simple', appearance: { species: 'humains-reiklander' } });
     await h.mount();
+    const arme = [...h.container.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith('Arme équipée'))!;
+    expect(arme.nextElementSibling?.textContent).toContain('Apparences d’objets');
     const choisir = (label: string) => choisirMediaSelect(h.container, 'Apparence — Arme simple', label);
     choisir('Hache naine');
     expect(h.entOf().appearance?.apparencesObjets).toEqual({ 'arme-simple': 'hache_naine' });

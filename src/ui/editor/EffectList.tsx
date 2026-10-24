@@ -18,8 +18,9 @@ import { EFFECT_HANDLERS, EFFECT_GROUP_ORDER, CIBLES_PAR_RACINE, type RacineDeCa
 import { DAY_PHASES, DayPhaseId, IMPERIAL_MONTHS, type ScheduleSpec } from '../../engine/clock';
 import { diseaseDefs } from '../../engine/disease';
 import { spells, trappingDesObjetsPuisDuCatalogue, refLabel, WATER_EXPOSURE, vehicles, findVehicleById, crewRoles, memoParVersion, creatureSemee, vehiculeSeme, libelleOuAbsence, type TrappingData } from '../../data';
-import { useId, useMemo } from 'react';
-import { giveTrappingSchema, type Effect } from '../../data/schemas/defs-scenes/effets';
+import { useId } from 'react';
+import { ObjetDonneField } from './MonsterPartsFields';
+import { type Effect } from '../../data/schemas/defs-scenes/effets';
 import { MANANN_FACTORS, findManannFactor } from '../../engine/seaVoyage';
 import { giveTrappingLabel } from '../../engine/items';
 import { FlowEditor } from './FlowEditor';
@@ -320,25 +321,6 @@ export function newEffect(type: Effect['type']): Effect {
   return EFFECT_HANDLERS[type].make();
 }
 
-/** Objet donné par l'Effet `giveTrapping` : le sélecteur résout la saisie dans les objets du projet puis le
- *  catalogue, sous la feuille `giveTrappingSchema.shape.trappingId` (`RefField`, `entreesEnTete`) ; l'id
- *  émis qui se résout (`trappingDesObjetsPuisDuCatalogue`) est un `trappingId`, toute autre saisie un `custom`. */
-function ObjetDonneField({ objets, value, upd }: { objets: readonly TrappingData[]; value: string | undefined; upd: (patch: object) => void }) {
-  const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
-  return (
-    <RefField
-      cfg={{ ds: 'trappings', freeText: true }}
-      noeud={giveTrappingSchema.shape.trappingId}
-      entreesEnTete={objets}
-      value={value}
-      onChange={(v) => {
-        const val = v as string | undefined;
-        upd(val && trappingDesObjetsPuisDuCatalogue(parId, val) ? { trappingId: val, custom: undefined } : { custom: val, trappingId: undefined });
-      }}
-    />
-  );
-}
-
 /** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
@@ -441,8 +423,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'giveTrapping' && (
           <>
-            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e.trappingId ?? e.custom} upd={upd} />
-            <RefField label="Apparence" ariaLabel="Apparence de l’objet donné" nullable cfg={{ ds: 'apparences', single: true }} value={e.apparence?.id} onChange={(v) => upd({ apparence: v ? { id: v } : undefined })} />
+            <ObjetDonneField objets={objetsDuProjet(ctx)} value={e} onChange={onChange} />
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}

@@ -62,6 +62,11 @@ describe('apparence décidée à la naissance', () => {
     }
   });
 
+  it('un appel direct refuse aussi une apparence étrangère ou un custom sans identité', () => {
+    expect(() => itemFromGive({ trappingId: 'arme-simple', apparence: { id: 'cape' } })).toThrow(/arme-simple.*cape/);
+    expect(() => itemFromGive({ custom: 'Souvenir', apparence: { id: 'cape' } })).toThrow(/custom.*cape/);
+  });
+
   it('les refs d’auteur sont validées au parse pour l’effet et l’op', () => {
     poserVariantesDeNaissance(varianteDeNaissance());
     for (const [schema, payload] of [

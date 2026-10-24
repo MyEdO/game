@@ -31,6 +31,7 @@ import { etats, effectTables, mutationTables, lightTones, memoParVersion } from 
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { RefField } from '../compendium/refField/RefField';
+import { ObjetDonneField } from './MonsterPartsFields';
 import { parseTraitInstance, formatTrait } from '../../engine/traits/dispatch';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
@@ -510,7 +511,7 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'wounds', 'heal', 'healCaster', 'condition', 'removeCondition', 'charMod', 'skillMod', 'moveMod', 'ap', 'testMod',
   'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
-  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands',
+  'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping',
 ]);
 
 /** Durée PROPRE en Rounds d'une op qui en porte une (`durationFromOp`, engine/ops) : une `Formula`,
@@ -604,6 +605,11 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         onChange={onChange}
       />
       <div className="tf-row">
+        {op.op === 'giveTrapping' && <>
+          <ObjetDonneField value={o} onChange={onChange} />
+          <NumberField label="Nombre d’objets" vide value={o.count} onChange={(count) => upd({ count })} />
+          <JsonField label="Quantité par DR" value={o.perSL} onChange={(perSL) => upd({ perSL: perSL ?? undefined })} />
+        </>}
         {(op.op === 'wounds' || op.op === 'heal' || op.op === 'healCaster') && (
           <FormulaField label="Quantité" champ="amount" value={o.amount} min={0} onChange={(amount) => upd({ amount })} />
         )}

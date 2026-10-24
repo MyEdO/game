@@ -3,6 +3,10 @@
  * est la liste des réglages rendus, en donnée (patron des `slots` de `ColorPalettePickers`) ; toute
  * écriture passe par `apparenceSuivante`. Styles : `styles/reglages-apparence.css`.
  */
+import { useMemo, type ReactNode } from 'react';
+import { RefField } from '../compendium/refField/RefField';
+import { giveTrappingSchema } from '../../data/schemas/defs-scenes/effets';
+import { trappingDesObjetsPuisDuCatalogue, type TrappingData } from '../../data';
 import { MONSTER_HEAD_OPTIONS, MONSTER_ARM_OPTIONS, MONSTER_LEG_OPTIONS } from '../../gameIso/rig/parts/monstrous';
 import { EYE_OPTIONS } from '../../gameIso/rig/parts/eyes';
 import { ColorPalettePickers, MONSTER_COLOR_SLOTS } from '../ColorPalettePickers';
@@ -25,6 +29,46 @@ import { apparencesAdmissibles, apparencesCandidates } from '../../engine/items'
 import { MediaSelect } from '../MediaSelect';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 
+export interface ObjetDonne {
+  trappingId?: string;
+  custom?: string;
+  apparence?: { id: string };
+}
+
+/** Écrivain commun des objets donnés par effet ou op (#2948). */
+export function ObjetDonneField<T extends ObjetDonne>({ objets = [], value, onChange }: {
+  objets?: readonly TrappingData[];
+  value: T;
+  onChange: (next: T) => void;
+}) {
+  useVersionDesDatasets();
+  const parId = useMemo(() => new Map(objets.map((o) => [o.id, o])), [objets]);
+  const choices = apparencesAdmissibles(value);
+  const poser = (patch: ObjetDonne) => {
+    const next = { ...value, ...patch };
+    for (const cle of ['trappingId', 'custom', 'apparence'] as const) if (next[cle] === undefined) delete next[cle];
+    onChange(next);
+  };
+  return <>
+    <RefField label="Objet" ariaLabel="Objet donné" cfg={{ ds: 'trappings', freeText: true }} noeud={giveTrappingSchema.shape.trappingId}
+      entreesEnTete={objets} value={value.trappingId ?? value.custom}
+      onChange={(v) => {
+        const id = typeof v === 'string' ? v : undefined;
+        const trappingId = id && trappingDesObjetsPuisDuCatalogue(parId, id) ? id : undefined;
+        const apparence = value.apparence && apparencesAdmissibles({ trappingId }).some((a) => a.id === value.apparence?.id)
+          && value.apparence.id !== findTrappingById(trappingId)?.shape ? value.apparence : undefined;
+        poser({ trappingId, custom: trappingId ? undefined : id, apparence });
+      }} />
+    {choices.length > 0 && <div className="ed-field">
+      <span>Apparence</span>
+      <MediaSelect title="Apparence de l’objet donné" triggerClassName="btn"
+        value={value.apparence?.id ?? findTrappingById(value.trappingId)?.shape}
+        options={choices.map((a) => ({ key: a.id, label: a.label }))}
+        onSelect={(id) => poser({ apparence: id === findTrappingById(value.trappingId)?.shape ? undefined : { id } })} />
+    </div>}
+  </>;
+}
+
 /** #2948 */
 export function ApparencesObjetsField({ appearance, onChange, weapons }: {
   appearance: EntityAppearance;
@@ -41,6 +85,7 @@ export function ApparencesObjetsField({ appearance, onChange, weapons }: {
       <span>{findTrappingById(id)?.label ?? id}</span>
       <MediaSelect
         title={`Apparence — ${findTrappingById(id)?.label ?? id}`}
+        triggerClassName="btn"
         value={apparencesCandidates({ trappingId: id, apparence: appearance.apparencesObjets?.[id] })[0]}
         options={choices.map((a) => ({ key: a.id, label: a.label }))}
         onSelect={(choix) => {
@@ -160,12 +205,14 @@ export function MonsterPartsFields({
   reglages,
   weapon,
   onWeapon,
+  apresArme,
 }: {
   appearance: EntityAppearance;
   onChange: (next: EntityAppearance) => void;
   reglages: readonly ReglagePart[];
   weapon?: string;
   onWeapon?: (w: string | undefined) => void;
+  apresArme?: ReactNode;
 }) {
   const poser = (patch: Partial<EntityAppearance>) => onChange(apparenceSuivante(appearance, patch));
   const { monster, eyes, features, tenue, harnais, colors } = appearance;
@@ -219,6 +266,7 @@ export function MonsterPartsFields({
           </select>
         </label>
       )}
+      {apresArme}
       {reglages.includes('features') && (
         <div className="ed-field">
           <span>Traits &amp; difformités (apparence pure — sans trait/talent)</span>

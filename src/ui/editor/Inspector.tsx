@@ -1528,15 +1528,15 @@ function EntityPanel({
                 ))}
               </select>
             </label>
-            <ApparencesObjetsField
-              appearance={ent.appearance ?? {}}
-              onChange={(appearance) => updateSel({ appearance })}
-              weapons={armesDEntite(ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id) })}
-            />
             <MonsterPartsFields
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
               reglages={['monster', 'eyes', 'features', 'tenue', 'colors']}
+              apresArme={<ApparencesObjetsField
+                appearance={ent.appearance ?? {}}
+                onChange={(appearance) => updateSel({ appearance })}
+                weapons={armesDEntite(ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id) })}
+              />}
               weapon={ent.weapon}
               onWeapon={(w) => updateSel({ weapon: w })}
             />

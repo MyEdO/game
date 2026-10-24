@@ -14,6 +14,7 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  * `test` vient de la fabrique `noeudTest` de la grammaire, aucune structure n'est recopiée.
  */
 import { z } from 'zod';
+import { validerApparenceDonnee } from '../grammaire/valeurs';
 import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
 import { chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
@@ -166,7 +167,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   appraiseTriedDay: z.number().optional(),
   /** Valeur de marché propre posée sur l'instance (ex. pièces de monstre récoltées, `ZI`). */
   price: moneyPartialSchema.optional(),
-}), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
+}).superRefine(validerApparenceDonnee), { type: { label: "type"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, heroId: { label: "héros" , texte: { regime: "technique"} }, qualities: { label: "qualités" , texte: { regime: "technique"} }, identified: { label: "identifié" }, apparence: { label: "apparence" }, teinte: { label: "teinte", texte: { regime: 'technique', usage: 'couleurs de la palette de rendu' } }, magicKnown: { label: "magie connue" }, detectTried: { label: "détection tentée" }, appraiseTriedDay: { label: "jour de la dernière évaluation" }, price: { label: "prix" } });
 
 /** Donne une POSSESSION (bête/serviteur/véhicule — le SOCLE POSSESSIONS #615, registre
  *  `GameState.possessions`) à un héros propriétaire (défaut : le premier — même patron que

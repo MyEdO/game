@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { giveTrappingSchema } from '../defs-scenes/effets';
+import { gameOpSchema } from './mecanique';
+import { apparencesAdmissibles } from '../../../engine/items';
 import { entityAppearanceSchema } from './valeurs';
 import { sceneSchema } from '../defs-scenes/scene';
 import { emptyScene } from '../../../noyau/monde/scene';
@@ -30,8 +33,36 @@ describe('apparences d’objets d’auteur : références validées au parse de 
     expect(sceneSchema.safeParse(scene({ 'trapping-inconnu': 'hache_naine' })).success).toBe(false);
   });
 
-  it('accepte un id connu dont l’admission sera jugée par le résolveur de rendu', () => {
-    expect(sceneSchema.safeParse(scene({ 'arme-simple': 'zweihander' })).success).toBe(true);
+  it('refuse les apparences connues étrangères à leur objet dans les trois formes d’auteur', () => {
+    const refus = [
+      giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: 'cape' } }),
+      gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: 'cape' } }),
+      sceneSchema.safeParse(scene({ 'arme-simple': 'cape' })),
+    ];
+    for (const r of refus) {
+      expect(r.success).toBe(false);
+      if (!r.success) {
+        expect(r.error.message).toContain('arme-simple');
+        expect(r.error.message).toContain('cape');
+      }
+    }
+  });
+
+  it('les trois portes acceptent exactement la liste canonique pour un objet', () => {
+    for (const apparence of apparencesAdmissibles({ trappingId: 'arme-simple' })) {
+      expect(giveTrappingSchema.safeParse({ type: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: apparence.id } }).success).toBe(true);
+      expect(gameOpSchema.safeParse({ op: 'giveTrapping', trappingId: 'arme-simple', apparence: { id: apparence.id } }).success).toBe(true);
+      expect(entityAppearanceSchema.safeParse({ apparencesObjets: { 'arme-simple': apparence.id } }).success).toBe(true);
+    }
+  });
+
+  it('un custom sans identité de catalogue n’admet aucune apparence', () => {
+    for (const [schema, discriminant] of [[giveTrappingSchema, { type: 'giveTrapping' }], [gameOpSchema, { op: 'giveTrapping' }]] as const) {
+      expect(schema.safeParse({ ...discriminant, custom: 'Souvenir' }).success).toBe(true);
+      const refus = schema.safeParse({ ...discriminant, custom: 'Souvenir', apparence: { id: 'cape' } });
+      expect(refus.success).toBe(false);
+      if (!refus.success) expect(refus.error.message).toContain('custom');
+    }
   });
 
   it('refuse une clé inconnue sur EntityAppearance', () => {
