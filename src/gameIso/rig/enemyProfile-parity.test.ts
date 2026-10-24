@@ -56,7 +56,7 @@ const byKey = (o: Record<string, unknown>) =>
 describe('CARACTÉRISATION — apparence rig (parité avant/après unification du merge)', () => {
   for (const [label, c] of ENEMY_CASES) {
     it(`enemyRigProfile · ${label}`, () => {
-      const p = enemyRigProfile(findTrappingById, c)!;
+      const p = enemyRigProfile(c)!;
       expect({ appearance: byKey(p.appearance as never), tenue: p.tenue }).toMatchSnapshot();
     });
   }
@@ -85,7 +85,7 @@ describe('PARITÉ — un override d’authoring sans espèce ne remplace pas l�
     it(`${id} · même espèce en exploration et en combat`, () => {
       const colors = { peau: '#556677' };
       const explo = entityRigProfile(findTrappingById, id, 42, { colors })!;
-      const combat = enemyRigProfile(findTrappingById, mk('e-' + id, id, { creatureId: id, appearanceOverride: { colors } as never }))!;
+      const combat = enemyRigProfile(mk('e-' + id, id, { creatureId: id, appearanceOverride: { colors } as never }))!;
       expect(explo.appearance.species).toBe(species);
       expect(combat.appearance.species).toBe(explo.appearance.species);
     });

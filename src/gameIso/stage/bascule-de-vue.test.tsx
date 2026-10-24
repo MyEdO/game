@@ -409,7 +409,7 @@ describe('Bascule de regard — en POV, le meneur n’est PAS un sujet du monde 
     // plusieurs fois, et un cumul mélangerait deux regards dans une même lecture.
     const idsDe = () => {
       const dernier = sujets.mock.calls[sujets.mock.calls.length - 1];
-      return dernier ? (dernier[1] as readonly { c: { id: string } }[]).map((a) => a.c.id) : [];
+      return dernier ? dernier[0].map((a) => a.c.id) : [];
     };
 
     // PRÉMISSE — sur le plateau, le meneur EST un sujet : sans lui, « il n'y est pas en POV » ne dirait

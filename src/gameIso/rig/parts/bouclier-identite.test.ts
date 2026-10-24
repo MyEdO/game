@@ -26,17 +26,17 @@ const porteur = { talents: [{ talentId: 'porte-bouclier', times: 2 }] } as unkno
 describe('bouclier = identité du livre, pas l’Atout Protectrice', () => {
   for (const id of BOUCLIERS) it(id + ' est un bouclier', () => {
     expect(isShieldItem(w(id))).toBe(true);
-    expect(equipDe(findTrappingById, [w(id)], []).shield).toBeDefined();
+    expect(equipDe([w(id)], []).shield).toBeDefined();
   });
   for (const id of PROTECTRICES_NON_BOUCLIERS) it(id + ' n’est pas un bouclier', () => {
     expect(w(id).qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
     expect(isShieldItem(w(id)), 'isShieldItem').toBe(false);
-    expect(equipDe(findTrappingById, [w(id)], []).shield, 'rig : os bouclier').toBeUndefined();
-    expect(armePrincipale(equipDe(findTrappingById, [w(id)], [])), 'rig : arme principale').toBeDefined();
+    expect(equipDe([w(id)], []).shield, 'rig : os bouclier').toBeUndefined();
+    expect(armePrincipale(equipDe([w(id)], [])), 'rig : arme principale').toBeDefined();
     expect(shieldAdvantageLevel(porteur, w(id)), 'Porte-bouclier LDB 10 l.972').toBe(0);
   });
   it('parade : le geste suit l’identité de l’arme qui pare, jamais l’Atout', () => {
-    const parade = (id: string) => rigDefenseDef(findTrappingById, { kind: 'weapon', defense: 'parade', parryWeapon: w(id) }, {})?.key ?? '';
+    const parade = (id: string) => rigDefenseDef({ kind: 'weapon', defense: 'parade', parryWeapon: w(id) }, {})?.key ?? '';
     for (const id of BOUCLIERS) expect(parade(id), id).toMatch(/:bouclier$/);
     for (const id of PROTECTRICES_NON_BOUCLIERS) expect(parade(id), id).toMatch(/:nu$/);
   });
@@ -84,8 +84,8 @@ const geom = (id: string) => {
   return /item-icon-shield/.test(html) ? 'shield' : /item-icon-weapon/.test(html) ? 'weapon' : 'autre';
 };
 const parade = (c: Combatant, id: string) => {
-  const eq = equipementDessine(findTrappingById, c);
-  return rigDefenseDef(findTrappingById, { kind: 'weapon', defense: 'parade', parryWeapon: c.weapons.find((x) => x.trappingId === id)! }, contexteDeGeste(eq))!.key;
+  const eq = equipementDessine(c);
+  return rigDefenseDef({ kind: 'weapon', defense: 'parade', parryWeapon: c.weapons.find((x) => x.trappingId === id)! }, contexteDeGeste(eq))!.key;
 };
 
 describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => {
@@ -93,7 +93,7 @@ describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => 
   for (const [ids, id] of cas) it(ids.join(' + '), () => {
     const c = heros(ids);
     const arme = c.weapons.find((x) => x.trappingId === id)!;
-    const eq = equipementDessine(findTrappingById, c);
+    const eq = equipementDessine(c);
     const candidats = eq.weapons.find((x) => x.hand === 'off')?.candidats;
     const mainFaible = candidats?.[candidats.length - 1] ?? null;
     expect(c.weapons.length, 'PRÉMISSE : les objets donnés sont tenus').toBe(ids.length);
@@ -110,7 +110,7 @@ describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => 
   it('témoin : arme-simple + bouclier', () => {
     const c = heros(['arme-simple', 'bouclier']);
     const b = c.weapons.find((x) => x.trappingId === 'bouclier')!;
-    const eq = equipementDessine(findTrappingById, c);
+    const eq = equipementDessine(c);
     expect(c.weapons.map((x) => `${x.trappingId}/${x.hand}`)).toEqual(expect.arrayContaining(['arme-simple/main', 'bouclier/off']));
     expect(isShieldItem(b)).toBe(true);
     expect(shieldAdvantageLevel(c, b)).toBe(2);
@@ -129,7 +129,7 @@ describe('les boucliers du livre, par un vrai inventaire', () => {
     const b = c.weapons.find((x) => x.trappingId === id)!;
     expect(findTrappingById(id)?.shield, 'marque').toBe(true);
     expect(isShieldItem(b)).toBe(true);
-    expect(equipementDessine(findTrappingById, c).shield, 'rig : os bouclier').toBeDefined();
+    expect(equipementDessine(c).shield, 'rig : os bouclier').toBeDefined();
     expect(slugs.has(formeResolue(b) ?? ''), 'forme de SHIELD_DEFS').toBe(true);
     expect(shieldAdvantageLevel(c, b), 'Porte-bouclier LDB 10 l.972').toBe(2);
     expect(geom(id), 'icône').toBe('shield');

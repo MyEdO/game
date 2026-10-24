@@ -9,7 +9,6 @@ import type { TriggeredEffect } from './flowCore';
 import type { GameOp } from './ops';
 import { isAtoutQuality, isUnbreakable, qualityIndice, resolveQualities } from './qualities/dispatch';
 import { longerThanShort } from './engagement';
-import { norm } from '../lib/normalize';
 
 /** Dégâts d'arme encaissés EFFECTIFS (pour la pénalité) : l'Atout Solide(N) absorbe les N premiers
  *  Points de Dégâts sans pénalité (LDB 60 l.30). */
@@ -134,11 +133,9 @@ export function improvisedProfile(w: Weapon, resolveTrapping: ResolveTrapping = 
   };
 }
 
-/** Lance de cavalerie (Groupe Cavalerie, nom contenant « lance ») — la règle « improvisée hors Charge »
- *  (LDB 62 l.58) ne vise QUE les lances du Groupe, pas le Marteau à bec-de-corbin ni le Sabre. Détection
- *  par la DONNÉE de combat (`subType` + nom), JAMAIS par le `WeaponDef.group` de rendu. */
+/** LDB 62 l.58 ; AA 08 l.212 */
 function isCavalryLance(w: Weapon): boolean {
-  return w.subType === 'cavalerie' && norm(w.label).includes('lance');
+  return w.shape?.id === 'lance_cavalerie' || w.shape?.id === 'demi_lance';
 }
 
 /** Contexte d'usage d'une arme — règles d'arme CONTEXTUELLES de Groupe (LDB 62), dérivé de l'attaquant

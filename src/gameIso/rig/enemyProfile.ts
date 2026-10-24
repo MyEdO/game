@@ -178,7 +178,7 @@ export function rendersFromOwnInventory(c: Combatant): boolean {
  * Profil rig d'un combattant, ou null si non-humanoïde (→ rendu par son gabarit corporel
  * via AnimatedPlanToken, plus aucun sprite monolithique). PURE et déterministe (seed dérivé de l'id).
  */
-export function enemyRigProfile(resolveTrapping: TrappingResolver, c: Combatant): EnemyRigProfile | null {
+export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
   // Résolution de rendu par le résolveur UNIQUE, sur les MÊMES entrées qu'en exploration
   // (`entityRigProfile`) : espèce explicite → espèce du record (par id). Son `species` alimente
   // ensuite `bipedBase` → aucune 2ᵉ précédence d'espèce côté combat.
@@ -198,18 +198,18 @@ export function enemyRigProfile(resolveTrapping: TrappingResolver, c: Combatant)
 
   // Calques de mutation = donnée (`combatantOverlays(c)`, appliqués par `rigDuCombattant`), jamais le nom :
   // un mutant déclare son tell via un trait « Mutation (X) » → c.mutations au spawn.
-  return { appearance, tenue, equip: equipementDessine(resolveTrapping, c) };
+  return { appearance, tenue, equip: equipementDessine(c) };
 }
 
 /** Ce qu'on dessine d'un combattant BIPÈDE, résolu à UN endroit pour le monde volumique, le portrait, le
  *  geste et la toise : profil d'ennemi sauf inventaire propre (`rendersFromOwnInventory`), sinon son
  *  apparence, son équipement porté et sa carrière (garde-robe) ; calques d'état (`combatantOverlays`). */
 export interface RigDuCombattant { appearance: Appearance; equip: EquipCtx; tenue: string | undefined; overlays: RigOverlay[] }
-export function rigDuCombattant(resolveTrapping: TrappingResolver, c: Combatant): RigDuCombattant {
-  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(resolveTrapping, c);
+export function rigDuCombattant(c: Combatant): RigDuCombattant {
+  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
   return {
     appearance: combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c),
-    equip: prof?.equip ?? equipementDessine(resolveTrapping, c),
+    equip: prof?.equip ?? equipementDessine(c),
     tenue: prof?.tenue ?? c.career,
     overlays: combatantOverlays(c),
   };

@@ -14,11 +14,11 @@ import type { RigOverlay } from './bones';
 import type { View } from './facing';
 import type { Pose } from './poses';
 import type { Sexe } from '../../data/schemas/grammaire/valeurs';
-import { findTrappingById } from '../../data';
+
 
 const sword = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 4 }, qualities: [] };
-const equipNu: EquipCtx = equipDe(findTrappingById, [], []);
-const equipArme: EquipCtx = equipDe(findTrappingById, [sword], []);
+const equipNu: EquipCtx = equipDe([], []);
+const equipArme: EquipCtx = equipDe([sword], []);
 
 const app = (species: string, sex: Sexe, seed: number, extra: Partial<Appearance> = {}): Appearance =>
   ({ species: asRigSpeciesId(species), sex, build: 0.5, seed, ...extra });

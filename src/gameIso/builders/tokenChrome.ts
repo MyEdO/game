@@ -25,7 +25,7 @@ import { teamRingDecor, type MarkCell } from './dynamicMarks';
 import type { OffreRendue, OffresRenduesParPorteur } from '../../state/offreRendue';
 import { estPropVolumique, type DecorDEntite, type PropEl, type TokenEl, type TokenSubjectEl } from './types';
 import type { PartyToken } from './tokens';
-import type { TrappingResolver } from '../../engine/items';
+
 
 /** ALVÉOLES RÉSERVÉES du chrome d'un jeton — autant de places que le rack d'États du portrait
  *  (`PortraitTile maxStates`) : les deux surfaces montrent le même nombre d'États d'un combattant.
@@ -131,7 +131,7 @@ export interface Ancrage {
 
 /** L'ancrage d'un JETON posté (combattant, monture d'un couple, figurant). `null` = rien à poser (une
  *  unité sans case n'est pas sur le champ). */
-export function ancrageDuJeton(resolveTrapping: TrappingResolver, tk: TokenEl): Ancrage | null {
+export function ancrageDuJeton(tk: TokenEl): Ancrage | null {
   const s = tk.subject;
   if (s.kind === 'figurant')
     return {
@@ -146,7 +146,7 @@ export function ancrageDuJeton(resolveTrapping: TrappingResolver, tk: TokenEl): 
     cell: { x: unit.pos.x, y: unit.pos.y, z: tk.cell.z },
     n: footprintN(unit),
     scaleK: combatantTokenScale(unit),
-    bodyTopFrac: combatantBodyTopFrac(resolveTrapping, unit),
+    bodyTopFrac: combatantBodyTopFrac(unit),
   };
 }
 
@@ -178,7 +178,6 @@ export interface GesteMark extends Ancrage {
  *  posté (hors champ, filtré, non dessiné à cet étage) n'a pas de pastille : rien à montrer sur rien.
  *  PUR et camera-free, comme `tokenChromes` : la surcouche projette, ce module ne connaît que le monde. */
 export function tokenGesteMarks(
-  resolveTrapping: TrappingResolver,
   tokens: readonly TokenEl[],
   props: readonly PropEl[],
   offres: readonly OffresRenduesParPorteur[],
@@ -188,7 +187,7 @@ export function tokenGesteMarks(
     if (!groupe.offres.length) continue;
     const tk = tokens.find((t) => porteurDuJeton(t) === groupe.porteurId);
     const pr = tk ? undefined : props.find((p): p is DecorDEntite => p.source === 'entity' && p.entId === groupe.porteurId);
-    const a = tk ? ancrageDuJeton(resolveTrapping, tk) : pr ? ancrageDuDecor(pr) : null;
+    const a = tk ? ancrageDuJeton(tk) : pr ? ancrageDuDecor(pr) : null;
     if (!a) continue;
     out.push({ id: `geste-${groupe.porteurId}`, entityId: groupe.porteurId, label: groupe.porteurLabel, gestes: groupe.offres, ...a });
   }
@@ -220,7 +219,6 @@ function subjectOf(s: TokenSubjectEl): TokenSubject {
  *  serait un jeton absent de l'écran. Un figurant n'a ni PV ni États à montrer : son chrome est vide
  *  (`TokenChromeMarks` ne peint alors rien), sa marque n'existe que pour son CORPS. */
 export function tokenChromes(
-  resolveTrapping: TrappingResolver,
   tokens: readonly TokenEl[],
   ctx: ChromeCtx,
   partyToken: Pick<PartyToken, 'leader' | 'pos' | 'capKey'> | null = null,
@@ -228,7 +226,7 @@ export function tokenChromes(
   const out: TokenChromeMark[] = [];
   for (const tk of tokens) {
     const s = tk.subject;
-    const a = ancrageDuJeton(resolveTrapping, tk);
+    const a = ancrageDuJeton(tk);
     if (!a) continue;
     if (s.kind === 'figurant') {
       out.push({ id: `e-${s.ent.id}`, capKey: `e-${s.ent.id}`, ...a, team: null, subject: subjectOf(s), ...NEUTRE });
@@ -254,7 +252,7 @@ export function tokenChromes(
       cell: { x: partyToken.pos.x, y: partyToken.pos.y, z: partyToken.pos.z ?? 0 },
       n: footprintN(partyToken.leader),
       scaleK: combatantTokenScale(partyToken.leader),
-      bodyTopFrac: combatantBodyTopFrac(resolveTrapping, partyToken.leader),
+      bodyTopFrac: combatantBodyTopFrac(partyToken.leader),
       team: { color: HERO_RING[0] },
       subject: { kind: 'partyLeader', leader: partyToken.leader },
       ...NEUTRE,

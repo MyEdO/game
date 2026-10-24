@@ -21,9 +21,9 @@ import { buildTokenMap, applyTokenMap, tokensOf, type PaletteDeclaree } from '..
 import { CLASS_TENUE_BY_ID, SPECIFIC_TENUES } from './tenues';
 import { VIEWS, type View } from '../facing';
 import { equipDe, type EquipCtx } from '../../../noyau/equipementDessine';
-import { findTrappingById } from '../../../data';
 
-const empty: EquipCtx = equipDe(findTrappingById, [], []);
+
+const empty: EquipCtx = equipDe([], []);
 const TENUE_IDS = [...SPECIFIC_TENUES.map((t) => t.id), ...Object.keys(CLASS_TENUE_BY_ID)];
 const SHARED_SLOTS = ['pied', 'main'] as const;
 /** Bruns de l'art d'origine (pied système) — aucun ne doit survivre à une `botte` déclarée. */

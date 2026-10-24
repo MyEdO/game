@@ -22,7 +22,7 @@ import type { BodyPlan, WingState } from '../bodyPlan';
 import { planGroundPose, rigGroundPose, type GroundState, type Pose } from '../../groundPose';
 import { lerpPose, scalePose } from '../poses';
 import { STEP_MS } from '../../../geometry/walk';
-import type { TrappingResolver } from '../../../engine/items';
+
 
 // ————————————————————————————————————————————————————————————————
 // 1. DURÉES — les nombres jadis en dur dans `usePlanAnim`, nommés ici
@@ -160,13 +160,13 @@ export interface DefenseSelect extends CastRelation {
 }
 
 /** Geste d'attaque : incantation (style dérivé de la relation) ou arme employée, assis ou à pied. */
-export function rigAttackDef(resolveTrapping: TrappingResolver, ev: AttackSelect, ctx: RigSelectCtx): RigClipDef {
+export function rigAttackDef(ev: AttackSelect, ctx: RigSelectCtx): RigClipDef {
   if (ev.kind === 'spell') {
     const style = spellCastStyle(ev.casterKind, ev.targetKind, ev.isSelf);
     const cast = spellCastClip(style);
     return rigDef(`rig:cast:${style}:${seat(ctx.seated)}`, ctx.seated ? seatedClip(cast) : cast);
   }
-  const w = ev.weapon ? armeDeDessin(resolveTrapping, ev.weapon) : ctx.mainWeapon;
+  const w = ev.weapon ? armeDeDessin(ev.weapon) : ctx.mainWeapon;
   return rigDef(
     `rig:attack:${seat(ctx.seated)}:${weaponKey(w)}`,
     ctx.seated ? mountedAttackClip(w) : weaponAttackClip(w),
@@ -175,10 +175,10 @@ export function rigAttackDef(resolveTrapping: TrappingResolver, ev: AttackSelect
 
 /** Réaction défensive, ou `null` quand il n'y en a pas : une incantation de SOUTIEN reçue
  *  (soin/bénédiction) ne fait pas se dérober la cible. */
-export function rigDefenseDef(resolveTrapping: TrappingResolver, ev: DefenseSelect, ctx: RigSelectCtx): RigClipDef | null {
+export function rigDefenseDef(ev: DefenseSelect, ctx: RigSelectCtx): RigClipDef | null {
   if (ev.kind === 'spell' && isSupportiveCast(ev.casterKind, ev.targetKind, ev.isSelf)) return null;
   if (ev.defense === 'parade') {
-    const parade = ev.parryWeapon ? armeDeDessin(resolveTrapping, ev.parryWeapon) : undefined;
+    const parade = ev.parryWeapon ? armeDeDessin(ev.parryWeapon) : undefined;
     const w = parade ?? ctx.mainWeapon;
     const shield = parade ? parade.bouclier : !!ctx.shield;
     return rigDef(

@@ -129,7 +129,7 @@ export function tokenBodyKind(resolveTrapping: TrappingResolver, subject: TokenS
     // Un combattant de RIG n'existe ici qu'en DISQUE-PORTRAIT, quelle que soit la vue demandée : en iso,
     // le monde volumique le dessine (`sceneMeshes.actorBillboards`).
     if (r.kind === 'rig') {
-      const { appearance, equip, tenue, overlays } = rigDuCombattant(resolveTrapping, c);
+      const { appearance, equip, tenue, overlays } = rigDuCombattant(c);
       const f = faceFrame(appearance, equip, tenue, overlays);
       return { bodyKind: 'rig', speciesScale: r.scale, portraitBox: f.box, flat: true, body: f.body };
     }
@@ -142,7 +142,7 @@ export function tokenBodyKind(resolveTrapping: TrappingResolver, subject: TokenS
   // vue du dessus. Le corps porte le visage du MENEUR ; son cap, lui, ne passe jamais par ici — il se
   // lit à la clé publiée par `partyTokenOf` (`PartyToken.capKey`).
   if (subject.kind === 'partyLeader') {
-    const { appearance, equip, tenue, overlays } = rigDuCombattant(resolveTrapping, subject.leader);
+    const { appearance, equip, tenue, overlays } = rigDuCombattant(subject.leader);
     const f = faceFrame(appearance, equip, tenue, overlays);
     return { bodyKind: 'rig', speciesScale: 1, portraitBox: f.box, flat: true, body: f.body };
   }

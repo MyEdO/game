@@ -12,7 +12,7 @@ import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import { VIEWS, type View } from '../src/gameIso/rig/facing';
 import { bouclierDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
 import type { Weapon } from '../src/engine/types';
-import { itemFromGive } from '../src/engine/items';
+import { itemFromGive, weaponFromItem } from '../src/engine/items';
 import { raceAppearance, findTrappingById } from '../src/data';
 import { sexeSchema } from '../src/data/schemas/grammaire/valeurs';
 import { tenueLabel } from '../src/gameIso/rig/parts/career';
@@ -28,8 +28,8 @@ for (const id of [...TENUES_QC, 'soldat'])
 // Espèces de la planche : le registre `raceAppearance.json` fait foi (les races qui portent une
 // apparence de rig authorée). `label` ne sert que de légende.
 const SPECIES = raceAppearance.map((r) => ({ id: asRigSpeciesId(r.id), label: r.label }));
-const wep = (trappingId: string, type: 'melee' | 'ranged', apparence?: string): Weapon =>
-  ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId, ...(apparence && { apparence }) });
+const wep = (trappingId: string, apparence?: string): Weapon =>
+  weaponFromItem(itemFromGive({ trappingId, ...(apparence && { apparence: { id: apparence } }) }, undefined, findTrappingById));
 const plate = { ...itemFromGive({ trappingId: 'plastron' }), equipped: true };
 const helm = { ...itemFromGive({ trappingId: 'heaume' }), equipped: true };
 
@@ -47,25 +47,25 @@ function cell(label: string, app: Appearance, equip: EquipCtx, career: string, v
 const cells: string[] = [];
 for (const sp of SPECIES) {
   for (const sex of sexeSchema.options) {
-    cells.push(cell(`${sp.label} ${sex}`, { species: sp.id, sex, build: 0.5, seed: 7 }, equipDe(findTrappingById, [], []), 'soldat'));
+    cells.push(cell(`${sp.label} ${sex}`, { species: sp.id, sex, build: 0.5, seed: 7 }, equipDe([], []), 'soldat'));
   }
 }
 // variantes d'équipement (Humain M)
-cells.push(cell('Humain M + épée', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 }, equipDe(findTrappingById, [wep('arme-simple', 'melee')], []), 'soldat'));
-cells.push(cell('Humain M + hache+bouclier', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { ...equipDe(findTrappingById, [wep('arme-simple', 'melee', 'hache')], []), shield: bouclierDeDessin(findTrappingById, { trappingId: 'bouclier' }) }, 'soldat'));
-cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, equipDe(findTrappingById, [wep('arme-simple', 'melee')], [plate, helm]), 'soldat'));
-cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, equipDe(findTrappingById, [wep('baton-de-combat', 'melee')], []), 'sorcier'));
-cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe(findTrappingById, [wep('arme-simple', 'melee', 'hache')], []), 'soldat'));
+cells.push(cell('Humain M + épée', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 }, equipDe([wep('arme-simple')], []), 'soldat'));
+cells.push(cell('Humain M + hache+bouclier', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, { ...equipDe([wep('arme-simple', 'hache')], []), shield: bouclierDeDessin(itemFromGive({ trappingId: 'bouclier' }, undefined, findTrappingById)) }, 'soldat'));
+cells.push(cell('Humain M + plaque+heaume', { species: asRigSpeciesId('humain'), sex: 'M', build: 0.6, seed: 3 }, equipDe([wep('arme-simple')], [plate, helm]), 'soldat'));
+cells.push(cell('Humain F Sorcier + bâton', { species: asRigSpeciesId('humain'), sex: 'F', build: 0.4, seed: 5 }, equipDe([wep('baton-de-combat')], []), 'sorcier'));
+cells.push(cell('Nain M + hache', { species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('arme-simple', 'hache')], []), 'soldat'));
 
 // Facing : Soldat humain en 3 vues (ordre de `VIEWS`) — tranche verticale.
 for (const view of VIEWS) {
-  cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe(findTrappingById, [wep('arme-simple', 'melee')], []), 'soldat', view));
+  cells.push(cell(`Soldat ${view}`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe([wep('arme-simple')], []), 'soldat', view));
 }
 
 // Tenues par carrière (sans équipement → la tenue de la carrière s'affiche). Ids de garde-robe ;
 // le libellé ne sert que de légende (`tenueLabel`).
 for (const car of TENUES_QC) {
-  cells.push(cell(tenueLabel(car), { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe(findTrappingById, [], []), car));
+  cells.push(cell(tenueLabel(car), { species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 4 }, equipDe([], []), car));
 }
 
 // Ennemis humanoïdes riggés (classifieur + dérivation). Arme + tenue + mutations.
@@ -81,8 +81,8 @@ function enemyCell(name: string, view: View = 'front') {
     armour: { tete: 2, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 },
     skills: [], talents: [], movement: 4,
   } as Combatant;
-  const p = enemyRigProfile(findTrappingById, c);
-  if (!p) return cell(`${name} (sprite)`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5 }, equipDe(findTrappingById, [], []), 'soldat', view);
+  const p = enemyRigProfile(c);
+  if (!p) return cell(`${name} (sprite)`, { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5 }, equipDe([], []), 'soldat', view);
   const svg = renderToStaticMarkup(
     React.createElement('svg', { viewBox: '0 0 120 150', width: 110, height: 138 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
@@ -136,6 +136,6 @@ function standalone(app: Appearance, equip: EquipCtx, career: string) {
     ),
   );
 }
-writeFileSync('public/rig-sample-humain.svg', standalone({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 3 }, { ...equipDe(findTrappingById, [wep('arme-simple', 'melee')], []), shield: bouclierDeDessin(findTrappingById, { trappingId: 'bouclier' }) }, 'soldat'));
-writeFileSync('public/rig-sample-nain.svg', standalone({ species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe(findTrappingById, [wep('arme-simple', 'melee', 'hache')], []), 'soldat'));
+writeFileSync('public/rig-sample-humain.svg', standalone({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.55, seed: 3 }, { ...equipDe([wep('arme-simple')], []), shield: bouclierDeDessin(itemFromGive({ trappingId: 'bouclier' }, undefined, findTrappingById)) }, 'soldat'));
+writeFileSync('public/rig-sample-nain.svg', standalone({ species: asRigSpeciesId('nain'), sex: 'M', build: 0.7, seed: 9 }, equipDe([wep('arme-simple', 'hache')], []), 'soldat'));
 console.log(`OK: public/rig-gallery.html (${cells.length} cellules) + 2 svg autonomes`);

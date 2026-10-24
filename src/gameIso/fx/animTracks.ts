@@ -30,7 +30,7 @@ import {
   type RigSelectCtx,
 } from '../rig/anim/actorAnimSelect';
 import type { Weapon } from '../../engine/types';
-import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
+
 
 /**
  * Horloge du registre — SOURCE UNIQUE de temps pour `AnimTrack.start` et pour l'échantillonnage au
@@ -115,7 +115,7 @@ export function combatantAnimCtx(id: string): AnimActorCtx | undefined {
   const c = inBattleId(useGame.getState().battle, id);
   if (!c) return undefined;
   if (combatantRender(c).kind !== 'rig') return { voie: 'plan', kind: c.kind };
-  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equipementDessine(objetDuNarratif(useGame.getState().campaignNarratif), c)) };
+  return { voie: 'rig', kind: c.kind, rig: contexteDeGeste(equipementDessine(c)) };
 }
 
 /** Contexte de GESTE d'un bipède, lu de son équipement dessiné : l'arme que l'os `arme` porte, et la
@@ -147,8 +147,7 @@ function onAttack(d: AttackEvent): void {
   const atk: ClipDef =
     from.voie === 'plan'
       ? planAttackDef(d.creatureAttack)
-      : rigAttackDef(objetDuNarratif(useGame.getState().campaignNarratif),
-          { kind: d.kind, weapon: d.weapon, casterKind: from.kind, targetKind: to?.kind, isSelf: d.from === d.to },
+      : rigAttackDef({ kind: d.kind, weapon: d.weapon, casterKind: from.kind, targetKind: to?.kind, isSelf: d.from === d.to },
           from.rig ?? {},
         );
   // CIBLE de l'échange : `to === from` n'en est PAS une (le souffle d'une créature,
@@ -163,8 +162,7 @@ function onAttack(d: AttackEvent): void {
   const def: ClipDef | null =
     (to ?? FALLBACK_CTX).voie === 'plan'
       ? planFlinchDef()
-      : rigDefenseDef(objetDuNarratif(useGame.getState().campaignNarratif),
-          {
+      : rigDefenseDef({
             kind: d.kind,
             defense: d.defense,
             parryWeapon: d.parryWeapon,

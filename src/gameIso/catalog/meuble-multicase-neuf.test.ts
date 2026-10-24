@@ -13,7 +13,7 @@ import { validateScene } from '../../noyau/validateScene';
 import { buildOpaque } from '../../noyau/monde/vision';
 import { interactionHalos } from '../builders/interactHalos';
 import { buildProps } from '../builders/props';
-import { findTrappingById } from '../../data';
+
 
 /**
  * MEUBLE MULTI-CASE NEUF, ZÉRO LIGNE DE CODE (#1509) : une recette 3×1 NON carrée, OPAQUE, à trois
@@ -105,7 +105,7 @@ describe('meuble multi-case NEUF : la donnée suffit, aucune couture ne le conna
     expect(els[0].source === 'entity' && els[0].span).toEqual(attendue(facing));
 
     // HALO : l'utilisable est posté, et son halo épouse l'empreinte.
-    const halos = interactionHalos(findTrappingById, [], els, scene, {}, { survol: null, reveler: true });
+    const halos = interactionHalos([], els, scene, {}, { survol: null, reveler: true });
     expect(halos.map((x) => x.span)).toEqual([attendue(facing)]);
 
     // PLACES : trois places distinctes, abordées depuis une case LIBRE hors du corps.

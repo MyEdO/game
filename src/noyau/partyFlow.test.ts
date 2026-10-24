@@ -1,9 +1,10 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { choisirApparence, transferItem, toggleEquip, stowItem, setLoadoutSlot } from './partyFlow';
-import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue } from '../engine/items';
+import { itemFromTrappingById, recomputeLoadout, totalEncumbrance, avecObjet, activeLoadout, formeResolue, choisirApparenceDObjet, weaponItem } from '../engine/items';
 import type { Combatant, ItemInstance } from '../engine/types';
 import { setDataset } from '../data/overrides';
 import { emptyNarratif } from './monde/campaignNarratif';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { trappings, findTrappingById } from '../data';
 import type { Possession } from '../engine/possession';
 import type { Jeu } from './etat';
@@ -60,16 +61,19 @@ describe('choisirApparence — apparence d’un objet', () => {
     ['zweihander', 'epee'],
     ['apparence-inconnue', 'epee'],
   ])('cas canonique : apparence %s → forme %s', (apparence, forme) => {
-    const objet = { ...itemFromTrappingById('arme-simple')!, ...(apparence ? { apparence } : {}) };
+    const objet = itemFromTrappingById('arme-simple')!;
+    if (apparence) choisirApparenceDObjet(objet, apparence, findTrappingById);
     expect(formeResolue(objet)).toBe(forme);
   });
 
   it('admet la variante de l’objet de campagne puis retire son défaut local', () => {
     const hero = heroWithArmeSimple();
     const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: { id: 'hache' }, formChoices: ['hache'] };
-    hero.items![0].trappingId = objet.id;
+    const narratif = { ...emptyNarratif(), objets: [objet] };
+    hero.items = [{ ...itemFromTrappingById(objet.id, objetDuNarratif(narratif))!, uid: hero.items![0].uid, equipped: true }];
+    recomputeLoadout(hero);
     const { get, set } = makeHarness([hero]);
-    set({ campaignNarratif: { ...emptyNarratif(), objets: [objet] } });
+    set({ campaignNarratif: narratif });
     const uid = hero.items![0].uid;
     choisirApparence(get, set, hero.id, uid, 'hache_naine');
     expect(get().party[0].items![0].apparence).toBe('hache_naine');
@@ -84,6 +88,8 @@ describe('choisirApparence — apparence d’un objet', () => {
     choisirApparence(get, set, hero.id, uid, 'hache_naine');
     expect(get().party[0].items![0].apparence).toBe('hache_naine');
     expect(activeWeapon(get().party[0], uid)?.apparence).toBe('hache_naine');
+    expect(get().party[0].items![0]).toHaveProperty('shape', { id: 'hache' });
+    expect(activeWeapon(get().party[0], uid)).toHaveProperty('shape', { id: 'hache' });
     expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('hache');
   });
 
@@ -109,9 +115,8 @@ describe('choisirApparence — apparence d’un objet', () => {
   });
 
   it('l’arme invoquée garde priorité sur l’apparence', () => {
-    expect(formeResolue({ trappingId: 'arme-simple', apparence: 'hache_naine', form: 'baton-de-combat' }))
-      .toBe(formeResolue({ form: 'baton-de-combat' }));
-    expect(formeResolue({ form: 'baton-de-combat' })).toBeDefined();
+    const arme = weaponItem({ label: 'Arme invoquée', damage: { plusBF: true, flat: 4 }, trappingId: 'arme-simple', apparence: 'hache_naine', shape: findTrappingById('baton-de-combat')!.shape });
+    expect(formeResolue(arme)).toBe('baton');
   });
 
   it('pose item.apparence sur une racine admise', () => {
@@ -151,17 +156,17 @@ describe('choisirApparence — apparence d’un objet', () => {
     choisirApparence(get, set, hero.id, uid, 'masse');
     editerArmeSimple({ shape: { id: 'hache' } });
     const arme = activeWeapon(get().party[0], uid)!;
-    expect(formeResolue({ trappingId: 'arme-simple' }), 'la sonde mord : le catalogue a changé de forme').toBe('hache');
+    expect(formeResolue(itemFromTrappingById('arme-simple')!), 'la sonde mord : une nouvelle naissance prend la nouvelle forme').toBe('hache');
     expect(formeResolue(arme)).toBe('masse');
   });
 
-  it('#2113 — un choix sorti des `formChoices` du catalogue est ignoré : le catalogue l’emporte', () => {
+  it('le retrait d’une forme proposée ne change pas la forme déjà décidée sur l’objet', () => {
     const hero = heroWithArmeSimple();
     const uid = hero.items![0].uid;
     const { get, set } = makeHarness([hero]);
     choisirApparence(get, set, hero.id, uid, 'masse');
     editerArmeSimple({ formChoices: ['epee', 'hache'] });
-    expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('epee');
+    expect(formeResolue(activeWeapon(get().party[0], uid)!)).toBe('masse');
   });
 });
 

@@ -27,8 +27,8 @@ export const apparenceDObjetSchema = nommerChamps(z.looseObject({
   shape: ref('apparence', undefined, RACINE_D_APPARENCE).optional(),
   formChoices: refs('apparence', { sousListe: RACINE_D_APPARENCE }).optional(),
 }), {
-  shape: { label: 'Forme à l’écran', hint: 'Forme sous laquelle l’objet s’affiche dans l’apparence de son porteur', renduPur: true },
-  formChoices: { label: 'Formes proposées', hint: 'Formes visuelles alternatives que le joueur peut choisir pour cet objet' },
+  shape: { label: 'Forme racine', hint: 'Forme par défaut de l’objet, fixée sur l’instance à sa naissance' },
+  formChoices: { label: 'Formes proposées', hint: 'Formes racines parmi lesquelles l’apparence de l’objet peut être choisie' },
 });
 
 /** Une armure porte son TYPE d'armure : `subType` = id de la sous-liste `armour` des Groupes

@@ -4,7 +4,7 @@
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, apparencesCandidates, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
+import { emptyArmour, apparencesCandidates, choisirApparenceDObjet, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitList } from '../engine/statEntry';
 import type { EntityAppearance } from '../engine/authoringAppearance';
@@ -57,14 +57,13 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
   return out;
 }
 
-function objetDArme(resolveTrapping: TrappingResolver, w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ObjetDArme {
-  const source: SourceDeForme = apparence === undefined ? w : { ...w, apparence };
+function objetDArme(w: Weapon, maniement?: ContexteDeManiement): ObjetDArme {
   const bouclier = isShieldItem(w);
-  return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source, resolveTrapping), bouclier };
+  return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(w), bouclier };
 }
 
-export function armeDeDessin(resolveTrapping: TrappingResolver, w: Weapon, { apparence, ...maniement }: ContexteDeManiement & { apparence?: string } = {}): ArmeDeDessin {
-  return equipDe(resolveTrapping, [w], [], { ...maniement, apparenceDe: () => apparence }).weapons[0];
+export function armeDeDessin(w: Weapon, maniement: ContexteDeManiement = {}): ArmeDeDessin {
+  return equipDe([w], [], maniement).weapons[0];
 }
 /** Pièce d'armure dessinée : sa matière est son `subType`, qu'une pièce d'armure porte toujours (schéma de
  *  `trappings.json`, `synthArmour`) ; une pièce sans type d'armure est un état invalide, refusé. */
@@ -73,17 +72,17 @@ export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
   if (!estMatiere(matiere)) throw new Error(`pieceDeDessin : « ${it.uid} » n'a pas de type d'armure (subType « ${matiere ?? ''} »).`);
   return { ...projeter(it, CLES_PIECE), matiere };
 }
-export const bouclierDeDessin = (resolveTrapping: TrappingResolver, x: SourceDeForme): BouclierDeDessin => ({ candidats: apparencesCandidates(x, resolveTrapping) });
+export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ candidats: apparencesCandidates(x) });
 
 /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou
  *  `equipementDEntite`. */
-export function equipDe(resolveTrapping: TrappingResolver, weapons: Weapon[], armour: ItemInstance[], autres: { rangees?: Weapon[]; cape?: ItemInstance; apparenceDe?: (w: Weapon) => string | undefined } & ContexteDeManiement = {}): EquipCtx {
-  const { rangees = [], cape, apparenceDe, ...maniement } = autres;
+export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { rangees?: Weapon[]; cape?: ItemInstance } & ContexteDeManiement = {}): EquipCtx {
+  const { rangees = [], cape, ...maniement } = autres;
   // Pièces TRIÉES par matière décroissante : par slot, le rendu prend la 1re pièce qui le couvre → un
   // héros en cuir + mailles montre les mailles, la plate par-dessus tout.
   const pieces = armour.map(pieceDeDessin).sort((a, b) => RANG_DE_MATIERE[b.matiere] - RANG_DE_MATIERE[a.matiere]);
-  const dessiner = (w: Weapon) => objetDArme(resolveTrapping, w, maniement, apparenceDe?.(w));
+  const dessiner = (w: Weapon) => objetDArme(w, maniement);
   const libres = new Set<'main' | 'off'>(['main', 'off']);
   const dessins: { position: number; arme: ArmeDeDessin }[] = [];
   const surplus: { position: number; arme: ObjetDArme }[] = [];
@@ -151,23 +150,25 @@ function armesRangees(c: Combatant, maniement: ContexteDeManiement): Weapon[] {
   });
 }
 
-/** Choix d'auteur des armes sans instance : surcharge par trapping, puis record du porteur. */
-function apparenceDesArmes(override: Pick<EntityAppearance, 'apparencesObjets'> | undefined, creatureId: string | undefined, instances: readonly ItemInstance[] = []): ((w: Weapon) => string | undefined) | undefined {
+/** #2967 */
+export function deciderApparencesDesArmes(resolveTrapping: TrappingResolver, weapons: Weapon[], override: Pick<EntityAppearance, 'apparencesObjets'> | undefined, creatureId: string | undefined, instances: readonly ItemInstance[] = []): void {
   const auteur = override?.apparencesObjets;
   const record = findCreatureById(creatureId)?.appearance?.apparencesObjets;
-  if (!auteur && !record) return undefined;
   const uids = new Set(instances.map((i) => i.uid));
-  return (w) => (w.uid === undefined || !uids.has(w.uid)) && w.trappingId ? auteur?.[w.trappingId] ?? record?.[w.trappingId] : undefined;
+  for (const w of weapons) {
+    if (!w.trappingId || (w.uid !== undefined && uids.has(w.uid))) continue;
+    const apparence = auteur?.[w.trappingId] ?? record?.[w.trappingId];
+    if (apparence !== undefined) choisirApparenceDObjet(w, apparence, resolveTrapping);
+  }
 }
 
 /** Équipement DESSINÉ d'un combattant : ses armes tenues et rangées, ses pièces portées — sinon, armure de
  *  statbloc déclarée portée (`armurePorteeDe`), les pièces synthétisées de ses PA (`synthArmour`) —, sa cape. */
-export function equipementDessine(resolveTrapping: TrappingResolver, c: Combatant): EquipCtx {
+export function equipementDessine(c: Combatant): EquipCtx {
   const portees = piecesPortees(c);
   const maniement: ContexteDeManiement = { mounted: !!c.mountId };
-  return equipDe(resolveTrapping, c.weapons ?? [], portees.length ? portees : synthArmour(c.armour, armurePorteeDe(c.appearanceOverride, c.creatureId)), {
+  return equipDe(c.weapons ?? [], portees.length ? portees : synthArmour(c.armour, armurePorteeDe(c.appearanceOverride, c.creatureId)), {
     ...maniement, rangees: armesRangees(c, maniement), cape: (c.items ?? []).find((i) => i.equipped && isCapeItem(i)),
-    apparenceDe: apparenceDesArmes(c.appearanceOverride, c.creatureId, c.items),
   });
 }
 
@@ -189,12 +190,14 @@ export function armesDEntite(resolveTrapping: TrappingResolver, ref: string | un
   const traitWeapons = renderWeaponsFromTraits(opts.traits || opts.enrolled ? traits : [], resolveTrapping);
   const idWeaponInst = opts.weapon ? weaponFromId(opts.weapon, resolveTrapping) : undefined;
   const idWeapon = idWeaponInst && !traitWeapons.some((w) => w.type === idWeaponInst.type) ? [idWeaponInst] : [];
-  return [...idWeapon, ...traitWeapons];
+  const armes = [...idWeapon, ...traitWeapons];
+  deciderApparencesDesArmes(resolveTrapping, armes, opts, ref);
+  return armes;
 }
 
 /** Équipement dessiné du porteur d’auteur (#2948). */
 export function equipementDEntite(resolveTrapping: TrappingResolver, ref: string | undefined, opts: EquipementDAuteur = {}): EquipCtx {
   const traits = opts.traits ?? findCreatureById(ref)?.traits ?? [];
   const armourPA: ArmourPoints = opts.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
-  return equipDe(resolveTrapping, armesDEntite(resolveTrapping, ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)), { apparenceDe: apparenceDesArmes(opts, ref) });
+  return equipDe(armesDEntite(resolveTrapping, ref, opts), synthArmour(armourPA, armurePorteeDe(opts, ref)));
 }

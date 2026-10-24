@@ -28,14 +28,14 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 import type { ItemInstance, HitLocation } from '../../../src/engine/types';
 import { slugId } from '../../../src/data/slug';
 import { fichierDeDef, REGISTRE_TENUES, REGISTRE_ARMURES, REGISTRE_PARTS_MONSTRUEUSES, REGISTRE_ELEMENTS } from './registreDeDefs';
-import { findTrappingById } from '../../../src/data';
+
 
 export const SLOTS = ['tete', 'bras', 'torse', 'jambes', 'pied', 'main', 'cou'] as const;
 export type BodySlot = (typeof SLOTS)[number];
 /** Porteur d'art de corps : une tenue ou une armure (même `set`, même passage par `resolveParts`). */
 export interface Bearer { set: Partial<Record<BodySlot, PartArt>> }
 
-const NO_EQUIP: EquipCtx = equipDe(findTrappingById, [], []);
+const NO_EQUIP: EquipCtx = equipDe([], []);
 
 /** Vue DÉCLARÉE (`declaredView`, `viewArt.ts`) dont l'art n'est pas vide : ce que mesure le format. */
 export const isDrawnView = (art: PartArt | null | undefined, view: View): boolean => !!declaredView(art, view);
@@ -128,7 +128,7 @@ export function auditPartViews(): Audit {
   }
   for (const def of ARMOUR_DEFS) {
     const key = `armure:${def.id}`;
-    const equip: EquipCtx = equipDe(findTrappingById, [], [armourItem(def.id)]);
+    const equip: EquipCtx = equipDe([], [armourItem(def.id)]);
     // Sans tenue : l'armure couvre les 4 slots et PRIME de toute façon (`armed ?? tenuePart`).
     auditBearer(fichierDeDef(REGISTRE_ARMURES, def), key, def,
       (view) => resolveParts('Humain', 'M', undefined, equip, {}, 1, view), acc);

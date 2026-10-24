@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from '../../../src/hote/partie';
 import { combattantsTries } from '../../../src/hote/projection';
-import { equipementDessine, findTeinteById, objetDuNarratif } from '../../../src/noyau/index';
+import { equipementDessine, findTeinteById } from '../../../src/noyau/index';
 import { itemFromGive, weaponFromItem } from '../../../src/engine/items';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -40,14 +40,14 @@ function heros(apparence: string, main: 'main' | 'off' = 'main') {
   const etat = { ...origine, battle: structuredClone(origine.battle) };
   ouverte.partie.fermer();
   const c = etat.battle!.combatants.find(c => c.kind === 'hero')!;
-  const tenue = { ...itemFromGive({ trappingId: 'arme-simple' }), uid: 'tenue-l3', apparence };
-  const rangee = { ...itemFromGive({ trappingId: 'arme-simple' }), uid: 'rangee-l3', apparence: 'epee_ebrechee' };
-  const bouclier = { ...itemFromGive({ trappingId: 'bouclier' }), uid: 'bouclier-l3', apparence: 'bouclier_pointes' };
+  const tenue = { ...itemFromGive({ trappingId: 'arme-simple', apparence: { id: apparence } }), uid: 'tenue-l3' };
+  const rangee = { ...itemFromGive({ trappingId: 'arme-simple', apparence: { id: 'epee_ebrechee' } }), uid: 'rangee-l3' };
+  const bouclier = { ...itemFromGive({ trappingId: 'bouclier', apparence: { id: 'bouclier_pointes' } }), uid: 'bouclier-l3' };
   c.items = [tenue, rangee, bouclier];
   c.weapons = [weaponFromItem(tenue, main), ...(main === 'main' ? [weaponFromItem(bouclier, 'off')] : [])];
   c.loadouts = [main === 'main' ? { id: 'a', main: tenue.uid, off: bouclier.uid } : { id: 'a', off: tenue.uid }, { id: 'b', main: rangee.uid }];
   c.activeLoadoutId = 'a';
-  return { c, resolveTrapping: objetDuNarratif(etat.campaignNarratif), projete: combattantsTries(etat).find(p => p.id === c.id)! };
+  return { c, projete: combattantsTries(etat).find(p => p.id === c.id)! };
 }
 
 describe('équipement publié au pont Godot (#2948 L3)', () => {
@@ -64,8 +64,8 @@ describe('équipement publié au pont Godot (#2948 L3)', () => {
   });
 
   it('projette sans recalcul les candidats ordonnés, les rangées et le bouclier', () => {
-    const { c, resolveTrapping, projete } = heros('epee_ebrechee');
-    expect(projete.equipement).toEqual(equipementDessine(resolveTrapping, c));
+    const { c, projete } = heros('epee_ebrechee');
+    expect(projete.equipement).toEqual(equipementDessine(c));
     expect(projete.equipement.weapons.map(w => w.candidats)).toEqual([['epee_ebrechee', 'epee'], ['bouclier_pointes', 'rond']]);
     expect(projete.equipement.rangees[0].candidats).toEqual(['epee_ebrechee', 'epee']);
     expect(projete.equipement.shield?.candidats).toEqual(['bouclier_pointes', 'rond']);
@@ -128,8 +128,7 @@ describe('équipement publié au pont Godot (#2948 L3)', () => {
   });
 
   it('une arme à deux mains publie un seul montage dans sa main directrice', () => {
-    const resolveTrapping = objetDuNarratif(null);
-    const arme = equipementDessine(resolveTrapping, { weapons: [weaponFromItem(itemFromGive({ trappingId: 'zweihander' }))], items: [], armour: {} } as unknown as Parameters<typeof equipementDessine>[1]).weapons[0];
+    const arme = equipementDessine({ weapons: [weaponFromItem(itemFromGive({ trappingId: 'zweihander' }))], items: [], armour: {} } as unknown as Parameters<typeof equipementDessine>[0]).weapons[0];
     expect([arme.hand, arme.hands]).toEqual(['main', 2]);
     expect(premierModele(arme.candidats, INDEX_DES_APPARENCES, { emplacement: 'tenues', main: arme.hand })?.composants).toHaveLength(1);
   });

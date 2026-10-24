@@ -6,7 +6,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { Planche } from './Planche';
 import { ramenerEnVue } from './useRamenerEnVue';
 import { Tabs } from './composites/Tabs';
-import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, apparencesAdmissibles, apparencesCandidates } from '../engine/items';
+import { isWeaponActive, setADeuxMains, isOffHandEligible, maxEncumbrance, totalEncumbrance, apparencesAdmissibles, apparencesCandidates, choisirApparenceDObjet } from '../engine/items';
 import { OptionChooser } from './OptionChooser';
 import { ItemInstance, Combatant, CharKey, CHAR_KEYS, LOCALISATIONS_DE_COUP } from '../engine/types';
 import { effectiveChar, bonus } from '../engine/characteristics';
@@ -544,13 +544,13 @@ function ApparencePicker({ hero, it }: { hero: Combatant; it: ItemInstance }) {
   return (
     <div className="ir-form" title="Apparence">
       <MediaSelect
-        value={apparencesCandidates(it, resolveTrapping)[0]}
+        value={apparencesCandidates(it)[0]}
         title="Apparence"
-        options={choices.map((a) => ({
-          key: a.id,
-          media: <ItemIcon item={{ ...it, apparence: a.id }} size="sm" />,
-          label: a.label,
-        }))}
+        options={choices.map((a) => {
+          const apercu = { ...it };
+          choisirApparenceDObjet(apercu, a.id, resolveTrapping);
+          return { key: a.id, media: <ItemIcon item={apercu} size="sm" />, label: a.label };
+        })}
         onSelect={(id) => choisirApparence(hero.id, it.uid, id)}
       />
     </div>

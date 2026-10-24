@@ -448,11 +448,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   damageTaken?: number;
   /** Id de matière du domaine objet. */
   teinte?: string;
-  /** Silhouette de RENDU forcée : id de trapping du catalogue (ex. arme invoquée affichée comme
-   *  « Bâton de combat » bien que nommée « Arme aethyrique »), résolu par `formeResolue` (`engine/items`). */
-  form?: string;
-  /** Id du catalogue d’apparences porté par l’instance, propagé par `weaponFromItem`.
-   *  La forme dessinée se résout par `formeResolue` (#2113). */
+  /** #2967 */
   apparence?: string;
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue n'est dessinée (le rig
    *  rend le membre). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
@@ -1171,8 +1167,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** PORTÉE MINIMALE de tir (bande, cf. `Weapon.minRangeBand`) — propagée à l'arme dérivée. Machines de
    *  siège à distance (ADE II 8 l.251/253). */
   minRangeBand?: RangeBandId;
-  /** Id du catalogue `apparences` : décision du joueur ou de l’auteur, ou défaut de naissance
-   *  distinct de la racine. Absent : racine de la `shape` courante, résolue par `formeResolue` (#2113). */
+  /** #2967 */
   apparence?: string;
   /** Nombre de mains requises (1 ou 2), posé à la création par itemFromTrapping (marqueur `(2M)`). */
   hands?: 1 | 2;
@@ -1230,8 +1225,6 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Arme INVOQUÉE temporaire (op `grantWeapon`) : objet ordinaire mais TENU d'office (injecté en
    *  tête de `c.weapons` par recomputeLoadout) et retiré à l'expiration du Sort. */
   conjured?: boolean;
-  /** Silhouette de RENDU forcée (libellé d'arme du catalogue) — propagée à `Weapon.form`. */
-  form?: string;
   /** Valeur de marché PRÉ-CALCULÉE (butin récolté : pièces de monstre, Précieuses Entrailles ZI) —
    *  rareté × dangerosité × Taille × Conservation déjà nettes. Revendu en DIRECT (sans le taux de
    *  revente catalogue), cf. `merchantFlow.sellGain`. Absent pour un objet ordinaire (prix = catalogue). */

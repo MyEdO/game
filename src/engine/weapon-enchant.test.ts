@@ -52,8 +52,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     ['brise-epee', undefined, 'epee-de-justice', false],
     ['rapiere', undefined, 'epee-de-justice', true],
   ] as const)('forme résolue : %s (%s) sous %s → Magique %s', (trappingId, apparence, spellId, magique) => {
-    const item = itemFromGive({ trappingId });
-    if (apparence) item.apparence = apparence;
+    const item = itemFromGive({ trappingId, ...(apparence ? { apparence: { id: apparence } } : {}) });
     const c = wielder(item);
     const sp = findSpellById(spellId)!;
     const lignes = applyOps(c, spellOps(sp.effects, 'target'), {

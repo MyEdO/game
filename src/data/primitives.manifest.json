@@ -2002,20 +2002,20 @@
   {
     "id": "equipementDeDessin",
     "type": "primitives.manifest",
-    "label": "equipementDessine/equipementDEntite/armesDEntite/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
+    "label": "equipementDessine/equipementDEntite/armesDEntite/deciderApparencesDesArmes/EquipCtx/equipDe/armeDeDessin/pieceDeDessin/bouclierDeDessin/armePrincipale",
     "fichier": "src/noyau/equipementDessine.ts",
-    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, entrent dans une `SourceDeForme` temporaire pour les seules armes sans instance, sans modifier la `Weapon` persistée ; chaque constructeur reçoit un TrappingResolver obligatoire, injecté par l’hôte (campagne d’abord ou catalogue explicitement), sans défaut silencieux ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
+    "concept": "équipement DESSINÉ d'un porteur, sans art : PROJECTION de son état sur les clés que tout dessinateur lit (`CLES_ARME`, `CLES_PIECE`) et les valeurs résolues ou dérivées (`candidats` par `apparencesCandidates`, racine en dernière entrée, `engine/items.ts` ; `bouclier` ; `hands` par `weaponHands` ; `matiere` = id de type d'armure `subType`, posé par palier de PA sur l'armure de statbloc synthétisée) ; les choix `EntityAppearance.apparencesObjets`, keyés par trapping, passent à la naissance par `deciderApparencesDesArmes` puis `choisirApparenceDObjet` sur les armes réelles sans instance ; le dessin lit leur forme et leur apparence déjà décidées ; les constructions d’entité et décisions d’auteur reçoivent un TrappingResolver obligatoire, injecté par l’hôte ; le dessin d’un porteur déjà né consomme ses propriétés copiées sans résolveur ; un porteur se résout en UN appel — combattant `equipementDessine`, entité de scène `equipementDEntite` — qui seul lit l'armure portée (`armurePortee`, apparence d'auteur puis record) ; `rangees` = armes des sets non tenues (`objetDeSlot`, `isWeaponActive`) ; `equipDe` compose un mannequin d'armes et de pièces données — l'identité de dessin hache cette projection et elle seule ; l'art d'une matière se résout côté rig (`ART_DE_MATIERE`, `src/gameIso/rig/parts/equipment.ts`)",
     "perimetre": "tout producteur d'équipement dessiné (`equipementDessine`, `equipementDEntite`, `enemyRigProfile`, `entityRigProfile`, `rigDuCombattant`, galeries), tout lecteur du rig ou d'un hôte 3D (forme, maniement, clips, pièces)",
     "verrou": "src/noyau/equipementDessine.test.ts, src/hote/projection.hors-store.test.ts, src/noyau/armure-portee-guard.test.ts, src/gameIso/backends/webgl/identite-dessin.test.ts, src/gameIso/rig/parts/equipment.test.ts"
   },
   {
     "id": "formeResolue",
     "type": "primitives.manifest",
-    "label": "apparencesCandidates/apparencesAdmissibles/racineDesCandidats/formeResolue/SourceDeForme",
+    "label": "apparencesCandidates/apparencesAdmissibles/choisirApparenceDObjet/racineDesCandidats/formeResolue/SourceDeForme",
     "fichier": "src/engine/items.ts",
-    "concept": "CANDIDATS d’apparence d’un objet porté par id stable et résolveur explicite (catalogue par défaut, campagne d’abord quand elle est connue) : arme naturelle sans candidat, arme invoquée `form` vers sa forme seule, apparence admise par `shape` ou `formChoices` puis racine sans doublon, sinon `shape` du trapping — résolution unique ; `racineDesCandidats` lit la dernière entrée, racine de la forme dessinée, que `formeResolue` rend (#2113, #2948)",
+    "concept": "forme racine mécanique `shape` copiée à la naissance ; `choisirApparenceDObjet` admet une décision explicite par `shape` et `formChoices` de la fiche résolue, puis écrit la même racine et l’apparence sur l’instance ; les CANDIDATS de l’objet porté lisent cette racine et la variante compatible, sans relire la fiche ; une arme naturelle ne publie aucun candidat ; `racineDesCandidats` lit la dernière entrée, que `formeResolue` rend (#2967)",
     "perimetre": "tout lecteur d’une apparence ou de sa racine : rig (`armeDeDessin`, `bouclierDeDessin`), icône d’inventaire, sélecteur Apparence de la fiche et admission par `choisirApparence` via `apparencesAdmissibles`, outillage de recette (`__wfrp.battle`)",
-    "verrou": "src/engine/apparences-candidates.test.ts, src/engine/rendu-pur-jamais-recopie.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
+    "verrou": "src/engine/apparences-candidates.test.ts, src/noyau/partyFlow.test.ts, src/engine/creatureEquip.test.ts"
   },
   {
     "id": "admissionApparenceDObjet",
@@ -2023,7 +2023,7 @@
     "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/messageDApparenceDObjet",
     "fichier": "src/data/apparencesObjets.ts",
     "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; refus commun aux références d’auteur",
-    "perimetre": "apparencesCandidates/apparencesAdmissibles du moteur, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets",
+    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, apparencesAdmissibles du moteur, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
     "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {
@@ -2141,6 +2141,6 @@
     "fichier": "src/engine/items.ts",
     "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
     "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
-    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts, src/engine/rendu-pur-jamais-recopie.test.ts"
+    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts"
   }
 ]

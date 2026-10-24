@@ -19,9 +19,7 @@ import { defsGlobaux } from '../gameIso/sprites';
 import { Icon } from './Icon';
 import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { IconId } from './icons';
-import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { useGame } from '../state/store';
-import type { TrappingResolver } from '../engine/items';
+
 
 
 type Geom = 'weapon' | 'shield' | 'armor';
@@ -31,7 +29,7 @@ type Resolved = { art: string; geom: Geom } | { glyph: IconId };
 /** Ordre de préférence des emplacements pour l'aperçu d'une pièce d'armure (le torse = plus lisible). */
 const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
 
-function resolve(resolveTrapping: TrappingResolver, item: ItemInstance | Weapon): Resolved {
+function resolve(item: ItemInstance | Weapon): Resolved {
   if ('kind' in item) {
     if (item.kind === 'armor') {
       for (const slot of ARMOUR_SLOTS) {
@@ -41,8 +39,8 @@ function resolve(resolveTrapping: TrappingResolver, item: ItemInstance | Weapon)
       return { glyph: 'item/armour' };
     }
     if (item.kind === 'melee' || item.kind === 'ranged') {
-      if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(resolveTrapping, item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(resolveTrapping, weaponFromItem(item)))), 'front');
+      if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(weaponFromItem(item)))), 'front');
       return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
     }
     if (item.kind === 'ammo') return { glyph: 'item/ammo' };
@@ -51,8 +49,8 @@ function resolve(resolveTrapping: TrappingResolver, item: ItemInstance | Weapon)
     return { glyph: 'item/misc' };
   }
   // `Weapon` (combat) : pas de champ `kind` — discriminant de l'union.
-  if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(resolveTrapping, item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-  const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(resolveTrapping, item))), 'front');
+  if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+  const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(item))), 'front');
   return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
 }
 
@@ -74,10 +72,9 @@ const ROTATE = -40; // arme en diagonale (look inventaire) ; boucliers/armures r
 const VB_CACHE = new Map<string, string>();
 const cacheKey = (art: string, rotate: boolean) => (rotate ? 'r:' : 'n:') + art;
 
-export function ItemIcon({ item, size = 'sm', resolveTrapping: injected }: { item: ItemInstance | Weapon; size?: number | SizeKey; resolveTrapping?: TrappingResolver }) {
-  const resolveTrapping = useGame((s) => injected ?? objetDuNarratif(s.campaignNarratif));
+export function ItemIcon({ item, size = 'sm' }: { item: ItemInstance | Weapon; size?: number | SizeKey }) {
   useVersionDesDatasets();
-  const r = resolve(resolveTrapping, item);
+  const r = resolve(item);
   const px = typeof size === 'number' ? size : SIZE_PX[size];
   if ('glyph' in r) {
     return (

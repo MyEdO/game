@@ -34,7 +34,7 @@ describe('entityRigProfileFor — équipement d’une entité de scène (parité
     const prof = entityRigProfileFor(findTrappingById, e, true);
     const c = spawnEnemy({ statblock: e.statblock! }, e.id, e.pos, { appearance: e.appearance });
     expect(prof?.equip.weapons[0].candidats).toEqual(['hache_naine', 'hache']);
-    expect(equipementDessine(findTrappingById, c).weapons.map(w => w.candidats)).toEqual(prof?.equip.weapons.map(w => w.candidats));
-    expect(c.weapons[0]).not.toHaveProperty('apparence');
+    expect(equipementDessine(c).weapons.map(w => w.candidats)).toEqual(prof?.equip.weapons.map(w => w.candidats));
+    expect(c.weapons[0]).toMatchObject({ shape: { id: 'hache' }, apparence: 'hache_naine' });
   });
 });

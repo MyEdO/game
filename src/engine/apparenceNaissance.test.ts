@@ -19,7 +19,7 @@ describe('apparence décidée à la naissance', () => {
     const resolve = objetDuNarratif({ ...emptyNarratif(), objets: [objet] });
     const instance = itemFromGive({ trappingId: objet.id }, undefined, resolve, { espece: 'nains' });
     expect(instance.apparence).toBe('naissance-naine');
-    expect(apparencesCandidates(instance, resolve)).toEqual(['naissance-naine', 'hache']);
+    expect(apparencesCandidates(instance)).toEqual(['naissance-naine', 'hache']);
   });
 
   it('une apparence d’auteur de campagne est jugée sur sa définition de campagne', () => {

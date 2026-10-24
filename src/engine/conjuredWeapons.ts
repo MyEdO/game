@@ -6,12 +6,38 @@
  * réutilise donc entièrement la base d'armes (`itemFromTrapping`) et le loadout : seuls les Dégâts
  * (= BFM…) et l'Atout Magique sont surchargés par le Sort.
  */
-import { Combatant, ItemInstance } from './types';
+import { Combatant, ItemInstance, type EffectSource } from './types';
+import type { GameOp } from './ops';
+import type { TrappingResolver, WeaponSpec } from './items';
 import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmed, isShieldItem } from './items';
 import { hasQuality } from './qualities/dispatch';
 import { trappingsInstanciables, byId } from '../data';
 
 type ConjuredSet = NonNullable<NonNullable<Combatant['activeEffects']>[number]['conjuredSet']>;
+
+/** #2967 */
+export function specDArmeInvoquee(
+  resolveTrapping: TrappingResolver,
+  op: Extract<GameOp, { op: 'grantWeapon' }>,
+  flat: number,
+  source: EffectSource | undefined,
+  form: ConjureForm | null,
+): WeaponSpec & { conjured: true } {
+  const modele = form ? resolveTrapping(form.weapon) : op.form ? resolveTrapping(op.form.id) : undefined;
+  return {
+    label: form ? `${op.label} (${modele?.label ?? form.weapon})` : op.label,
+    damage: { plusBF: !!op.plusBF, flat },
+    subType: form ? (modele?.subType ?? undefined) : op.subType?.id,
+    reach: form ? modele?.reach : (op.reach ?? null),
+    hands: form ? (modele?.hands ?? 1) : (op.hands ?? 1),
+    qualities: (op.qualities ?? []).map((id) => ({ id })),
+    conjured: true,
+    uid: { prefix: 'conjure' },
+    ...(op.teinte ? { teinte: op.teinte.id } : {}),
+    shape: modele?.shape,
+    source,
+  };
+}
 
 /** Pose l'objet invoqué dans un SET d'armes DÉDIÉ (« Arme invoquée ») et l'active — l'arme devient
  *  l'arme du set actif, convertie par `recomputeLoadout` comme toute arme tenue (zéro injection

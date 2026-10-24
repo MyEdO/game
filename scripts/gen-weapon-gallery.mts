@@ -16,7 +16,7 @@ import { trappingsInstanciables, weaponGroups } from '../src/data';
 import { assertWardrobeId } from './_lib-wardrobe';
 import type { Weapon } from '../src/engine/types';
 import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
-import { findTrappingById } from '../src/data';
+
 
 // Groupes de COMBAT du registre canonique (`weaponGroups.json` — `combat` renseigné) : le
 // générateur lit les IDS, `label` ne sert qu'au titre de rubrique ; une arme porte l'id de son Groupe
@@ -35,8 +35,8 @@ assertWardrobeId(MANNEQUIN, 'weapon-gallery');
 
 function fig(w: Weapon, shield = false) {
   const equip = shield
-    ? { ...equipDe(findTrappingById, [], []), shield: bouclierDeDessin(findTrappingById, w) }
-    : equipDe(findTrappingById, [w], []);
+    ? { ...equipDe([], []), shield: bouclierDeDessin(w) }
+    : equipDe([w], []);
   const svg = renderToStaticMarkup(
     React.createElement('svg', { viewBox: '0 0 120 150', width: 92, height: 115 },
       React.createElement('defs', { dangerouslySetInnerHTML: { __html: defsGlobaux() } }),
@@ -44,7 +44,7 @@ function fig(w: Weapon, shield = false) {
       React.createElement(RigSprite, { comp: rigComposition({ species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 4 }, equip, MANNEQUIN) }),
     ),
   );
-  const fam = shield ? 'bouclier' : weaponFamily(armeDeDessin(findTrappingById, w)) || '(mains nues)';
+  const fam = shield ? 'bouclier' : weaponFamily(armeDeDessin(w)) || '(mains nues)';
   return `<figure style="margin:0;text-align:center"><div>${svg}</div>
     <figcaption style="color:#cdd;font:10.5px sans-serif">${w.label}<br><span style="color:#8a93a6">[${fam}]</span></figcaption></figure>`;
 }
@@ -56,7 +56,7 @@ for (const g of GROUPS) {
   const cells = ws
     .map((t) => {
       const w = weaponFromItem(itemFromTrappingById(t.id)!);
-      return fig(w, armeDeDessin(findTrappingById, w).bouclier);
+      return fig(w, armeDeDessin(w).bouclier);
     })
     .join('');
   body += `<h2 style="color:#d8a93b;font:14px sans-serif;margin:18px 0 6px">${g.label} <span style="color:#6a7384;font-size:11px">(${ws.length})</span></h2>

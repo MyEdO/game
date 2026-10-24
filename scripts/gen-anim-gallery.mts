@@ -1,9 +1,4 @@
-/**
- * Galerie ANIMÉE des animations par arme (SVG + CSS, pas de GIF) : pour chaque arme canonique
- * (une par CLASSE DE MANIEMENT), le rig joue en boucle « porté » (statique) · « attaque » ·
- * « parade ». 1 rig + @keyframes CSS par os mobile (cf. _lib-anim-rig). Forme résolue par
- * `trappingId` (`formeResolue`), geste naturel par `attackKind`. Lancer : npx tsx scripts/gen-anim-gallery.mts → public/anim-gallery.html
- */
+/** #2967 */
 import type { Pose } from '../src/gameIso/rig/poses';
 import { writeFileSync } from 'node:fs';
 import { resolveRig } from '../src/gameIso/rig/composeRig';
@@ -20,7 +15,7 @@ import { armeDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDes
 import { itemFromTrappingById, weaponFromItem } from '../src/engine/items';
 import { weaponFromTrait } from '../src/engine/creatureEquip';
 import { assertWardrobeId } from './_lib-wardrobe';
-import { findTrappingById } from '../src/data';
+
 
 // Mannequin de la planche : ID de garde-robe (carrière ∪ classe ∪ tenue), validé fail-fast —
 // un id qui retombe sur « nu » déshabillerait toutes les tuiles en silence (#1338).
@@ -77,8 +72,8 @@ const rows: string[] = [];
 for (const arme of WEAPONS) {
   const name = arme.label;
   const w = wep(arme);
-  const equip: EquipCtx = equipDe(findTrappingById, [w], []);
-  const dessin = armeDeDessin(findTrappingById, w);
+  const equip: EquipCtx = equipDe([w], []);
+  const dessin = armeDeDessin(w);
   const hold = weaponRest(dessin);
   const cells = [
     still(w, equip, hold, 'porté'),

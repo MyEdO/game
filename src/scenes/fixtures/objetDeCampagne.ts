@@ -16,5 +16,5 @@ export function porteurDObjetDeCampagne(apparence: string, proprietes: Partial<T
   const set = loadoutCreate(hero);
   loadoutSetSlot(hero, set, 'main', item.uid);
   recomputeLoadout(hero);
-  return { objet, narratif, resolveTrapping, item, hero, candidats: apparencesCandidates(item, resolveTrapping) };
+  return { objet, narratif, resolveTrapping, item, hero, candidats: apparencesCandidates(item) };
 }

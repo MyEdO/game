@@ -22,7 +22,8 @@ import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { Icon } from '../Icon';
 import type { Weapon } from '../../engine/types';
-import { apparencesAdmissibles, apparencesCandidates, type TrappingResolver } from '../../engine/items';
+import { apparencesAdmissibles, type TrappingResolver } from '../../engine/items';
+import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { MediaSelect } from '../MediaSelect';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 
@@ -44,7 +45,7 @@ export function ApparencesObjetsField({ appearance, onChange, weapons, resolveTr
       <MediaSelect
         title={`Apparence — ${resolveTrapping(id)?.label ?? id}`}
         triggerClassName="btn"
-        value={apparencesCandidates({ trappingId: id, apparence: appearance.apparencesObjets?.[id] }, resolveTrapping)[0]}
+        value={candidatsDApparenceDObjet(id, appearance.apparencesObjets?.[id], resolveTrapping)[0]}
         options={choices.map((a) => ({ key: a.id, label: a.label }))}
         onSelect={(choix) => {
           const record = { ...appearance.apparencesObjets };

@@ -24,7 +24,7 @@ import { presetPnjById } from '../../state/campaignData';
 import { RING_A_PX } from './dynamicMarks';
 import { ancrageDuDecor, ancrageDuJeton, type Ancrage } from './tokenChrome';
 import type { PropEl, TokenEl } from './types';
-import type { TrappingResolver } from '../../engine/items';
+
 
 /** GABARIT des halos en PIXELS de la projection iso (`geometry/iso`) — l'échelle de référence dont le
  *  monde volumique tire ses rayons monde (`haloRadiusK`). Le demi-axe ry y vaut la moitié de rx :
@@ -133,11 +133,11 @@ function entiteDuJeton(tk: TokenEl): string | null {
 /** Les corps postés de la frame, jetons puis décors. Un jeton ÉMIS est en vue par construction (les
  *  hors-vue sont COUPÉS en amont, `builders/tokens.buildTokens`) et le dit par le même champ que le
  *  décor : une seule vérité de visibilité pour les deux familles. */
-function corpsPostes(resolveTrapping: TrappingResolver, tokenEls: readonly TokenEl[], propEls: readonly PropEl[]): CorpsPoste[] {
+function corpsPostes(tokenEls: readonly TokenEl[], propEls: readonly PropEl[]): CorpsPoste[] {
   const out: CorpsPoste[] = [];
   for (const tk of tokenEls) {
     const entId = entiteDuJeton(tk);
-    const a = entId ? ancrageDuJeton(resolveTrapping, tk) : null;
+    const a = entId ? ancrageDuJeton(tk) : null;
     if (!entId || !a) continue;
     out.push({ entId, ancrage: a, span: { w: a.n, h: a.n }, visible: tk.states.visible });
   }
@@ -159,7 +159,6 @@ function corpsPostes(resolveTrapping: TrappingResolver, tokenEls: readonly Token
  * porte `__action_<entId>_<actionId>` et n'appelle plus), `regime` = ce que la frame en montre.
  */
 export function interactionHalos(
-  resolveTrapping: TrappingResolver,
   tokenEls: readonly TokenEl[],
   propEls: readonly PropEl[],
   scene: Scene,
@@ -171,7 +170,7 @@ export function interactionHalos(
   const parId = new Map<string, SceneEntity>();
   for (const e of scene.entities) if (!parId.has(e.id)) parId.set(e.id, e);
   const out: InteractHalo[] = [];
-  for (const corps of corpsPostes(resolveTrapping, tokenEls, propEls)) {
+  for (const corps of corpsPostes(tokenEls, propEls)) {
     const ent = parId.get(corps.entId);
     if (!ent || !estUtilisable(scene, ent, flags)) continue;
     const foot = decorFootGeometry(corps.span);

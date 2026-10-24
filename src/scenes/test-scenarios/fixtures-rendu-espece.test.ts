@@ -66,8 +66,8 @@ describe('scénarios de test — aucun personnage sans espèce résolue (#936)',
 
   it('le mannequin d’entraînement rend le MÊME profil qu’avant l’espèce posée (seules la chaîne species et le tirage individuel de sa race changent)', () => {
     const sb = { type: 'statblock' as const, label: "Mannequin d'entraînement", char: { M: 0, endurance: 35, B: 40 } };
-    const avant = enemyRigProfile(findTrappingById, spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }));
-    const apres = enemyRigProfile(findTrappingById, spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }, { appearance: { species: 'humains-reiklander' } }));
+    const avant = enemyRigProfile(spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }));
+    const apres = enemyRigProfile(spawnEnemy({ statblock: sb }, 'm', { x: 0, y: 0 }, { appearance: { species: 'humains-reiklander' } }));
     expect(apres?.appearance.species).toBe('humains-reiklander');
     // `uid` d'objet = compteur de PROCESSUS (`w-it-<n>`) : sa valeur dépend de tout ce qui a spawné avant
     // dans le fichier de test ET de l'ordre de la suite. Toute comparaison de profil le neutralise.

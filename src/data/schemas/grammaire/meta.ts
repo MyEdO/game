@@ -23,9 +23,6 @@ export interface MetaChamp {
   widget?: string;
   /** Rang d'affichage dans le formulaire ; à défaut, l'ordre de déclaration des `champs`. */
   ordre?: number;
-  /** RENDU PUR : la valeur ne sert qu'à l'apparence. Une instance ne la recopie jamais, son dessin la
-   *  résout au catalogue courant (#2113) — garde `src/engine/rendu-pur-jamais-recopie.test.ts`. */
-  renduPur?: true;
 }
 
 /** Méta EXIGÉE pour chaque clé de `champs` d'un document — une clé de moins = erreur de type. */

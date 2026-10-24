@@ -26,12 +26,12 @@ import { creatureToCombatant } from '../../../noyau/monde/spawn';
 import { actorDrawInputs } from '../../backends/webgl/sceneMeshes';
 import { resolveRig } from '../composeRig';
 import { bonesToSvg } from '../renderBones';
-import { findTrappingById } from '../../../data';
+
 
 describe('golden — rendu COMBAT (spawn→enemyRigProfile→visuels d’état) du bestiaire bipède', () => {
   for (const cr of creatures) {
     const c = creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 });
-    const rig = actorDrawInputs(findTrappingById, c).rig;
+    const rig = actorDrawInputs(c).rig;
     if (!rig) continue; // non-bipède → chemin plan (couvert par creature-render-golden)
     for (const view of VIEWS)
       it(`${cr.label} / ${view}`, () => {

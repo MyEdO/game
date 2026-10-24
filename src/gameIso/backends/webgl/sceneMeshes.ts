@@ -1056,12 +1056,12 @@ export interface ActorDrawInputs {
 
 /** Entrées de dessin d'un combattant : profil d'ennemi ou inventaire propre, garde-robe, calques
  *  d'état (mutations, blessures, métamorphose vivante), pose au sol, échelle de jeton. */
-export function actorDrawInputs(resolveTrapping: TrappingResolver, c: Combatant): ActorDrawInputs {
+export function actorDrawInputs(c: Combatant): ActorDrawInputs {
   const render = combatantRender(c);
   const ground = groundStateOf(c);
   const scaleK = combatantTokenScale(c);
   if (render.kind !== 'rig') return { render, ground, scaleK, plan: planOptsForRecord(c.creatureId, c.appearanceOverride) };
-  return { render, ground, scaleK, rig: rigDuCombattant(resolveTrapping, c) };
+  return { render, ground, scaleK, rig: rigDuCombattant(c) };
 }
 
 /** Entrées de dessin d'un FIGURANT de scène : la MÊME valeur que celles d'un acteur, résolue par la
@@ -1102,8 +1102,8 @@ function drawSnapshot(inputs: ActorDrawInputs, riderInputs: ActorDrawInputs | un
   };
 }
 
-function actorSnapshot(resolveTrapping: TrappingResolver, p: ActorPose): DrawSnapshot {
-  return drawSnapshot(actorDrawInputs(resolveTrapping, p.c), p.rider ? actorDrawInputs(resolveTrapping, p.rider) : undefined, p.seat);
+function actorSnapshot(p: ActorPose): DrawSnapshot {
+  return drawSnapshot(actorDrawInputs(p.c), p.rider ? actorDrawInputs(p.rider) : undefined, p.seat);
 }
 
 /** Sérialisation DÉTERMINISTE : clés TRIÉES et champs absents omis — deux résolutions de mêmes entrées
@@ -1123,8 +1123,8 @@ function signatureDe(s: DrawSnapshot): string {
 
 /** SIGNATURE de dessin d'un acteur : celle de son instantané (`DrawSnapshot`, #2097). Consommée par
  *  l'identité de texture (`actorBillboards`), `actorIdentityKey` et `actorPoseKey`. */
-export function actorRenderSignature(resolveTrapping: TrappingResolver, p: ActorPose): string {
-  return signatureDe(actorSnapshot(resolveTrapping, p));
+export function actorRenderSignature(p: ActorPose): string {
+  return signatureDe(actorSnapshot(p));
 }
 
 /** L'uniforme de cadre d'un matériau de corps, tel que l'écrivain de frames (`stage/boardPose`) le pilote. */
@@ -1153,8 +1153,8 @@ export function idsDeLActeur(identite: string): string[] {
 
 /** Clé de MÉMO d'un acteur du monde volumique (`stage/VolumetricWorld`) : son identité
  *  (`actorIdentityKey`), plus la case, le cap et le sol de sa place — l'ancre du quad. */
-export function actorPoseKey(resolveTrapping: TrappingResolver, p: ActorPose): string {
-  return `${actorIdentityKey(resolveTrapping, p)}:${p.x},${p.y},${p.z}:${capActeur(p)}${p.seat ? `:${p.seat.ground}` : ''}`;
+export function actorPoseKey(p: ActorPose): string {
+  return `${actorIdentityKey(p)}:${p.x},${p.y},${p.z}:${capActeur(p)}${p.seat ? `:${p.seat.ground}` : ''}`;
 }
 
 /** Cap MONDE servi au quad d'un acteur : celui de sa PLACE s'il est assis (le corps regarde la table,
@@ -1177,8 +1177,8 @@ function capActeur(p: ActorPose): Dir8 {
  *
  * Même valeur que l'identité de texture du sujet (`actorBillboards`), préfixe `acteur:` en moins.
  */
-export function actorIdentityKey(resolveTrapping: TrappingResolver, p: ActorPose): string {
-  return cléActeur(p, actorRenderSignature(resolveTrapping, p));
+export function actorIdentityKey(p: ActorPose): string {
+  return cléActeur(p, actorRenderSignature(p));
 }
 
 /** Ancre PIEDS (mètres) et CASE d'un acteur posé — la SEULE définition de cette géométrie, partagée
@@ -1407,14 +1407,14 @@ function tiltFracAtFrame(k: number, n: number): number {
  *  La BASCULE d'un corps au sol y est portée par `rigGroundTilt` (#1334) : un hors de combat est À
  *  TERRE, et la pose d'os seule ne le couche pas — un rig sous `CORPSE_POSE` sans rotation reste
  *  DEBOUT, membres écartés (mesuré à l'écran : un Gobelin mis hors de combat restait planté). */
-export function actorBillboards(resolveTrapping: TrappingResolver, actors: readonly ActorPose[], scene: Scene, mpt: number): BillboardSubject[] {
+export function actorBillboards(actors: readonly ActorPose[], scene: Scene, mpt: number): BillboardSubject[] {
   const defs = `<defs>${defsGlobaux()}</defs>`;
   const out: BillboardSubject[] = [];
   for (const p of actors) {
     const { c, x, y, z, facing, rider, heroIndex, seat } = p;
     if (isStructure(c)) continue;
     // INSTANTANÉ du sujet (`DrawSnapshot`) : tout ce que ses fermetures liront, copié une fois ici.
-    const instantané = structuredClone(actorSnapshot(resolveTrapping, p));
+    const instantané = structuredClone(actorSnapshot(p));
     const { inputs, riderInputs } = instantané;
     const { render: r, ground } = inputs;
     // Couple MONTÉ : UN sujet composite (jamais deux quads superposés), à la case et à l'échelle de

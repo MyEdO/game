@@ -30,6 +30,7 @@ import { groupsFor } from '../../engine/groups';
 import { weaponsFromTraits, armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../../engine/creatureEquip';
 import { hashSeed } from '../../engine/dice';
 import { bodyShapeForSpecies } from '../../engine/bodyForm';
+import { deciderApparencesDesArmes } from '../equipementDessine';
 
 /**
  * Pose la position d'un combattant en RAFRAÎCHISSANT sa hauteur métrique (`pos.h`) depuis le relief de
@@ -469,6 +470,7 @@ export function spawnEnemy(
       c.weapons = [idWeapon, ...c.weapons];
     }
   }
+  deciderApparencesDesArmes(findTrappingById, c.weapons, c.appearanceOverride, c.creatureId, c.items);
   // Arme à distance CHARGÉE au spawn (miroir du héros dans startCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).

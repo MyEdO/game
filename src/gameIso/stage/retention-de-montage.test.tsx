@@ -12,7 +12,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type * as THREE from 'three';
 import { emptyScene, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
 import { createHero } from '../../engine/character';
-import type { Combatant, Weapon } from '../../engine/types';
+import type { Combatant } from '../../engine/types';
 import type { ActorPose, KeepEl, SceneBillboardEls, TintAt } from '../backends/webgl/sceneMeshes';
 import { GameStage3D, setStageRendererFactory, type PercageEntrees, type StageFrame, type StageWalkAnim } from './GameStage3D';
 import * as atlasBake from '../backends/webgl/atlasBake';
@@ -20,7 +20,7 @@ import * as spriteRaycast from '../backends/webgl/spriteRaycast';
 import { targetUnderPointer } from './spritePicker';
 import * as percageModule from './percage';
 import { actorCapsuleOf } from './actorCapsule';
-import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, quads, respirer, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
+import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, hérosAvecArme, quads, respirer, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
 import { idsDeLActeur } from '../backends/webgl/sceneMeshes';
 import { findTrappingById } from '../../data';
 
@@ -49,13 +49,9 @@ const anim: StageWalkAnim = {
   cam: () => ({ x: 6, y: 6 }),
 };
 
-/** Le même héros, tenant l'arme `trappingId` du catalogue : sa forme se résout au catalogue (#2113),
- *  changer d'arme change son dessin. */
+// #2967
 const BASE = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 5 });
-function héros(trappingId: string): Combatant {
-  const arme = ({ uid: 'w1', trappingId, label: 'Arme', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] } satisfies Partial<Weapon>) as Weapon;
-  return { ...BASE, id: 'h1', weapons: [arme] } as Combatant;
-}
+const héros = (trappingId: string): Combatant => hérosAvecArme(BASE, trappingId);
 const pose = (c: Combatant): ActorPose[] => [{ c, x: 4, y: 4, z: 0, facing: 'S' }];
 
 /** Monture réelle du bestiaire (id STABLE) et son cavalier `h1`. */

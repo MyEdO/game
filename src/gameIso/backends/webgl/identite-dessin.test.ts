@@ -16,7 +16,7 @@ import { emptyScene, sceneMetresPerTile, type SceneEntity } from '../../../noyau
 import type { SeatPose } from '../../../noyau/monde/seating';
 import type { TokenEl } from '../../builders/types';
 import { createHero } from '../../../engine/character';
-import { itemFromTrappingById, unloadWeapon, weaponFromItem } from '../../../engine/items';
+import { buildWeapon, choisirApparenceDObjet, itemFromTrappingById, unloadWeapon, weaponFromItem } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { setDataset } from '../../../data/overrides';
 import { abonnerAuxDatasets } from '../../../data/versionDataset';
@@ -30,14 +30,14 @@ import { findTrappingById } from '../../../data';
 const scene = emptyScene('scene-test', 8, 8);
 const mpt = sceneMetresPerTile(scene);
 const pose = (c: Combatant, seat?: SeatPose): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S', ...(seat ? { seat } : {}) });
-const sujet = (p: ActorPose): BillboardSubject => actorBillboards(findTrappingById, [p], scene, mpt)[0];
+const sujet = (p: ActorPose): BillboardSubject => actorBillboards([p], scene, mpt)[0];
 
 /** Tous les couples (vue, sens) d'un sujet, repos ET frame de geste. */
 const couples = VIEWS.flatMap((view) => [false, true].map((mirror) => ({ view, mirror })));
 const dessins = (s: BillboardSubject): string[] =>
   couples.flatMap(({ view, mirror }) => [s.svg(view, mirror, 0), s.frameSvg?.(view, mirror, rigIdleDef(), 1, 8) ?? '']);
 
-/** Arme dont la FORME vient du catalogue (`form` → `findTrappingById(...).shape`), et une autre forme connue. */
+/** #2967 */
 const slugs = new Set(WEAPON_DEFS.map((d) => d.slug));
 const armeDeCatalogue = trappings.find((t) => t.shape && slugs.has(t.shape.id))!;
 const autreForme = [...slugs].find((s) => s !== armeDeCatalogue.shape?.id)!;
@@ -59,7 +59,7 @@ function arbalétrier(): Combatant {
 
 function porteurDeCatalogue(): Combatant {
   const h = arbalétrier();
-  h.weapons = [{ label: 'x', type: 'melee', group: 'basic', damage: 4, form: armeDeCatalogue.id } as unknown as Weapon];
+  h.weapons = [buildWeapon({ label: 'x', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById(armeDeCatalogue.id)!.shape })];
   return h;
 }
 
@@ -107,17 +107,18 @@ const MUTATIONS: { nom: string; porteur: () => Combatant; muter: (c: Combatant) 
     dessinChange: false,
     muter: (c) => void (c.weapons[0].qualities = [...c.weapons[0].qualities, { id: 'de-plaies-atroces' }]),
   },
-  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = formeAlternative), dessinChange: true },
+  { nom: 'forme de l’arme choisie en place', porteur: porteurDArmeSimple, muter: (c) => void choisirApparenceDObjet(c.weapons[0], formeAlternative, findTrappingById), dessinChange: true },
   { nom: 'variante admise de même racine', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = 'epee_ebrechee'), dessinChange: false, identiteChange: true },
   { nom: 'apparence non admise ignorée', porteur: porteurDArmeSimple, muter: (c) => void (c.weapons[0].apparence = 'zweihander'), dessinChange: false },
   { nom: 'arme retirée en place', porteur: arbalétrier, muter: (c) => void c.weapons.splice(0, 1), dessinChange: true },
   {
     nom: 'setDataset (forme d’arme au catalogue)',
     porteur: porteurDeCatalogue,
-    dessinChange: true,
+    dessinChange: false,
+    identiteChange: true,
     muter: () => setDataset('trappings', trappings.map((t) => (t.id === armeDeCatalogue.id ? { ...t, shape: { id: autreForme } } : t))),
   },
-  { nom: 'setDataset (forme de l’arme PORTÉE, par `trappingId`)', porteur: arbalétrier, muter: () => éditerLaForme('arbalete', 'hache_lancer'), dessinChange: true },
+  { nom: 'setDataset (forme de l’arme PORTÉE, par `trappingId`)', porteur: arbalétrier, muter: () => éditerLaForme('arbalete', 'hache_lancer'), dessinChange: false, identiteChange: true },
 ];
 
 describe('un sujet est une VALEUR, et son identité suit sa projection de dessin', () => {
@@ -140,7 +141,7 @@ describe('#2097 — les trois états du tir (chargée, déchargée, rechargée) 
     const états: { identity: string; clés: string[]; dessins: string[] }[] = [];
     const relever = () => {
       const s = sujet(pose(c));
-      états.push({ identity: s.identity, clés: [actorPoseKey(findTrappingById, pose(c)), actorIdentityKey(findTrappingById, pose(c))], dessins: dessins(s) });
+      états.push({ identity: s.identity, clés: [actorPoseKey(pose(c)), actorIdentityKey(pose(c))], dessins: dessins(s) });
     };
     relever();
     unloadWeapon(c, c.weapons[0]);
@@ -155,24 +156,22 @@ describe('#2097 — les trois états du tir (chargée, déchargée, rechargée) 
   });
 });
 
-describe('#2113 B1 — forme d’arme changée au catalogue : le dessin change, donc les TROIS clés de l’acteur', () => {
+describe('forme racine née : une édition de fiche ne repeint pas le porteur', () => {
   const PORTEURS: [string, () => Combatant, () => void][] = [
     ['arme invoquée (`form`)', porteurDeCatalogue, () => éditerLaForme(armeDeCatalogue.id, autreForme)],
     ['arme portée de catalogue (`trappingId`, #2113 S1)', arbalétrier, () => éditerLaForme('arbalete', 'hache_lancer')],
     ['arme portée à formes proposées, sans choix (`formChoices`)', porteurDArmeSimple, () => éditerLaForme('arme-simple', formeAlternative)],
   ];
   for (const [nom, porteur, éditer] of PORTEURS)
-    it(`${nom} : identité de texture, actorPoseKey et actorIdentityKey suivent l’édition du catalogue`, () => {
+    it(`${nom} : seul un nouveau porteur prend la forme éditée`, () => {
       const c = porteur();
       const s = sujet(pose(c));
       const avant = dessins(s);
-      const clés = [actorPoseKey(findTrappingById, pose(c)), actorIdentityKey(findTrappingById, pose(c))];
       éditer();
-      const neuf = sujet(pose(c));
-      expect(dessins(neuf).some((d, i) => d !== avant[i]), 'la forme éditée se dessine').toBe(true);
-      expect(neuf.identity).not.toBe(s.identity);
-      expect(actorPoseKey(findTrappingById, pose(c))).not.toBe(clés[0]);
-      expect(actorIdentityKey(findTrappingById, pose(c))).not.toBe(clés[1]);
+      expect(dessins(sujet(pose(c)))).toEqual(avant);
+      const autre = porteur();
+      expect(autre.weapons[0].shape).not.toEqual(c.weapons[0].shape);
+      expect(dessins(sujet(pose(autre))).some((d, i) => d !== avant[i]), 'une nouvelle naissance prend la forme éditée').toBe(true);
     });
 });
 
@@ -247,6 +246,6 @@ describe('assise — la hauteur de la place dessine, donc elle entre dans l’id
     const haut = sujet(pose(c, place(0.8)));
     expect(haut.svg('front', false, 0), 'la sonde mord').not.toBe(bas.svg('front', false, 0));
     expect(haut.identity).not.toBe(bas.identity);
-    expect(actorIdentityKey(findTrappingById, pose(c, place(0.8)))).not.toBe(actorIdentityKey(findTrappingById, pose(c, place(0.45))));
+    expect(actorIdentityKey(pose(c, place(0.8)))).not.toBe(actorIdentityKey(pose(c, place(0.45))));
   });
 });

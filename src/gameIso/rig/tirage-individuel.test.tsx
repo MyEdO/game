@@ -38,7 +38,7 @@ describe('#1882 T1 — tirage individuel : même règle en exploration, en comba
 
   it('parité : l’exploration et le combat d’une même entité rendent le même tirage', () => {
     const ent = entity({ ref: 'humain' });
-    expect(palette(enemyRigProfile(findTrappingById, combatant(ent)))).toEqual(palette(entityRigProfileFor(findTrappingById, ent)));
+    expect(palette(enemyRigProfile(combatant(ent)))).toEqual(palette(entityRigProfileFor(findTrappingById, ent)));
   });
 
   it('parité : le portrait du combattant peint la peau tirée', () => {
@@ -51,38 +51,38 @@ describe('#1882 T1 — tirage individuel : même règle en exploration, en comba
     it('rien d’authoré → tout est tiré', () => {
       const ent = cas({});
       expect(palette(entityRigProfileFor(findTrappingById, ent))).toEqual(SEEDED);
-      expect(palette(enemyRigProfile(findTrappingById, combatant(ent)))).toEqual(SEEDED);
+      expect(palette(enemyRigProfile(combatant(ent)))).toEqual(SEEDED);
     });
     it('peau seule authorée → peau de l’auteur, cheveux tirés', () => {
       const ent = cas({ colors: { peau: '#123456' } });
       const attendu = { colors: { ...SEEDED.colors, peau: '#123456' }, parts: SEEDED.parts };
       expect(palette(entityRigProfileFor(findTrappingById, ent))).toEqual(attendu);
-      expect(palette(enemyRigProfile(findTrappingById, combatant(ent)))).toEqual(attendu);
+      expect(palette(enemyRigProfile(combatant(ent)))).toEqual(attendu);
     });
     it('visage seul épinglé → teintes tirées, visage de l’auteur', () => {
       const ent = cas({ parts: { visage: 2 } });
       const attendu = { colors: SEEDED.colors, parts: { visage: 2 } };
       expect(palette(entityRigProfileFor(findTrappingById, ent))).toEqual(attendu);
-      expect(palette(enemyRigProfile(findTrappingById, combatant(ent)))).toEqual(attendu);
+      expect(palette(enemyRigProfile(combatant(ent)))).toEqual(attendu);
     });
     it('les teintes posées par la def d’espèce (`perso.colors`) l’emportent sur le tirage', () => {
       const perso = bipedDef('horreur-rose')!.perso!.colors!;
       const ent = entity({ ref: 'horreur-rose', appearance: undefined });
       expect(entityRigProfileFor(findTrappingById, ent)!.appearance.colors).toMatchObject(perso);
-      expect(enemyRigProfile(findTrappingById, combatant(ent))!.appearance.colors).toMatchObject(perso);
+      expect(enemyRigProfile(combatant(ent))!.appearance.colors).toMatchObject(perso);
     });
   });
 
   it('une race sans plages (homme-bête) ne tire rien', () => {
     const ent = entity({ ref: 'gor', appearance: undefined });
     expect(entityRigProfileFor(findTrappingById, ent)!.appearance.colors).toBeUndefined();
-    expect(enemyRigProfile(findTrappingById, combatant(ent))!.appearance.colors).toBeUndefined();
+    expect(enemyRigProfile(combatant(ent))!.appearance.colors).toBeUndefined();
   });
 
   it('la race de REPLI d’une espèce non résolue ne tire rien', () => {
     const ent = { kind: 'personnage', id: ID, label: 'Mouton', pos: { x: 0, y: 0 }, ref: 'mouton' } as SceneEntity;
     expect(palette(entityRigProfileFor(findTrappingById, ent))).toEqual({ colors: undefined, parts: undefined });
-    expect(palette(enemyRigProfile(findTrappingById, combatant(ent)))).toEqual({ colors: undefined, parts: undefined });
+    expect(palette(enemyRigProfile(combatant(ent)))).toEqual({ colors: undefined, parts: undefined });
   });
 
   it('un individu NOMMÉ est UN individu, tiré de son record, dans toute scène : toute son apparence', () => {
@@ -92,21 +92,21 @@ describe('#1882 T1 — tirage individuel : même règle en exploration, en comba
     expect(explo.seed).toBe(graine);
     expect(palette(entityRigProfileFor(findTrappingById, a))).toEqual(tire(graine));
     expect(entityRigProfileFor(findTrappingById, b)!.appearance).toEqual(explo);
-    expect(enemyRigProfile(findTrappingById, combatant(a))!.appearance).toEqual(explo);
-    expect(enemyRigProfile(findTrappingById, combatant(b))!.appearance).toEqual(explo);
+    expect(enemyRigProfile(combatant(a))!.appearance).toEqual(explo);
+    expect(enemyRigProfile(combatant(b))!.appearance).toEqual(explo);
   });
 
   it('contrat : la coiffure a UNE source, le resolver par la graine de l’individu — le profil n’en pose aucune', () => {
     for (const ent of [entity({ ref: 'humain' }), entity({ ref: 'bella-la-noire', appearance: undefined })]) {
       expect(entityRigProfileFor(findTrappingById, ent)!.appearance.parts?.cheveux).toBeUndefined();
-      expect(enemyRigProfile(findTrappingById, combatant(ent))!.appearance.parts?.cheveux).toBeUndefined();
+      expect(enemyRigProfile(combatant(ent))!.appearance.parts?.cheveux).toBeUndefined();
     }
   });
 
   it('la graine POSÉE sur l’entité l’emporte, même pour un individu nommé (bouton « Relancer »)', () => {
     const sans = entity({ id: 'auberge-bella', ref: 'bella-la-noire', appearance: undefined });
     const avec = entity({ id: 'auberge-bella', ref: 'bella-la-noire', appearance: { seed: 12345 } });
-    for (const profil of [(e: SceneEntity) => entityRigProfileFor(findTrappingById, e), (e: SceneEntity) => enemyRigProfile(findTrappingById, combatant(e))]) {
+    for (const profil of [(e: SceneEntity) => entityRigProfileFor(findTrappingById, e), (e: SceneEntity) => enemyRigProfile(combatant(e))]) {
       expect(profil(sans)!.appearance.seed).toBe(hashSeed('bella-la-noire'));
       expect(profil(avec)!.appearance.seed).toBe(12345);
       expect(palette(profil(avec))).toEqual(tire(12345));
@@ -117,7 +117,7 @@ describe('#1882 T1 — tirage individuel : même règle en exploration, en comba
   it('un PNJ à statbloc d’auteur (sans record) tire comme un profil générique, en exploration et en combat', () => {
     const ent = entity({ statblock: { label: 'Passant', char: { B: 10 } } as SceneEntity['statblock'] });
     expect(palette(entityRigProfileFor(findTrappingById, ent))).toEqual(SEEDED);
-    expect(palette(enemyRigProfile(findTrappingById, combatant(ent)))).toEqual(SEEDED);
+    expect(palette(enemyRigProfile(combatant(ent)))).toEqual(SEEDED);
   });
 
   it('un profil GÉNÉRIQUE varie par instance', () => {
@@ -134,7 +134,7 @@ describe('#1882 T1 — armure portée : parité exploration/combat hors enrôlem
     const ent = entity({ ref: 'vermine-de-choc', appearance: undefined });
     const explo = entityRigProfileFor(findTrappingById, ent, false)!;
     expect(armure(explo).length).toBeGreaterThan(0);
-    expect(armure(explo)).toEqual(armure(enemyRigProfile(findTrappingById, combatant(ent))));
+    expect(armure(explo)).toEqual(armure(enemyRigProfile(combatant(ent))));
     expect(explo.equip.weapons).toEqual([]);
   });
 });

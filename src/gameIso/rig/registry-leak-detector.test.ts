@@ -20,7 +20,7 @@ import { bonesToSvg } from './renderBones';
 import { ARMOUR } from './parts/armour';
 import { HAIRSTYLE_DEFS } from './parts/hairstyles';
 import { rigArtRegistrySignatures } from '../../test-setup';
-import { findTrappingById } from '../../data';
+
 
 type Case = { name: string; render: () => string };
 
@@ -30,7 +30,7 @@ const combatRenderCases = (): Case[] => {
   const out: Case[] = [];
   for (const cr of creatures) {
     const c = creatureToCombatant(cr, `g-${cr.label}`, { x: 0, y: 0 });
-    const prof = enemyRigProfile(findTrappingById, c);
+    const prof = enemyRigProfile(c);
     if (!prof) continue; // non-bipède → chemin plan, hors périmètre du golden de combat
     for (const view of VIEWS)
       out.push({

@@ -11,7 +11,7 @@ import { TokenChromeOverlay } from './TokenChromeOverlay';
 import { tokenChrome, type TokenChromeMark } from '../builders/tokenChrome';
 import { combatantBodyTopFrac, combatantTokenScale } from '../sizeScale';
 import { discCapPath, teamRingDecor } from '../builders/dynamicMarks';
-import { findTrappingById } from '../../data';
+
 
 /**
  * L'ABONNEMENT AU CAP EST PORTÉ PAR LE PION (#1176, P3-5c) — `store.facing` n'est LU que par le disque,
@@ -44,7 +44,7 @@ function marque(c: Combatant): TokenChromeMark {
     cell: { x: c.pos!.x, y: c.pos!.y, z: 0 },
     n: 1,
     scaleK: combatantTokenScale(c),
-    bodyTopFrac: combatantBodyTopFrac(findTrappingById, c),
+    bodyTopFrac: combatantBodyTopFrac(c),
     team: teamRingDecor(c, 0),
     subject: { kind: 'combatant', combatant: c },
     ...tokenChrome(c, { ghostIds: new Set<string>(), hoveredId: null }),

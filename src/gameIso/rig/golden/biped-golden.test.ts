@@ -74,7 +74,7 @@ describe('golden master — rendu bipède (anti-régression migration gabarit/ra
 describe('golden master — héros équipés (anti-régression chemins arme/armure/couleur)', () => {
   // (a) Porteur d'arme de mêlée : chemin os `arme` + twist de pose profil mêlée
   const appSoldat: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 };
-  const equipSoldat: EquipCtx = equipDe(findTrappingById, [weaponFromId('arme-simple')!], []);
+  const equipSoldat: EquipCtx = equipDe([weaponFromId('arme-simple')!], []);
   for (const view of VIEWS) {
     it(`Humain-Soldat-épée / ${view} stable`, () => {
       const svg = bonesToSvg(resolveRig(appSoldat, equipSoldat, {}, 'soldat', view));
@@ -85,11 +85,11 @@ describe('golden master — héros équipés (anti-régression chemins arme/armu
   // (b) Bouclier + armure corporelle : chemin os `bouclier` + parts armure
   const appGuardien: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build: 0.6, seed: 11 };
   const equipGuardien: EquipCtx = {
-    ...equipDe(findTrappingById, [weaponFromId('grande-hache')!], [
+    ...equipDe([weaponFromId('grande-hache')!], [
       { ...itemFromGive({ trappingId: 'cotte-de-mailles' }), locs: ['corps'], equipped: true },
       { ...itemFromGive({ trappingId: 'heaume' }), locs: ['tete'], equipped: true },
     ]),
-    shield: bouclierDeDessin(findTrappingById, { trappingId: 'bouclier' }), // rondache
+    shield: bouclierDeDessin(itemFromGive({ trappingId: 'bouclier' }, undefined, findTrappingById)), // rondache
   };
   for (const view of VIEWS) {
     it(`Humain-Noble-bouclier-armure / ${view} stable`, () => {
@@ -103,7 +103,7 @@ describe('golden master — héros équipés (anti-régression chemins arme/armu
     species: asRigSpeciesId('humain'), sex: 'M', build: 0.45, seed: 17,
     colors: { vet1: '#3a5a7a' },
   };
-  const equipMercenaire: EquipCtx = equipDe(findTrappingById, [weaponFromId('grande-hache')!], []);
+  const equipMercenaire: EquipCtx = equipDe([weaponFromId('grande-hache')!], []);
   for (const view of VIEWS) {
     it(`Humain-Voleur-couleur-override / ${view} stable`, () => {
       const svg = bonesToSvg(resolveRig(appMercenaire, equipMercenaire, {}, 'voleur', view));

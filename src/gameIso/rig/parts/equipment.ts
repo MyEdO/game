@@ -24,8 +24,7 @@ const ART_BY_GROUP: Record<string, string> = {
   fronde: 'fronde', lancer: 'javelot', entraves: 'fouet', explosifs: 'bombe',
 };
 
-/** FORME d'art de l'arme (clé du registre WEAPONS) = 1 silhouette : aucune pour une attaque naturelle,
- *  sinon la forme résolue (`formeResolue`) si l'art la connaît, sinon le repli par Groupe canonique. */
+/** #2967 */
 export function weaponFamily(w: FormeDArme): string {
   if (w.natural) return ''; // attaque naturelle (corps) : la part du rig fait foi, rien en main
   const forme = racineDesCandidats(w.candidats);

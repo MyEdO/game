@@ -212,7 +212,7 @@ describe('Chrome des jetons — UNE dérivation, UN peintre (#1176 P3-0f)', () =
   it('le chrome volumique s’ancre à la TÊTE DESSINÉE en losange, et au DISQUE-PORTRAIT en vue du dessus', () => {
     const h = combatChromé().combatants[0];
     const scaleK = combatantTokenScale(h);
-    const frac = combatantBodyTopFrac(findTrappingById, h);
+    const frac = combatantBodyTopFrac(h);
     const marque = { scaleK, n: 1, bodyTopFrac: frac }; // le héros de la sonde : taille moyenne, empreinte d'une case
     const el = monter();
     const h1 = chromeVolumique(el, 'h1')!;
@@ -537,15 +537,15 @@ describe('Ancre du chrome — la TOISE du gabarit, jamais une constante par fami
   const app = (sp: string) => ({ species: sp, sex: 'M', build: 0.5, seed: 1 } as unknown as Appearance);
   const perso = (sp: string): Combatant => ({ ...hero('h1', { x: 3, y: 3 }), appearance: app(sp) } as unknown as Combatant);
   /** Ancre volumique d'un combattant, par le chemin de production (builder → `chromeHeadPx`). */
-  const ancreVol = (c: Combatant) => chromeHeadPx(false, { scaleK: combatantTokenScale(c), n: 1, bodyTopFrac: combatantBodyTopFrac(findTrappingById, c) });
+  const ancreVol = (c: Combatant) => chromeHeadPx(false, { scaleK: combatantTokenScale(c), n: 1, bodyTopFrac: combatantBodyTopFrac(c) });
 
   it('cinq espèces, cinq ancres : la fraction sort de `bodyHeight`, pas d’un nombre par famille', () => {
-    const fracs = ESPÈCES.map((sp) => combatantBodyTopFrac(findTrappingById, perso(sp)));
+    const fracs = ESPÈCES.map((sp) => combatantBodyTopFrac(perso(sp)));
     ESPÈCES.forEach((sp, i) => {
       expect(fracs[i], sp).toBeCloseTo(Math.min(1, bodyHeight(app(sp)) / GROUND_Y), 12);
     });
     expect(new Set(fracs).size, 'cinq toises distinctes').toBe(ESPÈCES.length);
-    expect(combatantBodyTopFrac(findTrappingById, perso('nain'))).toBeLessThan(combatantBodyTopFrac(findTrappingById, perso('humain')));
+    expect(combatantBodyTopFrac(perso('nain'))).toBeLessThan(combatantBodyTopFrac(perso('humain')));
     // Et l'ancre d'écran en hérite : une par espèce, là où la constante de famille n'en donnait qu'une.
     expect(new Set(ESPÈCES.map((sp) => ancreVol(perso(sp)))).size, 'cinq ancres volumiques distinctes').toBe(ESPÈCES.length);
   });
@@ -573,7 +573,7 @@ describe('Ancre du chrome — la TOISE du gabarit, jamais une constante par fami
 
     // La toise du gabarit, et elle seule, décide de la hauteur d'ancre : les pixels dépendent du quad,
     // la FRACTION non — c'est elle que la dérivation partagée (`combatantBodyTopFrac`) fournit.
-    const attendu = combatantBodyTopFrac(findTrappingById, nain) / combatantBodyTopFrac(findTrappingById, humain);
+    const attendu = combatantBodyTopFrac(nain) / combatantBodyTopFrac(humain);
     expect(volNain / volHumain, 'ancre peinte à l’écran').toBeCloseTo(attendu, 9);
     expect(attendu, 'un nain n’arrive pas à la tête d’un humain').toBeLessThan(0.7);
   });

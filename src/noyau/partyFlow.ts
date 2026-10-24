@@ -5,7 +5,7 @@
  * Refacto pure — comportement préservé.
  */
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
-import { apparencesAdmissibles, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
+import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, equipConflicts, canStow } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
 import { resolveCarrier, carriersCoLocated } from './monde/carrier';
@@ -283,15 +283,13 @@ export function transferItem(get: Get, set: Set, uid: string, fromCarrierId: str
   get().log(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
 
-/** Choix d’une apparence admise ; la racine par défaut reste résolue dans la couche de campagne (#2113). */
+/** #2967 */
 export function choisirApparence(get: Get, set: Set, heroId: string, uid: string, apparence: string): void {
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   mutLoadout(set, heroId, (c) => {
     const it = (c.items ?? []).find((i) => i.uid === uid);
     if (!it?.trappingId) return;
-    if (!apparencesAdmissibles(it, resolveTrapping).some((a) => a.id === apparence)) return;
-    if (apparence === resolveTrapping(it.trappingId)?.shape?.id) delete it.apparence;
-    else it.apparence = apparence;
+    choisirApparenceDObjet(it, apparence, resolveTrapping);
   });
 }
 

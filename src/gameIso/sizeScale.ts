@@ -26,7 +26,7 @@ import { resolveRender, type RenderResolution } from './rig/bodyPlan';
 import { refOf, rigDuCombattant } from './rig/enemyProfile';
 import { bodyTopFrac } from './rig/composeRig';
 import { isStructure } from '../engine/structures';
-import type { TrappingResolver } from '../engine/items';
+
 
 // Ancré sur les PROPORTIONS face à un humain (un cheval Grande ≈ ×1.3-1.5, un Géant Énorme ≈ ×2.4),
 // PAS sur le remplissage de l'empreinte N×N (T6) — l'empreinte reste la vérité d'OCCUPATION,
@@ -98,7 +98,7 @@ export function combatantTokenScale(c: Combatant): number {
  *  Un corps de GABARIT (créature non bipède, structure de siège) rend 1 : sa hauteur dessinée n'est
  *  stockée nulle part (`BodyPlan` ne déclare que sa `portraitBox`, un CADRAGE de portrait — pas une
  *  toise), et le haut de boîte est l'ancre que les deux voies posaient déjà. */
-export function combatantBodyTopFrac(resolveTrapping: TrappingResolver, c: Combatant): number {
+export function combatantBodyTopFrac(c: Combatant): number {
   if (isStructure(c) || combatantRender(c).kind !== 'rig') return 1;
-  return bodyTopFrac(rigDuCombattant(resolveTrapping, c).appearance);
+  return bodyTopFrac(rigDuCombattant(c).appearance);
 }

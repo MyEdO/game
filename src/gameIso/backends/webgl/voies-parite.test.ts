@@ -112,11 +112,11 @@ describe('POPULATION — le monde volumique dessine les corps du builder, pas la
     const battle = { combatants: [enrôlé], order: [enrôlé.id], turn: 0 } as unknown as BattleState;
     const subs = collectBillboards(findTrappingById, scene, mpt, elsDuStage(scene, battle));
     const pose = { c: enrôlé, x: ent.pos.x, y: ent.pos.y, z: ent.z ?? 0 };
-    const acteurs = actorBillboards(findTrappingById, [pose], scene, mpt);
+    const acteurs = actorBillboards([pose], scene, mpt);
     expect(persosBillboardés(subs)).not.toContain(ent.id);
     // Un seul acteur, ancré sur SON id — la suite de l'identité est la signature de dessin
     // (`actorRenderSignature`, cf. `actor-signature.test.ts`).
-    expect(acteurs.map((a) => a.identity)).toEqual([`acteur:${enrôlé.id}|${actorRenderSignature(findTrappingById, pose)}`]);
+    expect(acteurs.map((a) => a.identity)).toEqual([`acteur:${enrôlé.id}|${actorRenderSignature(pose)}`]);
   });
 });
 
@@ -136,7 +136,7 @@ describe('ÉCHELLE — la même pour les deux voies, sur TOUT le bestiaire', () 
     let mesurées = 0;
     for (const record of creatures) {
       const c = creatureToCombatant(record, `p-${record.id}`, { x: 1, y: 1, z: 0 });
-      const volumique = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0 }], scene, mpt)[0];
+      const volumique = actorBillboards([{ c, x: 1, y: 1, z: 0 }], scene, mpt)[0];
       if (!volumique) continue; // structure de siège : elle se rend sur son arête, pas en jeton
       mesurées++;
       const affine = echelleAffine(c);

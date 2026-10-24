@@ -273,8 +273,7 @@ function routesRendues(map: WorldMap, sceneId: string | undefined): { route: Map
  *   __wfrp.aim('id')      → vérité state du ciblage (ok/invalid + raison, compétence, dégâts)
  *   __wfrp.pad('A'|'B'|…) → simule un BOUTON de manette (Playwright n'a pas l'API Gamepad) — MÊME chemin
  *                           que le pad réel ; __wfrp.padDir('up'|'down'|'left'|'right') → croix/stick
- *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun, armes
- *                           tenues par `trappingId`/`apparence`/`formeResolue`)
+ *   __wfrp.battle()       → #2967
  *   __wfrp.lastRoll()     → DERNIER Test résolu {actorId,success,sl,roll,target} (observation pure,
  *                           lecture seule, `null` si aucun depuis le chargement) — jamais une regex sur `innerText`
  *   __wfrp.log(n)         → queue lisible des journaux (exploration + feed de combat)
@@ -1322,8 +1321,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ interlude ouvert (${weeks} sem., ${after.party.length} héros, ${budget} Activité(s) max/héros) — catalogue réel, écran 'interlude' (à conduire à la main)`;
     },
 
-    /** Snapshot COMBAT compact : round, actif, modales ouvertes, et chaque combattant en une ligne
-     *  (armes tenues comprises : `trappingId`, `apparence`, `formeResolue`). */
+    /** #2967 */
     battle: () => {
       const s = g();
       const b = s.battle;

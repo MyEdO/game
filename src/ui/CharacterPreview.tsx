@@ -22,16 +22,11 @@ import { useVersionDesDatasets } from './useVersionDesDatasets';
 import type { RigOverlay } from '../gameIso/rig/bones';
 import type { Pose } from '../gameIso/rig/poses';
 import type { View } from '../gameIso/rig/facing';
-import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
-import { useGame } from '../state/store';
-import type { TrappingResolver } from '../engine/items';
-import { findTrappingById } from '../data';
 
 export type CharacterPreviewSize = 'xs' | 'sm' | 'md' | 'lg' | 'fill';
 export type CharacterPreviewAmbiance = 'none' | 'panel' | 'parchment' | 'spotlight';
 
 interface CommonProps {
-  resolveTrapping?: TrappingResolver;
   view?: View;
   pose?: Pose;
   mirror?: boolean;
@@ -73,7 +68,7 @@ interface HeroProps extends CommonProps {
 }
 export type CharacterPreviewProps = RawProps | HeroProps;
 
-const EMPTY_EQUIP: EquipCtx = equipDe(findTrappingById, [], []);
+const EMPTY_EQUIP: EquipCtx = equipDe([], []);
 
 /** viewBox statique de repli (repère de corps 120×150, pieds ancrés en y=150) — hors mode `fill`. */
 const STATIC_BOX = '0 0 120 150';
@@ -93,13 +88,12 @@ const AMBIANCE_CLASS: Record<CharacterPreviewAmbiance, string> = {
 };
 
 function CharacterPreviewBase(props: CharacterPreviewProps) {
-  const resolveTrapping = useGame((s) => props.resolveTrapping ?? objetDuNarratif(s.campaignNarratif));
   const { view = 'front', pose, mirror = false, size = 'md', ambiance = 'none', fillFraction = FILL_FRACTION, scaleRef, className, hero } = props;
-  // La projection RÉSOUT la forme au catalogue (`formeResolue`) : sa version entre dans le mémo (#2113).
+  // #2967
   const versionDesDatasets = useVersionDesDatasets();
   const { appearance, equip, tenue: career, overlays } = useMemo(
-    () => (hero ? rigDuCombattant(resolveTrapping, hero) : { appearance: props.appearance, equip: props.equip ?? EMPTY_EQUIP, tenue: props.career, overlays: props.overlays }),
-    [hero, props.appearance, props.equip, props.career, props.overlays, versionDesDatasets, resolveTrapping],
+    () => (hero ? rigDuCombattant(hero) : { appearance: props.appearance, equip: props.equip ?? EMPTY_EQUIP, tenue: props.career, overlays: props.overlays }),
+    [hero, props.appearance, props.equip, props.career, props.overlays, versionDesDatasets],
   );
   // Composition retenue (`useCompositionRig`) ; l'élément sur la composition et la pose (rendu en
   // listes de 8-15) : mêmes entrées → même élément, React saute le sous-arbre.

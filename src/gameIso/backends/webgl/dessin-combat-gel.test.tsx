@@ -14,11 +14,11 @@ import { useGame } from '../../../state/store';
 import type { BattleState } from '../../../noyau/etat';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import { createHero } from '../../../engine/character';
-import { damageArmour } from '../../../engine/items';
+import { damageArmour, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 import { loadRegister } from '../../../engine/weaponLoad';
 import { rigIdleDef } from '../../rig/anim/actorAnimSelect';
 import { VIEWS } from '../../rig/facing';
-import type { Combatant, ItemInstance, Weapon } from '../../../engine/types';
+import type { Combatant, ItemInstance } from '../../../engine/types';
 import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 8, 8);
@@ -26,7 +26,7 @@ const mpt = sceneMetresPerTile(scene);
 
 function combat(): { H: Combatant; E: Combatant } {
   const H = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
-  H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1, trappingId: 'arbalete' } as unknown as Weapon];
+  H.weapons = [{ ...weaponFromItem(itemFromTrappingById('arbalete', findTrappingById)!), uid: 'w-arb', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1 }];
   H.items = [...(H.items ?? []), { uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 } as ItemInstance];
   loadRegister(H, H.weapons[0]).loaded = true;
   H.pos = { x: 0, y: 0 };
@@ -49,9 +49,9 @@ const vivants = (): Combatant[] => useGame.getState().battle!.combatants;
 function tracerTout(): void {
   for (const c of vivants()) {
     const p: ActorPose = { c, x: c.pos!.x, y: c.pos!.y, z: 0, facing: 'S' };
-    actorPoseKey(findTrappingById, p);
-    actorIdentityKey(findTrappingById, p);
-    for (const s of actorBillboards(findTrappingById, [p], scene, mpt))
+    actorPoseKey(p);
+    actorIdentityKey(p);
+    for (const s of actorBillboards([p], scene, mpt))
       for (const view of VIEWS)
         for (const mirror of [false, true]) {
           s.svg(view, mirror, 0);

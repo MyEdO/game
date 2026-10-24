@@ -12,7 +12,7 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { apparences, findApparenceById, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
 
@@ -49,13 +49,12 @@ function deciderApparenceALaNaissance(
   auteur?: { id: string },
 ): ItemInstance {
   if (auteur) {
-    const refus = messageDApparenceDObjet(objet.trappingId, auteur.id, resolveTrapping);
-    if (refus) throw new Error(refus);
-    objet.apparence = auteur.id;
+    if (!choisirApparenceDObjet(objet, auteur.id, resolveTrapping))
+      throw new Error(messageDApparenceDObjet(objet.trappingId, auteur.id, resolveTrapping));
     return objet;
   }
   if (!contexte || !objet.trappingId) return objet;
-  const forme = resolveTrapping(objet.trappingId)?.shape?.id;
+  const forme = objet.shape?.id;
   const qualites = objet.qualities.map((q) => q.id);
   const candidates = apparencesAdmissiblesDObjet(objet, resolveTrapping).flatMap((a) => {
     if (!a.forme || a.forme.id !== forme) return [];
@@ -69,7 +68,7 @@ function deciderApparenceALaNaissance(
     return [{ id: a.id, specificite: axes.length }];
   });
   candidates.sort((a, b) => b.specificite - a.specificite || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  if (candidates[0]) objet.apparence = candidates[0].id;
+  if (candidates[0]) choisirApparenceDObjet(objet, candidates[0].id, resolveTrapping);
   return objet;
 }
 
@@ -122,6 +121,7 @@ export function parseDamage(s: string): WeaponDamageSpec {
 
 /** #2967 */
 export const CLES_INTRINSEQUES_D_OBJET = {
+  shape: true,
   reach: true,
   range: true,
   weaponGroup: true,
@@ -201,7 +201,6 @@ export interface WeaponSpec extends ProprietesIntrinsequesDArme {
   resolveChar?: CharKey;
   uid?: string | { prefix: string };
   teinte?: string;
-  form?: string;
   /** Id du catalogue d’apparences choisi sur l’instance, propagé vers `Weapon.apparence`. */
   apparence?: string;
   /** Attaque naturelle de corps (aucune arme dessinée) — propagé vers `Weapon.natural`. */
@@ -243,7 +242,6 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   if (spec.subType !== undefined) w.subType = spec.subType;
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
   if (spec.teinte !== undefined) w.teinte = spec.teinte;
-  if (spec.form !== undefined) w.form = spec.form;
   if (spec.apparence !== undefined) w.apparence = spec.apparence;
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
@@ -266,24 +264,30 @@ export const isShieldTrapping = (id: string | undefined, resolveTrapping: Trappi
 /** LDB 62 l.33-35 */
 export const isShieldItem = (x: { shield?: boolean }): boolean => x.shield === true;
 
-/** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
- *  invoquée, le choix du joueur. */
-export type SourceDeForme = Pick<Weapon, 'form' | 'apparence' | 'natural' | 'trappingId'>;
+/** #2967 */
+export type SourceDeForme = Pick<Weapon, 'shape' | 'apparence' | 'natural' | 'trappingId'>;
 
-/**
- * CANDIDATS d'apparence d'un objet porté, au catalogue courant (#2113, #2948) — l'UNIQUE résolution.
- * La dernière entrée est la racine de la forme dessinée. Routage PAR ID STABLE :
- *  1. attaque naturelle → aucun candidat ;
- *  2. arme invoquée (`form` = id de trapping) → son `shape` catalogué ;
- *  3. apparence choisie puis sa racine, si admise par `shape` ou `formChoices` ;
- *  4. `shape` du catalogue, par `trappingId`.
- * Liste vide : le consommateur retombe sur son repli (Groupe, bouclier par défaut).
- */
-export function apparencesCandidates(x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string[] {
-  if (x.natural) return [];
-  const invoquee = x.form ? resolveTrapping(x.form)?.shape?.id : undefined;
-  if (invoquee) return [invoquee];
-  return candidatsDApparenceDObjet(x.trappingId, x.apparence, resolveTrapping);
+/** #2967 */
+export function apparencesCandidates(x: SourceDeForme): string[] {
+  if (x.natural || !x.shape) return [];
+  const apparence = findApparenceById(x.apparence);
+  const racine = apparence?.forme?.id ?? apparence?.id;
+  return apparence && racine === x.shape.id && apparence.id !== racine
+    ? [apparence.id, x.shape.id] : [x.shape.id];
+}
+
+/** #2967 */
+export function choisirApparenceDObjet<T extends Pick<ItemInstance, 'trappingId' | 'apparence' | 'shape'>>(
+  objet: T, apparence: string, resolveTrapping: TrappingResolver,
+): boolean {
+  const candidats = candidatsDApparenceDObjet(objet.trappingId, apparence, resolveTrapping);
+  if (candidats[0] !== apparence) return false;
+  const racine = racineDesCandidats(candidats);
+  if (!racine) return false;
+  objet.shape = { id: racine };
+  if (apparence === (objet.trappingId ? resolveTrapping(objet.trappingId)?.shape?.id : undefined)) delete objet.apparence;
+  else objet.apparence = apparence;
+  return true;
 }
 
 /** Apparences du catalogue admises pour un objet, selon l’unique résolution des candidats (#2948). */
@@ -295,7 +299,7 @@ export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>, reso
 export const racineDesCandidats = (candidats: readonly string[]): string | undefined => candidats[candidats.length - 1];
 
 /** Forme résolue d'une SourceDeForme : racine de ses apparences candidates. */
-export const formeResolue = (x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string | undefined => racineDesCandidats(apparencesCandidates(x, resolveTrapping));
+export const formeResolue = (x: SourceDeForme): string | undefined => racineDesCandidats(apparencesCandidates(x));
 
 /** LDB 62 l.28 */
 export const isUnarmed = (w: { unarmed?: boolean }): boolean => w.unarmed === true;
@@ -363,9 +367,6 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
           .split(',')
           .flatMap((p) => ARMOUR_LOC_BY_ID[slugId(p)] ?? [])
       : undefined;
-  // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
-  // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
-  // POSSÈDE, et une édition du catalogue ne les repeint pas.
   const objet: ItemInstance = {
     ...copierIntrinseques({ ...t, range: t.range ?? null }),
     uid: newUid(),
@@ -760,7 +761,7 @@ export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: Co
     damage: it.damage ?? { plusBF: true, flat: 0, bare: true },
     qualities: it.qualities, subType: it.subType,
     reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
-    ...(it.teinte ? { teinte: it.teinte } : {}), form: it.form, apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
+    ...(it.teinte ? { teinte: it.teinte } : {}), apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
     mountSide: it.mountSide, resolveChar: warMachineResolveChar(it),
   }), it.enchants ?? []);
 }

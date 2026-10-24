@@ -330,7 +330,7 @@ function ItemIconDemo() {
           <span className="hint" style={{ width: 32 }}>{size}</span>
           {objets.map((item) => (
             <span key={item.uid} title={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              <ItemIcon resolveTrapping={findTrappingById} item={item} size={size} />
+              <ItemIcon item={item} size={size} />
             </span>
           ))}
         </Row>
@@ -348,7 +348,7 @@ function MediaSelectDemo() {
     <MediaSelect
       options={objets.map((item) => ({
         key: item.uid,
-        media: <ItemIcon resolveTrapping={findTrappingById} item={item} size="sm" />,
+        media: <ItemIcon item={item} size="sm" />,
         label: item.label,
         sub: item.kind,
       }))}
@@ -794,7 +794,7 @@ function PortraitTileDemo() {
 
 function CharacterPreviewDemo() {
   if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
-  return <CharacterPreview resolveTrapping={findTrappingById} hero={herosExemple()} size="lg" ambiance="panel" />;
+  return <CharacterPreview hero={herosExemple()} size="lg" ambiance="panel" />;
 }
 
 function ScreenMetaDemo() {

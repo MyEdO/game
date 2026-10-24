@@ -326,7 +326,7 @@ describe('Corps à travers les murs — la TEINTE le long de la chaîne RÉELLE 
   function teintes(combatants: Combatant[]): Record<string, string | undefined> {
     const els = buildTokens(SCENE, TOUT_VU(), { combatants } as unknown as BattleState, { activeZ: 0, viewZ: null, top: false });
     const out: Record<string, string | undefined> = {};
-    for (const b of actorBillboards(findTrappingById, actorPoses(els, {}), SCENE, MPT)) out[b.cid!] = b.teamColor;
+    for (const b of actorBillboards(actorPoses(els, {}), SCENE, MPT)) out[b.cid!] = b.teamColor;
     return out;
   }
 

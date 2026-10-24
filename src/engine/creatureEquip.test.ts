@@ -44,7 +44,7 @@ describe('creatureEquip — dérivation traits → armes (source unique de l’a
     expect(w?.label).toBe('Arbalète'); // libellé du catalogue, jamais l'id brut
     expect(w?.type).toBe('ranged');
     expect(w?.trappingId).toBe('arbalete');
-    expect(formeResolue(w!)).toBe('arbalete'); // forme RÉSOLUE au catalogue, jamais recopiée
+    expect(formeResolue(w!)).toBe('arbalete'); // #2967
     expect(w?.reload).toBe(1); // Recharge 1 dérivée de la Qualité du trapping (LDB 62 l.333)
   });
 

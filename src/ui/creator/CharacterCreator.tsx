@@ -1928,7 +1928,7 @@ function WeaponWildcardPicker({ value, onChange }: { value?: string; onChange: (
   const { search, setSearch, filtered } = useFilteredList(armesChoisissables(), (w) => w.label);
   const options: MediaOption[] = filtered.map((w) => {
     const item = itemFromTrappingById(w.id);
-    return { key: w.id, media: item ? <ItemIcon resolveTrapping={findTrappingById} item={item} size="sm" /> : undefined, label: w.label };
+    return { key: w.id, media: item ? <ItemIcon item={item} size="sm" /> : undefined, label: w.label };
   });
   return (
     <>
@@ -2273,7 +2273,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
         <AppearancePanel
           species={rigSpeciesId(d.speciesId)}
           value={d.apparence}
-          equip={equipDe(findTrappingById, [], [])}
+          equip={equipDe([], [])}
           career={d.careerId}
           onChange={(apparence) => setD({ ...d, apparence })}
         />
@@ -2385,7 +2385,7 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
       <div className="presentation-stage">
         <div className="presentation-lamp" />
         <div className="presentation-fig">
-          <CharacterPreview resolveTrapping={findTrappingById} hero={hero} view="front" size="fill" />
+          <CharacterPreview hero={hero} view="front" size="fill" />
         </div>
         <h2 className="presentation-name display-title">{hero.label}</h2>
         {/* Race · NIVEAU (carrière) · statut MÉTALLISÉ — la planche nomme le niveau de départ

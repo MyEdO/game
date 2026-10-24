@@ -44,7 +44,7 @@ describe('tokenBodyKind — jeton du GROUPE : un disque-portrait, et rien d’au
   it('le visage du MENEUR se résout par `rigDuCombattant`, comme au combat — meneur issu du bestiaire compris', () => {
     const orc = creatureToCombatant(findCreatureById('orc')!, 'orc-1', { x: 0, y: 0 });
     const meneur = { ...orc, kind: 'hero', aiControlled: false } as Combatant;
-    const rig = rigDuCombattant(findTrappingById, meneur);
+    const rig = rigDuCombattant(meneur);
     expect(rig.tenue, 'la sonde mord : le profil du record habille le meneur, sa carrière est vide').toBeDefined();
     expect(meneur.career).toBeUndefined();
     const visage = (tokenBodyKind(findTrappingById, { kind: 'partyLeader', leader: meneur }).body as ReactElement<typeof rig>).props;

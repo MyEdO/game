@@ -651,7 +651,7 @@ function CorpsDuMonde() {
   // matériau de ses quads. Dérivée SANS condition de mode : un figurant d'exploration est un jeton, et
   // sous ce verdict c'est ici qu'il se dessine (le chrome, lui, reste vide pour lui).
   const chromes = useMemo<TokenChromeMark[]>(
-    () => tokenChromes(resolveTrapping, tokenEls, { ghostIds: visée.ghostIds, hoveredId: visée.hoveredId }, partyToken),
+    () => tokenChromes(tokenEls, { ghostIds: visée.ghostIds, hoveredId: visée.hoveredId }, partyToken),
     [tokenEls, visée.ghostIds, visée.hoveredId, partyToken, resolveTrapping],
   );
   // PASTILLES D'ENTITÉ (#1411 P2-C, spec zone 4) : ce que les CHOSES du champ offrent — en combat à
@@ -665,7 +665,7 @@ function CorpsDuMonde() {
     [combatBattle, scene, flags, myTurn, partyPos],
   );
   const gesteEls = useMemo<GesteMark[]>(
-    () => tokenGesteMarks(resolveTrapping, tokenEls, propEls, offresDEntite),
+    () => tokenGesteMarks(tokenEls, propEls, offresDEntite),
     [tokenEls, propEls, offresDEntite, resolveTrapping],
   );
   // HALOS D'INTERACTION (P3-0g ; régime de révélation #1687) : même partage que les marques dynamiques
@@ -676,7 +676,7 @@ function CorpsDuMonde() {
   // résolue par le pointeur) et la révélation tenue (Alt). Aucun mode n'y entre : ce que le monde offre
   // ne dépend pas du combat.
   const halos = useMemo<readonly InteractHalo[]>(
-    () => (scene ? interactionHalos(resolveTrapping, tokenEls, propEls, scene, flags, { survol: pointeur.entiteSurvolee, reveler }) : NO_INTERACTION_HALOS),
+    () => (scene ? interactionHalos(tokenEls, propEls, scene, flags, { survol: pointeur.entiteSurvolee, reveler }) : NO_INTERACTION_HALOS),
     [tokenEls, propEls, scene, flags, pointeur.entiteSurvolee, reveler, resolveTrapping],
   );
 

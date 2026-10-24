@@ -137,8 +137,8 @@ describe('MENEUR attablé — l’acteur du monde volumique consomme la même pl
 
   it('ancre, cap et corps viennent de la place ; la case logique ne bouge pas', () => {
     const scene = scèneAttablée(true);
-    const assis = actorBillboards(findTrappingById, [poseAssise()], scene, mpt)[0];
-    const debout = actorBillboards(findTrappingById, [poseDebout()], scene, mpt)[0];
+    const assis = actorBillboards([poseAssise()], scene, mpt)[0];
+    const debout = actorBillboards([poseDebout()], scene, mpt)[0];
 
     expect(assis.anchor.x).toBeCloseTo(place().anchor.x * mpt, 6);
     expect(assis.anchor.z).toBeCloseTo(place().anchor.y * mpt, 6);
@@ -152,11 +152,11 @@ describe('MENEUR attablé — l’acteur du monde volumique consomme la même pl
   });
 
   it('s’asseoir REFORGE l’acteur : la clé de mémo change', () => {
-    expect(actorPoseKey(findTrappingById, poseAssise())).not.toBe(actorPoseKey(findTrappingById, poseDebout()));
+    expect(actorPoseKey(poseAssise())).not.toBe(actorPoseKey(poseDebout()));
   });
 
   it('aucun `mountId` : une chaise n’est pas une monture', () => {
-    const assis = actorBillboards(findTrappingById, [poseAssise()], scèneAttablée(true), mpt)[0];
+    const assis = actorBillboards([poseAssise()], scèneAttablée(true), mpt)[0];
     expect(assis).not.toHaveProperty('mountId');
     expect(JSON.stringify(Object.keys(assis))).not.toContain('mount');
   });

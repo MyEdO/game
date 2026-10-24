@@ -16,7 +16,7 @@
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
-import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel } from '../data';
+import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
 import { facesDuDe, findTableEntry } from './tables';
@@ -41,14 +41,14 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { contexteDeNaissanceDObjet, damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, formeResolue } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
 import { objetSourceDeLArme } from './weaponLoad';
 import { suppressPsychTraits, type PsychType } from './psychology';
 import { norm } from '../lib/normalize';
-import { ConjureForm, conjureFormOptions, equipConjuredWeapon } from './conjuredWeapons';
+import { ConjureForm, conjureFormOptions, equipConjuredWeapon, specDArmeInvoquee } from './conjuredWeapons';
 import { polymorphOps } from './polymorph';
 import type { SizeCategory } from './size';
 import type { Duration } from './duration';
@@ -2162,7 +2162,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const held = [lo?.main, lo?.off]
           .map((u) => objetDeSlot(target, u))
           .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
-        const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.includes(formeResolue(i) ?? ''));
+        const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.includes(i.shape?.id ?? ''));
         if (!item) {
           lines.push(t('op.noWeaponToEnchant', { name: target.label, src: nomDeSource(ctx) }));
           break;
@@ -2602,27 +2602,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'grantWeapon': {
         const flat = Math.max(0, resolveFormula(o.damage, ref, rng) + (o.damagePlus ?? 0));
-        // Forme LIBRE (Arme aethyrique) : on CLONE le profil (Groupe/allonge/mains) d'une arme RÉELLE
-        // choisie par le lanceur (ctx.conjureForm, défaut = sa meilleure Spé de CC) ; sinon stats du
-        // Sort. Seuls les Dégâts (= BFM…) et les Atouts du Sort surchargent le profil → un OBJET ordinaire.
+        // #2967
         const form = o.chooseForm ? (ctx.conjureForm ?? conjureFormOptions(ref)[0]) : null;
-        const tpl = form ? itemFromTrappingById(form.weapon) : null;
-        // L'objet vit dans un SET dédié (equipConjuredWeapon), hors Set I/II auto → `weaponItem` (conjured).
-        // Silhouette de rendu : forme choisie (chooseForm) ou silhouette fixe du Sort → le rig dessine
-        // l'arme réelle bien que nommée « Arme aethyrique » / « Faux de Shyish ».
-        const item = weaponItem({
-          label: form ? `${o.label} (${tpl?.label ?? form.weapon})` : o.label,
-          damage: { plusBF: !!o.plusBF, flat },
-          subType: form ? tpl?.subType : o.subType?.id,
-          reach: form ? tpl?.reach : (o.reach ?? null),
-          hands: form ? (tpl?.hands ?? 1) : (o.hands ?? 1),
-          qualities: (o.qualities ?? []).map((id) => ({ id })), // Atouts du Sort (ids) — PAS ceux du gabarit ; copiés par buildWeapon
-          conjured: true,
-          uid: { prefix: 'conjure' },
-          ...(o.teinte ? { teinte: o.teinte.id } : {}),
-          ...(form ? { form: form.weapon } : o.form ? { form: o.form.id } : {}),
-          source,
-        });
+        const item = weaponItem(specDArmeInvoquee(findTrappingById, o, flat, source, form));
         // SET d'armes DÉDIÉ rendu actif (réutilise les loadouts) — le joueur peut rebasculer sur ses
         // armes ; à l'expiration, le set d'origine est restauré (engine/conjuredWeapons).
         // Effets « à la touche » (Épée ardente → En flammes) PORTÉS PAR L'OBJET invoqué (enchant) ;

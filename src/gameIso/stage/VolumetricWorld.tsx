@@ -123,7 +123,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   // (`BillboardSubject.identity`) : une entrée de dessin ne peut plus périmer l'une sans l'autre.
   // Le GLISSEMENT de marche n'y entre PAS (#1176, P2-4) : la boucle de rendu le lit elle-même et décale
   // des quads déjà montés, là où la clé fractionnaire les remontait tous soixante fois par seconde.
-  const posesKey = poses.map((p) => actorPoseKey(resolveTrapping, p)).join('|');
+  const posesKey = poses.map((p) => actorPoseKey(p)).join('|');
   const actors = useMemo(() => poses, [posesKey]);
   // Les éléments du DÉCOR passent tels quels : leur rétention par CONTENU vit au socle
   // (`GameStage3D`, `memesBillboardEls`) — l'éditeur monte cet écran sans passer par ici.

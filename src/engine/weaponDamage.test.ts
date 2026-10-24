@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { effectiveWeaponDamage, effectiveRange, applyAmmoMod, effectiveWeaponRange, isImprovised, damageWeapon, effectiveWeapon, improvisedProfile, solideSaveThreshold } from './weaponDamage';
-import { recomputeLoadout, damageString } from './items';
+import { recomputeLoadout, damageString, itemFromTrappingById, weaponFromItem } from './items';
 import type { Weapon, Combatant } from './types';
 
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
@@ -186,7 +186,7 @@ describe('improvisedProfile — profil LU dans la donnée (`arme-improvisee`)', 
   it('les 4 branches improvisées d’`effectiveWeapon` rendent TOUTES ce même profil de donnée', () => {
     const ref = improvisedProfile(sword());
     const usure = effectiveWeapon(sword({ damageTaken: 9 }));                                   // l.178
-    const lance = effectiveWeapon(sword({ label: 'Lance de cavalerie', subType: 'cavalerie' }), { charged: false }); // l.59
+    const lance = effectiveWeapon(weaponFromItem(itemFromTrappingById('lance-de-cavalerie')!), { charged: false }); // l.59
     const contact = effectiveWeapon(sword({ reach: 'Longue' }), { auContact: true });            // l.176
     const funnel = effectiveWeapon(sword(), { improvised: true });                               // ADE II 8 l.249
     for (const eff of [usure, lance, contact, funnel]) {

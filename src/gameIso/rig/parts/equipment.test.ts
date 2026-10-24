@@ -11,11 +11,11 @@ import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engi
 import { findMutationById, trappings, weaponGroups } from '../../../data';
 import { isShieldItem, itemFromGive, itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
-import { findTrappingById } from '../../../data';
+
 
 const wep = (name: string, type: 'melee' | 'ranged', q: { id: string; value?: number }[] = [], subType?: string): Weapon =>
   ({ label: name, type, damage: { plusBF: false, flat: 4 }, qualities: q, subType } as Weapon);
-const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(armeDeDessin(findTrappingById, wep(name, type))), 'front');
+const wpv = (name: string, type: 'melee' | 'ranged' = 'melee') => viewOrFront(weaponPart(armeDeDessin(wep(name, type))), 'front');
 /** Projection de forme déjà RÉSOLUE (id stable) — plus aucun routage par libellé au runtime. */
 const wepShape = (forme: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: [forme] });
 const famShape = (shape: string, type: 'melee' | 'ranged' = 'melee') => weaponFamily(wepShape(shape, type));
@@ -42,8 +42,8 @@ describe('weaponFamily — 1 forme par arme, routée par la forme résolue (anti
     expect(famShape('fleuret')).not.toBe(famShape('zweihander'));
   });
   it('une arme SANS forme résolue ne route pas par son nom → repli par Groupe', () => {
-    expect(weaponFamily(armeDeDessin(findTrappingById, wep('Épée bâtarde', 'melee', [], 'deux-mains')))).toBe('epee_batarde'); // Groupe deux-mains → défaut
-    expect(weaponFamily(armeDeDessin(findTrappingById, wep('Truc inconnu', 'melee')))).toBe('epee'); // défaut mêlée
+    expect(weaponFamily(armeDeDessin(wep('Épée bâtarde', 'melee', [], 'deux-mains')))).toBe('epee_batarde'); // Groupe deux-mains → défaut
+    expect(weaponFamily(armeDeDessin(wep('Truc inconnu', 'melee')))).toBe('epee'); // défaut mêlée
   });
 });
 
@@ -76,7 +76,7 @@ describe('armourPart', () => {
 
 describe('shieldPart', () => {
   it('renvoie un SVG de bouclier non vide', () => {
-    expect(viewOrFront(shieldPart(bouclierDeDessin(findTrappingById, weaponFromId('bouclier')!)), 'front')).toContain('<');
+    expect(viewOrFront(shieldPart(bouclierDeDessin(weaponFromId('bouclier')!)), 'front')).toContain('<');
   });
 });
 
@@ -89,7 +89,7 @@ describe('equipementDessine', () => {
         { uid: 'b', label: 'Heaume', kind: 'armor', subType: 'plate', qualities: [], pa: 1, locs: ['tete'], enc: 0, equipped: false } as ItemInstance,
       ],
     } as unknown as Combatant;
-    const e = equipementDessine(findTrappingById, c);
+    const e = equipementDessine(c);
     expect(e.armour.map((i) => i.locs)).toEqual([['corps']]); // 'Heaume' non équipé exclu
     expect(e.shield).toBeTruthy();
     expect(e.weapons.length).toBe(2);
@@ -105,7 +105,7 @@ describe('equipementDessine', () => {
         piece('plastron', ['corps']),
       ],
     } as unknown as Combatant;
-    const e = equipementDessine(findTrappingById, c);
+    const e = equipementDessine(c);
     expect(e.armour.map((i) => i.matiere)).toEqual(['plate', 'mailles', 'cuir-souple']);
     // resolve.ts prend la 1re pièce couvrant le slot → torse = plate, bras = cuir (seule à couvrir).
     expect(viewOrFront(armourPart(e.armour.find((i) => (i.locs ?? []).includes('corps'))!, 'torse'), 'front'))
@@ -115,9 +115,9 @@ describe('equipementDessine', () => {
   it('cape/manteau porté → EquipCtx.cape (cosmétique) ; non porté → absent', () => {
     const cape = { ...itemFromTrappingById('cape')!, uid: 'c', equipped: true };
     const c = { weapons: [], items: [cape] } as unknown as Combatant;
-    expect(equipementDessine(findTrappingById, c).cape).toBe(true);
+    expect(equipementDessine(c).cape).toBe(true);
     cape.equipped = false;
-    expect(equipementDessine(findTrappingById, c).cape).toBeUndefined();
+    expect(equipementDessine(c).cape).toBeUndefined();
   });
 
   it('chaque trapping d’arme à Groupe (`subType`) garde son Groupe jusqu’à l’arme tenue par le héros (#602)', () => {
@@ -128,8 +128,8 @@ describe('equipementDessine', () => {
       const c = { id: 'h', label: 'Héros', items: [it], loadouts: [{ id: 'lo', main: it.uid }], activeLoadoutId: 'lo' } as unknown as Combatant;
       recomputeLoadout(c);
       const tenue = c.weapons?.find((w) => w.uid === it.uid);
-      if (tenue) expect(equipementDessine(findTrappingById, c).weapons, `${t.id} : l’arme tenue manque à l’équipement porté`).toContainEqual(armeDeDessin(findTrappingById, tenue));
-      const w = armeDeDessin(findTrappingById, tenue ?? weaponFromItem(it)); // machine à Équipe (ADE II 8 l.233) : hors loadout, servie en poste
+      if (tenue) expect(equipementDessine(c).weapons, `${t.id} : l’arme tenue manque à l’équipement porté`).toContainEqual(armeDeDessin(tenue));
+      const w = armeDeDessin(tenue ?? weaponFromItem(it)); // machine à Équipe (ADE II 8 l.233) : hors loadout, servie en poste
       (tenue ? tenues : enPoste).push(t.id);
       if (weaponGroup(w) !== t.subType) perdues.push(`${t.id}: ${t.subType} → ${String(weaponGroup(w))}`);
     }
@@ -144,7 +144,7 @@ describe('héros cornu sans arme au set : le rig ne dessine aucune arme pour les
     const hero = { id: 'h', label: 'h', kind: 'hero', items: [], weapons: [], traits: [], activeEffects: [], mutations: [findMutationById('cornes-asymetriques')!] } as unknown as Combatant;
     recomputeLoadout(hero);
     expect(hero.weapons?.[0]?.label, 'PRÉMISSE : les Cornes sont la première arme du set').toBe('Cornes');
-    const cornes = armePrincipale(equipementDessine(findTrappingById, hero))!;
+    const cornes = armePrincipale(equipementDessine(hero))!;
     expect(cornes.natural).toBe(true);
     expect(weaponFamily(cornes)).toBe('');
   });
@@ -152,7 +152,7 @@ describe('héros cornu sans arme au set : le rig ne dessine aucune arme pour les
 
 describe('#2097 J6 — porteur d’un bouclier SEUL : ses gestes suivent ce qui est dessiné, main droite vide', () => {
   const bouclier = weaponFromId('bouclier')!;
-  const equip = equipDe(findTrappingById, [bouclier], []);
+  const equip = equipDe([bouclier], []);
   const ctx = contexteDeGeste(equip);
 
   it('aucune arme principale : l’os `arme` ne dessine rien', () => {
@@ -162,11 +162,11 @@ describe('#2097 J6 — porteur d’un bouclier SEUL : ses gestes suivent ce qui 
   });
 
   it('parade : main nue, bouclier levé — jamais la prise d’une lame', () => {
-    expect(rigDefenseDef(findTrappingById, { kind: 'weapon', defense: 'parade' }, ctx)?.key).toBe('rig:parry:pied:nu:bouclier');
+    expect(rigDefenseDef({ kind: 'weapon', defense: 'parade' }, ctx)?.key).toBe('rig:parry:pied:nu:bouclier');
   });
 
   it('attaque sans arme postée : à mains nues', () => {
-    expect(rigAttackDef(findTrappingById, { kind: 'weapon' }, ctx).key).toBe('rig:attack:pied:nu');
+    expect(rigAttackDef({ kind: 'weapon' }, ctx).key).toBe('rig:attack:pied:nu');
   });
 });
 

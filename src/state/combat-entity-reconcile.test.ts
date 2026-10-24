@@ -69,7 +69,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     const scene = useGame.getState().scene!;
     const enemy = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
     const ent = scene.entities.find((e) => e.id === enemy.id)!;
-    const combat = enemyRigProfile(findTrappingById, enemy);
+    const combat = enemyRigProfile(enemy);
     const explo = entityRigProfile(findTrappingById, ent.ref!, ent.appearance?.seed ?? hashSeed(ent.id), {
       species: ent.appearance?.species, tenue: ent.appearance?.tenue, sex: ent.appearance?.sex, build: ent.appearance?.build,
     });

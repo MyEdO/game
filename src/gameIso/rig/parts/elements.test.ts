@@ -5,9 +5,9 @@ import { feat, elementsOf } from './elements';
 import type { Appearance } from '../../../engine/authoringAppearance';
 import { asRigSpeciesId } from '../appearance';
 import { equipDe } from '../../../noyau/equipementDessine';
-import { findTrappingById } from '../../../data';
 
-const NO_EQUIP = equipDe(findTrappingById, [], []);
+
+const NO_EQUIP = equipDe([], []);
 const EAR = 'M-8 7 Q-15 4 -14 -3'; // début du path de l'oreille pointue (élément 'oreilles-pointues')
 const base: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 7 };
 

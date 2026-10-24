@@ -745,7 +745,7 @@ describe('OMBRE DE CONTACT — le socle se dimensionne sur le SUJET, jamais sur 
     }) as unknown as Combatant;
 
   const sujetDe = (c: Combatant, rider?: Combatant) =>
-    actorBillboards(findTrappingById, [{ c, ...(rider ? { rider } : {}), x: 1, y: 1, z: 0, facing: 'S' }], scèneNue, mptNu)[0];
+    actorBillboards([{ c, ...(rider ? { rider } : {}), x: 1, y: 1, z: 0, facing: 'S' }], scèneNue, mptNu)[0];
 
   /** Le rayon MONDE du socle tel que la prod le monte : le sujet et son quad, rien d'autre. */
   const rayon = (s: ReturnType<typeof sujetDe>): number =>
@@ -1057,13 +1057,13 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
 
   it('l’identité IGNORE la case et le cap (deux poses, une seule identité)', () => {
     const c = combattant();
-    expect(actorIdentityKey(findTrappingById, { c, x: 1, y: 1, z: 0, facing: 'S' }))
-      .toBe(actorIdentityKey(findTrappingById, { c, x: 4, y: 6, z: 0, facing: 'NE' }));
+    expect(actorIdentityKey({ c, x: 1, y: 1, z: 0, facing: 'S' }))
+      .toBe(actorIdentityKey({ c, x: 4, y: 6, z: 0, facing: 'NE' }));
   });
 
   it('un PAS réécrit la case du sujet monté (sans quoi sa teinte reste celle du départ)', () => {
     const c = combattant();
-    const [sujet] = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
+    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
     const ancre = sujet.anchor.clone();
 
     const { ancres } = reposerActeurs([sujet], [{ c, x: 2, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
@@ -1075,7 +1075,7 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
 
   it('un PIVOT réécrit le cap du sujet et le SIGNALE (l’art se relève dessus)', () => {
     const c = combattant();
-    const [sujet] = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
+    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
 
     const { ancres, caps } = reposerActeurs([sujet], [{ c, x: 1, y: 1, z: 0, facing: 'E' }], scèneRepose, mptRepose);
 
@@ -1086,7 +1086,7 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
 
   it('une pose INCHANGÉE n’écrit rien et ne signale rien (aucune image gratuite)', () => {
     const c = combattant();
-    const [sujet] = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
+    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
 
     const { ancres, caps } = reposerActeurs([sujet], [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
 

@@ -961,14 +961,14 @@ export function GameStage3D({ resolveTrapping, scene, lecture, mpt, frame, tintA
   const elsStables = elsRetenu.current;
   // IDENTITÉ des acteurs — qui ils sont et quel art ils portent, JAMAIS où ils sont (`actorIdentityKey`) :
   // la case logique appartient à la pose, que la repose ci-dessous porte aux sujets déjà montés.
-  const acteursCle = actors.map((p) => actorIdentityKey(resolveTrapping, p)).join('|');
+  const acteursCle = actors.map((p) => actorIdentityKey(p)).join('|');
   // VERSION DES CATALOGUES (`useVersionDesDatasets`) : les sujets la hachent (`DrawSnapshot`), et une
   // édition au Codex (`CodexEdit`, modale au-dessus du jeu monté) doit relancer ce rendu pour la voir.
   const versionCatalogues = useVersionDesDatasets();
   // La TEINTE de visibilité n'entre PAS dans ces rétentions (#1396) : elle se prend à la case du sujet,
   // par la passe de POSE, à la cadence de la frame (`stage/boardPose.poseBoards`).
   const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues, resolveTrapping], () => collectBillboards(resolveTrapping, scene, mpt, elsStables));
-  const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques, resolveTrapping], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(resolveTrapping, actors, scene, mpt)));
+  const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques, resolveTrapping], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(actors, scene, mpt)));
   const subjects = useMemo(() => [...decor, ...acteurs], [decor, acteurs]);
   // REPOSE DE POSITION : un acteur qui change de case suit sa case, en place. C'est la passe sœur de
   // la repose de regard — même loi, autre entrée. Elle PEINT sa propre écriture (aucune référence ne
@@ -2164,9 +2164,9 @@ export function GameStage3D({ resolveTrapping, scene, lecture, mpt, frame, tintA
         for (const ground of ['corpse', 'prone'] as const) poser(planDyingDef(ground), s.view, s.mirror, PRIORITE_RECHAUFFAGE, ground);
       } else {
         const marche = rigWalkDef(s.rig);
-        const parade = s.enrolé ? rigDefenseDef(resolveTrapping, { defense: 'parade' }, s.rig) : null;
+        const parade = s.enrolé ? rigDefenseDef({ defense: 'parade' }, s.rig) : null;
         const gestes: RigClipDef[] = s.enrolé
-          ? [rigAttackDef(resolveTrapping, {}, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
+          ? [rigAttackDef({}, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
           : [];
         for (const def of [REPOS, ...(marche ? [marche] : []), ...gestes]) poser(def, s.view, s.mirror, PRIORITE_VUE_COURANTE);
         for (const v of VUES_REGARD) {

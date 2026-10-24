@@ -28,6 +28,7 @@ import {
 import type { TokenEl } from '../../builders/types';
 import type { Combatant, Weapon } from '../../../engine/types';
 import { findTrappingById } from '../../../data';
+import { itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -43,10 +44,10 @@ function acteur(patch: Partial<Combatant> = {}): Combatant {
 
 /** Arme à forme DESSINÉE : sa classe de maniement (`hampe`) porte une prise à deux mains non vide
  *  (`weaponRest`) — c'est cette prise que la parité frame 0 doit voir. */
-const HALLEBARDE: Weapon = { id: 'hallebarde', label: 'Hallebarde', damage: 5, group: 'hast', trappingId: 'hallebarde' } as unknown as Weapon;
+const HALLEBARDE: Weapon = weaponFromItem(itemFromTrappingById('hallebarde', findTrappingById)!);
 
 const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' });
-const sujet = (c: Combatant) => actorBillboards(findTrappingById, [pose(c)], scene, mpt)[0];
+const sujet = (c: Combatant) => actorBillboards([pose(c)], scene, mpt)[0];
 
 /** Les fragments des `n` frames d'un geste, dans l'ordre — ce que le cuiseur rasteriserait. */
 function frames(s: ReturnType<typeof sujet>, def: Parameters<NonNullable<typeof s.frameSvg>>[2], n: number): string[] {
@@ -85,7 +86,7 @@ describe('BillboardSubject.frameSvg — rig bipède', () => {
 
   it('couple MONTÉ : composite à deux corps → aucune couture de frame', () => {
     const monture = { id: 'm1', label: 'Cheval', kind: 'enemy', creatureId: 'cheval', pos: { x: 1, y: 1 }, size: 'grande', conditions: [], wounds: { current: 10, max: 10 }, riderId: 'a1' } as unknown as Combatant;
-    const couple = actorBillboards(findTrappingById, [{ c: monture, rider: acteur(), x: 1, y: 1, z: 0 }], scene, mpt)[0];
+    const couple = actorBillboards([{ c: monture, rider: acteur(), x: 1, y: 1, z: 0 }], scene, mpt)[0];
     expect(couple.svg('front', false, 0).length).toBeGreaterThan(0);
     expect(couple.frameSvg).toBeUndefined();
   });

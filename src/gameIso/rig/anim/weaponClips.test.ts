@@ -4,13 +4,16 @@ import { describe, it, expect } from 'vitest';
 import { weaponRest, weaponAttackClip, weaponParryClip, mountedAttackClip, mountedParryClip, seatedClip, isRangedFamily } from './weaponClips';
 import { clipDuration, CLIPS } from './clips';
 import { findTrappingById } from '../../../data';
+import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
 import { armeDeDessin, type ArmeDeDessin } from '../../../noyau/equipementDessine';
 import type { Weapon } from '../../../engine/types';
 
-// L'arme porte son id de Possession ; la projection en RÉSOUT la forme, et le maniement est routé PAR ID
-// STABLE (forme résolue / `attackKind` naturel), jamais par le libellé.
-const w = (id: string, type: 'melee' | 'ranged' = 'melee', extra: Partial<Weapon> = {}): ArmeDeDessin =>
-  armeDeDessin(findTrappingById, { label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id, ...extra });
+/** #2967 */
+const w = (id: string, type: 'melee' | 'ranged' = 'melee', extra: Partial<Weapon> = {}): ArmeDeDessin => {
+  const objet = itemFromTrappingById(id, findTrappingById);
+  const arme = objet ? weaponFromItem(objet) : buildWeapon({ label: id, type, damage: { plusBF: false, flat: 4 } });
+  return armeDeDessin({ ...arme, type, ...extra });
+};
 
 const windUp = (clip: ReturnType<typeof weaponAttackClip>) => clip.steps[0].pose;
 const anyStep = (clip: ReturnType<typeof weaponAttackClip>, pred: (p: Pose) => boolean) =>

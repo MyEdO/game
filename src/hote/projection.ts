@@ -5,11 +5,7 @@
  * règle ne se calcule ici : un champ est un lecteur du noyau, ou un champ de l'état lu tel quel (provenance :
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
-import {
-  activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, objetDuNarratif,
-  porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey,
-  type TrappingResolver, type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt,
-} from '../noyau/index';
+import { activeCombatant, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, equipementDessine, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, type Combatant, type EtatDeLaBarre, type GesteDExploration, type Jeu, type JetEnVue, type Offre, type Pt } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -117,7 +113,7 @@ export const proprietaireDeLaFenetre = (etat: Jeu, id: string | undefined | null
   return { genre: 'porteur', nom: porteurParId(etat, id)?.label ?? null };
 };
 
-function combattant(resolveTrapping: TrappingResolver, c: Combatant, actif: Combatant | undefined): CombattantProjete {
+function combattant(c: Combatant, actif: Combatant | undefined): CombattantProjete {
   const d = actif ? combatDistance(actif, c) : Infinity;
   return {
     id: c.id,
@@ -130,7 +126,7 @@ function combattant(resolveTrapping: TrappingResolver, c: Combatant, actif: Comb
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: !!c.dead || !!c.outOfRencontre,
-    equipement: equipementDessine(resolveTrapping, c),
+    equipement: equipementDessine(c),
   };
 }
 
@@ -139,9 +135,8 @@ export function combattantsTries(etat: Jeu): CombattantProjete[] {
   const b = etat.battle;
   if (!b) return [];
   const actif = activeCombatant(b);
-  const resolveTrapping = objetDuNarratif(etat.campaignNarratif);
   const rangDe = (c: CombattantProjete): number => (c.id === actif?.id ? -2 : c.engage ? -1 : (c.distance ?? Infinity));
-  return b.combatants.map((c) => combattant(resolveTrapping, c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
+  return b.combatants.map((c) => combattant(c, actif)).sort((x, y) => rangDe(x) - rangDe(y));
 }
 
 /** L'étape de cascade que la fenêtre rend (`fenetreDuJeu`) : son id, son genre, son interaction, les clés de son choix. */
@@ -215,7 +210,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           tour: b.turn + 1,
           tours: b.order.length,
           fin: b.over,
-          actif: actif && mvt ? { ...combattant(objetDuNarratif(etat.campaignNarratif), actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
+          actif: actif && mvt ? { ...combattant(actif, actif), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
           apercu: apercuDe(etat),
           barre: { forme: barre.forme, raison: barre.forme === 'ouverte' ? null : barre.raison },
           intention: etat.localIntent?.actionId ?? null,

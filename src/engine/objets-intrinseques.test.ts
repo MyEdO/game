@@ -5,7 +5,9 @@ import { setDataset } from '../data/overrides';
 import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
 import * as objets from './items';
 import { shieldAdvantageLevel } from './combatFeatures/dispatch';
-import { skillDRBonus } from './ops';
+import { applyOps, skillDRBonus } from './ops';
+import { desDuTest } from './dice.testkit';
+import { isMagicWeapon } from './qualities/dispatch';
 import { itemCapability } from './capabilities';
 import { combatantLights } from '../noyau/monde/vision';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
@@ -14,6 +16,45 @@ const catalogue = trappings.slice();
 afterEach(() => setDataset('trappings', catalogue));
 
 describe('propriétés intrinsèques de l’objet (#2967)', () => {
+  /** #2967 */
+  it('la racine de campagne traverse la naissance puis les deux projections sans relire la fiche', () => {
+    const { item, objet, resolveTrapping } = porteurDObjetDeCampagne('epee_ebrechee');
+    expect(objets.itemFromTrappingById(objet.id, resolveTrapping)).toHaveProperty('shape', { id: 'epee' });
+    expect(item).toHaveProperty('shape', { id: 'epee' });
+    setDataset('trappings', [...catalogue, { ...objet, shape: { id: 'hache' }, formChoices: ['hache'] }]);
+    const arme = objets.weaponFromItem(item);
+    expect(arme).toHaveProperty('shape', { id: 'epee' });
+    expect(objets.apparencesCandidates(arme)).toEqual(['epee_ebrechee', 'epee']);
+    expect(objets.CLES_INTRINSEQUES_D_OBJET).toHaveProperty('shape', true);
+  });
+
+  /** #2967 */
+  it('la racine fournie à l’invocation reste fixée après édition de sa fiche', () => {
+    const item = objets.weaponItem({
+      label: 'Arme invoquée', damage: { plusBF: true, flat: 4 },
+      shape: findTrappingById('baton-de-combat')!.shape, apparence: 'hache_naine',
+    });
+    expect(item).toHaveProperty('shape', { id: 'baton' });
+    setDataset('trappings', catalogue.map((t) => t.id === 'baton-de-combat' ? { ...t, shape: { id: 'hache' } } : t));
+    const arme = objets.weaponFromItem(item);
+    expect(arme).toHaveProperty('shape', { id: 'baton' });
+    expect(objets.apparencesCandidates(arme)).toEqual(['baton']);
+  });
+
+  /** LDB 43 l.281 */
+  it.each([
+    ['epee_ebrechee', true],
+    ['hache_naine', false],
+  ] as const)('l’apparence née %s décide de l’admission de l’augmentation d’épée : %s', (apparence, admise) => {
+    const { hero, item, objet } = porteurDObjetDeCampagne(apparence);
+    setDataset('trappings', [...catalogue, { ...objet, shape: { id: admise ? 'hache' : 'epee' }, formChoices: [] }]);
+    applyOps(hero, [{ op: 'augmentWeapon', requiresWeapon: ['epee'], addQualities: ['magique'] }], {
+      rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4,
+    });
+    expect(isMagicWeapon(hero.weapons[0])).toBe(admise);
+    expect(item.enchants?.length ?? 0).toBe(admise ? 1 : 0);
+  });
+
   it('la marque improvisée de campagne naît sur l’objet', () => {
     const { objet, item, narratif } = porteurDObjetDeCampagne('hache_naine', { improvised: true });
     expect(findTrappingById(objet.id)).toBeUndefined();

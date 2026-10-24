@@ -1221,10 +1221,7 @@ export interface TrappingData {
    *  en donnée (2, belier-ade2, #210) reste éditable au Compendium plutôt que codée en dur ailleurs. Absent
    *  = empreinte 1 (affûts compacts type baliste/canon). */
   siegeFootprint?: number;
-  /** FORME de l'objet — id d'une RACINE de `apparences.json` (#2948), refiné au parse, ≠ libellé. Portée
-   *  par les armes, les boucliers et les armures (dont `subType` reste la matière). Absent pour
-   *  munitions/armes de siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance :
-   *  `formeResolue` (`engine/items`) le résout par `trappingId` (#2113). */
+  /** #2967 */
   shape?: { id: string };
   /** LDB 62 l.28 */
   unarmed?: true;

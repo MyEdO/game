@@ -3,9 +3,9 @@ import { resolveRig } from './composeRig';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { asRigSpeciesId } from './appearance';
 import { equipDe } from '../../noyau/equipementDessine';
-import { findTrappingById } from '../../data';
 
-const NO_EQUIP = equipDe(findTrappingById, [], []);
+
+const NO_EQUIP = equipDe([], []);
 const HUMAN: Appearance = { species: asRigSpeciesId('humain'), sex: 'M', build: 0.5, seed: 3 };
 // début du path du crâne arrière plein (`BACK_CRANE`, cf. parts/cosmetic.ts).
 const BACK_CRANE = 'M-9 6.6 Q-9.4 -2 0 -2.6';
