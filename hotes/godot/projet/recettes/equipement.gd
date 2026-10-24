@@ -38,9 +38,12 @@ func _recetter() -> void:
 				var objet: Dictionary = dessin[emplacement][position]
 				var nom := "Equipement_%s_%d" % [emplacement, position]
 				var attache := modele.find_child(nom, true, false) as BoneAttachment3D
+				var absences := _absences_de(vue.couverture.absences, str(c.id), emplacement, position)
 				if objet.modele == null:
 					_verifier(attache == null, "%s : absence sans nœud" % c.id)
+					_verifier(absences.size() == 1 and absences[0].candidats == objet.arme.candidats, "%s : absence publiée avec ses candidats" % c.id)
 					continue
+				_verifier(absences.is_empty(), "%s : modèle monté sans absence publiée" % c.id)
 				_verifier(attache != null, "%s : %s monté" % [c.id, nom])
 				if attache == null:
 					continue
@@ -71,6 +74,12 @@ func _recetter() -> void:
 		push_error("[recette-équipement] %s" % faute)
 	print("[recette-équipement] %d erreur(s), couverture %s" % [_fautes.size(), JSON.stringify(vue.couverture)])
 	quit(0 if _fautes.is_empty() else 1)
+
+
+func _absences_de(absences: Array, porteur: String, emplacement: String, position: int) -> Array:
+	return absences.filter(func(absence: Dictionary) -> bool:
+		return absence.porteur == porteur and absence.emplacement == emplacement and absence.position == position
+	)
 
 
 func _controler_matiere(porteur: String, piece: MeshInstance3D, matieres: Array, palette: Variant) -> void:

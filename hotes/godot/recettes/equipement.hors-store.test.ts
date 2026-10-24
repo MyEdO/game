@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { figerVueDEquipement } from './equipement';
 import { findTeinteById } from '../../../src/noyau/index';
+import { findTrappingById } from '../../../src/data';
 
 describe('vue figée de la recette native (#2948 L3-b)', () => {
   it('parcourt les cas publiés, dont le squelette armé et l’objet teinté', () => {
     const vue = figerVueDEquipement();
     const ids = vue.projection.combat!.voisins.liste.map(c => c.id);
-    expect(ids).toEqual(['squelette-arme', 'variante-repliee', 'sans-modele', 'chevalier-sans-arme', 'objet-teinte']);
+    expect(ids).toEqual(['squelette-arme', 'variante-repliee', 'sans-modele', 'chevalier-sans-arme', 'objet-teinte', 'objet-de-campagne']);
     expect(Object.keys(vue.equipements)).toEqual(ids);
     for (const equip of Object.values(vue.equipements)) {
       for (const tenue of equip.tenues) expect(['main', 'off']).toContain(tenue.arme.hand);
@@ -35,10 +36,24 @@ describe('vue figée de la recette native (#2948 L3-b)', () => {
     expect(intact.tenues[0].palette).toBeNull();
   });
 
-  it('laisse une absence au rapport et un chevalier sans arme', () => {
+  it('projette l’objet de campagne avec les candidats de naissance et un modèle montable', () => {
+    const vue = figerVueDEquipement();
+    expect(findTrappingById('arme-de-campagne')).toBeUndefined();
+    const porteur = vue.projection.combat!.voisins.liste.find((c) => c.id === 'objet-de-campagne')!;
+    expect(porteur.equipement.weapons[0].candidats).toEqual(['epee_ebrechee', 'epee']);
+    const dessin = vue.equipements[porteur.id];
+    expect(dessin.tenues).toHaveLength(1);
+    expect(dessin.tenues[0].arme).toEqual(porteur.equipement.weapons[0]);
+    expect(dessin.tenues[0].modele?.apparence).toBe('epee');
+    expect(vue.couverture.absences.filter((a) => a.porteur === porteur.id)).toEqual([]);
+  });
+
+  it('laisse les absences au rapport et un chevalier sans arme', () => {
     const vue = figerVueDEquipement();
     expect(vue.equipements['sans-modele'].tenues[0].modele).toBeNull();
-    expect(vue.couverture.absences).toEqual([{ porteur: 'sans-modele', emplacement: 'tenues', position: 0, candidats: ['hache_naine', 'hache'] }]);
+    expect(vue.couverture.absences).toEqual([
+      { porteur: 'sans-modele', emplacement: 'tenues', position: 0, candidats: ['hache_naine', 'hache'] },
+    ]);
     expect(vue.equipements['chevalier-sans-arme']).toEqual({ tenues: [], rangees: [] });
   });
 });

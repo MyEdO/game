@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter } from './projection';
-import { porteurDObjetDeCampagne } from '../objetDeCampagne.testkit';
+import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
 
 describe('projection d’un objet de campagne', () => {
   it('publie les candidats de naissance sur l’actif et dans la liste des combattants', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }));
     try {
       const base = partie.etat();
-      const { hero, narratif, candidats } = porteurDObjetDeCampagne();
+      const { hero, narratif, candidats } = porteurDObjetDeCampagne('hache_naine');
       const ancien = base.battle!.combatants.find((c) => c.kind === 'hero')!;
       hero.id = ancien.id;
       hero.pos = ancien.pos;

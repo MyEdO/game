@@ -16,7 +16,7 @@ import type { TraitList } from '../engine/statEntry';
 import { renderWeaponsFromTraits } from '../engine/creatureEquip';
 import { equipDe } from './equipementDessine';
 import { findTrappingById } from '../data';
-import { porteurDObjetDeCampagne } from '../objetDeCampagne.testkit';
+import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
 
 const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;
 const porte = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }), equipped: true });
@@ -24,7 +24,7 @@ const matieres = (c: Combatant) => equipementDessine(findTrappingById, c).armour
 
 describe('apparences d’objets des porteurs sans instance (#2948)', () => {
   it('la naissance et le dessin partagent les candidats de l’objet de campagne à plusieurs formes', () => {
-    const { objet, item, hero, candidats, resolveTrapping } = porteurDObjetDeCampagne();
+    const { objet, item, hero, candidats, resolveTrapping } = porteurDObjetDeCampagne('hache_naine');
     expect(findTrappingById(objet.id)).toBeUndefined();
     expect(objet.formChoices).toEqual(['epee', 'hache']);
     expect(item.apparence).toBe('hache_naine');
