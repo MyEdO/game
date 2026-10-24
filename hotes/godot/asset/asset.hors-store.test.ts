@@ -6,6 +6,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { GlbIllisible, lireGlb } from './glb.ts';
 import { chargerLicences, importerPersonnage, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './importer.ts';
 import { cheminsAbsolus, validerManifeste, type CodeDErreur } from './manifeste.ts';
+import { ATTACHES } from './montage';
+import { tableTotale } from '../../../src/lib/tableTotale';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, modelesEpingles, ModeleIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   sha256, TAG, urlDAsset, type AssetAPublier, type Gh,
@@ -34,7 +36,7 @@ const production = () => ({
   schema_version: 2,
   rig: 'codex_rig',
   montage: {
-    attaches: Object.fromEntries(['main', 'off', 'dos', 'ceinture'].map(n => [n, { os: 'corps', position: [0, 0, 0], rotation: [0, 0, 0] }])),
+    attaches: tableTotale(ATTACHES, () => ({ os: 'corps', position: [0, 0, 0], rotation: [0, 0, 0] })),
     composants: { epee: { prise: 'main', rangement: 'ceinture', matieres: [{ cle: 'metal', piece: 'epee', surface: 0 }] }, bouclier: { prise: 'off', rangement: 'dos', matieres: [{ cle: 'accent', piece: 'bouclier', surface: 0 }] } },
   },
   model: 'animated.glb',
@@ -222,9 +224,9 @@ describe('montage validé contre le GLB (#2948 L3-b)', () => {
     expect(codes(m)).toContain('forme');
   });
 
-  it.each(['main', 'off', 'dos', 'ceinture'])('exige l’attache %s', nom => {
+  it.each(ATTACHES)('exige l’attache %s', nom => {
     const m = production();
-    delete m.montage.attaches[nom];
+    delete (m.montage.attaches as Partial<typeof m.montage.attaches>)[nom];
     expect(codes(m)).toContain('forme');
   });
 

@@ -224,13 +224,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/schemas/grammaire/sans-livre.ts",
-    motif: "désormais",
-    ancre: "désormais `maison`. Mesuré le 2026-09-05 (après la fusion des trois catalogues de matières en",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/stake-rule-ratchet.test.ts",
     motif: "désormais",
     ancre: "fiche curée pour un jet DOIT désormais être référencée par un dataset d'enjeu. Une fiche qui",
