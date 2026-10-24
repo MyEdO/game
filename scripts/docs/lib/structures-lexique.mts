@@ -18,7 +18,7 @@
 // `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
 
 import { basename } from 'node:path';
-import { SLOTS } from '../../../src/data/palette.types';
+import { SLOTS } from '../../../src/data/palette.types.ts';
 import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
 import { provenanceMesuree } from '../../../src/data/schemas/grammaire/sans-livre.ts';
