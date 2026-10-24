@@ -41,7 +41,7 @@ import { cureCriticalWounds, receiveMedicalAid, traumaPassiveMods, permanentAmpu
 import { applyHealWounds, soinMagiqueOperant } from './healing';
 import { fateSaveOrDie } from './fortune';
 import { acquerirTalent } from './careerSlots';
-import { damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, formeResolue } from './items';
+import { contexteDeNaissanceDObjet, damageLeatherArmour, itemFromTrappingById, itemFromGive, giveTrappingLabel, recomputeLoadout, weaponItem, newUid, activeLoadout, damageString, autoStowNewItem, lacherLArme, armeNaturelleAccordee, estUneVraieArme, objetDeSlot, isWeaponActive, formeResolue } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { formatMoney, fromBrass } from './money';
 import { itemCapability } from './capabilities';
@@ -815,7 +815,7 @@ export type GameOp =
    *  nom inconnu → objet CUSTOM (misc). Même vocabulaire que l'Effet de scène `giveTrapping`.
    *  Alimente tout sort qui DONNE du matériel : Rations (Générosité de Manann, Récolte de Rhya →
    *  système de provisions/Faim), etc. `count`/`perSL` : « +1 par +2 DR ». */
-  | { op: 'giveTrapping'; trappingId?: string; custom?: string; count?: number; perSL?: PerSL }
+  | { op: 'giveTrapping'; trappingId?: string; custom?: string; count?: number; perSL?: PerSL; apparence?: { id: string } }
   /** Crédite (positif) ou débite (négatif) la bourse PERSONNELLE de la cible, en SOUS DE CUIVRE
    *  (`brass` — unité de compte unique, `engine/money.ts`). La Bourse est un trapping (doctrine
    *  utilisateur 2026-07-16 : « Pour la bourse, c'est personnel et par défaut ça doit être dans… la
@@ -2503,7 +2503,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
         target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive(o, source);
+          const it = itemFromGive(o, source, undefined, contexteDeNaissanceDObjet(target));
           target.items.push(it);
           autoStowNewItem(target, it); // #204 : rangement par défaut
         }

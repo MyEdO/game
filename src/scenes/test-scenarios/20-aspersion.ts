@@ -1,5 +1,5 @@
 import { pregen, PREGEN } from '../../data/pregens';
-import { itemFromTrappingById } from '../../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
@@ -25,7 +25,7 @@ import type { Scene } from '../../noyau/monde/scene';
  */
 function porteurDOutre() {
   const h = pregen(PREGEN.soldat);
-  const outre = itemFromTrappingById('outre-a-eau')!;
+  const outre = itemFromTrappingById('outre-a-eau', undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [...(h.items ?? []), outre];
   return h;
 }

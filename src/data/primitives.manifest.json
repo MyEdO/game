@@ -2115,5 +2115,14 @@
     "concept": "transaction du contrôle des écritures : préparation avant lancement, projection pure sans nonce, reporters temporaires restitués après clôture, veto mémorisé et nettoyage idempotent",
     "perimetre": "fabrique de supervision et intercepteur des lancements Node --test",
     "verrou": "scripts/guards/lib/perimetreSansEcriture.test.mjs"
+  },
+  {
+    "id": "naissanceDObjet",
+    "type": "primitives.manifest",
+    "label": "ContexteDeNaissanceDObjet/contexteDeNaissanceDObjet/itemFromTrappingById/itemFromTrappingRef/itemFromGive",
+    "fichier": "src/engine/items.ts",
+    "concept": "apparence décidée une seule fois à la naissance : contexte explicite du destinataire, qualités finales de l’objet, référence d’auteur prioritaire ; sans contexte ni décision d’auteur, aucune clé apparence",
+    "perimetre": "créateur, boutique, octrois, fabrication et effets ; aucune re-décision au transfert",
+    "verrou": "src/engine/apparenceNaissance.test.ts, src/state/apparence-naissance.test.ts, src/engine/rendu-pur-jamais-recopie.test.ts"
   }
 ]

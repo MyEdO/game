@@ -442,6 +442,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'giveTrapping' && (
           <>
             <ObjetDonneField objets={objetsDuProjet(ctx)} value={e.trappingId ?? e.custom} upd={upd} />
+            <RefField label="Apparence" ariaLabel="Apparence de l’objet donné" nullable cfg={{ ds: 'apparences', single: true }} value={e.apparence?.id} onChange={(v) => upd({ apparence: v ? { id: v } : undefined })} />
             <input
               placeholder="Qualités magiques ajoutées (virgules, ex. De plaies atroces)"
               value={(e.qualities ?? []).join(', ')}

@@ -12,7 +12,7 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { findTrappingById, findApparenceById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
+import { apparences, findCareerById, findTrappingById, findApparenceById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 
 /** Résolveur d'une Possession par id STABLE — signature de `findTrappingById`. Injecté aux coutures
@@ -28,6 +28,46 @@ import { itemCapability } from './capabilities';
 import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
 import { nextEntityId } from '../lib/entityId';
 import { sequence } from './sequences';
+
+/** Contexte explicite de la naissance d’un objet (#2948). */
+export interface ContexteDeNaissanceDObjet {
+  espece?: string;
+  classe?: string;
+}
+
+/** Contexte du destinataire au moment de la naissance, sans lecture d’état global. */
+export function contexteDeNaissanceDObjet(porteur: Pick<Combatant, 'species' | 'career'>): ContexteDeNaissanceDObjet {
+  return { espece: porteur.species, classe: findCareerById(porteur.career)?.class };
+}
+
+function deciderApparenceALaNaissance(
+  objet: ItemInstance,
+  contexte: ContexteDeNaissanceDObjet | undefined,
+  resolveTrapping: TrappingResolver,
+  auteur?: { id: string },
+): ItemInstance {
+  if (auteur) {
+    objet.apparence = auteur.id;
+    return objet;
+  }
+  if (!contexte || !objet.trappingId) return objet;
+  const forme = resolveTrapping(objet.trappingId)?.shape;
+  const qualites = objet.qualities.map((q) => q.id);
+  const candidates = apparences.flatMap((a) => {
+    if (!a.forme || a.forme !== forme) return [];
+    const criteres: [string[] | undefined, readonly string[]][] = [
+      [a.especes, contexte.espece ? [contexte.espece] : []],
+      [a.classes, contexte.classe ? [contexte.classe] : []],
+      [a.qualites, qualites],
+    ];
+    const axes = criteres.filter(([etiquettes]) => etiquettes?.length);
+    if (!axes.length || !axes.every(([etiquettes, valeurs]) => etiquettes!.some((id) => valeurs.includes(id)))) return [];
+    return [{ id: a.id, specificite: axes.length }];
+  });
+  candidates.sort((a, b) => b.specificite - a.specificite || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  if (candidates[0]) objet.apparence = candidates[0].id;
+  return objet;
+}
 
 const prochainUid = sequence();
 export function newUid(): string {
@@ -276,7 +316,7 @@ function kindOf(categorie: string): ItemKind {
 /** Construit une instance d'objet depuis le catalogue par son `id` STABLE. Pose `trappingId` (réf
  *  de re-dérivation). Id inconnu → null (objet hors-base → `customTrapping`). L'entrée RÉSOLUE hors de
  *  `INSTANCIABLE_PAR_ID` lève (`dansLaSousListe`). */
-export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance | null {
+export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance | null {
   const resolu = resolveTrapping(id);
   if (!resolu) return null;
   if (!dansLaSousListe(INSTANCIABLE_PAR_ID, resolu))
@@ -292,7 +332,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
   // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
   // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
   // POSSÈDE, et une édition du catalogue ne les repeint pas.
-  return {
+  const objet: ItemInstance = {
     uid: newUid(),
     trappingId: t.id,
     label: t.label,
@@ -330,6 +370,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     // `capabilities`), via `engine/capabilities` — comme `passive`. Une seule source de vérité.
     ...(t.container ? { container: t.container } : {}), // Contenant (LDB 64) : capacité de rangement
   };
+  return deciderApparenceALaNaissance(objet, contexte, resolveTrapping);
 }
 
 /**
@@ -342,6 +383,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
 export function itemFromTrappingRef(
   ref: Extract<TrappingRef, { id: string }>,
   resolveTrapping: TrappingResolver = findTrappingById,
+  contexte?: ContexteDeNaissanceDObjet,
 ): ItemInstance | null {
   const it = itemFromTrappingById(ref.id, resolveTrapping);
   if (!it) return null;
@@ -353,7 +395,7 @@ export function itemFromTrappingRef(
     // « Solide 3 » — que le merge par id nu de `withGiveQualities` perdrait, correctif juge Lot 1).
     it.qualities = [...(it.qualities ?? []), ...ref.qualities.map(qualityInstance)];
   }
-  return it;
+  return deciderApparenceALaNaissance(it, contexte, resolveTrapping);
 }
 
 /** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
@@ -366,11 +408,12 @@ export function customTrapping(name: string): ItemInstance {
 /** Résout l'ItemInstance d'un Effet `giveTrapping` : objet de CATALOGUE (`trappingId`) sinon objet CUSTOM
  *  (`custom`, nom libre hors-base). SOURCE UNIQUE (applyEffects + ramassage de prop). `source` (optionnel) =
  *  entité déclenchante (sort/talent/…) — stampée sur l'instance pour l'ancrage de règle (`ItemInstance.source`). */
-export function itemFromGive(give: { trappingId?: string; custom?: string; teinte?: { id: string } }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById): ItemInstance {
+export function itemFromGive(give: { trappingId?: string; custom?: string; teinte?: { id: string }; apparence?: { id: string }; qualities?: string[] }, source?: EffectSource, resolveTrapping: TrappingResolver = findTrappingById, contexte?: ContexteDeNaissanceDObjet): ItemInstance {
   const it = (give.trappingId ? itemFromTrappingById(give.trappingId, resolveTrapping) : null) ?? customTrapping(give.custom ?? give.trappingId ?? 'Objet');
   if (source) it.source = source;
   if (give.teinte) it.teinte = give.teinte.id;
-  return it;
+  it.qualities = withGiveQualities(it.qualities, give);
+  return deciderApparenceALaNaissance(it, contexte, resolveTrapping, give.apparence);
 }
 
 /** Fusionne les qualités MAGIQUES ajoutées d'un `giveTrapping` (`give.qualities` = ids de scène) aux
@@ -383,8 +426,7 @@ export function withGiveQualities(base: QualityInstance[], give: { qualities?: s
  *  magiques ajoutées. Même liste que l'objet effectivement reçu (apply) → sert l'AFFICHAGE des chips de
  *  butin, qu'elles vivent dans la def (objet catalogué) ou sur l'Effet (magique). */
 export function giveTrappingQualities(give: { trappingId?: string; custom?: string; qualities?: string[] }, resolveTrapping: TrappingResolver = findTrappingById): QualityInstance[] {
-  const resolved = resolveQualities(itemFromGive(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
-  return withGiveQualities(resolved, give);
+  return resolveQualities(itemFromGive(give, undefined, resolveTrapping)).map((r) => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }));
 }
 
 /** Libellé d'affichage d'un Effet `giveTrapping` (catalogue → label, sinon nom custom). */
@@ -1067,12 +1109,12 @@ export function damageScore(d?: WeaponDamageSpec): number {
  *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; le `count` d'une munition
  *  donne sa quantité. Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
  *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). */
-export function buildInventory(refs: TrappingRef[]): ItemInstance[] {
+export function buildInventory(refs: TrappingRef[], contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
   for (const ref of refs) {
     if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
     if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
-    const it = itemFromTrappingRef(ref);
+    const it = itemFromTrappingRef(ref, undefined, contexte);
     if (it) items.push(it);
   }
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
