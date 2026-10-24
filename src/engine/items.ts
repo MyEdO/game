@@ -270,6 +270,7 @@ export function apparencesAdmissibles(x: Pick<SourceDeForme, 'trappingId'>): typ
 /** Racine de la forme dessinée : dernière entrée des candidats. */
 export const racineDesCandidats = (candidats: readonly string[]): string | undefined => candidats[candidats.length - 1];
 
+/** Forme résolue d'une SourceDeForme : racine de ses apparences candidates. */
 export const formeResolue = (x: SourceDeForme): string | undefined => racineDesCandidats(apparencesCandidates(x));
 
 /** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,

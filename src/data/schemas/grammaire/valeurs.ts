@@ -796,6 +796,8 @@ function fauteDeCoiffure(hairstyle: string, sex: Sexe | undefined): string | nul
   return null;
 }
 
+const apparencesDObjetsSchema: z.ZodType<Record<string, string>> = z.record(idDe('trapping'), idDe('apparence'));
+
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, `traits`, `mutations`, la scène (`SceneEntity.appearance`) et le narratif. */
 export const entityAppearanceSchema = nommerChamps(z.strictObject({
@@ -828,6 +830,7 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
   /** Armure de statblock (PA par localisation, sans inventaire) VISIBLE/portée (#774) — défaut
    *  absent : les PA restent mécaniques PURS, aucun art d'armure synthétisé (nu de l'espèce/naturel). */
   armurePortee: z.boolean().optional(),
+  apparencesObjets: apparencesDObjetsSchema.optional(),
   /** Coiffure IMPOSÉE — id stable d'une coiffure du rig (`gameIso/rig/parts/hairstyles/defs`, #637). */
   hairstyle: z.string().optional(),
   eyes: nommerChamps(z.strictObject({ G: z.string().optional(), D: z.string().optional() }), { G: { label: "gauche" }, D: { label: "droit" } }).optional(),
@@ -835,7 +838,7 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
 }).superRefine((a, ctx) => {
   const faute = a.hairstyle === undefined ? null : fauteDeCoiffure(a.hairstyle, a.sex);
   if (faute) ctx.addIssue({ code: 'custom', path: ['hairstyle'], message: faute });
-}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
+}), { seed: { label: "graine" }, monster: { label: "créature" }, colors: { label: "couleurs" }, parts: { label: "parties" }, sex: { label: "sexe" }, build: { label: "corpulence" }, species: { label: "espèce" }, tenue: { label: "tenue" }, harnais: { label: "harnais" }, armurePortee: { label: "armure portée" }, apparencesObjets: { label: "apparences d’objets", texte: { regime: "technique" } }, hairstyle: { label: "coiffure" }, eyes: { label: "yeux" }, features: { label: "détails" } });
 
 /** `HitLocation` (`src/engine/types.ts`) — 6 zones de touche (dé inversé, LDB). Resserré depuis
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
