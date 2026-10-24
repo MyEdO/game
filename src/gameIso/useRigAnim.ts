@@ -10,6 +10,7 @@ import type { Dir8 } from '../geometry/dir8';
 import type { Clip } from './rig/anim/clips';
 import type { Pose } from './rig/poses';
 import { walkMs } from '../geometry/walk';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 
 /**
  * Pilote l'ANIMATION d'un rig bipède (clips de repos/marche/attaque/parade/esquive/touché via
@@ -54,7 +55,7 @@ export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
         // ce hook joue seulement le geste. Contrat d'émission unique, garde `animTracks.test.ts`.
         // Geste de l'arme EMPLOYÉE (portée par l'événement) — pas de l'arme principale :
         // la 2e frappe de dague gauche et le tentacule jouent LEUR clip (miroité à gauche).
-        const def = rigAttackDef(
+        const def = rigAttackDef(objetDuNarratif(useGame.getState().campaignNarratif),
           {
             kind: d.kind,
             weapon: d.weapon,
@@ -69,7 +70,7 @@ export function useRigAnim({ id, equip, restClip, facing, pos, seated }: {
         // Réaction défensive : parade de l'arme QUI A PARÉ (repli sur l'arme principale quand
         // l'événement ne la porte pas), sinon dérobade — et RIEN face à un soin/une bénédiction.
         const cs = d.kind === 'spell' ? combatants() : undefined;
-        const def = rigDefenseDef(
+        const def = rigDefenseDef(objetDuNarratif(useGame.getState().campaignNarratif),
           {
             kind: d.kind,
             defense: d.defense,

@@ -22,6 +22,7 @@ import * as percageModule from './percage';
 import { actorCapsuleOf } from './actorCapsule';
 import { BancRenderer, PLAFOND_ATTENTE_MS, brancherArdoise, corpsDessines, quads, respirer, simulerRasterisation, viderCaptures, type Rasterisation } from './banc-volumique';
 import { idsDeLActeur } from '../backends/webgl/sceneMeshes';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -98,7 +99,7 @@ function planchesDuCouple(espion: Parameters<typeof clésServies>[0]): string[] 
 function rendre(actors: ActorPose[], percage?: PercageEntrees): void {
   act(() => {
     root!.render(
-      <GameStage3D lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu" scene={SCENE} mpt={MPT} frame={CADRE} tintAt={TINT} keepEl={KEEP} els={ELS}
         actors={actors} gameTime={720} lightLevel={1} lights={[]} anim={anim} percage={percage} />,
     );
   });

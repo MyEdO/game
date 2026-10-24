@@ -25,6 +25,7 @@ import { ENEMY_RING, HERO_RING } from '../teamColors';
 import { actorBillboards, actorPoses, type ActorPose, type BillboardSubject } from '../backends/webgl/sceneMeshes';
 import { buildTokens } from '../builders/tokens';
 import type { BattleState } from '../../noyau/etat';
+import { findTrappingById } from '../../data';
 
 /**
  * SILHOUETTE DU CORPS À TRAVERS LES MURS (#1297, LOT C) — le pendant, pour le corps, du jumeau
@@ -90,7 +91,7 @@ async function monter(frame: StageFrame): Promise<void> {
   root = createRoot(hôte);
   await act(async () => {
     root!.render(
-      <GameStage3D lecture="jeu"
+      <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
         scene={SCENE}
         mpt={sceneMetresPerTile(SCENE)}
         frame={frame}
@@ -325,7 +326,7 @@ describe('Corps à travers les murs — la TEINTE le long de la chaîne RÉELLE 
   function teintes(combatants: Combatant[]): Record<string, string | undefined> {
     const els = buildTokens(SCENE, TOUT_VU(), { combatants } as unknown as BattleState, { activeZ: 0, viewZ: null, top: false });
     const out: Record<string, string | undefined> = {};
-    for (const b of actorBillboards(actorPoses(els, {}), SCENE, MPT)) out[b.cid!] = b.teamColor;
+    for (const b of actorBillboards(findTrappingById, actorPoses(els, {}), SCENE, MPT)) out[b.cid!] = b.teamColor;
     return out;
   }
 

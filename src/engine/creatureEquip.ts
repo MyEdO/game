@@ -6,7 +6,7 @@
  */
 import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
-import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem } from './items';
+import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem, type TrappingResolver } from './items';
 import type { ItemInstance, WeaponDamageSpec } from './types';
 import { findResolvedTrait, traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
@@ -18,8 +18,8 @@ import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
  *  d'un littéral : cette arme est jouable (bandes de tir `effectiveWeaponRange`, Spécialisation
  *  `weaponGroupSkillMode`) autant que dessinée. Id introuvable OU trapping qui n'est pas une arme → `null`
  *  + `console.error` : l'entité reste désarmée, rien d'inventé (aucune arme devinée depuis un id mort). */
-export function weaponFromId(trappingId: string): Weapon | null {
-  const trapping = findTrappingById(trappingId);
+export function weaponFromId(trappingId: string, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {
+  const trapping = resolveTrapping(trappingId);
   if (!trapping) {
     console.error(`[weapon] trappingId « ${trappingId} » introuvable au catalogue d'armes (#223) — entité désarmée, rien d'inventé.`);
     return null;
@@ -28,20 +28,22 @@ export function weaponFromId(trappingId: string): Weapon | null {
     console.error(`[weapon] trapping « ${trappingId} » (catégorie « ${trapping.categorie} ») n'est pas une arme — entité désarmée, rien d'inventé.`);
     return null;
   }
-  const it = itemFromTrappingById(trappingId);
+  const it = itemFromTrappingById(trappingId, resolveTrapping);
   return it ? weaponFromItem(it) : null;
 }
 
 /**
  * Résout l'`arg` d'un trait `arme`/`a-distance` (`specsSource` `weaponsMelee`/`weaponsRanged`, cf.
  * `data/index.ts`) vers la POSSESSION de catalogue correspondante — l'`arg` porte alors un `id` STABLE
- * (validité : `SPEC_SOURCES[source].resolves`, qui garantit AUSSI le type melee/ranged), plus un libellé.
+ * (univers de l'entrée résolue : `SPEC_SOURCES[source].admetEntree`), plus un libellé.
  * `undefined` pour un `arg` NATUREL/libre/absent (« Griffes », « Crocs »…) : ces traits sont `specsOpen`
  * (RAW : attaques naturelles ou génériques acceptées hors catalogue) — le rendu retombe alors sur le
  * comportement générique/naturel.
  */
-function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsRanged'): ItemInstance | undefined {
-  return arg && SPEC_SOURCES[source].resolves(arg) ? (itemFromTrappingById(arg) ?? undefined) : undefined;
+function catalogItem(arg: string | undefined, source: 'weaponsMelee' | 'weaponsRanged', resolveTrapping: TrappingResolver): ItemInstance | undefined {
+  const entree = arg ? resolveTrapping(arg) : undefined;
+  return entree && SPEC_SOURCES[source].admetEntree(entree)
+    ? (itemFromTrappingById(entree.id, resolveTrapping) ?? undefined) : undefined;
 }
 
 /**
@@ -66,7 +68,7 @@ function creatureWeapon(it: ItemInstance, dmg: WeaponDamageSpec, range: number |
  * Le `name` = le TYPE quand il est manufacturé (→ le rig tient cette arme) ; sinon
  * une étiquette naturelle (→ weaponFamily renvoie '' = aucune arme dessinée).
  */
-export function weaponFromTrait(t: TraitInstance): Weapon | null {
+export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResolver = findTrappingById): Weapon | null {
   // Indice de créature = SB déjà inclus → PAS de token BF (« +N », « -N » négatif) ; à défaut d'Indice,
   // arme générique « +BF » nu (SB-relatif). Le constructeur d'arme UNIQUE porte les deux conventions.
   const dmg: WeaponDamageSpec = t.value != null ? { plusBF: false, flat: t.value } : { plusBF: true, flat: 0, bare: true };
@@ -77,7 +79,7 @@ export function weaponFromTrait(t: TraitInstance): Weapon | null {
   const source = findTraitById(t.id)?.specsSource;
   if (source === 'weaponsRanged') {
     if (t.value == null) return null; // « À distance » sans Indice de Dégâts : pas une arme jouable (RAW)
-    const it = catalogItem(t.arg, source);
+    const it = catalogItem(t.arg, source, resolveTrapping);
     if (it) return creatureWeapon(it, dmg, t.range);
     // Arme naturelle/libre (arg hors catalogue, ou absent) : aucun `trappingId`, aucune forme résolue (le rendu retombe sur le Groupe).
     return buildWeapon({ label: t.arg || 'Attaque à distance', type: 'ranged', damage: dmg, range: t.range ?? undefined });
@@ -85,7 +87,7 @@ export function weaponFromTrait(t: TraitInstance): Weapon | null {
   if (source === 'weaponsMelee') {
     // Attaque naturelle de corps (flag DONNÉE `natural`) → aucune arme dessinée (aucune forme résolue).
     if (t.natural) return buildWeapon({ label: t.arg ?? 'Arme', damage: dmg, natural: true });
-    const it = catalogItem(t.arg, source);
+    const it = catalogItem(t.arg, source, resolveTrapping);
     if (it) return creatureWeapon(it, dmg, t.range);
     // Arme manufacturée hors catalogue, ou descripteur naturel non flaggé : générique, mêlée par
     // défaut — REND toujours une silhouette (`weaponFamily` retombe sur le Groupe, ex. « épée »).
@@ -108,10 +110,10 @@ export function weaponFromTrait(t: TraitInstance): Weapon | null {
 /** Armes EXPLICITES d'une créature (traits « Arme »/« À distance »/naturelles), SANS arme générique de
  *  repli. Pour le RENDU : une créature sans trait d'arme reste mains libres (un villageois ne tient rien) —
  *  le repli « Arme +BF » générique de `weaponsFromTraits` serait dessiné comme une épée (cf. weaponFamily). */
-export function renderWeaponsFromTraits(traits: TraitList): Weapon[] {
+export function renderWeaponsFromTraits(traits: TraitList, resolveTrapping: TrappingResolver = findTrappingById): Weapon[] {
   const weapons: Weapon[] = [];
   for (const t of traits) {
-    const w = weaponFromTrait(t);
+    const w = weaponFromTrait(t, resolveTrapping);
     if (w) weapons.push(w);
   }
   return weapons;

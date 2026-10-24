@@ -8,12 +8,13 @@ import type { SceneEntity } from '../noyau/monde/scene';
 import { creatureToCombatant } from '../noyau/monde/spawn';
 import { findCreatureById } from '../data';
 import { rigDuCombattant } from './rig/enemyProfile';
+import { findTrappingById } from '../data';
 
 const hero = { id: 'h1', kind: 'hero', species: 'humains-reiklander', name: 'Soldat', career: 'Soldat', appearance: { species: 'humain', sex: 'M', build: 0.5, seed: 3 } } as unknown as Combatant;
 
 describe('tokenBodyKind — view top', () => {
   it('héros bipède : flat=true + portraitBox + corps en vue de face (tête)', () => {
-    const r = tokenBodyKind({ kind: 'combatant', combatant: hero }, 'top');
+    const r = tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: hero }, 'top');
     expect(r.flat).toBe(true);
     expect(r.portraitBox).toMatch(/^[\d.-]+ [\d.-]+ [\d.-]+ [\d.-]+$/);
     const html = renderToStaticMarkup(<svg>{r.body}</svg>);
@@ -21,12 +22,12 @@ describe('tokenBodyKind — view top', () => {
   });
 
   it('iso (défaut) : un combattant de rig reste un disque-portrait — le monde volumique le dessine', () => {
-    expect(tokenBodyKind({ kind: 'combatant', combatant: hero })).toEqual(tokenBodyKind({ kind: 'combatant', combatant: hero }, 'top'));
+    expect(tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: hero })).toEqual(tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: hero }, 'top'));
   });
 
   it('décor (prop) : backend sprite, flat=false même en top', () => {
     const ent = { id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 0, y: 0 } } as SceneEntity;
-    const r = tokenBodyKind({ kind: 'sceneEntity', ent }, 'top');
+    const r = tokenBodyKind(findTrappingById, { kind: 'sceneEntity', ent }, 'top');
     expect(r.bodyKind).toBe('sprite');
     expect(r.flat).toBe(false);
   });
@@ -34,21 +35,21 @@ describe('tokenBodyKind — view top', () => {
 
 describe('tokenBodyKind — jeton du GROUPE : un disque-portrait, et rien d’autre', () => {
   it('le groupe se classe en PORTRAIT même sans demander la vue du dessus : en iso, le monde volumique le dessine', () => {
-    const iso = tokenBodyKind({ kind: 'partyLeader', leader: hero });
+    const iso = tokenBodyKind(findTrappingById, { kind: 'partyLeader', leader: hero });
     expect(iso.flat, 'un seul rendu possible pour ce sujet : le disque').toBe(true);
-    expect(iso).toEqual(tokenBodyKind({ kind: 'partyLeader', leader: hero }, 'top'));
+    expect(iso).toEqual(tokenBodyKind(findTrappingById, { kind: 'partyLeader', leader: hero }, 'top'));
     expect(renderToStaticMarkup(<svg>{iso.body}</svg>), 'le visage du MENEUR').toContain('data-bone="tete"');
   });
 
   it('le visage du MENEUR se résout par `rigDuCombattant`, comme au combat — meneur issu du bestiaire compris', () => {
     const orc = creatureToCombatant(findCreatureById('orc')!, 'orc-1', { x: 0, y: 0 });
     const meneur = { ...orc, kind: 'hero', aiControlled: false } as Combatant;
-    const rig = rigDuCombattant(meneur);
+    const rig = rigDuCombattant(findTrappingById, meneur);
     expect(rig.tenue, 'la sonde mord : le profil du record habille le meneur, sa carrière est vide').toBeDefined();
     expect(meneur.career).toBeUndefined();
-    const visage = (tokenBodyKind({ kind: 'partyLeader', leader: meneur }).body as ReactElement<typeof rig>).props;
+    const visage = (tokenBodyKind(findTrappingById, { kind: 'partyLeader', leader: meneur }).body as ReactElement<typeof rig>).props;
     expect(visage).toEqual(rig);
-    expect(visage).toEqual((tokenBodyKind({ kind: 'combatant', combatant: meneur }).body as ReactElement<typeof rig>).props);
+    expect(visage).toEqual((tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: meneur }).body as ReactElement<typeof rig>).props);
   });
 });
 
@@ -67,7 +68,7 @@ describe('tokenBodyKind — threading resolveRender → token (P5/5c)', () => {
   it('non-bipède (Cheval) : backend plan + planId/species/scale résolus passés au token', () => {
     const c = mk({ name: 'Cheval', species: 'cheval', traits: ['Taille (Grande)', 'Bestial'] });
     const r = resolveRender(c.species, c.traits, c.name);
-    const out = tokenBodyKind({ kind: 'combatant', combatant: c });
+    const out = tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: c });
     expect(out.bodyKind).toBe('plan');
     expect(out.speciesScale).toBe(r.scale);
     const body = out.body as ReactElement;
@@ -76,12 +77,12 @@ describe('tokenBodyKind — threading resolveRender → token (P5/5c)', () => {
   });
 
   it('Nuée (trait, donnée) : gabarit swarm passé au token même SANS espèce explicite', () => {
-    const out = tokenBodyKind({ kind: 'combatant', combatant: mk({ name: 'Essaim de rats', traits: [{ id: 'nuee' }] }) });
+    const out = tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: mk({ name: 'Essaim de rats', traits: [{ id: 'nuee' }] }) });
     expect(out.bodyKind).toBe('plan');
     expect((out.body as ReactElement).props.planId).toBe('swarm');
   });
 
   it('bipède (Humain, espèce explicite) : backend rig', () => {
-    expect(tokenBodyKind({ kind: 'combatant', combatant: mk({ name: 'Humain', species: 'humain' }) }).bodyKind).toBe('rig');
+    expect(tokenBodyKind(findTrappingById, { kind: 'combatant', combatant: mk({ name: 'Humain', species: 'humain' }) }).bodyKind).toBe('rig');
   });
 });

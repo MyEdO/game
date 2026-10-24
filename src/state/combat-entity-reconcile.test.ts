@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Scene, type SceneEntity } from '../noyau/monde/scene';
 import { enemyRigProfile, entityRigProfile } from '../gameIso/rig/enemyProfile';
 import { hashSeed } from '../engine/dice';
+import { findTrappingById } from '../data';
 
 /**
  * Identité UNIFIÉE SceneEntity ↔ Combatant : le combattant spawné GARDE l'id de l'entité de scène
@@ -68,8 +69,8 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     const scene = useGame.getState().scene!;
     const enemy = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
     const ent = scene.entities.find((e) => e.id === enemy.id)!;
-    const combat = enemyRigProfile(enemy);
-    const explo = entityRigProfile(ent.ref!, ent.appearance?.seed ?? hashSeed(ent.id), {
+    const combat = enemyRigProfile(findTrappingById, enemy);
+    const explo = entityRigProfile(findTrappingById, ent.ref!, ent.appearance?.seed ?? hashSeed(ent.id), {
       species: ent.appearance?.species, tenue: ent.appearance?.tenue, sex: ent.appearance?.sex, build: ent.appearance?.build,
     });
     expect(combat).toBeTruthy();

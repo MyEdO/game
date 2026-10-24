@@ -10,6 +10,7 @@ import { creatures, trappings, vehicles } from '../../../data';
 import { spawnEnemy } from '../../../noyau/monde/spawn';
 import { actorDrawInputs } from './sceneMeshes';
 import { combatantRender, footprintTokenScale, sizeTokenScale } from '../../sizeScale';
+import { findTrappingById } from '../../../data';
 
 describe('échelle d’une monture : art × Taille, ou empreinte', () => {
   it('seules les réfs à empreinte propre quittent la chaîne art × Taille, et elles suivent l’empreinte', () => {
@@ -24,7 +25,7 @@ describe('échelle d’une monture : art × Taille, ou empreinte', () => {
     for (const ref of refs) {
       const m = spawnEnemy({ ref } as never, 'm', { x: 0, y: 0 });
       const art = combatantRender(m).scale;
-      const { scaleK } = actorDrawInputs(m);
+      const { scaleK } = actorDrawInputs(findTrappingById, m);
       if (m.footprint) {
         àEmpreinte.push(ref);
         expect(scaleK, ref).toBe(art * footprintTokenScale(m.footprint));

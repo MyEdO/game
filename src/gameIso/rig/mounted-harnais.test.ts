@@ -27,6 +27,7 @@ import { bonesToSvg } from './renderBones';
 import { MISSING_TONE } from './viewArt';
 import { findCreatureById } from '../../data';
 import { VIEWS, type View } from './facing';
+import { findTrappingById } from '../../data';
 
 /** Rendu d'un record par le chemin de PROD, PORTÉ (couture montée) ou LIBRE (pion de bête). */
 const svg = (id: string, porte: boolean, over?: Parameters<typeof planOptsForRecord>[1], vue: View = 'profile'): string => {
@@ -99,7 +100,7 @@ describe('une monture dont l\'espèce n\'est pas cuite pour le set : ALARME visi
  * AU REPOS du fantassin, jamais une tenue montée ni un geste.
  */
 describe('seatedRest — un attablé n’est pas un cavalier', () => {
-  const HAMPE = armeDeDessin(buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] }));
+  const HAMPE = armeDeDessin(findTrappingById, buildWeapon({ label: 'Hallebarde', hands: 2, reach: 'Longue', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empalement' }] }));
   const SK: SeatedBody = { sk: groundSkeleton(baseSkeleton(gabaritById('humain'), 'M')), speciesPose: {}, viewPose: {}, };
   const ASSISE = 32; // unités de boîte — un tabouret, cf. `boxUnitsPerM`
 

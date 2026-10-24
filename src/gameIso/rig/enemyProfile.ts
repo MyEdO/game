@@ -27,6 +27,7 @@ import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetPnjById } from '../../state/campaignData';
+import type { TrappingResolver } from '../../engine/items';
 
 export interface EnemyRigProfile {
   appearance: Appearance;
@@ -177,7 +178,7 @@ export function rendersFromOwnInventory(c: Combatant): boolean {
  * Profil rig d'un combattant, ou null si non-humanoïde (→ rendu par son gabarit corporel
  * via AnimatedPlanToken, plus aucun sprite monolithique). PURE et déterministe (seed dérivé de l'id).
  */
-export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
+export function enemyRigProfile(resolveTrapping: TrappingResolver, c: Combatant): EnemyRigProfile | null {
   // Résolution de rendu par le résolveur UNIQUE, sur les MÊMES entrées qu'en exploration
   // (`entityRigProfile`) : espèce explicite → espèce du record (par id). Son `species` alimente
   // ensuite `bipedBase` → aucune 2ᵉ précédence d'espèce côté combat.
@@ -197,18 +198,18 @@ export function enemyRigProfile(c: Combatant): EnemyRigProfile | null {
 
   // Calques de mutation = donnée (`combatantOverlays(c)`, appliqués par `rigDuCombattant`), jamais le nom :
   // un mutant déclare son tell via un trait « Mutation (X) » → c.mutations au spawn.
-  return { appearance, tenue, equip: equipementDessine(c) };
+  return { appearance, tenue, equip: equipementDessine(resolveTrapping, c) };
 }
 
 /** Ce qu'on dessine d'un combattant BIPÈDE, résolu à UN endroit pour le monde volumique, le portrait, le
  *  geste et la toise : profil d'ennemi sauf inventaire propre (`rendersFromOwnInventory`), sinon son
  *  apparence, son équipement porté et sa carrière (garde-robe) ; calques d'état (`combatantOverlays`). */
 export interface RigDuCombattant { appearance: Appearance; equip: EquipCtx; tenue: string | undefined; overlays: RigOverlay[] }
-export function rigDuCombattant(c: Combatant): RigDuCombattant {
-  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(c);
+export function rigDuCombattant(resolveTrapping: TrappingResolver, c: Combatant): RigDuCombattant {
+  const prof = rendersFromOwnInventory(c) ? null : enemyRigProfile(resolveTrapping, c);
   return {
     appearance: combatantAppearance(prof?.appearance ?? c.appearance ?? defaultAppearance(c), c),
-    equip: prof?.equip ?? equipementDessine(c),
+    equip: prof?.equip ?? equipementDessine(resolveTrapping, c),
     tenue: prof?.tenue ?? c.career,
     overlays: combatantOverlays(c),
   };
@@ -220,6 +221,7 @@ export function rigDuCombattant(c: Combatant): RigDuCombattant {
  * null si la réf désigne une créature non-humanoïde.
  */
 export function entityRigProfile(
+  resolveTrapping: TrappingResolver,
   name: string | undefined,
   seed: number,
   /** L'apparence d'AUTEUR ENTIÈRE (`EntityAppearance`) — sa graine POSÉE l'emporte sur `seed` (instance)
@@ -239,7 +241,7 @@ export function entityRigProfile(
   return {
     appearance: rigAppearance(graineDeTirage(opts?.seed, seed, rec), base, cd, override),
     tenue: bipedTenue(opts?.tenue, cd, base.perso, base.race),
-    equip: equipementDEntite(name, opts),
+    equip: equipementDEntite(resolveTrapping, name, opts),
   };
 }
 
@@ -253,14 +255,14 @@ export function refOf(ent: Pick<SceneEntity, 'ref'>): string | undefined {
 /** Profil rig d'une ENTITÉ de scène (perso), dérivation UNIQUE partagée par `tokenBodyKind` (iso) et
  *  `buildPovBillboards` (POV) : mêmes seed / refName / apparence / équipement (dont `enrolled`). Une
  *  entité sans réf NI Espèce n'a aucune apparence à résoudre : signalée en dev, nommée par son id. */
-export function entityRigProfileFor(ent: SceneEntity, enrolled?: boolean): EnemyRigProfile | null {
+export function entityRigProfileFor(resolveTrapping: TrappingResolver, ent: SceneEntity, enrolled?: boolean): EnemyRigProfile | null {
   const refName = refOf(ent);
   if (import.meta.env?.DEV && !refName && !ent.appearance?.species)
     diagOnce(`rig:entite:${diagSubject() || ent.id}`, () => {
       const nom = nomDEntite(ent, presetPnjById);
       console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
     });
-  return entityRigProfile(refName, hashSeed(ent.id), {
+  return entityRigProfile(resolveTrapping, refName, hashSeed(ent.id), {
     ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled,
   });
 }

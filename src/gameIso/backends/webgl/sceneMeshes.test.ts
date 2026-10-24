@@ -75,6 +75,7 @@ import { schema as ambianceSchema } from '../../../data/schemas/defs/ambiance';
 import { fogAt, fogCurveOf } from '../../pov/camera';
 import { memoByRef, memoByRefDeps } from '../../../noyau/monde/sceneMemo';
 import { srgbToLinear, toHex } from '../../shade';
+import { findTrappingById } from '../../../data';
 const diligenceConstruit = diligence.construire();
 const pontVitrineConstruit = pontVitrine.construire();
 const areneConstruit = arene.construire();
@@ -231,7 +232,7 @@ describe('ORIENTATION — les triangles regardent DEHORS (la carte d’ombre en 
 
 describe('BILLBOARDS — sujets de la scène', () => {
   it('les personnages et le décor sont collectés, ancrés aux pieds, avec leur SVG par vue', () => {
-    const subs = collectBillboards(scene, mpt, wholeSceneBillboardEls(scene));
+    const subs = collectBillboards(findTrappingById, scene, mpt, wholeSceneBillboardEls(scene));
     const persos = subs.filter((s) => s.kind === 'personnage');
     expect(persos.length).toBeGreaterThan(0);
     expect(subs.some((s) => s.kind === 'prop')).toBe(true);
@@ -243,7 +244,7 @@ describe('BILLBOARDS — sujets de la scène', () => {
   });
 
   it('le SVG d\'un PERSONNAGE ignore le cran de caméra, celui d\'un DÉCOR orienté en dépend — c\'est ce qui règle la clé de cache', () => {
-    const perso = collectBillboards(scene, mpt, wholeSceneBillboardEls(scene)).find((s) => s.kind === 'personnage')!;
+    const perso = collectBillboards(findTrappingById, scene, mpt, wholeSceneBillboardEls(scene)).find((s) => s.kind === 'personnage')!;
     for (const camRot of [1, 2, 3] as const)
       expect(perso.svg('front', false, camRot)).toBe(perso.svg('front', false, 0));
     // Le décor délègue à `propSvg(ref, dir, camRot)` : un prop ORIENTÉ (`views`) pivote avec la
@@ -264,7 +265,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
       const scn = sceneDe(faire);
       const m = sceneMetresPerTile(scn);
       const geoBox = monde(scn, m).boundingBox!;
-      const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
+      const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
       const box = contentBox(scn, m, 'jeu', subs, quadDe, geoBox);
       const englobante = worldShadowBox(geoBox, subs, quadDe);
       // La boîte englobante vient de l'attribut de position, en FLOAT32 : elle arrondit d'un ULP là où
@@ -290,7 +291,7 @@ describe('CONTENU — ce qu’un cadrage doit tenir', () => {
     const scn = sceneDe(faireVitrine);
     const m = sceneMetresPerTile(scn);
     const geoBox = monde(scn, m).boundingBox!;
-    const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
+    const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
     const box = contentBox(scn, m, 'jeu', subs, quadDe, geoBox);
     const t = (b: THREE.Box3) => b.getSize(new THREE.Vector3());
     // Mesuré #1176 : 60×48 m de géométrie pour 51,4×37,1 m de contenu.
@@ -354,7 +355,7 @@ describe('LUMIÈRE — un soleil neutre et calibré', () => {
       const scn = sceneDe(faire);
       const m = sceneMetresPerTile(scn);
       const geoBox = monde(scn, m).boundingBox!;
-      const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
+      const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
       const quadDe = (s: (typeof subs)[number]) =>
         anchorAndSize(billboardHeightM('jeu', s.kind) * s.scaleK, BILLBOARD_BOX_ASPECT);
       const box = worldShadowBox(geoBox, subs, quadDe);
@@ -409,7 +410,7 @@ describe('LUMIÈRE — un soleil neutre et calibré', () => {
   function biaisReel(scn: Scene): number {
     const m = sceneMetresPerTile(scn);
     const geoBox = monde(scn, m).boundingBox!;
-    const subs = collectBillboards(scn, m, wholeSceneBillboardEls(scn));
+    const subs = collectBillboards(findTrappingById, scn, m, wholeSceneBillboardEls(scn));
     const biais = (['jeu', 'heroique', 'metrique'] as BillboardConvention[]).map((conv) =>
       sunRig(
         worldShadowBox(geoBox, subs, (s: (typeof subs)[number]) =>
@@ -744,7 +745,7 @@ describe('OMBRE DE CONTACT — le socle se dimensionne sur le SUJET, jamais sur 
     }) as unknown as Combatant;
 
   const sujetDe = (c: Combatant, rider?: Combatant) =>
-    actorBillboards([{ c, ...(rider ? { rider } : {}), x: 1, y: 1, z: 0, facing: 'S' }], scèneNue, mptNu)[0];
+    actorBillboards(findTrappingById, [{ c, ...(rider ? { rider } : {}), x: 1, y: 1, z: 0, facing: 'S' }], scèneNue, mptNu)[0];
 
   /** Le rayon MONDE du socle tel que la prod le monte : le sujet et son quad, rien d'autre. */
   const rayon = (s: ReturnType<typeof sujetDe>): number =>
@@ -1056,13 +1057,13 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
 
   it('l’identité IGNORE la case et le cap (deux poses, une seule identité)', () => {
     const c = combattant();
-    expect(actorIdentityKey({ c, x: 1, y: 1, z: 0, facing: 'S' }))
-      .toBe(actorIdentityKey({ c, x: 4, y: 6, z: 0, facing: 'NE' }));
+    expect(actorIdentityKey(findTrappingById, { c, x: 1, y: 1, z: 0, facing: 'S' }))
+      .toBe(actorIdentityKey(findTrappingById, { c, x: 4, y: 6, z: 0, facing: 'NE' }));
   });
 
   it('un PAS réécrit la case du sujet monté (sans quoi sa teinte reste celle du départ)', () => {
     const c = combattant();
-    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
+    const [sujet] = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
     const ancre = sujet.anchor.clone();
 
     const { ancres } = reposerActeurs([sujet], [{ c, x: 2, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
@@ -1074,7 +1075,7 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
 
   it('un PIVOT réécrit le cap du sujet et le SIGNALE (l’art se relève dessus)', () => {
     const c = combattant();
-    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
+    const [sujet] = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
 
     const { ancres, caps } = reposerActeurs([sujet], [{ c, x: 1, y: 1, z: 0, facing: 'E' }], scèneRepose, mptRepose);
 
@@ -1085,7 +1086,7 @@ describe('reposerActeurs — case et cap sont de la POSE, jamais de l’identit�
 
   it('une pose INCHANGÉE n’écrit rien et ne signale rien (aucune image gratuite)', () => {
     const c = combattant();
-    const [sujet] = actorBillboards([{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
+    const [sujet] = actorBillboards(findTrappingById, [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
 
     const { ancres, caps } = reposerActeurs([sujet], [{ c, x: 1, y: 1, z: 0, facing: 'S' }], scèneRepose, mptRepose);
 

@@ -3,6 +3,8 @@ import type { SceneEntity } from '../noyau/monde/scene';
 import { tokenBodyKind } from '../gameIso/tokenBodyKind';
 import { Fleuron } from './Ornaments';
 import { useVersionDesDatasets } from './useVersionDesDatasets';
+import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
+import { useGame } from '../state/store';
 
 /**
  * Bandeau d'interlocuteur (#371 lot 1) — gabarit visuel UNIQUE d'un PNJ qui s'adresse au joueur :
@@ -37,8 +39,9 @@ export const SpeakerBanner = forwardRef<HTMLDivElement, SpeakerBannerProps>(func
   { ent, label, variant = 'dialogue', children, choices, className, labelId, textId, ...aria },
   ref,
 ) {
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   useVersionDesDatasets();
-  const portrait = ent ? tokenBodyKind({ kind: 'sceneEntity', ent }, 'top') : null;
+  const portrait = ent ? tokenBodyKind(resolveTrapping, { kind: 'sceneEntity', ent }, 'top') : null;
   const showPortraitSlot = portrait != null || variant === 'boniment';
   return (
     <div ref={ref} {...aria} className={`dialogue-box${variant === 'boniment' ? ' dlg-boniment' : ''}${className ? ` ${className}` : ''}`}>

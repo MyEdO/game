@@ -19,6 +19,7 @@ import { bus, EVT } from '../noyau/bus';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
+import { findTrappingById } from '../data';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -206,7 +207,7 @@ describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du
   const rendu = () => {
     const s = useGame.getState();
     const jeton = partyTokenOf(s.scene!, meneurDuMonde(s), s.partyPos)!;
-    const marques = tokenChromes([], { ghostIds: new Set<string>(), hoveredId: null }, jeton);
+    const marques = tokenChromes(findTrappingById, [], { ghostIds: new Set<string>(), hoveredId: null }, jeton);
     const marque = marques[marques.length - 1];
     return { jeton, pose: partyActorPose(jeton, s.facing), marque, capLuParLeDisque: s.facing[marque.capKey] };
   };
@@ -236,7 +237,7 @@ describe('le RENDU du jeton de groupe lit la clé de cap PUBLIÉE, pas l’id du
     const place = seatPoseOf(useGame.getState().scene!, MENEUR)!;
     const { pose } = rendu();
     expect(pose.seat?.facing, 'la place voyage avec la pose').toBe(place.facing);
-    expect(actorPoseKey(pose), 'la clé de mémo porte le cap SERVI : celui de la place').toContain(`:${place.facing}:`);
+    expect(actorPoseKey(findTrappingById, pose), 'la clé de mémo porte le cap SERVI : celui de la place').toContain(`:${place.facing}:`);
   });
 
   it('CHANGEMENT DE MENEUR : l’identité du corps change, le regard NON', () => {

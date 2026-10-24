@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { actorBillboards, actorPoseKey, actorRenderSignature, type ActorPose } from './sceneMeshes';
 import { emptyScene, sceneMetresPerTile } from '../../../noyau/monde/scene';
 import type { Combatant, Weapon } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -27,7 +28,7 @@ function héros(patch: Partial<Combatant> = {}): Combatant {
 }
 
 const pose = (c: Combatant): ActorPose => ({ c, x: 1, y: 1, z: 0, facing: 'S' });
-const sujet = (c: Combatant) => actorBillboards([pose(c)], scene, mpt)[0];
+const sujet = (c: Combatant) => actorBillboards(findTrappingById, [pose(c)], scene, mpt)[0];
 const svgDe = (c: Combatant) => sujet(c).svg('front', false, 0);
 
 const ÉPÉE = { label: 'Épée', type: 'melee', group: 'base', damage: 4, trappingId: 'arme-simple' } as unknown as Weapon;
@@ -46,7 +47,7 @@ describe('Signature de dessin d’un acteur — la clé de mémo ET l’identit�
       // La sonde MORD : l'axe a un effet visuel mesurable.
       const effet = svgDe(base) !== svgDe(muté) || sujet(base).scaleK !== sujet(muté).scaleK;
       expect(effet, `${axe} n’a aucun effet visuel — la sonde ne pèse rien`).toBe(true);
-      expect(actorPoseKey(pose(muté))).not.toBe(actorPoseKey(pose(base)));
+      expect(actorPoseKey(findTrappingById, pose(muté))).not.toBe(actorPoseKey(findTrappingById, pose(base)));
       expect(sujet(muté).identity).not.toBe(sujet(base).identity);
     });
 
@@ -54,12 +55,12 @@ describe('Signature de dessin d’un acteur — la clé de mémo ET l’identit�
     const compta = héros({ advantage: 3, wounds: { current: 12, max: 12 } });
     expect(svgDe(compta)).toBe(svgDe(base));
     expect(sujet(compta).scaleK).toBe(sujet(base).scaleK);
-    expect(actorPoseKey(pose(compta))).toBe(actorPoseKey(pose(base)));
+    expect(actorPoseKey(findTrappingById, pose(compta))).toBe(actorPoseKey(findTrappingById, pose(base)));
     expect(sujet(compta).identity).toBe(sujet(base).identity);
   });
 
   it('la signature est STABLE d’un appel à l’autre (aucune entrée d’horloge ni d’aléa)', () => {
-    expect(actorRenderSignature(pose(base))).toBe(actorRenderSignature(pose(héros())));
+    expect(actorRenderSignature(findTrappingById, pose(base))).toBe(actorRenderSignature(findTrappingById, pose(héros())));
   });
 
   it('l’identity reste ancrée sur l’ID du combattant, la signature ne le porte pas', () => {
@@ -68,6 +69,6 @@ describe('Signature de dessin d’un acteur — la clé de mémo ET l’identit�
     const jumeau = héros({ id: 'h2' });
     expect(sujet(jumeau).identity.startsWith('acteur:h2|')).toBe(true);
     expect(sujet(base).identity.startsWith('acteur:h1|')).toBe(true);
-    expect(actorRenderSignature(pose(base))).toBe(sujet(base).identity.split('|')[1]);
+    expect(actorRenderSignature(findTrappingById, pose(base))).toBe(sujet(base).identity.split('|')[1]);
   });
 });

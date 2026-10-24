@@ -24,6 +24,7 @@ import { viewEntries } from '../../viewArt';
 import { tokensOf } from '../../palette';
 import { gammeDe } from '../../../../data/palette.types';
 import { LOCALISATIONS_DE_COUP } from '../../../../engine/types';
+import { findTrappingById } from '../../../../data';
 
 const ESPECES = (JSON.parse(readFileSync(resolve(__dirname, '../../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
 const SENTINELLE = '#123457';
@@ -58,7 +59,7 @@ describe('déclarations de palette mortes (#1903)', () => {
     const fautes: string[] = [];
     for (const d of TENUE_DEFS) if (d.palette)
       fautes.push(...mortes(`tenue:${d.id}`, d.palette, texte(d.set), () => ESPECES.flatMap((species) => sexeSchema.options.flatMap((sex) =>
-        VIEWS.map((v) => bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1 }, equipDe([], []), {}, d.id, v))))).join('\n')));
+        VIEWS.map((v) => bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1 }, equipDe(findTrappingById, [], []), {}, d.id, v))))).join('\n')));
     for (const d of WEAPON_DEFS) if (d.palette) {
       const w: FormeDArme = { type: 'melee', candidats: [d.slug] };
       fautes.push(...mortes(`arme:${d.slug}`, d.palette, texte(d.art), () => vues(objetSansPorteur(weaponPart(w))).join('\n')));

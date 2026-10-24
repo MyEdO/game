@@ -9,6 +9,7 @@ import { diamondPath, tileCenter } from '../../geometry/iso';
 import { DEFAULT_LAYERS } from './editorState';
 import type { LowerLayerMode } from './lowerLayerGabarit';
 import type { PlanDefectAt } from '../../noyau/planDefects';
+import { findTrappingById } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -87,7 +88,7 @@ describe('EditorCanvas — panoramique (clic-milieu / Espace + glisser)', () => 
       document.body.appendChild(container);
       const root: Root = createRoot(container);
       await act(async () => {
-        root.render(<EditorCanvas scene={emptyScene('scene-test')} view={view as never} {...baseProps()} />);
+        root.render(<EditorCanvas resolveTrapping={findTrappingById} scene={emptyScene('scene-test')} view={view as never} {...baseProps()} />);
       });
 
       const svg = container.querySelector('svg.editor-iso') as SVGSVGElement;
@@ -194,7 +195,7 @@ describe('EditorCanvas — pelure d’oignon des TOITS (#835 FU-2)', () => {
     const root: Root = createRoot(container);
     await act(async () => {
       root.render(
-        <EditorCanvas
+        <EditorCanvas resolveTrapping={findTrappingById}
           scene={sceneWithTwoRoofs()}
           view={isoView() as never}
           {...baseProps()}
@@ -287,7 +288,7 @@ describe('EditorCanvas — mise en évidence d’un défaut de plan (`planFocus`
     const root: Root = createRoot(container);
     await act(async () => {
       root.render(
-        <EditorCanvas scene={scene} view={view() as never} {...baseProps()} planFocus={planFocus} currentLayer={currentLayer} />,
+        <EditorCanvas resolveTrapping={findTrappingById} scene={scene} view={view() as never} {...baseProps()} planFocus={planFocus} currentLayer={currentLayer} />,
       );
     });
     const group = container.querySelector('[data-plan-focus]');
@@ -361,7 +362,7 @@ describe('EditorCanvas — pinceau d’EMPRISE de zone (outil `zoneTiles`)', () 
     const view = topView();
     const render = () =>
       root.render(
-        <EditorCanvas
+        <EditorCanvas resolveTrapping={findTrappingById}
           scene={latest}
           view={view as never}
           {...baseProps()}
@@ -517,7 +518,7 @@ describe('EditorCanvas — une zone se dessine par ses CASES, jamais par son rec
     const view = topView();
     const render = () =>
       root.render(
-        <EditorCanvas
+        <EditorCanvas resolveTrapping={findTrappingById}
           scene={latest}
           view={view as never}
           {...baseProps()}
@@ -628,7 +629,7 @@ describe('EditorCanvas — contour de sélection d’un décor multi-case', () =
     const root: Root = createRoot(container);
     await act(async () => {
       root.render(
-        <EditorCanvas scene={scene} view={view as never} {...baseProps()} sel={{ type: 'entity', id: 'table-1' }} />,
+        <EditorCanvas resolveTrapping={findTrappingById} scene={scene} view={view as never} {...baseProps()} sel={{ type: 'entity', id: 'table-1' }} />,
       );
     });
     const dims = { ...scene.dimensions, rot: 0 as const, view: 'top' as const };

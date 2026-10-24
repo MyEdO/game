@@ -22,6 +22,7 @@ import type { EnemyRigProfile } from '../enemyProfile';
 import { armourPart } from '../parts/equipment';
 import type { SceneEntity } from '../../../noyau/monde/scene';
 import type { Combatant } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const REF = 'garde-du-village';
 const ID = 'servant-1';
@@ -54,7 +55,7 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
   });
 
   it('le profil de combat porte bien la couche ARMURE (synthétisée des PA du trait Armure 3)', () => {
-    const prof = enemyRigProfile(allyCombatant());
+    const prof = enemyRigProfile(findTrappingById, allyCombatant());
     expect(armourShape(prof).length).toBeGreaterThan(0);
     // Armure 3 : matière par palier de PA (`pieceDeDessin`, #2948), dessinée sur le torse.
     const corps = prof!.equip.armour.find((a) => a.locs?.includes('corps'))!;
@@ -63,8 +64,8 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
   });
 
   it('combat et hors-combat rendent la MÊME tenue, armure, armes et apparence de base', () => {
-    const combat = enemyRigProfile(allyCombatant());
-    const explore = entityRigProfileFor(explEntity(), true);
+    const combat = enemyRigProfile(findTrappingById, allyCombatant());
+    const explore = entityRigProfileFor(findTrappingById, explEntity(), true);
     expect(combat).not.toBeNull();
     expect(explore).not.toBeNull();
     // Tenue (couche vêtement du record) identique.
@@ -89,8 +90,8 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
         statblock: { label: 'Soudard sans record', char: { B: 10 }, armour: 5 },
         appearance: { armurePortee: true },
       }) as SceneEntity;
-    const combat = enemyRigProfile(noRefCombat());
-    const explore = entityRigProfileFor(noRefEntity(), true);
+    const combat = enemyRigProfile(findTrappingById, noRefCombat());
+    const explore = entityRigProfileFor(findTrappingById, noRefEntity(), true);
     expect(armourShape(combat).length).toBeGreaterThan(0); // #774 régression : nu en combat, blindé en explo
     expect(armourShape(combat)).toEqual(armourShape(explore));
   });

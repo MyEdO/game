@@ -42,6 +42,7 @@ import { estFichierVitest } from '../../../../scripts/guards/lib/fichierVitest.m
 import type { ItemInstance } from '../../../engine/types';
 import type { PartArt } from './types';
 import { LOCALISATIONS_DE_COUP } from '../../../engine/types';
+import { findTrappingById } from '../../../data';
 
 const RIG = resolve(__dirname, '..');
 const LOCS = LOCALISATIONS_DE_COUP;
@@ -55,7 +56,7 @@ const SURCHARGES: (Appearance['colors'] | undefined)[] = [
 const TEINTES = [undefined, 'aethyrique'];
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
 const arme = (forme: string, teinte?: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hand: 'main', hands: 1, bouclier: false, ...(teinte && { teinte }) });
-const armes = (...weapons: ArmeDeDessin[]): EquipCtx => ({ ...equipDe([], []), weapons });
+const armes = (...weapons: ArmeDeDessin[]): EquipCtx => ({ ...equipDe(findTrappingById, [], []), weapons });
 const armure = (subType: string, teinte?: string) =>
   ({ uid: 'a', kind: 'armor', label: subType, subType, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(teinte && { teinte }) }) as unknown as ItemInstance;
 const MATIERES = weaponGroups.filter((g) => g.kind === 'armour').map((g) => g.id);
@@ -86,7 +87,7 @@ function* corpus(): Generator<[string, string]> {
   const especes = (JSON.parse(readFileSync(resolve(__dirname, '../../../data/raceAppearance.json'), 'utf8')) as { id: string }[]).map((r) => asRigSpeciesId(r.id));
   for (const species of especes) for (const sex of sexeSchema.options) for (const { id: t } of TENUE_DEFS) for (const view of VIEWS)
     for (const [i, colors] of SURCHARGES.entries())
-      yield [`perso|${species}|${sex}|${t}|${view}|s${i}`, bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1, ...(colors && { colors }) }, equipDe([], []), {}, t, view))];
+      yield [`perso|${species}|${sex}|${t}|${view}|s${i}`, bonesToSvg(resolveRig({ species, sex, build: 0.5, seed: 1, ...(colors && { colors }) }, equipDe(findTrappingById, [], []), {}, t, view))];
   for (const species of ['humain', 'nain'].map(asRigSpeciesId)) for (const view of VIEWS) for (const [i, colors] of SURCHARGES.entries()) {
     const app = { species, sex: 'M' as const, build: 0.5, seed: 1, ...(colors && { colors }) };
     for (const d of WEAPON_DEFS) for (const teinte of TEINTES)
@@ -94,12 +95,12 @@ function* corpus(): Generator<[string, string]> {
     for (const d of SHIELD_DEFS)
       yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { ...armes(arme('epee'), { ...arme(d.slug), bouclier: true }), shield: { candidats: [d.slug] } }, {}, 'soldat', view))];
     for (const l of MATIERES) for (const teinte of TEINTES) for (const t of ['soldat', 'nu'])
-      yield [`armure|${species}|${l}|${t}|${view}|s${i}|${teinte ? 'k' : ''}`, bonesToSvg(resolveRig(app, equipDe([], [armure(l, teinte)]), {}, t, view))];
+      yield [`armure|${species}|${l}|${t}|${view}|s${i}|${teinte ? 'k' : ''}`, bonesToSvg(resolveRig(app, equipDe(findTrappingById, [], [armure(l, teinte)]), {}, t, view))];
   }
   for (const c of creatures) for (const view of VIEWS) {
     const r = resolveById(c.id);
     if (r.kind === 'rig') {
-      const p = entityRigProfile(c.id, 7);
+      const p = entityRigProfile(findTrappingById, c.id, 7);
       if (p) yield [`creature|${c.id}|${view}`, bonesToSvg(resolveRig(p.appearance, p.equip, {}, p.tenue, view))];
     } else {
       const plan = planById(r.plan);

@@ -29,6 +29,7 @@ import type { Combatant, Weapon } from '../../../engine/types';
 import { BB_W, BB_H } from '../../pov/billboardCore';
 import { subjectQuad } from './billboardMath';
 import { MISSING_TONE } from '../../rig/viewArt';
+import { findTrappingById } from '../../../data';
 
 const scene = emptyScene('scene-test', 6, 6);
 const mpt = sceneMetresPerTile(scene);
@@ -58,7 +59,7 @@ const battleOf = (combatants: Combatant[]): BattleState => ({ combatants } as un
 /** Sujets du monde volumique pour un couple donné — la chaîne EXACTE de l'écran. */
 function sujets(mount: Combatant, rider: Combatant) {
   const els = buildTokens(scene, allVisible(scene), battleOf([rider, mount]), VIEW);
-  return { poses: actorPoses(els, {}), subjects: actorBillboards(actorPoses(els, {}), scene, mpt) };
+  return { poses: actorPoses(els, {}), subjects: actorBillboards(findTrappingById, actorPoses(els, {}), scene, mpt) };
 }
 
 const osDe = (svg: string) => new Set([...svg.matchAll(/data-bone="([^"]+)"/g)].map((m) => m[1]));
@@ -71,7 +72,7 @@ const posesDe = (svg: string) => new Map([...svg.matchAll(/data-bone="([^"]+)" t
 function coupleAttendu(mount: Combatant, rider: Combatant, view: View): string {
   const mr = resolveRender(mount.species, mount.traits, mount.creatureId ?? mount.label);
   const plan = planById(mr.plan);
-  const { appearance, equip, tenue, overlays } = actorDrawInputs(rider).rig!;
+  const { appearance, equip, tenue, overlays } = actorDrawInputs(findTrappingById, rider).rig!;
   const osMonture = plan.resolve(mr.species, view, plan.restPose(), harnaisDeMonture(planOptsForRecord(mount.creatureId, mount.appearanceOverride)));
   const arme = armePrincipale(equip);
   const osCavalier = resolveRig(appearance, equip, mountedRest(view, arme), tenue, view, overlays, false);
@@ -161,7 +162,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
     expect(os.has('torse'), 'le cavalier manque au composite').toBe(true);
     expect(os.has('tete')).toBe(true);
     // Témoin : le MÊME acteur sans cavalier ne rend que la monture.
-    const seule = actorBillboards([{ c: monture(), x: 1, y: 1, z: 0 }], scene, mpt);
+    const seule = actorBillboards(findTrappingById, [{ c: monture(), x: 1, y: 1, z: 0 }], scene, mpt);
     expect(osDe(seule[0].svg('profile', false, 0)).has('torse')).toBe(false);
   });
 
@@ -197,14 +198,14 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
       expect(b.maxY, `vue ${v} : les pieds de la monture ont quitté le bas de la boîte`).toBeGreaterThan(s.box.h - 10);
     }
     // Témoin : un corps SIMPLE garde la boîte canonique (rien n'a bougé pour lui).
-    const seule = actorBillboards([{ c: monture({ riderId: undefined }), x: 1, y: 1, z: 0 }], scene, mpt);
+    const seule = actorBillboards(findTrappingById, [{ c: monture({ riderId: undefined }), x: 1, y: 1, z: 0 }], scene, mpt);
     expect(seule[0].box).toEqual({ w: BB_W, h: BB_H });
     expect(bbox(seule[0].svg('front', false, 0)).minY).toBeGreaterThanOrEqual(0);
   });
 
   it('le QUAD suit la boîte : le couple grandit d’autant, il n’est pas écrasé dans la boîte canonique', () => {
     const couple = sujets(monture(), cavalier()).subjects[0];
-    const seule = actorBillboards([{ c: monture({ riderId: undefined }), x: 1, y: 1, z: 0 }], scene, mpt)[0];
+    const seule = actorBillboards(findTrappingById, [{ c: monture({ riderId: undefined }), x: 1, y: 1, z: 0 }], scene, mpt)[0];
     const qc = subjectQuad('jeu', couple), qs = subjectQuad('jeu', seule);
     expect(qc.heightM / couple.box.h).toBeCloseTo(qs.heightM / seule.box.h, 10); // MÊME échelle art → monde
     expect(qc.heightM).toBeGreaterThan(qs.heightM);
@@ -225,7 +226,7 @@ describe('Couple monté — UN billboard composite (monture + cavalier)', () => 
     const armé = sujets(monture(), cavalier({ weapons: [LANCE] }));
     expect(armé.subjects[0].svg('profile', false, 0)).not.toBe(nu.subjects[0].svg('profile', false, 0)); // la sonde mord
     expect(armé.subjects[0].identity).not.toBe(nu.subjects[0].identity);
-    expect(actorPoseKey(armé.poses[0])).not.toBe(actorPoseKey(nu.poses[0]));
+    expect(actorPoseKey(findTrappingById, armé.poses[0])).not.toBe(actorPoseKey(findTrappingById, nu.poses[0]));
     expect(nu.subjects[0].identity.startsWith('acteur:m1+h1|')).toBe(true);
   });
 
@@ -267,7 +268,7 @@ const blaireau = (over: Partial<Combatant> = {}): Combatant => ({
  *  partagée y porte le dégradé d'alarme du repli visible, présent sur TOUT fragment (il ne dit donc
  *  rien du corps rendu, cf. `sprites.defsGlobaux()`). */
 const corps = (mount: Combatant, avecCavalier = true): string =>
-  actorBillboards([{ c: mount, ...(avecCavalier ? { rider: cavalier() } : {}), x: 1, y: 1, z: 0 }], scene, mpt)[0]
+  actorBillboards(findTrappingById, [{ c: mount, ...(avecCavalier ? { rider: cavalier() } : {}), x: 1, y: 1, z: 0 }], scene, mpt)[0]
     .svg('front', false, 0)
     .replace(/<defs>[\s\S]*?<\/defs>/, '');
 

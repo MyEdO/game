@@ -34,6 +34,7 @@ import type { PartyToken } from '../builders/tokens';
 import { combatHighlightsView, type HighlightOpts } from './highlightLayer';
 import type { ChromeAt } from './boardPose';
 import { GameStage3D, type PercageEntrees, type StageFrame, type StageWalkAnim } from './GameStage3D';
+import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
 /**
  * REGARD porté sur le monde, à l'échelle de l'hôte. Même union que celle de la caméra (`StageFrame`),
@@ -105,6 +106,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
    *  elle ne le dérive pas : le POV et l'éditeur regardent d'autres plateaux. */
   pionsEnDisques?: boolean;
 }) {
+  const resolveTrapping = useGame((s) => objetDuNarratif(s.campaignNarratif));
   const facings = useGame((s) => s.facing); // orientation MONDE vivante par acteur (Dir8)
   // VOILE D'ENTRÉE EN SCÈNE (#1372) : l'écran volumique dit quand il tient son chargement, cette
   // couche le PEINT — un simple élément de DOM par-dessus le canevas (même boîte, `.iso-stage`), et
@@ -121,7 +123,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   // (`BillboardSubject.identity`) : une entrée de dessin ne peut plus périmer l'une sans l'autre.
   // Le GLISSEMENT de marche n'y entre PAS (#1176, P2-4) : la boucle de rendu le lit elle-même et décale
   // des quads déjà montés, là où la clé fractionnaire les remontait tous soixante fois par seconde.
-  const posesKey = poses.map(actorPoseKey).join('|');
+  const posesKey = poses.map((p) => actorPoseKey(resolveTrapping, p)).join('|');
   const actors = useMemo(() => poses, [posesKey]);
   // Les éléments du DÉCOR passent tels quels : leur rétention par CONTENU vit au socle
   // (`GameStage3D`, `memesBillboardEls`) — l'éditeur monte cet écran sans passer par ici.
@@ -179,7 +181,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   );
   return (
     <>
-      <GameStage3D scene={scene} lecture="jeu" mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} percage={percage ?? null} pionsEnDisques={pionsEnDisques} onEntreeEnScene={setVoile} />
+      <GameStage3D resolveTrapping={resolveTrapping} scene={scene} lecture="jeu" mpt={mpt} frame={frameCam} tintAt={tintAt} keepEl={keepEl} nappeVue={nappeVue} els={els} actors={actors} gameTime={gameTime} lightLevel={lightLevel} lights={lights} highlights={highlights} dynMarks={dynMarks ?? NO_DYNAMIC_MARKS} halos={halos ?? NO_INTERACTION_HALOS} chromeAt={chromeAt} anim={anim} percage={percage ?? null} pionsEnDisques={pionsEnDisques} onEntreeEnScene={setVoile} />
       {/* Le chargement de l'app, RÉUTILISÉ tel quel (`.lazy-fallback`, repli de `Suspense` dans
           `ui/App.tsx`) : `role="status"` et le mot « Chargement… », rien de plus — aucune classe de
           domaine de plus (cliquet `ui-ratchets` xii). Ce qui lui est PROPRE tient en trois réglages

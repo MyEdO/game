@@ -22,6 +22,7 @@ import { buildTokens, partyTokenOf } from '../builders/tokens';
 import { actorBillboards, actorPoseKey, collectBillboards, memesBillboardEls, type ActorPose } from '../backends/webgl/sceneMeshes';
 import type { TokenEl } from '../builders/types';
 import type { Combatant } from '../../engine/types';
+import { findTrappingById } from '../../data';
 
 const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
@@ -44,7 +45,7 @@ const toutVisible = (s: Scene) => {
   return v;
 };
 const élémentsDe = (s: Scene) => ({ tokens: buildTokens(s, toutVisible(s), null, { activeZ: 0, viewZ: null, top: false }), props: [] as never[] });
-const sujetFigurant = (s: Scene) => collectBillboards(s, mpt, élémentsDe(s)).find((b) => b.identity.startsWith('perso:f1'))!;
+const sujetFigurant = (s: Scene) => collectBillboards(findTrappingById, s, mpt, élémentsDe(s)).find((b) => b.identity.startsWith('perso:f1'))!;
 
 const meneur = (): Combatant =>
   ({
@@ -136,8 +137,8 @@ describe('MENEUR attablé — l’acteur du monde volumique consomme la même pl
 
   it('ancre, cap et corps viennent de la place ; la case logique ne bouge pas', () => {
     const scene = scèneAttablée(true);
-    const assis = actorBillboards([poseAssise()], scene, mpt)[0];
-    const debout = actorBillboards([poseDebout()], scene, mpt)[0];
+    const assis = actorBillboards(findTrappingById, [poseAssise()], scene, mpt)[0];
+    const debout = actorBillboards(findTrappingById, [poseDebout()], scene, mpt)[0];
 
     expect(assis.anchor.x).toBeCloseTo(place().anchor.x * mpt, 6);
     expect(assis.anchor.z).toBeCloseTo(place().anchor.y * mpt, 6);
@@ -151,11 +152,11 @@ describe('MENEUR attablé — l’acteur du monde volumique consomme la même pl
   });
 
   it('s’asseoir REFORGE l’acteur : la clé de mémo change', () => {
-    expect(actorPoseKey(poseAssise())).not.toBe(actorPoseKey(poseDebout()));
+    expect(actorPoseKey(findTrappingById, poseAssise())).not.toBe(actorPoseKey(findTrappingById, poseDebout()));
   });
 
   it('aucun `mountId` : une chaise n’est pas une monture', () => {
-    const assis = actorBillboards([poseAssise()], scèneAttablée(true), mpt)[0];
+    const assis = actorBillboards(findTrappingById, [poseAssise()], scèneAttablée(true), mpt)[0];
     expect(assis).not.toHaveProperty('mountId');
     expect(JSON.stringify(Object.keys(assis))).not.toContain('mount');
   });
@@ -258,7 +259,7 @@ const ESPÈCES = ['humain', 'nain', 'halfling', 'elfe-sylvain'];
 function repèresDe(species: string, view: View) {
   const ent = scèneAttablée(false, species).entities.find((e) => e.id === 'f1')!;
   const place = seatPoseOf(scèneAttablée(true, species), { kind: 'entity', entityId: 'f1' })!;
-  const prof = entityRigProfileFor(ent, false)!;
+  const prof = entityRigProfileFor(findTrappingById, ent, false)!;
   const comp = rigComposition(prof.appearance, prof.equip, prof.tenue, view);
   const w = worldTransforms(comp.sk, addPose(comp.speciesPose, comp.viewPose));
   const y = (id: BoneId, dy = 0) => apply(w[id], { x: 0, y: dy }).y;

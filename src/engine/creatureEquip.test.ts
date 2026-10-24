@@ -5,10 +5,17 @@ import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
 import type { TraitInstance } from './statEntry';
+import { findTrappingById } from '../data';
 
 const t = (o: { id: string; arg?: string; value?: number; range?: number; natural?: boolean }): TraitInstance => o as TraitInstance;
 
 describe('creatureEquip — dérivation traits → armes (source unique de l’armement ennemi/PNJ)', () => {
+  it('admet une arme locale dans l’univers déclaré de son trait, et refuse l’autre univers', () => {
+    const objet = { ...findTrappingById('arc')!, id: 'arc-de-campagne' };
+    const resolveTrapping = (id: string) => id === objet.id ? objet : findTrappingById(id);
+    expect(weaponFromTrait(t({ id: 'a-distance', arg: objet.id, value: 9 }), resolveTrapping)?.trappingId).toBe(objet.id);
+    expect(weaponFromTrait(t({ id: 'arme', arg: objet.id, value: 7 }), resolveTrapping)?.trappingId).toBeUndefined();
+  });
   it('trait « Arme (Épée) +7 » → arme de mêlée nommée', () => {
     const w = weaponFromTrait(t({ id: 'arme', arg: 'Épée', value: 7 }));
     expect(w).not.toBeNull();

@@ -16,6 +16,7 @@ import { findCreatureById } from '../../data';
 import { useVersionDesDatasets } from '../useVersionDesDatasets';
 import type { View } from '../../gameIso/rig/facing';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
+import { findTrappingById } from '../../data';
 
 // `name` = id de créature (Codex/bestiaire) ; `a.species` = id du vocabulaire rig (validé par
 // asRigSpeciesId en aval). Les Nuées tirent leur trait du record par id.
@@ -25,7 +26,7 @@ import type { EntityAppearance } from '../../engine/authoringAppearance';
 function corps(name: string, a: EntityAppearance | undefined, view: View, porteur?: string): { rig: EnemyRigProfile | null } | { svg: string } {
   const species = a?.species ?? porteur;
   const r = resolveRender(species, findCreatureById(name)?.traits, name);
-  if (r.kind === 'rig') return { rig: entityRigProfile(name, hashSeed(name), { ...a, species }) };
+  if (r.kind === 'rig') return { rig: entityRigProfile(findTrappingById, name, hashSeed(name), { ...a, species }) };
   const plan = planById(r.plan);
   if (!plan) return { svg: '' };
   if (!plan.hasView(r.species, view)) return { svg: '' };

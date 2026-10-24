@@ -30,6 +30,7 @@ import * as svgTexture from '../backends/webgl/svgTexture';
 import { artRot, GameStage3D, setStageRendererFactory, type StageFrame } from './GameStage3D';
 import { BancRenderer, brancherArdoise } from './banc-volumique';
 import { povArtRot, povYawDeg } from './regard';
+import { findTrappingById } from '../../data';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -119,7 +120,7 @@ const cadreAffine = (rot: Rot): StageFrame =>
 
 function écran(frame: StageFrame): JSX.Element {
   return (
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={MPT}
       frame={frame}

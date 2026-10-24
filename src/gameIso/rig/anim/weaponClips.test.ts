@@ -10,7 +10,7 @@ import type { Weapon } from '../../../engine/types';
 // L'arme porte son id de Possession ; la projection en RÉSOUT la forme, et le maniement est routé PAR ID
 // STABLE (forme résolue / `attackKind` naturel), jamais par le libellé.
 const w = (id: string, type: 'melee' | 'ranged' = 'melee', extra: Partial<Weapon> = {}): ArmeDeDessin =>
-  armeDeDessin({ label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id, ...extra });
+  armeDeDessin(findTrappingById, { label: findTrappingById(id)?.label ?? id, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: id, ...extra });
 
 const windUp = (clip: ReturnType<typeof weaponAttackClip>) => clip.steps[0].pose;
 const anyStep = (clip: ReturnType<typeof weaponAttackClip>, pred: (p: Pose) => boolean) =>

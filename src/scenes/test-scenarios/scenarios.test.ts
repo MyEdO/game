@@ -5,6 +5,7 @@ import { ficheDEntite } from '../../noyau/monde/sceneNpc';
 import { enemyRigProfile } from '../../gameIso/rig/enemyProfile';
 import { refs } from '../../data/schemas/grammaire/ref';
 import { presetPnjById } from '../../state/campaignData';
+import { findTrappingById } from '../../data';
 
 describe('Batterie de scénarios de test', () => {
   it('couvre au moins 6 scénarios', () => {
@@ -41,7 +42,7 @@ describe('Batterie de scénarios de test', () => {
     const species = encounter.members.map((member) => {
       const entity = entities.get(member.entityId)!;
       const combatant = ficheDEntite(entity, presetPnjById);
-      return [combatant.label, combatant.species, enemyRigProfile(combatant)?.appearance.species];
+      return [combatant.label, combatant.species, enemyRigProfile(findTrappingById, combatant)?.appearance.species];
     });
 
     expect(species).toEqual([

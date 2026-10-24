@@ -7,6 +7,7 @@ import { asRigSpeciesId } from '../appearance';
 import type { Appearance } from '../../../engine/authoringAppearance';
 import type { Sexe } from '../../../data/schemas/grammaire/valeurs';
 import { equipDe } from '../../../noyau/equipementDessine';
+import { findTrappingById } from '../../../data';
 
 /**
  * Imposer une coiffure par ID stable (#637) — `appearance.hairstyle`. On MANIPULE des ids : forcer une
@@ -43,7 +44,7 @@ describe('coiffure imposée par id (#637)', () => {
 describe('coiffure imposée hors du pool : chevelure d’erreur visible, aucune levée', () => {
   const coiffureM = hairstylesForSex('M')[0].id;
   const apparence = (sex: Sexe): Appearance => ({ species: asRigSpeciesId('humain'), sex, build: 0.5, seed: 1, hairstyle: coiffureM });
-  const svgDuRig = (a: Appearance) => resolveRig(a, equipDe([], []), {}, 'nu', 'front').flatMap((b) => b.parts.map((p) => p.svg)).join('');
+  const svgDuRig = (a: Appearance) => resolveRig(a, equipDe(findTrappingById, [], []), {}, 'nu', 'front').flatMap((b) => b.parts.map((p) => p.svg)).join('');
 
   it('coiffure M sur un rig F : le rig se compose et porte la chevelure d’erreur', () => {
     expect(hairstylesForSex('F').some((h) => h.id === coiffureM), 'la coiffure est hors du pool F').toBe(false);

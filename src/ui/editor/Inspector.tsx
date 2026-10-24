@@ -1488,7 +1488,7 @@ function EntityPanel({
           ) : (
             // Aperçu unifié via le MÊME classifieur que le canvas (tokenBodyKind) — le classifieur route
             // par la NATURE de l'entité (`kind`), un décor n'atteint jamais le registre créature/véhicule.
-            tokenBodyKind({ kind: 'sceneEntity', ent }).body
+            tokenBodyKind(objetDuNarratif(narratif), { kind: 'sceneEntity', ent }).body
           )}
         </svg>
         <span className="hint">
@@ -1535,7 +1535,7 @@ function EntityPanel({
               apresArme={<ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
                 appearance={ent.appearance ?? {}}
                 onChange={(appearance) => updateSel({ appearance })}
-                weapons={armesDEntite(ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id) })}
+                weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, { weapon: ent.weapon, traits: ent.statblock?.traits, enrolled: enrolledEntityIds(scene).has(ent.id) })}
               />}
               weapon={ent.weapon}
               onWeapon={(w) => updateSel({ weapon: w })}

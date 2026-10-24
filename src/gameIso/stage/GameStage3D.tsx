@@ -1,4 +1,3 @@
-import type { JSX } from 'react';
 /**
  * MONDE VOLUMIQUE de l'écran de jeu (#1176) — la couche MONDE, rendue en three.
  * CONSOMMATEUR
@@ -64,6 +63,7 @@ import type { JSX } from 'react';
  * s'y lire — plus aucun jeton n'y porte de `data-cid` : cet écran INSCRIT son lanceur de rayon auprès
  * de `stage/spritePicker.ts`, la couture unique où le pointeur pose la question.
  */
+import type { JSX } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { freeYaw, type ActorCapsule, type Dims, type Rot } from '../../geometry/iso';
@@ -216,6 +216,7 @@ import { demanderUneImage, signalerImagePeinte, subscribeStageFrames, useBatteme
 import { corpsDeLActeur } from './corpsActeur';
 import { setImageRendue } from '../../state/devtools';
 import './iso-stage.css';
+import type { TrappingResolver } from '../../engine/items';
 
 /** Clé de verdict des frames SANS découpe locale (première personne, éditeur) : constante, donc le
  *  verdict ne s'y rejoue jamais, et la liste vide y ramène toutes les cibles à zéro. */
@@ -351,6 +352,7 @@ export function centreDuGroupe(frame: StageFrame, actors: readonly ActorPose[]):
 }
 
 export interface GameStage3DProps {
+  resolveTrapping: TrappingResolver;
   scene: Scene;
   /** Lecture des arêtes cuites (`buildWalls`) : `auteur` à l'éditeur, `jeu` en partie. EXPLICITE. */
   lecture: LectureDArete;
@@ -658,7 +660,7 @@ function dir8DuSegment(dx: number, dz: number): Dir8 | null {
   return best;
 }
 
-export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, calage = false, spritePicking = true, percage, pionsEnDisques = false, onEntreeEnScene }: GameStage3DProps): JSX.Element {
+export function GameStage3D({ resolveTrapping, scene, lecture, mpt, frame, tintAt, keepEl, nappeVue, els, actors, gameTime, lightLevel, lights, highlights, dynMarks, halos, chromeAt, anim, decalque, calage = false, spritePicking = true, percage, pionsEnDisques = false, onEntreeEnScene }: GameStage3DProps): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<StageRenderer | null>(null);
   const boardsRef = useRef<BoardDeScène[]>([]);
@@ -959,14 +961,14 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const elsStables = elsRetenu.current;
   // IDENTITÉ des acteurs — qui ils sont et quel art ils portent, JAMAIS où ils sont (`actorIdentityKey`) :
   // la case logique appartient à la pose, que la repose ci-dessous porte aux sujets déjà montés.
-  const acteursCle = actors.map(actorIdentityKey).join('|');
+  const acteursCle = actors.map((p) => actorIdentityKey(resolveTrapping, p)).join('|');
   // VERSION DES CATALOGUES (`useVersionDesDatasets`) : les sujets la hachent (`DrawSnapshot`), et une
   // édition au Codex (`CodexEdit`, modale au-dessus du jeu monté) doit relancer ce rendu pour la voir.
   const versionCatalogues = useVersionDesDatasets();
   // La TEINTE de visibilité n'entre PAS dans ces rétentions (#1396) : elle se prend à la case du sujet,
   // par la passe de POSE, à la cadence de la frame (`stage/boardPose.poseBoards`).
-  const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues], () => collectBillboards(scene, mpt, elsStables));
-  const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(actors, scene, mpt)));
+  const decor = decorRetenu(jeton, [...hauteurDeps, mpt, elsStables, versionCatalogues, resolveTrapping], () => collectBillboards(resolveTrapping, scene, mpt, elsStables));
+  const acteurs = acteursRetenus(jeton, [...hauteurDeps, acteursCle, mpt, pionsEnDisques, resolveTrapping], () => (pionsEnDisques ? AUCUN_SUJET : actorBillboards(resolveTrapping, actors, scene, mpt)));
   const subjects = useMemo(() => [...decor, ...acteurs], [decor, acteurs]);
   // REPOSE DE POSITION : un acteur qui change de case suit sa case, en place. C'est la passe sœur de
   // la repose de regard — même loi, autre entrée. Elle PEINT sa propre écriture (aucune référence ne
@@ -2162,9 +2164,9 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
         for (const ground of ['corpse', 'prone'] as const) poser(planDyingDef(ground), s.view, s.mirror, PRIORITE_RECHAUFFAGE, ground);
       } else {
         const marche = rigWalkDef(s.rig);
-        const parade = s.enrolé ? rigDefenseDef({ defense: 'parade' }, s.rig) : null;
+        const parade = s.enrolé ? rigDefenseDef(resolveTrapping, { defense: 'parade' }, s.rig) : null;
         const gestes: RigClipDef[] = s.enrolé
-          ? [rigAttackDef({}, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
+          ? [rigAttackDef(resolveTrapping, {}, s.rig), rigHitDef(s.rig), ...(parade ? [parade] : [])]
           : [];
         for (const def of [REPOS, ...(marche ? [marche] : []), ...gestes]) poser(def, s.view, s.mirror, PRIORITE_VUE_COURANTE);
         for (const v of VUES_REGARD) {

@@ -8,7 +8,7 @@ import type { Weapon } from '../../../engine/types';
 // Arme portant son id de Possession et son Groupe (`subType`), projetée (forme RÉSOLUE) ; les attaques
 // naturelles portent leur kind STABLE (`attackKind`) — c'est lui qui route le maniement, jamais le libellé.
 const w = (id: string, extra: Partial<Weapon> = {}): ArmeDeDessin =>
-  armeDeDessin({ label: findTrappingById(id)?.label ?? id, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], trappingId: id, subType: findTrappingById(id)?.subType ?? undefined, ...extra });
+  armeDeDessin(findTrappingById, { label: findTrappingById(id)?.label ?? id, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], trappingId: id, subType: findTrappingById(id)?.subType ?? undefined, ...extra });
 const tentacule = w('tentacule', { attackKind: 'tentacules', natural: true });
 const cornes = w('cornes', { attackKind: 'cornes', natural: true });
 

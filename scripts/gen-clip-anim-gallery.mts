@@ -21,6 +21,7 @@ import { asRigSpeciesId } from '../src/gameIso/rig/appearance';
 import type { Weapon } from '../src/engine/types';
 import { armeDeDessin, equipDe, type EquipCtx } from '../src/noyau/equipementDessine';
 import { assertWardrobeId } from './_lib-wardrobe';
+import { findTrappingById } from '../src/data';
 
 // Tenues des mannequins : IDS de garde-robe (carrière ∪ classe ∪ tenue), validés fail-fast —
 // un id qui retombe sur « nu » déshabillerait les tuiles en silence (#1338).
@@ -48,18 +49,18 @@ const sorcier: Appearance = { species: asRigSpeciesId('humain'), sex: 'F', build
 const epee: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: 'arme-simple' };
 const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [], trappingId: 'arc-long' };
 const baton: Weapon = { label: 'Bâton', type: 'melee', damage: { plusBF: false, flat: 2 }, qualities: [], trappingId: 'baton-de-combat' };
-const eqEpee: EquipCtx = equipDe([epee], []);
-const eqArc: EquipCtx = equipDe([arc], []);
-const eqBaton: EquipCtx = equipDe([baton], []);
-const eqNu: EquipCtx = equipDe([], []);
+const eqEpee: EquipCtx = equipDe(findTrappingById, [epee], []);
+const eqArc: EquipCtx = equipDe(findTrappingById, [arc], []);
+const eqBaton: EquipCtx = equipDe(findTrappingById, [baton], []);
+const eqNu: EquipCtx = equipDe(findTrappingById, [], []);
 
 const meleeClips: [string, Clip][] = [
   ['idle', CLIPS.idle], ['walk', CLIPS.walk], ['melee', CLIPS.melee],
   ['dodge', CLIPS.dodge], ['parry', CLIPS.parry], ['hit', CLIPS.hit],
 ];
-const rowSoldat = meleeClips.map(([l, c]) => tile(l, c, soldat, l === 'idle' || l === 'walk' ? eqEpee : eqEpee, TENUE_SOLDAT, weaponRest(armeDeDessin(epee)))).join('');
-const rowArc = tile('ranged (arc)', CLIPS.ranged, soldat, eqArc, TENUE_SOLDAT, weaponRest(armeDeDessin(arc))).concat(
-  tile('cast', CLIPS.cast, sorcier, eqBaton, TENUE_SORCIER, weaponRest(armeDeDessin(baton))),
+const rowSoldat = meleeClips.map(([l, c]) => tile(l, c, soldat, l === 'idle' || l === 'walk' ? eqEpee : eqEpee, TENUE_SOLDAT, weaponRest(armeDeDessin(findTrappingById, epee)))).join('');
+const rowArc = tile('ranged (arc)', CLIPS.ranged, soldat, eqArc, TENUE_SOLDAT, weaponRest(armeDeDessin(findTrappingById, arc))).concat(
+  tile('cast', CLIPS.cast, sorcier, eqBaton, TENUE_SORCIER, weaponRest(armeDeDessin(findTrappingById, baton))),
   tile('bolt (arcane)', spellCastClip('bolt'), sorcier, eqNu, TENUE_SORCIER, {}, '#231a30'),
   tile('blessing (divin)', spellCastClip('blessing'), sorcier, eqNu, TENUE_NONNE, {}, '#2a2618'),
 );
@@ -71,11 +72,11 @@ const quad = planById('quadruped');
 const horse = resolveSpecies('cheval').species; // id d'espèce quad canonique (data)
 function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
   const dur = Math.max(clipDuration(clip), 1);
-  const equip: EquipCtx = equipDe(weapon ? [weapon] : [], []);
+  const equip: EquipCtx = equipDe(findTrappingById, weapon ? [weapon] : [], []);
   const samples = sampleTimes(dur, N).map((t) => {
     // Monture PORTÉE : le harnachement vient de la couture montée (canal DONNÉE), jamais réexprimé ici.
     const mountBones = quad.resolve(horse, 'profile', quad.restPose(), harnaisDeMonture(planOptsForRecord(undefined)));
-    const riderPose = addPose(mountedRest('profile', weapon && armeDeDessin(weapon)), sampleClip(clip, t).pose);
+    const riderPose = addPose(mountedRest('profile', weapon && armeDeDessin(findTrappingById, weapon)), sampleClip(clip, t).pose);
     const riderBones = resolveRig(soldat, equip, riderPose, TENUE_SOLDAT, 'profile', [], false);
     // Ratio cavalier DÉRIVÉ comme en jeu (`backends/webgl/sceneMeshes`, couple monté) : cavalier ÷ (art monture × Taille).
     const rideK = 1 / (resolveSpecies(horse).scale * sizeTokenScale('grande'));
@@ -90,13 +91,13 @@ function mountedTile(label: string, weapon: Weapon | undefined, clip: Clip) {
 }
 const wm = (trappingId: string, type: 'melee' | 'ranged' = 'melee'): Weapon => ({ label: trappingId, type, damage: { plusBF: false, flat: 4 }, qualities: [], trappingId });
 const rowMonte = [
-  mountedTile('charge (lance couchée)', wm('lance-de-cavalerie'), mountedAttackClip(armeDeDessin(wm('lance-de-cavalerie')))),
-  mountedTile('taille (épée)', wm('arme-simple'), mountedAttackClip(armeDeDessin(wm('arme-simple')))),
-  mountedTile('estoc (rapière)', wm('rapiere'), mountedAttackClip(armeDeDessin(wm('rapiere')))),
-  mountedTile('coup 2 mains (gr. hache)', wm('grande-hache'), mountedAttackClip(armeDeDessin(wm('grande-hache')))),
-  mountedTile('en joue (arbalète)', wm('arbalete', 'ranged'), mountedAttackClip(armeDeDessin(wm('arbalete', 'ranged')))),
-  mountedTile('en joue (pistolet)', wm('pistolet', 'ranged'), mountedAttackClip(armeDeDessin(wm('pistolet', 'ranged')))),
-  mountedTile('parade (épée)', wm('arme-simple'), mountedParryClip(armeDeDessin(wm('arme-simple')), false)),
+  mountedTile('charge (lance couchée)', wm('lance-de-cavalerie'), mountedAttackClip(armeDeDessin(findTrappingById, wm('lance-de-cavalerie')))),
+  mountedTile('taille (épée)', wm('arme-simple'), mountedAttackClip(armeDeDessin(findTrappingById, wm('arme-simple')))),
+  mountedTile('estoc (rapière)', wm('rapiere'), mountedAttackClip(armeDeDessin(findTrappingById, wm('rapiere')))),
+  mountedTile('coup 2 mains (gr. hache)', wm('grande-hache'), mountedAttackClip(armeDeDessin(findTrappingById, wm('grande-hache')))),
+  mountedTile('en joue (arbalète)', wm('arbalete', 'ranged'), mountedAttackClip(armeDeDessin(findTrappingById, wm('arbalete', 'ranged')))),
+  mountedTile('en joue (pistolet)', wm('pistolet', 'ranged'), mountedAttackClip(armeDeDessin(findTrappingById, wm('pistolet', 'ranged')))),
+  mountedTile('parade (épée)', wm('arme-simple'), mountedParryClip(armeDeDessin(findTrappingById, wm('arme-simple')), false)),
   mountedTile('dérobade (assis)', wm('arme-simple'), seatedClip(CLIPS.dodge)),
 ].join('');
 

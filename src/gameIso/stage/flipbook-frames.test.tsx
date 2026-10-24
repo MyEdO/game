@@ -39,6 +39,7 @@ import { COLLAPSE_MS, planDyingDef, rigIdleDef } from '../rig/anim/actorAnimSele
 import { HERO_RING } from '../teamColors';
 import { frameRectOf, type ActorPose, type BillboardSubject, type SceneBillboardEls } from '../backends/webgl/sceneMeshes';
 import type { TokenEl } from '../builders/types';
+import { findTrappingById } from '../../data';
 
 /**
  * LE BRANCHEMENT DU FLIPBOOK (#1176, L3) — la boucle volumique JOUE les frames.
@@ -351,7 +352,7 @@ interface OptsVue { actors?: ActorPose[]; els?: SceneBillboardEls; frame?: Stage
 
 function vue(opts: OptsVue): JSX.Element {
   return (
-    <GameStage3D lecture="jeu"
+    <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
       scene={SCENE}
       mpt={sceneMetresPerTile(SCENE)}
       frame={opts.frame ?? AFFINE}
@@ -527,7 +528,7 @@ describe('Boucle volumique — une image joue une frame, elle n’en cuit aucune
     root = createRoot(hôte);
     await act(async () => {
       root!.render(
-        <GameStage3D lecture="jeu"
+        <GameStage3D resolveTrapping={findTrappingById} lecture="jeu"
           scene={SCENE}
           mpt={sceneMetresPerTile(SCENE)}
           frame={AFFINE}
