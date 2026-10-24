@@ -4,7 +4,8 @@
 //    d'`import.meta.glob` compris) d'une zone vers une autre n'existe que si la table l'ouvre ; un arc
 //    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte
 //    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`). Une zone qui survit à
-//    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type. Hors de
+//    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type, hors des paquets que sa
+//    ligne ouvre à un dossier d'outillage (`paquetsDOutillage`). Hors de
 //    `racine`, un motif de glob dont le dossier de zone est un joker est refusé (`dossierJoker`). Une zone qui survit
 //    n'écrit aucun JSX et ne lit aucun module de CODE hors des zones (`scripts/`, `server/`… ; `estCode` : une donnée
 //    n'importe rien), sauf, pour un script d'outillage de la zone, les modules que sa ligne déclare (`outillage`,
@@ -87,8 +88,8 @@ const purete = {
       const cible = cibleLexicale(importeur, spec, racine);
       if (cible === null) {
         const paquet = paquetDe(spec);
-        if (paquetFerme(de, paquet)) {
-          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web.` });
+        if (paquetFerme(de, paquet, importeurRel)) {
+          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un dossier d’outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).` });
         }
         return;
       }

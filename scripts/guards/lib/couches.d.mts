@@ -12,6 +12,8 @@ export interface Couche {
   readonly survit?: true;
   /** Pour un script d'outillage de la zone, les seuls modules hors des zones qu'il lit (chemins relatifs à la racine). */
   readonly outillage?: Readonly<Record<string, readonly string[]>>;
+  /** Pour un dossier d'outillage de la zone (préfixe terminé par `/`), les seuls paquets de l'hôte web que ses modules chargent. */
+  readonly paquetsDOutillage?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** La surface du noyau : porte de `noyau`, seul module de `src/state/` et `src/noyau/` qui réexporte. */
@@ -26,8 +28,9 @@ export const PAQUETS_DE_L_HOTE_WEB: readonly string[];
 /** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` : un script d'outillage de la zone `de` qui le déclare ? */
 export function horsZoneOuvert(de: string, importeurRel: string, cibleRel: string): boolean;
 
-/** La zone `de` refuse-t-elle le paquet `paquet` : elle survit à la bascule, et c'est un paquet de l'hôte web ? */
-export function paquetFerme(de: string, paquet: string | null): boolean;
+/** La zone `de` refuse-t-elle le paquet `paquet` à `importeurRel` : elle survit à la bascule, c'est un paquet de l'hôte web,
+ *  et aucun dossier d'outillage de la zone ne le lui ouvre ? Sans importeur, le verdict de la zone. */
+export function paquetFerme(de: string, paquet: string | null, importeurRel?: string): boolean;
 
 /** Les zones du dépôt et leurs sens d'import (#2882, #2928). */
 export const COUCHES: Readonly<Record<string, Couche>>;

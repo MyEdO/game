@@ -132,7 +132,9 @@ qu'en type (`import type`), ses portes : pour une zone importée, le seul module
 si elle survit à la bascule vers Godot (`survit`) : une telle zone n'ouvre que des zones qui survivent, ne
 charge aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), n'écrit aucun JSX et ne lit aucun module de code hors
 des zones, sauf, pour un script d'outillage de la zone (lancé par Node, jamais chargé par l'hôte), les modules que
-sa ligne déclare (`outillage`).
+sa ligne déclare (`outillage`), et, pour un dossier d'outillage, les paquets de l'hôte web qu'elle lui ouvre
+(`paquetsDOutillage`) : l'évaluateur d'assets (`hotes/godot/asset/evaluateur/`) charge `three` comme outillage de
+construction, sans dépendre de l'hôte web.
 Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
 (`RACINES_DES_ZONES`) : `murs/zone` refuse un fichier de `src/` dont le dossier n'est celui d'aucune zone (un
 sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, hors tests, un arc d'import

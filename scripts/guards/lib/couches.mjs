@@ -10,7 +10,9 @@
 //  - `survit` : la zone survit à la bascule vers Godot (#2794) — elle ne charge aucun paquet de l'hôte web
 //    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ;
 //  - `outillage` : pour un script d'outillage de la zone (lancé par Node à la construction, à la recette ou par les
-//    tests, jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`).
+//    tests, jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
+//  - `paquetsDOutillage` : pour un dossier d'outillage de la zone (préfixe terminé par `/`, même sens qu'`outillage`),
+//    les seuls paquets de l'hôte web que ses modules chargent (`paquetFerme`).
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
@@ -52,6 +54,7 @@ export const COUCHES = Object.freeze({
       'hotes/godot/asset/release.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/recette.mjs': ['scripts/recette/lib.mjs'],
     },
+    paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
@@ -117,8 +120,16 @@ export function fermeture(de, vers, typeSeul) {
  *  d'outillage de la zone `de` (`outillage`) qui le déclare ? */
 export const horsZoneOuvert = (de, importeurRel, cibleRel) => estZone(de) && (COUCHES[de].outillage?.[importeurRel] ?? []).includes(cibleRel);
 
-/** La zone `de` refuse-t-elle le paquet `paquet` : elle survit à la bascule, et c'est un paquet de l'hôte web ? */
-export const paquetFerme = (de, paquet) => estZone(de) && COUCHES[de].survit === true && PAQUETS_DE_L_HOTE_WEB.includes(paquet);
+/** Le paquet `paquet` est-il ouvert à `importeurRel` (chemin relatif à la racine) : un dossier d'outillage de la zone
+ *  `de` (`paquetsDOutillage`) le contient et le déclare ? */
+const paquetDOutillage = (de, paquet, importeurRel) => importeurRel !== undefined
+  && Object.entries(COUCHES[de].paquetsDOutillage ?? {}).some(([dossier, paquets]) => importeurRel.startsWith(dossier) && paquets.includes(paquet));
+
+/** La zone `de` refuse-t-elle le paquet `paquet` à `importeurRel` : elle survit à la bascule, c'est un paquet de l'hôte
+ *  web, et aucun dossier d'outillage de la zone ne le lui ouvre (`paquetsDOutillage`) ? Sans importeur, le verdict de
+ *  la zone. */
+export const paquetFerme = (de, paquet, importeurRel) => estZone(de) && COUCHES[de].survit === true && PAQUETS_DE_L_HOTE_WEB.includes(paquet)
+  && !paquetDOutillage(de, paquet, importeurRel);
 
 /** Le module d'un chemin RELATIF à la racine, sans extension de script ni `index` final : `src/noyau/index.ts`,
  *  `src/noyau/index` et `src/noyau` désignent le même module. PURE. */

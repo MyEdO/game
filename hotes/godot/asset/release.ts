@@ -6,12 +6,12 @@
  * sous le nom que le projet Godot attend ; `publierAssets` y verse ceux qui n'y sont pas.
  */
 import { spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
+import { sha256 } from './empreinte.ts';
 import { lireGlb } from './glb.ts';
 import { estObjet, ligneDErreur, validerManifeste } from './manifeste.ts';
 
@@ -23,9 +23,6 @@ export const TAG = 'modeles-3d';
 
 /** Le cache des fichiers tirés de la Release, hors de l'arbre : la CI le met en cache sous ce chemin (`ci.yml`). */
 export const CACHE_DES_MODELES = join(homedir(), '.cache', 'wfrp-modeles-3d');
-
-/** La somme SHA-256 de `octets`, hexadécimale. */
-export const sha256 = (octets: Uint8Array): string => createHash('sha256').update(octets).digest('hex');
 
 /** Lève, au nom de `nom`, si la somme de `octets` n'est pas `attendue`. */
 export function verifierSomme(nom: string, octets: Uint8Array, attendue: string): void {
