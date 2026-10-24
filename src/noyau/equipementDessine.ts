@@ -7,6 +7,7 @@ import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from 
 import { emptyArmour, apparencesCandidates, isCapeItem, isShieldItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitList } from '../engine/statEntry';
+import type { EntityAppearance } from '../engine/authoringAppearance';
 import { findCreatureById } from '../data';
 import { idsDeLaSousListe } from '../data/schemas/grammaire/ref';
 
@@ -56,8 +57,10 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
   return out;
 }
 
-export const armeDeDessin = (w: Weapon, maniement?: ContexteDeManiement): ArmeDeDessin =>
-  ({ ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(w), bouclier: isShieldItem(w) });
+export function armeDeDessin(w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ArmeDeDessin {
+  const source: SourceDeForme = apparence === undefined ? w : { ...w, apparence };
+  return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source), bouclier: isShieldItem(w) };
+}
 /** Pièce d'armure dessinée : sa matière est son `subType`, qu'une pièce d'armure porte toujours (schéma de
  *  `trappings.json`, `synthArmour`) ; une pièce sans type d'armure est un état invalide, refusé. */
 export function pieceDeDessin(it: ItemInstance): PieceDeDessin {
@@ -70,18 +73,19 @@ export const bouclierDeDessin = (x: SourceDeForme): BouclierDeDessin => ({ candi
 /** Équipement dessiné d'armes et de pièces DONNÉES : armes tenues, pièces d'armure, bouclier (tenu parmi les
  *  armes), armes rangées, cape. Ne résout aucune armure portée : un porteur passe par `equipementDessine` ou
  *  `equipementDEntite`. */
-export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { rangees?: Weapon[]; cape?: ItemInstance } & ContexteDeManiement = {}): EquipCtx {
-  const { rangees = [], cape, ...maniement } = autres;
+export function equipDe(weapons: Weapon[], armour: ItemInstance[], autres: { rangees?: Weapon[]; cape?: ItemInstance; apparenceDe?: (w: Weapon) => string | undefined } & ContexteDeManiement = {}): EquipCtx {
+  const { rangees = [], cape, apparenceDe, ...maniement } = autres;
   // Pièces TRIÉES par matière décroissante : par slot, le rendu prend la 1re pièce qui le couvre → un
   // héros en cuir + mailles montre les mailles, la plate par-dessus tout.
   const pieces = armour.map(pieceDeDessin).sort((a, b) => RANG_DE_MATIERE[b.matiere] - RANG_DE_MATIERE[a.matiere]);
-  const dessins = weapons.map((w) => armeDeDessin(w, maniement));
+  const dessiner = (w: Weapon) => armeDeDessin(w, maniement, apparenceDe?.(w));
+  const dessins = weapons.map(dessiner);
   const iBouclier = dessins.findIndex((w) => w.bouclier); // un bouclier tenu est dans le set actif → présent dans c.weapons
   return {
     weapons: dessins,
     armour: pieces,
-    rangees: rangees.map((w) => armeDeDessin(w, maniement)),
-    ...(iBouclier >= 0 ? { shield: bouclierDeDessin(weapons[iBouclier]) } : {}),
+    rangees: rangees.map(dessiner),
+    ...(iBouclier >= 0 ? { shield: { candidats: dessins[iBouclier].candidats } } : {}),
     ...(cape ? { cape: true } : {}),
   };
 }
@@ -129,6 +133,15 @@ function armesRangees(c: Combatant, maniement: ContexteDeManiement): Weapon[] {
   });
 }
 
+/** Choix d'auteur des armes sans instance : surcharge par trapping, puis record du porteur. */
+function apparenceDesArmes(override: Pick<EntityAppearance, 'apparencesObjets'> | undefined, creatureId: string | undefined, instances: readonly ItemInstance[] = []): ((w: Weapon) => string | undefined) | undefined {
+  const auteur = override?.apparencesObjets;
+  const record = findCreatureById(creatureId)?.appearance?.apparencesObjets;
+  if (!auteur && !record) return undefined;
+  const uids = new Set(instances.map((i) => i.uid));
+  return (w) => (w.uid === undefined || !uids.has(w.uid)) && w.trappingId ? auteur?.[w.trappingId] ?? record?.[w.trappingId] : undefined;
+}
+
 /** Équipement DESSINÉ d'un combattant : ses armes tenues et rangées, ses pièces portées — sinon, armure de
  *  statbloc déclarée portée (`armurePorteeDe`), les pièces synthétisées de ses PA (`synthArmour`) —, sa cape. */
 export function equipementDessine(c: Combatant): EquipCtx {
@@ -136,13 +149,13 @@ export function equipementDessine(c: Combatant): EquipCtx {
   const maniement: ContexteDeManiement = { mounted: !!c.mountId };
   return equipDe(c.weapons ?? [], portees.length ? portees : synthArmour(c.armour, armurePorteeDe(c.appearanceOverride, c.creatureId)), {
     ...maniement, rangees: armesRangees(c, maniement), cape: (c.items ?? []).find((i) => i.equipped && isCapeItem(i)),
+    apparenceDe: apparenceDesArmes(c.appearanceOverride, c.creatureId, c.items),
   });
 }
 
 /** Ce qu'une ENTITÉ de scène déclare de son équipement : apparence d'auteur (`armurePortee`), arme
  *  d'authoring (`SceneEntity.weapon`), statbloc d'éditeur (`traits`, `armour`), enrôlement. */
-export interface EquipementDAuteur {
-  armurePortee?: boolean;
+export interface EquipementDAuteur extends Pick<EntityAppearance, 'armurePortee' | 'apparencesObjets'> {
   /** Arme d'authoring (`trappingId`). */
   weapon?: string;
   traits?: TraitList;
@@ -161,5 +174,5 @@ export function equipementDEntite(ref: string | undefined, opts: EquipementDAute
   const idWeaponInst = opts.weapon ? weaponFromId(opts.weapon) : undefined;
   const idWeapon = idWeaponInst && !traitWeapons.some((w) => w.type === idWeaponInst.type) ? [idWeaponInst] : [];
   const armourPA: ArmourPoints = opts.armour != null ? emptyArmour(opts.armour) : armourFromTraits(traits);
-  return equipDe([...idWeapon, ...traitWeapons], synthArmour(armourPA, armurePorteeDe(opts, ref)));
+  return equipDe([...idWeapon, ...traitWeapons], synthArmour(armourPA, armurePorteeDe(opts, ref)), { apparenceDe: apparenceDesArmes(opts, ref) });
 }

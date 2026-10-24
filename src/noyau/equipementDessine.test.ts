@@ -8,13 +8,74 @@ import { equipementDessine, equipementDEntite } from './index';
 import { armeDeDessin, bouclierDeDessin, pieceDeDessin, RANG_DE_MATIERE } from './equipementDessine';
 import { emptyArmour, itemFromGive, loadoutSetActive, loadoutSetSlot, recomputeLoadout, weaponFromItem } from '../engine/items';
 import { spawnEnemy } from './monde/spawn';
-import { findCreatureById } from '../data';
+import { creatures, findCreatureById } from '../data';
+import { setDataset } from '../data/overrides';
 import weaponGroups from '../data/weaponGroups.json';
 import type { Combatant, ItemInstance } from '../engine/types';
+import type { TraitList } from '../engine/statEntry';
+import { renderWeaponsFromTraits } from '../engine/creatureEquip';
+import { equipDe } from './equipementDessine';
 
 const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;
 const porte = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }), equipped: true });
 const matieres = (c: Combatant) => equipementDessine(c).armour.map((p) => [p.locs, p.matiere]);
+
+describe('apparences d’objets des porteurs sans instance (#2948)', () => {
+  const traits: TraitList = [{ id: 'arme', arg: 'arme-simple', value: 7 }];
+
+  it('sans choix d’auteur, conserve la projection et les armes sans clé apparence', () => {
+    const armes = renderWeaponsFromTraits(traits);
+    expect(equipementDEntite(undefined, { traits })).toEqual(equipDe(armes, []));
+    for (const arme of armes) expect(arme).not.toHaveProperty('apparence');
+  });
+
+  it('projette la variante admise du trait par son id de trapping', () => {
+    expect(equipementDEntite(undefined, { traits, apparencesObjets: { 'arme-simple': 'hache_naine' } }).weapons[0].candidats)
+      .toEqual(['hache_naine', 'hache']);
+  });
+
+  it('ignore une racine non admise par le trapping', () => {
+    expect(equipementDEntite(undefined, { traits, apparencesObjets: { 'arme-simple': 'zweihander' } }).weapons[0].candidats)
+      .toEqual(['epee']);
+  });
+
+  it('projette aussi le canal weapon, sans trait', () => {
+    expect(equipementDEntite(undefined, { weapon: 'arme-simple', apparencesObjets: { 'arme-simple': 'epee_ebrechee' } }).weapons[0].candidats)
+      .toEqual(['epee_ebrechee', 'epee']);
+  });
+
+  it('le bouclier publie les mêmes candidats que son arme projetée', () => {
+    const equip = equipementDEntite(undefined, { weapon: 'bouclier', apparencesObjets: { bouclier: 'bouclier_pointes' } });
+    expect(equip.weapons[0].candidats).toEqual(['bouclier_pointes', 'rond']);
+    expect(equip.shield?.candidats).toEqual(equip.weapons[0].candidats);
+  });
+
+  it('le record porte son choix et la surcharge gagne par trapping', () => {
+    const originales = creatures.slice();
+    try {
+      setDataset('creatures', originales.map(c => c.id === 'humain' ? { ...c, traits, appearance: { ...c.appearance, apparencesObjets: { 'arme-simple': 'hache_naine' } } } : c));
+      expect(equipementDEntite('humain', { enrolled: true }).weapons[0].candidats).toEqual(['hache_naine', 'hache']);
+      expect(equipementDEntite('humain', { enrolled: true, apparencesObjets: { 'arme-simple': 'epee_ebrechee' } }).weapons[0].candidats)
+        .toEqual(['epee_ebrechee', 'epee']);
+    } finally {
+      setDataset('creatures', originales);
+    }
+  });
+
+  it('combat : le choix d’auteur entre au dessin sans modifier la Weapon persistée', () => {
+    const c = porteur({ weapons: renderWeaponsFromTraits(traits), appearanceOverride: { apparencesObjets: { 'arme-simple': 'hache_naine' } } });
+    const avant = structuredClone(c.weapons);
+    expect(equipementDessine(c).weapons[0].candidats).toEqual(['hache_naine', 'hache']);
+    expect(c.weapons).toEqual(avant);
+    expect(c.weapons[0]).not.toHaveProperty('apparence');
+  });
+
+  it('une instance conserve son propre choix, même devant une apparence d’auteur', () => {
+    const instance = { ...porte('arme-simple'), apparence: 'epee_sertie' };
+    const c = porteur({ items: [instance], weapons: [weaponFromItem(instance)], appearanceOverride: { apparencesObjets: { 'arme-simple': 'hache_naine' } } });
+    expect(equipementDessine(c).weapons[0].candidats).toEqual(['epee_sertie', 'epee']);
+  });
+});
 
 describe('equipementDessine — candidats publiés (#2948)', () => {
   it('publie les candidats des armes tenues, rangées et du bouclier', () => {
