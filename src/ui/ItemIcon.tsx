@@ -1,8 +1,7 @@
 /**
  * Icône d'OBJET — primitive UNIQUE pour afficher une arme/armure/bouclier (silhouette SVG du rig,
  * cf. `weaponPart`/`armourPart`/`shieldPart`) ou un glyphe de catégorie (objets sans art). Réutilisée
- * par le Sac, l'onglet Combat de la fiche, les pickers `MediaSelect` et la hotbar de combat — il n'y a
- * PAS d'autre rendu d'objet autonome (l'ancien `ItemSkinPreview` ad-hoc est dissous ici).
+ * par le Sac, l'onglet Combat de la fiche, les pickers `MediaSelect` et la hotbar de combat.
  *
  * Cadrage carré : l'arme (manche à l'origine, lame vers -y) est tournée ~−40° puis recadrée serré sur
  * sa boîte englobante mesurée (`getBBox`) — affinage au navigateur AVANT peinture (`useLayoutEffect`),
@@ -10,7 +9,7 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ItemInstance, Weapon } from '../engine/types';
-import { isCapeItem, isShieldTrapping } from '../engine/items';
+import { isCapeItem, isShieldItem, weaponFromItem } from '../engine/items';
 import { isConsumable } from '../engine/consumables';
 import { armourPart, objetSansPorteur, shieldPart, weaponPart } from '../gameIso/rig/parts/equipment';
 import { armeDeDessin, bouclierDeDessin, pieceDeDessin } from '../noyau/equipementDessine';
@@ -32,12 +31,6 @@ type Resolved = { art: string; geom: Geom } | { glyph: IconId };
 /** Ordre de préférence des emplacements pour l'aperçu d'une pièce d'armure (le torse = plus lisible). */
 const ARMOUR_SLOTS: Slot[] = ['torse', 'tete', 'bras', 'jambes'];
 
-/** Arme minimale pour le routage d'art à partir d'un objet : ce dont sa forme se résout (`trappingId`,
- *  `form`, `apparence`, cf. `formeResolue`), `teinte` et `subType` — la MÊME forme que le pion. */
-function asWeapon(item: ItemInstance): Weapon {
-  return { label: item.label, type: item.kind === 'ranged' ? 'ranged' : 'melee', damage: { plusBF: false, flat: 0 }, qualities: item.qualities ?? [], ...(item.teinte ? { teinte: item.teinte } : {}), form: item.form, apparence: item.apparence, trappingId: item.trappingId, subType: item.subType };
-}
-
 function resolve(resolveTrapping: TrappingResolver, item: ItemInstance | Weapon): Resolved {
   if ('kind' in item) {
     if (item.kind === 'armor') {
@@ -48,8 +41,8 @@ function resolve(resolveTrapping: TrappingResolver, item: ItemInstance | Weapon)
       return { glyph: 'item/armour' };
     }
     if (item.kind === 'melee' || item.kind === 'ranged') {
-      if (isShieldTrapping(item.trappingId, resolveTrapping)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(resolveTrapping, item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
-      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(resolveTrapping, asWeapon(item)))), 'front');
+      if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(resolveTrapping, item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+      const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(resolveTrapping, weaponFromItem(item)))), 'front');
       return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
     }
     if (item.kind === 'ammo') return { glyph: 'item/ammo' };
@@ -58,7 +51,7 @@ function resolve(resolveTrapping: TrappingResolver, item: ItemInstance | Weapon)
     return { glyph: 'item/misc' };
   }
   // `Weapon` (combat) : pas de champ `kind` — discriminant de l'union.
-  if (isShieldTrapping(item.trappingId, resolveTrapping)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(resolveTrapping, item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
+  if (isShieldItem(item)) { const a = viewOrFront(objetSansPorteur(shieldPart(bouclierDeDessin(resolveTrapping, item))), 'front'); return a ? { art: a, geom: 'shield' } : { glyph: 'item/armour' }; }
   const a = viewOrFront(objetSansPorteur(weaponPart(armeDeDessin(resolveTrapping, item))), 'front');
   return a ? { art: a, geom: 'weapon' } : { glyph: 'item/weapon' };
 }

@@ -40,7 +40,7 @@ describe('ItemIcon', () => {
   });
 
   it('cape → icône item/cloak', () => {
-    expect(html(mk({ kind: 'misc', label: 'Cape', trappingId: 'cape' }))).toContain(iconSvg('item/cloak'));
+    expect(html(itemFromTrappingById('cape')!)).toContain(iconSvg('item/cloak'));
   });
 
   it('consommable (Flow structuré) → icône item/consumable', () => {

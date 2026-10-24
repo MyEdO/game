@@ -1,12 +1,12 @@
 /** Porteur équipé d’un objet narratif à plusieurs formes, absent du catalogue. #2948 */
-import { findTrappingById } from '../../data';
+import { findTrappingById, type TrappingData } from '../../data';
 import { createHero } from '../../engine/character';
 import { apparencesCandidates, itemFromGive, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import { objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
 
-export function porteurDObjetDeCampagne(apparence: string) {
-  const objet = { ...findTrappingById('arme-simple')!, id: 'arme-de-campagne', label: 'Arme de campagne', shape: 'epee', formChoices: ['epee', 'hache'] };
+export function porteurDObjetDeCampagne(apparence: string, proprietes: Partial<TrappingData> = {}) {
+  const objet = { ...findTrappingById('arme-simple')!, id: 'arme-de-campagne', label: 'Arme de campagne', shape: { id: 'epee' }, formChoices: ['epee', 'hache'], ...proprietes };
   const narratif = { ...emptyNarratif(), objets: [objet] };
   const resolveTrapping = objetDuNarratif(narratif);
   const item = itemFromGive({ trappingId: objet.id, apparence: { id: apparence } }, undefined, resolveTrapping);

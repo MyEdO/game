@@ -17,6 +17,7 @@ import { renderWeaponsFromTraits } from '../engine/creatureEquip';
 import { equipDe } from './equipementDessine';
 import { findTrappingById } from '../data';
 import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
+import { objetDuNarratif } from './monde/resolveursDuNarratif';
 
 const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;
 const porte = (trappingId: string): ItemInstance => ({ ...itemFromGive({ trappingId }), equipped: true });
@@ -31,6 +32,14 @@ describe('apparences d’objets des porteurs sans instance (#2948)', () => {
     expect(candidats).toEqual(['hache_naine', 'hache']);
     expect(equipementDessine(resolveTrapping, hero).weapons[0].candidats).toEqual(candidats);
     expect(equipementDEntite(resolveTrapping, undefined, { weapon: objet.id, apparencesObjets: { [objet.id]: item.apparence! } }).weapons[0].candidats).toEqual(candidats);
+  });
+
+  it('le dessin conserve le bouclier né dans la campagne après édition de sa fiche', () => {
+    const { objet, hero, narratif, resolveTrapping } = porteurDObjetDeCampagne('hache_naine', { shield: true });
+    expect(findTrappingById(objet.id)).toBeUndefined();
+    expect(equipementDessine(resolveTrapping, hero).weapons[0].bouclier).toBe(true);
+    const apresEdition = objetDuNarratif({ ...narratif, objets: [{ ...objet, shield: undefined }] });
+    expect(equipementDessine(apresEdition, hero).weapons[0].bouclier).toBe(true);
   });
 
   const traits: TraitList = [{ id: 'arme', arg: 'arme-simple', value: 7 }];

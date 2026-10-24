@@ -12,7 +12,7 @@ import { armourMaterialOf } from './armourBypass';
 import type { TriggeredEffect } from './flowCore';
 import { cannotWieldTwoHanded, handAmputated } from './trauma';
 import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
-import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef } from '../data';
+import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef, type TrappingData } from '../data';
 import { t } from '../i18n';
 import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
 
@@ -120,11 +120,57 @@ export function parseDamage(s: string): WeaponDamageSpec {
   return { plusBF: false, flat };
 }
 
+/** #2967 */
+export const CLES_INTRINSEQUES_D_OBJET = {
+  reach: true,
+  range: true,
+  weaponGroup: true,
+  defaultAmmo: true,
+  soloSimple: true,
+  indirect: true,
+  bladed: true,
+  organicProjectile: true,
+  onHitEffects: true,
+  minRangeBand: true,
+  sizeFor: true,
+  requiresMastery: true,
+  shield: true,
+  unarmed: true,
+  derivedWeapon: false,
+  niPerGram: false,
+  niConsumedPerDR: false,
+  passive: false,
+  prosthesisTraining: false,
+  capabilities: false,
+  improvised: false,
+  container: false,
+  consumable: false,
+  consumableDuration: false,
+  ammoRangeMod: false,
+} as const satisfies Partial<Record<keyof TrappingData, boolean>>;
+
+type ClesIntrinsequesDArme = { [K in keyof typeof CLES_INTRINSEQUES_D_OBJET]: typeof CLES_INTRINSEQUES_D_OBJET[K] extends true ? K : never }[keyof typeof CLES_INTRINSEQUES_D_OBJET];
+/** #2967 */
+export type ProprietesIntrinsequesDObjet = Partial<Pick<TrappingData, keyof typeof CLES_INTRINSEQUES_D_OBJET>>;
+/** #2967 */
+export type ProprietesIntrinsequesDArme = Pick<ProprietesIntrinsequesDObjet, ClesIntrinsequesDArme>;
+
+function copierIntrinseques(source: ProprietesIntrinsequesDObjet, arme: true): ProprietesIntrinsequesDArme;
+function copierIntrinseques(source: ProprietesIntrinsequesDObjet, arme?: false): ProprietesIntrinsequesDObjet;
+function copierIntrinseques(source: ProprietesIntrinsequesDObjet, arme = false): ProprietesIntrinsequesDObjet {
+  const copie: ProprietesIntrinsequesDObjet = {};
+  for (const cle of Object.keys(CLES_INTRINSEQUES_D_OBJET) as (keyof typeof CLES_INTRINSEQUES_D_OBJET)[]) {
+    const valeur = source[cle];
+    if (valeur !== undefined && (!arme || CLES_INTRINSEQUES_D_OBJET[cle])) Object.assign(copie, { [cle]: structuredClone(valeur) });
+  }
+  return copie;
+}
+
 /** Spécification d'une arme SYNTHÉTIQUE (≠ catalogue) : sert `buildWeapon` (→ Weapon) ET `weaponItem`
  *  (→ ItemInstance). `uid` : littéral (Tentacule : 'nat-tentacule'), préfixe → `${prefix}-${newUid()}`,
  *  ou absent → `buildWeapon` génère un uid stable par défaut (`w-${newUid()}`) : TOUTE arme construite
  *  porte un uid (les Pendings d'arme — rechargement/renversement/piège-lame — la retrouvent par uid). */
-export interface WeaponSpec {
+export interface WeaponSpec extends ProprietesIntrinsequesDArme {
   label: string;
   type?: 'melee' | 'ranged';
   damage: WeaponDamageSpec;
@@ -186,14 +232,13 @@ function specUid(uid: WeaponSpec['uid']): string {
  *  Projectiles, bande de portée minimale, main qui la tient) : aucun champ d'arme ne se pose après coup. */
 export function buildWeapon(spec: WeaponSpec): Weapon {
   const w: Weapon = {
+    ...copierIntrinseques(spec, true),
     label: spec.label,
     type: spec.type ?? 'melee',
     damage: spec.damage, // spec STRUCTURÉE stockée telle quelle (affichage dérivé par damageString)
     qualities: [...(spec.qualities ?? [])],
     hands: spec.hands ?? 1,
   };
-  if (spec.reach !== undefined) w.reach = spec.reach;
-  if (spec.range !== undefined) w.range = spec.range;
   if (spec.reload !== undefined) w.reload = spec.reload;
   if (spec.subType !== undefined) w.subType = spec.subType;
   w.uid = specUid(spec.uid); // TOUJOURS défini (universel : Pendings d'arme par uid)
@@ -203,18 +248,9 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   if (spec.natural !== undefined) w.natural = spec.natural;
   if (spec.attackKind !== undefined) w.attackKind = spec.attackKind;
   if (spec.builtinId !== undefined) w.builtinId = spec.builtinId;
-  if (spec.sizeFor !== undefined) w.sizeFor = spec.sizeFor;
   if (spec.sizeless !== undefined) w.sizeless = spec.sizeless;
   if (spec.source !== undefined) w.source = spec.source;
   if (spec.trappingId !== undefined) w.trappingId = spec.trappingId;
-  if (spec.weaponGroup !== undefined) w.weaponGroup = spec.weaponGroup;
-  if (spec.defaultAmmo !== undefined) w.defaultAmmo = spec.defaultAmmo;
-  if (spec.soloSimple !== undefined) w.soloSimple = spec.soloSimple;
-  if (spec.indirect !== undefined) w.indirect = spec.indirect;
-  if (spec.bladed !== undefined) w.bladed = spec.bladed;
-  if (spec.organicProjectile !== undefined) w.organicProjectile = spec.organicProjectile;
-  if (spec.onHitEffects !== undefined) w.onHitEffects = spec.onHitEffects;
-  if (spec.minRangeBand !== undefined) w.minRangeBand = spec.minRangeBand;
   if (spec.damageTaken !== undefined) w.damageTaken = spec.damageTaken;
   if (spec.hand !== undefined) w.hand = spec.hand;
   if (spec.mountSide !== undefined) w.mountSide = spec.mountSide;
@@ -222,24 +258,13 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
   return w;
 }
 
-/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Mains nues » (`TrappingData.unarmed`) ? Le catalogue
- *  porte la marque, le moteur ne connaît aucun id — une seconde entrée « poings » (espèce, prothèse)
- *  coûte une ligne de `trappings.json`. Résolveur INJECTABLE comme partout ailleurs (couche campagne). */
-export const isUnarmedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
-  !!(id && resolveTrapping(id)?.unarmed);
-
-/** L'entrée de catalogue `id` est-elle DÉCLARÉE « Arme improvisée » (`TrappingData.improvised`) ?
- *  ≠ `weaponDamage.isImprovised` (arme RÉDUITE à cet état par l'usure). */
-export const isImprovisedTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
-  !!(id && resolveTrapping(id)?.improvised);
-
 /** L'entrée de catalogue `id` est-elle DÉCLARÉE « Bouclier » (`TrappingData.shield`) ? LDB 62 l.33-35 ;
  *  AA 08 l.156 ; ZI 13 l.911. ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
 export const isShieldTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
   !!(id && resolveTrapping(id)?.shield);
 
-/** Arme ou objet reconnu bouclier par son IDENTITÉ de catalogue (`trappingId`). */
-export const isShieldItem = (x: { trappingId?: string }): boolean => isShieldTrapping(x.trappingId);
+/** LDB 62 l.33-35 */
+export const isShieldItem = (x: { shield?: boolean }): boolean => x.shield === true;
 
 /** Ce dont la forme d'un objet porté se résout : son id de catalogue, la silhouette forcée d'une arme
  *  invoquée, le choix du joueur. */
@@ -272,10 +297,8 @@ export const racineDesCandidats = (candidats: readonly string[]): string | undef
 /** Forme résolue d'une SourceDeForme : racine de ses apparences candidates. */
 export const formeResolue = (x: SourceDeForme, resolveTrapping: TrappingResolver = findTrappingById): string | undefined => racineDesCandidats(apparencesCandidates(x, resolveTrapping));
 
-/** Arme « Mains nues » canonique reconnue par son IDENTITÉ de catalogue (`builtinId`/`trappingId`,
- *  multilangue-safe) confrontée à la marque DÉCLARÉE sur l'entrée. Utilisé pour exclure les Mains nues
- *  des armes « wielded » / choisissables. */
-export const isUnarmed = (w: Weapon): boolean => isUnarmedTrapping(w.builtinId ?? w.trappingId);
+/** LDB 62 l.28 */
+export const isUnarmed = (w: { unarmed?: boolean }): boolean => w.unarmed === true;
 
 /** IDENTITÉ STABLE d'une arme — SOURCE UNIQUE pour tout keying d'arme (#598). Ordre : id de catalogue
  *  (`trappingId`, partagé par toutes les instances d'un même modèle) → marqueur built-in (`builtinId`)
@@ -344,42 +367,21 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
   // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les
   // POSSÈDE, et une édition du catalogue ne les repeint pas.
   const objet: ItemInstance = {
+    ...copierIntrinseques({ ...t, range: t.range ?? null }),
     uid: newUid(),
     trappingId: t.id,
     label: t.label,
     kind,
     damage: t.damage ?? undefined, // #379 #339
-    // Allonge (mêlée) ⊥ Portée (tir) — LDB 62. La donnée est NORMALISÉE : `reach` = string|null (Allonge
-    // ou formule de jet « BFx3 »), `range` = Portée numérique (m) des armes à portée fixe → copie DIRECTE,
-    // plus de `Number(t.reach)` (le « type menteur » d'avant la migration est éliminé).
-    reach: t.reach,
-    range: t.range ?? null,
     qualities: (t.qualities ?? []).map(qualityInstance), // QualityRef[] (donnée) → QualityInstance[] runtime (structuré, frais)
     pa: t.pa ?? undefined,
     locs: locs && locs.length ? locs : undefined,
     enc: typeof t.enc === 'number' ? t.enc : 0, // 'ND' (ateliers) / 'Variable' (arme improvisée) → non-encombrant (0), jamais NaN
-    ...(t.sizeFor ? { sizeFor: t.sizeFor } : {}), // taille prévue (ADE II 2 l.706-710) — version « taille ogre » d'une possession ordinaire
     equipped: false,
     desc: t.desc,
-    ...(t.consumable ? { consumable: t.consumable } : {}), // effet de consommable (Flow) copié du catalogue
-    ...(t.consumableDuration ? { consumableDuration: t.consumableDuration } : {}), // durée d'horloge (LDB 71/72 « Durée : … »), résolue au boire
     subType: t.subType ?? undefined,
-    ...(t.weaponGroup ? { weaponGroup: t.weaponGroup } : {}), // Groupe de Projectiles d'une arme de siège (AA 10 l.142)
-    ...(t.defaultAmmo ? { defaultAmmo: t.defaultAmmo } : {}), // munition REPRÉSENTATIVE (hint joueur, ammoFamilyLabel)
-    ...(t.soloSimple ? { soloSimple: true } : {}), // baliste « relativement simple » : tir solo perd les Atouts (AA 10 l.148)
-    ...(t.indirect ? { indirect: true } : {}), // mortier/catapulte « arc élevé » (AA 10 l.169/171) : tir INDIRECT → viser une case
-    ...(t.bladed ? { bladed: true } : {}), // LDB 62 l.278 — approximation MAISON, propagée du catalogue
-    ...(t.organicProjectile ? { organicProjectile: true } : {}), // LDB 47 — approximation MAISON, propagée du catalogue
-    ...(t.onHitEffects?.length ? { onHitEffects: t.onHitEffects } : {}), // effets « à la touche » en DONNÉE (Canon à flammes nain → En flammes, ADE II 8 l.243)
-    ...(t.minRangeBand ? { minRangeBand: t.minRangeBand } : {}), // PORTÉE MINIMALE (machine de siège : pas de Bout Portant / trébuchet-mortier sous Portée Courte, ADE II 8 l.251/253)
-    ...(t.requiresMastery ? { requiresMastery: true } : {}), // arme inhabituelle (ACE 12 l.17-21) : maîtrise requise
     hands: kind === 'melee' || kind === 'ranged' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
     qty: kind === 'ammo' ? (t.packSize ?? 1) : undefined, // taille de paquet typée
-    ...(t.ammoRangeMod != null ? { ammoRangeMod: t.ammoRangeMod } : {}), // modificateur de Portée de la munition (LDB 62)
-    // Les capacités de catégorie (weatherProtection/isShelter/isRations/isGrimoire/preventForcedDrop) NE
-    // sont PAS copiées sur l'instance : elles restent lues DEPUIS le catalogue par `trappingId` (canal
-    // `capabilities`), via `engine/capabilities` — comme `passive`. Une seule source de vérité.
-    ...(t.container ? { container: t.container } : {}), // Contenant (LDB 64) : capacité de rangement
   };
   return deciderApparenceALaNaissance(objet, contexte, resolveTrapping);
 }
@@ -626,7 +628,7 @@ export function unarmedWeapon(resolveTrapping: TrappingResolver = findTrappingBy
   const build = (): Weapon => {
     const it = itemFromTrappingById('mains-nues', resolveTrapping);
     if (!it?.damage) throw new Error('unarmedWeapon : entrée de catalogue « mains-nues » absente ou sans profil d’arme (src/data/trappings.json).');
-    return buildWeapon({ label: it.label, damage: it.damage, reach: it.reach, qualities: it.qualities, subType: it.subType, builtinId: 'mains-nues' });
+    return buildWeapon({ ...copierIntrinseques(it, true), label: it.label, damage: it.damage, qualities: it.qualities, subType: it.subType, builtinId: 'mains-nues' });
   };
   if (resolveTrapping !== findTrappingById) return { ...build(), hand: 'main' };
   if (!_unarmed) _unarmed = build();
@@ -751,16 +753,15 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
  */
 export function weaponFromItem(it: ItemInstance, hand?: 'main' | 'off', ctx?: ContexteDeManiement): Weapon {
   return applyEnchants(buildWeapon({
+    ...copierIntrinseques(it, true),
     label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'ranged',
     // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
     damage: it.damage ?? { plusBF: true, flat: 0, bare: true },
-    reach: it.reach, range: it.range, qualities: it.qualities, subType: it.subType,
-    weaponGroup: it.weaponGroup, defaultAmmo: it.defaultAmmo, soloSimple: it.soloSimple, indirect: it.indirect,
-    bladed: it.bladed, organicProjectile: it.organicProjectile, onHitEffects: it.onHitEffects,
-    minRangeBand: it.minRangeBand, reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
+    qualities: it.qualities, subType: it.subType,
+    reload: qualityIndice(it, 'recharge') ?? 0, damageTaken: it.damageTaken,
     ...(it.teinte ? { teinte: it.teinte } : {}), form: it.form, apparence: it.apparence, hands: weaponHands(it, ctx), hand, uid: it.uid,
-    mountSide: it.mountSide, resolveChar: warMachineResolveChar(it), sizeFor: it.sizeFor,
+    mountSide: it.mountSide, resolveChar: warMachineResolveChar(it),
   }), it.enchants ?? []);
 }
 
@@ -821,7 +822,7 @@ export function recomputeLoadout(c: Combatant): void {
   // Armes DÉRIVÉES d'un objet ÉQUIPÉ (prothèse-arme, LDB 73 : le Crochet « est considéré comme une
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
-    const dw = i.equipped && !i.destroyed && i.trappingId ? findTrappingById(i.trappingId)?.derivedWeapon : undefined;
+    const dw = i.equipped && !i.destroyed ? i.derivedWeapon : undefined;
     if (dw) weapons.push({ hand: 'main', ...dw, derivedFromItem: i.uid });
   }
   // Armes NATURELLES portées en DONNÉE par le `passive` d'une source — trait (Tentacules, LDB 85 l.405) ou

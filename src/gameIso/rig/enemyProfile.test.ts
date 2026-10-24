@@ -13,7 +13,7 @@ import { CLAWFOOT, MAIN_GRIFFUE } from './parts/bodies/extremites';
 import { armourPart, weaponFamily } from './parts/equipment';
 import { armeDeDessin, pieceDeDessin } from '../../noyau/equipementDessine';
 import { spawnEnemy } from '../../noyau/monde/spawn';
-import { isShieldTrapping } from '../../engine/items';
+import { isShieldTrapping, itemFromTrappingById } from '../../engine/items';
 import { hairstylesForSex } from './parts/hairstyles';
 import { COIFFURE_HORS_POOL } from './parts/cosmetic';
 import { resetDiagOnce, withDiagSubject } from './devDiag';
@@ -352,7 +352,7 @@ describe('spawnEnemy — une coiffure seule traverse jusqu’au rendu du combatt
 
 describe('#2097 C4 — équipement PORTÉ : une production (`equipementDessine`), parité combat ↔ explo', () => {
   it('cape d’ennemi portée : dessinée, comme celle d’un héros', () => {
-    const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
+    const cape = { ...itemFromTrappingById('cape')!, uid: 'c', equipped: true };
     expect(enemyRigProfile(findTrappingById, mkEnemy('Bandit', { items: [cape] }))!.equip.cape).toBe(true);
     expect(enemyRigProfile(findTrappingById, mkEnemy('Bandit'))!.equip.cape).toBeUndefined();
   });

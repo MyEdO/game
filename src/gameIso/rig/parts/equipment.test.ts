@@ -9,7 +9,7 @@ import { weaponFromId } from '../../../engine/creatureEquip';
 import { viewOrFront } from './types';
 import type { Combatant, Weapon, ItemInstance, HitLocation } from '../../../engine/types';
 import { findMutationById, trappings, weaponGroups } from '../../../data';
-import { isShieldItem, itemFromGive, recomputeLoadout, weaponFromItem } from '../../../engine/items';
+import { isShieldItem, itemFromGive, itemFromTrappingById, recomputeLoadout, weaponFromItem } from '../../../engine/items';
 import { weaponGroup } from '../../../engine/weaponGroup';
 import { findTrappingById } from '../../../data';
 
@@ -113,7 +113,7 @@ describe('equipementDessine', () => {
   });
 
   it('cape/manteau porté → EquipCtx.cape (cosmétique) ; non porté → absent', () => {
-    const cape = { uid: 'c', label: 'Cape', trappingId: 'cape', kind: 'misc', qualities: [], enc: 0, equipped: true } as ItemInstance;
+    const cape = { ...itemFromTrappingById('cape')!, uid: 'c', equipped: true };
     const c = { weapons: [], items: [cape] } as unknown as Combatant;
     expect(equipementDessine(findTrappingById, c).cape).toBe(true);
     cape.equipped = false;

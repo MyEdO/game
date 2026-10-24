@@ -6,8 +6,8 @@
  * réutilise donc entièrement la base d'armes (`itemFromTrapping`) et le loadout : seuls les Dégâts
  * (= BFM…) et l'Atout Magique sont surchargés par le Sort.
  */
-import { Combatant, ItemInstance, QualityInstance } from './types';
-import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmedTrapping, isImprovisedTrapping, isShieldTrapping } from './items';
+import { Combatant, ItemInstance } from './types';
+import { recomputeLoadout, itemFromTrappingById, ensureDefaultLoadout, newLoadoutId, isUnarmed, isShieldItem } from './items';
 import { hasQuality } from './qualities/dispatch';
 import { trappingsInstanciables, byId } from '../data';
 
@@ -63,11 +63,9 @@ export interface ConjureForm {
   group: string; // `id` du Groupe / Spé de Corps à corps appliquée par combatValue
 }
 
-/** Une arme de mêlée est-elle une forme d'Arme aethyrique ? Marques DÉCLARÉES sur l'entrée de catalogue
- *  (`TrappingData.unarmed`/`improvised`/`shield`) et Atout Inoffensive — le moteur ne nomme aucun id.
- *  Exclusion des boucliers et des Inoffensives : #2240. */
-function isConjurableWeapon(it: { trappingId?: string; qualities: QualityInstance[] }): boolean {
-  if (isUnarmedTrapping(it.trappingId) || isImprovisedTrapping(it.trappingId) || isShieldTrapping(it.trappingId)) return false;
+/** LDB 47 ; #2240 */
+function isConjurableWeapon(it: Pick<ItemInstance, 'qualities' | 'unarmed' | 'improvised' | 'shield'>): boolean {
+  if (isUnarmed(it) || it.improvised === true || isShieldItem(it)) return false;
   if (hasQuality(it, 'inoffensive')) return false;
   return true;
 }

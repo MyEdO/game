@@ -1226,16 +1226,11 @@ export interface TrappingData {
    *  munitions/armes de siège/Mains nues (aucune silhouette tenue). Jamais recopié dans une instance :
    *  `formeResolue` (`engine/items`) le résout par `trappingId` (#2113). */
   shape?: { id: string };
-  /** Cette entrée EST l'arme « Mains nues » du catalogue (`LDB 62 l.28`) : marque STABLE et multilangue,
-   *  SEULE lecture de `isUnarmed`/`isUnarmedTrapping` (`engine/items`) — les poings ne comptent pas comme
-   *  arme tenue (`EquipmentPanel`, choix d'attaque/parade) et ne sont pas invocables (`conjuredWeapons`). */
+  /** LDB 62 l.28 */
   unarmed?: true;
-  /** Cette entrée EST l'« Arme improvisée » du catalogue (`LDB 62 l.31`), lue par `isImprovisedTrapping`
-   *  (`engine/items`). À NE PAS confondre avec `weaponDamage.isImprovised`, qui décrit une arme RÉDUITE à
-   *  l'état improvisé par l'usure (`LDB 62 l.135`). */
+  /** LDB 62 l.31 ; LDB 62 l.135 */
   improvised?: true;
-  /** Cette entrée EST un bouclier (LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911), lue par `isShieldTrapping`
-   *  (`engine/items`). ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+  /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.613 */
   shield?: true;
   /** Formes choisibles (racines de `apparences.json`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
    *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.apparence` ;

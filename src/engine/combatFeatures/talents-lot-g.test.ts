@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { itemFromTrappingById, weaponFromItem } from '../items';
 import {
   talentDamageBonus, isSlayer, talentDamageReduction, talentCritExtraWounds, talentRangedAPIgnore,
   sniperRangeAdjust, talentInitiativeBonus,
@@ -102,7 +103,7 @@ describe('initiative / économie d’action (LDB 10)', () => {
 describe('défense / récupération (LDB 10)', () => {
   it('Porte-Bouclier (au bouclier seulement) / Riposte / Renversement', () => {
     const c = mk([{ name: 'Porte-Bouclier', times: 2 }]);
-    expect(shieldAdvantageLevel(c, w({ label: 'Bouclier', trappingId: 'bouclier', qualities: [{ id: 'protectrice', value: 2 }] }))).toBe(2); // LDB 62 l.33
+    expect(shieldAdvantageLevel(c, w({ ...weaponFromItem(itemFromTrappingById('bouclier')!), label: 'Bouclier', qualities: [{ id: 'protectrice', value: 2 }] }))).toBe(2); // LDB 62 l.33
     expect(shieldAdvantageLevel(c, w({ label: 'Épée' }))).toBe(0);
     expect(contreSurDefenseGagnee(mk([{ name: 'Riposte', times: 1 }]), w({ qualities: [{ id: 'rapide' }] }))).toEqual({ choisie: true, plafond: 1 }); // Riposte + arme Rapide
     expect(contreSurDefenseGagnee(mk([{ name: 'Riposte', times: 1 }]), w())).toBeNull(); // arme NON Rapide → pas de Riposte

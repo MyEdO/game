@@ -8,6 +8,7 @@
  * (règle `combat-aa-avantage-groupe` active/inactive).
  */
 import { describe, it, expect, afterEach } from 'vitest';
+import { itemFromTrappingById, weaponFromItem } from '../items';
 import { setRule, resetRule } from '../policy';
 import { activeVariant, effectiveEntry } from '../variants';
 import { findTalentById, talents } from '../../data';
@@ -28,7 +29,7 @@ import type { CharKey, Combatant, Weapon } from '../types';
 afterEach(() => { for (const id of ALL_VARIANT_CARRIERS) resetRule(ruleOf(id)); });
 
 const w = (over: Partial<Weapon> = {}): Weapon =>
-  ({ label: 'Bouclier', trappingId: 'bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 2 }], ...over });
+  ({ ...weaponFromItem(itemFromTrappingById('bouclier')!), label: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: 2 }], ...over });
 
 function mk(names: string[], over: Partial<Combatant> = {}): Combatant {
   return {

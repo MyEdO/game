@@ -49,6 +49,8 @@ import {
   type PointLightSlots,
 } from './stagePointLights';
 import { findTrappingById } from '../../data';
+import { itemFromTrappingById } from '../../engine/items';
+import type { ItemInstance } from '../../engine/types';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -556,7 +558,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
 /** Combattant porteur d'une lanterne, RANGÉE ou en main — le gate de port est celui du champ mécanique. */
 const porteurDeLanterne = (equipped: boolean) => ({
   id: 'h1', kind: 'hero', pos: { x: 4, y: 4 },
-  items: [{ uid: 'i1', trappingId: 'lanterne', equipped }],
+  items: [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped }],
 });
 
 describe('La lampe d’un PORTEUR — celle du champ mécanique, gate de port compris (#1245 L2)', () => {
@@ -654,7 +656,7 @@ function boardDe(cid: string, anchor: THREE.Vector3): Board {
 }
 
 /** Héros de roster : ce que le meneur se choisit dessus (vivant, Blessures) et ce que le gate de port lit. */
-const héros = (id: string, items: { uid: string; trappingId: string; equipped: boolean }[] = []) => ({
+const héros = (id: string, items: ItemInstance[] = []) => ({
   id, kind: 'hero', dead: false, wounds: { current: 3, max: 3 }, conditions: [], traits: [], talents: [], items,
 });
 
@@ -665,7 +667,7 @@ describe('La lampe du GROUPE en exploration — portée par le MENEUR (#1245)', 
   const CASE = { x: 4, y: 4 };
   // La lanterne est au SECOND héros : l'agrégat reste UN (les émetteurs de tous les héros à la case du
   // groupe, jamais additionnés), et c'est le jeton qui MARCHE — le meneur — qui le porte.
-  const party = [héros('h1'), héros('h2', [{ uid: 'i1', trappingId: 'lanterne', equipped: true }])];
+  const party = [héros('h1'), héros('h2', [{ ...itemFromTrappingById('lanterne')!, uid: 'i1', equipped: true }])];
   const sourcesDuGroupe = (): LightSource[] =>
     sceneLightSources({ scene, battle: null, party: party as never, partyPos: CASE });
 

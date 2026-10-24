@@ -4,7 +4,7 @@
  * chez chaque dessinateur et consomme cette projection.
  */
 import type { ArmourPoints, Combatant, HitLocation, ItemInstance, Weapon } from '../engine/types';
-import { emptyArmour, apparencesCandidates, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldTrapping } from '../engine/items';
+import { emptyArmour, apparencesCandidates, isCapeItem, isWeaponActive, objetDeSlot, weaponFromItem, weaponHands, type ContexteDeManiement, type SourceDeForme, type TrappingResolver, isShieldItem } from '../engine/items';
 import { armourFromTraits, renderWeaponsFromTraits, weaponFromId } from '../engine/creatureEquip';
 import type { TraitList } from '../engine/statEntry';
 import type { EntityAppearance } from '../engine/authoringAppearance';
@@ -59,7 +59,7 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
 
 function objetDArme(resolveTrapping: TrappingResolver, w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ObjetDArme {
   const source: SourceDeForme = apparence === undefined ? w : { ...w, apparence };
-  const bouclier = isShieldTrapping(w.trappingId, resolveTrapping);
+  const bouclier = isShieldItem(w);
   return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source, resolveTrapping), bouclier };
 }
 

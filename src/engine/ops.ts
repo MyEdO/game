@@ -16,7 +16,7 @@
 import { RNG, roll, type DiceSpec, rollDice } from './dice';
 import { bonus, effectiveChar, refreshWounds } from './characteristics';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, syncDerivedConditions } from './conditions';
-import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel, findTrappingById } from '../data';
+import { conditionLabel, psychologyLabel, qualityRefLabel, findTraitById, refLabel } from '../data';
 import { contractDiseaseOnce, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch } from './groups';
 import { facesDuDe, findTableEntry } from './tables';
@@ -305,8 +305,7 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // (l'outil se sort pour servir) ; les passifs de VALEUR d'objet (skillMod des Bésicles) restent, eux,
   // gatés porté/tenu via `passiveMods`.
   for (const it of c.items ?? []) {
-    if (!it.trappingId) continue;
-    for (const op of findTrappingById(it.trappingId)?.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
+    for (const op of it.passive ?? []) if (op.op === 'skillDRBonus' && matches(op.skill)) n += valeurSansTirage(op.bonus, c);
   }
   return n;
 }

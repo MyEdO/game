@@ -4,7 +4,7 @@ import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
 import type { Money } from './money';
-import type { ReachId } from './items';
+import type { ReachId, ProprietesIntrinsequesDObjet, ProprietesIntrinsequesDArme } from './items';
 import type { CodexTarget, ModProvenance, RangeeDe } from './ruleRefs';
 import type { WallSide as WallSideCanon } from '../data/schemas/defs-scenes/communs';
 import type { ArmourBypass } from '../data/schemas/grammaire/mecanique';
@@ -371,7 +371,7 @@ export interface QualityInstance {
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
 export type FireArc = 'proue' | 'tribord' | 'poupe' | 'babord';
 
-export interface Weapon {
+export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;
   type: 'melee' | 'ranged';
   /** Dégâts d'arme STRUCTURÉS (cf. `WeaponDamageSpec`) — ex. `{plusBF:true,flat:4}` (« +BF+4 »). */
@@ -1081,7 +1081,7 @@ export interface Trauma {
 export type ItemKind = 'melee' | 'ranged' | 'armor' | 'ammo' | 'misc';
 
 /** Instance d'objet portée par un personnage (dérivée d'un trapping à stats). */
-export interface ItemInstance {
+export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   uid: string;
   // ── ÉTAT DE CHARGE de CET objet-arme : chaque arme à distance possédée gère son propre
   // rechargement et sa propre munition (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes à distance
@@ -1188,8 +1188,8 @@ export interface ItemInstance {
   /** Réserve de NI d'énergie magique RESTANTE sur CET objet (`VDM 02 l.165` : « garder une trace du
    *  nombre de NI qu'un morceau de malepierre peut apporter avant qu'il ne soit entièrement consommé »).
    *  Grandeur INDÉPENDANTE de `qty` (nombre d'exemplaires) — jamais confondue avec un compte d'objets.
-   *  ABSENT tant que la réserve reste INTACTE (`itemFromTrappingById` ne l'initialise
-   *  PAS ; lue à défaut sur `TrappingData.niPerGram` du catalogue, `engine/magic.ts:malepierreReserveOf`) ;
+   *  ABSENT tant que la réserve reste INTACTE (lue à défaut sur `ItemInstance.niPerGram`,
+   *  `engine/magic.ts:malepierreReserveOf`) ;
    *  décrémentée AU CONFIRM par `consumeMalepierre` (`engine/magic.ts`, seul point d'ÉCRITURE du
    *  delta — jamais au Test lui-même). Absent = objet sans réserve entamée (tout objet hors malepierre,
    *  ou malepierre encore à sa réserve pleine).
@@ -1236,9 +1236,6 @@ export interface ItemInstance {
    *  rareté × dangerosité × Taille × Conservation déjà nettes. Revendu en DIRECT (sans le taux de
    *  revente catalogue), cf. `merchantFlow.sellGain`. Absent pour un objet ordinaire (prix = catalogue). */
   price?: import('./money').Money;
-  // Les capacités FONCTIONNELLES de catégorie (weatherProtection/isShelter/isRations/isGrimoire/
-  // preventForcedDrop) ne sont PAS propagées sur l'instance : elles sont lues DEPUIS le catalogue par
-  // `trappingId` (canal `TrappingData.capabilities`), via `engine/capabilities` — comme `passive`.
   /** Contenant (sac/sac à dos, LDB 64) : capacité de rangement en Enc (« Contenu »). Propagé de TrappingData.container. */
   container?: { capacity: number };
   /** Rangé DANS un contenant (uid de l'ItemInstance porteur d'un `container`) : son Enc est absorbé par le

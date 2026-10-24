@@ -1,4 +1,5 @@
 import { resolveStake } from '../data';
+import { itemFromTrappingById } from '../engine/items';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { seedBattleRng } from '../noyau/battleRng';
@@ -28,7 +29,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
     items: [], movement: 4, fortune: 2, ...p,
   } as Combatant);
 
-const ration = (uid: string) => ({ uid, label: 'Ration', trappingId: 'ration', kind: 'misc' as const, qualities: [], enc: 0, equipped: false });
+const ration = (uid: string) => ({ ...itemFromTrappingById('ration')!, uid, enc: 0 });
 
 /** Fige un ÉCHEC sur la RANGÉE `rowId` de la bande `bandId` (dé 100, DR négatif) — pour exercer
  *  l'influence sur un jet raté. Depuis #1117 L3 le jet d'un Test de nuit vit sur SA rangée. */

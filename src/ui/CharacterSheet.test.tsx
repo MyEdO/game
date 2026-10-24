@@ -355,7 +355,7 @@ describe('CharacterSheet — colonne PRÉSENCE (#492 arbitrage 2026-07-17)', () 
     expect(tiers.map((t) => t.label)).toEqual(['récupérer le dernier Point de Mouvement perdu', 'réapprendre à utiliser Esquive']);
     const porteur = {
       ...hero(),
-      items: [{ uid: 'fj', trappingId: 'fausse-jambe', label: 'Fausse jambe', kind: 'misc', subType: 'protheses', qualities: [], enc: 2, equipped: true }],
+      items: [{ ...itemFromTrappingById('fausse-jambe')!, uid: 'fj', equipped: true }],
     } as unknown as Combatant;
     const html = renderToStaticMarkup(<AdvancementPanel hero={porteur} />);
     expect(html).toContain('Fausse jambe — récupérer le dernier Point de Mouvement perdu');
@@ -422,7 +422,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
         { uid: 'a1', label: 'Cotte de mailles', kind: 'armor', subType: 'mailles', qualities: [], enc: 2, equipped: true, pa: 2, locs: ['corps'] },
         { uid: 'bag1', label: 'Sac à dos', kind: 'misc', qualities: [], enc: 1, equipped: false, container: { capacity: 10 } },
         { uid: 'n1', label: 'Gourde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'bag1' },
-        { uid: 'p1', label: 'Crochet', trappingId: 'crochet', subType: 'protheses', kind: 'misc', qualities: [], enc: 0, equipped: true },
+        { ...itemFromTrappingById('crochet')!, uid: 'p1', equipped: true },
       ],
       loadouts: [{ id: 'lo1', main: null, off: null }],
       activeLoadoutId: 'lo1',

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, apparencesAdmissibles, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, lacherLArme, tientUneArme } from './items';
+import { apparencesCandidates, apparencesAdmissibles, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme } from './items';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
 import { rangeBandName } from './combat';
@@ -879,24 +879,17 @@ describe('unarmedWeapon — arme LUE dans la donnée (`mains-nues`)', () => {
   });
 });
 
-/**
- * `isUnarmed` lit la MARQUE du catalogue (`TrappingData.unarmed`) sur l'IDENTITÉ de l'arme, et cette
- * identité a DEUX porteurs : le marqueur built-in (`builtinId`, posé par `unarmedWeapon` et persisté
- * dans les sauvegardes) et l'id de catalogue d'une arme dérivée d'une Possession (`trappingId`). Les
- * deux doivent répondre — une arme construite depuis l'entrée `mains-nues` du catalogue (sans
- * `builtinId`) était jusque-là comptée comme arme TENUE (choisissable en attaque/parade, hors
- * empoignade) : elle ne l'est plus.
- */
-describe('isUnarmed — la marque du catalogue est lue par les DEUX porteurs d’identité', () => {
+/** LDB 62 l.28 ; #2967 */
+describe('isUnarmed — la marque intrinsèque naît avec l’arme', () => {
   const w = (over: Partial<Weapon>): Weapon =>
     ({ uid: 'w1', label: 'Mains nues', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [], ...over }) as Weapon;
 
-  it('`builtinId` (arme canonique, sauvegardes) → mains nues', () => {
-    expect(isUnarmed(w({ builtinId: 'mains-nues' }))).toBe(true);
+  it('l’arme canonique naît mains nues', () => {
+    expect(isUnarmed(unarmedWeapon())).toBe(true);
   });
 
-  it('`trappingId` SEUL (arme dérivée de l’entrée de catalogue, sans builtinId) → mains nues aussi', () => {
-    expect(isUnarmed(w({ trappingId: 'mains-nues' }))).toBe(true);
+  it('l’arme dérivée d’une instance garde sa marque', () => {
+    expect(isUnarmed(weaponFromItem(itemFromTrappingById('mains-nues')!))).toBe(true);
   });
 
   it('une arme réelle du catalogue n’est jamais « mains nues », ni une arme sans identité', () => {
