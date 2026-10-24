@@ -35,7 +35,8 @@ import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageValue } from '../../PlageField';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
-import { MonsterPartsFields, ReglagesApparence } from '../MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from '../MonsterPartsFields';
+import { armesDEntite } from '../../../noyau/equipementDessine';
 import { FlowEditor, NoeudTestField, type NoeudTest } from '../FlowEditor';
 import { ctxDeCatalogue } from '../EffectList';
 import { GameOpEditor, FormulaField } from '../GameOpEditor';
@@ -60,7 +61,7 @@ import type { Weapon } from '../../../engine/types';
 import type { PsychTrait } from '../../../engine/psychology';
 import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
 import type { OptionalRule } from '../../../engine/policy';
-import type { TraitInstance, OptionalEntry } from '../../../engine/statEntry';
+import type { TraitInstance, OptionalEntry, TraitList } from '../../../engine/statEntry';
 import { isSwarm } from '../../../engine/traits/dispatch';
 import type { DomainData } from '../../../data';
 import type { CharKey, Difficulty } from '../../../engine/types';
@@ -701,7 +702,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
       )}
       <SuiviDesSaisies signaler={saisies.signaler}>
       <div className="codex-edit-form">
-        {hasAppearance && <AppearanceField label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
+        {hasAppearance && <AppearanceField traits={categoryKey === 'creatures' ? entry.traits as TraitList : undefined} label={libelle} porteur={porteurDApercu(categoryKey)} nuee={categoryKey === 'creatures' && isSwarm(entry.traits as TraitInstance[] | undefined)} value={entry.appearance as EntityAppearance | undefined} onChange={(v) => edit('appearance', v)} />}
         {isSpell && <SpellEffectsField value={entry.effects as Flow | undefined} onChange={(v) => edit('effects', v)} />}
         {CRITICAL_CATEGORIES.includes(categoryKey) && (
           <NoeudTestField
@@ -912,7 +913,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 }
 
 /** Apparence par défaut d'une créature (bloc `appearance`, #1897). */
-function AppearanceField({ label, porteur, nuee, value, onChange }: { label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
+function AppearanceField({ label, porteur, nuee, value, onChange, traits }: { traits?: TraitList; label: string; porteur?: string; nuee: boolean; value: EntityAppearance | undefined; onChange: (v: EntityAppearance) => void }) {
   const a = value ?? {};
   // Le harnachement est un canal du pipeline QUADRUPÈDE (quad ∪ ailé) : hors de ces gabarits, la
   // clé serait de la donnée absurde, ignorée au rendu — le sélecteur n'est donc pas offert.
@@ -928,6 +929,7 @@ function AppearanceField({ label, porteur, nuee, value, onChange }: { label: str
           {' '}Armure du profil visible sur la figurine
         </label>
       </div>
+      <ApparencesObjetsField appearance={a} onChange={onChange} weapons={armesDEntite(undefined, { traits })} />
       <MonsterPartsFields
         appearance={a}
         onChange={onChange}

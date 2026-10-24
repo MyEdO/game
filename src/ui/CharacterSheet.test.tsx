@@ -7,7 +7,7 @@ import { Combatant } from '../engine/types';
 import { AdvancementPanel, CharacterSheet } from './CharacterSheet';
 import { BackgroundPanel } from './BackgroundPanel';
 import { casterTalents } from '../engine/grimoire';
-import { apparences, trappings, findTrappingById } from '../data';
+import { apparences, findTrappingById } from '../data';
 import { setDataset } from '../data/overrides';
 import { apparencesAdmissibles, apparencesCandidates, itemFromTrappingById } from '../engine/items';
 import { useGame } from '../state/store';
@@ -43,11 +43,8 @@ const hero = (): Combatant =>
 describe('CharacterSheet — Apparence sur l’objet', () => {
   beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
   let catalogue: typeof apparences;
-  let possessions: typeof trappings;
   beforeEach(() => {
     catalogue = apparences.slice();
-    possessions = trappings.slice();
-    setDataset('trappings', possessions.map((t) => t.id === 'cape' ? { ...t, shape: 'cape' } : t));
     setDataset('apparences', [...catalogue.filter((a) => !a.forme),
       { type: 'apparences', id: 'choix-epee', label: 'Épée ouvragée', forme: 'epee' },
       { type: 'apparences', id: 'choix-hache', label: 'Hache ouvragée', forme: 'hache' },
@@ -60,7 +57,6 @@ describe('CharacterSheet — Apparence sur l’objet', () => {
   afterEach(() => {
     demonterRacines();
     setDataset('apparences', catalogue);
-    setDataset('trappings', possessions);
     useGame.setState({ party: [], battle: null });
   });
   const ouvrir = (...ids: string[]) => {

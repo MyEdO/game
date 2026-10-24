@@ -7,8 +7,9 @@
  */
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { act } from 'react';
+import { choisirMediaSelect } from '../MediaSelect.testkit';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
-import { MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
+import { ApparencesObjetsField, MonsterPartsFields, ReglagesApparence } from './MonsterPartsFields';
 import { weaponFromId } from '../../engine/creatureEquip';
 import { resolveRender } from '../../gameIso/rig/bodyPlan';
 import { raceById } from '../../gameIso/rig/races';
@@ -23,6 +24,27 @@ afterEach(demonterRacines);
 
 const selectDe = (container: HTMLElement, libelle: string): HTMLSelectElement =>
   [...container.querySelectorAll('label')].find((l) => l.textContent?.startsWith(libelle))!.querySelector('select')!;
+
+describe('ApparencesObjetsField — contrat partagé', () => {
+  it('déduplique les armes, propose les variantes admises et retire seulement la clé revenue au défaut', () => {
+    let next: EntityAppearance = { sex: 'M', apparencesObjets: { bouclier: 'bouclier_rectangle' } };
+    const root = monterRacine(null);
+    const render = () => root.rendre(<ApparencesObjetsField appearance={next} onChange={(a) => { next = a; render(); }}
+      weapons={[{ trappingId: 'arme-simple' }, { trappingId: 'arme-simple' }, { trappingId: 'bouclier' }, {}]} />);
+    act(render);
+    expect(root.container.querySelectorAll('[role="combobox"]')).toHaveLength(2);
+    const labels = [...root.container.querySelectorAll('[title="Apparence — Arme simple"] + [role="listbox"] .ms-label')].map((e) => e.textContent);
+    expect(labels).toContain('Hache naine');
+    expect(labels).not.toContain('Bouclier rectangulaire');
+    const choisir = (arme: string, label: string) => choisirMediaSelect(root.container, `Apparence — ${arme}`, label);
+    choisir('Arme simple', 'Hache naine');
+    expect(next.apparencesObjets).toEqual({ bouclier: 'bouclier_rectangle', 'arme-simple': 'hache_naine' });
+    choisir('Arme simple', 'Épée');
+    expect(next.apparencesObjets).toEqual({ bouclier: 'bouclier_rectangle' });
+    choisir('Bouclier', 'Bouclier');
+    expect(next).toEqual({ sex: 'M' });
+  });
+});
 
 describe('MonsterPartsFields — Arme équipée', () => {
   it('∀ option, la valeur est un trappingId que weaponFromId résout en arme', () => {

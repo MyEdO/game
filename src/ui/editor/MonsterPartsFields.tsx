@@ -14,12 +14,45 @@ import { elementsOf } from '../../gameIso/rig/parts/elements';
 import { defById } from '../../gameIso/rig/creatures';
 import { libelleDeFormeDeNuee } from '../../gameIso/rig/swarm/forms';
 import { raceById } from '../../gameIso/rig/races';
-import { armesChoisissables, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
+import { armesChoisissables, findTrappingById, findSpeciesById, speciesSingular, DEFAULT_RACE_ID } from '../../data';
 import { domaineDEspeces } from '../../data/schemas/grammaire/art';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { sexeSchema } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { Icon } from '../Icon';
+import type { Weapon } from '../../engine/types';
+import { apparencesAdmissibles, apparencesCandidates } from '../../engine/items';
+import { MediaSelect } from '../MediaSelect';
+import { useVersionDesDatasets } from '../useVersionDesDatasets';
+
+/** #2948 */
+export function ApparencesObjetsField({ appearance, onChange, weapons }: {
+  appearance: EntityAppearance;
+  onChange: (next: EntityAppearance) => void;
+  weapons: readonly Pick<Weapon, 'trappingId'>[];
+}) {
+  useVersionDesDatasets();
+  const ids = [...new Set(weapons.flatMap((w) => w.trappingId ? [w.trappingId] : []))];
+  const objets = ids.map((id) => ({ id, choices: apparencesAdmissibles({ trappingId: id }) })).filter((o) => o.choices.length > 1);
+  if (!objets.length) return null;
+  return <div className="ed-field">
+    <span>Apparences d’objets</span>
+    {objets.map(({ id, choices }) => <div className="reglage-apparence" key={id}>
+      <span>{findTrappingById(id)?.label ?? id}</span>
+      <MediaSelect
+        title={`Apparence — ${findTrappingById(id)?.label ?? id}`}
+        value={apparencesCandidates({ trappingId: id, apparence: appearance.apparencesObjets?.[id] })[0]}
+        options={choices.map((a) => ({ key: a.id, label: a.label }))}
+        onSelect={(choix) => {
+          const record = { ...appearance.apparencesObjets };
+          if (choix === findTrappingById(id)?.shape) delete record[id];
+          else record[id] = choix;
+          onChange(apparenceSuivante(appearance, { apparencesObjets: Object.keys(record).length ? record : undefined }));
+        }}
+      />
+    </div>)}
+  </div>;
+}
 
 /** Réglages de `ReglagesApparence` ; `variante` = « un autre visage » (graine + 1, reproductible). */
 export type ReglageApparence = 'species' | 'sex' | 'build' | 'hairstyle' | 'variante';

@@ -3120,6 +3120,7 @@
     "id": "cape",
     "type": "trappings",
     "label": "Cape",
+    "shape": "cape",
     "capabilities": {
       "weatherProtection": true
     },
