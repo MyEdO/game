@@ -25,7 +25,7 @@ export type MatiereDArmure = 'cuir-souple' | 'cuir-bouilli' | 'mailles' | 'plate
 /** Ce que le dessin lit d'une arme : ses clés et ses candidats résolus, dont la dernière entrée est la racine. */
 export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { candidats: readonly string[] };
 /** `hands` : mains qu'occupe l'arme pour SON porteur (`weaponHands`, monté ou non). */
-export type ArmeDeDessin = FormeDArme & { bouclier: boolean; hands: 1 | 2 };
+export type ArmeDeDessin = FormeDArme & { bouclier: boolean; hands: 1 | 2; hand: 'main' | 'off' };
 export type PieceDeDessin = Pick<ItemInstance, (typeof CLES_PIECE)[number]> & { matiere: MatiereDArmure };
 export type BouclierDeDessin = { candidats: readonly string[] };
 
@@ -59,7 +59,8 @@ function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[
 
 export function armeDeDessin(w: Weapon, maniement?: ContexteDeManiement, apparence?: string): ArmeDeDessin {
   const source: SourceDeForme = apparence === undefined ? w : { ...w, apparence };
-  return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source), bouclier: isShieldItem(w) };
+  const bouclier = isShieldItem(w);
+  return { ...projeter(w, CLES_ARME), hand: w.hand ?? (bouclier ? 'off' : 'main'), hands: weaponHands(w, maniement), candidats: apparencesCandidates(source), bouclier };
 }
 /** Pièce d'armure dessinée : sa matière est son `subType`, qu'une pièce d'armure porte toujours (schéma de
  *  `trappings.json`, `synthArmour`) ; une pièce sans type d'armure est un état invalide, refusé. */

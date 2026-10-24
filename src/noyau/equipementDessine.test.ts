@@ -78,6 +78,14 @@ describe('apparences d’objets des porteurs sans instance (#2948)', () => {
 });
 
 describe('equipementDessine — candidats publiés (#2948)', () => {
+  it('publie la main explicite et la prise graphique des armes sans loadout', () => {
+    expect(armeDeDessin(weaponFromItem(porte('arme-simple'), 'off')).hand).toBe('off');
+    expect(armeDeDessin(weaponFromItem(porte('arme-simple'))).hand).toBe('main');
+    expect(armeDeDessin(weaponFromItem(porte('bouclier'))).hand).toBe('off');
+    const deuxMains = armeDeDessin(weaponFromItem(porte('zweihander')));
+    expect([deuxMains.hand, deuxMains.hands]).toEqual(['main', 2]);
+  });
+
   it('publie les candidats des armes tenues, rangées et du bouclier', () => {
     const tenue = { ...porte('arme-simple'), uid: 'tenue', apparence: 'epee_ebrechee' };
     const rangee = { ...porte('arme-simple'), uid: 'rangee', apparence: 'hache_naine' };

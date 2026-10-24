@@ -1,4 +1,4 @@
-# Contrat du pont `wfrpPont` (v3, #2928, #2948)
+# Contrat du pont `wfrpPont` (v4, #2928, #2948)
 
 Godot est un hôte du noyau, au même titre que l'hôte texte (`src/hoteTexte/`) : il envoie des gestes et lit une vue faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes (`src/hote/`). Plan : `docs/plans/2026-10-21-vague6-hote-godot.md`. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
 
@@ -74,13 +74,21 @@ type Vue = {
 
 ## Équipement et couverture des modèles
 
-Chaque combattant (`combat.actif` et `combat.voisins.liste`) porte `equipement`, le résultat de `equipementDessine` : `weapons`, `rangees`, `armour`, `shield?` et `cape?`. Les armes tenues et rangées portent les `candidats` ordonnés du noyau ; le bouclier est déjà une arme tenue et `shield` en reprend les candidats. `cape` est un booléen, les pièces d’armure portent une matière ; ces deux champs ne déclarent pas de candidats de modèle.
+Chaque combattant (`combat.actif` et `combat.voisins.liste`) porte `equipement`, le résultat de `equipementDessine` : `weapons`, `rangees`, `armour`, `shield?` et `cape?`. Les armes tenues et rangées portent les `candidats` ordonnés et une `hand` explicite du noyau (`main` ou `off`). Le noyau conserve la main du loadout ; sans main portée, sa projection graphique donne `main` à une arme et `off` à un bouclier. Une arme à deux mains reste un seul objet, attaché à sa main directrice ; le bouclier est déjà une arme tenue et `shield` en reprend les candidats. `cape` est un booléen, les pièces d’armure portent une matière ; ces deux champs ne déclarent pas de candidats de modèle.
 
-`equipements[id]` contient `tenues` et `rangees` : chacune est une liste `{ arme, modele }`, sans les armes naturelles dessinées par le corps. `arme` est la projection du noyau. `modele` est `null` si aucun candidat n’a de modèle ; sinon `{ apparence, composants: { modele, composant, pieces }[] }`, avec le premier id disponible dans l’ordre publié. Plusieurs composants peuvent dessiner un même id, notamment pour les deux mains.
+`equipements[id]` contient `tenues` et `rangees` : chacune est une liste `{ arme, modele }`, sans les armes naturelles dessinées par le corps. `arme` est la projection du noyau. `modele` est `null` si aucun candidat n’a de modèle ; sinon `{ apparence, composants: { modele, composant, pieces }[] }`, avec le premier id compatible dans l’ordre publié. Pour une arme tenue, le pont choisit le premier composant dont `montage.composants[id].prise` correspond à `arme.hand` ; pour une arme rangée, le premier qui déclare un `rangement`. Toutes les pièces de ce composant forment l’objet publié. Si un candidat n’a aucun composant compatible, le candidat suivant est essayé ; si aucun ne convient, `modele` vaut `null` et l’absence porte la liste entière des candidats. Godot ne départage aucune alternative de modèle ni de main.
 
 L’index est dérivé au build Vite des `components.<id>.apparence` et des pièces de chaque manifeste sous `projet/modeles/*.manifeste.json`. Aucun index de modèles n’est commité. Les composants corporels (`apparence: null`) et les composants sans pièce ne sont pas des modèles d’objet disponibles.
 
 `couverture` est le rapport de la vue courante, recalculé à chaque appel : `demandes` compte les objets tenus ou rangés à dessiner ; chaque absence porte `{ porteur, emplacement: 'tenues' | 'rangees', position, candidats }`. Le bouclier est compté une fois, parmi les armes tenues. Une absence totale reste publiée, avec `modele: null` et tous les candidats demandés.
+
+## Montage des pièces dans Godot
+
+Chaque manifeste déclare `montage.attaches` (`main`, `off`, `dos`, `ceinture`) : pour chaque attache, un `os` du skin, une `position` en mètres et une `rotation` en radians, deux vecteurs à trois composantes finies. `montage.composants` associe les composants d’armes à une `prise` (`main` ou `off`) et un `rangement` (`dos` ou `ceinture`). Ce montage est requis au parse. La validation contre le GLB exige des pièces rigides sans skin, directement sous l’os de leur prise déclarée.
+
+Le plateau transmet `equipements[id]` au combattant depuis la vue reçue. Le modèle du porteur vient du manifeste de son camp. Les pièces d’armes de ce modèle, désignées par `montage.composants`, sont masquées ; leurs remplaçantes sont les seules pièces nommées par `modele.composants[].pieces`, chargées depuis les modèles donneurs publiés. Pour une arme tenue, la prise publiée doit être compatible avec le portage de son composant. Pour une arme rangée, la prise ne contraint pas le montage ; son rangement déclaré désigne l’attache. Un `modele: null` ne produit aucun nœud ; son absence reste dans `couverture`. Un composant incompatible avec la prise publiée est refusé avec `prise-incompatible`, sans sélection ni repli supplémentaire dans Godot.
+
+La recette native `projet/recettes/equipement.gd` reçoit une vue JSON figée par `figer-recette-equipement.mjs`. Elle contrôle les nœuds montés et leurs os, l’absence de skin des pièces donneuses, le masquage des armes du porteur et les absences de modèles, sans serveur ni navigateur.
 
 ## Écran publié
 

@@ -6,10 +6,10 @@ import { itemFromGive, weaponFromItem } from '../../../src/engine/items';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import type { ManifesteDePersonnage } from '../asset/manifeste';
+import type { ManifesteMontable } from '../asset/montage';
 import { INDEX_DES_APPARENCES, indexDesApparences, modelesDesCombattants, premierModele } from './equipement';
 import { suiteDe, table } from './pont.testkit';
-const manifesteDeLame: ManifesteDePersonnage = {
+const manifesteDeLame: ManifesteMontable = {
   schema_version: 2, model: 'Lame.glb', default_head: null, head_options: [],
   pieces: {
     droite: { node: 'Lame_D', component: 'droite', headVariant: null, hiddenBy: [] },
@@ -22,10 +22,19 @@ const manifesteDeLame: ManifesteDePersonnage = {
     garde: { label_fr: 'Bouclier', apparence: 'bouclier_pointes' },
   },
   incompatibilities: [], defaults: [], presets: {}, clips: {},
+  montage: {
+    attaches: {
+      main: { os: 'poignet_d', position: [0, 0, 0], rotation: [0, 0, 0] },
+      off: { os: 'poignet_g', position: [0, 0, 0], rotation: [0, 0, 0] },
+      dos: { os: 'torse', position: [0, 0, 0], rotation: [0, 0, 0] },
+      ceinture: { os: 'bassin', position: [0, 0, 0], rotation: [0, 0, 0] },
+    },
+    composants: { droite: { prise: 'main', rangement: 'ceinture' }, gauche: { prise: 'off', rangement: 'ceinture' }, garde: { prise: 'off', rangement: 'dos' } },
+  },
 };
 const indexDeLame = indexDesApparences([manifesteDeLame]);
 
-function heros(apparence: string) {
+function heros(apparence: string, main: 'main' | 'off' = 'main') {
   const ouverte = ouvrirLaPartie(nouvelEntete('dome', { graine: 1 }));
   const origine = ouverte.partie.etat();
   const etat = { ...origine, battle: structuredClone(origine.battle) };
@@ -35,8 +44,8 @@ function heros(apparence: string) {
   const rangee = { ...itemFromGive({ trappingId: 'arme-simple' }), uid: 'rangee-l3', apparence: 'epee_ebrechee' };
   const bouclier = { ...itemFromGive({ trappingId: 'bouclier' }), uid: 'bouclier-l3', apparence: 'bouclier_pointes' };
   c.items = [tenue, rangee, bouclier];
-  c.weapons = [weaponFromItem(tenue, 'main'), weaponFromItem(bouclier, 'off')];
-  c.loadouts = [{ id: 'a', main: tenue.uid, off: bouclier.uid }, { id: 'b', main: rangee.uid }];
+  c.weapons = [weaponFromItem(tenue, main), ...(main === 'main' ? [weaponFromItem(bouclier, 'off')] : [])];
+  c.loadouts = [main === 'main' ? { id: 'a', main: tenue.uid, off: bouclier.uid } : { id: 'a', off: tenue.uid }, { id: 'b', main: rangee.uid }];
   c.activeLoadoutId = 'a';
   return { c, projete: combattantsTries(etat).find(p => p.id === c.id)! };
 }
@@ -75,13 +84,46 @@ describe('équipement publié au pont Godot (#2948 L3)', () => {
     expect(resultat.couverture).toEqual({ demandes: 3, absences: [{ porteur: projete.id, emplacement: 'tenues', position: 0, candidats: ['hache_naine', 'hache'] }] });
   });
 
-  it('conserve tous les composants qui dessinent le même id, sans confondre main et apparence', () => {
-    expect(premierModele(['epee'], indexDeLame)?.composants.map(c => c.composant)).toEqual(['droite', 'gauche']);
+  it.each([['main', 'droite'], ['off', 'gauche']] as const)('épée tenue : %s monte uniquement %s', (main, attendu) => {
+    const { projete } = heros('epee_ebrechee', main);
+    expect(modelesDesCombattants([projete], indexDeLame).equipements[projete.id].tenues[0].modele?.composants.map(c => c.composant)).toEqual([attendu]);
+  });
+
+  it('une épée rangée prend le premier composant déclarant un rangement, indépendamment de sa prise', () => {
+    const m = { ...manifesteDeLame, components: { gauche: manifesteDeLame.components.gauche, droite: manifesteDeLame.components.droite, garde: manifesteDeLame.components.garde } };
+    const { projete } = heros('epee_ebrechee');
+    expect(modelesDesCombattants([projete], indexDesApparences([m])).equipements[projete.id].rangees[0].modele?.composants.map(c => c.composant)).toEqual(['gauche']);
+  });
+
+  it('une variante incompatible laisse essayer sa racine compatible', () => {
+    const m = { ...manifesteDeLame, components: { ...manifesteDeLame.components, gauche: { ...manifesteDeLame.components.gauche, apparence: 'epee_ebrechee' } } };
+    const choix = premierModele(['epee_ebrechee', 'epee'], indexDesApparences([m]), { emplacement: 'tenues', main: 'main' });
+    expect(choix?.apparence).toBe('epee');
+    expect(choix?.composants.map(c => c.composant)).toEqual(['droite']);
+  });
+
+  it('aucun composant compatible produit une absence portant tous les candidats', () => {
+    const m: ManifesteMontable = {
+      ...manifesteDeLame,
+      components: { gauche: manifesteDeLame.components.gauche, garde: manifesteDeLame.components.garde },
+      pieces: { gauche: manifesteDeLame.pieces.gauche, garde: manifesteDeLame.pieces.garde },
+      montage: { ...manifesteDeLame.montage, composants: { gauche: manifesteDeLame.montage.composants.gauche, garde: manifesteDeLame.montage.composants.garde } },
+    };
+    const { projete } = heros('epee_ebrechee');
+    const resultat = modelesDesCombattants([projete], indexDesApparences([m]));
+    expect(resultat.equipements[projete.id].tenues[0].modele).toBeNull();
+    expect(resultat.couverture.absences).toEqual([{ porteur: projete.id, emplacement: 'tenues', position: 0, candidats: ['epee_ebrechee', 'epee'] }]);
+  });
+
+  it('une arme à deux mains publie un seul montage dans sa main directrice', () => {
+    const arme = equipementDessine({ weapons: [weaponFromItem(itemFromGive({ trappingId: 'zweihander' }))], items: [], armour: {} } as unknown as Parameters<typeof equipementDessine>[0]).weapons[0];
+    expect([arme.hand, arme.hands]).toEqual(['main', 2]);
+    expect(premierModele(arme.candidats, INDEX_DES_APPARENCES, { emplacement: 'tenues', main: arme.hand })?.composants).toHaveLength(1);
   });
 
   it('un composant sans pièce ne constitue pas un modèle disponible', () => {
     const sansPieces = { ...manifesteDeLame, pieces: {} };
-    expect(premierModele(['epee'], indexDesApparences([sansPieces]))).toBeNull();
+    expect(premierModele(['epee'], indexDesApparences([sansPieces]), { emplacement: 'tenues', main: 'main' })).toBeNull();
   });
 
   it('découvre chaque composant d’objet de chaque manifeste commité', () => {
@@ -89,11 +131,11 @@ describe('équipement publié au pont Godot (#2948 L3)', () => {
     const fichiers = listerDossier(fileURLToPath(dossier)).filter(f => f.endsWith('.manifeste.json'));
     expect(fichiers.length).toBeGreaterThan(0);
     for (const fichier of fichiers) {
-      const m = JSON.parse(readFileSync(new URL(fichier, dossier), 'utf8')) as ManifesteDePersonnage;
+      const m = JSON.parse(readFileSync(new URL(fichier, dossier), 'utf8')) as ManifesteMontable;
       for (const [composant, c] of Object.entries(m.components)) {
         const pieces = Object.values(m.pieces).filter(p => p.component === composant).map(p => p.node);
         if (c.apparence === null || !pieces.length) continue;
-        expect(INDEX_DES_APPARENCES.get(c.apparence), fichier).toEqual(expect.arrayContaining([{ modele: m.model, composant, pieces }]));
+        expect(INDEX_DES_APPARENCES.get(c.apparence), fichier).toEqual(expect.arrayContaining([{ modele: m.model, composant, pieces, portage: m.montage.composants[composant] ?? null }]));
       }
     }
   });

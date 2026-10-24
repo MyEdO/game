@@ -5,6 +5,7 @@
  * montre à la fois.
  */
 import type { ContenuGlb } from './glb.ts';
+import { lireMontage, ecartsDeMontage, type ManifesteMontable } from './montage';
 import { findApparenceById } from '../../../src/noyau/index.ts';
 
 /** Les rôles d'animation : `ClipName` (`src/gameIso/rig/anim/clips.ts:15`), plus `death`. */
@@ -50,6 +51,9 @@ export type CodeDErreur =
   | 'role-inconnu'
   | 'noeud-absent'
   | 'clip-absent'
+  | 'os-absent'
+  | 'piece-non-rigide'
+  | 'attache-incompatible'
   | 'chemin-absolu';
 
 export interface ErreurDeManifeste {
@@ -58,7 +62,7 @@ export interface ErreurDeManifeste {
   readonly detail: string;
 }
 
-export type Verdict = { readonly ok: true; readonly manifeste: ManifesteDePersonnage } | { readonly ok: false; readonly erreurs: readonly ErreurDeManifeste[] };
+export type Verdict = { readonly ok: true; readonly manifeste: ManifesteMontable } | { readonly ok: false; readonly erreurs: readonly ErreurDeManifeste[] };
 
 /** Un lecteur Windows, un partage UNC ou `~` après un séparateur ; une racine POSIX en tête de chaîne, ou après un
  *  séparateur suivie d'au moins un segment et d'une barre : « Épée / bouclier » n'en est pas une. */
@@ -175,8 +179,11 @@ function ecarts(m: ManifesteDePersonnage, glb: ContenuGlb): ErreurDeManifeste[] 
 export function validerManifeste(brut: unknown, glb: ContenuGlb): Verdict {
   const { manifeste, erreurs } = reduire(brut);
   if (!manifeste) return { ok: false, erreurs };
-  const refus = ecarts(manifeste, glb);
-  return refus.length ? { ok: false, erreurs: refus } : { ok: true, manifeste };
+  const montage = lireMontage(estObjet(brut) ? brut.montage : undefined);
+  if (!montage.montage) return { ok: false, erreurs: montage.erreurs };
+  const montable: ManifesteMontable = { ...manifeste, montage: montage.montage };
+  const refus = [...ecarts(montable, glb), ...ecartsDeMontage(montable, glb)];
+  return refus.length ? { ok: false, erreurs: refus } : { ok: true, manifeste: montable };
 }
 
 /** Une erreur de manifeste en une ligne. */

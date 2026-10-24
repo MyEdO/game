@@ -11,7 +11,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ecrireTexteAtomique } from '../../../scripts/guards/lib/ecritureJsonAtomique.mjs';
 import { lireGlb, GlbIllisible, type ContenuGlb } from './glb.ts';
-import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste, type Brut, type ManifesteDePersonnage } from './manifeste.ts';
+import type { ManifesteMontable } from './montage';
+import { cheminsAbsolus, estObjet, ligneDErreur, validerManifeste, type Brut } from './manifeste.ts';
 import {
   DOSSIER_DES_MODELES, fichiersDuModele, nomDAsset, sha256,
   type AssetAPublier, type LicenceDeComposant, type LicenceDePack, type Provenance,
@@ -50,7 +51,7 @@ export function chargerLicences(chemin: string = TABLE_DES_LICENCES): ReadonlyMa
 const IDENTIFIANT_SPDX = chargerLicences();
 
 export type ResultatDImport =
-  | { readonly ok: true; readonly ecrits: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteDePersonnage; readonly provenance: Provenance }
+  | { readonly ok: true; readonly ecrits: readonly string[]; readonly publies: readonly string[]; readonly manifeste: ManifesteMontable; readonly provenance: Provenance }
   | { readonly ok: false; readonly refus: readonly string[] };
 
 const chaines = (v: unknown): string[] => (Array.isArray(v) ? v.filter((e): e is string => typeof e === 'string') : []);

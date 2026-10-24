@@ -1,5 +1,5 @@
 import type { CombattantProjete } from '../../../src/hote/projection';
-import type { ManifesteDePersonnage } from '../asset/manifeste';
+import type { ManifesteMontable, Montage } from '../asset/montage';
 
 export interface ComposantDeModele {
   modele: string;
@@ -7,24 +7,25 @@ export interface ComposantDeModele {
   pieces: string[];
 }
 
-export type IndexDesApparences = ReadonlyMap<string, readonly ComposantDeModele[]>;
+type ComposantIndexe = ComposantDeModele & { portage: Montage['composants'][string] | null };
+export type IndexDesApparences = ReadonlyMap<string, readonly ComposantIndexe[]>;
 
-export function indexDesApparences(manifestes: readonly ManifesteDePersonnage[]): IndexDesApparences {
-  const index = new Map<string, ComposantDeModele[]>();
+export function indexDesApparences(manifestes: readonly ManifesteMontable[]): IndexDesApparences {
+  const index = new Map<string, ComposantIndexe[]>();
   for (const m of manifestes) {
     for (const [composant, { apparence }] of Object.entries(m.components)) {
       if (apparence === null) continue;
       const pieces = Object.values(m.pieces).filter(p => p.component === composant).map(p => p.node);
       if (!pieces.length) continue;
       const entrees = index.get(apparence) ?? [];
-      entrees.push({ modele: m.model, composant, pieces });
+      entrees.push({ modele: m.model, composant, pieces, portage: m.montage.composants[composant] ?? null });
       index.set(apparence, entrees);
     }
   }
   return index;
 }
 
-const manifestes = import.meta.glob<ManifesteDePersonnage>('../projet/modeles/*.manifeste.json', { eager: true, import: 'default' });
+const manifestes = import.meta.glob<ManifesteMontable>('../projet/modeles/*.manifeste.json', { eager: true, import: 'default' });
 export const INDEX_DES_APPARENCES = indexDesApparences(Object.keys(manifestes).sort().map(chemin => manifestes[chemin]));
 
 export interface ChoixDeModele {
@@ -32,10 +33,15 @@ export interface ChoixDeModele {
   composants: readonly ComposantDeModele[];
 }
 
-export function premierModele(candidats: readonly string[], index: IndexDesApparences): ChoixDeModele | null {
+export type EmplacementDeModele = { emplacement: 'tenues'; main: 'main' | 'off' } | { emplacement: 'rangees' };
+
+export function premierModele(candidats: readonly string[], index: IndexDesApparences, usage: EmplacementDeModele): ChoixDeModele | null {
   for (const apparence of candidats) {
-    const composants = index.get(apparence);
-    if (composants?.length) return { apparence, composants };
+    const choisi = index.get(apparence)?.find(c => c.portage !== null && (usage.emplacement === 'rangees' ? !!c.portage.rangement : c.portage.prise === usage.main));
+    if (choisi) {
+      const { modele, composant, pieces } = choisi;
+      return { apparence, composants: [{ modele, composant, pieces }] };
+    }
   }
   return null;
 }
@@ -70,7 +76,8 @@ export function modelesDesCombattants(combattants: readonly CombattantProjete[],
     const dessiner = (armes: readonly ArmeProjetee[], emplacement: AbsenceDeModele['emplacement']): ObjetADessiner[] => armes.flatMap((arme, position) => {
       if (arme.natural) return [];
       couverture.demandes++;
-      const modele = premierModele(arme.candidats, index);
+      const usage: EmplacementDeModele = emplacement === 'tenues' ? { emplacement, main: arme.hand } : { emplacement };
+      const modele = premierModele(arme.candidats, index, usage);
       if (!modele) couverture.absences.push({ porteur: c.id, emplacement, position, candidats: [...arme.candidats] });
       return [{ arme, modele }];
     });

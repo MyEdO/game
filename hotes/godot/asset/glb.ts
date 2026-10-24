@@ -1,6 +1,6 @@
 /**
  * LA LECTURE D'UN GLB (#2948) : le conteneur glTF binaire (en-tête `glTF`, version 2, premier chunk `JSON`), dont le
- * contrat d'asset ne lit que les noms de nœuds et d'animations. Seule lecture du GLB du dépôt, partagée par le
+ * contrat d'asset lit les nœuds, animations, os et pièces rigides. Seule lecture du GLB du dépôt, partagée par le
  * validateur du manifeste (`manifeste.ts`) et l'import (`importer.ts`).
  */
 
@@ -8,6 +8,9 @@
 export interface ContenuGlb {
   readonly noeuds: ReadonlySet<string>;
   readonly animations: ReadonlySet<string>;
+  readonly os: ReadonlySet<string>;
+  readonly rigides: ReadonlySet<string>;
+  readonly parentDesRigides: ReadonlyMap<string, string>;
 }
 
 /** Un conteneur qui n'est pas un glTF binaire 2 lisible. */
@@ -24,7 +27,8 @@ const EN_TETE = 12;
 const EN_TETE_DE_CHUNK = 8;
 
 interface JsonGltf {
-  nodes?: { name?: unknown }[];
+  nodes?: { name?: unknown; mesh?: number; skin?: number; children?: number[] }[];
+  skins?: { joints: number[] }[];
   animations?: { name?: unknown }[];
 }
 
@@ -49,5 +53,19 @@ export function lireGlb(octets: Uint8Array): ContenuGlb {
   } catch (e) {
     throw new GlbIllisible(`chunk JSON invalide (${(e as Error).message})`);
   }
-  return { noeuds: nomsDe(json.nodes), animations: nomsDe(json.animations) };
+  const noeuds = json.nodes ?? [];
+  const articulations = new Set((json.skins ?? []).flatMap(s => s.joints));
+  const parents = new Map(noeuds.flatMap((n, i) => (n.children ?? []).map(enfant => [enfant, i] as const)));
+  const parentDesRigides = new Map<string, string>();
+  noeuds.forEach((n, i) => {
+    const parent = parents.get(i);
+    const nomParent = parent === undefined ? undefined : noeuds[parent]?.name;
+    if (n.mesh !== undefined && n.skin === undefined && typeof n.name === 'string' && parent !== undefined && articulations.has(parent) && typeof nomParent === 'string') parentDesRigides.set(n.name, nomParent);
+  });
+  return {
+    parentDesRigides,
+    noeuds: nomsDe(noeuds), animations: nomsDe(json.animations),
+    os: nomsDe((json.skins ?? []).flatMap(s => s.joints.map(i => noeuds[i]).filter(n => n !== undefined))),
+    rigides: nomsDe(noeuds.filter(n => n.mesh !== undefined && n.skin === undefined)),
+  };
 }

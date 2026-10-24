@@ -24,7 +24,7 @@ import { LOCALISATIONS_DE_COUP } from '../../../engine/types';
 const HUMAIN = asRigSpeciesId('humain');
 const LOCS = LOCALISATIONS_DE_COUP;
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
-const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hands: 1, bouclier: false });
+const arme = (forme: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hand: 'main', hands: 1, bouclier: false });
 const plaque = (teinte?: string) => ({ uid: 'p', kind: 'armor', label: 'Plastron de plaque', subType: 'plate', locs: LOCS, equipped: true, qualities: [], enc: 0, ...(teinte && { teinte }) }) as unknown as ItemInstance;
 const vues = (a: PartArt) => viewEntries(a).map(([, s]) => s);
 /** Vrai si le texte porte un jeton `@clé`. */
