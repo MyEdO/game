@@ -5,12 +5,13 @@
  * montre à la fois.
  */
 import type { ContenuGlb } from './glb.ts';
+import { findApparenceById } from '../../../src/noyau/index.ts';
 
 /** Les rôles d'animation : `ClipName` (`src/gameIso/rig/anim/clips.ts:15`), plus `death`. */
 export const ROLES_D_ANIMATION = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle', 'death'] as const);
 export type RoleDAnimation = (typeof ROLES_D_ANIMATION)[number];
 
-export const VERSION_DU_SCHEMA = 1;
+export const VERSION_DU_SCHEMA = 2;
 
 export interface PieceDuManifeste {
   readonly node: string;
@@ -26,7 +27,8 @@ export interface ManifesteDePersonnage {
   readonly default_head: string | null;
   readonly head_options: readonly { readonly id: string }[];
   readonly pieces: Readonly<Record<string, PieceDuManifeste>>;
-  readonly components: Readonly<Record<string, { readonly label_fr: string }>>;
+  /** `apparence` : id du catalogue d’objets, ou `null` pour un composant corporel sans apparence d’objet. */
+  readonly components: Readonly<Record<string, { readonly label_fr: string; readonly apparence: string | null }>>;
   readonly incompatibilities: readonly (readonly string[])[];
   readonly defaults: readonly string[];
   readonly presets: Readonly<Record<string, { readonly components: readonly string[] }>>;
@@ -39,6 +41,7 @@ export type CodeDErreur =
   | 'version-inconnue'
   | 'tete-inconnue'
   | 'composant-inconnu'
+  | 'apparence-inconnue'
   | 'variante-inconnue'
   | 'masque-inconnu'
   | 'incompatibilite-inconnue'
@@ -116,8 +119,8 @@ function reduire(brut: unknown): { manifeste?: ManifesteDePersonnage; erreurs: E
     return [[cle, { node: p.node, component: p.component, headVariant: p.headVariant, hiddenBy: liste(p.hiddenBy, `${ou}.hiddenBy`) }]];
   }));
   const components = Object.fromEntries(Object.entries(objet('components')).flatMap(([cle, c]) => {
-    if (estObjet(c) && typeof c.label_fr === 'string') return [[cle, { label_fr: c.label_fr }]];
-    forme(`components.${cle}`, '`label_fr` chaîne attendu');
+    if (estObjet(c) && typeof c.label_fr === 'string' && (c.apparence === null || typeof c.apparence === 'string')) return [[cle, { label_fr: c.label_fr, apparence: c.apparence }]];
+    forme(`components.${cle}`, '`label_fr` chaîne et `apparence` chaîne ou null attendus');
     return [];
   }));
   const groupes = Array.isArray(brut.incompatibilities) ? brut.incompatibilities : [];
@@ -137,9 +140,15 @@ function reduire(brut: unknown): { manifeste?: ManifesteDePersonnage; erreurs: E
   };
 }
 
+/** Les apparences d’objet que le catalogue du noyau ne désigne pas. */
+function ecartsDApparence(m: ManifesteDePersonnage): ErreurDeManifeste[] {
+  return Object.entries(m.components).flatMap<ErreurDeManifeste>(([cle, c]) =>
+    c.apparence === null || findApparenceById(c.apparence) ? [] : [{ code: 'apparence-inconnue', ou: `components.${cle}.apparence`, detail: c.apparence }]);
+}
+
 /** Les écarts référentiels de `m`, et ses écarts au GLB `glb`. */
 function ecarts(m: ManifesteDePersonnage, glb: ContenuGlb): ErreurDeManifeste[] {
-  const erreurs: ErreurDeManifeste[] = [];
+  const erreurs = ecartsDApparence(m);
   const refus = (code: CodeDErreur, ou: string, detail: string) => erreurs.push({ code, ou, detail });
   const composants = new Set(Object.keys(m.components));
   const tetes = new Set(m.head_options.map((t) => t.id));

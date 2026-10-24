@@ -27,7 +27,9 @@ import { build } from 'vite'
 import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme } from './asset/release.ts'
+import { chargerAssets } from './asset/charger.mjs'
+
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, verifierSomme } = await chargerAssets()
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')

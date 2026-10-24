@@ -94,7 +94,8 @@ describe('non-boucliers porteurs de Protectrice, par un vrai inventaire', () => 
     const c = heros(ids);
     const arme = c.weapons.find((x) => x.trappingId === id)!;
     const eq = equipementDessine(c);
-    const mainFaible = eq.weapons.find((x) => x.hand === 'off')?.forme ?? null;
+    const candidats = eq.weapons.find((x) => x.hand === 'off')?.candidats;
+    const mainFaible = candidats?.[candidats.length - 1] ?? null;
     expect(c.weapons.length, 'PRÉMISSE : les objets donnés sont tenus').toBe(ids.length);
     expect(arme.qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
     expect(isShieldItem(arme)).toBe(false);

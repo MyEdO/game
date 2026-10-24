@@ -27,11 +27,11 @@ function glb(noeuds: readonly string[], animations: readonly string[]): Uint8Arr
   return octets;
 }
 
-const GLB = glb(['corps', 'tete_a', 'casque', 'bouclier'], ['Idle', 'Death_A']);
+const GLB = glb(['corps', 'tete_a', 'casque', 'bouclier', 'epee'], ['Idle', 'Death_A']);
 
 /** Un manifeste de production valide contre `GLB`, avec des clés que la réduction écarte. */
 const production = () => ({
-  schema_version: 1,
+  schema_version: 2,
   rig: 'codex_rig',
   model: 'animated.glb',
   default_head: 'tete_a',
@@ -41,11 +41,13 @@ const production = () => ({
     tete_a: { node: 'tete_a', component: 'tete_a', headVariant: 'tete_a', hiddenBy: ['casque'] },
     casque: { node: 'casque', component: 'casque', headVariant: null, hiddenBy: [] },
     bouclier: { node: 'bouclier', component: 'bouclier', headVariant: null, hiddenBy: [] },
+    epee: { node: 'epee', component: 'epee', headVariant: null, hiddenBy: [] },
   },
   components: {
-    corps: { label_fr: 'Corps', asset: { file: 'C:\\Users\\x\\corps.mhclo', license_basis: 'explicit asset header', explicit_header: ['# author A', '# license CC0'], packs: [{ pack: 'p', announced_license: 'CC0 (official asset-pack page)' }] } },
-    casque: { label_fr: 'Casque', occupations: ['head_cover'] },
-    bouclier: { label_fr: 'Bouclier' },
+    corps: { label_fr: 'Corps', apparence: null, asset: { file: 'C:\\Users\\x\\corps.mhclo', license_basis: 'explicit asset header', explicit_header: ['# author A', '# license CC0'], packs: [{ pack: 'p', announced_license: 'CC0 (official asset-pack page)' }] } },
+    casque: { label_fr: 'Casque', apparence: 'heaume', occupations: ['head_cover'] },
+    bouclier: { label_fr: 'Bouclier', apparence: 'rond' },
+    epee: { label_fr: 'Épée', apparence: 'epee' },
   },
   incompatibilities: [['casque', 'bouclier']],
   defaults: ['corps', 'casque'],
@@ -71,7 +73,7 @@ const codes = (brut: unknown, contenu = lireGlb(GLB)): CodeDErreur[] => {
 describe('lireGlb', () => {
   it('rend les noms de nœuds et d’animations du chunk JSON', () => {
     const c = lireGlb(GLB);
-    expect([...c.noeuds]).toEqual(['corps', 'tete_a', 'casque', 'bouclier']);
+    expect([...c.noeuds]).toEqual(['corps', 'tete_a', 'casque', 'bouclier', 'epee']);
     expect([...c.animations]).toEqual(['Idle', 'Death_A']);
   });
   it('refuse un conteneur qui n’est pas un glTF binaire 2', () => {
@@ -102,7 +104,7 @@ describe('validerManifeste', () => {
     if (!v.ok) return;
     expect(Object.keys(v.manifeste)).toEqual(['schema_version', 'model', 'default_head', 'head_options', 'pieces', 'components', 'incompatibilities', 'defaults', 'presets', 'clips']);
     expect(v.manifeste.pieces.corps).toEqual({ node: 'corps', component: 'corps', headVariant: null, hiddenBy: [] });
-    expect(v.manifeste.components.corps).toEqual({ label_fr: 'Corps' });
+    expect(v.manifeste.components.corps).toEqual({ label_fr: 'Corps', apparence: null });
     expect(v.manifeste.presets.garde).toEqual({ components: ['corps', 'bouclier'] });
   });
 
@@ -117,7 +119,12 @@ describe('validerManifeste', () => {
     ['un nœud absent du GLB', (m) => { m.pieces.casque.node = 'Casque_Absent'; }, 'noeud-absent'],
     ['un clip absent du GLB', (m) => { (m.clips as Record<string, string>).walk = 'Walking_A'; }, 'clip-absent'],
     ['un rôle d’animation inconnu', (m) => { (m.clips as Record<string, string>).danse = 'Idle'; }, 'role-inconnu'],
-    ['une version de schéma inconnue', (m) => { m.schema_version = 2; }, 'version-inconnue'],
+    ['une version de schéma inconnue', (m) => { m.schema_version = 3; }, 'version-inconnue'],
+    ['le schéma V1', (m) => { m.schema_version = 1; }, 'version-inconnue'],
+    ['une apparence inconnue', (m) => { m.components.epee.apparence = 'apparence-inconnue'; }, 'apparence-inconnue'],
+    ['un libellé au lieu d’un id', (m) => { m.components.epee.apparence = 'Épée'; }, 'apparence-inconnue'],
+    ['une apparence omise', (m) => { delete (m.components.corps as { apparence?: unknown }).apparence; }, 'forme'],
+    ['une apparence de forme fausse', (m) => { (m.components.epee as { apparence: unknown }).apparence = 42; }, 'forme'],
     ['un chemin absolu Windows laissé', (m) => { m.components.casque.label_fr = 'C:\\Users\\x\\casque'; }, 'chemin-absolu'],
     ['un chemin absolu POSIX laissé', (m) => { m.components.casque.label_fr = 'voir /home/x/casque'; }, 'chemin-absolu'],
     ['une forme fausse', (m) => { (m as { pieces: unknown }).pieces = []; }, 'forme'],
@@ -125,6 +132,14 @@ describe('validerManifeste', () => {
     const m = production();
     muter(m);
     expect(codes(m)).toContain(code);
+  });
+
+  it.each(['epee', 'epee_ebrechee'])('conserve l’id de catalogue %s, racine ou variante', (apparence) => {
+    const m = production();
+    m.components.epee.apparence = apparence;
+    const v = validerManifeste(m, lireGlb(GLB));
+    expect(v.ok).toBe(true);
+    if (v.ok) expect(v.manifeste.components.epee.apparence).toBe(apparence);
   });
 
   it('accepte une variante de tête comme composant de pièce', () => {
@@ -242,6 +257,15 @@ describe('importerPersonnage', () => {
     });
     const r = importerPersonnage({ dossier, id: 'Essai', destination: temporaire(), date: '2026-10-23', publier: null });
     expect(r.ok ? [] : r.refus).toEqual([]);
+  });
+
+  it('refuse une apparence inconnue à l’import sans écrire de manifeste', () => {
+    const dossier = dossierDeProduction((m) => { m.components.epee.apparence = 'apparence-inconnue'; });
+    const destination = temporaire();
+    const r = importerPersonnage({ dossier, id: 'Essai', destination, date: '2026-10-24', publier: null });
+    expect(r).toEqual({ ok: false, refus: ['[apparence-inconnue] components.epee.apparence : apparence-inconnue'] });
+    const f = fichiersDuModele('Essai');
+    expect([f.manifeste, f.provenance].map((nom) => existsSync(join(destination, nom)))).toEqual([false, false]);
   });
 
   it('ne publie rien sans publication (--sans-publier)', () => {
@@ -508,10 +532,11 @@ describe('publierAssets', () => {
   });
 });
 
-// La garde hors ligne : chaque modèle commité a sa provenance, à empreinte SHA-256. Que la Release porte cette empreinte,
-// et que le manifeste se valide contre le GLB tiré, se prouve en ligne : `recupererModeles`, joué par
-// `npm run godot:sonde` (`construire.mjs`) avant d'ouvrir Godot.
 describe('les modèles commités', () => {
+  it('valident chacun leur manifeste contre le GLB épinglé', async () => {
+    const modeles = await recupererModeles({ dossier: DOSSIER_DES_MODELES, cache: temporaire(), journal: muet });
+    expect(modeles.length).toBeGreaterThan(0);
+  });
   it('sont épinglés chacun par sa provenance', () => {
     const { modeles, erreurs } = modelesEpingles(DOSSIER_DES_MODELES);
     expect(erreurs).toEqual([]);

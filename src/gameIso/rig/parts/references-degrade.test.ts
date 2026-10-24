@@ -54,7 +54,7 @@ const SURCHARGES: (Appearance['colors'] | undefined)[] = [
 ];
 const TEINTES = [undefined, 'aethyrique'];
 /** Arme PROJETÉE à la forme résolue `forme` (`armeDeDessin`). */
-const arme = (forme: string, teinte?: string): ArmeDeDessin => ({ type: 'melee', forme, hands: 1, bouclier: false, ...(teinte && { teinte }) });
+const arme = (forme: string, teinte?: string): ArmeDeDessin => ({ type: 'melee', candidats: [forme], hands: 1, bouclier: false, ...(teinte && { teinte }) });
 const armes = (...weapons: ArmeDeDessin[]): EquipCtx => ({ ...equipDe([], []), weapons });
 const armure = (subType: string, teinte?: string) =>
   ({ uid: 'a', kind: 'armor', label: subType, subType, locs: LOCS, equipped: true, qualities: [], enc: 0, ...(teinte && { teinte }) }) as unknown as ItemInstance;
@@ -92,7 +92,7 @@ function* corpus(): Generator<[string, string]> {
     for (const d of WEAPON_DEFS) for (const teinte of TEINTES)
       yield [`arme|${species}|${d.slug}|${view}|s${i}|${teinte ? 'k' : ''}`, bonesToSvg(resolveRig(app, armes(arme(d.slug, teinte)), {}, 'soldat', view))];
     for (const d of SHIELD_DEFS)
-      yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { ...armes(arme('epee'), { ...arme(d.slug), bouclier: true }), shield: { forme: d.slug } }, {}, 'soldat', view))];
+      yield [`bouclier|${species}|${d.slug}|${view}|s${i}`, bonesToSvg(resolveRig(app, { ...armes(arme('epee'), { ...arme(d.slug), bouclier: true }), shield: { candidats: [d.slug] } }, {}, 'soldat', view))];
     for (const l of MATIERES) for (const teinte of TEINTES) for (const t of ['soldat', 'nu'])
       yield [`armure|${species}|${l}|${t}|${view}|s${i}|${teinte ? 'k' : ''}`, bonesToSvg(resolveRig(app, equipDe([], [armure(l, teinte)]), {}, t, view))];
   }
@@ -109,7 +109,7 @@ function* corpus(): Generator<[string, string]> {
   for (const d of WEAPON_DEFS) for (const teinte of TEINTES)
     for (const [n, v] of vues(objetSansPorteur(weaponPart(arme(d.slug, teinte)))).entries()) yield [`icone-arme|${d.slug}|${n}|${teinte ? 'k' : ''}`, v];
   for (const d of SHIELD_DEFS)
-    for (const [n, v] of vues(objetSansPorteur(shieldPart({ forme: d.slug }))).entries()) yield [`icone-bouclier|${d.slug}|${n}`, v];
+    for (const [n, v] of vues(objetSansPorteur(shieldPart({ candidats: [d.slug] }))).entries()) yield [`icone-bouclier|${d.slug}|${n}`, v];
   for (const l of MATIERES) for (const slot of ['tete', 'torse', 'bras', 'jambes'] as const) {
     const p = armourPart(pieceDeDessin(armure(l)), slot);
     if (p) for (const [n, v] of vues(objetSansPorteur(p)).entries()) yield [`icone-armure|${l}|${slot}|${n}`, v];
