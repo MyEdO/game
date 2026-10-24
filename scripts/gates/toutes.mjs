@@ -414,9 +414,10 @@ export const ECRIT_LU = {
       '`vite build` du pont de Godot (hotes/godot/construire.mjs, #2928) sans `--sortie` : `write: false`, le bundle reste ' +
       'en mémoire, exécuté dans un `node:vm`, et rien ne s’écrit ; `configFile: false`, donc aucune config recompilée ; LIT les zones, scripts/ ' +
       '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
-      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite) ; `construire.mjs` charge au module le contrat ' +
-      'd’asset (`hotes/godot/asset/release.ts`, et par lui `ecritureJsonAtomique.mjs` et `renommageResilient.mjs`) sans ' +
-      'en appeler l’écrivain : `recupererModeles` ne joue que sous `--sonde` et `--export` (#2948)',
+      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite) ; `chargerAssets` ' +
+      '(hotes/godot/asset/charger.mjs) charge le contrat par une entrée Vite dont la fermeture statique ne suit pas les ' +
+      'chemins portés par des chaînes. Ce chargement n’appelle aucun écrivain : `recupererModeles` ne joue que sous ' +
+      '`--sonde` et `--export` (#2948)',
   },
   'godot:sonde': {
     ecrit: [],
@@ -428,14 +429,15 @@ export const ECRIT_LU = {
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
         'et aucune autre gate ne lit de GLB : le lint lit des modules, la suite du noyau n’en lit que les provenances',
     },
-    lit: ['hotes/', 'scripts/', 'src/data/', 'src/lib/', 'package.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
       '`godot --headless --import` puis `--check-only` de chaque script (hotes/godot/construire.mjs, #2928, plan M-f) sur ' +
       'une COPIE du projet sous `os.tmpdir()`, que la sonde efface : l’import n’écrit pas `hotes/godot/projet/.godot/` ; ' +
       'le binaire épinglé vit hors de l’arbre (`~/.cache/wfrp-godot/`, ou `GODOT`) ; LIT hotes/ (le projet et son ' +
-      'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose que le constructeur importe au ' +
-      'chargement), src/lib/ (`tableTotale`) et src/data/ (la prose source que le greffon charge), mesurés à ' +
-      'l’enregistreur de lectures le 2026-10-22, et package.json ; écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
+      'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose), les zones du noyau chargées ' +
+      'par `chargerAssets`, leurs catalogues et Source/ (prose adressée), tsconfig.json et package.json ; ' +
+      'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
+      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
       '(`ecritFerme`)',
   },
   lint: {
