@@ -13,6 +13,7 @@ import { detecteurDuCommit, jugerLesComptes, refsAPlat, refusDesComptes, verdict
 import { idDe } from './data/schemas/grammaire/ref';
 import { envDeDepotForge, forgerDepot } from '../scripts/guards/lib/depotGabarit.mjs';
 import { cleDeSite, remedeNomme } from '../scripts/guards/lib/stock.mjs';
+import { renommagesDeStructure, type EntreeDeStructure } from '../scripts/guards/lib/occurrencesStock.mjs';
 import { commitDe, depotDe, reussi, shaDe } from '../scripts/guards/lib/gitPorte.mjs';
 
 const comptes = (entrees: Partial<Record<string, { dataset: string; champ: string; occurrences: number }[]>>): Comptes =>
@@ -46,6 +47,35 @@ describe('refusDesComptes — la tête comme observé, la base comme stock', () 
   it('un site qui NAÎT est refusé', () => {
     const tete = comptes({ SLOTS_SANS_DECLARATION: [regle, { dataset: 'voyage-stakes.json', champ: 'kind', occurrences: 1 }] });
     expect(refusDesComptes(base, tete)).toEqual([expect.stringMatching(/^SLOTS_SANS_DECLARATION : voyage-stakes\.json \| kind — site NEUF : la dette NAÎT\. Migrer/)]);
+  });
+});
+
+describe('STRUCTURES_LOCALES — un site par nœud, un renommage n’est pas une naissance (#3012)', () => {
+  const site = (ref: string, empreinte: string, fichier = 'src/data/a.json'): EntreeDeStructure => ({ fichier, ref, occurrence: 1, classe: 'L', empreinte });
+  const volet = (...entrees: ReturnType<typeof site>[]) => comptes({ STRUCTURES_LOCALES: entrees as never });
+  const objet = site('[].local', '*:never,n:number');
+
+  it('un site NÉ est refusé, avec la cible de sa classe', () => {
+    const refus = refusDesComptes(volet(objet), volet(objet, site('[].autre', '*:never,m:string')));
+    expect(refus).toEqual([expect.stringMatching(/^STRUCTURES_LOCALES : .*\[\]\.autre :: 1 — site NEUF : la dette NAÎT\. Composer un nœud PARTAGÉ de la grammaire/)]);
+    expect(refusDesComptes(volet(objet), volet(objet, { ...site('[].libre', 'unknown'), classe: 'D5' }))[0]).toMatch(/Typer le nœud/);
+  });
+
+  it('(i) un site disparu et un site né du même fichier, d’empreinte identique, s’apparient', () => {
+    expect(refusDesComptes(volet(objet), volet(site('[].renomme', objet.empreinte)))).toEqual([]);
+    expect(refusDesComptes(volet(objet), volet(site('[].renomme', objet.empreinte, 'src/data/b.json'))), 'd’un fichier à l’autre, c’est une naissance.').toHaveLength(1);
+    expect(refusDesComptes(volet(objet), volet(site('[].x', objet.empreinte), site('[].y', objet.empreinte))), 'un disparu ne couvre qu’un né.').toHaveLength(1);
+  });
+
+  it('(ii) une branche non discriminée qui gagne une clé OPTIONNELLE s’apparie ; une clé requise, ou une autre branche, non', () => {
+    const avant = site('.v|{a,op=>=}', '*:never,a:number,op:literal');
+    expect(refusDesComptes(volet(avant), volet(site('.v|{a,b,op=>=}', '*:never,a:number,b:optional,op:literal')))).toEqual([]);
+    expect(refusDesComptes(volet(avant), volet(site('.v|{a,b,op=>=}', '*:never,a:number,b:string,op:literal')))).toHaveLength(1);
+    expect(refusDesComptes(volet(avant), volet(site('.w|{a,b,op=>=}', '*:never,a:number,b:optional,op:literal')))).toHaveLength(1);
+  });
+
+  it('les renommages se rendent par la clé de site du né', () => {
+    expect([...renommagesDeStructure([objet], [site('[].renomme', objet.empreinte)])]).toEqual([cleDeSite(site('[].renomme', objet.empreinte))]);
   });
 });
 

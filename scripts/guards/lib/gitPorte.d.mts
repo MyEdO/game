@@ -1,4 +1,4 @@
-/** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `horsStrateAudit.ts`, `cssImages.d.mts`, `regenStock.mts`, `corpusDesComptes.mts`). */
+/** Déclarations des questions git consommées depuis TypeScript (`cssCouchesAudit.ts`, `cssImages.d.mts`, `regenStock.mts`, `corpusDesComptes.mts`). */
 import type { RequeteMesuree } from './requeteMesuree.mjs';
 
 /** La marque d'une poignée `depotDe` (`gitPorte.mjs`, `MARQUE_DEPOT`). */

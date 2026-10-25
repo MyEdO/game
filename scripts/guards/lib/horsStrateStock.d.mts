@@ -1,3 +1,3 @@
 import type { EntreeDeSite } from './stock.mjs';
 
-export const HORS_STRATE_RATCHET: readonly EntreeDeSite[];
+export const STRUCTURES_LOCALES: readonly EntreeDeSite[];

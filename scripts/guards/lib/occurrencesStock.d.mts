@@ -1,4 +1,5 @@
-import type { EcartsDeStock } from './stock.mjs';
+import type { EcartsDeStock, EntreeDeSite } from './stock.mjs';
+import type { ChampsDeStructure } from './structuresLocales.mts';
 import type { DivergenceEnveloppe, FormeObservee, OpObservee, Redeclaration, SignatureOrpheline, scannerDonnees } from '../../docs/lib/structures-scan.mjs';
 import type { CoupleDeReference, CoupleInatteignable } from '../../docs/lib/slots-registre.mjs';
 
@@ -46,13 +47,23 @@ export type CollectionACompte<N extends NomDeCollectionACompte = NomDeCollection
   readonly mesure: (corpus: CorpusDesComptes) => readonly (MesureDe[N] & EntreeDeCompte)[];
 };
 export const COLLECTIONS_A_COMPTE: readonly CollectionACompte[];
-/** Un volet SOUS LA PORTE des comptes : son porteur, son nom, l'identité d'un site, la cible qui solde sa hausse, son compte. */
+/** Un volet SOUS LA PORTE des comptes : son porteur, son nom, l'identité d'un site, la cible qui solde sa hausse, son
+ *  compte, et les sites nés qu'il apparie à un disparu (`renommages`, rendus par leur `site`). */
 export type VoletSousLaPorte = {
   readonly porteur: string;
   readonly nom: string;
   readonly site: (e: EntreeDeCompte) => string;
   readonly cible: (cle: string, e: EntreeDeCompte) => string;
   readonly nombre: (e: EntreeDeCompte) => number;
+  readonly renommages?: (base: readonly EntreeDeCompte[], tete: readonly EntreeDeCompte[]) => ReadonlySet<string>;
+};
+/** Une entrée mesurée du volet `STRUCTURES_LOCALES` : entrée de site, classe et empreinte hors clé. */
+export type EntreeDeStructure = EntreeDeSite & ChampsDeStructure;
+export function empreinteDeChamps(champs: readonly (readonly [string, string])[]): string;
+export function renommagesDeStructure(base: readonly EntreeDeStructure[], tete: readonly EntreeDeStructure[]): Set<string>;
+export const STRUCTURES_LOCALES: Omit<VoletSousLaPorte, 'cible'> & {
+  readonly cible: (cle: string, e: unknown) => string;
+  readonly renommages: NonNullable<VoletSousLaPorte['renommages']>;
 };
 export const SOUS_LA_PORTE: readonly VoletSousLaPorte[];
 export const COLLECTIONS_A_COMPTE_PAR_NOM: { readonly [N in NomDeCollectionACompte]: CollectionACompte<N> };

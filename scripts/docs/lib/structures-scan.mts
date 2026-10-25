@@ -81,16 +81,6 @@ export type Document = { racine: string; chemin: string; nom: string };
  */
 export const nomDeDocument = (file: string): string => file.split(/[\\/]/).pop() ?? file;
 
-/**
- * Bornes de la table COMPLÈTE des signatures hors strate dans `docs/structures-donnees.md`.
- * Le doc est la LISTE DE RÉFÉRENCE du cliquet de `src/data/structures-contrat.test.ts` : le
- * générateur pose les bornes, la garde lit entre elles.
- */
-export const MARQUE_HORS_STRATE = {
-  debut: '<!-- HORS-STRATE:DEBUT -->',
-  fin: '<!-- HORS-STRATE:FIN -->',
-} as const;
-
 /** Classe de type d'une valeur JSON (jamais `typeof` nu : `null` et les tableaux comptent à part). */
 const classeDeType = (v: unknown): string =>
   v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v === 'object' ? 'object' : typeof v;
@@ -870,7 +860,6 @@ export function scannerDonnees(
   let racinesSansValeur = 0;
   /** Document → entrées de racine qu’un concept de valeur revendiquerait SANS la clause `horsDesignation`. */
   const racinesDisqualifiees = new Map<string, number>();
-  const invisibles = new Map<string, number>();
   /** Clé-graphie enveloppante → occurrences BRUTES de la clé dans la donnée (tout classement confondu). */
   const graphiesBrutes = new Map<string, number>();
 
@@ -1098,10 +1087,7 @@ export function scannerDonnees(
           orpheline = true;
         }
       }
-      if (!estDocument && !estCollectionACle && !classe && !orpheline) {
-        objetsInvisibles += 1;
-        inc(invisibles, `${p.nom} | ${champ || '(racine)'} | ${sig}`);
-      }
+      if (!estDocument && !estCollectionACle && !classe && !orpheline) objetsInvisibles += 1;
 
       if (estEmbarque) noteGroupe(chemin || '(racine)', o);
 
@@ -1266,19 +1252,13 @@ export function scannerDonnees(
       entreesDeRacine: prepares.reduce((a, p) => a + p.entrees.length, 0),
     },
     graphiesBrutes: Object.fromEntries(graphiesBrutes),
-    invisibles: [...invisibles]
-      .map(([k, occurrences]) => {
-        const [dataset, champ, sig] = k.split(' | ');
-        return { dataset, champ, signature: sig, occurrences };
-      })
-      .sort((a, b) => b.occurrences - a.occurrences || parUnitesDeCode(a.dataset, b.dataset)),
   };
 }
 
 /**
  * LE scan du corpus : l'UNIQUE composition `defs du registre + enums DÉCLARÉS → `scannerDonnees``.
  * Ses trois consommateurs — la garde `src/data/structures-contrat.test.ts`, le générateur
- * `scripts/docs/build-structures.mts` et l'audit `scripts/guards/lib/horsStrateAudit.ts` — la lisent
+ * `scripts/docs/build-structures.mts` et la porte des comptes `scripts/guards/lib/corpusDesComptes.mts` — la lisent
  * ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas (sans `choix`,
  * aucun enum n'est fermé et des discriminants comptent comme références), et aucune garde ne verrait
  * la divergence.

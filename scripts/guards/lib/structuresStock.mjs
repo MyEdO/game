@@ -194,7 +194,7 @@ export const STRUCTURES_CIBLES = [
   // ici, PORTE par PORTE. Ce ne sont pas des formes à migrer : chaque signature est la PROJECTION du
   // noyau REQUIS de sa porte zod, et le suffixe `+…` y nomme les clés OPTIONNELLES que le schéma
   // déclare (les DEUX projections sont donc cibles, la donnée n'en posant aujourd'hui qu'une par
-  // porte). Elles quittent le dénominateur HORS STRATE (12 lignes, cf. `horsStrateStock.mjs`), et la
+  // porte). Elles quittent les objets invisibles du scan (`scan.objets.invisibles`), et la
   // ligne `diligence-projet.json › ouverture` quitte en outre `STRUCTURES_ORPHELINES` : la
   // projection réunit les deux buckets qu'un optionnel peuplé (`source`) séparait.
   // Portes : `ouvertureSchema` / `clotureSchema` / `formeNarratif`
