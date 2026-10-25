@@ -7,6 +7,7 @@
 // `state_reason` : enum `completed | not_planned | duplicate | reopened` de
 // `PATCH /repos/{owner}/{repo}/issues/{issue_number}` (spec OpenAPI `github/rest-api-description`).
 // Personne d'autre ne lit la ligne `NATURE:`.
+import { DATE } from '../memoire-forme.mjs'
 
 /** Les natures, et elles seules : `raison` = le `state_reason` posé, `cible` = la nature exige `#M`. */
 export const NATURES = Object.freeze({
@@ -57,4 +58,23 @@ export function natureDuSolde(contenu, numero) {
 export function raisonDeFermeture(nature) {
   if (!Object.hasOwn(NATURES, nature)) throw new Error(`raisonDeFermeture : nature « ${nature} » inconnue`)
   return NATURES[nature].raison
+}
+
+/** Titre de la section qui prouve un `décidé`, motif de `sectionDe` (scripts/guards/lib/livraison.mjs). */
+export const TITRE_DECISION = 'D[ée]cision'
+
+const CITATION_RE = /«[^»]+»/
+
+/**
+ * La preuve d'un `décidé` : le corps de sa « ## Décision » porte une ligne qui cite la décision `«…»`
+ * ET sa date (`DATE`, scripts/guards/memoire-forme.mjs). `null` quand elle tient, sinon le refus. PUR.
+ * @param {string | null} section le corps de la section, `null` si elle manque
+ * @returns {string | null}
+ */
+export function refusDeDecision(section) {
+  if (section === null) return '"NATURE: décidé" sans section "## Décision" (la décision utilisateur, citée « … » avec sa date AAAA-MM-JJ sur la même ligne)'
+  if (!section.split('\n').some((l) => CITATION_RE.test(l) && DATE.test(l))) {
+    return '"## Décision" sans ligne qui cite la décision « … » ET porte sa date AAAA-MM-JJ'
+  }
+  return null
 }
