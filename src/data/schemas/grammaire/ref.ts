@@ -55,6 +55,12 @@ export const TYPES = {
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
   etat: { espace: 'etats.json', catalogue: 'états' },
+  night: { espace: 'night-stakes.json', catalogue: 'enjeux de nuit' },
+  voyage: { espace: 'voyage-stakes.json', catalogue: 'enjeux de voyage' },
+  weather: { espace: 'weather.json#conditions', catalogue: 'conditions météo' },
+  flow: { espace: 'flow-stakes.json', catalogue: 'enjeux de jet' },
+  activity: { espace: 'activities.json', catalogue: 'activités' },
+  combat: { espace: 'combat-stakes.json', catalogue: 'enjeux de combat' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
   symptome: { espace: 'symptoms.json', catalogue: 'symptômes' },
   material: { espace: 'materials.json', catalogue: 'matières' },
@@ -529,18 +535,22 @@ const REFS_TYPEES = new WeakMap<object, DeclarationDeRefTypee>();
 export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | undefined =>
   typeof noeud === 'object' && noeud !== null ? REFS_TYPEES.get(noeud) : undefined;
 
-/**
- * Référence POLYMORPHE `{ id, type }` : `type` NOMME l'espace où l'id résout, parmi les valeurs du
- * vocabulaire `types` (un `enumNomme` dont chaque clé est un `TypeEntite`). UNION DISCRIMINÉE fermée
- * des `{ id: idDe(t), type: t }` — chaque branche est l'objet de `ref` —, patron `sceneEntitySchema`
- * (`defs-scenes/scene.ts`) : le littéral DISCRIMINE la branche, `types` en NOMME la valeur. Le type ne
- * se déduit jamais de l'id : un même id vit dans plusieurs espaces.
- */
-export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
+/** #2820 ; #2968 */
+export function refTypee<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<never, never>>(
+  types: z.ZodEnum<{ [K in T]: K }>,
+  extra?: E & { id?: never; type?: never },
+): z.ZodType<RefTypee<T> & z.output<z.ZodObject<E>>> {
+  for (const cle of ['id', 'type']) {
+    if (extra !== undefined && Object.prototype.hasOwnProperty.call(extra, cle)) {
+      throw new Error(`refTypee : champ réservé dans extra : ${cle}`);
+    }
+  }
   const admis = types.options as readonly T[];
-  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }));
+  const champsExtra = extra as Record<string, z.ZodType> | undefined;
+  const metas = metasExtra(champsExtra);
+  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { ...champsExtra, type: z.literal(t).pipe(types) }, { ...metas, type: { label: 'type de la référence' } }));
   const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
-  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
+  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T> & z.output<z.ZodObject<E>>>;
   REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
   return noeud;
 }

@@ -1,14 +1,4 @@
-/**
- * Schéma de `voyage-stakes.json` — ENJEU d'un `kind` d'étape de cascade de VOYAGE (fluvial/maritime,
- * #1117). Jumeau de `night-stakes.json`, PAS le même contrat de contenu (c'est pourquoi les deux
- * datasets ne fusionnent pas) :
- *  - `night-stakes.stake` est un VERBATIM figé de la Source (règle 5), recollable tel quel ;
- *  - `voyage-stakes.template` est un GABARIT de descripteur MÉCANIQUE : ses trous `{nom}` reçoivent
- *    les valeurs CALCULÉES par le flux au moment de l'étape (km de dérive, % de vent, Rounds, Dégâts).
- * Mélanger les deux sous une même clé ferait cohabiter « ne jamais interpoler » et « toujours
- * interpoler » — un même libellé pour deux natures.
- * Le texte reste éditable au Codex (catégorie « Enjeux — cascade de voyage »).
- */
+/** #2968 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { foyerDeRegleSchema } from '../grammaire/valeurs';
@@ -20,18 +10,12 @@ const doc = document(
   'voyage-stakes',
   famille,
   {
-    /** `kind` de l'étape de cascade servie (clé de consommation, `voyageStake`) — distinct de l'`id`. */
-    kind: z.string(),
     /** Gabarit du descripteur mécanique — trous `{nom}` remplis par le flux (valeurs calculées). */
     template: z.string(),
-    /** FOYER de la règle derrière cette étape — la règle est à UN CLIC depuis l'enjeu (#1117).
-     *  Absent = aucune fiche ne couvre encore ce `kind`. Même contrat que `flow-stakes`/`combat-stakes` :
-     *  le renvoi vise l'entité qui PORTE déjà la règle (la Compétence jetée, l'État subi), `regles.json`
-     *  n'étant que le foyer des règles de cadre. */
+    /** #1117 */
     rule: foyerDeRegleSchema.optional(),
   },
   {
-    kind: { label: 'Type d’étape', hint: 'Étape de la cascade de voyage servie' },
     template: {
       label: 'Gabarit du texte',
       // Les ACCOLADES restent hors du répertoire des libellés (garde `libelles-guard`) : ce sont des

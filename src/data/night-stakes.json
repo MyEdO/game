@@ -3,7 +3,6 @@
     "id": "faim",
     "type": "night-stakes",
     "label": "Faim",
-    "kind": "faim",
     "stake": "lorsque vous n'avez plus de nourriture, vous devez effectuer un Test de Résistance tous les deux jours. Sur un premier échec, vous subissez une pénalité de –10 en **Force**  et **Endurance**.",
     "source": {
       "book": "livre-de-base",
@@ -19,7 +18,6 @@
     "id": "soif",
     "type": "night-stakes",
     "label": "Soif",
-    "kind": "soif",
     "stake": "chaque jour sans eau nécessite un Test de Résistance. Sur un premier échec, vous subissez une pénalité de -10 en **Intelligence***,*  **Force Mentale** et **Sociabilité**.",
     "source": {
       "book": "livre-de-base",
@@ -35,7 +33,6 @@
     "id": "recovery",
     "type": "night-stakes",
     "label": "Récupération",
-    "kind": "recovery",
     "stake": "Vous guérissez un nombre de Points de Blessure équivalent à votre DR + Bonus d'Endurance.",
     "source": {
       "book": "livre-de-base",
@@ -51,7 +48,6 @@
     "id": "nightmare",
     "type": "night-stakes",
     "label": "Cauchemars",
-    "kind": "nightmare",
     "stake": "Échec : État *Exténué*.",
     "source": {
       "book": "livre-de-base",
@@ -68,7 +64,6 @@
     "id": "shelter",
     "type": "night-stakes",
     "label": "Abri de fortune",
-    "kind": "shelter",
     "stake": "Si le Test échoue, vous devez faire un Test de **Résistance Intermédiaire (+0)** ou recevoir l'État *Exténué*.",
     "source": {
       "book": "livre-de-base",
@@ -84,7 +79,6 @@
     "id": "exposure",
     "type": "night-stakes",
     "label": "Exposition",
-    "kind": "exposure",
     "stake": "**Chaleur :** sur un premier échec, vous subissez une pénalité de -10 en **Intelligence** et en **Force Mentale**, et vous gagnez un État *Exténué*.\n\n**Froid :** sur un premier échec, vous subissez une pénalité de -10 à votre Compétence de **CT**, à votre **Agilité** et votre **Dextérité**.",
     "source": {
       "book": "livre-de-base",
@@ -100,7 +94,6 @@
     "id": "exposure-heat-drop",
     "type": "night-stakes",
     "label": "Possession lourde (délestage)",
-    "kind": "exposure-heat-drop",
     "stake": "Vous débarrasser d'une Possession lourde annule 1 Test échoué.",
     "source": {
       "book": "livre-de-base",
@@ -116,7 +109,6 @@
     "id": "forced-march",
     "type": "night-stakes",
     "label": "Marche forcée",
-    "kind": "forcedMarch",
     "stake": "S'il voyage plus rapidement ou plus loin, donnez un État *Exténué* à ceux échouant à ce Test, et un État *Exténué* supplémentaire si le Personnage est Encombré",
     "source": {
       "book": "livre-de-base",
@@ -132,7 +124,6 @@
     "id": "trauma-fracture",
     "type": "night-stakes",
     "label": "Convalescence (fracture)",
-    "kind": "traumaFracture",
     "stake": "À la fin de cette période, un succès obtenu sur un Test de **Résistance Accessible (+20)** indique que l'os s'est remis correctement et que vous ne subirez aucun effet à long terme.",
     "source": {
       "book": "livre-de-base",
@@ -148,7 +139,6 @@
     "id": "disease-tick",
     "type": "night-stakes",
     "label": "Maladie — Test quotidien",
-    "kind": "diseaseTick",
     "stake": "Échec : la conséquence du symptôme joué s’applique.",
     "source": {
       "book": "livre-de-base",
@@ -159,13 +149,13 @@
       "id": "symptomes-des-maladies",
       "type": "regle"
     },
-    "form": "descripteur"
+    "form": "descripteur",
+    "entryCategory": "symptoms"
   },
   {
     "id": "disease-gangrene",
     "type": "night-stakes",
     "label": "Gangrène",
-    "kind": "diseaseGangrene",
     "stake": "Chaque jour, effectuez un Test de **Résistance Accessible (+20)**. Sur un succès, la *Gangrène* est contenue. Sur un échec, elle empire.",
     "source": {
       "book": "livre-de-base",
@@ -175,13 +165,13 @@
     "rule": {
       "id": "symptomes-des-maladies",
       "type": "regle"
-    }
+    },
+    "entryCategory": "symptoms"
   },
   {
     "id": "disease-persist",
     "type": "night-stakes",
     "label": "Fin de Maladie (Persistance)",
-    "kind": "diseasePersist",
     "stake": "Sur un échec Minime (0), rajoutez 1d10 jours à la durée. Sur un échec (-2), vous subissez une *Blessure Purulente*. Sur un échec Stupéfiant (-6), vous développez *Infection du sang*.",
     "source": {
       "book": "livre-de-base",
@@ -191,13 +181,13 @@
     "rule": {
       "id": "symptomes-des-maladies",
       "type": "regle"
-    }
+    },
+    "entryCategory": "symptoms"
   },
   {
     "id": "contagion",
     "type": "night-stakes",
     "label": "Contagion",
-    "kind": "contagion",
     "stake": "Tout Personnage se trouvant dans votre environnement immédiat s'expose à la maladie dont vous êtes porteur et doit effectuer un Test pour en éviter la Contraction une fois par heure entamée d'exposition.",
     "source": {
       "book": "livre-de-base",
@@ -213,7 +203,6 @@
     "id": "dessoulage",
     "type": "night-stakes",
     "label": "Dessoûlage",
-    "kind": "dessoulage",
     "stake": "Les effets de l'ivresse se dissiperont après 10-DR heures, et tous les modificateurs de Caractéristiques disparaîtront après ce délai.",
     "source": {
       "book": "livre-de-base",
@@ -229,7 +218,6 @@
     "id": "dessoulage-hangover",
     "type": "night-stakes",
     "label": "Gueule de bois",
-    "kind": "dessoulageHangover",
     "stake": "Vous avez à présent la gueule de bois, qui correspond à l'État *Exténué* et ne peut pas être retiré pendant 5 – DR heures.",
     "source": {
       "book": "livre-de-base",

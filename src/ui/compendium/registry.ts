@@ -1314,10 +1314,9 @@ const CODEX_SPECS: CodexCategorySpec[] = [
     build: () => datasetArray('flowStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
   {
-    // Quatrième dataset de la famille (#1117 L2) : l'enjeu d'une étape de cascade de COMBAT, keyé par
-    // le `kind` de son applier. Éditable comme ses jumeaux — descripteur mécanique lu à l'applier.
+    // #2968
     key: 'combatStakes', label: 'Enjeux — cascade de combat', group: 'Tables', sourceRef: 'LDB 16/19/20/47/85 · AA 07',
-    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { sub: e.kind, desc: e.template, sections: sections(regleChips(e.rule)) })),
+    build: () => datasetArray('combatStakes').map((e) => depuisEnveloppe(e, { desc: e.template, sections: sections(regleChips(e.rule)) })),
   },
 
   {

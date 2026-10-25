@@ -1,11 +1,7 @@
-/**
- * Schéma de `night-stakes.json` — enjeu VERBATIM (règle 5) d'un `kind` d'étape de la cascade de nuit
- * (#331), donnée app-owned (arbitrage doctrine 2026-07-12 : un catalogue en dur est l'exception, il
- * migre en donnée). Chargé en `NIGHT_STAKES` (`src/data/index.ts`), lu par `nightStakeRef`.
- */
+/** #2968 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { entryCategorySchema, foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
 
 export const file = 'night-stakes.json';
 export const famille = 'entite';
@@ -14,7 +10,6 @@ const doc = document(
   'night-stakes',
   famille,
   {
-    kind: z.string(),
     stake: z.string(),
     /** FORME du `stake`, DÉCLARÉE par la donnée (garde `night-stake-form.test.ts`, #1117 L0b) :
      *  - absente / `'verbatim'` : chaque bloc du `stake` est une sous-chaîne CONTIGUË d'une ligne du
@@ -28,12 +23,10 @@ const doc = document(
      *  au maximum la table régle ») : une compétence, un État, un symptôme… `regles.json` n'est que
      *  le foyer des règles de CADRE, sans entité porteuse. */
     rule: foyerDeRegleSchema.optional(),
+    entryCategory: entryCategorySchema,
   },
   {
-    kind: {
-      label: 'Étape de la cascade',
-      hint: 'Vocabulaire d’étape de nuit consommé par `nightStakeRef` — distinct de l’identifiant',
-    },
+    entryCategory: { label: 'Catégorie de l’entrée jouée' },
     stake: { label: 'Enjeu' },
     form: { label: 'Forme de l’enjeu' },
     rule: { label: 'Règle associée', hint: 'Entité qui porte la règle derrière l’étape' },

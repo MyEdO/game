@@ -3,7 +3,6 @@
     "id": "combat-end-disease",
     "type": "combat-stakes",
     "label": "Contraction d’une maladie",
-    "kind": "combatEndDisease",
     "template": "Échec : la maladie est contractée — incubation, puis ses symptômes. Réussite : aucune infection.",
     "form": "descripteur",
     "entryCategory": "maladies",
@@ -17,7 +16,6 @@
     "id": "combat-end-corruption",
     "type": "combat-stakes",
     "label": "Exposition à la Corruption",
-    "kind": "combatEndCorruption",
     "template": "Échec : {gainEchec} point(s) de Corruption (exposition {niveau}) — au seuil, une mutation.",
     "form": "descripteur",
     "rule": {
@@ -34,7 +32,6 @@
     "id": "combat-fatigue",
     "type": "combat-stakes",
     "label": "Effort soutenu",
-    "kind": "fatigue",
     "template": "Échec : État Exténué. Réussite : le compteur d’effort baisse d’autant de Rounds que le DR.",
     "form": "descripteur",
     "rule": {
@@ -51,7 +48,6 @@
     "id": "combat-aa-bleed",
     "type": "combat-stakes",
     "label": "Perte de sang",
-    "kind": "aaBleedUnconscious",
     "template": "Échec : État Inconscient. Réussite : vous tenez bon ce Round — le Test revient au suivant tant que l’Hémorragie dure.",
     "form": "descripteur",
     "rule": {
@@ -68,7 +64,6 @@
     "id": "combat-spell-plus",
     "type": "combat-stakes",
     "label": "Prolonger un sort (Durée +)",
-    "kind": "spellPlusTest",
     "template": "Réussite : l’effet dure un Round de plus. Échec : il expire normalement.",
     "form": "descripteur",
     "entryCategory": "spells",
@@ -82,7 +77,6 @@
     "id": "combat-maneuver-defense",
     "type": "combat-stakes",
     "label": "Défense contre une manœuvre",
-    "kind": "maneuverDefense",
     "template": "Test opposé — vous l’emportez : la manœuvre est déjouée. L’attaquant l’emporte : ses effets s’appliquent, d’autant plus forts que sa marge de DR est grande.",
     "form": "descripteur",
     "entryCategory": "maneuvers",
@@ -96,7 +90,6 @@
     "id": "combat-psych",
     "type": "combat-stakes",
     "label": "Psychologie en combat",
-    "kind": "combatPsych",
     "template": "Test de sang-froid — ce que l’échec installe dépend de l’affliction affrontée (sa fiche le dit).",
     "form": "descripteur",
     "entryCategory": "psychologies",
@@ -110,7 +103,6 @@
     "id": "encounter-psych",
     "type": "combat-stakes",
     "label": "Psychologie de rencontre",
-    "kind": "encounterPsych",
     "template": "Test de sang-froid — ce que l’échec installe dépend de l’affliction affrontée (sa fiche le dit).",
     "form": "descripteur",
     "entryCategory": "psychologies",
@@ -124,7 +116,6 @@
     "id": "water-exposure",
     "type": "combat-stakes",
     "label": "Exposition hydrique",
-    "kind": "waterExposure",
     "template": "Échec : un tirage sur la table des maladies de l’eau (+10 par DR négatif) — la maladie tirée est contractée directement. Réussite : rien.",
     "form": "descripteur",
     "rule": {
@@ -141,7 +132,6 @@
     "id": "pursuit-move",
     "type": "combat-stakes",
     "label": "Manche de poursuite",
-    "kind": "pursuitMove",
     "template": "Test de Mouvement de la manche : les DR des deux camps se comparent et l’écart bouge la Distance ({distance}/{evasion}). À 0 ou moins, les poursuivants rattrapent ; à {evasion}, la proie est perdue.",
     "form": "descripteur",
     "rule": {
@@ -158,7 +148,6 @@
     "id": "tavern-game",
     "type": "combat-stakes",
     "label": "Partie de jeu de taverne",
-    "kind": "tavernGame",
     "template": "{jeu} contre {adversaire}. Mise engagée : {mise}.",
     "form": "descripteur",
     "rule": {
@@ -175,7 +164,6 @@
     "id": "crit-severity",
     "type": "combat-stakes",
     "label": "Sévérité d’une Blessure critique",
-    "kind": "critSeverity",
     "template": "Un d100 sur le Tableau des Critiques de la Localisation touchée : la ligne tirée dit les Points de Blessure perdus — Bonus d’Endurance et PA ignorés — et ses Effets supplémentaires.",
     "form": "descripteur",
     "rule": {
@@ -192,7 +180,6 @@
     "id": "crit-row-test",
     "type": "combat-stakes",
     "label": "Blessure critique — Test de la ligne tirée",
-    "kind": "critRowTest",
     "rule": {
       "id": "blessures-critiques",
       "type": "regle"
@@ -207,7 +194,6 @@
     "id": "ship-crew-hit",
     "type": "combat-stakes",
     "label": "Critique de bateau — coup à l’équipage",
-    "kind": "shipCrewHit",
     "rule": {
       "id": "critiques-de-bateau",
       "type": "regle"
@@ -222,7 +208,6 @@
     "id": "artillery-salve-misfire",
     "type": "combat-stakes",
     "label": "Incident de Tir par Salve",
-    "kind": "artillerySalveMisfire",
     "template": "Un d10 sur les Incidents de Tir d’Artillerie par Salve : la ligne tirée dit la Localisation touchée, combien de fois l’équipe encaisse, et si la pièce est détruite.",
     "form": "descripteur",
     "entryCategory": "artilleryMisfire",
@@ -236,7 +221,6 @@
     "id": "structure-critical",
     "type": "combat-stakes",
     "label": "Critique de Structure",
-    "kind": "structureCritical",
     "template": "Un d100 sur les Coups Critiques contre une Structure : la ligne tirée dit les Blessures encaissées par la Structure et ce que l’impact fait subir à qui s’y trouve ; un Effondrement la met à 0 Blessure.",
     "form": "descripteur",
     "entryCategory": "structureCriticals",
@@ -250,7 +234,6 @@
     "id": "miscast-table",
     "type": "combat-stakes",
     "label": "Incantation Imparfaite",
-    "kind": "miscastTable",
     "template": "Un d100 sur le Tableau des Incantations Imparfaites : la ligne tirée dit le contrecoup subi — certaines lignes en appellent un nouveau lancer.",
     "form": "descripteur",
     "rule": {
@@ -267,7 +250,6 @@
     "id": "miscast-row-test",
     "type": "combat-stakes",
     "label": "Incantation Imparfaite — Test de la ligne tirée",
-    "kind": "miscastRowTest",
     "rule": {
       "id": "incantation-imparfaite",
       "type": "regle"
@@ -282,7 +264,6 @@
     "id": "wrath-table",
     "type": "combat-stakes",
     "label": "Colère des dieux",
-    "kind": "wrathTable",
     "template": "Un d100 sur le tableau de la Colère des dieux, +10 par Point de Péché déjà accumulé : la ligne tirée dit la sanction divine. Après le lancer, les Points de Péché baissent de 1, jusqu’à un minimum de 0.",
     "form": "descripteur",
     "entryCategory": "miscastWrath",
@@ -296,7 +277,6 @@
     "id": "mutation-nature",
     "type": "combat-stakes",
     "label": "Dissolution — corps ou esprit",
-    "kind": "mutationNature",
     "template": "Ensuite, effectuez un lancer de pourcentage et reportez-vous au tableau qui suit pour définir si c'est votre corps ou votre esprit qui va renaître.",
     "form": "verbatim",
     "entryCategory": "mutationTables",
@@ -310,7 +290,6 @@
     "id": "mutation-table",
     "type": "combat-stakes",
     "label": "Tableau de Corruption",
-    "kind": "mutationTable",
     "template": "Un d100 sur le Tableau de Corruption de la nature tirée : la ligne atteinte EST la mutation acquise — une ligne à sous-table appelle un lancer de plus.",
     "form": "descripteur",
     "entryCategory": "mutations",
@@ -324,7 +303,6 @@
     "id": "act-gate",
     "type": "combat-stakes",
     "label": "Agir malgré l’effet",
-    "kind": "actGate",
     "template": "Réussite : votre Round est entier. Échec : vous ne gardez qu’UNE des deux — l’Action ou le Mouvement.",
     "form": "descripteur",
     "entryFromSource": true,
@@ -338,7 +316,6 @@
     "id": "interlude-event",
     "type": "combat-stakes",
     "label": "Événement de la période",
-    "kind": "interludeEvent",
     "template": "Avant de choisir vos Activités, lancez d'abord 1d100 sur le tableau des Événements ci-après. Certains Événements n'affecteront que vous, alors que d'autres concerneront le groupe tout entier.",
     "form": "verbatim",
     "entryCategory": "interludeEvents",
@@ -352,7 +329,6 @@
     "id": "climb-test",
     "type": "combat-stakes",
     "label": "Escalade d’une paroi",
-    "kind": "climbTest",
     "template": "Réussite : vous prenez pied en haut. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
     "rule": {
@@ -369,7 +345,6 @@
     "id": "jump-test",
     "type": "combat-stakes",
     "label": "Saut au-delà de la portée libre",
-    "kind": "jumpTest",
     "template": "Réussite : le gouffre est franchi. Échec : vous manquez le bord et tombez — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
     "rule": {
@@ -386,7 +361,6 @@
     "id": "ambush-surprise",
     "type": "combat-stakes",
     "label": "Embuscade — repérer les embusqués",
-    "kind": "ambushSurprise",
     "rule": {
       "id": "embuscade-surprise",
       "type": "regle"
@@ -401,7 +375,6 @@
     "id": "ambush-vigilance",
     "type": "combat-stakes",
     "label": "Vigilance — éviter la Surprise",
-    "kind": "ambushVigilance",
     "rule": {
       "id": "vigilance",
       "type": "talent"
@@ -416,7 +389,6 @@
     "id": "focus-interrupt",
     "type": "combat-stakes",
     "label": "Focalisation interrompue",
-    "kind": "focusInterrupt",
     "template": "Réussite : votre concentration tient, les DR accumulés restent acquis. Échec : tous les DR du Test étendu de Focalisation sont perdus et vous subissez une Incantation Imparfaite Mineure — sans effet si un composant du Sort est sacrifié.",
     "form": "descripteur",
     "rule": {
@@ -433,7 +405,6 @@
     "id": "blade-trap-force",
     "type": "combat-stakes",
     "label": "Piège-lame — Test opposé de Force",
-    "kind": "bladeTrapForce",
     "template": "Test opposé de Force, votre DR de défense en renfort. Vous l’emportez : la lame de l’adversaire lui est arrachée — et brisée sur un Succès Stupéfiant si elle n’y résiste pas (Incassable, sauvegarde de Solide) ; un gantelet verrouillé la lui laisse en main. Il l’emporte : il libère sa lame et combat normalement.",
     "form": "descripteur",
     "rule": {
@@ -450,7 +421,6 @@
     "id": "harvest-creature",
     "type": "combat-stakes",
     "label": "Récolte de pièces de créature",
-    "kind": "harvestCreature",
     "template": "Réussite : vous reconnaissez les parties prisées — {encPlein} Enc de pièces prélevées. Échec : la quantité exploitable descend d’un cran — {encEchec} Enc.",
     "form": "descripteur",
     "rule": {
@@ -467,7 +437,6 @@
     "id": "team-command",
     "type": "combat-stakes",
     "label": "Diriger une équipe d’arme",
-    "kind": "teamCommand",
     "template": "Réussite : chaque chef d’équipe à portée de voix est dirigé — son équipe tire ensuite au score de Projectiles du commandant. Échec : rien. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
     "rule": {
@@ -484,7 +453,6 @@
     "id": "skill-advantage",
     "type": "combat-stakes",
     "label": "Cumuler l’Avantage par une Compétence",
-    "kind": "skillAdvantage",
     "template": "Réussite : +1 Avantage, jusqu’au plafond de cette Compétence — le Bonus de la Caractéristique {capChar}. Échec : aucun. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
     "entryCategory": "skills",
@@ -498,7 +466,6 @@
     "id": "land-market-gossip",
     "type": "combat-stakes",
     "label": "Rumeur commerciale au marché",
-    "kind": "land-market-gossip",
     "template": "Réussite : une rumeur commerciale est glanée — les biens qu’elle vise se vendent au double du prix de base au Lieu désigné, sans échéance. Échec : aucune rumeur.",
     "form": "descripteur",
     "rule": {
@@ -515,7 +482,6 @@
     "id": "land-market-wine-eval",
     "type": "combat-stakes",
     "label": "Évaluation d’un lot de vin",
-    "kind": "land-market-wine-eval",
     "template": "Réussite : la qualité réelle du lot est révélée. Échec : une fausse qualité est annoncée, d’autant plus éloignée du vrai que le Degré d’échec est grand. Un lot ne s’évalue qu’une fois, quelle que soit l’issue.",
     "form": "descripteur",
     "rule": {
@@ -532,7 +498,6 @@
     "id": "merchant-ragot",
     "type": "combat-stakes",
     "label": "Recherche active de Disponibilité",
-    "kind": "merchant-ragot",
     "template": "Réussite : la journée aux étals paie — le stock du marchand est renouvelé avec +10 % de Disponibilité. Échec : il est renouvelé sans ce bonus. Une journée entière passe dans les deux cas.",
     "form": "descripteur",
     "rule": {
@@ -549,7 +514,6 @@
     "id": "port-buy-bargain",
     "type": "combat-stakes",
     "label": "Marchandage d’achat de cargaison",
-    "kind": "port-buy-bargain",
     "template": "Test opposé de Marchandage contre le commerçant, où son camp compte {sellerDR} DR de vendeur (lot partiel, cargaison en Surplus). Vous l’emportez : le prix baisse de 10 %, de 10 % de plus sur un DR net stupéfiant, et de 10 % de plus avec le Talent Négociateur. Il l’emporte : le prix monte selon la même règle, son Négociateur compris.",
     "form": "descripteur",
     "rule": {
@@ -566,7 +530,6 @@
     "id": "port-sell-bargain",
     "type": "combat-stakes",
     "label": "Marchandage de vente de cargaison",
-    "kind": "port-sell-bargain",
     "template": "Test opposé de Marchandage contre l’acheteur, où votre camp compte {sellerDR} DR de relation du port au bien. Vous l’emportez : le prix d’offre monte de 10 %, de 10 % de plus sur un DR net stupéfiant, et de 10 % de plus avec le Talent Négociateur. Il l’emporte : il baisse selon la même règle, son Négociateur compris.",
     "form": "descripteur",
     "rule": {
@@ -583,7 +546,6 @@
     "id": "port-sell-gossip",
     "type": "combat-stakes",
     "label": "Recherche d’un acheteur au port",
-    "kind": "port-sell-gossip",
     "template": "Réussite : un acheteur potentiel est approché — le dé de recherche suit. Échec : personne ne s’intéresse à cette cargaison dans ce port.",
     "form": "descripteur",
     "rule": {

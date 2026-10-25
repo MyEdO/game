@@ -13,9 +13,9 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
+import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema, typeDEnjeuSchema, entryCategorySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, refTypee, type RegimeDePorteur, type TypeEntite } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
@@ -637,12 +637,10 @@ export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
  *  les valeurs calculées pour ses trous. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun
  *  texte n'entre au document (le résolveur reste la seule porte du texte). */
 export const catalogStakeSchema = nommerChamps(z.strictObject({
-  key: nommerChamps(z.strictObject({
-    dataset: z.enum(['night', 'voyage', 'weather', 'flow', 'activity', 'combat']),
-    kind: z.string(),
-    entryId: z.string().optional(),
-    entryCategory: z.string().optional(),
-  }), { dataset: { label: "registre"  }, kind: { label: "type" , texte: { regime: "technique"} }, entryId: { label: "entrée" , texte: { regime: "technique"} }, entryCategory: { label: "catégorie d’entrée" , texte: { regime: "technique"} } }),
+  key: refTypee(typeDEnjeuSchema, {
+    entryId: nommerNoeud(z.string().optional(), { nom: 'entrée', texte: { regime: 'technique' } }),
+    entryCategory: entryCategorySchema,
+  }),
   values: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
 }), { key: { label: "clé" }, values: { label: "valeurs" , texte: { regime: "technique"} } });
 

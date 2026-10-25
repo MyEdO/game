@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
+import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './meta';
 /**
  * VALEURS de la grammaire de document (#1466 L1a) — les types de VALEUR partagés par tout document
  * de l'application : source, dés, formule, difficulté, caractéristique, localisation, apparence,
@@ -192,6 +192,20 @@ export type TypeDeFoyer = z.infer<typeof typeDeFoyerSchema>;
  */
 export const foyerDeRegleSchema = refTypee(typeDeFoyerSchema);
 export type FoyerDeRegle = RefTypee<TypeDeFoyer>;
+
+/** #2968 */
+export const typeDEnjeuSchema = enumNomme({
+  night: 'Nuit',
+  voyage: 'Voyage',
+  weather: 'Météo',
+  flow: 'Jet',
+  activity: 'Activité',
+  combat: 'Combat',
+  etat: 'État',
+});
+
+/** #2968 */
+export const entryCategorySchema = nommerNoeud(z.string().optional(), { nom: 'catégorie d’entrée', texte: { regime: 'technique' } });
 
 /**
  * Réf de source récurrente `{ book, page }` — vue sur 2-3 datasets (`characteristics.json`,

@@ -81,6 +81,7 @@ const doc = document(
       source: { label: 'Source' },
     }),
     'id',
+    { espace: {} },
   ),
   },
   {

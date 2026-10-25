@@ -3,7 +3,6 @@
     "id": "river-control-repair",
     "type": "voyage-stakes",
     "label": "Réparation du gréement",
-    "kind": "riverControlRepair",
     "template": "Réussi : malus de Navigation levés ({driftPenalty} dérive, {outOfControlPenalty} hors de contrôle).",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -19,7 +18,6 @@
     "id": "river-nav",
     "type": "voyage-stakes",
     "label": "Navigation de l’étape",
-    "kind": "riverNav",
     "template": "Échec : dérive {driftKm} km en aval ({driftPct} % de la vitesse).",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -35,7 +33,6 @@
     "id": "river-tack",
     "type": "voyage-stakes",
     "label": "Louvoyage",
-    "kind": "riverTack",
     "template": "Réussi : +{windPct} % de vitesse ; échec : +0 %.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -51,7 +48,6 @@
     "id": "river-capsize",
     "type": "voyage-stakes",
     "label": "Retirer la voile (chavirage)",
-    "kind": "riverCapsize",
     "template": "Échec : chavirage — {rounds} Test(s) de redressement, puis naufrage.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -67,7 +63,6 @@
     "id": "river-rigging",
     "type": "voyage-stakes",
     "label": "Préserver le gréement",
-    "kind": "riverRigging",
     "template": "Échec : Coup Critique au gréement, dérive hors de contrôle ({outOfControlPenalty} en Navigation).",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -83,7 +78,6 @@
     "id": "river-righting",
     "type": "voyage-stakes",
     "label": "Redressement du bateau",
-    "kind": "riverRighting",
     "template": "Réussi : bateau redressé. Échec : Round suivant à {nextPenalty}, naufrage après le Round {rounds}.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -99,7 +93,6 @@
     "id": "river-peril-nav",
     "type": "voyage-stakes",
     "label": "Évitement d’un péril",
-    "kind": "riverPerilNav",
     "template": "Échec : {hits} coup(s) à la coque, {damagePerHit} Dégâts par coup.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -111,7 +104,6 @@
     "id": "river-peril-detect",
     "type": "voyage-stakes",
     "label": "Détection d’un péril",
-    "kind": "riverPerilDetect",
     "template": "Échec : {damage} Dégâts à la coque.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -123,7 +115,6 @@
     "id": "river-hole-repair",
     "type": "voyage-stakes",
     "label": "Calfatage d’urgence",
-    "kind": "riverHoleRepair",
     "template": "Échec : le bateau coule dans {minutes} min.",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -139,7 +130,6 @@
     "id": "river-echouage-force",
     "type": "voyage-stakes",
     "label": "Renflouage",
-    "kind": "riverEchouageForce",
     "template": "Échec : le bateau reste échoué (aucune progression).",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -155,7 +145,6 @@
     "id": "sea-overspeed",
     "type": "voyage-stakes",
     "label": "Survitesse",
-    "kind": "sea-overspeed",
     "template": "Survitesse M+{overM} — {damage} Dégât(s) de coque par Test raté.",
     "source": {
       "book": "mer-des-griffes",
@@ -167,7 +156,6 @@
     "id": "sea-salissures",
     "type": "voyage-stakes",
     "label": "Salissures",
-    "kind": "sea-salissures",
     "template": "Échec : la coque gagne un niveau de Salissures.",
     "rule": {
       "id": "salissures-navire",
@@ -183,7 +171,6 @@
     "id": "sea-force-pace",
     "type": "voyage-stakes",
     "label": "Forcer le rythme",
-    "kind": "sea-force-pace",
     "template": "Réussi : +{paceM} M aujourd’hui ; Test d’Épuisement au soir dans les deux cas.",
     "source": {
       "book": "mer-des-griffes",
@@ -195,7 +182,6 @@
     "id": "sea-epuisement",
     "type": "voyage-stakes",
     "label": "Épuisement",
-    "kind": "sea-epuisement",
     "template": "Échec : +1 État {condition}.",
     "source": {
       "book": "mer-des-griffes",
@@ -207,7 +193,6 @@
     "id": "sea-scorbut",
     "type": "voyage-stakes",
     "label": "Scorbut",
-    "kind": "sea-scorbut",
     "template": "Échec : contracte {disease}.",
     "source": {
       "book": "mer-des-griffes",
@@ -219,7 +204,6 @@
     "id": "sea-mal-de-mer",
     "type": "voyage-stakes",
     "label": "Mal de mer",
-    "kind": "sea-mal-de-mer",
     "template": "Échec : contracte {disease}.",
     "source": {
       "book": "mer-des-griffes",
@@ -231,7 +215,6 @@
     "id": "sea-tonneau-expose",
     "type": "voyage-stakes",
     "label": "Tonneau d’eau contaminé",
-    "kind": "sea-tonneau-expose",
     "template": "Échec : contracte {disease}.",
     "source": {
       "book": "mer-des-griffes",
@@ -243,7 +226,6 @@
     "id": "sea-tonneau-contamine",
     "type": "voyage-stakes",
     "label": "Tonneau d’eau",
-    "kind": "sea-tonneau-contamine",
     "template": "Échec : le tonneau passe à l’état contaminé ({disease}) — chaque buveur y testera ensuite sa Résistance.",
     "source": {
       "book": "mer-des-griffes",
@@ -255,7 +237,6 @@
     "id": "exposure",
     "type": "voyage-stakes",
     "label": "Exposition",
-    "kind": "exposure",
     "template": "Échec : −10 en {chars} ; 2ᵉ échec : toutes les autres ; 3ᵉ+ : 1d10 Dégâts (ignorent les PA).",
     "rule": {
       "id": "exposition",
@@ -271,7 +252,6 @@
     "id": "sea-degagement",
     "type": "voyage-stakes",
     "label": "Dégagement du navire",
-    "kind": "sea-degagement",
     "template": "Échec : le navire reste bloqué (aucune progression ce jour).",
     "source": {
       "book": "mer-des-griffes",
@@ -283,7 +263,6 @@
     "id": "sea-degagement-debris",
     "type": "voyage-stakes",
     "label": "Dégagement des Débris marins",
-    "kind": "sea-degagement-debris",
     "template": "Test étendu : tant que le total de {totalDR} DR n'est pas atteint, le navire reste empêtré.",
     "rule": {
       "id": "degagement-debris-marins",
@@ -299,7 +278,6 @@
     "id": "crew-progression",
     "type": "voyage-stakes",
     "label": "Progression du bateau",
-    "kind": "progression",
     "template": "Le total de DR fixe les milles parcourus aujourd'hui.",
     "rule": {
       "id": "test-equipage-progression",
@@ -315,7 +293,6 @@
     "id": "crew-orientation",
     "type": "voyage-stakes",
     "label": "Orientation du jour",
-    "kind": "orientation",
     "template": "Le total de DR se lit à la table des Repères : du cap tenu à la dérive, qui déclenche un Changement de cap (retard, demi-tour ou quart de tour).",
     "rule": {
       "id": "test-equipage-orientation",
@@ -331,7 +308,6 @@
     "id": "crew-phare",
     "type": "voyage-stakes",
     "label": "Feu du phare",
-    "kind": "phare",
     "template": "Réussi : la lumière repérée donne un bonus de DR au Test d'Orientation.",
     "rule": {
       "id": "test-equipage-perception",
@@ -347,7 +323,6 @@
     "id": "crew-embuscade",
     "type": "voyage-stakes",
     "label": "Vigie avant l’abordage",
-    "kind": "embuscade",
     "template": "Échoué : le navire hostile aborde par Surprise.",
     "rule": {
       "id": "test-equipage-perception",
@@ -363,7 +338,6 @@
     "id": "crew-extermination",
     "type": "voyage-stakes",
     "label": "Purge de la vermine",
-    "kind": "extermination",
     "template": "Test étendu : les DR s'accumulent jusqu'au seuil d'infestation, et chaque Test consomme 1d10 heures.",
     "rule": {
       "id": "test-equipage-extermination-nuisibles",
@@ -379,7 +353,6 @@
     "id": "crew-entretien",
     "type": "voyage-stakes",
     "label": "Entretien du soir",
-    "kind": "entretien",
     "template": "Le Test subit −2 DR ; à +1 DR ou mieux, la coque récupère 1d10 Blessures.",
     "rule": {
       "id": "test-equipage-entretien",
@@ -395,7 +368,6 @@
     "id": "crew-affaler",
     "type": "voyage-stakes",
     "label": "Affaler les voiles",
-    "kind": "affaler",
     "template": "Échoué : Coup Critique au gréement.",
     "rule": {
       "id": "test-equipage-affaler",
@@ -411,7 +383,6 @@
     "id": "crew-affaler-ouragan",
     "type": "voyage-stakes",
     "label": "Affaler sous l’ouragan",
-    "kind": "sea-ouragan-affaler",
     "template": "Le Test subit −2 DR ; échoué : Coup Critique au gréement.",
     "rule": {
       "id": "test-equipage-affaler",
@@ -427,7 +398,6 @@
     "id": "crew-voyage-rapide",
     "type": "voyage-stakes",
     "label": "Rude épreuve du long voyage",
-    "kind": "voyage-rapide",
     "template": "Le total de DR entre dans le tirage du voyage rapide : il décide du palier subi (équipage, cargaison, coque).",
     "rule": {
       "id": "test-equipage-rude-epreuve",
@@ -443,7 +413,6 @@
     "id": "crew-poursuite",
     "type": "voyage-stakes",
     "label": "Manche de Poursuite",
-    "kind": "poursuite",
     "template": "Le total de DR décide du terrain gagné ou perdu : à la Distance d'évasion le poursuivant abandonne, à zéro c'est l'abordage.",
     "rule": {
       "id": "test-equipage-progression-poursuite",
@@ -459,7 +428,6 @@
     "id": "crew-tourbillon",
     "type": "voyage-stakes",
     "label": "Manche de Tourbillon",
-    "kind": "tourbillon",
     "template": "La coque encaisse les Dégâts du Tourbillon à chaque manche ; les DR s'accumulent jusqu'au seuil d'évasion.",
     "rule": {
       "id": "test-equipage-manoeuvre",
@@ -475,7 +443,6 @@
     "id": "nav-progression",
     "type": "voyage-stakes",
     "label": "Progression — Test de Navigation",
-    "kind": "sea-progression-nav",
     "template": "Le DR se lit au tableau de progression : de M+2 (4 DR ou plus) à la moitié de M (−5 ou moins).",
     "rule": {
       "id": "navigation-progression",
@@ -491,7 +458,6 @@
     "id": "land-peril",
     "type": "voyage-stakes",
     "label": "Péripéties de la route — le dé du jour",
-    "kind": "landPeril",
     "template": "Sur un résultat de {seuil}, un événement survient et se tire sur la table des Péripéties ; sinon, aucune péripétie ce jour-là.",
     "rule": {
       "id": "peripeties-de-voyage",
@@ -507,7 +473,6 @@
     "id": "land-peril-table",
     "type": "voyage-stakes",
     "label": "Table des péripéties",
-    "kind": "landPerilTable",
     "template": "La péripétie du jour : l'événement tiré s'applique au groupe, et appelle parfois un Test.",
     "rule": {
       "id": "peripeties-de-voyage",
@@ -523,7 +488,6 @@
     "id": "land-peril-survie",
     "type": "voyage-stakes",
     "label": "Voyage éreintant — itinéraire de substitution",
-    "kind": "landPerilSurvie",
     "template": "Réussi : un bon itinéraire de substitution est trouvé. Échec : tout le monde arrive un jour plus tard avec un État Exténué.",
     "rule": {
       "id": "extenue",
@@ -539,7 +503,6 @@
     "id": "land-peril-perception",
     "type": "voyage-stakes",
     "label": "Attaqués ! — repérer l'embuscade",
-    "kind": "landPerilPerception",
     "template": "Réussi : l'attaque est vue venir, personne n'est Surpris. Échec : le groupe tombe dans l'embuscade.",
     "rule": {
       "id": "embuscade-surprise",
@@ -555,7 +518,6 @@
     "id": "land-forced-pace",
     "type": "voyage-stakes",
     "label": "Attelage à l'allure forcée",
-    "kind": "landForcedPace",
     "template": "Échec : les animaux repassent au pas et chacun teste sa Résistance ou gagne un État Exténué — Échec Impressionnant ou pire de la bête : un État Exténué supplémentaire ; Échec Stupéfiant de la bête : 1d10 Blessures en plus (modifiées par le Bonus d'Endurance, minimum 1). Échec Stupéfiant (−6 DR) du conducteur : tirage sur les Problèmes de véhicule.",
     "rule": {
       "id": "conduite-d-attelage",
@@ -571,7 +533,6 @@
     "id": "land-forced-pace-control",
     "type": "voyage-stakes",
     "label": "Attelage incontrôlable — reprendre le contrôle",
-    "kind": "landForcedPaceControl",
     "template": "Réussi : l'attelage est maîtrisé. Échec : Accident — 2d10 Blessures aux occupants, modifiées par le Bonus d'Endurance et les Points d'Armure (minimum 1).",
     "rule": {
       "id": "conduite-d-attelage",
@@ -587,7 +548,6 @@
     "id": "sea-shipwreck-swim",
     "type": "voyage-stakes",
     "label": "Naufrage — rejoindre la côte",
-    "kind": "shipwreckSwim",
     "template": "Réussi : le nageur rejoint la côte, rescapé. Échec : emporté par les flots — il se noie.",
     "rule": {
       "id": "natation",
@@ -603,7 +563,6 @@
     "id": "sea-embrigadement-ragot",
     "type": "voyage-stakes",
     "label": "Embrigadement — retrouver l'équipage",
-    "kind": "embrigadementRagot",
     "template": "Réussi : la trace des embrigadés est retrouvée, reste à les libérer. Échec : l'autre navire prend la mer — 1d10 membres d'équipage de plus perdus.",
     "rule": {
       "id": "ragot",
@@ -619,7 +578,6 @@
     "id": "sea-embrigadement-discretion",
     "type": "voyage-stakes",
     "label": "Embrigadement — libérer en douce",
-    "kind": "embrigadementDiscretion",
     "template": "Réussi : les compagnons sont libérés dans l'ombre. Échec : repéré — 1d10 membres d'équipage de plus perdus.",
     "rule": {
       "id": "discretion",
@@ -635,7 +593,6 @@
     "id": "sea-priere-manann",
     "type": "voyage-stakes",
     "label": "Présage divin — Prière à Manann",
-    "kind": "sea-priere",
     "template": "Le présage se joue sur ce Test : {manann} d'Humeur de Manann et {moral} de Moral — un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
     "rule": {
       "id": "priere",
@@ -651,7 +608,6 @@
     "id": "stage-weather",
     "type": "voyage-stakes",
     "label": "Météo de l'Étape",
-    "kind": "stageWeather",
     "template": "Le temps de l'Étape : il commande le Test de Résistance de traversée (Neige/Blizzard) et les postes praticables du jour.",
     "rule": {
       "id": "meteo-etape",
@@ -667,7 +623,6 @@
     "id": "sea-board-event",
     "type": "voyage-stakes",
     "label": "Événement de bord",
-    "kind": "seaBoardEvent",
     "template": "Ce que le d100 décide pour la journée : l'événement de bord appliqué au navire — l'Humeur de Manann en est le modificateur — puis le délai de 1d10 jours avant le prochain.",
     "rule": {
       "id": "evenements-de-bord",

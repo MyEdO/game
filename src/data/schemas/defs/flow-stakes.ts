@@ -14,7 +14,7 @@
  * l'invariant d'entrée est porté par `options.affinerEntree`, AVANT le sceau de la fabrique.
  */
 import { z } from 'zod';
-import { foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
+import { entryCategorySchema, foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 
 export const file = 'flow-stakes.json';
@@ -37,7 +37,7 @@ const doc = document(
     rule: foyerDeRegleSchema.optional(),
     /** Catégorie Codex de l'ENTRÉE JOUÉE quand le foyer descend jusqu'à elle (`'seaShanties'`,
      *  `'crewTestTypes'`) — le producteur fournit alors l'`entryId` depuis son état. */
-    entryCategory: z.string().optional(),
+    entryCategory: entryCategorySchema,
   },
   {
     template: { label: 'Gabarit du texte', hint: 'Trous remplis par le producteur avec les valeurs calculées' },

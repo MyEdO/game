@@ -21,6 +21,7 @@ import { useId, useMemo, useState } from 'react';
 import { datasetArray, type DatasetKey } from '../../../data/overrides';
 import { ouverts, pasDeDonnee } from '../../../data/schemas/grammaire/descente';
 import { espaceDe, estFeuilleDId, refusDeLEntree, declarationDeFeuilleDId, declarationDeRefTypee, type FeuilleDId, type TypeEntite } from '../../../data/schemas/grammaire/ref';
+import { cleNichee } from '../../../data/schemas/grammaire/cle-d-espace';
 import { slugId } from '../../../data/slug';
 import { REFERENCES_NARRATIVES, type RegistreReference } from '../../../data/schemas/defs-scenes/registres-narratifs';
 import { entreesNarratives, type CleDeReferenceNarrative } from '../libellesNarratifs';
@@ -92,11 +93,10 @@ export function refFieldCfg(categoryKey: string, fieldKey: string): RefFieldCfg 
   return REF_FIELD[`${categoryKey}.${fieldKey}`] ?? REF_FIELD[fieldKey];
 }
 
-/** Config `single` d'une référence de `type` : le dataset de racine de l'espace du type
- *  (`DATASET_FICHIER_DERIVE`), `undefined` s'il n'en a pas. */
+/** #2968 */
 function cfgDuType(type: TypeEntite): (RefDatasetCfg & { single: true }) | undefined {
   const espace = espaceDe(type);
-  const ds = Object.keys(DATASET_FICHIER_DERIVE).find((d) => DATASET_FICHIER_DERIVE[d] === espace && DATASET_SUITE_DERIVE[d] === '');
+  const ds = Object.keys(DATASET_FICHIER_DERIVE).find((d) => cleNichee(DATASET_FICHIER_DERIVE[d], DATASET_SUITE_DERIVE[d]) === espace);
   return ds === undefined ? undefined : { ds: ds as DatasetKey, single: true };
 }
 
@@ -116,7 +116,7 @@ export function cfgDuNoeudType(noeud: unknown): PolymorpheCfg | undefined {
   return {
     polymorphe: decl.types.map((type) => {
       const cfg = cfgDuType(type);
-      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(type)}) n'a aucun dataset de racine à offrir au sélecteur.`);
+      if (!cfg) throw new Error(`RefField : le type « ${type} » (${espaceDe(type)}) n'a aucun dataset à offrir au sélecteur.`);
       return { type, label: decl.libelles[type] ?? type, cfg };
     }),
   };
@@ -304,7 +304,7 @@ function PolymorpheRefField(
   { label, ariaLabel, invalide, describedBy, cfg, champ, value, onChange, nullable }:
   Accessibilite & { label?: string; cfg: PolymorpheCfg; champ: Champ; value: unknown; onChange: (v: unknown) => void; nullable?: boolean },
 ) {
-  const cur = value && typeof value === 'object' ? (value as { id?: unknown; type?: unknown }) : {};
+  const cur = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const choisi = cfg.polymorphe.find((p) => p.type === cur.type);
   const id = typeof cur.id === 'string' ? cur.id : '';
   const nom = ariaLabel ?? label;
@@ -315,7 +315,7 @@ function PolymorpheRefField(
         <select aria-label={`${nom} — type`} aria-invalid={invalide || undefined} aria-describedby={describedBy} value={choisi?.type ?? ''}
           onChange={(e) => {
             const type = e.target.value;
-            onChange(type === '' ? videDuNoeud(champ.noeud) : { id: '', type });
+            onChange(type === '' ? videDuNoeud(champ.noeud) : { ...cur, id: '', type });
           }}>
           {nullable && <option value="">— (aucun) —</option>}
           {!nullable && !choisi && <option value="">— (choisir) —</option>}
@@ -323,7 +323,7 @@ function PolymorpheRefField(
         </select>
         {choisi && (
           <SingleRefField nu ariaLabel={`${nom} — fiche`} invalide={invalide} describedBy={describedBy} cfg={choisi.cfg} champ={{ noeud: undefined, entreesEnTete: SANS_ENTREE }}
-            value={id} onChange={(v) => onChange({ id: typeof v === 'string' ? v : '', type: choisi.type })} />
+            value={id} onChange={(v) => onChange({ ...cur, id: typeof v === 'string' ? v : '', type: choisi.type })} />
         )}
       </div>
     </div>

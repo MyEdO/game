@@ -32,6 +32,7 @@ export interface MetaChamp {
 export type MetaDesChamps<C> = { [K in keyof C]: MetaChamp };
 
 export interface NomDeNoeud {
+  readonly texte?: MetaChamp['texte'];
   readonly label?: string;
   readonly nom?: string;
   readonly element?: string;
@@ -71,9 +72,10 @@ export function nommerNoeud<N extends z.ZodType>(noeud: N, nom: NomDeNoeud): N {
 
 export function metasExtra(extra: Record<string, z.ZodType> | undefined): Readonly<Record<string, MetaChamp>> {
   return Object.fromEntries(Object.entries(extra ?? {}).map(([cle, noeud]) => {
-    const label = nomDeNoeud(noeud)?.nom;
+    const nom = nomDeNoeud(noeud);
+    const label = nom?.nom;
     if (!label) throw new Error(`champ ajouté sans nom : ${cle}`);
-    return [cle, { label }];
+    return [cle, { label, ...(nom?.texte === undefined ? {} : { texte: nom.texte }) }];
   }));
 }
 

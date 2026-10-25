@@ -163,7 +163,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
       <div className="tf-row">
         {test.stake?.key ? (
           <span className="dr" title="Enjeu servi par un dataset du moteur — il s’édite dans sa donnée, pas dans la scène.">
-            Enjeu : {test.stake.key.dataset}/{test.stake.key.kind} (catalogue)
+            Enjeu : {test.stake.key.type}/{test.stake.key.id} (catalogue)
           </span>
         ) : (
           <Stack>
