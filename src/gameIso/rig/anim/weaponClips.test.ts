@@ -1,7 +1,7 @@
 import { rotOf, type Pose } from '../poses';
 import type { BoneId } from '../bones';
 import { describe, it, expect } from 'vitest';
-import { weaponRest, weaponAttackClip, weaponParryClip, mountedAttackClip, mountedParryClip, seatedClip, isRangedFamily } from './weaponClips';
+import { weaponRest, weaponAttackClip, weaponParryClip, mountedAttackClip, mountedParryClip, seatedClip } from './weaponClips';
 import { clipDuration, CLIPS } from './clips';
 import { findTrappingById } from '../../../data';
 import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
@@ -162,13 +162,5 @@ describe('clips MONTÉS — gestes en selle (deltas sur mountedRest, jamais bass
       expect(seatedClip(CLIPS[name]).steps.some((s) => Object.keys(s.pose).some((k) => SEATED_LOCKED.test(k))), name).toBe(false);
     }
     expect(seatedClip(CLIPS.dodge).steps[0].pose.torse).toBeDefined();
-  });
-});
-
-describe('isRangedFamily (via classe de maniement)', () => {
-  it('classe les familles à distance', () => {
-    expect(isRangedFamily(w('arc-long', 'ranged'))).toBe(true);
-    expect(isRangedFamily(w('pistolet', 'ranged'))).toBe(true);
-    expect(isRangedFamily(w('dague'))).toBe(false);
   });
 });

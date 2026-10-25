@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { handlingClass, isRangedHandling, type Handling } from './handling';
-import { WEAPON_FORMS } from '../parts/weaponForms';
-import { findTrappingById } from '../../../data';
-import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../../../engine/items';
-import { armeDeDessin, type FormeDArme } from '../../../noyau/equipementDessine';
-import type { Weapon } from '../../../engine/types';
+import { MANIEMENTS, maniementDe, estManiementADistance, type Maniement } from './animation';
+import { WEAPON_FORMS } from '../gameIso/rig/parts/weaponForms';
+import { findTrappingById } from '../data';
+import { buildWeapon, itemFromTrappingById, weaponFromItem } from '../engine/items';
+import { armeDeDessin, type FormeDArme } from './equipementDessine';
+import type { Weapon } from '../engine/types';
 
 /** #2967 */
 const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => {
@@ -15,9 +15,9 @@ const w = (id: string, type: 'melee' | 'ranged' = 'melee'): FormeDArme => {
 /** Projection de forme déjà résolue (pas de libellé). */
 const byShape = (forme: string | undefined, type: 'melee' | 'ranged' = 'melee'): FormeDArme => ({ type, candidats: forme ? [forme] : [] });
 
-describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () => {
+describe('maniementDe — dérivé de la FORME, pas du Groupe de règles', () => {
   it('mappe un représentant de chaque classe', () => {
-    const cases: Array<[string, 'melee' | 'ranged', Handling]> = [
+    const cases: Array<[string, 'melee' | 'ranged', Maniement]> = [
       ['dague', 'melee', 'lame1m'],
       ['rapiere', 'melee', 'escrime'],
       ['zweihander', 'melee', 'lourde2m'],
@@ -35,48 +35,49 @@ describe('handlingClass — dérivé de la FORME, pas du Groupe de règles', () 
       ['bombe', 'ranged', 'explosif'],
     ];
     for (const [name, type, expected] of cases) {
-      expect(handlingClass(w(name, type)), name).toBe(expected);
+      expect(maniementDe(w(name, type)), name).toBe(expected);
     }
   });
 
   it('la FORME prime sur le Groupe trompeur (bec-de-corbin: Groupe Cavalerie → maniement lame1m)', () => {
-    expect(handlingClass(w('marteau-a-bec-de-corbin'))).toBe('lame1m');
+    expect(maniementDe(w('marteau-a-bec-de-corbin'))).toBe('lame1m');
   });
 
   it('arme à feu d’ingénierie (Arquebus à répétition) → arme_feu comme la poudre noire', () => {
-    expect(handlingClass(w('arquebus-a-repetition', 'ranged'))).toBe('arme_feu');
+    expect(maniementDe(w('arquebus-a-repetition', 'ranged'))).toBe('arme_feu');
   });
 
   it('toute forme cataloguée résout vers UNE classe connue (aucune forme orpheline)', () => {
-    const KNOWN: Handling[] = ['lame1m', 'escrime', 'lourde2m', 'hampe', 'lance_cav', 'fleau', 'parade', 'poings', 'arc', 'arbalete', 'arme_feu', 'fronde', 'jet', 'entraves', 'explosif'];
+    const KNOWN = MANIEMENTS.filter((m) => m !== 'cornes');
     for (const f of WEAPON_FORMS) {
-      const h = handlingClass(byShape(f.slug, f.type));
+      const h = maniementDe(byShape(f.slug, f.type));
       expect(KNOWN, f.slug).toContain(h);
     }
   });
 
   it('repli : arme non dessinée → groupe canonique (Épée → lame1m, mêlée inconnue → lame1m, distance inconnue → arc)', () => {
-    expect(handlingClass(w('epee'))).toBe('lame1m');
-    expect(handlingClass(w('truc-bizarre', 'melee'))).toBe('lame1m');
-    expect(handlingClass(w('engin-inconnu', 'ranged'))).toBe('arc');
+    expect(maniementDe(w('epee'))).toBe('lame1m');
+    expect(maniementDe(w('truc-bizarre', 'melee'))).toBe('lame1m');
+    expect(maniementDe(w('engin-inconnu', 'ranged'))).toBe('arc');
   });
 
   it('sans arme → lame1m (défaut neutre)', () => {
-    expect(handlingClass(undefined)).toBe('lame1m');
+    expect(maniementDe(undefined)).toBe('lame1m');
   });
 
   it('#2113 S3 — arme invoquée : le maniement suit la forme résolue de `form`, comme son dessin', () => {
     const invoquee: Weapon = buildWeapon({ label: 'Arme aethyrique', type: 'melee', damage: { plusBF: false, flat: 4 }, shape: findTrappingById('arbalete')!.shape });
     expect(findTrappingById('arbalete')?.shape?.id, 'la sonde mord : le gabarit a une forme d’arbalète').toBe('arbalete');
-    expect(handlingClass(armeDeDessin(invoquee))).toBe('arbalete');
+    expect(maniementDe(armeDeDessin(invoquee))).toBe('arbalete');
   });
 });
 
-describe('isRangedHandling', () => {
+describe('estManiementADistance', () => {
   it('classe les familles à distance', () => {
-    expect(isRangedHandling(w('arc-long', 'ranged'))).toBe(true);
-    expect(isRangedHandling(w('bombe', 'ranged'))).toBe(true);
-    expect(isRangedHandling(w('fouet', 'ranged'))).toBe(true);
-    expect(isRangedHandling(w('dague'))).toBe(false);
+    expect(estManiementADistance(w('arc-long', 'ranged'))).toBe(true);
+    expect(estManiementADistance(w('pistolet', 'ranged'))).toBe(true);
+    expect(estManiementADistance(w('bombe', 'ranged'))).toBe(true);
+    expect(estManiementADistance(w('fouet', 'ranged'))).toBe(true);
+    expect(estManiementADistance(w('dague'))).toBe(false);
   });
 });

@@ -101,7 +101,7 @@ export function weaponFromTrait(t: TraitInstance, resolveTrapping: TrappingResol
   // (`capabilities.naturalWeapon`, donnée). L'arme reste UNE (l'Action d'attaque) ; le compte joue sur
   // les Attaques GRATUITES (aiCreatureFreeAttacks, LDB 85 l.405). `natural` → aucune arme tenue dessinée.
   // `attackKind = t.id` (l'id du trait EST le kind : morsure/cornes/tentacules) → la pose/anim route par
-  // ce champ STABLE (handlingClass), jamais par le libellé.
+  // ce champ STABLE (`maniementDe`, `src/noyau/animation.ts`), jamais par le libellé.
   const nat = findTraitById(t.id)?.capabilities?.naturalWeapon;
   if (nat) return buildWeapon({ label: traitLabelById(t.id), type: nat.ranged ? 'ranged' : 'melee', damage: dmg, natural: true, attackKind: t.id });
   return null;

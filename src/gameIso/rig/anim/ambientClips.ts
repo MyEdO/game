@@ -8,6 +8,7 @@
  * les bras, > 0 les descend vers l'avant/le sol.
  */
 import type { Clip } from './clips';
+import type { RoleAmbiant } from '../../../noyau/animation';
 
 /**
  * Animation phare : créature qui DÉVORE une proie au sol. Le rig est un pantin 2D de
@@ -64,16 +65,16 @@ const standing: Clip = {
   ],
 };
 
-export const AMBIENT_CLIPS: Record<string, Clip> = { feeding, praying, cowering, standing, howling };
+export const AMBIENT_CLIPS: Readonly<Record<string, Clip>> = { feeding, praying, cowering, standing, howling } satisfies Record<RoleAmbiant, Clip>;
 
 /** Alias : clés d'ambiance courtes authorées sur une entité de scène (`gameIso/sceneAnims`)
  *  → clip rig correspondant, pour qu'une `anim` authorée trouve un geste sur un corps de rig. */
-const ALIASES: Record<string, string> = {
+const ALIASES: Readonly<Record<string, RoleAmbiant>> = {
   feed: 'feeding', howl: 'howling', breathe: 'standing', sway: 'standing', wrap: 'standing',
 };
 
 /** Liste pour l'éditeur (clé + libellé FR). */
-export const AMBIENT_LIST: { key: string; label: string }[] = [
+export const AMBIENT_LIST: { key: RoleAmbiant; label: string }[] = [
   { key: 'standing', label: 'Debout (respire)' },
   { key: 'feeding', label: 'Dévore un cadavre' },
   { key: 'howling', label: 'Hurle (tête levée)' },

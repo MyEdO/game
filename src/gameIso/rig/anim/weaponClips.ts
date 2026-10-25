@@ -1,5 +1,5 @@
 /**
- * Animations PAR CLASSE DE MANIEMENT (`handling.ts`) — PAS par Groupe de règles.
+ * Animations PAR CLASSE DE MANIEMENT (`src/noyau/animation.ts`) — PAS par Groupe de règles.
  *
  *  - `weaponRest(w)` : pose de base TOUJOURS appliquée (orientation de l'arme + PRISE 1/2
  *    mains). C'est elle qui fixe « comment l'arme est tenue » ; les armes à 2 mains (hampe,
@@ -14,7 +14,7 @@
  */
 import type { Pose } from '../poses';
 import type { Clip, ClipStep } from './clips';
-import { handlingClass, isRangedHandling, type Handling } from './handling';
+import { maniementDe, estManiementADistance, type Maniement } from '../../../noyau/animation';
 import type { ArmeDeDessin, BouclierDeDessin, FormeDArme } from '../../../noyau/equipementDessine';
 
 const REST: Pose = {};
@@ -24,7 +24,7 @@ const c = (steps: ClipStep[], onImpact?: number): Clip => ({ steps, onImpact });
 // Les 2-mains (lourde2m/hampe/arc.../arme_feu) amènent la main gauche (epauleG/avantBrasG)
 // sur l'arme : le rig 2D ne pouvant CENTRER l'arme (ancrée à la main droite), la prise se lit
 // via un PORT DIAGONAL travers-du-corps. Valeurs calées au QC sur modèle (front + profil).
-const RESTS: Record<Handling, Pose> = {
+const RESTS: Record<Maniement, Pose> = {
   lame1m: {}, // lame 1 main : pointe-bas au côté (repos squelette)
   escrime: { arme: -30, epauleD: 8 }, // pointe en avant, en garde basse
   lourde2m: { arme: -126, epauleD: 12, avantBrasD: 6, epauleG: 44, avantBrasG: 38 }, // greatsword, prise demi-épée
@@ -45,11 +45,11 @@ const RESTS: Record<Handling, Pose> = {
 
 /** Pose de PRISE/orientation de l'arme — TOUJOURS appliquée (sous les clips). */
 export function weaponRest(w?: FormeDArme): Pose {
-  return w ? RESTS[handlingClass(w)] : {};
+  return w ? RESTS[maniementDe(w)] : {};
 }
 
 // --- ATTAQUE par classe (deltas AU-DESSUS du repos) ------------------------
-const ATTACK: Record<Handling, Clip> = {
+const ATTACK: Record<Maniement, Clip> = {
   // Lame 1 main : taille latérale.
   lame1m: c([
     { pose: { epauleD: -30, avantBrasD: -18, torse: -5 }, ms: 130, easing: 'easeOut' },
@@ -174,7 +174,7 @@ const leftHanded = (w: ArmeDeDessin): boolean => w.hand === 'off' || w.attackKin
 /** Geste d'attaque selon la classe de maniement (défaut : lame1m), MIROITÉ pour le bras gauche. */
 export function weaponAttackClip(w?: ArmeDeDessin): Clip {
   if (!w) return ATTACK.lame1m;
-  const base = ATTACK[handlingClass(w)];
+  const base = ATTACK[maniementDe(w)];
   return leftHanded(w) ? mirrorClip(base) : base;
 }
 
@@ -208,7 +208,7 @@ const BARE_BLOCK = c([
   { pose: REST, ms: 240, easing: 'easeInOut' },
 ]);
 
-const MELEE_TWO_HANDED = new Set<Handling>(['lourde2m', 'hampe', 'lance_cav']);
+const MELEE_TWO_HANDED = new Set<Maniement>(['lourde2m', 'hampe', 'lance_cav']);
 
 /** Geste de parade : bouclier > tireur (esquive) > 2-mains (blocage) > escrime/poings/garde.
  *  Comme l'attaque, le geste se joue sur LE BRAS QUI TIENT l'arme de parade : une main-gauche/
@@ -216,8 +216,8 @@ const MELEE_TWO_HANDED = new Set<Handling>(['lourde2m', 'hampe', 'lance_cav']);
 export function weaponParryClip(w?: ArmeDeDessin, hasShield = false): Clip {
   if (hasShield) return SHIELD_PARRY; // déjà à gauche (bras de bouclier)
   if (!w) return SWORD_GUARD;
-  const h = handlingClass(w);
-  if (isRangedHandling(w)) return RANGED_FLINCH; // arc/arbalète/arme à feu/jet… esquivent
+  const h = maniementDe(w);
+  if (estManiementADistance(w)) return RANGED_FLINCH; // arc/arbalète/arme à feu/jet… esquivent
   if (MELEE_TWO_HANDED.has(h)) return STAFF_BLOCK; // les deux bras — pas de côté
   if (h === 'poings' || h === 'cornes') return BARE_BLOCK; // se couvre des deux avant-bras
   const clip = h === 'escrime' ? FENCE_PARRY : SWORD_GUARD; // lame1m, fléau, parade
@@ -249,7 +249,7 @@ const MOUNTED_CHOP_2M = c([
   { pose: { arme: 142, epauleD: -30, epauleG: -22, avantBrasD: -10, torse: -8 }, ms: 100, easing: 'easeOutBack' }, // monde ≈ 123 : abat avant-bas, les 2 bras projetés
   { pose: REST, ms: 230, easing: 'easeInOut' },
 ], 260);
-const MOUNTED_ATTACK: Partial<Record<Handling, Clip>> = {
+const MOUNTED_ATTACK: Partial<Record<Maniement, Clip>> = {
   // CHARGE lance couchée : la lance est DÉJÀ en arrêt (−86, monde ≈ 101 horizontale) — pas de
   // moulinet : le poing recule (le corps se coile), puis PROJETTE la lance devant, buste couché
   // sur l'encolure ; `arme` compense le bras pour que la pointe RESTE en arrêt (~98-103 monde).
@@ -289,8 +289,8 @@ const MOUNTED_ATTACK: Partial<Record<Handling, Clip>> = {
 /** Geste d'attaque EN SELLE : clip monté dédié, sinon le clip à pied assis (sans bassin/jambes).
  *  Comme à pied, le geste se joue sur le bras qui tient l'arme (miroir main gauche/tentacule). */
 export function mountedAttackClip(w?: ArmeDeDessin): Clip {
-  const base = w && MOUNTED_ATTACK[handlingClass(w)];
-  const clip = base ?? seatedClip(w ? ATTACK[handlingClass(w)] : ATTACK.lame1m);
+  const base = w && MOUNTED_ATTACK[maniementDe(w)];
+  const clip = base ?? seatedClip(w ? ATTACK[maniementDe(w)] : ATTACK.lame1m);
   return w && leftHanded(w) ? mirrorClip(clip) : clip;
 }
 
@@ -298,9 +298,6 @@ export function mountedAttackClip(w?: ArmeDeDessin): Clip {
 export function mountedParryClip(w?: ArmeDeDessin, hasShield = false): Clip {
   return seatedClip(weaponParryClip(w, hasShield));
 }
-
-/** True si l'arme se manie à distance (geste de tir/jet plutôt que de mêlée). */
-export const isRangedFamily = isRangedHandling;
 
 /** Bouclier présent dans l'équipement (pour le choix de parade). */
 export function hasShieldEquipped(weapons: readonly ArmeDeDessin[], shield: BouclierDeDessin | undefined): boolean {

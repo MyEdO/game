@@ -14,7 +14,7 @@
 import type { Weapon } from '../../../engine/types';
 import { CLIPS, clipDuration, sampleClip, type Clip } from './clips';
 import { ambientClip } from './ambientClips';
-import { handlingClass } from './handling';
+import { maniementDe } from '../../../noyau/animation';
 import { mountedAttackClip, mountedParryClip, seatedClip, weaponAttackClip, weaponParryClip } from './weaponClips';
 import { isSupportiveCast, spellCastClip, spellCastStyle } from './spellClips';
 import { armeDeDessin, type ArmeDeDessin } from '../../../noyau/equipementDessine';
@@ -120,7 +120,7 @@ const seat = (seated?: boolean) => (seated ? 'selle' : 'pied');
  * SUR-ensemble volontaire : deux armes de gestes identiques peuvent porter deux clés (une entrée
  * d'atlas de plus), jamais l'inverse (une collision rendrait le mauvais geste).
  */
-const weaponKey = (w?: ArmeDeDessin) => (w ? `${handlingClass(w)}:${w.hand}:${w.attackKind ?? '-'}` : 'nu');
+const weaponKey = (w?: ArmeDeDessin) => (w ? `${maniementDe(w)}:${w.hand}:${w.attackKind ?? '-'}` : 'nu');
 
 // ————————————————————————————————————————————————————————————————
 // 3. SÉLECTION — voie BIPÈDE

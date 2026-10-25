@@ -1,6 +1,7 @@
 import type { Pose } from '../poses';
 import { ease, type Easing } from './tween';
 import { lerpPose } from '../poses';
+import type { RoleDeCombat } from '../../../noyau/animation';
 
 export interface ClipStep {
   pose: Pose;
@@ -12,12 +13,11 @@ export interface Clip {
   onImpact?: number;
   loop?: boolean;
 }
-export type ClipName = 'melee' | 'ranged' | 'cast' | 'dodge' | 'parry' | 'hit' | 'walk' | 'idle';
 
 const REST: Pose = {};
 
 /** Clips d'animation (deltas d'angles d'os). Valeurs initiales — réglées à la recette navigateur. */
-export const CLIPS: Record<ClipName, Clip> = {
+export const CLIPS: Record<RoleDeCombat, Clip> = {
   // Bras droit (arme) en arrière puis fente avant ; léger pivot du torse.
   melee: {
     steps: [
