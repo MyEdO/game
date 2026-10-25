@@ -147,17 +147,38 @@ const MARQUEUR_ASSISTANT = /non-verbatim utilisateur/
  *  italique (`*`, `_`) retirés, casse basse. */
 const formeDAnnonce = (ligne) => ligne.replace(/[’‘]/g, "'").replace(/[*_]/g, '').toLowerCase()
 
+/** Introducteur d'une question citée : `question(s)` ou la préposition `à`, `au`, `aux`. */
+const INTRODUIT_QUESTION = /(?:\bquestions?|(?:^|[\s(,])(?:à|aux?))\s*:?\s*$/
+/** Réponse citée qui suit une question citée : `:` ou `→`, puis `«`. */
+const SUIVIE_DE_REPONSE = /^\s*[:→]\s*«/
+
+/** Une question CITÉE (`« … ? »`) à profondeur de guillemets 0 — dedans, c'est la parole citée de
+ *  l'utilisateur —, introduite par `INTRODUIT_QUESTION` ou suivie de `SUIVIE_DE_REPONSE`. */
+const QUESTION_CITEE = {
+  test(ligne) {
+    for (let i = ligne.indexOf('«'); i >= 0; i = ligne.indexOf('«', i)) {
+      let fin = i + 1
+      for (let p = 1; fin < ligne.length && p > 0; fin++) p += ligne[fin] === '«' ? 1 : ligne[fin] === '»' ? -1 : 0
+      const contenu = ligne.slice(i + 1, ligne[fin - 1] === '»' ? fin - 1 : fin)
+      if (/\?\s*$/.test(contenu)
+        && (INTRODUIT_QUESTION.test(ligne.slice(0, i)) || SUIVIE_DE_REPONSE.test(ligne.slice(fin)))) return true
+      i = fin
+    }
+    return false
+  },
+}
+
 /** Les FORMES du texte de l'assistant, donc tenues de porter `MARQUEUR_ASSISTANT` (lues sur
- *  `formeDAnnonce`) : une question posée — en tête de ligne, ou suivie de `(` ou `:` — ; une question
- *  CITÉE (`« … ? »`) introduite par `réponse à` ou `question` ; une option ou proposition en tête de
- *  ligne qui n'est ni retenue ni choisie ; une option ou proposition, ses titres entre « » ou non, puis
- *  un qualificatif non retenu ou écarté, où qu'elle soit ; une évaluation d'ingénierie en tête de
- *  ligne. La simple mention de l'outil `AskUserQuestion` n'en est pas une : l'option retenue ou
- *  choisie est la parole de l'utilisateur, où qu'elle ait été posée. */
+ *  `formeDAnnonce`) : une ou des questions posées — en tête de ligne, ou suivies de `(` ou `:` — ;
+ *  une `QUESTION_CITEE` ; une option ou proposition en tête de ligne qui n'est ni retenue ni
+ *  choisie ; une option ou proposition, ses titres entre « » ou non, puis un qualificatif non
+ *  retenu ou écarté, où qu'elle soit ; une évaluation d'ingénierie en tête de ligne. La simple
+ *  mention de l'outil `AskUserQuestion` n'en est pas une : l'option retenue ou choisie est la
+ *  parole de l'utilisateur, où qu'elle ait été posée. */
 const ANNONCES_ASSISTANT = [
-  /^[\s>-]*question posée/,
-  /question posée\s*[(:]/,
-  /\b(?:réponse à|question)\s*:?\s*«[^»]*\?\s*»/,
+  /^[\s>-]*questions? posées?/,
+  /questions? posées?\s*[(:]/,
+  QUESTION_CITEE,
   /^[\s>-]*(?:options?|propositions?)\b(?!\s+(?:retenue|choisie)s?\b)/,
   /\b(?:options?|propositions?)(?:\s*«[^»]*»(?:\s*(?:,|et)\s*«[^»]*»)*)?\s+(?:(?:est|sont|a été|ont été)\s+)?(?:non retenues?|écartées?)/,
   /^[\s>-]*[ée]valuation d'ingénierie/,
@@ -195,7 +216,7 @@ export function defautsDuTexteAssistant(fichier, texte) {
         ? [`${fichier}:${i + 1} — texte de l'assistant (\`non-verbatim utilisateur\`) porteur de « » : il s'écrit sans guillemets français, réservés à la parole de l'utilisateur`]
         : []
     }
-    return ANNONCES_ASSISTANT.some((re) => re.test(formeDAnnonce(l)))
+    return ANNONCES_ASSISTANT.some((forme) => forme.test(formeDAnnonce(l)))
       ? [`${fichier}:${i + 1} — texte de l'assistant (question, option non retenue, évaluation d'ingénierie) sans le marqueur \`non-verbatim utilisateur\` : la ligne n'est pas écartée, et ses « » passeraient pour la parole de l'utilisateur`]
       : []
   })
