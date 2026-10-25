@@ -1,5 +1,5 @@
-// Environnement Python épinglé de la chaîne de production 3D (#2948) : un venv Python 3.11 hors de l'arbre, rempli
-// par `pip --require-hashes` depuis `requirements.txt`, puis la primitive demandée lancée dedans.
+// Environnement Python épinglé de la chaîne de production 3D (#2948) : un venv CPython hors de l'arbre, à la
+// version du marqueur `python_version` de `requirements.txt`, rempli par `pip --require-hashes` depuis `requirements.txt`, puis la primitive demandée lancée dedans.
 //
 //   node scripts/personnage-3d/environnement.mjs                       installe (ou vérifie) l'environnement
 //   node scripts/personnage-3d/environnement.mjs <script.py> [args…]   installe puis lance le script dans le venv
@@ -14,7 +14,11 @@ import { fileURLToPath } from 'node:url'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const EXIGENCES = join(ICI, 'requirements.txt')
-const EMPREINTE = createHash('sha256').update(readFileSync(EXIGENCES)).digest('hex').slice(0, 16)
+const TEXTE_EXIGENCES = readFileSync(EXIGENCES, 'utf8')
+const EMPREINTE = createHash('sha256').update(TEXTE_EXIGENCES).digest('hex').slice(0, 16)
+/** La version de CPython exigée : le marqueur `python_version` de `requirements.txt`, sa seule source. */
+export const PYTHON = TEXTE_EXIGENCES.match(/python_version\s*==\s*"(\d+\.\d+)"/)?.[1]
+if (!PYTHON) throw new Error(`${EXIGENCES} : aucun marqueur python_version == "X.Y"`)
 
 /** Le venv, hors de l'arbre, sur le patron du `CACHE` de `hotes/godot/construire.mjs`. */
 const CACHE = join(homedir(), '.cache', 'wfrp-personnage-3d', EMPREINTE)
@@ -23,17 +27,17 @@ const PYTHON_DU_VENV = WINDOWS ? join(CACHE, 'Scripts', 'python.exe') : join(CAC
 /** Posé après un `pip install` réussi : un venv sans lui est un venv inachevé, recréé. */
 const TEMOIN = join(CACHE, 'installe.ok')
 
-/** Les interpréteurs essayés, dans l'ordre ; le premier qui se déclare 3.11 gagne. */
+/** Les interpréteurs essayés, dans l'ordre ; le premier qui se déclare `PYTHON` gagne. */
 const CANDIDATS = WINDOWS
-  ? [['py', ['-3.11']], ['python3.11', []], ['python', []]]
-  : [['python3.11', []], ['python3', []], ['python', []]]
+  ? [['py', [`-${PYTHON}`]], [`python${PYTHON}`, []], ['python', []]]
+  : [[`python${PYTHON}`, []], ['python3', []], ['python', []]]
 
-export class Python311Introuvable extends Error {
+export class PythonIntrouvable extends Error {
   constructor(essais) {
-    super(`Python311Introuvable : la roue bpy 4.5.14 n'existe que pour CPython 3.11 (cp311). Installe Python 3.11 64 bits `
-      + `(Windows : https://www.python.org/downloads/release/python-3119/ ou « winget install Python.Python.3.11 » ; `
-      + `Linux : paquet python3.11 et python3.11-venv). Essayés : ${essais.join(' ; ')}`)
-    this.name = 'Python311Introuvable'
+    super(`PythonIntrouvable : les roues de ${EXIGENCES} exigent CPython ${PYTHON} 64 bits. Installe-le `
+      + `(Windows : https://www.python.org/downloads/ ou « winget install Python.Python.${PYTHON} » ; `
+      + `Linux : paquets python${PYTHON} et python${PYTHON}-venv). Essayés : ${essais.join(' ; ')}`)
+    this.name = 'PythonIntrouvable'
   }
 }
 
@@ -47,21 +51,21 @@ function executer(commande, args, options = {}) {
   }
 }
 
-/** Le premier interpréteur 3.11 des `CANDIDATS`, ou `Python311Introuvable`. */
-export function python311(candidats = CANDIDATS) {
+/** Le premier interpréteur `PYTHON` des `CANDIDATS`, ou `PythonIntrouvable`. */
+export function pythonExige(candidats = CANDIDATS) {
   const essais = []
   for (const [commande, prefixe] of candidats) {
     const vu = spawnSync(commande, [...prefixe, '-c', 'import sys; print("%d.%d" % sys.version_info[:2])'], { encoding: 'utf8' })
     const version = vu.status === 0 ? vu.stdout.trim() : null
     essais.push(`${[commande, ...prefixe].join(' ')} → ${version ?? 'absent'}`)
-    if (version === '3.11') return [commande, prefixe]
+    if (version === PYTHON) return [commande, prefixe]
   }
-  throw new Python311Introuvable(essais)
+  throw new PythonIntrouvable(essais)
 }
 
 function installer() {
   if (existsSync(TEMOIN)) return
-  const [commande, prefixe] = python311()
+  const [commande, prefixe] = pythonExige()
   mkdirSync(dirname(CACHE), { recursive: true })
   executer(commande, [...prefixe, '-m', 'venv', '--clear', CACHE])
   executer(PYTHON_DU_VENV, ['-m', 'pip', 'install', '--disable-pip-version-check', '--no-input', '--require-hashes',

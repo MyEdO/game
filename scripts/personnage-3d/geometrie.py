@@ -16,7 +16,6 @@ def principled(mat):
 def material(name, color, metallic=0):
     mat = bpy.data.materials.new(name)
     mat.diffuse_color = (*color, 1)
-    mat.use_nodes = True
     shader = principled(mat)
     shader.inputs["Base Color"].default_value = (*color, 1)
     shader.inputs["Roughness"].default_value = .87
