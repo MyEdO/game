@@ -73,17 +73,17 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     startGroundPursuit(useGame.getState, useGame.setState, {
       partyRole: 'fleeing', distance: 4, skill: 'athletisme',
-      foes: [{ ref: { creatureId: 'brigand' } }, { ref: { creatureId: 'chien-de-chasse' } }],
+      foes: [{ ref: { creatureId: 'brute' } }, { ref: { creatureId: 'athlete' } }],
     });
     const p = pursuitOf(useGame.getState())!;
     // Rien n'est authoré sur l'Effet : chaque coureur EST sa fiche — nom, `char.M` et Athlétisme, et
-    // deux fiches différentes donnent deux coureurs différents (`creatures.json` : Brigand M 4 /
-    // Athlétisme 40 ; Chien de chasse M 5 / Athlétisme 45).
+    // deux fiches différentes donnent deux coureurs différents (`creatures.json` : Brute M 4 /
+    // Athlétisme 45, Middenheim 08 l.13 ; Athlète M 5 / Athlétisme 65, Middenheim 08 l.23).
     expect(p.foes).toEqual([
-      { id: 'foe-1', label: 'Brigand', movement: 4, skill: 40 },
-      { id: 'foe-2', label: 'Chien de Chasse', movement: 5, skill: 45 },
+      { id: 'foe-1', label: 'Brute', movement: 4, skill: 45 },
+      { id: 'foe-2', label: 'Athlète', movement: 5, skill: 65 },
     ]);
-    for (const [id, m, v] of [['brigand', 4, 40], ['chien-de-chasse', 5, 45]] as const) {
+    for (const [id, m, v] of [['brute', 4, 45], ['athlete', 5, 65]] as const) {
       const fiche = findCreatureById(id)!; // la SOURCE, au bestiaire
       expect([fiche.char.M, fiche.skills.find((s) => s.id === 'athletisme')?.value]).toEqual([m, v]);
     }
@@ -92,9 +92,9 @@ describe('Poursuite terrestre (#95)', () => {
   it('la Compétence de la course décide ce qui est LU sur la fiche — à cheval, c’est Chevaucher (LDB 15 l.92)', () => {
     heroes();
     startGroundPursuit(useGame.getState, useGame.setState, {
-      partyRole: 'pursuing', distance: 4, skill: 'chevaucher', foes: [{ ref: { creatureId: 'capitaine-du-guet' } }],
+      partyRole: 'pursuing', distance: 4, skill: 'chevaucher', foes: [{ ref: { creatureId: 'moritz-valgeir' } }],
     });
-    const fiche = findCreatureById('capitaine-du-guet')!;
+    const fiche = findCreatureById('moritz-valgeir')!;
     const chevaucher = fiche.skills.find((s) => s.id === 'chevaucher')!.value;
     const athletisme = fiche.skills.find((s) => s.id === 'athletisme')!.value;
     expect(chevaucher).not.toBe(athletisme); // deux Compétences distinctes sur la MÊME fiche
@@ -107,7 +107,7 @@ describe('Poursuite terrestre (#95)', () => {
       type: 'startPursuit' as const, partyRole: 'fleeing' as const, distance: 4, skill: { id: 'athletisme' },
       foes: [{ ref: { creatureId } }],
     });
-    expect(EFFECT_HANDLERS.startPursuit.refs!(eff('brigand'), ctx)).toEqual([]);
+    expect(EFFECT_HANDLERS.startPursuit.refs!(eff('humain'), ctx)).toEqual([]);
     const issues = EFFECT_HANDLERS.startPursuit.refs!(eff('fantome-inexistant'), ctx);
     expect(issues).toHaveLength(1);
     expect(issues[0].level).toBe('error');
@@ -118,7 +118,7 @@ describe('Poursuite terrestre (#95)', () => {
     const [a, b] = heroes();
     applyEffects(useGame.getState, useGame.setState, [{
       type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' },
-      foes: [{ ref: { creatureId: 'brigand' } }],
+      foes: [{ ref: { creatureId: 'humain' } }],
     }]);
     const p = pursuitOf(useGame.getState());
     expect(p?.partyRole).toBe('fleeing');
@@ -138,7 +138,7 @@ describe('Poursuite terrestre (#95)', () => {
     // Un État Sonné (LDB 16) : son malus DOIT apparaître en ligne nommée, pas fondu dans `base`.
     useGame.setState({ party: [{ ...a, conditions: [{ id: 'sonne', value: 2 }] }] });
     startGroundPursuit(useGame.getState, useGame.setState, {
-      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }],
+      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }],
     });
     const row = useGame.getState().pendingCascade!.participants[0].participants![0];
     expect(row.base).toBe(skillBaseValue(a, 'athletisme')); // NIVEAU NU
@@ -152,7 +152,7 @@ describe('Poursuite terrestre (#95)', () => {
     useGame.setState({ party: [a, { ...b, aiControlled: true }] });
     useGame.getState().seedRng(21);
     startGroundPursuit(useGame.getState, useGame.setState, {
-      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }],
+      partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }],
     });
     const rows = useGame.getState().pendingCascade!.participants[0].participants!;
     expect(rows.find((r) => r.id === a.id)).toMatchObject({ interactive: true, result: null });
@@ -168,7 +168,7 @@ describe('Poursuite terrestre (#95)', () => {
     try {
       useGame.getState().seedRng(7);
       startGroundPursuit(useGame.getState, useGame.setState, {
-        partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }],
+        partyRole: 'fleeing', distance: 4, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }],
       });
       const band = useGame.getState().pendingCascade!.participants[0];
       // Le jet du héros de l'invité est SURFACÉ (`jetSurfaced`, seat-agnostique) : l'hôte ne le roule pas
@@ -227,7 +227,7 @@ describe('Poursuite terrestre (#95)', () => {
 
   it('abandon : le groupe renonce et la poursuite se ferme', () => {
     heroes();
-    startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+    startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
     useGame.getState().sequenceAbandon();
     expect(pursuitOf(useGame.getState())).toBeNull();
     expect(useGame.getState().journal.some((l) => l.includes('abandonne'))).toBe(true);
@@ -239,7 +239,7 @@ describe('Poursuite terrestre (#95)', () => {
       heroes();
       useGame.setState({ suspendedCascades: [] });
       startCascade(useGame.getState, useGame.setState, { title: 'Journée', purpose: 'test', steps: [displayStep({ id: 'hote-1', kind: cleDeFixture('reveal'), label: fixtureText('Une ombre'), worldOwner: true })] });
-      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
       expect(useGame.getState().suspendedCascades.map((c) => c.purpose), 'la cascade hôte est parquée sous la poursuite').toEqual(['test']);
       useGame.getState().sequenceAbandon();
       expect(pursuitOf(useGame.getState())).toBeNull();
@@ -252,7 +252,7 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     const libelles = (p: { partyRole: 'fleeing' | 'pursuing'; encounter?: string }) => {
       useGame.setState({ sequence: null, pendingCascade: null });
-      startGroundPursuit(useGame.getState, useGame.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }], ...p });
+      startGroundPursuit(useGame.getState, useGame.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }], ...p });
       const a = sequenceAbandonOf(useGame.getState)!;
       return [a.label, a.title, a.outcome];
     };
@@ -265,7 +265,7 @@ describe('Poursuite terrestre (#95)', () => {
     setCadence('auto');
     try {
       heroes();
-      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
       const bande = useGame.getState().pendingCascade!.participants[0].participants!;
       expect(bande.every((r) => r.interactive === false && r.result), 'toutes les rangées tirées à l’ouverture').toBe(true);
       expect(sequenceAbandonOf(useGame.getState), 'manche résolue : abandon offert').not.toBeNull();
@@ -284,7 +284,7 @@ describe('Poursuite terrestre (#95)', () => {
     setCadence('auto');
     try {
       const [a, b] = heroes();
-      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+      startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
       expect(sequenceAbandonOf(useGame.getState), 'manche résolue : abandon offert').not.toBeNull();
       useGame.setState({ partyWiped: false, party: [{ ...a, dead: true }, { ...b, dead: true }] });
       useGame.getState().sequenceAbandon();
@@ -296,7 +296,7 @@ describe('Poursuite terrestre (#95)', () => {
 
   it('manche MANUELLE à jet posé mais incomplète : ni offert, ni accepté', () => {
     heroes();
-    startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'brigand' } }] });
+    startGroundPursuit(useGame.getState, useGame.setState, { partyRole: 'fleeing', distance: 5, skill: 'athletisme', foes: [{ ref: { creatureId: 'humain' } }] });
     const bande = () => useGame.getState().pendingCascade!.participants[0].participants!;
     const jouables = bande().filter((r) => r.interactive !== false);
     expect(jouables.length, 'deux héros, deux rangées à jouer').toBe(2);
@@ -312,7 +312,7 @@ describe('Poursuite terrestre (#95)', () => {
     heroes();
     startGroundPursuit(useGame.getState, useGame.setState, {
       partyRole: 'fleeing', distance: 5, escapeAt: 8, skill: 'athletisme',
-      foes: [{ ref: { creatureId: 'brigand' } }],
+      foes: [{ ref: { creatureId: 'humain' } }],
     });
     // Pilote la boucle : rouler CHAQUE RANGÉE de la bande puis avancer, manche après manche.
     const manches: number[] = [];

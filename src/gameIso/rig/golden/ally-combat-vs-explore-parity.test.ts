@@ -1,5 +1,5 @@
 /**
- * #181/#182 — un PNJ armuré (garde-du-village, servant du bélier #156) DOIT rendre IDENTIQUEMENT
+ * #181/#182 — un PNJ armuré (wolfgard-hohmann, servant du bélier #156) DOIT rendre IDENTIQUEMENT
  * en combat et hors combat (doctrine « tenues + armures = defs SOURCE UNIQUE »). La cause racine :
  * un allié PNJ passe `side:'ally'` → `kind:'hero'` (camp) au spawn de combat, et le rendu routait la
  * dérivation d'apparence sur le CAMP (`c.kind === 'hero'`) au lieu de l'ORIGINE — il court-circuitait
@@ -23,7 +23,7 @@ import { armourPart } from '../parts/equipment';
 import type { SceneEntity } from '../../../noyau/monde/scene';
 import type { Combatant } from '../../../engine/types';
 
-const REF = 'garde-du-village';
+const REF = 'wolfgard-hohmann';
 const ID = 'servant-1';
 
 /** Jeton de combat d'un servant PNJ allié, tel que `startCombat` le fabrique : spawn de bestiaire,
@@ -53,10 +53,10 @@ describe('#181/#182 — parité apparence combat ↔ hors-combat d’un allié P
     expect(rendersFromOwnInventory(hero)).toBe(true);
   });
 
-  it('le profil de combat porte bien la couche ARMURE (synthétisée des PA du trait Armure 3)', () => {
+  it('le profil de combat porte bien la couche ARMURE (synthétisée des PA du trait Armure 2, MCLB 02 l.85)', () => {
     const prof = enemyRigProfile(allyCombatant());
     expect(armourShape(prof).length).toBeGreaterThan(0);
-    // Armure 3 : matériau par palier de PA (`armourMaterial`), dessiné sur le torse.
+    // Armure 2 : matériau par palier de PA (`armourMaterial`), dessiné sur le torse.
     const corps = prof!.equip.armour.find((a) => a.locs?.includes('corps'))!;
     expect(corps.materiau).toBe('maille');
     expect(armourPart(corps, 'torse')).not.toBeNull();

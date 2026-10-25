@@ -31,7 +31,7 @@ describe('Scénario 95 — Poursuite terrestre', () => {
     const startPursuit = flowEffects(trigger.flow).find((e) => e.type === 'startPursuit');
     if (startPursuit?.type !== 'startPursuit') throw new Error('type narrowing');
     expect(byId('skill', startPursuit.skill.id)).toBeTruthy();
-    expect(findCreatureById('brigand')).toBeTruthy();
+    expect(findCreatureById('humain')).toBeTruthy();
   });
 
   it('la rencontre de secours au rattrapage porte 3 brigands cachés jusqu’au combat', () => {
@@ -40,6 +40,6 @@ describe('Scénario 95 — Poursuite terrestre', () => {
     const members = enc.members ?? [];
     expect(members.length).toBe(3);
     const refs = members.map((m) => scenarioConstruit.scene.entities.find((e) => e.id === m.entityId)?.ref);
-    expect(refs.every((r) => r === 'brigand')).toBe(true);
+    expect(refs.every((r) => r === 'humain')).toBe(true);
   });
 });

@@ -111,17 +111,16 @@ const CLES: Record<string, string> = {
   // `stake`, `stakeForm` — empreinte recalée à la MESURE ; FORME inchangée.
   "maneuvers": 'b260da1b777da91e',
   "psychologie": '2287ac1af26a59cb',
-  "domains": '4e7ed40a32f916d6',
-  // #1897 : 54 sorts du livre fan fusionnés dans l'entrée qui les double (ids retirés), 4 créés, et
-  // 52 entrées absorbantes gagnent `alsoIn` — empreinte recalée à la MESURE.
-  "spells": 'a5cea4643778e1ce',
+  "domains": 'b215660ec7e99e8c',
+  // #3015
+  "spells": '4013693ce9a588a3',
   "gods": 'd49beaef5ebba230',
   "ventsTourbillonnants": '9a979156867c5f47',
   // +1 : Chien de trait, EDOC 07 folio 22, #673.
-  "creatures": '55ac5c9b9846e8ec',
-  "traits": '8931be750818442f',
+  "creatures": '72a6e503aab1d5c4',
+  "traits": 'c795788f14a1ec90',
   "locations": '53ca311b61c2a3f1',
-  "books": 'e0e3db4c3a333c83',
+  "books": 'af4efa7cef02b15e',
   "careerLevels": '6f86fed09e1f4a98',
   "eyes": 'd51e8a821203257f',
   "hairs": 'f2f80b790111b030',

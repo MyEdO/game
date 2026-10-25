@@ -39,12 +39,11 @@ const woundedAlly = (): Combatant => ({
   skills: [], talents: [], movement: 4, pos: { x: 1, y: 0 },
 } as Combatant);
 
-describe('Sentinelle anti « sort invisible » — aucun sort de combat curé à valeur 0', () => {
-  it('tout sort offensif / soin / invocation curé vaut > 0 à un placement pertinent', () => {
+describe('Sentinelle anti « sort invisible » — aucun sort de combat à valeur 0', () => {
+  it('tout sort offensif / soin / invocation vaut > 0 à un placement pertinent', () => {
     const c = caster();
     const dead: string[] = [];
     for (const sp of spells) {
-      if (!sp.curated) continue; // les homebrew (frenchy.bzh) n'ont pas de spec mécanique complète
       const tOps = spellOps(sp.effects, 'target');
       const cOps = spellOps(sp.effects, 'caster');
       const allOps = [...tOps, ...cOps];

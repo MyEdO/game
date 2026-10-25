@@ -1682,7 +1682,7 @@ export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
   releaseSeatsOfDowned(get, set); // un corps mis hors d'action ne tient plus sa chaise
   const lines: string[] = [];
   emitCombatEvent('onSlain', { get, set, battle: get().battle!, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
-  // Ops IMPURES « à la mort » (Charnier : 3d10 Zombies ; toute zone laissée en mourant) — inertes dans
+  // Ops IMPURES « à la mort » (Gardien éternel : reconstitution ; toute zone laissée en mourant) — inertes dans
   // applyOps, résolues ici (grille/initiative) comme au lancement d'un sort d'invocation/zone.
   lines.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
   return lines;
@@ -5318,7 +5318,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   const excludesCaster = spell.target?.kind === 'area' && spell.target.excludesCaster === true;
   // `affects` (src/engine/spellRange.ts:34) : Condition évaluée PAR CANDIDAT (`target` = le candidat,
   // `caster` = le lanceur). Absente → LDB 47 l.28.
-  const affects = spell.target?.kind === 'area' || spell.target?.kind === 'cone' ? spell.target.affects : undefined;
+  const affects = spell.target?.kind === 'area' ? spell.target.affects : undefined;
   // Le DR confronté par la Condition est celui que SUBIT le candidat (Résistance à la Magie, LDB 85
   // l.302 / LDB 10 l.1026). C'est ce filtre qui CONSTITUE la zone : chaque candidat est donc sa zone.
   const affected = (c: Combatant): boolean =>
@@ -5784,8 +5784,8 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À
   // Terre ; « Drain » : soigne le lanceur) — lus depuis `spell.effects` (Flow éditable, feuilles
-  // `on:'target'`). Réservé aux sorts CURÉS : un sort sans spec n'a pas d'effet missile parsé (iso-POC).
-  if (spell.curated && spellOps(spell.effects, 'target').length) {
+  // `on:'target'`).
+  if (spellOps(spell.effects, 'target').length) {
     // Surincantation de DURÉE sur un PROJECTILE (#1695) : la touche transporte les pas alloués
     // (`ch.overcastDurationSteps`) — la règle se relit à sa SOURCE UNIQUE (`overcastDurationParts`),
     // comme la branche non-projectile (`rounds = base × mult + bonus`, plus bas). Sans elle, les effets
@@ -6364,7 +6364,7 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
 }
 
 /** Résout les ops IMPURES (grille/initiative) d'un déclencheur — GÉNÉRIQUE, pas limité à summon : un
- *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque (Charnier : 3d10 Zombies à la mort) ou
+ *  effet de DONNÉE déclenché (Trait/Talent/Atout) qui invoque ou
  *  pose une zone est résolu ICI, comme au lancement d'un sort. `summon`/`zone` sont inertes dans
  *  `applyOps` (moteur pur) ; on les moissonne (`triggerEffectOps`) et on les dispatche vers leur
  *  résolveur state (applySummon / placeZoneFromOp). Les autres impures (grantFreeAttack, interruptFocus,

@@ -30,22 +30,8 @@ const serializeDataset = (value) => JSON.stringify(value, null, 2);
 /** `skillId|specId` — mesure du 2026-08-23 : sourcées (L2), hors liste « Spécialisations : » du
  *  LDB 09, employées UNIQUEMENT par des statblocs de `creatures.json`. */
 const TABLE = [
-  'divertissement|sermons',
-  'divertissement|seduction',
-  'divertissement|ceremonie',
-  'divertissement|anecdotes-militaires',
-  'divertissement|grimaces-et-mimes',
-  'divertissement|chants-de-marins',
-  'divertissement|plaidoirie',
-  'divertissement|urbain',
-  'divertissement|fanfaron',
   'dressage|perroquet',
-  'dressage|rats',
   'metier|frappeur-de-monnaie',
-  'metier|enluminure',
-  'metier|reliure',
-  'representation|victimisation',
-  'representation|danse-tribale',
   'savoir|local',
   'savoir|tzeentch',
   'savoir|peaux-de-loup',
@@ -53,13 +39,6 @@ const TABLE = [
   'savoir|navigation',
   'savoir|elfes',
   'savoir|religion',
-  'savoir|maladies',
-  'savoir|magie-peaux-verte',
-  'savoir|siege',
-  'savoir|ranald',
-  'savoir|zone-de-patrouille',
-  'signes-secrets|cultistes',
-  'signes-secrets|rebouteux',
 ];
 
 const skills = J('src/data/skills.json');

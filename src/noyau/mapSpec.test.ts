@@ -550,7 +550,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     bind: {
       '@': 'heroStart',
       k: { emplacement: 'canon-petit', crew: 'crew-0' },
-      A: { kind: 'personnage', ref: 'garde-du-village', weapon: 'Arc' },
+      A: { kind: 'personnage', ref: 'brute', weapon: 'Arc' },
     },
   });
   it('interprète départ, emplacement+équipage et entité-modèle aux positions des marqueurs', () => {
@@ -558,7 +558,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     const empl = s.entities.find((e) => e.postes?.length);
     expect(empl?.pos).toEqual({ x: 2, y: 0 });
     expect(empl?.postes![0].crewIds).toEqual(['crew-0']);
-    const garde = s.entities.find((e) => e.ref === 'garde-du-village');
+    const garde = s.entities.find((e) => e.ref === 'brute');
     expect(garde?.pos).toEqual({ x: 4, y: 0 });
     expect(garde?.weapon).toBe('Arc');
     // les marqueurs ne laissent pas de terrain parasite (nettoyés → base 'herbe')
@@ -660,13 +660,13 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
     levels: { z0: 'k.A...\n......' },
     bind: {
       k: { emplacement: 'canon-petit', crew: 'crew-0', member: { enc: 'def', side: 'ally' } },
-      A: { entity: { kind: 'personnage', ref: 'garde-du-village' }, member: { enc: 'def', side: 'ally', ai: true } },
+      A: { entity: { kind: 'personnage', ref: 'brute' }, member: { enc: 'def', side: 'ally', ai: true } },
     },
     encounters: [{ id: 'def' }], // roster vide — rempli par les marqueurs bind
   });
   it('emplacement et entité-template posés aux marqueurs deviennent members (id généré → enrôlé)', () => {
     const empl = s.entities.find((e) => e.postes?.length)!;
-    const garde = s.entities.find((e) => e.ref === 'garde-du-village')!;
+    const garde = s.entities.find((e) => e.ref === 'brute')!;
     expect(empl.pos).toEqual({ x: 0, y: 0 });
     expect(garde.pos).toEqual({ x: 2, y: 0 });
     const def = s.encounters.find((e) => e.id === 'def')!;
@@ -682,7 +682,7 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
 describe('buildScene — encounters à membres PRÉ-DÉCLARÉS (roster mixte)', () => {
   const s = buildScene({
     id: 'e2', label: 'E2', size: [10, 6], terrain: 'herbe',
-    entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 3 }, ref: 'garde-du-village', label: 'Garde' }],
+    entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 3 }, ref: 'brute', label: 'Garde' }],
     encounters: [
       // terse (entité fraîche cachée) + membre référençant une entité DÉJÀ posée (visible, dialogue…)
       { id: 'mix', enemies: [{ ref: 'gobelin', pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'ally', ai: true }] },
@@ -696,7 +696,7 @@ describe('buildScene — encounters à membres PRÉ-DÉCLARÉS (roster mixte)', 
     expect(s.entities.find((e) => e.id === 'enemy-mix-0')?.ref).toBe('gobelin');
     const pnj = s.entities.filter((e) => e.id === 'pnj-1');
     expect(pnj).toHaveLength(1); // pas de doublon fantôme
-    expect(pnj[0].ref).toBe('garde-du-village');
+    expect(pnj[0].ref).toBe('brute');
   });
 });
 

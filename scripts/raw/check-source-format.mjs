@@ -96,7 +96,6 @@ export const PREFIXES_FR = [
   'WH - V4 - ',
   'WH4_FR_',
   "Boite d'Initiation",
-  'Warhammer - Habitants',
 ]
 
 /** Les familles d'écart, dans l'ordre du rapport. Chacune est un défaut de FORME distinct. */

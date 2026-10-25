@@ -1676,7 +1676,7 @@
     {
      "id": "pirate-1",
      "kind": "personnage",
-     "ref": "pirate-fluvial",
+     "ref": "humain",
      "pos": {
       "x": 18,
       "y": 6
@@ -1686,7 +1686,7 @@
     {
      "id": "pirate-2",
      "kind": "personnage",
-     "ref": "pirate-fluvial",
+     "ref": "humain",
      "pos": {
       "x": 18,
       "y": 8
@@ -1696,7 +1696,7 @@
     {
      "id": "chef-cogue",
      "kind": "personnage",
-     "ref": "chef-pirate",
+     "ref": "jaego-roth",
      "pos": {
       "x": 19,
       "y": 7
@@ -3103,7 +3103,7 @@
     {
      "id": "norse-1",
      "kind": "personnage",
-     "ref": "maraudeur-du-chaos",
+     "ref": "humain",
      "pos": {
       "x": 18,
       "y": 6
@@ -3113,7 +3113,7 @@
     {
      "id": "norse-2",
      "kind": "personnage",
-     "ref": "maraudeur-du-chaos",
+     "ref": "humain",
      "pos": {
       "x": 18,
       "y": 8

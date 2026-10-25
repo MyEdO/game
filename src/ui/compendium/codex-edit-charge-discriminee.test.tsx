@@ -22,6 +22,7 @@ import { metaPourFichier, chargeDiscriminee, schemaForFile } from '../../data/sc
 import { CODEX } from './registry';
 import { datasetArray, datasetFile } from '../../data/overrides';
 import { materials, oups } from '../../data';
+import { META_PROSE, versDisque } from '../../data/schemas/grammaire/prose';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -204,10 +205,12 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
       // Le CONTEXTE de mesure est le plus petit document qui PARSE : `[e]` dès qu'il suffit, le document
       // ENTIER quand un refine de CARDINALITÉ l'exige. Aucun des deux ne parse ⇒ racine non-liste, hors mesure.
       if (!schema || !entrees.length) continue;
-      const entier = schema.safeParse(entrees).success;
-      if (!entier && !schema.safeParse([entrees[0]]).success) continue;
+      const parse = (doc: unknown) => schema.safeParse(versDisque(doc)).success;
+      const entier = parse(entrees);
+      if (!entier && !parse([entrees[0]])) continue;
       const dedies = dedicatedFieldKeys(cat.key);
-      const champs = inferFields(entrees, { meta: metaPourFichier(fichier) }).map((f) => f.key).filter((k) => !dedies.has(k));
+      // Les porteurs de prose (`desc` ⊕ `descRef`) passent d'un régime à l'autre par le geste « attacher/détacher » de l'atelier (`estDerive`, `editFields.ts`) : leur valeur se juge au contexte de l'entrée (le livre de sa `source`), jamais à celui d'un donneur (#1389).
+      const champs = inferFields(entrees, { meta: metaPourFichier(fichier) }).map((f) => f.key).filter((k) => !dedies.has(k) && !(k in META_PROSE));
       const donneur = new Map<string, unknown>();
       for (const k of champs) for (const e of entrees) if (e[k] != null && !donneur.has(k)) donneur.set(k, e[k]);
       const vues = new Set<string>();
@@ -216,7 +219,7 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
         const signature = Object.keys(e).sort().join('|');
         if (vues.has(signature)) continue;
         vues.add(signature);
-        const solo = schema.safeParse([e]).success;
+        const solo = parse([e]);
         if (!solo && !entier) continue;
         const charge = chargeDiscriminee(fichier, e);
         const presentes = champs.filter((k) => !charge || k === charge.champ || charge.duCas.includes(k) || !charge.toutes.includes(k));
@@ -224,7 +227,7 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
         for (const k of presentes) {
           if (e[k] !== undefined || !donneur.has(k)) continue;
           const avec = { ...e, [k]: donneur.get(k) };
-          if (!schema.safeParse(solo ? [avec] : entrees.map((x) => (x === e ? avec : x))).success) etrangers.push(k);
+          if (!parse(solo ? [avec] : entrees.map((x) => (x === e ? avec : x)))) etrangers.push(k);
         }
         if (etrangers.length > pire.length) pire = etrangers;
       }

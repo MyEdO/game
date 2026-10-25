@@ -46,13 +46,6 @@ const spellTargetSchema = z.discriminatedUnion('kind', [
     affects: { label: 'Cibles affectées' },
     maison: { label: 'Arbitrage maison' },
   }),
-  nommerChamps(z.strictObject({ kind: z.literal('cone'), lengthMeters: formulaSchema, widthMeters: formulaSchema, affects: conditionSchema.optional(), maison: z.string().optional() }), {
-    kind: { label: 'Type' },
-    lengthMeters: { label: 'Longueur en mètres' },
-    widthMeters: { label: 'Largeur (m)' },
-    affects: { label: 'Cibles affectées' },
-    maison: { label: 'Arbitrage maison' },
-  }),
   nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
 ]);
 
@@ -62,7 +55,7 @@ const spellDurationSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('rounds'), value: formulaSchema, plus: z.literal(true).optional() }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, plus: { label: 'Ajout' } }),
   nommerChamps(z.strictObject({ kind: z.literal('clock'), value: formulaSchema, unit: z.enum(['minutes', 'hours', 'days']) }), { kind: { label: 'Type' }, value: { label: 'Valeur' }, unit: { label: 'Unité' } }),
   nommerChamps(z.strictObject({ kind: z.literal('untilDawn') }), { kind: { label: 'Type' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string(), plus: z.literal(true).optional() }), { kind: { label: 'Type' }, text: { label: 'Texte' }, plus: { label: 'Ajout' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('special'), text: z.string() }), { kind: { label: 'Type' }, text: { label: 'Texte' } }),
 ]);
 
 /** VDM 02 l.377-393 */
@@ -130,7 +123,6 @@ const champs = {
   damage: z.number().optional(),
   ignorePA: z.boolean().optional(),
   ignoreBE: z.boolean().optional(),
-  curated: z.boolean().optional(),
   breathAttack: z.literal(true).optional(),
   opposed: nommerChamps(z.strictObject({
     kind: z.enum(['resist', 'contact']),
@@ -184,10 +176,6 @@ const doc = document(
     damage: { label: 'Dégâts (projectile magique)', hint: 'Bonus additif de Dégâts du projectile magique' },
     ignorePA: { label: 'Ignore les PA', hint: 'Le projectile magique ignore les Points d’armure de la cible' },
     ignoreBE: { label: 'Ignore le Bonus d’Endurance', hint: 'Le projectile magique ignore le Bonus d’Endurance de la cible' },
-    curated: {
-      label: 'Entrée officielle curée',
-      hint: 'Vrai pour une entrée complète de la base officielle ; absent/faux pour un sort homebrew',
-    },
     breathAttack: { label: 'Sort Souffle', hint: 'Délégué à l’attaque de zone du Trait Souffle' },
     opposed: { label: 'Test opposé', hint: 'Le sort exige un Test de résistance ou de contact de la cible' },
     effects: { label: 'Effets déclenchés' },

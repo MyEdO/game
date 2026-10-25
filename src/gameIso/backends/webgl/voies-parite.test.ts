@@ -35,7 +35,7 @@ function sceneEmbuscade(): Scene {
     id,
     kind: 'personnage',
     pos: { x, y: 1 },
-    ref: 'villageois',
+    ref: 'humain',
     ...(embusque ? { combat: { hiddenUntilCombat: true } } : {}),
   });
   return {
@@ -141,7 +141,7 @@ describe('ÉCHELLE — la même pour les deux voies, sur TOUT le bestiaire', () 
       const affine = echelleAffine(c);
       if (Math.abs(affine - volumique.scaleK) > 1e-9) divergentes.push({ id: record.id, affine, volumique: volumique.scaleK });
     }
-    expect(mesurées).toBeGreaterThan(400); // la population mesurée est bien le bestiaire entier
+    expect(mesurées).toBeGreaterThan(215); // la population mesurée est bien le bestiaire entier
     expect(divergentes).toEqual([]);
   });
 

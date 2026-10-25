@@ -608,9 +608,9 @@ const V8C4: Site[] = [
     apres: t('mt.testCollapseOf', { skill: refLabel('skills', { id: 'resistance' }), mount: BETE4 }),
   },
   {
-    site: 'spellRangeFormat.ts:42 — cible en CÔNE (deux mesures, « x » minuscule au site)',
-    avant: `Cône Longueur (${6} mètres) x Largeur (${3} mètres)`,
-    apres: t('spellFmt.cone', { length: 6, width: 3 }),
+    site: 'spellRangeFormat.ts:41 — cible en ZdE (l’ÉTENDUE est un fragment, rayon/diamètre)',
+    avant: `ZdE ${'rayon'} ${6} mètres`,
+    apres: t('spellFmt.area', { span: t('spellFmt.spanRadius'), n: 6 }),
   },
   {
     site: 'upkeep.ts:220 — privation de sommeil (pluriel porté par la variable, deux-points final)',

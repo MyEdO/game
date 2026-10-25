@@ -310,7 +310,7 @@ export function rigComposition(
     }
   }
   // Traits propres à CETTE créature (perso.features du def) — ADDITIFS par-dessus la race,
-  // jamais sautés : l'outil « race partagée + extra » (cornes du Prophète gris sur tête de rat)
+  // jamais sautés : l'outil « race partagée + extra » (cornes vestigiales des Jumeaux sur l'Homme-bête)
   // sans basculer dans l'override complet perso.monster.
   for (const feat of bDef?.perso?.features ?? []) {
     if (feat.view && feat.view !== view) continue;

@@ -2612,7 +2612,6 @@ export const fr = {
   'spellFmt.spanRadius': 'rayon',
   'spellFmt.spanDiameter': 'diamètre',
   'spellFmt.area': 'ZdE {span} {n} mètres',
-  'spellFmt.cone': 'Cône Longueur ({length} mètres) x Largeur ({width} mètres)',
   'spellFmt.minute': 'minute',
   'spellFmt.minutes': 'minutes',
   'spellFmt.heure': 'heure',

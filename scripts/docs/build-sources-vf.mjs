@@ -15,8 +15,8 @@ import { REGISTRE_LIVRES as BOOKS, estLivreExtrait, livreExtraitDe } from '../ra
 
 /** Le corps rendu et les messages de `ecrireOuVerifier`, sans rien écrire. */
 function rendu() {
-  // TOUT livre du registre, EXTRAIT ou non (`label`, `extractionDir` du livre fan) : `livreExtraitDe`
-  // ne rend que les extraits — `dir` ci-dessous passe par lui.
+  // TOUT livre du registre, EXTRAIT ou non (`label`) : `livreExtraitDe` ne rend que les extraits —
+  // `dir` ci-dessous passe par lui.
   const byId = new Map(BOOKS.map((b) => [b.id, b]))
 
   function book(id) {
@@ -36,17 +36,6 @@ function rendu() {
       process.exit(1)
     }
     return `${b.dir}/`
-  }
-
-  /** Chemin `Source/…/` d'un livre dont `books.json` porte le dossier sous `extractionDir` (forme du
-   *  livre fan `frenchy-bzh`) — même fail-fast que `dir`, jamais de chemin deviné. */
-  function dirExtraction(id) {
-    const b = book(id)
-    if (!b.extractionDir) {
-      console.error(`build-sources-vf — livre "${id}" (${b.label}) n'a pas de champ "extractionDir" dans books.json`)
-      process.exit(1)
-    }
-    return `${b.extractionDir}/`
   }
 
   const abbr = (id) => book(id).abbr
@@ -121,7 +110,7 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   \`Source/\` de quel des deux volumes vient le bloc.
 - **Middenheim** = \`${dir('middenheim')}\` — origines humaines + carrière Frère Loup.
 - **${abbr('aux-armes')}** (Aux Armes / *Up in Arms*) = \`${dir('aux-armes')}\` — supplément combat & armes (autorisé 2026-06-14 ;
-  source des talents que frenchy.bzh référence : Fusilier, Officier de Siège, etc.).
+  source des talents Fusilier, Officier de Siège, etc.).
 - **${abbr('zoo-imperial')}** (Zoo Impérial / *The Imperial Zoo*) = \`${dir('zoo-imperial')}\` — créatures exotiques + le trait
   **Redoutable** (*Grim*) (autorisé 2026-06-14). Donnée **curée à la main directement dans
   \`src/data/*.json\`** (commitée, éditable au Codex), chaque entrée taguée à sa \`source\`.
@@ -169,17 +158,7 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   17 Index · 18 Character Sheet.
   Le texte reste en ANGLAIS, verbatim — **aucune traduction** dans \`Source/\`. Périmètre par passage et
   curation \`src/data\` (tag \`source.book: "${book('core-rulebook-5e').id}"\`) : phases suivantes de #1816.
-- **${abbr('frenchy-bzh')}** (fan — *Habitants & Créatures du Vieux-Monde*, « version 4.5 ») = \`${dirExtraction('frenchy-bzh')}\` —
-  **complète** le bestiaire et les PNJ, ne remplace rien ; chaque entrée vit dans le JSON app-owned de son
-  domaine, taguée \`source.book: "${book('frenchy-bzh').id}"\`. Deux règles d'IMPORT, lues à son Avertissement :
-  les profils sont écrits avec des **PA doublés** — « *les Points d'Armure sont doublés et on ignore le Bonus
-  d'Endurance pour diminuer les dégâts* […] *il suffit de diviser par deux les Points d'Armures des PNJ et des
-  Créatures et de rajouter le Bonus d'Endurance !* » (\`frenchy.bzh 01 l.19\`) → **÷2 à l'import**, notre moteur
-  étant RAW ; et les noms sont des **traductions personnelles**, à résoudre par les **annexes** qui donnent
-  « *les équivalences entre les noms d'origine en VO, les traductions officielles de l'éditeur français (Khaos
-  Projet) et les traductions personnelles* » (\`frenchy.bzh 01 l.8\`) — la colonne VO est le pivot quand la
-  traduction personnelle diverge de l'officielle.
-- **Tomes de campagne (règles ponctuelles)** : **${abbr('mort-sur-le-reik')}** (T2 base) — 1 statbloc (\`creatures.json\`) ;
+- **Tomes de campagne (règles ponctuelles)** : **${abbr('mort-sur-le-reik')}** (T2 base) — statblocs (\`creatures.json\`) ;
   **${abbr('pouvoir-derriere-le-trone')}** (T3 base) — 1 entrée de compétence (\`skills.json\`). Admis par l'arbitrage 2026-07-10, chaque
   entrée taguée à sa \`source\`.
 - \`src/data/*.json\` est la **SOURCE app-owned** (commitée, éditée dans le Compendium) ; tout contenu

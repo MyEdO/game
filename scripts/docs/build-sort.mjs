@@ -8,9 +8,9 @@
  *  - les formes de `range`/`target`/`duration` : membres des `z.discriminatedUnion('kind', …)` du
  *    MÊME def, lus par `readZodUnionMembers` (socle `scripts/docs/lib/jsdocUnion.mjs`) ;
  *  - les rubriques d'un RITUEL (`ritualSchema`) ;
- *  - l'INVENTAIRE mesuré sur `src/data/spells.json` : compte total, curées, familles, et la
+ *  - l'INVENTAIRE mesuré sur `src/data/spells.json` : compte total, Rituels, familles, et la
  *    population RÉELLE de chaque forme de portée/cible/durée — le manuscrit figeait « 416 entrées
- *    au 2026-07-05, dont 278 curated », un chiffre qui se périme en silence ;
+ *    au 2026-07-05 », un chiffre qui se périme en silence ;
  *  - la classification `spellSupport` : ses issues lues au type de retour de `src/engine/spellspec.ts`.
  * La part ÉDITORIALE (ordre de la curation, pièges de vocabulaire, doctrine verbatim) vit ICI.
  *
@@ -173,7 +173,6 @@ function rendu() {
     }
     return [...m.entries()].sort((a, b) => b[1] - a[1])
   }
-  const CURES = SORTS.filter((s) => s.curated === true).length
   const RITUELS = SORTS.filter((s) => s.isRitual === true).length
   const FAMILLES = compte((s) => s.family)
   const PAR_PORTEE = new Map(compte((s) => s.range?.kind))
@@ -224,7 +223,6 @@ function rendu() {
     'src/engine/spellspec.test.ts',
     'src/engine/spellRange.test.ts',
     'src/engine/spellDuration.test.ts',
-    'src/data/fixed-damage-spells.test.ts',
     'src/state/spell-impure-ops.test.ts',
     'src/data/vdm-spells-variantes.test.ts',
     'src/ui/compendium/no-json-fields.test.ts',
@@ -248,7 +246,7 @@ d'une entrée et leurs libellés d'édition (AST du def zod \`${DEF}\`), les
 ${PORTEE.rows.length} formes de portée, ${CIBLE.rows.length} de cible et ${DUREE.rows.length} de durée (les
 \`z.discriminatedUnion('kind', …)\` du même def), les ${RUBRIQUES.length} rubriques d'un Rituel, les
 ${CLASSES.length} issues de \`spellSupport\` (type de retour de \`${SPEC}\`), et l'INVENTAIRE
-mesuré sur les ${SORTS.length} entrées de \`${JSON_SORTS}\` (curées, familles, population de chaque
+mesuré sur les ${SORTS.length} entrées de \`${JSON_SORTS}\` (Rituels, familles, population de chaque
 forme). **Angles morts** : l'état d'implémentation SORT PAR SORT n'est pas ici — il vit dans le
 tableau de bord \`docs/sorts-implementation.md\` (généré à part, avec ses propres angles morts, dont
 le fait que la mesure est STRUCTURELLE et non une preuve d'exécution) ; le vocabulaire des \`GameOp\`
@@ -264,11 +262,10 @@ entrée, éditée au Compendium en jeu (Codex → catégorie « Sorts »).
 ## 0. Tableau de bord — \`docs/sorts-implementation.md\`
 
 Fichier **généré** (\`npm run docs:sorts\`) : chaque sort avec son état ✅ mécanique / 🟡 partiel /
-📜 narratif, sa colonne « Curé », et le texte « arbitrage MJ » restant à journaliser. C'est le point
+📜 narratif, et le texte « arbitrage MJ » restant à journaliser. C'est le point
 d'entrée pour repérer un sort à curer, ou vérifier qu'un ajout a bien basculé.
 
-**État du catalogue au moment de cette génération** : ${SORTS.length} entrées, dont ${CURES} curées
-(\`curated: true\`), ${RITUELS} Rituels (\`isRitual\`), ${AVEC_EFFETS} portant un \`effects\`.
+**État du catalogue au moment de cette génération** : ${SORTS.length} entrées, dont ${RITUELS} Rituels (\`isRitual\`), ${AVEC_EFFETS} portant un \`effects\`.
 Répartition par \`family\` : ${FAMILLES.map(([k, n]) => `\`${k}\` ${n}`).join(' · ')}.
 
 ## 1. La forme d'une entrée
@@ -352,16 +349,14 @@ effet de cible —, \`missile\` vient d'\`isMagicMissile\`.
 
 ## 6. Curer un sort narratif → mécanique
 
-1. Repérer le sort dans \`docs/sorts-implementation.md\` (📜 ou 🟡, colonne « Curé » = repli).
+1. Repérer le sort dans \`docs/sorts-implementation.md\` (📜 ou 🟡).
 2. Ouvrir le Codex en jeu → catégorie « Sorts » → l'entrée.
 3. Relire la \`desc\` VERBATIM (ne pas la réécrire) et identifier l'effet mécanisable ; l'exprimer en
    \`GameOp\` du catalogue existant plutôt qu'en champ ad hoc.
 4. Compléter \`range\`/\`target\`/\`duration\` structurés s'ils sont absents (§2).
 5. Éditer \`effects\` au \`FlowEditor\` ; ce qui reste irréductible (arbitrage laissé au MJ par la
    source) reste une feuille \`narrative\` — jamais inventé, jamais supprimé en silence.
-6. Poser \`curated: true\` quand la spec est jugée complète — ce marqueur n'a de sens que pour une
-   entrée de la base officielle.
-7. Enregistrer, puis régénérer le tableau de bord (\`npm run docs:sorts\`) et lancer les gardes.
+6. Enregistrer, puis régénérer le tableau de bord (\`npm run docs:sorts\`) et lancer les gardes.
 
 ## Gardes
 
@@ -377,7 +372,7 @@ typées — une valeur mal formée casse la compilation avant le runtime.
       'docs:sort — docs/ajouter-un-sort.md est PÉRIMÉ (diverge de src/data/schemas/defs/spells.ts, de src/data/spells.json, de src/engine/spellspec.ts, des gardes, ou du script).',
     rerunMsg: '  → relancer `npm run docs:sort` (dérivé jamais commité, #2203).',
     okMsg: 'docs:sort — OK (docs/ajouter-un-sort.md à jour)',
-    writeMsg: `docs/ajouter-un-sort.md — ${SORTS.length} sorts (${CURES} curés, ${RITUELS} rituels), ${CHAMPS.length} champs, ${GARDES_MESUREES.length} gardes.`,
+    writeMsg: `docs/ajouter-un-sort.md — ${SORTS.length} sorts (${RITUELS} rituels), ${CHAMPS.length} champs, ${GARDES_MESUREES.length} gardes.`,
   }
 }
 

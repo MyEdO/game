@@ -345,7 +345,7 @@ Ces traits octroient une ou plusieurs manœuvres d'attaque à la créature (`LDB
 
 ## Catalogue du bestiaire
 
-Les chapitres suivants du LDB listent les profils de créatures individuelles. Ils sont **transcrits verbatim** dans [`catalogue-creatures.md`](catalogue-creatures.md), un bloc `## [ABBR NN] <titre>` par chapitre source ; les 88 créatures `frenchy.bzh` n'ont pas de chapitre source — elles vivent en donnée seule (`src/data/creatures.json`, taguées `source: "frenchy.bzh"`) :
+Les chapitres suivants du LDB listent les profils de créatures individuelles. Ils sont **transcrits verbatim** dans [`catalogue-creatures.md`](catalogue-creatures.md), un bloc `## [ABBR NN] <titre>` par chapitre source :
 
 | Chapitre | Titre | Contenu |
 |---|---|---|
@@ -356,7 +356,6 @@ Les chapitres suivants du LDB listent les profils de créatures individuelles. I
 | `LDB 82` | Les morts sans repos | Zombies, squelettes, fantômes, vampires, nécromancers |
 | `LDB 83` | Esclaves des Ténèbres | Skavens, cultistes du Chaos, hommes-bêtes, démons |
 | **ZI** | Le Zoo Impérial | Créatures exotiques (tigre à dents de sabre, etc.) + trait Redoutable |
-| **frenchy.bzh** | Guide v4.5 | 88 créatures Part II (homebrew, taguées `source: "frenchy.bzh"`) |
 | **EDO** | L'Ennemi dans l'Ombre | Créatures du Chaos : Horreurs, Furies, etc. |
 | **MSR/MSRC** | Mort sur le Reik | Créatures aquatiques, PNJ nommés statblockés |
 | **PDT** | Le Pouvoir derrière le Trône | Créatures de scénario |
@@ -437,7 +436,7 @@ Indices observés dans le bestiaire MDG : Redoutable 1 (Baudroye, Hydre d'os, Sa
 
 ### Catalogue créatures — flagué
 
-Les chapitres `LDB 77-83`, `ZI`, `frenchy.bzh`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` constituent le catalogue des statblocs individuels. Non transcrits ici (→ catalogue séparé).
+Les chapitres `LDB 77-83`, `ZI`, `EDO`, `MSR/MSRC`, `PDT`, `NADJ`, `ADE I/II` constituent le catalogue des statblocs individuels. Non transcrits ici (→ catalogue séparé).
 
 ### Refs code confirmées
 

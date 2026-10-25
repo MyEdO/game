@@ -850,7 +850,7 @@ export function spellDurationPlusSource(e: ActiveEffect): boolean {
   const spellId = e.spell?.spellId ?? e.sourceSpellId;
   if (!spellId) return false;
   const d = findSpellById(spellId)?.duration;
-  return !!d && (d.kind === 'rounds' || d.kind === 'special') && d.plus === true;
+  return d?.kind === 'rounds' && d.plus === true;
 }
 
 /** Effets d'un combattant en attente d'une offre de prolongation (`awaitingExtension`, LDB 47 l.311) —

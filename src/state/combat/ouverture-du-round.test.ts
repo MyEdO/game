@@ -14,7 +14,7 @@ const scenarioConstruit = scenario.construire();
  * #2916 — chaque franchissement de Round ouvre le Round suivant une fois et une seule (pause de début de
  * Round `LDB 17 l.25`, Tir rapide `LDB 11 l.97-103`, remise du tour), quelles que soient les fenêtres que
  * la fin de Round a ouvertes. Fixture « Dôme sans sort » : la sorcière saigne (`LDB 16 l.105`), sa ligne
- * d'entretien de fin de Round ouvre une révélation ; le tireur gobelin porte Tir rapide.
+ * d'entretien de fin de Round ouvre une révélation ; le tireur gobelin reçoit Tir rapide à la mise en place.
  */
 describe('Ouverture du Round après une révélation d’entretien (#2916)', () => {
   beforeEach(() => { vi.useFakeTimers(); vi.clearAllTimers(); seedBattleRng(1); useGame.setState({ battle: null, pendingCascade: null, pendingRoundStart: null }); });
@@ -30,6 +30,8 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     const b = useGame.getState().battle!;
     const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;
     addCondition(sorciere, COND.hemorragique, 1); // ligne d'entretien de fin de Round → révélation héros
+    const tireur = b.combatants.find((c) => c.label === 'Tireur gobelin')!;
+    tireur.talents = [...(tireur.talents ?? []), { talentId: 'tir-rapide', times: 1 }]; // LDB 11 l.97-103
     for (const c of b.combatants) { c.loseNextAction = false; c.loseNextMovement = false; } // le Tir rapide du Round 1 a été payé à son tour
     if (enTete) {
       const id = enTete(b.combatants);

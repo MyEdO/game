@@ -9,4 +9,4 @@ export type SpellDuration =
   | { kind: 'rounds'; value: Formula; plus?: true } // « (Bonus de FM) Rounds », « 6 rounds » (échelle tactique) ; LDB 47 l.311
   | { kind: 'clock'; value: Formula; unit: 'minutes' | 'hours' | 'days' } // « 1 heure », « (FM) minutes »
   | { kind: 'untilDawn' } // « Jusqu'au (prochain) lever du soleil »
-  | { kind: 'special'; text: string; plus?: true }; // « Spécial », « Variable », « 8 Tours » (non chiffrable), homebrew ; LDB 47 l.311
+  | { kind: 'special'; text: string }; // « Spécial », « Variable », « 8 Tours » (non chiffrable) ; LDB 47 l.311

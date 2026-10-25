@@ -35,7 +35,7 @@ describe('buildEncounter — authoring terse → entités + members canoniques',
   it('camp/monture préservés ; rides (index) → ridesEntityId (réf stable)', () => {
     const { encounter } = buildEncounter({ id: 'e', enemies: [
       { ref: 'cheval', pos: { x: 0, y: 0 }, mount: true, side: 'ally' },
-      { ref: 'brigand', pos: { x: 0, y: 0 }, rides: 0 },
+      { ref: 'humain', pos: { x: 0, y: 0 }, rides: 0 },
     ] });
     const [cheval, bandit] = encounter.members!;
     expect(cheval).toEqual({ entityId: 'enemy-e-0', side: 'ally', mount: true });

@@ -10,7 +10,6 @@ import { useGame } from './store';
 import { resetSceneRegistry } from '../noyau/monde/registreDesScenes';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
-import { idDeSortVivant } from '../data/sortsFusionnes';
 import { readSlot, deleteSlot, exportSave, importSave, listSaves, saveToSlot, parseSave, snapshotSave, takeObsoleteNotice, type SaveGame } from './saves';
 import { FORMAT_SAVE } from './formats.generated';
 import { rule, setRule, loadRuleOverrides } from '../engine/policy';
@@ -219,10 +218,6 @@ describe('forme persistée — ce que le chargement lit', () => {
     // décide — sans cette moitié, le contrat ci-dessus passerait aussi sur une scène mal formée.
     const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
-  });
-  it('un sort FUSIONNÉ est absent du catalogue, son id vivant est celui de la fusion (#1897)', () => {
-    expect(findSpellById('alarme'), 'l’id fusionné est absent du catalogue').toBeUndefined();
-    expect(idDeSortVivant('alarme')).toBe('alerte');
   });
   it('une op de Talent hors grammaire (`grantTalent`) lève à `applyOps` (#1473)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });

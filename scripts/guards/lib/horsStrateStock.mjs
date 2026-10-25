@@ -340,7 +340,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data/spells.json', ref: '[].ritual', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: '[].ritual.reduced', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: '[].target|kind=area', occurrence: 1 },
-  { fichier: 'src/data/spells.json', ref: '[].target|kind=cone', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: '[].target|kind=count', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: '[].target|kind=self', occurrence: 1 },
   { fichier: 'src/data/spells.json', ref: '[].target|kind=special', occurrence: 1 },

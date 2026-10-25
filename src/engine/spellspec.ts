@@ -12,7 +12,6 @@ import type { SpellData } from '../data';
 /** Shape minimale des métadonnées de résolution lues par `spellSupport` — sous-ensemble de
  *  `SpellData`. Pas d'import circulaire : les types sont inline (chaînes littérales / primitives). */
 export interface SpellResolutionMeta {
-  curated?: boolean;
   breathAttack?: boolean | true;
 }
 
@@ -38,7 +37,7 @@ export function spellSupport(
   // (`applyAreaAttack`, même fichier). Une ZdE (`target.kind === 'area'`) ne fait que CHOISIR les
   // cibles (`castCommitZone`, même fichier) des effets portés par les ops.
   const mech = ops.filter((o) => o.op !== 'narrative').length > 0 || missile || spell.breathAttack != null;
-  const narr = ops.some((o) => o.op === 'narrative') || (!spell.curated && ops.length === 0);
+  const narr = ops.some((o) => o.op === 'narrative');
   if (mech && narr) return 'partiel';
   if (mech) return 'mecanique';
   return 'narratif';

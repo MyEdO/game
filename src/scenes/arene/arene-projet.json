@@ -2955,7 +2955,7 @@
      },
      "label": "Médecin",
      "facing": "S",
-     "ref": "medecin",
+     "ref": "stefan-hochen",
      "dialogueId": "dlg-medecin",
      "merchant": {
       "archetype": "medecin"
@@ -3206,7 +3206,7 @@
      },
      "label": "Frère Anselm",
      "facing": "S",
-     "ref": "pretre-de-sigmar",
+     "ref": "stefan-hochen",
      "dialogueId": "dlg-frere",
      "appearance": {
       "species": "humains-reiklander",

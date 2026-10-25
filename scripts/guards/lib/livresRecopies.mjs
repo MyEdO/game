@@ -117,7 +117,7 @@ const nomDePropriete = (p) =>
 /**
  * Chaînes d'une ALTERNATION, écrite en littéral de regex (`/A|B/`) ou en texte destiné à en
  * construire une, la forme sous laquelle une recopie manuelle du registre se déguiserait le plus
- * naturellement. Les antislashs d'échappement sont retirés avant le découpage (`frenchy\.bzh` est
+ * naturellement. Les antislashs d'échappement sont retirés avant le découpage (`ADE\ II` est
  * UNE chaîne, pas deux), puis le texte se coupe sur tout caractère qu'une identité de livre ne
  * contient pas : une identité n'est faite que de lettres ASCII, de chiffres, d'espaces, de points,
  * de tirets et de soulignés.

@@ -507,7 +507,7 @@ export function makeHub() {
       NPC('medecin', 26, 15, 'Médecin', {
         facing: 'S',
         // Sa FICHE (bestiaire) porte sa Guérison et son Int : l'effet `medicalAid` ne recopie rien.
-        ref: 'medecin',
+        ref: 'stefan-hochen',
         dialogueId: 'dlg-medecin',
         merchant: { archetype: 'medecin' },
         appearance: { species: 'humains-reiklander', tenue: 'apothicaire', sex: 'M', build: 0.46 },
@@ -546,7 +546,7 @@ export function makeHub() {
       // ── Intérieur : CHAPELLE de Sigmar (empreinte x34..46 y3..13, nef de marbre) ──────────────
       NPC('frere', 40, 5, 'Frère Anselm', {
         facing: 'S',
-        ref: 'pretre-de-sigmar',
+        ref: 'stefan-hochen', // Guérison des soins payants (dlg-frere)
         dialogueId: 'dlg-frere',
         appearance: { species: 'humains-reiklander', tenue: 'pretre', sex: 'M', build: 0.5 },
       }),

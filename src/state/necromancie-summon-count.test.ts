@@ -20,12 +20,12 @@ import type { TestResult } from '../engine/tests';
 /** Jet d'Incantation FIGÉ (aucun dé) : seul le DR pilote le compte. */
 const frozen = (sl: number): TestResult => ({ roll: 11, target: 60, success: true, sl, isDouble: false });
 
-/** Nécromancien du bestiaire (BFM 4) + N adversaires DANS la zone posée. */
+/** Babrakkos, lanceur de Nécromancie du bestiaire (BFM 6, Middenheim 10 l.87) + N adversaires DANS la zone posée. */
 function setup(foes: number): Combatant {
-  const necro = spawnEnemy({ ref: 'necromancien' }, 'necro', { x: 5, y: 5 });
+  const necro = spawnEnemy({ ref: 'babrakkos' }, 'necro', { x: 5, y: 5 });
   necro.kind = 'enemy';
   const others = Array.from({ length: foes }, (_, i) =>
-    Object.assign(spawnEnemy({ ref: 'brigand' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
+    Object.assign(spawnEnemy({ ref: 'humain' }, `foe${i}`, { x: 8 + i, y: 5 }), { kind: 'hero' as const }),
   );
   const combatants = [necro, ...others];
   const ids = combatants.map((c) => c.id);
@@ -63,7 +63,7 @@ describe('Nécromancie — compte d’invocations au lancement', () => {
 
   it('Réanimation : exactement Bonus de Force Mentale + DR zombies (LDB 50 l.94)', () => {
     const bfm = bonus(effectiveChar(setup(1), 'force-mentale'));
-    expect(bfm).toBe(4);
+    expect(bfm).toBe(6);
     expect(castAndCount('Réanimation', 0)).toBe(bfm);
     expect(castAndCount('Réanimation', 3)).toBe(bfm + 3);
   });

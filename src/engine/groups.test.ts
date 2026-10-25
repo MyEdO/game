@@ -130,12 +130,6 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
     expect(groupMatch('vivant', mortVivant)).toBe(false);
   });
 
-  it('DÉMON du bestiaire : catégorie ET Groupe de son dieu, tous deux DÉCLARÉS sur l’entrée', () => {
-    const nurgling = findCreatureById('nurglings')!;
-    expect(nurgling.grantGroups).toEqual(['demon', 'nurgle']);
-    expect(groupsFor({ extras: nurgling.grantGroups })).toEqual(['demon', 'nurgle']);
-  });
-
   it('Trait porté (Mort-vivant/Démoniaque) → Groupe DÉCLARÉ par `capabilities.grantGroups` (#1357)', () => {
     expect(findTraitById('mort-vivant')?.capabilities?.grantGroups).toEqual(['mort-vivant']);
     expect(findTraitById('demoniaque')?.capabilities?.grantGroups).toEqual(['demon']);
