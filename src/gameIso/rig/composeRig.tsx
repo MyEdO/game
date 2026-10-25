@@ -2,7 +2,6 @@ import type { JSX } from 'react';
 import { BONE_IDS, SLOT_BONES, SLOT_LAYER, splitPartBehind, type BoneId, type Skeleton, type RigOverlay } from './bones';
 import { baseSkeleton, applyBuild, referenceSkeleton, groundSkeleton, profileNarrow, baseSpeciesOf } from './skeletons';
 import { bipedDef } from './creatures';
-import { gabaritById } from './gabarits';
 import { raceById, racePalette } from './races';
 import type { RaceFeature } from './races';
 import { worldTransforms, toSvg, apply, type Matrix } from './kinematics';
@@ -19,6 +18,7 @@ import { HEADS, ARMS, LEGS } from './parts/monster';
 import { buildTokenMap, applyTokenMap } from './palette';
 import { tenueOverlaysFor, couchesDuRig, coucheDEspece } from './parts/career';
 import type { EquipCtx } from '../../noyau/equipementDessine';
+import { gabaritResolu } from '../../noyau/apparence/gabarit';
 import { useMemo } from 'react';
 import { useVersionDesDatasets } from '../../ui/useVersionDesDatasets';
 import { dorsalOverlays } from './parts/dorsal';
@@ -65,13 +65,7 @@ function groundedBodySkeleton(appearance: Appearance) {
   const fm = featureMorpho(appearance.features ?? []);
   const morphoBuild = Math.min(1, Math.max(0, appearance.build + fm.dBuild));
   const legsMult = (appearance.legs ?? 1) * fm.legsMult;
-  // appearance.gabarit explicite = remplacement COMPLET de la carrure ; le gabaritOverride
-  // de la race (réglé pour son gabarit par défaut) ne s'applique PAS dans ce cas.
-  let gDef = appearance.gabarit
-    ? gabaritById(appearance.gabarit)
-    : { ...gabaritById(race.gabarit), ...(race.gabaritOverride ?? {}) };
-  // Mutation morpho « Court sur pattes » : multiplicateur de jambes composé sur le gabarit.
-  if (legsMult !== 1) gDef = { ...gDef, legs: gDef.legs * legsMult };
+  const gDef = gabaritResolu({ gabarit: appearance.gabarit, race, legsMult });
   return { sk: groundSkeleton(applyBuild(baseSkeleton(gDef, appearance.sex), morphoBuild)), race, fm, bDef };
 }
 

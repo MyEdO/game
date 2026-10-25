@@ -483,7 +483,7 @@ export const STRUCTURES_FORMES = [
   { concept: "reference", dataset: "qualities.json", champ: "ops", signature: "disease+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "qualities.json", champ: "ops", signature: "id,unlessCondition,value+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "qualities.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-09-05" },
-  { concept: "reference", dataset: "raceAppearance.json", champ: "gabarit", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 6, lot: "L3 #1463", date: "2026-08-30", motif: "référence de GABARIT de rig" },
+  { concept: "reference", dataset: "raceAppearance.json", champ: "gabarit", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 21, lot: "L3 #1463", date: "2026-08-30", motif: "référence de GABARIT de rig" },
   { concept: "reference", dataset: "raceAppearance.json", champ: "head", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 7, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "raceAppearance.json", champ: "tenue", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 14, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "reglesOptionnelles.json", champ: "default", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },

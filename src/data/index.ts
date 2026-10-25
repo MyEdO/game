@@ -102,6 +102,8 @@ import locationsJson from './locations.json';
 import booksJson from './books.json';
 import namesJson from './names.json';
 import raceAppearanceJson from './raceAppearance.json';
+import gabaritsJson from './gabarits.json';
+import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
@@ -2296,15 +2298,15 @@ export interface BookData {
 }
 /**
  * Apparence de base d'une espèce de rig (Humain, Ogre, Skaven…) — éditable dans le Compendium.
- * PAR RÉFÉRENCE : `featureKeys` (catalogue d'éléments, résolus par `feat()`), ids de gabarit/tête/
- * jambes, libellé de tenue, couleurs. Les SVG/gabarits restent des registres CODE (résolus par le
- * rig). Le rig (`raceById`) lit ce dataset comme SOURCE et le résout en `RaceDef`.
+ * PAR RÉFÉRENCE : `featureKeys` (catalogue d'éléments, résolus par `feat()`), id de gabarit
+ * (`gabarits.json`), ids de tête/jambes, libellé de tenue, couleurs. Les SVG restent des registres CODE
+ * (résolus par le rig). Le rig (`raceById`) lit ce dataset comme SOURCE et le résout en `RaceDef`.
  */
 export interface RaceAppearanceData {
   id: string;
   label: string;
-  gabarit: string;
-  gabaritOverride?: Record<string, number>;
+  gabarit: GabaritId;
+  gabaritOverride?: SurchargeDeGabarit;
   palette?: import('./palette.types').PaletteDEspece;
   paletteF?: import('./palette.types').PaletteDEspece;
   head?: string;
@@ -2922,6 +2924,10 @@ export const stars = starsJson as StarData[];
 export const celestialHouses = astrologyJson as CelestialHouseData[];
 /** Apparences d'espèce de rig (app-owned, éditable) — SOURCE lue+résolue par `raceById` (rig). */
 export const raceAppearance = raceAppearanceJson as RaceAppearanceData[];
+export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
+/** Carrures du rig (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
+export const gabarits = gabaritsJson as GabaritDef[];
+export const findGabaritById = indexParId('gabarits', gabarits);
 export const locations = locationsJson as LocationData[];
 const lieuParId = indexParId('locations', locations);
 /** Résout un Lieu par son `id` STABLE (cible de `LocationData.parent`). Le libellé ne sert qu'à l'affichage. */

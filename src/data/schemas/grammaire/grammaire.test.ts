@@ -700,7 +700,8 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //   #1690 : `terrains` naît SCELLÉ (79 → 80) — le registre TS des 25 sols devient un dataset.
     //   #1715 : `buildings` naît SCELLÉ (80 → 81) — le registre TS des 7 types de bâtiment devient un dataset.
     //   #2948 : `apparences` naît SCELLÉ (81 → 82) — le catalogue des apparences d'objet devient un dataset.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 82, mesures: 0 });
+    //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures du rig devient un dataset.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
   });
 
 });

@@ -57,8 +57,8 @@ export const creature: CreatureDef = {
 };
 ```
 
-- **`race`** (`races/defs/`) porte les défauts partagés : palette de peau, `gabarit` (carrure,
-  `gabarits/defs/`), `head`/`legs` monstrueux (remplacent visage/jambes), `features` de corps
+- **`race`** (`src/data/raceAppearance.json`) porte les défauts partagés : palette de peau, `gabarit`
+  (carrure, id de `src/data/gabarits.json`), `head`/`legs` monstrueux (remplacent visage/jambes), `features` de corps
   (queue, fourrure, panse…), `pose` (voûté — PROFIL uniquement), `tenue` par défaut, `eyes`.
 - **`perso`** (CreaturePerso) surcharge par-dessus : `tenue`, `sex`, `colors`
   (⚠ couleurs de BASE seulement : `peau`/`cheveux`… — l'ombre et la lumière de gamme sont dérivées, tsc

@@ -60,7 +60,7 @@ la seule chose rendue).
    asymétriques D>G (jambe/bras proches) ne s'appliquent qu'en `profile` ; de face/dos,
    `composeRig` symétrise le z des jambes (la D ne s'imprime plus PAR-DESSUS l'ourlet).
    Les bras gardent leur asymétrie (bras armé devant le corps pendant les anims de frappe).
-6. **Paramétrage, pas de cas par écran** : les gabarits (`gabarits/defs/`) restent des FACTEURS
+6. **Paramétrage, pas de cas par écran** : les gabarits (`src/data/gabarits.json`) restent des FACTEURS
    (`sl`/`st`/`legs`/`arms`/`head`) appliqués à CE canon — la structure d'emboîtement est
    préservée par homothétie (les branches `legs≠1`/`arms≠1` de `baseSkeleton` échelonnent
    longueur ET pivots enfants ensemble, même invariant).

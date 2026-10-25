@@ -83,6 +83,8 @@ export const TYPES = {
   // racines du catalogue, une variante nomme sa racine et ses étiquettes de naissance.
   apparence: { espace: 'apparences.json', catalogue: 'apparences' },
   classe: { espace: 'classes.json', catalogue: 'classes de carrière' },
+  // GABARIT du rig (#2972) : `raceAppearance.json › gabarit` résout AU PARSE.
+  gabarit: { espace: 'gabarits.json', catalogue: 'gabarits' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;

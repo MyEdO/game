@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { baseSpeciesOf, baseSkeleton, applyBuild, groundSkeleton, referenceSkeleton } from './skeletons';
-import { gabaritById } from './gabarits';
+import { gabaritResolu } from '../../noyau/apparence/gabarit';
+import type { GabaritId } from '../../data';
 import { worldTransforms, apply } from './kinematics';
 import { BONE_IDS } from './bones';
 import { species } from '../../data/index';
 import speciesRaceJson from '../../data/speciesRace.json';
+
+const carrure = (gabarit: GabaritId) => gabaritResolu({ race: { gabarit }, legsMult: 1 });
 
 describe('baseSpeciesOf', () => {
   it('normalise les variantes régionales', () => {
@@ -44,29 +47,24 @@ describe('baseSpeciesOf', () => {
 
 describe('baseSkeleton', () => {
   it("un Nain a des jambes plus courtes qu'un Humain", () => {
-    const h = baseSkeleton(gabaritById('moyen'), 'M');
-    const n = baseSkeleton(gabaritById('courtaud'), 'M');
+    const h = baseSkeleton(carrure('moyen'), 'M');
+    const n = baseSkeleton(carrure('courtaud'), 'M');
     expect(n.cuisseG.length).toBeLessThan(h.cuisseG.length);
   });
   it("un Haut-Elfe est plus élancé (membres plus longs) qu'un Humain", () => {
-    const h = baseSkeleton(gabaritById('moyen'), 'M');
-    const e = baseSkeleton(gabaritById('elance'), 'M');
+    const h = baseSkeleton(carrure('moyen'), 'M');
+    const e = baseSkeleton(carrure('elance'), 'M');
     expect(e.cuisseG.length).toBeGreaterThan(h.cuisseG.length);
   });
   it('M et F diffèrent en proportions sans être identiques', () => {
-    const m = baseSkeleton(gabaritById('moyen'), 'M');
-    const f = baseSkeleton(gabaritById('moyen'), 'F');
+    const m = baseSkeleton(carrure('moyen'), 'M');
+    const f = baseSkeleton(carrure('moyen'), 'F');
     expect(f.epauleG.pivot.x).not.toBe(m.epauleG.pivot.x);
-  });
-  it("espèce inconnue retombe sur Humain", () => {
-    const u = baseSkeleton(gabaritById('moyen'), 'M');
-    const h = baseSkeleton(gabaritById('moyen'), 'M');
-    expect(u.torse.length).toBe(h.torse.length);
   });
 });
 
 describe('géométrie au repos (proxy visuel sans navigateur)', () => {
-  const w = worldTransforms(baseSkeleton(gabaritById('moyen'), 'M'), {});
+  const w = worldTransforms(baseSkeleton(carrure('moyen'), 'M'), {});
   const origin = (id: keyof typeof w) => apply(w[id], { x: 0, y: 0 });
 
   it('la figure est debout : tête en haut, bassin au milieu, pieds en bas', () => {
@@ -124,7 +122,7 @@ describe('canon du squelette (moyen M, build 0.5, ancré au sol)', () => {
   const ART_SHOULDER_END = 18; // fin de l'art de bras (épaule→coude, #633 D1) — coude à epaule-local 18
   const ART_FOREARM_END = 16;  // fin de l'art d'avant-bras (coude→poignet, 0..16) ; le poignet FK à 18, la main l'emboîte
 
-  const sk = groundSkeleton(applyBuild(baseSkeleton(gabaritById('moyen'), 'M'), 0.5));
+  const sk = groundSkeleton(applyBuild(baseSkeleton(carrure('moyen'), 'M'), 0.5));
   const wc = worldTransforms(sk, {});
   const at = (id: keyof typeof wc, p = { x: 0, y: 0 }) => apply(wc[id], p);
 
@@ -190,7 +188,7 @@ describe('canon du squelette (moyen M, build 0.5, ancré au sol)', () => {
 
 describe('applyBuild', () => {
   it('build élevé épaissit le torse de façon monotone', () => {
-    const sk = baseSkeleton(gabaritById('moyen'), 'M');
+    const sk = baseSkeleton(carrure('moyen'), 'M');
     const thin = applyBuild(sk, 0).torse.thickness;
     const mid = applyBuild(sk, 0.5).torse.thickness;
     const fat = applyBuild(sk, 1).torse.thickness;
@@ -198,7 +196,7 @@ describe('applyBuild', () => {
     expect(mid).toBeLessThan(fat);
   });
   it("ne mute pas l'entrée", () => {
-    const sk = baseSkeleton(gabaritById('moyen'), 'M');
+    const sk = baseSkeleton(carrure('moyen'), 'M');
     const before = sk.torse.thickness;
     applyBuild(sk, 1);
     expect(sk.torse.thickness).toBe(before);
@@ -206,7 +204,7 @@ describe('applyBuild', () => {
 
   // offset de ceinture conscient du build (audit squelette 2026-07-21)
   it('offset de hanche ET d\'épaule croît avec la carrure (mince < médian < gros)', () => {
-    const sk = baseSkeleton(gabaritById('moyen'), 'M');
+    const sk = baseSkeleton(carrure('moyen'), 'M');
     const thin = applyBuild(sk, 0);
     const mid = applyBuild(sk, 0.5);
     const fat = applyBuild(sk, 1);

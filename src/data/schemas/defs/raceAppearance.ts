@@ -2,13 +2,15 @@ import { nommerChamps } from '../grammaire/meta';
 /**
  * Schéma de `raceAppearance.json` — apparence de base d'une espèce de rig (Humain, Ogre, Skaven…),
  * consommée comme `RaceAppearanceData[]` (`src/data/index.ts`). PAR RÉFÉRENCE : `featureKeys`
- * (catalogue d'éléments), ids de gabarit/tête/jambes, libellé de tenue, couleurs — les SVG/gabarits
+ * (catalogue d'éléments), id de gabarit (`gabarits.json`), ids de tête/jambes, libellé de tenue, couleurs — les SVG
  * restent des registres CODE résolus par `src/gameIso/rig/races/index.ts`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { paletteDEspeceSchema, sexeSchema, surchargePaletteSchema } from '../grammaire/valeurs';
 import { SLOTS } from '../../palette.types';
+import { idDe } from '../grammaire/ref';
+import { surchargeDeGabaritSchema } from './gabarits';
 
 export const file = 'raceAppearance.json';
 export const famille = 'entite';
@@ -17,8 +19,8 @@ const doc = document(
   'raceAppearance',
   famille,
   {
-    gabarit: z.string(),
-    gabaritOverride: z.record(z.string(), z.number()).optional(),
+    gabarit: idDe('gabarit'),
+    gabaritOverride: surchargeDeGabaritSchema.optional(),
     palette: paletteDEspeceSchema.optional(),
     paletteF: paletteDEspeceSchema.optional(),
     head: z.string().optional(),
