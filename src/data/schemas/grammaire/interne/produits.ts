@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { tableTotale } from '../../../../lib/tableTotale';
 import { defDe, enfantsDe } from '../descente';
 
 /**
@@ -68,7 +69,7 @@ export function marquerProduit<N extends z.ZodType>(noeud: N, fabrique: string, 
     fabrique,
     role,
     get clesDExtra() {
-      return (lues ??= Object.fromEntries(Object.keys(apportees).sort().map((cle) => [cle, empreinte(apportees[cle])])));
+      return (lues ??= tableTotale(Object.keys(apportees).sort(), (cle) => empreinte(apportees[cle])));
     },
   };
   PRODUITS.set(noeud, produit);

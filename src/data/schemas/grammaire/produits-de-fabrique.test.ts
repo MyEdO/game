@@ -4,14 +4,14 @@
  * écrite dans une fonction de `grammaire/` (hors corps d'un `z.lazy`, qui n'est pas une fabrique) est
  * le PREMIER argument d'un `marquerProduit`, à travers les décorateurs de `meta.ts` et les clones à
  * enfants identiques ; ou bien une dérivation la consomme ; ou bien elle est l'argument d'une
- * fabrique DÉRIVANTE, qui marque ce qu'elle dérive de ce paramètre. Lecture : `interne/produits.ts`.
+ * fabrique DÉRIVANTE, qui marque ce qu'elle dérive de ce paramètre. Lecture : la porte `produits.ts`.
  */
 import { describe, it, expect } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { ast } from '../../../../scripts/guards/lib/dialecte.mjs';
 import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
-import { produitDe } from './interne/produits';
+import { classeDeProduit, empreinteDeNoeud } from './produits';
 import { ref, refOuSpec, refTypee, pick } from './ref';
 import { descRefSchemaDe, parSaison, profilChiffreSchema, formulaSchema, variantOf } from './valeurs';
 import { mecaniqueDe, noeudTest } from './mecanique';
@@ -121,14 +121,12 @@ function constructionsNonMarquees(rel: string, texte: string, fabriquesDerivante
 }
 
 describe('GARDE — un objet construit par une fonction de la grammaire est un produit marqué', () => {
-  const sources = readCorpus(['src/data/schemas/grammaire'], { exts: ['.ts'] }).filter((s) => !s.rel.endsWith('.test.ts'));
-  const fabriquesDerivantes = derivantes(sources);
+  const grammaire = () => readCorpus(['src/data/schemas/grammaire'], { exts: ['.ts'] }).filter((s) => !s.rel.endsWith('.test.ts'));
 
-  it('les fabriques dérivantes de la grammaire sont reconnues', () => {
+  it('les fabriques dérivantes de la grammaire sont reconnues ; aucune construction d’objet de fabrique hors d’un marquage', () => {
+    const sources = grammaire();
+    const fabriquesDerivantes = derivantes(sources);
     expect(Object.fromEntries([...fabriquesDerivantes].map(([nom, rangs]) => [nom, [...rangs]]))).toEqual({ proseNommee: [0], proseAdressable: [0], variantOf: [0] });
-  });
-
-  it('aucune construction d’objet de fabrique hors d’un marquage', () => {
     expect(sources.flatMap((s) => constructionsNonMarquees(s.rel, s.text, fabriquesDerivantes)), 'faire du nœud construit le premier argument de `marquerProduit(noeud, fabrique, rôle, extra)` (`interne/produits.ts`)').toEqual([]);
   });
 
@@ -153,14 +151,14 @@ describe('GARDE — un objet construit par une fonction de la grammaire est un p
   });
 });
 
-describe('lecture — `produitDe` nomme la fabrique, le rôle et les clés apportées par l’appelant', () => {
+describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés apportées par l’appelant', () => {
   const famille = mecaniqueDe({});
   const EXPOSITION: Exposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
   /** Les produits que rencontre la descente de `noeud`, sans descendre sous un produit. */
   const lus = (noeud: unknown): string[] => {
     const vus: string[] = [];
     descendre([noeud], ({ noeud: n }) => {
-      const p = produitDe(n);
+      const p = classeDeProduit(n);
       if (!p) return;
       vus.push(`${p.fabrique} ${p.role} ${JSON.stringify(p.clesDExtra)}`);
       return 'elaguer';
@@ -226,8 +224,12 @@ describe('lecture — `produitDe` nomme la fabrique, le rôle et les clés appor
     ]);
   });
 
+  it('l’empreinte d’un nœud lit un produit par sa classe, sans descendre dans ses enfants', () => {
+    expect(empreinteDeNoeud(z.strictObject({ r: ref('skill') }))).toBe('object<r:produit(objetDeRef:ref),.*:never>');
+  });
+
   it('l’empreinte distingue ce que le type de surface confond', () => {
-    const extra = (v: z.ZodType) => produitDe(ref('skill', { v: nommerNoeud(v, { nom: 'v' }) }))?.clesDExtra.v;
+    const extra = (v: z.ZodType) => classeDeProduit(ref('skill', { v: nommerNoeud(v, { nom: 'v' }) }))?.clesDExtra.v;
     expect(extra(z.number().optional())).not.toBe(extra(z.string().optional()));
     expect(extra(z.array(z.number()))).not.toBe(extra(z.array(z.string())));
     expect(extra(z.enum(['a']))).not.toBe(extra(z.enum(['b'])));
@@ -237,13 +239,13 @@ describe('lecture — `produitDe` nomme la fabrique, le rôle et les clés appor
     let resolu = false;
     const differe = z.lazy(() => { resolu = true; return z.number(); });
     const r = ref('skill', { v: nommerNoeud(differe, { nom: 'v' }) });
-    expect([produitDe(r)?.clesDExtra.v, produitDe(differe), resolu]).toEqual(['lazy', undefined, false]);
+    expect([classeDeProduit(r)?.clesDExtra.v, classeDeProduit(differe), resolu]).toEqual(['lazy', undefined, false]);
   });
 
   it('un clone à enfants identiques est le même produit ; une extension est une autre forme', () => {
     const r = ref('skill');
     const objet = (n: unknown) => n as z.ZodObject;
-    expect(produitDe(objet(r).superRefine(() => {}))).toEqual(produitDe(r));
-    expect(produitDe(objet(r).extend({ x: z.number() }))).toBeUndefined();
+    expect(classeDeProduit(objet(r).superRefine(() => {}))).toEqual(classeDeProduit(r));
+    expect(classeDeProduit(objet(r).extend({ x: z.number() }))).toBeUndefined();
   });
 });
