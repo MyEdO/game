@@ -1,0 +1,1320 @@
+diff --git a/.lint-21004-b55q4k472wv.config.mjs b/.lint-21004-b55q4k472wv.config.mjs
+new file mode 100644
+index 000000000..764a4b94c
+--- /dev/null
++++ b/.lint-21004-b55q4k472wv.config.mjs
+@@ -0,0 +1,2 @@
++import config from "file:///C:/Users/gauch/PhpstormProjects/Foundry/Game/.wt-2948-teinte/oxlint.config.mjs";
++export default {...config,...{}};
+diff --git a/scripts/docs/build-field-consumers.mts b/scripts/docs/build-field-consumers.mts
+index b8815bd21..2d4b2de68 100644
+--- a/scripts/docs/build-field-consumers.mts
++++ b/scripts/docs/build-field-consumers.mts
+@@ -80,10 +80,12 @@
+  *     de la question « qui lit CE CHAMP ? ».
+  */
+ import { join } from 'node:path'
++import { readFileSync } from 'node:fs'
+ import { fileURLToPath } from 'node:url'
+ import { ecrireOuVerifier } from './lib/ecriture-derives.mjs'
+-import { listProdFiles, scanFieldReads, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
+-import { TARGETS, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
++import { listProdFiles, scanFieldReads, scanRuntimeFieldReads, scanDynamicFieldCalls, fieldOwnership, groupByField, libererCache } from '../guards/lib/fieldConsumers.mjs'
++import { TARGETS, CAPABILITY_TARGETS, fieldsOf } from '../guards/lib/fieldConsumerTargets.mjs'
++import { listerArbre } from '../guards/lib/lister.mjs'
+ 
+ const ROOT = fileURLToPath(new URL('../../', import.meta.url)).replace(/\/$/, '').replace(/\\/g, '/')
+ const SRC_DIR = join(ROOT, 'src')
+@@ -93,6 +95,24 @@ const OUT = 'docs/consommateurs-de-champs.md'
+  *  au premier ajout de ligne en amont). Le rapport n'en publie que `file:line` — un humain relit un
+  *  site, une garde s'ancre au symbole (`src/data/field-consumers.test.ts`, table `RECOUVRES`). */
+ type Hit = { file: string; line: number; symbole: string }
++type CapabilityHit = Hit & { field: string; portee: string; mode: string }
++type CapabilityRead = { dataset: string; type?: string; fields: string[]; status: string; direct: CapabilityHit[]; calls: CapabilityHit[]; unresolved: { file: string; line: number; expression: string; reason: string }[] }
++
++export function capabilityFieldsOfDocuments(documents: Record<string, unknown>): { dataset: string; fields: string[]; target: typeof CAPABILITY_TARGETS[number] | undefined }[] {
++  return Object.entries(documents).flatMap(([dataset, document]) => {
++    const fields = new Set<string>()
++    const visit = (value: unknown): void => {
++      if (!value || typeof value !== 'object') return
++      if (!Array.isArray(value)) {
++        const capabilities = (value as Record<string, unknown>).capabilities
++        if (capabilities && typeof capabilities === 'object' && !Array.isArray(capabilities)) Object.keys(capabilities).forEach(key => fields.add(key))
++      }
++      Object.values(value).forEach(visit)
++    }
++    visit(document)
++    return fields.size ? [{ dataset, fields: [...fields].sort(), target: CAPABILITY_TARGETS.find(target => target.dataset === dataset) }] : []
++  }).sort((a, b) => a.dataset < b.dataset ? -1 : a.dataset > b.dataset ? 1 : 0)
++}
+ 
+ /**
+  * Le rapport, EN MÉMOIRE : le `.md` à écrire + les sites mesurés par type et par champ. UN SEUL
+@@ -105,7 +125,7 @@ type Hit = { file: string; line: number; symbole: string }
+  * partagé par toutes les cibles de `TARGETS`, et libéré au retour — ~1,33 Go ne survit pas à l'appel,
+  * ce qui compte sous Vitest `isolate: false`.
+  */
+-export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)): { md: string; byType: Map<string, Map<string, Hit[]>>; totalFields: number; totalUnread: number; zeros: string[] } {
++export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)): { md: string; byType: Map<string, Map<string, Hit[]>>; totalFields: number; totalUnread: number; zeros: string[]; capabilityReads: CapabilityRead[] } {
+   // Clés hétérogènes : le contexte de scan est clé par son Program (`fieldConsumers.mjs`).
+   const cache = new Map<unknown, unknown>()
+   const erreurs: unknown[] = []
+@@ -137,6 +157,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
+   const absents: string[] = []
+   const zeros: string[] = []
+   const byType = new Map<string, Map<string, Hit[]>>()
++  const capabilityReads: CapabilityRead[] = []
+   // Les TABLES s'accumulent à part : le paragraphe de FIDÉLITÉ qui les précède cite les totaux
+   // MESURÉS, et un cardinal en dur y serait faux au premier champ qui gagne ou perd son lecteur.
+   let tables = ``
+@@ -178,6 +199,17 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
+       }
+       tables += `\n`
+     }
++    const documents = Object.fromEntries(listerArbre(join(ROOT, 'src/data'), { filtre: (file: string) => file.endsWith('.json') })
++      .map((file: string) => [file, JSON.parse(readFileSync(join(ROOT, 'src/data', file), 'utf8')) as unknown]))
++    for (const { dataset, fields, target } of capabilityFieldsOfDocuments(documents)) {
++      if (!target) {
++        capabilityReads.push({ dataset, fields, status: 'NON MESURÉ — porteur sans type déclaré', direct: [], calls: [], unresolved: [] })
++        continue
++      }
++      const direct = scanRuntimeFieldReads(target, fields, files, ROOT, cache) as CapabilityHit[]
++      const dynamic = scanDynamicFieldCalls(target, fields, files, ROOT, cache)
++      capabilityReads.push({ dataset, type: target.type, fields, status: 'mesure typée', direct, calls: dynamic.hits, unresolved: dynamic.unresolved })
++    }
+   } catch (erreur) { erreurs.push(erreur) }
+   finally { libererCache(cache, erreurs) }
+ 
+@@ -222,6 +254,26 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
+   out += `en-tête de \`fieldConsumers.mjs\`.\n\n`
+   out += tables
+ 
++  out += `## Capacités présentes dans les datasets\n\n`
++  out += `Diagnostic distinct des ${TARGETS.length} types ci-dessus : les clés proviennent du parcours récursif de tous les JSON de \`src/data\`. Les lectures sont résolues par identité de propriété au TypeChecker ; les appels à clé littérale sont suivis à travers les paramètres des fonctions. Une écriture seule ne compte pas. Les validations et l’authoring sont séparés du runtime. Les arguments dynamiques non résolus restent **NON MESURÉS** ; ils ne prouvent jamais une absence de lecteur. Cette section ne porte pas le verdict du cliquet des références partagées.\n\n`
++  for (const report of capabilityReads) {
++    out += `### ${report.dataset} — ${report.type ?? report.status}\n\n`
++    out += `| Clé | Lectures runtime typées | Validation / authoring | État |\n|---|---|---|---|\n`
++    for (const field of report.fields) {
++      const hits = [...report.direct, ...report.calls].filter(hit => hit.field === field)
++      const sites = (runtime: boolean): string => [...new Set(hits.filter(hit => (hit.portee === 'runtime') === runtime).map(hit => `${hit.file}:${hit.line}`))].sort().join(', ') || '—'
++      const runtime = hits.some(hit => hit.portee === 'runtime')
++      const state = runtime ? 'lecture mesurée' : report.unresolved.length || !report.type ? 'NON MESURÉ — flux non résolu' : 'aucune lecture mesurée'
++      out += `| \`${field}\` | ${sites(true)} | ${sites(false)} | ${state} |\n`
++    }
++    out += '\n'
++    if (report.unresolved.length) {
++      out += `Arguments non résolus :\n\n`
++      for (const unknown of report.unresolved) out += `- ${unknown.file}:${unknown.line} — ${unknown.expression.split('`').join('')} — ${unknown.reason}\n`
++      out += '\n'
++    }
++  }
++
+   // La section dédiée est le RENDU d'une liste : sans membre, elle est OMISE plutôt que titrée
+   // « aucun » — un titre qui ne commente rien. Le fait « 0 absent » n'est pas perdu pour autant : la
+   // Synthèse émet les quatre cardinaux, zéros compris.
+@@ -258,7 +310,7 @@ export function buildFieldConsumersMd(files: string[] = listProdFiles(SRC_DIR)):
+ 
+   // `zeros` sort NOMMÉ (`Type.champ`) : le cliquet de `src/data/field-consumers.test.ts` compare
+   // cette liste à la sienne, écrite en dur — aucun re-parsing du `.md`, dont la table est un RENDU.
+-  return { md: out, byType, totalFields, totalUnread, zeros }
++  return { md: out, byType, totalFields, totalUnread, zeros, capabilityReads }
+ }
+ 
+ /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
+diff --git a/scripts/docs/lib/engineConcepts.mjs b/scripts/docs/lib/engineConcepts.mjs
+index 1dfbfe0cb..79bd4a6b2 100644
+--- a/scripts/docs/lib/engineConcepts.mjs
++++ b/scripts/docs/lib/engineConcepts.mjs
+@@ -95,6 +95,7 @@ export const FILE_CONCEPTS = new Map([
+   ['src/engine/movement.ts', 'Mouvement, terrain'],
+   ['src/engine/names.ts', 'Génération de noms'],
+   ['src/engine/navalTraits.ts', 'Traits navals'],
++  ['src/engine/objetsDeTest.testkit.ts', 'Objets : harnais de test de naissance canonique'],
+   ['src/engine/ops.ts', "GameOp : vocabulaire d'effet unifié"],
+   ['src/engine/oups.ts', 'Maladresses, Colère des Dieux'],
+   ['src/engine/overcast.ts', 'Incantation en surtension (Overcast)'],
+diff --git a/scripts/guards/lib/fieldConsumerTargets.d.mts b/scripts/guards/lib/fieldConsumerTargets.d.mts
+index 1c8e72603..81cab9ecb 100644
+--- a/scripts/guards/lib/fieldConsumerTargets.d.mts
++++ b/scripts/guards/lib/fieldConsumerTargets.d.mts
+@@ -1,3 +1,5 @@
++import type { FieldScanTarget } from './fieldConsumers.mjs';
++
+ export interface FieldTarget {
+   schema: unknown;
+   type: string;
+@@ -5,4 +7,10 @@ export interface FieldTarget {
+ }
+ 
+ export const TARGETS: FieldTarget[];
++
++export interface CapabilityTarget extends FieldScanTarget {
++  dataset: string;
++}
++
++export const CAPABILITY_TARGETS: readonly CapabilityTarget[];
+ export function fieldsOf(schema: unknown): string[];
+diff --git a/scripts/guards/lib/fieldConsumerTargets.mjs b/scripts/guards/lib/fieldConsumerTargets.mjs
+index f0e4f2084..9744eaec0 100644
+--- a/scripts/guards/lib/fieldConsumerTargets.mjs
++++ b/scripts/guards/lib/fieldConsumerTargets.mjs
+@@ -60,3 +60,10 @@ export function fieldsOf(schema) {
+   if (cles.length) return cles
+   return [...new Set(enfants.filter((e) => e.segment.startsWith('|')).flatMap((e) => fieldsOf(e.noeud)))]
+ }
++
++export const CAPABILITY_TARGETS = [
++  { type: 'QualityCapabilities', home: 'src/data/index.ts', dataset: 'qualities.json' },
++  { type: 'SymptomCapabilities', home: 'src/data/index.ts', dataset: 'symptoms.json' },
++  { type: 'TraitCapabilities', home: 'src/data/index.ts', dataset: 'traits.json' },
++  { type: 'ItemCapabilities', home: 'src/data/index.ts', dataset: 'trappings.json' },
++]
+diff --git a/scripts/guards/lib/fieldConsumers.d.mts b/scripts/guards/lib/fieldConsumers.d.mts
+index 8fecdc70b..ab8fbf499 100644
+--- a/scripts/guards/lib/fieldConsumers.d.mts
++++ b/scripts/guards/lib/fieldConsumers.d.mts
+@@ -29,6 +29,55 @@ export function scanFieldReads(
+   programme?: SessionProgramme | null
+ ): FieldReadHit[];
+ 
++export type FieldReadScope = 'runtime' | 'validation' | 'authoring';
++
++export interface FieldReadSite {
++  file: string;
++  line: number;
++  symbole: string;
++  portee: FieldReadScope;
++}
++
++export interface RuntimeFieldReadHit extends FieldReadHit, FieldReadSite {
++  mode: 'direct';
++}
++
++export interface DynamicFieldCallHit extends FieldReadSite {
++  field: string;
++  mode: 'appel';
++  chemin: FieldReadSite[];
++}
++
++export type DynamicFieldReadReason =
++  | 'cycle ou paramètre non résolu'
++  | 'aucun appel résolu dans le corpus'
++  | 'argument dynamique non résolu'
++  | 'clé dynamique sans paramètre résolu';
++
++export interface UnresolvedDynamicFieldRead extends FieldReadSite {
++  expression: string;
++  reason: DynamicFieldReadReason;
++  chemin: FieldReadSite[];
++}
++
++export function scanRuntimeFieldReads(
++  cible: FieldScanTarget,
++  fields: string[],
++  files: string[],
++  rootDir: string,
++  cache: Map<unknown, unknown>,
++  programme?: SessionProgramme | null
++): RuntimeFieldReadHit[];
++
++export function scanDynamicFieldCalls(
++  cible: FieldScanTarget,
++  fields: string[],
++  files: string[],
++  rootDir: string,
++  cache: Map<unknown, unknown>,
++  programme?: SessionProgramme | null
++): { hits: DynamicFieldCallHit[]; unresolved: UnresolvedDynamicFieldRead[] };
++
+ /** État d'un champ VIS-À-VIS du type : absent du type TS, hérité d'un ancêtre, ou propre à la cible. */
+ export type FieldOwnership =
+   | { etat: 'absent' }
+diff --git a/scripts/guards/lib/fieldConsumers.mjs b/scripts/guards/lib/fieldConsumers.mjs
+index 44d69fcb3..46d30883e 100644
+--- a/scripts/guards/lib/fieldConsumers.mjs
++++ b/scripts/guards/lib/fieldConsumers.mjs
+@@ -207,7 +207,7 @@ function contexteDe(cache, files, rootDir, programme = null) {
+       }
+       visit(sf)
+     }
+-    ctx = { program, checker, index, sites: new Map(), cibles: new Map(), rootDir, sessionPropre: programme ? null : session }
++    ctx = { program, checker, index, retenus, sites: new Map(), cibles: new Map(), rootDir, sessionPropre: programme ? null : session }
+     cache.set(cle, ctx)
+     return ctx
+   } catch (erreur) {
+@@ -431,3 +431,129 @@ export function libererCache(cache, erreursInitiales = []) {
+     cache.clear()
+   }
+ }
++
++const expressionNue = (node) => {
++  while (node && (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node) || ts.isTypeAssertion(node) || ts.isNonNullExpression(node))) node = node.expression
++  return node
++}
++
++function litLaValeur(node) {
++  let n = node
++  for (let p = n.parent; p; p = n.parent) {
++    if ((ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression(p) || ts.isTypeAssertion(p) || ts.isNonNullExpression(p)) && p.expression === n) { n = p; continue }
++    if (ts.isDeleteExpression(p)) return false
++    if ((ts.isForOfStatement(p) || ts.isForInStatement(p)) && p.initializer === n) return false
++    if (ts.isBinaryExpression(p)) return p.left !== n || p.operatorToken.kind !== ts.SyntaxKind.EqualsToken
++    if (ts.isPropertyAssignment(p) && p.initializer === n) { n = p; continue }
++    if ((ts.isSpreadElement(p) || ts.isSpreadAssignment(p)) && p.expression === n) { n = p; continue }
++    if (ts.isArrayLiteralExpression(p) && p.elements.includes(n)) { n = p; continue }
++    if (ts.isObjectLiteralExpression(p) && p.properties.includes(n)) { n = p; continue }
++    return true
++  }
++  return true
++}
++
++const porteeDuLecteur = (file) => /^(?:src\/(?:engine|noyau|hote|state)\/|hotes\/)/.test(file)
++  ? 'runtime' : /(?:^|\/)schemas\//.test(file) ? 'validation' : 'authoring'
++
++export function scanRuntimeFieldReads(cible, fields, files, rootDir, cache, programme = null) {
++  const ctx = contexteDe(cache, files, rootDir, programme)
++  const { toutes, propres, decl } = cibleDe(ctx, cible.type, cible.home, fields)
++  const hits = scanFieldReads(cible, fields, files, rootDir, cache, programme).filter(hit => !hit.auDeclarant && sitesDe(ctx, hit.field).some(site => {
++    if (site.file !== hit.file || site.line !== hit.line || !litLaValeur(site.node)) return false
++    return [...(toutes.get(hit.field) ?? [])].some(d => site.props.has(d) && (propres.get(hit.field)?.has(d) || porteurDe(ctx, site).has(decl)))
++  })).map(hit => ({ ...hit, portee: porteeDuLecteur(hit.file), mode: 'direct' }))
++  return [...new Map(hits.map(hit => [JSON.stringify([hit.field, hit.file, hit.line, hit.symbole]), hit])).values()]
++}
++
++function contexteDesAppels(ctx) {
++  if (ctx.appelsDynamiques) return ctx.appelsDynamiques
++  const { checker } = ctx
++  const appels = new Map()
++  const acces = []
++  const fonctionCanonique = (node) => {
++    if (!node) return undefined
++    if ((ts.isArrowFunction(node) || ts.isFunctionExpression(node)) && ts.isVariableDeclaration(node.parent)) return node.parent
++    const symbol = node.name && checker.getSymbolAtLocation(node.name)
++    const decls = [...(symbol?.declarations ?? [])].map(d => d.resolve())
++    return decls.find(d => d.body) ?? node
++  }
++  for (const sf of ctx.program.getSourceFileNames().map(file => ctx.program.getSourceFile(file))) {
++    if (sf.isDeclarationFile || !ctx.retenus.has(norm(sf.fileName))) continue
++    const visit = node => {
++      if (ts.isElementAccessExpression(node) && node.argumentExpression && !ts.isStringLiteralLikeNode(node.argumentExpression) && litLaValeur(node)) acces.push({ sf, node })
++      if (ts.isCallExpression(node)) {
++        const declaration = checker.getResolvedSignature(node)?.declaration?.resolve()
++        const fn = fonctionCanonique(declaration)
++        if (fn) {
++          const list = appels.get(fn) ?? []
++          list.push({ sf, node })
++          appels.set(fn, list)
++        }
++      }
++      node.forEachChild(visit)
++    }
++    visit(sf)
++  }
++  return (ctx.appelsDynamiques = { appels, acces, fonctionCanonique })
++}
++
++export function scanDynamicFieldCalls(cible, fields, files, rootDir, cache, programme = null) {
++  const ctx = contexteDe(cache, files, rootDir, programme)
++  const { checker } = ctx
++  const { toutes } = cibleDe(ctx, cible.type, cible.home, fields)
++  const { appels, acces, fonctionCanonique } = contexteDesAppels(ctx)
++  const hits = []
++  const unresolved = []
++  const siteDe = (sf, node) => {
++    const file = relative(rootDir, sf.fileName).split(sep).join('/')
++    return { file, line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, symbole: symboleEnglobant(node), portee: porteeDuLecteur(file) }
++  }
++  const parametreDe = expr => {
++    const n = expressionNue(expr)
++    if (!n || !ts.isIdentifier(n)) return undefined
++    const symbol = checker.getSymbolAtLocation(n)
++    const declaration = (symbol?.valueDeclaration ?? symbol?.declarations?.[0])?.resolve()
++    return declaration?.kind === ts.SyntaxKind.Parameter ? declaration : undefined
++  }
++  const suivre = (parameter, origine, chemin, visites) => {
++    const declaration = parameter.parent
++    const fn = fonctionCanonique(declaration)
++    const indice = [...(declaration.parameters ?? [])].indexOf(parameter)
++    const deja = visites.get(fn) ?? new Set()
++    if (indice < 0 || deja.has(indice)) {
++      unresolved.push({ ...origine, expression: parameter.getText(), reason: 'cycle ou paramètre non résolu', chemin })
++      return
++    }
++    const suite = new Map(visites)
++    suite.set(fn, new Set([...deja, indice]))
++    const entrants = appels.get(fn) ?? []
++    if (!entrants.length) unresolved.push({ ...origine, expression: parameter.getText(), reason: 'aucun appel résolu dans le corpus', chemin })
++    for (const { sf, node } of entrants) {
++      const argument = expressionNue(node.arguments[indice])
++      const site = siteDe(sf, node)
++      if (argument && ts.isStringLiteralLikeNode(argument)) {
++        if (fields.includes(argument.text)) hits.push({ ...site, field: argument.text, mode: 'appel', chemin: [...chemin, site] })
++      } else {
++        const parent = parametreDe(argument)
++        if (parent) suivre(parent, site, [...chemin, site], suite)
++        else unresolved.push({ ...site, expression: argument?.getText(sf) ?? '(absent)', reason: 'argument dynamique non résolu', chemin })
++      }
++    }
++  }
++  for (const { sf, node } of acces) {
++    const receiver = expressionNue(node.expression)
++    const type = checker.getTypeAtLocation(receiver)
++    const correspond = fields.some(field => {
++      const reelles = declarationsDeProp(checker, type, field)
++      return [...(toutes.get(field) ?? [])].some(d => reelles.has(d))
++    })
++    if (!correspond) continue
++    const site = siteDe(sf, node)
++    const parameter = parametreDe(node.argumentExpression)
++    if (parameter) suivre(parameter, site, [site], new Map())
++    else unresolved.push({ ...site, expression: node.argumentExpression.getText(sf), reason: 'clé dynamique sans paramètre résolu', chemin: [site] })
++  }
++  const uniques = values => [...new Map(values.map(value => [JSON.stringify(value), value])).values()].sort((a, b) => parUnitesDeCode(a.file, b.file) || a.line - b.line)
++  return { hits: uniques(hits), unresolved: uniques(unresolved) }
++}
+diff --git a/scripts/guards/lib/legacyVocabStock.mjs b/scripts/guards/lib/legacyVocabStock.mjs
+index 738637733..7e2b5d694 100644
+--- a/scripts/guards/lib/legacyVocabStock.mjs
++++ b/scripts/guards/lib/legacyVocabStock.mjs
+@@ -573,13 +573,6 @@ export const LEGACY_VOCAB_SITES = [
+     lot: "L7 désormais",
+     date: "2026-09-26",
+   },
+-  {
+-    fichier: "src/gameIso/stage/stage-tons-lumiere.test.tsx",
+-    motif: "désormais",
+-    ancre: "// ÉCART ASSUMÉ (le seul) : la lampe naît désormais ORANGE et VACILLANTE au lieu de blanche et fixe.",
+-    lot: "L7 désormais",
+-    date: "2026-09-26",
+-  },
+   {
+     fichier: "src/gameIso/stage/weather-boucle.test.tsx",
+     motif: "désormais",
+diff --git a/src/data/field-capability-consumers.test.ts b/src/data/field-capability-consumers.test.ts
+new file mode 100644
+index 000000000..db0a13242
+--- /dev/null
++++ b/src/data/field-capability-consumers.test.ts
+@@ -0,0 +1,168 @@
++import { describe, expect, it } from 'vitest';
++import { join } from 'node:path';
++import { virtualProgram, VIRTUAL_ROOT } from '../../scripts/guards/lib/tsProgram.mjs';
++import { scanDynamicFieldCalls, scanRuntimeFieldReads, libererCache } from '../../scripts/guards/lib/fieldConsumers.mjs';
++import { capabilityFieldsOfDocuments } from '../../scripts/docs/build-field-consumers.mts';
++
++const cible = { type: 'Caps', home: 'src/data/types.ts' };
++const type = 'export interface Caps { active?: boolean; other?: boolean }';
++const mesurer = (fixtures: Record<string, string>) => {
++  const programme = virtualProgram(fixtures);
++  const cache = new Map();
++  const files = Object.keys(fixtures).map(file => join(VIRTUAL_ROOT, file));
++  try {
++    return {
++      direct: scanRuntimeFieldReads(cible, ['active', 'other'], files, VIRTUAL_ROOT, cache, programme),
++      dynamic: scanDynamicFieldCalls(cible, ['active', 'other'], files, VIRTUAL_ROOT, cache, programme),
++    };
++  } finally {
++    libererCache(cache);
++    programme.dispose();
++  }
++};
++
++describe('consommateurs de capacités — identité typée et clés d’appel', () => {
++  it('suit un alias et trois paramètres jusqu’à la clé littérale du geste runtime', () => {
++    const result = mesurer({
++      'src/data/types.ts': type,
++      'src/engine/getter.ts': `import type { Caps } from '../data/types';
++export function read(c: Caps, key: keyof Caps) { return c[key]; }
++export const alias = read;
++`,
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++import { alias } from './getter';
++function first(c: Caps, key: keyof Caps) { return alias(c, key); }
++function second(c: Caps, key: keyof Caps) { return first(c, key); }
++export function action(c: Caps) { return second(c, 'active'); }
++`,
++    });
++    expect(result.dynamic.hits).toEqual([
++      expect.objectContaining({ field: 'active', file: 'src/engine/action.ts', line: 5, portee: 'runtime' }),
++    ]);
++    expect(result.dynamic.unresolved).toEqual([]);
++  });
++
++  it('traverse les assertions natives et satisfies pour le porteur et la clé', () => {
++    const result = mesurer({
++      'src/data/types.ts': type,
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++function read(c: Caps, key: keyof Caps) { return (<Caps>c)[key satisfies keyof Caps]; }
++export function action(c: Caps) { return read(c, 'active' satisfies keyof Caps); }
++`,
++    });
++    expect(result.dynamic.hits).toEqual([
++      expect.objectContaining({ field: 'active', file: 'src/engine/action.ts', line: 3, portee: 'runtime' }),
++    ]);
++  });
++
++  it('rapproche la signature de surcharge et son implémentation', () => {
++    const result = mesurer({
++      'src/data/types.ts': type,
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++function read(c: Caps, key: 'active'): boolean | undefined;
++function read(c: Caps, key: keyof Caps) { return c[key]; }
++export function action(c: Caps) { return read(c, 'active'); }
++`,
++    });
++    expect(result.dynamic.hits).toEqual([
++      expect.objectContaining({ field: 'active', file: 'src/engine/action.ts', line: 4 }),
++    ]);
++  });
++
++  it('sépare la lecture mécanique de la validation et des écritures seules', () => {
++    const result = mesurer({
++      'src/data/types.ts': type,
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++export function write(c: Caps) { c.active = true; delete c.other; }
++export function read(c: Caps) { return c.other; }
++`,
++      'src/data/schemas/validation.ts': `import type { Caps } from '../types';
++export function validate(c: Caps) { return typeof c.active === 'boolean'; }
++`,
++    });
++    expect(result.direct).toEqual([
++      expect.objectContaining({ field: 'active', file: 'src/data/schemas/validation.ts', portee: 'validation' }),
++      expect.objectContaining({ field: 'other', file: 'src/engine/action.ts', line: 3, portee: 'runtime' }),
++    ]);
++  });
++
++  it('ne crédite aucun homonyme de même forme', () => {
++    const result = mesurer({
++      'src/data/types.ts': type,
++      'src/engine/autre.ts': `interface Caps { active?: boolean; other?: boolean }
++function read(c: Caps, key: keyof Caps) { return c[key]; }
++export function action(c: Caps) { return read(c, 'active') || c.other; }
++`,
++      'src/engine/mixed.ts': `import type { Caps } from '../data/types';
++interface Other { active?: boolean }
++export function mixed(real: Caps, other: Other) { real.active = true; return other.active; }
++`,
++    });
++    expect(result.direct).toEqual([]);
++    expect(result.dynamic.hits).toEqual([]);
++  });
++
++  it('exclut les cibles de boucles et les cibles de déstructuration, même dynamiques', () => {
++    const result = mesurer({
++      'src/data/types.ts': 'export interface Caps { active?: boolean; other?: string }',
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++export function write(c: Caps, key: 'active', source: { x: boolean }, values: boolean[]) {
++  for (c.active of values) {}
++  for (c.other in source) {}
++  for (c[key] of values) {}
++  ({ x: c.active } = source);
++  ([c.active] = values);
++  ({ x: [c[key]] } = { x: values });
++}
++`,
++    });
++    expect(result.direct).toEqual([]);
++    expect(result.dynamic).toEqual({ hits: [], unresolved: [] });
++  });
++
++  it('conserve la lecture des clés calculées et des affectations composées', () => {
++    const result = mesurer({
++      'src/data/types.ts': 'export interface Caps { active?: boolean; other: number }',
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++export function write(c: Caps, other: Record<string, number>, source: Record<string, number>) {
++  other[c.active ? 'a' : 'b'] = 1;
++  ({ [c.active ? 'a' : 'b']: other.value } = source);
++  c.active ||= true;
++  c.other++;
++}
++`,
++    });
++    expect(result.direct.map(hit => [hit.field, hit.line])).toEqual([
++      ['active', 3], ['active', 4], ['active', 5], ['other', 6],
++    ]);
++  });
++
++  it('garde les arguments inconnus et les cycles non mesurés sans créditer une union de clés', () => {
++    const result = mesurer({
++      'src/data/types.ts': type,
++      'src/engine/action.ts': `import type { Caps } from '../data/types';
++function read(c: Caps, key: keyof Caps) { return c[key]; }
++function first(c: Caps, key: keyof Caps): unknown { return second(c, key); }
++function second(c: Caps, key: keyof Caps): unknown { return first(c, key) || read(c, key); }
++export function fromData(c: Caps, config: { key: keyof Caps }) { return read(c, config.key); }
++`,
++    });
++    expect(result.dynamic.hits).toEqual([]);
++    expect(result.dynamic.unresolved).toEqual(expect.arrayContaining([
++      expect.objectContaining({ expression: 'config.key', reason: 'argument dynamique non résolu' }),
++      expect.objectContaining({ reason: 'cycle ou paramètre non résolu' }),
++    ]));
++  });
++
++  it('énumère aussi les porteurs non mappés et les capacités nichées', () => {
++    const result = capabilityFieldsOfDocuments({
++      'traits.json': [{ id: 'fixture', nested: { capabilities: { active: true } } }],
++      'nouveau.json': { capabilities: { novel: true } },
++      'sans.json': [{ id: 'sans' }],
++    });
++    expect(result).toEqual([
++      { dataset: 'nouveau.json', fields: ['novel'], target: undefined },
++      { dataset: 'traits.json', fields: ['active'], target: expect.objectContaining({ type: 'TraitCapabilities' }) },
++    ]);
++  });
++});
+diff --git a/src/engine/apparenceNaissance.test.ts b/src/engine/apparenceNaissance.test.ts
+index cfef6cbd3..f58620e08 100644
+--- a/src/engine/apparenceNaissance.test.ts
++++ b/src/engine/apparenceNaissance.test.ts
+@@ -1,7 +1,7 @@
+ import { afterEach, describe, expect, it } from 'vitest';
+ import { itemFromTrappingRef, itemFromTrappingById, itemFromGive, contexteDeNaissanceDObjet, recomputeLoadout } from './items';
+-import { apparencesCandidates } from './items';
+-import { findTrappingById } from '../data';
++import { apparencesCandidates, weaponFromItem } from './items';
++import { findTrappingById, trappingsInstanciables } from '../data';
+ import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
+ import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+ import { applyOps } from './ops';
+@@ -13,6 +13,19 @@ import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaiss
+ afterEach(restaurerApparencesDeNaissance);
+ 
+ describe('apparence décidée à la naissance', () => {
++  it('sans décision, aucune naissance ne pose de clé apparence', () => {
++    const objets = trappingsInstanciables().flatMap((t) => [
++      itemFromTrappingById(t.id)!,
++      itemFromGive({ trappingId: t.id }),
++    ]);
++    objets.push(itemFromGive({ custom: 'Objet sans contexte' }));
++    for (const objet of objets) {
++      expect(objet, objet.trappingId ?? objet.label).not.toHaveProperty('apparence');
++      if (objet.kind === 'melee' || objet.kind === 'ranged')
++        expect(weaponFromItem(objet), objet.trappingId).not.toHaveProperty('apparence');
++    }
++  });
++
+   it('la naissance et les candidats lisent le même objet de campagne absent du catalogue', () => {
+     poserVariantesDeNaissance(varianteDeNaissance({ forme: { id: 'hache' } }));
+     const objet = { ...findTrappingById('arme-simple')!, id: 'hache-de-campagne', shape: { id: 'hache' }, formChoices: ['hache'] };
+diff --git a/src/engine/grimoire.test.ts b/src/engine/grimoire.test.ts
+index c6efde32e..0aff8d923 100644
+--- a/src/engine/grimoire.test.ts
++++ b/src/engine/grimoire.test.ts
+@@ -1,6 +1,6 @@
+ /** LDB 46 l.16-20 ; LDB 47 l.21,33-34 ; LDB 10 */
+ import { describe, it, expect } from 'vitest';
+-import { objetDeTest } from '../objetsDeTest.testkit';
++import { objetDeTest } from './objetsDeTest.testkit';
+ import type { Combatant } from './types';
+ import {
+   casterTalents, spellCost, learnableSpells, canCastFromGrimoire, knownCount,
+diff --git a/src/engine/items.ts b/src/engine/items.ts
+index ebe4ecc65..cf92e7a29 100644
+--- a/src/engine/items.ts
++++ b/src/engine/items.ts
+@@ -25,7 +25,7 @@ import { slugId } from '../data/slug';
+ import { dansLaSousListe } from '../data/schemas/grammaire/ref';
+ import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
+ import { craftEncDelta } from './qualities/craftEconomy';
+-import { hasQuality, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
++import { hasQuality, isLayerable, ignoresArmourOnEven, ignoresArmourOnImpaleCrit, qualityIndice, resolveQualities, magazineSize } from './qualities/dispatch';
+ import { itemCapability } from './capabilities';
+ import { loadRegister, objetSourceDeLArme, type WeaponLoadState } from './weaponLoad';
+ import { nextEntityId } from '../lib/entityId';
+@@ -545,14 +545,11 @@ export function isOffHandEligible(it: ItemInstance): boolean {
+   return hasQuality(it, 'pistolet'); // Atout Pistolet (qualities.json id) — seule arme à distance utilisable de la 2nde main
+ }
+ 
+-/** Couche de PORT d'une pièce d'armure (LDB 63) : le « Cuir souple » « peut être porté sans pénalité
+- *  sous n'importe quelle autre Armure » (l.93) ; une armure Flexible « peut être portée sous une
+- *  couche d'armure non Flexible » (l.105-106) ; le reste forme la couche extérieure rigide.
+- *  Une seule pièce par couche et par localisation. */
++/** LDB 63 l.74 ; CRB 087 l.26 */
+ export type ArmourLayer = 'souple' | 'flexible' | 'rigide';
+ export function armourLayer(it: ItemInstance): ArmourLayer {
+-  if (it.subType === 'cuir-souple') return 'souple'; // type d'armure « Cuir souple » (id)
+-  if (hasQuality(it, 'flexible')) return 'flexible';
++  if (it.subType === 'cuir-souple') return 'souple'; // LDB 63 l.60
++  if (isLayerable(it)) return 'flexible';
+   return 'rigide';
+ }
+ 
+@@ -1009,21 +1006,15 @@ export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
+   return clone;
+ }
+ 
+-/**
+- * PA portés par localisation, dérivés des pièces équipées. Une seule pièce compte par localisation
+- * (la meilleure), SAUF Flexible (LDB 63) : « peut être portée sous une couche d'armure non
+- * Flexible […] vous gagnez les bénéfices des deux » → meilleure pièce rigide + meilleure pièce
+- * Flexible se CUMULENT. `exclude` retire des pièces du calcul (PA ignorés par la touche —
+- * Partielle/Points faibles, cf. `ignoredArmourAP`).
+- */
++/** LDB 63 l.74 ; CRB 087 l.26 */
+ export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInstance) => boolean): ArmourPoints {
+   const rigid = emptyArmour();
+   const flex = emptyArmour();
+   for (const it of items) {
+     if (!it.equipped || it.kind !== 'armor' || !it.pa || !it.locs || it.destroyed) continue;
+     if (exclude?.(it)) continue;
+-    const net = Math.max(0, it.pa - (it.damageTaken ?? 0)); // PA nette des dégâts (LDB 63 l.19)
+-    const layer = hasQuality(it, 'flexible') ? flex : rigid;
++    const net = Math.max(0, it.pa - (it.damageTaken ?? 0)); // LDB 63 l.19
++    const layer = isLayerable(it) ? flex : rigid;
+     for (const l of it.locs) layer[l] = Math.max(layer[l], net);
+   }
+   const armour = emptyArmour();
+@@ -1031,17 +1022,14 @@ export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInsta
+   return armour;
+ }
+ 
+-/**
+- * PA portés à `loc` IGNORÉS par cette touche : LDB 63 l.86 (Partielle), l.90 (Points faibles).
+- * Différence entre les PA dérivés avec et sans les pièces ignorées (gère la superposition Flexible).
+- */
++/** LDB 63 l.86, l.90 ; CRB 087 l.52 */
+ export function ignoredArmourAP(c: Combatant, loc: HitLocation, hit: { roll: number; critical: boolean; empaleuse: boolean }): number {
+   const items = c.items ?? [];
+   if (!items.length) return 0;
+   const even = hit.roll % 2 === 0;
+   const ignored = (it: ItemInstance): boolean =>
+-    (hasQuality(it, 'partielle') && (even || hit.critical)) ||
+-    (hasQuality(it, 'points-faibles') && hit.critical && hit.empaleuse);
++    (ignoresArmourOnEven(it) && (even || hit.critical)) ||
++    (ignoresArmourOnImpaleCrit(it) && hit.critical && hit.empaleuse);
+   if (!items.some((it) => it.equipped && it.kind === 'armor' && it.locs?.includes(loc) && ignored(it))) return 0;
+   return Math.max(0, wornArmourPoints(items)[loc] - wornArmourPoints(items, ignored)[loc]);
+ }
+diff --git a/src/engine/layerable-capability.test.ts b/src/engine/layerable-capability.test.ts
+new file mode 100644
+index 000000000..94837df03
+--- /dev/null
++++ b/src/engine/layerable-capability.test.ts
+@@ -0,0 +1,60 @@
++import { describe, expect, it } from 'vitest';
++import { qualities } from '../data';
++import { setDataset } from '../data/overrides';
++import { objetDeTest } from './objetsDeTest.testkit';
++import { armourLayer, wornArmourPoints } from './items';
++import { isLayerable } from './qualities/dispatch';
++
++function avecSuperposition(id: string, layerable: boolean | undefined, verifier: () => void): void {
++  const origine = [...qualities];
++  const fixture = origine.map((qualite) => {
++    if (qualite.id !== id) return qualite;
++    const capabilities = { ...qualite.capabilities };
++    if (layerable === undefined) delete capabilities.layerable;
++    else capabilities.layerable = layerable;
++    return { ...qualite, capabilities };
++  });
++  try {
++    setDataset('qualities', fixture);
++    verifier();
++  } finally {
++    setDataset('qualities', origine);
++  }
++}
++
++function armuresPortees(qualite: 'solide' | 'flexible') {
++  const dessous = objetDeTest('chemise-de-mailles', { uid: 'dessous', equipped: true });
++  dessous.qualities = [{ id: qualite }];
++  const dessus = objetDeTest('plastron', { uid: 'dessus', equipped: true });
++  return { dessous, dessus };
++}
++
++/** LDB 63 l.74 ; CRB 087 l.26 */
++describe('layerable : superposition déclarée par la qualité', () => {
++  it('une qualité éditée au Codex permet de cumuler les deux armures', () => {
++    avecSuperposition('solide', true, () => {
++      const { dessous, dessus } = armuresPortees('solide');
++      expect(isLayerable(dessous)).toBe(true);
++      expect(armourLayer(dessous)).toBe('flexible');
++      expect(wornArmourPoints([dessous, dessus]).corps).toBe(dessous.pa! + dessus.pa!);
++    });
++  });
++
++  it.each([false, undefined])('une capacité %s ne permet pas de superposition', (layerable) => {
++    avecSuperposition('solide', layerable, () => {
++      const { dessous, dessus } = armuresPortees('solide');
++      expect(isLayerable(dessous)).toBe(false);
++      expect(armourLayer(dessous)).toBe('rigide');
++      expect(wornArmourPoints([dessous, dessus]).corps).toBe(Math.max(dessous.pa!, dessus.pa!));
++    });
++  });
++
++  it.each([false, undefined])('le nom Flexible ne remplace pas une capacité %s', (layerable) => {
++    avecSuperposition('flexible', layerable, () => {
++      const { dessous, dessus } = armuresPortees('flexible');
++      expect(isLayerable(dessous)).toBe(false);
++      expect(armourLayer(dessous)).toBe('rigide');
++      expect(wornArmourPoints([dessous, dessus]).corps).toBe(Math.max(dessous.pa!, dessus.pa!));
++    });
++  });
++});
+diff --git a/src/engine/lockpicks-capability.test.ts b/src/engine/lockpicks-capability.test.ts
+new file mode 100644
+index 000000000..dd6947269
+--- /dev/null
++++ b/src/engine/lockpicks-capability.test.ts
+@@ -0,0 +1,33 @@
++import { describe, expect, it } from 'vitest';
++import { createHero } from './character';
++import { objetDeTest } from './objetsDeTest.testkit';
++import { skillToolMod } from './skills';
++
++function crocheteur() {
++  const heros = createHero({ speciesId: 'humains-reiklander', careerId: 'voleur', label: 'Crocheteur', seed: 1 });
++  heros.items = [];
++  return heros;
++}
++
++/** LDB 67 l.66 ; CRB 091 l.15 */
++describe('lockpicks : outils de crochetage dans le sac', () => {
++  it('les outils non équipés permettent de crocheter sans pénalité', () => {
++    const heros = crocheteur();
++    heros.items = [objetDeTest('outils-de-crochetage', { uid: 'outils', equipped: false })];
++    expect(skillToolMod(heros, 'crochetage')).toBe(0);
++  });
++
++  /** LDB 09 l.168 */
++  it('sans outils, le malus de crochetage est appliqué', () => {
++    expect(skillToolMod(crocheteur(), 'crochetage')).toBe(-10);
++  });
++
++  /** LDB 09 l.168 */
++  it('des outils détruits ne permettent pas de crocheter sans pénalité', () => {
++    const heros = crocheteur();
++    const outils = objetDeTest('outils-de-crochetage', { uid: 'outils', equipped: false });
++    outils.destroyed = true;
++    heros.items = [outils];
++    expect(skillToolMod(heros, 'crochetage')).toBe(-10);
++  });
++});
+diff --git a/src/objetsDeTest.testkit.ts b/src/engine/objetsDeTest.testkit.ts
+similarity index 78%
+rename from src/objetsDeTest.testkit.ts
+rename to src/engine/objetsDeTest.testkit.ts
+index b9acddc54..a1254ba60 100644
+--- a/src/objetsDeTest.testkit.ts
++++ b/src/engine/objetsDeTest.testkit.ts
+@@ -1,15 +1,17 @@
+-import { itemFromTrappingById, weaponFromItem } from './engine/items';
+-import type { ItemInstance, Weapon } from './engine/types';
++import { itemFromTrappingById, weaponFromItem } from './items';
++import type { ItemInstance, Weapon } from './types';
+ 
+ type EtatDObjetDeTest = Partial<Pick<ItemInstance, 'uid' | 'equipped'>>;
+ type EtatDArmeDeTest = EtatDObjetDeTest & Pick<Partial<Weapon>, 'hand'>;
+ 
++/** #2967 */
+ export function objetDeTest(id: string, etat: EtatDObjetDeTest = {}): ItemInstance {
+   const objet = itemFromTrappingById(id);
+   if (!objet) throw new Error(`Objet de test inconnu : ${id}`);
+   return Object.assign(objet, etat);
+ }
+ 
++/** #2967 */
+ export function armeDeTest(id: string, { hand, ...etat }: EtatDArmeDeTest = {}): Weapon {
+   return weaponFromItem(objetDeTest(id, etat), hand);
+ }
+diff --git a/src/engine/ops.ts b/src/engine/ops.ts
+index 874836a27..be7111021 100644
+--- a/src/engine/ops.ts
++++ b/src/engine/ops.ts
+@@ -836,9 +836,6 @@ export type GameOp =
+       onHitEffects?: TriggeredEffect[];
+       /** Id de matière du domaine objet. */
+       teinte?: { id: string };
+-      /** Silhouette de RENDU : `id` de Possession (`TrappingData.id`) pour les conjures à forme FIXE
+-       *  (Faux → `serpe-de-guerre`, Épée ardente → `arme-simple`) — résolu par id (`findTrappingById`,
+-       *  `gameIso/rig/parts/equipment.ts`). `chooseForm` la prend du choix du lanceur. */
+       form?: { id: string };
+       /** Forme LIBRE (Arme aethyrique) : le lanceur choisit l'arme → `ctx.conjureForm` clone le profil
+        *  (Groupe/allonge/mains) d'une arme RÉELLE de la base ; sinon stats fixes du Sort. */
+diff --git a/src/engine/partial-capability.test.ts b/src/engine/partial-capability.test.ts
+new file mode 100644
+index 000000000..4430c412f
+--- /dev/null
++++ b/src/engine/partial-capability.test.ts
+@@ -0,0 +1,98 @@
++import { afterEach, beforeEach, describe, expect, it } from 'vitest';
++import { qualities } from '../data';
++import { setDataset } from '../data/overrides';
++import { createHero } from './character';
++import { ignoredArmourAP, recomputeLoadout, wornArmourPoints } from './items';
++import { objetDeTest } from './objetsDeTest.testkit';
++
++let origine: typeof qualities;
++
++beforeEach(() => {
++  origine = [...qualities];
++  const fixture = origine.map((qualite) => {
++    const capabilities = { ...qualite.capabilities, apIgnoredOnImpaleCrit: false };
++    if (qualite.id === 'solide') capabilities.apIgnoredOnEven = true;
++    if (qualite.id === 'partielle') capabilities.apIgnoredOnEven = false;
++    if (qualite.id === 'flexible') {
++      delete capabilities.apIgnoredOnEven;
++      capabilities.layerable = true;
++    }
++    return { ...qualite, capabilities };
++  });
++  setDataset('qualities', fixture);
++});
++
++afterEach(() => {
++  setDataset('qualities', origine);
++});
++
++function porteur(qualite: 'solide' | 'partielle' | 'flexible') {
++  const piece = objetDeTest('plastron', { uid: 'piece', equipped: true });
++  piece.qualities = [{ id: qualite }];
++  const acteur = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Porteur partiel de test', seed: 1 });
++  acteur.items = [piece];
++  recomputeLoadout(acteur);
++  return { acteur, piece };
++}
++
++/** LDB 63 l.86 */
++describe('partial : PA ignorés par la capacité de la pièce', () => {
++  it('une qualité portant la capacité ignore ses PA sur une attaque paire', () => {
++    const { acteur, piece } = porteur('solide');
++    expect(ignoredArmourAP(acteur, 'corps', { roll: 12, critical: false, empaleuse: false })).toBe(piece.pa);
++  });
++
++  it('une attaque impaire sans Critique conserve les PA', () => {
++    const { acteur } = porteur('solide');
++    expect(ignoredArmourAP(acteur, 'corps', { roll: 11, critical: false, empaleuse: false })).toBe(0);
++  });
++
++  it('un Critique impair ignore les PA de la pièce portant la capacité', () => {
++    const { acteur, piece } = porteur('solide');
++    expect(ignoredArmourAP(acteur, 'corps', { roll: 11, critical: true, empaleuse: false })).toBe(piece.pa);
++  });
++
++  it.each([false, undefined])('une capacité %s sur Partielle conserve les PA', (capacite) => {
++    setDataset('qualities', qualities.map((qualite) => {
++      if (qualite.id !== 'partielle') return qualite;
++      const capabilities = { ...qualite.capabilities };
++      if (capacite === undefined) delete capabilities.apIgnoredOnEven;
++      else capabilities.apIgnoredOnEven = capacite;
++      return { ...qualite, capabilities };
++    }));
++    const { acteur } = porteur('partielle');
++    expect(ignoredArmourAP(acteur, 'corps', { roll: 12, critical: true, empaleuse: false })).toBe(0);
++  });
++
++  it('une qualité sans la capacité conserve les PA', () => {
++    const { acteur } = porteur('flexible');
++    expect(ignoredArmourAP(acteur, 'corps', { roll: 12, critical: true, empaleuse: false })).toBe(0);
++  });
++
++  /** LDB 63 l.74, l.86 */
++  it('la couche superposée non affectée conserve ses PA', () => {
++    const { acteur, piece } = porteur('solide');
++    const dessous = objetDeTest('chemise-de-mailles', { uid: 'dessous', equipped: true });
++    dessous.qualities = [{ id: 'flexible' }];
++    acteur.items = [dessous, piece];
++    recomputeLoadout(acteur);
++    const ignores = ignoredArmourAP(acteur, 'corps', { roll: 12, critical: false, empaleuse: false });
++    expect(ignores).toBe(piece.pa);
++    expect(wornArmourPoints(acteur.items).corps - ignores).toBe(dessous.pa);
++  });
++
++  it.each([
++    { equipped: false, destroyed: false },
++    { equipped: true, destroyed: true },
++  ])('une pièce non portée ou détruite ne fournit aucun PA à ignorer : %j', (etat) => {
++    const { acteur, piece } = porteur('solide');
++    Object.assign(piece, etat);
++    recomputeLoadout(acteur);
++    expect(ignoredArmourAP(acteur, 'corps', { roll: 12, critical: false, empaleuse: false })).toBe(0);
++  });
++
++  it('la capacité ne retire aucun PA à une autre localisation', () => {
++    const { acteur } = porteur('solide');
++    expect(ignoredArmourAP(acteur, 'tete', { roll: 12, critical: false, empaleuse: false })).toBe(0);
++  });
++});
+diff --git a/src/engine/qualities/dispatch.ts b/src/engine/qualities/dispatch.ts
+index 881033bef..e6540f477 100644
+--- a/src/engine/qualities/dispatch.ts
++++ b/src/engine/qualities/dispatch.ts
+@@ -158,6 +158,26 @@ export function canFireWhileEngaged(w: Weapon | undefined): boolean {
+   return !!w && w.type === 'ranged' && resolveQualities(w).some((r) => r.caps?.canFireWhileEngaged);
+ }
+ 
++/** LDB 62 l.307 */
++export function damagesArmourOnHit(w: QualityCarrier | undefined): boolean {
++  return resolveQualities(w).some((r) => r.caps?.damagesArmour === true);
++}
++
++/** LDB 63 l.74 ; CRB 087 l.26 */
++export function isLayerable(w: QualityCarrier | undefined): boolean {
++  return resolveQualities(w).some((r) => r.caps?.layerable === true);
++}
++
++/** LDB 63 l.86 */
++export function ignoresArmourOnEven(w: QualityCarrier | undefined): boolean {
++  return resolveQualities(w).some((r) => r.caps?.apIgnoredOnEven === true);
++}
++
++/** LDB 63 l.90 ; CRB 087 l.52 */
++export function ignoresArmourOnImpaleCrit(w: QualityCarrier | undefined): boolean {
++  return resolveQualities(w).some((r) => r.caps?.apIgnoredOnImpaleCrit === true);
++}
++
+ /** L'objet est-il insensible aux dégâts/destruction (Incassable) ? (remplace les regex /incassable/i). */
+ export function isUnbreakable(w: QualityCarrier | undefined): boolean {
+   return resolveQualities(w).some((r) => r.caps?.unbreakable);
+diff --git a/src/engine/suffocation.test.ts b/src/engine/suffocation.test.ts
+index 9ee570606..81a467642 100644
+--- a/src/engine/suffocation.test.ts
++++ b/src/engine/suffocation.test.ts
+@@ -1,7 +1,7 @@
+ /** LDB 18 l.346 ; LDB 41 */
+ import { describe, expect, it } from 'vitest';
+ import type { Combatant } from './types';
+-import { objetDeTest } from '../objetsDeTest.testkit';
++import { objetDeTest } from './objetsDeTest.testkit';
+ import { suffocationTick, prepareBreathHold, breathHoldSeconds, hasWaterContainer, isWaterSprayTarget, waterSprayCandidates } from './suffocation';
+ import { inDeathCondition, hasCondition } from './conditions';
+ import { applyOps } from './ops';
+diff --git a/src/engine/weakpoints-capability.test.ts b/src/engine/weakpoints-capability.test.ts
+new file mode 100644
+index 000000000..fa5d78b12
+--- /dev/null
++++ b/src/engine/weakpoints-capability.test.ts
+@@ -0,0 +1,79 @@
++import { describe, expect, it } from 'vitest';
++import { qualities } from '../data';
++import { setDataset } from '../data/overrides';
++import { createHero } from './character';
++import { ignoredArmourAP, recomputeLoadout, wornArmourPoints } from './items';
++import { objetDeTest } from './objetsDeTest.testkit';
++import type { ItemInstance } from './types';
++
++function avecPointsFaibles(id: 'solide' | 'points-faibles', capacite: boolean | undefined, verifier: () => void): void {
++  const origine = [...qualities];
++  const fixture = origine.map((qualite) => {
++    if (qualite.id === 'flexible') return { ...qualite, capabilities: { ...qualite.capabilities, layerable: true, apIgnoredOnImpaleCrit: false } };
++    if (qualite.id !== id) return qualite;
++    const capabilities = { ...qualite.capabilities };
++    if (capacite === undefined) delete capabilities.apIgnoredOnImpaleCrit;
++    else capabilities.apIgnoredOnImpaleCrit = capacite;
++    return { ...qualite, capabilities };
++  });
++  try {
++    setDataset('qualities', fixture);
++    verifier();
++  } finally {
++    setDataset('qualities', origine);
++  }
++}
++
++function porteur(pieces: ItemInstance[]) {
++  const acteur = createHero({ speciesId: 'humains-reiklander', careerId: 'garde', label: 'Porteur de test', seed: 1 });
++  acteur.items = pieces;
++  recomputeLoadout(acteur);
++  return acteur;
++}
++
++function plate(qualite: 'solide' | 'points-faibles') {
++  const armure = objetDeTest('plastron', { uid: 'plate', equipped: true });
++  armure.qualities = [{ id: qualite }];
++  return armure;
++}
++
++/** LDB 63 l.90 ; CRB 087 l.52 */
++describe('weakpoints : PA ignorés sur Critique Empaleuse', () => {
++  it('une autre qualité portant la capacité ignore les PA de sa pièce', () => {
++    avecPointsFaibles('solide', true, () => {
++      const armure = plate('solide');
++      const acteur = porteur([armure]);
++      expect(ignoredArmourAP(acteur, 'corps', { roll: 11, critical: true, empaleuse: true })).toBe(armure.pa);
++    });
++  });
++
++  it.each([
++    { critical: false, empaleuse: true },
++    { critical: true, empaleuse: false },
++  ])('le Critique et Empaleuse sont tous deux requis : %j', (hit) => {
++    avecPointsFaibles('solide', true, () => {
++      const acteur = porteur([plate('solide')]);
++      expect(ignoredArmourAP(acteur, 'corps', { roll: 11, ...hit })).toBe(0);
++    });
++  });
++
++  it.each([false, undefined])('Points faibles sans capacité active %s ne remplace pas la donnée', (capacite) => {
++    avecPointsFaibles('points-faibles', capacite, () => {
++      const acteur = porteur([plate('points-faibles')]);
++      expect(ignoredArmourAP(acteur, 'corps', { roll: 11, critical: true, empaleuse: true })).toBe(0);
++    });
++  });
++
++  /** LDB 63 l.74, l.90 ; CRB 087 l.26, l.52 */
++  it('la couche Flexible non affectée conserve ses PA sous la pièce ignorée', () => {
++    avecPointsFaibles('solide', true, () => {
++      const dessus = plate('solide');
++      const dessous = objetDeTest('chemise-de-mailles', { uid: 'maille', equipped: true });
++      dessous.qualities = [{ id: 'flexible' }];
++      const acteur = porteur([dessous, dessus]);
++      const ignores = ignoredArmourAP(acteur, 'corps', { roll: 11, critical: true, empaleuse: true });
++      expect(ignores).toBe(dessus.pa);
++      expect(wornArmourPoints(acteur.items!).corps - ignores).toBe(dessous.pa);
++    });
++  });
++});
+diff --git a/src/gameIso/stage/banc-volumique.ts b/src/gameIso/stage/banc-volumique.ts
+index 81cfce0b2..458d39bcb 100644
+--- a/src/gameIso/stage/banc-volumique.ts
++++ b/src/gameIso/stage/banc-volumique.ts
+@@ -16,7 +16,7 @@ import { act } from 'react';
+ import { afterEach, beforeEach, vi } from 'vitest';
+ import * as THREE from 'three';
+ import type { Combatant } from '../../engine/types';
+-import { itemFromTrappingById, weaponFromItem } from '../../engine/items';
++import { armeDeTest } from '../../engine/objetsDeTest.testkit';
+ import type { StageRenderer } from './GameStage3D';
+ import { corpsDeLActeur, estCorps } from './corpsActeur';
+ import { BUDGET_TRANCHE_MS_DEFAUT, clearAtlasCache, resetBakeQueue, setBudgetTrancheMs } from '../backends/webgl/atlasBake';
+@@ -28,9 +28,7 @@ import { resetStageFrames } from './stageFrames';
+ 
+ // #2967
+ export function hérosAvecArme(base: Combatant, trappingId: string): Combatant {
+-  const objet = itemFromTrappingById(trappingId);
+-  if (!objet) throw new Error(`Objet de fixture inconnu : ${trappingId}`);
+-  return { ...base, id: 'h1', weapons: [weaponFromItem({ ...objet, uid: 'w1' })] };
++  return { ...base, id: 'h1', weapons: [armeDeTest(trappingId, { uid: 'w1' })] };
+ }
+ 
+ /** Les scènes three DESSINÉES, dans l'ordre — accumulateur de MODULE : plusieurs écrans montés à la
+diff --git a/src/gameIso/stage/stage-tons-lumiere.test.tsx b/src/gameIso/stage/stage-tons-lumiere.test.tsx
+index 0b888f284..83c6c8edc 100644
+--- a/src/gameIso/stage/stage-tons-lumiere.test.tsx
++++ b/src/gameIso/stage/stage-tons-lumiere.test.tsx
+@@ -20,7 +20,7 @@ import * as THREE from 'three';
+ import { emptyScene, sceneMetresPerTile, heightAt, type Scene } from '../../noyau/monde/scene';
+ import { mapLights, type LightSource } from '../../noyau/monde/vision';
+ import { combatantLights } from '../../noyau/monde/vision';
+-import { objetDeTest } from '../../objetsDeTest.testkit';
++import { objetDeTest } from '../../engine/objetsDeTest.testkit';
+ import { lightTones, props as propsData, trappings, type LightToneDef } from '../../data';
+ import { setDataset } from '../../data/overrides';
+ import { schema as lightTonesSchema } from '../../data/schemas/defs/lightTones';
+@@ -269,7 +269,6 @@ describe('Le billboard et la lampe partagent l’intensité de l’INSTANT (#124
+   });
+ });
+ 
+-
+ describe('Absence de `tone` = `flamme`, et le reste ne bouge pas d’un octet (#1245 L4)', () => {
+   it('place, portée et intensité de REPOS sont celles d’avant le lot (`flamme.intensity` = 1)', () => {
+     expect(FLAMME.intensity).toBe(1);
+diff --git a/src/noyau/combatFlow.ts b/src/noyau/combatFlow.ts
+index 05153e838..7849af651 100644
+--- a/src/noyau/combatFlow.ts
++++ b/src/noyau/combatFlow.ts
+@@ -83,7 +83,7 @@ import { groupAdvantage } from '../engine/advantagePool';
+ import { campGain, campAdvantageHooks, campSpend, spendableAdvantage, reversalStealOne, roundEndAdvantageTransfer } from './combat/advantagePool';
+ import { sizeGap } from '../engine/size';
+ import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
+-import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
++import { isUnbreakable, hasQuality, damagesArmourOnHit, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
+ import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed } from './triggeredEffects';
+ import { hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, reloadDRBonus, arcaneDomainIdOf, retreatAdvantageCost, canDisengageWithLessAdvantage, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
+ import {
+@@ -2783,8 +2783,8 @@ function appliquerLaTouche(
+   // résolution : la CIBLE (touche, Critique létal, 0 PB) ET l'ATTAQUANT (Critique défensif opposé qui le
+   // tue PENDANT sa charge). Émis une fois (garde `slainNotified`).
+   for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c));
+-  // Taille (arme) : sur une touche réussie, endommage de 1 PA l'armure frappée (LDB 62 l.307).
+-  if (res.hit && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
++  // LDB 62 l.307
++  if (res.hit && damagesArmourOnHit(weapon)) damageArmour(target, res.location ?? 'corps');
+   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
+   const firedAmmo = weapon.type === 'ranged' && attacker.kind === 'hero' ? loadedAmmo(attacker, weapon) : undefined;
+   // Tir avec une arme à Recharge → DÉCHARGÉE après le coup (LDB 62 l.335) : un Test étendu de Projectiles est
+diff --git a/src/state/damages-armour-capability.test.ts b/src/state/damages-armour-capability.test.ts
+new file mode 100644
+index 000000000..2912b9eb2
+--- /dev/null
++++ b/src/state/damages-armour-capability.test.ts
+@@ -0,0 +1,86 @@
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { qualities } from '../data';
++import { setDataset } from '../data/overrides';
++import { createHero } from '../engine/character';
++import { resolveMelee } from '../engine/combat';
++import { deFixe } from '../engine/dice.testkit';
++import { recomputeLoadout } from '../engine/items';
++import { armeDeTest, objetDeTest } from '../engine/objetsDeTest.testkit';
++import { applyAttackResult } from '../noyau/combatFlow';
++import { testScene } from '../scenes/test-fixture';
++import { draineCascade } from './cascade.testkit';
++import { useGame } from './store';
++
++let origine: typeof qualities;
++
++beforeEach(() => {
++  origine = [...qualities];
++  vi.useFakeTimers();
++});
++
++afterEach(() => {
++  setDataset('qualities', origine);
++  vi.clearAllTimers();
++  vi.useRealTimers();
++});
++
++function jouerCoup(qualite: 'solide' | 'taille', capacite: boolean | undefined, face: number) {
++  setDataset('qualities', origine.map((entree) => {
++    if (entree.id !== qualite) return entree;
++    const capabilities = { ...entree.capabilities };
++    if (capacite === undefined) delete capabilities.damagesArmour;
++    else capabilities.damagesArmour = capacite;
++    return { ...entree, capabilities };
++  }));
++  const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Frappeur de test', seed: 7 });
++  useGame.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...useGame.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
++  useGame.getState().startScene(structuredClone(testScene()));
++  useGame.getState().startCombat('enc-mutants');
++  useGame.getState().confirmRoundStart();
++  vi.clearAllTimers();
++  const bataille = useGame.getState().battle!;
++  const attaquant = bataille.combatants.find((acteur) => acteur.kind === 'hero')!;
++  const cible = bataille.combatants.find((acteur) => acteur.kind === 'enemy')!;
++  const piece = objetDeTest('plastron', { uid: 'plastron-frappe', equipped: true });
++  cible.items = [piece];
++  recomputeLoadout(cible);
++  cible.wounds = { current: 100, max: 100 };
++  cible.important = true;
++  attaquant.characteristics['capacite-de-combat'] = 90;
++  const arme = armeDeTest('dague', { uid: 'arme-frappe' });
++  arme.qualities = [{ id: qualite }];
++  attaquant.weapons = [arme];
++  const resultat = resolveMelee(attaquant, cible, arme, deFixe(face), { defense: 'none', location: 'corps' });
++  expect(resultat.critical).toBeFalsy();
++  const avant = { dommage: piece.damageTaken ?? 0, blessures: cible.wounds.current };
++  applyAttackResult(useGame.getState, useGame.setState, attaquant, cible, arme, resultat);
++  draineCascade(useGame.getState, 200, () => 1, (etape) => etape.options?.some((option) => option.key === 'subir') ? 'subir' : undefined);
++  const apres = useGame.getState().battle!.combatants.find((acteur) => acteur.id === cible.id)!;
++  const pieceApres = apres.items!.find((objet) => objet.uid === piece.uid)!;
++  return { resultat, avant, apres, pieceApres };
++}
++
++/** LDB 62 l.307 */
++describe('damagesArmour : dommage à la pièce frappée par le chemin de combat', () => {
++  it('une qualité portant la capacité endommage une fois la pièce frappée sur une touche', () => {
++    const { resultat, avant, apres, pieceApres } = jouerCoup('solide', true, 7);
++    expect(resultat.hit).toBe(true);
++    expect(resultat.location).toBe('corps');
++    expect(pieceApres.damageTaken ?? 0).toBe(avant.dommage + 1);
++    expect(apres.wounds.current).toBeLessThan(avant.blessures);
++  });
++
++  it.each([false, undefined])('Taille sans capacité active %s ne cause aucun dommage à la pièce', (capacite) => {
++    const { resultat, avant, apres, pieceApres } = jouerCoup('taille', capacite, 7);
++    expect(resultat.hit).toBe(true);
++    expect(pieceApres.damageTaken ?? 0).toBe(avant.dommage);
++    expect(apres.wounds.current).toBeLessThan(avant.blessures);
++  });
++
++  it('une qualité portant la capacité ne cause aucun dommage sur un raté', () => {
++    const { resultat, avant, apres, pieceApres } = jouerCoup('solide', true, 97);
++    expect(resultat.hit).toBe(false);
++    expect(pieceApres.damageTaken ?? 0).toBe(avant.dommage);
++    expect(apres.wounds.current).toBe(avant.blessures);
++  });
++});
+diff --git a/src/state/harpoon-rope-cut.test.ts b/src/state/harpoon-rope-cut.test.ts
+index 1104a62ef..fd0dc18b0 100644
+--- a/src/state/harpoon-rope-cut.test.ts
++++ b/src/state/harpoon-rope-cut.test.ts
+@@ -1,7 +1,7 @@
+ import { describe, it, expect, vi, afterEach } from 'vitest';
+ import type { Combatant } from '../engine/types';
+ import { customTrapping } from '../engine/items';
+-import { armeDeTest, objetDeTest } from '../objetsDeTest.testkit';
++import { armeDeTest, objetDeTest } from '../engine/objetsDeTest.testkit';
+ import type { PendingAttack } from '../noyau/pendings';
+ import { firedWeapon, weaponContextOf } from '../noyau/combatFlow';
+ import * as capabilities from '../engine/capabilities';
+diff --git a/src/state/locked-gauntlet.test.ts b/src/state/locked-gauntlet.test.ts
+index fdd93c97e..a9b0dc09c 100644
+--- a/src/state/locked-gauntlet.test.ts
++++ b/src/state/locked-gauntlet.test.ts
+@@ -4,7 +4,7 @@ import { useGame } from './store';
+ import type { BattleState } from '../noyau/etat';
+ import { applyBladeTrap } from '../noyau/combatFlow';
+ import type { Combatant } from '../engine/types';
+-import { objetDeTest } from '../objetsDeTest.testkit';
++import { objetDeTest } from '../engine/objetsDeTest.testkit';
+ import type { BladeTrapFreeze } from '../noyau/pendings';
+ 
+ const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
+diff --git a/src/state/water-spray.test.ts b/src/state/water-spray.test.ts
+index 870cf6252..74fa3079c 100644
+--- a/src/state/water-spray.test.ts
++++ b/src/state/water-spray.test.ts
+@@ -2,7 +2,7 @@
+ import { describe, it, expect } from 'vitest';
+ import { useGame } from './store';
+ import type { Combatant } from '../engine/types';
+-import { objetDeTest } from '../objetsDeTest.testkit';
++import { objetDeTest } from '../engine/objetsDeTest.testkit';
+ import { suffocationTick } from '../engine/suffocation';
+ 
+ function hero(p: Partial<Combatant>): Combatant {
+diff --git a/src/state/weapon-context-funnel.test.ts b/src/state/weapon-context-funnel.test.ts
+index b40d8eaa9..11bd8791b 100644
+--- a/src/state/weapon-context-funnel.test.ts
++++ b/src/state/weapon-context-funnel.test.ts
+@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
+ import { firedWeapon, attackerFumbled, defenderFumbled } from '../noyau/combatFlow';
+ import { hasQuality } from '../engine/qualities/dispatch';
+ import type { Combatant, Weapon, Trauma } from '../engine/types';
+-import { armeDeTest } from '../objetsDeTest.testkit';
++import { armeDeTest } from '../engine/objetsDeTest.testkit';
+ import type { AttackResult } from '../engine/combat';
+ 
+ // Funnel UNIQUE des règles d'arme contextuelles (LDB 62) : `firedWeapon` lie attaquant ⊕ arme ⊕ contexte.
+diff --git a/src/ui/grimoire-ni-fiche.test.tsx b/src/ui/grimoire-ni-fiche.test.tsx
+index 9703ef728..e4ebd22e0 100644
+--- a/src/ui/grimoire-ni-fiche.test.tsx
++++ b/src/ui/grimoire-ni-fiche.test.tsx
+@@ -22,7 +22,7 @@ import { setRule, resetRule } from '../engine/policy';
+ import { effectiveSpellOf } from '../noyau/combatFlow';
+ import { findSpellById, spells } from '../data';
+ import type { Combatant } from '../engine/types';
+-import { objetDeTest } from '../objetsDeTest.testkit';
++import { objetDeTest } from '../engine/objetsDeTest.testkit';
+ 
+ const RULE = 'magic-vdm-incantation';
+ const SPELL = 'caresse-de-laniph';
+diff --git a/src/ui/jetProps/useAttackJetProps.conformance.test.tsx b/src/ui/jetProps/useAttackJetProps.conformance.test.tsx
+index 4b0face86..df6e69861 100644
+--- a/src/ui/jetProps/useAttackJetProps.conformance.test.tsx
++++ b/src/ui/jetProps/useAttackJetProps.conformance.test.tsx
+@@ -3,7 +3,7 @@ import { act } from 'react';
+ import { createRoot, type Root } from 'react-dom/client';
+ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+ import type { Combatant, HitLocation, Weapon } from '../../engine/types';
+-import { armeDeTest } from '../../objetsDeTest.testkit';
++import { armeDeTest } from '../../engine/objetsDeTest.testkit';
+ import { openAttackCascade } from '../../noyau/combatFlow';
+ import { seedBattleRng } from '../../noyau/battleRng';
+ import { ev } from '../../noyau/combatLog';
+diff --git a/src/ui/jetProps/useDefenseJetProps.conformance.test.tsx b/src/ui/jetProps/useDefenseJetProps.conformance.test.tsx
+index 34f9b1dfb..99a385179 100644
+--- a/src/ui/jetProps/useDefenseJetProps.conformance.test.tsx
++++ b/src/ui/jetProps/useDefenseJetProps.conformance.test.tsx
+@@ -16,7 +16,7 @@ import { openAttackCascade, aiCreatureFreeAttacks } from '../../noyau/combatFlow
+ import { seedBattleRng } from '../../noyau/battleRng';
+ import { testScene } from '../../scenes/test-fixture';
+ import type { Combatant, Weapon } from '../../engine/types';
+-import { armeDeTest } from '../../objetsDeTest.testkit';
++import { armeDeTest } from '../../engine/objetsDeTest.testkit';
+ import { RollShell } from '../RollShell';
+ import { useDefenseJetProps } from './useDefenseJetProps';
+ import { ANONYMES } from '../RollLine';
