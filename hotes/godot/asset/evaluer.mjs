@@ -1,6 +1,6 @@
 // L'ÉVALUATEUR EN LIGNE DE COMMANDE (#2972) : `evaluateur/evaluer.ts` sur un GLB, chargé comme les assets
 // (`chargerEvaluateur`, `charger.mjs`). Une ligne par écart ; code de sortie 1 s'il y a un écart, 0 sinon.
-//   node hotes/godot/asset/evaluer.mjs <glb> [--base <glb>] [--manifeste <json>]
+//   npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--pas 0.0416] [--clips a,b] [--json <sortie>]
 // Avec `--base`, `<glb>` est un élément monté sur cette base ; sans lui, `<glb>` est la base.
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -28,7 +28,7 @@ const { values, positionals } = parseArgs({
   },
 })
 if (positionals.length !== 1) {
-  console.error('usage : node hotes/godot/asset/evaluer.mjs <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--pas 0.0416] [--clips a,b] [--json <sortie>]')
+  console.error('usage : npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--pas 0.0416] [--clips a,b] [--json <sortie>]')
   process.exit(2)
 }
 const pas = values.pas === undefined ? undefined : Number(values.pas)
