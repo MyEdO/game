@@ -494,9 +494,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             et liste GATÉS par `ui/editor/scene-field-editability-guard.test.ts`.
                             Les types que la donnée lit vivent avec leurs schémas : l'union `Effect` et
                             ses deux annotations du `z.lazy` (`DelayedEffect`, `PetitePriere`) dans
-                            `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults`, `SceneRoofDefaults`
-                            et `Fige` (marque de type d'une valeur GELÉE : ce qu'une migration rejoue,
-                            jamais la semence du jour) dans `defs-scenes/scene.ts`.
+                            `defs-scenes/effets.ts` ; `Terrain`, `ReliefDefaults` et `SceneRoofDefaults`
+                            dans `defs-scenes/scene.ts`.
                             `CellSide` = l'ARÊTE d'une case (quel bord porte un mur) ; le CAP, lui, vit
                             au foyer des caps (`geometry/dir8.ts`)
   monde/seating.ts            ASSISE — source UNIQUE des places assises d'une Scène : `seatSlotsOf`
