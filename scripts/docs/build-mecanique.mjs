@@ -353,8 +353,8 @@ ${tablePorteurs('effects')}
 ## 4. Canal \`capabilities\` — l'irréductible
 
 Réservé aux drapeaux que le moteur **interroge** (résolution, IA, psychologie, build, artisanat),
-SANS formule ni déclencheur : un booléen (ou un petit scalaire) qui pilote une branche de code, pas
-un chiffre qui s'additionne.
+SANS formule ni déclencheur : un booléen qui pilote une branche de code, jamais un nombre (voir
+ci-dessous).
 
 ${table(CAPACITES, ['Interface', 'Site', 'Drapeaux déclarés'], (c) => `| \`${c.nom}\` | \`${c.site}\` | ${c.drapeaux} |`)}
 
