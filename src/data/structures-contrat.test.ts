@@ -355,6 +355,40 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     sansEcartDeCompte(ecarts, 'STRUCTURES_REDECLARATIONS');
   });
 
+  it('redéclarations : un littéral réduit à ses étiquettes s’apparie par leurs VALEURS, un littéral à forme par sa signature', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'structures-etiquette-'));
+    try {
+      mkdirSync(join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      mkdirSync(join(dossier, 'src/data/schemas/defs'), { recursive: true });
+      writeFileSync(
+        join(dossier, 'src/data/schemas/grammaire/fixture.ts'),
+        [
+          'export const conditionSchema = z.lazy(() => z.union([',
+          "  z.strictObject({ kind: z.literal('always') }),",
+          "  z.strictObject({ kind: z.literal('woundsDealt'), op: compareOpSchema, value: z.number() }),",
+          ']));',
+          'export const crewTargetSchema = z.union([z.strictObject({ poste: z.literal(true) }), z.strictObject({ role: z.string() })]);',
+        ].join('\n'),
+      );
+      writeFileSync(
+        join(dossier, 'src/data/schemas/defs/fixture.ts'),
+        [
+          "const doc = document('fixture', famille, { kind: enumNomme(KINDS) }, {}, {});",
+          "const portee = z.discriminatedUnion('kind', [z.strictObject({ kind: z.literal('self') })]);",
+          "const seuil = z.strictObject({ kind: z.literal('woundsDealt'), op: z.string(), value: z.number() });",
+          'const equipage = z.strictObject({ poste: z.literal(true) });',
+          'const toujours = z.strictObject({ kind: z.literal(`always`) });',
+        ].join('\n'),
+      );
+      expect(
+        scannerRedeclarations(dossier).redeclarations.map((r) => `${r.def}:${r.ligne} | ${r.signature} | ${r.commun}`),
+        '`{ kind: self }` n’est pas `{ kind: always }` ; `kind,op,value`, `{ poste: true }` et `{ kind: always }` retapés redéclarent leur schéma commun.',
+      ).toEqual(['fixture.ts:3 | kind,op,value | conditionSchema', 'fixture.ts:4 | poste | crewTargetSchema', 'fixture.ts:5 | kind | conditionSchema']);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+
   /**
    * Le concept `reference` est SOLDÉ au stock des redéclarations (#1463 L-gram-2) : plus AUCUN def
    * ne re-tape `{id, spec?}`/`{id, value?}` — les six sites qui le faisaient composent les fabriques
@@ -1481,6 +1515,67 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
   it('l’entrée partielle n’entre pas dans la mesure d’enveloppe de son document (un patch n’est sommé de rien)', () => {
     expect(fixture.enveloppe.filter((e) => e.document === 'a.json')).toEqual([]);
     expect(fixture.groupesEnveloppe.find((g) => g.document === 'a.json' && g.portee === 'racine')?.nbEntrees).toBe(1);
+  });
+});
+
+/**
+ * SIGNATURE PROJETÉE d'un objet de référence (`signatureProjetee`) : une clé dont la valeur est une
+ * réf canonique `{ id }` qui résout compte comme une clé qui résout. Migrer UNE clé scalaire d'un
+ * objet vers `ref(…)` ne change donc pas l'identité de son site ; un objet dont toutes les réfs sont
+ * canoniques n'est plus un site de forme (#2972).
+ */
+describe('signature projetée : une réf `{ id }` imbriquée qui résout reste une clé de la signature', () => {
+  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
+  const x = document(
+    'x',
+    'config',
+    { a: z.array(z.unknown()), b: z.array(z.unknown()), c: z.array(z.unknown()) },
+    { a: { label: 'A' }, b: { label: 'B' }, c: { label: 'C' } },
+    expositionDeSonde,
+  );
+  const DEFS_FIXTURE: SchemaDef[] = [
+    { file: 'alpha.json', root: 'src/data', famille: 'entite', schema: alpha.schema },
+    { file: 'x.json', root: 'src/data', famille: 'config', schema: x.schema },
+  ];
+  const dossier = mkdtempSync(join(tmpdir(), 'structures-signature-'));
+  afterAll(() => rmSync(dossier, { recursive: true, force: true }));
+  mkdirSync(join(dossier, 'src/data'), { recursive: true });
+  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+  cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+  writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'espece-un', maison: 'sonde' }, { id: 'tenue-un', maison: 'sonde' }]));
+  const deuxScalaires = { species: 'espece-un', tenue: 'tenue-un' };
+  writeFileSync(
+    join(dossier, 'src/data/x.json'),
+    JSON.stringify({
+      id: 'x',
+      maison: 'sonde',
+      a: [deuxScalaires],
+      b: [deuxScalaires, { species: 'espece-un', tenue: { id: 'tenue-un' } }],
+      c: [{ species: { id: 'espece-un' }, tenue: { id: 'tenue-un' } }],
+    }),
+  );
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const sitesDe = (champ: string) =>
+    fixture.formes.filter((f) => f.dataset === 'x.json' && f.champ === champ).map((f) => `${f.signature} | ${f.occurrences}`);
+
+  it('deux scalaires qui résolvent : signature `species,tenue`', () => {
+    expect(sitesDe('a')).toEqual(['species,tenue | 1']);
+  });
+
+  it('une des deux clés migrée en `{ id }` : même signature, donc même site que le tout-scalaire', () => {
+    expect(sitesDe('b'), 'la clé `tenue: { id }` est repliée en `+…` : la migration d’une clé change l’identité du site.').toEqual([
+      'species,tenue | 2',
+    ]);
+  });
+
+  it('toutes les réfs canoniques : le porteur n’est plus une référence, il se classe comme tout objet (ici hors strate)', () => {
+    expect(sitesDe('c')).toEqual([]);
+    expect(fixture.orphelines.filter((o) => o.dataset === 'x.json' && o.champ === 'c')).toEqual([]);
+    expect(
+      fixture.invisibles.filter((i) => i.dataset === 'x.json' && i.champ === 'c').map((i) => `${i.signature} | ${i.occurrences}`),
+      'un porteur de réfs canoniques garde sa structure propre : le scan ne s’aveugle pas sur lui.',
+    ).toEqual(['species,tenue | 1']);
   });
 });
 

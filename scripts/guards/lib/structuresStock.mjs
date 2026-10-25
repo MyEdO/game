@@ -798,7 +798,6 @@ export const STRUCTURES_REDECLARATIONS = [
   { def: "sea-perils.ts", champ: "freeTest", concept: "test", signature: "char,difficulty,skill+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "sea-perils.ts", champ: "tourbillonSwim", concept: "test", signature: "difficulty,skill+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "sea-weather.ts", champ: "affaler", concept: "test", signature: "difficulty+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
-  { def: "spells.ts", champ: "", concept: "", signature: "kind", statut: "hors lexique", commun: "conditionSchema", occurrences: 5, lot: "L1a #1466", date: "2026-08-23" },
   { def: "steam-breakdown.ts", champ: "restart", concept: "test", signature: "char,difficulty,skill+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "tavernGames.ts", champ: "options", concept: "test", signature: "char,difficulty,skill+…", statut: "divergente", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-08-23" },
   { def: "tavernGames.ts", champ: "rows", concept: "plage", signature: "max,min+…", statut: "cible", commun: "", occurrences: 1, lot: "L4 #1463", date: "2026-09-01" },
