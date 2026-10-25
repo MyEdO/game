@@ -893,6 +893,16 @@ export function scannerDonnees(
   const resolvableTexte = (cl: Classement, resolvantes: ReadonlySet<string>): Classement =>
     resolvantes.has('text') ? statutDe(CONCEPT_REFERENCE, `${cl.signature} (résolvable)`) : cl;
 
+  /**
+   * La valeur `v` de la clé `k` est-elle une RÉF CANONIQUE qui résout : un objet que le classement
+   * lira `cible` sous le champ `k` (signature du lexique), dont une clé résout vers l'index des ids ?
+   * Elle compte alors, dans la signature de son porteur, comme une clé qui résout (#2972).
+   */
+  const estRefCanonique = (p: Prepare, k: string, v: unknown): boolean =>
+    estObjet(v) &&
+    classementDeGraphie(p.nom, k, signature(Object.keys(v))).statut === 'cible' &&
+    Object.entries(v).some(([kv, vv]) => resoutIndex(p.nom, v, kv, vv));
+
   const ligneForme = (
     concept: Concept,
     p: Prepare,
@@ -989,8 +999,11 @@ export function scannerDonnees(
       // ---- Résolution vers l'index
       const identite = estDocument ? identiteDe(o)?.cle : undefined;
       const resolvantes = new Set<string>();
+      /** Clés portant une réf canonique qui résout : de la signature, jamais des cases de l'objet. */
+      const refsCanoniques = new Set<string>();
       const cibles = new Set<string>();
       for (const [k, v] of Object.entries(o)) {
+        if (k !== identite && estRefCanonique(p, k, v)) refsCanoniques.add(k);
         if (k === identite || !resoutSite(p, o, champ, k, v)) continue;
         resolvantes.add(k);
         if (typeof v !== 'string') continue;
@@ -1027,7 +1040,7 @@ export function scannerDonnees(
       } else if (resolvantes.size && !estDocument) {
         // Un `{text}` qui RÉSOUT est une forme à part entière : `text (résolvable)`, divergente, à
         // migrer en `{id}` (#624). Seul le `{text}` NON résolvable reste la forme `declaree`.
-        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, resolvantes)), resolvantes), o, resolvantes);
+        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, resolvableTexte(classementDeGraphie(p.nom, champ, signatureProjetee(cles, new Set([...resolvantes, ...refsCanoniques]))), resolvantes), o, resolvantes);
         for (const d of cibles) ligne.ciblesSet.add(d);
         if (resolvantes.has('text')) ligne.resolvables += 1;
         classe = true;
@@ -1042,6 +1055,10 @@ export function scannerDonnees(
           const ligne = inscrireReference(CONCEPT_REFERENCE, p, k, statutDe(CONCEPT_REFERENCE, 'id-nu'), o, [k]);
           for (const d of index.get(String(o[k])) ?? []) ligne.ciblesSet.add(d);
         }
+        classe = true;
+      } else if (!estDocument && cles.length && cles.every((k) => refsCanoniques.has(k))) {
+        // Porteur dont TOUTES les clés sont des réfs canoniques : chacune est mesurée à son propre
+        // objet, le porteur n'a aucune forme à migrer.
         classe = true;
       }
 
@@ -1391,6 +1408,9 @@ function kindsDeCondition(root: string): Set<string> {
  * signature est celle de son littéral RACINE l'emporte sur celui qui ne la porte qu'en sous-objet
  * (`refSchema` plutôt que le `hasSkill` niché de `flowTestSchema`) — sinon le gagnant dépendrait de
  * l'ordre de lecture des fichiers de la grammaire.
+ * Un littéral dont TOUTES les clés sont des étiquettes (`z.literal`) n'est pas candidat : c'est la
+ * branche vide d'une union discriminée (`{ kind: z.literal('always') }`), sans forme propre — sa
+ * signature réduite au discriminant est celle de toute autre union ou énumération du même nom.
  */
 function schemasCommuns(root: string): Map<string, string> {
   const racines = new Map<string, string>();
@@ -1399,7 +1419,7 @@ function schemasCommuns(root: string): Map<string, string> {
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       for (const lit of litterauxZod(node.initializer, sf)) {
         const sig = signature(lit.cles);
-        if (!sig) continue;
+        if (!sig || lit.cles.every((k) => lit.etiquettes.includes(k))) continue;
         const cible = lit.champ === '' ? racines : niches;
         if (!cible.has(sig)) cible.set(sig, node.name.text);
       }
@@ -1420,6 +1440,18 @@ const champDuLitteral = (lit: ts.Node): string => {
   return '';
 };
 
+/** Clés d'un littéral dont la valeur est une ÉTIQUETTE `z.literal(…)` (discriminant d'union). */
+const etiquettesDe = (lit: ts.ObjectLiteralExpression): string[] =>
+  lit.properties.flatMap((p) =>
+    ts.isPropertyAssignment(p) &&
+    (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) &&
+    ts.isCallExpression(p.initializer) &&
+    ts.isPropertyAccessExpression(p.initializer.expression) &&
+    p.initializer.expression.name.text === 'literal'
+      ? [p.name.text]
+      : [],
+  );
+
 /**
  * Tous les littéraux d'objet argument d'un `z.object|strictObject|looseObject` sous `node`, PLUS
  * l'argument `champs` (3ᵉ) de la fabrique `document()` (#1467) — même plan de forme, sans fabrique
@@ -1429,7 +1461,7 @@ const champDuLitteral = (lit: ts.Node): string => {
  * Les deux graphies de `champs` sont admises : littéral INLINE et const NOMMÉE référencée.
  */
 function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
-  const out: Array<{ ligne: number; champ: string; cles: string[] }> = [];
+  const out: Array<{ ligne: number; champ: string; cles: string[]; etiquettes: string[] }> = [];
   const constsObjet = new Map<string, ts.ObjectLiteralExpression>();
   const releve = (n: ts.Node) => {
     if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isObjectLiteralExpression(n.initializer)) {
@@ -1443,6 +1475,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
       ligne: sf.getLineAndCharacterOfPosition(lit.getStart(sf)).line + 1,
       champ,
       cles: lit.properties.flatMap((p) => ('name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [])),
+      etiquettes: etiquettesDe(lit),
     });
   };
   const visite = (n: ts.Node) => {
@@ -1466,6 +1499,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
         cles: lit.properties.flatMap((p) =>
           'name' in p && p.name && (ts.isIdentifier(p.name) || ts.isStringLiteral(p.name)) ? [p.name.text] : [],
         ),
+        etiquettes: etiquettesDe(lit),
       });
     }
     n.forEachChild(visite);
@@ -1474,7 +1508,7 @@ function litterauxZod(node: ts.Node, sf: ts.SourceFile) {
   return out;
 }
 
-type LitteralDef = { def: string; ligne: number; champ: string; cles: string[] };
+type LitteralDef = { def: string; ligne: number; champ: string; cles: string[]; etiquettes: string[] };
 
 /** Tous les littéraux d'objet zod des `defs/*.ts`, avec leur `def:ligne`, leur champ et leurs clés. */
 function litterauxDefs(root: string): LitteralDef[] {
