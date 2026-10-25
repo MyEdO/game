@@ -5,10 +5,11 @@
 //    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte
 //    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`). Une zone qui survit à
 //    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type, hors des paquets que sa
-//    ligne ouvre à un dossier d'outillage (`paquetsDOutillage`). Hors de
+//    ligne ouvre à un outillage (`paquetsDOutillage`) ; aucun module de la zone hors de cet outillage ne l'importe, en
+//    valeur comme en type (`outillageAtteint`). Hors de
 //    `racine`, un motif de glob dont le dossier de zone est un joker est refusé (`dossierJoker`). Une zone qui survit
 //    n'écrit aucun JSX et ne lit aucun module de CODE hors des zones (`scripts/`, `server/`… ; `estCode` : une donnée
-//    n'importe rien), sauf, pour un script d'outillage de la zone, les modules que sa ligne déclare (`outillage`,
+//    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
 //    `horsZoneOuvert`).
 //  - `murs/reexportation` (#2817 D2) : le fichier ne réexporte rien — ni `export … from` sous aucune forme
 //    d'arc, ni `export { … }` d'une liaison importée ; la config le borne.
@@ -26,7 +27,7 @@ import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
-import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, horsZoneOuvert, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
+import { COUCHES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe, estZone, fermeture, horsZoneOuvert, outillageAtteint, ouvertes, paquetFerme, porteManquee, zoneDe } from './couches.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { estSuiteVitest } from './fichierVitest.mjs';
 import { correspondGlob } from './lister.mjs';
@@ -89,15 +90,20 @@ const purete = {
       if (cible === null) {
         const paquet = paquetDe(spec);
         if (paquetFerme(de, paquet, importeurRel)) {
-          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un dossier d’outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).` });
+          context.report({ node, message: `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).` });
         }
         return;
       }
       const cibleRel = posix(relative(racine, cible));
       const vers = zoneDe(cibleRel);
+      const atteint = outillageAtteint(de, importeurRel, cibleRel);
+      if (atteint !== null) {
+        context.report({ node, message: `Outillage atteint (#2972) : ${nommer(de)} n’importe rien de l’outillage \`${atteint}\` hors de lui, en valeur comme en type — il charge des paquets de l’hôte web (\`paquetsDOutillage\` de ${TABLE}), que le graphe de l’hôte ne doit pas atteindre : le charger par Node à l’exécution, ou déplacer la forme partagée hors de l’outillage.` });
+        return;
+      }
       if (!estZone(vers)) {
         if (survit && estCode(cibleRel) && !horsZoneOuvert(de, importeurRel, cibleRel)) {
-          context.report({ node, message: `Hors zone (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne lit aucun module hors des zones (\`${cibleRel}\`), ni à l’EXÉCUTION ni pour un TYPE — sa fermeture ne doit atteindre que des zones qui survivent : déplacer la forme partagée dans une zone qui survit, ou, pour un script d’outillage de la zone, la déclarer dans sa ligne de ${TABLE} (\`outillage\`).` });
+          context.report({ node, message: `Hors zone (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne lit aucun module hors des zones (\`${cibleRel}\`), ni à l’EXÉCUTION ni pour un TYPE — sa fermeture ne doit atteindre que des zones qui survivent : déplacer la forme partagée dans une zone qui survit, ou, pour un outillage de la zone, la déclarer dans sa ligne de ${TABLE} (\`outillage\`).` });
         }
         return;
       }

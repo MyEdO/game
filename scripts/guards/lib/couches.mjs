@@ -9,10 +9,11 @@
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
 //  - `survit` : la zone survit à la bascule vers Godot (#2794) — elle ne charge aucun paquet de l'hôte web
 //    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ;
-//  - `outillage` : pour un script d'outillage de la zone (lancé par Node à la construction, à la recette ou par les
-//    tests, jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
-//  - `paquetsDOutillage` : pour un dossier d'outillage de la zone (préfixe terminé par `/`, même sens qu'`outillage`),
-//    les seuls paquets de l'hôte web que ses modules chargent (`paquetFerme`).
+//  - `outillage` : pour un outillage de la zone (lancé par Node à la construction, à la recette ou par les tests,
+//    jamais chargé par l'hôte), les seuls modules hors des zones qu'il lit (`horsZoneOuvert`) ;
+//  - `paquetsDOutillage` : pour un outillage de la zone, les seuls paquets de l'hôte web que ses modules chargent
+//    (`paquetFerme`) ; aucun module de la zone hors de cet outillage ne l'importe (`outillageAtteint`).
+// La clé d'un outillage (`couvre`) : finie par `/`, un dossier et tout ce qu'il contient ; sinon, un fichier exact.
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
@@ -116,17 +117,30 @@ export function fermeture(de, vers, typeSeul) {
   return 'type';
 }
 
-/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` (chemins relatifs à la racine) : un script
- *  d'outillage de la zone `de` (`outillage`) qui le déclare ? */
-export const horsZoneOuvert = (de, importeurRel, cibleRel) => estZone(de) && (COUCHES[de].outillage?.[importeurRel] ?? []).includes(cibleRel);
+/** La clé d'outillage `cle` couvre-t-elle le chemin `rel` (relatif à la racine) : finie par `/`, `rel` est sous ce
+ *  dossier ; sinon, `rel` est ce fichier. PURE. */
+export const couvre = (cle, rel) => (cle.endsWith('/') ? rel.startsWith(cle) : rel === cle);
 
-/** Le paquet `paquet` est-il ouvert à `importeurRel` (chemin relatif à la racine) : un dossier d'outillage de la zone
- *  `de` (`paquetsDOutillage`) le contient et le déclare ? */
-const paquetDOutillage = (de, paquet, importeurRel) => importeurRel !== undefined
-  && Object.entries(COUCHES[de].paquetsDOutillage ?? {}).some(([dossier, paquets]) => importeurRel.startsWith(dossier) && paquets.includes(paquet));
+/** Les valeurs déclarées pour `rel` dans la table d'outillage `table` (`outillage`, `paquetsDOutillage`) : celles de
+ *  chaque clé qui le couvre (`couvre`). */
+const declarePour = (table, rel) => Object.entries(table ?? {}).flatMap(([cle, valeurs]) => (couvre(cle, rel) ? valeurs : []));
+
+/** Le module hors des zones `cibleRel` est-il ouvert à `importeurRel` (chemins relatifs à la racine) : un outillage
+ *  de la zone `de` (`outillage`) qui le déclare ? */
+export const horsZoneOuvert = (de, importeurRel, cibleRel) => estZone(de) && declarePour(COUCHES[de].outillage, importeurRel).includes(cibleRel);
+
+/** Le paquet `paquet` est-il ouvert à `importeurRel` (chemin relatif à la racine) : un outillage de la zone `de`
+ *  (`paquetsDOutillage`) le contient et le déclare ? */
+const paquetDOutillage = (de, paquet, importeurRel) => importeurRel !== undefined && declarePour(COUCHES[de].paquetsDOutillage, importeurRel).includes(paquet);
+
+/** L'outillage de la zone `de` (clé de `paquetsDOutillage`) que l'arc de `importeurRel` vers `cibleRel` (chemins
+ *  relatifs à la racine) atteint du dehors : la cible est sous lui, l'importeur hors de lui ; `null` sinon. PURE. */
+export const outillageAtteint = (de, importeurRel, cibleRel) => (estZone(de)
+  ? Object.keys(COUCHES[de].paquetsDOutillage ?? {}).find((cle) => couvre(cle, cibleRel) && !couvre(cle, importeurRel)) ?? null
+  : null);
 
 /** La zone `de` refuse-t-elle le paquet `paquet` à `importeurRel` : elle survit à la bascule, c'est un paquet de l'hôte
- *  web, et aucun dossier d'outillage de la zone ne le lui ouvre (`paquetsDOutillage`) ? Sans importeur, le verdict de
+ *  web, et aucun outillage de la zone ne le lui ouvre (`paquetsDOutillage`) ? Sans importeur, le verdict de
  *  la zone. */
 export const paquetFerme = (de, paquet, importeurRel) => estZone(de) && COUCHES[de].survit === true && PAQUETS_DE_L_HOTE_WEB.includes(paquet)
   && !paquetDOutillage(de, paquet, importeurRel);
