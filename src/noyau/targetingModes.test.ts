@@ -4,7 +4,7 @@
  * overcastTargetCandidates ; attaque = ennemis via l'affordance par défaut).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES } from './targetingModes';
+import { currentTargetingMode, spellAffinity, TILE_MODES, TARGETING_MODES, MODES_DE_CIBLAGE, targetingModeLabel } from './targetingModes';
 import { combatantClickActs, intentionDuClicDeCase } from './combatOrParty';
 import { t } from '../i18n';
 import { tilePreviewAt } from './targeting';
@@ -47,6 +47,17 @@ function cliqueParLeCurseur(c: Combatant) {
 
 describe('currentTargetingMode — aiguilleur unique', () => {
   beforeEach(() => { useGame.setState({ battle: null, party: [], pendingCleave: null, pendingDualStrike: null, pendingCast: null, pendingAttack: null, pendingSiegeAim: null }); });
+
+  it('chaque mode armable déclaré est résolu sans branche parallèle', () => {
+    const armables = TARGETING_MODES.filter((mode) => mode.armable);
+    expect(armables.length).toBeGreaterThan(0);
+    expect(TARGETING_MODES.map((mode) => mode.id)).toEqual(Object.keys(MODES_DE_CIBLAGE));
+    for (const mode of armables) {
+      combat({ action: mode.id });
+      expect(currentTargetingMode(useGame.getState)).toBe(mode);
+      expect(targetingModeLabel(mode.id)).toBe(mode.bandeau ? mode.label : undefined);
+    }
+  });
 
   it('mode NEUTRE → attaque', () => {
     combat();
@@ -324,7 +335,7 @@ describe('spellAffinity — HELPFUL_TARGET_OPS (#131)', () => {
  * à frapper (spec HUD §1d). Le SORT reste un paramètre : commit direct quand le porteur n'en porte
  * qu'un, élection du porteur (panneau-paramètre de la console) quand il en porte plusieurs.
  */
-describe('DISPEL_MODE — le clic-token élit le PORTEUR, il n’attaque jamais', () => {
+describe('mode Dissiper — le clic-token élit le PORTEUR, il n’attaque jamais', () => {
   /** Marque un combattant PORTEUR de `n` Sorts permanents distincts (effets `ActiveEffect.spell`).
    *  Forme RÉELLE d'un effet actif (`bonus` et `duration` REQUIS, `engine/types.ts`) : un effet sans
    *  durée n'existe nulle part dans le jeu et fait jeter le peintre de pastilles

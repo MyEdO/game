@@ -13,7 +13,7 @@ import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE } from './schemas/_
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import type { gateDActionSchema } from './schemas/_domaines.generated';
+import type { gateDActionSchema, modeDeCiblageSchema, modeArmableSchema } from './schemas/_domaines.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
 import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
@@ -307,6 +307,8 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
 
 /** #2968 */
 export type GateDAction = z.infer<typeof gateDActionSchema>;
+export type ModeDeCiblage = z.infer<typeof modeDeCiblageSchema>;
+export type ModeArmable = z.infer<typeof modeArmableSchema>;
 
 /** REGISTRE DES ACTIONS de combat (`actions.json`, spec HUD « Zone 12 ») : une entrée = un acte
  *  offert au joueur, avec son identité STABLE, son affichage, sa règle Codex, son coût et les IDS
@@ -324,9 +326,9 @@ export interface ActionDef {
   gate: GateDAction | GateDAction[];
   candidates?: string;
   run?: string;
-  mode?: string;
+  mode?: ModeDeCiblage;
   intent?: string;
-  armed?: string;
+  armed?: ModeArmable;
   /** Champ de POSTURE pré-armée basculé par l'action (`BattleState.stances`, spec HUD §1a G5). */
   stance?: 'heldGround' | 'intoCrowd';
   coutAction: 'action' | 'mouvement' | 'gratuit' | 'aucun';

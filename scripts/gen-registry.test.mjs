@@ -91,6 +91,36 @@ describe('projection source', () => {
     ]) assert.throws(() => projeterSource(SOURCE, PROJECTION, text), /registre\.ts.*PORTES/)
   })
 
+  test('projection source : filtre littéral, absence et ajout sans seconde déclaration', async () => {
+    const { projeterSource } = await import(MODULE)
+    const projection = { ...PROJECTION, quand: { champ: 'armable', valeur: true } }
+    const text = `export const PORTES = {
+      alpha: { label: 'Première', armable: true },
+      beta: { label: 'Deuxième', armable: false },
+      gamma: { label: 'Troisième' }
+    };`
+    assert.deepEqual(projeterSource(SOURCE, projection, text), [['alpha', 'Première']])
+    const [{ body }] = (await import(MODULE)).renduDesProjections([{ source: SOURCE, projection: { ...projection, enumNomme: true } }], () => text)
+    assert.match(body, /'alpha': 'Première'/)
+    assert.doesNotMatch(body, /'beta'|'gamma'/)
+    assert.deepEqual(projeterSource(SOURCE, projection, text.replace("gamma: { label: 'Troisième' }", "gamma: { label: 'Troisième', armable: true }")),
+      [['alpha', 'Première'], ['gamma', 'Troisième']])
+    assert.deepEqual(projeterSource(SOURCE, { ...PROJECTION, quand: { champ: 'genre', valeur: 'direct' } },
+      "export const PORTES = { alpha: { label: 'Première', genre: 'direct' }, beta: { label: 'Deuxième', genre: 'differe' } };"), [['alpha', 'Première']])
+    assert.deepEqual(projeterSource(SOURCE, { ...PROJECTION, quand: { champ: 'rang', valeur: 2 } },
+      "export const PORTES = { alpha: { label: 'Première', rang: 2 }, beta: { label: 'Deuxième', rang: 1 } };"), [['alpha', 'Première']])
+  })
+
+  test('projection source : filtre indéterminé et entrée non résolue refusés', async () => {
+    const { projeterSource } = await import(MODULE)
+    const projection = { ...PROJECTION, quand: { champ: 'armable', valeur: true } }
+    for (const text of [
+      "export const PORTES = { alpha: { label: 'Première', armable: inconnu } };",
+      "export const PORTES = { alpha: { label: 'Première', armable: () => true } };",
+      'export const PORTES = { alpha: inconnu };',
+    ]) assert.throws(() => projeterSource(SOURCE, projection, text), /registre\.ts.*PORTES.*alpha/)
+  })
+
   test('projection source : syntaxe TypeScript malformée refusée avant extraction', async () => {
     const { projeterSource } = await import(MODULE)
     assert.throws(() => projeterSource(SOURCE, PROJECTION,

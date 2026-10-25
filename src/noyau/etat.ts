@@ -59,13 +59,7 @@ export interface BattleState {
    *  chaque Round (`enterRoundStartPause`) ; un marin déjà listé qui contribue à un 2e Test (manœuvre + bordée) → cumul à
    *  +2 crans de Difficulté (Manque de bras, MDG 14 l.53). */
   crewActed?: Record<string, string[]>;
-  /** Mode d'action À BOUTON en cours (panneau ouvert). Le déplacement et l'attaque n'ont PAS de mode :
-   *  ils sont implicites au clic (sol/ennemi) quand `action === null` — cf. battleClickTile/Entity.
-   *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
-   *  `battleFocusSpell`→`pendingFocus`, `battleUseItem`, `battlePickup`.
-   *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
-   *  parité gardée par `src/state/action-atteignabilite.test.ts`. */
+  /** #2968 */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
   selectedSpellId: string | null;
@@ -295,14 +289,7 @@ export interface EtatDeJeu {
    *  client : hors `battle`, hors allowlist d'intents, préservé par `applyHostSnapshot` — seul le
    *  COMMIT du geste part en réseau. null = aucune intention (gestes par défaut du grid, inchangés). */
   localIntent: LocalIntent | null;
-  /** PORTEUR élu du mode Dissiper (`DISPEL_MODE`, spec HUD §1d) : le clic-token l'a choisi, il reste
-   *  à choisir LEQUEL de ses Sorts permanents dissiper — c'est le paramètre que le panneau borné de
-   *  la console demande. LOCAL au client au même titre que `localIntent` (aucune ressource engagée,
-   *  hors `battle`, hors snapshot). L'élection se joue donc chez l'ÉMETTEUR du clic
-   *  (`netFlow.emettreIntentInvite`, table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
-   *  JAMAIS en intent — l'exécuter dans le store de l'hôte y ferait naître un panneau étranger, et
-   *  l'invité n'en verrait aucun (le snapshot efface ce champ).
-   *  null = aucun porteur élu — avant le clic-token, ou après la fermeture du panneau. */
+  /** spec HUD §1d */
   dispelCarrierId: string | null;
   /** REFUS de geste à DIRE au joueur (`refusVisible.ts`, spec HUD § ARBITRAGE 2026-08-19 « refus
    *  VISIBLE par construction ») — retour d'IHM strictement LOCAL, comme `localIntent` : hors

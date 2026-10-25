@@ -16,7 +16,7 @@ export function lireDefs(dir: string, noms: readonly string[]): ({ module: strin
 /** Projection d'un registre de defs (option `projection`) : `[id]` ou `[id, valeur de champ]`, triés — lève par def fautif. */
 export function projeterDefs(dir: string, projection: { nom: string; champ?: string }): string[][];
 export interface SourceDeProjection { module: string; symbole: string }
-export interface ProjectionDeRegistre { nom: string; champ?: string; out?: string; enumNomme?: boolean }
+export interface ProjectionDeRegistre { nom: string; champ?: string; out?: string; enumNomme?: boolean; quand?: { champ: string; valeur: string | number | boolean } }
 export interface RegistreProjetable { dir?: string; source?: SourceDeProjection; projection?: ProjectionDeRegistre }
 export function projeterSource(source: SourceDeProjection, projection: ProjectionDeRegistre, text?: string): string[][];
 export function renduDesProjections(registres?: readonly RegistreProjetable[], lireSource?: (module: string) => string): { out: string; body: string; blocs: string[] }[];

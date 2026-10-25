@@ -27,6 +27,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bindingsVivants, ecrituresHorsSeam, fichiersSources, fichiersDuSeam, RACINE } from '../../scripts/guards/lib/bindingsVivants.mjs';
 import { analyserCorpus } from '../../scripts/guards/lib/dialecte.mjs';
+import { DATASET_FICHIER_DERIVE } from './schemas/exposition-derivee';
 
 describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', () => {
   const parBinding = bindingsVivants();
@@ -62,7 +63,10 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
     // CLÉ ≠ NOM DE FICHIER : `arcane-phenomena.json` porte `arcanePhenomena`.
     const parAlias = `import arcaneJson from '../../data/arcane-phenomena.json';\nconst DATA = arcaneJson as ArcaneData;\nexport const niveaux = DATA.saturationLevels;\nniveaux.sort((a, b) => a.order - b.order);\n`;
     expect(ecrituresHorsSeam('src/engine/magie/copie.ts', parAlias, parBinding)).toHaveLength(1);
-    const sansCle = `import actionsJson from '../data/actions.json';\nactionsJson.push(a);\n`;
+    const actions = `import actionsJson from '../data/actions.json';\nactionsJson.push(a);\n`;
+    expect(ecrituresHorsSeam('src/engine/copie.ts', actions, parBinding)).toHaveLength(1);
+    expect(Object.values(DATASET_FICHIER_DERIVE)).not.toContain('structureAppearance.json');
+    const sansCle = `import appearanceJson from '../data/structureAppearance.json';\nappearanceJson.push(a);\n`;
     expect(ecrituresHorsSeam('src/engine/copie.ts', sansCle, parBinding)).toEqual([]);
   });
 

@@ -221,9 +221,7 @@ export const STRUCTURES_CIBLES = [
  *  `divergente` (graphie inconnue). `champ` = la clé PORTEUSE mesurée (`(racine)` = l'objet racine
  *  du document), `strate` = la strate de la grammaire (#1463), `lot` = qui l'éteint. */
 export const STRUCTURES_FORMES = [
-  { concept: "reference", dataset: "actions.json", champ: "armed", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 3, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "actions.json", champ: "hote", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
-  { concept: "reference", dataset: "actions.json", champ: "mode", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "activities.json", champ: "ops", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
   { concept: "reference", dataset: "activities.json", champ: "ops", signature: "tableId+…", statut: "divergente", strate: "Référence", occurrences: 16, lot: "L3 #1463", date: "2026-08-23" },
   // #1612 (2026-09-06) — les trois porteurs du terme `{rule}` d'une `Formula` posés par Mendier :

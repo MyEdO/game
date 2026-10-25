@@ -23,6 +23,7 @@ import { nomAccessible } from '../nomsAccessibles.testkit';
 import { sousLayoutJsdom } from '../layoutJsdom.testkit';
 import { hotbar } from '../../state/hotbarBridge';
 import { regles, findQualityById, findActionById, findConditionById, findVehicleById, ACTIONS, etats, type ActionDef } from '../../data/index';
+import { setDataset } from '../../data/overrides';
 import { ActiveModal } from '../ActiveModal';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { actionGate, ACTION_CANDIDATES, remedes } from '../../noyau/actionRegistry';
@@ -2357,7 +2358,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
   });
 
   it('tout mode qui nomme sa phase au bandeau y dit aussi sa consigne', () => {
-    const sansConsigne = TARGETING_MODES.filter((m) => m.label && !m.consigne).map((m) => m.id);
+    const sansConsigne = TARGETING_MODES.filter((m) => m.bandeau && !m.consigne).map((m) => m.id);
     expect(sansConsigne).toEqual([]);
   });
 
@@ -2570,11 +2571,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
   });
 });
 
-/**
- * DISSIPATION JOUABLE (spec HUD §1d, LDB 46 l.158-162) — l'alvéole ARME le mode, le clic-token élit
- * le PORTEUR (`DISPEL_MODE`), et le SORT se choisit au PANNEAU-PARAMÈTRE né de cette même alvéole.
- * La progression du Test étendu se lit sur la case.
- */
+/** spec HUD §1d ; LDB 46 l.158-162 */
 describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramètre', () => {
   /** Un mage capable de dissiper (Langue (Magick)) — le gate de la case le lit sur ses Compétences. */
   function mage() {
@@ -3472,7 +3469,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       surface: 'geste-secondaire', hote: 'cast-spell', gate: 'toujours',
       run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
-    ACTIONS.push(fabrique);
+    const actionsAvant = ACTIONS.slice();
+    act(() => { setDataset('actions', [...actionsAvant, fabrique]); });
     try {
       monter(mage(['carreau']));
       const cellule = alveole('carreau');
@@ -3487,7 +3485,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       expect(panneau(), 'Échap referme sans rien engager').toBeNull();
       expect(useGame.getState().pendingFocus).toBeNull();
     } finally {
-      ACTIONS.splice(ACTIONS.indexOf(fabrique), 1);
+      act(() => { setDataset('actions', actionsAvant); });
     }
   });
 
@@ -3514,7 +3512,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
-    ACTIONS.push(fabrique);
+    const actionsAvant = ACTIONS.slice();
+    act(() => { setDataset('actions', [...actionsAvant, fabrique]); });
     try {
       monter(mage(['carreau']));
       const cellule = alveole('carreau');
@@ -3529,7 +3528,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       expect(useGame.getState().battle!.action, 'le clic de relâchement reste avalé lui aussi').toBeNull();
     } finally {
       vi.useRealTimers();
-      ACTIONS.splice(ACTIONS.indexOf(fabrique), 1);
+      act(() => { setDataset('actions', actionsAvant); });
     }
   });
 
@@ -3611,7 +3610,8 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       run: 'battleFocusSpell', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
     vi.useFakeTimers();
-    ACTIONS.push(fabrique);
+    const actionsAvant = ACTIONS.slice();
+    act(() => { setDataset('actions', [...actionsAvant, fabrique]); });
     try {
       monter(mage(['carreau']));
       const cellule = alveole('carreau');
@@ -3624,7 +3624,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       expect(panneau(), 'le minuteur ne rebascule pas ce que le clic droit vient d’ouvrir').toBeTruthy();
     } finally {
       vi.useRealTimers();
-      ACTIONS.splice(ACTIONS.indexOf(fabrique), 1);
+      act(() => { setDataset('actions', actionsAvant); });
     }
   });
 
@@ -3662,14 +3662,15 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     monter(tireur());
     expect(host.querySelector('[data-action="reload"]'), 'témoin : l’alvéole hôte est bien rendue').toBeTruthy();
     expect(host.querySelector('[data-action="reload"]')!.getAttribute('data-geste-2e'), 'témoin : aucun geste avant l’entrée').toBeNull();
-    ACTIONS.push(fabrique);
+    const actionsAvant = ACTIONS.slice();
+    act(() => { setDataset('actions', [...actionsAvant, fabrique]); });
     try {
       monter(tireur());
       const hote = host.querySelector('[data-action="reload"]') as HTMLButtonElement;
       expect(hote.getAttribute('data-geste-2e'), 'l’hôte porte le geste : le rendeur ne connaît AUCUN id').toBe('test-geste-2e-reload');
       expect(hote.getAttribute('aria-label')).toContain('Geste de recharge');
     } finally {
-      ACTIONS.splice(ACTIONS.indexOf(fabrique), 1);
+      act(() => { setDataset('actions', actionsAvant); });
     }
   });
 });

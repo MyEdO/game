@@ -17,7 +17,7 @@ import { OP_DEFS } from './mecanique';
 import { descendre } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { gateDActionSchema } from '../_domaines.generated';
+import { gateDActionSchema, modeDeCiblageSchema, modeArmableSchema } from '../_domaines.generated';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
@@ -72,6 +72,8 @@ const jumeauxMuets = (vocabulaires: Map<string, CompteDeNoeuds>): string[] =>
 /** Les vocabulaires NOMMÉS, par leurs options — un par `enumNomme` atteint depuis le registre. */
 const NOMMES = [
   gateDActionSchema.options.join('|'),
+  modeDeCiblageSchema.options.join('|'),
+  modeArmableSchema.options.join('|'),
   // `sexeSchema` (#1897) : le sexe d'une apparence, porté par `entityAppearanceSchema`, `pregens`, `raceAppearance`.
   'M|F',
   'N|NE|E|SE|S|SO|O|NO',

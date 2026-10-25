@@ -16,11 +16,12 @@ import { SCHEMA_DEFS } from './_registry.generated';
 import { SCHEMA_DEFS_SCENES } from './_registry-scenes.generated';
 import type { SchemaDef } from './types';
 import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './grammaire/descente';
-import { atteindre, collectionDe, noeudsDeLElement } from './grammaire/collection-cle';
+import { atteindre, collectionDe, noeudsDeLElement, type PartitionDeCharge } from './grammaire/collection-cle';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } from './exposition-derivee';
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
 import { proseNonMaterialisee, versDisque } from './grammaire/prose';
 import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
+import { optionsEnum } from './grammaire/document';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
 export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
@@ -215,28 +216,31 @@ export interface ChargeDiscriminee {
   readonly toutes: readonly string[];
 }
 
-/** Champ DISCRIMINANT d'un document et sa CHARGE par valeur : les paramètres `discriminant` et
- *  `chargeParDiscriminant` de l'`espace` de la marque de sa racine (`grammaire/collection-cle.ts`),
- *  `undefined` sans eux. */
-function partitionDeCharge(def: SchemaDef | undefined): { champ: string; table: Readonly<Record<string, readonly string[]>> } | undefined {
+/** #2968 */
+function partitionDeCharge(def: SchemaDef | undefined): { champ: string; partitions: readonly PartitionDeCharge[] } | undefined {
   const espace = def && collectionDe(def.schema)?.espace;
-  return espace?.discriminant && espace.chargeParDiscriminant ? { champ: espace.discriminant, table: espace.chargeParDiscriminant } : undefined;
+  if (!espace?.discriminant || !espace.chargeParDiscriminant) return undefined;
+  const charge = espace.chargeParDiscriminant;
+  const partitions: readonly PartitionDeCharge[] = Array.isArray(charge)
+    ? charge as readonly PartitionDeCharge[]
+    : [{ discriminant: espace.discriminant, cas: charge as Readonly<Record<string, readonly string[]>> }];
+  return { champ: espace.discriminant, partitions };
 }
 
-/**
- * Charge DISCRIMINÉE d'une entrée — `undefined` si le document ne déclare pas de discriminant, ou si
- * l'entrée n'en porte pas une valeur connue (entrée en cours de saisie). C'est ce que l'atelier
- * PRÉSENTE d'une entrée (`src/ui/editor/codex/CodexEdit.tsx`) : sans elle, un document dont les cas ne
- * partagent aucune clé ferait éditer à chacun l'union des clés de tous les autres.
- */
+/** #2968 */
 export function chargeDiscriminee(file: string, entree: Record<string, unknown>): ChargeDiscriminee | undefined {
   const partition = partitionDeCharge(DEFS_DE_DOCUMENT.find((d) => d.file === file));
   if (!partition) return undefined;
-  const { champ, table } = partition;
-  const valeur = entree[champ];
-  const duCas = typeof valeur === 'string' ? table[valeur] : undefined;
-  if (!duCas) return undefined;
-  return { champ, duCas, toutes: [...new Set(Object.values(table).flat())] };
+  const { champ, partitions } = partition;
+  const charges = partitions.map(({ discriminant, cas, defaut }) => {
+    const valeur = entree[discriminant];
+    const duCas = (typeof valeur === 'string' && Object.prototype.hasOwnProperty.call(cas, valeur) ? cas[valeur] : undefined) ?? defaut;
+    return { duCas, toutes: new Set([...Object.values(cas).flat(), ...(defaut ?? [])]) };
+  });
+  if (!charges.length || charges.some((charge) => charge.duCas === undefined)) return undefined;
+  const toutes = [...new Set(charges.flatMap((charge) => [...charge.toutes]))];
+  const duCas = toutes.filter((cle) => charges.every((charge) => !charge.toutes.has(cle) || charge.duCas!.includes(cle)));
+  return { champ, duCas, toutes };
 }
 
 /**
@@ -260,7 +264,10 @@ export function brouillonNeuf(file: string, entrees: readonly Record<string, unk
   if (typeof type === 'string') brouillon.type = type;
   const partition = partitionDeCharge(def);
   if (partition) {
-    const premiere = Object.keys(valeursDe(noeudDuChamp(file, partition.champ)) ?? partition.table)[0];
+    const primaire = partition.partitions.find((p) => p.discriminant === partition.champ);
+    const noeud = noeudDuChamp(file, partition.champ);
+    const premiere = (noeud === undefined ? undefined : optionsEnum(noeud as z.ZodType))?.[0]
+      ?? Object.keys(valeursDe(noeud) ?? primaire?.cas ?? {})[0];
     if (premiere !== undefined) brouillon[partition.champ] = premiere;
   }
   return brouillon;

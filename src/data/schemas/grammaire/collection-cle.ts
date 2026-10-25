@@ -35,6 +35,13 @@ export type CleDElement<T> =
   | { readonly nom: string; readonly de: (element: T) => string | undefined }
   | { readonly nom: string; readonly scalaire: true };
 
+/** #2968 */
+export interface PartitionDeCharge {
+  readonly discriminant: string;
+  readonly cas: Readonly<Record<string, readonly string[]>>;
+  readonly defaut?: readonly string[];
+}
+
 /**
  * Paramètres d'un ESPACE DE NOMS — une collection marquée `espace` en ouvre un, et chaque paramètre
  * y ajoute des espaces FILTRÉS (`grammaire/cle-d-espace.ts`) : `discriminant`, un espace par valeur du
@@ -43,9 +50,8 @@ export type CleDElement<T> =
  */
 export interface EspaceDeNoms {
   readonly discriminant?: string;
-  /** Second rôle du `discriminant` : les clés de CHARGE admises par valeur du champ, ce que l'atelier
-   *  présente d'une entrée (`chargeDiscriminee`, `schemas/validate.ts`). Exige `discriminant`. */
-  readonly chargeParDiscriminant?: Readonly<Record<string, readonly string[]>>;
+  /** #2968 */
+  readonly chargeParDiscriminant?: Readonly<Record<string, readonly string[]>> | readonly PartitionDeCharge[];
   readonly marqueurs?: readonly string[];
 }
 

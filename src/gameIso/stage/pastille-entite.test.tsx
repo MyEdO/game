@@ -16,6 +16,7 @@ import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById } from '../../engine/items';
 import { ACTIONS, type ActionDef } from '../../data/index';
+import { setDataset } from '../../data/overrides';
 import { ACTION_CANDIDATES, ACTION_PORTEURS } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import type { Scene } from '../../noyau/monde/scene';
@@ -524,13 +525,15 @@ describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’acti
     gate: 'toujours', candidates: 'candidats-fabriques', coutAction: 'gratuit',
   } as ActionDef;
 
+  let actionsAvant: ActionDef[];
   beforeEach(() => {
+    actionsAvant = ACTIONS.slice();
     ACTION_CANDIDATES['candidats-fabriques'] = ({ battle }) => battle.combatants.filter((c) => c.id === 'cible');
     ACTION_PORTEURS['candidats-fabriques'] = (c) => ({ porteurId: (c as Combatant).id, args: {} });
-    ACTIONS.push(FABRIQUÉE);
+    act(() => { setDataset('actions', [...actionsAvant, FABRIQUÉE]); });
   });
   afterEach(() => {
-    ACTIONS.splice(ACTIONS.indexOf(FABRIQUÉE), 1);
+    act(() => { setDataset('actions', actionsAvant); });
     delete ACTION_CANDIDATES['candidats-fabriques'];
     delete ACTION_PORTEURS['candidats-fabriques'];
   });

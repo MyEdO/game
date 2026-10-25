@@ -42,7 +42,8 @@ import { canMove, mountablesNear, mountMovement } from './mount';
 import { servablePostes, crewPosteOf, shipOfCrew } from './monde/shipPostes';
 import { type ShipPoste } from '../engine/types';
 import { pushSlot } from './siegePush';
-import { ACTIONS, findConditionById, findSpellById, type ActionDef } from '../data/index';
+import { ACTIONS, findConditionById, findSpellById, type ActionDef, type ModeArmable } from '../data/index';
+import { modeArmableSchema } from '../data/schemas/_domaines.generated';
 import { isArcaneSpell, castBlockedBy, focusSkillFor, focusWindLabel } from '../engine/magic';
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
@@ -98,16 +99,13 @@ function actionLibre({ active, battle }: ActionCtx): ActionGate {
   return ok;
 }
 
-/** Désengagement (LDB 15 l.45-49) : l'option d'Esquive coûte l'Action, l'option d'Avantage non —
- *  d'où un gate qui reste ouvert Action dépensée quand l'Avantage est strictement supérieur. Sa
- *  pertinence (être Engagé) est le gate `engage`. */
+/** LDB 15 l.45-49 */
 function desengagementGate(ctx: ActionCtx): ActionGate {
   if (!ctx.battle.acted) return ok;
   return freeDisengage(ctx) ? ok : no(t('agate.actionSpentNoFreeDisengage'));
 }
 
-/** Le désengagement est-il GRATUIT ? Avantage strictement supérieur à TOUS les foes Engagés encore
- *  en jeu (LDB 15 l.45-49, « Utiliser l'Avantage »). Prédicat PARTAGÉ (barre + économie du tour). */
+/** LDB 15 l.45-49 */
 export function freeDisengage({ active, battle }: ActionCtx): boolean {
   if (!isEngaged(active)) return false;
   const foes = (active.engagedWith ?? [])
@@ -469,7 +467,7 @@ type Dispatcher = (get: () => Jeu, ctx: ActionRunCtx, def: ActionDef) => void;
 export const ACTION_RUN: Record<string, Dispatcher> = {
   battleSelectAction: (get, ctx, def) =>
     get().battleSelectAction(
-      (ctx.toggleOff ? null : (def.armed ?? null)) as Parameters<Jeu['battleSelectAction']>[0],
+      ctx.toggleOff ? null : (def.armed ?? null),
     ),
   battleSelectAttack: (get, ctx) => get().battleSelectAttack(ctx.attackId ?? 'arme'),
   battleManeuverArea: (get, ctx) =>
@@ -703,26 +701,8 @@ export function currentInterludeAction(get: () => Jeu): ActionDef | undefined {
   return ACTIONS.find((a) => a.surface === 'interlude' && a.mode === modeId);
 }
 
-/** Modes ARMABLES de `battle.action`, DÉRIVÉS du registre (`armed`) + les modes qui n'appartiennent
- *  à aucune action de barre, déclarés ici avec leur porteur (garde de parité :
- *  `src/state/action-atteignabilite.test.ts`). */
-export const MODES_HORS_REGISTRE = {
-  /** Armé par la RÉSOLUTION d'un sort de Téléportation (case d'arrivée), jamais par une case. */
-  teleport: 'sort de Téléportation (combatFlow)',
-} as const;
+/** #2968 */
+export type BattleActionMode = ModeArmable;
 
-/** Union des valeurs légales de `BattleState.action` — le type raconte le registre. */
-export type BattleActionMode =
-  | 'cast'
-  | 'heal'
-  | 'dispel'
-  | 'battery'
-  | 'push'
-  | keyof typeof MODES_HORS_REGISTRE;
-
-/** Les MÊMES valeurs, énumérables à l'exécution — la garde `action-atteignabilite` vérifie qu'elles
- *  couvrent EXACTEMENT les `armed` du registre + `MODES_HORS_REGISTRE` (union validée, pas dérivée :
- *  un JSON importé n'a pas de type littéral). */
-export const BATTLE_ACTION_MODES: readonly BattleActionMode[] = [
-  'cast', 'heal', 'dispel', 'battery', 'push', 'teleport',
-];
+/** #2968 */
+export const BATTLE_ACTION_MODES: readonly BattleActionMode[] = modeArmableSchema.options;

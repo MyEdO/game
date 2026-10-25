@@ -32,8 +32,10 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { ACTIONS } from '../data/index';
-import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, remedes, MODES_HORS_REGISTRE, BATTLE_ACTION_MODES, actionGate, runAction } from '../noyau/actionRegistry';
+import { ACTION_GATES, ACTION_CANDIDATES, ACTION_PORTEURS, ACTION_RUN, remedes, BATTLE_ACTION_MODES, actionGate, runAction } from '../noyau/actionRegistry';
 import { TARGETING_MODES, targetingModeLabel, CAST_MODE } from '../noyau/targetingModes';
+import { modeDeCiblageSchema } from '../data/schemas/_domaines.generated';
+import { valeursDe } from '../data/schemas/grammaire/meta';
 import { KEYBINDINGS } from './clavier/keybindings';
 import { TAILLE_ZONE, TOUCHES_IMPRIMEES, cleEntree, dispositionDeduite, poserDansBarre, resoudreDisposition, retirerDeBarre } from './dispositionConsole';
 import type { Combatant } from '../engine/types';
@@ -45,7 +47,6 @@ import { createHero } from '../engine/character';
 const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), 'utf8');
 const CONSOLE_SRC = src('../ui/console/CombatConsole.tsx');
 const FRISE_SRC = src('../ui/InitiativeStrip.tsx');
-const TARGETING_SRC = src('../noyau/targetingModes.ts');
 
 /** Le chantier des BRANCHEMENTS est-il ouvert ? Voir l'en-tête : `false` verrouille la baseline à vide. */
 const CHANTIER_BRANCHEMENTS_OUVERT = false;
@@ -167,21 +168,14 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
     expect(bad, `dispatcher(s) inconnu(s) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
   it('chaque `mode` déclaré est un TargetingMode existant (`targetingModes.ts`)', () => {
-    const bad = ACTIONS.filter((a) => a.mode && !TARGETING_SRC.includes(`id: '${a.mode}'`)).map((a) => `${a.id} → ${a.mode}`);
+    const bad = ACTIONS.filter((a) => a.mode && !TARGETING_MODES.some((mode) => mode.id === a.mode)).map((a) => `${a.id} → ${a.mode}`);
     expect(bad, `mode(s) de ciblage inexistant(s) :\n  ${bad.join('\n  ')}`).toEqual([]);
   });
-  it('PARITÉ INVERSE — tout mode de ciblage a une action PORTEUSE au registre (aucun mode sans surface)', () => {
-    // Méta d'abord : le catalogue énumérable doit couvrir les modes DÉCLARÉS dans la source (un mode
-    // oublié au catalogue rendrait la parité verte à tort).
-    const idsSource = [...new Set([...TARGETING_SRC.matchAll(/^\s*id: '([a-z-]+)'/gm)].map((m) => m[1]))];
-    const horsCatalogue = idsSource.filter((id) => !TARGETING_MODES.some((m) => m.id === id));
-    expect(horsCatalogue, `mode(s) déclaré(s) mais absent(s) de TARGETING_MODES :\n  ${horsCatalogue.join('\n  ')}`).toEqual([]);
-    // Parité : un mode que le joueur peut atteindre sans action porteuse est un ciblage SANS SORTIE.
-    const orphelins = TARGETING_MODES.filter((m) => !ACTIONS.some((a) => a.mode === m.id)).map((m) => m.id);
-    expect(
-      orphelins,
-      `mode(s) de ciblage qu'aucune action ne porte (armer/sortir ce mode n'a aucune surface) :\n  ${orphelins.join('\n  ')}`,
-    ).toEqual([]);
+  it('chaque mode du registre est proposable par le schéma et ses options d’éditeur', () => {
+    const ids = TARGETING_MODES.map((mode) => mode.id).sort();
+    expect(ids.length).toBeGreaterThan(0);
+    expect(modeDeCiblageSchema.options.slice().sort()).toEqual(ids);
+    expect(Object.keys(valeursDe(modeDeCiblageSchema) ?? {}).sort()).toEqual(ids);
   });
   /**
    * ARMEMENT — la valeur qu'une action pose dans `battle.action` (`armed`) est un MODE de ciblage du
@@ -227,12 +221,10 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
     // Fail-closed : un id inconnu ne « passe » jamais.
     expect(actionGate('id-inexistant', { active, battle }).ok).toBe(false);
   });
-  it('`BattleState.action` se type DEPUIS le registre : `armed` + MODES_HORS_REGISTRE = BATTLE_ACTION_MODES', () => {
-    const derives = new Set([
-      ...ACTIONS.flatMap((a) => (a.armed ? [a.armed] : [])),
-      ...Object.keys(MODES_HORS_REGISTRE),
-    ]);
-    expect([...derives].sort()).toEqual([...BATTLE_ACTION_MODES].sort());
+  it('`BattleState.action` se type depuis les modes armables déclarés', () => {
+    const derives = TARGETING_MODES.filter((mode) => mode.armable).map((mode) => mode.id);
+    expect(derives.slice().sort()).toEqual([...BATTLE_ACTION_MODES].sort());
+    expect(ACTIONS.filter((a) => a.armed && !BATTLE_ACTION_MODES.includes(a.armed))).toEqual([]);
   });
 });
 

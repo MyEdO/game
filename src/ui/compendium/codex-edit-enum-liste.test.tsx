@@ -15,7 +15,7 @@ import { datasetArray, setDataset } from '../../data/overrides';
 import { noeudDuChamp, noeudObjet } from '../../data/schemas/validate';
 import { metaDesChamps } from '../../data/schemas/grammaire/meta';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
-import { gateDActionSchema } from '../../data/schemas/_domaines.generated';
+import { gateDActionSchema, modeDeCiblageSchema, modeArmableSchema } from '../../data/schemas/_domaines.generated';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -103,11 +103,39 @@ describe('#2968 — prédicats d’action dans le Codex', () => {
     } finally { act(() => { setDataset('actions', avant); }); }
   });
 
-  it('refuse à Enregistrer une gate inconnue sans poser la retouche', async () => {
+  it('édite et enregistre les deux domaines de ciblage avec les libellés du schéma', async () => {
+    try {
+      monterAction();
+      for (const [champ, label, schema] of [
+        ['mode', 'Mode de ciblage', modeDeCiblageSchema],
+        ['armed', 'Valeur d’armement', modeArmableSchema],
+      ] as const) {
+        const controle = [...container.querySelectorAll('label.ed-field')]
+          .find((l) => l.querySelector('span')?.textContent === label)?.querySelector('select');
+        expect(controle).toBeTruthy();
+        const options = [...controle!.options].filter((o) => o.value);
+        expect(options.map((o) => [o.value, o.textContent])).toEqual(Object.entries(valeursDe(schema)!));
+        const choix = options.find((o) => o.value !== controle!.value)!.value;
+        act(() => {
+          controle!.value = choix;
+          controle!.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        expect(enregistrer().disabled).toBe(false);
+        await act(async () => { enregistrer().click(); });
+        expect(datasetArray('actions').find((a) => a.id === action.id)![champ]).toBe(choix);
+      }
+    } finally { act(() => { setDataset('actions', avant); }); }
+  });
+
+  it.each([
+    ['gate', 'Prédicat d’autorisation'],
+    ['mode', 'Mode de ciblage'],
+    ['armed', 'Valeur d’armement'],
+  ] as const)('refuse à Enregistrer une référence inconnue de %s sans poser la retouche', async (champ, label) => {
     try {
       monterAction();
       const autre = avant.find((a) => a.id !== action.id)!;
-      act(() => { setDataset('actions', avant.map((a) => a.id === autre.id ? { ...a, gate: 'inconnue' } : a) as never); });
+      act(() => { setDataset('actions', avant.map((a) => a.id === autre.id ? { ...a, [champ]: 'inconnue' } : a) as never); });
       const libelle = [...container.querySelectorAll<HTMLInputElement>('input')].find((c) => c.value === action.label)!;
       act(() => {
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(libelle, `${action.label} modifiée`);
@@ -116,7 +144,7 @@ describe('#2968 — prédicats d’action dans le Codex', () => {
       expect(enregistrer().disabled).toBe(false);
       await act(async () => { enregistrer().click(); });
       expect(datasetArray('actions').find((a) => a.id === action.id)!.label).toBe(action.label);
-      expect(container.querySelector('.codex-edit-errors')?.textContent).toContain('Prédicat d’autorisation');
+      expect(container.querySelector('.codex-edit-errors')?.textContent).toContain(label);
     } finally { act(() => { setDataset('actions', avant); }); }
   });
 });

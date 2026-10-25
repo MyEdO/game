@@ -17,13 +17,23 @@
  * la valeur de ce champ) dans `projection.out`, par défaut `src/data/schemas/_art.generated.ts` — la forme partagée extraite vers une
  * couche neutre (table `COUCHES`, `scripts/guards/lib/couches.mjs`) : la donnée juge un id d'art d'auteur sans importer
  * le rendu.
- * @type {{ dir?:string, out?:string, source?:{module:string,symbole:string}, exportName?:string, arrayName?:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string, out?:string, enumNomme?:boolean } }[]}
+ * @type {{ dir?:string, out?:string, source?:{module:string,symbole:string}, exportName?:string, arrayName?:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, fields?:string[], constFields?:Record<string,string>, projection?:{ nom:string, champ?:string, out?:string, enumNomme?:boolean, quand?:{champ:string,valeur:string|number|boolean} } }[]}
  */
 export const REGISTRIES = [
   {
     // #2968
     source: { module: 'src/noyau/actionRegistry.ts', symbole: 'ACTION_GATES' },
     projection: { nom: 'gateDActionSchema', champ: 'label', out: 'src/data/schemas/_domaines.generated.ts', enumNomme: true },
+  },
+  {
+    // #2968
+    source: { module: 'src/noyau/targetingModes.ts', symbole: 'MODES_DE_CIBLAGE' },
+    projection: { nom: 'modeDeCiblageSchema', champ: 'label', out: 'src/data/schemas/_domaines.generated.ts', enumNomme: true },
+  },
+  {
+    // #2968
+    source: { module: 'src/noyau/targetingModes.ts', symbole: 'MODES_DE_CIBLAGE' },
+    projection: { nom: 'modeArmableSchema', champ: 'label', out: 'src/data/schemas/_domaines.generated.ts', enumNomme: true, quand: { champ: 'armable', valeur: true } },
   },
   {
     dir: 'src/gameIso/rig/creatures/defs',

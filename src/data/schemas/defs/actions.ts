@@ -2,7 +2,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { blocageDeLivraison, foyerDeRegleSchema } from '../grammaire/valeurs';
-import { gateDActionSchema } from '../_domaines.generated';
+import { gateDActionSchema, modeDeCiblageSchema, modeArmableSchema } from '../_domaines.generated';
 
 export const file = 'actions.json';
 export const famille = 'entite';
@@ -54,7 +54,7 @@ type EntreeAction = {
   exitSafe?: boolean;
   role?: 'valide' | 'renonce';
   hote?: string;
-  mode?: string;
+  mode?: z.infer<typeof modeDeCiblageSchema>;
 };
 
 const doc = document(
@@ -69,13 +69,13 @@ const doc = document(
     /** Id de DISPATCHER enregistré dans `ACTION_RUN` (méthode `battle*` du store). Absent = `blocked`. */
     run: z.string().optional(),
     /** Id de `TargetingMode` EXISTANT (`src/noyau/targetingModes.ts`) armé par cette action. */
-    mode: z.string().optional(),
+    mode: modeDeCiblageSchema.optional(),
     /** Id de PORTÉE d'INTENTION (`INTENT_REACH`, `src/noyau/localIntent.ts`) : la case ARME le mode
      *  local qui peint cette portée sur le champ. Le clic qui suit reste le geste par défaut du grid,
      *  et dissout l'intention (spec zone 4). */
     intent: z.string().optional(),
     /** Valeur écrite dans `battle.action` quand l'action est ARMÉE (mode à bouton). */
-    armed: z.string().optional(),
+    armed: modeArmableSchema.optional(),
     /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
      *  `PendingAttack` qu'elle pré-remplit) — exigée par le dispatcher `battleToggleStance`. */
     stance: z.enum(['heldGround', 'intoCrowd']).optional(),
@@ -140,6 +140,13 @@ const doc = document(
   },
   {
     exiges: ['icon'],
+    espace: {
+      discriminant: 'surface',
+      chargeParDiscriminant: [
+        { discriminant: 'surface', cas: { interlude: ['exitSafe', 'role'], 'geste-secondaire': ['hote'] }, defaut: [] },
+        { discriminant: 'run', cas: { battleToggleStance: ['stance'] }, defaut: [] },
+      ],
+    },
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const a = v as EntreeAction;

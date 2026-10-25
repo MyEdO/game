@@ -46,10 +46,6 @@ import { Icon } from '../Icon';
 import { ItemIcon } from '../ItemIcon';
 import type { IconIdInput } from '../icons';
 
-/** Nombre de cases de chaque travée — GÉOMÉTRIE IMMUABLE (arbitrage utilisateur 2026-08-16 :
- *  « je ne veux pas que la taille de l'interface ou les boutons bougent »). Le contenu varie,
- *  le compte de cases JAMAIS : une case sans contenu se DESSINE vide. Les trois zones ADRESSABLES
- *  tiennent leur taille de `TAILLE_ZONE` : c'est la même mesure qui borne la disposition du porteur. */
 const LEFT_CELLS = TAILLE_ZONE.arsenal; // travée gauche : 2×3 — les gestes déduits du set (§1a) puis les cases LIBRES
 const QUICK_CELLS = TAILLE_ZONE.accesRapide; // rubrique ACCÈS RAPIDE : 2×2 (consommables groupés + Soin)
 const SET_SLOTS = 3; // colonne latérale de SETS : vignettes toujours dessinées (planche 2026-08-17)
@@ -277,11 +273,6 @@ const ACTION_DISSIPER = 'dispel';
  *  (`action-atteignabilite.test.ts:66`). */
 const ACTION_RECHARGER = 'reload';
 
-/** Le bandeau de phase, à ses DEUX adresses (arbitrage utilisateur 2026-08-24) : sur le parapet du
- *  pont (pauses de round, interlude de ciblage) ou, à l'OUVERTURE d'un combat, CENTRÉ EN HAUT DE LA
- *  CARTE comme la référence Rogue Trader le pose. Une seule boîte, une seule matière — l'adresse est
- *  un ATTRIBUT (`data-phase`), jamais un second composant ni une classe de plus. La MATIÈRE est la peau partagée
- *  `.skin-bois` (components.css), celle de la plaque du rail d'outils. */
 export function PhaseBanner({ label, consigne, actions, ready, adresse = 'pont' }: PhaseBanner & {
   /** OÙ le bandeau se pose — une ADRESSE, jamais une classe de plus (cliquet xii) : sur le parapet
    *  du pont (`pont`), en haut de la carte à l'ouverture du combat (`ouverture`), ou centré au-dessus
@@ -491,8 +482,7 @@ export function CombatConsole() {
   // Intention LOCALE armée (spec zone 4) : elle allume SA case. Jamais un intent réseau — c'est un
   // mode d'écran, le geste qu'il commet part, lui, par les chemins de clic habituels.
   const localIntent = useGame((s) => s.localIntent);
-  // PORTEUR élu du mode Dissiper (clic-token, `DISPEL_MODE`) : c'est LUI qui fait naître le
-  // panneau-paramètre de l'alvéole Dissiper — le SORT reste à choisir (spec §1d).
+  // spec §1d
   const dispelCarrierId = useGame((s) => s.dispelCarrierId);
   const dispelSelectCarrier = useGame((s) => s.dispelSelectCarrier);
   // ANCRES des panneaux-paramètres : un panneau naît de SON déclencheur, donc du rect de l'alvéole
@@ -597,10 +587,6 @@ export function CombatConsole() {
   // l'INITIATIVE : sur une embuscade, un ENNEMI (Knud) portait portrait, stats et arsenal dans le
   // cadre du joueur. Le pont est celui du joueur — le premier contrôlé, sinon le premier héros du
   // groupe (partie entièrement en Auto-combat), sinon seulement la tête d'ordre.
-  /** OUVERTURE d'un combat (arbitrage utilisateur 2026-08-24, référence RT « round 0 », capture
-   *  archivée) : le bandeau de phase et son bouton quittent le coin du pont pour le HAUT DE LA
-   *  CARTE, centrés. Les pauses de round SUIVANTES gardent leur bandeau sur le parapet du pont —
-   *  l'arbitrage ne porte que sur l'ouverture. */
   const ouverture = !!pendingRoundStart && pendingRoundStart.round <= 1;
   const active = activeCombatant(battle) ?? (phase ? pontDOuverture(battle) : undefined);
   if (!active) {
@@ -619,11 +605,6 @@ export function CombatConsole() {
   // Mer) est un acteur comme un autre : ses cases sont les cases navales du registre, dans la MÊME travée.
   const barre = etatDeLaBarre(useGame.getState());
   const vehicule = isVehicle(active);
-  /** FORME SPECTATRICE (arbitrage utilisateur 2026-08-24, verbatim : « D'ailleurs même au tour de
-   *  l'adversaire, pourquoi je vois son pont entier ? Même RT ne fait pas ca ») — tout tour NON tenu
-   *  par ce siège (ennemi, IA, autre siège coop, auto-combat) ET toute pause de Round : la bande
-   *  garde sa géométrie, mais son CONTENU devient un médaillon. Aucune case n'est grisée : il n'y a
-   *  plus de case. Le verdict est l'unique `etatDeLaBarre` — aucun cas de kind. */
   const spectatrice = barre.forme === 'spectatrice';
   // LECTURE : les cases de la forme complète sont inertes sous un bandeau d'interlude (spec zone 7).
   const live = !phase;
@@ -1188,20 +1169,6 @@ export function CombatConsole() {
         </div>
       )}
 
-      {/* LES DEUX FORMES du pont (arbitrage utilisateur 2026-08-24, référence RT : « rond = on
-          regarde, carré = on peut cliquer ; rien ne se grise, rien ne se désactive — la console
-          cesse d'être une console » ; précisé le 2026-09-20, verbatim : « moi je voulais que cela
-          n'affiche que cette partie sans les barres gauche et droite pour les ennemies et avant le
-          début du combat ») :
-          · COMPLÈTE — la BANDE de bord à bord et ses quatre régions (travée gauche · arche · travée
-            droite · coin), quand ce siège tient le tour ;
-          · SPECTATRICE — l'ARCHE SEULE : le portrait dans son arche, ses jauges, son rack d'États,
-            ses Blessures et son nom. Ni travée, ni set, ni accès rapide, ni grille, ni fin de tour —
-            et plus aucune BARRE de part et d'autre : la bande garde sa BOÎTE (c'est ce qui rend
-            l'arche immobile d'une forme à l'autre, au pixel) mais sa MATIÈRE s'éteint, nappe,
-            liseré et ombre comprises (combat-console.css).
-          L'arche est le MÊME composant dans les deux formes (aucune matière parallèle) : elle perd
-          seulement ce qui appartient au tour joué — le geste d'annulation et le retrait d'État. */}
       <div className="cc-dock skin-pont">
       {spectatrice ? (
         <ConsoleArch

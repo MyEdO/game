@@ -318,8 +318,8 @@ const EMISSION: Record<string, { parUI: true } | { interne: string; dans: string
   // Verbes NULLAIRES du drive d'auto-cadence (#1030) : aucun bouton, le pilote local les enchaîne.
   counterspellRollAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
   oppositionRollAll: { interne: 'combatAuto.STEP_WINDOW_AUTO — drive de la fenêtre réactive', dans: 'src/noyau/combatAuto.ts' },
-  cleaveAttack: { interne: 'targetingModes.CLEAVE_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
-  dualStrikeAttack: { interne: 'targetingModes.DUAL_MODE.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
+  cleaveAttack: { interne: 'targetingModes.MODES_DE_CIBLAGE.cleave.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
+  dualStrikeAttack: { interne: 'targetingModes.MODES_DE_CIBLAGE.dual.commitCombatant — le clic voyage par battleClickEntity', dans: 'src/noyau/targetingModes.ts' },
 };
 
 /** Sources d'ÉCRAN (hors fichiers de test) : `src/ui` + `src/gameIso`. */

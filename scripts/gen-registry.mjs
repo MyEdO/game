@@ -221,12 +221,21 @@ export function projeterSource(source, projection, text = readFileSync(source.mo
   if (diagnostics.length || !sourceFile) refus(`syntaxe TypeScript invalide (${diagnostics.map((d) => d.code).join(', ') || 'arbre absent'}).`);
   const lecture = lectureDeModule(source.module, sourceFile);
   const table = objet(lecture.exports[source.symbole], source.symbole);
-  return Object.entries(table).map(([cle, valeur]) => {
-    if (!projection.champ) return [cle];
-    const champ = objet(valeur, cle)[projection.champ];
+  return Object.entries(table).flatMap(([cle, valeur]) => {
+    const entree = projection.champ || projection.quand ? objet(valeur, cle) : undefined;
+    if (projection.quand) {
+      const condition = entree[projection.quand.champ];
+      if (condition === undefined) return [];
+      if (!['lit', 'booleen', 'scalaire'].includes(condition.k))
+        refus(`${cle}.${projection.quand.champ} non littéral (${condition.raison ?? condition.k}).`);
+      const comparee = condition.k === 'scalaire' ? Number(condition.v) : condition.v;
+      if (comparee !== projection.quand.valeur) return [];
+    }
+    if (!projection.champ) return [[cle]];
+    const champ = entree[projection.champ];
     if (champ?.k !== 'lit' || typeof champ.v !== 'string')
       refus(`${cle}.${projection.champ} non littéral (${champ?.raison ?? champ?.k ?? 'absent'}).`);
-    return [cle, champ.v];
+    return [[cle, champ.v]];
   }).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 }
 

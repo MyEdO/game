@@ -1,20 +1,4 @@
-/**
- * Registre des MODES de ciblage de combat — SOURCE UNIQUE de « pour l'action courante → quelles
- * cibles (combattant ou case) → quel réticule → que fait le commit ». Chaque mode (attaque, cast,
- * soin, surincantation, zone, téléportation, piétinement, au-contact, empoignade, bordée, siège,
- * Frappe Mortelle, deux armes) répond à CE besoin unique ; `currentTargetingMode(get)` est
- * l'aiguilleur. Les facettes (réticule au survol / cibles Tab-curseur / commit) qui vivaient à
- * trois endroits (targeting.ts, combatSlice.ts, la surcouche de plateau) sont ICI, unifiées.
- *
- * CONTRAT D'AFFICHAGE (arbitrage utilisateur 2026-08-24, verbatim : « Dans RT, mettre sa souris sur un
- * ennemi ou une case hors porté ca n'affiche rien de particulier ») : LE SURVOL N'AFFICHE QUE LE
- * FAISABLE — une affordance `ok` porte le réticule et la carte de jet, une affordance `invalid` ne
- * rend RIEN. L'INFAISABLE SE DIT AU CLIC, par `refuserGeste` (`noyau/refusVisible`), au point du geste.
- *
- * Module FEUILLE : importe combatFlow/targeting-helpers, n'est importé par AUCUN d'eux côté
- * combatFlow (zéro cycle d'exécution via le moteur de combat) — consommé par targeting.ts,
- * combatSlice.ts, combatCursor.ts, combatOrParty.ts.
- */
+/** #2968 */
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
 import type { DifficultyShown } from '../engine/combat';
@@ -29,7 +13,7 @@ import { hasActiveFlag } from '../engine/activeFlags';
 import { isFrenzied } from '../engine/psychology';
 import { healableTargets, combatHealModes } from '../engine/healing';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
-import { findSpellById } from '../data';
+import { findSpellById, type ModeDeCiblage } from '../data';
 import { isStructure, structureImmune } from '../engine/structures';
 import { overcastSourceOf } from '../engine/overcast';
 import { tileKey, type Pt } from './monde/path';
@@ -115,12 +99,10 @@ export interface TilePreview {
  * liste propre (soin, surincantation…). Tout est PUR (lit l'état) sauf les commit (mutent via set).
  */
 export interface TargetingMode {
-  id: string;
-  /** Nom d'AFFICHAGE de la phase de ciblage, quand ce mode est un INTERLUDE (ciblage par la carte
-   *  sans modale : Frappe Mortelle, 2ᵉ frappe, Surincantation, pose de zone, bordée, téléportation).
-   *  Rendu par le bandeau de phase de la console — la SORTIE, elle, vit au registre des actions
-   *  (`surface: 'interlude'`). Absent = mode ordinaire, aucun bandeau. */
-  label?: string;
+  id: ModeDeCiblage;
+  armable?: true;
+  bandeau?: true;
+  label: string;
   /** CONSIGNE de la phase : ce que la carte attend du joueur (clé du catalogue `src/i18n`), rendue par
    *  le MÊME bandeau que `label`. Absente = mode sans bandeau. */
   consigne?: MsgKey;
@@ -430,9 +412,7 @@ export function dispellableOnCarrier(get: Get, carrierId: string): DispellableSp
   return dispellableSpellsOn(battle.combatants).filter((d) => d.carriers.includes(carrierId));
 }
 
-/** Mode DISSIPATION (LDB 46 l.158-162) : la cible du clic est le PORTEUR du Sort, jamais un
- *  adversaire à frapper. Un non-porteur est INVALIDE (patron `approche-non-armee`) : le survol se
- *  tait, et le clic dit sa raison (`DISPEL_MODE.commitCombatant`). */
+/** LDB 46 l.158-162 */
 function dispelAffordance(get: Get, _active: Combatant, target: Combatant): HoverTargeting {
   if (dispellableOnCarrier(get, target.id).length === 0) return { kind: 'invalid', reason: 'sans-sort-dissipable' };
   return { kind: 'ok', line: 'dashed', title: 'Dissiper', targetName: target.label, skill: 'Langue (Magick)', base: 0, mod: 0, dmg: null };
@@ -797,131 +777,121 @@ function placingCommitCombatant(get: Get, _set: Set, _active: Combatant, id: str
 // Les MODES (objets statiques) + l'aiguilleur
 // ───────────────────────────────────────────────────────────────────────────
 
-const ATTACK_MODE: TargetingMode = { id: 'attack', affordance: attackAffordance, commitCombatant: attackClickCommit };
-/** Mode INCANTATION — exporté parce que son IDENTITÉ est ce que `battle.action` porte quand le geste
- *  est armé : tout consommateur qui demande « le mode incantation est-il armé ? » compare à CE mode
- *  (`CAST_MODE.id`). L'entrée du registre d'actions qui l'arme (`armed`) est libre de son propre id. */
-export const CAST_MODE: TargetingMode = {
-  id: 'cast', affordance: castAffordance, commitCombatant: castClickCommit, commitTile: castCommitTile,
-};
-const BATTERY_MODE: TargetingMode = {
-  id: 'battery', label: 'Bordée', consigne: 'consigne.battery', affordance: batteryAffordance,
-  commitCombatant: (get, _set, active, id) => { get().battleShipBattery(active.id, id); },
-};
-const HEAL_MODE: TargetingMode = {
-  id: 'heal', affordance: healAffordance, anneauCandidats: 'ami',
-  candidates: (get, active) => healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true }),
-  commitCombatant: (get, _set, _active, id) => {
-    const target = inBattleId(get().battle, id);
-    if (!target) return;
-    const mode = combatHealModes(target)[0]; // mode par défaut au ciblage-carte ; la modale permet de basculer
-    if (mode) get().battleHeal(id, mode);
-  },
-};
-/** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la
- *  console). Prédicat PARTAGÉ par l'élection locale et par le commit — une seule mesure. */
+/** #2968 */
 const dispelParametreADemander = (get: Get, id: string): boolean => dispellableOnCarrier(get, id).length > 1;
 
-/**
- * Mode DISSIPATION (LDB 46 l.158-162) — armé par la case Dissiper (`battle.action === 'dispel'`).
- * Le clic-token SÉLECTIONNE le porteur, il n'attaque JAMAIS : c'est le PORTEUR qui est la cible du
- * geste, et le SORT à dissiper qui reste à choisir (paramètre borné, spec HUD §1d). Un seul Sort sur
- * le porteur = commit direct (un panneau à un choix serait du bruit) ; N Sorts = le panneau-paramètre
- * de la console naît de l'alvéole, sur `dispelCarrierId`.
- *
- * COOP : cette élection est un choix d'ÉCRAN, elle se joue chez l'ÉMETTEUR (`electionLocale`) — le
- * porteur élu vit hors snapshot (`netFlow.netSnapshot`), et seul le COMMIT `battleDispelSpell`
- * voyage. Sans cette déclaration, l'intent d'un invité faisait naître le panneau chez L'HÔTE.
- */
-const DISPEL_MODE: TargetingMode = {
-  id: 'dispel', affordance: dispelAffordance,
-  candidates: (get) => (get().battle?.combatants ?? []).filter((c) => dispellableOnCarrier(get, c.id).length > 0),
-  electionLocale: dispelParametreADemander,
-  commitCombatant: (get, set, _active, id) => {
-    const porte = dispellableOnCarrier(get, id);
-    if (porte.length === 0) return void refuserGeste(get, set, t('cs.refusSansSortDissipable'));
-    if (dispelParametreADemander(get, id)) { get().dispelSelectCarrier(id); return; }
-    get().battleDispelSpell(porte[0].spellId, porte[0].casterId);
-  },
-};
-const OVERCAST_MODE: TargetingMode = {
-  id: 'overcast', label: 'Surincantation', consigne: 'consigne.overcast', affordance: overcastAffordance, anneauCandidats: 'hostile',
-  candidates: (get) => {
-    const s = get();
-    const pc = s.pendingCast;
-    const pool = s.battle?.combatants ?? s.party;
-    const caster = pc && pool.find((c) => c.id === pc.casterId);
-    const spell = pc && findSpellById(pc.spellId);
-    if (!pc || !caster || !spell) return [];
-    return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
-  },
-  commitCombatant: (get, _set, _active, id) => { get().castToggleExtraTarget(id); },
-};
-const CLEAVE_MODE: TargetingMode = {
-  id: 'cleave', label: 'Frappe Mortelle', consigne: 'consigne.cleave', affordance: cleaveAffordance, anneauCandidats: 'hostile',
-  candidates: (get) => {
-    const s = get();
-    const battle = s.battle;
-    const pc = s.pendingCleave;
-    const atk = battle && pc && inBattleId(battle, pc.attackerId);
-    return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
-  },
-  commitCombatant: (get, _set, _active, id) => { get().cleaveAttack(id); },
-};
-const DUAL_MODE: TargetingMode = {
-  id: 'dual', label: 'Des deux armes', consigne: 'consigne.dual', affordance: dualAffordance, anneauCandidats: 'hostile',
-  candidates: (get) => {
-    const s = get();
-    const battle = s.battle;
-    const ds = s.pendingDualStrike;
-    const atk = battle && ds && inBattleId(battle, ds.attackerId);
-    const off = atk && ds && atk.weapons.find((w) => w.uid === ds.offWeaponUid);
-    return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
-  },
-  commitCombatant: (get, _set, _active, id) => { get().dualStrikeAttack(id); },
-};
-const TELEPORT_MODE: TileTargetingMode = {
-  id: 'teleport', label: 'Téléportation', consigne: 'consigne.teleport',
-  tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
-  commitTile: teleportCommitTile,
-  tilePreview: (_get, active, pt) => (active.pos ? { target: pt, path: [active.pos, pt], label: 'Téléporter' } : null),
-};
-/** POUSSÉE d'un engin de siège (ADE II 8 l.258, Lot 2 #156) : case-cible parmi `battle.reachable`
- *  (posé par `battlePushEngine`), MÊME gabarit que TELEPORT_MODE. */
-const PUSH_MODE: TileTargetingMode = {
-  id: 'push',
-  tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
-  commitTile: pushCommitTile,
-  tilePreview: (get, active, pt) => {
-    if (!active.pos) return null;
-    const cost = get().battle?.reachable.get(tileKey(pt.x, pt.y, pt.z)) ?? 0;
-    return { target: pt, path: [active.pos, pt], cost, label: `Pousser (${cost})` };
-  },
-};
-/** Pose libre d'un gabarit de zone (sort de ZdE après jet OU pilonnage indirect de siège). */
-const PLACING_MODE: TileTargetingMode = {
-  id: 'placing-zone', label: 'Pose de la zone', consigne: 'consigne.placing-zone',
-  tileValidAt: (get, _active, pt) => { const pz = placingZoneOf(get()); return !!pz && placedZoneValidAt(get, pz, pt); },
-  commitTile: (get, set, _active, pt) => commitPlacedZone(get, set, pt),
-  commitCombatant: placingCommitCombatant,
-  tilePreview: (_get, _active, pt) => ({ target: pt, label: 'Poser la zone' }),
-};
+/** #2968 */
+type DefinitionDeMode =
+  | (Omit<TargetingMode, 'id' | 'tileValidAt' | 'tilePreview'> & { tileValidAt?: never; tilePreview?: never })
+  | Omit<TileTargetingMode, 'id'>;
 
-/** Catalogue des modes-CASE (#198) — SOURCE UNIQUE pour la garde exhaustive (test qui les itère et
- *  vérifie un aperçu non-vide sur une tuile valide) et pour tout consommateur générique (aperçu au
- *  survol, adressabilité DOM des cases valides). */
-export const TILE_MODES: readonly TileTargetingMode[] = [TELEPORT_MODE, PUSH_MODE, PLACING_MODE];
+/** #2968 */
+export const MODES_DE_CIBLAGE = {
+  "attack": {
+    label: 'Attaque', affordance: attackAffordance, commitCombatant: attackClickCommit },
+  "cast": {
+    armable: true, label: 'Incantation', affordance: castAffordance, commitCombatant: castClickCommit, commitTile: castCommitTile,
+  },
+  "battery": {
+    bandeau: true, armable: true, label: 'Bordée', consigne: 'consigne.battery', affordance: batteryAffordance,
+    commitCombatant: (get, _set, active, id) => { get().battleShipBattery(active.id, id); },
+  },
+  "heal": {
+    armable: true, label: 'Soigner', affordance: healAffordance, anneauCandidats: 'ami',
+    candidates: (get, active) => healableTargets(active, (get().battle?.combatants ?? []).filter((c) => c.kind === active.kind), { adjacency: true }),
+    commitCombatant: (get, _set, _active, id) => {
+      const target = inBattleId(get().battle, id);
+      if (!target) return;
+      const mode = combatHealModes(target)[0];
+      if (mode) get().battleHeal(id, mode);
+    },
+  },
+  "dispel": {
+    armable: true, label: 'Dissiper', affordance: dispelAffordance,
+    candidates: (get) => (get().battle?.combatants ?? []).filter((c) => dispellableOnCarrier(get, c.id).length > 0),
+    electionLocale: dispelParametreADemander,
+    commitCombatant: (get, set, _active, id) => {
+      const porte = dispellableOnCarrier(get, id);
+      if (porte.length === 0) return void refuserGeste(get, set, t('cs.refusSansSortDissipable'));
+      if (dispelParametreADemander(get, id)) { get().dispelSelectCarrier(id); return; }
+      get().battleDispelSpell(porte[0].spellId, porte[0].casterId);
+    },
+  },
+  "overcast": {
+    bandeau: true, label: 'Surincantation', consigne: 'consigne.overcast', affordance: overcastAffordance, anneauCandidats: 'hostile',
+    candidates: (get) => {
+      const s = get();
+      const pc = s.pendingCast;
+      const pool = s.battle?.combatants ?? s.party;
+      const caster = pc && pool.find((c) => c.id === pc.casterId);
+      const spell = pc && findSpellById(pc.spellId);
+      if (!pc || !caster || !spell) return [];
+      return overcastTargetCandidates(pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
+    },
+    commitCombatant: (get, _set, _active, id) => { get().castToggleExtraTarget(id); },
+  },
+  "cleave": {
+    bandeau: true, label: 'Frappe Mortelle', consigne: 'consigne.cleave', affordance: cleaveAffordance, anneauCandidats: 'hostile',
+    candidates: (get) => {
+      const s = get();
+      const battle = s.battle;
+      const pc = s.pendingCleave;
+      const atk = battle && pc && inBattleId(battle, pc.attackerId);
+      return battle && pc && atk ? cleaveTargets(battle, atk, pc.hitIds) : [];
+    },
+    commitCombatant: (get, _set, _active, id) => { get().cleaveAttack(id); },
+  },
+  "dual": {
+    bandeau: true, label: 'Des deux armes', consigne: 'consigne.dual', affordance: dualAffordance, anneauCandidats: 'hostile',
+    candidates: (get) => {
+      const s = get();
+      const battle = s.battle;
+      const ds = s.pendingDualStrike;
+      const atk = battle && ds && inBattleId(battle, ds.attackerId);
+      const off = atk && ds && atk.weapons.find((w) => w.uid === ds.offWeaponUid);
+      return battle && atk && off ? dualStrikeTargets(battle, atk, off) : [];
+    },
+    commitCombatant: (get, _set, _active, id) => { get().dualStrikeAttack(id); },
+  },
+  "teleport": {
+    bandeau: true, armable: true, label: 'Téléportation', consigne: 'consigne.teleport',
+    tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
+    commitTile: teleportCommitTile,
+    tilePreview: (_get, active, pt) => (active.pos ? { target: pt, path: [active.pos, pt], label: 'Téléporter' } : null),
+  } satisfies Omit<TileTargetingMode, 'id'>,
+  "push": {
+    armable: true, label: 'Pousser', tileValidAt: (get, _active, pt) => !!get().battle?.reachable.has(tileKey(pt.x, pt.y, pt.z)),
+    commitTile: pushCommitTile,
+    tilePreview: (get, active, pt) => {
+      if (!active.pos) return null;
+      const cost = get().battle?.reachable.get(tileKey(pt.x, pt.y, pt.z)) ?? 0;
+      return { target: pt, path: [active.pos, pt], cost, label: `Pousser (${cost})` };
+    },
+  } satisfies Omit<TileTargetingMode, 'id'>,
+  "placing-zone": {
+    bandeau: true, label: 'Pose de la zone', consigne: 'consigne.placing-zone',
+    tileValidAt: (get, _active, pt) => { const pz = placingZoneOf(get()); return !!pz && placedZoneValidAt(get, pz, pt); },
+    commitTile: (get, set, _active, pt) => commitPlacedZone(get, set, pt),
+    commitCombatant: placingCommitCombatant,
+    tilePreview: (_get, _active, pt) => ({ target: pt, label: 'Poser la zone' }),
+  } satisfies Omit<TileTargetingMode, 'id'>,
+} satisfies Record<string, DefinitionDeMode>;
 
-/** Catalogue de TOUS les modes — source unique d'ÉNUMÉRATION (parité avec le `mode` des entrées du
- *  registre des actions, libellé de phase d'un interlude). L'aiguilleur ci-dessous garde SA priorité :
- *  ce tableau ne décide de rien, il rend les modes énumérables à l'exécution. */
-export const TARGETING_MODES: readonly TargetingMode[] = [
-  ATTACK_MODE, CAST_MODE, BATTERY_MODE, HEAL_MODE, DISPEL_MODE, OVERCAST_MODE, CLEAVE_MODE, DUAL_MODE, TELEPORT_MODE, PUSH_MODE, PLACING_MODE,
-];
+/** #2968 */
+export const TARGETING_MODES: readonly TargetingMode[] = Object.entries(MODES_DE_CIBLAGE)
+  .map(([id, mode]) => ({ ...mode, id: id as ModeDeCiblage }));
+
+const modeParId = (id: ModeDeCiblage): TargetingMode => TARGETING_MODES.find((m) => m.id === id)!;
+const ATTACK_MODE = modeParId('attack');
+export const CAST_MODE = modeParId('cast');
+
+/** #2968 */
+export const TILE_MODES = TARGETING_MODES.filter((mode): mode is TileTargetingMode =>
+  !!mode.tileValidAt && !!mode.commitTile && !!mode.tilePreview);
 
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
 export const targetingModeLabel = (modeId: string): string | undefined =>
-  TARGETING_MODES.find((m) => m.id === modeId)?.label;
+  TARGETING_MODES.find((m) => m.id === modeId && m.bandeau)?.label;
 
 /** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
 export const targetingModeConsigne = (modeId: string): PlayerText | undefined => {
@@ -943,21 +913,15 @@ export function currentTargetingMode(get: Get): TargetingMode {
   const s = get();
   const d = detenteurDuCiblage(s);
   switch (d?.genre) {
-    case 'pendingCleave': return CLEAVE_MODE;
-    case 'pendingDualStrike': return DUAL_MODE;
-    case 'surincantation': return OVERCAST_MODE;
-    case 'zone': return PLACING_MODE;
+    case 'pendingCleave': return modeParId('cleave');
+    case 'pendingDualStrike': return modeParId('dual');
+    case 'surincantation': return modeParId('overcast');
+    case 'zone': return modeParId('placing-zone');
     case undefined: break;
     default: return d satisfies never;
   }
   const action = s.battle?.action ?? null;
-  if (action === 'cast') return CAST_MODE;
-  if (action === 'heal') return HEAL_MODE;
-  if (action === 'dispel') return DISPEL_MODE;
-  if (action === 'battery') return BATTERY_MODE;
-  if (action === 'teleport') return TELEPORT_MODE;
-  if (action === 'push') return PUSH_MODE;
-  return ATTACK_MODE;
+  return TARGETING_MODES.find((mode) => mode.armable && mode.id === action) ?? ATTACK_MODE;
 }
 
 /**

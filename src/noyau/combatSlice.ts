@@ -1620,11 +1620,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t('cs.leavePoste', { name: active.label, weapon }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    // « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, Lot 2 #156) : ouvre le mode de
-    // ciblage-CASE 'push' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
-    // translation de la formation. Gate : chef d'un poste MOBILE (`pushEligible`), Action dispo, Équipe ≥
-    // moitié requise (`pushCrewOk`, sinon no-op — comme un tir sous-effectif refusé, `firedAttackBlock`).
-    // Ne consomme RIEN ici (la dépense de l'Action a lieu au COMMIT, comme `battleClickTile`/`battleManPoste`).
+    // ADE II 8 l.258 ; #156
     battlePushEngine: () => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const battle = get().battle;
@@ -1898,10 +1894,6 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     // ── Rechargement = Test étendu de Projectiles (LDB 62 l.335 + LDB 12 l.170-174) — par modale ──
-    // `weaponUid` DÉSIGNE l'arme rechargée : chaque arme à distance a son cycle (arbitrage utilisateur
-    // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
-    // munition »).
-    // Absent → la 1re arme à distance DÉCHARGÉE du set.
     battleReload: (weaponUid?: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const { battle } = get();
@@ -2005,9 +1997,6 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingReload: null });
       if (!a) return;
       a.aiming = false; // recharger est une autre action → la visée est perdue
-      // ARME rechargée = celle du pending (chaque arme à distance a SON cycle — arbitrage utilisateur
-      // 2026-08-16 : « si j ai 2 armes à distance elles gèrent chacune leur propre rechargement et
-      // munition »).
       const rw = garanti(a.weapons.find((x) => x.uid === pr.weaponUid), pr.weaponUid, 'arme rechargée');
       // Rechargement rapide / Artilleur (LDB 10) : +niveau DR au Test de rechargement (sur un jet réussi).
       const reloadTalent = pr.success ? reloadDRBonus(a, rw) : 0;
@@ -2107,13 +2096,6 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ pendingSteamSave: null });
       resolveSteamSave(get, set, p); // échec → ébouillanté (scaldOps), puis la boucle maritime reprend
     },
-    // La munition se fixe au CHARGEMENT — arbitrage utilisateur 2026-08-16 par AskUserQuestion, verbatim de la demande qui
-    // l'ouvre : « on doit pouvoir choisir ses munitions avec nos armes de tir facilement depuis sa barre
-    // d'action ». Sur une arme à Recharge DÉJÀ chargée, changer de munition la
-    // DÉCHARGE — le Test étendu de rechargement est à refaire (LDB 62 l.335), et le chargeur d'une arme À
-    // Répétition se vide avec (conséquence assumée de l'arbitrage). Re-choisir la munition déjà chargée est
-    // sans effet. Rien n'est détruit : le stock n'est décompté qu'au tir (`consumeAmmo`).
-    // `weaponUid` DÉSIGNE l'arme concernée (deux armes à distance = deux munitions) ; absent → la 1re.
     battleSelectAmmo: (uid: string, weaponUid?: string) => {
       if (combatBusy(get())) return; // flux différé en cours : hotbar inerte
       const { battle } = get();
@@ -2668,13 +2650,6 @@ export function createCombatSlice(get: Get, set: Set) {
         // Re-dérive les armes ACTIVES depuis les items persistés : une arme usée/détruite au combat
         // précédent (damageTaken/destroyed sur l'ItemInstance) reste usée/détruite (LDB 62 l.135).
         if (c.items?.length) recomputeLoadout(c);
-        // Armes à distance CHARGÉES au début du combat (le cycle de charge ne joue que pour les armes à
-        // Recharge) — CHACUNE la sienne. Le CHOIX de munition n'est PAS réinitialisé : la munition est un
-        // état de l'ARME (arbitrage utilisateur 2026-08-16 : « si j ai 2 armes à distance elles gèrent
-        // chacune leur propre rechargement et munition ») et se fixe au chargement
-        // (AskUserQuestion 2026-08-16), donc celui posé au
-        // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
-        // `selectedAmmo` retombe sur la 1re compatible quand il n'y en a aucun.
         for (const rw of c.weapons.filter((w) => w.type === 'ranged')) loadWeapon(c, rw);
         return c;
       });
