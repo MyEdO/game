@@ -276,6 +276,24 @@ test('décorateurs : homonyme local, import étranger et masque de portée reste
   } finally { rmSync(dossier, { recursive: true, force: true }) }
 })
 
+test('la marque de produit de fabrique est un décorateur : la forme lue est celle du nœud marqué', () => {
+  const dossier = dossierTemporaire('jsdoc-produit-')
+  try {
+    const chemin = join(dossier, 'schemas.ts')
+    writeFileSync(chemin, [
+      `import { z } from ${ZOD};`,
+      "import { nommerChamps } from '@/data/schemas/grammaire/meta.ts';",
+      "import { marquerProduit } from '@/data/schemas/grammaire/interne/produits.ts';",
+      '/** Membre marqué. */',
+      "export const membre = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('x'), requis: z.number(), facultatif: z.string().optional() }), { kind: { label: 'kind' }, requis: { label: 'requis' }, facultatif: { label: 'facultatif' } }), 'fabrique', 'role');",
+      "export const union = z.discriminatedUnion('kind', [membre]);",
+    ].join('\n'))
+    assert.deepEqual(readZodUnionMembers(indexerConstantes([chemin]), 'union', 'kind', 'test'), {
+      rows: [{ name: 'x', fieldGroups: [['requis', 'facultatif?']], role: 'Membre marqué.' }], rawCount: 1,
+    })
+  } finally { rmSync(dossier, { recursive: true, force: true }) }
+})
+
 test('preuve des décorateurs : coordonnées identiques dans un autre fichier ou texte restent opaques', () => {
   const dossier = dossierTemporaire('jsdoc-identite-')
   try {

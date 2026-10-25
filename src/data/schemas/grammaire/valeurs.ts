@@ -18,6 +18,7 @@ import { listeCle, marquerCollection, marqueDeListe } from './collection-cle';
 import { estEspeceDessinee, messageDEspeceInconnue, sexeDeCoiffure } from './art';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
+import { marquerProduit } from './interne/produits';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
@@ -308,7 +309,7 @@ export type GenreDeFragment = (typeof GENRES_DE_FRAGMENT)[number];
  * tous, `GENRES_DE_FRAGMENT`). Un document le déclare par `options.fragmentsAdmis` (`document.ts`).
  */
 export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GENRES_DE_FRAGMENT) {
-  return nommerChamps(z
+  return marquerProduit(nommerChamps(z
     .strictObject({
       book: z.string().min(1),
       /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
@@ -351,7 +352,7 @@ export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GEN
           });
         }
       });
-    }), { book: { label: "livre", texte: { regime: 'technique', usage: 'id du livre de l’adresse de prose' } }, ch: { label: "chapitre", texte: { regime: 'technique', usage: 'adresse du chapitre extrait' } }, parts: { label: "parties" } });
+    }), { book: { label: "livre", texte: { regime: 'technique', usage: 'id du livre de l’adresse de prose' } }, ch: { label: "chapitre", texte: { regime: 'technique', usage: 'adresse du chapitre extrait' } }, parts: { label: "parties" } }), 'descRefSchemaDe', 'descRef');
 }
 
 /** L'adresse de prose qui admet tous les genres de fragment (`descRefSchemaDe`). */
@@ -484,9 +485,13 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
   resolved: readonly K[],
 ) {
   const mask = tableTotale(resolved, () => true);
-  const picked = entrySchema.pick(mask as Parameters<typeof entrySchema.pick>[0]) as unknown as z.ZodObject<Pick<T, K>>;
   const noms = metaDesChamps(entrySchema, { exigees: true });
-  const final = picked.partial().extend({ when: variantWhenSchema });
+  const final = marquerProduit(
+    (entrySchema.pick(mask as Parameters<typeof entrySchema.pick>[0]) as unknown as z.ZodObject<Pick<T, K>>).partial().extend({ when: variantWhenSchema }),
+    'variantOf',
+    'variante',
+    tableTotale(resolved, (cle) => entrySchema.shape[cle]),
+  );
   return nommerChamps(final, {
     ...tableTotale(resolved, cle => noms[cle]),
     when: { label: 'condition' },
@@ -592,9 +597,9 @@ export const charStatKeySchema = enumNomme({ ...CHAR_LABELS, M: 'Mouvement', B: 
  * est EXHAUSTIF en zod 4 (il exigerait les 12 clés), et `z.record(z.string(), …)` accepterait toute clé.
  */
 export function profilChiffreSchema<V extends z.ZodType>(valeur: V) {
-  return nommerChamps(z.strictObject(
+  return marquerProduit(nommerChamps(z.strictObject(
     tableTotale(charStatKeySchema.options, () => valeur.optional()),
-  ), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) })));
+  ), tableTotale(charStatKeySchema.options, cle => ({ label: libelleDeValeur(charStatKeySchema, cle) }))), 'profilChiffreSchema', 'profil');
 }
 
 /** `SizeCategory` (`src/engine/size.ts:14`) — CANON de la Taille (LDB 85), porte UNIQUE des defs qui
@@ -694,7 +699,7 @@ export const replisSansExposeSchema = nommerChamps(z.strictObject({
  * une seule fois pour le dépôt ; ce que la colonne CONTIENT reste au porteur.
  */
 export const parSaison = <T extends z.ZodType>(valeur: T) =>
-  nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), { printemps: { label: "printemps" }, ete: { label: "été" }, automne: { label: "automne" }, hiver: { label: "hiver" } });
+  marquerProduit(nommerChamps(z.strictObject({ printemps: valeur, ete: valeur, automne: valeur, hiver: valeur }), { printemps: { label: "printemps" }, ete: { label: "été" }, automne: { label: "automne" }, hiver: { label: "hiver" } }), 'parSaison', 'saisons');
 
 /**
  * PRIX DE BASE d'une cargaison par SAISON (MDG 15 l.422-434, MSRC 13 l.80-90) : le résolveur y lit la
@@ -880,23 +885,23 @@ export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema
 const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<unknown>[] => [
   z.number(),
   termeBonusDe,
-  nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }),
+  marquerProduit(nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }), 'optionsDeFormule', 'charOf'),
   ...(avecJet ? [
-    nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }),
-    nommerChamps(z.strictObject({ rolled: z.literal(true) }), { rolled: { label: "résultat du jet" } }),
+    marquerProduit(nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } }), 'optionsDeFormule', 'dice'),
+    marquerProduit(nommerChamps(z.strictObject({ rolled: z.literal(true) }), { rolled: { label: "résultat du jet" } }), 'optionsDeFormule', 'rolled'),
   ] : []),
-  nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }),
-  nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }),
-  nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }),
-  nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }),
+  marquerProduit(nommerChamps(z.strictObject({ indiceOf: z.literal(true) }), { indiceOf: { label: "valeur de l’indice" } }), 'optionsDeFormule', 'indiceOf'),
+  marquerProduit(nommerChamps(z.strictObject({ stacks: z.literal('self') }), { stacks: { label: "cumuls" } }), 'optionsDeFormule', 'stacks'),
+  marquerProduit(nommerChamps(z.strictObject({ engagedAdvantageGap: z.literal(true) }), { engagedAdvantageGap: { label: "écart d’Avantage au contact" } }), 'optionsDeFormule', 'engagedAdvantageGap'),
+  marquerProduit(nommerChamps(z.strictObject({ woundsDealt: z.literal(true) }), { woundsDealt: { label: "Blessures infligées" } }), 'optionsDeFormule', 'woundsDealt'),
   // LDB 09 l.97.
-  ...(avecJet ? [nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } })] : []),
-  nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }),
-  nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }),
+  ...(avecJet ? [marquerProduit(nommerChamps(z.strictObject({ sl: z.literal(true) }), { sl: { label: "DR" } }), 'optionsDeFormule', 'sl')] : []),
+  marquerProduit(nommerChamps(z.strictObject({ rule: refRegleOptionnelle }), { rule: { label: "règle" } }), 'optionsDeFormule', 'rule'),
+  marquerProduit(nommerChamps(z.strictObject({ sum: z.array(soi) }), { sum: { label: "somme" } }), 'optionsDeFormule', 'sum'),
   // VDM 05.
-  nommerChamps(z.strictObject({ times: nommerChamps(z.strictObject({ of: soi, factor: soi }), { of: { label: "contenu" }, factor: { label: "facteur" } }) }), { times: { label: "multiplicateur" } }),
+  marquerProduit(nommerChamps(z.strictObject({ times: marquerProduit(nommerChamps(z.strictObject({ of: soi, factor: soi }), { of: { label: "contenu" }, factor: { label: "facteur" } }), 'optionsDeFormule', 'times.of') }), { times: { label: "multiplicateur" } }), 'optionsDeFormule', 'times'),
   // AA 07 l.113 ; LDB 18 l.88.
-  nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: soi }), { minimum: { label: "minimum" }, of: { label: "contenu" } }),
+  marquerProduit(nommerChamps(z.strictObject({ minimum: z.number().int().nonnegative(), of: soi }), { minimum: { label: "minimum" }, of: { label: "contenu" } }), 'optionsDeFormule', 'minimum'),
 ];
 
 /** `Formula` (`src/engine/ops.ts`) — quantité résolue à l'application (littéral/dés/bonus/Indice/

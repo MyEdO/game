@@ -8,6 +8,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
 import { z } from 'zod';
 import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
+import { marquerProduit } from './interne/produits';
 import { isMenaceId, menaceIds } from '../../../engine/menace';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
@@ -820,7 +821,7 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
         });
       })
     : flowTestSchema;
-  const noeud = nommerChamps(z.strictObject({ kind: z.literal('test'), test, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } });
+  const noeud = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
   if (!options.echecSeulServi) return noeud;
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
@@ -938,13 +939,18 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
   return Object.fromEntries(
     Object.entries(DECLARATIONS_D_OPS).map(([op, d]) => {
       if (estNoeudZod(d)) return [op, d];
-      const champs = Object.entries((d as PayloadDeclare).champs).flatMap(([champ, v]) =>
+      const admis = (champ: string, v: unknown): v is ChampReserveDeclare =>
+        v instanceof ChampReserveDeclare && regimes[`${op}.${champ}` as ChampReserve] === 'admis';
+      const entrees = Object.entries((d as PayloadDeclare).champs);
+      const champs = entrees.flatMap(([champ, v]) =>
         v instanceof ChampAChoixDeclare ? [[champ, refOuSpec(v.cible, v.extra, regimes[`${op}.${champ}` as ChampAChoix] ?? 'specSeule')]]
-          : v instanceof ChampReserveDeclare ? (regimes[`${op}.${champ}` as ChampReserve] === 'admis' ? [[champ, v.noeud]] : [])
+          : v instanceof ChampReserveDeclare ? (admis(champ, v) ? [[champ, v.noeud]] : [])
             : [[champ, v]],
       );
       const meta = Object.fromEntries(champs.map(([champ]) => [champ, (d as PayloadDeclare).meta[champ as string]]));
-      return [op, nommerChamps(z.strictObject(Object.fromEntries(champs)), meta)];
+      // Les clés RÉSERVÉES admises sont le choix de la famille appelante (ses régimes).
+      const reservesAdmises = Object.fromEntries(entrees.flatMap(([champ, v]) => (admis(champ, v) ? [[champ, v.noeud]] : [])));
+      return [op, marquerProduit(nommerChamps(z.strictObject(Object.fromEntries(champs)), meta), 'payloadsDe', op, reservesAdmises)];
     }),
   );
 }
@@ -958,7 +964,7 @@ function construire(regimes: Regimes) {
    * ailleurs : la clé `op` est surchargée en donnée (les comparateurs `>=`/`<=`/`==` d'une `Condition`
    * la portent aussi).
    */
-  const gameOp: z.ZodType<GameOp> = nommerChamps(z.looseObject({ op: z.string() }).superRefine((v, ctx) => {
+  const gameOp: z.ZodType<GameOp> = marquerProduit(nommerChamps(z.looseObject({ op: z.string() }).superRefine((v, ctx) => {
     marquerOpAtteinte(ctx);
     const payload = opDefs[v.op];
     if (payload) {
@@ -975,7 +981,7 @@ function construire(regimes: Regimes) {
       path: ['op'],
       message: `GameOp « ${v.op} » : op inconnue de OP_DEFS et de OPS_NON_TYPEES (src/data/schemas/grammaire/mecanique.ts) — la typer, ou l'inscrire à la liste avec sa raison mesurée.`,
     });
-  }), { op: { label: "opération" , texte: { regime: "technique"} } }).transform((v) => v as GameOp);
+  }), { op: { label: "opération" , texte: { regime: "technique"} } }), 'construire', 'gameOp').transform((v) => v as GameOp);
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
    *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
@@ -990,21 +996,21 @@ function construire(regimes: Regimes) {
   }, 'payloads-op');
   nommerNoeud(gameOp, { opacite: { nature: 'dispatch-op', raison: 'Payloads stricts déclarés ; OPS_NON_TYPEES reste opaque.' } });
 
-  const effectOp = nommerChamps(z.strictObject({
+  const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
     ops: z.array(gameOp),
     on: z.enum(['party', 'hero', 'caster', 'target']).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),
-  }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} } });
+  }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} } }), 'construire', 'effectOp');
 
   /** `Flow<EffectOp>` (`engine/flowCore.ts:492`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice). */
   const flow: z.ZodType<Flow<EffectOp>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
-      nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }),
-      nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type"  }, effect: { label: "effet" } }),
-      nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'construire', 'flow.seq'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: effectOp }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'construire', 'flow.do'),
+      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: conditionSchema, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'construire', 'flow.if'),
       noeudTest(flow),
       proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
@@ -1020,7 +1026,7 @@ function construire(regimes: Regimes) {
 
   /** `TriggeredEffect<EffectOp>` (`engine/flowCore.ts:472`). `optional` (Contrôle de la Frénésie…)
    *  seule 1/9 des JSON le peuple (`talents.json`) — laissé optionnel, sans risque pour les autres. */
-  const triggeredEffect = nommerChamps(z.strictObject({
+  const triggeredEffect = marquerProduit(nommerChamps(z.strictObject({
     trigger: effectTriggerSchema,
     on: effectTargetingSchema,
     flow: flow,
@@ -1028,11 +1034,11 @@ function construire(regimes: Regimes) {
     attackType: z.enum(['melee', 'ranged']).optional(),
     coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } });
+  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 
   /** `TravelTableEntry` (`src/engine/travelTables.ts:15-26`) — entrée d100 de l'enveloppe `TravelTable`,
    *  partagée par `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
-  const travelTableEntry = nommerChamps(z.strictObject({
+  const travelTableEntry = marquerProduit(nommerChamps(z.strictObject({
     min: z.number(),
     max: z.number(),
     id: z.string(),
@@ -1044,14 +1050,14 @@ function construire(regimes: Regimes) {
     /** Suite MÉCANIQUE d'un Incident de MONTE (`incidents-monture.json`, EDOC 07 l.157-174), miroir de
      *  `MountIncidentEffects` (`src/engine/travelTables.ts`) : elle est DÉCLARÉE par l'entrée, jamais
      *  déduite de son id. Une entrée sans `mount` ne laisse aucune séquelle. */
-    mount: nommerChamps(z.strictObject({
+    mount: marquerProduit(nommerChamps(z.strictObject({
       /** Test du CAVALIER, sous peine de chute de `fallM` mètres (l.166/l.171). */
-      riderTest: nommerChamps(z.strictObject({
+      riderTest: marquerProduit(nommerChamps(z.strictObject({
         skill: refOuSpec('skill'),
         char: charKeySchema.optional(),
         difficulty: difficultySchema,
         fallM: z.number(),
-      }), { skill: { label: "Compétence" }, char: { label: "caractéristiques"  }, difficulty: { label: "difficulté"  }, fallM: { label: "hauteur de chute" } }).optional(),
+      }), { skill: { label: "Compétence" }, char: { label: "caractéristiques"  }, difficulty: { label: "difficulté"  }, fallM: { label: "hauteur de chute" } }), 'construire', 'travelTableEntry.mount.riderTest').optional(),
       /** Modificateur PERSISTANT aux Tests de Chevaucher tant que la séquelle dure (l.174 : −20). */
       ridingPenalty: z.number().optional(),
       /** Allure MAXIMALE imposée à la bête tant que la séquelle dure (Perte d'un fer : le pas). */
@@ -1068,8 +1074,8 @@ function construire(regimes: Regimes) {
       /** ISSUE de la bête, quand le `desc` verbatim en pose une (Patte brisée : « Fracture (Majeure) …
        *  peu d'espoir qu'elle y survive ») — fragment d'AFFICHAGE joueur, ligne propre au journal. */
       outcome: z.string().optional(),
-    }), { riderTest: { label: "Test du cavalier" }, ridingPenalty: { label: "malus de Chevaucher" }, forcedAllure: { label: "allure imposée"  }, preventsMount: { label: "monture inutilisable" }, notHealedByCare: { label: "sans récupération par soins" }, endCondition: { label: "condition de fin" , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} }, outcome: { label: "issue"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} } }).optional(),
-  }), { min: { label: "minimum" }, max: { label: "maximum" }, id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, desc: { label: "texte"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} }, stageOutcome: { label: "issue d’étape"  }, vehicleWounds: { label: "Blessures du véhicule"  , texte: { regime: "technique"} }, occupantOps: { label: "opérations des occupants" }, mount: { label: "monture" } });
+    }), { riderTest: { label: "Test du cavalier" }, ridingPenalty: { label: "malus de Chevaucher" }, forcedAllure: { label: "allure imposée"  }, preventsMount: { label: "monture inutilisable" }, notHealedByCare: { label: "sans récupération par soins" }, endCondition: { label: "condition de fin" , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} }, outcome: { label: "issue"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} } }), 'construire', 'travelTableEntry.mount').optional(),
+  }), { min: { label: "minimum" }, max: { label: "maximum" }, id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, desc: { label: "texte"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/incidents-monture.ts:schema"}} }, stageOutcome: { label: "issue d’étape"  }, vehicleWounds: { label: "Blessures du véhicule"  , texte: { regime: "technique"} }, occupantOps: { label: "opérations des occupants" }, mount: { label: "monture" } }), 'construire', 'travelTableEntry');
   /**
    * `ShipCrewHit` (`src/data/shipCriticals.ts`) — ce qu'un Critique de coque fait à l'ÉQUIPAGE. Le
    * porteur dit QUI encaisse (`crewTarget`, REQUIS) ; l'ISSUE est SOIT une épreuve (le nœud `test` du
@@ -1077,7 +1083,7 @@ function construire(regimes: Regimes) {
    * ops CERTAINES (`ops` — MSRC 07 l.82, où le livre n'appelle aucun jet). Les deux clefs sont
    * EXCLUSIVES.
    */
-  const shipCrewHit = nommerChamps(z
+  const shipCrewHit = marquerProduit(nommerChamps(z
     .strictObject({
       crewTarget: crewTargetSchema,
       test: noeudTest(flow, { difficulteRequise: true, echecSeulServi: true }).optional(),
@@ -1090,11 +1096,11 @@ function construire(regimes: Regimes) {
           message: 'un coup à l’équipage porte SOIT une épreuve (`test`) SOIT une conséquence certaine (`ops`) — jamais les deux, jamais aucune.',
         });
       }
-    }), { crewTarget: { label: "cible d’équipage" }, test: { label: "Test" }, ops: { label: "opérations" } });
+    }), { crewTarget: { label: "cible d’équipage" }, test: { label: "Test" }, ops: { label: "opérations" } }), 'construire', 'shipCrewHit');
 
   /** `ShipCritEntry` (`src/data/shipCriticals.ts`) — entrée d100 de Critique de coque, partagée par
    *  `ship-criticals` (navale) et `river-criticals` (fluviale). */
-  const shipCritEntry = nommerChamps(z.strictObject({
+  const shipCritEntry = marquerProduit(nommerChamps(z.strictObject({
     ...plageSchema.shape,
     id: z.string(),
     label: z.string(),
@@ -1103,7 +1109,7 @@ function construire(regimes: Regimes) {
     hullCrits: z.string().optional(),
     crewHit: shipCrewHit.optional(),
     note: z.string(),
-  }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque"  , texte: { regime: "technique"} }, crewHit: { label: "coup à l’équipage" }, note: { label: "note"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/ship-criticals.ts:schema"}} } });
+  }), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: "identifiant"  , texte: { regime: "technique"} }, label: { label: "libellé"  , texte: { regime: "designation"} }, ops: { label: "opérations" }, shrapnel: { label: "éclats" }, hullCrits: { label: "Critiques de coque"  , texte: { regime: "technique"} }, crewHit: { label: "coup à l’équipage" }, note: { label: "note"  , texte: { regime: "narration",horsContrat: { motif: "catalogue",preuve: "src/data/schemas/defs/ship-criticals.ts:schema"}} } }), 'construire', 'shipCritEntry');
 
   for (const noeud of [gameOp, effectOp, flow]) REGIMES_DES_NOEUDS.set(noeud, regimes);
   return { regimes, opDefs, gameOp, effectOp, flow, triggeredEffect, travelTableEntry, shipCrewHit, shipCritEntry };

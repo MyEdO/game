@@ -13,6 +13,7 @@ import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { baseDe, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
 import { idsVivants } from './idsVivants';
+import { marquerProduit } from './interne/produits';
 
 declare const marqueDeType: unique symbol;
 /** Id BRANDÉ par son type — frappé à la porte zod, jamais par un `as` d'appelant. */
@@ -495,9 +496,16 @@ export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousL
 const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } } as const;
 
 /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
- *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>) {
-  return nommerChamps(z.strictObject({ id: idDe(type), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+ *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. `extraDuPorteur` : la part
+ *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. */
+function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(
+  type: T,
+  extra: E,
+  metas: Readonly<Record<string, MetaChamp>>,
+  role: 'ref' | 'refTypee',
+  extraDuPorteur: Readonly<Record<string, z.ZodType>>,
+) {
+  return marquerProduit(nommerChamps(z.strictObject({ id: idDe(type), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>), 'objetDeRef', role, extraDuPorteur);
 }
 
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
@@ -505,7 +513,8 @@ export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = 
   type: T,
   extra?: E,
 ): z.ZodType<unknown> {
-  return objetDeRef(type, (extra ?? {}) as Record<string, z.ZodType>, metasExtra(extra));
+  const extraDuPorteur = (extra ?? {}) as Record<string, z.ZodType>;
+  return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur);
 }
 
 /** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et le type qui nomme l'espace où il résout. */
@@ -538,7 +547,7 @@ export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | u
  */
 export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
   const admis = types.options as readonly T[];
-  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }));
+  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }, 'refTypee', {}));
   const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
   const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
   REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
@@ -652,7 +661,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   const { choix: _choix, ...designe } = champs;
   const metas = { id: META_ID, spec: { label: "spécialisation", texte: { regime: 'designation' as const } }, choix: { label: "choix", texte: { regime: 'designation' as const } }, ...metasExtra(extra) };
   const { choix: _metaChoix, ...metasDesignees } = metas;
-  return nommerChamps(z
+  return marquerProduit(nommerChamps(z
     .strictObject(admetChoix ? champs : (designe as typeof champs), {
       error: (iss) => (iss.code === 'unrecognized_keys' && iss.keys.includes('choix') ? choixRefuse(iss.input, iss.keys) : undefined),
     })
@@ -680,7 +689,7 @@ function noeudASpecialisation<T extends TypeEntite>(
         if (r !== motif) continue;
         ctx.addIssue({ code: 'custom', path: [aSpec ? 'spec' : 'choix'], message: messageDeRefusDeSpec(type, String(v.id), c, r, admetChoix) });
       }
-    }), admetChoix ? metas : (metasDesignees as typeof metas));
+    }), admetChoix ? metas : (metasDesignees as typeof metas)), 'noeudASpecialisation', regime, extra);
 }
 
 /**
@@ -743,8 +752,8 @@ export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z
   const n = z.number().int().positive();
   const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
   const noeud: z.ZodType<unknown> = z.union([
-    nommerChamps(z.strictObject({ pick: n, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }),
-    nommerChamps(z.strictObject({ pick: n, table: ref('table') }), { pick: { label: "sélection" }, table: { label: "table" } }),
+    marquerProduit(nommerChamps(z.strictObject({ pick: n, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of'),
+    marquerProduit(nommerChamps(z.strictObject({ pick: n, table: ref('table') }), { pick: { label: "sélection" }, table: { label: "table" } }), 'pick', 'table'),
   ]);
   return noeud;
 }
