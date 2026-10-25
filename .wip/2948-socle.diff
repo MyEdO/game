@@ -1,0 +1,588 @@
+diff --git a/scripts/docs/lib/slots-registre.mts b/scripts/docs/lib/slots-registre.mts
+index 8027cf75a..8fc607888 100644
+--- a/scripts/docs/lib/slots-registre.mts
++++ b/scripts/docs/lib/slots-registre.mts
+@@ -11,7 +11,7 @@
+ import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
+ import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
+ import type { SchemaDef } from '../../../src/data/schemas/types';
+-import { estFeuilleDId, mesureDuParse, reperesDuParse, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
++import { estFeuilleDId, mesureDuParse, reperesDuParse, type CompositionDuParse, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
+ import { defDe, descendre, enfantsDe, declarationDEnfants } from '../../../src/data/schemas/grammaire/descente';
+ import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
+ import { nomDeDocument, type OccurrenceDeReference, type ReferencesParPorteur } from './structures-scan.mjs';
+@@ -84,6 +84,20 @@ export function slotsDuParse(scan: Pick<ScanDesReferences, 'brutParNom'>, defs:
+   return defs.filter((d) => scan.brutParNom.has(d.file)).flatMap((d) => slotsDuDocument(d.file, d.schema, scan.brutParNom.get(d.file)));
+ }
+ 
++export function compositionsDuParse(scan: Pick<ScanDesReferences, 'brutParNom'>, defs: readonly SchemaDef[] = defsDeDocument()): ReadonlyMap<object, CompositionDuParse> {
++  const compositions = new Map<object, CompositionDuParse>();
++  for (const d of defs) {
++    if (!scan.brutParNom.has(d.file)) continue;
++    const document = scan.brutParNom.get(d.file);
++    for (const repere of mesureDuParse(d.schema, document).compositions) {
++      const { noeud } = auPath(d.file, document, repere.path);
++      if (noeud === null || typeof noeud !== 'object') throw new Error(`composition : ${d.file} ne porte aucun objet au path validé`);
++      compositions.set(noeud, repere);
++    }
++  }
++  return compositions;
++}
++
+ /**
+  * Les NŒUDS D'OP que le parse de mesure atteint (`mesureDuParse › ops`) dans les documents du scan,
+  * par IDENTITÉ d'objet : un nœud `GameOp` du corpus absent de cet ensemble n'est validé par aucun
+diff --git a/scripts/docs/lib/structures-fixture.testkit.mts b/scripts/docs/lib/structures-fixture.testkit.mts
+new file mode 100644
+index 000000000..fa72e0732
+--- /dev/null
++++ b/scripts/docs/lib/structures-fixture.testkit.mts
+@@ -0,0 +1,21 @@
++import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import type { SchemaDef } from '../../../src/data/schemas/types.ts';
++import { scannerDonnees } from './structures-scan.mjs';
++
++const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
++
++export function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
++  const dossier = mkdtempSync(join(tmpdir(), nom));
++  try {
++    mkdirSync(join(dossier, 'src/data'), { recursive: true });
++    mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
++    cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
++    for (const [file, contenu] of Object.entries(documents)) writeFileSync(join(dossier, 'src/data', file), JSON.stringify(contenu));
++    return scannerDonnees(dossier, defs);
++  } finally {
++    rmSync(dossier, { recursive: true, force: true });
++  }
++}
+diff --git a/scripts/docs/lib/structures-lexique.mts b/scripts/docs/lib/structures-lexique.mts
+index 2017b865e..6e7fadc90 100644
+--- a/scripts/docs/lib/structures-lexique.mts
++++ b/scripts/docs/lib/structures-lexique.mts
+@@ -13,11 +13,13 @@
+ // Statuts : `cible` = forme visée · `historique` = graphie connue à éteindre · `declaree` = forme
+ // volontairement conservée · absente du lexique = `divergente`.
+ //
+-// Les signatures de statut `cible` sont FIGÉES AU STOCK (`STRUCTURES_CIBLES` de
+-// `scripts/guards/lib/structuresStock.mjs`, égalité stricte testée) : faire passer une graphie en
+-// `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
++// #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247
+ 
+ import { basename } from 'node:path';
++import { dotationConcreteSchema } from '../../../src/data/schemas/grammaire/dotation.ts';
++
++/** #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247 */
++export const COMPOSITIONS_REFERENCE = [{ id: 'dotation-concrete', schema: dotationConcreteSchema, statut: 'cible' as const, note: '#1463#issuecomment-5385520833' }] as const;
+ import { SLOTS } from '../../../src/data/palette.types.ts';
+ import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
+ import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
+@@ -61,14 +63,7 @@ export const SITE_STATBLOC: SiteDeSignature = {
+  *  `grammaire/valeurs.ts`) : la référence de source plus sa preuve `quote`, dans tout document. */
+ export const SITE_EMPLACEMENT_SECONDAIRE: SiteDeSignature = { champs: ['alsoIn'] };
+ 
+-/**
+- * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
+- * QUATRE strates : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
+- * sauvegarde) est HORS PÉRIMÈTRE PAR CONSTRUCTION — les deux racines mesurées ne portent que des
+- * documents AUTHORÉS ; son dénominateur se mesurera sur le runtime et un snapshot de test
+- * (#1463, commentaire « Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe
+- * du commit 3a6017ebb) », point 1).
+- */
++/** #1463#issuecomment-5385520833 */
+ export type Strate = 'Référence' | 'Valeur' | 'Ops' | 'Document';
+ 
+ /** Le dataset dont les références sont lotées L2 (les refs de Compétence) — #1463 design v2. */
+diff --git a/scripts/docs/lib/structures-scan.mts b/scripts/docs/lib/structures-scan.mts
+index 013361b88..24fb7c849 100644
+--- a/scripts/docs/lib/structures-scan.mts
++++ b/scripts/docs/lib/structures-scan.mts
+@@ -28,7 +28,8 @@ import { basename, join, relative } from 'node:path';
+ import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
+ import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
+ import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
+-import { defsDeDocument } from './slots-registre.mjs';
++import { compositionsDuParse, defsDeDocument } from './slots-registre.mjs';
++import { COMPOSITIONS_REFERENCE } from './structures-lexique.mjs';
+ import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
+ import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
+ import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
+@@ -548,6 +549,10 @@ export function scannerDonnees(
+   );
+   const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
++  const compositions = new Map([...compositionsDuParse({ brutParNom }, defs)].flatMap(([objet, repere]) => {
++    const declaration = COMPOSITIONS_REFERENCE.find((c) => c.schema === repere.noeud);
++    return declaration ? [[objet, declaration] as const] : [];
++  }));
+   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
+   const collections = collectionsDesDocuments(defs, brutParNom);
+   /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
+@@ -897,9 +902,9 @@ export function scannerDonnees(
+     concept: Concept,
+     p: Prepare,
+     champ: string,
+-    cl: { statut: FormeObservee['statut']; note: string; signature: string },
++    cl: { statut: FormeObservee['statut']; note: string; signature: string; composition?: string },
+   ) => {
+-    const k = [concept.id, p.nom, champ || '(racine)', cl.signature].join(' | ');
++    const k = [concept.id, p.nom, champ || '(racine)', cl.signature, cl.statut, cl.composition ?? ''].join(' | ');
+     if (!formes.has(k))
+       formes.set(k, {
+         concept: concept.id,
+@@ -929,7 +934,7 @@ export function scannerDonnees(
+     concept: Concept,
+     p: Prepare,
+     champ: string,
+-    cl: { statut: FormeObservee['statut']; note: string; signature: string },
++    cl: { statut: FormeObservee['statut']; note: string; signature: string; composition?: string },
+     porteur: object,
+     cles: Iterable<string | number>,
+   ) => {
+@@ -1019,7 +1024,17 @@ export function scannerDonnees(
+           inc(racinesDisqualifiees, p.nom);
+       }
+       let classe = false;
+-      if (valeur) {
++      const composition = compositions.get(o);
++      if (composition) {
++        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, {
++          statut: composition.statut,
++          note: composition.note,
++          signature: signatureProjetee(cles, resolvantes),
++          composition: composition.id,
++        }, o, resolvantes);
++        for (const d of cibles) ligne.ciblesSet.add(d);
++        classe = true;
++      } else if (valeur) {
+         const c = CONCEPTS.find((x) => x.id === valeur.concept)!;
+         ligneForme(c, p, champ, valeur).occurrences += 1;
+         classe = true;
+diff --git a/src/data/schemas/grammaire/dotation.ts b/src/data/schemas/grammaire/dotation.ts
+new file mode 100644
+index 000000000..82d35e063
+--- /dev/null
++++ b/src/data/schemas/grammaire/dotation.ts
+@@ -0,0 +1,33 @@
++import { z } from 'zod';
++import { nommerNoeud } from './meta.ts';
++import { ref, refs, refTypee } from './ref.ts';
++import { countSpecSchema, enumNomme, sourceRefSchema, validerApparenceDObjet } from './valeurs.ts';
++
++/** #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247 */
++export const dotationConcreteSchema = refTypee(enumNomme({ trapping: 'Objet', creature: 'Créature', vehicle: 'Véhicule' }), {
++  trapping: {
++    champs: {
++      spec: nommerNoeud(z.string().optional(), { nom: 'spécialisation' }),
++      count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++      qualities: nommerNoeud(z.union([z.literal(true), refs('quality')]).optional(), { nom: 'qualités' }),
++      apparence: nommerNoeud(ref('apparence').optional(), { nom: 'apparence' }),
++      source: nommerNoeud(sourceRefSchema.optional(), { nom: 'source' }),
++    },
++    verifier: (v, ctx) => {
++      const apparence = v.apparence as { id: string } | undefined;
++      if (apparence) validerApparenceDObjet(String(v.id), apparence.id, ctx, ['apparence', 'id']);
++    },
++  },
++  creature: {
++    champs: {
++      count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++      label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
++    },
++  },
++  vehicle: {
++    champs: {
++      count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++      label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
++    },
++  },
++});
+diff --git a/src/data/schemas/grammaire/parse-de-mesure.test.ts b/src/data/schemas/grammaire/parse-de-mesure.test.ts
+index 8987e91e1..f8ca45347 100644
+--- a/src/data/schemas/grammaire/parse-de-mesure.test.ts
++++ b/src/data/schemas/grammaire/parse-de-mesure.test.ts
+@@ -186,6 +186,9 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
+           sonde.nbOpsEmis += 1;
+         }
+       }
++      if (sonde.mesure) {
++        for (const i of nouvelles) if (familleDuRepere(i.params) === 'composition') sonde.emis.add(i.params!);
++      }
+       if (sonde.mesure && nouvelles.length === 0 && enfants.some(Boolean)) sonde.avalements.push(nom);
+       sonde.pile[sonde.pile.length - 1]?.push(sonde.mesure && nouvelles.length > 0 && nouvelles.every(estPropre));
+       return r;
+diff --git a/src/data/schemas/grammaire/ref-typee-compositions.test.ts b/src/data/schemas/grammaire/ref-typee-compositions.test.ts
+new file mode 100644
+index 000000000..9e73f716f
+--- /dev/null
++++ b/src/data/schemas/grammaire/ref-typee-compositions.test.ts
+@@ -0,0 +1,89 @@
++import { describe, expect, it } from 'vitest';
++import { z } from 'zod';
++import { dotationConcreteSchema } from './dotation';
++import { declarationDeRefTypee, mesureDuParse, ref, refTypee } from './ref';
++import { enumNomme } from './valeurs';
++import { nommerNoeud } from './meta';
++import { IDS_PAR_ESPACE } from '../_ids.generated';
++
++const OBJET = { type: 'trapping', id: 'arme-simple', qualities: true };
++const branche = (type: 'trapping') => declarationDeRefTypee(dotationConcreteSchema)!.branches.get(type)!;
++
++describe('composition nominale de référence typée', () => {
++  it('chaque branche porte sa charge fermée, sans emprunter les clés des autres branches', () => {
++    expect(dotationConcreteSchema.safeParse(OBJET).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ type: 'vehicle', id: IDS_PAR_ESPACE['vehicles.json'][0], label: 'Barque', count: { fixed: 2 } }).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ type: 'creature', id: IDS_PAR_ESPACE['creatures.json'][0], count: { fixed: 2 } }).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ ...OBJET, cleEtrangere: true }).success).toBe(false);
++    expect(dotationConcreteSchema.safeParse({ type: 'vehicle', id: IDS_PAR_ESPACE['vehicles.json'][0], qualities: true }).success).toBe(false);
++    expect(dotationConcreteSchema.safeParse({ ...OBJET, qualities: ['solide'] }).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ ...OBJET, qualities: [{ id: 'solide', value: 1 }] }).success).toBe(false);
++  });
++
++  it('la déclaration rend les nœuds fermés qui valident réellement chaque branche', () => {
++    const mesure = mesureDuParse(z.array(dotationConcreteSchema), [OBJET]);
++    expect(mesure.compositions).toHaveLength(1);
++    expect(mesure.compositions[0].path).toEqual([0]);
++    expect(mesure.compositions[0].noeud).toBe(dotationConcreteSchema);
++    expect(mesure.compositions[0].branche).toBe(branche('trapping'));
++  });
++
++  it('une copie de forme et un clone Zod ne deviennent pas le nœud nominal déclaré', () => {
++    const copie = z.strictObject({ ...branche('trapping').shape });
++    expect(copie.safeParse(OBJET).success).toBe(true);
++    expect(declarationDeRefTypee(copie)).toBeUndefined();
++    expect(mesureDuParse(copie, OBJET).compositions).toEqual([]);
++    const clone = dotationConcreteSchema.clone();
++    expect(clone.safeParse(OBJET).success).toBe(true);
++    expect(declarationDeRefTypee(clone)).toBeUndefined();
++    expect(mesureDuParse(clone, OBJET).compositions).toEqual([]);
++  });
++
++  it('une branche rejetée ne déclare pas la composition acceptée par une autre branche', () => {
++    const schema = z.union([dotationConcreteSchema, z.looseObject({ type: z.string(), id: z.string() })]);
++    const valeur = { ...OBJET, cleEtrangere: true };
++    expect(schema.safeParse(valeur).success).toBe(true);
++    expect(mesureDuParse(schema, valeur).compositions).toEqual([]);
++    const rejetee = refTypee(enumNomme({ trapping: 'Objet' }), {
++      trapping: {
++        champs: { qualities: nommerNoeud(z.literal(true), { nom: 'qualités' }) },
++        verifier: (_valeur, ctx) => ctx.addIssue({ code: 'custom', message: 'rejet du témoin', continue: true }),
++      },
++    });
++    const repli = ref('trapping', {
++      type: nommerNoeud(z.literal('trapping'), { nom: 'type' }),
++      qualities: nommerNoeud(z.literal(true), { nom: 'qualités' }),
++    });
++    const union = z.union([rejetee, repli]);
++    expect(union.safeParse(OBJET).success).toBe(true);
++    const mesure = mesureDuParse(union, OBJET);
++    expect(mesure.reperes.map(({ path, type }) => ({ path, type }))).toEqual([{ path: ['id'], type: 'trapping' }]);
++    expect(mesure.compositions).toEqual([]);
++  });
++
++  it('un parse imbriqué qui reporte ses issues conserve les identités nominales validées', () => {
++    const relais = z.unknown().superRefine((valeur, ctx) => {
++      const resultat = dotationConcreteSchema.safeParse(valeur);
++      if (!resultat.success) for (const issue of resultat.error.issues) ctx.addIssue({ ...issue, message: issue.message });
++    });
++    const compositions = mesureDuParse(relais, OBJET).compositions;
++    expect(compositions).toHaveLength(1);
++    expect(compositions[0].noeud).toBe(dotationConcreteSchema);
++    expect(compositions[0].branche).toBe(branche('trapping'));
++  });
++
++  it('une composition ne se propage ni au parent ni à ses autres enfants', () => {
++    const schema = z.strictObject({ dotation: dotationConcreteSchema, instance: z.strictObject({ uid: z.string(), trappingId: z.string(), qualities: z.array(z.string()) }) });
++    const mesure = mesureDuParse(schema, { dotation: OBJET, instance: { uid: 'instance', trappingId: 'arme-simple', qualities: ['solide'] } });
++    expect(mesure.compositions.map((c) => c.path)).toEqual([['dotation']]);
++  });
++
++  it('une nouvelle charge se déclare au schéma et reste fermée sans vocabulaire global de clés', () => {
++    const schema = refTypee(enumNomme({ skill: 'Compétence' }), { skill: { champs: { condition: nommerNoeud(z.boolean().optional(), { nom: 'condition' }) } } });
++    const valeur = { type: 'skill', id: IDS_PAR_ESPACE['skills.json'][0], condition: true };
++    expect(schema.safeParse(valeur).success).toBe(true);
++    expect(schema.safeParse({ ...valeur, etrangere: true }).success).toBe(false);
++    expect(mesureDuParse(schema, valeur).compositions[0].noeud).toBe(schema);
++    expect(Object.keys(declarationDeRefTypee(schema)!.branches.get('skill')!.shape).sort()).toEqual(['condition', 'id', 'type']);
++  });
++});
+diff --git a/src/data/schemas/grammaire/ref.ts b/src/data/schemas/grammaire/ref.ts
+index 88a73bf8f..5d1c73423 100644
+--- a/src/data/schemas/grammaire/ref.ts
++++ b/src/data/schemas/grammaire/ref.ts
+@@ -279,6 +279,20 @@ const REPERE: unique symbol = Symbol('repère de parse de mesure');
+ 
+ /** Clé du repère de NŒUD D'OP : même régime que `REPERE`, émis par `marquerOpAtteinte`. */
+ const REPERE_OP: unique symbol = Symbol('repère de nœud d’op');
++const REPERE_COMPOSITION: unique symbol = Symbol('composition de référence');
++
++export interface CompositionDuParse {
++  readonly path: readonly PropertyKey[];
++  readonly noeud: z.ZodType;
++  readonly branche: z.ZodObject;
++}
++
++type MarqueDeComposition = {
++  readonly noeud: z.ZodType;
++  readonly attendu: z.ZodType;
++  readonly role: 'noeud' | 'branche';
++  effectif?: z.ZodType;
++};
+ 
+ /** Un `mesureDuParse` est-il en cours ? Le temps SYNCHRONE de l'appel, qui seul l'écrit, et jamais ailleurs : aucun export n'expose l'état. */
+ let parseDeMesure = false;
+@@ -391,28 +405,37 @@ type IssueLue = {
+   readonly code: string;
+   readonly path: readonly PropertyKey[];
+   readonly message: string;
+-  readonly params?: { readonly [REPERE]?: TypeEntite; readonly [REPERE_OP]?: true };
++  readonly params?: { readonly [REPERE]?: TypeEntite; readonly [REPERE_OP]?: true; readonly [REPERE_COMPOSITION]?: MarqueDeComposition };
+   readonly errors?: readonly (readonly IssueLue[])[];
+   readonly issues?: readonly IssueLue[];
+ };
+ 
+ const typeDuRepere = (issue: IssueLue): TypeEntite | undefined => issue.params?.[REPERE];
+ const estRepereDOp = (issue: IssueLue): boolean => issue.params?.[REPERE_OP] === true;
++const compositionDuRepere = (issue: IssueLue): MarqueDeComposition | undefined => issue.params?.[REPERE_COMPOSITION];
++
++function messageDuRepereDeComposition(issue: unknown): string | undefined {
++  const brute = issue as IssueLue & { schema?: z.ZodType };
++  const marque = compositionDuRepere(brute);
++  if (!marque) return undefined;
++  marque.effectif = brute.schema;
++  return 'repère de composition';
++}
+ 
+-/** La FAMILLE du repère que portent les `params` d'une issue — `reference` (`idDe`) ou `op`
+- *  (`marquerOpAtteinte`) —, `undefined` hors repère. Seule lecture des clés de repère hors de ce module :
+- *  la garde du masquage (`parse-de-mesure.test.ts`) instrumente les deux familles. */
+-export function familleDuRepere(params: unknown): 'reference' | 'op' | undefined {
++/** #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247 */
++export function familleDuRepere(params: unknown): 'reference' | 'op' | 'composition' | undefined {
+   const issue = { code: 'custom', path: [], message: '', params } as IssueLue;
+   if (params === undefined || params === null) return undefined;
+   if (typeDuRepere(issue) !== undefined) return 'reference';
+-  return estRepereDOp(issue) ? 'op' : undefined;
++  if (estRepereDOp(issue)) return 'op';
++  return compositionDuRepere(issue) ? 'composition' : undefined;
+ }
+ 
+ /** L'issue n'est-elle faite QUE de repères (union dont une branche l'est, clé/élément dont toutes les issues le sont) ? */
+ const estPropre = (issue: IssueLue): boolean =>
+   typeDuRepere(issue) !== undefined ||
+   estRepereDOp(issue) ||
++  compositionDuRepere(issue) !== undefined ||
+   (issue.code === 'invalid_union' && (issue.errors ?? []).some((b) => b.length > 0 && b.every(estPropre))) ||
+   ((issue.code === 'invalid_key' || issue.code === 'invalid_element') && (issue.issues ?? []).length > 0 && issue.issues!.every(estPropre));
+ 
+@@ -421,9 +444,10 @@ const estPropre = (issue: IssueLue): boolean =>
+ export interface MesureDuParse {
+   readonly reperes: readonly RepereDeMesure[];
+   readonly ops: readonly (readonly PropertyKey[])[];
++  readonly compositions: readonly CompositionDuParse[];
+ }
+ 
+-type Recueil = { reperes: RepereDeMesure[]; ops: (readonly PropertyKey[])[] };
++type Recueil = { reperes: RepereDeMesure[]; ops: (readonly PropertyKey[])[]; compositions: { path: readonly PropertyKey[]; marque: MarqueDeComposition }[] };
+ 
+ function recueillir(issues: readonly IssueLue[], prefixe: readonly PropertyKey[], parCle: boolean, out: Recueil): void {
+   for (const issue of issues) {
+@@ -437,6 +461,11 @@ function recueillir(issues: readonly IssueLue[], prefixe: readonly PropertyKey[]
+       out.ops.push(path);
+       continue;
+     }
++    const marque = compositionDuRepere(issue);
++    if (marque) {
++      out.compositions.push({ path, marque });
++      continue;
++    }
+     // La PREMIÈRE branche propre est celle que le parse normal choisit : la première sans issue.
+     const branche = issue.code === 'invalid_union' ? issue.errors?.find((b) => b.length > 0 && b.every(estPropre)) : undefined;
+     if (branche) recueillir(branche, path, parCle, out);
+@@ -473,9 +502,14 @@ export function mesureDuParse(schema: z.ZodType, donnee: unknown): MesureDuParse
+     }
+     parseDeMesure = true;
+     const resultat = schema.safeParse(donnee);
+-    const out: Recueil = { reperes: [], ops: [] };
++    const out: Recueil = { reperes: [], ops: [], compositions: [] };
+     if (!resultat.success) recueillir(resultat.error.issues as unknown as readonly IssueLue[], [], false, out);
+-    return out;
++    const compositions = out.compositions.flatMap(({ path, marque }) => {
++      if (marque.role !== 'noeud' || marque.effectif !== marque.attendu) return [];
++      const branche = out.compositions.find((r) => r.marque.role === 'branche' && r.marque.noeud === marque.noeud && r.marque.effectif === r.marque.attendu && r.path.length === path.length && r.path.every((k, i) => k === path[i]));
++      return branche ? [{ path, noeud: marque.noeud, branche: branche.marque.attendu as z.ZodObject }] : [];
++    });
++    return { reperes: out.reperes, ops: out.ops, compositions };
+   } finally {
+     parseDeMesure = precedent;
+   }
+@@ -505,8 +539,8 @@ const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'id
+ 
+ /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
+  *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
+-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe) {
+-  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
++function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe, erreur?: (issue: unknown) => string | undefined) {
++  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }, { error: erreur }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+ }
+ 
+ /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
+@@ -530,6 +564,12 @@ export interface RefTypee<T extends TypeEntite = TypeEntite> {
+ export interface DeclarationDeRefTypee {
+   readonly types: readonly TypeEntite[];
+   readonly libelles: Readonly<Record<string, string>>;
++  readonly branches: ReadonlyMap<TypeEntite, z.ZodObject>;
++}
++
++export interface BrancheDeRefTypee {
++  readonly champs: Readonly<Record<string, z.ZodType>>;
++  readonly verifier?: (valeur: Record<string, unknown>, ctx: z.RefinementCtx) => void;
+ }
+ 
+ /** Les nœuds construits par `refTypee`, avec leur déclaration — ce que lit un sélecteur
+@@ -547,13 +587,32 @@ export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | u
+  * (`defs-scenes/scene.ts`) : le littéral DISCRIMINE la branche, `types` en NOMME la valeur. Le type ne
+  * se déduit jamais de l'id : un même id vit dans plusieurs espaces.
+  */
+-export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
++type ReferenceAvecCharge<T extends TypeEntite, C> = {
++  [K in T]: RefTypee<K> & (K extends keyof C ? C[K] extends { champs: infer E extends Record<string, z.ZodType> } ? z.output<z.ZodObject<E>> : object : object)
++}[T];
++
++export function refTypee<T extends TypeEntite, C extends Partial<Record<T, BrancheDeRefTypee>> = Record<never, never>>(types: z.ZodEnum<{ [K in T]: K }>, charges?: C & Partial<Record<T, BrancheDeRefTypee>>): z.ZodType<ReferenceAvecCharge<T, C>> {
+   const admis = types.options as readonly T[];
+-  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }));
++  const branches = new Map<TypeEntite, z.ZodObject>();
++  const [premiere, ...autres] = admis.map((t) => {
++    const charge = charges?.[t];
++    const champs = charge?.champs ?? {};
++    if ('id' in champs || 'type' in champs) throw new Error('charge de référence : id et type appartiennent au noyau');
++    const base = objetDeRef(t, { type: z.literal(t).pipe(types), ...champs }, { type: { label: 'type de la référence' }, ...metasExtra(champs) }, undefined, messageDuRepereDeComposition);
++    const branche = base.superRefine((v, ctx) => {
++      charge?.verifier?.(v, ctx);
++      if (parseDeMesure) ctx.addIssue({ code: 'custom', params: { [REPERE_COMPOSITION]: { noeud, attendu: branche, role: 'branche' } }, continue: true });
++    });
++    branches.set(t, branche);
++    return branche;
++  });
+   const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
+-  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
+-  REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
+-  return noeud;
++  const union = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => messageDuRepereDeComposition(iss) ?? (iss.code === 'invalid_union' ? refus : undefined) });
++  const noeud: z.ZodType<RefTypee<T>> = union.superRefine((_v, ctx) => {
++    if (parseDeMesure) ctx.addIssue({ code: 'custom', params: { [REPERE_COMPOSITION]: { noeud, attendu: noeud, role: 'noeud' } }, continue: true });
++  }) as unknown as z.ZodType<RefTypee<T>>;
++  REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {}, branches });
++  return noeud as z.ZodType<ReferenceAvecCharge<T, C>>;
+ }
+ 
+ /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
+diff --git a/src/data/structures-compositions.test.ts b/src/data/structures-compositions.test.ts
+new file mode 100644
+index 000000000..d34fa281e
+--- /dev/null
++++ b/src/data/structures-compositions.test.ts
+@@ -0,0 +1,58 @@
++import { describe, expect, it } from 'vitest';
++import { z } from 'zod';
++import { dotationConcreteSchema } from './schemas/grammaire/dotation';
++import { declarationDeRefTypee, idDe } from './schemas/grammaire/ref';
++import type { SchemaDef } from './schemas/types';
++import { scannerFixtureDeReferences } from '../../scripts/docs/lib/structures-fixture.testkit.mts';
++
++const CATALOGUE = [{ id: 'arme-simple', label: 'Arme simple' }];
++const DOTATION = { type: 'trapping', id: 'arme-simple', qualities: true, apparence: { id: 'epee' }, source: { book: 'aux-armes', page: 14 } };
++const copie = () => z.strictObject({ ...declarationDeRefTypee(dotationConcreteSchema)!.branches.get('trapping')!.shape });
++function scanner(nom: string, schema: z.ZodType, entries: unknown[]) {
++  const defs: SchemaDef[] = [
++    { file: 'trappings.json', root: 'src/data', famille: 'entite', schema: z.array(z.strictObject({ id: z.string(), label: z.string() })) },
++    { file: 'careerLevels.json', root: 'src/data', famille: 'entite', schema: z.array(schema) },
++  ];
++  return scannerFixtureDeReferences(nom, { 'trappings.json': CATALOGUE, 'careerLevels.json': entries }, defs);
++}
++const formesDeDotation = (scan: ReturnType<typeof scanner>) => scan.formes.filter((f) => f.concept === 'reference' && f.dataset === 'careerLevels.json' && f.champ === 'trappings');
++
++describe('cible de composition — qualification par le schéma réel du site', () => {
++  it('la dotation concrète validée est cible, sans déclarer sa signature libre globalement', () => {
++    const mesure = scanner('dotation-concrete-nominale-', z.strictObject({ id: z.string(), trappings: z.array(dotationConcreteSchema) }), [{ id: 'canon', trappings: [DOTATION] }]);
++    expect(formesDeDotation(mesure), JSON.stringify(mesure.formes)).toEqual([expect.objectContaining({ statut: 'cible', occurrences: 1 })]);
++  });
++
++  it('une copie structurelle ne peut pas emprunter la cible, même au même champ et à signature identique', () => {
++    const schema = z.discriminatedUnion('kind', [
++      z.strictObject({ id: z.string(), kind: z.literal('canon'), trappings: z.array(dotationConcreteSchema) }),
++      z.strictObject({ id: z.string(), kind: z.literal('copie'), trappings: z.array(copie()) }),
++    ]);
++    const mesure = scanner('dotation-cible-et-copie-', schema, [{ id: 'canon', kind: 'canon', trappings: [DOTATION] }, { id: 'copie', kind: 'copie', trappings: [DOTATION] }]);
++    const formes = formesDeDotation(mesure);
++    expect(formes.filter((f) => f.statut === 'cible').map((f) => f.occurrences)).toEqual([1]);
++    expect(formes.filter((f) => f.statut !== 'cible').map((f) => f.occurrences)).toEqual([1]);
++  });
++
++  it('un clone Zod et une branche rejetée restent hors de la cible', () => {
++    const schema = z.strictObject({ id: z.string(), trappings: z.array(z.union([dotationConcreteSchema, z.looseObject({ type: z.string(), id: idDe('trapping') })])) });
++    const mesure = scanner('dotation-branche-rejetee-', schema, [{ id: 'rejetee', trappings: [{ ...DOTATION, apparence: { id: 'zweihander' } }] }]);
++    expect(formesDeDotation(mesure).filter((f) => f.statut === 'cible')).toEqual([]);
++    const clone = scanner('dotation-clone-zod-', z.strictObject({ id: z.string(), trappings: z.array(dotationConcreteSchema.clone()) }), [{ id: 'clone', trappings: [DOTATION] }]);
++    expect(formesDeDotation(clone).filter((f) => f.statut === 'cible')).toEqual([]);
++  });
++
++  it('un choix garde sa forme historique et son enfant concret garde sa qualification propre', () => {
++    const schema = z.strictObject({ id: z.string(), trappings: z.array(z.union([z.strictObject({ choice: z.array(dotationConcreteSchema) }), z.strictObject({ id: z.string() })])) });
++    const mesure = scanner('dotation-concrete-sous-choix-', schema, [{ id: 'choix', trappings: [{ choice: [DOTATION] }, { id: 'arme-simple' }, { id: 'arme-simple' }] }]);
++    expect(mesure.formes.filter((f) => f.concept === 'reference' && f.signature === 'choice'), JSON.stringify(mesure.formes)).toEqual([expect.objectContaining({ statut: 'historique', occurrences: 1 })]);
++    expect(mesure.formes.filter((f) => f.concept === 'reference' && f.champ === 'choice' && f.statut === 'cible')).toEqual([expect.objectContaining({ occurrences: 1 })]);
++  });
++
++  it('une instance reste mesurée sans recevoir la cible de la dotation voisine', () => {
++    const schema = z.strictObject({ id: z.string(), trappings: z.array(dotationConcreteSchema), instances: z.array(z.strictObject({ uid: z.string(), trappingId: z.string(), qualities: z.array(z.string()) })) });
++    const mesure = scanner('dotation-instance-voisine-', schema, [{ id: 'porteur', trappings: [DOTATION], instances: [{ uid: 'instance', trappingId: 'arme-simple', qualities: ['solide'] }] }]);
++    expect(formesDeDotation(mesure), JSON.stringify(mesure.formes)).toEqual([expect.objectContaining({ statut: 'cible', occurrences: 1 })]);
++    expect(mesure.formes.filter((f) => f.champ === 'instances' && f.statut === 'cible')).toEqual([]);
++  });
++});
+diff --git a/src/data/structures-contrat.test.ts b/src/data/structures-contrat.test.ts
+index 8e81a11c9..7604266f0 100644
+--- a/src/data/structures-contrat.test.ts
++++ b/src/data/structures-contrat.test.ts
+@@ -100,18 +100,7 @@ const GARDE = {
+ const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
+ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+ 
+-function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
+-  const dossier = mkdtempSync(join(tmpdir(), nom));
+-  try {
+-    mkdirSync(join(dossier, 'src/data'), { recursive: true });
+-    mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+-    cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+-    for (const [file, contenu] of Object.entries(documents)) writeFileSync(join(dossier, 'src/data', file), JSON.stringify(contenu));
+-    return scannerDonnees(dossier, defs);
+-  } finally {
+-    rmSync(dossier, { recursive: true, force: true });
+-  }
+-}
++import { scannerFixtureDeReferences } from '../../scripts/docs/lib/structures-fixture.testkit.mts';
+ 
+ /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
+  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
+@@ -259,16 +248,6 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
+     expect(GARDE.ticket).toBe('#1465');
+   });
+ 
+-  it('signatures CIBLES : lexique == `STRUCTURES_CIBLES` (une cible ne se décrète pas dans le lexique)', () => {
+-    const auLexique = CONCEPTS.flatMap((c) =>
+-      c.signatures.filter((s) => s.statut === 'cible').map((s) => `${c.id} | ${s.sig}`),
+-    );
+-    expect(
+-      lignes(auLexique),
+-      'le lexique déclare des signatures `cible` que `STRUCTURES_CIBLES` ne connaît pas (ou l’inverse) — faire passer une graphie en cible la sort du dénominateur : ça se décide au STOCK, pas d’un mot du lexique.',
+-    ).toEqual(lignes(STRUCTURES_CIBLES.map((c) => `${c.concept} | ${c.signature}`)));
+-  });
+-
+   it('formes à éteindre : observé == stock (présence, statut, strate ET occurrences)', () => {
+     const ecarts = ecartsDeFormes(scan);
+     expect(lignes(ecarts.neuves), 'forme(s) observée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
