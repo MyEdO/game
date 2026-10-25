@@ -35,6 +35,7 @@ import { defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/s
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
+import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { listerEntrees, parUnitesDeCode } from './lister.mjs';
 import { empreinteDeChamps } from './occurrencesStock.mjs';
 import { PORTEURS } from './porteursDesComptes.mjs';
@@ -169,7 +170,7 @@ export function empreinteDeSite(noeud: unknown): string {
 const GRAMMAIRE = new URL('../../../src/data/schemas/grammaire/', import.meta.url);
 const EXPORTS_DE_GRAMMAIRE: readonly unknown[] = (await Promise.all(
   listerEntrees(fileURLToPath(GRAMMAIRE)).entrees
-    .filter((f) => f.nature === 'file' && /\.ts$/.test(f.nom) && !/\.(test|d)\.ts$/.test(f.nom))
+    .filter((f) => f.nature === 'file' && /\.ts$/.test(f.nom) && !/\.d\.ts$/.test(f.nom) && !estFichierVitest(f.nom) && !estKitDeTest(f.nom))
     .map(async (f) => Object.values(await import(pathToFileURL(fileURLToPath(new URL(f.nom, GRAMMAIRE))).href) as Record<string, unknown>)),
 )).flat().filter(estNoeud);
 
