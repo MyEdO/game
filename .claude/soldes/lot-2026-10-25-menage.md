@@ -1,6 +1,6 @@
 # Solde de lot — ménage du stock de tickets (#2561) — 2026-10-25
 
-VERIFIE: 1 745 issues ouvertes classées sans LLM (`classer3.mjs`, plan et classement au dossier de projet audits/2026-10-25-menage-tickets/), plan jugé par une instance neuve (rejeté sur le mécanisme, amendé), chemin de fermeture validé par Clément. 1592 tickets fermés en `not_planned`, chacun listé dans son sujet global et commenté avec la décision ; 153 gardés (épiques vivantes, branches actives depuis le 2026-10-11, PR ouvertes, créés depuis le 2026-10-22, ancêtres des gardés, et la dette de #1463 que reprend son propre fil).
+VERIFIE: 1 745 issues ouvertes classées sans LLM (`classer3.mjs`, plan et classement au dossier de projet audits/2026-10-25-menage-tickets/), plan jugé par une instance neuve (rejeté sur le mécanisme, amendé), chemin de fermeture validé par Clément. 1579 tickets fermés en `not_planned`, chacun listé dans son sujet global et commenté avec la décision ; 166 gardés (épiques vivantes, branches actives depuis le 2026-10-11, PR ouvertes, créés depuis le 2026-10-22, ancêtres des gardés, et la dette de #1463 que reprend son propre fil).
 NATURE: décidé
 
 ## Décision
@@ -1020,8 +1020,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #1919 -> #2794 (obsolète : présentation web abandonnée)
 - #1920 -> #2794 (obsolète : présentation web abandonnée)
 - #1922 -> #2999 (absorbé par le sujet global)
-- #1923 -> #3006 (outils d'auteur (bascule non tranchée))
-- #1924 -> #2999 (absorbé par le sujet global)
 - #1926 -> #3001 (absorbé par le sujet global)
 - #1927 -> #3000 (absorbé par le sujet global)
 - #1928 -> #2794 (obsolète : présentation web abandonnée)
@@ -1034,7 +1032,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #1937 -> #3001 (absorbé par le sujet global)
 - #1938 -> #1816 (absorbé par le sujet global)
 - #1939 -> #3002 (absorbé par le sujet global)
-- #1940 -> #2794 (obsolète : présentation web abandonnée)
 - #1941 -> #3002 (absorbé par le sujet global)
 - #1943 -> #2189 (absorbé par le sujet global)
 - #1944 -> #2999 (absorbé par le sujet global)
@@ -1098,17 +1095,12 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #2009 -> #2794 (obsolète : présentation web abandonnée)
 - #2010 -> #2794 (obsolète : présentation web abandonnée)
 - #2011 -> #2794 (obsolète : présentation web abandonnée)
-- #2012 -> #2189 (absorbé par le sujet global)
 - #2013 -> #2189 (absorbé par le sujet global)
 - #2014 -> #2999 (absorbé par le sujet global)
 - #2015 -> #2189 (absorbé par le sujet global)
-- #2016 -> #2189 (absorbé par le sujet global)
-- #2017 -> #2189 (absorbé par le sujet global)
-- #2018 -> #2189 (absorbé par le sujet global)
 - #2019 -> #2189 (absorbé par le sujet global)
 - #2020 -> #2189 (absorbé par le sujet global)
 - #2021 -> #2794 (obsolète : présentation web abandonnée)
-- #2022 -> #2189 (absorbé par le sujet global)
 - #2023 -> #3006 (outils d'auteur (bascule non tranchée))
 - #2024 -> #2189 (absorbé par le sujet global)
 - #2025 -> #3004 (absorbé par le sujet global)
@@ -1124,7 +1116,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #2035 -> #2189 (absorbé par le sujet global)
 - #2036 -> #3007 (recette des règles en pause)
 - #2037 -> #3007 (recette des règles en pause)
-- #2038 -> #2189 (absorbé par le sujet global)
 - #2039 -> #2189 (absorbé par le sujet global)
 - #2040 -> #2794 (obsolète : présentation web abandonnée)
 - #2041 -> #2189 (absorbé par le sujet global)
@@ -1249,7 +1240,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #2171 -> #2794 (obsolète : présentation web abandonnée)
 - #2172 -> #2189 (absorbé par le sujet global)
 - #2174 -> #3002 (absorbé par le sujet global)
-- #2175 -> #2189 (absorbé par le sujet global)
 - #2176 -> #3001 (absorbé par le sujet global)
 - #2178 -> #2189 (absorbé par le sujet global)
 - #2179 -> #3006 (outils d'auteur (bascule non tranchée))
@@ -1285,7 +1275,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #2220 -> #2794 (obsolète : présentation web abandonnée)
 - #2221 -> #3006 (outils d'auteur (bascule non tranchée))
 - #2234 -> #2189 (absorbé par le sujet global)
-- #2235 -> #2189 (absorbé par le sujet global)
 - #2239 -> #3007 (recette des règles en pause)
 - #2240 -> #3007 (recette des règles en pause)
 - #2241 -> #2794 (obsolète : présentation web abandonnée)
@@ -1341,7 +1330,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #2357 -> #2189 (absorbé par le sujet global)
 - #2358 -> #2189 (absorbé par le sujet global)
 - #2363 -> #2189 (absorbé par le sujet global)
-- #2365 -> #2189 (absorbé par le sujet global)
 - #2366 -> #2189 (absorbé par le sujet global)
 - #2367 -> #2189 (absorbé par le sujet global)
 - #2370 -> #3006 (outils d'auteur (bascule non tranchée))
@@ -1493,7 +1481,6 @@ Clément, 2026-10-25, sur le chemin de fermeture (solde de lot, fermeture hors c
 - #2671 -> #2794 (obsolète : présentation web abandonnée)
 - #2672 -> #3002 (absorbé par le sujet global)
 - #2674 -> #2794 (obsolète : présentation web abandonnée)
-- #2675 -> #3002 (absorbé par le sujet global)
 - #2676 -> #2189 (absorbé par le sujet global)
 - #2677 -> #2794 (obsolète : présentation web abandonnée)
 - #2678 -> #2189 (absorbé par le sujet global)
