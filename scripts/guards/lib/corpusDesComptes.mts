@@ -17,6 +17,8 @@
 // La preuve d’un FAUX-POSITIF est du texte, sans vérification de sa vérité ; `SOUS_LA_PORTE`, ses identités et
 // la politique du juge courant restent des entrées de confiance.
 // Le classement `estFeuilleDId`/`descente` et `OP_DEFS`, importé de `src/`, suit l’image : sa modification peut masquer une baisse sous les deux détecteurs (#2969).
+// La marque de produit de fabrique (`marquerProduit`, `grammaire/interne/produits.ts`) se lit dans l’image : la changer
+// re-classe les STRUCTURES LOCALES sous les deux détecteurs (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -30,9 +32,10 @@ import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
 import { GitIndisponible, INDEX, TRONC, baseCommune, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
-import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
+import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, STRUCTURES_LOCALES, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
+import { sitesDeStructure } from './structuresLocales.mts';
 
 /** Les clés de PREMIER niveau du payload de chaque op de `opDefs` dont le schéma, ouvert de ses enveloppes
  *  (`ouverts`), est une feuille `idDe` (`estFeuilleDId`) : la référence À PLAT (`estDetteDOp`). */
@@ -65,20 +68,27 @@ export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
 /** Les comptes d'un corpus, collection par collection (`COLLECTIONS_A_COMPTE`). */
 export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c.mesure(corpus)]));
 
-/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte et `SOURCE_FORMAT`. */
+/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte, `STRUCTURES_LOCALES`
+ *  (les defs de l'image) et `SOURCE_FORMAT`. */
 const comptesDeLaRacine = (root: string): Comptes =>
-  new Map([...comptesDuCorpus(corpusDesComptes(root)), [SOURCE_FORMAT.nom, sitesEnEntrees(scanAll()) as unknown as EntreeDeCompte[]]]);
+  new Map([
+    ...comptesDuCorpus(corpusDesComptes(root)),
+    [STRUCTURES_LOCALES.nom, sitesEnEntrees(sitesDeStructure()) as unknown as EntreeDeCompte[]],
+    [SOURCE_FORMAT.nom, sitesEnEntrees(scanAll()) as unknown as EntreeDeCompte[]],
+  ]);
 
 /**
  * Le REFUS de la plage `base` → `tete`, une ligne par site : un site NEUF d'une collection sous la porte, ou
  * un site dont le compte MONTE (`ecartsDeStock`, la tête comme observé, la base comme stock), sur chaque volet de
- * `SOUS_LA_PORTE` (`occurrencesStock.mjs`). PURE.
+ * `SOUS_LA_PORTE` (`occurrencesStock.mjs`). Un site né que le volet apparie à un disparu (`renommages`) n'est pas neuf. PURE.
  */
 export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
   return SOUS_LA_PORTE.flatMap((c) => {
+    const [avant, apres] = [base.get(c.nom) ?? [], tete.get(c.nom) ?? []];
+    const renommes = c.renommages?.(avant, apres) ?? new Set<string>();
     const { neuves, accrues } = ecartsDeStock({
-      observe: tete.get(c.nom) ?? [],
-      stock: base.get(c.nom) ?? [],
+      observe: apres.filter((e) => !renommes.has(c.site(e))),
+      stock: avant,
       cle: c.site,
       nombre: c.nombre,
       cible: c.cible,

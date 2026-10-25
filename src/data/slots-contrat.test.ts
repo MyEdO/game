@@ -50,7 +50,7 @@ const GARDE = {
 const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** La composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`) : la
- *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `horsStrateAudit.ts`. */
+ *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `corpusDesComptes.mts`. */
 const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const SLOTS = slotsDuParse(scan, DEFS);
 /** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */

@@ -1689,9 +1689,18 @@
     "type": "primitives.manifest",
     "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
-    "concept": "porte des comptes : collections à compte et volet SOURCE_FORMAT, images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
+    "concept": "porte des comptes : collections à compte, volet STRUCTURES_LOCALES et volet SOURCE_FORMAT, images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
     "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
     "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
+  },
+  {
+    "id": "structuresLocales",
+    "type": "primitives.manifest",
+    "label": "noeudsDeStructure/sitesDeStructure/cheminsDeSchema/nomDeBranche/empreinteDeSite/regenerations/MOTIF_STRUCTURES_LOCALES",
+    "fichier": "scripts/guards/lib/structuresLocales.mts",
+    "concept": "dette de STRUCTURE mesurée sur le schéma : un site par nœud objet ou non validant d’un document authoré, à son fichier représentatif et son plus court chemin de schéma (branches nommées, `|<lazy>`, injectivité), classé D5, G, G1 ou L (grammaire atteinte par identité ou produit de fabrique, partage par défs, déclaration d’op ou classe de produit) ; régénération du stock `STRUCTURES_LOCALES`, dont la porte apparie les renommages par empreinte (`renommagesDeStructure` ; format unique écrit et relu par `empreinteDeChamps`, occurrencesStock.mjs)",
+    "perimetre": "toute mesure de dette qui doit rester stable à l’ajout d’une donnée conforme (#2995) : elle ne lit que les defs",
+    "verrou": "src/data/structures-locales.test.ts, src/comptes-plage.test.ts"
   },
   {
     "id": "stockDeSites",

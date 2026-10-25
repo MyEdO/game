@@ -16,9 +16,11 @@ import {
   scannerRedeclarations,
   listerDocuments,
   empreintesDefs,
-  MARQUE_HORS_STRATE,
   RACINES,
 } from './lib/structures-scan.mjs';
+import { noeudsDeStructure, type ClasseDeStructure } from '../guards/lib/structuresLocales.mts';
+import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs';
+import { parUnitesDeCode } from '../guards/lib/lister.mjs';
 import {
   ANGLES_MORTS,
   ANGLES_MORTS_SLOTS,
@@ -52,6 +54,7 @@ function rendu() {
     parametres: `3.${CONCEPTS.length + 2}`,
     textes: `3.${CONCEPTS.length + 3}`,
     orphelines: `3.${CONCEPTS.length + 4}`,
+    locales: `3.${CONCEPTS.length + 5}`,
   };
 
   const echappe = (s: string) => String(s).replace(/\|/g, '\\|');
@@ -465,16 +468,34 @@ function rendu() {
     out += `\`{text}\` sous un champ porteur mesuré est une FORME, §${SECTION.concept(CONCEPTS[0])}). Restent trois familles : les CHARGES UTILES pures\n`;
     out += '(`{x,y}` d’une tuile, bloc de caractéristiques, `{flat,plusBF}` de dégâts), les objets d’un `Flow`\n';
     out += `ou d’une \`Formula\` (\`{kind,steps}\`, \`{bonusOf}\`) et les objets à \`op\`, dont la grammaire est mesurée en §5.\n`;
-    out += 'Ils ne sont pas au stock — ils se lisent ici, EN ENTIER : les\n';
-    out += `**${scan.invisibles.length}** signatures hors strate, triées par occurrences décroissantes. Le diff de cette\n`;
-    out += 'table EST la revue de toute signature neuve ; le CLIQUET qui la garde vit dans\n';
-    out += '`src/data/structures-contrat.test.ts` (plafond sur le COMPTE, liste de référence = cette table).\n\n';
-    out += `${MARQUE_HORS_STRATE.debut}\n`;
-    out += tableau(
-      ['Dataset', 'Champ', 'Signature', 'Occurrences'],
-      scan.invisibles.map((o) => [`\`${o.dataset}\``, `\`${o.champ}\``, `\`${o.signature}\``, o.occurrences]),
-    );
-    out += `${MARQUE_HORS_STRATE.fin}\n\n`;
+    out += `Leur dette de STRUCTURE ne se mesure pas ici, sur la donnée : elle se mesure sur le SCHÉMA (§${SECTION.locales}).\n\n`;
+  }
+
+  // ---------------------------------------------------------------------------
+  {
+    const noeuds = noeudsDeStructure();
+    const classes: readonly ClasseDeStructure[] = ['D5', 'G1', 'L'];
+    const parFichier = new Map<string, Record<ClasseDeStructure, number>>();
+    for (const n of noeuds) {
+      const c = parFichier.get(n.fichier) ?? { D5: 0, G: 0, G1: 0, L: 0 };
+      c[n.classe] += 1;
+      parFichier.set(n.fichier, c);
+    }
+    const auStock = noeuds.filter((n) => classes.includes(n.classe)).length;
+    out += `### ${SECTION.locales} Structures LOCALES — la dette de structure, mesurée sur le schéma\n\n`;
+    out += `Un site est un NŒUD de schéma d’un document authoré (objet, ou nœud non validant), à son fichier représentatif et\n`;
+    out += `son chemin de schéma : ajouter une donnée conforme n’en crée aucun. Mesure : \`noeudsDeStructure\`\n`;
+    out += `(\`scripts/guards/lib/structuresLocales.mts\`) ; stock : \`${PORTEURS.STRUCTURES_LOCALES}\`, volet \`STRUCTURES_LOCALES\` sous la porte\n`;
+    out += 'des comptes. Classes : **D5** nœud non validant (`unknown`, `any`, `custom`) · **G** nœud de la grammaire PARTAGÉ\n';
+    out += '(au moins deux defs, ou une déclaration d’op), hors stock · **G1** nœud de la grammaire composé par un seul def ·\n';
+    out += '**L** structure locale au def. Un site se solde en composant un nœud partagé de la grammaire.\n\n';
+    out += `Nœuds de site : **${noeuds.length}**, dont **${auStock}** au stock (`;
+    out += (['D5', 'G1', 'L', 'G'] as const).map((c) => `${c} ${noeuds.filter((n) => n.classe === c).length}`).join(' · ') + ').\n\n';
+    const lignes = [...parFichier]
+      .map(([fichier, c]) => ({ fichier, c, total: classes.reduce((a, k) => a + c[k], 0) }))
+      .filter((l) => l.total > 0)
+      .sort((a, b) => b.total - a.total || parUnitesDeCode(a.fichier, b.fichier));
+    out += tableau(['Fichier représentatif', ...classes, 'Au stock'], lignes.map((l) => [`\`${l.fichier}\``, ...classes.map((k) => l.c[k]), l.total]));
   }
 
   // ---------------------------------------------------------------------------

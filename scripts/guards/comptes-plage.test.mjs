@@ -11,6 +11,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { envDeDepotForge, forgerDepot } from './lib/depotGabarit.mjs'
 import { INDEX, commitDe, depotDe, ecrireBlob, listerImage, poserDansIndex, reussi, shaDe } from './lib/gitPorte.mjs'
+import { cleDeSite } from './lib/stock.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 
@@ -200,7 +201,11 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
     assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
     assert.equal(refus.ok, false, refus.texte)
     const lignes = refus.texte.split('\n').filter((l) => l.startsWith('  ['))
-    const attendues = ['STRUCTURES_OPS : freeReroll | op | spells.json', 'SLOTS_SANS_DECLARATION : creatures.json | skills', 'SLOTS_SANS_DECLARATION : creatures.json | spells']
+    const locales = [
+      { fichier: 'src/data/creatures.json', ref: '[].skills[]' },
+      { fichier: 'src/scenes/arene/arene-projet.json', ref: '.narratif.presetsPnj[].profil.skills[]' },
+    ].map((site) => `STRUCTURES_LOCALES : ${cleDeSite({ ...site, occurrence: 1 })}`)
+    const attendues = ['STRUCTURES_OPS : freeReroll | op | spells.json', 'SLOTS_SANS_DECLARATION : creatures.json | skills', 'SLOTS_SANS_DECLARATION : creatures.json | spells', ...locales]
     const deLaBase = `détecteur de la base (${typee.slice(0, 9)})`
     assert.deepEqual(lignes.map((l) => l.replace(/ — .*/, '')), ['détecteur de la tête', deLaBase].flatMap((d) => attendues.map((a) => `  [${d}] ${a}`)), refus.texte)
     assert.equal(liee.ok, true, liee.texte)
@@ -210,6 +215,7 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
     assert.match(refus.texte, /STRUCTURES_OPS : freeReroll \| op \| spells\.json — HAUSSE \d+ > \d+ : la dette GRANDIT\./)
     assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| skills — site NEUF : la dette NAÎT\./)
     assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| spells — site NEUF : la dette NAÎT\./)
+    for (const l of locales) assert.ok(refus.texte.includes(`${l} — site NEUF : la dette NAÎT. Typer le nœud`), refus.texte)
     assert.match(refus.texte, /aucun `CLIQUET:` ne les couvre/)
   } finally {
     rmSync(dossier, { recursive: true, force: true })

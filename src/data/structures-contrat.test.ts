@@ -21,12 +21,8 @@ import {
   scannerRedeclarations,
   type Redeclaration,
 } from '../../scripts/docs/lib/structures-scan.mjs';
-import { regenerations, sitesHorsStrate } from '../../scripts/guards/lib/horsStrateAudit';
-import { HORS_STRATE_RATCHET } from '../../scripts/guards/lib/horsStrateStock.mjs';
-import { cleDeSite, ecartDuVolet, SEPARATEUR_DE_REMEDE, sitesEnEntrees } from '../../scripts/guards/lib/stock.mjs';
 import { COLLECTIONS_A_COMPTE_PAR_NOM, ecartsDeCollection, occurrencesDe, siteDEnveloppe, siteDeForme } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import { corpusDuScan } from '../../scripts/guards/lib/corpusDesComptes.mjs';
-import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import {
   ANGLES_MORTS,
   CLES_DE_VALEUR,
@@ -102,7 +98,7 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
  *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
- *  MÊME que lisent `build-structures.mts` et `horsStrateAudit.ts`. */
+ *  MÊME que lisent `build-structures.mts` et `corpusDesComptes.mts`. */
 const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT);
 const { redeclarations } = scannerRedeclarations(ROOT);
 /** Le corpus des COLLECTIONS À COMPTE (`COLLECTIONS_A_COMPTE`, `occurrencesStock.mjs`) : leur mesure se lit là, une fois. */
@@ -181,17 +177,6 @@ const cleOrpheline = (o: { dataset: string; champ: string; signature: string; mo
 const siteOrpheline = (o: { dataset: string; champ: string; signature: string }) => `${o.dataset} | ${o.champ} | ${o.signature}`;
 const pilotageOrpheline = new Map(STRUCTURES_ORPHELINES.map((o) => [siteOrpheline(o), { lot: o.lot, date: o.date }]));
 const cleOrphelineObservee = (o: Parameters<typeof cleOrpheline>[0]) => cleOrpheline({ ...o, ...pilotageOrpheline.get(siteOrpheline(o)) });
-/**
- * CLIQUET des signatures HORS STRATE (#1465, nominatif depuis #1727 T0d) : chaque signature que le
- * lexique fermé ne classe dans aucune strate est une ENTRÉE de
- * `scripts/guards/lib/horsStrateStock.mjs`, GÉNÉRÉE par
- * `npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` depuis la mesure
- * `scan.invisibles` que ce
- * fichier consomme. La traduction en sites est UNIQUE (`horsStrateAudit.ts`), l'écart est jugé par
- * `ecartDuVolet` ci-dessous.
- * Le COMPTE d'occurrences de chaque signature vit dans `docs/structures-donnees.md` (table bornée
- * par `MARQUE_HORS_STRATE`), que `build-structures.mts` rend depuis le disque du jour.
- */
 const cleOp = (o: { op: string; signature: string; dataset: string } & Trace) =>
   `${o.op} | ${o.signature} | ${o.dataset}` + trace(o, 'L1c #1468');
 const cleHomonyme = (h: { cle: string; classes: readonly string[] } & Trace) =>
@@ -208,15 +193,6 @@ const sansEcartDeCompte = (ecarts: { accrues: string[]; baisses: string[] }, nom
   expect(lignes(ecarts.accrues), `compte(s) en HAUSSE dans ${nom} : appliquer la cible de chaque site nommé.`).toEqual([]);
   expect(lignes(ecarts.baisses), `compte(s) en BAISSE dans ${nom} : écrire la mesure.`).toEqual([]);
 };
-const ecartsHorsStrate = (
-  sites: Parameters<typeof ecartDuVolet>[0]['sites'],
-  stock: Parameters<typeof ecartDuVolet>[0]['stock'] = HORS_STRATE_RATCHET,
-) => ecartDuVolet({
-  sites, stock, ou: '`scripts/guards/lib/horsStrateStock.mjs`',
-  remede: {
-    neuve: (cle: string) => `${cle} — Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.`,
-  },
-});
 
 describe('structures de la donnée — stock nominatif décroissant (#1463 L0)', () => {
   it('l’en-tête de garde est structuré (#1475) : question A→B→C, primitive, périmètre, angles morts, baseline, ticket', () => {
@@ -260,33 +236,6 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     ).toEqual([]);
     sansEcartDeCompte(ecarts, 'STRUCTURES_ORPHELINES');
     expect(ecarts.taille, 'clé(s) dupliquée(s) dans STRUCTURES_ORPHELINES').toBe(STRUCTURES_ORPHELINES.length);
-  });
-
-  it('signatures HORS STRATE : observé == stock nominatif, les neuves ET les périmées sont NOMMÉES', () => {
-    const { neuves, perimees } = ecartsHorsStrate(sitesHorsStrate(scan.invisibles, scan.documents));
-    expect(
-      lignes(neuves),
-      'signature(s) HORS STRATE NEUVE(s) : appliquer le remède de chaque site nommé.',
-    ).toEqual([]);
-    expect(
-      lignes(perimees),
-      'entrée(s) SOLDÉE(s) au stock hors strate : régénérer par ' +
-        '`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/horsStrateAudit.ts` — un stock qui garde une ligne morte fait ' +
-        'passer une dette éteinte pour vivante.',
-    ).toEqual([]);
-  });
-
-  it('HORS STRATE : remède applicable à une forme valide absente du lexique, sans modifier sa clé', () => {
-    const sites = [{ file: 'src/scenes/fixture.json', ref: 'flow — effect,kind' }];
-    const { neuves, perimees } = ecartsHorsStrate(sites, []);
-    const cle = cleDeSite(sitesEnEntrees(sites)[0]);
-    expect(neuves).toEqual([cle + SEPARATEUR_DE_REMEDE + 'Forme absente du lexique. Si cette forme est validée par le schéma, déclarer son concept et sa signature CIBLE dans scripts/docs/lib/structures-lexique.mts ; sinon employer la forme CIBLE déjà déclarée du concept. Ne pas ajouter au stock HORS_STRATE.']);
-    expect(neuves[0]).not.toContain('CLIQUET:');
-    expect(perimees).toEqual([]);
-  });
-
-  it('le stock hors strate committé est un point fixe de sa régénération', () => {
-    for (const r of regenerations(scan)) expect(ecartDeRegeneration(r, texteEnPlace(r.chemin))).toBeNull();
   });
 
   it('signatures d’OPS : observé == stock (dénominateur du lot L1c #1468)', () => {
@@ -956,16 +905,14 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R).scan;",
     "const site = (x) => x.dataset + ' › ' + x.champ;",
     "const kf = (f) => f.concept + ' | ' + site(f) + ' | ' + f.signature + ' | ' + f.occurrences;",
-    "const ki = (i) => site(i) + ' | ' + i.signature + ' | ' + i.occurrences;",
     "const ko = (o) => site(o) + ' | ' + o.signature + ' | ' + o.motif + ' | ' + o.occurrences;",
     'const seuls = (a, b, k) => a.filter((x) => !b.some((y) => k(y) === k(x))).map(k).sort();',
     "process.stdout.write('<<<DIFF>>>' + JSON.stringify({",
     '  retires: retires.map((c) => c.id).sort(),',
-    '  comptes: { formes: avec.formes.length, invisibles: avec.invisibles.length, orphelines: avec.orphelines.length },',
+    '  comptes: { formes: avec.formes.length, invisibles: avec.objets.invisibles, orphelines: avec.orphelines.length },',
+    '  invisiblesEteints: sans.objets.invisibles - avec.objets.invisibles,',
     '  formesGagnees: seuls(avec.formes, sans.formes, kf),',
     '  formesVolees: seuls(sans.formes, avec.formes, kf),',
-    '  invisiblesEteintes: seuls(sans.invisibles, avec.invisibles, ki),',
-    '  invisiblesNees: seuls(avec.invisibles, sans.invisibles, ki),',
     '  orphelinesEteintes: seuls(sans.orphelines, avec.orphelines, ko),',
     '  orphelinesNees: seuls(avec.orphelines, sans.orphelines, ko),',
     "}));",
@@ -977,7 +924,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
    * `Valeur`/`Référence` — une forme volée disparaîtrait de son concept d’origine sans qu’aucune
    * égalité de stock ne bouge (les lignes volées seraient simplement absentes des deux côtés).
    * Ici on mesure les DEUX scans et on exige : ce que la strate `Document` gagne, elle le prend à ce
-   * qui n’était CLASSÉ PAR PERSONNE (invisibles + orphelines), jamais à un concept existant.
+   * qui n’était CLASSÉ PAR PERSONNE (objets invisibles + orphelines), jamais à un concept existant.
    */
   it('D — DIFF avec/sans la strate `Document` : ce qu’elle gagne vient du NON-CLASSÉ, zéro forme VOLÉE', { timeout: 60_000 }, () => {
     const dossier = mkdtempSync(join(tmpdir(), 'structures-strate-'));
@@ -988,10 +935,9 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       const diff = JSON.parse(sortie[sortie.length - 1]) as {
         retires: string[];
         comptes: { formes: number; invisibles: number; orphelines: number };
+        invisiblesEteints: number;
         formesGagnees: string[];
         formesVolees: string[];
-        invisiblesEteintes: string[];
-        invisiblesNees: string[];
         orphelinesEteintes: string[];
         orphelinesNees: string[];
       };
@@ -1004,7 +950,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       expect(
         diff.comptes,
         'le scan du sous-processus ne mesure pas le même arbre que celui du fichier : le diff ne prouverait rien.',
-      ).toEqual({ formes: scan.formes.length, invisibles: scan.invisibles.length, orphelines: scan.orphelines.length });
+      ).toEqual({ formes: scan.formes.length, invisibles: scan.objets.invisibles, orphelines: scan.orphelines.length });
 
       expect(
         diff.formesVolees,
@@ -1015,25 +961,19 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
         'les formes que la strate `Document` ajoute ne sont pas exactement celles que le scan lui compte.',
       ).toEqual(lignes(scan.formes.filter((f) => f.strate === 'Document').map((f) => `${f.concept} | ${f.dataset} › ${f.champ} | ${f.signature} | ${f.occurrences}`)));
 
-      // La CONTREPARTIE : chaque gain sort du NON-CLASSÉ. 12 lignes d'invisibles s'éteignent (les
-      // objets qu'aucun concept ne reconnaissait) et 1 orpheline (`diligence-projet.json › ouverture`,
-      // dont la clé `source` déclenchait le motif `clé réservée`) — la projection réunit les deux
-      // buckets qu'un optionnel peuplé séparait. Somme = les gains, à l'unité près.
-      expect(diff.invisiblesNees, 'la strate `Document` rend un objet INVISIBLE : elle en perd un au lieu d’en classer.').toEqual([]);
+      // La CONTREPARTIE : chaque gain sort du NON-CLASSÉ, compté en OBJETS. Les objets invisibles qui s'éteignent
+      // (ceux qu'aucun concept ne reconnaissait) et l'orpheline `diligence-projet.json › ouverture` (dont la clé
+      // `source` déclenchait le motif `clé réservée`) font, à l'objet près, les occurrences gagnées.
       expect(diff.orphelinesNees, 'la strate `Document` fabrique une ORPHELINE : elle en perd une au lieu d’en classer.').toEqual([]);
       expect(
         diff.orphelinesEteintes,
         'l’orpheline soldée par la strate `Document` n’est plus celle que le stock nomme (`structuresStock.mjs`, en-tête des concepts d’enveloppe).',
       ).toEqual(['diligence-projet.json › ouverture | ambiance,chapitre,pitch,source,sousTitre,surtitre,titre | clé réservée | 1']);
+      const occurrences = (l: string) => Number(l.split(' | ').pop());
       expect(
-        diff.invisiblesEteintes.length + diff.orphelinesEteintes.length,
-        'le compte ne se referme plus : un gain de la strate `Document` ne vient ni d’un invisible ni d’une orpheline — il vient donc d’ailleurs.',
-      ).toBe(diff.formesGagnees.length);
-      const sitesDocument = new Set(scan.formes.filter((f) => f.strate === 'Document').map((f) => `${f.dataset} › ${f.champ}`));
-      expect(
-        lignes(diff.invisiblesEteintes.filter((l) => !sitesDocument.has(l.split(' | ')[0]))),
-        'un invisible s’est éteint sur un SITE que la strate `Document` ne classe pas : l’extinction déborde des portes.',
-      ).toEqual([]);
+        diff.invisiblesEteints + diff.orphelinesEteintes.map(occurrences).reduce((a, n) => a + n, 0),
+        'le compte ne se referme plus : un gain de la strate `Document` ne vient ni d’un objet invisible ni d’une orpheline — il vient donc d’ailleurs.',
+      ).toBe(diff.formesGagnees.map(occurrences).reduce((a, n) => a + n, 0));
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }
@@ -1395,13 +1335,10 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
   );
   const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
   const brut = fixture.brutParNom.get('x.json') as Record<string, object>;
-  const invisible = (champ: string) => fixture.invisibles.filter((i) => i.dataset === 'x.json' && i.champ === champ).map((i) => i.signature);
-
   it('la carte marquée est une collection relevée et n’est pas invisible ; sa jumelle NON marquée l’est', () => {
-    expect(invisible('t'), 'la carte `t`, déclarée collection à clé, est comptée hors strate.').toEqual([]);
     expect(fixture.collections.filter((c) => c.dataset === 'x.json').map((c) => c.cle)).toEqual(['x.json#t', 'x.json#r', 'x.json#u']);
-    expect(invisible('tNue'), 'contrôle : la même forme SANS marque reste hors strate.').toEqual(['a,b']);
     expect(fixture.objets.collectionsACle).toBe(3);
+    expect(fixture.objets.invisibles, 'seule la jumelle NON marquée `tNue` reste hors strate : une carte marquée y est comptée.').toBe(1);
   });
 
   it('une carte marquée dont les valeurs RÉSOLVENT reste PORTEUR de références, case par case', () => {
@@ -1410,7 +1347,6 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
 
   it('une carte marquée dont une clé `…Id` ne résout pas n’est pas orpheline', () => {
     expect(fixture.orphelines.filter((o) => o.dataset === 'x.json').map((o) => `${o.champ} | ${o.signature}`)).toEqual([]);
-    expect(invisible('u')).toEqual([]);
   });
 });
 
@@ -1508,7 +1444,7 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
 
   it('l’entrée partielle n’est ni orpheline, ni invisible, ni document embarqué de l’hôte', () => {
     expect(fixture.orphelines.filter((o) => o.champ === 'profil')).toEqual([]);
-    expect(fixture.invisibles.filter((i) => i.champ === 'profil')).toEqual([]);
+    expect(fixture.objets.invisibles, 'seul le `leurre` reste hors strate, jamais l’entrée partielle.').toBe(1);
     expect(fixture.groupesEnveloppe.filter((g) => g.chemin.includes('profil'))).toEqual([]);
   });
 
@@ -1573,9 +1509,9 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
     expect(sitesDe('c')).toEqual([]);
     expect(fixture.orphelines.filter((o) => o.dataset === 'x.json' && o.champ === 'c')).toEqual([]);
     expect(
-      fixture.invisibles.filter((i) => i.dataset === 'x.json' && i.champ === 'c').map((i) => `${i.signature} | ${i.occurrences}`),
+      fixture.objets.invisibles,
       'un porteur de réfs canoniques garde sa structure propre : le scan ne s’aveugle pas sur lui.',
-    ).toEqual(['species,tenue | 1']);
+    ).toBe(1);
   });
 });
 
