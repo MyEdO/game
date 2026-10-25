@@ -13,6 +13,7 @@
 import { z } from 'zod';
 import { descRefSchemaDe, sourceRefSchema, type GenreDeFragment } from './valeurs';
 import { enfantsDe, type PointDeDonnee } from './descente';
+import { marquerProduit } from './interne/produits';
 import { estExtrait } from './livres-extraits';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
@@ -43,7 +44,7 @@ export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScen
     source: sourceRefSchema.optional(),
     ...(definition.regime === 'narration' ? champAdapteDe() : {}),
   }) as ChampsNommes<C>;
-  const compose = schema.extend(champs);
+  const compose = marquerProduit(schema.extend(champs), 'proseNommee', chemin, schema.shape);
   const avecProse = definition.porteur === 'adresse' ? compose.superRefine(refineProse({ type: 'projet', exigeProse: true })) : compose;
   const resultat = definition.regime === 'narration' ? avecProse.superRefine(refineAdapteDe) : avecProse;
   nommerChamps(resultat, { ...metaDesChamps(schema, { exigees: true }), ...(definition.porteur === 'adresse' ? META_PROSE : { source: { label: 'source' } }), [definition.champ]: { label: definition.label, texte: { regime: definition.regime } }, ...(definition.regime === 'narration' ? META_ADAPTE_DE : {}) } as MetaDesChamps<typeof resultat.shape>);
@@ -215,7 +216,7 @@ export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown
  * prose vit en rangée, AU MOMENT de sa migration (`defs/criticals.ts`, Lot C).
  */
 export function proseAdressable<S extends z.ZodObject<z.ZodRawShape>>(schema: S, ctx: ContexteProse): z.ZodObject<z.ZodRawShape> {
-  return schema.extend(champsProse()).superRefine(refineProse(ctx)) as unknown as z.ZodObject<z.ZodRawShape>;
+  return marquerProduit(schema.extend(champsProse()), 'proseAdressable', ctx.type, schema.shape).superRefine(refineProse(ctx)) as unknown as z.ZodObject<z.ZodRawShape>;
 }
 
 /**

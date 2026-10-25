@@ -16,6 +16,7 @@ import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragm
 import { defDe, descendre, enfantsDe, ouverts } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
+import { marquerProduit } from './interne/produits';
 import { champsProse, refineAdapteDe, refineProse, type PorteurDeProse } from './prose';
 import { marquerCollection, marqueDeListe, marqueDeRecord, type EspaceDeNoms } from './collection-cle';
 
@@ -511,10 +512,11 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   }
   verifieExposition(type, exposition);
   const nomsEntree = { ...tableTotale(Object.keys(enveloppe(type)) as CleEnveloppe[], k => ({ label: LIBELLES_ENVELOPPE[k] })), ...meta };
-  const entree = nommerChamps(z.strictObject({
+  const champsDuDef = champs as Record<string, z.ZodType>;
+  const entree = marquerProduit(nommerChamps(z.strictObject({
     ...enveloppe(type, idDocument, exiges, fragmentsAdmis),
-    ...(champs as Record<string, z.ZodType>),
-  }) as z.ZodObject<z.ZodRawShape>, nomsEntree);
+    ...champsDuDef,
+  }) as z.ZodObject<z.ZodRawShape>, nomsEntree), 'document', 'entree', champsDuDef);
   const declarees = [...(variantes ?? [])];
   for (const k of declarees) {
     if (!(k in entree.shape)) {
@@ -522,7 +524,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
     }
   }
   const complet = declarees.length
-    ? (z.strictObject({ ...entree.shape, variants: z.array(variantOf(entree, declarees)).optional() }) as z.ZodObject<z.ZodRawShape>)
+    ? marquerProduit(z.strictObject({ ...entree.shape, variants: z.array(variantOf(entree, declarees)).optional() }) as z.ZodObject<z.ZodRawShape>, 'document', 'variantes', champsDuDef)
     : entree;
   // SCEAU : `.pipe` rend un `ZodPipe` — ni `.extend` ni `.shape` AU RUNTIME, `safeParse`/`z.infer` et le
   // refus `strict` intacts (mesuré sur zod 4.4.3 : `.superRefine`/`.check`/`.refine`/`.brand` rendent,
@@ -532,20 +534,20 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   // diffèrent par leur structure — record clé→valeur, liste ordonnée de rangées.
   const corps =
     famille === 'record'
-      ? (z.strictObject({
+      ? marquerProduit(z.strictObject({
           ...complet.shape,
           entries: z.record(cleRecord ?? z.string().min(1), valeurRecord!),
-        }) as z.ZodObject<z.ZodRawShape>)
+        }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.record', champsDuDef)
       : rangee
-        ? (z.strictObject({
+        ? marquerProduit(z.strictObject({
             ...complet.shape,
             ...(deDeTirage ? { die: z.string().min(1) } : {}),
             entries: marquerCollection(z.array(rangee), marqueDeListe<{ id: string }>('id')),
-          }) as z.ZodObject<z.ZodRawShape>)
+          }) as z.ZodObject<z.ZodRawShape>, 'document', 'corps.rangees', champsDuDef)
         : complet;
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
   // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206).
-  const partielle = corps.partial().superRefine(
+  const partielle = marquerProduit(corps.partial(), 'document', 'entreePartielle', champsDuDef).superRefine(
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const entreePartielle: z.ZodType<unknown> = nommerChamps(partielle, noms).pipe(z.transform((v) => v));
