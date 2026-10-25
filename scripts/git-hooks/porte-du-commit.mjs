@@ -93,9 +93,8 @@ import { SUBSTANTIVE_MIN_LINES, TRAILERS, apportDeLaResolution, apportsDesTicket
 import { motifRattachement, numerosCites, numerosDeLaChaine, numerosFermes, numerosNusEnumeres } from '../guards/lib/fermetures.mjs'
 import { lectureDuMessage } from '../guards/lib/sujetDeCommit.mjs'
 import { decisionCumulee } from '../guards/lib/contratGarde.mjs'
-import { grammaireDesNatures, natureDuSolde } from '../guards/lib/nature.mjs'
+import { TITRE_DECISION, grammaireDesNatures, natureDuSolde, refusDeDecision } from '../guards/lib/nature.mjs'
 import { prefixeDeRefus } from '../guards/lib/categorieDeRefus.mjs'
-import { DATE } from '../guards/memoire-forme.mjs'
 
 /** Des numéros canoniques (`fermetures.mjs`) en nombres, dédupliqués et triés. PURE. */
 const enNombres = (numeros) => [...new Set(numeros.map(Number))].sort((a, b) => a - b)
@@ -421,10 +420,8 @@ function checkRecetteVisuelle(content, { touchesUi, verifierCaptureDe }) {
 }
 
 const TITRE_SONDE = 'Sonde'
-const TITRE_DECISION = 'D[ée]cision'
 const BLOC_DE_CODE_RE = /^[ \t]*```[^\n]*\n[\s\S]*?^[ \t]*```[ \t]*\r?$/gm
 const SHA_RE = /\b[0-9a-f]{7,40}\b/g
-const CITATION_RE = /«[^»]+»/
 
 /** Les shas que cite la section « ## Sonde » d'un solde `caduc` (`natureDuSolde`), `[]` pour toute
  *  autre nature. PUR. @param {string | null} content @returns {string[]} */
@@ -436,7 +433,7 @@ function shasDeLaSonde(content) {
 /** La NATURE du solde (`natureDuSolde`) et sa preuve : `doublon` nomme `#M` ≠ `numero` ;
  *  `caduc` porte une « ## Sonde » à deux blocs de code (commande, sortie) qui nomme un sha ANCÊTRE de
  *  HEAD (`commitEstAncetre`, non joué sur un appel PUR) ; `décidé` porte une « ## Décision » dont une
- *  ligne cite `«…»` avec sa date (`DATE`, scripts/guards/memoire-forme.mjs). */
+ *  ligne cite `«…»` avec sa date (`refusDeDecision`, scripts/guards/lib/nature.mjs). */
 function checkNature(content, { numero, commitEstAncetre }) {
   const lu = natureDuSolde(content, numero)
   if (lu.erreur) return [lu.erreur]
@@ -452,11 +449,8 @@ function checkNature(content, { numero, commitEstAncetre }) {
     }
   }
   if (lu.nature === 'décidé') {
-    const decision = sectionDe(content, TITRE_DECISION)
-    if (decision === null) return ['"NATURE: décidé" sans section "## Décision" (la décision utilisateur, citée « … » avec sa date AAAA-MM-JJ sur la même ligne)']
-    if (!decision.split('\n').some((l) => CITATION_RE.test(l) && DATE.test(l))) {
-      return ['"## Décision" sans ligne qui cite la décision « … » ET porte sa date AAAA-MM-JJ']
-    }
+    const refus = refusDeDecision(sectionDe(content, TITRE_DECISION))
+    if (refus) return [refus]
   }
   return []
 }

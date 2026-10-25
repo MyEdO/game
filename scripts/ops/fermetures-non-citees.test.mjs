@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 import {
   comparerFermetures, rapportMarkdown, reculeDe, MARGE_CITATION_JOURS, CHEMIN_BASELINE,
   FERMEUR_CANARI, TITRE_CANARI, cheminFermees, fermeesDeLaFenetre, fermetureDeLIssue, fermeesDepuis,
+  ticketsDuLot,
 } from './fermetures-non-citees.mjs'
 
 /** Plafond de la baseline : il vit ICI, jamais dans le JSON — sans lui, le chemin le plus court pour
@@ -227,4 +228,51 @@ test('fermeesDepuis : un refus de LISTE est nommé, et rien n’est rendu', () =
     () => fermeesDepuis('2026-09-01', () => ({ ok: false, raison: 'HTTP 403' })),
     /lecture des issues fermées impossible — HTTP 403/,
   )
+})
+
+const LOT = [
+  'VERIFIE: ménage du stock, chaque ticket listé est repris par son sujet global',
+  'NATURE: décidé',
+  '## Décision',
+  'Clément, 2026-10-25 : « fermer le plus de ticket possible et remplacer par des tickets par sujet global »',
+  '## Tickets',
+  '- #1700 -> #3000',
+  '- #1701 -> #3001',
+].join('\n')
+
+test('ticketsDuLot : une décision datée et citée, et chaque ticket en tête de ligne « - #N »', () => {
+  assert.deepEqual(ticketsDuLot(LOT), { tickets: [1700, 1701] })
+})
+
+test('ticketsDuLot : un lot qui n’est pas une décision prouvée ne couvre rien', () => {
+  assert.match(ticketsDuLot(LOT.replace('NATURE: décidé', 'NATURE: caduc')).erreur, /"NATURE: décidé", pas « caduc »/)
+  assert.match(ticketsDuLot(LOT.replace('NATURE: décidé\n', '')).erreur, /"NATURE: décidé", pas « corrigé »/)
+  assert.match(ticketsDuLot(LOT.replace(' 2026-10-25', '')).erreur, /sans ligne qui cite la décision/)
+  assert.match(ticketsDuLot(LOT.replace('## Décision', '## Motif')).erreur, /sans section "## Décision"/)
+  assert.match(ticketsDuLot(LOT.replace(/^- #/gm, '* #')).erreur, /sans ligne "- #N"/)
+})
+
+test('solde de LOT : ses fermetures ne rougissent pas et tiennent en UNE ligne de rapport', () => {
+  const lots = new Map([['1700', '.claude/soldes/lot-x.md'], ['1701', '.claude/soldes/lot-x.md']])
+  const r = comparerFermetures(BASE_FIXTURE, [fermee(1700), fermee(1701), fermee(1702)], [], [], lots)
+  assert.deepEqual(r.rouges.map((x) => /#(\d+)/.exec(x)[1]), ['1702'], 'une fermeture HORS lot reste rouge')
+  assert.deepEqual(r.rapport.filter((l) => l.includes('lot-x')), ['2 fermeture(s) [solde de lot] couvertes par .claude/soldes/lot-x.md'])
+  assert.equal(r.rapport.length, 2)
+})
+
+test('solde de LOT : une entrée de baseline qu’un lot couvre est périmée', () => {
+  const r = comparerFermetures(BASE_FIXTURE, [fermee(1122)], [], [], new Map([['1122', '.claude/soldes/lot-x.md']]))
+  assert.match(r.rouges[0], /entrée périmée : retire-la — #1122/)
+})
+
+test('fermeesDepuis : une fermeture COUVERTE ne coûte aucun appel `closed_by`', () => {
+  const vus = []
+  const appel = (args) => {
+    vus.push(args[1])
+    if (args[1].includes('?')) return { ok: true, stdout: JSON.stringify([issue(1700), issue(1701)]) }
+    return { ok: true, stdout: 'cgauche\n' }
+  }
+  const f = fermeesDepuis('2026-09-01', appel, new Set(['1700']))
+  assert.deepEqual(f.map((x) => [x.numero, x.closedBy]), [[1700, 'non lu (couverte)'], [1701, 'cgauche']])
+  assert.deepEqual(vus.slice(1), [`repos/${DEPOT}/issues/1701`])
 })
