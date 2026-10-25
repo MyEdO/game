@@ -61,7 +61,7 @@ test('sitesFautifs : ancre stable, réf à soi-même, regex, heure, URL, citatio
     '// (`EDO 09 l.556-570`, folio 114), LDB 40 l.58/62/63, AA 07 l.113 / LDB 18 l.88',
     '// par palier — LDB 20 l.157/170',
     '// réf multi-chapitres LDB 18 l.298/20 l.72/20 l.32-49',
-    '// « … » (`frenchy.bzh 01 l.19`)',
+    '// « … » (`ADE II 01 l.19`)',
     "      'l.2\\n  committé : \"X\"\\n' +",
     "copier(path.join(sortie, 'l.1.json'), '{}')",
     '// verbatim citable `l.<ligne>`',

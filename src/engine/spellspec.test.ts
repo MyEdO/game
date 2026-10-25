@@ -56,11 +56,9 @@ describe('specs curées — résolution', () => {
   });
 });
 
-describe('registre curé — couverture & désambiguïsation', () => {
-  it('les 19 Bénédictions sont toutes curées', () => {
-    const blessed = spells.filter((s) => s.ecole === 'Béni');
-    expect(blessed).toHaveLength(19);
-    for (const s of blessed) expect(s.curated, s.label).toBe(true);
+describe('registre — couverture & désambiguïsation', () => {
+  it('les 19 Bénédictions sont au registre', () => {
+    expect(spells.filter((s) => s.ecole === 'Béni')).toHaveLength(19);
   });
 
   it('labels en double : « Enchevêtrement » résolu par type (Arcane vs miracle de Taal)', () => {
@@ -73,13 +71,12 @@ describe('registre curé — couverture & désambiguïsation', () => {
 
 describe('spellSupport — seul ce qui PRODUIT un effet compte mécanique', () => {
   const sansOp = (p: Partial<SpellData>): SpellData => ({
-    ...findSpellById('explosion')!, missile: false, curated: true, effects: { kind: 'seq', steps: [] },
+    ...findSpellById('explosion')!, missile: false, effects: { kind: 'seq', steps: [] },
     target: { kind: 'area', span: 'diameter', meters: 8 }, ...p,
   });
 
-  it('une ZdE sans op ne fait que choisir des cibles : narratif, curée ou non', () => {
+  it('une ZdE sans op ne fait que choisir des cibles : narratif', () => {
     expect(spellSupportOf(sansOp({}))).toBe('narratif');
-    expect(spellSupportOf(sansOp({ curated: false }))).toBe('narratif');
   });
 
   it('la touche d’un Projectile et l’attaque du Souffle produisent un effet sans op', () => {

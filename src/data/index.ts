@@ -1886,18 +1886,15 @@ export interface TraitData {
    *  `traitCapability` : une capacité supprimée par n'importe quel trait porté répond false. */
   suppressesCapabilities?: (keyof TraitCapabilities)[];
   /** AURA de combat : projette des `passive` GameOp[] sur les combattants À PORTÉE (Perturbant : −20 aux
-   *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché, `affectsGroups` = à
-   *  quels Groupes d'appartenance la cible doit appartenir, `includesSelf` = l'émetteur se touche aussi).
+   *  Tests à `rangeChar` mètres, LDB 85 l.262 ; `affects` = quel camp est touché ; l'émetteur ne se touche
+   *  jamais).
    *  Recalculée chaque Round par le hook GÉNÉRIQUE `recompute-auras`, accumulée dans `Combatant.auraMods`
    *  (emballée en `PassiveMod`, le trait émetteur en `src`), lue par `combatTestPenaltyParts` — pool
    *  NON-CUMUL, « une seule fois, peu importe le nombre d'ennemis Perturbants » — et par
    *  `skillDRBonus`/`charDRBonusOf`. Aucun code par-nom. */
   aura?: {
-    rangeChar?: CharKey;
-    rangeMeters?: number;
+    rangeChar: CharKey;
     affects?: 'enemies' | 'allies' | 'all';
-    affectsGroups?: string[];
-    includesSelf?: boolean;
     passive: import('../engine/ops').GameOp[];
   };
   /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
@@ -2048,7 +2045,7 @@ export interface DomainData {
   /** Vent de Magie (Couleur) du Domaine, EXTRAIT du `desc` (« Domaine du Feu (Aqshy) », LDB 48) — source
    *  d'AFFICHAGE de la Compétence Focalisation (spécialisée par Vent) et clé de `findDomainByWind`. Les 8
    *  Domaines élémentaires + Dhar en portent un ; les Domaines dérivés (Sorcellerie/Nécromancie/
-   *  Démonologie/Magie naturelle, homebrew Skaven…) n'ont pas de Vent propre (ils canalisent Dhar ou un
+   *  Démonologie/Magie naturelle…) n'ont pas de Vent propre (ils canalisent Dhar ou un
    *  Vent élémentaire). Édité au Codex. */
   wind?: string;
   /** Domaine ENSEIGNABLE via le Talent Magie des Arcanes (LDB 48) : SOURCE du pool `arcaneDomains`
@@ -2178,8 +2175,7 @@ export interface SpellData {
   family: import('../engine/combatFeatures/types').CastingKind;
   /** Niveau d'Incantation (NI). `null` pour les Prières (Béni/Invocation). */
   cn: number | null;
-  /** Portée STRUCTURÉE (LDB 46/47) — d'où le sort peut être lancé. `null` = donnée absente (homebrew
-   *  non extrait). Aucune prose n'est re-parsée au runtime ; l'affichage est DÉRIVÉ
+  /** Portée STRUCTURÉE (LDB 46/47) — d'où le sort peut être lancé. `null` = donnée absente. Aucune prose n'est re-parsée au runtime ; l'affichage est DÉRIVÉ
    *  (`engine/spellRangeFormat`). */
   range: import('../engine/spellRange').SpellRange | null;
   /** Cible STRUCTURÉE (LDB 47) — qui/quoi est affecté (compte, ZONE par rayon/diamètre, cône, spécial).
@@ -2198,10 +2194,6 @@ export interface SpellData {
   ignoreBE?: boolean;
   // ── MÉTADONNÉES DE RÉSOLUTION ──────────────────────────────────────────────────────────────────
   // Ces champs sont multilingue-safe (ids/formules, jamais du texte d'affichage).
-  // Présents sur toutes les entrées OFFICIELLES (curated:true) ; absents sur les sorts homebrew (frenchy.bzh).
-  /** Vrai pour une entrée curée de la base officielle. Absent/false pour les sorts homebrew (frenchy.bzh).
-   *  Permet au test de couverture de vérifier que TOUS les sorts officiels ont une spec complète. */
-  curated?: boolean;
   // POUSSÉE / TÉLÉPORTATION / ATTAQUES EN CHAÎNE : effets POSITIONNELS portés par des ops
   // IMPURES (`push`/`teleport`/`chain`, on:'caster') dans `effects`, résolus par combatFlow (cf. engine/ops).
   /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
@@ -2288,7 +2280,6 @@ export interface BookData {
   dir?: string | null;
   /** Nom du PDF officiel sous `Source/` — résolu par `scripts/raw/_lib.mjs#pdfDe`. */
   pdf?: string | null;
-  extractionDir?: string | null;
   language: string | null;
   /** Corps de règles dont ce livre est le CŒUR (`4e`, `5e`) — absent (ou vidé à l'atelier) d'un supplément. */
   coeur?: string | null;
@@ -2413,8 +2404,7 @@ export function findDiseaseById(id: string): DiseaseDef | undefined {
 export function diseaseLabel(id: string): PlayerText {
   return dataLabel(maladieParId(id)?.label, id);
 }
-// Traits app-owned (officiels + homebrew frenchy.bzh Aura de Dhar/Mort, Charnier + suppléments
-// Redoutable/Fouissement ZI) — TOUT dans `traits.json` ; chaque entrée garde sa vraie `source` : ZI, frenchy.bzh…).
+// Traits app-owned — TOUT dans `traits.json` ; chaque entrée garde sa vraie `source`.
 export const traits = traitsJson as TraitData[];
 const traitParLabelMinuscule = indexParChamp('traits', traits, (t) => t.label.toLowerCase());
 /** `id` STABLE d'un Trait depuis un LIBELLÉ d'AUTHORING (statbloc saisi, migration), casse ignorée —
@@ -2795,11 +2785,10 @@ export const findCrewTestTypeById: (id: string) => CrewTestTypeData | undefined 
 /** Groupes d'objet app-owned (taxonomie `subType` id-ifiée) — éditable au Codex. */
 export const weaponGroups = weaponGroupsJson as WeaponGroupData[];
 export const groups = groupsJson as GroupData[];
-// Bestiaire APP-OWNED : officiel + complément « frenchy.bzh » INTÉGRÉ directement dans creatures.json
-// (fusionné 2026-06-15, espèce explicite posée) — plus de dataset frenchy séparé à merger.
+// Bestiaire APP-OWNED — TOUT dans `creatures.json` ; chaque entrée garde sa vraie `source`.
 export const creatures = creaturesJson as CreatureData[];
-// Sorts app-owned — officiels + homebrew « frenchy.bzh » des casters (Magie Mineure/Arcanes,
-// Bénédictions, Miracles…) TOUT dans `spells.json` ; chaque sort garde sa `source`, dont `frenchy.bzh` pour le homebrew).
+// Sorts app-owned (Magie Mineure/Arcanes, Bénédictions, Miracles…) — TOUT dans `spells.json` ; chaque sort
+// garde sa vraie `source`.
 export const spells = spellsJson as SpellData[];
 /** Manœuvres app-owned (attaques naturelles activées — LDB 85) : ENTITÉ de 1ʳᵉ classe éditable au Codex,
  *  effets en GameOp. Octroyées aux créatures via `TraitData.grantsManeuvers` ; résolues par id. */
@@ -3608,7 +3597,7 @@ export function talentConcrete(t: { talentId: string; spec?: string }): PlayerTe
  * LIBRE, « Métier (Armurier ou Forgeron) » pour un choix BORNÉ (options résolues en LIBELLÉS par
  * `specLabel`, jamais des ids bruts). SOURCE UNIQUE du rendu d'un `choix` — la réf de statbloc
  * (`skillRefLabel`) comme l'emplacement d'avancement (`advancementLabel`) passent ici.
- * `LDB 09 l.40` ; choix imprimé sur une ligne de table : `frenchy.bzh 83 l.25`.
+ * `LDB 09 l.40`.
  */
 export function choixLabel(category: string, id: string, choix: true | string[]): PlayerText {
   const base = refLabel(category, { id });

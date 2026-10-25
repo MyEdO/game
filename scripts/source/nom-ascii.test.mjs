@@ -34,8 +34,8 @@ test('table fermée — une ligne, un cas', () => {
 
 test('ce n’est PAS un slug : casse, espaces (double compris), points, parenthèses, & conservés', () => {
   assert.equal(
-    nomAscii('Warhammer - Habitants & Créatures  du Vieux-Monde (Discord) PDF'),
-    'Warhammer - Habitants & Creatures  du Vieux-Monde (Discord) PDF',
+    nomAscii('Warhammer - Hommes & Bêtes  du Vieux-Monde (Édition) PDF'),
+    'Warhammer - Hommes & Betes  du Vieux-Monde (Edition) PDF',
   )
 })
 
@@ -73,7 +73,7 @@ test('idempotence', () => {
     '12 - ￼.md',
     '12 - Sans titre.md',
     "Boîte d'Initiation WFRP 4e Edition VF",
-    'Warhammer - Habitants & Créatures  du Vieux-Monde (Discord) PDF',
+    'Warhammer - Hommes & Bêtes  du Vieux-Monde (Édition) PDF',
   ]) {
     assert.equal(nomAscii(nomAscii(n)), nomAscii(n))
     assert.ok(estAscii(nomAscii(n)))

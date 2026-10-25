@@ -84,8 +84,8 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
  *
  * RE-MESURE 2026-10-13 (#1765) : 6 → 7. Correction du DÉTECTEUR : la table littérale écrite en `Map`
  * (`new Map([[…]])`, `new Map(Object.entries(TABLE))`, `isLiteralMap`) indexée par `.get(<identité>)`
- * est la forme `id-record` — elle échappait au scan. `sortsFusionnes.ts` en sort démasqué ; `etatConnu`
- * (`engine/conditions.ts`) quitte la sienne pour l'index par id (`indexParId`) de ses entrées.
+ * est la forme `id-record` — elle échappait au scan. `etatConnu` (`engine/conditions.ts`) quitte la
+ * sienne pour l'index par id (`indexParId`) de ses entrées.
  */
 const KNOWN: Record<string, number> = {
   // GEL NOMINATIF — chaque entrée porte sa CONDITION DE SORTIE ; aucune n'est une exception permanente.
@@ -101,8 +101,6 @@ const KNOWN: Record<string, number> = {
   // Sortie : l'Arène intégrée devient une ENTRÉE de `builtinCampaigns` (une seule boucle de rangées,
   // plus de rangée en dur) — refonte d'ÉCRAN, donc recette navigateur exigée au commit.
   'src/ui/PartyScreen.tsx': 2, // `currentId === 'arene'` ×2 (rangée de la campagne intégrée)
-  // Sortie : table de MIGRATION gelée (#1897) — hors de `isRegistryIdBranchExcluded` par son seul chemin.
-  'src/data/sortsFusionnes.ts': 1, // `CORRESPONDANCE.get(id)` (`new Map(Object.entries(SORTS_FUSIONNES_1897))`)
 };
 
 /** Plafond GLOBAL du jour (= somme de `KNOWN`), destiné à tomber à 0. */

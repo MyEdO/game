@@ -42,10 +42,10 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
     expect(h.groups).toEqual(expect.arrayContaining(['humain', 'soldat']));
   });
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {
-    const pretreSigmar = findCreatureById('pretre-de-sigmar')!;
-    expect(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }).groups).toContain('sigmarite');
-    const pretreUlric = findCreatureById('pretre-d-ulric')!;
+    const pretreUlric = findCreatureById('frere-bengt')!;
     expect(creatureToCombatant(pretreUlric, 'e5', { x: 0, y: 0 }).groups).toContain('ulricain');
+    const pretreSigmar = { ...pretreUlric, id: 'pretre-sigmar', talents: pretreUlric.talents.map((t) => (t.id === 'beni' ? { ...t, spec: 'sigmar' } : t)) };
+    expect(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }).groups).toContain('sigmarite');
   });
 });
 
@@ -63,19 +63,15 @@ describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe M
     const c = creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'p2', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tileen' }]));
   });
-  it('Hyppogriffe / Fanatique Gobelin / Brochet du Stir : Animosité « Tout »/« toutes les créatures !!! » → tout', () => {
+  it('Hyppogriffe / Brochet du Stir : Animosité « Tout » → tout (LDB 79 l.113, MSRC 15 l.101)', () => {
     expect(creatureToCombatant(findCreatureById('hyppogriffe')!, 'p3', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
-    expect(creatureToCombatant(findCreatureById('fanatique-gobelin')!, 'p4', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
     // Label « Brochet du Stir » ambigu (2 créatures homonymes, Zoo Impérial vs Bestiaire fluvial) → id STABLE.
     expect(creatureToCombatant(findCreatureById('brochet-du-stir-fluvial')!, 'p5', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'animosite', cible: 'tout' }]));
   });
-  it('Chauve-souris vampire (Varghulf) / Vhargulf : Haine « Vivant »/« Êtres Vivants » → vivant', () => {
+  it('Chauve-souris vampire (Varghulf) : Haine « Vivant » → vivant', () => {
     expect(creatureToCombatant(findCreatureById('chauve-souris-vampire-varghulf')!, 'p6', { x: 0, y: 0 }).psychTraits)
-      .toEqual(expect.arrayContaining([{ type: 'haine', cible: 'vivant' }]));
-    expect(creatureToCombatant(findCreatureById('vhargulf')!, 'p7', { x: 0, y: 0 }).psychTraits)
       .toEqual(expect.arrayContaining([{ type: 'haine', cible: 'vivant' }]));
   });
   it('Babrakkos : Haine « Teutogens » → teutogen', () => {

@@ -1131,11 +1131,8 @@ __wfrp.scenario('dome', 11)              // lancement (combat direct)
 //    ligne d'attaque « … : N dégâts − M = K Blessures », qui annonce des Blessures ne tombant PAS quand
 //    le coup est ignoré — défaut de forme connu et ticketé (#1740) : lire l'issue sur la ligne de
 //    sauvegarde, jamais sur celle du coup.
-//    Le tireur porte **Tir rapide** (`creatures.json` › `archer-gobelin`, talent `tir-rapide`) : il tire HORS de
-//    l'ordre d'Initiative à l'ouverture d'un Round (`runPreemptShots`, `confirmRoundStart`), son tour
-//    normal étant alors épuisé. Le combat s'ouvre donc sur un tir gobelin DÉJÀ résolu (relevé
-//    2026-09-14 : Ilyanwe à 15/18 avant le geste 1), et chaque ouverture de Round peut apporter une
-//    étape de sauvegarde de plus — en tenir compte dans le budget de clics de la recette.
+//    Le tireur (`creatures.json` › `gobelin`) ne porte aucun Talent : il tire à son tour, dans
+//    l'ordre d'Initiative.
 //    Puis laisser l'ORC frapper au contact : AUCUNE ÉTAPE de sauvegarde et AUCUNE ligne (le dôme ne
 //    couvre pas la mêlée).
 ```

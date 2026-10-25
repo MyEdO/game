@@ -69,7 +69,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
   });
 
   it('sceneFearSources honore le `presetId` : le PNJ nommé garde SA fiche (même résolution que combatSlice/tavernFlow)', () => {
-    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-nomme', base: 'brigand', profil: { label: 'Nommé Test', traits: [{ id: 'terreur', value: 2 }] } }] } });
+    useGame.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-nomme', base: 'humain', profil: { label: 'Nommé Test', traits: [{ id: 'terreur', value: 2 }] } }] } });
     const src = sceneFearSources(scene([ent({ id: 'pnj', presetId: 'pnj-nomme' })]), presetPnjById)[0];
     expect(src.label).toBe('Nommé Test');
     expect(src.causesTerreur).toBe(2);

@@ -368,7 +368,7 @@ export function talentTestSLBonus(
 }
 
 /** +DR de Talent au LANCEMENT (LDB 10) : `talentTestSLBonus` sur la Compétence d'incantation (id + spec),
- *  PLUS les auras de +DR (Aura de Dhar via `skillDRBonus` ; projection des auras : `src/engine/conditions.ts`,
+ *  PLUS les auras de +DR (`skillDRBonus` ; projection des auras : `src/engine/conditions.ts`,
  *  vocabulaire des déclencheurs : `docs/vocabulaire-mecanique.md`). Le
  *  casting n'a pas de vue de combat → les `when` ne s'appliquent pas (aucun talent d'incantation n'en a). */
 export function castTestTalentDR(c: Combatant, skill: 'langue' | 'focalisation' | 'priere', spec?: string): number {

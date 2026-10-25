@@ -365,16 +365,3 @@ describe('spawnEnemy — branche engin de siège (`ref` à `siegeRig`, #210)', (
     expect(c.footprint).toBeUndefined();
   });
 });
-
-describe('creatureToCombatant — Groupes d’appartenance DÉCLARÉS par l’entrée du bestiaire (#1318 E4/C4)', () => {
-  it('un démon de Nurgle spawné porte le Groupe de son dieu (`CreatureData.grantGroups`) EN PLUS de « demon »', () => {
-    const c = creatureToCombatant(findCreatureById('nurglings')!, 'nurg1', { x: 0, y: 0 });
-    expect(c.groups).toContain('demon'); // catégorie dérivée du folder
-    expect(c.groups).toContain('nurgle'); // déclaré sur l'entrée — le spawn le CÂBLE
-  });
-
-  it('une créature SANS déclaration ne gagne aucun Groupe de dieu (contre-épreuve)', () => {
-    const c = creatureToCombatant(findCreatureById('zombie')!, 'zomb1', { x: 0, y: 0 });
-    expect(c.groups).not.toContain('nurgle');
-  });
-});

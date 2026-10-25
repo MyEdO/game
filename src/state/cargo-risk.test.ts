@@ -170,7 +170,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     // route authorée requise). Coque de campagne = `vessel.vehicleId` (barge — coque distincte de l'ennemi).
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,
-      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'pirate-fluvial', chefRef: 'chef-pirate', label: 'Cogue pirate' } } } as never,
+      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().cascadeChoose('sea-pirate-hail', 'soumettre');
@@ -213,7 +213,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('combattre d’emblée → même abordage dérivé (deux coques, ennemis présents)', () => {
     set({
       vessel: { vehicleId: 'barge-fluviale', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] } as never,
-      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'pirate-fluvial', chefRef: 'chef-pirate', label: 'Cogue pirate' } } } as never,
+      travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().cascadeChoose('sea-pirate-hail', 'combattre');

@@ -638,7 +638,7 @@ describe('Codex — rangées de référence par id (#1897)', () => {
   /** Ids des rangées 'ref' d'une section titrée de la fiche. */
   const refIdsOf = (item: CodexItem | undefined, title: string): string[] =>
     (item?.sections ?? []).filter((s) => s.title === title).flatMap((s) => s.rows).flatMap((r) => (r.t === 'ref' ? [r.id] : []));
-  const HOMONYMES: [string, string][] = [['enchevetrement', 'enchevetrement-2'], ['crevasse', 'crevasse-lumiere'], ['brume-mystique', 'brume-mystique-magie-du-marais']];
+  const HOMONYMES: [string, string][] = [['enchevetrement', 'enchevetrement-2']];
 
   it('les homonymes de spells.json partagent leur libellé (plié) sous deux ids', () => {
     for (const [a, b] of HOMONYMES) {

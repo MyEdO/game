@@ -1,8 +1,8 @@
 /**
  * Portée et Cible d'un sort — données STRUCTURÉES (LDB 46/47), lues telles quelles par le moteur ;
- * l'affichage est dérivé par `spellRangeFormat.ts`. La MESURE est une `Formula` (engine/ops).
+ * l'affichage est dérivé par `spellRangeFormat.ts`. La MESURE est une `FormuleSansTirage` (engine/ops).
  */
-import type { Formula, FormuleSansTirage } from './ops';
+import type { FormuleSansTirage } from './ops';
 import type { Condition } from './flowCore';
 
 /** Portée d'un sort — d'OÙ il peut être lancé. */
@@ -10,7 +10,7 @@ export type SpellRange =
   | { kind: 'self' } // « Vous »
   | { kind: 'touch' } // « Contact » / « Toucher »
   | { kind: 'distance'; value: FormuleSansTirage; unit: 'm' | 'km' } // « 6 mètres », « (Force Mentale) mètres », « (Bonus de FM) mètres »
-  | { kind: 'special'; text: string }; // « Spécial »/« Voir texte »/valeur non chiffrable (homebrew)
+  | { kind: 'special'; text: string }; // « Spécial »/« Voir texte »/valeur non chiffrable
 
 /** Cible d'un sort — QUI/QUOI il affecte.
  *
@@ -25,5 +25,4 @@ export type SpellTarget =
   | { kind: 'self' } // « Vous »
   | { kind: 'count'; n: FormuleSansTirage } // 1, « (Bonus d'Intelligence) alliés »
   | { kind: 'area'; span: 'radius' | 'diameter'; meters: FormuleSansTirage; excludesCaster?: boolean; affects?: Condition; maison?: string } // toute forme de ZONE
-  | { kind: 'cone'; lengthMeters: Formula; widthMeters: Formula; affects?: Condition; maison?: string } // « Cône Longueur (8 m) x Largeur (2 m) »
-  | { kind: 'special'; text: string }; // « Spécial », « 1 voilier… », « ZdE (un lieu unique) », homebrew
+  | { kind: 'special'; text: string }; // « Spécial », « 1 voilier… », « ZdE (un lieu unique) »

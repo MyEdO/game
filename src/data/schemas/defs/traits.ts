@@ -149,28 +149,12 @@ const doc = document(
     suppressesCapabilities: z.array(z.string()).optional(),
     aura: nommerChamps(z
       .strictObject({
-        rangeChar: charKeySchema.optional(),
-        rangeMeters: z.number().optional(),
+        rangeChar: charKeySchema,
         affects: z.enum(['enemies', 'allies', 'all']).optional(),
-        /** Ids de `groups.json` : filtre d'APPARTENANCE de la cible, en plus du camp — l'aura ne touche
-         *  qu'un combattant d'AU MOINS un de ces Groupes (union `groupMatch`). Une règle CONJONCTIVE
-         *  (« X qui sont aussi Y ») n'est PAS exprimable ici : elle se scinde en entrées.
-         *  BORNE MESURÉE sur les auras de Dhar, dont le texte vise « les sorciers et démons » d'un dieu et
-         *  que l'union rend par le seul Groupe du dieu. Sur-inclusion : un cultiste slaaneshi qui possède
-         *  la Compétence reçoit le +1 DR à Langue (Magick) sans être ni sorcier ni démon. Sous-inclusion :
-         *  aucun sorcier NON démon ne peut porter le Groupe d'un dieu tant que `marque-de-slaanesh`/
-         *  `marque-de-nurgle` n'existent pas en donnée (seuls le folder du bestiaire et `grantGroups` le
-         *  dérivent). La conjonction se posera quand un statbloc l'exigera. */
-        affectsGroups: z.array(z.string()).optional(),
-        /** frenchy-bzh 295 l.233 ; LDB 85 l.260-262 */
-        includesSelf: z.boolean().optional(),
         passive: z.array(gameOpSchema),
       }), {
       rangeChar: { label: 'Caractéristique de portée' },
-      rangeMeters: { label: 'Portée (m)' },
       affects: { label: 'Cibles affectées' },
-      affectsGroups: { label: 'Groupes affectés' },
-      includesSelf: { label: 'Porteur inclus' },
       passive: { label: 'Passifs' },
     })
       .optional(),

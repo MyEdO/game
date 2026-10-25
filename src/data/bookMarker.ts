@@ -1,5 +1,5 @@
 /**
- * MARQUE DE PROVENANCE d'un libellé d'AUTHORING — « … (EDOC) », « … (ADE II) », « … (frenchy.bzh) ».
+ * MARQUE DE PROVENANCE d'un libellé d'AUTHORING — « … (EDOC) », « … (ADE II) ».
  *
  * SOURCE UNIQUE de la définition « référence de livre dans un libellé » (`docs/charte-ui.md` : « JAMAIS
  * de référence au livre dans un texte joueur ») : la PROJECTION qui la retire et la GARDE qui la
@@ -7,7 +7,7 @@
  * diverge aussitôt de la première.
  *
  * Forme reconnue : un PARENTHÉSÉ FINAL dont le contenu est un sigle du catalogue (`books.json`, champ
- * `abbr` — espaces et points compris : « ADE I », « frenchy.bzh »). Un sigle rencontré HORS de cette
+ * `abbr` — espaces compris : « ADE I »). Un sigle rencontré HORS de cette
  * forme n'est PAS une référence : « Lustria » et « Salzemund » sont des `abbr` qui sont aussi des noms
  * du décor, qu'un libellé joueur a le droit de porter en clair.
  */

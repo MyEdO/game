@@ -295,9 +295,8 @@ export function skillDRBonus(c: Combatant, skillId: string, spec?: string): numb
   // portent `passiveKind: "intrinseque"` : liste d'annulateurs VIDE, leur DR survit à la Détermination.
   // Une séquelle à `skillDRBonus` SANS `passiveKind` tomberait, elle, en `douleur` (annulée par Insensible).
   for (const m of traumaPassiveMods(c)) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
-  // Auras (Aura de Dhar : +1 DR Focalisation/Langue (Magick) aux sorciers et démons du dieu à portée,
-  // camp indifférent) — `aura.passive` projeté dans `auraMods` par le hook `recompute-auras`. Sommé
-  // (le DR cumule), comme les passifs de trait.
+  // Auras — `aura.passive` projeté dans `auraMods` par le hook `recompute-auras`. Sommé (le DR cumule),
+  // comme les passifs de trait.
   for (const m of c.auraMods ?? []) if (m.op.op === 'skillDRBonus' && matches(m.op.skill)) n += valeurSansTirage(m.op.bonus, c);
   // Effets ACTIFS temporisés (op `skillDRBonus` exécutée — chanson de marin « Jacques Bret », MDG 09 l.228).
   for (const e of c.activeEffects ?? []) for (const b of e.drBonus ?? []) if (b.skill != null && matches({ id: b.skill, spec: b.spec })) n += b.bonus;
@@ -1003,7 +1002,7 @@ export type GameOp =
    *  Lu par `skillDRBonus` — PASSIF depuis les `TraitData.passive` du porteur (par id), ET, quand
    *  l'op est EXÉCUTÉE par un sort/une chanson (`applyOps`), depuis un `ActiveEffect.drBonus` temporisé.
    *  DISTINCT de `skillMod` (qui modifie la VALEUR du Test, pas le DR obtenu). La `spec` de la référence
-   *  restreint à une spécialisation (Aura de Dhar → Langue (Magick) seulement) ; absente = toute spéc.
+   *  restreint à une spécialisation ; absente = toute spéc.
    *  CIBLE EXCLUSIVE : SOIT `skill`, SOIT `testType` (#221, traits navals `naval-traits.json` uniquement),
    *  un TYPE de Test d'équipage (`crew-test-types.json`) agnostique de la compétence (une Poursuite se
    *  court à la Voile OU aux avirons) ; `testType` est lu par `navalTestTypeDR`, JAMAIS par `skillDRBonus`

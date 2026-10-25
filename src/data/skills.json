@@ -316,96 +316,6 @@
           "page": 35,
           "note": "ADE II 02 l.884"
         }
-      },
-      {
-        "id": "sermons",
-        "label": "Sermons",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 89,
-          "note": "frenchy.bzh 22 l.516"
-        },
-        "pool": false
-      },
-      {
-        "id": "seduction",
-        "label": "Séduction",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 285,
-          "note": "frenchy.bzh 49 l.21"
-        },
-        "pool": false
-      },
-      {
-        "id": "ceremonie",
-        "label": "Cérémonie",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 470,
-          "note": "frenchy.bzh 67 l.330"
-        },
-        "pool": false
-      },
-      {
-        "id": "anecdotes-militaires",
-        "label": "Anecdotes Militaires",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 62,
-          "note": "frenchy.bzh 19 l.25"
-        },
-        "pool": false
-      },
-      {
-        "id": "grimaces-et-mimes",
-        "label": "Grimaces & Mimes",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 321,
-          "note": "frenchy.bzh 51 l.92"
-        },
-        "pool": false
-      },
-      {
-        "id": "chants-de-marins",
-        "label": "Chants de Marins",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 133,
-          "note": "frenchy.bzh 26 l.195"
-        },
-        "pool": false
-      },
-      {
-        "id": "plaidoirie",
-        "label": "Plaidoirie",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 59,
-          "note": "frenchy.bzh 18 l.52"
-        },
-        "pool": false
-      },
-      {
-        "id": "urbain",
-        "label": "Urbain",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 102,
-          "note": "frenchy.bzh 23 l.126"
-        },
-        "pool": false
-      },
-      {
-        "id": "fanfaron",
-        "label": "Fanfaron",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 435,
-          "note": "frenchy.bzh 65 l.209"
-        },
-        "pool": false
       }
     ],
     "desc": "Cette Compétence vous permet de ravir les foules par la parole, peut-être en chantant, en jouant la comédie ou en faisant quelques blagues. Une utilisation réussie de la Compétence Divertissement signifie que vous avez assez amusé les spectateurs alentour pour qu'ils vous écoutent ; le DR indique à quel point vous avez réussi.\n\nEn combat, il est peu probable que Divertissement soit d'une grande utilité, bien que vous puissiez trouver une façon intéressante d'utiliser Divertissement (Interprétation) pour troubler ou leurrer vos adversaires.",
@@ -466,16 +376,6 @@
           "book": "mer-des-griffes",
           "page": 152,
           "note": "MDG 16 l.401"
-        },
-        "pool": false
-      },
-      {
-        "id": "rats",
-        "label": "Rats",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 398,
-          "note": "frenchy.bzh 59 l.114"
         },
         "pool": false
       }
@@ -989,26 +889,6 @@
           "page": 10,
           "note": "AA 02 l.169"
         }
-      },
-      {
-        "id": "enluminure",
-        "label": "Enluminure",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 94,
-          "note": "frenchy.bzh 22 l.652"
-        },
-        "pool": false
-      },
-      {
-        "id": "reliure",
-        "label": "Reliure",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 94,
-          "note": "frenchy.bzh 22 l.652"
-        },
-        "pool": false
       }
     ],
     "desc": "Beaucoup de gens au Reikland embrassent une profession ; même les aventuriers ont souvent une Carrière plus fiable ou plus respectable sur laquelle compter entre deux épisodes palpitants.\n\nLa Compétence Métier représente votre capacité à créer quelque chose ou à fournir un service, ainsi que votre connaissance du savoir essentiel entourant votre profession.\n\nPosséder la Compétence est suffisant pour effectuer automatiquement les tâches associées à votre profession, en partant du principe que vous possédez les ressources et des outils adaptés. Vous avez besoin d'effectuer un Test de Métier uniquement si vous cherchez à créer quelque chose rapidement, que les conditions sont défavorables ou que vous cherchez à inventer ou créer un objet de grande qualité.\n\nLes Tests de Métier de ce type sont souvent des Tests étendus, dont le DR et le temps nécessaires dépendent de la portée ou de l'ampleur de ce qui est produit ; un repas rapide avec Métier (Cuisinier) pour impressionner un seigneur local prendra bien moins de temps que la construction d'un navire de guerre avec Métier (Charpentier de marine).\n\nVous pouvez aussi effectuer un Test de Métier comme une Compétence Savoir pour déterminer une information importante concernant la profession en question. Dans de telles circonstances, le MJ peut préférer utiliser l'Int plutôt que la Dex comme Caractéristique de base, bien que cela soit souvent ignoré pour simplifier.\n\nBien que beaucoup de Compétences Métier aient peu d'utilité en combat, il y a autant de Compétences Métier que de professions, et certaines peuvent être utilisées en fonction des circonstances. Par exemple, réussir un Test de Métier (Apothicaire) peut être utile si vous combattez dans une échoppe d'Apothicaire, car vous identifiez des substances âcres à jeter sur vos ennemis.\n\nLa Compétence Métier est aussi utilisée pour effectuer une Activité Artisanat (voir page 196).",
@@ -1269,26 +1149,6 @@
           "page": 18,
           "note": "AA 02 l.469"
         }
-      },
-      {
-        "id": "victimisation",
-        "label": "Victimisation",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 343,
-          "note": "frenchy.bzh 54 l.23"
-        },
-        "pool": false
-      },
-      {
-        "id": "danse-tribale",
-        "label": "Danse Tribale",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 441,
-          "note": "frenchy.bzh 65 l.380"
-        },
-        "pool": false
       }
     ],
     "desc": "Vous avez appris un art physiquement exigeant, probablement pour gagner votre vie, peut-être en tant que saltimbanque ou membre d'un carnaval itinérant. Une utilisation réussie de la Compétence Représentation vous permet de divertir tous les spectateurs suffisamment proches pour vous voir et vous entendre ; le DR indique à quel point vous avez réussi.\n\nCertaines spécialisations physiques de Représentation peuvent vous donner un Avantage au combat. Avec l'accord de votre MJ, Représentation (Acrobaties) peut être utilisée à la place d'Esquive. D'autres Compétences Représentation peuvent être directement utilisées comme arme si vous possédez les équipements appropriés, comme avec Représentation (Cracheur de feu) !",
@@ -1699,76 +1559,6 @@
         }
       },
       {
-        "id": "maladies",
-        "label": "Maladies",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 383,
-          "note": "frenchy.bzh 58 l.56"
-        },
-        "pool": false
-      },
-      {
-        "id": "magie-peaux-verte",
-        "label": "Magie Peaux-Verte",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 450,
-          "note": "frenchy.bzh 65 l.619"
-        },
-        "pool": false
-      },
-      {
-        "id": "siege",
-        "label": "Siège",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 468,
-          "note": "frenchy.bzh 67 l.268"
-        },
-        "pool": false
-      },
-      {
-        "id": "ranald",
-        "label": "Ranald",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 116,
-          "note": "frenchy.bzh 23 l.570"
-        },
-        "pool": false
-      },
-      {
-        "id": "zone-de-patrouille",
-        "label": "Zone de Patrouille",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 48,
-          "note": "frenchy.bzh 16 l.141"
-        },
-        "pool": false
-      },
-      {
-        "id": "slaanesh",
-        "label": "Slaanesh",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 269,
-          "note": "frenchy.bzh 46 l.110"
-        },
-        "pool": false
-      },
-      {
-        "id": "nurgle",
-        "label": "Nurgle",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 269,
-          "note": "frenchy.bzh 46 l.110"
-        },
-        "pool": false
-      },
-      {
         "id": "apothicaire",
         "label": "Apothicaire",
         "source": {
@@ -1909,16 +1699,6 @@
           "book": "ennemi-dans-l-ombre",
           "page": 143,
           "note": "EDO 10 l.736"
-        },
-        "pool": false
-      },
-      {
-        "id": "rebouteux",
-        "label": "Rebouteux",
-        "source": {
-          "book": "frenchy-bzh",
-          "page": 139,
-          "note": "frenchy.bzh 26 l.359"
         },
         "pool": false
       }

@@ -38,10 +38,6 @@ import type { OptionalEntry } from '../../../engine/statEntry';
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
 export type Terrain = string & {};
 
-/** Marque de TYPE d'une valeur GELÉE : ce qu'une migration REJOUE, jamais la semence du jour —
- *  distinguable au checker par son alias, sans nom de symbole ni de fichier (#1789). */
-export type Fige<T> = T & { readonly __fige?: undefined };
-
 /** `Dir8` (`geometry/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
 export { dir8Schema };

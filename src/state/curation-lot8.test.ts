@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyCast } from '../noyau/combatFlow';
 import { pregen, pregenParty, PREGEN } from '../data/pregens';
-import { spells, findSpellById } from '../data';
+import { findSpellById } from '../data';
 import { spellSupportOf } from '../engine/spellspec';
 import { woundsFromHit } from '../engine/combat';
 import { effectiveArmourAt } from '../engine/characteristics';
@@ -22,23 +22,13 @@ beforeEach(() => {
   useGame.getState().seedRng(51);
 });
 
-describe('couverture de curation', () => {
-  it('TOUS les sorts OFFICIELS sont curés — champ `curated:true` dans SpellData (JSON)', () => {
-    // Les sorts homebrew fan (source.book = frenchy-bzh) sont EXEMPTS.
-    // La curation ne couvre que l'officiel.
-    for (const s of spells) {
-      if (s.source?.book === 'frenchy-bzh') continue;
-      expect(s.curated, `${s.label} (${s.ecole} / ${s.subType ?? '—'})`).toBe(true);
-    }
-  });
-
-  it('label en double : « Enchevêtrement » est DEUX ids (Arcane vs miracle de Taal), tous deux curés', () => {
+describe('désambiguïsation et classification', () => {
+  it('label en double : « Enchevêtrement » est DEUX ids (Arcane vs miracle de Taal)', () => {
     const arcane = findSpellById('enchevetrement')!;
     const taal = findSpellById('enchevetrement-2')!;
     expect(arcane.label).toBe(taal.label);
     expect(arcane.ecole).toBe('Magie des Arcanes');
     expect(taal.ecole).toBe('Invocation');
-    expect(arcane.curated && taal.curated).toBe(true);
   });
 
   it('spellSupportOf : classification mécanique / partiel / narratif', () => {

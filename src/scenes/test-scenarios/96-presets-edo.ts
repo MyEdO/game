@@ -24,10 +24,12 @@ function construireNarratif(): NarratifBlock {
     {
       // MSR 141 — Appendice I, « L'entraînement et les mentors » (le capitaine du Bérébeli).
       id: 'edo-josef-quartjin',
-      base: 'batelier',
+      base: 'humain',
       source: { book: 'mort-sur-le-reik', page: 141 },
+      apparence: { tenue: 'batelier' },
       profil: {
         label: 'Josef Quartjin',
+        optionals: [],
         char: { M: 4, 'capacite-de-combat': 48, 'capacite-de-tir': 38, force: 55, endurance: 48, initiative: 42, agilite: 43, dexterite: 39, intelligence: 30, 'force-mentale': 24, sociabilite: 48, B: 15 },
         traits: [
           { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 },

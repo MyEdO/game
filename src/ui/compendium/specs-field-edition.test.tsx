@@ -16,9 +16,9 @@ beforeAll(() => {
 });
 
 const ENTREE: SpecEntry = {
-  id: 'zone-de-patrouille',
-  label: 'Zone de Patrouille',
-  source: { book: 'frenchy-bzh', page: 48, note: 'frenchy.bzh 16 l.141' },
+  id: 'marins',
+  label: 'Marins',
+  source: { book: 'mer-des-griffes', page: 151, note: 'MDG 16 l.360' },
   pool: false,
 };
 
@@ -56,9 +56,9 @@ describe('SpecsField — renommer une spécialisation (#1342 L3)', () => {
   it('renommer une entrée HORS POOL garde `pool: false` ET sa `source`', () => {
     mount([{ ...ENTREE }]);
     const input = container.querySelector('input') as HTMLInputElement;
-    saisir(input, 'Zone de patrouille fluviale');
-    expect(list[0].label).toBe('Zone de patrouille fluviale');
-    expect(list[0].id).toBe('zone-de-patrouille-fluviale');
+    saisir(input, 'Marins fluviaux');
+    expect(list[0].label).toBe('Marins fluviaux');
+    expect(list[0].id).toBe('marins-fluviaux');
     expect(list[0].pool).toBe(false);
     expect(list[0].source).toEqual(ENTREE.source);
   });

@@ -55,7 +55,7 @@ function jeton(ent: SceneEntity, visible = true): TokenEl {
 /** Un PNJ à qui PARLER : sa capacité d'instance vient de son dialogue, comme pour le curseur et le
  *  clic — aucune déclaration propre au halo. */
 const interlocuteur = (id: string, x = 5, y = 5, label?: string): SceneEntity => ({
-  id, kind: 'personnage', ref: 'villageois', pos: { x, y }, ...(label ? { label } : {}), dialogueId: 'dlg-aubergiste',
+  id, kind: 'personnage', ref: 'humain', pos: { x, y }, ...(label ? { label } : {}), dialogueId: 'dlg-aubergiste',
 });
 
 function scèneAvec(...entities: SceneEntity[]): Scene {
@@ -174,7 +174,7 @@ describe('Halos d’interaction — les DEUX corps d’un utilisable (#1687)', (
   });
 
   it('un PNJ SANS offre reste du décor vivant, et un jeton de COMBATTANT n’entre jamais dans la liste', () => {
-    const muet: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'villageois', pos: { x: 6, y: 6 } };
+    const muet: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 } };
     expect(interactionHalos([jeton(muet)], [], scèneAvec(muet), {}, REVELE)).toHaveLength(0);
     const combattant: TokenEl = {
       kind: 'token', key: 'cbt:aubergiste', id: 'aubergiste', cell: { x: 5, y: 5, z: 0 },

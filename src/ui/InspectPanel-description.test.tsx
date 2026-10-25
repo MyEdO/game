@@ -419,9 +419,9 @@ describe('InspectPanel — sans prose, ni onglet ni bloc vide', () => {
     expect(el.textContent).toContain('Caractéristiques');
   };
 
-  it('Josef (`npc-josef`, profil sans prose, base `batelier` sans desc)', () => {
+  it('Josef (`npc-josef`, profil sans prose, base `humain` sans desc)', () => {
     poserScenario(useGame.getState, scenario);
-    expect(findCreatureById('batelier')?.desc).toBeFalsy();
+    expect(findCreatureById('humain')?.desc).toBeFalsy();
     const josef = sceneNpc(useGame.getState().scene, 'npc-josef', presetPnjById)!;
     expect(josef.porteurDeFiche?.presetId).toBe('edo-josef-quartjin');
     sansOnglets(josef);

@@ -156,7 +156,7 @@ describe('raccourcis — la caméra se pilote au clavier : bascule de vue, inspe
     expect(b.codes).toEqual(['KeyI']);
     const run = (s: GameState) => { const setInspectId = vi.fn(); b.run(() => ({ ...s, setInspectId }) as never); return setInspectId; };
     // Combat : la case du CURSEUR prime, puis le portrait survolé, puis le jeton survolé.
-    const surCase = { combatCursor: { tile: { x: 2, y: 3 } }, battle: { over: null, order: [], turn: 0, combatants: [spawnEnemy({ ref: 'brigand' }, 'e1', { x: 2, y: 3 })] } } as unknown as Partial<GameState>;
+    const surCase = { combatCursor: { tile: { x: 2, y: 3 } }, battle: { over: null, order: [], turn: 0, combatants: [spawnEnemy({ ref: 'humain' }, 'e1', { x: 2, y: 3 })] } } as unknown as Partial<GameState>;
     expect(run(fake({ ...surCase, hoverCombatantId: 'h2', hovered: 'h3' }))).toHaveBeenCalledWith('e1');
     expect(run(fake({ hoverCombatantId: 'h2', hovered: 'h3' }))).toHaveBeenCalledWith('h2');
     expect(run(fake({ hovered: 'h3' }))).toHaveBeenCalledWith('h3');

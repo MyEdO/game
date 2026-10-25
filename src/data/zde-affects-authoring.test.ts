@@ -58,13 +58,10 @@ const ALLIES_SEULS = [
   'en-bon-ordre', // AA 06 l.501-507
   'en-terrain-dangereux', // AA 06 l.513-519
   'distorsion-temporelle', // VDM 04 l.349
-  'malveillance-absolue', // frenchy-bzh (donnée app-owned)
 ];
 
 /** ZdE dont la source ne réserve RIEN (`LDB 47 l.28` : tout le monde dans la zone). */
 const SANS_FILTRE = [
-  'waaagh', // « Chaque cible dans la zone… » (clause 1) — un filtre fausserait la clause 1
-  'nuee-de-mouches', // « Les alliés et ennemis à moins de 3 mètres… »
   'festin-des-damnes', // ADE II 02 l.765 « créatures de votre choix » — choix du lanceur, hors vocabulaire
 ];
 
@@ -103,12 +100,6 @@ describe("`affects` — les formes que le verbatim rend PARTICULIÈRES", () => {
     expect(retient(area.affects, pyromancien)).toBe(true);
   });
 
-  it("rafale-hurlante : « Les alliés du sorcier ne sont pas affectés » — retient les ENNEMIS seuls", () => {
-    const area = areaOf('rafale-hurlante');
-    expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'opponent' });
-    expect(verdict(area.affects)).toEqual({ lanceur: false, allie: false, ennemi: true, neutre: true });
-  });
-
   it("regiment-monstrueux-de-merciw : « Ce Sort ne vous affecte pas » garde son `excludesCaster`", () => {
     expect(areaOf('regiment-monstrueux-de-merciw').excludesCaster).toBe(true);
   });
@@ -139,10 +130,10 @@ describe('narrative — ce que le champ `affects` modélise ne se journalise plu
     /Magie des Arcanes \(/i,
   ];
 
-  const sortsAvecAffects = spells.filter((s) => (s.target?.kind === 'area' || s.target?.kind === 'cone') && s.target.affects != null);
+  const sortsAvecAffects = spells.filter((s) => s.target?.kind === 'area' && s.target.affects != null);
 
   it('le corpus mesuré est bien celui des ZdE filtrées (sinon la propriété ne mesure rien)', () => {
-    expect(sortsAvecAffects.map((s) => s.id).sort()).toEqual([...ALLIES_SEULS, 'les-lunes-du-chasseur', 'ironie-du-destin', 'rafale-hurlante'].sort());
+    expect(sortsAvecAffects.map((s) => s.id).sort()).toEqual([...ALLIES_SEULS, 'les-lunes-du-chasseur', 'ironie-du-destin'].sort());
   });
 
   it.each(sortsAvecAffects.map((s) => [s.id, s] as const))(
@@ -167,16 +158,5 @@ describe('narrative — ce que le champ `affects` modélise ne se journalise plu
     expect(textes('en-bon-ordre').join(' ')).toMatch(/sans céder d’Avantage ni subir d’attaque gratuite/);
     expect(textes('en-terrain-dangereux').join(' ')).toMatch(/État Brisé/);
     expect(textes('distorsion-temporelle').join(' ')).toMatch(/Action supplémentaire non modélisée/);
-  });
-});
-
-describe('`maison` — arbitrage de camp tracé en DONNÉE (AGENTS.md règle 7)', () => {
-  it("rafale-hurlante : la rétention des NEUTRES par `is:'opponent'` porte sa justification datée", () => {
-    const area = areaOf('rafale-hurlante');
-    expect(area.maison).toBeTypeOf('string');
-    expect(area.maison).toMatch(/neutre/i);
-    expect(area.maison).toMatch(/2026-07-28/);
-    // Le fait tracé est CELUI que le moteur produit (cf. `verdict` ci-dessus) : le neutre est retenu.
-    expect(retient(area.affects, NEUTRAL)).toBe(true);
   });
 });

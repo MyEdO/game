@@ -39,7 +39,6 @@ export function formatSpellTarget(t2: SpellTarget): string {
       ? (t2.n === 1 ? t('spellFmt.oneTarget') : t('spellFmt.targets', { n: t2.n }))
       : t('spellFmt.targets', { n: fmtMeasure(t2.n) });
     case 'area': return t('spellFmt.area', { span: t2.span === 'radius' ? t('spellFmt.spanRadius') : t('spellFmt.spanDiameter'), n: fmtMeasure(t2.meters) });
-    case 'cone': return t('spellFmt.cone', { length: fmtMeasure(t2.lengthMeters), width: fmtMeasure(t2.widthMeters) });
     case 'special': return t2.text;
   }
 }
@@ -58,6 +57,6 @@ export function formatSpellDuration(d: SpellDuration): string {
     case 'rounds': return t('spellFmt.rounds', { n: fmtMeasure(d.value), unit: d.value === 1 ? t('spellFmt.round') : t('spellFmt.roundsUnit'), plus: d.plus ? t('spellFmt.fragPlus') : '' });
     case 'clock': return t('spellFmt.clock', { n: fmtMeasure(d.value), unit: clockUnit(d.unit, d.value !== 1) });
     case 'untilDawn': return t('spellFmt.untilDawn');
-    case 'special': return `${d.text}${d.plus && !/\+\s*$/.test(d.text) ? ' +' : ''}`;
+    case 'special': return d.text;
   }
 }

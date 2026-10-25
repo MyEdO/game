@@ -1206,7 +1206,6 @@ Vous portez l'empreinte du Vent de Magie gris, que les personnes dotées de Seco
 
 > Source VF : `Source/WH - V4 - Aux Armes/` (un fichier par chapitre).
 > Annexe III (`AA 13 l.3-343`) : « Nouveaux Talents et Talents Mis À Jour ».
-> Note : une partie des données dans `talents.json` est taguée `source: "frenchy.bzh"` (homebrew Guide v4.5).
 
 #### Artilleur (mise à jour AA)
 **Source :** AA Annexe III l.4457-4460  

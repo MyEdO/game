@@ -22,7 +22,6 @@ import { collectRoundEndTestSteps } from './triggeredTest';
 import { inBattleId } from '../monde/combatants';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
-import { groupMatch } from '../../engine/groups';
 import { outnumberCountBonus } from '../../engine/combatFeatures/dispatch';
 import { combatDistance } from '../monde/footprint';
 import { sceneMetresPerTile } from '../monde/scene';
@@ -330,21 +329,17 @@ export const TABLES = {
         for (const src of battle.combatants) {
           if (isOutOfAction(src) || !src.pos) continue;
           for (const { traitId, aura } of traitAuras(src.traits)) {
-            const rangeM = aura.rangeChar ? bonus(effectiveChar(src, aura.rangeChar)) : (aura.rangeMeters ?? 0);
+            const rangeM = bonus(effectiveChar(src, aura.rangeChar));
             // Le TRAIT émetteur voyage avec chaque op projetée (`PassiveMod.src`) : la pénalité arrive
             // chez la cible avec son nom et son renvoi Codex, jamais en modificateur anonyme.
             const projected = structuredClone(aura.passive).map((op) => ({ op, src: { category: 'traits', id: traitId } })); // #2097
             for (const c of battle.combatants) {
               if (isOutOfAction(c) || !c.pos) continue;
-              // L'émetteur ne se touche que si sa DONNÉE le dit (`includesSelf`) — défaut : jamais.
-              if (c.id === src.id && !aura.includesSelf) continue;
+              if (c.id === src.id) continue;
               const sameCamp = c.kind === src.kind;
               // `affects` absent ou `all` = aucun filtre de camp (Perturbant, LDB 85 l.262 : « Toute personne »).
               if (aura.affects === 'enemies' && sameCamp) continue;
               if (aura.affects === 'allies' && !sameCamp) continue;
-              // Filtre d'APPARTENANCE (`affectsGroups`, ids de `groups.json`) : union — la cible doit être
-              // d'au moins un des Groupes listés. Absent = aucun filtre de Groupe.
-              if (aura.affectsGroups && !aura.affectsGroups.some((g) => groupMatch(g, c.groups ?? []))) continue;
               if (combatDistance(src, c, mpt) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
             }
           }

@@ -15,7 +15,7 @@
  *           resistance-a-la-magie, vision-nocturne.
  *       • trait↔qualité : homonymes (créature vs qualité d'arme/armure) — infecte, magique, rapide, taille.
  *       • trait↔sort : un trait de créature porte le nom d'un sort/effet homonyme — perturbant,
- *           protection, regeneration, sang-corrosif, souffle, vol, mauvais-oeil (le Trait de l'œil
+ *           protection, regeneration, sang-corrosif, souffle, mauvais-oeil (le Trait de l'œil
  *           cyclopéen fimir, VDM 15 folio 217, vs le Sort du Domaine de la Sorcellerie homonyme, LDB 49 l.64).
  *       • qualité↔sort : maudit (l'Atout d'objet porté par tout objet maudit, VDM 12 folio 170, vs le
  *           Sort du Domaine des Cieux homonyme, LDB 48 l.187).
@@ -68,7 +68,7 @@ const KNOWN_CROSS = [
   'morsure', 'mouvement', 'ogre', 'perturbant', 'pistolet', 'poudre-impregnee-d-aqshy',
   'poulet', 'protection', 'rapide', 'regard-petrifiant', 'regeneration', 'resistance', 'resistance-a-la-magie',
   'rocher', 'sang-corrosif', 'siege', 'silence', 'singe', 'souffle', 'taille', 'tente', 'tentacules', 'toile', 'tonneau', 'vers',
-  'vision-nocturne', 'vol', 'vomissement',
+  'vision-nocturne', 'vomissement',
 ].sort();
 
 describe('intégrité des ids de données', () => {

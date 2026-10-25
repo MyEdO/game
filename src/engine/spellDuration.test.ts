@@ -14,6 +14,5 @@ describe('spellRangeFormat — affichage DÉRIVÉ de la Durée', () => {
 
   it('le marqueur « + » de fin de Durée (LDB 47 l.311, #543) s’affiche', () => {
     expect(formatSpellDuration({ kind: 'rounds', value: { bonusOf: 'force-mentale' }, plus: true })).toBe('(Bonus de Force Mentale) Rounds +');
-    expect(formatSpellDuration({ kind: 'special', text: '8 Tours', plus: true })).toBe('8 Tours +');
   });
 });

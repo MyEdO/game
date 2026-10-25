@@ -18,7 +18,7 @@ export const TRUTH: CaseAveugle[] = [
   { id: 'zombie' },
   { id: 'ogre', arme: 'massue' },
   { id: 'gor', arme: 'grande-hache' },
-  { id: 'skaven', arme: 'dague' },
+  { id: 'guerrier-des-clans', arme: 'dague' },
 ];
 // Pour chaque case : face + profil côte à côte (aide l'identification 3D).
 export const GRILLE: GrillePlanche = {

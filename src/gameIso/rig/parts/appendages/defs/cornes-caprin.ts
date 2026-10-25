@@ -1,6 +1,6 @@
 import type { AppendageDef } from '../types';
 
-// Grandes cornes ivoire de chèvre balayées vers l'arrière (Gor/Ungor/Chamane/Prophète gris).
+// Grandes cornes ivoire de chèvre balayées vers l'arrière (Gor/Ungor/Chamane).
 // PROFIL : balaient haut-arrière (-x), pas en éventail L/R ; proche (claire) devant lointaine (cassée).
 export const appendage: AppendageDef = {
   id: 'cornes-caprin',

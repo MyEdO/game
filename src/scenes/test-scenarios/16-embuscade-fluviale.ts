@@ -48,9 +48,9 @@ const construireScene = (): Scene => buildScene({
         // index 0 = la BARQUE pirate (coque MSRC) ; équipage exposé = les pirates (index 1-3).
         { ref: 'barque-fluviale', pos: { x: 14, y: 6 }, label: 'Barque des pirates',
           crewIds: ['enemy-enc-fluvial-1', 'enemy-enc-fluvial-2', 'enemy-enc-fluvial-3'] },
-        { ref: 'pirate-fluvial', pos: { x: 12, y: 5 } },
-        { ref: 'pirate-fluvial', pos: { x: 12, y: 7 } },
-        { ref: 'chef-pirate', pos: { x: 15, y: 6 } },
+        { ref: 'humain', pos: { x: 12, y: 5 }, label: 'Pirate' },
+        { ref: 'humain', pos: { x: 12, y: 7 }, label: 'Pirate' },
+        { ref: 'jaego-roth', pos: { x: 15, y: 6 } },
         // index 4 = l'ANGUILLE DU REIK, dans l'eau entre les deux bateaux.
         { ref: 'anguille-du-reik', pos: { x: 8, y: 6 }, label: 'Anguille du Reik' },
         // index 5 = la BARGE des aventuriers (coque MSRC), côté allié ; équipage exposé = 2 héros du pont.

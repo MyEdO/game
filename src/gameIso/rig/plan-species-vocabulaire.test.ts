@@ -73,7 +73,7 @@ describe('espace d’espèces DÉCLARÉ par les gabarits ⊆ vocabulaire dériv�
       for (const n of p.speciesNames())
         if (!sansNuees.has(n)) bad.push(`${p.id}:${n}`);
     expect(bad.sort(), 'la garde ne mord plus : retirer les formes de nuée du vocabulaire ne sort RIEN').toEqual(attendu);
-    expect(attendu.length, 'le coût mesuré d’un retrait des nuées du vocabulaire (#1537) a changé — re-mesurer avant de le figer').toBe(8);
+    expect(attendu.length, 'le coût mesuré d’un retrait des nuées du vocabulaire (#1537) a changé — re-mesurer avant de le figer').toBe(5);
   });
 
   it('l’espace bipède est DÉRIVÉ du registre (non vide, ids de def)', () => {
@@ -114,7 +114,7 @@ describe('espace d’espèces ÉMIS au runtime ⊆ vocabulaire dérivé (volet 2
     for (const t of trappings) if (t.siegeRig) emet(resolveRender(undefined, undefined, t.id).species, `resolveRender(affût ${t.id})`);
     for (const s of species) emet(rigSpeciesId(s.id), `rigSpeciesId(${s.id})`);
     expect(bad, bad.join('\n')).toEqual([]);
-    expect(n, 'la population balayée s’est effondrée — le volet 2 ne mesure plus rien').toBeGreaterThan(400);
+    expect(n, 'la population balayée s’est effondrée — le volet 2 ne mesure plus rien').toBeGreaterThan(290);
   });
 
   it('asRigSpeciesId : producteur VALIDANT — un id hors vocabulaire lève nominativement en DEV/test', () => {
