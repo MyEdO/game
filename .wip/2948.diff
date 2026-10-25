@@ -1,0 +1,2493 @@
+diff --git a/docs/charte-ui.md b/docs/charte-ui.md
+index 6638a9a2e..8b03a69c7 100644
+--- a/docs/charte-ui.md
++++ b/docs/charte-ui.md
+@@ -168,6 +168,7 @@ primitive React pose souvent ces classes pour toi (ex. `Modal` pose `.modal`/`.m
+ | `.stat-chip` (+ `.sc-label`, `.sc-value`) | Cartouche « label + valeur » (PV, carac, ressource) | Afficher une valeur nommée — jamais un format cryptique (« 4·4 » sans libellé, cf. règle charte ci-dessus). |
+ | `.listrow` (+ `.lr-name`, `.lr-sub`) | Rangée de liste : nom + méta + action ; quand la place manque, les puces passent SOUS le nom et une puce trop longue se coupe en ellipse ; `.lr-sub` = ligne secondaire SOUS le nom (prop `subtitle` de `ListRow`) | Toute liste d'entités cliquables/actionnables (inventaire, roster…) plutôt qu'un `<li>` stylé à la main. Une méta qui n'est pas une puce (une date, une ligne descriptive) va en `subtitle`, jamais en enfant à droite. Rangée NON cliquable (une action de fin, un retrait ✕) : `ListRow` sans `onClick`, rendue `<div className="listrow">` sans `data-variant` — jamais `data-variant='insp'` (curseur et survol d'une rangée cliquable). |
+ | `.fieldrow` (+ `[data-variant='texte-dessous']`) | Rangée de CONTRÔLES d'un formulaire d'édition (sélecteur, saisie, retrait ✕) qui s'enroule et tient à 360 px : chaque enfant rétrécit (`min-width: 0`, `max-width: 100%`), le `<select>` garde un plancher `min(14rem, 100%)`. Variante `texte-dessous` : le `<select>` (base `0`, sans plancher) et le ✕ partagent la première ligne à toute largeur ; le `<textarea>` prend sa propre ligne, pleine largeur, et grandit avec son contenu (`field-sizing: content`, plancher 2 lignes ; sans support : 2 lignes + défilement) | Toute rangée « réf + ✕ » de l'atelier du Codex et de l'éditeur (`RefField`, `DescRefField`, `StructFields`, `CodexEdit`, `EffectList`, `Inspector`, `NarratifEditor`) ; un texte libre long d'une telle rangée (motif d'écart) est un `<textarea>` en `texte-dessous`, jamais un `<input>` réduit au reste de la ligne. |
++| `.ed-subfield` | Sous-rangée compacte d'édition : cadre d'enroulement partagé avec `.fieldrow`, enfants et saisies rétrécissables et bornés à la largeur disponible ; espacement et typographie de l'éditeur | Sous-champs de `Editor`, `Inspector`, `GameOpEditor`, `NarratifEditor`, `StatblockEditor`, `CodexEdit` et `StructFields`, en large comme à 360 px. |
+ | `.master-detail-rail` (+ `.master-detail-action`) | Rail d'un `MasterDetail` qui porte une ACTION de liste (« Ajouter un… ») collée sous la liste, hors de son défilement | Prop `action` de `MasterDetail` (`src/ui/MasterDetail.tsx`) — jamais un bouton d'ajout au pied du rail défilant. |
+ | `.clamp` | Texte TRONQUÉ à N lignes (`--clamp`, défaut 3) | Toute accroche/description bornée dans une carte — jamais un `-webkit-line-clamp` recopié par écran. |
+ | `.wounds-badge` / `.char-value` (+ tailles `.char-value-sm`/`.char-value-md`/`.char-value-lg`) / `.game-date` | Composants de donnée unifiés (LOT 5) — respectivement PB/carac+avancées/date de jeu | Rendus par leurs composants (`WoundsBadge`, `CharValue`, `GameDate`) — ne pas reformater ces données à la main ailleurs ; `CharValue` prend l'échelle NOMMÉE (`size`, défaut `sm`, #418) au lieu d'hériter du contexte. |
+diff --git a/scripts/docs/lib/slots-registre.mts b/scripts/docs/lib/slots-registre.mts
+index 8027cf75a..8fc607888 100644
+--- a/scripts/docs/lib/slots-registre.mts
++++ b/scripts/docs/lib/slots-registre.mts
+@@ -11,7 +11,7 @@
+ import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
+ import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
+ import type { SchemaDef } from '../../../src/data/schemas/types';
+-import { estFeuilleDId, mesureDuParse, reperesDuParse, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
++import { estFeuilleDId, mesureDuParse, reperesDuParse, type CompositionDuParse, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
+ import { defDe, descendre, enfantsDe, declarationDEnfants } from '../../../src/data/schemas/grammaire/descente';
+ import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
+ import { nomDeDocument, type OccurrenceDeReference, type ReferencesParPorteur } from './structures-scan.mjs';
+@@ -84,6 +84,20 @@ export function slotsDuParse(scan: Pick<ScanDesReferences, 'brutParNom'>, defs:
+   return defs.filter((d) => scan.brutParNom.has(d.file)).flatMap((d) => slotsDuDocument(d.file, d.schema, scan.brutParNom.get(d.file)));
+ }
+ 
++export function compositionsDuParse(scan: Pick<ScanDesReferences, 'brutParNom'>, defs: readonly SchemaDef[] = defsDeDocument()): ReadonlyMap<object, CompositionDuParse> {
++  const compositions = new Map<object, CompositionDuParse>();
++  for (const d of defs) {
++    if (!scan.brutParNom.has(d.file)) continue;
++    const document = scan.brutParNom.get(d.file);
++    for (const repere of mesureDuParse(d.schema, document).compositions) {
++      const { noeud } = auPath(d.file, document, repere.path);
++      if (noeud === null || typeof noeud !== 'object') throw new Error(`composition : ${d.file} ne porte aucun objet au path validé`);
++      compositions.set(noeud, repere);
++    }
++  }
++  return compositions;
++}
++
+ /**
+  * Les NŒUDS D'OP que le parse de mesure atteint (`mesureDuParse › ops`) dans les documents du scan,
+  * par IDENTITÉ d'objet : un nœud `GameOp` du corpus absent de cet ensemble n'est validé par aucun
+diff --git a/scripts/docs/lib/structures-fixture.testkit.mts b/scripts/docs/lib/structures-fixture.testkit.mts
+new file mode 100644
+index 000000000..fa72e0732
+--- /dev/null
++++ b/scripts/docs/lib/structures-fixture.testkit.mts
+@@ -0,0 +1,21 @@
++import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { fileURLToPath } from 'node:url';
++import type { SchemaDef } from '../../../src/data/schemas/types.ts';
++import { scannerDonnees } from './structures-scan.mjs';
++
++const ROOT = fileURLToPath(new URL('../../..', import.meta.url));
++
++export function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
++  const dossier = mkdtempSync(join(tmpdir(), nom));
++  try {
++    mkdirSync(join(dossier, 'src/data'), { recursive: true });
++    mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
++    cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
++    for (const [file, contenu] of Object.entries(documents)) writeFileSync(join(dossier, 'src/data', file), JSON.stringify(contenu));
++    return scannerDonnees(dossier, defs);
++  } finally {
++    rmSync(dossier, { recursive: true, force: true });
++  }
++}
+diff --git a/scripts/docs/lib/structures-lexique.mts b/scripts/docs/lib/structures-lexique.mts
+index 2017b865e..6e7fadc90 100644
+--- a/scripts/docs/lib/structures-lexique.mts
++++ b/scripts/docs/lib/structures-lexique.mts
+@@ -13,11 +13,13 @@
+ // Statuts : `cible` = forme visée · `historique` = graphie connue à éteindre · `declaree` = forme
+ // volontairement conservée · absente du lexique = `divergente`.
+ //
+-// Les signatures de statut `cible` sont FIGÉES AU STOCK (`STRUCTURES_CIBLES` de
+-// `scripts/guards/lib/structuresStock.mjs`, égalité stricte testée) : faire passer une graphie en
+-// `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
++// #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247
+ 
+ import { basename } from 'node:path';
++import { dotationConcreteSchema } from '../../../src/data/schemas/grammaire/dotation.ts';
++
++/** #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247 */
++export const COMPOSITIONS_REFERENCE = [{ id: 'dotation-concrete', schema: dotationConcreteSchema, statut: 'cible' as const, note: '#1463#issuecomment-5385520833' }] as const;
+ import { SLOTS } from '../../../src/data/palette.types.ts';
+ import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
+ import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
+@@ -61,14 +63,7 @@ export const SITE_STATBLOC: SiteDeSignature = {
+  *  `grammaire/valeurs.ts`) : la référence de source plus sa preuve `quote`, dans tout document. */
+ export const SITE_EMPLACEMENT_SECONDAIRE: SiteDeSignature = { champs: ['alsoIn'] };
+ 
+-/**
+- * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.
+- * QUATRE strates : la strate `Instance` du design v2 (SkillInstance, ItemInstance, snapshot de
+- * sauvegarde) est HORS PÉRIMÈTRE PAR CONSTRUCTION — les deux racines mesurées ne portent que des
+- * documents AUTHORÉS ; son dénominateur se mesurera sur le runtime et un snapshot de test
+- * (#1463, commentaire « Arbitrages de design L0 (2026-08-23, orchestrateur — suite à la contre-passe
+- * du commit 3a6017ebb) », point 1).
+- */
++/** #1463#issuecomment-5385520833 */
+ export type Strate = 'Référence' | 'Valeur' | 'Ops' | 'Document';
+ 
+ /** Le dataset dont les références sont lotées L2 (les refs de Compétence) — #1463 design v2. */
+diff --git a/scripts/docs/lib/structures-scan.mts b/scripts/docs/lib/structures-scan.mts
+index 013361b88..24fb7c849 100644
+--- a/scripts/docs/lib/structures-scan.mts
++++ b/scripts/docs/lib/structures-scan.mts
+@@ -28,7 +28,8 @@ import { basename, join, relative } from 'node:path';
+ import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
+ import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
+ import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
+-import { defsDeDocument } from './slots-registre.mjs';
++import { compositionsDuParse, defsDeDocument } from './slots-registre.mjs';
++import { COMPOSITIONS_REFERENCE } from './structures-lexique.mjs';
+ import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
+ import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
+ import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
+@@ -548,6 +549,10 @@ export function scannerDonnees(
+   );
+   const brutParNom = new Map(docs.map((d) => [d.nom, brutParDocument.get(d.chemin)])) as ReadonlyMap<string, unknown>;
+   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
++  const compositions = new Map([...compositionsDuParse({ brutParNom }, defs)].flatMap(([objet, repere]) => {
++    const declaration = COMPOSITIONS_REFERENCE.find((c) => c.schema === repere.noeud);
++    return declaration ? [[objet, declaration] as const] : [];
++  }));
+   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
+   const collections = collectionsDesDocuments(defs, brutParNom);
+   /** Cartes des collections `record` : un objet que le schéma DÉCLARE collection à clé n'est jamais hors
+@@ -897,9 +902,9 @@ export function scannerDonnees(
+     concept: Concept,
+     p: Prepare,
+     champ: string,
+-    cl: { statut: FormeObservee['statut']; note: string; signature: string },
++    cl: { statut: FormeObservee['statut']; note: string; signature: string; composition?: string },
+   ) => {
+-    const k = [concept.id, p.nom, champ || '(racine)', cl.signature].join(' | ');
++    const k = [concept.id, p.nom, champ || '(racine)', cl.signature, cl.statut, cl.composition ?? ''].join(' | ');
+     if (!formes.has(k))
+       formes.set(k, {
+         concept: concept.id,
+@@ -929,7 +934,7 @@ export function scannerDonnees(
+     concept: Concept,
+     p: Prepare,
+     champ: string,
+-    cl: { statut: FormeObservee['statut']; note: string; signature: string },
++    cl: { statut: FormeObservee['statut']; note: string; signature: string; composition?: string },
+     porteur: object,
+     cles: Iterable<string | number>,
+   ) => {
+@@ -1019,7 +1024,17 @@ export function scannerDonnees(
+           inc(racinesDisqualifiees, p.nom);
+       }
+       let classe = false;
+-      if (valeur) {
++      const composition = compositions.get(o);
++      if (composition) {
++        const ligne = inscrireReference(CONCEPT_REFERENCE, p, champ, {
++          statut: composition.statut,
++          note: composition.note,
++          signature: signatureProjetee(cles, resolvantes),
++          composition: composition.id,
++        }, o, resolvantes);
++        for (const d of cibles) ligne.ciblesSet.add(d);
++        classe = true;
++      } else if (valeur) {
+         const c = CONCEPTS.find((x) => x.id === valeur.concept)!;
+         ligneForme(c, p, champ, valeur).occurrences += 1;
+         classe = true;
+diff --git a/scripts/guards/lib/fieldConsumers.mjs b/scripts/guards/lib/fieldConsumers.mjs
+index 44d69fcb3..ecdb757fc 100644
+--- a/scripts/guards/lib/fieldConsumers.mjs
++++ b/scripts/guards/lib/fieldConsumers.mjs
+@@ -21,11 +21,10 @@
+ //       — OU le PORTEUR est un `T` : son type DÉCLARÉ (celui de son symbole à SA déclaration, le
+ //       narrowing du site ignoré) porte la déclaration de `T`, ou l'annotation de sa déclaration
+ //       RÉFÉRENCE `T` (`Extract<T, …>`, `T[]`, `Record<string, T>` — références résolues par
+-//       symbole, alias d'import traversés).
+-// La condition (2) sépare un champ HÉRITÉ de son déclarant : `TrappingRef` compose `Ref`, donc
+-// `TrappingRef.spec` ne compte QUE les porteurs déclarés `TrappingRef` (2 sites), tandis que
+-// `Ref.spec` compte toute lecture de la propriété qu'il DÉCLARE (18 sites — c'est ce que casserait
+-// son renommage). Corollaire : un « 0 » sur un champ HÉRITÉ est tautologique et ne se lit pas comme
++//       symbole, alias d'import traversés), ou désigne un membre NOMMÉ de l'union déclarée par `T`.
++// La condition (2) sépare un champ HÉRITÉ de son déclarant : la cible compte ses porteurs et les
++// membres nommés de son union ; le déclarant compte toute lecture de la propriété qu'il DÉCLARE.
++// Corollaire : un « 0 » sur un champ HÉRITÉ est tautologique et ne se lit pas comme
+ // une absence de lecteur — d'où `fieldOwnership` (plus bas), qui donne l'ÉTAT du champ.
+ //
+ // ANGLES MORTS, MESURÉS sur le corpus (1 952 fichiers de `src/`, 2026-09-01) :
+@@ -285,8 +284,28 @@ function porteurDe(ctx, site) {
+     }
+     visit(annotation)
+   }
+-  site.porteur = out
+-  return out
++  site.porteur = { declarations: out, type }
++  return site.porteur
++}
++
++function membresNommesDeUnion(checker, decl) {
++  const membres = new Map()
++  let corps = ts.isTypeAliasDeclaration(decl) ? decl.type : undefined
++  while (corps && ts.isParenthesizedTypeNode(corps)) corps = corps.type
++  if (!corps || !ts.isUnionTypeNode(corps)) return membres
++  for (let branche of corps.types) {
++    while (ts.isParenthesizedTypeNode(branche)) branche = branche.type
++    if (!ts.isTypeReferenceNode(branche)) continue
++    let symbole = checker.getSymbolAtLocation(branche.typeName)
++    if (symbole && symbole.flags & SymbolFlags.Alias) symbole = checker.getAliasedSymbol(symbole)
++    const instance = checker.getTypeFromTypeNode(branche)
++    for (const declaration of symbole?.declarations ?? []) {
++      const d = declaration.resolve()
++      if (!membres.has(d)) membres.set(d, new Set())
++      membres.get(d).add(instance)
++    }
++  }
++  return membres
+ }
+ 
+ /** La cible résolue : déclaration du type à son `home`, et par champ ses déclarations de propriété
+@@ -310,7 +329,7 @@ function cibleDe(ctx, type, home, fields) {
+     toutes.set(f, a)
+     propres.set(f, new Set([...a].filter((d) => dansSousArbre(d, decl) || schemas.has(constDuShape(checker, d)))))
+   }
+-  cible = { decl, toutes, propres }
++  cible = { decl, toutes, propres, membresNommes: membresNommesDeUnion(checker, decl) }
+   ctx.cibles.set(cle, cible)
+   return cible
+ }
+@@ -348,7 +367,7 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, progra
+     finally { libererCache(local, erreurs) }
+   }
+   const ctx = contexteDe(cache, files, rootDir, programme)
+-  const { toutes, propres, decl } = cibleDe(ctx, cibleVisee.type, cibleVisee.home, fields)
++  const { toutes, propres, decl, membresNommes } = cibleDe(ctx, cibleVisee.type, cibleVisee.home, fields)
+   const hits = []
+   for (const field of fields) {
+     const attendues = toutes.get(field)
+@@ -368,7 +387,12 @@ export function scanFieldReads(cibleVisee, fields, files, rootDir, cache, progra
+         if (propre.has(d)) propreAuSite = true
+       }
+       if (!resolue) continue
+-      if (!propreAuSite && !porteurDe(ctx, site).has(decl)) continue
++      if (!propreAuSite) {
++        const porteur = porteurDe(ctx, site)
++        const membre = [...membresNommes].some(([declaration, instances]) =>
++          porteur.declarations.has(declaration) && [...instances].some((instance) => ctx.checker.isTypeAssignableTo(porteur.type, instance)))
++        if (!porteur.declarations.has(decl) && !membre) continue
++      }
+       hits.push({ field, file: site.file, line: site.line, symbole: symboleEnglobant(site.node), auDeclarant })
+     }
+   }
+diff --git a/scripts/guards/lib/grammaireStock.mjs b/scripts/guards/lib/grammaireStock.mjs
+index 77442c89c..9db58c70f 100644
+--- a/scripts/guards/lib/grammaireStock.mjs
++++ b/scripts/guards/lib/grammaireStock.mjs
+@@ -92,6 +92,5 @@ export const GRAMMAIRE_STOCK = {
+   // ── Formes POSSÉDÉES par la grammaire, re-tapées ou étendues ─────────────────────────────────
+   'src/data/schemas/defs/raceAppearance.ts:doc.parts|redeclaration|entityAppearanceSchema {cheveux,visage}': e('`parts` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
+   'src/data/schemas/defs/raceAppearance.ts:doc.eyes|redeclaration|entityAppearanceSchema {D,G}': e('`eyes` d’apparence re-tapé (`STRUCTURES_REDECLARATIONS` raceAppearance.ts, commun `entityAppearanceSchema`).', L1a),
+-  'src/data/schemas/grammaire/reference.ts:trappingRefSchema|extend|refSchema.extend(…)': e('Branche `{id, spec, count, qualities, qualityChoice}` de `TrappingRef` construite en ÉTENDANT `refSchema` — meurt avec l’adoption de `ref(\'trapping\')` par les dotations.', L3),
+   'src/data/schemas/grammaire/valeurs.ts:secondarySourceRefSchema|extend|sourceRefSchema.extend(…)': e('Réf de source SECONDAIRE construite en ÉTENDANT `sourceRefSchema` — meurt avec la refonte du concept source.', L1d),
+ };
+diff --git a/scripts/guards/lib/integriteStock.mjs b/scripts/guards/lib/integriteStock.mjs
+index b7ca87ffb..ebc7d7737 100644
+--- a/scripts/guards/lib/integriteStock.mjs
++++ b/scripts/guards/lib/integriteStock.mjs
+@@ -582,7 +582,6 @@ export const DOTATIONS_TEXTES = [
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["apothicaire-4","trappings.text","","a3cb449496879d7f0fa1014ff991aac4ab0c8b65df83e4d6e9f51f3ba3e69c12"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["archer-1","trappings.text","","210b56c8d06acd330fcb201585c07eef5e4ebbcabd78ee3e04a4b0dfc56fc4be"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["archer-1","trappings.text","","80dc21673e554c7bdf6e371232d2f3cb3be2cf6d9f86fd90d03515d51269a0c6"]', occurrence: 1 },
+-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["archer-2","trappings.text","","8cfc5aeb02a602224a9e699a49e78353e333d49e983c40f5925b5d8fb303bf95"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["archer-2","trappings.text","","cf8ad3c63fbdf3f29f6fd5128c0f81baab2af541b6475ec3a677706fc51f94c9"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["archer-3","trappings.text","","172ba5542271f9c1018966800a355a07b14c122fbe8bef923f9c9a12acfbae12"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["archer-4","trappings.text","","172ba5542271f9c1018966800a355a07b14c122fbe8bef923f9c9a12acfbae12"]', occurrence: 1 },
+@@ -625,8 +624,6 @@ export const DOTATIONS_TEXTES = [
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["bailli-3","trappings.text","","245b6bf2a18d0bdbb103b6b70f7ae98871aaea849e8e56b7489bcd53d488b9ef"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["bailli-4","trappings.text","","4177587550a13e8bfacece47f408b70bdb2905c22e1c12755899812ba58fb9d4"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["bailli-4","trappings.text","","97fbc9b917aee0aed64962f8bfe9152abc85064468663d65ca1debf5035be61e"]', occurrence: 1 },
+-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["batelier-2","trappings.text","","02ea3ff7dc8e3ad2293d8536e81cef09b228a46a7033897eb47584d61aa96a57"]', occurrence: 1 },
+-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["batelier-2","trappings.text","","2ce030d6644e47b67f1c97917a21a648e8230be173bc3cf06368d2f9d3eeaba1"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["batelier-4","trappings.text","","806ddb4fbeea387eb4e5fbec1d36eb1ed1ba62cb450186232e161e2412305392"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["bedeau-1","trappings.text","","750416c92a222868c206b3c9c3f883a15cc189c260ad03a48c11162513bf86bd"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["bedeau-2","trappings.text","","5a854c5f8033a0b23914328b99145060c285f342a786d0fba122aeda3897cda2"]', occurrence: 1 },
+@@ -714,7 +711,6 @@ export const DOTATIONS_TEXTES = [
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-errant-4","trappings.text","","a4267c4e285d5b1f47d9181bd5bf30263494dbda4410a02babf54d402319f3ce"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-panthere-2","trappings.text","","5d2bd5024625934fc5d24e8eb8da822e0fa5b6e983d99e11a8ed0b5e36757223"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-panthere-2","trappings.text","","8a1afa1bc86c7dcdd8d96073717197e754755dfd948bb77caa5713f449041107"]', occurrence: 1 },
+-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-panthere-2","trappings.text","","8cfc5aeb02a602224a9e699a49e78353e333d49e983c40f5925b5d8fb303bf95"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-panthere-2","trappings.text","","8f67524bc5266ac6600feaef7a9780fc83b648f9455217cf34bfe7a90e5f4344"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-panthere-2","trappings.text","","fa160e72710cfb287025198dafd29c2d3aac0b6b44e5f814d1cb50c72e18773d"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["chevalier-panthere-3","trappings.text","","3835f8129c91a6b0c847c0ad0e9d84fe981d1ca651a53538497335a1d01e535d"]', occurrence: 1 },
+@@ -841,7 +837,6 @@ export const DOTATIONS_TEXTES = [
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["hallebardier-3","trappings.text","","172ba5542271f9c1018966800a355a07b14c122fbe8bef923f9c9a12acfbae12"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["hallebardier-4","trappings.text","","172ba5542271f9c1018966800a355a07b14c122fbe8bef923f9c9a12acfbae12"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["hallebardier-4","trappings.text","","c6d6616fd9b4ec0397c7025777626957fa2cc4343edb90c34b0e10c210875e6a"]', occurrence: 1 },
+-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["hallebardier-4","trappings.text","","e48c900ae0082a79a93a44af06b83cdd24bafd61d06a69940f87f06bcbfa86bb"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["herboriste-1","trappings.text","","71479af245eb30944885ccdbf9b80a7c284aa70a1e7587e8df200d4cbc6ab27b"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["herboriste-3","trappings.text","","2b2c596c6bae9de934960010369e1a98ecfae9b9e9412dd6553366408bf440aa"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["hierophante-1","trappings.text","","e6bbf3ab02256a630998a80ac340ad285c4aea823152cf6e7f043583bfcaeb15"]', occurrence: 1 },
+@@ -1010,7 +1005,6 @@ export const DOTATIONS_TEXTES = [
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-1","trappings.text","","7fee846073d6d96788b863f2bd23cb7f616fcbefc46f3e3f1b6fadb4708b4cd4"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-2","trappings.text","","377a5d5ebf195613614582aa6a309b9a7d6767c458d22b4c018cc915a3875ded"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-2","trappings.text","","3c193bee8d14f70b94985455b55e277768a0f4df600565aaacddf094c1e986a4"]', occurrence: 1 },
+-  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-2","trappings.text","","5766e0822ab0d33df9aff0d2d6318d217d92935949018430d54741b1ebe2c727"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-3","trappings.text","","b0ba823eab50e3223d649ff7668197d7d482f17252113cd36e010b4d6eab8d4d"]', occurrence: 1 },
+   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-3","trappings.text","","e5add24dd10436027c74952978e76195451754c0d36efc98c72513addd1844b2"]', occurrence: 1 },
+diff --git a/scripts/guards/lib/legacyVocabStock.mjs b/scripts/guards/lib/legacyVocabStock.mjs
+index 738637733..ed28896e0 100644
+--- a/scripts/guards/lib/legacyVocabStock.mjs
++++ b/scripts/guards/lib/legacyVocabStock.mjs
+@@ -216,13 +216,6 @@ export const LEGACY_VOCAB_SITES = [
+     lot: "L7 désormais",
+     date: "2026-09-26",
+   },
+-  {
+-    fichier: "src/data/schemas/grammaire/reference.ts",
+-    motif: "désormais",
+-    ancre: "seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */",
+-    lot: "L7 désormais",
+-    date: "2026-09-26",
+-  },
+   {
+     fichier: "src/data/stake-rule-ratchet.test.ts",
+     motif: "désormais",
+diff --git a/scripts/guards/lib/slotsStock.mjs b/scripts/guards/lib/slotsStock.mjs
+index f44bb16d8..7412798cf 100644
+--- a/scripts/guards/lib/slotsStock.mjs
++++ b/scripts/guards/lib/slotsStock.mjs
+@@ -25,7 +25,7 @@
+ /** Couples dont des occurrences n'ont AUCUNE case qui porte une chaîne, au compte de ces seules
+  *  occurrences — mesurés par `occurrencesInatteignables` (`scripts/docs/lib/slots-registre.mts`). */
+ export const SLOTS_INATTEIGNABLES = [
+-  { dataset: "careerLevels.json", champ: "trappings", occurrences: 14, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{choice:[…]}` : les feuilles comptent sous `careerLevels.json | choice`
++  { dataset: "careerLevels.json", champ: "trappings", occurrences: 13, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{choice:[…]}` : les feuilles comptent sous `careerLevels.json | choice`
+   { dataset: "species.json", champ: "of", occurrences: 2, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{random:N}`
+   { dataset: "species.json", champ: "talents", occurrences: 19, lot: "L2/L3 #1473", date: "2026-09-23" }, // `{random:N}`
+ ];
+@@ -81,8 +81,7 @@ export const SLOTS_SANS_DECLARATION = [
+   { dataset: "barge-du-sel-projet.json", champ: "victoryCondition", occurrences: 1, lot: "L2/L3 #1473", date: "2026-08-26" },
+   { dataset: "barge-du-sel-projet.json", champ: "ref", occurrences: 6, lot: "L2/L3 #1473", date: "2026-09-23" }, // #1473 R1 : 1 `prop` atteint (`idDe('prop')` de la branche `prop` de `sceneEntitySchema`, `defs-scenes/scene.ts:204`) + 5 `personnage` (`ref` en chaîne libre : dette réelle, #1882)
+   { dataset: "careerLevels.json", champ: "career", occurrences: 432, lot: "L2/L3 #1473", date: "2026-08-26" },
+-  { dataset: "careerLevels.json", champ: "choice", occurrences: 29, lot: "L2/L3 #1473", date: "2026-08-26" },
+-  { dataset: "careerLevels.json", champ: "trappings", occurrences: 1286, lot: "L2/L3 #1473", date: "2026-08-26" },
++  { dataset: "careerLevels.json", champ: "trappings", occurrences: 1281, lot: "L2/L3 #1473", date: "2026-08-26" },
+   { dataset: "careers.json", champ: "class", occurrences: 108, lot: "L2/L3 #1473", date: "2026-08-26" },
+   { dataset: "careers.json", champ: "grantGroups", occurrences: 6, lot: "L2/L3 #1473", date: "2026-08-26" },
+   { dataset: "careers.json", champ: "tenue", occurrences: 15, lot: "L2/L3 #1473", date: "2026-08-26" },
+diff --git a/scripts/guards/lib/structuresStock.mjs b/scripts/guards/lib/structuresStock.mjs
+index ebda279a5..24cfe4d8e 100644
+--- a/scripts/guards/lib/structuresStock.mjs
++++ b/scripts/guards/lib/structuresStock.mjs
+@@ -318,7 +318,7 @@ export const STRUCTURES_FORMES = [
+   { concept: "reference", dataset: "buildings.json", champ: "features", signature: "id+…", statut: "divergente", strate: "Référence", occurrences: 4, lot: "L3 #1463", date: "2026-09-09" },
+   { concept: "reference", dataset: "buildings.json", champ: "roofMaterial", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 7, lot: "L3 #1463", date: "2026-09-09" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "career", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 432, lot: "L3 #1463", date: "2026-08-30", motif: "référence de CARRIÈRE" },
+-  { concept: "reference", dataset: "careerLevels.json", champ: "choice", signature: "choice>id", statut: "historique", strate: "Référence", occurrences: 25, lot: "L3 #1463", date: "2026-08-23" },
++  { concept: "reference", dataset: "careerLevels.json", champ: "choice", signature: "choice>id", statut: "historique", strate: "Référence", occurrences: 23, lot: "L3 #1463", date: "2026-08-23" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "choice", signature: "choice>id,qualityChoice", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-08-23" },
+   // Ligne SŒUR des deux ci-dessus, née du MÊME objet migré (#1463 L-ref-1) : `alchimiste-4` ›
+   // « Atelier (Ingénierie ou Magie) » cesse d'écrire son choix en toutes lettres et devient l'emplacement
+@@ -326,15 +326,12 @@ export const STRUCTURES_FORMES = [
+   // enveloppe (`choice>id`, historique) : une branche `{id, spec}` est une CIBLE, c'est le `choice`
+   // qui reste à éteindre — avec les 25 de la ligne précédente, au même lot.
+   { concept: "reference", dataset: "careerLevels.json", champ: "choice", signature: "choice>id,spec", statut: "historique", strate: "Référence", occurrences: 2, lot: "L3 #1463", date: "2026-09-01" },
+-  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "choice", statut: "historique", strate: "Référence", occurrences: 14, lot: "L3 #1463", date: "2026-08-23" },
++  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "choice", statut: "historique", strate: "Référence", occurrences: 13, lot: "L3 #1463", date: "2026-08-23" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "count,id", statut: "historique", strate: "Référence", occurrences: 23, lot: "L3 #1463", date: "2026-08-23" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "count,id,qualityChoice", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
+-  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "count,vehicleId+…", statut: "divergente", strate: "Référence", occurrences: 1, lot: "L3 #1463", date: "2026-08-23" },
+-  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "creatureId", statut: "historique", strate: "Référence", occurrences: 54, lot: "L3 #1463", date: "2026-08-30", motif: "dotation : référence de CRÉATURE" },
++  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "creatureId", statut: "historique", strate: "Référence", occurrences: 53, lot: "L3 #1463", date: "2026-08-30", motif: "dotation : référence de CRÉATURE" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "creatureId+…", statut: "divergente", strate: "Référence", occurrences: 5, lot: "L3 #1463", date: "2026-08-30", motif: "dotation : référence de CRÉATURE" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "id,qualityChoice", statut: "historique", strate: "Référence", occurrences: 36, lot: "L3 #1463", date: "2026-08-23" },
+-  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "vehicleId", statut: "historique", strate: "Référence", occurrences: 15, lot: "L3 #1463", date: "2026-08-23" },
+-  { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "vehicleId+…", statut: "divergente", strate: "Référence", occurrences: 11, lot: "L3 #1463", date: "2026-08-30", motif: "dotation : référence de VÉHICULE" },
+   { concept: "reference", dataset: "careerLevels.json", champ: "trappings", signature: "wildcard", statut: "historique", strate: "Référence", occurrences: 7, lot: "L3 #1463", date: "2026-08-23" },
+   { concept: "reference", dataset: "careers.json", champ: "class", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 108, lot: "L3 #1463", date: "2026-08-23" },
+   { concept: "reference", dataset: "careers.json", champ: "tenue", signature: "id-nu", statut: "historique", strate: "Référence", occurrences: 15, lot: "L3 #1463", date: "2026-08-30", motif: "référence de TENUE" },
+diff --git a/src/data/books.json b/src/data/books.json
+index 32faca917..d90925aef 100644
+--- a/src/data/books.json
++++ b/src/data/books.json
+@@ -303,6 +303,15 @@
+     "language": "VO",
+     "folder": "Scénario"
+   },
++  {
++    "id": "up-in-arms",
++    "type": "books",
++    "label": "Up in Arms",
++    "abbr": "UIA",
++    "extractionDir": "Source/Up in Arms",
++    "language": "VO",
++    "folder": "Livre de Règle"
++  },
+   {
+     "id": "frenchy-bzh",
+     "type": "books",
+diff --git a/src/data/careerLevels.json b/src/data/careerLevels.json
+index bf2fbd5f1..b99d4ec56 100644
+--- a/src/data/careerLevels.json
++++ b/src/data/careerLevels.json
+@@ -657,7 +657,8 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "diligence"
++        "type": "vehicle",
++        "id": "diligence"
+       },
+       {
+         "text": "Cocher"
+@@ -709,7 +710,8 @@
+         "text": "Chaîne officielle"
+       },
+       {
+-        "vehicleId": "diligence"
++        "type": "vehicle",
++        "id": "diligence"
+       },
+       {
+         "text": "Valet de pied"
+@@ -1032,7 +1034,8 @@
+         "creatureId": "mule"
+       },
+       {
+-        "vehicleId": "charrette"
++        "type": "vehicle",
++        "id": "charrette"
+       },
+       {
+         "id": "bache-de-toile"
+@@ -6757,7 +6760,8 @@
+         "creatureId": "cheval-de-trait"
+       },
+       {
+-        "vehicleId": "charrette"
++        "type": "vehicle",
++        "id": "charrette"
+       },
+       {
+         "id": "chemise-de-mailles"
+@@ -7472,7 +7476,8 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "charrette"
++        "type": "vehicle",
++        "id": "charrette"
+       },
+       {
+         "text": "Biens (2d10 CO)"
+@@ -7523,7 +7528,8 @@
+         "creatureId": "cheval-de-trait"
+       },
+       {
+-        "vehicleId": "charrette"
++        "type": "vehicle",
++        "id": "charrette"
+       },
+       {
+         "text": "Biens (5d10 CO)"
+@@ -9509,8 +9515,9 @@
+         "creatureId": "cheval-de-trait"
+       },
+       {
+-        "vehicleId": "chariot-leger",
+-        "label": "Chariot (Scène)"
++        "label": "Chariot (Scène)",
++        "type": "vehicle",
++        "id": "chariot-leger"
+       },
+       {
+         "text": "Garde-robe avec costumes et accessoires"
+@@ -11818,33 +11825,12 @@
+       }
+     ],
+     "trappings": [
+-      {
+-        "choice": [
+-          {
+-            "id": "arbalete-de-poing"
+-          },
+-          {
+-            "id": "pistolet"
+-          }
+-        ]
+-      },
+-      {
+-        "text": "Chapeau en cuir"
+-      },
+-      {
+-        "id": "veste-de-cuir"
+-      },
+-      {
+-        "creatureId": "cheval-de-monte"
+-      },
+-      {
+-        "id": "selle-et-harnais"
+-      },
+       {
+         "id": "corde"
+       },
+       {
+-        "text": "Epée plaquée argent"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -11943,8 +11929,9 @@
+         "id": "chapeau"
+       },
+       {
+-        "vehicleId": "barge-fluviale",
+-        "label": "Bateau de transport fluvial"
++        "label": "Bateau de transport fluvial",
++        "type": "vehicle",
++        "id": "barge-fluviale"
+       },
+       {
+         "text": "Equipage"
+@@ -12099,7 +12086,8 @@
+         "id": "veste-de-cuir"
+       },
+       {
+-        "vehicleId": "barque-fluviale"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -12153,8 +12141,9 @@
+         "text": "Coureur de rivières"
+       },
+       {
+-        "vehicleId": "barque-fluviale",
+-        "label": "Bateau de transport fluvial rapide"
++        "label": "Bateau de transport fluvial rapide",
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -12633,7 +12622,8 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "barque-fluviale"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       },
+       {
+         "id": "lampe-tempete"
+@@ -13045,7 +13035,8 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "barque-fluviale"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       },
+       {
+         "id": "lampe-tempete"
+@@ -13114,8 +13105,9 @@
+         "text": "Corde avec grappin"
+       },
+       {
+-        "vehicleId": "barge-fluviale",
+-        "label": "Bateau de transport fluvial"
++        "label": "Bateau de transport fluvial",
++        "type": "vehicle",
++        "id": "barge-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -13305,7 +13297,8 @@
+         "id": "corde"
+       },
+       {
+-        "vehicleId": "barque-fluviale"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -13409,8 +13402,9 @@
+         "text": "Canotier"
+       },
+       {
+-        "vehicleId": "barque-fluviale",
+-        "label": "Petit bateau de transport fluvial"
++        "label": "Petit bateau de transport fluvial",
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -13654,14 +13648,15 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "bateau-de-patrouille",
+         "count": {
+           "roll": {
+             "n": 1,
+             "sides": 10
+           }
+         },
+-        "label": "Bateaux de patrouille"
++        "label": "Bateaux de patrouille",
++        "type": "vehicle",
++        "id": "bateau-de-patrouille"
+       },
+       {
+         "text": "Equipage"
+@@ -14464,7 +14459,8 @@
+         "id": "pied-de-biche"
+       },
+       {
+-        "vehicleId": "charrette-a-bras"
++        "type": "vehicle",
++        "id": "charrette-a-bras"
+       },
+       {
+         "text": "Cape à capuchon"
+@@ -14595,7 +14591,8 @@
+         "id": "corde"
+       },
+       {
+-        "vehicleId": "barque-fluviale"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       }
+     ],
+     "characteristics": [
+@@ -16882,7 +16879,8 @@
+         "creatureId": "poney"
+       },
+       {
+-        "vehicleId": "charrette"
++        "type": "vehicle",
++        "id": "charrette"
+       }
+     ],
+     "characteristics": [
+@@ -17789,7 +17787,8 @@
+         "creatureId": "mule"
+       },
+       {
+-        "vehicleId": "charrette"
++        "type": "vehicle",
++        "id": "charrette"
+       },
+       {
+         "text": "Maison de village"
+@@ -19065,7 +19064,10 @@
+         "creatureId": "destrier-cheval-de-guerre-lourd"
+       },
+       {
+-        "text": "Epée"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "epee"
++        }
+       },
+       {
+         "text": "Grand heaume with Bestiol Crest"
+@@ -19577,7 +19579,10 @@
+         "qualityChoice": true
+       },
+       {
+-        "text": "Epée"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "epee"
++        }
+       },
+       {
+         "text": "Headgear"
+@@ -19933,7 +19938,15 @@
+         "creatureId": "cheval-de-guerre-leger"
+       },
+       {
+-        "text": "Epée de qualité"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "epee"
++        },
++        "qualityChoice": true,
++        "source": {
++          "book": "up-in-arms",
++          "page": 14
++        }
+       },
+       {
+         "text": "Lettre de nomination"
+@@ -22635,8 +22648,9 @@
+         }
+       },
+       {
+-        "vehicleId": "barge",
+-        "label": "Bateau de transport"
++        "label": "Bateau de transport",
++        "type": "vehicle",
++        "id": "barge"
+       },
+       {
+         "text": "Corde avec grappin"
+@@ -22823,7 +22837,8 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "barque-fluviale"
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       },
+       {
+         "id": "corde"
+@@ -22927,8 +22942,9 @@
+         "text": "Canotier"
+       },
+       {
+-        "vehicleId": "esquif",
+-        "label": "Petit bateau de transport"
++        "label": "Petit bateau de transport",
++        "type": "vehicle",
++        "id": "esquif"
+       }
+     ],
+     "characteristics": [
+@@ -23111,8 +23127,9 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "galere-de-guerre",
+-        "label": "Bateau à commander"
++        "label": "Bateau à commander",
++        "type": "vehicle",
++        "id": "galere-de-guerre"
+       },
+       {
+         "text": "Grand chapeau"
+@@ -23355,8 +23372,9 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "chaloupe",
+-        "label": "Bateau de cérémonie"
++        "label": "Bateau de cérémonie",
++        "type": "vehicle",
++        "id": "chaloupe"
+       },
+       {
+         "text": "Prêtres subalternes"
+@@ -23606,8 +23624,9 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "barque-fluviale",
+-        "label": "Bateau"
++        "label": "Bateau",
++        "type": "vehicle",
++        "id": "barque-fluviale"
+       },
+       {
+         "text": "Cabane"
+@@ -23869,8 +23888,9 @@
+     ],
+     "trappings": [
+       {
+-        "vehicleId": "barge-fluviale",
+-        "label": "Bateau de transport fluvial"
++        "label": "Bateau de transport fluvial",
++        "type": "vehicle",
++        "id": "barge-fluviale"
+       },
+       {
+         "text": "Corde avec grappin"
+@@ -26099,7 +26119,10 @@
+         "text": "Deuxième et troisième Clefs des Secrets"
+       },
+       {
+-        "text": "Épée"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "epee"
++        }
+       }
+     ],
+     "characteristics": [
+diff --git a/src/data/creatures.json b/src/data/creatures.json
+index 124f15518..c566aa3f5 100644
+--- a/src/data/creatures.json
++++ b/src/data/creatures.json
+@@ -61626,7 +61626,10 @@
+         "id": "crochet"
+       },
+       {
+-        "text": "épée"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "epee"
++        }
+       },
+       {
+         "text": "jambe de bois"
+@@ -62241,7 +62244,10 @@
+         "text": "pistolet patte d'oie à malepierre"
+       },
+       {
+-        "text": "épée"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "epee"
++        }
+       },
+       {
+         "id": "hallebarde"
+@@ -62456,7 +62462,10 @@
+         "text": "dague rouillée"
+       },
+       {
+-        "id": "arme-simple"
++        "id": "arme-simple",
++        "apparence": {
++          "id": "hache"
++        }
+       },
+       {
+         "text": "jambières de cuir"
+diff --git a/src/data/dotations-catalogue.test.ts b/src/data/dotations-catalogue.test.ts
+index 3e42fdcbd..c8c03a77a 100644
+--- a/src/data/dotations-catalogue.test.ts
++++ b/src/data/dotations-catalogue.test.ts
+@@ -1,5 +1,5 @@
+ import { describe, expect, it } from 'vitest';
+-import { careerLevels, classes, creatures, trappings, trappingRefLabel, type TrappingRef } from './index';
++import { careerLevels, classes, creatures, estDotationDeVehicule, trappings, trappingRefLabel, type TrappingRef } from './index';
+ import { replier } from '../lib/ordre.mjs';
+ 
+ /**
+@@ -148,10 +148,10 @@ describe('dotations : ce que le catalogue NOMME est une référence (#1463 L-ref
+   });
+ 
+   it('la `spec` d’une dotation s’AFFICHE — sur la donnée réelle, jamais une réf forgée', () => {
+-    const site = dotations().find(({ ref }) => 'id' in ref && ref.id === 'outils-professionnels' && ref.spec === 'Maréchal-ferrant');
++    const site = dotations().find(({ ref }) => 'id' in ref && !estDotationDeVehicule(ref) && ref.id === 'outils-professionnels' && ref.spec === 'Maréchal-ferrant');
+     expect(site, 'aucune dotation `outils-professionnels (Maréchal-ferrant)` en donnée — le témoin a disparu').toBeTruthy();
+     expect(trappingRefLabel(site!.ref)).toBe('Outils professionnels (Maréchal-ferrant)');
+-    const choix = dotations().find(({ ref }) => 'choice' in ref && ref.choice.some((b) => 'id' in b && b.id === 'atelier' && b.spec != null));
++    const choix = dotations().find(({ ref }) => 'choice' in ref && ref.choice.some((b) => 'id' in b && !estDotationDeVehicule(b) && b.id === 'atelier' && b.spec != null));
+     expect(choix, 'aucun choix de dotation `atelier` spécialisé en donnée — le témoin a disparu').toBeTruthy();
+     expect(trappingRefLabel(choix!.ref)).toBe('Atelier (Ingénierie) ou Atelier (Magie)');
+     const compte = dotations().find(({ ref }) => 'id' in ref && ref.id === 'carreau' && ref.count != null);
+diff --git a/src/data/faces-affichage.test.ts b/src/data/faces-affichage.test.ts
+index cf8980d55..288d142d9 100644
+--- a/src/data/faces-affichage.test.ts
++++ b/src/data/faces-affichage.test.ts
+@@ -32,6 +32,13 @@ describe('faces d’affichage : le texte FR de la donnée', () => {
+     expect(trappingRefLabel({ wildcard: 'arme' })).toBe('Arme (au choix)');
+     expect(trappingRefLabel({ id: 'dague', qualityChoice: true })).toBe('Dague (qualité au choix)');
+   });
++
++  it('fixture Dotation de hache naine : l’apparence reste lisible avec quantité et Atout au choix', () => {
++    const dotation: TrappingRef = { id: 'arme-simple', apparence: { id: 'hache_naine' } };
++    expect(trappingRefLabel(dotation)).toBe('Arme simple (Hache naine)');
++    expect(trappingRefLabel({ ...dotation, count: { fixed: 2 } })).toBe('Arme simple (Hache naine) (2)');
++    expect(trappingRefLabel({ ...dotation, count: { fixed: 2 }, qualityChoice: true })).toBe('Arme simple (Hache naine) (2) (qualité au choix)');
++  });
+ });
+ 
+ describe('faces d’affichage : le liant suit SA clé de message', () => {
+diff --git a/src/data/field-consumers.test.ts b/src/data/field-consumers.test.ts
+index 3be1ef0db..7c559c6ad 100644
+--- a/src/data/field-consumers.test.ts
++++ b/src/data/field-consumers.test.ts
+@@ -88,33 +88,17 @@ describe('périmètre de TARGETS — aucune cible ne rend zéro champ', () => {
+ });
+ 
+ describe('cas fondateur #903 — qui lit TrappingRef.spec ?', () => {
+-  /**
+-   * `TrappingRef.spec` a DEUX lecteurs directs, un par ROLE : `resoudre`
+-   * (`src/engine/trappingChoices.ts`) qui reconduit la spec en résolvant un emplacement
+-   * `qualityChoice`, et `itemFromTrappingRef` (`src/engine/items.ts`) qui la MATÉRIALISE sur
+-   * l'`ItemInstance` — sans quoi la spécialisation se perd entre la dotation et le sac (#1463
+-   * L-ref-1). Le RENDU, lui, n'en est pas un : « base (spec) » passe par `refLabel`
+-   * (`src/data/index.ts`), SOURCE UNIQUE partagée par toute référence, son paramètre est un `RefDesignee` —
+-   * un lecteur mesuré dans `data/index.ts` signalerait une SECONDE définition du rendu, et c'est ce
+-   * que cette garde refuse. La preuve d'AFFICHAGE vit sur la donnée réelle
+-   * (`src/data/dotations-catalogue.test.ts`, `src/engine/integration-creation.test.ts`).
+-   */
+-  it('`TrappingRef.spec` : DEUX lecteurs, résolution et matérialisation — aucun dans le rendu', () => {
++  /** #903 ; #1463 L-ref-1 */
++  it('la matérialisation lit la spécialisation ; le rendu appartient à refLabel', () => {
+     const target = TARGETS.find((t) => t.type === 'TrappingRef');
+     expect(target, 'TrappingRef absent de TARGETS — le cas fondateur a perdu sa surface').toBeTruthy();
+     const byField = rapport().byType.get('TrappingRef');
+     expect(byField, 'TrappingRef absent du rapport mesuré').toBeTruthy();
+-    // `fichier @symbole` (ancre de `Hit`, `scripts/docs/build-field-consumers.mts`) : le fichier seul
+-    // resterait vert si le lecteur déménageait dans une AUTRE fonction du même module, la ligne rougirait
+-    // au premier ajout en amont. Le nombre de SITES distincts tient « un seul site par lecteur ».
+     const hits: { file: string; line: number; symbole: string }[] = byField!.get('spec') ?? [];
+-    const specSites = new Set(hits.map((h) => `${h.file}:${h.line}`));
+-    const specLecteurs = [...new Set(hits.map((h) => `${h.file} @${h.symbole}`))].sort();
+     expect(
+-      specLecteurs,
+-      'TrappingRef.spec devrait avoir EXACTEMENT 2 lecteurs : la résolution de choix et la matérialisation',
+-    ).toEqual(['src/engine/items.ts @itemFromTrappingRef', 'src/engine/trappingChoices.ts @spec']);
+-    expect(specSites.size, `un site lecteur par symbole — sites : ${[...specSites].join(', ')}`).toBe(2);
++      hits.some((h) => h.file === 'src/engine/items.ts' && h.symbole === 'itemFromTrappingRef'),
++      'itemFromTrappingRef doit lire la spécialisation pour la matérialiser sur l’objet né',
++    ).toBe(true);
+     expect(
+       hits.some((h) => h.file.includes('data/index.ts')),
+       'un lecteur de spec dans `data/index.ts` = une seconde définition du rendu « base (spec) », qui appartient à `refLabel`',
+@@ -234,6 +218,37 @@ describe('contrat POSITIF des champs recouvrés + cliquet des « 0 lecteur »',
+  * consommateurs-de-champs.md`).
+  */
+ describe('MORSURE du détecteur — fixtures en mémoire', () => {
++  it('fixture Union nommée : ses membres importés sont des porteurs, les types étrangers restent distincts', () => {
++    const sources = {
++      'src/types.ts': `export interface Ref { spec?: string }
++export type Branche = Ref & { count?: number };
++export type Etranger = Ref & { extra?: string };
++export type Ensemble = (Branche | { text: string });
++export type Generique<V> = Ref & { valeur: V };
++export type EnsembleGenerique = Generique<string> | { text: string };`,
++      'src/lecteurs.ts': `import type { Branche as Alias, Etranger, Ref, Generique } from './types';
++export const branche = (r: Alias) => r.spec;
++export const etranger = (r: Etranger) => r.spec;
++export const declarant = (r: Ref) => r.spec;
++export const anonyme = (r: { spec?: string }) => r.spec;
++export const destructure = ({ spec }: Alias) => spec;
++export const generiqueTexte = (r: Generique<string>) => r.spec;
++export const generiqueNombre = (r: Generique<number>) => r.spec;`,
++    };
++    const programme = virtualProgram(sources);
++    const fichiers = Object.keys(sources).map((rel) => join(VIRTUAL_ROOT, rel));
++    const cache = new Map();
++    try {
++      const lectures = scanFieldReads({ type: 'Ensemble', home: 'src/types.ts' }, ['spec'], fichiers, VIRTUAL_ROOT, cache, programme);
++      expect(lectures.map((lecture) => lecture.symbole).sort()).toEqual(['branche', 'destructure']);
++      const generiques = scanFieldReads({ type: 'EnsembleGenerique', home: 'src/types.ts' }, ['spec'], fichiers, VIRTUAL_ROOT, cache, programme);
++      expect(generiques.map((lecture) => lecture.symbole)).toEqual(['generiqueTexte']);
++    } finally {
++      libererCache(cache);
++      programme.dispose();
++    }
++  });
++
+   const FIXTURES: Record<string, string> = {
+     'src/types.ts': `export interface Ref { id: string; spec?: string }
+ export type TrappingRef = Ref & { qty?: number };
+diff --git a/src/data/index.ts b/src/data/index.ts
+index 914819bc8..6436eba93 100644
+--- a/src/data/index.ts
++++ b/src/data/index.ts
+@@ -48,7 +48,7 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
+ import structureCriticalsRawJson from './structure-criticals.json';
+ import artilleryMisfireRawJson from './artillery-misfire.json';
+ import miscastRawJson from './miscast.json';
+-import { trappings, findTrappingById } from './apparencesObjets';
++import { trappings, findTrappingById, findApparenceById } from './apparencesObjets';
+ export { trappings, apparences, findTrappingById, findApparenceById } from './apparencesObjets';
+ import vehiclesJson from './vehicles.json';
+ import merchantsJson from './merchants.json';
+@@ -3420,17 +3420,19 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
+  *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS, résolus par
+  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
+  *  restent tels quels et ne produisent aucun objet.
+- *  Une ref `{id}` peut aussi porter des Atouts d'objet ATTACHÉS (`qualities`, ex. Fabrication LDB
+- *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
+- *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
+- *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
++ *  LDB 60 ; #657. */
++export type DotationDObjet = RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true; apparence?: { id: string }; source?: SourceRef };
+ export type TrappingRef =
+-  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
++  | DotationDObjet
+   | { text: string; count?: CountSpec }
+-  | { vehicleId: string; count?: CountSpec; label?: string }
++  | { type: 'vehicle'; id: string; count?: CountSpec; label?: string }
+   | { creatureId: string; count?: CountSpec; label?: string }
+   | { choice: TrappingRef[] }
+   | { wildcard: string };
++
++export function estDotationDeVehicule(ref: TrappingRef | Record<string, unknown>): ref is Extract<TrappingRef, { type: 'vehicle' }> {
++  return 'type' in ref && ref.type === 'vehicle';
++}
+ /** EMPLACEMENT d'avancement (espèce/carrière) : un espace de CHOIX, pas une instance résolue — la
+  *  composition de la grammaire (`schemas/grammaire/avancement.ts`). Référence à spécialisation
+  *  FACULTATIVE (`{id}`, `{id, spec}`, `{id, choix: true}` « Au choix », `{id, choix: [ids]}` choix
+@@ -3641,15 +3643,19 @@ export function advancementBaseId(a: AdvancementRef): string | undefined {
+ export function trappingRefLabel(ref: TrappingRef): PlayerText {
+   if ('choice' in ref) return ouListe(ref.choice.map(trappingRefLabel));
+   if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
+-  const base = 'text' in ref
++  let base = 'text' in ref
+     ? ref.text
+-    : 'vehicleId' in ref
+-      ? dataLabel(findVehicleById(ref.vehicleId)?.label, ref.vehicleId)
++    : estDotationDeVehicule(ref)
++      ? dataLabel(ref.label ?? findVehicleById(ref.id)?.label, ref.id)
+       : 'creatureId' in ref
+         ? dataLabel(findCreatureById(ref.creatureId)?.label, ref.creatureId)
+         : refLabel('trappings', ref);
++  if ('id' in ref && !estDotationDeVehicule(ref) && ref.apparence) {
++    const apparence = findApparenceById(ref.apparence.id)?.label;
++    if (apparence) base = dataLabel(`${base} (${apparence})`);
++  }
+   const count = ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
+-  if ('id' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
+-  const quality = 'id' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
++  if ('id' in ref && !estDotationDeVehicule(ref) && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
++  const quality = 'id' in ref && !estDotationDeVehicule(ref) && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
+   return dataLabel(base + count + quality);
+ }
+diff --git a/src/data/olg-dotation.test.ts b/src/data/olg-dotation.test.ts
+index 6bcc23b25..d932d4e9a 100644
+--- a/src/data/olg-dotation.test.ts
++++ b/src/data/olg-dotation.test.ts
+@@ -1,15 +1,17 @@
+ import { describe, expect, it } from 'vitest';
+ import { trappingRefSchema } from './schemas/grammaire/reference';
+ import { itemFromTrappingRef } from '../engine/items';
++import creatures from './creatures.json';
+ 
+ /** MDG 07 l.219 ; LDB 62 l.127 */
+-const DOTATION_D_OLG = { id: 'arme-simple' };
+-
+ describe('dotation d’Olg — possession de catalogue', () => {
+-  it('la référence de hache produit une possession de mêlée', () => {
+-    const reference = trappingRefSchema.parse(DOTATION_D_OLG);
++  it('la vraie dotation d’Olg fait naître son arme simple avec l’apparence hache', () => {
++    const olg = creatures.find((creature) => creature.id === 'olg-blodsalt');
++    expect(olg).toBeDefined();
++    const dotation = olg?.trappings?.find((ref) => 'id' in ref && ref.id === 'arme-simple');
++    expect(dotation).toStrictEqual({ id: 'arme-simple', apparence: { id: 'hache' } });
++    const reference = trappingRefSchema.parse(dotation);
+     if (!('id' in reference)) throw new Error('La dotation ne désigne pas un objet.');
+-    expect(reference).toStrictEqual(DOTATION_D_OLG);
+-    expect(itemFromTrappingRef(reference)).toMatchObject({ trappingId: 'arme-simple', kind: 'melee' });
++    expect(itemFromTrappingRef(reference)).toMatchObject({ trappingId: 'arme-simple', kind: 'melee', apparence: 'hache' });
+   });
+ });
+diff --git a/src/data/refs-migrated.test.ts b/src/data/refs-migrated.test.ts
+index c72c495f0..390e1fb51 100644
+--- a/src/data/refs-migrated.test.ts
++++ b/src/data/refs-migrated.test.ts
+@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
+ import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite } from '../../scripts/guards/lib/stock.mjs';
+ import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
+ import {
+-  trappings, qualities, spells, creatures, classes, careers, careerLevels, species, gods, etats, maladies, weaponGroups,
++  estDotationDeVehicule, trappings, qualities, spells, creatures, classes, careers, careerLevels, species, gods, etats, maladies, weaponGroups,
+   traits, stars, talents, maneuvers, skills, domains, crewRoles, groups,
+   byId, findTalentById, findTrappingById, findQualityById, findSeaShantyById,
+   findCareerById, findClassById, findSpeciesById, findConditionById, findDiseaseById, findWeaponGroupById, findSymptomById,
+@@ -98,13 +98,13 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
+     }
+   });
+ 
+-  it('classes.trappings + careerLevels.trappings = TrappingRef ({id}/{vehicleId}/{creatureId} résout, {text} narratif, {choice}/{wildcard} = emplacements RÉCURSIFS)', () => {
++  it('classes.trappings + careerLevels.trappings = TrappingRef ({id}/{type:vehicle,id}/{creatureId} résout, {text} narratif, {choice}/{wildcard} = emplacements RÉCURSIFS)', () => {
+     function checkTrappingRef(tr: unknown): void {
+       expect(isObj(tr)).toBe(true);
+       const t = tr as Record<string, unknown>;
+       if ('choice' in t) { expect(Array.isArray(t.choice)).toBe(true); for (const b of t.choice as unknown[]) checkTrappingRef(b); }
+       else if ('wildcard' in t) expect(typeof t.wildcard).toBe('string');
+-      else if ('vehicleId' in t) expect(findVehicleById(t.vehicleId as string)).toBeTruthy();
++      else if (estDotationDeVehicule(t)) expect(findVehicleById(t.id)).toBeTruthy();
+       else if ('creatureId' in t) expect(findCreatureById(t.creatureId as string)).toBeTruthy();
+       else if ('id' in t) expect(itemFromTrappingById(t.id as string)).toBeTruthy();
+       else expect(typeof t.text).toBe('string');
+diff --git a/src/data/schemas/grammaire/apparences-objets.test.ts b/src/data/schemas/grammaire/apparences-objets.test.ts
+index a63ad9429..e3302178c 100644
+--- a/src/data/schemas/grammaire/apparences-objets.test.ts
++++ b/src/data/schemas/grammaire/apparences-objets.test.ts
+@@ -5,12 +5,49 @@ import { apparencesAdmissibles } from '../../../engine/items';
+ import { entityAppearanceSchema } from './valeurs';
+ import { sceneSchema } from '../defs-scenes/scene';
+ import { emptyScene } from '../../../noyau/monde/scene';
++import { trappingRefSchema } from './reference';
+ 
+ const scene = (apparencesObjets: Record<string, string>) => ({
+   ...emptyScene('scene-test', 2, 2),
+   entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, appearance: { apparencesObjets } }],
+ });
+ 
++describe('apparence de la dotation : référence d’auteur validée', () => {
++  it('fixture Épée documentée : la référence porte sa source fermée sans changer son objet', () => {
++    const dotation = { id: 'arme-simple', apparence: { id: 'epee' }, source: { book: 'up-in-arms', page: 14 } };
++    expect(trappingRefSchema.parse(dotation)).toStrictEqual(dotation);
++    expect(trappingRefSchema.safeParse({ ...dotation, source: { ...dotation.source, champEtranger: true } }).success).toBe(false);
++  });
++
++  it('fixture Dotation fermée : refuse une clé étrangère et un objet inconnu', () => {
++    const dotation = { id: 'arme-simple', apparence: { id: 'epee' } };
++    expect(trappingRefSchema.parse(dotation)).toStrictEqual(dotation);
++    expect(trappingRefSchema.safeParse({ ...dotation, champEtranger: true }).success).toBe(false);
++    expect(trappingRefSchema.safeParse({ ...dotation, id: 'objet-inconnu' }).success).toBe(false);
++  });
++
++  it.each(['epee', 'hache', 'hache_naine'])('préserve une racine ou une variante admissible : %s', (id) => {
++    const dotation = { id: 'arme-simple', apparence: { id } };
++    expect(trappingRefSchema.parse(dotation)).toStrictEqual(dotation);
++    expect(trappingRefSchema.parse({ choice: [dotation, { id: 'dague' }] })).toStrictEqual({ choice: [dotation, { id: 'dague' }] });
++  });
++
++  it('refuse une apparence inconnue dans la dotation', () => {
++    const resultat = trappingRefSchema.safeParse({ id: 'arme-simple', apparence: { id: 'apparence-inconnue' } });
++    expect(resultat.success).toBe(false);
++    if (!resultat.success) expect(resultat.error.message).toContain('apparence-inconnue');
++  });
++
++  it('refuse une apparence de dotation non admissible pour son objet', () => {
++    const resultat = trappingRefSchema.safeParse({ id: 'dague', apparence: { id: 'hache' } });
++    expect(resultat.success).toBe(false);
++    if (!resultat.success) expect(resultat.error.issues).toContainEqual(expect.objectContaining({
++      path: ['apparence', 'id'],
++      params: { referenceDObjet: { trappingId: 'dague', apparence: 'hache' } },
++    }));
++  });
++});
++
+ describe('apparences d’objets d’auteur : références validées au parse de scène', () => {
+   it('ne matérialise aucune table sans choix', () => {
+     expect(entityAppearanceSchema.parse({})).not.toHaveProperty('apparencesObjets');
+diff --git a/src/data/schemas/grammaire/dotation.ts b/src/data/schemas/grammaire/dotation.ts
+new file mode 100644
+index 000000000..82d35e063
+--- /dev/null
++++ b/src/data/schemas/grammaire/dotation.ts
+@@ -0,0 +1,33 @@
++import { z } from 'zod';
++import { nommerNoeud } from './meta.ts';
++import { ref, refs, refTypee } from './ref.ts';
++import { countSpecSchema, enumNomme, sourceRefSchema, validerApparenceDObjet } from './valeurs.ts';
++
++/** #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247 */
++export const dotationConcreteSchema = refTypee(enumNomme({ trapping: 'Objet', creature: 'Créature', vehicle: 'Véhicule' }), {
++  trapping: {
++    champs: {
++      spec: nommerNoeud(z.string().optional(), { nom: 'spécialisation' }),
++      count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++      qualities: nommerNoeud(z.union([z.literal(true), refs('quality')]).optional(), { nom: 'qualités' }),
++      apparence: nommerNoeud(ref('apparence').optional(), { nom: 'apparence' }),
++      source: nommerNoeud(sourceRefSchema.optional(), { nom: 'source' }),
++    },
++    verifier: (v, ctx) => {
++      const apparence = v.apparence as { id: string } | undefined;
++      if (apparence) validerApparenceDObjet(String(v.id), apparence.id, ctx, ['apparence', 'id']);
++    },
++  },
++  creature: {
++    champs: {
++      count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++      label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
++    },
++  },
++  vehicle: {
++    champs: {
++      count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++      label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
++    },
++  },
++});
+diff --git a/src/data/schemas/grammaire/formes-partagees.test.ts b/src/data/schemas/grammaire/formes-partagees.test.ts
+index 4fdb437fb..2a9698477 100644
+--- a/src/data/schemas/grammaire/formes-partagees.test.ts
++++ b/src/data/schemas/grammaire/formes-partagees.test.ts
+@@ -61,16 +61,19 @@ const pathsRefuses = (fichier: string, valeur: unknown): string[] =>
+ 
+ describe('trappingRefSchema — branches de TrappingRef', () => {
+   it('accepte {id} de catalogue (+ count optionnel)', () => {
+-    expect(trappingRefSchema.safeParse({ id: 'epee-courte' }).success).toBe(true);
+-    expect(trappingRefSchema.safeParse({ id: 'epee-courte', count: { fixed: 2 } }).success).toBe(true);
++    expect(trappingRefSchema.safeParse({ id: 'arme-simple' }).success).toBe(true);
++    expect(trappingRefSchema.safeParse({ id: 'arme-simple', count: { fixed: 2 } }).success).toBe(true);
+   });
+ 
+   it('accepte {text} narratif hors catalogue', () => {
+     expect(trappingRefSchema.safeParse({ text: 'collection d’alcool sans pareille' }).success).toBe(true);
+   });
+ 
+-  it('accepte {vehicleId} — dotation véhicule', () => {
+-    expect(trappingRefSchema.safeParse({ vehicleId: 'chariot-leger' }).success).toBe(true);
++  it('accepte une référence typée de véhicule et conserve son compte et son nom', () => {
++    const DOTATION_DU_BATELIER = { type: 'vehicle', id: 'barque-fluviale', count: { fixed: 2 }, label: 'La Perle' };
++    expect(trappingRefSchema.parse(DOTATION_DU_BATELIER)).toStrictEqual(DOTATION_DU_BATELIER);
++    expect(trappingRefSchema.safeParse({ type: 'vehicle', id: 'vehicule-inconnu' }).success).toBe(false);
++    expect(trappingRefSchema.safeParse({ vehicleId: 'barque-fluviale' }).success).toBe(false);
+   });
+ 
+   it('accepte {creatureId} — dotation bête (#615/#617 §9)', () => {
+diff --git a/src/data/schemas/grammaire/parse-de-mesure.test.ts b/src/data/schemas/grammaire/parse-de-mesure.test.ts
+index 8987e91e1..f8ca45347 100644
+--- a/src/data/schemas/grammaire/parse-de-mesure.test.ts
++++ b/src/data/schemas/grammaire/parse-de-mesure.test.ts
+@@ -186,6 +186,9 @@ function instrumenter(racines: readonly (readonly [string, unknown])[]): { sonde
+           sonde.nbOpsEmis += 1;
+         }
+       }
++      if (sonde.mesure) {
++        for (const i of nouvelles) if (familleDuRepere(i.params) === 'composition') sonde.emis.add(i.params!);
++      }
+       if (sonde.mesure && nouvelles.length === 0 && enfants.some(Boolean)) sonde.avalements.push(nom);
+       sonde.pile[sonde.pile.length - 1]?.push(sonde.mesure && nouvelles.length > 0 && nouvelles.every(estPropre));
+       return r;
+diff --git a/src/data/schemas/grammaire/ref-typee-compositions.test.ts b/src/data/schemas/grammaire/ref-typee-compositions.test.ts
+new file mode 100644
+index 000000000..9e73f716f
+--- /dev/null
++++ b/src/data/schemas/grammaire/ref-typee-compositions.test.ts
+@@ -0,0 +1,89 @@
++import { describe, expect, it } from 'vitest';
++import { z } from 'zod';
++import { dotationConcreteSchema } from './dotation';
++import { declarationDeRefTypee, mesureDuParse, ref, refTypee } from './ref';
++import { enumNomme } from './valeurs';
++import { nommerNoeud } from './meta';
++import { IDS_PAR_ESPACE } from '../_ids.generated';
++
++const OBJET = { type: 'trapping', id: 'arme-simple', qualities: true };
++const branche = (type: 'trapping') => declarationDeRefTypee(dotationConcreteSchema)!.branches.get(type)!;
++
++describe('composition nominale de référence typée', () => {
++  it('chaque branche porte sa charge fermée, sans emprunter les clés des autres branches', () => {
++    expect(dotationConcreteSchema.safeParse(OBJET).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ type: 'vehicle', id: IDS_PAR_ESPACE['vehicles.json'][0], label: 'Barque', count: { fixed: 2 } }).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ type: 'creature', id: IDS_PAR_ESPACE['creatures.json'][0], count: { fixed: 2 } }).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ ...OBJET, cleEtrangere: true }).success).toBe(false);
++    expect(dotationConcreteSchema.safeParse({ type: 'vehicle', id: IDS_PAR_ESPACE['vehicles.json'][0], qualities: true }).success).toBe(false);
++    expect(dotationConcreteSchema.safeParse({ ...OBJET, qualities: ['solide'] }).success).toBe(true);
++    expect(dotationConcreteSchema.safeParse({ ...OBJET, qualities: [{ id: 'solide', value: 1 }] }).success).toBe(false);
++  });
++
++  it('la déclaration rend les nœuds fermés qui valident réellement chaque branche', () => {
++    const mesure = mesureDuParse(z.array(dotationConcreteSchema), [OBJET]);
++    expect(mesure.compositions).toHaveLength(1);
++    expect(mesure.compositions[0].path).toEqual([0]);
++    expect(mesure.compositions[0].noeud).toBe(dotationConcreteSchema);
++    expect(mesure.compositions[0].branche).toBe(branche('trapping'));
++  });
++
++  it('une copie de forme et un clone Zod ne deviennent pas le nœud nominal déclaré', () => {
++    const copie = z.strictObject({ ...branche('trapping').shape });
++    expect(copie.safeParse(OBJET).success).toBe(true);
++    expect(declarationDeRefTypee(copie)).toBeUndefined();
++    expect(mesureDuParse(copie, OBJET).compositions).toEqual([]);
++    const clone = dotationConcreteSchema.clone();
++    expect(clone.safeParse(OBJET).success).toBe(true);
++    expect(declarationDeRefTypee(clone)).toBeUndefined();
++    expect(mesureDuParse(clone, OBJET).compositions).toEqual([]);
++  });
++
++  it('une branche rejetée ne déclare pas la composition acceptée par une autre branche', () => {
++    const schema = z.union([dotationConcreteSchema, z.looseObject({ type: z.string(), id: z.string() })]);
++    const valeur = { ...OBJET, cleEtrangere: true };
++    expect(schema.safeParse(valeur).success).toBe(true);
++    expect(mesureDuParse(schema, valeur).compositions).toEqual([]);
++    const rejetee = refTypee(enumNomme({ trapping: 'Objet' }), {
++      trapping: {
++        champs: { qualities: nommerNoeud(z.literal(true), { nom: 'qualités' }) },
++        verifier: (_valeur, ctx) => ctx.addIssue({ code: 'custom', message: 'rejet du témoin', continue: true }),
++      },
++    });
++    const repli = ref('trapping', {
++      type: nommerNoeud(z.literal('trapping'), { nom: 'type' }),
++      qualities: nommerNoeud(z.literal(true), { nom: 'qualités' }),
++    });
++    const union = z.union([rejetee, repli]);
++    expect(union.safeParse(OBJET).success).toBe(true);
++    const mesure = mesureDuParse(union, OBJET);
++    expect(mesure.reperes.map(({ path, type }) => ({ path, type }))).toEqual([{ path: ['id'], type: 'trapping' }]);
++    expect(mesure.compositions).toEqual([]);
++  });
++
++  it('un parse imbriqué qui reporte ses issues conserve les identités nominales validées', () => {
++    const relais = z.unknown().superRefine((valeur, ctx) => {
++      const resultat = dotationConcreteSchema.safeParse(valeur);
++      if (!resultat.success) for (const issue of resultat.error.issues) ctx.addIssue({ ...issue, message: issue.message });
++    });
++    const compositions = mesureDuParse(relais, OBJET).compositions;
++    expect(compositions).toHaveLength(1);
++    expect(compositions[0].noeud).toBe(dotationConcreteSchema);
++    expect(compositions[0].branche).toBe(branche('trapping'));
++  });
++
++  it('une composition ne se propage ni au parent ni à ses autres enfants', () => {
++    const schema = z.strictObject({ dotation: dotationConcreteSchema, instance: z.strictObject({ uid: z.string(), trappingId: z.string(), qualities: z.array(z.string()) }) });
++    const mesure = mesureDuParse(schema, { dotation: OBJET, instance: { uid: 'instance', trappingId: 'arme-simple', qualities: ['solide'] } });
++    expect(mesure.compositions.map((c) => c.path)).toEqual([['dotation']]);
++  });
++
++  it('une nouvelle charge se déclare au schéma et reste fermée sans vocabulaire global de clés', () => {
++    const schema = refTypee(enumNomme({ skill: 'Compétence' }), { skill: { champs: { condition: nommerNoeud(z.boolean().optional(), { nom: 'condition' }) } } });
++    const valeur = { type: 'skill', id: IDS_PAR_ESPACE['skills.json'][0], condition: true };
++    expect(schema.safeParse(valeur).success).toBe(true);
++    expect(schema.safeParse({ ...valeur, etrangere: true }).success).toBe(false);
++    expect(mesureDuParse(schema, valeur).compositions[0].noeud).toBe(schema);
++    expect(Object.keys(declarationDeRefTypee(schema)!.branches.get('skill')!.shape).sort()).toEqual(['condition', 'id', 'type']);
++  });
++});
+diff --git a/src/data/schemas/grammaire/ref.ts b/src/data/schemas/grammaire/ref.ts
+index 88a73bf8f..5d1c73423 100644
+--- a/src/data/schemas/grammaire/ref.ts
++++ b/src/data/schemas/grammaire/ref.ts
+@@ -279,6 +279,20 @@ const REPERE: unique symbol = Symbol('repère de parse de mesure');
+ 
+ /** Clé du repère de NŒUD D'OP : même régime que `REPERE`, émis par `marquerOpAtteinte`. */
+ const REPERE_OP: unique symbol = Symbol('repère de nœud d’op');
++const REPERE_COMPOSITION: unique symbol = Symbol('composition de référence');
++
++export interface CompositionDuParse {
++  readonly path: readonly PropertyKey[];
++  readonly noeud: z.ZodType;
++  readonly branche: z.ZodObject;
++}
++
++type MarqueDeComposition = {
++  readonly noeud: z.ZodType;
++  readonly attendu: z.ZodType;
++  readonly role: 'noeud' | 'branche';
++  effectif?: z.ZodType;
++};
+ 
+ /** Un `mesureDuParse` est-il en cours ? Le temps SYNCHRONE de l'appel, qui seul l'écrit, et jamais ailleurs : aucun export n'expose l'état. */
+ let parseDeMesure = false;
+@@ -391,28 +405,37 @@ type IssueLue = {
+   readonly code: string;
+   readonly path: readonly PropertyKey[];
+   readonly message: string;
+-  readonly params?: { readonly [REPERE]?: TypeEntite; readonly [REPERE_OP]?: true };
++  readonly params?: { readonly [REPERE]?: TypeEntite; readonly [REPERE_OP]?: true; readonly [REPERE_COMPOSITION]?: MarqueDeComposition };
+   readonly errors?: readonly (readonly IssueLue[])[];
+   readonly issues?: readonly IssueLue[];
+ };
+ 
+ const typeDuRepere = (issue: IssueLue): TypeEntite | undefined => issue.params?.[REPERE];
+ const estRepereDOp = (issue: IssueLue): boolean => issue.params?.[REPERE_OP] === true;
++const compositionDuRepere = (issue: IssueLue): MarqueDeComposition | undefined => issue.params?.[REPERE_COMPOSITION];
++
++function messageDuRepereDeComposition(issue: unknown): string | undefined {
++  const brute = issue as IssueLue & { schema?: z.ZodType };
++  const marque = compositionDuRepere(brute);
++  if (!marque) return undefined;
++  marque.effectif = brute.schema;
++  return 'repère de composition';
++}
+ 
+-/** La FAMILLE du repère que portent les `params` d'une issue — `reference` (`idDe`) ou `op`
+- *  (`marquerOpAtteinte`) —, `undefined` hors repère. Seule lecture des clés de repère hors de ce module :
+- *  la garde du masquage (`parse-de-mesure.test.ts`) instrumente les deux familles. */
+-export function familleDuRepere(params: unknown): 'reference' | 'op' | undefined {
++/** #1463#issuecomment-5385520833 ; #2948#issuecomment-6389403247 */
++export function familleDuRepere(params: unknown): 'reference' | 'op' | 'composition' | undefined {
+   const issue = { code: 'custom', path: [], message: '', params } as IssueLue;
+   if (params === undefined || params === null) return undefined;
+   if (typeDuRepere(issue) !== undefined) return 'reference';
+-  return estRepereDOp(issue) ? 'op' : undefined;
++  if (estRepereDOp(issue)) return 'op';
++  return compositionDuRepere(issue) ? 'composition' : undefined;
+ }
+ 
+ /** L'issue n'est-elle faite QUE de repères (union dont une branche l'est, clé/élément dont toutes les issues le sont) ? */
+ const estPropre = (issue: IssueLue): boolean =>
+   typeDuRepere(issue) !== undefined ||
+   estRepereDOp(issue) ||
++  compositionDuRepere(issue) !== undefined ||
+   (issue.code === 'invalid_union' && (issue.errors ?? []).some((b) => b.length > 0 && b.every(estPropre))) ||
+   ((issue.code === 'invalid_key' || issue.code === 'invalid_element') && (issue.issues ?? []).length > 0 && issue.issues!.every(estPropre));
+ 
+@@ -421,9 +444,10 @@ const estPropre = (issue: IssueLue): boolean =>
+ export interface MesureDuParse {
+   readonly reperes: readonly RepereDeMesure[];
+   readonly ops: readonly (readonly PropertyKey[])[];
++  readonly compositions: readonly CompositionDuParse[];
+ }
+ 
+-type Recueil = { reperes: RepereDeMesure[]; ops: (readonly PropertyKey[])[] };
++type Recueil = { reperes: RepereDeMesure[]; ops: (readonly PropertyKey[])[]; compositions: { path: readonly PropertyKey[]; marque: MarqueDeComposition }[] };
+ 
+ function recueillir(issues: readonly IssueLue[], prefixe: readonly PropertyKey[], parCle: boolean, out: Recueil): void {
+   for (const issue of issues) {
+@@ -437,6 +461,11 @@ function recueillir(issues: readonly IssueLue[], prefixe: readonly PropertyKey[]
+       out.ops.push(path);
+       continue;
+     }
++    const marque = compositionDuRepere(issue);
++    if (marque) {
++      out.compositions.push({ path, marque });
++      continue;
++    }
+     // La PREMIÈRE branche propre est celle que le parse normal choisit : la première sans issue.
+     const branche = issue.code === 'invalid_union' ? issue.errors?.find((b) => b.length > 0 && b.every(estPropre)) : undefined;
+     if (branche) recueillir(branche, path, parCle, out);
+@@ -473,9 +502,14 @@ export function mesureDuParse(schema: z.ZodType, donnee: unknown): MesureDuParse
+     }
+     parseDeMesure = true;
+     const resultat = schema.safeParse(donnee);
+-    const out: Recueil = { reperes: [], ops: [] };
++    const out: Recueil = { reperes: [], ops: [], compositions: [] };
+     if (!resultat.success) recueillir(resultat.error.issues as unknown as readonly IssueLue[], [], false, out);
+-    return out;
++    const compositions = out.compositions.flatMap(({ path, marque }) => {
++      if (marque.role !== 'noeud' || marque.effectif !== marque.attendu) return [];
++      const branche = out.compositions.find((r) => r.marque.role === 'branche' && r.marque.noeud === marque.noeud && r.marque.effectif === r.marque.attendu && r.path.length === path.length && r.path.every((k, i) => k === path[i]));
++      return branche ? [{ path, noeud: marque.noeud, branche: branche.marque.attendu as z.ZodObject }] : [];
++    });
++    return { reperes: out.reperes, ops: out.ops, compositions };
+   } finally {
+     parseDeMesure = precedent;
+   }
+@@ -505,8 +539,8 @@ const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'id
+ 
+ /** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
+  *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. */
+-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe) {
+-  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
++function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, metas: Readonly<Record<string, MetaChamp>>, sousListe?: SousListe, erreur?: (issue: unknown) => string | undefined) {
++  return nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }, { error: erreur }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>);
+ }
+ 
+ /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`). */
+@@ -530,6 +564,12 @@ export interface RefTypee<T extends TypeEntite = TypeEntite> {
+ export interface DeclarationDeRefTypee {
+   readonly types: readonly TypeEntite[];
+   readonly libelles: Readonly<Record<string, string>>;
++  readonly branches: ReadonlyMap<TypeEntite, z.ZodObject>;
++}
++
++export interface BrancheDeRefTypee {
++  readonly champs: Readonly<Record<string, z.ZodType>>;
++  readonly verifier?: (valeur: Record<string, unknown>, ctx: z.RefinementCtx) => void;
+ }
+ 
+ /** Les nœuds construits par `refTypee`, avec leur déclaration — ce que lit un sélecteur
+@@ -547,13 +587,32 @@ export const declarationDeRefTypee = (noeud: unknown): DeclarationDeRefTypee | u
+  * (`defs-scenes/scene.ts`) : le littéral DISCRIMINE la branche, `types` en NOMME la valeur. Le type ne
+  * se déduit jamais de l'id : un même id vit dans plusieurs espaces.
+  */
+-export function refTypee<T extends TypeEntite>(types: z.ZodEnum<{ [K in T]: K }>): z.ZodType<RefTypee<T>> {
++type ReferenceAvecCharge<T extends TypeEntite, C> = {
++  [K in T]: RefTypee<K> & (K extends keyof C ? C[K] extends { champs: infer E extends Record<string, z.ZodType> } ? z.output<z.ZodObject<E>> : object : object)
++}[T];
++
++export function refTypee<T extends TypeEntite, C extends Partial<Record<T, BrancheDeRefTypee>> = Record<never, never>>(types: z.ZodEnum<{ [K in T]: K }>, charges?: C & Partial<Record<T, BrancheDeRefTypee>>): z.ZodType<ReferenceAvecCharge<T, C>> {
+   const admis = types.options as readonly T[];
+-  const [premiere, ...autres] = admis.map((t) => objetDeRef(t, { type: z.literal(t).pipe(types) }, { type: { label: 'type de la référence' } }));
++  const branches = new Map<TypeEntite, z.ZodObject>();
++  const [premiere, ...autres] = admis.map((t) => {
++    const charge = charges?.[t];
++    const champs = charge?.champs ?? {};
++    if ('id' in champs || 'type' in champs) throw new Error('charge de référence : id et type appartiennent au noyau');
++    const base = objetDeRef(t, { type: z.literal(t).pipe(types), ...champs }, { type: { label: 'type de la référence' }, ...metasExtra(champs) }, undefined, messageDuRepereDeComposition);
++    const branche = base.superRefine((v, ctx) => {
++      charge?.verifier?.(v, ctx);
++      if (parseDeMesure) ctx.addIssue({ code: 'custom', params: { [REPERE_COMPOSITION]: { noeud, attendu: branche, role: 'branche' } }, continue: true });
++    });
++    branches.set(t, branche);
++    return branche;
++  });
+   const refus = `type de référence absent ou inconnu — admis : ${admis.map((t) => `« ${t} » (${TYPES[t].catalogue})`).join(', ')}.`;
+-  const noeud = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => (iss.code === 'invalid_union' ? refus : undefined) }) as unknown as z.ZodType<RefTypee<T>>;
+-  REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {} });
+-  return noeud;
++  const union = z.discriminatedUnion('type', [premiere, ...autres], { error: (iss) => messageDuRepereDeComposition(iss) ?? (iss.code === 'invalid_union' ? refus : undefined) });
++  const noeud: z.ZodType<RefTypee<T>> = union.superRefine((_v, ctx) => {
++    if (parseDeMesure) ctx.addIssue({ code: 'custom', params: { [REPERE_COMPOSITION]: { noeud, attendu: noeud, role: 'noeud' } }, continue: true });
++  }) as unknown as z.ZodType<RefTypee<T>>;
++  REFS_TYPEES.set(noeud, { types: admis, libelles: valeursDe(types) ?? {}, branches });
++  return noeud as z.ZodType<ReferenceAvecCharge<T, C>>;
+ }
+ 
+ /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
+diff --git a/src/data/schemas/grammaire/reference.ts b/src/data/schemas/grammaire/reference.ts
+index ccfb13b0c..ffb6339b1 100644
+--- a/src/data/schemas/grammaire/reference.ts
++++ b/src/data/schemas/grammaire/reference.ts
+@@ -1,13 +1,8 @@
+-import { nommerChamps, metaDesChamps } from './meta';
+-/**
+- * RÉFÉRENCES de la grammaire de document (#1466 L1a) — les formes ACTUELLES de désignation d'une
+- * entité par son id (réf simple, réf de Qualité, dotation, emplacement d'avancement, Trait posé).
+- * Les fabriques FERMÉES qui les remplaceront vivent dans `ref.ts` ; leur adoption par les defs et
+- * la migration de la donnée se font aux lots L2/L3 (#1463).
+- */
++import { nommerChamps, nommerNoeud } from './meta';
++/** #1466 L1a ; #1463 */
+ import { z } from 'zod';
+-import { countSpecSchema } from './valeurs';
+-import { porteLeMarqueur, refusDeSpec } from './ref';
++import { countSpecSchema, sourceRefSchema, validerApparenceDObjet, type SourceRef } from './valeurs';
++import { porteLeMarqueur, ref, refusDeSpec } from './ref';
+ 
+ /**
+  * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
+@@ -107,38 +102,41 @@ export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spe
+  *  n'est pas une SPÉCIALISATION. */
+ export const refIndiceSchema = nommerChamps(z.strictObject({ id: z.string(), value: z.number().optional() }), { id: { label: "identifiant" }, value: { label: "valeur" } });
+ 
+-/** `QualityRef` (`src/data/index.ts`) — id + Indice éventuel (« Solide 3 », « Taillade (1A) » →
+- *  `value`). Vue COMMUNE du joker de qualité d'une dotation (`TrappingRef.qualities`, #657 Lot 1) ET du
+- *  catalogue `trappings.json` lui-même, qui l'importe (#1463 L-gram-2). C'est la référence INDICÉE
+- *  ci-dessus : ce que le livre imprime entre parenthèses (`AA 08 l.87` « Taillade (XA) ») est une
+- *  MAGNITUDE, portée par `value` et déclarée par la qualité (`QualityData.indice`) ; `spec` y était une
+- *  seconde graphie de la même chose, que rien ne lisait — elle est désormais REFUSÉE au parse. */
++/** AA 08 l.87 ; #657 ; #1463 */
+ export const qualityRefSchema = refIndiceSchema;
+ 
+ 
+-/** `TrappingRef` (`src/data/index.ts`) — par id de catalogue (+ quantité, + Atouts ATTACHÉS `qualities`
+- *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
+- *  texte narratif hors catalogue (+ quantité), dotation VÉHICULE (`vehicleId`, foyer `vehicles.json` —
+- *  grant de POSSESSION, matérialisé en T1), dotation BÊTE (`creatureId`, foyer `creatures.json` — SOCLE
+- *  POSSESSIONS #615/#617 §9), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
+- *  ou joker (`wildcard`). Dupliqué dans `careerLevels`/`classes`/`creatures`. */
++/** LDB 60 ; #657 ; #615 ; #617 */
+ type CountSpecInfer = z.infer<typeof countSpecSchema>;
+ type QualityRefInfer = z.infer<typeof qualityRefSchema>;
++type DotationParId = { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true; apparence?: { id: string }; source?: SourceRef };
++export const dotationParIdSchema: z.ZodType<DotationParId> = ref('trapping', {
++  spec: nommerNoeud(z.string().optional(), { nom: 'spécialisation' }),
++  count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++  qualities: nommerNoeud(z.array(qualityRefSchema).optional(), { nom: 'qualités' }),
++  qualityChoice: nommerNoeud(z.literal(true).optional(), { nom: 'qualité au choix' }),
++  apparence: nommerNoeud(ref('apparence').optional(), { nom: 'apparence' }),
++  source: nommerNoeud(sourceRefSchema.optional(), { nom: 'source' }),
++}).superRefine((v, ctx) => {
++  const dotation = v as DotationParId;
++  if (dotation.apparence) validerApparenceDObjet(dotation.id, dotation.apparence.id, ctx, ['apparence', 'id']);
++});
++export const dotationDeVehiculeSchema = ref('vehicle', {
++  type: nommerNoeud(z.literal('vehicle'), { nom: 'type de dotation' }),
++  count: nommerNoeud(countSpecSchema.optional(), { nom: 'nombre' }),
++  label: nommerNoeud(z.string().optional(), { nom: 'nom' }),
++});
+ export const trappingRefSchema: z.ZodType<
+-  | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true }
++  | DotationParId
+   | { text: string; count?: CountSpecInfer }
+-  | { vehicleId: string; count?: CountSpecInfer; label?: string }
++  | { type: 'vehicle'; id: string; count?: CountSpecInfer; label?: string }
+   | { creatureId: string; count?: CountSpecInfer; label?: string }
+   | { choice: unknown[] }
+   | { wildcard: string }
+ > = z.union([
+-  nommerChamps(refSchema.extend({
+-    count: countSpecSchema.optional(),
+-    qualities: z.array(qualityRefSchema).optional(),
+-    qualityChoice: z.literal(true).optional(),
+-  }), { ...metaDesChamps(refSchema, { exigees: true }), count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } }),
++  dotationParIdSchema,
+   nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }),
+-  nommerChamps(z.strictObject({ vehicleId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }), { vehicleId: { label: "véhicule" }, count: { label: "nombre" }, label: { label: "libellé" } }),
++  dotationDeVehiculeSchema,
+   nommerChamps(z.strictObject({ creatureId: z.string(), count: countSpecSchema.optional(), label: z.string().optional() }), { creatureId: { label: "créature" }, count: { label: "nombre" }, label: { label: "libellé" } }),
+   nommerChamps(z.strictObject({ choice: z.array(z.lazy(() => trappingRefSchema)) }), { choice: { label: "choix" } }),
+   nommerChamps(z.strictObject({ wildcard: z.string() }), { wildcard: { label: "choix libre" } }),
+diff --git a/src/data/structures-compositions.test.ts b/src/data/structures-compositions.test.ts
+new file mode 100644
+index 000000000..d34fa281e
+--- /dev/null
++++ b/src/data/structures-compositions.test.ts
+@@ -0,0 +1,58 @@
++import { describe, expect, it } from 'vitest';
++import { z } from 'zod';
++import { dotationConcreteSchema } from './schemas/grammaire/dotation';
++import { declarationDeRefTypee, idDe } from './schemas/grammaire/ref';
++import type { SchemaDef } from './schemas/types';
++import { scannerFixtureDeReferences } from '../../scripts/docs/lib/structures-fixture.testkit.mts';
++
++const CATALOGUE = [{ id: 'arme-simple', label: 'Arme simple' }];
++const DOTATION = { type: 'trapping', id: 'arme-simple', qualities: true, apparence: { id: 'epee' }, source: { book: 'aux-armes', page: 14 } };
++const copie = () => z.strictObject({ ...declarationDeRefTypee(dotationConcreteSchema)!.branches.get('trapping')!.shape });
++function scanner(nom: string, schema: z.ZodType, entries: unknown[]) {
++  const defs: SchemaDef[] = [
++    { file: 'trappings.json', root: 'src/data', famille: 'entite', schema: z.array(z.strictObject({ id: z.string(), label: z.string() })) },
++    { file: 'careerLevels.json', root: 'src/data', famille: 'entite', schema: z.array(schema) },
++  ];
++  return scannerFixtureDeReferences(nom, { 'trappings.json': CATALOGUE, 'careerLevels.json': entries }, defs);
++}
++const formesDeDotation = (scan: ReturnType<typeof scanner>) => scan.formes.filter((f) => f.concept === 'reference' && f.dataset === 'careerLevels.json' && f.champ === 'trappings');
++
++describe('cible de composition — qualification par le schéma réel du site', () => {
++  it('la dotation concrète validée est cible, sans déclarer sa signature libre globalement', () => {
++    const mesure = scanner('dotation-concrete-nominale-', z.strictObject({ id: z.string(), trappings: z.array(dotationConcreteSchema) }), [{ id: 'canon', trappings: [DOTATION] }]);
++    expect(formesDeDotation(mesure), JSON.stringify(mesure.formes)).toEqual([expect.objectContaining({ statut: 'cible', occurrences: 1 })]);
++  });
++
++  it('une copie structurelle ne peut pas emprunter la cible, même au même champ et à signature identique', () => {
++    const schema = z.discriminatedUnion('kind', [
++      z.strictObject({ id: z.string(), kind: z.literal('canon'), trappings: z.array(dotationConcreteSchema) }),
++      z.strictObject({ id: z.string(), kind: z.literal('copie'), trappings: z.array(copie()) }),
++    ]);
++    const mesure = scanner('dotation-cible-et-copie-', schema, [{ id: 'canon', kind: 'canon', trappings: [DOTATION] }, { id: 'copie', kind: 'copie', trappings: [DOTATION] }]);
++    const formes = formesDeDotation(mesure);
++    expect(formes.filter((f) => f.statut === 'cible').map((f) => f.occurrences)).toEqual([1]);
++    expect(formes.filter((f) => f.statut !== 'cible').map((f) => f.occurrences)).toEqual([1]);
++  });
++
++  it('un clone Zod et une branche rejetée restent hors de la cible', () => {
++    const schema = z.strictObject({ id: z.string(), trappings: z.array(z.union([dotationConcreteSchema, z.looseObject({ type: z.string(), id: idDe('trapping') })])) });
++    const mesure = scanner('dotation-branche-rejetee-', schema, [{ id: 'rejetee', trappings: [{ ...DOTATION, apparence: { id: 'zweihander' } }] }]);
++    expect(formesDeDotation(mesure).filter((f) => f.statut === 'cible')).toEqual([]);
++    const clone = scanner('dotation-clone-zod-', z.strictObject({ id: z.string(), trappings: z.array(dotationConcreteSchema.clone()) }), [{ id: 'clone', trappings: [DOTATION] }]);
++    expect(formesDeDotation(clone).filter((f) => f.statut === 'cible')).toEqual([]);
++  });
++
++  it('un choix garde sa forme historique et son enfant concret garde sa qualification propre', () => {
++    const schema = z.strictObject({ id: z.string(), trappings: z.array(z.union([z.strictObject({ choice: z.array(dotationConcreteSchema) }), z.strictObject({ id: z.string() })])) });
++    const mesure = scanner('dotation-concrete-sous-choix-', schema, [{ id: 'choix', trappings: [{ choice: [DOTATION] }, { id: 'arme-simple' }, { id: 'arme-simple' }] }]);
++    expect(mesure.formes.filter((f) => f.concept === 'reference' && f.signature === 'choice'), JSON.stringify(mesure.formes)).toEqual([expect.objectContaining({ statut: 'historique', occurrences: 1 })]);
++    expect(mesure.formes.filter((f) => f.concept === 'reference' && f.champ === 'choice' && f.statut === 'cible')).toEqual([expect.objectContaining({ occurrences: 1 })]);
++  });
++
++  it('une instance reste mesurée sans recevoir la cible de la dotation voisine', () => {
++    const schema = z.strictObject({ id: z.string(), trappings: z.array(dotationConcreteSchema), instances: z.array(z.strictObject({ uid: z.string(), trappingId: z.string(), qualities: z.array(z.string()) })) });
++    const mesure = scanner('dotation-instance-voisine-', schema, [{ id: 'porteur', trappings: [DOTATION], instances: [{ uid: 'instance', trappingId: 'arme-simple', qualities: ['solide'] }] }]);
++    expect(formesDeDotation(mesure), JSON.stringify(mesure.formes)).toEqual([expect.objectContaining({ statut: 'cible', occurrences: 1 })]);
++    expect(mesure.formes.filter((f) => f.champ === 'instances' && f.statut === 'cible')).toEqual([]);
++  });
++});
+diff --git a/src/data/structures-contrat.test.ts b/src/data/structures-contrat.test.ts
+index 8e81a11c9..7604266f0 100644
+--- a/src/data/structures-contrat.test.ts
++++ b/src/data/structures-contrat.test.ts
+@@ -100,18 +100,7 @@ const GARDE = {
+ const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
+ const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+ 
+-function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
+-  const dossier = mkdtempSync(join(tmpdir(), nom));
+-  try {
+-    mkdirSync(join(dossier, 'src/data'), { recursive: true });
+-    mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+-    cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+-    for (const [file, contenu] of Object.entries(documents)) writeFileSync(join(dossier, 'src/data', file), JSON.stringify(contenu));
+-    return scannerDonnees(dossier, defs);
+-  } finally {
+-    rmSync(dossier, { recursive: true, force: true });
+-  }
+-}
++import { scannerFixtureDeReferences } from '../../scripts/docs/lib/structures-fixture.testkit.mts';
+ 
+ /** Le DÉCLARÉ couvre les DEUX racines (#1466 L1a) — jointure par BASENAME, comme le scan key.
+  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
+@@ -259,16 +248,6 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
+     expect(GARDE.ticket).toBe('#1465');
+   });
+ 
+-  it('signatures CIBLES : lexique == `STRUCTURES_CIBLES` (une cible ne se décrète pas dans le lexique)', () => {
+-    const auLexique = CONCEPTS.flatMap((c) =>
+-      c.signatures.filter((s) => s.statut === 'cible').map((s) => `${c.id} | ${s.sig}`),
+-    );
+-    expect(
+-      lignes(auLexique),
+-      'le lexique déclare des signatures `cible` que `STRUCTURES_CIBLES` ne connaît pas (ou l’inverse) — faire passer une graphie en cible la sort du dénominateur : ça se décide au STOCK, pas d’un mot du lexique.',
+-    ).toEqual(lignes(STRUCTURES_CIBLES.map((c) => `${c.concept} | ${c.signature}`)));
+-  });
+-
+   it('formes à éteindre : observé == stock (présence, statut, strate ET occurrences)', () => {
+     const ecarts = ecartsDeFormes(scan);
+     expect(lignes(ecarts.neuves), 'forme(s) observée(s) en écart : appliquer le remède de chaque site nommé.').toEqual([]);
+diff --git a/src/engine/apparenceNaissance.test.ts b/src/engine/apparenceNaissance.test.ts
+index c51855193..9d64eb9a9 100644
+--- a/src/engine/apparenceNaissance.test.ts
++++ b/src/engine/apparenceNaissance.test.ts
+@@ -9,6 +9,9 @@ import { makeRNG } from './dice';
+ import { giveTrappingSchema } from '../data/schemas/defs-scenes/effets';
+ import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
+ import { herosDeNaissance, poserVariantesDeNaissance, restaurerApparencesDeNaissance, varianteDeNaissance } from '../apparenceNaissance.testkit';
++import { avecDotations, CARRIERE_FIXTURE } from '../data/dotations.fixture';
++import { resolveTrappingChoices } from './trappingChoices';
++import { adresseDeCreation } from './adresseDeCreation';
+ 
+ afterEach(restaurerApparencesDeNaissance);
+ 
+@@ -80,6 +83,28 @@ describe('apparence décidée à la naissance', () => {
+     }
+   });
+ 
++  it('la dotation conserve la décision d’auteur, racine ou variante, devant le contexte', () => {
++    const varianteAuteur = varianteDeNaissance({ id: 'auteur-dotation', especes: ['humains-reiklander'] });
++    poserVariantesDeNaissance(varianteDeNaissance(), varianteAuteur);
++    for (const contexte of [undefined, { espece: 'nains' }]) {
++      for (const id of ['epee', varianteAuteur.id]) {
++        const objet = itemFromTrappingRef({ id: 'arme-simple', apparence: { id } }, undefined, contexte);
++        expect(objet?.apparence).toBe(id);
++      }
++    }
++  });
++
++  it('résoudre l’Atout d’une dotation conserve son apparence et ses qualités attachées', () => {
++    const ref = { id: 'arme-simple', apparence: { id: 'epee' }, qualities: [{ id: 'laid' }], qualityChoice: true as const };
++    avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () => {
++      const refs = resolveTrappingChoices(CARRIERE_FIXTURE, 1, { [adresseDeCreation.dotation([0])]: 'solide' });
++      expect(refs).toStrictEqual([{ id: 'arme-simple', apparence: { id: 'epee' }, qualities: [{ id: 'laid' }, { id: 'solide', value: 1 }] }]);
++      const reference = refs[0];
++      if (!('id' in reference)) throw new Error('La dotation ne désigne pas un objet.');
++      expect(itemFromTrappingRef(reference, undefined, { espece: 'nains' })?.apparence).toBe('epee');
++    });
++  });
++
+   it('un appel direct refuse aussi une apparence étrangère ou un custom sans identité', () => {
+     expect(() => itemFromGive({ trappingId: 'arme-simple', apparence: { id: 'cape' } })).toThrow(/arme-simple.*cape/);
+     expect(() => itemFromGive({ custom: 'Souvenir', apparence: { id: 'cape' } })).toThrow(/custom.*cape/);
+diff --git a/src/engine/items.ts b/src/engine/items.ts
+index d0a5b0471..0f965cf27 100644
+--- a/src/engine/items.ts
++++ b/src/engine/items.ts
+@@ -12,7 +12,7 @@ import { armourMaterialOf } from './armourBypass';
+ import type { TriggeredEffect } from './flowCore';
+ import { cannotWieldTwoHanded, handAmputated } from './trauma';
+ import { mutationArmourBonus, nonDeviatableMutationAP } from './corruption';
+-import { apparences, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type TrappingRef } from '../data';
++import { apparences, estDotationDeVehicule, findCareerById, findTrappingById, findTraitById, qualityInstance, refLabel, type DotationDObjet, type TrappingRef } from '../data';
+ import { t } from '../i18n';
+ import { candidatsDApparenceDObjet, apparencesAdmissiblesDObjet, messageDApparenceDObjet } from '../data/apparencesObjets';
+ 
+@@ -376,23 +376,14 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
+     hands: kind === 'melee' || kind === 'ranged' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
+     qty: kind === 'ammo' ? (t.packSize ?? 1) : undefined, // taille de paquet typée
+     ...(t.ammoRangeMod != null ? { ammoRangeMod: t.ammoRangeMod } : {}), // modificateur de Portée de la munition (LDB 62)
+-    // Les capacités de catégorie (weatherProtection/isShelter/isRations/isGrimoire/preventForcedDrop) NE
+-    // sont PAS copiées sur l'instance : elles restent lues DEPUIS le catalogue par `trappingId` (canal
+-    // `capabilities`), via `engine/capabilities` — comme `passive`. Une seule source de vérité.
+     ...(t.container ? { container: t.container } : {}), // Contenant (LDB 64) : capacité de rangement
+   };
+   return deciderApparenceALaNaissance(objet, contexte, resolveTrapping);
+ }
+ 
+-/**
+- * Matérialise une `TrappingRef` RÉSOLUE (`{id, spec?, count?, qualities?}` — après
+- * `resolveTrappingChoices`) en objet de sac. COUTURE UNIQUE ref → objet : le catalogue donne les
+- * stats (`itemFromTrappingById`), la REF donne ce que la dotation ajoute par-dessus — la
+- * spécialisation imprimée entre parenthèses (`ItemInstance.spec`), la quantité d'un paquet de
+- * munitions, les Atouts ATTACHÉS. Aucun site ne recopie ces trois gestes : ils vivent ici.
+- */
++/** Matérialise une `TrappingRef` résolue par `resolveTrappingChoices` en instance d'objet. */
+ export function itemFromTrappingRef(
+-  ref: Extract<TrappingRef, { id: string }>,
++  ref: DotationDObjet,
+   resolveTrapping: TrappingResolver = findTrappingById,
+   contexte?: ContexteDeNaissanceDObjet,
+ ): ItemInstance | null {
+@@ -404,7 +395,7 @@ export function itemFromTrappingRef(
+     // #657
+     it.qualities = [...(it.qualities ?? []), ...ref.qualities.map(qualityInstance)];
+   }
+-  return deciderApparenceALaNaissance(it, contexte, resolveTrapping);
++  return deciderApparenceALaNaissance(it, contexte, resolveTrapping, ref.apparence);
+ }
+ 
+ /** Objet « custom » minimal (trinket / objet de quête) quand le nom n'est PAS un vrai trapping de la
+@@ -1121,7 +1112,7 @@ export function damageScore(d?: WeaponDamageSpec): number {
+ export function buildInventory(refs: TrappingRef[], contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
+   const items: ItemInstance[] = [];
+   for (const ref of refs) {
+-    if ('vehicleId' in ref) continue; // dotation véhicule = grant de POSSESSION (matérialisé en T1, registre), jamais un objet de sac.
++    if (estDotationDeVehicule(ref)) continue;
+     if (!('id' in ref)) continue; // {text}, {choice} ou {wildcard} non tranché : aucun objet
+     const it = itemFromTrappingRef(ref, undefined, contexte);
+     if (it) items.push(it);
+diff --git a/src/engine/possessionGrants.test.ts b/src/engine/possessionGrants.test.ts
+index e114deed7..8d9daa9a0 100644
+--- a/src/engine/possessionGrants.test.ts
++++ b/src/engine/possessionGrants.test.ts
+@@ -2,10 +2,21 @@ import { describe, it, expect } from 'vitest';
+ import { possessionGrantsFromRefs } from './possessionGrants';
+ import type { TrappingRef } from '../data';
+ import { makeRNG } from './dice';
++import { buildInventory } from './items';
++import { trappingRefLabel } from '../data';
+ 
+ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
+-  it('{vehicleId} → grant vehicule avec-le-groupe, owner = ownerId', () => {
+-    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale' }];
++  it('fixture Flottille de Perles : le compte et le nom vont aux possessions, sans objet de sac', () => {
++    const FLOTTILLE: TrappingRef[] = [{ type: 'vehicle', id: 'barque-fluviale', count: { fixed: 2 }, label: 'La Perle' }];
++    expect(buildInventory(FLOTTILLE)).toEqual([]);
++    expect(trappingRefLabel(FLOTTILLE[0])).toBe('La Perle (2)');
++    const grants = possessionGrantsFromRefs(FLOTTILLE, 'batelier', makeRNG(1));
++    expect(grants).toHaveLength(2);
++    for (const grant of grants) expect(grant).toMatchObject({ nature: 'vehicule', vehicleId: 'barque-fluviale', ownerId: 'batelier', label: 'La Perle' });
++    expect(grants[0].items).not.toBe(grants[1].items);
++  });
++  it('{type: vehicle, id} → grant vehicule avec-le-groupe, owner = ownerId', () => {
++    const refs: TrappingRef[] = [{ type: 'vehicle', id: 'barque-fluviale' }];
+     const grants = possessionGrantsFromRefs(refs, 'hero-1', makeRNG(1));
+     expect(grants).toHaveLength(1);
+     expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque-fluviale', ownerId: 'hero-1', location: { kind: 'avec-le-groupe' }, items: [] });
+@@ -33,8 +44,8 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
+     expect(possessionGrantsFromRefs(refs, 'h', makeRNG(1))).toHaveLength(0);
+   });
+ 
+-  it('mix de refs — seuls creatureId/vehicleId produisent, dans l\'ordre', () => {
+-    const refs: TrappingRef[] = [{ id: 'baril' }, { vehicleId: 'chariot-leger' }, { creatureId: 'mule' }, { text: 'flavor' }];
++  it('mix de refs — seuls creatureId et la référence typée véhicule produisent, dans l\'ordre', () => {
++    const refs: TrappingRef[] = [{ id: 'baril' }, { type: 'vehicle', id: 'chariot-leger' }, { creatureId: 'mule' }, { text: 'flavor' }];
+     const grants = possessionGrantsFromRefs(refs, 'h', makeRNG(1));
+     expect(grants.map((g) => g.nature)).toEqual(['vehicule', 'bete']);
+   });
+@@ -52,14 +63,14 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
+     expect(grants[0]).not.toHaveProperty('label');
+   });
+ 
+-  it('{vehicleId, label} → le label propre de la dotation est transporté sur la PossessionInput', () => {
+-    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale', label: 'La Perle Grise' }];
++  it('{type: vehicle, id, label} → le label propre de la dotation est transporté sur la PossessionInput', () => {
++    const refs: TrappingRef[] = [{ type: 'vehicle', id: 'barque-fluviale', label: 'La Perle Grise' }];
+     const grants = possessionGrantsFromRefs(refs, 'hero-5', makeRNG(1));
+     expect(grants[0]).toMatchObject({ nature: 'vehicule', vehicleId: 'barque-fluviale', label: 'La Perle Grise' });
+   });
+ 
+   it('count.roll (1d10) → N tiré via le rouleur canonique, déterministe par seed', () => {
+-    const refs: TrappingRef[] = [{ vehicleId: 'bateau-de-patrouille', count: { roll: { n: 1, sides: 10 } } }];
++    const refs: TrappingRef[] = [{ type: 'vehicle', id: 'bateau-de-patrouille', count: { roll: { n: 1, sides: 10 } } }];
+     const grantsA = possessionGrantsFromRefs(refs, 'h', makeRNG(1));
+     const grantsB = possessionGrantsFromRefs(refs, 'h', makeRNG(1));
+     const grantsC = possessionGrantsFromRefs(refs, 'h', makeRNG(2));
+@@ -71,7 +82,7 @@ describe('possessionGrantsFromRefs (#617/#618 SOCLE POSSESSIONS Lot 1)', () => {
+   });
+ 
+   it('sans count → 1 grant', () => {
+-    const refs: TrappingRef[] = [{ vehicleId: 'barque-fluviale' }];
++    const refs: TrappingRef[] = [{ type: 'vehicle', id: 'barque-fluviale' }];
+     expect(possessionGrantsFromRefs(refs, 'h', makeRNG(1))).toHaveLength(1);
+   });
+ });
+diff --git a/src/engine/possessionGrants.ts b/src/engine/possessionGrants.ts
+index cab66c9bd..2373baa33 100644
+--- a/src/engine/possessionGrants.ts
++++ b/src/engine/possessionGrants.ts
+@@ -1,10 +1,10 @@
+ /**
+  * Grants de POSSESSION portés par des dotations (Classe/Carrière) — #617/#618 SOCLE POSSESSIONS Lot 1.
+- * `buildInventory` (engine/items.ts) ignore les refs `{creatureId}`/`{vehicleId}` d'un `TrappingRef`
++ * `buildInventory` (engine/items.ts) ignore les refs `{creatureId}` et les références typées de véhicule d'un `TrappingRef`
+  * (pas des objets de sac) : ce module les MATÉRIALISE en `PossessionInput[]`, même shape que l'Effet
+  * `givePossession` (noyau/combatEffects.ts) — bête/véhicule `avec-le-groupe`, `count` respecté.
+  */
+-import type { TrappingRef } from '../data';
++import { estDotationDeVehicule, type TrappingRef } from '../data';
+ import type { PossessionInput } from './possession';
+ import { rollDice, type RNG } from './dice';
+ 
+@@ -16,13 +16,13 @@ export function possessionGrantsFromRefs(refs: TrappingRef[], ownerId: string, r
+   const grants: PossessionInput[] = [];
+   for (const ref of refs) {
+     const n = 'count' in ref && ref.count ? ('fixed' in ref.count ? ref.count.fixed : rollDice(ref.count.roll, rng)) : 1;
+-    if ('vehicleId' in ref) {
++    if (estDotationDeVehicule(ref)) {
+       // Objet NEUF à CHAQUE itération (jamais la même réf poussée N fois) — `addPossession` ne fait
+       // qu'un spread SUPERFICIEL (`{...p, uid}`, possessionsFlow.ts) : un `items`/`location` partagé
+       // entre N possessions dupliquées les ferait muter ensemble (embarquer sur l'une affecterait
+       // les autres).
+       for (let i = 0; i < n; i++) {
+-        grants.push({ nature: 'vehicule', vehicleId: ref.vehicleId, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
++        grants.push({ nature: 'vehicule', vehicleId: ref.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [], ...(ref.label ? { label: ref.label } : {}) });
+       }
+     } else if ('creatureId' in ref) {
+       for (let i = 0; i < n; i++) {
+diff --git a/src/engine/trappingChoices.test.ts b/src/engine/trappingChoices.test.ts
+index e2c608aa0..20d561ed6 100644
+--- a/src/engine/trappingChoices.test.ts
++++ b/src/engine/trappingChoices.test.ts
+@@ -11,6 +11,7 @@ import { adresseDeCreation } from './adresseDeCreation';
+ import { avecDotations, CARRIERE_FIXTURE, DOTATIONS_FIXTURE } from '../data/dotations.fixture';
+ import { trappingRefLabel, fabricationAtouts, trappings, type TrappingRef } from '../data/index';
+ import { setDataset } from '../data/overrides';
++import { itemFromTrappingRef } from './items';
+ 
+ const dot = adresseDeCreation.dotation;
+ const avecFixture = <T>(fn: () => T): T => avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, fn);
+@@ -34,7 +35,7 @@ describe('emplacementsDeDotation — énumération canonique (classe PUIS niveau
+ 
+   it('`estEmplacementDeDotation` : `{choice}`, `{wildcard}`, `{id, qualityChoice}` ; une ref concrète n\'en est pas un', () => {
+     expect([{ choice: [] }, { wildcard: 'arme' }, { id: 'fleuret', qualityChoice: true }].map((r) => estEmplacementDeDotation(r as TrappingRef))).toEqual([true, true, true]);
+-    expect(([{ id: 'dague' }, { text: 'Toges' }, { creatureId: 'cheval' }, { vehicleId: 'charrette' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
++    expect(([{ id: 'dague' }, { text: 'Toges' }, { creatureId: 'cheval' }, { type: 'vehicle', id: 'charrette' }] as TrappingRef[]).map(estEmplacementDeDotation)).toEqual([false, false, false, false]);
+   });
+ });
+ 
+@@ -69,6 +70,25 @@ describe('resolveTrappingChoices — les choix par adresse', () => {
+     });
+   });
+ 
++  it('la spécialisation traverse la résolution d’une qualité et la naissance de l’objet', () => {
++    const OUTILS_DE_DOTATION: TrappingRef = {
++      id: 'outils-professionnels', spec: 'Maréchal-ferrant', count: { fixed: 2 },
++      qualities: [{ id: 'laid' }], qualityChoice: true,
++    };
++    avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [OUTILS_DE_DOTATION] }, () => {
++      const refs = resoudre({ [dot([0])]: 'solide' });
++      expect(refs).toStrictEqual([{
++        id: 'outils-professionnels', spec: 'Maréchal-ferrant', count: { fixed: 2 },
++        qualities: [{ id: 'laid' }, { id: 'solide', value: 1 }],
++      }]);
++      const reference = refs[0];
++      if (!('id' in reference)) throw new Error('La dotation ne désigne pas un objet.');
++      const objet = itemFromTrappingRef(reference);
++      expect(objet).toMatchObject({ trappingId: 'outils-professionnels', spec: 'Maréchal-ferrant' });
++      expect(objet?.qualities.map((q) => q.id)).toEqual(['laid', 'solide']);
++    });
++  });
++
+   it('une branche choisie dont le `{choice}` imbriqué n’est pas tranché rend ce `{choice}` tel quel', () => {
+     avecFixture(() => {
+       expect(resoudre({ [dot([3])]: 0 })[3]).toEqual({ choice: [{ id: 'dague' }, { wildcard: 'arme' }] });
+diff --git a/src/engine/trappingChoices.ts b/src/engine/trappingChoices.ts
+index 22a06f428..7757e169f 100644
+--- a/src/engine/trappingChoices.ts
++++ b/src/engine/trappingChoices.ts
+@@ -5,7 +5,7 @@
+  * (`ChoixDeCreation.trappingChoices`) sont rangés par ces adresses. Seul ce module LIT la valeur d'un
+  * choix (`brancheChoisie`, `idChoisi`).
+  */
+-import { findCareerById, findClassById, firstLevel, levelsForCareer, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type TrappingRef } from '../data/index';
++import { estDotationDeVehicule, findCareerById, findClassById, firstLevel, levelsForCareer, DEFAULT_FABRICATION_ATOUT, fabricationAtoutQuality, type DotationDObjet, type TrappingRef } from '../data/index';
+ import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
+ 
+ /** Choix de dotation : index de branche d'un `{choice}`, id d'objet d'un `{wildcard}`, id d'Atout d'un
+@@ -16,7 +16,7 @@ export type ChoixDeDotation = Record<AdresseDeCreation, number | string>;
+ export type EmplacementDeDotation = { adresse: AdresseDeCreation; chemin: readonly number[] } & (
+   | { sorte: 'branches'; ref: Extract<TrappingRef, { choice: TrappingRef[] }> }
+   | { sorte: 'joker'; ref: Extract<TrappingRef, { wildcard: string }> }
+-  | { sorte: 'atout'; ref: Extract<TrappingRef, { id: string }> }
++  | { sorte: 'atout'; ref: DotationDObjet }
+ );
+ type EmplacementABranches = Extract<EmplacementDeDotation, { sorte: 'branches' }>;
+ 
+@@ -31,7 +31,7 @@ function emplacement(ref: TrappingRef, chemin: readonly number[]): EmplacementDe
+   const adresse = adresseDeCreation.dotation(chemin);
+   if ('choice' in ref) return { adresse, chemin, sorte: 'branches', ref };
+   if ('wildcard' in ref) return { adresse, chemin, sorte: 'joker', ref };
+-  if ('id' in ref && ref.qualityChoice) return { adresse, chemin, sorte: 'atout', ref };
++  if ('id' in ref && !estDotationDeVehicule(ref) && ref.qualityChoice) return { adresse, chemin, sorte: 'atout', ref };
+   return undefined;
+ }
+ 
+@@ -104,5 +104,7 @@ function resoudre(ref: TrappingRef, e: EmplacementDeDotation | undefined, choice
+     const id = idChoisi(e, choices);
+     return id ? { id } : ref;
+   }
+-  return { id: e.ref.id, spec: e.ref.spec, count: e.ref.count, qualities: [fabricationAtoutQuality(idChoisi(e, choices) ?? DEFAULT_FABRICATION_ATOUT)] };
++  const objet = { ...e.ref };
++  delete objet.qualityChoice;
++  return { ...objet, qualities: [...(objet.qualities ?? []), fabricationAtoutQuality(idChoisi(e, choices) ?? DEFAULT_FABRICATION_ATOUT)] };
+ }
+diff --git a/src/identite-absente-libelle-litteral-guard.test.ts b/src/identite-absente-libelle-litteral-guard.test.ts
+index 00376b363..b57ee5ff2 100644
+--- a/src/identite-absente-libelle-litteral-guard.test.ts
++++ b/src/identite-absente-libelle-litteral-guard.test.ts
+@@ -54,7 +54,7 @@ const EXEMPTES = new Map<string, string>([
+   ['src/ui/editor/codex/CodexEdit.tsx|indice?.label ?? \'\'', AUTHORE],
+   ['src/ui/compendium/CompendiumScreen.tsx|cat?.label ?? \'\'', PLACEHOLDER],
+   ['src/ui/compendium/registry.ts|e.label ?? \'\'', AUTHORE],
+-  ['src/ui/editor/codex/StructFields.tsx|findVehicleById(t.vehicleId)?.label ?? \'\'', PLACEHOLDER],
++  ['src/ui/editor/codex/StructFields.tsx|findVehicleById(t.id)?.label ?? \'\'', PLACEHOLDER],
+   ['src/ui/editor/codex/StructFields.tsx|t.label ?? \'\'', AUTHORE],
+   ['src/ui/editor/codex/StructFields.tsx|findCreatureById(t.creatureId)?.label ?? \'\'', PLACEHOLDER],
+   ['src/ui/creator/CharacterCreator.tsx|lvl1?.label ?? \'—\'', CHOIX_OUVERT],
+diff --git a/src/noyau/possessionsFlow.ts b/src/noyau/possessionsFlow.ts
+index 55d96da55..0fc6b7ce7 100644
+--- a/src/noyau/possessionsFlow.ts
++++ b/src/noyau/possessionsFlow.ts
+@@ -14,13 +14,7 @@ import { makeRNG, hashSeed } from '../engine/dice';
+ import type { ActionsDuNoyau } from './actionsDuNoyau';
+ 
+ 
+-/** Sème les Possessions de dotation (`{creatureId}`/`{vehicleId}` des dotations de Classe/Carrière,
+- *  #617/#618 SOCLE POSSESSIONS Lot 1) pour CHAQUE héros du groupe courant — SEAM = `noyau/entreeEnScene.ts`
+- *  `startScene` (démarrage d'une partie neuve, seule couture qui repart d'un registre `possessions`
+- *  vidé ; `loadGame`/`transitionTo` ne repassent JAMAIS ici, cf. §3 du brief Lot 1 — le registre
+- *  chargé d'une save fait foi, aucun re-semis). Garde anti-double-semis : un héros qui a déjà UNE
+- *  possession au registre n'est pas re-semé (défensif — `startScene` vide déjà le registre avant
+- *  d'appeler ce seam, mais protège tout appelant futur). */
++/** #617, #618, #2089 */
+ export function seedStartingPossessions(get: Get, set: Set): void {
+   for (const hero of get().party) {
+     if (!hero.career) continue;
+diff --git a/src/scenes/diligence/diligence-projet.json b/src/scenes/diligence/diligence-projet.json
+index c55059bcb..993eb4010 100644
+--- a/src/scenes/diligence/diligence-projet.json
++++ b/src/scenes/diligence/diligence-projet.json
+@@ -1583,7 +1583,10 @@
+        "id": "arbalete"
+       },
+       {
+-       "text": "épée"
++       "id": "arme-simple",
++       "apparence": {
++        "id": "epee"
++       }
+       },
+       {
+        "text": "anneau (valant 3 CO)"
+@@ -1706,7 +1709,10 @@
+        "id": "chemise-de-mailles"
+       },
+       {
+-       "text": "épée"
++       "id": "arme-simple",
++       "apparence": {
++        "id": "epee"
++       }
+       },
+       {
+        "text": "pistolet (avec munitions pour 10 tirs)"
+@@ -1829,7 +1835,10 @@
+        "text": "arbalète (avec 10 carreaux)"
+       },
+       {
+-       "text": "épée"
++       "id": "arme-simple",
++       "apparence": {
++        "id": "epee"
++       }
+       },
+       {
+        "id": "veste-de-cuir"
+@@ -2369,7 +2378,10 @@
+        "id": "dague"
+       },
+       {
+-       "text": "épée"
++       "id": "arme-simple",
++       "apparence": {
++        "id": "epee"
++       }
+       },
+       {
+        "text": "escadron de 5 patrouilleurs routiers"
+@@ -2582,7 +2594,10 @@
+        "id": "dague"
+       },
+       {
+-       "text": "épée"
++       "id": "arme-simple",
++       "apparence": {
++        "id": "epee"
++       }
+       },
+       {
+        "text": "insigne de son rang"
+diff --git a/src/ui/compendium/registry-enveloppe.test.ts b/src/ui/compendium/registry-enveloppe.test.ts
+index 984fe3763..65ed29662 100644
+--- a/src/ui/compendium/registry-enveloppe.test.ts
++++ b/src/ui/compendium/registry-enveloppe.test.ts
+@@ -118,7 +118,7 @@ const CLES: Record<string, string> = {
+   "creatures": '55ac5c9b9846e8ec',
+   "traits": '8931be750818442f',
+   "locations": '53ca311b61c2a3f1',
+-  "books": 'e0e3db4c3a333c83',
++  "books": 'c1b4901b55bf2f72',
+   "careerLevels": '6f86fed09e1f4a98',
+   "eyes": 'd51e8a821203257f',
+   "hairs": 'f2f80b790111b030',
+diff --git a/src/ui/compendium/registry-trapping-refs.test.ts b/src/ui/compendium/registry-trapping-refs.test.ts
+index a016a76ae..97ea53612 100644
+--- a/src/ui/compendium/registry-trapping-refs.test.ts
++++ b/src/ui/compendium/registry-trapping-refs.test.ts
+@@ -29,7 +29,7 @@ describe('Codex registry — Possessions de Niveau de Carrière : réf STRUCTUR
+     expect(refSurLibelle).toBeUndefined();
+   });
+ 
+-  it('Bourgeois N3 (Conseiller municipal) : {vehicleId} lie les Véhicules', () => {
++  it('Bourgeois N3 (Conseiller municipal) : la référence typée lie les Véhicules', () => {
+     const item = categoryByKey('careers')!.items.find((i) => i.label === 'Bourgeois')!;
+     const rows = levelRows(item, 'Niveau 3');
+     const vehicleRow = rows.find((r) => r.t === 'ref' && r.category === 'vehicles');
+diff --git a/src/ui/compendium/registry.ts b/src/ui/compendium/registry.ts
+index 4317c4aa3..838df4e0c 100644
+--- a/src/ui/compendium/registry.ts
++++ b/src/ui/compendium/registry.ts
+@@ -72,7 +72,7 @@ import { damageString } from '../../engine/items';
+ import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
+ import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
+ import { talentMaxLabel } from '../../engine/careerSlots';
+-import type { AdvancementRef, TrappingRef, WaterExposureModifier, SpellData } from '../../data';
++import { estDotationDeVehicule, type AdvancementRef, type TrappingRef, type WaterExposureModifier, type SpellData } from '../../data';
+ import { POWER_ESTIMATE, MIGHT_MODIFIERS, WAR_MACHINES, STRUCTURES as MASS_BATTLE_STRUCTURES, BATTLE_HAZARDS } from '../../engine/massBattle';
+ import { AVAILABILITIES } from '../../engine/types';
+ import { ACTIVITIES } from '../../engine/activities';
+@@ -372,13 +372,13 @@ const kvRows = (pairs: [string, unknown][]): CodexRow[] =>
+ const chips = (title: string, rows: CodexRow[]): CodexSection | null =>
+   rows.length ? { title, layout: 'chips', rows } : null;
+ /** Ligne cross-réf d'une `TrappingRef` STRUCTURÉE (#904) : la FORME de la référence désigne SON
+- *  foyer — `id`→Possessions, `creatureId`→Créatures, `vehicleId`→Véhicules — jamais une re-résolution
++ *  foyer — `id`→Possessions, `creatureId`→Créatures, `type:vehicle`→Véhicules — jamais une re-résolution
+  *  par libellé. `{text}` reste du texte narratif (aucune entité désignée) ;
+  *  `choice`/`wildcard` restent un texte composite (pas de `t:'choice'` multi-catégorie ici). */
+ const trappingRefRow = (ref: TrappingRef): CodexRow => {
+   const show = trappingRefLabel(ref);
+   if ('creatureId' in ref) return idRefRow('creatures', ref.creatureId, undefined, show);
+-  if ('vehicleId' in ref) return { t: 'ref', category: 'vehicles', id: ref.vehicleId, label: findVehicleById(ref.vehicleId)?.label ?? ref.vehicleId, show };
++  if (estDotationDeVehicule(ref)) return { t: 'ref', category: 'vehicles', id: ref.id, label: ref.label ?? findVehicleById(ref.id)?.label ?? ref.id, show };
+   if ('id' in ref) return idRefRow('trappings', ref.id, undefined, show);
+   // PASTILLE NUE, jamais de la prose : `{text}` est un NOM D'OBJET (« Grand hôtel particulier avec
+   // jardins » y ferait lier « Grand »), et `choice`/`wildcard` sont des libellés composites. Aucune
+diff --git a/src/ui/compendium/validateEntry.test.ts b/src/ui/compendium/validateEntry.test.ts
+index c1e10fdc6..951d96cd2 100644
+--- a/src/ui/compendium/validateEntry.test.ts
++++ b/src/ui/compendium/validateEntry.test.ts
+@@ -1,11 +1,43 @@
++// @vitest-environment jsdom
+ import { describe, it, expect } from 'vitest';
+-import { validateEntry } from '../editor/codex/CodexEdit';
++import { act, createElement } from 'react';
++import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
++import { CodexEdit, validateEntry } from '../editor/codex/CodexEdit';
+ import { traits, creatures } from '../../data';
+-import { datasetArray, DATASET_KEYS } from '../../data/overrides';
++import { datasetArray, setDataset, DATASET_KEYS } from '../../data/overrides';
++import { validateDataset } from '../../data/schemas/validate';
+ import { entryKey } from './registry';
+ 
+ type Entry = Record<string, unknown>;
+ 
++it('enregistrement réel : une dotation de véhicule inconnu est refusée par le schéma', async () => {
++  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
++  const avant = (datasetArray('careerLevels') as unknown as Entry[]).slice();
++  const fixture = { ...structuredClone(avant[0]), id: 'fixture-dotation-vehicule-inconnue', label: 'Dotation de véhicule', trappings: [{ type: 'vehicle', id: 'inexistant' }] };
++  expect(validateDataset('careerLevels.json', [{ ...fixture, trappings: [{ type: 'vehicle', id: 'barque-fluviale' }] }])).toBeNull();
++  try {
++    setDataset('careerLevels', [fixture] as never);
++    const { container } = monterRacine(createElement(CodexEdit, { categoryKey: 'careerLevels', id: fixture.id, onClose: () => {} }));
++    const label = [...container.querySelectorAll<HTMLInputElement>('.codex-edit-form input')]
++      .find((champ) => champ.value === fixture.label);
++    expect(label).toBeTruthy();
++    act(() => {
++      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(label, 'Dotation de véhicule éditée');
++      label!.dispatchEvent(new Event('input', { bubbles: true }));
++    });
++    const enregistrer = container.querySelector<HTMLButtonElement>('.codex-edit-bar button.btn-primary')!;
++    expect(enregistrer.disabled).toBe(false);
++    await act(async () => { enregistrer.click(); });
++    const erreurs = container.querySelector('.codex-edit-errors')?.textContent;
++    expect(erreurs).toContain('Possessions');
++    expect(erreurs).toContain('Entrée invalide');
++    expect(container.textContent).toContain('careerLevels.json');
++    expect(datasetArray('careerLevels')).toEqual([fixture]);
++  } finally {
++    try { demonterRacines(); } finally { setDataset('careerLevels', avant as never); }
++  }
++});
++
+ describe('validateEntry — garde du persist de CodexEdit (Enregistrer bloqué tant que non vide)', () => {
+   const traitEntries = traits as unknown as Entry[];
+   const creatureEntries = creatures as unknown as Entry[];
+@@ -89,7 +121,6 @@ describe('validateEntry — #173 : réf par ID écrasée par un LIBELLÉ (datali
+ 
+   it('sweep GÉNÉRAL — TOUTE la donnée committée (tous les datasets éditables) résout déjà : round-trip = préserve la résolvabilité', () => {
+     // Round-trip de TOUTE la donnée éditable : chaque réf résout déjà (aucun orphelin toléré) —
+-    // les dotations véhicules (barque/charrette/diligence) sont migrées en `{vehicleId}` (#610).
+     for (const key of DATASET_KEYS) {
+       const arr = datasetArray(key) as unknown as Entry[];
+       arr.forEach((entry, i) => {
+diff --git a/src/ui/editor/codex/CodexEdit.tsx b/src/ui/editor/codex/CodexEdit.tsx
+index 9190d5509..b5a4fc8e2 100644
+--- a/src/ui/editor/codex/CodexEdit.tsx
++++ b/src/ui/editor/codex/CodexEdit.tsx
+@@ -53,7 +53,7 @@ import type { Flow, TriggeredEffect } from '../../../data/schemas/defs-scenes/ef
+ import { EMPTY_FLOW, type EffectTrigger } from '../../../engine/flowCore';
+ import { effectOnSchema, effectTriggerSchema } from '../../../data/schemas/grammaire/mecanique';
+ import type { ManeuverDef, ManeuverMeasure } from '../../../data';
+-import { SYMPTOM_SEVERITIES } from '../../../data';
++import { SYMPTOM_SEVERITIES, estDotationDeVehicule } from '../../../data';
+ import type { AttackKind } from '../../../engine/creatureAttacks';
+ import { WeaponField } from '../WeaponField';
+ import { PsychTraitsField } from '../PsychTraitsField';
+@@ -160,7 +160,8 @@ function refIdsIn(v: unknown): string[] {
+   for (const x of v) {
+     if (typeof x === 'string') { out.push(x); continue; }
+     if (!x || typeof x !== 'object') continue;
+-    const o = x as { choice?: unknown; of?: unknown; ref?: { id?: unknown }; id?: unknown };
++    const o = x as { type?: unknown; choice?: unknown; of?: unknown; ref?: { id?: unknown }; id?: unknown };
++    if (estDotationDeVehicule(o)) continue;
+     if (o.of) out.push(...refIdsIn(o.of));
+     else if (o.choice) out.push(...refIdsIn(o.choice));
+     else if (o.ref && typeof o.ref.id === 'string') out.push(o.ref.id);
+@@ -206,16 +207,6 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
+       if (id === '') errors.push(`${field} : réf à choisir (${ds})`);
+       else if (!known.has(id)) errors.push(`${field} : réf « ${id} » introuvable (${ds})`);
+     }
+-    // `trappings` (classes/careerLevels) porte aussi la dotation VÉHICULE `{vehicleId}` (foyer
+-    // `vehicles.json`, jamais le foyer trappings) : même garantie de résolvabilité.
+-    if (field === 'trappings') {
+-      const knownVehicles = new Set((datasetArray('vehicles') as { id?: string }[]).map((e) => e.id).filter(Boolean));
+-      for (const tr of (entry[field] as { vehicleId?: unknown }[] | undefined) ?? []) {
+-        if (tr && typeof tr === 'object' && typeof tr.vehicleId === 'string' && !knownVehicles.has(tr.vehicleId)) {
+-          errors.push(`${field} : réf véhicule « ${tr.vehicleId} » introuvable (vehicles)`);
+-        }
+-      }
+-    }
+   }
+   // Refs NICHÉES (#173) : même garantie, pour les champs-réf sous un sous-objet/sous-tableau.
+   for (const { key, ds, get } of NESTED_REF_FIELDS) {
+diff --git a/src/ui/editor/codex/StructFields.tsx b/src/ui/editor/codex/StructFields.tsx
+index bb28112fa..3b37e8dd1 100644
+--- a/src/ui/editor/codex/StructFields.tsx
++++ b/src/ui/editor/codex/StructFields.tsx
+@@ -7,6 +7,7 @@
+  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
+  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
+  */
++import { useId } from 'react';
+ import { RefField, SaisieSuggeree, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg } from '../../compendium/refField/RefField';
+ import { datasetArray } from '../../../data/overrides';
+ import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../../engine/types';
+@@ -18,7 +19,7 @@ import { dispoSaisonniereSchema, harvestRaritySchema } from '../../../data/schem
+ import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
+ import { valeursDe } from '../../../data/schemas/grammaire/meta';
+ import { missileBypassSchema } from '../../../data/schemas/defs/domains';
+-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../../data';
++import { estDotationDeVehicule, specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../../data';
+ import type { z } from 'zod';
+ import { slugId } from '../../../data/slug';
+ import { ConditionEditor } from '../ConditionEditor';
+@@ -33,6 +34,11 @@ import { ProseField } from '../../ProseField';
+ import { PlageField } from '../../PlageField';
+ import { OptionChooser } from '../../OptionChooser';
+ import type { OptionalRule, RuleValue } from '../../../engine/policy';
++import { apparencesAdmissiblesDObjet } from '../../../data/apparencesObjets';
++import { MediaSelect } from '../../MediaSelect';
++import { useVersionDesDatasets } from '../../useVersionDesDatasets';
++import { useClesDeRangees } from '../../useClesDeRangees';
++import { SourceRefField } from '../../SourceRefField';
+ 
+ const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
+ 
+@@ -470,15 +476,17 @@ function ChoiceList({ ds, value, onChange }: { ds: 'skills' | 'talents'; value:
+ 
+ /* ─────────────────────────────────────────────────────────────────────────────
+  * 4) trappings (classe / niveau de carrière) — TrappingRef[]
+- *    ( RefDesignee & { count? } ) | { text, count? }
++ *    `TrappingRef` (`src/data/index.ts`).
+  * ──────────────────────────────────────────────────────────────────────────── */
+ 
+ const isText = (t: TrappingRef): t is { text: string; count?: CountSpec } => 'text' in t;
+-const isVehicle = (t: TrappingRef): t is { vehicleId: string; count?: CountSpec; label?: string } => 'vehicleId' in t;
+ const isCreature = (t: TrappingRef): t is { creatureId: string; count?: CountSpec; label?: string } => 'creatureId' in t;
+ 
+ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | undefined; onChange: (v: TrappingRef[]) => void }) {
++  useVersionDesDatasets();
+   const list = value ?? [];
++  const identite = useId();
++  const cles = useClesDeRangees(value);
+   const set = (i: number, t: TrappingRef) => onChange(list.map((x, j) => (j === i ? t : x)));
+   const refCfg = { ds: 'trappings' as const, single: true as const };
+   const vehicleCfg = { ds: 'vehicles' as const, single: true as const };
+@@ -491,32 +499,35 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
+     const dc = parseDice(v);
+     return dc ? { roll: dc } : { fixed: Number(v) || 1 };
+   };
+-  const kindOf = (t: TrappingRef): 'text' | 'vehicle' | 'creature' | 'ref' => (isText(t) ? 'text' : isVehicle(t) ? 'vehicle' : isCreature(t) ? 'creature' : 'ref');
++  const kindOf = (t: TrappingRef): 'text' | 'vehicle' | 'creature' | 'choice' | 'ref' => ('choice' in t ? 'choice' : isText(t) ? 'text' : estDotationDeVehicule(t) ? 'vehicle' : isCreature(t) ? 'creature' : 'ref');
+   return (
+     <div className="ed-field">
+       <span>possessions — par id du catalogue (+ quantité), dotation véhicule (catalogue des véhicules), dotation bête (bestiaire), ou texte narratif hors catalogue</span>
+-      {list.map((t, i) => (
+-        <div className="ed-subfield" key={i}>
++      {list.map((t, i) => {
++        const apparences = 'id' in t && !estDotationDeVehicule(t) ? apparencesAdmissiblesDObjet({ trappingId: t.id }) : [];
++        return (
++        <div className="ed-field" key={cles[i]}>
+           <div className="fieldrow">
+             <select
+               value={kindOf(t)}
+-              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' ? { vehicleId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : e.target.value === 'creature' ? { creatureId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
++              onChange={(e) => { const c = 'count' in t ? t.count : undefined; return set(i, e.target.value === 'choice' ? { choice: [{ id: '' }] } : e.target.value === 'text' ? { text: '', count: c } : e.target.value === 'vehicle' ? { type: 'vehicle', id: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : e.target.value === 'creature' ? { creatureId: '', count: c, ...('label' in t && t.label ? { label: t.label } : {}) } : { id: '', count: c }); }}
+             >
+               <option value="ref">Réf. (catalogue)</option>
+               <option value="vehicle">Véhicule (vehicles.json)</option>
+               <option value="creature">Bête (creatures.json)</option>
+               <option value="text">Texte (narratif)</option>
++              <option value="choice">Choix</option>
+             </select>
+-            <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) })} /></label>
++            {!('choice' in t) && <label className="dr">quantité<input style={{ width: 80 }} placeholder="3 / 1d10" value={countOf(t)} onChange={(e) => set(i, { ...t, count: parseCount(e.target.value) })} /></label>}
+             <button className="btn small danger" title="Retirer la possession" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+           </div>
+-          {isText(t)
++          {'choice' in t ? <TrappingRefField value={t.choice} onChange={(choice) => set(i, { choice })} /> : isText(t)
+             ? <input placeholder="possession narrative (ex. Pile de prospectus)" value={t.text} onChange={(e) => set(i, { text: e.target.value, count: t.count })} />
+-            : isVehicle(t)
++            : estDotationDeVehicule(t)
+               ? (
+                 <>
+-                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.vehicleId} onChange={(v) => set(i, { vehicleId: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
+-                  <label className="dr">nom<input placeholder={findVehicleById(t.vehicleId)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
++                  <RefField cfg={vehicleCfg} fieldKey="vehicule" value={t.id} onChange={(v) => set(i, { type: 'vehicle', id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: t.count, ...(t.label ? { label: t.label } : {}) })} />
++                  <label className="dr">nom<input placeholder={findVehicleById(t.id)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
+                 </>
+               )
+               : isCreature(t)
+@@ -526,9 +537,34 @@ export function TrappingRefField({ value, onChange }: { value: TrappingRef[] | u
+                     <label className="dr">nom<input placeholder={findCreatureById(t.creatureId)?.label ?? ''} value={t.label ?? ''} onChange={(e) => set(i, { ...t, label: e.target.value.trim() || undefined })} /></label>
+                   </>
+                 )
+-                : <RefField cfg={refCfg} fieldKey="possession" value={'id' in t ? t.id : ''} onChange={(v) => set(i, { id: typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '', count: 'count' in t ? t.count : undefined })} />}
++                : <>
++                  <RefField cfg={refCfg} fieldKey="possession" ariaLabel="Objet de la possession" value={'id' in t ? t.id : ''} onChange={(v) => {
++                    const id = typeof v === 'string' ? v : (v as RefDesignee)?.id ?? '';
++                    const next = 'id' in t ? { ...t, id } : { id };
++                    if ('apparence' in next && next.apparence && !apparencesAdmissiblesDObjet({ trappingId: id }).some((a) => a.id === next.apparence?.id)) delete next.apparence;
++                    set(i, next);
++                  }} />
++                  {'id' in t && !estDotationDeVehicule(t) && <SourceRefField identite={`${identite}:possession:${cles[i]}:source`} label="Source de la possession" sujet="de la possession" facultative value={t.source} onChange={(source) => {
++                    const next = { ...t };
++                    if (source) next.source = source;
++                    else delete next.source;
++                    set(i, next);
++                  }} />}
++                  {'id' in t && !estDotationDeVehicule(t) && apparences.length > 0 && <div className="ed-field">
++                    <span>Apparence</span>
++                    <MediaSelect title="Apparence de la possession" triggerClassName="btn"
++                      value={t.apparence?.id ?? ''}
++                      options={[{ key: '', label: 'Automatique' }, ...apparences.map((a) => ({ key: a.id, label: a.label }))]}
++                      onSelect={(id) => {
++                        const next = { ...t };
++                        if (id) next.apparence = { id };
++                        else delete next.apparence;
++                        set(i, next);
++                      }} />
++                  </div>}
++                </>}
+         </div>
+-      ))}
++      ); })}
+       <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Possession</button>
+     </div>
+   );
+diff --git a/src/ui/editor/codex/TrappingRefField.test.tsx b/src/ui/editor/codex/TrappingRefField.test.tsx
+new file mode 100644
+index 000000000..133b32842
+--- /dev/null
++++ b/src/ui/editor/codex/TrappingRefField.test.tsx
+@@ -0,0 +1,113 @@
++// @vitest-environment jsdom
++import { afterEach, beforeAll, describe, expect, it } from 'vitest';
++import { act } from 'react';
++import { TrappingRefField } from './StructFields';
++import type { TrappingRef } from '../../../data';
++import { monterRacine, demonterRacines } from '../../../monterRacine.testkit';
++import { choisirMediaSelect } from '../../MediaSelect.testkit';
++
++beforeAll(() => {
++  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
++});
++afterEach(demonterRacines);
++
++const DOTATION_DU_CAPITAINE: TrappingRef = {
++  id: 'arme-simple', spec: 'témoin', count: { fixed: 2 },
++  qualities: [{ id: 'raffine' }], qualityChoice: true,
++};
++
++function monterDotation(ref: TrappingRef = DOTATION_DU_CAPITAINE) {
++  let value = structuredClone([ref]);
++  const root = monterRacine(null);
++  const rendre = () => root.rendre(<TrappingRefField value={value} onChange={(next) => { value = next; rendre(); }} />);
++  act(rendre);
++  return { container: root.container, lire: () => value };
++}
++
++function choisirObjet(container: HTMLElement, id: string): void {
++  const champ = container.querySelector<HTMLSelectElement>('select[aria-label="Objet de la possession"]');
++  expect(champ).toBeTruthy();
++  act(() => {
++    champ!.value = id;
++    champ!.dispatchEvent(new Event('change', { bubbles: true }));
++  });
++}
++
++describe('TrappingRefField — apparence de la dotation', () => {
++  it('édite la provenance de la référence et la retire sans toucher la dotation', () => {
++    const h = monterDotation();
++    const livre = h.container.querySelector<HTMLSelectElement>('[aria-label="Livre de la source de la possession"]')!;
++    act(() => { livre.value = 'up-in-arms'; livre.dispatchEvent(new Event('change', { bubbles: true })); });
++    const page = h.container.querySelector<HTMLInputElement>('[aria-label="Page de la source de la possession"]')!;
++    act(() => {
++      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(page, '14');
++      page.dispatchEvent(new Event('input', { bubbles: true }));
++      page.dispatchEvent(new Event('change', { bubbles: true }));
++    });
++    act(() => { page.dispatchEvent(new FocusEvent('focusout', { bubbles: true })); });
++    expect(h.lire()).toStrictEqual([{ ...DOTATION_DU_CAPITAINE, source: { book: 'up-in-arms', page: 14 } }]);
++    act(() => { livre.value = ''; livre.dispatchEvent(new Event('change', { bubbles: true })); });
++    expect(h.lire()).toStrictEqual([DOTATION_DU_CAPITAINE]);
++  });
++
++  it('édite une référence typée de véhicule en conservant nom et quantité', () => {
++    const h = monterDotation({ type: 'vehicle', id: 'barque-fluviale', count: { fixed: 2 }, label: 'La Perle' });
++    const selects = h.container.querySelectorAll<HTMLSelectElement>('select');
++    expect(selects[0].value).toBe('vehicle');
++    act(() => { selects[1].value = 'chariot-leger'; selects[1].dispatchEvent(new Event('change', { bubbles: true })); });
++    expect(h.lire()).toStrictEqual([{ type: 'vehicle', id: 'chariot-leger', count: { fixed: 2 }, label: 'La Perle' }]);
++    expect(h.container.querySelector('[title="Apparence de la possession"]')).toBeNull();
++  });
++  it('écrit la variante, conserve le choix explicite de la racine et retire la décision par Automatique', () => {
++    const h = monterDotation();
++    choisirMediaSelect(h.container, 'Apparence de la possession', 'Hache naine');
++    expect(h.lire()).toEqual([{ ...DOTATION_DU_CAPITAINE, apparence: { id: 'hache_naine' } }]);
++    choisirMediaSelect(h.container, 'Apparence de la possession', 'Épée');
++    expect(h.lire()).toEqual([{ ...DOTATION_DU_CAPITAINE, apparence: { id: 'epee' } }]);
++    choisirMediaSelect(h.container, 'Apparence de la possession', 'Automatique');
++    expect(h.lire()).toEqual([DOTATION_DU_CAPITAINE]);
++    expect(h.lire()[0]).not.toHaveProperty('apparence');
++  });
++
++  it('propose les formes et variantes admises par l’objet', () => {
++    const h = monterDotation({ id: 'dague' });
++    const menu = h.container.querySelector('[title="Apparence de la possession"]')!.parentElement!;
++    const labels = [...menu.querySelectorAll('[role="option"] .ms-label')].map((e) => e.textContent);
++    expect(labels).toContain('Dague');
++    expect(labels).not.toContain('Hache naine');
++    expect(labels).not.toContain('Épée');
++  });
++
++  it('garde une apparence encore admise et les autres propriétés lors du changement d’objet', () => {
++    const ref = { ...DOTATION_DU_CAPITAINE, apparence: { id: 'epee' } };
++    const h = monterDotation(ref);
++    choisirObjet(h.container, 'epee-de-retenue');
++    expect(h.lire()).toEqual([{ ...ref, id: 'epee-de-retenue' }]);
++  });
++
++  it('retire seulement l’apparence devenue inadmissible lors du changement d’objet', () => {
++    const h = monterDotation({ ...DOTATION_DU_CAPITAINE, apparence: { id: 'hache_naine' } });
++    choisirObjet(h.container, 'dague');
++    expect(h.lire()).toEqual([{ ...DOTATION_DU_CAPITAINE, id: 'dague' }]);
++    expect(h.lire()[0]).not.toHaveProperty('apparence');
++  });
++
++  it('édite chaque branche d’un choix imbriqué et préserve les autres branches au retrait', () => {
++    const CHOIX_DU_CAPITAINE: TrappingRef = { choice: [DOTATION_DU_CAPITAINE, { choice: [{ id: 'dague' }] }] };
++    const h = monterDotation(CHOIX_DU_CAPITAINE);
++    const branche = (index: number) => {
++      const objet = h.container.querySelectorAll<HTMLSelectElement>('select[aria-label="Objet de la possession"]')[index];
++      const entree = objet.closest('label')!.parentElement!;
++      expect(entree.querySelector(':scope > .fieldrow > [title="Retirer la possession"]')).toBeTruthy();
++      return entree;
++    };
++    choisirMediaSelect(branche(0), 'Apparence de la possession', 'Hache naine');
++    choisirMediaSelect(branche(1), 'Apparence de la possession', 'Dague');
++    const autreBranche = { choice: [{ id: 'dague', apparence: { id: 'dague' } }] };
++    expect(h.lire()).toEqual([{ choice: [{ ...DOTATION_DU_CAPITAINE, apparence: { id: 'hache_naine' } }, autreBranche] }]);
++    choisirMediaSelect(branche(0), 'Apparence de la possession', 'Automatique');
++    expect(h.lire()).toEqual([{ choice: [DOTATION_DU_CAPITAINE, autreBranche] }]);
++    act(() => branche(0).querySelector<HTMLButtonElement>('[title="Retirer la possession"]')!.click());
++    expect(h.lire()).toEqual([{ choice: [autreBranche] }]);
++  });
++});
+diff --git a/src/ui/styles/components.css b/src/ui/styles/components.css
+index d2d9d53e0..5ffcc6412 100644
+--- a/src/ui/styles/components.css
++++ b/src/ui/styles/components.css
+@@ -431,8 +431,10 @@ label.radio {
+    Le plancher se lève sur les ÉLÉMENTS de la rangée (`> *`) et sur les contrôles qu'ils enveloppent,
+    jamais sur la rangée : `min-width: auto` n'est un plancher que sur l'axe PRINCIPAL du flex, et la
+    rangée est un élément d'une COLONNE (`.ed-field`). */
+-.fieldrow { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; }
+-.fieldrow > *, .fieldrow input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
++.fieldrow,
++.ed-subfield { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; max-width: 100%; }
++.fieldrow > *, .fieldrow input,
++.ed-subfield > *, .ed-subfield input { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+ /* Un `<select>` prend la largeur de son option courante : sa largeur NATURELLE reste la bonne. Le
+    PLANCHER `min(14rem, 100%)` évite le libellé tronqué sans plafonner, et se replie à la largeur de
+    la rangée sous 360 px. */
+diff --git a/src/ui/styles/editor.css b/src/ui/styles/editor.css
+index 5e560fa28..0de654463 100644
+--- a/src/ui/styles/editor.css
++++ b/src/ui/styles/editor.css
+@@ -353,8 +353,6 @@
+   gap: 2px;
+ }
+ .ed-subfield {
+-  display: flex;
+-  align-items: center;
+   gap: 6px;
+   font-size: 12px;
+   margin: 2px 0;
