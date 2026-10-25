@@ -526,7 +526,7 @@
   {
     "id": "descendre",
     "type": "primitives.manifest",
-    "label": "descendre/enfantsDe/declarerEnfants/declarationDEnfants",
+    "label": "descendre/enfantsDe/declarerEnfants/declarationDEnfants/valeursAdmises",
     "fichier": "src/data/schemas/grammaire/descente.ts",
     "concept": "descente d'un arbre de schémas zod : enfants natifs et déclarés d'un nœud avec leur segment de path, parcours en largeur, identité par appel, élagage ou arrêt par le visiteur",
     "perimetre": "toute lecture qui marche un schéma zod : validation, introspection des docs générés, gardes de grammaire, Codex",

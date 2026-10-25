@@ -1,10 +1,11 @@
 /**
  * `descente.ts` — `enfantsDe` rend chaque enfant que le parse exécute, un `z.lazy` y descend par
- * l'instance que le parse exécute, et `descendre` visite chaque nœud une fois, au plus court.
+ * l'instance que le parse exécute, `descendre` visite chaque nœud une fois, au plus court, et
+ * `valeursAdmises` rend les littéraux qu'un nœud admet à ses clés.
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { defDe, descendre, enfantsDe } from './descente';
+import { defDe, descendre, enfantsDe, valeursAdmises } from './descente';
 
 const segments = (s: unknown) => enfantsDe(s).map((e) => e.segment);
 
@@ -91,5 +92,13 @@ describe('`descendre` — largeur d’abord, chaque nœud une fois', () => {
       if (path === '.x') return 'arreter';
     });
     expect(arrete).toEqual(['0', '1', '0.x']);
+  });
+});
+
+describe('`valeursAdmises` — les littéraux admis à chaque clé', () => {
+  it('un objet à littéral les rend par clé, un nœud sans littéral ni forme rend vide', () => {
+    expect(valeursAdmises(z.strictObject({ kind: z.literal('a'), n: z.number() }))).toEqual({ kind: new Set(['a']) });
+    expect(valeursAdmises(z.number())).toEqual({});
+    expect(valeursAdmises('pas un nœud')).toEqual({});
   });
 });

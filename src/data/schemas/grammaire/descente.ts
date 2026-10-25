@@ -159,10 +159,14 @@ export function descendre(racines: readonly unknown[], visite: (v: Visite) => De
 
 const estObjet = (v: unknown): v is Record<string | number, unknown> => v !== null && typeof v === 'object';
 
+/** Les valeurs LITTÉRALES que `noeud` admet à chacune de ses clés (`_zod.propValues`), vide sans elles. */
+export function valeursAdmises(noeud: unknown): Readonly<Record<string, ReadonlySet<unknown>>> {
+  return (noeud as { _zod?: { propValues?: Record<string, ReadonlySet<unknown>> } })._zod?.propValues ?? {};
+}
+
 /** Une option d'une union DISCRIMINÉE admet-elle la valeur `v` de son discriminant ? */
 function brancheAdmet(option: unknown, discriminant: string, v: unknown): boolean {
-  const valeurs = (option as { _zod?: { propValues?: Record<string, ReadonlySet<unknown>> } })._zod?.propValues?.[discriminant];
-  return valeurs?.has(v) ?? false;
+  return valeursAdmises(option)[discriminant]?.has(v) ?? false;
 }
 
 /**
