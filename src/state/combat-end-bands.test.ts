@@ -182,7 +182,7 @@ describe('#1117 L4 — une bande par ENTRÉE DE RÈGLE (LDB 20 l.90 ≠ l.25/l.5
 describe('#1117 L4 (#1262 B7) — la bande d’Exposition à la Corruption est PARTAGÉE entre sièges', () => {
   it('deux héros de sièges DIFFÉRENTS → UNE fenêtre, une rangée chacun, possession de groupe', () => {
     const { H, E } = setupCoop({ heros: 2, invites: [1] });
-    E[0].traits = [{ id: 'corruption', arg: 'Mineure' }] as Combatant['traits'];
+    E[0].traits = [{ id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
 
     openCombatEndCascade(g, useGame.setState);
 
@@ -202,7 +202,7 @@ describe('#1117 L4 (#1262 B7) — la bande d’Exposition à la Corruption est P
 describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, jamais un jet muet', () => {
   it('deux héros débordent leur seuil dans la MÊME bande → le 2ᵉ prend rang au lieu d’être roulé en silence', () => {
     const { H, E } = setupCoop({ heros: 2 });
-    E[0].traits = [{ id: 'corruption', arg: 'Mineure' }] as Combatant['traits'];
+    E[0].traits = [{ id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     const porteurs = H.map((h) => g().battle!.combatants.find((x) => x.id === h.id)!);
     // Au SEUIL pile : l'échec du Test d'Exposition (Mineure → +1 Point) le fait DÉBORDER (l.70).
     for (const c of porteurs) c.corruption = corruptionThreshold(c);
@@ -230,7 +230,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
    *  autre test ne parcourt. */
   it('Renoncement AU MILIEU de la rafale : le drain ATTEND la décision, puis le seuil suivant s’ouvre', () => {
     const { H, E } = setupCoop({ heros: 2 });
-    E[0].traits = [{ id: 'corruption', arg: 'Mineure' }] as Combatant['traits'];
+    E[0].traits = [{ id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     const porteurs = H.map((h) => g().battle!.combatants.find((x) => x.id === h.id)!);
     for (const c of porteurs) { c.corruption = corruptionThreshold(c); c.resilience = 2; }
 
@@ -267,7 +267,7 @@ describe('#1281 — une rangée RÉSOLUE D’OFFICE laisse SA ligne de dé (zér
 
   it('cadence RAPIDE, fin de combat : chaque rangée auto-résolue porte SA ligne de dé au journal', () => {
     const { H, E } = setupCoop({ heros: 2 });
-    E[0].traits = [{ id: 'corruption', arg: 'Mineure' }] as Combatant['traits'];
+    E[0].traits = [{ id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     E[0].dead = true; // la créature affrontée est tombée : seuls les héros passent leur Test (LDB 19)
     setCadence('rapide'); // aucun jet ne se surface → la bande entière part en résolution d'office
 
@@ -290,7 +290,7 @@ describe('#1281 — une rangée RÉSOLUE D’OFFICE laisse SA ligne de dé (zér
    */
   it('Exposition en ÉCHEC : le Degré ET le dé PRÉCÈDENT la conséquence, au lieu de disparaître', () => {
     const { H, E } = setupCoop({ heros: 1 });
-    E[0].traits = [{ id: 'corruption', arg: 'Mineure' }] as Combatant['traits'];
+    E[0].traits = [{ id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     E[0].dead = true; // seule la rangée du héros reste (LDB 19 : le Test échoit aux survivants)
     const porteur = g().battle!.combatants.find((x) => x.id === H[0].id)!;
     porteur.characteristics.endurance = 1;

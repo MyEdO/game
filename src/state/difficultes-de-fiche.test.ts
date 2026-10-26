@@ -231,7 +231,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
 
   it('Exposition de fin de combat : la rangée porte le Test de `influences-corruptrices`', () => {
     const { H, E } = auCombat();
-    E.traits = [...(E.traits ?? []), { id: 'corruption', arg: 'Mineure' }] as Combatant['traits'];
+    E.traits = [...(E.traits ?? []), { id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     openCombatEndCascade(g, useGame.setState);
     const bande = g().pendingCascade!.participants.find((s) => s.kind === 'combatEndCorruption')!;
     const rangee = bande.participants!.find((p) => p.id === H.id)!;

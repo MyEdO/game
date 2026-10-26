@@ -6,7 +6,7 @@
  * de Réussite est la différence des dizaines : DR = dizaine(cible) − dizaine(jet).
  */
 import { d100, RNG } from './dice';
-import { Difficulty, DIFFICULTY_MODIFIERS } from './types';
+import { DIFFICULTE_PAR_DEFAUT, Difficulty, DIFFICULTY_MODIFIERS } from './types';
 import { type TestPolicy, getTestPolicy } from './testPolicy';
 import type { ModLine } from './combat';
 
@@ -16,21 +16,12 @@ export const tens = (n: number): number => Math.floor(n / 10);
 /** Échelle de Difficulté ORDONNÉE, du plus FACILE (tresFacile +60) au plus difficile (impossible −50, EDO App.2). */
 export const DIFFICULTY_LADDER: Difficulty[] = ['tresFacile', 'facile', 'accessible', 'intermediaire', 'complexe', 'difficile', 'tresDifficile', 'presqueImpossible', 'impossible'];
 
-/** Difficulté (clé) depuis un libellé FR — paramétrage générique d'un Test par l'argument d'instance
- *  d'un porteur (« Venin (Difficile) » → difficile). Ordre des tests : variantes « Très » avant la base.
- *  Défaut Intermédiaire (le RAW : « si aucune Difficulté n'est indiquée, le Test est Intermédiaire »). */
-export function difficultyFromLabel(label: string | undefined): Difficulty {
-  const l = (label ?? '').toLowerCase();
-  if (l.includes('très facile') || l.includes('tres facile')) return 'tresFacile';
-  if (l.includes('facile')) return 'facile';
-  if (l.includes('accessible')) return 'accessible';
-  if (l.includes('très difficile') || l.includes('tres difficile')) return 'tresDifficile';
-  // EDO App.2 : « presque impossible » AVANT « impossible » (sinon le second matche le premier).
-  if (l.includes('presque impossible')) return 'presqueImpossible';
-  if (l.includes('impossible')) return 'impossible';
-  if (l.includes('complexe')) return 'complexe';
-  if (l.includes('difficile')) return 'difficile';
-  return 'intermediaire';
+/** La Difficulté que désigne l'argument d'instance `arg` d'un porteur, par son id (`LDB 85 l.423`). Un `arg`
+ *  qui n'en désigne aucune vaut `DIFFICULTE_PAR_DEFAUT` sans règle qui le fonde — `LDB 85 l.425` ne vise
+ *  que l'arg ABSENT, que `withArg` (`noyau/triggeredEffects.ts`) ne passe pas ici. Porteurs : la fourchette
+ *  du Serpent (`LDB 78 l.104`, #1463) et « Moyen » de l'Araignée géante (`LDB 78 l.15`, #1463). */
+export function difficulteDeLArg(arg: string): Difficulty {
+  return Object.prototype.hasOwnProperty.call(DIFFICULTY_MODIFIERS, arg) ? (arg as Difficulty) : DIFFICULTE_PAR_DEFAUT;
 }
 
 /** Décale une difficulté de `steps` crans vers PLUS FACILE (bornée aux extrémités de l'échelle). PUR. */

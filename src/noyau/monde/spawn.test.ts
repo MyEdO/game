@@ -44,7 +44,7 @@ describe('weaponFromTrait — armement des monstres dans les Traits (FR)', () =>
     expect(weaponFamily(armeDeDessin(w))).toBe('');
   });
   it('un trait non-arme → null', () => {
-    expect(weaponFromTrait({ id: 'corruption', arg: 'Mineure' })).toBeNull();
+    expect(weaponFromTrait({ id: 'corruption', arg: 'mineure' })).toBeNull();
     expect(weaponFromTrait({ id: 'mutation', arg: 'Écailles épineuses' })).toBeNull();
   });
   it('« 8 Tentacules +9 » (Pieuvre) → UNE arme naturelle Tentacules +9 (pas d’« Arme +BF »)', () => {

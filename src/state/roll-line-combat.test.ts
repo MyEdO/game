@@ -171,7 +171,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
       id: 'sv', label: 'Survivant', conditions: ETAT, tookCriticalThisFight: true,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     } as never);
-    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'Mineure' }] } as never);
+    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
     setBattle([survivant, bete], 'sv');
     survivant.diseaseExposure = [{ disease: 'courante-galopante', difficulty: 'intermediaire' }] as never;
 

@@ -35,6 +35,22 @@ describe('validateScene', () => {
       expect(avec(ok), JSON.stringify(ok)).toEqual([]);
   });
 
+  /** Les Traits d'une entité — profil d'auteur et optionnels choisis (`LDB 76 l.45`) — passent la porte du
+   *  schéma de scène : l'éditeur nomme un id de Trait fantôme et un Degré de Corruption donné en libellé. */
+  it('Traits d’entité : un id fantôme et un `arg` hors registre sont refusés, nommés, au profil comme aux optionnels', () => {
+    const erreurs = (entite: object) => {
+      const s = base();
+      s.entities.push({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ...entite } as Scene['entities'][number]);
+      return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error')).join('\n');
+    };
+    const statblock = (traits: object[]) => ({ statblock: { type: 'statblock', label: 'Mutant', char: {}, traits } });
+    expect(erreurs(statblock([{ id: 'trait-fantome' }]))).toMatch(/trait-fantome.*traits\.json/);
+    expect(erreurs({ ref: 'humain', combat: { optionals: [{ id: 'trait-fantome' }] } })).toMatch(/trait-fantome.*traits\.json/);
+    expect(erreurs(statblock([{ id: 'corruption', arg: 'Mineure' }]))).toMatch(/« Mineure »/);
+    expect(erreurs({ ref: 'humain', combat: { optionals: [{ id: 'corruption', arg: 'Mineure' }] } })).toMatch(/« Mineure »/);
+    expect(erreurs({ ref: 'humain', ...statblock([{ id: 'corruption', arg: 'mineure' }]), combat: { optionals: [{ id: 'corruption', arg: 'majeure' }] } })).toBe('');
+  });
+
   it("dialogueId d'entité inexistant → erreur", () => {
     const s = base();
     s.entities.push({ id: 'e-0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'manque' });

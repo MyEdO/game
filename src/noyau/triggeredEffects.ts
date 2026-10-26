@@ -33,7 +33,7 @@ import { sceneMetresPerTile } from './monde/scene';
 import { findTraitById, findQualityById, findTalentById, findConditionById, findPsychologyById, findSymptomById, findMutationById, testSkillLabel } from '../data';
 import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
-import { difficultyFromLabel, rollTest } from '../engine/tests';
+import { difficulteDeLArg, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
 import { combatConditionCtx, flowTestGated, runPureFlowLines } from './combat/flowEval';
 import { RNG } from '../engine/dice';
@@ -49,10 +49,10 @@ function withSource(effects: TriggeredEffect[], source: EffectSource): Triggered
 }
 
 /** PARAMÈTRE un effet de trait par l'ARGUMENT d'instance du porteur : substitue la difficulté d'un Test
- *  `argDifficulty` par celle dérivée de l'arg (« Venin (Difficile) » → difficile). Rend les effets
+ *  `argDifficulty` par celle que désigne l'arg (`difficulteDeLArg`). Rend les effets
  *  authorés réutilisables et éditables tout en restant tunés par leur instance. Immuable (clone partiel). */
 function withArg(effects: TriggeredEffect[], arg?: string, value?: number): TriggeredEffect[] {
-  const diff = arg ? difficultyFromLabel(arg) : undefined;
+  const diff = arg ? difficulteDeLArg(arg) : undefined;
   // Injection GÉNÉRIQUE de l'instance dans une op : un champ valant `ARG_TEMPLATE` reçoit l'arg (trait Maladie
   // « (peste) » → `exposeDisease{disease:'$arg'}`) ; `INDICE_TEMPLATE` reçoit l'Indice numérique de l'instance
   // (Redoutable `value:2` → `topUpAdvantage{amount:'$indice'}`). Une seule convention, pas de variante.
@@ -72,7 +72,7 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
     if (f.kind === 'seq') return { ...f, steps: f.steps.map(visit) };
     if (f.kind === 'if') return { ...f, then: visit(f.then), ...(f.else ? { else: visit(f.else) } : {}) };
     if (f.kind === 'test') {
-      // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (« Venin (Difficile) ») : on
+      // Nœud Flow `test` dont la difficulté vient de l'arg d'instance (Venin, `LDB 85 l.423`) : on
       // substitue `test.difficulty` (mêmes sémantique/gate que l'ancienne op `test.argDifficulty`).
       const test = f.test.argDifficulty && diff ? { ...f.test, difficulty: diff } : f.test;
       return { ...f, test, success: visit(f.success), fail: visit(f.fail) };

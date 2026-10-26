@@ -35,7 +35,9 @@ const optionalSwapSchema = nommerChamps(z.strictObject({
   size: z.string().optional(),
   wounds: z.number().optional(),
 }), { note: { label: "note" }, label: { label: "libellé" }, remove: { label: "retirer" }, grant: { label: "ajouts" }, size: { label: "Taille" }, wounds: { label: "Blessures" } });
-const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
+/** `OptionalEntry` (`engine/statEntry.ts`) — un Trait OPTIONNEL du statbloc (`LDB 76 l.45`) ou une note composée.
+ *  Composé aussi par les entités de scène (`defs-scenes/scene.ts`, `combat.optionals`). */
+export const optionalEntrySchema = z.union([traitInstanceSchema, optionalWildcardSchema, optionalSwapSchema]);
 
 /** `SkillRef` (`src/data/index.ts`) — la réf de Compétence de la GRAMMAIRE (`refOuSpec`, régime
  *  `specOuChoixFacultatifs` : un statbloc porte des EMPLACEMENTS, désignés au spawn) composée avec la

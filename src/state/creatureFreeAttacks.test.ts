@@ -257,7 +257,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     setCadence('auto'); // le Test de Résistance enfoui (Lot 4a) du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
     useGame.getState().seedRng(2);
     const { H, E } = setup();
-    E.traits = [{ id: 'morsure', value: 14 }, { id: 'venin', arg: 'Intermédiaire' }]; E.advantage = 1;
+    E.traits = [{ id: 'morsure', value: 14 }, { id: 'venin', arg: 'intermediaire' }]; E.advantage = 1;
     H.characteristics.endurance = 1; // Endurance minime → Résistance ratée quasi à coup sûr
     H.skills = H.skills.filter((s) => s.id !== 'resistance');
     aiCreatureFreeAttacks(useGame.getState, useGame.setState, E);

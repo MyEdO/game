@@ -160,29 +160,29 @@ function construireScene(): Scene {
             statblock: { type: 'statblock',
               label: 'Knud Cratinx',
               char: { M: 4, 'capacite-de-combat': 36, 'capacite-de-tir': 43, force: 39, endurance: 32, initiative: 35, agilite: 33, dexterite: 29, intelligence: 33, 'force-mentale': 35, sociabilite: 30, B: 12 },
-              traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'ecailles-epineuses-edoc' }],
+              traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }, { id: 'arme', value: 7, arg: 'arme-simple' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'ecailles-epineuses-edoc' }],
             },
           },
           {
             pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'chien' } }, anim: 'howl',
             label: 'Mikael',
-            statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
+            statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
           },
           {
             pos: { x: 14, y: 8 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { jambes: 'chevre' } }, anim: 'feeding',
             label: 'Erik',
-            statblock: { type: 'statblock', label: 'Erik', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 2 }, traits: [{ id: 'arme', value: 7, arg: 'couteau' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'pattes-chevre' }] },
+            statblock: { type: 'statblock', label: 'Erik', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 2 }, traits: [{ id: 'arme', value: 7, arg: 'couteau' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'pattes-chevre' }] },
           },
           {
             pos: { x: 14, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'ogive' } }, anim: 'standing',
             label: 'Johann',
-            statblock: { type: 'statblock', label: 'Johann', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 4 }, traits: [{ id: 'arme', value: 7, arg: 'dague' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'tete-pointue' }] },
+            statblock: { type: 'statblock', label: 'Johann', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 4 }, traits: [{ id: 'arme', value: 7, arg: 'dague' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-pointue' }] },
           },
           {
             // « Mutile l'attelage à la hache » → arme dans le Trait (type Grande hache, libellé catalogué → shape).
             pos: { x: 12, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander', monster: { tete: 'minuscule' } }, anim: 'standing',
             label: 'Terenz',
-            statblock: { type: 'statblock', label: 'Terenz', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 3 }, traits: [{ id: 'arme', value: 7, arg: 'grande-hache' }, { id: 'corruption', arg: 'Mineure' }, { id: 'mutation', arg: 'cretin' }] },
+            statblock: { type: 'statblock', label: 'Terenz', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 3 }, traits: [{ id: 'arme', value: 7, arg: 'grande-hache' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'cretin' }] },
           },
         ],
         // Butin représentatif (#377) : la fouille des mutants tombés donne PX/or (récapitulatif jamais

@@ -1956,7 +1956,8 @@ export type UpkeepDeferTest = (spec: {
   | { base: number; test?: never }
 )) => void;
 
-export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+/** Le NOM de chaque Difficulté (`LDB 12 l.143-151`, `EDO App.2 l.156-165`). */
+export const DIFFICULTY_NAMES: Record<Difficulty, string> = {
   tresFacile: t('difficulty.tresFacile'),
   facile: t('difficulty.facile'),
   accessible: t('difficulty.accessible'),
@@ -1968,3 +1969,19 @@ export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   impossible: t('difficulty.impossible'),
 };
 
+/** Un nombre signé tel qu'il se lit (« +10 », « −20 », « +0 ») : le signe moins typographique. */
+export const avecSigne = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
+
+/** Chaque Difficulté telle qu'elle s'affiche : son nom et son modificateur (« Difficile (−20) »). */
+const cran = (d: Difficulty): string => t('difficulty.cran', { nom: DIFFICULTY_NAMES[d], mod: avecSigne(DIFFICULTY_MODIFIERS[d]) });
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  tresFacile: cran('tresFacile'),
+  facile: cran('facile'),
+  accessible: cran('accessible'),
+  intermediaire: cran('intermediaire'),
+  complexe: cran('complexe'),
+  difficile: cran('difficile'),
+  tresDifficile: cran('tresDifficile'),
+  presqueImpossible: cran('presqueImpossible'),
+  impossible: cran('impossible'),
+};

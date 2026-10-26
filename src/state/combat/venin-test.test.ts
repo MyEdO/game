@@ -51,7 +51,7 @@ describe('Venin — nœud Flow test routé cadence-aware (gates argDifficulty/un
   it('(a) victime HÉROS MANUEL : étape de cascade triggeredTest Résistance DIFFICILE (arg honoré), influençable', () => {
     seedBattleRng(7);
     const { H, snake } = setup();
-    snake.traits = [...(snake.traits ?? []), { id: 'venin', arg: 'Difficile' }]; // « Venin (Difficile) »
+    snake.traits = [...(snake.traits ?? []), { id: 'venin', arg: 'difficile' }]; // « Venin (Difficile) »
 
     // onHit causant des PB sur le héros (victime) → le trait Venin teste sa Résistance.
     fireTriggers(useGame.getState, snake, 'onHit', { victim: H, woundsDealt: 4, rng: makeRNG(1), set: useGame.setState });
@@ -73,7 +73,7 @@ describe('Venin — nœud Flow test routé cadence-aware (gates argDifficulty/un
   it('(b) victime ENNEMIE : jet INLINE + Empoisonné sur échec (pas de cascade)', () => {
     seedBattleRng(1); // jet élevé → Résistance échouée → Empoisonné
     const { snake, prey } = setup();
-    snake.traits = [...(snake.traits ?? []), { id: 'venin', arg: 'Difficile' }];
+    snake.traits = [...(snake.traits ?? []), { id: 'venin', arg: 'difficile' }];
     prey.characteristics.endurance = 1; // Résistance minimale → échec quasi certain
 
     fireTriggers(useGame.getState, snake, 'onHit', { victim: prey, woundsDealt: 4, rng: makeRNG(1), set: useGame.setState });
@@ -88,7 +88,7 @@ describe('Venin — nœud Flow test routé cadence-aware (gates argDifficulty/un
   it('(c) victime IMMUNISÉE (Poison) : AUCUN test, AUCUN Empoisonné (gate unlessImmune = no-op)', () => {
     seedBattleRng(1);
     const { snake, prey } = setup();
-    snake.traits = [...(snake.traits ?? []), { id: 'venin', arg: 'Difficile' }];
+    snake.traits = [...(snake.traits ?? []), { id: 'venin', arg: 'difficile' }];
     prey.characteristics.endurance = 1;
     prey.traits = [...(prey.traits ?? []), { id: 'immunite', arg: 'Poison' }]; // Immunité (Poison)
 

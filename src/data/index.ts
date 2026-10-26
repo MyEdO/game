@@ -8,13 +8,14 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
-import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
+import { libelleDeLElement, libelleNormalise, lireCleDEspace, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
+import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { IdsParEspace } from './schemas/_ids.generated';
 import { symptomSeveritySchema } from './schemas/grammaire/valeurs';
-import { SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
+import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from './merchants.types';
 // Types de la SCÈNE, en TYPE seul (aucun cycle runtime) : les semences d'une scène neuve portent
@@ -132,7 +133,7 @@ import type { DiseaseDef } from '../engine/disease'; // type-only (le runtime de
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import { type DiceSpec, formatDice } from '../engine/dice';
 import type { Money } from '../engine/money'; // type-only (`Money` = SOURCE UNIQUE de la bourse, engine/money.ts)
-import { SIZE_LABEL, sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
+import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
 import type { PregenDef } from './pregens'; // type-only (pregens.ts importe la donnée d'ici)
 import type { OupsRow } from './oups';
 import type { InterludeEvent } from './interludeEvents';
@@ -925,9 +926,9 @@ export type SpecEntry = { id: string; label: string; source?: SourceRef; alsoIn?
 export function specEntryId(e: SpecEntry): string {
   return e.id;
 }
-/** Libellé d'affichage d'une entrée `specs[]`. */
+/** Libellé d'affichage d'une entrée `specs[]`, lu comme l'espace de ses libellés le lit (`LIBELLE_AU_LABEL`). */
 export function specEntryLabel(e: SpecEntry): PlayerText {
-  return dataLabel(e.label);
+  return dataLabel(libelleDeLElement(e, LIBELLE_AU_LABEL.champs), e.id);
 }
 /** Registre partagé qui DÉRIVE le pool d'ids d'une `specs[]` (résolu en libellé par `specLabel`, énuméré
  *  par `wildcardSpecs`) — chaque valeur pointe UNE entrée du catalogue `SPEC_SOURCES` (SSOT, fin des
@@ -943,7 +944,8 @@ export function specEntryLabel(e: SpecEntry): PlayerText {
  *  (Immunité aux Dégâts — `damage-types.json`, matché aussi par `unlessImmune` des Flows), `weaponsMelee`/
  *  `weaponsRanged` (Arme / À distance, LDB 85 l.33/9 — `arg` = une arme PRÉCISE du catalogue `trappings`
  *  filtrée par `type`, `specsOpen` car ces traits acceptent aussi une attaque naturelle/générique hors
- *  catalogue). Absent = specs inline (`SpecEntry[]`). */
+ *  catalogue), `exposureLevels` (Degré de Corruption — vocabulaire `ExposureLevel`), `difficulties`
+ *  (Difficulté du Venin — vocabulaire `Difficulty`). Absent = specs inline (`SpecEntry[]`). */
 export type SpecsSource =
   | 'weaponGroupsMelee'
   | 'weaponGroupsRanged'
@@ -960,7 +962,9 @@ export type SpecsSource =
   | 'breathTypes'
   | 'damageTypes'
   | 'weaponsMelee'
-  | 'weaponsRanged';
+  | 'weaponsRanged'
+  | 'exposureLevels'
+  | 'difficulties';
 export interface SkillData {
   /** Identifiant STABLE (slug du libellé d'origine) — cible des références structurées, robuste au
    *  renommage du `label`. Source unique pour la porte `byId('skill', …)`. */
@@ -3454,25 +3458,27 @@ export function findById(category: string, id: string): { label: string } | unde
     default: return entreeDeCategorie(category, id);
   }
 }
-/** Libellé d'affichage d'un id, par source de spéc. */
-const LIBELLE_DE_SOURCE: Record<SpecsSource, (id: string) => string> = {
-  weaponGroupsMelee: (id) => weaponGroupLabel(id),
-  weaponGroupsRanged: (id) => weaponGroupLabel(id),
-  winds: (id) => findDomainById(id)?.wind ?? findDomainById(id)?.label ?? id,
-  arcaneDomains: (id) => findDomainById(id)?.label ?? id,
-  cultBlessings: (id) => godLabel(id),
-  cultMiracles: (id) => godLabel(id),
-  cultChaos: (id) => godLabel(id),
-  seaShanties: (id) => findSeaShantyById(id)?.label ?? id,
-  groups: (id) => groupLabel(id),
-  diseases: (id) => diseaseLabel(id),
-  sizes: (id) => (SIZE_LABEL as Record<string, string>)[id] ?? id,
-  mutations: (id) => mutationLabel(id),
-  breathTypes: (id) => breathTypeLabel(id),
-  damageTypes: (id) => damageTypeLabel(id),
-  weaponsMelee: (id) => findTrappingById(id)?.label ?? id,
-  weaponsRanged: (id) => findTrappingById(id)?.label ?? id,
-};
+/** L'entrée `id` de la collection de RACINE de `fichier`, lue sur sa racine vivante par l'index du dataset
+ *  qui la porte (`DATASET_DE_LA_RACINE`). */
+function entreeDeRacine(fichier: string, id: string): Readonly<Record<string, unknown>> | undefined {
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_LA_RACINE, fichier)) throw new Error(`entreeDeRacine : « ${fichier} » ne porte aucun dataset de racine.`);
+  const cle = DATASET_DE_LA_RACINE[fichier];
+  return indexParId(cle, RACINES_VIVANTES[fichier] as { id: string }[])(id) as Readonly<Record<string, unknown>> | undefined;
+}
+/** Libellé d'affichage d'un id, par source de spéc, tel que sa déclaration le dit (`SourceDeSpecs.libelle`) :
+ *  table d'un vocabulaire du moteur, ou champs de l'entrée de l'univers ; sinon l'id. */
+function libelleDeSource(decl: SourceDeSpecs): (id: string) => string {
+  const libelle = decl.libelle;
+  if ('vocabulaire' in libelle) {
+    const table: Readonly<Record<string, string>> = VOCABULAIRES[libelle.vocabulaire];
+    return (id) => table[id] ?? id;
+  }
+  const { fichier } = lireCleDEspace(decl.univers);
+  return (id) => {
+    const entree = entreeDeRacine(fichier, id);
+    return (entree && libelleDeLElement(entree, libelle.champs)) ?? id;
+  };
+}
 /** UNE source de spéc, lue sur sa déclaration (`SOURCES_DE_SPECS`) : `pool()` = ids CHOISISSABLES par un
  *  joueur ; `resolves()` = l'id appartient-il à l'UNIVERS de la source (⊇ pool) ; `label()` = affichage.
  *  Le pool borne le CHOIX joueur ; l'univers borne la VALIDITÉ des données (le Triton, MDG 16 l.283). */
@@ -3482,11 +3488,17 @@ export const SPEC_SOURCES = tableTotale(
     const decl: SourceDeSpecs = SOURCES_DE_SPECS[src];
     return {
       pool: () => [...(lireLEspace(decl.pool ?? decl.univers) ?? [])],
-      label: LIBELLE_DE_SOURCE[src],
+      label: libelleDeSource(decl),
       resolves: (id: string) => lireLEspace(decl.univers)?.has(id) ?? false,
     };
   },
 );
+/** COUTURE libellé→id de SAISIE (#909) : l'id de l'univers de la source `source` dont le libellé
+ *  d'affichage (`SPEC_SOURCES[source].label`) est le texte `label`, à l'égalité de libellé (`libelleNormalise`). */
+export function specIdByLabel(label: string, source: SpecsSource): string | undefined {
+  const cle = libelleNormalise(label);
+  return [...(lireLEspace(SOURCES_DE_SPECS[source].univers) ?? [])].find((id) => libelleNormalise(SPEC_SOURCES[source].label(id)) === cle);
+}
 /** POOL d'une def (Compétence/Talent) — ce qu'un choix joueur PROPOSE d'office (`LDB 09 l.40`) :
  *  pool DÉRIVÉ du registre partagé si `specsSource` (SSOT `SPEC_SOURCES`), sinon les entrées `specs[]`
  *  inline SANS `pool: false`. Consommé par `wildcardSpecs` (créateur), l'avancement et l'Entraînement.

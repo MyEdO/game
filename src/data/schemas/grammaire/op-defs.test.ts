@@ -147,13 +147,13 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
 
   it('les CHAMPS D’OP À SLOT se lisent sur `OP_DEFS` : feuille `idDe` du champ, jamais celles d’une op imbriquée', () => {
     const champs = champsDOpASlot();
-    // `summon.count` : une `Formula` porte le terme `{rule}`, feuille `idDe('regleOptionnelle')`.
-    for (const k of ['removeTrait.traitId', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'grantWeapon.form']) {
+    // `summon.count` : une `Formula` porte le terme `{rule}`, feuille `idDe('regleOptionnelle')` ; `summon.addTraits`
+    // des `traitInstanceSchema`, dont l'`id` est la feuille `idDe('trait')`.
+    for (const k of ['removeTrait.traitId', 'diseaseTestMod.diseases', 'testMod.exceptSkills', 'rollTable.tableId', 'transform.morphRef', 'summon.count', 'summon.addTraits', 'grantWeapon.form']) {
       expect(champs.has(k), k).toBe(true);
     }
-    // `rows`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`), `addTraits` un `traitInstanceSchema`
-    // dont l'`id` n'est pas une feuille `idDe` : aucun n'est un champ à slot.
-    for (const k of ['rollTable.rows', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'summon.addTraits', 'skillDRBonus.testType']) {
+    // `rows`/`ops`/`thresholds`/`onCross`/`perRound`/`passive` portent des ops IMBRIQUÉES (`z.lazy`) : aucun n'est un champ à slot.
+    for (const k of ['rollTable.rows', 'transform.ops', 'perRound.ops', 'rollThreshold.thresholds', 'delayed.ops', 'zone.onCross', 'zone.perRound', 'augmentWeapon.passive', 'skillDRBonus.testType']) {
       expect(champs.has(k), k).toBe(false);
     }
   });

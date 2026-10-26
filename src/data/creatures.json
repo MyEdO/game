@@ -3265,7 +3265,7 @@
     "optionals": [
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "frenesie"
@@ -3497,7 +3497,7 @@
     "optionals": [
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -3655,7 +3655,7 @@
     "optionals": [
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -3732,7 +3732,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "corruption-mentale"
@@ -3847,7 +3847,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -3916,7 +3916,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "lanceur-de-sorts",
@@ -4015,7 +4015,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -4105,7 +4105,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -4185,7 +4185,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -4255,7 +4255,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "lanceur-de-sorts",
@@ -4311,7 +4311,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "mutation"
@@ -4379,7 +4379,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       }
     ],
     "optionals": [
@@ -4468,7 +4468,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "demoniaque",
@@ -4540,7 +4540,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "demoniaque",
@@ -4611,7 +4611,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "demoniaque",
@@ -4718,7 +4718,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "dedoublement"
@@ -4815,7 +4815,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "demoniaque",
@@ -4919,7 +4919,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Majeure"
+        "arg": "majeure"
       },
       {
         "id": "demoniaque",
@@ -5003,7 +5003,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Majeure"
+        "arg": "majeure"
       },
       {
         "id": "demoniaque",
@@ -5189,7 +5189,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "dresse-dompte"
@@ -6208,7 +6208,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -6363,7 +6363,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "fouissement",
@@ -7372,7 +7372,7 @@
     "traits": [
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "corruption-mentale",
@@ -7599,7 +7599,7 @@
     "optionals": [
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infravision"
@@ -7760,7 +7760,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "immunite-psychologique"
@@ -8130,7 +8130,7 @@
       },
       {
         "id": "venin",
-        "arg": "Difficile"
+        "arg": "difficile"
       }
     ],
     "optionals": [
@@ -8757,7 +8757,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "frenesie"
@@ -9214,7 +9214,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "magique"
@@ -9347,7 +9347,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "magique"
@@ -11144,7 +11144,7 @@
     "optionals": [
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -12544,7 +12544,7 @@
     "traits": [
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "ethere"
@@ -12931,7 +12931,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "infecte"
@@ -17275,7 +17275,7 @@
       },
       {
         "id": "venin",
-        "arg": "Complexe"
+        "arg": "complexe"
       },
       {
         "id": "arme",
@@ -17338,7 +17338,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       },
       {
         "id": "ethere"
@@ -17406,7 +17406,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "creature-marine"
@@ -17500,7 +17500,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "creature-marine"
@@ -18615,7 +18615,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Mineure"
+        "arg": "mineure"
       }
     ],
     "optionals": [],
@@ -21194,7 +21194,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "demoniaque",
@@ -21282,7 +21282,7 @@
       },
       {
         "id": "corruption",
-        "arg": "Modérée"
+        "arg": "moderee"
       },
       {
         "id": "demoniaque",

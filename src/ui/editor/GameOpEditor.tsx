@@ -31,7 +31,8 @@ import { etats, effectTables, mutationTables, lightTones, memoParVersion } from 
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { RefField } from '../compendium/refField/RefField';
-import { parseTraitInstance, formatTrait } from '../../engine/traits/dispatch';
+import { formatTrait } from '../../engine/traits/dispatch';
+import { parseTraitInstance } from './refFormatLivre';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';

@@ -72,6 +72,7 @@ import { buildRiverDayCascade } from '../noyau/riverVoyageFlow';
 import { findVehicleById, refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { DIFFICULTY_LABELS } from '../engine/types';
+import { EXPOSURE_LADDER } from '../engine/corruption';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
@@ -1641,18 +1642,18 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  flux NORMAL (`checkBattleOver`) en LAISSANT la cascade OUVERTE — contrairement à `killEnemies`
      *  qui la résout d'office. C'est la mise en place de la recette « cascade de fin de combat » :
      *   - `tookCriticalThisFight` posé sur le héros → Test d'Infection post-critique (LDB 20 l.90) ;
-     *   - trait `corruption` (Mineure/Modérée/Majeure) posé sur un ennemi présent → Test d'exposition
+     *   - trait `corruption`, de Degré désigné par son id, posé sur un ennemi présent → Test d'exposition
      *     à la Corruption (LDB 19) pour TOUS les héros survivants ;
      *   - Destin/Résilience CRÉDITÉS au héros (≥1 chacun) → les boutons Chance/Résilience sont visibles
      *     dans la modale (preuve que le Test est INFLUENÇABLE avant l'écran de victoire).
      *  Puis tous les ennemis sont mis hors d'action et `checkBattleOver` ouvre la cascade
      *  (`combatEndBoundary`) AVANT `pendingVictory` — à conduire à la main (cascadeRoll/Next, Chance/
-     *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `level` ∈ Mineure|Modérée|Majeure. */
+     *  Résilience), sa fermeture enchaîne sur l'écran de victoire. `corruption` ∈ `EXPOSURE_LADDER` ou false. */
     combatEnd: (opts?: { heroId?: string; critical?: boolean; corruption?: string | false }) => {
       const s = g();
       if (!s.battle || s.battle.over) return '✗ pas de combat en cours';
-      const level = opts?.corruption === undefined ? 'Modérée' : opts.corruption;
-      if (level !== false && typeof level !== 'string') return `✗ corruption « ${String(level)} » : le Degré du trait \`corruption\` (« Mineure », « Modérée », « Majeure ») ou false`;
+      const level = opts?.corruption === undefined ? 'moderee' : opts.corruption;
+      if (level !== false && !(EXPOSURE_LADDER as readonly unknown[]).includes(level)) return `✗ corruption « ${String(level)} » : l'id du Degré du trait \`corruption\` (${EXPOSURE_LADDER.map((n) => `« ${n} »`).join(', ')}) ou false`;
       const hero = (opts?.heroId
         ? s.battle.combatants.find((c) => c.id === opts.heroId && c.kind === 'hero')
         : s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)));

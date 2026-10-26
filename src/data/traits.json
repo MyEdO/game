@@ -149,6 +149,7 @@
     "id": "armure",
     "type": "traits",
     "label": "Armure",
+    "specsOpen": true,
     "indice": {
       "label": "Indice"
     },
@@ -407,9 +408,7 @@
     "id": "corruption",
     "type": "traits",
     "label": "Corruption",
-    "indice": {
-      "label": "Degré"
-    },
+    "specsSource": "exposureLevels",
     "desc": "La créature est corrompue par le Chaos, ou peut-être imprégnée de Magie noire. Le Degré de Corruption est indiqué entre parenthèses. Voir page 182.",
     "source": {
       "book": "livre-de-base",
@@ -1200,6 +1199,7 @@
     "id": "morsure",
     "type": "traits",
     "label": "Morsure",
+    "specsOpen": true,
     "indice": {
       "label": "Indice"
     },
@@ -1922,9 +1922,8 @@
     "id": "venin",
     "type": "traits",
     "label": "Venin",
-    "indice": {
-      "label": "Difficulté"
-    },
+    "specsSource": "difficulties",
+    "specsOpen": true,
     "desc": "Les attaques de la créature impliquent du poison ou du venin. Quand elle inflige des Points de Blessure avec ses Attaques venimeuses, son adversaire subit un État Empoisonné. Si aucune Difficulté n'est indiquée pour résister au Venin, le Test est considéré comme Intermédiaire. Voir page 168.",
     "effects": [
       {

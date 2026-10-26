@@ -49,6 +49,7 @@ import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
 import { atteindre, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
 import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
+import { lectureDuVocabulaire } from './schemas/grammaire/vocabulaires';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
@@ -385,14 +386,26 @@ function lectureVivante(cle: string): LectureVivante {
   return lire();
 }
 
+/** Lecture d'un VOCABULAIRE du moteur (`grammaire/vocabulaires.ts`), ids en ensemble : le code le fige,
+ *  aucune racine ne le porte. */
+const LECTURES_DE_VOCABULAIRE = new Map<string, LectureVivante>();
+function lectureDeVocabulaire(cle: string): LectureVivante {
+  if (!LECTURES_DE_VOCABULAIRE.has(cle)) {
+    const lecture = lectureDuVocabulaire(cle);
+    LECTURES_DE_VOCABULAIRE.set(cle, lecture && { ids: new Set(lecture.ids) });
+  }
+  return LECTURES_DE_VOCABULAIRE.get(cle);
+}
+
 /**
  * RÉGIME VIVANT DES IDS (#1686, #1463) — le second régime de `_ids.generated.ts` : les ids de
  * l'espace `cle` sur les racines vivantes (`lectureVivante`, le calcul de la phase 2 de `npm run gen`),
  * si bien qu'une entité créée ou renommée à l'atelier est référençable par la donnée AVANT tout
  * `npm run gen`. L'univers d'une `specsSource` se suit (`idsDeLEspace`) à SA lecture, datée par son
- * propre fichier.
+ * propre fichier, ou au vocabulaire qu'il nomme.
  */
-const idsVivantsDeLEspace = (cle: string): ReadonlySet<string> | undefined => idsDeLEspace(cle, lectureVivante);
+const idsVivantsDeLEspace = (cle: string): ReadonlySet<string> | undefined =>
+  lectureVivante(cle) && idsDeLEspace(cle, (c) => lectureVivante(c) ?? lectureDeVocabulaire(c));
 poserRegimeVivant(idsVivantsDeLEspace);
 
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */

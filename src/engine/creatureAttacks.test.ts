@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { creatureAttacks } from './creatureAttacks';
-import { difficultyFromLabel } from './tests';
+import { difficulteDeLArg } from './tests';
 import type { TraitInstance } from './statEntry';
 
 const DRAGON: TraitInstance[] = [{ id: 'arme', value: 10 }, { id: 'armure', value: 5 }, { id: 'attaque-caudale', value: 9 }, { id: 'morsure', value: 10 }, { id: 'souffle', value: 15, arg: 'Feu' }, { id: 'taille', arg: 'Énorme' }, { id: 'vol', value: 80 }];
@@ -63,14 +63,14 @@ describe('creatureAttacks — attaques + RÈGLES dérivées des traits (RAW)', (
   });
 
   it('le Venin n’est PAS une attaque (Atout de la Morsure)', () => {
-    expect(creatureAttacks([{ id: 'venin', arg: 'Difficile' }, { id: 'morsure', value: 8 }]).map((a) => a.kind)).toEqual(['morsure']);
+    expect(creatureAttacks([{ id: 'venin', arg: 'difficile' }, { id: 'morsure', value: 8 }]).map((a) => a.kind)).toEqual(['morsure']);
   });
-  it('difficultyFromLabel : Difficulté de résistance depuis l’arg du Venin (défaut Intermédiaire)', () => {
-    // Le Venin est un `effects` du trait, paramétré par l’arg d’instance (« Venin (Difficile) »).
-    expect(difficultyFromLabel('Difficile')).toBe('difficile');
-    expect(difficultyFromLabel('Très difficile')).toBe('tresDifficile');
-    expect(difficultyFromLabel('Facile')).toBe('facile');
-    expect(difficultyFromLabel(undefined)).toBe('intermediaire');
+  it('difficulteDeLArg : la Difficulté du Venin se lit à l’id de son arg (LDB 85 l.423) ; un arg qui n’en désigne aucune vaut `DIFFICULTE_PAR_DEFAUT`', () => {
+    expect(difficulteDeLArg('difficile')).toBe('difficile');
+    expect(difficulteDeLArg('tresDifficile')).toBe('tresDifficile');
+    expect(difficulteDeLArg('facile')).toBe('facile');
+    expect(difficulteDeLArg('Difficile')).toBe('intermediaire');
+    expect(difficulteDeLArg('de Très Facile à Très Difficile')).toBe('intermediaire');
   });
   it('ignore les traits non-attaque (Armure, Taille, Vol…)', () => {
     expect(creatureAttacks([{ id: 'armure', value: 3 }, { id: 'taille', arg: 'Grande' }, { id: 'vision-nocturne' }])).toEqual([]);
