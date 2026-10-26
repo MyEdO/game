@@ -922,7 +922,8 @@ export function scannerDonnees(
   /**
    * Compte UNE occurrence de référence à sa forme ET l'inscrit à ses cases `(porteur, clé)` : l'unique
    * site où la strate `Référence` compte, pour que le couple attribué soit celui de la forme (#1473).
-   * Ses cases sont ses cases de RÉFÉRENCE : une clé de `CLES_DE_SPECIALISATION` n'en est pas une.
+   * Ses cases sont ses cases de RÉFÉRENCE : une clé dont la valeur est une chaîne, hors `CLES_DE_SPECIALISATION`
+   * (#3021) ; un nombre (`{random:N}`) ou un tableau d'objets (`{choice:[…]}`) n'en ouvre aucune.
    */
   const inscrireReference = (
     concept: Concept,
@@ -937,7 +938,9 @@ export function scannerDonnees(
     const occurrence: OccurrenceDeReference = { dataset: ligne.dataset, champ: ligne.champ };
     occurrencesDeReference.push(occurrence);
     if (!referencesParPorteur.has(porteur)) referencesParPorteur.set(porteur, new Map());
-    for (const k of cles) if (!CLES_DE_SPECIALISATION.has(String(k))) referencesParPorteur.get(porteur)!.set(k, occurrence);
+    for (const k of cles)
+      if (!CLES_DE_SPECIALISATION.has(String(k)) && typeof (porteur as Record<string | number, unknown>)[k] === 'string')
+        referencesParPorteur.get(porteur)!.set(k, occurrence);
     return ligne;
   };
 
@@ -1258,7 +1261,7 @@ export function scannerDonnees(
 /**
  * LE scan du corpus : l'UNIQUE composition `defs du registre + enums DÉCLARÉS → `scannerDonnees``.
  * Ses trois consommateurs — la garde `src/data/structures-contrat.test.ts`, le générateur
- * `scripts/docs/build-structures.mts` et la porte des comptes `scripts/guards/lib/corpusDesComptes.mts` — la lisent
+ * `scripts/docs/build-structures.mts` et l'inventaire de dette `scripts/guards/lib/inventaireDeDette.mts` — la lisent
  * ICI : une composition recopiée ferait mesurer à l'un ce que l'autre ne mesure pas (sans `choix`,
  * aucun enum n'est fermé et des discriminants comptent comme références), et aucune garde ne verrait
  * la divergence.

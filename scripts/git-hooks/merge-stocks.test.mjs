@@ -163,7 +163,7 @@ test('une collection vide des deux côtés → pas de plantage', () => {
 })
 
 test('un fichier SANS collection modifié des deux côtés → 3-voies, propre sur des lignes disjointes, marqueurs sur les mêmes', () => {
-  for (const chemin of ['scripts/guards/lib/plageStock.mjs', 'scripts/guards/lib/legacyVocabStock.mjs', 'scripts/guards/lib/slotsStock.mjs']) {
+  for (const chemin of ['scripts/guards/lib/plageStock.mjs', 'scripts/guards/lib/legacyVocabStock.mjs', 'scripts/guards/lib/structuresStock.mjs']) {
     const O = lu(chemin)
     assert.equal(FORMAT_MJS.lire(O, chemin).collections.size, 0, chemin)
     const lignes = O.split('\n')
@@ -177,9 +177,9 @@ test('un fichier SANS collection modifié des deux côtés → 3-voies, propre s
   }
 })
 
-test('un tableau hors forme de site (`slotsStock.mjs`) est du texte hors collections, qui suit la règle du côté changé', () => {
+test('un tableau hors forme de site (lignes `{ dataset, champ, … }`) est du texte hors collections, qui suit la règle du côté changé', () => {
   const ligne = (date) => `{ dataset: "actions.json", champ: "armed", occurrences: 3, lot: "L2/L3 #1473", date: "${date}" }`
-  const avec = (date, sites) => module(['SLOTS_SANS_DECLARATION', `[\n  ${ligne(date)},\n]`], ['SITES', sites])
+  const avec = (date, sites) => module(['HORS_FORME', `[\n  ${ligne(date)},\n]`], ['SITES', sites])
   const O = avec('2026-08-26', '[]')
   assert.deepEqual([...FORMAT_MJS.lire(O, FIXTURE).collections.keys()], ['SITES'])
   const B = avec('2026-09-27', '[]')

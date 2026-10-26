@@ -26,15 +26,22 @@
  * L'EMPREINTE d'un site (ses clés déclarées et le type zod de chaque enfant) vit dans la mesure, hors du
  * stock : la porte des comptes (`occurrencesStock.mjs`, `renommagesDeStructure`) apparie par elle un site
  * disparu et un site né d'un même document (`nomDuDocument`).
+ *
+ * CHEMINS DE DOCUMENT (`cheminsDeDocument`, plancher `FEUILLES_D_ID` de `occurrencesStock.mjs`) : chaque chemin de
+ * schéma d'un document, sous le même nom de document et les mêmes noms de branche, avec son ÉTAT (`admisDe`) : `idDe`
+ * quand il porte une référence (`estFeuilleDId`, `grammaire/ref.ts`) et qu'aucune alternative n'y admet une valeur
+ * libre, `ferme` quand il n'admet que des valeurs closes (enum, littéral, nombre…), `libre` sinon. Le plancher cède sur
+ * tout chemin `idDe` qui ne l'est plus à la tête, `ferme` compris.
  */
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
 import type { SchemaDef } from '../../../src/data/schemas/types';
-import { defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
+import { declarationDEnfants, defDe, descendre, enfantsDe, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
 import { classeDeProduit } from '../../../src/data/schemas/grammaire/produits';
+import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { listerEntrees, parUnitesDeCode } from './lister.mjs';
 import { empreinteDeChamps } from './occurrencesStock.mjs';
@@ -205,17 +212,36 @@ function nomDuDocument(documents: readonly SchemaDef[], chemins: ReadonlyMap<obj
   return `${[...racines][0]}#${[...types][0]}`;
 }
 
+/** Un schéma DISTINCT des `defs` : le nom de son document (`nomDuDocument`), sa famille et le plus court chemin de chacun
+ *  de ses nœuds (`cheminsDeSchema`). */
+type SchemaNomme = { readonly fichier: string; readonly schema: unknown; readonly famille: SchemaDef['famille']; readonly chemins: Map<object, Chemin> };
+
+/** Les schémas DISTINCTS des `defs`, chacun sous le nom de son document. PURE sur les defs. Lève sur deux schémas d'un
+ *  même nom. */
+function schemasNommes(defs: readonly SchemaDef[]): SchemaNomme[] {
+  const types = new Map<unknown, SchemaDef[]>();
+  for (const d of defs) types.set(d.schema, [...(types.get(d.schema) ?? []), d]);
+  const noms = new Map<string, readonly SchemaDef[]>();
+  return [...types].map(([schema, documents]) => {
+    const chemins = cheminsDeSchema(schema);
+    const fichier = nomDuDocument(documents, chemins);
+    const homonyme = noms.get(fichier);
+    if (homonyme) throw new Error(`structures locales : ${fichier} nomme deux schémas (${[...homonyme, ...documents].map((x) => x.file).join(', ')})`);
+    noms.set(fichier, documents);
+    return { fichier, schema, famille: documents[0].famille, chemins };
+  });
+}
+
 /**
  * Les nœuds de site des `defs`, classés, dans l'ordre des defs puis des clés. PURE sur les defs : aucune
  * donnée n'est lue. Lève sur deux nœuds d'un même type à la même clé.
  */
 export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES]): NoeudDeStructure[] {
-  const types = new Map<unknown, SchemaDef[]>();
-  for (const d of defs) types.set(d.schema, [...(types.get(d.schema) ?? []), d]);
+  const nommes = schemasNommes(defs);
   const grammaire = atteints([...EXPORTS_DE_GRAMMAIRE, ...Object.values(OP_DEFS)]);
   const payloads = atteints(famillesConstruites().flatMap((f) => Object.values(f.opDefs)));
   const composeurs = new Map<object, Set<unknown>>();
-  for (const schema of types.keys()) for (const n of atteints([schema])) composeurs.set(n, (composeurs.get(n) ?? new Set()).add(schema));
+  for (const { schema } of nommes) for (const n of atteints([schema])) composeurs.set(n, (composeurs.get(n) ?? new Set()).add(schema));
   const parClasse = new Map<string, Set<unknown>>();
   for (const [n, c] of composeurs) {
     const k = classeDeFabrique(n);
@@ -233,19 +259,12 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
     return partage ? 'G' : 'G1';
   };
   const out: NoeudDeStructure[] = [];
-  const noms = new Map<string, readonly SchemaDef[]>();
-  for (const [schema, documents] of types) {
-    const chemins = cheminsDeSchema(schema);
-    const fichier = nomDuDocument(documents, chemins);
-    const homonyme = noms.get(fichier);
-    if (homonyme) throw new Error(`structures locales : ${fichier} nomme deux schémas (${[...homonyme, ...documents].map((x) => x.file).join(', ')})`);
-    noms.set(fichier, documents);
-    const d = documents[0];
+  for (const { fichier, famille, chemins } of nommes) {
     const parCle = new Map<string, object>();
     for (const [n, { path }] of chemins) {
       const type = defDe(n)!.type;
       if (type !== 'object' && !NON_VALIDANTS.has(type)) continue;
-      if (horsSite(path, d.famille)) continue;
+      if (horsSite(path, famille)) continue;
       const deja = parCle.get(path);
       if (deja !== undefined && deja !== n) throw new Error(`structures locales : deux nœuds à la même clé ${fichier} :: ${path}`);
       parCle.set(path, n);
@@ -253,6 +272,109 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
     }
   }
   return out.sort((a, b) => parUnitesDeCode(a.fichier, b.fichier) || parUnitesDeCode(a.ref, b.ref));
+}
+
+/** L'ÉTAT d'un chemin de schéma de document (`classeDuNoeud`) : `idDe` quand il porte une référence et qu'aucune de ses
+ *  alternatives n'admet une valeur libre ; `ferme` quand il n'admet que des valeurs closes ; `libre` sinon. */
+export type EtatDeChemin = 'idDe' | 'ferme' | 'libre';
+/** Un CHEMIN de schéma de document : le nom du document, son chemin de schéma, et son état. */
+export type CheminDeDocument = Site & { readonly etat: EtatDeChemin };
+
+/** Ce qu'un nœud admet : une RÉFÉRENCE (`ref`), des valeurs CLOSES seules (`clos`), ou une valeur LIBRE (`libre`). */
+type Admis = 'ref' | 'clos' | 'libre';
+/** Les types zod d'une valeur CLOSE : aucune chaîne libre ni structure n'y entre. */
+const FERMES: ReadonlySet<string> = new Set(['enum', 'literal', 'number', 'int', 'boolean', 'null', 'undefined', 'nan', 'bigint', 'date', 'void', 'never']);
+/** Les enveloppes qui admettent ce qu'admet leur nœud intérieur. */
+const ENVELOPPES: ReadonlySet<string> = new Set(['optional', 'nullable', 'default', 'prefault', 'readonly', 'nonoptional', 'lazy']);
+const RANG: Readonly<Record<Admis, number>> = { clos: 0, ref: 1, libre: 2 };
+/** Des ALTERNATIVES : la plus large l'emporte (`libre` > `ref` > `clos`), `clos` sans alternative. */
+const auMoins = (admis: readonly Admis[]): Admis => admis.reduce<Admis>((a, b) => (RANG[b] > RANG[a] ? b : a), 'clos');
+/** Des contraintes CONJOINTES (pipe, intersection) : une référence suffit, puis une valeur close. */
+const auPlus = (admis: readonly Admis[]): Admis => (admis.includes('ref') ? 'ref' : admis.includes('clos') ? 'clos' : 'libre');
+
+const enfantsAuSegment = (n: unknown, garde: (segment: string) => boolean): unknown[] =>
+  enfantsDe(n).filter((e) => garde(e.segment)).map((e) => e.noeud);
+
+/**
+ * Ce qu'admet `n` (`Admis`). LIBRE : chaîne hors feuille `idDe`, nœud non validant, `transform` hors d'un pipe, `catch`,
+ * record, objet dont l'`id` n'est pas une référence, objet sans `id` dont un champ n'est pas clos (hors tirage `pick`,
+ * `grammaire/ref.ts`), liste ou ensemble dont un élément admet une valeur libre, pipe dont l'ENTRÉE est un `transform`
+ * (`z.preprocess`). Un pipe dont la SORTIE est un `transform` admet ce qu'admet son entrée. Un nœud déjà en cours de
+ * descente (récursion `z.lazy`) n'ajoute rien.
+ */
+function admisDe(n: unknown, descente: Descente = { enCours: new Set(), boucle: false }): Admis {
+  const def = defDe(n);
+  if (!def) return 'libre';
+  if (estFeuilleDId(n)) return 'ref';
+  const connu = ADMIS.get(n as object);
+  if (connu) return connu;
+  if (descente.enCours.has(n)) {
+    descente.boucle = true;
+    return 'clos';
+  }
+  const boucleAvant = descente.boucle;
+  descente.boucle = false;
+  descente.enCours.add(n);
+  const admis = admisSansMemoire(n, def, (m) => admisDe(m, descente));
+  descente.enCours.delete(n);
+  if (!descente.boucle) ADMIS.set(n as object, admis);
+  descente.boucle ||= boucleAvant;
+  return admis;
+}
+
+/** La descente d'`admisDe` : les nœuds en cours, et si l'un d'eux a été revu (le résultat ne se mémorise pas). */
+type Descente = { readonly enCours: Set<unknown>; boucle: boolean };
+/** `admisDe` des nœuds dont la descente n'a revu aucun nœud en cours. */
+const ADMIS = new WeakMap<object, Admis>();
+
+/** Ce qu'admet `n` selon son type, ses enfants lus par `de`. */
+function admisSansMemoire(n: unknown, def: NonNullable<ReturnType<typeof defDe>>, de: (m: unknown) => Admis): Admis {
+  const declares = declarationDEnfants(n);
+  if (declares) return auMoins(declares.enfants.map((e) => de(e.noeud)));
+  const type = def.type;
+  if (FERMES.has(type)) return 'clos';
+  if (ENVELOPPES.has(type)) return auMoins(enfantsAuSegment(n, (s) => s === '').map(de));
+  if (type === 'union') return auMoins(enfantsAuSegment(n, (s) => s.startsWith('|')).map(de));
+  if (type === 'intersection') return auPlus(enfantsAuSegment(n, (s) => s.startsWith('&')).map(de));
+  if (type === 'pipe') {
+    const [entree, sortie] = enfantsAuSegment(n, (s) => s === '');
+    if (defDe(entree)?.type === 'transform') return 'libre';
+    return defDe(sortie)?.type === 'transform' ? de(entree) : auPlus([de(entree), de(sortie)]);
+  }
+  if (type === 'object') {
+    const id = enfantsDe(n).find((e) => e.cle === 'id');
+    if (id !== undefined) return de(id.noeud) === 'ref' ? 'ref' : 'libre';
+    const champs = enfantsAuSegment(n, (s) => s.startsWith('.')).map(de);
+    if (classeDeProduit(n)?.fabrique === 'pick') return auMoins(champs);
+    return champs.every((a) => a === 'clos') ? 'clos' : 'libre';
+  }
+  if (type === 'array' || type === 'tuple') return auMoins(enfantsAuSegment(n, (s) => s.startsWith('[')).map(de));
+  if (type === 'set') return auMoins(enfantsAuSegment(n, (s) => s === '{}').map(de));
+  return 'libre';
+}
+
+const ETAT_DE: Readonly<Record<Admis, EtatDeChemin>> = { ref: 'idDe', clos: 'ferme', libre: 'libre' };
+/** L'état (`EtatDeChemin`) des nœuds d'un chemin, alternatives les uns des autres. */
+const etatDuChemin = (noeuds: readonly unknown[]): EtatDeChemin => ETAT_DE[auMoins(noeuds.map((n) => admisDe(n)))];
+
+/**
+ * Les CHEMINS de schéma de document des `defs` (#3021) : chaque chemin qu'une arête d'un nœud nommé (`cheminsDeSchema`)
+ * ouvre, sous le nom de son document et les noms de branche des structures locales, avec son état (`etatDuChemin`).
+ * PURE sur les defs, triés par document puis chemin.
+ */
+export function cheminsDeDocument(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES]): CheminDeDocument[] {
+  const out: CheminDeDocument[] = [];
+  for (const { fichier, chemins } of schemasNommes(defs)) {
+    const parChemin = new Map<string, unknown[]>();
+    for (const [n, { path }] of chemins)
+      for (const e of enfantsDe(n)) {
+        if (e.segment === '') continue;
+        const ref = path + (e.segment.startsWith('|') ? nomDeBranche(n, e.noeud) : e.segment);
+        parChemin.set(ref, [...(parChemin.get(ref) ?? []), e.noeud]);
+      }
+    for (const [ref, noeuds] of parChemin) out.push({ file: fichier, ref, etat: etatDuChemin(noeuds) });
+  }
+  return out.sort((a, b) => parUnitesDeCode(a.file, b.file) || parUnitesDeCode(a.ref, b.ref));
 }
 
 /** Les sites du stock des structures locales : D5, G1 et L, en `{ file, ref }` avec classe et empreinte. */

@@ -404,7 +404,7 @@ test('un STOCK nominatif qui grandit dans la plage sans `CLIQUET:` au commit est
 
 test('un stock SOUS LA PORTE `comptes:plage` qui grandit dans la plage est refusé MÊME sous un `CLIQUET:` au compte exact (#2705)', async () => {
   const racine = depot()
-  const porteur = 'scripts/guards/lib/slotsStock.mjs'
+  const porteur = 'scripts/guards/lib/structuresStock.mjs'
   try {
     const commettre = (contenu, message) => {
       mkdirSync(join(racine, 'scripts', 'guards', 'lib'), { recursive: true })
@@ -416,7 +416,7 @@ test('un stock SOUS LA PORTE `comptes:plage` qui grandit dans la plage est refus
     const base = commettre(sourceStock([]), 'chore: socle du stock')
     commettre(sourceStock(["  'src/a.ts',", "  'src/b.ts',"]), `chore: deux entrées\n\nCLIQUET: ${porteur} +2 — deux sites déclarés au message, compte exact`)
     const { refus } = await jugerPush({ cwd: racine, stdin: pousse(racine, { refDistante: 'refs/heads/chantier/x', base }) })
-    assert.match(refus.join('\n'), /STOCK SOUS LA PORTE `comptes:plage` qui NAÎT ou GRANDIT : .*scripts\/guards\/lib\/slotsStock\.mjs \+2 entrée/)
+    assert.match(refus.join('\n'), /STOCK SOUS LA PORTE `comptes:plage` qui NAÎT ou GRANDIT : .*scripts\/guards\/lib\/structuresStock\.mjs \+2 entrée/)
     assert.match(refus.join('\n'), /aucun `CLIQUET:` ne l'admet/)
   } finally {
     jeter(racine)

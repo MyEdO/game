@@ -1,21 +1,15 @@
 /**
  * STRUCTURES LOCALES (#1463, #3012 N1) : la dette de structure mesurée sur le SCHÉMA
- * (`scripts/guards/lib/structuresLocales.mts`), son stock (`horsStrateStock.mjs`, `STRUCTURES_LOCALES`) et le contrat
- * #2995 : une donnée conforme ajoutée ne crée aucun site.
+ * (`scripts/guards/lib/structuresLocales.mts`) et son stock (`horsStrateStock.mjs`, `STRUCTURES_LOCALES`). Le contrat
+ * #2995 (une donnée saine ajoutée ou retirée ne fait naître aucun site) se prouve sur toute la porte : `src/comptes-plage.test.ts`.
  */
 import { describe, expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { enfantsDe } from './schemas/grammaire/descente';
 import { nommerNoeud } from './schemas/grammaire/meta';
 import { ref } from './schemas/grammaire/ref';
 import { formulaSinSchema } from './schemas/grammaire/valeurs';
 import type { SchemaDef } from './schemas/types';
-import { listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
 import { STRUCTURES_LOCALES } from '../../scripts/guards/lib/horsStrateStock.mjs';
 import { STRUCTURES_LOCALES as VOLET } from '../../scripts/guards/lib/occurrencesStock.mjs';
 import { PORTEURS } from '../../scripts/guards/lib/porteursDesComptes.mjs';
@@ -23,7 +17,6 @@ import { ecartDuVolet, remedeDeNaissance } from '../../scripts/guards/lib/stock.
 import { ecartDeRegeneration, texteEnPlace } from '../../scripts/guards/lib/stockDeSites.mjs';
 import { nomDeBranche, noeudsDeStructure, regenerations, sitesDeStructure } from '../../scripts/guards/lib/structuresLocales.mts';
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 /** Les options d'une union, dans leur ordre (`enfantsDe`). */
 const options = (union: unknown) => enfantsDe(union).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
 const lignes = (xs: readonly string[]) => [...xs].sort();
@@ -128,41 +121,5 @@ describe('clé d’un site', () => {
   it('deux nœuds d’un même type à la même clé LÈVENT (injectivité)', () => {
     const double = z.strictObject({ type: z.literal('x'), v: z.union([z.strictObject({ a: z.string() }), z.strictObject({ a: z.number() })]) });
     expect(() => noeudsDeStructure([{ file: 'x.json', root: 'src/data', famille: 'config', schema: double }])).toThrow(/deux nœuds à la même clé src\/data#x :: \.v\|\{a\}/);
-  });
-});
-
-/** Les fichiers TEXTE d'une copie de l'arbre : ce que lit la génération du code et la mesure. */
-const TEXTE = /\.(?:md|json|ts|tsx|mts|mjs|js|cjs|css|snap)$/;
-
-describe('#2995 : une donnée conforme ajoutée ne crée aucun site', () => {
-  it('une entrée copiée sous un id neuf dans chaque dataset et un projet de scène neuf trié en tête, cibles de code régénérées : la mesure est identique', { timeout: 240_000 }, () => {
-    const dossier = mkdtempSync(join(tmpdir(), 'structures-locales-2995-'));
-    try {
-      for (const rel of ['src', 'scripts']) {
-        cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || TEXTE.test(p)) });
-      }
-      for (const rel of ['package.json', 'tsconfig.json']) cpSync(join(ROOT, rel), join(dossier, rel));
-      let ajoutees = 0;
-      for (const d of listerDocuments(ROOT)) {
-        const donnee = JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')) as unknown;
-        if (!Array.isArray(donnee) || typeof donnee[0]?.id !== 'string') continue;
-        donnee.push({ ...donnee[0], id: `${donnee[0].id}-sonde-2995` });
-        writeFileSync(join(dossier, d.chemin), JSON.stringify(donnee, null, 2));
-        ajoutees += 1;
-      }
-      expect(ajoutees, 'aucun dataset à entrées n’a reçu de copie : la sonde ne prouverait rien.').toBeGreaterThan(50);
-      const projet = 'aaa-sonde-2995/aaa-sonde-2995-projet.json';
-      cpSync(join(ROOT, 'src/scenes/arene/arene-projet.json'), join(dossier, 'src/scenes', projet), { recursive: true });
-      const module = readFileSync(join(ROOT, 'src/data/schemas/defs-scenes/arene.ts'), 'utf8').replace("'arene/arene-projet.json'", `'${projet}'`);
-      writeFileSync(join(dossier, 'src/data/schemas/defs-scenes/aaa-sonde-2995.ts'), module);
-      const url = (rel: string) => JSON.stringify(pathToFileURL(join(dossier, rel)).href);
-      const env = Object.fromEntries(Object.entries(process.env).filter(([nom]) => !nom.startsWith('GIT_')));
-      execFileSync(process.execPath, ['--input-type=module', '-e', `const { preparerExport } = await import(${JSON.stringify(pathToFileURL(join(ROOT, 'scripts/migrations/replay-head.mjs')).href)}); preparerExport(process.argv[1]);`, dossier], { cwd: dossier, env, stdio: 'pipe' });
-      expect(readFileSync(join(dossier, 'src/data/schemas/_registry-scenes.generated.ts'), 'utf8'), 'le projet neuf n’est pas au registre régénéré : la sonde ne prouverait rien.').toContain('aaa-sonde-2995');
-      const mesure = execFileSync(process.execPath, [join(ROOT, 'node_modules/tsx/dist/cli.mjs'), '--input-type=module', '-e', `const { sitesDeStructure } = await import(${url('scripts/guards/lib/structuresLocales.mts')}); process.stdout.write(JSON.stringify(sitesDeStructure()));`], { cwd: dossier, env, encoding: 'utf8', maxBuffer: 1 << 28 });
-      expect(JSON.parse(mesure), 'une donnée ajoutée a changé la mesure : elle lit autre chose que les defs.').toEqual(sitesDeStructure());
-    } finally {
-      rmSync(dossier, { recursive: true, force: true });
-    }
   });
 });

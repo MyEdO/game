@@ -1,6 +1,6 @@
-// CORPUS DES COMPTES (#2705) : ce que mesurent les collections à compte (`COLLECTIONS_A_COMPTE`,
-// `occurrencesStock.mjs`) sur une racine, et la PORTE DE PLAGE qui refuse qu'un compte monte ou qu'un
-// site naisse entre la base d'une plage et sa tête.
+// CORPUS DES COMPTES (#2705, #3021) : ce que mesurent les volets de `SOUS_LA_PORTE` (`occurrencesStock.mjs`) sur une
+// racine, et la PORTE DE PLAGE qui refuse qu'un compte monte, qu'un site naisse ou qu'un plancher cède entre la base
+// d'une plage et sa tête. Chaque volet se mesure sur le CODE de l'image, jamais sur sa donnée (#2995).
 //
 // DÉTECTEURS CONSTANTS : la base et la tête se MESURENT par le même code, posé dans chaque image — deux fois,
 // par le détecteur de la tête (`scripts/` de son image git) et par celui de la base (`scripts/` de son image git).
@@ -9,11 +9,17 @@
 // (scripts/docs/build-all.mjs), une fois par commit, avant la pose du détecteur. Une mesure impossible sous ces
 // cibles se rejoue sous celles des générateurs du DÉTECTEUR (`comptesDuCommit`) : une borne se mesure si UNE des deux
 // configurations aboutit, sinon sa paire est sautée et nommée avec les deux raisons ; une paire sautée refuse.
-// Ce qui monte sous l'un ou l'autre détecteur est la DONNÉE ou son SCHÉMA (un `idDe` retiré se voit) et
-// refuse la plage. Aucune ligne de message n'admet une hausse.
+// Ce qui monte, naît ou cède sous l'un ou l'autre détecteur est le SCHÉMA (un `idDe` relâché se voit, `FEUILLES_D_ID`)
+// et refuse la plage. Aucune ligne de message n'admet une hausse ni un plancher qui cède ; une baisse du DÉTECTEUR, plancher
+// compris, se justifie par `FAUX-POSITIF:` (`baissesDuDetecteur`).
 // ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711) ; une forme
 // générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher une mesure.
-// `c.site` peut agréger plusieurs datasets (homonymes) ; l’ordinal d’un compte n’est pas l’adresse d’une valeur.
+// L’ordinal d’un compte n’est pas l’adresse d’une valeur. Un chemin RENOMMÉ dans la plage même où sa référence se
+// relâche passe le plancher `FEUILLES_D_ID` : le chemin de la base n’existe plus à la tête, celui de la tête y naît. Le
+// renommage peut être INDIRECT : une route plus courte vers un nœud partagé change son plus court chemin
+// (`cheminsDeSchema`) et renomme tous ses sous-chemins.
+// Un chemin RETIRÉ dans une plage puis réintroduit en chaîne nue dans une autre passe aussi : aucune des deux plages ne
+// voit un chemin `idDe` présent à ses deux bornes.
 // La preuve d’un FAUX-POSITIF est du texte, sans vérification de sa vérité ; `SOUS_LA_PORTE`, ses identités et
 // la politique du juge courant restent des entrées de confiance.
 // Le classement `estFeuilleDId`/`descente` et `OP_DEFS`, importé de `src/`, suit l’image : sa modification peut masquer une baisse sous les deux détecteurs (#2969).
@@ -25,42 +31,40 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lierDependances } from '../../migrations/replay-head.mjs';
-import { scanDuCorpus, scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
-import { champsSansSlot, occurrencesInatteignables, slotsDuParse } from '../../docs/lib/slots-registre.mjs';
+import { scannerRedeclarations } from '../../docs/lib/structures-scan.mjs';
 import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mecanique';
+import { CONTENU_A_SOURCER } from '../../../src/data/schemas/grammaire/sans-livre';
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
 import { GitIndisponible, INDEX, TRONC, baseCommune, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
-import { COLLECTIONS_A_COMPTE, SOUS_LA_PORTE, STRUCTURES_LOCALES, type CorpusDesComptes, type EntreeDeCompte } from './occurrencesStock.mjs';
+import {
+  COLLECTIONS_A_COMPTE, DETTE_ENVELOPPE, DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, motifAPlat,
+  type CorpusDesComptes, type EntreeDeCompte, type SiteDeDetteDOp,
+} from './occurrencesStock.mjs';
 import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
-import { sitesDeStructure } from './structuresLocales.mts';
+import { cheminsDeDocument, sitesDeStructure } from './structuresLocales.mts';
 
 /** Les clés de PREMIER niveau du payload de chaque op de `opDefs` dont le schéma, ouvert de ses enveloppes
- *  (`ouverts`), est une feuille `idDe` (`estFeuilleDId`) : la référence À PLAT (`estDetteDOp`). */
+ *  (`ouverts`), est une feuille `idDe` (`estFeuilleDId`) : la référence À PLAT (`DETTE_OPS`). */
 export function refsAPlat(opDefs: Readonly<Record<string, unknown>>): Record<string, string[]> {
   return Object.fromEntries(Object.entries(opDefs).map(([op, schema]) => [op, [...new Set(ouverts([schema]).flatMap((n) =>
     enfantsDe(n).flatMap((e) => (e.cle !== undefined && ouverts([e.noeud]).some(estFeuilleDId) ? [e.cle] : []))))].sort()]));
 }
 
-/** Le corpus des comptes d'un scan déjà fait (`scanDuCorpus`) et de ses redéclarations. Le parse de mesure des
- *  slots ne se joue qu'à la première lecture de `sansSlot` : une garde qui ne mesure pas les slots ne le paie pas. */
-export function corpusDuScan(
-  { scan, defs }: Pick<ReturnType<typeof scanDuCorpus>, 'scan' | 'defs'>,
-  redeclarations: CorpusDesComptes['redeclarations'],
-): CorpusDesComptes {
-  let sansSlot: CorpusDesComptes['sansSlot'] | undefined;
-  return {
-    scan, inatteignables: occurrencesInatteignables(scan), redeclarations,
-    get sansSlot() { return (sansSlot ??= champsSansSlot(scan, slotsDuParse(scan, defs))); },
-    typage: { types: Object.keys(OP_DEFS), nonTypees: OPS_NON_TYPEES, aPlat: refsAPlat(OP_DEFS) },
-  };
-}
+/** Les sites de `DETTE_OPS` : chaque op de `nonTypees`, puis chaque couple (op, clé) de `refsAPlat(opDefs)`. PURE. */
+export const sitesDeDetteDOps = (nonTypees: Iterable<string>, opDefs: Readonly<Record<string, unknown>>): SiteDeDetteDOp[] => [
+  ...[...nonTypees].map((op) => ({ op, motif: MOTIF_NON_TYPEE })),
+  ...Object.entries(refsAPlat(opDefs)).flatMap(([op, cles]) => cles.map((cle) => ({ op, motif: motifAPlat(cle) }))),
+];
 
-/** Le corpus des comptes de la racine `root`. */
-export const corpusDesComptes = (root: string): CorpusDesComptes =>
-  corpusDuScan(scanDuCorpus(root), scannerRedeclarations(root).redeclarations);
+/** Les sites de `DETTE_ENVELOPPE` : un par type de `aSourcer` (`CONTENU_A_SOURCER`). PURE. */
+export const sitesDEnveloppeASourcer = (aSourcer: Readonly<Record<string, string>>): { type: string }[] =>
+  Object.keys(aSourcer).sort().map((type) => ({ type }));
+
+/** Le corpus des comptes de la racine `root` : les redéclarations de l'AST de ses defs. */
+export const corpusDesComptes = (root: string): CorpusDesComptes => ({ redeclarations: scannerRedeclarations(root).redeclarations });
 
 /** Les entrées mesurées de chaque collection sous la porte, par nom. */
 export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
@@ -68,23 +72,30 @@ export type Comptes = ReadonlyMap<string, readonly EntreeDeCompte[]>;
 /** Les comptes d'un corpus, collection par collection (`COLLECTIONS_A_COMPTE`). */
 export const comptesDuCorpus = (corpus: CorpusDesComptes): Comptes => new Map(COLLECTIONS_A_COMPTE.map((c) => [c.nom, c.mesure(corpus)]));
 
-/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte, `STRUCTURES_LOCALES`
- *  (les defs de l'image) et `SOURCE_FORMAT`. */
+/** Une liste de sites comme entrées de compte. */
+const enEntrees = (sites: readonly object[]): EntreeDeCompte[] => sites as unknown as EntreeDeCompte[];
+
+/** Les comptes de la racine `root` (le répertoire courant pour `Source/`) : ses collections à compte, les volets
+ *  `DETTE_OPS`, `DETTE_ENVELOPPE`, `FEUILLES_D_ID` et `STRUCTURES_LOCALES` (le code de l'image) et `SOURCE_FORMAT`. */
 const comptesDeLaRacine = (root: string): Comptes =>
   new Map([
     ...comptesDuCorpus(corpusDesComptes(root)),
-    [STRUCTURES_LOCALES.nom, sitesEnEntrees(sitesDeStructure()) as unknown as EntreeDeCompte[]],
-    [SOURCE_FORMAT.nom, sitesEnEntrees(scanAll()) as unknown as EntreeDeCompte[]],
+    [DETTE_OPS.nom, enEntrees(sitesDeDetteDOps(OPS_NON_TYPEES, OP_DEFS))],
+    [DETTE_ENVELOPPE.nom, enEntrees(sitesDEnveloppeASourcer(CONTENU_A_SOURCER))],
+    [FEUILLES_D_ID.nom, enEntrees(sitesEnEntrees(cheminsDeDocument()))],
+    [STRUCTURES_LOCALES.nom, enEntrees(sitesEnEntrees(sitesDeStructure()))],
+    [SOURCE_FORMAT.nom, enEntrees(sitesEnEntrees(scanAll()))],
   ]);
 
 /**
- * Le REFUS de la plage `base` → `tete`, une ligne par site : un site NEUF d'une collection sous la porte, ou
- * un site dont le compte MONTE (`ecartsDeStock`, la tête comme observé, la base comme stock), sur chaque volet de
- * `SOUS_LA_PORTE` (`occurrencesStock.mjs`). Un site né que le volet apparie à un disparu (`renommages`) n'est pas neuf. PURE.
+ * Le REFUS de la plage `base` → `tete`, une ligne par site, sur chaque volet de `SOUS_LA_PORTE` (`occurrencesStock.mjs`) :
+ * le juge propre d'un PLANCHER (`plancher.cede`), sinon un site NEUF ou un site dont le compte MONTE (`ecartsDeStock`, la tête
+ * comme observé, la base comme stock). Un site né que le volet apparie à un disparu (`renommages`) n'est pas neuf. PURE.
  */
 export function refusDesComptes(base: Comptes, tete: Comptes): string[] {
   return SOUS_LA_PORTE.flatMap((c) => {
     const [avant, apres] = [base.get(c.nom) ?? [], tete.get(c.nom) ?? []];
+    if (c.plancher) return c.plancher.cede(avant, apres).map((l) => `${c.nom} : ${l}`);
     const renommes = c.renommages?.(avant, apres) ?? new Set<string>();
     const { neuves, accrues } = ecartsDeStock({
       observe: apres.filter((e) => !renommes.has(c.site(e))),
@@ -269,9 +280,11 @@ function mesurerLaPaire(depot: Depot, shaBase: string, shaTete: string, detecteu
 /** #2948. */
 type FauxPositif = readonly [collection: string, site: string, occurrence: number];
 
+/** #2948 ; un PLANCHER compte 1 par site qu'il tient (`plancher.tient`). */
 export function baissesDuDetecteur(base: Comptes, teteSousBase: Comptes, tete: Comptes): FauxPositif[] {
   return SOUS_LA_PORTE.flatMap((c) => {
-    const parSite = (comptes: Comptes): Map<string, number> => new Map((comptes.get(c.nom) ?? []).map((e) => [c.site(e), c.nombre(e)]));
+    const compte = (e: EntreeDeCompte): number => (c.plancher ? Number(c.plancher.tient(e)) : c.nombre(e));
+    const parSite = (comptes: Comptes): Map<string, number> => new Map((comptes.get(c.nom) ?? []).map((e) => [c.site(e), compte(e)]));
     const natifs = parSite(base);
     const anciens = parSite(teteSousBase);
     const nouveaux = parSite(tete);
@@ -311,7 +324,7 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
   const suite = sautees.length ? `\n${sautees.join('\n')}` : '';
   if (!liees.length) return { ok: false, texte: `⛔ ${plage} : aucune paire de détecteur ne se lie — la porte ne juge pas ce qu’elle n’a pas mesuré.${suite}` };
   const refus = liees.flatMap((m) => refusDesComptes(m.base, m.tete).map((l) => `  [${m.detecteur}] ${l}`));
-  const croissance = refus.length ? { ok: false, texte: `⛔ ${plage} : ${refus.length} compte(s) de collection à compte MONTENT ou NAISSENT — aucune donnée n’y entre, aucun \`CLIQUET:\` ne les couvre (#2705) :\n${refus.join('\n')}${suite}` } : null;
+  const croissance = refus.length ? { ok: false, texte: `⛔ ${plage} : ${refus.length} site(s) sous la porte MONTENT, NAISSENT ou CÈDENT leur plancher — aucune donnée n’y entre, aucun \`CLIQUET:\` ne les couvre (#2705) :\n${refus.join('\n')}${suite}` } : null;
   const [tete, base] = mesures;
   if (!tete || !base || 'sautee' in tete || 'sautee' in base)
     return croissance ?? { ok: false, texte: `⛔ ${plage} : les deux détecteurs sont nécessaires pour attribuer une baisse à la donnée.${suite}` };
@@ -319,7 +332,7 @@ export function verdictDesDetecteurs(plage: string, mesures: readonly MesureDUnD
   if (croissance) return { ...croissance, texte: croissance.texte + (declarations.length ? '\n' + declarations.join('\n') : '') };
   return declarations.length
     ? { ok: false, texte: `⛔ ${plage} : baisse de détecteur non justifiée exactement par FAUX-POSITIF:\n${declarations.join('\n')}${suite}` }
-    : { ok: true, texte: `${plage} : aucun compte des ${SOUS_LA_PORTE.length} collections sous la porte ne monte, aucun site n’y naît ; baisses de détecteur justifiées (${liees.map((m) => m.detecteur).join(', ')}).${suite}` };
+    : { ok: true, texte: `${plage} : aucun compte des ${SOUS_LA_PORTE.length} volets sous la porte ne monte, aucun site n’y naît, aucun plancher ne cède ; baisses de détecteur justifiées (${liees.map((m) => m.detecteur).join(', ')}).${suite}` };
 }
 
 /**

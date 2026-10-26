@@ -162,8 +162,8 @@ export interface OptionsDocument {
   /**
    * Le document porte un DÉ DE TIRAGE : la fabrique pose `die` (requis) avec sa méta FR
    * (`META_CHARGE`). Sans cette déclaration, `die` n'existe pas sur le document — le poser à tous
-   * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (mesuré :
-   * `STRUCTURES_DEFAUT` +5). Exige `rangee`.
+   * ferait de `die` une clé DÉCLARÉE JAMAIS OBSERVÉE sur les documents qui n'en ont pas (inventaire
+   * `STRUCTURES_DEFAUT`, `scripts/guards/lib/inventaireDeDette.mts`). Exige `rangee`.
    */
   readonly deDeTirage?: boolean;
   /**
