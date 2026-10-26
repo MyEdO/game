@@ -14,6 +14,7 @@ import type { Combatant } from './types';
 import type { GameOp } from './ops';
 import { findCreatureById, findTraitById } from '../data';
 import { baseWithTraits } from './characteristics';
+import { poseDeTrait, resoudreTrait } from './statEntry';
 
 /** id de créature dont l'apparence rig doit être rendue actuellement (op `polymorph` en cours), sinon
  *  `undefined` (forme de base). Le DERNIER effet `morphRef` actif l'emporte. Lu par la couche rig
@@ -37,9 +38,12 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
     }
   }
   // `TraitData.nonTransferable` (LDB 48 l.23) ; `grantTrait` porte `arg`, `value` → `indice` et `range` (LDB 85 l.209).
-  for (const t of cr.traits ?? [])
-    if (!findTraitById(t.id)?.nonTransferable)
-      ops.push({ op: 'grantTrait', traitId: t.id, ...(t.arg ? { arg: t.arg } : {}), ...(t.value != null ? { indice: t.value } : {}), ...(t.range != null ? { range: t.range } : {}) });
+  // Chaque Trait se résout sur la créature, et sa forme posée (`poseDeTrait`) est ce que l'op accorde.
+  for (const t of cr.traits ?? []) {
+    if (findTraitById(t.id)?.nonTransferable) continue;
+    const p = poseDeTrait(resoudreTrait(t));
+    ops.push({ op: 'grantTrait', traitId: p.id, ...(p.arg ? { arg: p.arg } : {}), ...(p.value != null ? { indice: p.value } : {}), ...(p.range != null ? { range: p.range } : {}) });
+  }
   ops.push({
     op: 'narrative',
     text: `${target.label} prend la forme d'un(e) ${cr.label} (F/E/Ag/Dex et Traits de la créature, PB recalculés) ; elle ne peut ni parler ni incanter, et conserve les PB perdus en reprenant sa vraie forme — arbitrage MJ.`,

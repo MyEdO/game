@@ -79,6 +79,7 @@ import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
 import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/refField/RefField';
+import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
 import type { IconIdInput } from '../icons';
@@ -823,7 +824,7 @@ export function Inspector({
               )}
               {ent.statblock ? (
                 <>
-                  <StatblockEditor stat={ent.statblock} onChange={(sb) => updateSel({ statblock: sb })} />
+                  <StatblockEditor chemin={`${ent.id}/statblock`} stat={ent.statblock} onChange={(sb) => updateSel({ statblock: sb })} />
                   {/* #1882 : quitter le profil personnalisé NOMME la fiche qui le remplace, dans le même geste. */}
                   {ent.ref !== undefined ? (
                     <button className="btn small" onClick={() => updateSel({ statblock: undefined })}>↩ Revenir à la fiche du bestiaire ({creatureLabel(ent.ref)})</button>
@@ -1333,34 +1334,17 @@ export function Inspector({
   );
 }
 
-/** Renommage d'un id STABLE (point d'entrée, zone d'effet…) — champ local appliqué au blur/Entrée (la clé doit rester unique). */
+/** Renommage d'un id STABLE (point d'entrée, zone d'effet…), en BROUILLON (`SaisieEnBrouillon`) posé au
+ *  blur ou à Entrée. L'inspecteur RÉUTILISE l'instance d'un objet sélectionné au suivant : le brouillon
+ *  tombe dès que l'id AFFICHÉ change, jamais recopié sur l'objet suivant. Le champ ne garde jamais un id
+ *  que le document a REFUSÉ (doublon) : posé, le brouillon cède la place à l'id en vigueur. */
 function EntryRename({ label, caption = 'Nom (référencé par les transitions)', onRename }: { label: string; caption?: string; onRename: (next: string) => void }) {
-  const [val, setVal] = useState(label);
-  // L'inspecteur RÉUTILISE l'instance d'un objet sélectionné au suivant : sans resynchronisation, le
-  // champ garderait l'id de l'objet PRÉCÉDENT — un id faux qu'un auteur recopie câble la mauvaise pièce.
-  // Le pilote est l'id AFFICHÉ (`label`), pas un montage : la saisie en cours d'un même objet survit.
-  const [shown, setShown] = useState(label);
-  if (shown !== label) {
-    setShown(label);
-    setVal(label);
-  }
   return (
     <label className="ed-field">
       {caption}
-      <input
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
-        onBlur={() => {
-          if (val.trim() && val !== label) onRename(val);
-          // Le champ ne garde JAMAIS un id que le document a REFUSÉ (doublon) : il se recale sur l'id
-          // en vigueur. Renommage accepté → `label` change au rendu suivant et la resynchro ci-dessus
-          // reprend la main ; refusé → `label` est resté le même, et c'est lui qui s'affiche.
-          setVal(label);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-        }}
-      />
+      <SaisieEnBrouillon
+        value={label} afficher={(x) => x} relire={(t, avant) => t.trim() || avant}
+        onChange={(n) => { if (n !== label) onRename(n); }} />
     </label>
   );
 }

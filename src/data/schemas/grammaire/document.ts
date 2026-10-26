@@ -12,7 +12,7 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import { maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe, descendre, enfantsDe, ouverts } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
@@ -315,15 +315,13 @@ function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonl
     source: champEnveloppe(sourceRefSchema, requis('source')),
     alsoIn: champEnveloppe(z.array(secondarySourceRefSchema), requis('alsoIn'), z.array(secondarySourceRefSchema).min(1)),
     /**
-     * Ce que le canon ne tranche pas : ce champ en porte la RAISON, en clair. `.min(1)` est
-     * STRUCTUREL : une chaîne vide ne prouve rien et le refine de provenance ci-dessous ne saurait
-     * pas la distinguer d'une raison réelle. Mesuré (2026-08-27) : aucune chaîne vide dans la donnée.
+     * Ce que le canon ne tranche pas : ce champ en porte la RAISON (`maisonSchema`, `grammaire/valeurs.ts`).
      *
      * Le TYPE est le contrat : une raison est une CHAÎNE. La forme booléenne (un drapeau « c'est
      * maison », qui ne dit aucune raison) est ÉTEINTE de la donnée — zéro `maison` non-chaîne sur les
      * deux racines, mesuré RÉCURSIVEMENT et gardé par `src/data/maison-sans-source.test.ts`.
      */
-    maison: champEnveloppe(z.string().min(1), requis('maison')),
+    maison: champEnveloppe(maisonSchema, requis('maison')),
     icon: champEnveloppe(z.string(), requis('icon'), z.string().min(1)),
   };
 }

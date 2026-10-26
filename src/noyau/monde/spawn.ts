@@ -4,7 +4,8 @@
  */
 import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import { isOptionalNote, resoudreTrait, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { estNavire } from '../../engine/coque';
@@ -193,7 +194,7 @@ export function talentsFromBook(list: TalentRef[] | undefined): TalentInstance[]
 
 /** Personnalisations d'AUTEUR au spawn d'une créature (portées par SceneEntity.combat). */
 export interface SpawnExtras {
-  /** OPTIONNELS choisis (LDB 76 l.45) : `TraitInstance` ordinaires (fusionnés avant dérivation) OU
+  /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés ordinaires (résolus et fusionnés avant dérivation) OU
    *  NOTES composées (joker « tous les traits », variante « swap » qui RETIRE des Traits + octroie un bonus). */
   optionals?: OptionalEntry[];
   /** Sorts connus choisis par l'auteur (`combat.spells`) — priment sur ceux de la créature. */
@@ -204,8 +205,8 @@ export interface SpawnExtras {
    *  LDB 77 l.108 seedé sur l'`uid` d'instance, jamais relancé) — PRIME sur `randomChars`/`sb.randomChars`. */
   charsRolled?: Characteristics;
   /** Traits APPRIS unis aux traits de base (dresse-* octroyés par un Test de Dressage réussi, LDB 23
-   *  l.130 → LDB 85 l.100-118 — ex. « Dressé (Monture) » d'une bête possédée). Ids seuls (`TraitInstance`
-   *  sans value/arg) : chaque `dresse-*` est déjà une entrée de trait à part entière. */
+   *  l.130 → LDB 85 l.100-118 — ex. « Dressé (Monture) » d'une bête possédée). Ids seuls (sans value/arg) :
+   *  chaque `dresse-*` est déjà une entrée de trait à part entière. */
   learnedTraits?: string[];
   /** Coque/navire : `id`s des Combattants d'ÉQUIPAGE exposés (MDG 14) — posés sur le `Combatant`. */
   crewIds?: string[];
@@ -221,6 +222,9 @@ export interface SpawnExtras {
   skills?: SkillRef[];
 }
 
+/** Traits APPRIS (dresse-* d'une Possession, LDB 23 l.130 → LDB 85) : ids seuls, résolus comme tout Trait posé. */
+const traitsAppris = (extras?: SpawnExtras): TraitInstance[] => (extras?.learnedTraits ?? []).map((id) => resoudreTrait({ id }));
+
 /** Profil + modificateurs de PROFIL des traits `live` (Élite/Coriace/Brutal…) — pour les valeurs DÉRIVÉES
  *  au spawn (Blessures) qui doivent refléter les traits, alors que `characteristics` ne stocke que la base. */
 function withTraitChars(chars: Characteristics, live: TraitList | undefined): Characteristics {
@@ -234,15 +238,13 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // Les optionnels choisis (LDB 76 l.45) se répartissent : Traits FACULTATIFS ordinaires (fusionnés)
   // vs NOTES composées « swap » (Grand Loup/Griffon ZI). Le joker « all-traits » (Mutant) est une
   // indication au picker (« n'importe quel Trait peut être ajouté ») → aucun effet mécanique au spawn.
-  const optTraits = optEntries.filter((e): e is TraitInstance => !isOptionalNote(e));
+  const optTraits = optEntries.filter((e): e is TraitPose => !isOptionalNote(e)).map((t) => resoudreTrait(t));
   const swaps = optEntries.filter((e): e is OptionalSwap => isOptionalNote(e) && e.note === 'swap');
   // Variante « swap » (ZI) : RETIRE les Traits qu'elle nomme (Bestial/Dressé/Territorial) — en échange
   // d'un bonus (appliqué plus bas). Traits FACULTATIFS (LDB 76 l.45) fusionnés AVANT toutes les
   // dérivations (armes, armure, psy, nuée…), puis les Traits retirés par les variantes sont ôtés.
   const removedBySwap = new Set(swaps.flatMap((s) => s.remove));
-  // Traits APPRIS (dresse-* d'une Possession, LDB 23 l.130 → LDB 85) : ids seuls, unis aux traits de base.
-  const learnedTraits: TraitInstance[] = (extras?.learnedTraits ?? []).map((traitId) => ({ id: traitId }));
-  const traits = [...creature.traits, ...optTraits, ...learnedTraits].filter((t) => !removedBySwap.has(t.id));
+  const traits = [...creature.traits.map((t) => resoudreTrait(t)), ...optTraits, ...traitsAppris(extras)].filter((t) => !removedBySwap.has(t.id));
   // « – » imprimé (`null`) → 0 : #2304. Int/FM nulles d'un Fabriqué : LDB 85 l.142.
   let chars = charsFrom(creature.char, 0);
   // Bonus de caractéristique octroyé par une variante « swap » (Grand Loup +15 Soc, Griffon +20 Soc,
@@ -326,10 +328,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
 }
 
 export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
-  // Traits du statbloc d'éditeur : déjà des `TraitInstance` structurés (édités par picker) — unis aux
-  // traits APPRIS (dresse-* d'une Possession, LDB 23 l.130 → LDB 85) : ids seuls.
-  const learnedTraits: TraitInstance[] = (extras?.learnedTraits ?? []).map((traitId) => ({ id: traitId }));
-  const traits = [...(sb.traits ?? []), ...learnedTraits];
+  const traits = [...(sb.traits ?? []).map((t) => resoudreTrait(t)), ...traitsAppris(extras)];
   let chars = charsFrom(sb.char);
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);

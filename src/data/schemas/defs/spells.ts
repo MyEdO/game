@@ -8,7 +8,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, formulaSchema, formuleSansTirageSchema } from '../grammaire/valeurs';
+import { charKeySchema, formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
 import { flowSchema, conditionSchema } from '../grammaire/mecanique';
 import { refOuSpec } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
@@ -38,7 +38,7 @@ const spellRangeSchema = z.discriminatedUnion('kind', [
 const spellTargetSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('self') }), { kind: { label: 'Type' } }),
   nommerChamps(z.strictObject({ kind: z.literal('count'), n: formuleSansTirageSchema }), { kind: { label: 'Type' }, n: { label: 'Nombre' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formuleSansTirageSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: z.string().optional() }), {
+  nommerChamps(z.strictObject({ kind: z.literal('area'), span: z.enum(['radius', 'diameter']), meters: formuleSansTirageSchema, excludesCaster: z.boolean().optional(), affects: conditionSchema.optional(), maison: maisonSchema.optional() }), {
     kind: { label: 'Type' },
     span: { label: 'Envergure' },
     meters: { label: 'Mètres' },

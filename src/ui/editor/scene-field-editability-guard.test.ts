@@ -246,8 +246,11 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
-    // Rabattre `declaredInScene` sur les deux FICHIERS du document fait 239 → 236 (mutation mesurée).
-    // Les 3 champs perdus sont nommés ici : ce sont les seuls du périmètre déclarés hors du document.
+    // Rabattre `declaredInScene` sur les deux FICHIERS du document fait 277 → 260 (mutation mesurée).
+    // Les champs perdus sont nommés ici : ce sont les seuls du périmètre déclarés hors du document.
+    // #1463 (2026-10-26) : le Trait POSÉ du document est la forme INFÉRÉE de son schéma
+    // (`traitInstanceSchema`, `TraitPose`) et non plus l'instance RÉSOLUE du moteur — la rangée de Trait
+    // et sa provenance (`SourceRef`, composée par `source`/`alsoIn`) entrent donc au périmètre.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -260,6 +263,20 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
+      'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
+      'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
+      'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
+      'SourceRef.quote @ src/data/schemas/grammaire/valeurs.ts',
+      'TraitInstance.alsoIn @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.arg @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.count @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.hidden @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.id @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.maison @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.natural @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.range @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.source @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.value @ src/data/schemas/grammaire/reference.ts',
     ]);
     // Contre-témoin : `Rect` ne doit RIEN à l'inclusion par identité — il est déclaré DANS le document,
     // son renommage `Trigger.rect.*` → `Rect.*` vient du NOMMAGE du porteur rendu par `z.infer`.

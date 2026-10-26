@@ -73,6 +73,7 @@ import { findVehicleById, refLabel } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { EXPOSURE_LADDER } from '../engine/corruption';
+import { resoudreTrait } from '../engine/statEntry';
 import { propulsionDuNavire, milieuDuVoyage, rigDuNavire } from '../engine/shipBuild';
 import { estNavire, profilNavalDe } from '../engine/coque';
 import { estAbsent } from '../noyau/monde/terrain';
@@ -1665,7 +1666,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const enemy = s.battle.combatants.find((c) => c.kind === 'enemy');
       if (level && enemy) {
         const traits = (enemy.traits ?? []).filter((t) => t.id !== 'corruption');
-        enemy.traits = [...traits, { id: 'corruption', arg: level }]; // exposition à la Corruption (LDB 85 → 19)
+        enemy.traits = [...traits, resoudreTrait({ id: 'corruption', arg: level })]; // exposition à la Corruption (LDB 85 → 19)
       }
       const combatants = s.battle.combatants.map((c) =>
         c.kind === 'enemy' && !isOutOfAction(c) ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } } : c,
@@ -1913,15 +1914,15 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  (Cible, Domaine…) et `value` (indice). Rend l'état RÉEL relu au store. */
     trait: (id: string, traitId: string, opts: { arg?: string; value?: number } = {}) => {
       if (!findTraitById(traitId)) return `✗ trait « ${traitId} » inconnu`;
-      const instance = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
+      const pose = { id: traitId, ...(opts.arg != null ? { arg: opts.arg } : {}), ...(opts.value != null ? { value: opts.value } : {}) };
       const grant = (c: Combatant): Combatant => {
         const porteur = structuredClone(c);
-        grantTrait(porteur, instance);
+        grantTrait(porteur, resoudreTrait(pose));
         return porteur;
       };
       useGame.setState((s) => ecrireActeur(s, id, grant));
-      const pose = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
-      return pose ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
+      const posee = actorIn(useGame.getState(), id)?.traits?.some((t) => t.id === traitId && (t.arg ?? null) === (opts.arg ?? null));
+      return posee ? `✓ ${id} → trait ${traitId}${opts.arg ? ` (${opts.arg})` : ''}` : `✗ ${id} : trait « ${traitId} » non posé (combattant absent)`;
     },
 
     /** RECETTE : simule une CHARGE de `enemyId` sur un héros (défaut : le plus proche) — déclenche le

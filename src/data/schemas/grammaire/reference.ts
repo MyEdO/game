@@ -6,15 +6,14 @@ import { nommerChamps, metaDesChamps } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema } from './valeurs';
+import { countSpecSchema, maisonSchema, secondarySourceRefSchema, sourceRefSchema } from './valeurs';
 import { idDe, marqueurDeLaForme, refusDeSpec } from './ref';
 
 /**
- * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
- * (`creatures.json` `traits`/`optionals`) et l'espèce jouable (`species.json` `traits`, #572 :
- * trait RACIAL posé sur `Combatant.traits` à `createHero`, ex. Ogre `{id:'ogre'}` — encombrance/
- * consommation ×2 ; la Taille, elle, est portée par le TALENT Massif/Petit, pas un Trait). MÊME
- * forme partout — jamais recopiée.
+ * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
+ * `traits`/`optionals`), l'espèce jouable (`species.json` `traits`, #572 : Ogre `{id:'ogre'}`), le statbloc
+ * de scène et l'invocation (`summon.addTraits`). MÊME forme partout — jamais recopiée. Le jeu n'en lit que
+ * l'instance RÉSOLUE (`TraitInstance`, `src/engine/statEntry.ts`), rendue par `resoudreTrait`.
  */
 /**
  * Refus de l'`arg` `arg` sur le Trait `id` quand cet `arg` n'est qu'un Indice ou qu'une Portée que la
@@ -57,12 +56,21 @@ export const traitInstanceSchema = nommerChamps(z.strictObject({
   range: z.number().optional(),
   natural: z.boolean().optional(),
   hidden: z.boolean().optional(),
+  /** PROVENANCE de la valeur posée, quand elle ne vient pas du passage de l'entrée qui la porte : la
+   *  `sourceRef` canonique (jugée par `folioLineAlign`), une seconde citation en `alsoIn`, ou la raison
+   *  `maison`. Aucune lecture de jeu : `resoudreTrait` ne la transmet pas. */
+  source: sourceRefSchema.optional(),
+  alsoIn: z.array(secondarySourceRefSchema).optional(),
+  maison: maisonSchema.optional(),
 }).superRefine((t, ctx) => {
   if (t.arg === undefined) return;
   for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDArgHorsRegistre(t.id, t.arg)]) {
     if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
   }
-}), { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, natural: { label: "naturel" }, hidden: { label: "caché" } });
+}), { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } });
+
+/** La forme AUTHORÉE d'un Trait posé, inférée de son schéma. */
+export type TraitPose = z.infer<typeof traitInstanceSchema>;
 
 /**
  * `Ref` (`src/data/index.ts`) — réf structurée par id + spec optionnelle (talent/sort/manœuvre/dieu

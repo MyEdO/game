@@ -4,9 +4,10 @@ import { RefField, type RefFieldCfgUnique } from './compendium/refField/RefField
 import { sourceRefLabel } from '../data';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 
-/** Ce que le champ édite : une `SourceRef`, et les clés que son porteur y ajoute (`quote` d'un
+/** Ce que le champ édite : les clés de `SourceRef` elles-mêmes — COMPOSÉES, jamais retapées —,
+ *  partielles le temps d'une saisie incomplète, plus les clés que son porteur y ajoute (`quote` d'un
  *  `SecondaryRef`), qui traversent l'édition intactes et à leur place. */
-type Porteur = { book?: string; page?: number; note?: string };
+type Porteur = Partial<SourceRef>;
 
 /** Saisie en cours, tenue par le champ : elle survit à une réf incomplète, qui n'est jamais émise. */
 type Brouillon = { book: string; page: number | null; note: string };

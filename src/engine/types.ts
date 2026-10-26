@@ -267,8 +267,9 @@ export interface StructureData {
    *  verbatim ; AA (« Tableau des Structures Courantes », AA 10 l.26-92) donne l'Endurance BRUTE — `BE`
    *  se dérive alors par troncature à la dizaine (convention Bonus = dizaines de la Caractéristique). */
   char: { BE: number; B: number };
-  /** Atouts de structure (Résistant / Impénétrable) — réfs de Trait par id STABLE (JAMAIS le libellé). */
-  traits: { id: string; value?: number }[];
+  /** Atouts de structure (Résistant / Impénétrable) — réfs NUES de Trait par id STABLE (JAMAIS le
+   *  libellé), forme de `ref('trait')` (`src/data/schemas/defs/structures.ts`). */
+  traits: { id: string }[];
   /** ENC de la Structure transportée (AA 10 l.28-52) — `undefined` = N/A (Structure fixe, ne se transporte pas). */
   enc?: number;
   /** Limite d'Encombrement supportée par la Structure elle-même (AA 10 l.28-52) — `undefined` = N/A. */

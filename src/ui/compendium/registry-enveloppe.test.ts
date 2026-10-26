@@ -118,7 +118,9 @@ const CLES: Record<string, string> = {
   "ventsTourbillonnants": '9a979156867c5f47',
   // +1 : Chien de trait, EDOC 07 folio 22, #673.
   "creatures": '72a6e503aab1d5c4',
-  "traits": 'c795788f14a1ec90',
+  // #1463 (2026-10-26) : le Trait `armure` gagne `maison` — la lecture de son Aspect (un Aspect qui
+  // nomme des pièces ne restreint pas l'Indice, LDB 85 l.39) qu'aucun folio n'imprime ; empreinte MESURÉE.
+  "traits": 'f19052d4dd4c4449',
   "locations": '53ca311b61c2a3f1',
   "books": 'af4efa7cef02b15e',
   "careerLevels": '6f86fed09e1f4a98',

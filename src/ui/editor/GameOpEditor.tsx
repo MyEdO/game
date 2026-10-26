@@ -31,8 +31,10 @@ import { etats, effectTables, mutationTables, lightTones, memoParVersion } from 
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { RefField } from '../compendium/refField/RefField';
+import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
-import { parseTraitInstance } from './refFormatLivre';
+import { relireTraits } from './refFormatLivre';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
@@ -584,6 +586,14 @@ function sansClesVides<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T;
 }
 
+/** Traits ajoutés d'une invocation (`summon.addTraits`) en une chaîne « Frénésie, Magique », relue par
+ *  `relireTraits` contre les poses courantes ; une liste vidée ôte la clé. */
+const traitsAjoutesEnChaine = (v: TraitPose[] | undefined): string => (v ?? []).map(formatTrait).join(', ');
+const relireTraitsAjoutes = (texte: string, avant: TraitPose[] | undefined): TraitPose[] | undefined => {
+  const a = relireTraits(texte.split(',').map((t) => t.trim()).filter(Boolean), avant ?? []);
+  return a.length ? a : undefined;
+};
+
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
   const identite = useId();
   const noeudDOp = useMemo(() => varianteDOp(noeudListe, op.op), [noeudListe, op.op]);
@@ -863,8 +873,9 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 {SIZES.map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}
               </select>
             </label>
-            <input placeholder="Traits ajoutés (ex. Frénésie, Magique)" value={(o.addTraits ?? []).map(formatTrait).join(', ')}
-              onChange={(e) => { const a = e.target.value.split(',').map((t: string) => t.trim()).filter(Boolean).map(parseTraitInstance); upd({ addTraits: a.length ? a : undefined }); }} />
+            <SaisieEnBrouillon
+              placeholder="Traits ajoutés (ex. Frénésie, Magique)" value={o.addTraits as TraitPose[] | undefined}
+              afficher={traitsAjoutesEnChaine} relire={relireTraitsAjoutes} onChange={(addTraits) => upd({ addTraits })} />
             <label className="dr"><input type="checkbox" checked={o.allyOfCaster !== false} onChange={(e) => upd({ allyOfCaster: e.target.checked ? true : false })} /> alliée du lanceur</label>
             <label className="dr"><input type="checkbox" checked={!!o.despawnIfCasterDown} onChange={(e) => upd({ despawnIfCasterDown: e.target.checked || undefined })} /> se dissipe si le lanceur tombe</label>
           </>

@@ -718,7 +718,20 @@
       },
       {
         "id": "venin",
-        "arg": "Moyen"
+        "arg": "accessible",
+        "source": {
+          "book": "core-rulebook-5e",
+          "page": 326,
+          "note": "CRB 105 l.161"
+        },
+        "alsoIn": [
+          {
+            "book": "core-rulebook-5e",
+            "page": 364,
+            "note": "CRB 116 l.27",
+            "quote": "Average (+20) | Average (+2 SL)"
+          }
+        ]
       }
     ],
     "skills": [],

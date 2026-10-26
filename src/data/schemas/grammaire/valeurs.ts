@@ -224,6 +224,14 @@ export const sourceRefSchema = nommerChamps(z.strictObject({
 export type SourceRef = z.infer<typeof sourceRefSchema>;
 
 /**
+ * RAISON d'une valeur MAISON : ce que le canon ne tranche pas, dit en clair (AGENTS.md règle 7). Nœud UNIQUE
+ * de la provenance maison : l'enveloppe de `document()` (`grammaire/document.ts`) et toute sous-entrée qui
+ * porte sa propre raison le COMPOSENT, jamais ne le retapent. `.min(1)` est STRUCTUREL : une chaîne vide ne
+ * dit aucune raison, et `refuserSansProvenance` ne saurait la distinguer d'une raison réelle.
+ */
+export const maisonSchema = z.string().min(1);
+
+/**
  * Emplacement SECONDAIRE d'une entrée définie à plusieurs endroits (#563 — doctrine user 2026-07-17 :
  * « jamais 2 talents différents », mais un même Talent/Trait/Qualité peut être réimprimé ailleurs).
  * L'ANCRE (`source`, scalaire, inchangée) reste seule à porter la `desc` (règle stricte 5,
@@ -692,7 +700,7 @@ export const shipLocationSchema = z.enum(['cargaison', 'greement', 'coque', 'avi
  *  `ship-criticals` et `river-criticals` la LISENT, aucun ne la réécrit. */
 export const replisSansExposeSchema = nommerChamps(z.strictObject({
   cible: shipLocationSchema,
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
 }), { cible: { label: "cible" }, maison: { label: "arbitrage maison" } });
 
 /**
@@ -769,7 +777,7 @@ export const castingNumberModSchema = nommerChamps(z
       .optional(),
     /** Valeur maison ÉDITABLE portant sa justification, quand le RAW laisse un point ouvert
      *  (sens d'arrondi non imprimé…) — AGENTS.md règle 7. */
-    maison: z.string().optional(),
+    maison: maisonSchema.optional(),
     source: sourceRefSchema,
     /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */
     desc: z.string(),

@@ -15,7 +15,8 @@
 import { byId, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, type SkillRef, type TalentRef, type TraitData } from '../../data';
 import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
 import { slugId } from '../../data/slug';
-import { parseStatEntry, type TraitInstance } from '../../engine/statEntry';
+import { parseStatEntry } from '../../engine/statEntry';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { t } from '../../i18n';
 
 /** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). Le mot lu est celui que
@@ -93,15 +94,66 @@ function argDeTraitSaisi(def: TraitData | undefined, texte: string): string {
   return specIdByLabel(texte, source) ?? texte.trim();
 }
 
-/** Parse une saisie « Trait (Argument) Indice » → `TraitInstance` (id stable, argument en ids,
+/** Parse une saisie « Trait (Argument) Indice » → Trait posé (`TraitPose` : id stable, argument en ids,
  *  Indice/bonus, compte, portée). Inverse de `formatTrait`. */
-export function parseTraitInstance(text: string): TraitInstance {
+export function parseTraitInstance(text: string): TraitPose {
   const p = parseStatEntry(text);
-  const trait: TraitInstance = { id: idDeTraitSaisi(p.name) };
+  const trait: TraitPose = { id: idDeTraitSaisi(p.name) };
   const value = p.bonus ?? p.indice;
   if (value != null) trait.value = value;
   if (p.arg != null) trait.arg = argDeTraitSaisi(findTraitById(trait.id), p.arg);
   if (p.count != null) trait.count = p.count;
   if (p.range != null) trait.range = p.range;
   return trait;
+}
+
+/** Même VALEUR posée : même id, Indice, Aspect, compte et portée — ce qu'atteste une provenance. */
+const memeValeur = (a: TraitPose, b: TraitPose): boolean =>
+  a.id === b.id && a.value === b.value && a.arg === b.arg && a.count === b.count && a.range === b.range;
+/** Même Trait au même Aspect, quelle que soit la valeur. */
+const memeAspect = (a: TraitPose, b: TraitPose): boolean => a.id === b.id && a.arg === b.arg;
+/** Même Trait. */
+const memeId = (a: TraitPose, b: TraitPose): boolean => a.id === b.id;
+
+/** La saisie relue sur une pose EXISTANTE. `formatTrait` ne rend que l'id, l'Indice, l'Aspect, le compte
+ *  et la portée ; le reste de la pose ne survit qu'à ce qu'il qualifie :
+ *  - les drapeaux (`natural`, `hidden`) qualifient le TRAIT : ils survivent au même id ;
+ *  - la provenance (`source`, `alsoIn`, `maison`) atteste la VALEUR posée : elle survit à la même valeur
+ *    (`memeValeur`) et tombe dès que l'un de ses termes change.
+ *  Relue UNE fois à la fin de la saisie (`SaisieEnBrouillon`), jamais à chaque frappe. SEULE voie
+ *  d'édition en chaîne d'un Trait déjà posé : `parseTraitInstance` nu repose une pose NEUVE. */
+export function relireTrait(text: string, avant: TraitPose): TraitPose {
+  const relu = parseTraitInstance(text);
+  if (!memeId(relu, avant)) return relu;
+  const valeur = memeValeur(relu, avant);
+  return {
+    ...relu,
+    ...(avant.natural !== undefined ? { natural: avant.natural } : {}),
+    ...(avant.hidden !== undefined ? { hidden: avant.hidden } : {}),
+    ...(valeur && avant.source !== undefined ? { source: avant.source } : {}),
+    ...(valeur && avant.alsoIn !== undefined ? { alsoIn: avant.alsoIn } : {}),
+    ...(valeur && avant.maison !== undefined ? { maison: avant.maison } : {}),
+  };
+}
+
+/** Une LISTE de saisies relue sur ses poses d'origine, appariées en PASSES sur toute la liste, chaque
+ *  pose servant une fois : d'abord à valeur égale (`memeValeur` : la pose revient entière), puis parmi
+ *  les restantes au même Aspect, puis au même id seul (les drapeaux suivent, la provenance tombe,
+ *  `relireTrait`) ; une saisie sans pose de même id est NEUVE. Ni le rang ni l'ordre des saisies ne
+ *  décident : retirer ou réordonner un Trait ne fait passer aucun drapeau ni aucune provenance à un autre,
+ *  doublons de même id compris. */
+export function relireTraits(texts: readonly string[], avant: readonly TraitPose[]): TraitPose[] {
+  const relus = texts.map(parseTraitInstance);
+  const prises = avant.map(() => false);
+  const appariees: (TraitPose | undefined)[] = relus.map(() => undefined);
+  for (const apparie of [memeValeur, memeAspect, memeId]) {
+    relus.forEach((relu, i) => {
+      if (appariees[i]) return;
+      const k = avant.findIndex((p, j) => !prises[j] && apparie(relu, p));
+      if (k < 0) return;
+      prises[k] = true;
+      appariees[i] = avant[k];
+    });
+  }
+  return relus.map((relu, i) => (appariees[i] ? relireTrait(texts[i], appariees[i]) : relu));
 }

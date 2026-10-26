@@ -844,14 +844,14 @@ export interface SpeciesData {
    *  l'espèce (flavor de vitrine, pas une règle) : la tuile de famille montre un personnage vêtu
    *  plutôt qu'une tunique nue. Absent = pas de tenue (repli existant). */
   previewCareer?: { id: string };
-  /** Trait RACIAL de l'espèce (#572) — MÊME forme structurée que les Traits de créature du bestiaire
-   *  (`import('../engine/statEntry').TraitInstance`, jamais une glose de règle en `desc`) : Ogre porte
+  /** Trait RACIAL de l'espèce (#572) — MÊME forme posée que les Traits de créature du bestiaire
+   *  (`TraitPose`, jamais une glose de règle en `desc`) : Ogre porte
    *  `{id:'ogre'}` (ADE2 « Ogres et Mutations » l.708 « Un Lourd Fardeau », encombrance/consommation
    *  ×2 lues par `traitEncumbranceFactor`/`traitConsumptionFactor` sur `Combatant.traits`). La Taille
    *  (LDB 85 l.342) N'EST PAS un trait — elle est portée par le TALENT Massif/Petit (déjà présent
    *  dans `talents`, lu par `createHero`). Posé sur `Combatant.traits` à `createHero`. Absent = aucun
    *  trait racial mécanique (espèce sans règle raciale hors talents/skills). */
-  traits?: import('../engine/statEntry').TraitInstance[];
+  traits?: import('./schemas/grammaire/reference').TraitPose[];
   /** Domaines magiques multiples (`VDM 02 l.190` / `LDB 46 l.177`, « lanceur de sorts elfe ») —
    *  Caractéristique dont le Bonus fixe le plafond de Domaines NON sombres du Talent
    *  `magie-des-arcanes` (`careerSlots.arcaneDomainCap`). Absent = plafond 1 (hors elfe). */
@@ -1403,10 +1403,10 @@ export interface CreatureData {
   named?: boolean;
   folder: string | null;
   char: Partial<Record<CharKey | 'M' | 'B', number | null>>;
-  /** Traits STRUCTURÉS (`TraitInstance[]`) — source app-owned migrée du parsing de chaînes (de-POC).
-   *  Lus sans aucun parsing (`resolveTraits`/`hasTraitKey`). */
-  traits: import('../engine/statEntry').TraitList;
-  /** OPTIONNELS (LDB 76) — affichés au Codex, choisissables au spawn : `TraitInstance` ordinaires OU
+  /** Traits POSÉS (`TraitPose[]`) — source app-owned migrée du parsing de chaînes (de-POC), résolus au
+   *  spawn (`resoudreTrait`). */
+  traits: import('./schemas/grammaire/reference').TraitPose[];
+  /** OPTIONNELS (LDB 76) — affichés au Codex, choisissables au spawn : Traits posés ordinaires OU
    *  NOTES composées (joker « tous les traits », variante « remplacer des Traits par un bonus », ZI). */
   optionals: import('../engine/statEntry').OptionalEntry[];
   /** Compétences STRUCTURÉES (`SkillRef` par id stable + valeur de Test imprimée) — fin du parsing

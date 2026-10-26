@@ -18,8 +18,8 @@ export const DIFFICULTY_LADDER: Difficulty[] = ['tresFacile', 'facile', 'accessi
 
 /** La Difficulté que désigne l'argument d'instance `arg` d'un porteur, par son id (`LDB 85 l.423`). Un `arg`
  *  qui n'en désigne aucune vaut `DIFFICULTE_PAR_DEFAUT` sans règle qui le fonde — `LDB 85 l.425` ne vise
- *  que l'arg ABSENT, que `withArg` (`noyau/triggeredEffects.ts`) ne passe pas ici. Porteurs : la fourchette
- *  du Serpent (`LDB 78 l.104`, #1463) et « Moyen » de l'Araignée géante (`LDB 78 l.15`, #1463). */
+ *  que l'arg ABSENT, que `withArg` (`noyau/triggeredEffects.ts`) ne passe pas ici. Porteur : la fourchette
+ *  du Serpent (`LDB 78 l.104`, #1463). */
 export function difficulteDeLArg(arg: string): Difficulty {
   return Object.prototype.hasOwnProperty.call(DIFFICULTY_MODIFIERS, arg) ? (arg as Difficulty) : DIFFICULTE_PAR_DEFAUT;
 }
