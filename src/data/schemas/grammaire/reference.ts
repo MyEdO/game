@@ -7,7 +7,7 @@ import { nommerChamps, metaDesChamps } from './meta';
  */
 import { z } from 'zod';
 import { countSpecSchema } from './valeurs';
-import { idDe, marqueurDeLaForme, porteLeMarqueur, refusDeSpec } from './ref';
+import { idDe, marqueurDeLaForme, refusDeSpec } from './ref';
 
 /**
  * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
@@ -30,32 +30,19 @@ export function refusDArgDeTrait(id: string, arg: string): string | null {
  *  désigne un choix, jamais une entrée du registre. */
 export const ARG_JOKER = /^(un |une |deux )?au choix$/i;
 
-/** Le prédicat « le Trait déclare `specsMulti` », construit à la PREMIÈRE lecture : `npm run gen` importe
- *  les defs avant d'avoir écrit la sous-liste que `porteLeMarqueur` exige à sa construction. */
-let specsMulti: ((id: string) => boolean) | undefined;
-const declareSpecsMulti = (id: string): boolean => (specsMulti ??= porteLeMarqueur('trait', 'specsMulti'))(id);
-
-/** Parts de l'`arg` `arg` du Trait `id` : liste séparée par virgules si la def déclare `specsMulti`,
- *  sinon l'arg entier ; jokers et parts vides écartés. */
-export function partsDArg(id: string, arg: string): string[] {
-  if (ARG_JOKER.test(arg.trim())) return [];
-  return (declareSpecsMulti(id) ? arg.split(',') : [arg]).map((s) => s.trim()).filter((s) => s && !ARG_JOKER.test(s));
-}
-
 /**
- * Refus de l'`arg` `arg` sur le Trait `id` : chaque part que `refusDeSpec` refuse parce qu'elle ne résout
- * aucune entrée d'un registre FERMÉ (`horsCatalogue`) ou parce qu'elle reproduit, sur un registre OUVERT
- * (`specsOpen`), le LIBELLÉ d'une de ses entrées (`libelle`) — message nommé, sinon `null`. Prédicat
- * UNIQUE, lu par le schéma d'instance ci-dessous et par `src/data/trait-args-derived.test.ts` ; un
- * registre ouvert admet tout autre texte libre.
+ * Refus de l'`arg` `arg` sur le Trait `id` quand `refusDeSpec` le refuse parce qu'il ne résout aucune entrée
+ * d'un registre FERMÉ (`horsCatalogue`) ou parce qu'il reproduit, sur un registre OUVERT (`specsOpen`), le
+ * LIBELLÉ d'une de ses entrées (`libelle`) — message nommé, sinon `null`. Un joker n'est jamais refusé.
+ * Prédicat UNIQUE, lu par le schéma d'instance ci-dessous et par `src/data/trait-args-derived.test.ts` ; un
+ * registre ouvert admet tout autre texte libre. Une instance porte une seule spécialisation.
  */
 export function refusDArgHorsRegistre(id: string, arg: string): string | null {
-  const horsRegistre = partsDArg(id, arg).filter((part) => {
-    const refus = refusDeSpec('trait', id, part);
-    return refus === 'horsCatalogue' || refus === 'libelle';
-  });
-  return horsRegistre.length
-    ? `Trait « ${id} » : ${horsRegistre.map((x) => `« ${x} »`).join(', ')} ne résout aucune entrée de son registre — un id du registre, jamais un libellé.`
+  const spec = arg.trim();
+  if (!spec || ARG_JOKER.test(spec)) return null;
+  const refus = refusDeSpec('trait', id, spec);
+  return refus === 'horsCatalogue' || refus === 'libelle'
+    ? `Trait « ${id} » : « ${spec} » ne résout aucune entrée de son registre — un id du registre, jamais un libellé.`
     : null;
 }
 

@@ -102,7 +102,6 @@
     "type": "traits",
     "label": "Animosité",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature n'aime pas la Cible. Voir page 190 pour les règles concernant l'Animosité.",
     "source": {
       "book": "livre-de-base",
@@ -573,7 +572,6 @@
     "type": "traits",
     "label": "Effrayé",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature a Peur 0 de la Cible. Voir Psychologie dans le Chapitre 5 : Règles à la page 190 pour les règles concernant la Peur.",
     "source": {
       "book": "livre-de-base",
@@ -831,7 +829,6 @@
     "type": "traits",
     "label": "Haine",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature hait profondément la Cible. Voir Haine à la page 190.",
     "source": {
       "book": "livre-de-base",
@@ -862,7 +859,6 @@
     "type": "traits",
     "label": "Immunité",
     "specsSource": "damageTypes",
-    "specsMulti": true,
     "desc": "La créature est totalement immunisée à un certain Type de Dégâts, comme ceux du poison, magiques ou électriques. Tous les Dégâts de ce Type, y compris les Dégâts Critiques, sont ignorés.",
     "source": {
       "book": "livre-de-base",
@@ -1062,7 +1058,6 @@
     "label": "Lanceur de Sorts",
     "specsSource": "arcaneDomains",
     "specsOpen": true,
-    "specsMulti": true,
     "desc": "La créature peut lancer des Sorts : le type de magie spécifique est indiqué entre parenthèses.",
     "source": {
       "book": "livre-de-base",
@@ -1425,7 +1420,6 @@
     "type": "traits",
     "label": "Préjugé",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La créature n'apprécie pas la Cible. Voir page 190 pour les règles concernant les Préjugés.",
     "source": {
       "book": "livre-de-base",
@@ -2160,7 +2154,6 @@
     "type": "traits",
     "label": "Amour",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "Les poètes parlent tout le temps d'amour, et même les bardes du Reikland connaissent des dizaines de chansons qui sont autant d'odes au pouvoir de l'amour. Si votre Personnage possède le Trait Amour envers un ou plusieurs individus, ce dernier reflète une très forte relation émotionnelle entre les deux. Cela peut être l'amour romantique qu'il va éprouver envers sa femme, son mari ou son amoureux, un profond amour familial envers un frère, une sœur, un parent ou un enfant, ou encore une très forte amitié. Vous devez venir en aide à quelqu'un que vous aimez s'il se retrouve menacé, que ce soit physiquement ou verbalement. Vous êtes immunisé à la Peur et l'Intimidation tant que vous défendez les êtres aimés, et vous gagnez +1 DR à tous les Tests en rapport.",
     "source": {
       "book": "livre-de-base",
@@ -2175,7 +2168,6 @@
     "type": "traits",
     "label": "Camaraderie",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "La Camaraderie reflète les sentiments positifs ressentis envers un groupe d'individus. Vous devez alors leur venir en aide si ce groupe est menacé (que ce soit verbalement ou physiquement), et vous gagnez +1 DR lors des Tests effectués pour défendre ce groupe.",
     "source": {
       "book": "livre-de-base",
@@ -2190,7 +2182,6 @@
     "type": "traits",
     "label": "Phobie",
     "specsSource": "groups",
-    "specsMulti": true,
     "desc": "Une phobie reflète une peur spécifique ; cela peut-être envers un Type de créature, ou envers un objet ou une situation particulière, tel que Phobie (Insectes), Phobie (Livres) ou Phobie (Espaces clos). Traitez l'objet de la Phobie comme causant Peur 1. Vous pouvez vouloir augmenter l'Indice de Peur si la Phobie est particulièrement forte.",
     "source": {
       "book": "livre-de-base",

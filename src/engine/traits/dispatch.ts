@@ -17,16 +17,14 @@ import { t, type MsgKey } from '../../i18n';
 export const traitLabelById = (id: string): string => findTraitById(id)?.label ?? id;
 
 /** Résout l'ARGUMENT `arg` d'une instance de trait en LIBELLÉ d'affichage via le catalogue partagé
- *  `SPEC_SOURCES` de sa def : « poison » → « Poison », « sigmar » → « Sigmar », « noble, homme-bete »
- *  → « Noble, Homme-bête ». Sans `specsSource` (trait indice-seul, arg descriptif libre) ou joker
- *  « au choix » → verbatim. `specsMulti` : liste d'ids jointe par virgules, chaque part résolue (une
- *  part joker reste verbatim). Un id INCONNU / texte libre (`specsOpen`) reste verbatim — `SPEC_SOURCES
- *  [source].label` le rend tel quel (repli `?? id`), la saveur libre est donc préservée sans cas spécial. */
+ *  `SPEC_SOURCES` de sa def : « poison » → « Poison », « sigmar » → « Sigmar ». Sans `specsSource`
+ *  (trait indice-seul, arg descriptif libre) ou joker « au choix » → verbatim. Un id INCONNU / texte
+ *  libre (`specsOpen`) reste verbatim — `SPEC_SOURCES[source].label` le rend tel quel (repli `?? id`),
+ *  la saveur libre est donc préservée sans cas spécial. */
 function resolveTraitArg(def: TraitData | undefined, arg: string): string {
   const source = def?.specsSource;
-  if (!source || ARG_JOKER.test(arg)) return arg;
-  const one = (id: string) => (/au choix/i.test(id) ? id : SPEC_SOURCES[source].label(id));
-  return def.specsMulti ? arg.split(',').map((p) => one(p.trim())).join(', ') : one(arg.trim());
+  if (!source || ARG_JOKER.test(arg.trim())) return arg;
+  return SPEC_SOURCES[source].label(arg.trim());
 }
 
 /** Traits dont la valeur est un BONUS de Dégâts signé (« Morsure +9 », « À distance +8 ») — affichés

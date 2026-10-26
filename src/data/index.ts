@@ -1855,9 +1855,6 @@ export interface TraitData {
   /** L'`arg` accepte un TEXTE LIBRE (argument authentiquement descriptif, hors registre). Absent/`false`
    *  = FERMÉ (l'`arg` DOIT être un id du pool `specsSource`). */
   specsOpen?: boolean;
-  /** L'`arg` peut être une LISTE d'ids jointe par virgules (« Immunité (Feu, Poison) »). Absent/`false`
-   *  = un seul id. */
-  specsMulti?: boolean;
   /** Trait EXCLU d'un octroi EN MASSE des Traits d'une créature — `LDB 48 l.23` : « Gagnez tous les
    *  Traits standards de la créature sauf Bestial. » Lu par `polymorphOps` (`engine/polymorph`). */
   nonTransferable?: boolean;

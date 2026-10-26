@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parsePsychTraits } from './registry';
-import { creatures, findTraitById, findGroupById } from '../../data';
+import { creatures } from '../../data';
 
 describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', () => {
   it('parse Peur/Terreur/Immunité + ciblés (Animosité/Phobie indice 1/Effrayé indice 0), Cible = id de Groupe', () => {
@@ -24,11 +24,15 @@ describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', 
     ]);
   });
 
-  it('VIRGULE = plusieurs Traits mono-cible : un segment reconnu (id de Groupe) + un segment inerte', () => {
-    expect(parsePsychTraits([{ id: 'animosite', arg: 'Les riches, homme-bete' }]).psychTraits).toEqual([
-      { type: 'animosite', cible: undefined },
-      { type: 'animosite', cible: 'homme-bete' },
-    ]);
+  it('deux instances → deux Cibles, une par instance (Haine, Effrayé, Animosité, Préjugé)', () => {
+    for (const [id, type, indice] of [['haine', 'haine', undefined], ['effraye', 'phobie', 0], ['animosite', 'animosite', undefined], ['prejuge', 'prejuge', undefined]] as const) {
+      const attendu = (cible: string) => (indice == null ? { type, cible } : { type, cible, indice });
+      expect(parsePsychTraits([{ id, arg: 'noble' }, { id, arg: 'homme-bete' }]).psychTraits, id).toEqual([attendu('noble'), attendu('homme-bete')]);
+    }
+  });
+
+  it('une liste jointe dans UNE instance n’est pas découpée : une seule Cible, inerte', () => {
+    expect(parsePsychTraits([{ id: 'animosite', arg: 'noble, homme-bete' }]).psychTraits).toEqual([{ type: 'animosite', cible: undefined }]);
   });
 
   it('un trait sans capacité psy est ignoré', () => {
@@ -60,25 +64,6 @@ describe('Psychologie data-driven (capabilities de traits.json) — LDB 21/85', 
     { creature: 'sangsue-geante', trait: 'effraye', cible: 'Sel', raison: 'phobie élémentaire (sangsue), aucun Groupe' },
     { creature: 'sangsue-des-arbres', trait: 'effraye', cible: 'Sel', raison: 'phobie élémentaire (sangsue), aucun Groupe' },
   ] as const;
-
-  it('DONNÉE creatures.json : toute Cible d’un Trait psy CIBLÉ (par psychType, pas par id) est un id de Groupe connu ou un wildcard — jamais une chaîne FR (garde anti-régression du codemod, cf. effraye→phobie)', () => {
-    const TARGETED = new Set(['animosite', 'haine', 'prejuge', 'amour', 'camaraderie', 'phobie']);
-    const bad: string[] = [];
-    const check = (arr: { id: string; arg?: string }[] | undefined, cid: string) => {
-      for (const t of arr ?? []) {
-        const pt = findTraitById(t.id)?.capabilities?.psychType;
-        if (pt && TARGETED.has(pt) && t.arg && !/au choix/i.test(t.arg)) {
-          for (const seg of t.arg.split(',')) if (!findGroupById(seg.trim())) bad.push(`${cid} :: ${t.id} → "${seg.trim()}"`);
-        }
-      }
-    };
-    for (const c of creatures as any[]) {
-      check(c.traits, c.id);
-      for (const v of c.variants ?? []) check(v.traits, c.id);
-      for (const m of c.members ?? []) check(m.traits, c.id);
-    }
-    expect(bad).toEqual([]);
-  });
 
   it('DONNÉE creatures.json : les cibles LISTÉES ci-dessus restent bien INERTES (aucune ré-résolution accidentelle)', () => {
     for (const { creature, trait } of LEFT_INERT_ORIGINAL_TARGETS) {

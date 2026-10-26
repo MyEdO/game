@@ -83,14 +83,14 @@ function idDeTraitSaisi(nom: string): string {
   return traitIdByLabel(nom) ?? slugId(nom);
 }
 
-/** Argument SAISI d'un Trait à registre (`specsSource`) : chaque part (`specsMulti`) qui est le
- *  libellé d'une entrée du registre revient à son id (`specIdByLabel`) ; un joker ou un texte libre
- *  reste verbatim. Sans registre, le texte est l'argument. */
+/** Argument SAISI d'un Trait à registre (`specsSource`) : le libellé d'une entrée du registre revient
+ *  à son id (`specIdByLabel`) ; un joker ou un texte libre reste verbatim. Sans registre, le texte est
+ *  l'argument. Une saisie est UNE spécialisation : une liste jointe reste verbatim, et le schéma
+ *  d'instance la refuse sur un registre fermé. */
 function argDeTraitSaisi(def: TraitData | undefined, texte: string): string {
   const source = def?.specsSource;
   if (!source || ARG_JOKER.test(texte.trim())) return texte;
-  const une = (part: string) => specIdByLabel(part, source) ?? part.trim();
-  return def.specsMulti ? texte.split(',').map(une).join(', ') : une(texte);
+  return specIdByLabel(texte, source) ?? texte.trim();
 }
 
 /** Parse une saisie « Trait (Argument) Indice » → `TraitInstance` (id stable, argument en ids,

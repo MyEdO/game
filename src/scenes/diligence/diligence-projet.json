@@ -1778,7 +1778,11 @@
       },
       {
        "id": "prejuge",
-       "arg": "criminel, personnes-qui-ne-leur-offrent-rien"
+       "arg": "criminel"
+      },
+      {
+       "id": "prejuge",
+       "arg": "personnes-qui-ne-leur-offrent-rien"
       }
      ],
      "optionals": [],
