@@ -11,7 +11,7 @@
 // OBSERVÉ d'un balayage (`CHAMPS_DE_SITE_OBSERVE`, type `Site`), puis la clé (`cleDeSite`), le groupe
 // (`groupeDeSite`), le prédicat (`estEntreeDeSite`) et la traduction des sites en entrées
 // (`sitesEnEntrees`). Le chemin d'un fichier se dit `file` dans le site et `fichier` dans l'entrée
-// (#2022). Les types de `stock.d.mts` DÉRIVENT des tuples qu'il déclare ; leur concordance avec les
+// (#2022) ; le volet `STRUCTURES_LOCALES` y range le nom d'un document (`‹racine›#‹type›`). Les types de `stock.d.mts` DÉRIVENT des tuples qu'il déclare ; leur concordance avec les
 // valeurs d'ici est celle de tout module `.mjs` typé par un `.d.mts` (aucun `allowJs`) : aucun
 // outil ne la vérifie.
 //

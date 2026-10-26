@@ -202,8 +202,8 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
     assert.equal(refus.ok, false, refus.texte)
     const lignes = refus.texte.split('\n').filter((l) => l.startsWith('  ['))
     const locales = [
-      { fichier: 'src/data/creatures.json', ref: '[].skills[]' },
-      { fichier: 'src/scenes/arene/arene-projet.json', ref: '.narratif.presetsPnj[].profil.skills[]' },
+      { fichier: 'src/data#creatures', ref: '[].skills[]' },
+      { fichier: 'src/scenes#projet', ref: '.narratif.presetsPnj[].profil.skills[]' },
     ].map((site) => `STRUCTURES_LOCALES : ${cleDeSite({ ...site, occurrence: 1 })}`)
     const attendues = ['STRUCTURES_OPS : freeReroll | op | spells.json', 'SLOTS_SANS_DECLARATION : creatures.json | skills', 'SLOTS_SANS_DECLARATION : creatures.json | spells', ...locales]
     const deLaBase = `détecteur de la base (${typee.slice(0, 9)})`

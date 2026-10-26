@@ -483,8 +483,9 @@ function rendu() {
     }
     const auStock = noeuds.filter((n) => classes.includes(n.classe)).length;
     out += `### ${SECTION.locales} Structures LOCALES — la dette de structure, mesurée sur le schéma\n\n`;
-    out += `Un site est un NŒUD de schéma d’un document authoré (objet, ou nœud non validant), à son fichier représentatif et\n`;
-    out += `son chemin de schéma : ajouter une donnée conforme n’en crée aucun. Mesure : \`noeudsDeStructure\`\n`;
+    out += `Un site est un NŒUD de schéma d’un document authoré (objet, ou nœud non validant), au nom de son schéma de document\n`;
+    out += `(\`‹racine›#‹type›\`, \`nomDuDocument\`) et à son chemin de schéma : ajouter une donnée conforme, ou un document de plus\n`;
+    out += `d’un type existant, n’en crée aucun. Mesure : \`noeudsDeStructure\`\n`;
     out += `(\`scripts/guards/lib/structuresLocales.mts\`) ; stock : \`${PORTEURS.STRUCTURES_LOCALES}\`, volet \`STRUCTURES_LOCALES\` sous la porte\n`;
     out += 'des comptes. Classes : **D5** nœud non validant (`unknown`, `any`, `custom`) · **G** nœud de la grammaire PARTAGÉ\n';
     out += '(au moins deux defs, ou une déclaration d’op), hors stock · **G1** nœud de la grammaire composé par un seul def ·\n';
@@ -495,7 +496,7 @@ function rendu() {
       .map(([fichier, c]) => ({ fichier, c, total: classes.reduce((a, k) => a + c[k], 0) }))
       .filter((l) => l.total > 0)
       .sort((a, b) => b.total - a.total || parUnitesDeCode(a.fichier, b.fichier));
-    out += tableau(['Fichier représentatif', ...classes, 'Au stock'], lignes.map((l) => [`\`${l.fichier}\``, ...classes.map((k) => l.c[k]), l.total]));
+    out += tableau(['Document', ...classes, 'Au stock'], lignes.map((l) => [`\`${l.fichier}\``, ...classes.map((k) => l.c[k]), l.total]));
   }
 
   // ---------------------------------------------------------------------------

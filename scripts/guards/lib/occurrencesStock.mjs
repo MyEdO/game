@@ -108,7 +108,7 @@ function uneBrancheRenommee(a, b) {
 
 /**
  * Les RENOMMAGES d'un site de structure entre `base` et `tete` (entrées mesurées, avec leur `empreinte`) : la clé
- * (`cleDeSite`) de chaque site NÉ apparié à un site DISPARU du même fichier, (i) d'empreinte identique, sinon (ii) dont la
+ * (`cleDeSite`) de chaque site NÉ apparié à un site DISPARU du même document (`fichier`), (i) d'empreinte identique, sinon (ii) dont la
  * clé ne diffère que par le nom d'UNE branche non discriminée et dont l'empreinte ÉTEND la sienne. Chaque disparu
  * s'apparie une fois. PURE.
  */
