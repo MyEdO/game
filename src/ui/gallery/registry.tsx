@@ -37,7 +37,7 @@ import { ProseField } from '../ProseField';
 import { DescRefField } from '../compendium/DescRefField';
 import type { DescRef } from '../../data/source/decoupe';
 import { adresseUnPassage, type SecondaryRef, type SourceRef } from '../../data/schemas/grammaire/valeurs';
-import { AlsoInField } from '../editor/codex/StructFields';
+import { AlsoInField } from '../AlsoInField';
 import { GatedAction } from '../GatedAction';
 import { ChipDeRefus } from '../ChipDeRefus';
 import { ReadyRow } from '../ReadyRow';
@@ -1933,7 +1933,7 @@ export const GALLERY_SPECIMENS: GallerySpecimen[] = [
   { id: 'sourcereffield', label: 'SourceRefField', file: 'src/ui/SourceRefField.tsx', category: 'Éditeur', render: SourceRefFieldDemo },
   { id: 'provenancedutexte', label: 'ProvenanceDuTexte', file: 'src/ui/editor/ProvenanceDuTexte.tsx', category: 'Éditeur', render: ProvenanceDuTexteDemo },
   { id: 'provenancedevaleur', label: 'ProvenanceDeValeur', file: 'src/ui/editor/ProvenanceDeValeur.tsx', category: 'Éditeur', render: ProvenanceDeValeurDemo },
-  { id: 'alsoinfield', label: 'AlsoInField', file: 'src/ui/editor/codex/StructFields.tsx', category: 'Éditeur', render: AlsoInFieldDemo },
+  { id: 'alsoinfield', label: 'AlsoInField', file: 'src/ui/AlsoInField.tsx', category: 'Éditeur', render: AlsoInFieldDemo },
   { id: 'saisieenbrouillon', label: 'SaisieEnBrouillon', file: 'src/ui/compendium/refField/SaisieEnBrouillon.tsx', category: 'Éditeur', render: SaisieEnBrouillonDemo },
   { id: 'prosefield', label: 'ProseField', file: 'src/ui/ProseField.tsx', category: 'Éditeur', render: ProseFieldDemo },
   { id: 'sourcebadge', label: 'SourceBadge', file: 'src/ui/SourceBadge.tsx', category: 'Texte', render: SourceBadgeDemo },
