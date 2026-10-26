@@ -2,13 +2,13 @@
  * GARDE dérivée des INSTANCES — anti-dérive du SCHÉMA d'argument des Traits (filet exhaustif).
  *
  * Balaie CHAQUE instance de trait de la donnée et vérifie que la DÉCLARATION de schéma du trait
- * (`TraitData` : `indice` / `specsSource` / `specsOpen` / `specsMulti`, cf. `index.ts`) COUVRE ce que
+ * (`TraitData` : `indice` / `specsSource` / `specsOpen`, cf. `index.ts`) COUVRE ce que
  * l'instance porte. INVARIANTS stricts, sans tolérance ad hoc ni baseline de dette (aucun élément
  * différé) — même esprit que la GARDE EXHAUSTIVE de `refs-migrated.test.ts` (walk + offenders + `expect([])`) :
  *   1. `value` numérique ⟹ le trait déclare `indice` (le sens de la valeur).            → « missing-indice »
  *   2. `arg` : le prédicat du SCHÉMA d'instance (`refusDArgHorsRegistre`, `grammaire/reference.ts`) — sur
- *      un registre FERMÉ, chaque part résout un id ; sur un registre OUVERT (`specsOpen`), aucune part ne
- *      reproduit le LIBELLÉ d'un id du registre (#145). Un descripteur libre qui ne matche NI id NI
+ *      un registre FERMÉ, l'`arg` résout un id ; sur un registre OUVERT (`specsOpen`), il ne reproduit
+ *      pas le LIBELLÉ d'un id du registre (#145). Un descripteur libre qui ne matche NI id NI
  *      libellé reste légitime (« Griffes », « Crocs »).
  * L'`id` d'une instance est une feuille `idDe('trait')` du schéma : un id fantôme est refusé au parse.
  * Un `arg` sur un trait SANS `specsSource` ni `specsOpen` est un descripteur TEXTE LIBRE, non contraint.

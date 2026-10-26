@@ -340,7 +340,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (VARIANT_FIELDS_BY_CATEGORY[categoryKey]) add('variants'); // variants → VariantsField (#563)
   if (porteAlsoIn(categoryKey)) add('alsoIn'); // alsoIn → AlsoInField (#563)
   if (categoryKey === 'skills' || categoryKey === 'talents') add('specs');
-  if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen', 'specsMulti'); // schéma d'argument → éditeur dédié
+  if (categoryKey === 'traits') add('specsSource', 'indice', 'range', 'specsOpen'); // schéma d'argument → éditeur dédié
   // V9 #1318 : la VALEUR d'une règle optionnelle est typée par son `kind` (`RuleValueField`/
   // `RuleActionField`) — le champ inféré serait un TEXTE pour les 81 règles (échantillon `mode`),
   // et `"false"` y éteindrait une règle sans un mot. `validateEntry` refuse en plus au save.
@@ -558,7 +558,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Détails de création (objet unique `details.json`) : `texts` (5 entrées { all, bySpecies }) a son
   // éditeur dédié ; les 4 records Âge/Taille restent au formulaire générique (`recordNumber`).
   const isDetails = categoryKey === 'details';
-  // Trait : SCHÉMA de son argument (indice/range/specsSource/specsOpen/specsMulti) → éditeur dédié
+  // Trait : SCHÉMA de son argument (indice/range/specsSource/specsOpen) → éditeur dédié
   // (select des sources DÉRIVÉ de SPEC_SOURCES + booléens + libellé d'indice), sorti du repli générique.
   const isTrait = categoryKey === 'traits';
   // Espèce : Trait racial (`traits`, #572) → réutilise TraitListField (comme creatures/structures) —
@@ -1124,8 +1124,8 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
 /** Éditeur du SCHÉMA d'ARGUMENT d'un Trait (`traits.json`) : décrit comment son INSTANCE porte sa
  *  valeur/argument — `indice` (sens de la valeur numérique : Indice/Difficulté/Degré…), `range` (portée
  *  en m), `specsSource` (registre d'où l'`arg` tire ses ids — catalogue `SPEC_SOURCES`), `specsOpen`
- *  (arg = texte libre), `specsMulti` (arg = liste d'ids séparés par virgules). Réutilise les motifs
- *  existants (select comme `ManeuverDefField`, checkbox `.dr`, input `.dr`). Gate `traits` uniquement. */
+ *  (arg = texte libre). Réutilise les motifs existants (select comme `ManeuverDefField`, checkbox
+ *  `.dr`, input `.dr`). Gate `traits` uniquement. */
 function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v: unknown) => void }) {
   const indice = entry.indice as { label: string } | undefined;
   return (
@@ -1146,7 +1146,6 @@ function TraitSchemaField({ entry, edit }: { entry: Entry; edit: (key: string, v
           </select>
         </label>
         <label className="dr"><input type="checkbox" checked={!!entry.specsOpen} onChange={(e) => edit('specsOpen', e.target.checked || undefined)} /> argument en texte libre (ouvert)</label>
-        <label className="dr"><input type="checkbox" checked={!!entry.specsMulti} onChange={(e) => edit('specsMulti', e.target.checked || undefined)} /> liste d’ids (séparés par virgules)</label>
       </div>
     </div>
   );

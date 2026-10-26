@@ -50,7 +50,7 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
 });
 
 describe('DONNÉE creatures.json — cibles psy recalées vers un id de Groupe MAX FIDÉLITÉ (re-map Phase 2 → Phase psy)', () => {
-  it('Bella la Noire : Animosité « Les riches, Les hommes-bêtes » → noble + homme-bete ; Préjugé « Baillis, Juristes » → bailli + juriste', () => {
+  it('Bella la Noire (LDB 77 l.95) : une instance par Cible — Animosité noble + homme-bete ; Préjugé bailli + juriste', () => {
     const c = creatureToCombatant(findCreatureById('bella-la-noire')!, 'p1', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual(expect.arrayContaining([
       { type: 'animosite', cible: 'noble' },

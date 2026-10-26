@@ -230,7 +230,8 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
         { id: 'corruption', arg: 'moderee' },
         { id: 'venin', arg: 'tresDifficile' },
         { id: 'souffle', value: 12, arg: 'feu' },
-        { id: 'haine', arg: 'noble, homme-bete' },
+        { id: 'haine', arg: 'noble' },
+        { id: 'haine', arg: 'homme-bete' },
         { id: 'morsure', value: 9 },
       ] as TraitInstance[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
     },

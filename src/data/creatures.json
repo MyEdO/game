@@ -352,7 +352,11 @@
       },
       {
         "id": "animosite",
-        "arg": "noble, homme-bete"
+        "arg": "noble"
+      },
+      {
+        "id": "animosite",
+        "arg": "homme-bete"
       },
       {
         "id": "arboricole"
@@ -373,7 +377,11 @@
       },
       {
         "id": "prejuge",
-        "arg": "bailli, juriste"
+        "arg": "bailli"
+      },
+      {
+        "id": "prejuge",
+        "arg": "juriste"
       }
     ],
     "optionals": [],
@@ -4642,7 +4650,11 @@
       },
       {
         "id": "effraye",
-        "arg": "demon, demonologue"
+        "arg": "demon"
+      },
+      {
+        "id": "effraye",
+        "arg": "demonologue"
       },
       {
         "id": "intelligent"
@@ -12564,7 +12576,11 @@
       },
       {
         "id": "lanceur-de-sorts",
-        "arg": "Mort et Nécromancie"
+        "arg": "mort"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "necromancie"
       },
       {
         "id": "maladie",

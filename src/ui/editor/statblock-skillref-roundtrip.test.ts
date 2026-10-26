@@ -16,6 +16,7 @@ import { parseSkillRef, parseTalentRef, parseTraitInstance } from './refFormatLi
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { formatTrait } from '../../engine/traits/dispatch';
 import type { TraitInstance } from '../../engine/statEntry';
+import { traitInstanceSchema } from '../../data/schemas/grammaire/reference';
 
 const CAS: SkillRef[] = [
   { id: 'savoir', spec: 'loi', value: 80 },
@@ -74,7 +75,8 @@ describe('format livre — Trait', () => {
       { id: 'corruption', arg: 'moderee' }, // LDB 85 l.85
       { id: 'venin', arg: 'difficile' }, // LDB 85 l.423
       { id: 'souffle', value: 12, arg: 'feu' },
-      { id: 'haine', arg: 'noble, homme-bete' },
+      { id: 'haine', arg: 'noble' },
+      { id: 'haine', arg: 'homme-bete' },
       { id: 'venin', arg: 'de Très Facile à Très Difficile' },
     ] as TraitInstance[])
       expect(allerRetour(t), JSON.stringify(t)).toEqual(t);
@@ -82,5 +84,12 @@ describe('format livre — Trait', () => {
     expect(formatTrait({ id: 'corruption', arg: 'moderee' })).toBe('Corruption (Modérée)');
     expect(parseTraitInstance('Corruption (mineure)'), 'casse de saisie ignorée').toEqual({ id: 'corruption', arg: 'mineure' });
     expect(parseTraitInstance('Venin (TRÈS DIFFICILE)'), 'casse de saisie ignorée').toEqual({ id: 'venin', arg: 'tresDifficile' });
+  });
+
+  it('une saisie qui joint plusieurs specs n’est pas découpée : une instance, refusée au parse sur un registre fermé', () => {
+    const saisie = parseTraitInstance('Haine (Noble, Homme-bête)');
+    expect(saisie).toEqual({ id: 'haine', arg: 'Noble, Homme-bête' });
+    expect(traitInstanceSchema.safeParse(saisie).success).toBe(false);
+    expect(traitInstanceSchema.safeParse(parseTraitInstance('Haine (Noble)')).success).toBe(true);
   });
 });

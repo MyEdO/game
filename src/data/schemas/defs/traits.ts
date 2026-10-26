@@ -137,7 +137,6 @@ const doc = document(
     range: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
-    specsMulti: z.boolean().optional(),
     /** LDB 48 l.23 */
     nonTransferable: z.boolean().optional(),
     effects: z.array(triggeredEffectSchema).optional(),
@@ -177,7 +176,6 @@ const doc = document(
       label: 'Spécialisation ouverte',
       hint: 'La liste de spécialisations accepte de nouvelles entrées à l’authoring (fermé sinon)',
     },
-    specsMulti: { label: 'Argument multiple', hint: 'L’argument du Trait peut combiner plusieurs spécialisations' },
     nonTransferable: { label: 'Non transférable', hint: 'Exclu d’un octroi en masse de Traits de créature' },
     effects: { label: 'Effets déclenchés' },
     grantsManeuvers: { label: 'Manœuvres accordées' },
@@ -196,7 +194,7 @@ const doc = document(
     edit: { dataset: 'traits' },
   },
   /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen', 'specsMulti'] } },
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen'] } },
 );
 
 export const schema = doc.schema;
