@@ -1250,7 +1250,7 @@ describe('refusDeSpec — libellé de catalogue et forme de marqueur (fixture)',
       expect(refusDeSpec('trait', OUVERTE, 'Vapeur')).toBeNull();
     }));
 
-  it('(a) le libellé se reconnaît à la casse et aux blancs de bord près (`libelleNormalise`) — seul l’id exact passe', () =>
+  it('(a) le libellé se reconnaît aux marques, à la casse et aux blancs de bord près (`norm`) — seul l’id exact passe', () =>
     avecLaFixture(() => {
       expect(refusDeSpec('trait', OUVERTE, 'FEU')).toBe('libelle');
       expect(refusDeSpec('trait', OUVERTE, 'fROID')).toBe('libelle');

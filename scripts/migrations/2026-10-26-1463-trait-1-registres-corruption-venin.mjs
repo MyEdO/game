@@ -92,9 +92,10 @@ for (const [id, decl] of Object.entries(DECLARATIONS)) {
     fautes.push(`traits.json : « ${id} » absent`);
     continue;
   }
-  const apres = declarer(traits[i], decl);
-  if (JSON.stringify(apres) !== JSON.stringify(traits[i])) {
-    traits[i] = apres;
+  const e = traits[i];
+  const aFaire = decl.retirer.some((k) => k in e) || Object.entries(decl.poser).some(([k, v]) => e[k] !== v);
+  if (aFaire) {
+    traits[i] = declarer(e, decl);
     gestes++;
   }
 }

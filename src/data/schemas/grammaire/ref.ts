@@ -11,7 +11,8 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, libelleNormalise, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
+import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, porteLeChampMarqueur } from './cle-d-espace';
+import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
 import { marquerProduit } from './interne/produits';
 
@@ -612,7 +613,7 @@ export type RefusDeSpec = 'nonSpecialisable' | 'sentinelle' | 'marqueur' | 'hors
  * (`slotCovers`, `engine/careerSlots.ts`) : `nonSpecialisable` (ni catalogue ni entrée ouverte),
  * `sentinelle` (un emplacement non désigné), `marqueur` (la forme d'un champ que l'entrée déclare par
  * un marqueur, `marqueurDeLaForme`), `horsCatalogue` (entrée FERMÉE, spec absente de son catalogue),
- * `libelle` (entrée OUVERTE, spec égale — à la casse et aux blancs de bord près, `libelleNormalise` —
+ * `libelle` (entrée OUVERTE, spec égale — aux marques, à la casse et aux blancs de bord près, `norm`, `src/lib/normalize.ts` —
  * au LIBELLÉ d'une spécialisation de son catalogue, qui se désigne par son id), ou `null` (admise).
  */
 export function refusDeSpec(type: TypeEntite, id: string, spec: string): RefusDeSpec | null {
@@ -623,8 +624,8 @@ export function refusDeSpec(type: TypeEntite, id: string, spec: string): RefusDe
   if (catalogue.includes(spec)) return null;
   if (!entreeOuverte(type, id)) return 'horsCatalogue';
   if (catalogue.length === 0) return null;
-  const saisie = libelleNormalise(spec);
-  return [...idsDesignes(cleDesLibelles(cleDesSpecs(espaceDe(type), id)), `refusDeSpec('${type}')`)].some((l) => libelleNormalise(l) === saisie) ? 'libelle' : null;
+  const saisie = norm(spec);
+  return [...idsDesignes(cleDesLibelles(cleDesSpecs(espaceDe(type), id)), `refusDeSpec('${type}')`)].some((l) => norm(l) === saisie) ? 'libelle' : null;
 }
 
 /** Message UNIQUE d'un refus de `refusDeSpec` : le nœud à spécialisation et `specDe` le lisent.
