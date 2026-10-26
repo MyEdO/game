@@ -8,7 +8,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, lireLEspace, porteLeMarqueur, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { libelleDeLElement, libelleNormalise, lireCleDEspace, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { libelleDeLElement, lireCleDEspace, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_LA_RACINE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
@@ -25,6 +25,7 @@ import type { ambianceSchema, sceneSchema, ReliefDefaults, SceneRoofDefaults, Te
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
+import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
 import { CATEGORY_BY_SOURCE_KIND, CHAR_LABELS, type EffectSource } from '../engine/types';
@@ -3494,10 +3495,10 @@ export const SPEC_SOURCES = tableTotale(
   },
 );
 /** COUTURE libellé→id de SAISIE (#909) : l'id de l'univers de la source `source` dont le libellé
- *  d'affichage (`SPEC_SOURCES[source].label`) est le texte `label`, à l'égalité de libellé (`libelleNormalise`). */
+ *  d'affichage (`SPEC_SOURCES[source].label`) est le texte `label`, à l'égalité de libellé (`norm`, `src/lib/normalize.ts`). */
 export function specIdByLabel(label: string, source: SpecsSource): string | undefined {
-  const cle = libelleNormalise(label);
-  return [...(lireLEspace(SOURCES_DE_SPECS[source].univers) ?? [])].find((id) => libelleNormalise(SPEC_SOURCES[source].label(id)) === cle);
+  const cle = norm(label);
+  return [...(lireLEspace(SOURCES_DE_SPECS[source].univers) ?? [])].find((id) => norm(SPEC_SOURCES[source].label(id)) === cle);
 }
 /** POOL d'une def (Compétence/Talent) — ce qu'un choix joueur PROPOSE d'office (`LDB 09 l.40`) :
  *  pool DÉRIVÉ du registre partagé si `specsSource` (SSOT `SPEC_SOURCES`), sinon les entrées `specs[]`

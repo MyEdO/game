@@ -190,11 +190,6 @@ export function idsDeCollection(marque: MarqueDeCollection, valeur: unknown, fil
   return estObjet(carte) ? Object.keys(carte) : [];
 }
 
-/** La forme sous laquelle deux libellés se comparent : sans blanc de bord, casse ignorée. SEULE égalité de
- *  libellé, pour le refus d'une spécialisation qui reproduit un libellé (`refusDeSpec`, `grammaire/ref.ts`)
- *  comme pour l'id d'un texte saisi (`specIdByLabel`, `src/data/index.ts`). */
-export const libelleNormalise = (texte: string): string => texte.trim().toLocaleLowerCase('fr');
-
 /** Le LIBELLÉ d'un élément : le premier de ses `champs` qui porte une chaîne non vide. SEUL lecteur, pour
  *  un espace de libellés (`libellesDeCollection`) comme pour un id (`SPEC_SOURCES`, `src/data/index.ts`). */
 export function libelleDeLElement(el: Readonly<Record<string, unknown>>, champs: readonly string[]): string | undefined {
