@@ -1,9 +1,13 @@
-// GATE `comptes:plage` (#2705) : aucune donnée de la plage `merge-base(origin/main, HEAD)..HEAD` ne fait
-// monter le compte d'un site d'une collection à compte, ni n'y fait naître un site (`jugerLesComptes`,
+// GATE `comptes:plage` (#2705, #3021) : aucun changement de la plage `merge-base(origin/main, HEAD)..HEAD` ne fait
+// monter le compte d'un site sous la porte, n'y fait naître un site, ni ne fait céder un plancher (`jugerLesComptes`,
 // scripts/guards/lib/corpusDesComptes.mts). `--base <ref>` remplace `origin/main`. Rend 1 au refus.
-import { readFileSync } from 'node:fs';
+// Hors `--index` (la porte du commit, `porte-du-commit.mjs`), imprime ensuite l'INVENTAIRE de la dette que la donnée de
+// l'arbre révèle (`inventaireDeDette.mts`) et l'ajoute au résumé du job (`GITHUB_STEP_SUMMARY`) quand il est posé. Son
+// CONTENU ne change pas le code de sortie ; une mesure de l'inventaire qui lève fait échouer le job.
+import { appendFileSync, readFileSync } from 'node:fs';
 import { INDEX, TRONC, depotDe } from './lib/gitPorte.mjs';
 import { jugerLesComptes } from './lib/corpusDesComptes.mts';
+import { inventaireDeLaRacine, rendreInventaire } from './lib/inventaireDeDette.mts';
 
 if (import.meta.main) {
   const rang = process.argv.indexOf('--base');
@@ -17,5 +21,10 @@ if (import.meta.main) {
   else {
     process.stderr.write(ligne);
     process.exitCode = 1;
+  }
+  if (!index) {
+    const inventaire = `## Inventaire de la dette de l’arbre\n\n${rendreInventaire(inventaireDeLaRacine(process.cwd()))}`;
+    process.stdout.write(`${inventaire}\n`);
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${inventaire}\n`);
   }
 }

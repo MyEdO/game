@@ -74,7 +74,7 @@ export type Strate = 'Référence' | 'Valeur' | 'Ops' | 'Document';
 export const CIBLE_COMPETENCE = 'skills.json';
 
 /**
- * LOT d'extinction d'une ligne de stock : il se DÉDUIT du CONCEPT, il ne s'assigne pas à la main.
+ * LOT d'extinction d'une forme : il se DÉDUIT du CONCEPT, il ne s'assigne pas à la main.
  * Un concept vit dans UN SEUL lot sur TOUS ses porteurs (#1463, commentaire « Arbitrages de design L0
  * (2026-08-23, orchestrateur — suite à la contre-passe du commit 3a6017ebb) », point 2) : `source` → L1d ; une référence → L2 quand sa cible est la Compétence,
  * L3 sinon ; toute autre valeur du lexique → L4 ; une structure hors lexique → L1a.
@@ -101,7 +101,7 @@ export const LOT_CLE_RESERVEE: Readonly<Record<string, string>> = {
   source: 'L1d #1469',
 };
 
-/** Les 9 lots d'extinction du chantier — un `lot` de stock hors de cette liste est une dérive.
+/** Les 9 lots d'extinction du chantier — un `lot` de stock ou d'inventaire hors de cette liste est une dérive.
  *  `L2 #1548` porte les graphies de RÉFÉRENCE du lot L2 (« une graphie par concept référencé ») ;
  *  `#1553` porte la CURATION des orphelines (contenu qui ne résout vers rien), qui n'est pas une
  *  forme d'enveloppe. */
@@ -109,15 +109,14 @@ export const LOTS_CONNUS = ['L1a #1466', 'L1b #1467', 'L1c #1468', 'L1d #1469', 
 
 /**
  * ANGLES MORTS de la mesure — SOURCE UNIQUE, consommée par la garde
- * (`src/data/structures-contrat.test.ts`, `GARDE.angleMort`), par le générateur
- * (`docs/structures-donnees.md`, § « Périmètre mesuré et angles morts ») et par l'en-tête de
- * `scripts/guards/lib/structuresStock.mjs` (la garde vérifie que l'en-tête les porte TOUS).
+ * (`src/data/structures-contrat.test.ts`, `GARDE.angleMort`) et par le générateur
+ * (`docs/structures-donnees.md`, § « Périmètre mesuré et angles morts », que la garde compare).
  */
 export const ANGLES_MORTS: readonly string[] = [
   'La référence est ANCRÉE SUR L’INDEX DES IDS, scopé par DATASET : une occurrence de référence est une paire (objet, clé) dont la valeur RÉSOUT vers un document indexé d’une CIBLE MAJORITAIRE de son site. Le CHAMP PORTEUR (`skills`, `ops`, `members`…) est MESURÉ, jamais déclaré.',
   'La RÉSOLUTION est PAR SITE `(dataset, champ, clé)` : cible(s) MAJORITAIRE(S) = les datasets qui couvrent ≥ 50 % des valeurs résolvantes du site. Une valeur qui ne résout QUE vers une cible non majoritaire est comptée AMBIGUË (§1bis, imprimée avec son site et son dataset parasite) et n’ouvre PAS de référence.',
   'Les COLLISIONS d’ids restent un angle mort du PILOTAGE, pas de la résolution : la colonne « cibles » d’une forme liste tous les datasets atteignables par les valeurs de la ligne.',
-  'LOT, MOTIF et DATE d’une forme sont du PILOTAGE : la sonde ne les mesure pas — la forme OBSERVÉE les reprend du stock par son SITE (concept, dataset, champ, signature), si bien que la véracité d’un `motif` est une décision de REVUE qu’aucune garde ne contrôle.',
+  'Le LOT d’un site d’inventaire se DÉDUIT (`lotDeForme`, `LOT_CLE_RESERVEE`), il ne se mesure pas : une déduction que la colonne « cibles » trompe (COLLISIONS d’ids) se corrige au code de la déduction, et les décisions de revue d’avant #3021 sont archivées (`docs/plans/2026-10-26-decisions-de-revue-dette.md`).',
   'La RÉSOLVABILITÉ d’un `{text}` se mesure sur le LIBELLÉ NORMALISÉ (casse, accents, ponctuation, espaces) d’une entité d’un dataset de la CIBLE MAJORITAIRE de son site — de n’importe quel dataset quand le site n’a pas de cible ; elle ne vérifie AUCUN type d’entité attendu, et un `label` qui est aussi un id peut la faire mordre sur un homonyme : la forme `text (résolvable)` est un candidat à migrer en `{id}`, pas un verdict.',
   'Le partage d’un SITE tranche entre référence cassée et document embarqué, mais les TELLS de document passent avant le ratio (`label` + `source`, ou `label` + ≥ 2 clés de charge utile) et l’égalité tranche pour le DOCUMENT ; un site à UNE seule valeur est un document, sauf si la clé est `…Id`/`…Ids`/`…Ref`.',
   'L’ORDRE DES PASSES est un angle mort déclaré : l’index est complété par les documents EMBARQUÉS (passe 3) AVANT que la résolution ne soit mesurée (passe 4) — un site comme `arene-projet.json › members {entityId}` ne résout que grâce à cet ordre.',
@@ -154,7 +153,7 @@ export const MANDAT_SLOTS =
  * garde les référence, les autres sites y RENVOIENT.
  */
 export const ANGLES_MORTS_SLOTS: readonly string[] = [
-  'Une occurrence dont AUCUNE case ne porte de chaîne n’est jamais ATTEINTE, quel que soit le schéma : aucune n’est un slot, et son couple reste au stock `SLOTS_SANS_DECLARATION`. Mesuré le 2026-09-23 : 14 `{choice:[…]}` de `careerLevels.json | trappings` (les feuilles comptent sous `careerLevels.json | choice`), 19 `{random:N}` de `species.json | talents`, 2 `{random:N}` de `species.json | of`, et 1 occurrence de `creatures.json | spec` dont la seule case est une clé de `CLES_DE_SPECIALISATION`. Stock nominatif `SLOTS_INATTEIGNABLES`, qui ne fait que décroître.',
+  'Une occurrence de référence dont AUCUNE case ne porte de chaîne (`{random:N}`, `{choice:[{…}]}`) n’ouvre aucune case (`inscrireReference`, `structures-scan.mts`) : un couple ne compte que ses occurrences à case, et les feuilles d’un choix comptent sous leur propre couple (`careerLevels.json | choice`).',
   'Une référence portée par une CLÉ de record (`z.record(idDe(…), …)`) est un slot `{}` du §6.1, jamais une case du scan, qui n’observe que des valeurs : mesuré le 2026-09-23, 6 slots `ship-criticals.json › tablesDeChute[].bandes[].hauteurs{}` (`shipStation`), sans couple touché.',
 ];
 
@@ -675,7 +674,7 @@ export const CONCEPTS: readonly Concept[] = [
   // aux clés DISJOINTES, `{literal}` et `{plusBF, flat, bare?}` — d'où `noyauMin: 1`. `flat` n'est pas
   // au noyau : `sea-events › effect {d10, flat, sign}` (`manannFactor`) le porte aussi. La
   // `coPresence` écarte `plusBF` SANS `flat` : les `grantNaturalWeapon` (`mutations`, `traits`,
-  // `grammaire/mecanique.ts`) l'étalent sur l'op, mesurés au stock des ops. `literal` ne vit que sous
+  // `grammaire/mecanique.ts`) l'étalent sur l'op, mesurés à la dette d'ops. `literal` ne vit que sous
   // `trappings › damage` (mesuré 2026-10-13 sur les 2 racines) : aucun site.
   {
     id: 'degats-arme',
@@ -724,8 +723,8 @@ export const CONCEPTS: readonly Concept[] = [
   // vit sous `testType`) et `etats › difficultyBy` 2. Ce qui manque à ces 12 n'est pas TOUT
   // discriminant structurel — `etats › difficultyBy` porte `{cond, difficulty}`, et `cond` EN EST un
   // (c'est le sous-schéma `flowTestSchema.difficultyBy`, une table Condition → Difficulté) — c'est une
-  // clé de DÉSIGNATION, la seule que ce concept cède. Ils restent divergents au stock, sous le concept
-  // qui les fera migrer.
+  // clé de DÉSIGNATION, la seule que ce concept cède. Ils restent divergents à l'inventaire, sous le
+  // concept qui les fera migrer.
   // Aucun concept ne revendique les 3 jeux à manches de `tavernGames.json` — `boules`
   // (`drCap`, `volley`), `torchon` (`table`, `throwerPenalty`), `pierres` (`target`, `phases`) : ce sont
   // trois RÈGLES, pas une forme. Un noyau qui les réunirait (leurs 10 clés, deux suffisant à classer)
@@ -915,7 +914,7 @@ export const RX_CLE_REFERENCE = /(Id|Ids|Ref)$/;
 
 /**
  * Clés dont le NOM est réservé à un concept (DESIGN v2 S2 « homonymes ») : si la même clé porte
- * ≥ 2 classes de type dans la donnée, c'est un homonyme nominatif — il entre au stock.
+ * ≥ 2 classes de type dans la donnée, c'est un homonyme nominatif — il entre à l'inventaire.
  */
 export const CLES_RESERVEES = ['skill', 'char', 'talent', 'price', 'cost', 'count', 'source'] as const;
 

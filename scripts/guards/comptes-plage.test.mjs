@@ -1,5 +1,5 @@
-// PORTE DES COMPTES (#2705, `jugerLesComptes`, scripts/guards/lib/corpusDesComptes.mts) sur un dépôt jetable : chaque
-// borne de la plage mesurée dans SON image, et aucune ligne de message n'admet une hausse.
+// PORTE DES COMPTES (#2705, #3021, `jugerLesComptes`, scripts/guards/lib/corpusDesComptes.mts) sur un dépôt jetable :
+// chaque borne de la plage mesurée dans SON image, et aucune ligne de message n'admet une hausse ni un plancher qui cède.
 //   node --test scripts/guards/comptes-plage.test.mjs   (joué par `npm run test:hooks`, racine scripts/guards)
 // La mesure est TypeScript : elle tourne dans un processus enfant `tsx`, sous l'env d'un dépôt forgé (`envDeDepotForge`).
 import test from 'node:test'
@@ -93,8 +93,8 @@ test('un détecteur qui reclasse id-nu sans migrer la donnée refuse ; la migrat
     "const objets = JSON.parse(readFileSync('src/data/fixture.json', 'utf8'));",
     "const occurrences = objets.filter((o) => typeof o.shape === 'string').length;",
     "const signature = " + JSON.stringify(signature) + ";",
-    "const formes = signature === 'id-nu' && occurrences ? [{ concept: 'reference', dataset: 'fixture.json', champ: 'shape', signature, occurrences }] : [];",
-    "process.stdout.write(JSON.stringify([['STRUCTURES_FORMES', formes]]));",
+    "const sites = signature === 'id-nu' && occurrences ? [{ def: 'fixture.ts', champ: 'shape', concept: 'reference', signature, statut: 'historique', commun: '', occurrences }] : [];",
+    "process.stdout.write(JSON.stringify([['STRUCTURES_REDECLARATIONS', sites]]));",
   ].join('\n')
   try {
     const fichiers = {
@@ -126,7 +126,7 @@ test('un détecteur qui reclasse id-nu sans migrer la donnée refuse ; la migrat
     writeFileSync(join(dossier, entree), source('id-declare'))
     assert.ok(reussi(commitDe(depot, { message: 'reclasse sans migration', chemins: [entree] })))
     const reclasse = shaDe(depot, 'HEAD')
-    const fauxPositif = (n) => 'FAUX-POSITIF: ' + JSON.stringify(['STRUCTURES_FORMES', 'reference | fixture.json | shape | id-nu', n]) + ' — le schéma classe cette occurrence comme une valeur sans référence'
+    const fauxPositif = (n) => 'FAUX-POSITIF: ' + JSON.stringify(['STRUCTURES_REDECLARATIONS', 'fixture.ts | shape | reference | id-nu | historique | ', n]) + ' — le schéma classe cette occurrence comme une valeur sans référence'
     const [exact, manque, trop] = jugerDansTsx(dossier, [
       [base, reclasse, fauxPositif(1) + '\n' + fauxPositif(2)],
       [base, reclasse, fauxPositif(1)],
@@ -142,7 +142,7 @@ test('un détecteur qui reclasse id-nu sans migrer la donnée refuse ; la migrat
     const [refus, admis] = jugerDansTsx(dossier, [[base, reclasse], [base, migre]])
     assert.equal(refus.ok, false, refus.texte)
     assert.match(refus.texte, /FAUX-POSITIF/)
-    assert.match(refus.texte, /fixture\.json.*shape.*id-nu/)
+    assert.match(refus.texte, /fixture\.ts.*shape.*id-nu/)
     assert.equal(admis.ok, true, admis.texte)
     writeFileSync(join(dossier, 'src/data/fixture.json'), '[]')
     assert.ok(reussi(commitDe(depot, { message: 'retire les valeurs', chemins: ['src/data/fixture.json'] })))
@@ -153,7 +153,7 @@ test('un détecteur qui reclasse id-nu sans migrer la donnée refuse ; la migrat
   }
 })
 
-test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse et une op NON TYPÉE ajoutée sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient',{ timeout: 600_000 }, () => {
+test('jugerLesComptes : une op ajoutée à la donnée, typée ou non, passe ; un schéma qui régresse et une op inscrite à `OPS_NON_TYPEES` sont refusés, MÊME sous `CLIQUET:` ; un générateur et le src, ou le détecteur, qui lit sa sortie, changés ensemble, se lient',{ timeout: 600_000 }, () => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-plage-'))
   try {
     const reel = depotDe(RACINE, { env: envDeDepotForge() })
@@ -170,10 +170,10 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
       return shaDe(depot, 'HEAD')
     }
     const fondation = shaDe(depot, 'HEAD')
-    const typee = commiter({ 'src/data/spells.json': ajouterOp((o) => o.op === 'reduceDiseaseDays') }, 'op typée')
+    const typee = commiter({ 'src/data/spells.json': (t) => ajouterOp((o) => o.op === 'freeReroll')(ajouterOp((o) => o.op === 'reduceDiseaseDays')(t)) }, 'ops de donnée')
     const lache = commiter({
       'src/data/schemas/defs/creatures.ts': (t) => t.replace('skills: z.array(competenceChiffreeAEmplacementSchema),', 'skills: z.array(z.any()),').replace("spells: refs('spell'),", 'spells: z.array(z.string()),'),
-      'src/data/spells.json': ajouterOp((o) => o.op === 'freeReroll'),
+      'src/data/schemas/grammaire/mecanique.ts': remplacer("  'actGate', 'ap',", "  'actGate', 'sondeNonTypee', 'ap',"),
     }, 'schéma et op\n\nCLIQUET: scripts/guards/lib/structuresStock.mjs +1 — op de plus, déclarée au message')
     // Le générateur de la tête importe du src que la base n'a pas, et le src de la tête lit une sortie que le
     // générateur de la base ne produit pas : seule la génération de CHAQUE image par son propre code lie une paire.
@@ -201,20 +201,21 @@ test('jugerLesComptes : une op TYPÉE ajoutée passe ; un schéma qui régresse 
     assert.doesNotMatch(passe.texte, /paire sautée/, passe.texte)
     assert.equal(refus.ok, false, refus.texte)
     const lignes = refus.texte.split('\n').filter((l) => l.startsWith('  ['))
-    const locales = [
-      { fichier: 'src/data#creatures', ref: '[].skills[]' },
-      { fichier: 'src/scenes#projet', ref: '.narratif.presetsPnj[].profil.skills[]' },
-    ].map((site) => `STRUCTURES_LOCALES : ${cleDeSite({ ...site, occurrence: 1 })}`)
-    const attendues = ['STRUCTURES_OPS : freeReroll | op | spells.json', 'SLOTS_SANS_DECLARATION : creatures.json | skills', 'SLOTS_SANS_DECLARATION : creatures.json | spells', ...locales]
+    const site = (volet, champs, suffixes) => [
+      { fichier: 'src/data#creatures', ref: '[].' },
+      { fichier: 'src/scenes#projet', ref: '.narratif.presetsPnj[].profil.' },
+    ].flatMap((s) => champs.flatMap((c) => suffixes.map((x) => `${volet} : ${cleDeSite({ ...s, ref: s.ref + c + x, occurrence: 1 })}`)))
+    const feuilles = site('FEUILLES_D_ID', ['skills', 'spells'], ['', '[]'])
+    const locales = site('STRUCTURES_LOCALES', ['skills'], ['[]'])
+    const attendues = ['DETTE_OPS : sondeNonTypee | non typée', ...feuilles, ...locales]
     const deLaBase = `détecteur de la base (${typee.slice(0, 9)})`
     assert.deepEqual(lignes.map((l) => l.replace(/ — .*/, '')), ['détecteur de la tête', deLaBase].flatMap((d) => attendues.map((a) => `  [${d}] ${a}`)), refus.texte)
     assert.equal(liee.ok, true, liee.texte)
     assert.doesNotMatch(liee.texte, /paire sautée/, liee.texte)
     assert.equal(symetrique.ok, true, symetrique.texte)
     assert.doesNotMatch(symetrique.texte, /paire sautée/, symetrique.texte)
-    assert.match(refus.texte, /STRUCTURES_OPS : freeReroll \| op \| spells\.json — HAUSSE \d+ > \d+ : la dette GRANDIT\./)
-    assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| skills — site NEUF : la dette NAÎT\./)
-    assert.match(refus.texte, /SLOTS_SANS_DECLARATION : creatures\.json \| spells — site NEUF : la dette NAÎT\./)
+    assert.match(refus.texte, /DETTE_OPS : sondeNonTypee \| non typée — site NEUF : la dette NAÎT\. Typer le payload/)
+    for (const l of feuilles) assert.ok(refus.texte.includes(`${l} — feuille \`idDe\` RELÂCHÉE : le chemin n’est plus \`idDe\` à la tête (\`libre\`).`), refus.texte)
     for (const l of locales) assert.ok(refus.texte.includes(`${l} — site NEUF : la dette NAÎT. Typer le nœud`), refus.texte)
     assert.match(refus.texte, /aucun `CLIQUET:` ne les couvre/)
   } finally {

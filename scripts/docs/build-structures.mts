@@ -7,8 +7,8 @@
 // (npm run docs:structures).
 // Mode `--check` : `ecrireOuVerifier` (scripts/docs/lib/ecriture-derives.mjs), rejoué par `build-all.mjs`.
 //
-// Le doc est la carte de PILOTAGE du chantier #1463 : le stock nominatif décroissant qu'il
-// alimente vit dans scripts/guards/lib/structuresStock.mjs (garde src/data/structures-contrat.test.ts).
+// Le doc est la carte de PILOTAGE du chantier #1463 : il rend l'INVENTAIRE de la dette que la donnée révèle
+// (scripts/guards/lib/inventaireDeDette.mts, §7), hors de la porte des comptes et sans stock commis (#3021).
 import { execFileSync } from 'node:child_process';
 import { ecrireOuVerifier } from './lib/ecriture-derives.mjs';
 import {
@@ -20,6 +20,7 @@ import {
 } from './lib/structures-scan.mjs';
 import { noeudsDeStructure, type ClasseDeStructure } from '../guards/lib/structuresLocales.mts';
 import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs';
+import { clesDeclareesJamaisPortees, inventaireDe, rendreInventaire } from '../guards/lib/inventaireDeDette.mts';
 import { parUnitesDeCode } from '../guards/lib/lister.mjs';
 import {
   ANGLES_MORTS,
@@ -102,8 +103,8 @@ function rendu() {
   out += '> Toute correction se fait dans le générateur, dans le lexique `scripts/docs/lib/structures-lexique.mts`\n';
   out += '> ou dans la donnée. `npm run docs:check` échoue si ce fichier diverge de la mesure.\n>\n';
   out += '> Question à laquelle ce doc répond : **sous quelle forme ce concept est-il écrit, dans quel dataset, sous quel CHAMP ?**\n';
-  out += `> Stock nominatif décroissant des formes à éteindre : \`scripts/guards/lib/structuresStock.mjs\`\n`;
-  out += '> (garde `src/data/structures-contrat.test.ts`).\n\n';
+  out += '> Inventaire de la dette que la donnée révèle, hors de la porte des comptes et sans stock : §7\n';
+  out += '> (`scripts/guards/lib/inventaireDeDette.mts`).\n\n';
 
   // ---------------------------------------------------------------------------
   out += '## Périmètre mesuré et angles morts (à dire pour ne pas se lire comme exhaustif)\n\n';
@@ -235,9 +236,9 @@ function rendu() {
     const embarques = scan.groupesEnveloppe.filter((g) => g.portee === 'embarqué');
     out += `Groupes mesurés : **${racines.length}** jeux d’ENTRÉES DE RACINE et **${embarques.length}** chemins de\n`;
     out += `DOCUMENTS EMBARQUÉS (**${scan.objets.documentsEmbarques}** objets). **${scan.enveloppe.length}** divergences\n`;
-    out += '(rôle × clé × document × chemin) au stock `STRUCTURES_ENVELOPPE` (`scripts/guards/lib/structuresStock.mjs`,\n';
-    out += 'garde `src/data/structures-contrat.test.ts`) — une ligne se solde en migrant l’enveloppe, la ligne part\n';
-    out += 'dans le MÊME commit :\n\n';
+    out += '(rôle × clé × document × chemin), mesurées sur la donnée ; la dette d’enveloppe que la porte juge est le\n';
+    out += 'volet `DETTE_ENVELOPPE` (un site par type de `CONTENU_A_SOURCER`, `src/data/schemas/grammaire/sans-livre.ts`),\n';
+    out += 'les autres divergences que la `source` absente entrent à l’inventaire `STRUCTURES_ENVELOPPE` (§7) :\n\n';
     out += tableau(
       ['Rôle', 'Motif', 'Groupes'],
       scan.enveloppeParMotif.map((m) => [m.role, m.motif, m.documents]),
@@ -266,25 +267,17 @@ function rendu() {
   out += '`scripts/docs/lib/structures-scan.mts`) : schéma plus large que la donnée (un champ à retirer, ou\n';
   out += 'une donnée à écrire).\n';
   out += 'Deux régimes, et ils ne se confondent pas : **par DÉFAUT** (table A) la forme n’a AUCUN lot de\n';
-  out += 'peuplement — c’est du dénominateur, elle va au stock `STRUCTURES_DEFAUT` et ne fait que décroître ;\n';
-  out += '**`cible-declaree`** (table B) est un déclaré-avant-posé ASSUMÉ, avec son lot de peuplement — il ne\n';
-  out += 'se STOCKE pas (un stock décroît, une cible se solde en PEUPLANT la donnée), il s’ÉMET ici.\n\n';
+  out += 'peuplement — c’est de la dette, inventoriée sous `STRUCTURES_DEFAUT` (§7) ;\n';
+  out += '**`cible-declaree`** (table B) est un déclaré-avant-posé ASSUMÉ, avec son lot de peuplement — il se\n';
+  out += 'solde en PEUPLANT la donnée, il s’ÉMET ici.\n\n';
   {
-    out += '#### A. Par défaut — sans lot de peuplement (stock `STRUCTURES_DEFAUT`)\n\n';
-    const lignes: (string | number)[][] = [];
-    let nCles = 0;
-    for (const d of scan.documents) {
-      const dec = parFichierDeclare.get(d.nom);
-      if (!dec) continue;
-      const vues = scan.clesPortees.get(d.nom)!;
-      const jamais = Object.keys(dec.cles).filter((k) => !vues.has(k)).sort();
-      if (jamais.length) {
-        nCles += jamais.length;
-        lignes.push([`\`${d.nom}\``, jamais.length, jamais.map((k) => `\`${k}\``).join(' ')]);
-      }
-    }
-    out += `**${lignes.length}** documents portent au moins une clé déclarée jamais observée, **${nCles}** clés en tout\n`;
-    out += '(stock `STRUCTURES_DEFAUT`, `scripts/guards/lib/structuresStock.mjs`, garde `src/data/structures-contrat.test.ts`).\n\n';
+    out += '#### A. Par défaut — sans lot de peuplement (inventaire `STRUCTURES_DEFAUT`)\n\n';
+    const parDocument = new Map<string, string[]>();
+    const jamais = clesDeclareesJamaisPortees({ scan, declares });
+    for (const { dataset, cle } of jamais) parDocument.set(dataset, [...(parDocument.get(dataset) ?? []), cle]);
+    const lignes = [...parDocument].map(([d, cles]) => [`\`${d}\``, cles.length, cles.map((k) => `\`${k}\``).join(' ')]);
+    out += `**${lignes.length}** documents portent au moins une clé déclarée jamais observée, **${jamais.length}** clés en tout,\n`;
+    out += 'hors des clés que `document()` pose d’office (`CLES_POSEES_INCONDITIONNELLEMENT`, `scripts/guards/lib/inventaireDeDette.mts`).\n\n';
     out += tableau(['Document', 'Clés', 'Détail'], lignes);
 
     out += '#### B. `cible-declaree` — déclaré-avant-posé ASSUMÉ (émission, jamais un stock)\n\n';
@@ -440,7 +433,7 @@ function rendu() {
   out += 'Objet qui ANNONCE une référence (clé `…Id`/`…Ids`/`…Ref`, clé réservée, clé d’identité) et qui ne\n';
   out += 'résout vers RIEN, sans être un document, et qui ne porte pas d’`op` (la strate Ops le porterait).\n';
   out += 'Aucune strate ne le porte : c’est ce que le détecteur ne sait pas nommer, et il se compte au lieu\n';
-  out += 'de se taire. Stock `STRUCTURES_ORPHELINES` ; le LOT suit le motif — `L1a #1466` quand le NOM de la\n';
+  out += 'de se taire. Inventaire `STRUCTURES_ORPHELINES` (§7) ; le LOT suit le motif — `L1a #1466` quand le NOM de la\n';
   out += 'clé annonçait une FK (`clé de référence non résolue`), `#1553` pour les autres motifs.\n\n';
   out += 'Ce que le motif `clé réservée` nomme : le DÉCLENCHEUR est le NOM de la clé (`CLES_RESERVEES` du\n';
   out += 'lexique), pas une valeur qui pointerait vers rien — le contenu de ces objets est légitime, et la\n';
@@ -583,8 +576,9 @@ function rendu() {
   }
   {
     const CLES_REF = ['skillId', 'skill', 'talentId', 'trappingId', 'traitId', 'spellId', 'creatureId', 'vehicleId', 'tableId', 'spec'];
-    out += 'Une ligne par (op, signature, dataset) — stock `STRUCTURES_OPS`, lot `L1c #1468` : la cible est une\n';
-    out += 'union discriminée générée d’`OP_DEFS`, à refs EMBOÎTÉES (`skill: {id, spec}`).\n\n';
+    out += 'Une ligne par (op, signature, dataset), mesurée sur la donnée, lot `L1c #1468` : la cible est une union\n';
+    out += 'discriminée générée d’`OP_DEFS`, à refs EMBOÎTÉES (`skill: {id, spec}`). La dette d’ops que la porte juge\n';
+    out += 'est le volet `DETTE_OPS`, mesuré au schéma seul : `OPS_NON_TYPEES` et les références à plat de `OP_DEFS`.\n\n';
     out += tableau(
       ['Op', 'Signature', 'Dataset', 'Occurrences', 'Clés de ref à plat'],
       scan.ops.map((o) => {
@@ -630,9 +624,8 @@ function rendu() {
 
     out += '### 6.2 Couverture — réfs observées qu’AUCUN slot ne déclare\n\n';
     out += 'La dette d’ADOPTION du registre : un `(dataset, champ)` porteur de références mesurées (strate\n';
-    out += '`Référence`) dont une occurrence au moins n’est pas ATTEINTE — une de ses cases n’est pas un slot. Stock `SLOTS_SANS_DECLARATION`\n';
-    out += '(`scripts/guards/lib/slotsStock.mjs`, garde `src/data/slots-contrat.test.ts`) — il se solde concept\n';
-    out += 'par concept en L2/L3 (#1473), et ne fait que DÉCROÎTRE.\n\n';
+    out += '`Référence`) dont une occurrence au moins n’est pas ATTEINTE — une de ses cases n’est pas un slot. Inventaire\n';
+    out += '`SLOTS_SANS_DECLARATION` (§7) — il se solde concept par concept en L2/L3 (#1473).\n\n';
     const sansSlot = champsSansSlot(scan, slots);
     out += `**${sansSlot.length}** couples (dataset, champ) sans slot déclaré.\n\n`;
     out += tableau(
@@ -645,6 +638,13 @@ function rendu() {
     out += ANGLES_MORTS_SLOTS.map((a) => `- ${a}`).join('\n');
     out += '\n\n';
   }
+
+  // ---------------------------------------------------------------------------
+  out += '## 7. Inventaire de la dette que la donnée révèle\n\n';
+  out += 'Hors de la porte des comptes, sans stock commis (`scripts/guards/lib/inventaireDeDette.mts`) : le détail\n';
+  out += 'par site se rend au résumé du job `comptes:plage` ; le compte par collection décroît d’audit en audit.\n\n';
+  out += rendreInventaire(inventaireDe({ scan, defs: DEFS, declares }), { detail: false });
+  out += '\n';
   return {
     out,
     path: OUT,

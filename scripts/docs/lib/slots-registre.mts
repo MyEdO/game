@@ -1,6 +1,7 @@
 // VOLET SLOTS du doc `docs/structures-donnees.md` (#1466 L1a, volet A) — le côté DÉCLARÉ des
 // références, croisé au côté OBSERVÉ du scan. Lib PURE : consommée par le générateur
-// `scripts/docs/build-structures.mts` et les gardes de `src/data/` (`slots-contrat`, `refs-migrated`…).
+// `scripts/docs/build-structures.mts`, l'inventaire de dette (`scripts/guards/lib/inventaireDeDette.mts`) et les gardes
+// de `src/data/` (`slots-contrat`, `refs-migrated`…).
 //
 // Le DÉCLARÉ est ce que le PARSE valide (#1473 R1) : chaque document est parsé par son schéma réel
 // au PARSE DE MESURE (`reperesDuParse`, `src/data/schemas/grammaire/ref.ts`), et chaque case
@@ -223,8 +224,8 @@ export function registreDesSlots(scan: ScanDesReferences, slots: readonly Slot[]
 export type CoupleDeReference = { dataset: string; champ: string; occurrences: number; atteintes: number };
 
 /**
- * Tous les couples observés, avec leur compte d'occurrences et la part ATTEINTE : une occurrence l'est
- * quand elle a au moins une case et que chacune est un slot.
+ * Tous les couples observés, avec le compte de leurs occurrences à CASE (une occurrence sans case n'a rien qu'un slot
+ * puisse valider) et la part ATTEINTE : une occurrence l'est quand chacune de ses cases est un slot.
  */
 export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot[]): CoupleDeReference[] {
   const touchees = casesTouchees(scan, slots);
@@ -237,11 +238,12 @@ export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot
     }
   const couples = new Map<string, CoupleDeReference>();
   for (const o of scan.occurrencesDeReference) {
+    if (!avecCase.has(o)) continue;
     const cle = cleDeCouple(o);
     if (!couples.has(cle)) couples.set(cle, { dataset: o.dataset, champ: o.champ, occurrences: 0, atteintes: 0 });
     const c = couples.get(cle)!;
     c.occurrences += 1;
-    if (avecCase.has(o) && !manquees.has(o)) c.atteintes += 1;
+    if (!manquees.has(o)) c.atteintes += 1;
   }
   return [...couples.values()].sort((a, b) => parUnitesDeCode(a.dataset, b.dataset) || parUnitesDeCode(a.champ, b.champ));
 }
@@ -249,33 +251,12 @@ export function couplesDeReference(scan: ScanDesReferences, slots: readonly Slot
 /**
  * COUVERTURE : les couples porteurs de références OBSERVÉES (strate `Référence` du scan) dont une
  * occurrence au moins n'est pas ATTEINTE (une de ses cases n'est pas un slot). C'est la dette d'ADOPTION du registre — elle se
- * solde concept par concept en L2/L3 (#1473), jamais en retirant une ligne seule. Stock
- * `SLOTS_SANS_DECLARATION`, keyé par le compte OBSERVÉ total ; ce que la mesure ne voit pas est dit
+ * solde concept par concept en L2/L3 (#1473), jamais en retirant une ligne seule. Collection d'inventaire
+ * `SLOTS_SANS_DECLARATION` (`scripts/guards/lib/inventaireDeDette.mts`) ; ce que la mesure ne voit pas est dit
  * à `ANGLES_MORTS_SLOTS`.
  */
 export function champsSansSlot(scan: ScanDesReferences, slots: readonly Slot[]): CoupleDeReference[] {
   return couplesDeReference(scan, slots).filter((c) => c.atteintes < c.occurrences);
-}
-
-/** Un couple et le compte de ses occurrences INATTEIGNABLES. */
-export type CoupleInatteignable = { dataset: string; champ: string; occurrences: number };
-
-/**
- * INATTEIGNABLES : par couple, les occurrences dont AUCUNE case ne porte de chaîne — aucune n'est un
- * slot, quel que soit le schéma. Stock `SLOTS_INATTEIGNABLES`.
- */
-export function occurrencesInatteignables(scan: ScanDesReferences): CoupleInatteignable[] {
-  const atteignables = new Set<OccurrenceDeReference>();
-  for (const [porteur, cases] of scan.referencesParPorteur)
-    for (const [k, o] of cases) if (typeof (porteur as Record<string | number, unknown>)[k] === 'string') atteignables.add(o);
-  const couples = new Map<string, CoupleInatteignable>();
-  for (const o of scan.occurrencesDeReference) {
-    if (atteignables.has(o)) continue;
-    const cle = cleDeCouple(o);
-    if (!couples.has(cle)) couples.set(cle, { dataset: o.dataset, champ: o.champ, occurrences: 0 });
-    couples.get(cle)!.occurrences += 1;
-  }
-  return [...couples.values()].sort((a, b) => parUnitesDeCode(a.dataset, b.dataset) || parUnitesDeCode(a.champ, b.champ));
 }
 
 /** Les couples dont TOUTES les occurrences observées sont ATTEINTES — la JOINTURE. */

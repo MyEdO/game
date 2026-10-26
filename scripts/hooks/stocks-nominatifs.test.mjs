@@ -720,8 +720,8 @@ test('portée — aucune ENVELOPPE ne cache un stock de module', () => {
 
 // ── LA DÉFINITION : porteur = tableau OU objet atteignable depuis une liaison de module ───────────
 // Une entrée se lit sur l'IMAGE, par l'AST : c'est la POSITION dans le porteur qui la définit, jamais
-// la forme de son littéral. Les deux plus gros stocks du dépôt (`slotsStock`, `structuresStock`)
-// ouvrent leurs lignes par une accolade, et chacune de leurs entrées compte.
+// la forme de son littéral. Le plus gros stock du dépôt (`structuresStock`) ouvre ses lignes par une
+// accolade, et chacune de ses entrées compte.
 
 /** Les quatre formes de stock du dépôt, et les lignes (1-based) où vivent leurs entrées. */
 const FORMES = {
@@ -940,7 +940,6 @@ test('image — une extension hors de `DIALECTE` n’a pas d’image : `entreesN
 
 test('porteurs réels — l’image lit des entrées, et jamais moins que le repli de ligne', (t) => {
   const porteurs = [
-    'scripts/guards/lib/slotsStock.mjs',
     'scripts/guards/lib/structuresStock.mjs',
     'scripts/guards/lib/legacyVocabStock.mjs',
     'scripts/hooks/ecrans-ui.json',

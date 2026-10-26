@@ -1687,16 +1687,25 @@
   {
     "id": "porteDesComptes",
     "type": "primitives.manifest",
-    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/COLLECTIONS_A_COMPTE/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
+    "label": "jugerLesComptes/refusDesComptes/verdictDesDetecteurs/baissesDuDetecteur/refusDesFauxPositifs/sitesDeDetteDOps/sitesDEnveloppeASourcer/COLLECTIONS_A_COMPTE/DETTE_OPS/DETTE_ENVELOPPE/FEUILLES_D_ID/SOUS_LA_PORTE/PORTEURS_SOUS_LA_PORTE",
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
-    "concept": "porte des comptes : collections à compte, volet STRUCTURES_LOCALES et volet SOURCE_FORMAT, images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
+    "concept": "porte des comptes : collection à compte STRUCTURES_REDECLARATIONS, volets de un par site mesurés au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS` ; DETTE_ENVELOPPE : types de `CONTENU_A_SOURCER`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
     "perimetre": "tout stock dont chaque entrée porte un compte d'occurrences, et toute porte qui juge un compte entre deux commits",
     "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
   },
   {
+    "id": "inventaireDeDette",
+    "type": "primitives.manifest",
+    "label": "INVENTAIRE/inventaireDe/inventaireDeLaRacine/totauxDeLInventaire/rendreInventaire/clesDeclareesJamaisPortees/CLES_POSEES_INCONDITIONNELLEMENT/ANGLES_MORTS_DE_L_INVENTAIRE/SANS_LOT",
+    "fichier": "scripts/guards/lib/inventaireDeDette.mts",
+    "concept": "inventaire de la dette que la donnée révèle, HORS de la porte (ni stock, ni règle de plage, ni refus) : formes historiques ou divergentes, orphelines, homonymes, divergences d’enveloppe hors `source` absente (STRUCTURES_ENVELOPPE), couples de référence sans slot et clés déclarées jamais portées, une ligne par site avec sa cible, son lot déduit et ses occurrences indicatives ; totaux par collection et rendu Markdown avec ses angles morts déclarés",
+    "perimetre": "toute mesure de dette dont la donnée fait varier le compte : le résumé du job `comptes:plage`, `docs/structures-donnees.md` §7 et le rapport daté d’un audit de dette",
+    "verrou": "src/data/structures-contrat.test.ts"
+  },
+  {
     "id": "structuresLocales",
     "type": "primitives.manifest",
-    "label": "noeudsDeStructure/sitesDeStructure/cheminsDeSchema/nomDeBranche/empreinteDeSite/regenerations/MOTIF_STRUCTURES_LOCALES",
+    "label": "noeudsDeStructure/sitesDeStructure/cheminsDeDocument/cheminsDeSchema/nomDeBranche/empreinteDeSite/regenerations/MOTIF_STRUCTURES_LOCALES",
     "fichier": "scripts/guards/lib/structuresLocales.mts",
     "concept": "dette de STRUCTURE mesurée sur le schéma : un site par nœud objet ou non validant d’un document authoré, au nom de son schéma de document (`nomDuDocument`, `‹racine›#‹type›`, indépendant du nombre de ses documents) et à son plus court chemin de schéma (branches nommées, `|<lazy>`, injectivité), classé D5, G, G1 ou L (grammaire atteinte par identité ou produit de fabrique, partage par défs, déclaration d’op ou classe de produit) ; régénération du stock `STRUCTURES_LOCALES`, dont la porte apparie les renommages par empreinte (`renommagesDeStructure` ; format unique écrit et relu par `empreinteDeChamps`, occurrencesStock.mjs)",
     "perimetre": "toute mesure de dette qui doit rester stable à l’ajout d’une donnée conforme (#2995) : elle ne lit que les defs",
