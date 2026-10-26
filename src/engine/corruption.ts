@@ -24,6 +24,7 @@ import { rollObsession } from '../data/obsessions';
 import { acquerirTalent, retirerTalent } from './careerSlots';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';
+import { resoudreTrait } from './statEntry';
 import type { PsychType } from './psychology';
 import type { GameOp } from './ops';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -218,7 +219,7 @@ export function attachMutation(c: Combatant, tiree: Mutation, rng: RNG): Mutatio
       const arg = op.arg ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
       // PROVENANCE de l'instance : la mutation elle-même (registre `TraitInstance.src`), interrogée par
       // son `removeTrait` de re-ciblage et par `detachMutation`.
-      grantTrait(c, { id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}), src });
+      grantTrait(c, resoudreTrait({ id: op.traitId, ...(arg ? { arg } : {}), ...(value != null ? { value } : {}), ...(op.range != null ? { range: op.range } : {}) }, src));
     } else if (op.op === 'grantPsychTrait') {
       const cible = op.cible ?? (op.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
       grantPsychTrait(c, op.psychType as PsychType, cible, src);

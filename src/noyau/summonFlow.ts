@@ -21,6 +21,7 @@ import { occupied } from './monde/combatGeometry';
 import { inBattleId } from './monde/combatants';
 import { spawnEnemy } from './monde/spawn';
 import { grantTrait } from '../engine/grantedTraits';
+import { resoudreTrait } from '../engine/statEntry';
 import { resolveFormula, slBonus, nomDeSource, type GameOp } from '../engine/ops';
 import { isOutOfAction } from '../engine/conditions';
 import { RNG } from '../engine/dice';
@@ -109,7 +110,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     const c = spawnEnemy(porteur, id, pos);
     c.kind = kind;
     if (summon.size) c.size = summon.size;
-    for (const t of summon.addTraits ?? []) grantTrait(c, t); // traits surchargés (Frénésie, Magique…) — déjà structurés
+    for (const t of summon.addTraits ?? []) grantTrait(c, resoudreTrait(t)); // traits surchargés (Frénésie, Magique…)
     c.summon = {
       byId: caster.id,
       ...(opts.label ? { label: opts.label } : {}),

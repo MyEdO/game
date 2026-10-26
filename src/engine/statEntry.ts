@@ -9,6 +9,7 @@
  */
 import type { CharKey, EffectSource } from './types';
 import type { SizeCategory } from './size';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 
 export interface StatEntry {
   /** Nom canonique (base), sans compte/bonus/indice/parenthèse : « Tentacules », « Arme »,
@@ -68,10 +69,10 @@ export function parseStatEntry(raw: string): StatEntry {
 }
 
 /**
- * Trait STRUCTURÉ (de-POC : fin du parsing de chaînes au runtime). Le bestiaire stocke des
- * `TraitInstance`, plus des chaînes re-parsées partout. `id` = identifiant STABLE (slug du libellé
- * canonique), indépendant de la langue — clé de lookup registre/données ; `value` = numérique
- * (Indice ou bonus signé) ; `arg` = parenthèse non-numérique ; `count` = compte en tête ; `range` = portée.
+ * Trait RÉSOLU, l'instance que le jeu lit (`Combatant.traits`) : rendu d'un Trait posé (`TraitPose`,
+ * `data/schemas/grammaire/reference.ts`) par `resoudreTrait`, sans sa provenance de livre. `id` = identifiant
+ * STABLE (slug du libellé canonique), indépendant de la langue — clé de lookup registre/données ; `value` =
+ * numérique (Indice ou bonus signé) ; `arg` = parenthèse non-numérique ; `count` = compte en tête ; `range` = portée.
  */
 export interface TraitInstance {
   id: string;
@@ -96,6 +97,23 @@ export interface TraitInstance {
    *  porté nativement ou accordé par un tiers (Haine d'une prière, LDB 226) n'est pas touché.
    *  Absent = instance NATIVE (statbloc/authoring). */
   src?: EffectSource;
+}
+
+/**
+ * La SEULE résolution d'un Trait posé en instance de jeu : statbloc et optionnels au spawn, invocation,
+ * Trait racial de l'espèce, op `grantTrait` et passif de mutation. La provenance de livre (`source`,
+ * `alsoIn`, `maison`) reste à la donnée ; `src` est la provenance d'un Trait ACCORDÉ. PURE.
+ */
+export function resoudreTrait(pose: TraitPose, src?: EffectSource): TraitInstance {
+  const { source: _source, alsoIn: _alsoIn, maison: _maison, ...jeu } = pose;
+  return src ? { ...jeu, src } : jeu;
+}
+
+/** INVERSE de `resoudreTrait` : la forme posée d'une instance de jeu, sans la provenance d'un Trait
+ *  accordé (`src`). Sert à poser ailleurs un Trait déjà résolu (Forme bestiale, `polymorph.ts`). PURE. */
+export function poseDeTrait(instance: TraitInstance): TraitPose {
+  const { src: _src, ...pose } = instance;
+  return pose;
 }
 
 /**
@@ -139,10 +157,10 @@ export interface OptionalSwap {
   wounds?: number;
 }
 export type OptionalNote = OptionalWildcard | OptionalSwap;
-/** Élément de la liste `optionals` (LDB 76) : Trait facultatif ordinaire OU note composée. */
-export type OptionalEntry = TraitInstance | OptionalNote;
+/** Élément de la liste `optionals` (LDB 76) : Trait facultatif ordinaire posé OU note composée. */
+export type OptionalEntry = TraitPose | OptionalNote;
 
-/** Une entrée d'`optionals` est-elle une NOTE composée (vs un `TraitInstance` ordinaire) ? */
+/** Une entrée d'`optionals` est-elle une NOTE composée (vs un Trait posé ordinaire) ? */
 export const isOptionalNote = (e: OptionalEntry): e is OptionalNote =>
   typeof (e as OptionalNote).note === 'string';
 

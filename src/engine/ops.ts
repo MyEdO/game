@@ -78,7 +78,8 @@ import {
 } from './types';
 import { formatTrait, formatWardSave } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
-import type { TraitInstance } from './statEntry';
+import { resoudreTrait } from './statEntry';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { ChaosAlign, ExposureLevel } from './corruption';
 import { t, pluriel, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
@@ -941,7 +942,7 @@ export type GameOp =
    *  `addTraits`/`size` surchargent le statbloc (loup blanc = Loup + Frénésie + Grand) ; `allyOfCaster`
    *  = camp du lanceur (défaut) sinon hostile (démons « hors de votre contrôle ») ; `despawnIfCasterDown`
    *  = s'effondre si le lanceur tombe (minions liés au sorcier). */
-  | { op: 'summon'; ref: string; count: Formula; countPerSL?: PerSL; addTraits?: TraitInstance[];
+  | { op: 'summon'; ref: string; count: Formula; countPerSL?: PerSL; addTraits?: TraitPose[];
       size?: SizeCategory; allyOfCaster?: boolean; despawnIfCasterDown?: boolean }
   /** RECONSTITUTION DIFFÉRÉE (Gardien éternel, Middenheim — « se reconstitue au bout de d10 jours »).
    *  À la MORT du porteur, programme la ré-invocation de la créature `ref` (`SELF_REF` = la défunte, par son
@@ -2139,7 +2140,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
         const ind = o.indice != null ? resolveFormula(o.indice, ref, rng) + slBonus(ctx.sl, o.indicePerSL) : null;
         const arg = o.arg ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        const inst: TraitInstance = { id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}), ...(source ? { src: source } : {}) };
+        const inst = resoudreTrait({ id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}) }, source);
         grantTrait(target, inst);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
@@ -2671,7 +2672,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       }
       case 'domeWard': {
         const zone = zoneDeGarde(ctx, target, 'domeWard');
-        const ward = { id: o.traitId, value: resolveFormula(o.indice, ref, rng) };
+        const indice = resolveFormula(o.indice, ref, rng);
+        const ward = resoudreTrait({ id: o.traitId, value: indice });
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
@@ -2679,7 +2681,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           domeWard: { radiusMeters: zone.rayonM, ward },
         });
         lines.push(t(zone.porteur ? 'op.domeWard' : 'op.domeWardCouvert', {
-          name: target.label, diametre: zone.diametreM, trait: formatWardSave({ kind: 'trait', id: ward.id }, ward.value), src: nomDeSource(ctx),
+          name: target.label, diametre: zone.diametreM, trait: formatWardSave({ kind: 'trait', id: ward.id }, indice), src: nomDeSource(ctx),
         }));
         break;
       }

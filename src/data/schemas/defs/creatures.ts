@@ -15,7 +15,7 @@ export const file = 'creatures.json';
 export const famille = 'entite';
 
 /** `OptionalEntry` (`src/engine/statEntry.ts`) — un élément d'`optionals` (LDB 76) : soit un
- *  `TraitInstance` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
+ *  `TraitPose` ordinaire, soit une NOTE composée irréductible à un trait (discriminée par `note`) :
  *  joker « tous les traits » (Mutant, LDB 83 l.91) ou variante « remplacer des Traits par un bonus »
  *  (Grand Loup ZI 1 l.229, Griffon ZI). La note porte son `label` source VERBATIM + les champs d'application. */
 const optionalWildcardSchema = nommerChamps(z.strictObject({

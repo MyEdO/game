@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest';
 import { parseSkillRef, parseTalentRef, parseTraitInstance } from './refFormatLivre';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
 import { formatTrait } from '../../engine/traits/dispatch';
-import type { TraitInstance } from '../../engine/statEntry';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { traitInstanceSchema } from '../../data/schemas/grammaire/reference';
 
 const CAS: SkillRef[] = [
@@ -70,7 +70,7 @@ describe('format livre — Trait', () => {
   });
 
   it('va-et-vient formatTrait → parseTraitInstance : l’argument d’un Trait à registre revient à son id, un texte libre reste', () => {
-    const allerRetour = (t: TraitInstance) => parseTraitInstance(formatTrait(t));
+    const allerRetour = (t: TraitPose) => parseTraitInstance(formatTrait(t));
     for (const t of [
       { id: 'corruption', arg: 'moderee' }, // LDB 85 l.85
       { id: 'venin', arg: 'difficile' }, // LDB 85 l.423
@@ -78,7 +78,7 @@ describe('format livre — Trait', () => {
       { id: 'haine', arg: 'noble' },
       { id: 'haine', arg: 'homme-bete' },
       { id: 'venin', arg: 'de Très Facile à Très Difficile' },
-    ] as TraitInstance[])
+    ] as TraitPose[])
       expect(allerRetour(t), JSON.stringify(t)).toEqual(t);
     expect(formatTrait({ id: 'venin', arg: 'difficile' })).toBe('Venin (Difficile)');
     expect(formatTrait({ id: 'corruption', arg: 'moderee' })).toBe('Corruption (Modérée)');

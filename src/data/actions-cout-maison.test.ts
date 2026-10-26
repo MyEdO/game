@@ -7,7 +7,7 @@ import actionsJson from './actions.json';
  *
  * Le def portait le couple `maison: boolean` + `costNote: string` liés par un `superRefine`
  * bidirectionnel. La migration `2026-08-27-l1b-4b-actions-maison-raison.mjs` a fondu les deux dans le
- * champ d'enveloppe `maison: z.string().min(1)` : le texte de la note EST la raison. Le refine est
+ * champ d'enveloppe `maison` (`maisonSchema`) : le texte de la note EST la raison. Le refine est
  * mort — ce que le TYPE garde désormais se mesure ici, sur la donnée réelle mutée, sans quoi la mort
  * du refine ne serait couverte par rien.
  */

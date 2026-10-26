@@ -7,7 +7,9 @@
  * On édite les VRAIS objets de `src/data/*.json` (rien de transformé) → la donnée stockée reste celle
  * que le moteur lit (DiseaseSymptom / CombatFeature / AdvancementRef / TrappingRef).
  */
-import { RefField, SaisieSuggeree, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg } from '../../compendium/refField/RefField';
+import { useState } from 'react';
+import { RefField, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
+import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
 import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../engine/disease';
@@ -22,9 +24,14 @@ import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById
 import type { z } from 'zod';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
-import { isOptionalNote, type TraitInstance, type OptionalEntry } from '../../../engine/statEntry';
+import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
+import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import { formatTrait, optionalLabel } from '../../../engine/traits/dispatch';
-import { parseTraitInstance } from '../refFormatLivre';
+import { relireTrait } from '../refFormatLivre';
+import { ProvenanceDeValeur } from '../ProvenanceDeValeur';
+import { SourceRefField, useSaisieEnCours } from '../../SourceRefField';
+import { useClesDeRangees } from '../../useClesDeRangees';
+import type { SecondaryRef } from '../../../data/schemas/grammaire/valeurs';
 import { GameOpEditor, newOp } from '../GameOpEditor';
 import { NoeudTestField, noeudTestNeuf, type NoeudTest } from '../FlowEditor';
 import type { GameOp } from '../../../engine/ops';
@@ -697,28 +704,72 @@ export function DomainEffectsField(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * 8) TraitInstance[] — liste de Traits de créature STRUCTURÉS (édités via la chaîne
- *    réversible `formatTrait` ⇄ `parseTraitInstance`, comme dans StatblockEditor).
+ * 8) TraitPose[] — liste de Traits de créature POSÉS (édités via la chaîne
+ *    réversible `formatTrait` ⇄ `relireTrait`, comme dans StatblockEditor).
  *    PARTAGÉ : StatblockEditor (traits fixes) + Codex `creatures.traits`/`.optionals`.
- *    L'auteur complète l'Indice/la Cible dans la chaîne (« Arme (Épée) +7 », « Peur 3 »).
+ *    L'auteur complète l'Indice/la Cible dans la chaîne (« Arme (Épée) +7 », « Peur 3 »),
+ *    et sous le repli de la rangée ce que la chaîne ne dit pas : les drapeaux de la pose
+ *    et sa provenance (`source`/`alsoIn`/`maison`).
  * ──────────────────────────────────────────────────────────────────────────── */
 
+/** Une rangée de Trait POSÉ : la chaîne, son retrait, et sous un repli les clés que `formatTrait` ne
+ *  rend pas — les drapeaux (`natural`/`hidden`) et la provenance de la VALEUR posée, celle que
+ *  l'entrée porteuse ne fonde pas (un Indice pris à un autre livre, une lecture maison). PARTAGÉE par
+ *  `TraitListField` et `OptionalsListField` : une seule forme de rangée pour une seule forme de pose. */
+function RangeeDeTraitPose(
+  { chemin, suggestions, titreDeRetrait, value, onChange, onRetirer }:
+  {
+    chemin: string; suggestions: SuggestionsPartagees | undefined; titreDeRetrait: string;
+    value: TraitPose; onChange: (t: TraitPose) => void; onRetirer: () => void;
+  },
+) {
+  const t = value;
+  return (
+    <div className="ed-subfield">
+      <div className="trait-row">
+        <SaisieEnBrouillon suggestions={suggestions} value={t} afficher={formatTrait} relire={relireTrait} onChange={onChange} />
+        <button className="btn small danger" title={titreDeRetrait} onClick={onRetirer}>✕</button>
+      </div>
+      <details className="fold">
+        <summary><span className="fold-title">{`Pose de « ${formatTrait(t) || 'ce trait'} » : drapeaux et provenance`}</span></summary>
+        <div className="fold-body">
+          <label className="dr">
+            <input type="checkbox" checked={!!t.natural} onChange={(e) => onChange({ ...t, natural: e.target.checked || undefined })} />
+            {' '}arme NATURELLE (griffes, morsure : l’Arme vient du Trait, pas de l’inventaire)
+          </label>
+          <label className="dr">
+            <input type="checkbox" checked={!!t.hidden} onChange={(e) => onChange({ ...t, hidden: e.target.checked || undefined })} />
+            {' '}CACHÉ (porté sans être montré au joueur)
+          </label>
+          <ProvenanceDeValeur
+            identite={`${chemin}/provenance`} sujet="de la valeur posée" exigee={false}
+            value={{ source: t.source, maison: t.maison }}
+            onChange={(p) => onChange({ ...t, source: p.source, maison: p.maison })}
+          />
+          <AlsoInField chemin={`${chemin}/alsoIn`} value={t.alsoIn} onChange={(v) => onChange({ ...t, alsoIn: v.length ? v : undefined })} />
+        </div>
+      </details>
+    </div>
+  );
+}
+
 export function TraitListField(
-  { label, hint, value, onChange, suggestions }:
-  { label: string; hint?: string; value: TraitInstance[] | undefined; onChange: (v: TraitInstance[]) => void; suggestions?: string[] },
+  { chemin, label, hint, value, onChange, suggestions }:
+  { chemin: string; label: string; hint?: string; value: TraitPose[] | undefined; onChange: (v: TraitPose[]) => void; suggestions?: string[] },
 ) {
   const list = value ?? [];
-  const set = (next: TraitInstance[]) => onChange(next);
+  const set = (next: TraitPose[]) => onChange(next);
   const libelles = useValeursDistinctes(suggestions ? undefined : 'traits', 'label') ?? suggestions;
   const { partagees, datalist } = useSuggestionsPartagees(libelles);
+  const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
       <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
       {list.map((t, i) => (
-        <div key={i} className="trait-row">
-          <SaisieSuggeree suggestions={partagees} value={formatTrait(t)} onChange={(v) => set(list.map((x, j) => (j === i ? parseTraitInstance(v) : x)))} />
-          <button className="btn small danger" title="Retirer ce trait" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
-        </div>
+        <RangeeDeTraitPose
+          key={cles[i]} chemin={`${chemin}/${cles[i]}`} suggestions={partagees} titreDeRetrait="Retirer ce trait"
+          value={t} onChange={(v) => set(list.map((x, j) => (j === i ? v : x)))} onRetirer={() => set(list.filter((_, j) => j !== i))}
+        />
       ))}
       {datalist}
       <button className="btn small" onClick={() => set([...list, { id: '' }])}>+ Ajouter un trait</button>
@@ -726,30 +777,32 @@ export function TraitListField(
   );
 }
 
-/** Liste d'OPTIONNELS (LDB 76) : `TraitInstance` ORDINAIRES éditables en chaîne (comme `TraitListField`)
+/** Liste d'OPTIONNELS (LDB 76) : Traits posés ORDINAIRES éditables en chaîne (comme `TraitListField`)
  *  + NOTES composées (joker « tous les traits », variante « swap » ZI) affichées en LECTURE SEULE
  *  (texte source VERBATIM — pas de saisie libre, elles se curent en JSON) mais supprimables. Les notes
  *  sont PRÉSERVÉES lors de l'édition des traits ordinaires (jamais écrasées par le round-trip chaîne). */
 export function OptionalsListField(
-  { label, hint, value, onChange }:
-  { label: string; hint?: string; value: OptionalEntry[] | undefined; onChange: (v: OptionalEntry[]) => void },
+  { chemin, label, hint, value, onChange }:
+  { chemin: string; label: string; hint?: string; value: OptionalEntry[] | undefined; onChange: (v: OptionalEntry[]) => void },
 ) {
   const list = value ?? [];
   const libelles = useValeursDistinctes('traits', 'label');
   const { partagees, datalist } = useSuggestionsPartagees(libelles);
+  const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
       <span>{label}{hint && <em className="ed-hint"> {hint}</em>}</span>
-      {list.map((t, i) => (
-        <div key={i} className="trait-row">
-          {isOptionalNote(t) ? (
-            <span className="chip">{optionalLabel(t)}</span>
-          ) : (
-            <SaisieSuggeree suggestions={partagees} value={formatTrait(t)} onChange={(v) => onChange(list.map((x, j) => (j === i ? parseTraitInstance(v) : x)))} />
-          )}
+      {list.map((t, i) => (isOptionalNote(t) ? (
+        <div key={cles[i]} className="trait-row">
+          <span className="chip">{optionalLabel(t)}</span>
           <button className="btn small danger" title="Retirer cet optionnel" onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
         </div>
-      ))}
+      ) : (
+        <RangeeDeTraitPose
+          key={cles[i]} chemin={`${chemin}/${cles[i]}`} suggestions={partagees} titreDeRetrait="Retirer cet optionnel"
+          value={t} onChange={(v) => onChange(list.map((x, j) => (j === i ? v : x)))} onRetirer={() => onChange(list.filter((_, j) => j !== i))}
+        />
+      )))}
       {datalist}
       <button className="btn small" onClick={() => onChange([...list, { id: '' }])}>+ Ajouter un trait optionnel</button>
     </div>
@@ -886,6 +939,67 @@ export function RuleActionField({ rule, value, onChange }: {
         <input value={value.run} onChange={(e) => set({ run: e.target.value })} />
       </label>
       <button className="btn small" onClick={() => onChange(undefined)}>Retirer l'action</button>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * 8bis) alsoIn: SecondaryRef[] — emplacements SECONDAIRES, posés sur une ENTRÉE (enveloppe
+ *    de `document()`, Codex) comme sur une VALEUR posée (rangée de Trait).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** Une rangée de `AlsoInField` : `valeur` = réf COMPLÈTE émise ; absente, la rangée est un BROUILLON
+ *  local, dont la citation déjà saisie attend dans `quote`. `cle` = identité stable de la rangée. */
+type RangeeAlsoIn = { cle: number; valeur?: SecondaryRef; quote?: string };
+
+/** Emplacements SECONDAIRES d'une entrée réimprimée ailleurs (`alsoIn: SecondaryRef[]`, #563, doctrine
+ *  user 2026-07-17 — « jamais 2 talents différents »). L'ANCRE (`source`) reste seule à porter la
+ *  `desc` (règle stricte 5) ; chaque rangée secondaire = `{book,page,note?}` + `quote` (preuve
+ *  verbatim, obligatoire si le label n'est pas imprimé tel quel dans ce span). La liste n'ÉMET que ses
+ *  rangées complètes, contrat de `SourceRefField` (#1993). */
+export function AlsoInField({ chemin, value, onChange }: { chemin: string; value: SecondaryRef[] | undefined; onChange: (v: SecondaryRef[]) => void }) {
+  const [rangees, setRangees] = useState<RangeeAlsoIn[]>(() => (value ?? []).map((valeur, cle) => ({ cle, valeur })));
+  const [prochaine, setProchaine] = useState(() => value?.length ?? 0);
+  // Resynchronisation sur une valeur EXTERNE nouvelle ; la liste que le champ vient d'émettre (vide,
+  // le porteur la pose `undefined`) ne l'écrase pas, et ses brouillons survivent.
+  const [precedente, setPrecedente] = useState(value);
+  const [emise, setEmise] = useState<SecondaryRef[] | undefined>(value);
+  if (precedente !== value) {
+    setPrecedente(value);
+    if (value !== emise && !(value === undefined && emise?.length === 0)) {
+      setRangees((value ?? []).map((valeur, i) => ({ cle: prochaine + i, valeur })));
+      setProchaine(prochaine + (value?.length ?? 0));
+    }
+  }
+  const poser = (suivantes: RangeeAlsoIn[], emettre: boolean) => {
+    setRangees(suivantes);
+    if (!emettre) return;
+    const liste = suivantes.flatMap((r) => (r.valeur ? [r.valeur] : []));
+    setEmise(liste);
+    onChange(liste);
+  };
+  const remplacer = (cle: number, r: RangeeAlsoIn) => rangees.map((x) => (x.cle === cle ? r : x));
+  useSaisieEnCours(rangees.some((r) => !r.valeur && r.quote !== undefined));
+  const ajouter = () => {
+    poser([...rangees, { cle: prochaine }], false);
+    setProchaine(prochaine + 1);
+  };
+  return (
+    <div className="ed-field">
+      <span>Autres emplacements dans les livres — la description se lit à la source principale ci-dessus</span>
+      {rangees.map((r, i) => (
+        <div className="ed-field" key={r.cle}>
+          <SourceRefField identite={`${chemin}/${r.cle}`} label={`Emplacement ${i + 1}`} sujet={`de l'emplacement ${i + 1}`} value={r.valeur} onChange={(v) => poser(remplacer(r.cle, { cle: r.cle, valeur: r.valeur || !r.quote ? v : { ...v, quote: r.quote } }), true)} />
+          <div className="fieldrow">
+            <input aria-label={`Citation de l'emplacement ${i + 1}`} placeholder="citation verbatim — preuve du span (obligatoire si le label n'y est pas imprimé)" value={(r.valeur ? r.valeur.quote : r.quote) ?? ''} onChange={(e) => {
+              const quote = e.target.value || undefined;
+              poser(remplacer(r.cle, r.valeur ? { cle: r.cle, valeur: { ...r.valeur, quote } } : { cle: r.cle, quote }), r.valeur !== undefined);
+            }} />
+            <button className="btn small danger" aria-label={`Retirer l'emplacement ${i + 1}`} title="Retirer" onClick={() => poser(rangees.filter((x) => x.cle !== r.cle), r.valeur !== undefined)}>✕</button>
+          </div>
+        </div>
+      ))}
+      <button className="btn small" onClick={ajouter}>+ Emplacement secondaire</button>
     </div>
   );
 }

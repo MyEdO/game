@@ -157,7 +157,8 @@
       "book": "livre-de-base",
       "page": 338
     },
-    "standard": true
+    "standard": true,
+    "maison": "Un Aspect qui nomme des pièces d’armure (« Plastron et heaume », « Veste de cuir », « Chemise de mailles ») ne restreint pas l’Indice : il vaut à toutes les Localisations (LDB 85 l.39), et non aux seuls Emplacements des pièces nommées (LDB 63 l.13). Lecture proposée en cérémonie (#1463)."
   },
   {
     "id": "attaque-caudale",

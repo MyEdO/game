@@ -12,7 +12,7 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { alternationDe } from '../../../lib/regex';
-import { sourceRefSchema, entityAppearanceSchema, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
+import { maisonSchema, sourceRefSchema, entityAppearanceSchema, raceKeySchema, sexeSchema } from '../grammaire/valeurs';
 import { conditionCondCtxSchema } from './worldmap';
 import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
@@ -162,7 +162,7 @@ export const etatNarratifSchema = nommerChamps(z.strictObject({
   id: z.string().min(1, 'id vide.'),
   label: z.string().min(1, 'libellé vide.'),
   source: sourceRefSchema.optional(),
-  maison: z.string().min(1).optional(),
+  maison: maisonSchema.optional(),
   forme: formeDEtatSchema,
 })
   .superRefine((etat, ctx) => refuserSansProvenance(etat, ctx, 'de l’état')), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, source: { label: "source" }, maison: { label: "maison" , texte: { regime: "technique"} }, forme: { label: "forme" } });

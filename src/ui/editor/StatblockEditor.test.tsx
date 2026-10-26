@@ -15,14 +15,14 @@ beforeAll(() => {
 describe('StatblockEditor — exposition Psychologie (P4)', () => {
   it('affiche le champ Groupes (extras) avec la valeur courante', () => {
     const stat: CustomStatblock = { type: 'statblock', label: 'X', char: { M: 4 }, groups: ['Sigmarite', 'Cultiste'] };
-    const html = renderToStaticMarkup(<StatblockEditor stat={stat} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<StatblockEditor chemin="banc/statblock" stat={stat} onChange={() => {}} />);
     expect(html).toContain('Groupes');
     expect(html).toContain('Sigmarite, Cultiste');
   });
 
   it('documente la syntaxe des Traits psy (Peur/Terreur/Animosité)', () => {
     const stat: CustomStatblock = { type: 'statblock', label: 'X', char: { M: 4 } };
-    const html = renderToStaticMarkup(<StatblockEditor stat={stat} onChange={() => {}} />);
+    const html = renderToStaticMarkup(<StatblockEditor chemin="banc/statblock" stat={stat} onChange={() => {}} />);
     expect(html).toMatch(/Peur/);
     expect(html).toMatch(/Animosit/);
   });
@@ -36,7 +36,7 @@ describe('StatblockEditor — cloner une créature de base ne décide JAMAIS par
     document.body.appendChild(container);
     const root = createRoot(container);
     act(() => {
-      root.render(<StatblockEditor stat={stat} onChange={(s) => { latest = s; }} />);
+      root.render(<StatblockEditor chemin="banc/statblock" stat={stat} onChange={(s) => { latest = s; }} />);
     });
     const select = container.querySelector('select') as HTMLSelectElement;
     const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!;
@@ -54,7 +54,7 @@ describe('StatblockEditor — une clé de Caractéristique ne se rend JAMAIS tel
   it('la grille affiche l’abréviation dérivée de la donnée (charAbr), pas l’id stable', () => {
     const stat: CustomStatblock = { type: 'statblock', label: 'X', char: { M: 4 } };
     const container = document.createElement('div');
-    container.innerHTML = renderToStaticMarkup(<StatblockEditor stat={stat} onChange={() => {}} />);
+    container.innerHTML = renderToStaticMarkup(<StatblockEditor chemin="banc/statblock" stat={stat} onChange={() => {}} />);
     const libelles = [...container.querySelectorAll('.statblock-grid > label.ed-subfield')].map((l) => l.firstChild?.textContent);
     expect(libelles).toContain(charAbr('capacite-de-combat'));
     expect(libelles).toContain(charAbr('force-mentale'));

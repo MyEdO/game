@@ -414,6 +414,15 @@
     "verrou": "CodexRef.test.ts, ref-field-sous-liste.test.tsx, objet-donne.test.tsx, tavern-specials-editeur.test.tsx, saisie-suggeree.test.tsx"
   },
   {
+    "id": "saisieEnBrouillon",
+    "type": "primitives.manifest",
+    "label": "SaisieEnBrouillon",
+    "fichier": "src/ui/compendium/refField/SaisieEnBrouillon.tsx",
+    "concept": "saisie EN CHAÎNE d'une valeur structurée tenue en brouillon local : `afficher` rend la valeur en texte, `relire` relit le brouillon UNE fois à la fin de la saisie (blur, Entrée hors `lignes`) contre la valeur courante ; la frappe n'est jamais réécrite ni émise ; le brouillon ne déclare PAS de saisie en cours au porteur du geste d'enregistrement (il se pose toujours, au blur que ce geste provoque) ; une valeur affichée qui change sous le brouillon le fait tomber ; `SaisieSuggeree` sur une ligne, `<textarea>` à `lignes`",
+    "perimetre": "chaîne d'un Trait posé (rangée de TraitListField/OptionalsListField, OptionalTraitsPicker), Traits ajoutés d'une invocation (GameOpEditor `summon.addTraits`), refs au format livre une par ligne du Codex (Compétences, Talents d'une créature), renommage d'un id stable de l'inspecteur (`EntryRename`)",
+    "verrou": "saisie-suggeree.test.tsx, codex-edit-competences-au-clic.test.tsx, renommage-garde-la-saisie.test.tsx"
+  },
+  {
     "id": "sourceBadge",
     "type": "primitives.manifest",
     "label": "SourceBadge",
@@ -594,6 +603,15 @@
     "concept": "une référence de Compétence ou de Talent couvre une entrée du même id : sans `spec`, toutes ses Spécialisations ; avec `spec`, la sienne seule (LDB 09 l.44) — l'adressage d'UNE convention, la construction `COUVERTURE_DE_SPEC` en garde la recopie",
     "perimetre": "listes de références qui désignent des Compétences ou Talents (Activités, rôles d'équipage, Précipitations, ops `skillDRBonus`, jetons d'inversion, `reverseFailed`), recherche d'une Compétence sur la fiche",
     "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
+  },
+  {
+    "id": "resoudreTrait",
+    "type": "primitives.manifest",
+    "label": "resoudreTrait/poseDeTrait",
+    "fichier": "src/engine/statEntry.ts",
+    "concept": "la SEULE résolution d'un Trait posé (`TraitPose`, forme authorée inférée de `traitInstanceSchema`) en instance de jeu (`TraitInstance`) : la provenance de livre (`source`, `alsoIn`, `maison`) reste à la donnée, `src` dit qui a accordé l'instance ; `poseDeTrait` en est l'inverse",
+    "perimetre": "spawn d'une créature ou d'un statbloc (Traits, optionnels, Traits appris), invocation (`summon.addTraits`), Trait racial à la création de héros, ops `grantTrait` et `domeWard`, passif `grantTrait` d'une mutation, Corruption posée par l'outil de développement ; inverse : Forme bestiale (`polymorph.ts`)",
+    "verrou": "src/engine/statEntry.test.ts"
   },
   {
     "id": "memeSpecialisation",
@@ -807,6 +825,15 @@
     "verrou": "src/ui/SourceRefField.test.tsx"
   },
   {
+    "id": "alsoInField",
+    "type": "primitives.manifest",
+    "label": "AlsoInField",
+    "fichier": "src/ui/editor/codex/StructFields.tsx",
+    "concept": "liste des emplacements SECONDAIRES d'une valeur réimprimée ailleurs (alsoIn: SecondaryRef[]) : une rangée = SourceRefField + sa citation verbatim (quote, preuve du span quand le libellé n'y est pas imprimé) ; la liste n'émet que ses rangées COMPLÈTES, les brouillons restant à l'écran remontent au porteur du geste d'enregistrement",
+    "perimetre": "enveloppe d'une entrée du Codex (alsoIn de document()), rangée de Trait posé (TraitListField/OptionalsListField)",
+    "verrou": "src/ui/SourceRefField.test.tsx, src/ui/compendium/refField/saisie-suggeree.test.tsx"
+  },
+  {
     "id": "provenanceDuTexte",
     "type": "primitives.manifest",
     "label": "ProvenanceDuTexte",
@@ -821,7 +848,7 @@
     "label": "ProvenanceDeValeur",
     "fichier": "src/ui/editor/ProvenanceDeValeur.tsx",
     "concept": "provenance d'une VALEUR d'auteur : sa source (SourceRefField facultative) ou sa raison maison (ProseField courte), dans un panneau creux posé à côté de la valeur ; une valeur exigée sans l'une ni l'autre porte son refus (ChipDeRefus), miroir de refuserSansProvenance au chargement",
-    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel)",
+    "perimetre": "billet d'auteur, dé de péril, vitesse et distance d'une route (WorldMapRoutePanel), rangée de Trait posé (TraitListField/OptionalsListField : la valeur que l'entrée porteuse ne fonde pas)",
     "verrou": "src/ui/editor/worldmap-gating-editable.test.tsx, src/ui/editor/WorldMapEditor.test.tsx"
   },
   {

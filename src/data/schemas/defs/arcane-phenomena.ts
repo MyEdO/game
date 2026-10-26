@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** VDM 14. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { deDeTableSchema, difficultySchema, enumNomme, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
+import { deDeTableSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
 export const famille = 'config';
@@ -52,7 +52,7 @@ const testMod = nommerChamps(z.strictObject({
   windRestricted: z.boolean().optional(),
   /** Valeur maison ÉDITABLE portant sa justification, quand le RAW ne chiffre qu'une fourchette sans
    *  cas général (AGENTS.md règle 7 ; #831). Comptée comme citation par `citationCoverage.mjs`. */
-  maison: z.string().optional(),
+  maison: maisonSchema.optional(),
   source: sourceRefSchema,
   /** Passage RAW VERBATIM qui porte le modificateur (règle stricte 5). */
   desc: z.string(),
@@ -257,7 +257,7 @@ const doc = document(
 
           chaosMagic: z.boolean().optional(),
 
-          maison: z.string().optional(),
+          maison: maisonSchema.optional(),
         }), {
           ...metaDesChamps(plageSchema, { exigees: true }),
           label: { label: 'libellé' },
