@@ -15,17 +15,19 @@ export const fr = {
   'char.intelligence': 'Intelligence',
   'char.force-mentale': 'Force Mentale',
   'char.sociabilite': 'Sociabilité',
-  // Difficultés de Test (LDB 12) — lu par `DIFFICULTY_LABELS` (`engine/types.ts`).
-  'difficulty.tresFacile': 'Très facile (+60)',
-  'difficulty.facile': 'Facile (+40)',
-  'difficulty.accessible': 'Accessible (+20)',
-  'difficulty.intermediaire': 'Intermédiaire (+0)',
-  'difficulty.complexe': 'Complexe (−10)',
-  'difficulty.difficile': 'Difficile (−20)',
-  'difficulty.tresDifficile': 'Très difficile (−30)',
+  // Noms des Difficultés de Test (LDB 12 l.143-151) — lus par `DIFFICULTY_NAMES` (`engine/types.ts`).
+  'difficulty.tresFacile': 'Très Facile',
+  'difficulty.facile': 'Facile',
+  'difficulty.accessible': 'Accessible',
+  'difficulty.intermediaire': 'Intermédiaire',
+  'difficulty.complexe': 'Complexe',
+  'difficulty.difficile': 'Difficile',
+  'difficulty.tresDifficile': 'Très Difficile',
   // Difficultés extrêmes de L'Ennemi dans l'Ombre (EDO App.2 l.156-165).
-  'difficulty.presqueImpossible': 'Presque Impossible (−40)',
-  'difficulty.impossible': 'Impossible (−50)',
+  'difficulty.presqueImpossible': 'Presque Impossible',
+  'difficulty.impossible': 'Impossible',
+  // Une Difficulté de l'échelle avec son modificateur (`DIFFICULTY_LABELS`).
+  'difficulty.cran': '{nom} ({mod})',
   // Difficulté COMBINÉE : le modificateur que composent les circonstances quand il ne tombe sur aucun
   // cran de l'échelle (LDB 14 l.91-96 en nomme la combinaison, pas ce résultat) — terme validé par
   // l'utilisateur le 2026-08-10. Même typographie que les crans ci-dessus (moins Unicode U+2212).
@@ -3018,6 +3020,8 @@ export const fr = {
   'specSrc.breathType': 'Type de souffle',
   'specSrc.damageType': 'Type de dégâts',
   'specSrc.weapon': 'Arme',
+  'specSrc.exposure': 'Degré',
+  'specSrc.difficulty': 'Difficulté',
   'traitArg.range': 'Portée',
   'traitArg.paren': '({what})',
 

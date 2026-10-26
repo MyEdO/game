@@ -3,16 +3,15 @@
  *
  * Balaie CHAQUE instance de trait de la donnée et vérifie que la DÉCLARATION de schéma du trait
  * (`TraitData` : `indice` / `specsSource` / `specsOpen` / `specsMulti`, cf. `index.ts`) COUVRE ce que
- * l'instance porte. Trois INVARIANTS stricts, sans tolérance ad hoc ni baseline de dette (aucun élément
+ * l'instance porte. INVARIANTS stricts, sans tolérance ad hoc ni baseline de dette (aucun élément
  * différé) — même esprit que la GARDE EXHAUSTIVE de `refs-migrated.test.ts` (walk + offenders + `expect([])`) :
  *   1. `value` numérique ⟹ le trait déclare `indice` (le sens de la valeur).            → « missing-indice »
- *   2. `arg` RÉSOUT dans le registre de sa source — sur une source FERMÉE c'est la seule issue ; sur une
- *      source OUVERTE (`specsOpen`), un `arg` qui NE résout PAS comme id mais reproduit EXACTEMENT le
- *      LIBELLÉ d'un id du même registre est encore un libellé pris pour un id (#145) → « label-as-id ».
- *      Un descripteur NATUREL/libre qui ne matche NI id NI libellé reste légitime (« Griffes », « Crocs »).
- *   3. Toute instance porteuse d'un `id` RÉSOUT dans `traits.json` (id de trait connu).    → « id fantôme »
- * Un `arg` sur un trait SANS `specsSource` est un descripteur TEXTE LIBRE (« Corruption (Mineure) », « Armure
- * (Cuir 2) ») — légitime, non contraint (même convention que `refs-migrated` : hors catalogue = verbatim).
+ *   2. `arg` : le prédicat du SCHÉMA d'instance (`refusDArgHorsRegistre`, `grammaire/reference.ts`) — sur
+ *      un registre FERMÉ, chaque part résout un id ; sur un registre OUVERT (`specsOpen`), aucune part ne
+ *      reproduit le LIBELLÉ d'un id du registre (#145). Un descripteur libre qui ne matche NI id NI
+ *      libellé reste légitime (« Griffes », « Crocs »).
+ * L'`id` d'une instance est une feuille `idDe('trait')` du schéma : un id fantôme est refusé au parse.
+ * Un `arg` sur un trait SANS `specsSource` ni `specsOpen` est un descripteur TEXTE LIBRE, non contraint.
  *
  * ── PÉRIMÈTRE ─────────────────────────────────────────────────────────────────────────────────────
  * Les instances vivent dans `creatures.json` (`traits[]` profil imprimé + `optionals[]`, LDB 76) ET dans
@@ -24,23 +23,23 @@
  * `optionals[]` du bestiaire peut AUSSI porter des OPTIONNELS COMPOSÉS (`OptionalEntry`, #174) : une
  * NOTE discriminée par `note` (« all-traits » = joker Mutant LDB 83 l.91 ; « swap » = variante « remplacer
  * des Traits par un bonus », Grand Loup/Griffon ZI). Ces notes n'ont ni `id` ni `value` de premier niveau
- * (le bonus vit sous `grant`) → naturellement hors des invariants #1/#2/#3, sans exclusion ad hoc.
+ * (le bonus vit sous `grant`) → naturellement hors des invariants #1/#2, sans exclusion ad hoc.
  *
  * Les instances CONSTRUITES par op (`grantTrait { traitId, arg? }`, dans mutations/sorts/traits/États/
- * maladies) sont balayées par l'invariant #4 (même résolution, fermée ET ouverte, que #2). Toute dérive
- * FUTURE (un `value` sans `indice`, un `arg` pris pour un libellé, un `id` de trait fantôme, un
- * `grantTrait` à arg libellé) fait échouer la garde en LISTANT les fautifs.
- *   4. `grantTrait { traitId, arg }` (ops) : l'arg RÉSOUT dans le registre du trait ciblé.  → « op label-as-id »
+ * maladies) sont balayées par l'invariant #3 (même résolution, fermée ET ouverte, que #2). Toute dérive
+ * FUTURE (un `value` sans `indice`, un `arg` pris pour un libellé, un `grantTrait` à arg libellé) fait
+ * échouer la garde en LISTANT les fautifs.
+ *   3. `grantTrait { traitId, arg }` (ops) : l'arg RÉSOUT dans le registre du trait ciblé.  → « op label-as-id »
  */
 import { describe, it, expect } from 'vitest';
-import { traits, creatures, mutations, spells, etats, maladies, SPEC_SOURCES, type SpecsSource, type TraitData } from './index';
+import { traits, creatures, mutations, spells, etats, maladies, type TraitData } from './index';
 import { testScenarios } from '../scenes/test-scenarios';
 import { parseProject } from '../noyau/worldMap';
 import areneProjetJson from '../scenes/arene/arene-projet.json';
 import type { Scene } from '../noyau/monde/scene';
 import { fileURLToPath } from 'node:url';
 import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
-import { refusDArgHorsRegistre, partsDArg } from './schemas/grammaire/reference';
+import { refusDArgHorsRegistre } from './schemas/grammaire/reference';
 
 /** Entrées partielles embarquées du corpus des DEUX racines (`scanDuCorpus`), mesurées UNE fois. */
 const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.meta.url))).scan.entreesPartielles;
@@ -50,14 +49,6 @@ const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.me
 type RawTraitInstance = { id?: string; note?: string; value?: unknown; arg?: unknown; range?: unknown; count?: unknown };
 
 const byId = new Map(traits.map((t) => [t.id, t] as const));
-
-/** Résout un texte comme LIBELLÉ (pas id) d'une source de spéc partagée : l'id du POOL (choisissable,
- *  cf. doctrine `SPEC_SOURCES`) dont `.label()` reproduit EXACTEMENT ce texte. Sert l'invariant #2/#4 sur
- *  une source OUVERTE — un descripteur naturel/libre (« Griffes ») ne matche NI id NI libellé et reste
- *  légitime ; seul un texte qui EST le libellé d'un id réel est un libellé pris pour un id. */
-function labelAsId(src: SpecsSource, text: string): string | undefined {
-  return SPEC_SOURCES[src].pool().find((id) => SPEC_SOURCES[src].label(id) === text);
-}
 
 interface Row { inst: RawTraitInstance; def: TraitData | undefined; where: string; hasId: boolean; }
 
@@ -69,7 +60,7 @@ interface Row { inst: RawTraitInstance; def: TraitData | undefined; where: strin
 const scenesToScan: Scene[] = [...testScenarios.map((s) => s.construire().scene), ...parseProject(areneProjetJson).scenes];
 
 /** Statblocs D'AUTEUR des scénarios de test/projets d'éditeur — même schéma d'instance que le
- *  bestiaire (id-based), soumis aux mêmes invariants #1/#2/#3. Balaie
+ *  bestiaire (id-based), soumis aux mêmes invariants #1/#2. Balaie
  *  `statblock.traits` (profil d'auteur, ex. un statbloc de Nuée/Dragon) ET `combat.optionals` (Traits
  *  FACULTATIFS choisis sur une entité `ref`, LDB 76 l.45, ex. « Lanceur de Sorts » d'un cultiste) —
  *  même schéma `TraitInstance`, même dérive possible dans les deux. */
@@ -107,7 +98,7 @@ function* eachEntreePartielle(): Generator<Row> {
 
 /** Toutes les instances de trait (`creatures.json` `traits[]`/`optionals[]` + statblocs de scène), def
  *  résolue par `id` (byId). Les OPTIONNELS COMPOSÉS (`note`, #174) n'ont pas d'`id` → def undefined,
- *  `hasId` faux : hors des invariants #1/#2/#3. `hasId` = l'instance porte un vrai `id` (⇒ soumise à #2/#3). */
+ *  `hasId` faux : hors des invariants #1/#2. `hasId` = l'instance porte un vrai `id` (⇒ soumise à #2). */
 function* eachInstance(): Generator<Row> {
   for (const c of creatures) {
     for (const list of ['traits', 'optionals'] as const) {
@@ -121,20 +112,10 @@ function* eachInstance(): Generator<Row> {
   yield* eachEntreePartielle();
 }
 
-/** Fautes de l'`arg` `arg` du Trait `def` — source FERMÉE : le prédicat du SCHÉMA (`refusDArgHorsRegistre`) ;
- *  source OUVERTE : une part qui reproduit le LIBELLÉ d'un id du registre (#145). */
+/** Fautes de l'`arg` `arg` du Trait `def` : le prédicat du SCHÉMA (`refusDArgHorsRegistre`). */
 function fautesDArg(def: TraitData, arg: string): string[] {
-  const src: SpecsSource | undefined = def.specsSource;
-  if (!src) return []; // sans source = descripteur texte libre (légitime, non contraint)
-  if (!def.specsOpen) {
-    const refus = refusDArgHorsRegistre(def.id, arg);
-    return refus ? [`${src}: ${refus}`] : [];
-  }
-  return partsDArg(def.id, arg).flatMap((part) => {
-    if (SPEC_SOURCES[src].resolves(part)) return [];
-    const asId = labelAsId(src, part);
-    return asId ? [`${src}: ${JSON.stringify(part)} est le libellé de « ${asId} » — utiliser l'id`] : [];
-  });
+  const refus = refusDArgHorsRegistre(def.id, arg);
+  return refus ? [refus] : [];
 }
 
 describe('schéma d\'argument des traits — chaque instance est COUVERTE par la déclaration de son trait', () => {
@@ -154,18 +135,6 @@ describe('schéma d\'argument des traits — chaque instance est COUVERTE par la
       for (const faute of fautesDArg(def, inst.arg)) offenders.push(`${where} → ${faute}`);
     }
     expect(offenders, `arg non résolu (libellé pris pour un id ?) :\n${offenders.join('\n')}`).toEqual([]);
-  });
-
-  it('toute instance porteuse d\'un `id` RÉSOUT dans traits.json — jamais un id de trait fantôme (les entrées prose portent `key`, pas `id`)', () => {
-    const offenders: string[] = [];
-    for (const { inst, where, hasId } of eachInstance()) {
-      if (!hasId) continue; // entrées prose non migrées : `key`, pas `id` → hors de cet invariant
-      if (!byId.has(inst.id as string)) {
-        const carries = [inst.value != null && 'value', inst.arg != null && 'arg', inst.range != null && 'range'].filter(Boolean).join('/');
-        offenders.push(`${where} → id « ${String(inst.id)} » introuvable dans traits.json${carries ? ` (porte ${carries})` : ''}`);
-      }
-    }
-    expect(offenders, `id de trait fantôme :\n${offenders.join('\n')}`).toEqual([]);
   });
 
   it('grantTrait { traitId, arg } (mutations/sorts/traits/États/maladies) : l\'arg RÉSOUT dans le registre du trait (fermé ou ouvert)', () => {

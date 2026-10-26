@@ -7,7 +7,7 @@ import { nommerChamps, metaDesChamps } from './meta';
  */
 import { z } from 'zod';
 import { countSpecSchema } from './valeurs';
-import { porteLeMarqueur, refusDeSpec } from './ref';
+import { idDe, marqueurDeLaForme, porteLeMarqueur, refusDeSpec } from './ref';
 
 /**
  * `TraitInstance` (`src/engine/statEntry.ts`) — Trait STRUCTURÉ partagé entre le bestiaire
@@ -16,62 +16,54 @@ import { porteLeMarqueur, refusDeSpec } from './ref';
  * consommation ×2 ; la Taille, elle, est portée par le TALENT Massif/Petit, pas un Trait). MÊME
  * forme partout — jamais recopiée.
  */
-/** Ce que l'`arg` d'un Trait ne peut pas porter quand sa def DÉCLARE le champ qui le reçoit
- *  (`LDB 85` l.94, l.209) : le marqueur du def (`defs/traits.ts`), la forme de la valeur, son champ. */
-const ARG_DECLARE_AILLEURS = [
-  { marqueur: 'indice', forme: /^\+?\d+\+?$/, nature: 'un Indice', champ: 'value' },
-  { marqueur: 'range', forme: /^\d+(?:[.,]\d+)?\s*(?:m|mètres?)$/i, nature: 'une Portée', champ: 'range' },
-] as const;
-
-/** Prédicats « le Trait déclare ce marqueur », construits à la PREMIÈRE validation : `npm run gen`
- *  importe les defs avant d'avoir écrit la sous-liste que `porteLeMarqueur` exige à sa construction. */
-const declarants = new Map<string, (id: string) => boolean>();
-
 /**
  * Refus de l'`arg` `arg` sur le Trait `id` quand cet `arg` n'est qu'un Indice ou qu'une Portée que la
- * def du Trait DÉCLARE — message nommé (id, valeur, champ attendu), sinon `null`. Appelé par le schéma
- * d'instance ci-dessous.
+ * def du Trait DÉCLARE (`marqueurDeLaForme`) — message nommé (id, valeur, champ attendu), sinon `null`.
+ * Appelé par le schéma d'instance ci-dessous.
  */
 export function refusDArgDeTrait(id: string, arg: string): string | null {
-  for (const r of ARG_DECLARE_AILLEURS) {
-    if (!r.forme.test(arg.trim())) continue;
-    if (declare(r.marqueur, id)) return `Trait « ${id} » : « ${arg} » est ${r.nature} — il s'écrit en « ${r.champ} » (nombre), jamais en « arg ».`;
-  }
-  return null;
+  const forme = marqueurDeLaForme('trait', id, arg);
+  return forme ? `Trait « ${id} » : « ${arg} » est ${forme.nature} — il s'écrit en « ${forme.champ} » (nombre), jamais en « arg ».` : null;
 }
 
 /** Joker d'un `arg` de Trait d'un statbloc RAW (« Animosité (un au choix) », « Peur (Au choix) ») : il
  *  désigne un choix, jamais une entrée du registre. */
 export const ARG_JOKER = /^(un |une |deux )?au choix$/i;
 
-/** Le prédicat « le Trait déclare ce marqueur », construit à la PREMIÈRE lecture (voir `declarants`). */
-function declare(marqueur: string, id: string): boolean {
-  let pred = declarants.get(marqueur);
-  if (!pred) declarants.set(marqueur, (pred = porteLeMarqueur('trait', marqueur)));
-  return pred(id);
-}
+/** Le prédicat « le Trait déclare `specsMulti` », construit à la PREMIÈRE lecture : `npm run gen` importe
+ *  les defs avant d'avoir écrit la sous-liste que `porteLeMarqueur` exige à sa construction. */
+let specsMulti: ((id: string) => boolean) | undefined;
+const declareSpecsMulti = (id: string): boolean => (specsMulti ??= porteLeMarqueur('trait', 'specsMulti'))(id);
 
 /** Parts de l'`arg` `arg` du Trait `id` : liste séparée par virgules si la def déclare `specsMulti`,
  *  sinon l'arg entier ; jokers et parts vides écartés. */
 export function partsDArg(id: string, arg: string): string[] {
   if (ARG_JOKER.test(arg.trim())) return [];
-  return (declare('specsMulti', id) ? arg.split(',') : [arg]).map((s) => s.trim()).filter((s) => s && !ARG_JOKER.test(s));
+  return (declareSpecsMulti(id) ? arg.split(',') : [arg]).map((s) => s.trim()).filter((s) => s && !ARG_JOKER.test(s));
 }
 
 /**
- * Refus de l'`arg` `arg` sur le Trait `id` dont le registre (`specsSource`) est FERMÉ : chaque part qui
- * n'y résout pas — message nommé, sinon `null`. Prédicat UNIQUE, lu par le schéma d'instance ci-dessous
- * et par `src/data/trait-args-derived.test.ts` ; un registre OUVERT (`specsOpen`) admet le texte libre.
+ * Refus de l'`arg` `arg` sur le Trait `id` : chaque part que `refusDeSpec` refuse parce qu'elle ne résout
+ * aucune entrée d'un registre FERMÉ (`horsCatalogue`) ou parce qu'elle reproduit, sur un registre OUVERT
+ * (`specsOpen`), le LIBELLÉ d'une de ses entrées (`libelle`) — message nommé, sinon `null`. Prédicat
+ * UNIQUE, lu par le schéma d'instance ci-dessous et par `src/data/trait-args-derived.test.ts` ; un
+ * registre ouvert admet tout autre texte libre.
  */
 export function refusDArgHorsRegistre(id: string, arg: string): string | null {
-  const horsRegistre = partsDArg(id, arg).filter((part) => refusDeSpec('trait', id, part) === 'horsCatalogue');
+  const horsRegistre = partsDArg(id, arg).filter((part) => {
+    const refus = refusDeSpec('trait', id, part);
+    return refus === 'horsCatalogue' || refus === 'libelle';
+  });
   return horsRegistre.length
     ? `Trait « ${id} » : ${horsRegistre.map((x) => `« ${x} »`).join(', ')} ne résout aucune entrée de son registre — un id du registre, jamais un libellé.`
     : null;
 }
 
+/** L'id d'un Trait posé : le moteur porte des ids nus (`TraitInstance.id`, `engine/statEntry.ts`). */
+const idDeTrait: z.ZodType<string, string> = idDe('trait');
+
 export const traitInstanceSchema = nommerChamps(z.strictObject({
-  id: z.string(),
+  id: idDeTrait,
   value: z.number().optional(),
   arg: z.string().optional(),
   count: z.number().optional(),

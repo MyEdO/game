@@ -1,17 +1,21 @@
 /**
  * PORTE UNIQUE du FORMAT LIVRE d'une référence de statbloc — « Compétence (Spéc) Valeur »,
- * « Talent (Spéc) Niveau » : le RENDU vit dans `src/data` (`skillRefLabel`/`talentRefLabel`), le PARSE
- * INVERSE vit ici. Round-trip verrouillé par `statblock-skillref-roundtrip.test.ts`.
+ * « Talent (Spéc) Niveau », « Trait (Argument) Indice » : le RENDU vit dans `src/data`
+ * (`skillRefLabel`/`talentRefLabel`) et dans `formatTrait` (`engine/traits/dispatch.ts`), le PARSE
+ * INVERSE vit ici. Round-trips verrouillés par `statblock-skillref-roundtrip.test.ts` et
+ * `label-logic-guard.test.ts` (`ALLER_RETOUR`).
  *
- * Deux consommateurs : l'éditeur de statbloc de scène (`StatblockEditor`) et l'atelier du Codex
- * (`CodexEdit`, fiche créature). `spec` rend un `id` dès qu'elle en RÉSOUT un — d'abord au catalogue
- * de l'entrée, sinon au registre partagé (`specIdOf`) ; sur un domaine à spécialisations OUVERTES,
- * le verbatim saisi est conservé en dernier ressort (« Savoir (Zorglub) » persiste « Zorglub »),
- * faute d'id à désigner. Doctrine « toute LOGIQUE est keyée par id STABLE » (AGENTS.md).
+ * Consommateurs : les éditeurs de statbloc (`StatblockEditor`, atelier du Codex `CodexEdit`,
+ * `StructFields`, `OptionalTraitsPicker`) et l'éditeur d'op (`GameOpEditor`). `spec` rend un `id` dès
+ * qu'elle en RÉSOUT un — d'abord au catalogue de l'entrée, sinon au registre partagé (`specIdOf`) ; sur
+ * un domaine à spécialisations OUVERTES, le verbatim saisi est conservé en dernier ressort
+ * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
+ * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, findSkill, findTalent, findTalentById, specCatalogOf, specLabel, specResolves, type SkillRef, type TalentRef } from '../../data';
+import { byId, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, type SkillRef, type TalentRef, type TraitData } from '../../data';
+import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
 import { slugId } from '../../data/slug';
-import { parseStatEntry } from '../../engine/statEntry';
+import { parseStatEntry, type TraitInstance } from '../../engine/statEntry';
 import { t } from '../../i18n';
 
 /** Saisie « (Au choix) » : un EMPLACEMENT, jamais une spécialisation (#1548). Le mot lu est celui que
@@ -71,4 +75,33 @@ export function parseTalentRef(text: string): TalentRef {
     ...(arg ? { spec: specIdOf('talents', id, arg) } : {}),
     ...(p.indice != null && p.indice > 1 ? { times: p.indice } : {}),
   };
+}
+
+/** Nom de Trait SAISI → son `id` (`traitIdByLabel`, casse ignorée) ; inconnu du registre → slug du
+ *  texte (« Arme », « Griffes »). */
+function idDeTraitSaisi(nom: string): string {
+  return traitIdByLabel(nom) ?? slugId(nom);
+}
+
+/** Argument SAISI d'un Trait à registre (`specsSource`) : chaque part (`specsMulti`) qui est le
+ *  libellé d'une entrée du registre revient à son id (`specIdByLabel`) ; un joker ou un texte libre
+ *  reste verbatim. Sans registre, le texte est l'argument. */
+function argDeTraitSaisi(def: TraitData | undefined, texte: string): string {
+  const source = def?.specsSource;
+  if (!source || ARG_JOKER.test(texte.trim())) return texte;
+  const une = (part: string) => specIdByLabel(part, source) ?? part.trim();
+  return def.specsMulti ? texte.split(',').map(une).join(', ') : une(texte);
+}
+
+/** Parse une saisie « Trait (Argument) Indice » → `TraitInstance` (id stable, argument en ids,
+ *  Indice/bonus, compte, portée). Inverse de `formatTrait`. */
+export function parseTraitInstance(text: string): TraitInstance {
+  const p = parseStatEntry(text);
+  const trait: TraitInstance = { id: idDeTraitSaisi(p.name) };
+  const value = p.bonus ?? p.indice;
+  if (value != null) trait.value = value;
+  if (p.arg != null) trait.arg = argDeTraitSaisi(findTraitById(trait.id), p.arg);
+  if (p.count != null) trait.count = p.count;
+  if (p.range != null) trait.range = p.range;
+  return trait;
 }

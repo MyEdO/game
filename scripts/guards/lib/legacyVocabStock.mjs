@@ -420,13 +420,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/engine/traits/dispatch.ts",
-    motif: "désormais",
-    ancre: "sont désormais des traits EN DONNÉE : plus aucune liste de libellés en dur à tenir alignée. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/engine/traits/parity.test.ts",
     motif: "désormais",
     ancre: "Parité des Traits de créature (LDB 85). Le registre `TRAITS` est désormais DÉRIVÉ 1:1 de la donnée",

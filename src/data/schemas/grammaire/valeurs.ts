@@ -104,6 +104,8 @@ export const specsSourceSchema = enumNomme({
   damageTypes: 'Types de Dégâts (immunité)',
   weaponsMelee: 'Armes de mêlée',
   weaponsRanged: 'Armes à distance',
+  exposureLevels: 'Degrés d’Exposition',
+  difficulties: 'Difficultés',
 });
 
 /**
@@ -128,10 +130,11 @@ export const chaosAlignSchema = enumNomme({
 
 /**
  * Palier d'une Influence corruptrice (`ExposureLevel`, `src/engine/corruption.ts` ; LDB 19 l.23-75) —
- * UNE déclaration pour la charge de l'op `corruptionExposure` (`grammaire/mecanique.ts`) et l'effet de
- * scène `corruptionExposure.level` (`defs-scenes/effets.ts`).
+ * UNE déclaration pour la charge de l'op `corruptionExposure` (`grammaire/mecanique.ts`), l'effet de
+ * scène `corruptionExposure.level` (`defs-scenes/effets.ts`) et le Degré du Trait Corruption
+ * (`grammaire/vocabulaires.ts`). Libellés : `LDB 19 l.33`, `l.43`, `l.56`.
  */
-export const exposureLevelSchema = enumNomme({ mineure: 'mineure', moderee: 'modérée', majeure: 'majeure' });
+export const exposureLevelSchema = enumNomme({ mineure: 'Mineure', moderee: 'Modérée', majeure: 'Majeure' });
 
 /**
  * `Dir8` (`src/geometry/dir8.ts`) — orientation MONDE à huit aires, UNE déclaration pour les deux nœuds

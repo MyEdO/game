@@ -71,7 +71,7 @@ const construireScene = (): Scene => buildScene({
           statblock: { type: 'statblock',
             label: 'Sorcier mutant',
             char: { M: 4, 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 45, sociabilite: 30 },
-            traits: [{ id: 'arme', value: 4, arg: 'dague' }, { id: 'lanceur-de-sorts', arg: 'sorcellerie' }, { id: 'corruption', arg: 'Mineure' }],
+            traits: [{ id: 'arme', value: 4, arg: 'dague' }, { id: 'lanceur-de-sorts', arg: 'sorcellerie' }, { id: 'corruption', arg: 'mineure' }],
             spells: ['flechette'], // id de sort (CustomStatblock.spells = string[] d'ids)
           },
           appearance: { species: 'humains-reiklander' },

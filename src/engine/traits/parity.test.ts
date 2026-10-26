@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { TRAITS } from './registry';
-import { parseTraitInstance, formatTrait } from './dispatch';
+import { formatTrait } from './dispatch';
 import type { TraitInstance } from '../statEntry';
 import { slugId } from '../../data/slug';
 
@@ -272,17 +272,6 @@ describe('parité — registre des Traits dérivé de traits.json', () => {
     }
     const dupes = [...seen.entries()].filter(([, n]) => n > 1).map(([l]) => l);
     expect(dupes).toEqual([]);
-  });
-
-  it('parseTraitInstance normalise Indice/argument/casse', () => {
-    expect(parseTraitInstance('Démoniaque 8+')).toEqual({ id: 'demoniaque', value: 8 });
-    expect(parseTraitInstance('Toile 40')).toEqual({ id: 'toile', value: 40 });
-    expect(parseTraitInstance('Immunité (Poison)')).toEqual({ id: 'immunite', arg: 'Poison' });
-    expect(parseTraitInstance('À Sang-froid').id).toBe('a-sang-froid'); // casse de la donnée ≠ id canonique
-    expect(parseTraitInstance('Vol 100')).toEqual({ id: 'vol', value: 100 });
-    expect(parseTraitInstance('Nuée').id).toBe('nuee');
-    expect(parseTraitInstance('Taille (Énorme)')).toEqual({ id: 'taille', arg: 'Énorme' });
-    expect(parseTraitInstance('Armure 4')).toEqual({ id: 'armure', value: 4 });
   });
 
   // La nature d'affichage est DÉRIVÉE de la donnée (jamais une liste en dur) :

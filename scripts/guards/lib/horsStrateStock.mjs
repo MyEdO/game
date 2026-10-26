@@ -607,7 +607,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/scenes#projet', ref: '.scenes[].encounters[].victoryCondition|type=woundsThreshold', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.combat', occurrence: 1 },
-  { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.combat.optionals[]', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.light', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.merchant', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.pos', occurrence: 1 },

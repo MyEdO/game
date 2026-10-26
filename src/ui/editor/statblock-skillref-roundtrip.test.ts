@@ -12,8 +12,10 @@
  * `LDB 09 l.40`.
  */
 import { describe, it, expect } from 'vitest';
-import { parseSkillRef, parseTalentRef } from './refFormatLivre';
+import { parseSkillRef, parseTalentRef, parseTraitInstance } from './refFormatLivre';
 import { skillRefLabel, talentRefLabel, type SkillRef, type TalentRef } from '../../data';
+import { formatTrait } from '../../engine/traits/dispatch';
+import type { TraitInstance } from '../../engine/statEntry';
 
 const CAS: SkillRef[] = [
   { id: 'savoir', spec: 'loi', value: 80 },
@@ -50,4 +52,35 @@ describe('Format livre — round-trip texte d’une TalentRef (L2 #1548)', () =>
       expect(parseTalentRef(talentRefLabel(ref))).toEqual(ref);
     });
   }
+});
+
+/** Le MÊME format livre porte le Trait (LDB 85) : « Nom (Argument) Indice », l'argument d'un Trait à
+ *  registre rendu à ses ids. */
+describe('format livre — Trait', () => {
+  it('parseTraitInstance normalise Indice/argument/casse', () => {
+    expect(parseTraitInstance('Démoniaque 8+')).toEqual({ id: 'demoniaque', value: 8 });
+    expect(parseTraitInstance('Toile 40')).toEqual({ id: 'toile', value: 40 });
+    expect(parseTraitInstance('Immunité (Poison)')).toEqual({ id: 'immunite', arg: 'poison' });
+    expect(parseTraitInstance('À Sang-froid').id).toBe('a-sang-froid'); // casse de la donnée ≠ id canonique
+    expect(parseTraitInstance('Vol 100')).toEqual({ id: 'vol', value: 100 });
+    expect(parseTraitInstance('Nuée').id).toBe('nuee');
+    expect(parseTraitInstance('Taille (Énorme)')).toEqual({ id: 'taille', arg: 'enorme' });
+    expect(parseTraitInstance('Armure 4')).toEqual({ id: 'armure', value: 4 });
+  });
+
+  it('va-et-vient formatTrait → parseTraitInstance : l’argument d’un Trait à registre revient à son id, un texte libre reste', () => {
+    const allerRetour = (t: TraitInstance) => parseTraitInstance(formatTrait(t));
+    for (const t of [
+      { id: 'corruption', arg: 'moderee' }, // LDB 85 l.85
+      { id: 'venin', arg: 'difficile' }, // LDB 85 l.423
+      { id: 'souffle', value: 12, arg: 'feu' },
+      { id: 'haine', arg: 'noble, homme-bete' },
+      { id: 'venin', arg: 'de Très Facile à Très Difficile' },
+    ] as TraitInstance[])
+      expect(allerRetour(t), JSON.stringify(t)).toEqual(t);
+    expect(formatTrait({ id: 'venin', arg: 'difficile' })).toBe('Venin (Difficile)');
+    expect(formatTrait({ id: 'corruption', arg: 'moderee' })).toBe('Corruption (Modérée)');
+    expect(parseTraitInstance('Corruption (mineure)'), 'casse de saisie ignorée').toEqual({ id: 'corruption', arg: 'mineure' });
+    expect(parseTraitInstance('Venin (TRÈS DIFFICILE)'), 'casse de saisie ignorée').toEqual({ id: 'venin', arg: 'tresDifficile' });
+  });
 });

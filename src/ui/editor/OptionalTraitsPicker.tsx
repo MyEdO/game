@@ -9,7 +9,8 @@
  */
 import { CreatureData, charAbr, memoParVersion, traits } from '../../data';
 import { CHAR_KEYS, type CharKey } from '../../engine/types';
-import { traitLabels, parseTraitInstance, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
+import { traitLabels, formatTrait, optionalLabel } from '../../engine/traits/dispatch';
+import { parseTraitInstance } from './refFormatLivre';
 import { isOptionalNote, type OptionalEntry } from '../../engine/statEntry';
 import { RefField } from '../compendium/refField/RefField';
 

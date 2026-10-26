@@ -1209,6 +1209,73 @@ describe('specRef() — l’ENTRÉE visée dit si sa spécialisation est ouverte
   });
 });
 
+/**
+ * Les deux règles GÉNÉRALES de `refusDeSpec` (#1463), sur une FIXTURE : un régime vivant synthétique pose
+ * trois Traits fictifs et repose le précédent. Un Trait déclare son Indice et sa Portée par marqueur
+ * (`LDB 85 l.94`, `l.209`) ; un Aspect libre (`specsOpen`) n'a pas de catalogue (`LDB 85 l.81-83`).
+ */
+describe('refusDeSpec — libellé de catalogue et forme de marqueur (fixture)', () => {
+  const OUVERTE = 'fixture-ouverte-a-catalogue';
+  const LIBRE = 'fixture-ouverte-sans-catalogue';
+  const FERMEE = 'fixture-fermee';
+  const avec = (cle: string, ...ids: string[]) => new Set([...(IDS_PAR_ESPACE[cle] ?? []), ...ids]);
+  const ESPACES: Record<string, ReadonlySet<string>> = {
+    'traits.json': avec('traits.json', OUVERTE, LIBRE, FERMEE),
+    'traits.json?specsOpen': avec('traits.json?specsOpen', OUVERTE, LIBRE),
+    'traits.json?indice': avec('traits.json?indice', OUVERTE, FERMEE),
+    'traits.json?range': avec('traits.json?range', OUVERTE),
+    [`traits.json#[${OUVERTE}].specs`]: new Set(['feu', 'froid']),
+    [`traits.json#[${OUVERTE}].specs!libellés`]: new Set(['Feu', 'Froid']),
+    [`traits.json#[${FERMEE}].specs`]: new Set(['x']),
+  };
+  const avecLaFixture = (verifier: () => void): void => {
+    const precedent = poserRegimeVivant((cle) => ESPACES[cle] ?? precedent?.(cle));
+    try {
+      verifier();
+    } finally {
+      poserRegimeVivant(precedent);
+    }
+  };
+
+  it('une entrée OUVERTE sans catalogue est spécialisable : tout texte libre y est admis', () =>
+    avecLaFixture(() => {
+      expect(estSpecialisable('trait', LIBRE)).toBe(true);
+      expect(refusDeSpec('trait', LIBRE, 'Gueule béante')).toBeNull();
+    }));
+
+  it('(a) sur une entrée OUVERTE, une spec qui reproduit le LIBELLÉ d’un id du catalogue est refusée ; l’id et le texte libre passent', () =>
+    avecLaFixture(() => {
+      expect(refusDeSpec('trait', OUVERTE, 'Feu')).toBe('libelle');
+      expect(refusDeSpec('trait', OUVERTE, 'feu')).toBeNull();
+      expect(refusDeSpec('trait', OUVERTE, 'Vapeur')).toBeNull();
+    }));
+
+  it('(a) le libellé se reconnaît aux marques, à la casse et aux blancs de bord près (`norm`) — seul l’id exact passe', () =>
+    avecLaFixture(() => {
+      expect(refusDeSpec('trait', OUVERTE, 'FEU')).toBe('libelle');
+      expect(refusDeSpec('trait', OUVERTE, 'fROID')).toBe('libelle');
+      expect(refusDeSpec('trait', OUVERTE, ' feu ')).toBe('libelle');
+    }));
+
+  it('(a) sur une source à VOCABULAIRE (Venin, `difficulties`, LDB 85 l.423), le nom de Difficulté (LDB 12 l.143-151) est refusé quelle que soit sa casse', () => {
+    expect(refusDeSpec('trait', 'venin', 'Très Difficile')).toBe('libelle');
+    expect(refusDeSpec('trait', 'venin', 'très difficile')).toBe('libelle');
+    expect(refusDeSpec('trait', 'venin', 'DIFFICILE')).toBe('libelle');
+    expect(refusDeSpec('trait', 'venin', 'difficile')).toBeNull();
+    expect(refusDeSpec('trait', 'venin', 'tresDifficile')).toBeNull();
+  });
+
+  it('(b) une spec à la FORME d’un marqueur que l’entrée déclare (Indice, Portée) est refusée, ouverte ou fermée', () =>
+    avecLaFixture(() => {
+      expect(refusDeSpec('trait', OUVERTE, '8')).toBe('marqueur');
+      expect(refusDeSpec('trait', OUVERTE, '+3')).toBe('marqueur');
+      expect(refusDeSpec('trait', OUVERTE, '12 m')).toBe('marqueur');
+      expect(refusDeSpec('trait', FERMEE, '4')).toBe('marqueur');
+      expect(refusDeSpec('trait', FERMEE, '12 m'), 'Portée non déclarée : hors catalogue, pas marqueur').toBe('horsCatalogue');
+      expect(refusDeSpec('trait', LIBRE, '8'), 'aucun marqueur déclaré : texte libre').toBeNull();
+    }));
+});
+
 describe('régime d’une réf à spécialisation — un porteur qui DÉSIGNE refuse « choix » (#1897)', () => {
   const messages = (r: { success: boolean; error?: { issues: { message: string }[] } }) => (r.error?.issues ?? []).map((i) => i.message).join(' | ');
 

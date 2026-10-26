@@ -1,52 +1,20 @@
 /**
- * Dispatcher PUR des Traits de créature (LDB 85) : normalise chaque chaîne de trait (« Démoniaque 8+ »,
- * « Toile 40 », « Immunité (Poison) ») en { clé canonique, Indice, argument }, puis expose des
- * helpers typés que spawn/combat/IA appellent au lieu de tester des chaînes en dur. Aucune mutation.
- * Même patron que `engine/qualities/dispatch.ts`.
+ * Dispatcher PUR des Traits de créature (LDB 85) : lit chaque trait STRUCTURÉ { id, Indice, argument }
+ * et expose des helpers typés que spawn/combat/IA appellent au lieu de tester des chaînes en dur, plus
+ * son rendu « format livre » (`formatTrait`). Aucune mutation. Même patron que
+ * `engine/qualities/dispatch.ts`.
  */
 import type { CharKey, Combatant } from '../types';
 import { TRAITS, TraitDef } from './registry';
-import { parseStatEntry, isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry } from '../statEntry';
+import { isOptionalNote, type TraitInstance, type TraitList, type OptionalEntry } from '../statEntry';
 import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
-import { traitIdByLabel, findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
-import { slugId } from '../../data/slug';
+import { findTraitById, findQualityById, SPEC_SOURCES, type SpecsSource, type TraitCapabilities, type TraitData } from '../../data';
 import type { PassiveMod } from '../ops';
 import { t, type MsgKey } from '../../i18n';
-
-/** Résolution UNIQUE libellé (casse ignorée) → `id` STABLE (slug), DÉRIVÉE de `traits.json` (la
- *  donnée, AUSSI source de `TRAITS`) — source unique de l'import label→id (statblocs / migration).
- *  Les attaques naturelles (Morsure, Cornes…) et marqueurs spéciaux (Venin, Maladie, Mort-vivant…)
- *  sont désormais des traits EN DONNÉE : plus aucune liste de libellés en dur à tenir alignée. */
-/** COUTURE libellé→id (#602) : nom de trait SAISI (statbloc, migration) → `id` STABLE. Prend du
- *  TEXTE — le seul sens toléré par la doctrine ; aucun appelant ne l'alimente avec le `.label` d'une
- *  entité qu'il tient déjà (elle porte alors son `id`). Inconnu du registre → slug du texte. */
-export function canonTraitId(text: string): string {
-  return knownTraitId(text) ?? slugId(text);
-}
-
-/** Idem, mais `undefined` si le texte ne nomme AUCUN trait du registre (le repli par slug masquerait
- *  l'inconnu là où l'appelant doit le distinguer). */
-export function knownTraitId(text: string): string | undefined {
-  return traitIdByLabel(text);
-}
 
 /** Inverse : `id` → libellé FR canonique (affichage : inspecteur/Codex/éditeur). Même couverture —
  *  l'id d'un trait EST le slug de son libellé (`engine/traits/parity.test.ts`). */
 export const traitLabelById = (id: string): string => findTraitById(id)?.label ?? id;
-
-/** IMPORT (saisie éditeur / migration JSON) : chaîne de statbloc → trait STRUCTURÉ. La clé est
- *  canonicalisée sur le registre (« morsure » → « Morsure ») ; sinon le nom brut est conservé
- *  (« Arme », « À distance », « Griffes »). C'est le SEUL endroit qui parse — le runtime lit les champs. */
-export function parseTraitInstance(raw: string): TraitInstance {
-  const p = parseStatEntry(raw);
-  const t: TraitInstance = { id: canonTraitId(p.name) };
-  const value = p.bonus ?? p.indice;
-  if (value != null) t.value = value;
-  if (p.arg != null) t.arg = p.arg;
-  if (p.count != null) t.count = p.count;
-  if (p.range != null) t.range = p.range;
-  return t;
-}
 
 /** Résout l'ARGUMENT `arg` d'une instance de trait en LIBELLÉ d'affichage via le catalogue partagé
  *  `SPEC_SOURCES` de sa def : « poison » → « Poison », « sigmar » → « Sigmar », « noble, homme-bete »
@@ -64,7 +32,7 @@ function resolveTraitArg(def: TraitData | undefined, arg: string): string {
 /** Traits dont la valeur est un BONUS de Dégâts signé (« Morsure +9 », « À distance +8 ») — affichés
  *  « +N » et, pour les attaques typées, « Nom +N (Type) » (l'ordre du livre). Les autres traits à
  *  Indice gardent « Nom (Spec) N » (« Immunité (Poison) »), les sauvegardes « Nom N+ » (« Démoniaque 8+ »). */
-/** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance` pour l'affichage)
+/** Rendu lisible et FIDÈLE d'un trait structuré (inverse exact de `parseTraitInstance`, `ui/editor/refFormatLivre.ts`)
  *  — inspecteur / Codex / éditeur / libellé d'attaque. Restitue le signe « + » des Dégâts (attaques),
  *  le « + » de seuil des sauvegardes, sinon l'Indice nu. La NATURE est lue en DONNÉE (jamais une liste
  *  en dur) : une attaque = trait qui octroie des Manœuvres (`grantsManeuvers`, mêlée) OU est une arme
@@ -118,6 +86,8 @@ const SPEC_SOURCE_KEY: Record<SpecsSource, MsgKey> = {
   damageTypes: 'specSrc.damageType',
   weaponsMelee: 'specSrc.weapon',
   weaponsRanged: 'specSrc.weapon',
+  exposureLevels: 'specSrc.exposure',
+  difficulties: 'specSrc.difficulty',
 };
 
 /** Squelette d'ARGUMENT d'un Trait DÉRIVÉ de son schéma (sous-titre du Codex, remplace le champ figé

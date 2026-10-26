@@ -138,7 +138,7 @@ import { applySummon } from './summonFlow';
 import { runConsumable } from './consumableFlow';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import { gainCorruption, testDExposition } from './corruptionFlow';
-import { corruptionGain } from '../engine/corruption';
+import { corruptionGain, EXPOSURE_LADDER, type ExposureLevel } from '../engine/corruption';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { critTableSchema } from '../data/schemas/defs/criticals';
 import { canCastFromGrimoire } from '../engine/grimoire';
@@ -151,7 +151,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, extendedTestStep, easeDifficulty, hydrateTR, cibleMesuree } from '../engine/tests';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { testValue, valeurDuTest, type SupportDetail } from '../engine/skills';
-import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence } from '../data';
+import { findManeuverById, findDomainById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, resolveShipUnits } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -6552,17 +6552,17 @@ function decideCombatEndHeroTests(
   return { diseases, corruption: c.dead ? null : worstCorruption };
 }
 
-/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19) — `null`
- *  si aucune créature corrompue. Le niveau s'applique à TOUS les héros survivants (avoir affronté). */
-function worstCorruptionExposure(battle: BattleState): { level: import('../engine/corruption').ExposureLevel; label: string } | null {
-  const degrees = battle.combatants
+/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19), désigné par
+ *  l'id de son Trait, avec le libellé de son registre — `null` si aucune créature corrompue. Le niveau
+ *  s'applique à TOUS les héros survivants (avoir affronté). */
+function worstCorruptionExposure(battle: BattleState): { level: ExposureLevel; label: string } | null {
+  const rangs = battle.combatants
     .filter((c) => c.kind !== 'hero')
-    .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => t.arg).filter(Boolean));
-  if (!degrees.length) return null;
-  const rank = { mineure: 0, modérée: 1, majeure: 2 } as Record<string, number>;
-  const worst = degrees.reduce((a, b) => (rank[b!.toLowerCase()] > rank[a!.toLowerCase()] ? b : a))!;
-  const level = worst.toLowerCase() === 'majeure' ? 'majeure' : worst.toLowerCase() === 'modérée' ? 'moderee' : 'mineure';
-  return { level, label: worst };
+    .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => EXPOSURE_LADDER.indexOf(t.arg as ExposureLevel)));
+  const pire = Math.max(-1, ...rangs);
+  if (pire < 0) return null;
+  const level = EXPOSURE_LADDER[pire];
+  return { level, label: SPEC_SOURCES.exposureLevels.label(level) };
 }
 
 /**

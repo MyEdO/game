@@ -257,8 +257,7 @@ const DECLARATIONS_D_OPS = {
   }), { op: { label: "opération"  }, trappingId: { label: "objet" , texte: { regime: "technique"} }, custom: { label: "profil personnalisé" , texte: { regime: "designation"} }, count: { label: "nombre" }, perSL: { label: "par DR" } }),
   /** `summon` — la créature invoquée se nomme par un id du bestiaire (`idDe('creature')`) : une op
    *  sans créature est refusée AU PARSE (#1882), jamais spawnée. `addTraits` : instances de Trait
-   *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est un `z.string()` et non une feuille
-   *  `idDe` — aucun slot. */
+   *  (`grammaire/reference.ts › traitInstanceSchema`), dont l'`id` est une feuille `idDe('trait')`. */
   summon: nommerChamps(z.strictObject({
     op: z.literal('summon'),
     ref: idDe('creature'),

@@ -13,7 +13,7 @@ import { createRoot } from 'react-dom/client';
 import { SaisieSuggeree } from './RefField';
 import { TraitListField, OptionalsListField } from '../../editor/codex/StructFields';
 import { resetData, setDataset } from '../../../data/overrides';
-import { parseTraitInstance } from '../../../engine/traits/dispatch';
+import { parseTraitInstance } from '../../editor/refFormatLivre';
 import type { OptionalEntry, TraitInstance } from '../../../engine/statEntry';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -116,5 +116,21 @@ describe('listes de Traits de l’atelier', () => {
     expect(suggestionsDe(champs[0])).toEqual(libellesDeTraits);
     saisir(champs[0], 'Peur 3');
     expect(ecrits).toEqual([[note, parseTraitInstance('Peur 3')]]);
+  });
+});
+
+/** Le catalogue RÉEL des Traits : l'argument d'un Trait à registre fait l'aller-retour libellé ⇄ id (LDB 85 l.85, l.423). */
+describe('listes de Traits de l’atelier — argument de registre', () => {
+  it.each([
+    ['TraitListField', (onChange: (v: OptionalEntry[]) => void, value: TraitInstance[]) => <TraitListField label="Traits" value={value} onChange={onChange} />],
+    ['OptionalsListField', (onChange: (v: OptionalEntry[]) => void, value: TraitInstance[]) => <OptionalsListField label="Optionnels" value={value} onChange={onChange} />],
+  ])('%s : une rangée de Trait à registre s’affiche au libellé et se réécrit à l’id (Corruption, Venin, Souffle)', (_, element) => {
+    const value: TraitInstance[] = [{ id: 'corruption', arg: 'moderee' }, { id: 'venin', arg: 'difficile' }, { id: 'souffle', value: 12, arg: 'feu' }];
+    const ecrits: OptionalEntry[][] = [];
+    const host = monter(element((v) => ecrits.push(v), value));
+    const champs = [...host.querySelectorAll<HTMLInputElement>('.trait-row input')];
+    expect(champs.map((c) => c.value)).toEqual(['Corruption (Modérée)', 'Venin (Difficile)', 'Souffle +12 (Feu)']);
+    saisir(champs[0], 'Corruption (Majeure)');
+    expect(ecrits[ecrits.length - 1]?.[0]).toEqual({ id: 'corruption', arg: 'majeure' });
   });
 });

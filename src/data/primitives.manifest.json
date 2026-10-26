@@ -605,6 +605,15 @@
     "verrou": "src/data/schemas/grammaire/ref-couvre.test.ts"
   },
   {
+    "id": "vocabulairesDuMoteur",
+    "type": "primitives.manifest",
+    "label": "VOCABULAIRES/lectureDuVocabulaire",
+    "fichier": "src/data/schemas/grammaire/vocabulaires.ts",
+    "concept": "une table FERMÉE `id → libellé` que le moteur déclare et qu'aucun document ne porte (Difficultés, Degrés d'Exposition, Tailles), exposée comme ESPACE `vocabulaire:<nom>` : ses ids et ses libellés se lisent par la même clé d'espace qu'une collection de document",
+    "perimetre": "univers et libellés des sources de spécialisations (`SOURCES_DE_SPECS`) que nul document ne porte, index des ids (`npm run gen`) et régime vivant (`src/data/overrides.ts`)",
+    "verrou": "src/data/schemas/espaces-contrat.test.ts"
+  },
+  {
     "id": "trappingsInstanciables",
     "type": "primitives.manifest",
     "label": "trappingsInstanciables/trappingDesObjetsPuisDuCatalogue",

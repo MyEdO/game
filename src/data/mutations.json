@@ -2344,7 +2344,7 @@
       {
         "op": "grantTrait",
         "traitId": "venin",
-        "arg": "Intermédiaire"
+        "arg": "intermediaire"
       }
     ],
     "appearance": {
@@ -2434,7 +2434,7 @@
       {
         "op": "grantTrait",
         "traitId": "venin",
-        "arg": "Accessible"
+        "arg": "accessible"
       }
     ],
     "appearance": {

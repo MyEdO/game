@@ -9,7 +9,7 @@
 // citation littérale OU sélection par prédicat de champ — MODE 1/MODE 2, cf. en-tête de
 // `entityConsumers.mjs`), NI une entrée `META_CATALOG_ENTRIES` ne couvre — est un ornement : la
 // mécanique est juste, aucun chemin ne mène à elle. Mesuré, ce n'est PAS un artefact de repli par
-// LABEL (`findTalent(name)?.id ?? slugId(name)`, `findSkill`, `canonTraitId`…) : pour les entrées
+// LABEL (`findTalent(name)?.id ?? slugId(name)`, `findSkill`, `traitIdByLabel`…) : pour les entrées
 // ci-dessous, ni l'id ni le LABEL n'apparaissent ailleurs que dans leur propre déclaration (vérifié à
 // la main avant bootstrap, #entity-orphans).
 //

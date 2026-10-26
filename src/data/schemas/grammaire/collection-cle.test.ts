@@ -74,6 +74,7 @@ const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.scenes[].entities[].statblock.talents[]': 'références de Talents (`talents.json`)',
   '.scenes[].entities[].upgrades[]': 'références d’Améliorations navales (`naval-traits.json`)',
   '.scenes[].entities[].combat.skills[]': 'références de Compétences (`skills.json`)',
+  '.scenes[].entities[].combat.optionals[]': 'références de Traits optionnels (`traits.json`)',
   '.narratif.cloture.when.of[]': 'conditions composées : `id` d’un objet/talent désigné',
   '.worldMap.routes[].perils[].effects[]': 'effets de scène : `id` d’une cible désignée',
   '.narratif.presetsPnj[].profil.traits[]': 'références de Traits (`traits.json`)',

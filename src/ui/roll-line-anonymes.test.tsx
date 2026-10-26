@@ -81,7 +81,7 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     const html = renderToStaticMarkup(
       <PendingRollLine p={{ label: 'Projectiles', base: monte.base, target: monte.target, mods: monte.mods, difficulty: monte.difficulty, difficultyParts: monte.difficultyParts }} />,
     );
-    expect(html).toContain('Très difficile (−30)');
+    expect(html).toContain('Très Difficile (−30)');
     expect(html).not.toContain('plafond Difficultés');
     expect(html).not.toContain('autres');
     expect(ANONYMES.count).toBe(0);

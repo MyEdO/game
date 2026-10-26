@@ -141,7 +141,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
     expect(html).toContain('master-detail-list'); // maître-détail (#330)
     expect(html).toContain('activity-pane-foot');
     expect(html).toContain('Calme'); // la compétence du Test (chip Codex)
-    expect(html).toContain('Très difficile'); // la Difficulté, sur la LIGNE du pré-jet (#1072)
+    expect(html).toContain('Très Difficile'); // la Difficulté, sur la LIGNE du pré-jet (#1072)
     expect(html).toContain('Entreprendre');
   });
 

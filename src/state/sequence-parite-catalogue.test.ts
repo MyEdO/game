@@ -20,7 +20,7 @@ import { t } from '../i18n';
 import { stepDetail, stepFraction, stepPrecision } from '../noyau/rollSeam';
 import { dataLabel } from '../data';
 import { riverForceLabel } from '../engine/riverNavigation';
-import { locationLabel } from '../engine/types';
+import { DIFFICULTY_LABELS, locationLabel } from '../engine/types';
 import { shipLocationLabel } from '../engine/shipCritical';
 import { riverLocLabel } from '../noyau/riverVoyageFlow';
 import { diseaseLabel, refLabel, findCareerById } from '../data';
@@ -785,7 +785,7 @@ const V8C5: Site[] = [
     avant: `${HEROS5} — Natation (${'Complexe (−10)'}) : ${'emporté par les flots (noyé, LDB 18 l.344)'}.`,
     apres: t('wreck.applierLine', {
       name: HEROS5,
-      test: t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: t('difficulty.complexe') }),
+      test: t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS.complexe }),
       issue: t('wreck.issueDrowns'),
     }),
   },

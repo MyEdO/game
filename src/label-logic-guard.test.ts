@@ -18,7 +18,9 @@ import { listerArbre } from '../scripts/guards/lib/lister.mjs';
 import { couvertureDuBalayage } from '../scripts/guards/lib/stock.mjs';
 import { detenteur } from './detenteur.testkit';
 import { skillRefLabel, talentRefLabel, talents } from './data';
-import { parseSkillRef, parseTalentRef } from './ui/editor/refFormatLivre';
+import { parseSkillRef, parseTalentRef, parseTraitInstance } from './ui/editor/refFormatLivre';
+import { formatTrait } from './engine/traits/dispatch';
+import type { TraitInstance } from './engine/statEntry';
 
 /**
  * Garde-fou « logique par LABEL interdite » (#142, #289, #909, #1988 §7 ; doctrine AGENTS.md bloc
@@ -222,6 +224,15 @@ describe('coutures légitimes : chaque entrée de RATCHET_EXCEPTIONS est jugée 
         .map(({ id }) => `${id} → ${JSON.stringify(parseTalentRef(talentRefLabel({ id })))}`);
       expect(talents.length).toBeGreaterThan(0);
       expect(faux, faux.join('\n')).toEqual([]);
+    },
+    parseTraitInstance: () => {
+      for (const trait of [
+        { id: 'corruption', arg: 'moderee' },
+        { id: 'venin', arg: 'tresDifficile' },
+        { id: 'souffle', value: 12, arg: 'feu' },
+        { id: 'haine', arg: 'noble, homme-bete' },
+        { id: 'morsure', value: 9 },
+      ] as TraitInstance[]) expect(parseTraitInstance(formatTrait(trait))).toEqual(trait);
     },
   };
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rollTest, difficultyFromLabel, easeDifficulty, DIFFICULTY_LADDER } from './tests';
+import { rollTest, difficulteDeLArg, easeDifficulty, DIFFICULTY_LADDER } from './tests';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { makeRNG } from './dice';
 
@@ -26,12 +26,9 @@ describe('Difficultés extrêmes EDO — Presque Impossible (−40) / Impossible
     expect(rollTest(50, 'impossible', rng).target).toBe(1);
   });
 
-  it('difficultyFromLabel distingue « Presque Impossible » de « Impossible » (piège d’ordre des substrings)', () => {
-    expect(difficultyFromLabel('Presque Impossible')).toBe('presqueImpossible');
-    expect(difficultyFromLabel('Impossible')).toBe('impossible');
-    // Le palier court ne doit pas capturer le palier long.
-    expect(difficultyFromLabel('Venin (Presque Impossible)')).toBe('presqueImpossible');
-    expect(difficultyFromLabel('Venin (Impossible)')).toBe('impossible');
+  it('difficulteDeLArg désigne chacun des deux paliers par son id (EDO App.2 l.156-165)', () => {
+    expect(difficulteDeLArg('presqueImpossible')).toBe('presqueImpossible');
+    expect(difficulteDeLArg('impossible')).toBe('impossible');
   });
 
   it('DIFFICULTY_LADDER reste trié facile→dur, les deux paliers à l’extrémité dure', () => {

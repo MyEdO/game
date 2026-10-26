@@ -40,7 +40,7 @@ import { dawnMinute, duskMinute, isTravelDaylight, daysPerYear } from '../engine
 import { sunJeuHalfArcMin } from '../gameIso/backends/webgl/sunJeu';
 import { SEA_BOARD_EVENT_TABLE } from '../noyau/seaVoyageFlow';
 import { FLOW_STAKES, COMBAT_STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladies } from './index';
-import { knownTraitId, traitLabelById } from '../engine/traits/dispatch';
+import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from './versionDataset';
 import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
@@ -83,7 +83,7 @@ afterEach(() => {
 });
 
 describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
-  it('un Trait RENOMMÉ : `findTraitById`, `traitLabelById` et `knownTraitId` servent le NOUVEAU libellé', () => {
+  it('un Trait RENOMMÉ : `findTraitById`, `traitLabelById` et `traitIdByLabel` servent le NOUVEAU libellé', () => {
     const avant = findTraitById('venin')!;
     expect(avant.label).toBe('Venin');
     setDataset('traits', traits.map((t) => (t.id === 'venin' ? { ...t, label: 'Venin des marais' } : t)));
@@ -91,8 +91,8 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     expect(traitLabelById('venin')).toBe('Venin des marais');
     // L'`id` est STABLE : un renommage ne le déplace pas — c'est le LIBELLÉ reconnu qui change (le
     // texte d'un statbloc « Venin des marais » résout l'id `venin`, « Venin » ne nomme plus rien).
-    expect(knownTraitId('Venin des marais')).toBe('venin');
-    expect(knownTraitId('Venin')).toBeUndefined();
+    expect(traitIdByLabel('Venin des marais')).toBe('venin');
+    expect(traitIdByLabel('Venin')).toBeUndefined();
     expect(traitIdByLabel('venin des marais')).toBe('venin');
   });
 
