@@ -46,7 +46,7 @@ describe('parseStatEntry — parseur canonique des chaînes de statbloc', () => 
 });
 
 describe('resoudreTrait / poseDeTrait — la seule résolution d’un Trait posé, et son inverse', () => {
-  const provenance = { source: { book: 'livre-fixture', page: 1, note: 'FIX 1 l.1' }, alsoIn: [{ book: 'livre-fixture', page: 2 }], maison: 'raison fixture' };
+  const provenance = { source: { book: 'livre-fixture', page: 1 }, alsoIn: [{ book: 'livre-fixture', page: 2 }], maison: 'raison fixture' };
   const jeu = { id: 'trait-fixture', value: 3, arg: 'spec-fixture', count: 2, range: 10, natural: true, hidden: true };
   const src: EffectSource = { kind: 'mutation', id: 'mutation-fixture' };
 
