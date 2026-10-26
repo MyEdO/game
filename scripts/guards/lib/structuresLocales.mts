@@ -3,8 +3,8 @@
  * nœud de schéma d'un document authoré, énuméré sans la donnée : ajouter une donnée conforme n'en crée
  * aucun (#2995). Seuls les defs (`SCHEMA_DEFS`, `SCHEMA_DEFS_SCENES`), la grammaire et `OP_DEFS` sont lus.
  *
- * Énumération : chaque schéma DISTINCT, au fichier REPRÉSENTATIF de son type (le premier dans l'ordre des
- * registres), chaque nœud à son plus court chemin de schéma (`cheminsDeSchema`). Sont des sites les nœuds
+ * Énumération : chaque schéma DISTINCT, sous le nom de son DOCUMENT (`nomDuDocument`), chaque nœud à son plus court
+ * chemin de schéma (`cheminsDeSchema`). Sont des sites les nœuds
  * objets et les nœuds non validants (`unknown`, `any`, `custom`) ; ne le sont pas la racine, l'entrée d'un
  * document `entite` et les objets d'enveloppe (`CLES_ENVELOPPE`) qu'y pose `document()`.
  *
@@ -18,14 +18,14 @@
  * Le STOCK (`STRUCTURES_LOCALES`, `horsStrateStock.mjs`) porte D5, G1 et L ; G en sort. La valeur d'un
  * `record` se classe comme tout nœud, le record lui-même n'est pas un objet.
  *
- * CLÉ d'un site : `(fichier représentatif, chemin de schéma normalisé)`. Une branche d'union se nomme par
+ * CLÉ d'un site : `(nom du document, chemin de schéma normalisé)`. Une branche d'union se nomme par
  * les valeurs de son discriminant, sinon par ses clés déclarées triées et leurs valeurs littérales, sinon
  * par son type ; une union imbriquée se replie dans sa mère, sauf sous une option `z.lazy`, nommée
  * `|<lazy>`. Deux nœuds d'un même type à la même clé LÈVENT (injectivité).
  *
  * L'EMPREINTE d'un site (ses clés déclarées et le type zod de chaque enfant) vit dans la mesure, hors du
  * stock : la porte des comptes (`occurrencesStock.mjs`, `renommagesDeStructure`) apparie par elle un site
- * disparu et un site né d'un même fichier.
+ * disparu et un site né d'un même document (`nomDuDocument`).
  */
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
@@ -45,7 +45,7 @@ import { DECROISSANT, type RegenerationDeStock } from './stockDeSites.mjs';
 /** Les classes d'un nœud de site ; `D5`, `G1` et `L` sont au stock. */
 export type ClasseDeStructure = 'D5' | 'G' | 'G1' | 'L';
 
-/** Un nœud de site, classé : son fichier représentatif, sa clé de schéma, sa classe et son empreinte. */
+/** Un nœud de site, classé : le nom de son document (`nomDuDocument`), sa clé de schéma, sa classe et son empreinte. */
 export interface NoeudDeStructure {
   readonly fichier: string;
   readonly ref: string;
@@ -174,9 +174,12 @@ const EXPORTS_DE_GRAMMAIRE: readonly unknown[] = (await Promise.all(
     .map(async (f) => Object.values(await import(pathToFileURL(fileURLToPath(new URL(f.nom, GRAMMAIRE))).href) as Record<string, unknown>)),
 )).flat().filter(estNoeud);
 
+/** Le chemin de schéma où `document()` pose l'enveloppe : l'entrée d'un document `entite`, sinon la racine. */
+const cheminDEnveloppe = (famille: SchemaDef['famille']): string => (famille === 'entite' ? '[]' : '');
+
 /** La position d'un chemin qui n'est pas un site : racine, entrée d'un document `entite`, objet d'enveloppe. */
 function horsSite(path: string, famille: SchemaDef['famille']): boolean {
-  const entree = famille === 'entite' ? '[]' : '';
+  const entree = cheminDEnveloppe(famille);
   if (path === '' || path === entree) return true;
   const m = /^\.([A-Za-z]+)(\[\])?$/.exec(path.slice(entree.length));
   return path.startsWith(entree) && m !== null && (CLES_ENVELOPPE as readonly string[]).includes(m[1]);
@@ -188,13 +191,27 @@ const classeDeFabrique = (noeud: unknown): string | undefined => {
   return p && `${p.fabrique}:${p.role}:${JSON.stringify(p.clesDExtra)}`;
 };
 
+/** Le NOM d'un schéma de document, `‹racine›#‹type›` : la racine et la famille, communes à ses documents, et la
+ *  valeur unique du littéral `type` de son enveloppe (`cheminDEnveloppe`). Il ne dépend ni du nombre de ses documents
+ *  ni de leurs fichiers ; un schéma sans racine ou famille commune, ou sans `type` unique, LÈVE. PURE. */
+function nomDuDocument(documents: readonly SchemaDef[], chemins: ReadonlyMap<object, Chemin>): string {
+  const fichiers = documents.map((x) => x.file).join(', ');
+  const [racines, familles] = [new Set(documents.map((x) => x.root)), new Set(documents.map((x) => x.famille))];
+  if (racines.size !== 1) throw new Error(`structures locales : schéma de ${fichiers} sous plusieurs racines`);
+  if (familles.size !== 1) throw new Error(`structures locales : schéma de ${fichiers} sous plusieurs familles`);
+  const enveloppe = cheminDEnveloppe([...familles][0]);
+  const types = new Set([...chemins].flatMap(([n, { path }]) => (path === enveloppe ? [...(valeursAdmises(n).type ?? [])] : [])));
+  if (types.size !== 1 || typeof [...types][0] !== 'string') throw new Error(`structures locales : schéma de ${fichiers} sans \`type\` unique`);
+  return `${[...racines][0]}#${[...types][0]}`;
+}
+
 /**
  * Les nœuds de site des `defs`, classés, dans l'ordre des defs puis des clés. PURE sur les defs : aucune
  * donnée n'est lue. Lève sur deux nœuds d'un même type à la même clé.
  */
 export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES]): NoeudDeStructure[] {
-  const types = new Map<unknown, SchemaDef>();
-  for (const d of defs) if (!types.has(d.schema)) types.set(d.schema, d);
+  const types = new Map<unknown, SchemaDef[]>();
+  for (const d of defs) types.set(d.schema, [...(types.get(d.schema) ?? []), d]);
   const grammaire = atteints([...EXPORTS_DE_GRAMMAIRE, ...Object.values(OP_DEFS)]);
   const payloads = atteints(famillesConstruites().flatMap((f) => Object.values(f.opDefs)));
   const composeurs = new Map<object, Set<unknown>>();
@@ -216,10 +233,16 @@ export function noeudsDeStructure(defs: readonly SchemaDef[] = [...SCHEMA_DEFS, 
     return partage ? 'G' : 'G1';
   };
   const out: NoeudDeStructure[] = [];
-  for (const [schema, d] of types) {
-    const fichier = `${d.root}/${d.file}`;
+  const noms = new Map<string, readonly SchemaDef[]>();
+  for (const [schema, documents] of types) {
+    const chemins = cheminsDeSchema(schema);
+    const fichier = nomDuDocument(documents, chemins);
+    const homonyme = noms.get(fichier);
+    if (homonyme) throw new Error(`structures locales : ${fichier} nomme deux schémas (${[...homonyme, ...documents].map((x) => x.file).join(', ')})`);
+    noms.set(fichier, documents);
+    const d = documents[0];
     const parCle = new Map<string, object>();
-    for (const [n, { path }] of cheminsDeSchema(schema)) {
+    for (const [n, { path }] of chemins) {
       const type = defDe(n)!.type;
       if (type !== 'object' && !NON_VALIDANTS.has(type)) continue;
       if (horsSite(path, d.famille)) continue;

@@ -1698,7 +1698,7 @@
     "type": "primitives.manifest",
     "label": "noeudsDeStructure/sitesDeStructure/cheminsDeSchema/nomDeBranche/empreinteDeSite/regenerations/MOTIF_STRUCTURES_LOCALES",
     "fichier": "scripts/guards/lib/structuresLocales.mts",
-    "concept": "dette de STRUCTURE mesurée sur le schéma : un site par nœud objet ou non validant d’un document authoré, à son fichier représentatif et son plus court chemin de schéma (branches nommées, `|<lazy>`, injectivité), classé D5, G, G1 ou L (grammaire atteinte par identité ou produit de fabrique, partage par défs, déclaration d’op ou classe de produit) ; régénération du stock `STRUCTURES_LOCALES`, dont la porte apparie les renommages par empreinte (`renommagesDeStructure` ; format unique écrit et relu par `empreinteDeChamps`, occurrencesStock.mjs)",
+    "concept": "dette de STRUCTURE mesurée sur le schéma : un site par nœud objet ou non validant d’un document authoré, au nom de son schéma de document (`nomDuDocument`, `‹racine›#‹type›`, indépendant du nombre de ses documents) et à son plus court chemin de schéma (branches nommées, `|<lazy>`, injectivité), classé D5, G, G1 ou L (grammaire atteinte par identité ou produit de fabrique, partage par défs, déclaration d’op ou classe de produit) ; régénération du stock `STRUCTURES_LOCALES`, dont la porte apparie les renommages par empreinte (`renommagesDeStructure` ; format unique écrit et relu par `empreinteDeChamps`, occurrencesStock.mjs)",
     "perimetre": "toute mesure de dette qui doit rester stable à l’ajout d’une donnée conforme (#2995) : elle ne lit que les defs",
     "verrou": "src/data/structures-locales.test.ts, src/comptes-plage.test.ts"
   },
