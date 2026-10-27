@@ -20,7 +20,8 @@ import type { WorldMap } from '../noyau/worldMap';
 import { makePregens } from '../data/pregens';
 import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
 import { applyEffects } from '../noyau/combatEffects';
-import { netSnapshot, applyNetSnapshot } from './netFlow';
+import { applyNetSnapshot } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /** Scène minimale (heroStart) chargeable par le chemin RÉEL (`loadProject`/`transitionTo`). */
@@ -144,7 +145,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
   it('snapshot coop : l’invité adopte `campaignDoc.projet`, `document.documentId` et `pendingCampaign.projet`', () => {
     charger();
     useGame.getState().setPendingCampaign(campagneDuJeu(diligenceCampaign));
-    const data = JSON.parse(JSON.stringify(netSnapshot(useGame.getState))) as Record<string, unknown>;
+    const data = JSON.parse(JSON.stringify(instantaneDeLaCoop(useGame.getState()))) as Record<string, unknown>;
     useGame.setState(useGame.getInitialState());
     applyNetSnapshot(useGame.setState, data);
     expect(useGame.getState().campaignDoc?.projet).toEqual({ id: 'snap-projet' });

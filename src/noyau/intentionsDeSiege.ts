@@ -28,7 +28,8 @@
  */
 import { coopFlowIntents, type FLOW_VERBS } from './flowVerbs';
 import type { HORS_MODAL } from './modalArbiter';
-import type { EtatDeJeu, Jeu } from './etat';
+import type { Jeu } from './etat';
+import type { LOCALES_AU_CLIENT } from './coop';
 import type { Get } from './flowTypes';
 import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { t } from '../i18n';
@@ -60,9 +61,9 @@ export type SiteInterne = `${string}${Minuscule}.${Minuscule}${string}`;
 
 /**
  * Élections LOCALES d'écran (`targetingModes.TargetingMode.electionLocale`) : l'action n'écrit que le
- * champ nommé, hors snapshot (`netFlow.netSnapshot`) ; le COMMIT qui suit est exposé.
+ * champ nommé, hors instantané (`coop.instantaneDeLaCoop`) ; le COMMIT qui suit est exposé.
  */
-const ELECTIONS_LOCALES = { dispelSelectCarrier: 'dispelCarrierId' } as const satisfies { [A in ActionManuscrite]?: keyof EtatDeJeu };
+const ELECTIONS_LOCALES = { dispelSelectCarrier: 'dispelCarrierId' } as const satisfies { [A in ActionManuscrite]?: (typeof LOCALES_AU_CLIENT)[number] };
 
 /** Classe qu'une action manuscrite de `T` peut prendre. */
 type ClasseAdmise<A, T> = A extends OuvreurParHote ? 'hôte'

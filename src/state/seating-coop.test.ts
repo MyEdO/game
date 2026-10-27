@@ -10,7 +10,8 @@ import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { assignSeat, seatPoseOf, type SeatOccupant } from '../noyau/monde/seating';
 import { intentAllowedFor, ROUTES } from '../noyau/netOwnership';
 import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
-import { netSnapshot, applyNetSnapshot } from './netFlow';
+import { applyNetSnapshot } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import type { Combatant } from '../engine/types';
 
 const TABLE = 'table-ronde-4-tabourets';
@@ -110,7 +111,7 @@ describe('parité hôte → invité', () => {
   it('le snapshot de l’hôte porte l’assise, et l’invité qui l’applique voit la MÊME place unique', () => {
     derniereePlaceLibre();
     useGame.getState().interactEntity(PROP);
-    const snap = netSnapshot(useGame.getState);
+    const snap = instantaneDeLaCoop(useGame.getState());
 
     // L'invité part d'un état DIVERGENT (personne d'assis) puis reçoit le snapshot.
     useGame.setState((s) => ({ scene: { ...s.scene!, seatAssignments: {} } }));

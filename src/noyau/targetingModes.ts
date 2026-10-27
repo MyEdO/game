@@ -830,7 +830,7 @@ const dispelParametreADemander = (get: Get, id: string): boolean => dispellableO
  * de la console naît de l'alvéole, sur `dispelCarrierId`.
  *
  * COOP : cette élection est un choix d'ÉCRAN, elle se joue chez l'ÉMETTEUR (`electionLocale`) — le
- * porteur élu vit hors snapshot (`netFlow.netSnapshot`), et seul le COMMIT `battleDispelSpell`
+ * porteur élu vit hors instantané (`coop.instantaneDeLaCoop`), et seul le COMMIT `battleDispelSpell`
  * voyage. Sans cette déclaration, l'intent d'un invité faisait naître le panneau chez L'HÔTE.
  */
 const DISPEL_MODE: TargetingMode = {

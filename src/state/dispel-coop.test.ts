@@ -4,7 +4,7 @@
  * Mode Dissiper (LDB 46 l.158-162), spec HUD §1d : le clic-token élit le PORTEUR, il reste à choisir
  * LEQUEL de ses Sorts dissiper — c'est le panneau-paramètre de la console qui le demande. Rien n'est
  * engagé par cette élection : elle vit à la racine du store (`dispelCarrierId`), hors `battle`, et le
- * snapshot de l'hôte l'efface (`netFlow.netSnapshot`).
+ * snapshot de l'hôte l'efface (`coop.instantaneDeLaCoop`).
  *
  * Le défaut mesuré : `battleClickEntity` est un intent d'allowlist, donc chez l'invité il partait à
  * l'hôte, qui exécutait `dispelSelectCarrier` DANS SON PROPRE STORE — un panneau étranger s'ouvrait
@@ -17,7 +17,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { emettreIntentInvite, interceptGuestActions, restoreGuestActions, netSnapshot } from './netFlow';
+import { emettreIntentInvite, interceptGuestActions, restoreGuestActions } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import { initialNet } from '../noyau/etat';
 import { intentEluLocalement } from '../noyau/targetingModes';
 import { makePregens } from '../data/pregens';
@@ -125,7 +126,7 @@ describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', ()
     table('host', { e1: 2 });
     get().dispelSelectCarrier('e1');
     expect(get().dispelCarrierId, 'témoin : l’élection est bien posée avant la mesure').toBe('e1');
-    expect('dispelCarrierId' in netSnapshot(get), 'le porteur élu de l’hôte part chez ses invités').toBe(false);
+    expect('dispelCarrierId' in instantaneDeLaCoop(get()), 'le porteur élu de l’hôte part chez ses invités').toBe(false);
   });
 
   it('HÔTE : le même clic élit chez lui aussi — l’élection locale n’est pas une branche « invité »', () => {

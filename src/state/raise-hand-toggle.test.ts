@@ -15,7 +15,7 @@ import type { BattleState } from '../noyau/etat';
 import { emptyScene } from '../noyau/monde/scene';
 import { createHero } from '../engine/character';
 import { findActionById } from '../data/index';
-import { serializeMessage, parseMessage } from '../net/protocol';
+import { serializeMessage, parseMessage } from '../hote/coop/protocol';
 import type { Combatant } from '../engine/types';
 
 function combat(mode: 'local' | 'host' | 'guest' = 'host') {

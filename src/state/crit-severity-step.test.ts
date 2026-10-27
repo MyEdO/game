@@ -14,7 +14,7 @@ import { createHero } from '../engine/character';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { testScene } from '../scenes/test-fixture';
 import { snapshotSave } from '../noyau/persistance/save';
-import { netSnapshot } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import { hasCondition } from '../engine/conditions';
 import type { Weapon, Combatant, HitLocation, ArmourPoints } from '../engine/types';
 
@@ -322,7 +322,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
    * SECRET DES POSES (#1426) — un dé exploré puis ABANDONNÉ n'appartient qu'au siège qui pose : sa
    * conséquence dérivée (`CascadeStep.foldMemo`, mémo du pli impur) ne quitte jamais ce siège. Les
    * deux surfaces sérialisées passent par la MÊME couture (`saves.snapshotSave`, dont
-   * `netFlow.netSnapshot`), et le mémo est purgé au COMMIT de l'étape.
+   * `coop.instantaneDeLaCoop`), et le mémo est purgé au COMMIT de l'étape.
    */
   it('le dé exploré puis ABANDONNÉ ne voyage pas : ni sauvegarde, ni snapshot coop, ni étape committée', () => {
     const { H, E } = startFight();
@@ -338,7 +338,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const brut = (o: unknown) => JSON.stringify(o);
     const save = snapshotSave(useGame.getState(), 'test');
     expect(brut(save.data), 'le secret de pose part dans la SAUVEGARDE').not.toMatch(/foldMemo/);
-    expect(brut(netSnapshot(useGame.getState)), 'le secret de pose part dans le SNAPSHOT diffusé').not.toMatch(/foldMemo/);
+    expect(brut(instantaneDeLaCoop(useGame.getState())), 'le secret de pose part dans le SNAPSHOT diffusé').not.toMatch(/foldMemo/);
     // …et l'état lui-même s'en défait au COMMIT (le mémo ne sert que tant que l'étape est courante).
     useGame.getState().cascadeNext();
     const committee = useGame.getState().pendingCascade!.participants[0];

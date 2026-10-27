@@ -6,7 +6,8 @@ import { mergeCreatureProfile, resolvePresetCreature } from '../noyau/monde/reso
 import { presetPnjById } from './campaignData';
 import { FicheAbsente, sceneNpc } from '../noyau/monde/sceneNpc';
 import { creatureToCombatant } from '../noyau/monde/spawn';
-import { netSnapshot, applyNetSnapshot } from './netFlow';
+import { applyNetSnapshot } from './netFlow';
+import { instantaneDeLaCoop } from '../noyau/coop';
 import { parseProject } from '../noyau/worldMap';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
@@ -139,7 +140,7 @@ describe('coop — l’invité re-dérive la couche narrative du paquet de l’h
     useGame.getState().loadProject({ scenes: [presetScene('sc-coop')], entryId: 'sc-coop', worldMap: null, narratif: narratifFixture(), projet: null });
     expect(sceneNpc(useGame.getState().scene, 'pnj-1', presetPnjById)?.label).toBe('Nommé Test');
 
-    const snap = netSnapshot(useGame.getState);
+    const snap = instantaneDeLaCoop(useGame.getState());
     useGame.setState({ campaignNarratif: null }); // l'invité n'a jamais chargé le paquet
     applyNetSnapshot(useGame.setState, snap);
 

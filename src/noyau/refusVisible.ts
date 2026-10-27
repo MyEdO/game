@@ -10,7 +10,7 @@
  *
  * CE QU'UN REFUS EST : un retour d'IHM LOCAL, adressé au joueur qui vient de cliquer. Il vit donc à la
  * RACINE du store, hors `battle` (même patron que `localIntent`) :
- *  - il NE VOYAGE PAS (exclu du snapshot `netFlow`) — le refus opposé au geste de l'hôte n'a rien à
+ *  - il NE VOYAGE PAS (exclu de l'instantané coop, `coop.LOCALES_AU_CLIENT`) — le refus opposé au geste de l'hôte n'a rien à
  *    dire à ses invités, et l'hôte qui exécute l'intent d'un invité ne lui vole pas son message ;
  *  - il NE PERSISTE PAS dans le journal de combat : ce tiroir garde les FAITS de jeu, un clic refusé
  *    n'en est pas un ;
