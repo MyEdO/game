@@ -3227,7 +3227,10 @@ Ces Traits de créature (LDB chap. 85, *Traits de créature*) régissent **comme
 - des pièces de la table des armures : « Armure (Plastron et Heaume) 2 » — `MCLB 02 l.101` ; « Armure (Calotte et veste de cuir) 1 » — `EDO 03 l.303` ; « Armure (veste en cuir) 1 » — `EDOC 11 l.169` ; « Armure (Veste et jambières de cuir) 1 » — `ADE II 06 l.108` ; « Armure (Casque, Chemise de mailles, Chausses de mailles) 2 » — `MSR 09 l.1504` ;
 - une nature du corps ou une matière : « Arme +8, Armure (Peau 1), Bestial, Foulée » — `LDB 78 l.58` ; « Arme +8, Armure (Légère 2), Brutal, Endurant » — `LDB 77 l.95`.
 
-Le Trait ne dit pas si la parenthèse restreint ses Localisations (`LDB 85 l.39` : « à toutes ses Localisations ») ; l'Emplacement d'une pièce est « la Localisation que l'Armure protège » (`LDB 63 l.13`), lu à la table (`LDB 63 l.39-58`). La lecture retenue est une proposition maison en cérémonie (#1463), portée par l'entrée `armure` de `src/data/traits.json`.
+Lecture du livre (arbitrage du 2026-10-27, #1463) : la parenthèse restreint l'Armure aux Localisations qu'elle désigne, sinon l'Indice vaut à toutes ses Localisations (`LDB 85 l.39`).
+- Localisations nommées ou Indice par zone : tels qu'imprimés ; « Poitrine » est le Corps ; les pattes sont les Localisations du quadrupède (`AA 09 l.94-104`).
+- Pièces de la table, une ou plusieurs : l'union de leurs Emplacements, « la Localisation que l'Armure protège » (`LDB 63 l.13`), lus à la table (`LDB 63 l.39-58`) ; « Casque » est un Heaume.
+- Aspect à toutes les Localisations : une catégorie des règles rapides, Légère ou Moyenne, dont les Emplacements sont Tous (`LDB 63 l.97-103`) ; une nature du corps (peau, écailles, fourrure, chitine) ; un ensemble ou une matière hors table (Cuir, Demi-plate, Plate complète, Divers) (`LDB 85 l.39`).
 
 **Protection (Indice).** « Parce qu'elles sont magiques, bénéficient d'un talisman particulier ou sont simplement chanceuses, certaines créatures semblent éviter les coups. Lancer **1d10 après chaque coup reçu**. En cas de résultat **supérieur ou égal à *Indice***, le coup est ignoré **même s'il s'agit d'un Critique**. » C'est une **sauvegarde** (ward save) post-touche : un seul jet par coup ; sur réussite, l'intégralité du coup (Dégâts ET Critique) est annulée. Le seuil s'écrit « N+ » (ex. *Protection 7+* = réussit sur 7, 8, 9, 10). — `LDB 85 l.277-278`
 

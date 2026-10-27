@@ -94,13 +94,13 @@ describe('format livre — Trait', () => {
       .toEqual({ id: 'armure', parLocalisation: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 } });
     const restreinte = (locs: Partial<Record<'tete' | 'brasG' | 'brasD' | 'corps' | 'jambeG' | 'jambeD', number>>) =>
       ({ id: 'armure', parLocalisation: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0, ...locs } });
-    expect(parseTraitInstance('Armure (Plastron et heaume) 2'), 'type 7, MCLB 02 l.101').toEqual(restreinte({ tete: 2, corps: 2 }));
-    expect(parseTraitInstance('Armure (Veste et jambières de cuir) 1'), 'type 7, ADE II 06 l.108').toEqual(restreinte({ brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 }));
-    expect(parseTraitInstance('Armure (Casque, Chemise de mailles, Chausses de mailles) 2'), 'type 7, MSR 09 l.1504').toEqual(restreinte({ tete: 2, corps: 2, jambeG: 2, jambeD: 2 }));
-    expect(parseTraitInstance('Armure (Poitrine) 3'), 'type 2, ACE 05 l.2043').toEqual(restreinte({ corps: 3 }));
-    expect(parseTraitInstance('Armure (Corps 2, Bras 4, Tête 2)'), 'type 3, PDT 09 l.52').toEqual(restreinte({ tete: 2, brasG: 4, brasD: 4, corps: 2 }));
+    expect(parseTraitInstance('Armure (Plastron et heaume) 2'), 'pièces de la table, MCLB 02 l.101').toEqual(restreinte({ tete: 2, corps: 2 }));
+    expect(parseTraitInstance('Armure (Veste et jambières de cuir) 1'), 'pièces de la table, ADE II 06 l.108').toEqual(restreinte({ brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 }));
+    expect(parseTraitInstance('Armure (Casque, Chemise de mailles, Chausses de mailles) 2'), 'pièces de la table, MSR 09 l.1504').toEqual(restreinte({ tete: 2, corps: 2, jambeG: 2, jambeD: 2 }));
+    expect(parseTraitInstance('Armure (Poitrine) 3'), 'Localisations nommées, ACE 05 l.2043').toEqual(restreinte({ corps: 3 }));
+    expect(parseTraitInstance('Armure (Corps 2, Bras 4, Tête 2)'), 'Indice par zone, PDT 09 l.52').toEqual(restreinte({ tete: 2, brasG: 4, brasD: 4, corps: 2 }));
     for (const [texte, aspect, indice] of [['Armure (Cuir) 1', 'Cuir', 1], ['Armure (Légère) 1', 'Légère', 1], ['Armure (Fourrure) 2', 'Fourrure', 2]] as const)
-      expect(parseTraitInstance(texte), `types 4, 6, 8 : ${texte}`).toEqual({ id: 'armure', arg: aspect, value: indice });
+      expect(parseTraitInstance(texte), `Aspect à toutes les Localisations : ${texte}`).toEqual({ id: 'armure', arg: aspect, value: indice });
     expect(parseTraitInstance('Immunité (Poison 2)'), 'un Trait sans Indice garde sa parenthèse').toEqual({ id: 'immunite', arg: 'Poison 2' });
     for (const t of [
       { id: 'peur', plage: { min: 1, max: 2 } },
