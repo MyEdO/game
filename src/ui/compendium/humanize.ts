@@ -411,7 +411,7 @@ export function humanizeOp(o: GameOp): string {
     }
     case 'removeCondition': return `perd ${o.id ? `l'État ${stateItal(o.id)}` : 'un État au choix'}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}`;
     case 'endPsych': return `n'est plus sous l'effet de ${psychologyLabel(o.type)}`;
-    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${o.cible})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
+    case 'beginPsych': return `tombe sous ${psychologyLabel(o.type)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}${o.indice != null ? ` ${humanizeFormula(o.indice)}` : ''}`;
     case 'charMod': return `${[`${o.mod >= 0 ? 'gagne' : 'subit'} ${o.mod >= 0 ? '+' : ''}${o.mod} en ${CHAR_LABELS[o.char]}`, plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
     case 'ap': return `gagne +${humanizeFormula(o.amount)} PA${o.loc ? ` (${HIT_LOCATION_LABELS[o.loc]})` : ' à toutes les Localisations'}`;
     case 'corruption': return `gagne ${o.amount >= 0 ? '+' : ''}${o.amount} point(s) de Corruption`;
@@ -432,7 +432,7 @@ export function humanizeOp(o: GameOp): string {
     case 'grantReverseToken': return `peut inverser ${o.skill ? refLabel('skills', o.skill) : 'un Test concernant sa cible'} une fois pendant sa prochaine aventure`;
     case 'grantTrait': return `gagne le Trait ${traitOctroyeLisible(o, humanizeFormula)}${pendant(o)}`;
     case 'removeTrait': return `perd le Trait ${formatTrait(o.trait)}`;
-    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${o.cible})` : ''}`;
+    case 'grantPsychTrait': return `gagne l'état psychologique ${psychologyLabel(o.psychType)}${o.cible ? ` (${groupLabel(o.cible)})` : ''}`;
     case 'removePsychTrait': return `perd ${o.psychType ? `l'état psychologique ${psychologyLabel(o.psychType)}` : 'un état psychologique au choix'}`;
     case 'grantTalent': return `gagne le Talent ${refLabel('talents', o.talent)}`;
     case 'grantCareerSkill': return `ajoute ${refLabel('skills', o.skill)} à ses carrières`;

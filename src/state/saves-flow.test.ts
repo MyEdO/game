@@ -366,7 +366,7 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     expect(rule(r.id), 'la surcharge connue s’applique').toBe(!r.default);
     expect(rule(autre.id), 'la valeur non conforme est retirée').toBe(autre.default);
     expect(useGame.getState().party[0].conditions.map((c) => c.id), 'le héros reste, sans l’État inconnu').toEqual([connu]);
-    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'] });
+    expect(useGame.getState().retraitsDeChargement).toEqual({ regles: ['regle-hors-registre', autre.id], etats: ['etat-hors-registre'], groupes: [] });
     expect(ls().getItem(stableKey(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
   });
 
