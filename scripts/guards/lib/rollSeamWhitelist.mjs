@@ -227,7 +227,7 @@ export const DES_HORS_PORTE_STOCK = new Map([
   ['src/noyau/shipCrew.ts', { n: 4, kind: 'dette', why: 'mesuré : applyOps×2, deMonde×1, recalcMorale×1. A (désertion `deMonde`, un dé par marin), B -> #1508 T2/T4.' }],
   ['src/noyau/monde/shipDamage.ts', { n: 2, kind: 'dette', why: 'mesuré : applyOps×2. B -> #1508 T2.' }],
   ['src/noyau/shipManeuver.ts', { n: 2, kind: 'dette', why: 'mesuré : rollTest×2. Tests d\'équipage roulés en direct -> #1508 T3.' }],
-  ['src/noyau/monde/spawn.ts', { n: 4, kind: 'dette', why: 'mesuré : randomizeChars×2, rng.int×2. F (désignation `rng.int`), caractéristiques aléatoires au spawn -> #1508 T6.' }],
+  ['src/noyau/monde/spawn.ts', { n: 4, kind: 'dette', why: 'mesuré : randomizeChars×1, traitsDuPorteur×1, rng.int×2. F (désignation `rng.int`), individu tiré au spawn (Caractéristiques aléatoires LDB 77 l.108, fourchettes de Trait #1463 — `traitsDeLIndividu`, seul site partagé par la créature, le statbloc, l’invocation et le rendu d’exploration) -> #1508 T6.' }],
   ['src/noyau/summonFlow.ts', { n: 1, kind: 'dette', why: 'mesuré : resolveFormula×1. B (`resolveFormula`) -> #1508 T2.' }],
   ['src/noyau/tavernFlow.ts', { n: 8, kind: 'dette', why: 'mesuré : rng.int×4, applyOps×3, rollTavernTest×1. B, F (désignation `rng.int`) -> #1508 T2/T6.' }],
   ['src/noyau/travelFlow.ts', { n: 9, kind: 'dette', why: '11 -> 9 (#2533 : les deux d10 des péripéties, seuil et table LDB 51 l.208-221, sont des étapes à TABLE de monde, posables). mesuré : d100×2, applyOps×1, declareDisease×1, forcedMarchTest×1, forcedPaceBeastCheck×1, forcedPaceCheck×1, resolveMountedDay×1, rollTest×1. C (magnitudes de route) -> #1508 T5.' }],

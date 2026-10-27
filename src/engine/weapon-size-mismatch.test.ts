@@ -11,6 +11,7 @@ import { weaponsFromTraits } from './creatureEquip';
 import { attaqueNaturelle } from './creatureAttacks';
 import { findCreatureById } from '../data';
 import type { Combatant, Weapon } from './types';
+import { traitsDuPorteur } from './statEntry';
 
 const attacker = (size?: Combatant['size']): Combatant => ({ advantage: 0, conditions: [], skills: [], size } as unknown as Combatant);
 const weapon = (sizeFor?: Weapon['sizeFor']): Weapon => ({ name: 'Massue', type: 'melee', hands: 1, qualities: [], sizeFor }) as unknown as Weapon;
@@ -60,7 +61,7 @@ describe('sizeFor — pénalité de Taille (ADE II 2 l.710)', () => {
 
   it("régression #ogre : la créature `ogre` du REGISTRE (trait « Arme » générique, sans arg catalogue) attaque avec son arme innée SANS malus (repro recette — auparavant « 30 −20 »), tout en gardant sa silhouette d'arme au rendu (`sizeless` ≠ `natural`)", () => {
     const ogre = findCreatureById('ogre')!;
-    const [w] = weaponsFromTraits(ogre.traits);
+    const [w] = weaponsFromTraits(traitsDuPorteur(ogre.traits, ogre.id));
     expect(w.sizeless).toBe(true);
     expect(w.natural).toBeUndefined(); // ne vide PAS les mains au rendu (weaponFamily)
     const mods = attackModifiers(attacker('grande'), null, w, { kind: 'melee' });

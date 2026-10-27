@@ -8,7 +8,7 @@
  * Cf. spec : docs/superpowers/specs/2026-06-07-psychologie-design.md (§3).
  */
 import { norm } from '../lib/normalize';
-import type { TraitInstance } from './statEntry';
+import type { TraitInstance, TraitsDesignes } from './statEntry';
 import { findCareerById, findClassById, findGodById, findGroupById, findSpeciesById, findTalentById, findTraitById } from '../data';
 
 /** Ids de Groupe d'appartenance d'un combattant : espèce (`SpeciesData.grantGroups`) ∪ trait(s)
@@ -19,7 +19,7 @@ import { findCareerById, findClassById, findGodById, findGroupById, findSpeciesB
 export function groupsFor(src: {
   speciesId?: string;
   careerId?: string;
-  traits?: TraitInstance[];
+  traits?: TraitsDesignes;
   /** VUE d'un Talent porté : `talentId` + `spec` suffisent au culte. `TalentInstance` porte en plus
    *  `times` (requis), que les porteurs dérivés d'un statbloc ne construisent pas. */
   talents?: { talentId: string; spec?: string }[];

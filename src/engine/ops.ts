@@ -2140,7 +2140,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         if (!groupGate(o.onlyGroups)) break; // « les Mort-vivant/Démoniaque gagnent Instable » (Bannissement)
         const ind = o.indice != null ? resolveFormula(o.indice, ref, rng) + slBonus(ctx.sl, o.indicePerSL) : null;
         const arg = o.arg ?? (o.argFrom === 'obsessions' ? rollObsession(rng) : undefined);
-        const inst = resoudreTrait({ id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}) }, source);
+        const inst = resoudreTrait({ id: o.traitId, ...(arg ? { arg } : {}), ...(ind != null ? { value: ind } : {}), ...(o.range != null ? { range: o.range } : {}) }, { src: source });
         grantTrait(target, inst);
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({

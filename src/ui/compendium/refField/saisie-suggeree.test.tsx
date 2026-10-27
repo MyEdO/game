@@ -259,6 +259,42 @@ describe('relireTrait / relireTraits — ce que la chaîne ne dit pas reste à s
   });
 });
 
+describe('pli d’une rangée de Trait posé — fourchette et Indice par Localisation, borne à borne', () => {
+  const champDe = (host: HTMLElement, nom: string) => host.querySelector<HTMLInputElement>(`input[aria-label="${nom}"]`)!;
+
+  it('OptionalsListField : la borne haute d’une fourchette (ZI 13 l.31) se tape et garde la raison maison', () => {
+    const armure: TraitPose = { id: 'armure', plage: { min: 1, max: 3 }, maison: 'raison fixture' };
+    const ecrits: OptionalEntry[][] = [];
+    function Hote() {
+      const [opts, setOpts] = useState<OptionalEntry[]>([armure]);
+      return <OptionalsListField chemin="banc/optionals" label="Optionnels" value={opts} onChange={(v) => { ecrits.push(v); setOpts(v); }} />;
+    }
+    const host = monter(<Hote />);
+    expect(host.querySelector<HTMLInputElement>('.trait-row input')!.value).toBe('Armure 1-3');
+    const haute = champDe(host, 'Fourchette — borne haute');
+    taper(haute, '4');
+    expect(ecrits, 'aucun état intermédiaire émis').toEqual([]);
+    valider(haute);
+    expect(ecrits).toEqual([[{ ...armure, plage: { min: 1, max: 4 } }]]);
+    expect(host.querySelector<HTMLInputElement>('.trait-row input')!.value).toBe('Armure 1-4');
+  });
+
+  it('TraitListField : l’Indice d’une Localisation (AA 09 l.184) se tape, les cinq autres restent', () => {
+    const parLocalisation = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 };
+    const ecrits: TraitPose[][] = [];
+    function Hote() {
+      const [traits, setTraits] = useState<TraitPose[]>([{ id: 'armure', parLocalisation }]);
+      return <TraitListField chemin="banc/traits" label="Traits" value={traits} onChange={(v) => { ecrits.push(v); setTraits(v); }} />;
+    }
+    const host = monter(<Hote />);
+    const tete = champDe(host, 'Indice — Tête');
+    taper(tete, '2');
+    valider(tete);
+    expect(ecrits).toEqual([[{ id: 'armure', parLocalisation: { ...parLocalisation, tete: 2 } }]]);
+    expect(host.querySelector<HTMLInputElement>('.trait-row input')!.value).toBe('Armure (Tête 2, Bras 3, Corps 3, Jambes 1)');
+  });
+});
+
 describe('SaisieEnBrouillon — la frappe au brouillon, relue une fois à la fin de la saisie', () => {
   it('à `lignes`, un textarea : Entrée ouvre une ligne sans poser, le blur relit le texte une seule fois', () => {
     const ecrits: string[][] = [];

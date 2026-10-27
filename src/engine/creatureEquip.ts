@@ -8,7 +8,7 @@ import type { Weapon, ArmourPoints } from './types';
 import type { TraitInstance, TraitList } from './statEntry';
 import { buildWeapon, emptyArmour, itemFromTrappingById, weaponFromItem } from './items';
 import type { ItemInstance, WeaponDamageSpec } from './types';
-import { findResolvedTrait, traitLabelById } from './traits/dispatch';
+import { traitLabelById } from './traits/dispatch';
 import { findTraitById, findTrappingById, SPEC_SOURCES } from '../data/index';
 
 /** Arme depuis un `trappingId` d'authoring de scène (`SceneEntity.weapon`) : lookup EXACT au catalogue
@@ -125,10 +125,8 @@ export function weaponsFromTraits(traits: TraitList): Weapon[] {
   return weapons;
 }
 
-/** PA plats du trait « Armure (Indice) » (LDB 85, profils d'éditeur) — lus par le REGISTRE des
- *  Traits (Indice ou argument), jamais par une regex propre. 0 si absent. */
+/** PA du Trait dont la def déclare l'Indice par Localisation (`parLocalisation`). LDB 85 l.37-39 ; #1463. */
 export function armourFromTraits(traits: TraitList): ArmourPoints {
-  const r = findResolvedTrait(traits, 'armure');
-  const n = r ? Number(r.indice ?? r.arg ?? 0) : 0;
-  return emptyArmour(Number.isFinite(n) ? n : 0);
+  const armure = traits.find((t) => findTraitById(t.id)?.parLocalisation);
+  return armure?.parLocalisation ? { ...armure.parLocalisation } : emptyArmour(armure?.value ?? 0);
 }

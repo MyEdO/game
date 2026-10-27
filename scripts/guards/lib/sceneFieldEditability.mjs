@@ -6,13 +6,16 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // auteur au clic. L'omission est SILENCIEUSE : le champ existe au modèle, le moteur le lit, aucun
 // test ne casse.
 //
-// La garde ferme la CLASSE, pas les 22 cas. Deux exigences la rendent réfutable :
+// La garde ferme la CLASSE, pas les 22 cas. Trois exigences la rendent réfutable :
 //
 //  1. PÉRIMÈTRE DÉRIVÉ. Les champs surveillés se déduisent du type `Scene` par le TypeChecker —
 //     propriétés, éléments de tableau, membres d'union, types littéraux anonymes, valeurs d'index
-//     (`Record<K,V>`). Aucune liste de types recopiée à la main.
+//     (`Record<string,V>`), clés LITTÉRALES d'un type mappé (`Record<'a' | 'b', V>`, un shape dérivé
+//     par `tableTotale`) — propriétés SYNTHÉTIQUES, sans déclaration, rattachées à la déclaration du
+//     champ qui porte le type. Aucune liste de types recopiée à la main.
 //  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE
-//     à la déclaration exacte du champ dans `scene.ts`. Un `{ once: … }` d'un
+//     à la déclaration exacte du champ dans `scene.ts` — pour une propriété synthétique, au type
+//     mappé qui la porte et à son nom. Un `{ once: … }` d'un
 //     symptôme de maladie, un `{ window: … }` de condition temporelle ou un `{ flags }` passé en
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
@@ -130,6 +133,20 @@ const schemaOwner = (decl) => {
   return base.charAt(0).toUpperCase() + base.slice(1);
 };
 
+/** Nom du schéma qu'une déclaration de propriété COMPOSE (`parLocalisation: parLocalisationSchema.optional()`
+ *  → `ParLocalisation`) — chaînes d'appels traversées. */
+const schemaCompose = (decl) => {
+  let n = ts.isPropertyAssignment(decl) ? decl.initializer : undefined;
+  while (n && (ts.isCallExpression(n) || ts.isPropertyAccessExpression(n))) n = n.expression;
+  if (!n || !ts.isIdentifier(n) || !n.text.endsWith('Schema')) return undefined;
+  const base = n.text.slice(0, -'Schema'.length);
+  return base.charAt(0).toUpperCase() + base.slice(1);
+};
+
+/** Clé d'identité d'un champ : sa déclaration, ou pour une propriété synthétique d'un type mappé, l'id
+ *  de ce type et son nom. */
+export const cleDuChamp = (e) => (e.synthetique ? `${e.synthetique.porteur}#${e.field}` : e.decl);
+
 const norm = (p) => p.replace(/\\/g, '/');
 
 /** Le Program du dépôt pour le PÉRIMÈTRE de cette garde — les fichiers scannés (interface, pont,
@@ -239,22 +256,22 @@ export function sceneScope(program, root) {
   const seenTypes = new Set();
   const seenIds = new Set();
 
-  const visit = (type, ownerPath) => {
+  const visit = (type, ownerPath, parentDecl) => {
     if (!type || seenTypes.has(type)) return;
     seenTypes.add(type);
 
     if ((type.isUnionType() || type.isIntersectionType())) {
-      for (const m of type.getTypes()) visit(m, ownerPath);
+      for (const m of type.getTypes()) visit(m, ownerPath, parentDecl);
       return;
     }
     if (checker.isArrayType(type) || checker.isTupleType(type)) {
-      for (const arg of checker.getTypeArguments(type)) visit(arg, ownerPath);
+      for (const arg of checker.getTypeArguments(type)) visit(arg, ownerPath, parentDecl);
       return;
     }
     if (!(type.flags & TypeFlags.Object)) return;
 
     const idx = checker.getIndexInfosOfType(type).find((info) => info.keyType.flags & TypeFlags.String);
-    if (idx) visit(idx.valueType, ownerPath);
+    if (idx) visit(idx.valueType, ownerPath, parentDecl);
 
     // FRONTIÈRE (par PROPRIÉTÉ) : un objet dont aucune propriété n'est déclarée par un module du
     // document est du vocabulaire PARTAGÉ (Flow/Condition/GameOp/EntityAppearance/CustomStatblock…),
@@ -267,9 +284,20 @@ export function sceneScope(program, root) {
       const t = checker.getTypeAtLocation(p.declarations[0].resolve());
       return !!(t.flags & TypeFlags.StringLiteral);
     };
-    const dedans = checker
-      .getPropertiesOfType(type)
-      .filter((p) => declaredInScene(p.declarations?.[0]?.resolve()) && !discriminant(p));
+    const proprietes = checker.getPropertiesOfType(type);
+    const dedans = proprietes.filter((p) => declaredInScene(p.declarations?.[0]?.resolve()) && !discriminant(p));
+    // Clés LITTÉRALES d'un type mappé : sans déclaration, elles sont du document quand le champ qui porte
+    // le type en est.
+    const synthetiques = declaredInScene(parentDecl) ? proprietes.filter((p) => !p.declarations?.length) : [];
+    for (const prop of synthetiques) {
+      const owner = schemaCompose(parentDecl) ?? ownerPath;
+      const id = `${owner}.${prop.name}`;
+      if (!seenIds.has(id)) {
+        seenIds.add(id);
+        out.push({ id, owner, field: prop.name, decl: parentDecl, synthetique: { porteur: type.id } });
+      }
+      visit(checker.getTypeOfSymbolAtLocation(prop, parentDecl), id, parentDecl);
+    }
     if (dedans.length === 0) return;
 
     const named = type.getAliasSymbol()?.name ?? type.getSymbol()?.name;
@@ -284,11 +312,11 @@ export function sceneScope(program, root) {
         seenIds.add(id);
         out.push({ id, owner, field: prop.name, decl });
       }
-      visit(checker.getTypeOfSymbolAtLocation(prop, decl), id);
+      visit(checker.getTypeOfSymbolAtLocation(prop, decl), id, decl);
     }
   };
 
-  visit(checker.getDeclaredTypeOfSymbol(sceneSym), 'Scene');
+  visit(checker.getDeclaredTypeOfSymbol(sceneSym), 'Scene', undefined);
   return out;
 }
 
@@ -322,7 +350,7 @@ function writtenNames(checker, prop) {
  * d'ATTEIGNABILITÉ depuis l'interface pour les fichiers de `BRIDGE_PATH`.
  * @returns {Set<string>} ids de champ (`Porteur.champ`)
  */
-export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, creditable = () => true) {
+export function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditable = () => true) {
   const out = new Set();
 
   /** Ids de champ du périmètre auxquels la propriété `name` de `type` se rattache. */
@@ -331,10 +359,13 @@ export function fieldsWrittenIn(checker, sourceFile, declToId, fieldNames, credi
     for (const t of flatten(type)) {
       const prop = checker.getPropertyOfType(t, name);
       if (!prop) continue;
-        for (const d of prop.declarations) {
-          const id = declToId.get(d.resolve());
-          if (id) ids.add(id);
-        }
+      const decls = prop.declarations ?? [];
+      const id = decls.length ? undefined : cles.get(`${t.id}#${name}`);
+      if (id) ids.add(id);
+      for (const d of decls) {
+        const id = cles.get(d.resolve());
+        if (id) ids.add(id);
+      }
     }
     return ids;
   };
@@ -605,7 +636,7 @@ export function auditSceneFieldEditability(root, program) {
   }
   const checker = program.checker;
   const scope = sceneScope(program, root);
-  const declToId = new Map(scope.map((e) => [e.decl, e.id]));
+  const cles = new Map(scope.map((e) => [cleDuChamp(e), e.id]));
   const fieldNames = new Set(scope.map((e) => e.field));
   const rows = new Map(
     scope.map((e) => {
@@ -639,7 +670,7 @@ export function auditSceneFieldEditability(root, program) {
     const pipeline = isPipelinePath(rel);
     if (!author && !pipeline) continue;
     const creditable = author && !isUiPath(rel) ? reachedFromUi : () => true;
-    for (const id of fieldsWrittenIn(checker, sf, declToId, fieldNames, creditable)) {
+    for (const id of fieldsWrittenIn(checker, sf, cles, fieldNames, creditable)) {
       const row = rows.get(id);
       if (row) (author ? row.authors : row.pipeline).push(norm(rel));
     }

@@ -5,12 +5,13 @@
  * des stats déjà portées par les trappings (Dégâts, Allonge, Portée, Qualités, PA d'armure ;
  * Protection des boucliers via l'Atout « Protectrice N »). Présentation pure → testable hors UI.
  */
-import type { Combatant, ItemInstance, HitLocation, WeaponDamageSpec, QualityInstance } from './types';
+import type { Combatant, ItemInstance, WeaponDamageSpec, QualityInstance } from './types';
 import { damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
 import { effectiveRange } from './weaponDamage';
 import { bonus, effectiveChar } from './characteristics';
 import { resolveQualities } from './qualities/dispatch';
 import { qualityRefLabel } from '../data';
+import { ZONES_D_ARMURE } from './classementDeTrait';
 
 export type Trend = 'up' | 'down' | 'same';
 export interface CompareRow {
@@ -25,13 +26,6 @@ export interface EquipComparison {
   currentName: string | null;
   rows: CompareRow[];
 }
-
-const ZONES: { label: string; locs: HitLocation[] }[] = [
-  { label: 'Tête', locs: ['tete'] },
-  { label: 'Bras', locs: ['brasG', 'brasD'] },
-  { label: 'Corps', locs: ['corps'] },
-  { label: 'Jambes', locs: ['jambeG', 'jambeD'] },
-];
 
 const trendOf = (n: number): Trend => (n > 0 ? 'up' : n < 0 ? 'down' : 'same');
 /** Indice de l'Atout « Protectrice N » (PA d'un bouclier en parade, LDB 62 l.296) — lecture structurée. */
@@ -83,7 +77,7 @@ export function compareEquip(item: ItemInstance, hero: Combatant): EquipComparis
     const cur = items.filter((i) => i.equipped && i.kind === 'armor');
     const newPA = (item.pa ?? 0) - (item.damageTaken ?? 0);
     const rows: CompareRow[] = [];
-    for (const z of ZONES) {
+    for (const z of ZONES_D_ARMURE) {
       if (!z.locs.some((l) => item.locs?.includes(l))) continue;
       const covering = cur.filter((i) => z.locs.some((l) => i.locs?.includes(l)));
       const curPA = covering.length ? Math.max(0, ...covering.map((i) => (i.pa ?? 0) - (i.damageTaken ?? 0))) : 0;

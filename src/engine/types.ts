@@ -1,5 +1,6 @@
 /** Types partagés du moteur de règles WFRP v4. */
 import type { AttackKind } from './creatureAttacks';
+import type { HitLocation } from './localisations';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { Duration } from './duration';
@@ -75,9 +76,7 @@ export const CHAR_LABELS: Record<CharKey, string> = {
 
 export type Characteristics = Record<CharKey, number>;
 
-/** Localisations d'impact (Tableau de Localisation, Livre de base p. 159). */
-export const LOCALISATIONS_DE_COUP = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'] as const;
-export type HitLocation = (typeof LOCALISATIONS_DE_COUP)[number];
+export { LOCALISATIONS_DE_COUP, type HitLocation } from './localisations';
 
 export const HIT_LOCATION_LABELS: Record<HitLocation, PlayerText> = {
   tete: t('hitloc.tete'),
@@ -1524,7 +1523,7 @@ export interface Combatant {
   briseFromTerreur?: number;
   /** Traits de créature (STRUCTURÉS — `TraitInstance` : id/value/arg/count/range) → attaques
    *  naturelles gratuites & règles dérivées (Morsure, Attaque caudale, Souffle… cf.
-   *  engine/creatureAttacks). Lus sans aucun parsing (`resolveTraits`/`hasTraitKey`). Conservés au spawn. */
+   *  engine/creatureAttacks). Lus sans aucun parsing (`hasTraitKey`). Conservés au spawn. */
   traits?: import('./statEntry').TraitList;
   /** Traits dont les modificateurs de PROFIL (charMods/Mouvement, LDB 85 : Élite/Coriace/Brutal/Rapide…)
    *  s'appliquent en DIRECT par le collecteur passif (kind `intrinseque`) plutôt que d'être cuits dans

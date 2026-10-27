@@ -7,7 +7,7 @@
 import type { CreatureData, HarvestRarity, HarvestDanger } from '../data';
 import { findCreatureById, tailleDuProfil } from '../data';
 import { fromBrass, type Money, PA_PER_SC, PA_PER_CO } from './money';
-import type { TraitList } from './statEntry';
+import type { TraitsDesignes } from './statEntry';
 import { type SizeCategory } from './size';
 
 export type Rarity = HarvestRarity;
@@ -52,7 +52,7 @@ const HARVEST_SIZE_BY_CATEGORY: Record<SizeCategory, HarvestSize> = {
 /** Taille de récolte d'un cadavre : la Taille de son profil (`tailleDuProfil`, `src/data/index.ts`).
  *  Sans Taille, la catégorie retombe sur Moyenne — ARBITRAGE de ce projet (standard
  *  implicite des espèces sans Trait, cf. `src/engine/size.ts`), la table ZI ne dit rien du cas. */
-export function harvestSizeOf(creature: { traits?: TraitList; talents?: readonly { id: string }[] }): HarvestSize {
+export function harvestSizeOf(creature: { traits?: TraitsDesignes; talents?: readonly { id: string }[] }): HarvestSize {
   return HARVEST_SIZE_BY_CATEGORY[tailleDuProfil(creature)];
 }
 

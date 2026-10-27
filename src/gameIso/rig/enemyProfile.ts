@@ -9,7 +9,8 @@ import type { Combatant, ItemInstance, ArmourPoints, HitLocation } from '../../e
 import { equipDe, equipPorte, type EquipCtx } from './parts/equipment';
 import { emptyArmour } from '../../engine/items';
 import { renderWeaponsFromTraits, armourFromTraits, weaponFromId } from '../../engine/creatureEquip';
-import type { TraitList } from '../../engine/statEntry';
+import { traitsDeLIndividu } from '../../noyau/monde/spawn';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { eyesArtFromKeys } from './parts/eyes';
 import { hashSeed } from '../../engine/dice';
 import type { SceneEntity } from '../../noyau/monde/scene';
@@ -42,7 +43,7 @@ export function classifyEnemy(creatureId: string): 'rig' | 'creature' {
 
 /** Classe de rendu DATA-DRIVEN (de-POC P5) — délègue au résolveur unique `resolveRender` : trait
  *  Nuée ou espèce EXPLICITE (arg/record, lookup exact) ; sans espèce → bipède (rig). */
-export function classifyBy(species: string | undefined, traits: import('../../engine/statEntry').TraitList | undefined, id: string | undefined): 'rig' | 'creature' {
+export function classifyBy(species: string | undefined, traits: import('../../engine/statEntry').TraitsDesignes | undefined, id: string | undefined): 'rig' | 'creature' {
   return resolveRender(species, traits, id).kind === 'plan' ? 'creature' : 'rig';
 }
 
@@ -240,7 +241,9 @@ export function entityRigProfile(
     /** Arme d'authoring (`trappingId`, `SceneEntity.weapon`). */
     weapon?: string;
     /** Profil de combat de l'entité (statbloc d'éditeur) → équipement affiché en explo, comme au combat. */
-    traits?: TraitList; armour?: number;
+    traits?: readonly TraitPose[]; armour?: number;
+    /** Id du porteur (l'entité de scène) : ses fourchettes de Trait se tirent comme à son spawn. */
+    porteur?: string;
     /** L'entité est ENRÔLÉE dans une rencontre (membre d'un `EncounterDef`) : elle porte les ARMES que
      *  les traits de son record déclarent (parité avec le spawn `creatureToCombatant`). Non enrôlée (défaut
      *  `false`) : mains libres. */
@@ -260,7 +263,7 @@ export function entityRigProfile(
   // d'éditeur (`opts.traits`), sinon ceux du record. L'ARMURE fait partie de l'apparence : elle se dérive
   // toujours de ces traits. Les ARMES n'en sortent que pour une entité enrôlée (`enrolled`). Armes
   // EXPLICITES seulement (`renderWeaponsFromTraits`, pas de repli « Arme » générique dessiné en épée).
-  const traits = opts?.traits ?? rec?.traits ?? [];
+  const traits = traitsDeLIndividu(opts?.traits ?? rec?.traits ?? [], opts?.porteur ?? name ?? '');
   const traitsArmes = opts?.traits || opts?.enrolled ? traits : [];
   // `opts.weapon` (trappingId d'authoring) ne s'ajoute QUE si les Traits n'ont PAS déjà produit une arme du
   // MÊME type (melee/ranged) — même règle que le spawn de combat (`spawn.ts` spawnEnemy), sinon
@@ -295,6 +298,6 @@ export function entityRigProfileFor(ent: SceneEntity, enrolled?: boolean): Enemy
       console.error(`[rig] entité « ${ent.id} »${nom ? ` (${nom})` : ''} : ni réf de créature ni Espèce — donnée de scène à corriger.`);
     });
   return entityRigProfile(refName, hashSeed(ent.id), {
-    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled,
+    ...ent.appearance, weapon: ent.weapon, traits: ent.statblock?.traits, armour: ent.statblock?.armour, enrolled, porteur: ent.id,
   });
 }

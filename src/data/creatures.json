@@ -282,7 +282,8 @@
       },
       {
         "id": "armure",
-        "arg": "Peau 1"
+        "arg": "Peau",
+        "value": 1
       },
       {
         "id": "prejuge"
@@ -367,7 +368,8 @@
       },
       {
         "id": "armure",
-        "arg": "Légère 2"
+        "arg": "Légère",
+        "value": 2
       },
       {
         "id": "brutal"
@@ -1063,7 +1065,8 @@
       },
       {
         "id": "armure",
-        "arg": "Peau 1"
+        "arg": "Peau",
+        "value": 1
       },
       {
         "id": "bestial"
@@ -1317,7 +1320,8 @@
       },
       {
         "id": "armure",
-        "arg": "Peau 1"
+        "arg": "Peau",
+        "value": 1
       },
       {
         "id": "bestial"
@@ -5445,7 +5449,14 @@
     "traits": [
       {
         "id": "armure",
-        "arg": "Pattes arrières 1, Tête, Corps et Pattes avant 3"
+        "parLocalisation": {
+          "tete": 3,
+          "brasG": 3,
+          "brasD": 3,
+          "corps": 3,
+          "jambeG": 1,
+          "jambeD": 1
+        }
       },
       {
         "id": "belliqueux"
@@ -7867,14 +7878,20 @@
       },
       {
         "id": "protection",
-        "arg": "7-9"
+        "plage": {
+          "min": 7,
+          "max": 9
+        }
       },
       {
         "id": "rage"
       },
       {
         "id": "resistance-a-la-magie",
-        "range": 13
+        "plage": {
+          "min": 1,
+          "max": 3
+        }
       },
       {
         "id": "sang-corrosif"
@@ -10979,7 +10996,10 @@
     "optionals": [
       {
         "id": "armure",
-        "value": -3
+        "plage": {
+          "min": 1,
+          "max": 3
+        }
       },
       {
         "id": "insensible-a-la-douleur"
@@ -10992,7 +11012,10 @@
       },
       {
         "id": "peur",
-        "value": -2
+        "plage": {
+          "min": 1,
+          "max": 2
+        }
       },
       {
         "id": "tentacules",
@@ -13070,7 +13093,8 @@
       },
       {
         "id": "armure",
-        "arg": "Peau 2"
+        "arg": "Peau",
+        "value": 2
       },
       {
         "id": "increvable"
@@ -13192,8 +13216,14 @@
       },
       {
         "id": "armure",
-        "value": 2,
-        "arg": "Plastron et heaume"
+        "parLocalisation": {
+          "tete": 2,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 2,
+          "jambeG": 0,
+          "jambeD": 0
+        }
       }
     ],
     "optionals": [],
@@ -13299,8 +13329,14 @@
       },
       {
         "id": "armure",
-        "value": 2,
-        "arg": "Plastron et heaume"
+        "parLocalisation": {
+          "tete": 2,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 2,
+          "jambeG": 0,
+          "jambeD": 0
+        }
       },
       {
         "id": "prejuge"
@@ -13415,8 +13451,14 @@
       },
       {
         "id": "armure",
-        "value": 3,
-        "arg": "Heaume 2, Plates 3"
+        "parLocalisation": {
+          "tete": 2,
+          "brasG": 3,
+          "brasD": 3,
+          "corps": 3,
+          "jambeG": 3,
+          "jambeD": 3
+        }
       }
     ],
     "optionals": [],
@@ -13708,8 +13750,14 @@
       },
       {
         "id": "armure",
-        "value": 1,
-        "arg": "Veste de cuir"
+        "parLocalisation": {
+          "tete": 0,
+          "brasG": 1,
+          "brasD": 1,
+          "corps": 1,
+          "jambeG": 0,
+          "jambeD": 0
+        }
       },
       {
         "id": "prejuge"
@@ -15143,8 +15191,14 @@
       },
       {
         "id": "armure",
-        "value": 1,
-        "arg": "Veste de cuir"
+        "parLocalisation": {
+          "tete": 0,
+          "brasG": 1,
+          "brasD": 1,
+          "corps": 1,
+          "jambeG": 0,
+          "jambeD": 0
+        }
       },
       {
         "id": "haine",
@@ -15260,8 +15314,14 @@
       },
       {
         "id": "armure",
-        "value": 2,
-        "arg": "Chemise de mailles"
+        "parLocalisation": {
+          "tete": 0,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 2,
+          "jambeG": 0,
+          "jambeD": 0
+        }
       },
       {
         "id": "prejuge"
@@ -16209,7 +16269,8 @@
     "traits": [
       {
         "id": "armure",
-        "arg": "Cuir 2"
+        "arg": "Cuir",
+        "value": 2
       }
     ],
     "optionals": [],
@@ -16267,7 +16328,8 @@
     "traits": [
       {
         "id": "armure",
-        "arg": "Cuir 2"
+        "arg": "Cuir",
+        "value": 2
       }
     ],
     "optionals": [],

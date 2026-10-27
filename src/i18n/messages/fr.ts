@@ -36,7 +36,7 @@ export const fr = {
   // du jet (`ui/RollLine.tsx`) — la cellule du dé y dit qu'aucun second tirage n'a lieu.
   'roll.secondeLecture': '{label} · 2ᵉ lecture',
   'roll.memeDe': 'même dé',
-  // Localisations d'impact (LDB) — lu par `HIT_LOCATION_LABELS` (`engine/types.ts`).
+  // Localisations d'impact (LDB) — lu par `HIT_LOCATION_LABELS` (`engine/types.ts`) et par la table de classement d'un Trait (`engine/classementDeTrait.ts`).
   'hitloc.tete': 'Tête',
   'hitloc.brasG': 'Bras gauche',
   'hitloc.brasD': 'Bras droit',

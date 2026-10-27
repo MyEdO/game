@@ -25,12 +25,6 @@
       "date": "2026-09-08",
       "quoi": "L'Ennemi dans l'Ombre — Compagnon, ch.10 (réseau routier) — aucune fiche de l'Atlas ne cite ce chapitre."
     },
-    "MCLB 2": {
-      "sites": ["src/data/creatures.json", "src/data/skills.json"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "Middenheim, la cité du Loup Blanc, ch.2 — aucune fiche de l'Atlas ne cite ce chapitre."
-    },
     "MDG 3": {
       "sites": ["src/noyau/restFlow.ts", "src/noyau/riverVoyageFlow.ts", "src/noyau/seaActivities.ts"],
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
@@ -66,12 +60,6 @@
       "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
       "date": "2026-09-08",
       "quoi": "Le Pouvoir derrière le Trône, ch.8 — cité par l'instruction des candidats « porte à enfoncer » (#1117) ; aucune fiche de l'Atlas ne cite ce chapitre."
-    },
-    "PDT 9": {
-      "sites": ["src/ui/mono-stake-ratchet.test.ts"],
-      "lot": "#1709 D2 — dette RAW à drainer par le chantier Atlas",
-      "date": "2026-09-08",
-      "quoi": "Le Pouvoir derrière le Trône, ch.9 — cité par l'instruction des candidats « porte à enfoncer » (#1117) ; aucune fiche de l'Atlas ne cite ce chapitre."
     },
     "B2 LDB 38": {
       "sites": ["docs/raw/4e/catalogue-divin.md"],

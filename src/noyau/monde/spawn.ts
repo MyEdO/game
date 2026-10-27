@@ -4,7 +4,7 @@
  */
 import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillInstance, TalentInstance, type AuthoredShipPoste, type NavalTraitRef } from '../../engine/types';
 import { skillCharacteristicById } from '../../engine/character';
-import { isOptionalNote, resoudreTrait, type TraitInstance, type TraitList, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
+import { isOptionalNote, resoudreTrait, traitsDuPorteur, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
@@ -222,8 +222,19 @@ export interface SpawnExtras {
   skills?: SkillRef[];
 }
 
-/** Traits APPRIS (dresse-* d'une Possession, LDB 23 l.130 → LDB 85) : ids seuls, résolus comme tout Trait posé. */
-const traitsAppris = (extras?: SpawnExtras): TraitInstance[] => (extras?.learnedTraits ?? []).map((id) => resoudreTrait({ id }));
+/** Traits d'un individu : ses poses tirées pour lui (`traitsDuPorteur`), puis ses Traits APPRIS (dresse-*
+ *  d'une Possession, LDB 23 l.130 → LDB 85). Spawn, invocation et rendu d'exploration en lisent les mêmes
+ *  valeurs. */
+export const traitsDeLIndividu = (
+  poses: readonly TraitPose[],
+  id: string,
+  { appris = [], dejaPortes }: { appris?: readonly string[]; dejaPortes?: TraitsDesignes } = {},
+): TraitInstance[] => [...traitsDuPorteur(poses, id, dejaPortes), ...appris.map((t) => resoudreTrait({ id: t }))];
+
+/** Profil de l'individu au spawn : le tirage FIGÉ d'une Possession (`charsRolled`, seedé sur l'uid, jamais
+ *  relancé) PRIME sur les Caractéristiques aléatoires demandées. LDB 77 l.108. */
+const profilDeLIndividu = (chars: Characteristics, id: string, charsRolled: Characteristics | undefined, aleatoire: boolean | undefined): Characteristics =>
+  charsRolled ? { ...charsRolled } : aleatoire ? randomizeChars(chars, id) : chars;
 
 /** Profil + modificateurs de PROFIL des traits `live` (Élite/Coriace/Brutal…) — pour les valeurs DÉRIVÉES
  *  au spawn (Blessures) qui doivent refléter les traits, alors que `characteristics` ne stocke que la base. */
@@ -238,13 +249,15 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // Les optionnels choisis (LDB 76 l.45) se répartissent : Traits FACULTATIFS ordinaires (fusionnés)
   // vs NOTES composées « swap » (Grand Loup/Griffon ZI). Le joker « all-traits » (Mutant) est une
   // indication au picker (« n'importe quel Trait peut être ajouté ») → aucun effet mécanique au spawn.
-  const optTraits = optEntries.filter((e): e is TraitPose => !isOptionalNote(e)).map((t) => resoudreTrait(t));
+  const optPoses = optEntries.filter((e): e is TraitPose => !isOptionalNote(e));
+  const individu = traitsDeLIndividu([...creature.traits, ...optPoses], id, { appris: extras?.learnedTraits });
+  const optTraits = individu.slice(creature.traits.length, creature.traits.length + optPoses.length);
   const swaps = optEntries.filter((e): e is OptionalSwap => isOptionalNote(e) && e.note === 'swap');
   // Variante « swap » (ZI) : RETIRE les Traits qu'elle nomme (Bestial/Dressé/Territorial) — en échange
   // d'un bonus (appliqué plus bas). Traits FACULTATIFS (LDB 76 l.45) fusionnés AVANT toutes les
   // dérivations (armes, armure, psy, nuée…), puis les Traits retirés par les variantes sont ôtés.
   const removedBySwap = new Set(swaps.flatMap((s) => s.remove));
-  const traits = [...creature.traits.map((t) => resoudreTrait(t)), ...optTraits, ...traitsAppris(extras)].filter((t) => !removedBySwap.has(t.id));
+  const traits = individu.filter((t) => !removedBySwap.has(t.id));
   // « – » imprimé (`null`) → 0 : #2304. Int/FM nulles d'un Fabriqué : LDB 85 l.142.
   let chars = charsFrom(creature.char, 0);
   // Bonus de caractéristique octroyé par une variante « swap » (Grand Loup +15 Soc, Griffon +20 Soc,
@@ -261,11 +274,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
   // désaccorderait de son propre changement de Taille.
   const swapSkillRefs = swapGrants.flatMap((g) => ('id' in g ? [{ id: g.id, spec: g.spec, value: g.value }] : []));
   const talents = talentsFromBook(creature.talents);
-  // Tirage FIGÉ d'une Possession (`charsRolled`, LDB 77 l.108 — seedé sur l'uid, jamais relancé) PRIME
-  // sur le tirage à la volée `randomChars` (deux projections successives avec le MÊME `charsRolled` →
-  // mêmes stats, aucun RNG ré-exécuté).
-  if (extras?.charsRolled) chars = { ...extras.charsRolled };
-  else if (extras?.randomChars) chars = randomizeChars(chars, id); // LDB 77 l.108 : −10 + 2d10 sur le profil rond
+  chars = profilDeLIndividu(chars, id, extras?.charsRolled, extras?.randomChars);
   // Traits facultatifs à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : le profil
   // imprimé est FINAL pour ses traits fixes (déjà cuits) ; un facultatif AJOUTÉ s'applique en DIRECT via
   // `liveTraits` (collecteur passif) → `characteristics` reste la base bestiaire, sans double-compte.
@@ -328,17 +337,13 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
 }
 
 export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: number; y: number; z?: number }, appearance?: EntityAppearance, extras?: SpawnExtras): Combatant {
-  const traits = [...(sb.traits ?? []).map((t) => resoudreTrait(t)), ...traitsAppris(extras)];
+  const traits = traitsDeLIndividu(sb.traits ?? [], id, { appris: extras?.learnedTraits });
   let chars = charsFrom(sb.char);
   // Compétences (refs `SkillRef` structurées, avances dérivées du profil SAISI) + talents du statbloc.
   const skills = skillsFromBook(sb.skills, chars, `spec:${id}`);
   const talents = talentsFromBook(sb.talents);
-  // Tirage FIGÉ d'une Possession (`charsRolled`, LDB 77 l.108 — seedé sur l'uid, jamais relancé) PRIME
-  // sur `sb.randomChars` (deux projections successives avec le MÊME `charsRolled` → mêmes stats).
   const rolled = !!extras?.charsRolled || !!sb.randomChars;
-  if (extras?.charsRolled) chars = { ...extras.charsRolled };
-  // Caractéristiques aléatoires (LDB 77 l.108) : le statbloc saisi est le profil ROND → −10 + 2d10 au spawn.
-  else if (sb.randomChars) chars = randomizeChars(chars, id);
+  chars = profilDeLIndividu(chars, id, extras?.charsRolled, sb.randomChars);
   // Traits à modificateurs de PROFIL (Élite, Coriace, Brutal, Rapide… — LDB 85) : un statbloc d'ÉDITEUR
   // part d'un profil standard et AJOUTE les Traits (LDB 77) → tous appliqués en DIRECT via `liveTraits`
   // (collecteur passif). `characteristics` reste le profil de BASE saisi ; `effectiveChar` ajoute les traits.

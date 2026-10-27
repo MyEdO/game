@@ -42,7 +42,7 @@ import { adresseDeCreation, type AdresseDeCreation } from './adresseDeCreation';
 import { appliquerAcquisitions, heroMaxWounds, fortuneMax, resolveMax, careerSkillAdditions } from './talentEffects';
 import { applyStarOps, pettySpellQuotaFor } from './creation';
 import { sizeFromTalents } from './size';
-import { resoudreTrait } from './statEntry';
+import { traitsDuPorteur } from './statEntry';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { sequence } from './sequences';
 
@@ -408,7 +408,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
   // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution
   // que le spawn de créature bestiaire, #513).
-  const speciesTraits = (sp.traits ?? []).map((t) => resoudreTrait(t));
+  const numero = prochainHeros.suivant();
+  const id = opts.id ?? `hero-${numero}`;
+  const speciesTraits = traitsDuPorteur(sp.traits ?? [], id);
 
   // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
   // résolus (espèce + carrière + signe astral) ci-dessus, sinon Moyenne.
@@ -420,9 +422,8 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const fate = fateBase.fate + split.fate;
   const resilience = fateBase.resilience + split.resilience;
 
-  const numero = prochainHeros.suivant();
   const hero: Combatant = {
-    id: opts.id ?? `hero-${numero}`,
+    id,
     label: opts.label,
     kind: 'hero',
     species: opts.speciesId,

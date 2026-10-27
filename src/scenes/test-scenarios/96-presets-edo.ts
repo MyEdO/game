@@ -34,7 +34,7 @@ function construireNarratif(): NarratifBlock {
         traits: [
           { id: 'a-distance', value: 9, arg: 'arbalete', range: 60 },
           { id: 'arme', value: 9, arg: 'Hache' },
-          { id: 'armure', value: 1, arg: 'Calotte et Veste de cuir' },
+          { id: 'armure', parLocalisation: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 0, jambeD: 0 } }, // EDO 03 l.303 ; LDB 63 l.42, l.45
         ],
         skills: [
           { id: 'metier', spec: 'construction-de-bateaux', value: 49 },

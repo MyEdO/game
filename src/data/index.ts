@@ -25,6 +25,7 @@ import type { ambianceSchema, sceneSchema, ReliefDefaults, SceneRoofDefaults, Te
 import type { Flow, TriggeredEffect } from './schemas/defs-scenes/effets';
 import { slugId } from './slug';
 import { parLibelle } from '../lib/ordre.mjs';
+import { emplacementsDesPieces } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { effectiveEntry } from '../engine/variants';
@@ -1404,7 +1405,7 @@ export interface CreatureData {
   folder: string | null;
   char: Partial<Record<CharKey | 'M' | 'B', number | null>>;
   /** Traits POSÉS (`TraitPose[]`) — source app-owned migrée du parsing de chaînes (de-POC), résolus au
-   *  spawn (`resoudreTrait`). */
+   *  spawn (`traitsDuPorteur`). */
   traits: import('./schemas/grammaire/reference').TraitPose[];
   /** OPTIONNELS (LDB 76) — affichés au Codex, choisissables au spawn : Traits posés ordinaires OU
    *  NOTES composées (joker « tous les traits », variante « remplacer des Traits par un bonus », ZI). */
@@ -1847,6 +1848,9 @@ export interface TraitData {
   /** Sens de la valeur NUMÉRIQUE `value` de l'instance (Difficulté, Indice, Degré…) — `label` affiché
    *  devant/autour du nombre. Absent = le trait ne porte pas de valeur numérique. */
   indice?: { label: string };
+  /** L'Indice est un nombre de PA, qu'une instance peut poser Localisation par Localisation
+   *  (`TraitPose.parLocalisation`) — lu par `armourFromTraits`, la saisie et la migration. LDB 85 l.37-39. */
+  parLocalisation?: boolean;
   /** L'instance porte-t-elle un champ `range` (portée en mètres/cases : Souffle, Aura…) ? Absent/`false` = non. */
   range?: boolean;
   /** Registre de l'ARGUMENT `arg` du trait (catalogue `SPEC_SOURCES` : `groups`/`diseases`/`sizes`/
@@ -2482,6 +2486,9 @@ export const siegeEngines = memoParVersion('trappings', () => trappings.filter((
  *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
  *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
 export const trappingsInstanciables = memoParVersion('trappings', () => trappings.filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
+/** Emplacements d'une pièce d'armure nommée, lus au catalogue des armures : la parenthèse d'une Armure
+ *  qui nomme des pièces (`classerParenthese`). LDB 63 l.13 ; #1463. */
+export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings));
 /** Véhicules / embarcations à coque — FOYER UNIQUE app-owned (data-driven). Trois facettes par
  *  enregistrement (achat / voyage / coque) ; cf. `VehicleData`. La facette `travel` est lue par
  *  `engine/travel` ; les facettes `purchase`/`hull` par le marché et les incidents/combat. */

@@ -12,7 +12,7 @@ import { t } from '../i18n';
 import { refKey } from '../engine/careerSlots';
 import { formatTrait } from '../engine/traits/dispatch';
 import type { SkillInstance, TalentInstance, QualityInstance } from '../engine/types';
-import type { TraitInstance } from '../engine/statEntry';
+import type { TraitPose } from '../data/schemas/grammaire/reference';
 
 /** Un chip : boîte `.entity-chip` + déclencheur `CodexRef` (`label` = clé de résolution) + badge
  *  optionnel en fin (carac/valeur, `+avancées`, `×N`…). */
@@ -143,14 +143,14 @@ export function QualityChips({ qualities }: { qualities: QualityInstance[] }) {
 
 /** Chip d'un Trait STRUCTURÉ (`TraitInstance`, LDB 85) — porté par une créature OU un Trait RACIAL
  *  d'espèce (#572, ex. Ogre) — libellé fidèle via `formatTrait`. */
-export function TraitChip({ trait }: { trait: TraitInstance }) {
+export function TraitChip({ trait }: { trait: TraitPose }) {
   return (
     <EntityRef category="traits" id={trait.id} label={findTraitById(trait.id)?.label ?? trait.id} show={formatTrait(trait)} />
   );
 }
 
 /** Suite inline de chips de Traits (même patron que `QualityChips`). */
-export function TraitChips({ traits }: { traits: TraitInstance[] }) {
+export function TraitChips({ traits }: { traits: readonly TraitPose[] }) {
   return (
     <>
       {traits.map((t, i) => (
