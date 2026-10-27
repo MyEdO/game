@@ -17,7 +17,7 @@
  * N'importe JAMAIS `combat`/`ops` (`woundsCalc` peut le greffer).
  */
 import type { Combatant, Weapon, StructureData } from './types';
-import { resoudreTrait } from './statEntry';
+import { traitsDuPorteur } from './statEntry';
 import { resolveQualities } from './qualities/dispatch';
 import { hasCapability } from './capabilities';
 import { findStructureById } from '../data';
@@ -164,6 +164,6 @@ export function structureCombatant(struct: StructureData, id = `structure-${stru
     refId: struct.id, // clé du catalogue (porte/mur) — lue par `structureKind`
     bodyShape: 'structure',
     hull: { e: struct.char.BE * 10, woundsB: struct.char.B }, // ADE II donne le Bonus d'Endurance ⇒ E = BE × 10 (verbatim)
-    traits: struct.traits.map((t) => resoudreTrait(t)),
+    traits: traitsDuPorteur(struct.traits, id),
   });
 }

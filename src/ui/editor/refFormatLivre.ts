@@ -12,10 +12,11 @@
  * (« Savoir (Zorglub) » persiste « Zorglub »), faute d'id à désigner. Doctrine « toute LOGIQUE est
  * keyée par id STABLE » (AGENTS.md).
  */
-import { byId, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, type SkillRef, type TalentRef, type TraitData } from '../../data';
-import { ARG_JOKER } from '../../data/schemas/grammaire/reference';
+import { byId, findSkill, findTalent, findTalentById, findTraitById, specCatalogOf, specIdByLabel, specLabel, specResolves, traitIdByLabel, emplacementsDesPiecesDuCatalogue, type SkillRef, type TalentRef, type TraitData } from '../../data';
+import { ARG_JOKER, traitAdmet } from '../../data/schemas/grammaire/reference';
 import { slugId } from '../../data/slug';
 import { parseStatEntry } from '../../engine/statEntry';
+import { classerParenthese } from '../../engine/classementDeTrait';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { t } from '../../i18n';
 
@@ -95,21 +96,38 @@ function argDeTraitSaisi(def: TraitData | undefined, texte: string): string {
 }
 
 /** Parse une saisie « Trait (Argument) Indice » → Trait posé (`TraitPose` : id stable, argument en ids,
- *  Indice/bonus, compte, portée). Inverse de `formatTrait`. */
+ *  Indice/bonus ou fourchette ou Indice par Localisation, compte, portée). Inverse de `formatTrait`. */
 export function parseTraitInstance(text: string): TraitPose {
   const p = parseStatEntry(text);
   const trait: TraitPose = { id: idDeTraitSaisi(p.name) };
+  const def = findTraitById(trait.id);
   const value = p.bonus ?? p.indice;
-  if (value != null) trait.value = value;
-  if (p.arg != null) trait.arg = argDeTraitSaisi(findTraitById(trait.id), p.arg);
+  // La parenthèse d'un Trait à Indice imprimé se classe (`classerParenthese`) ; celle d'un Trait qui admet
+  // l'Indice par Localisation peut désigner des Localisations ou des pièces du catalogue.
+  const pieces = traitAdmet(trait.id, 'parLocalisation') ? emplacementsDesPiecesDuCatalogue() : undefined;
+  const classe = p.plage == null && p.arg != null && def?.indice ? classerParenthese(p.arg, { indice: value, pieces }) : undefined;
+  if (value != null && !(classe && 'parLocalisation' in classe)) trait.value = value;
+  if (p.plage) trait.plage = p.plage;
+  if (classe && 'plage' in classe) trait.plage = classe.plage;
+  else if (classe && 'parLocalisation' in classe) trait.parLocalisation = classe.parLocalisation;
+  else if (classe && 'aspect' in classe) {
+    trait.arg = argDeTraitSaisi(def, classe.aspect);
+    trait.value = classe.indice;
+  } else if (p.arg != null) trait.arg = argDeTraitSaisi(def, p.arg);
   if (p.count != null) trait.count = p.count;
   if (p.range != null) trait.range = p.range;
   return trait;
 }
 
-/** Même VALEUR posée : même id, Indice, Aspect, compte et portée — ce qu'atteste une provenance. */
+/** Mêmes nombres sous les mêmes clés (fourchette, Indice par Localisation), ou deux absences. */
+const memesNombres = (a: Readonly<Record<string, number>> | undefined, b: Readonly<Record<string, number>> | undefined): boolean =>
+  a === b || (!!a && !!b && Object.keys(a).length === Object.keys(b).length && Object.keys(a).every((k) => a[k] === b[k]));
+
+/** Même VALEUR posée : même id, Indice ou fourchette ou Indice par Localisation, Aspect, compte et
+ *  portée — ce qu'atteste une provenance. */
 const memeValeur = (a: TraitPose, b: TraitPose): boolean =>
-  a.id === b.id && a.value === b.value && a.arg === b.arg && a.count === b.count && a.range === b.range;
+  a.id === b.id && a.value === b.value && memesNombres(a.plage, b.plage) && memesNombres(a.parLocalisation, b.parLocalisation)
+  && a.arg === b.arg && a.count === b.count && a.range === b.range;
 /** Même Trait au même Aspect, quelle que soit la valeur. */
 const memeAspect = (a: TraitPose, b: TraitPose): boolean => a.id === b.id && a.arg === b.arg;
 /** Même Trait. */

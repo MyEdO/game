@@ -24,7 +24,7 @@ export interface CustomStatblock {
   char: Partial<Record<CharKey | 'M' | 'B', number>>;
   weaponDamage?: string; // ex. "+BF+4"
   armour?: number; // PA uniforme sur toutes localisations
-  /** Traits POSÉS du profil custom (id + value/arg) — édités par picker, résolus au spawn (`resoudreTrait`). */
+  /** Traits POSÉS du profil custom (id + value/arg) — édités par picker, résolus au spawn (`traitsDuPorteur`). */
   traits?: TraitPose[];
   /** Catégorie de Taille (LDB 85) — sinon dérivée du trait « Taille (X) », défaut Moyenne. */
   size?: SizeCategory;

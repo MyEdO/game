@@ -607,11 +607,20 @@
   {
     "id": "resoudreTrait",
     "type": "primitives.manifest",
-    "label": "resoudreTrait/poseDeTrait",
+    "label": "traitsDuPorteur/resoudreTrait",
     "fichier": "src/engine/statEntry.ts",
-    "concept": "la SEULE résolution d'un Trait posé (`TraitPose`, forme authorée inférée de `traitInstanceSchema`) en instance de jeu (`TraitInstance`) : la provenance de livre (`source`, `alsoIn`, `maison`) reste à la donnée, `src` dit qui a accordé l'instance ; `poseDeTrait` en est l'inverse",
-    "perimetre": "spawn d'une créature ou d'un statbloc (Traits, optionnels, Traits appris), invocation (`summon.addTraits`), Trait racial à la création de héros, ops `grantTrait` et `domeWard`, passif `grantTrait` d'une mutation, Corruption posée par l'outil de développement ; inverse : Forme bestiale (`polymorph.ts`)",
+    "concept": "la SEULE entrée d'un Trait posé (`TraitPose`, forme authorée inférée de `traitInstanceSchema`) vers l'instance de jeu (`TraitInstance`) : `traitsDuPorteur` tire chaque fourchette (`plage`) pour son porteur, puis résout ; `resoudreTrait` ne prend qu'une pose tirée (`PoseTiree`, au type) ; la provenance de livre (`source`, `alsoIn`, `maison`) reste à la donnée, `src` dit qui a accordé l'instance",
+    "perimetre": "`traitsDuPorteur` : spawn d'une créature ou d'un statbloc (Traits, optionnels, Traits appris), invocation (`summon.addTraits`), rendu d'exploration d'une entité, Trait racial à la création de héros, Structure, Forme bestiale (`polymorph.ts`) ; `resoudreTrait`, sur une pose littérale : ops `grantTrait` et `domeWard`, passif `grantTrait` d'une mutation, outil de développement",
     "verrou": "src/engine/statEntry.test.ts"
+  },
+  {
+    "id": "classerParenthese",
+    "type": "primitives.manifest",
+    "label": "classerParenthese",
+    "fichier": "src/engine/classementDeTrait.ts",
+    "concept": "la table de classement d'un Trait imprimé : la parenthèse d'un Trait à Indice se lit fourchette (`plage`), Indice par Localisation (`parLocalisation` : zones, Localisations, pièces du catalogue des armures) ou Aspect et Indice, une seule lecture pour la saisie et pour la donnée",
+    "perimetre": "saisie d'un Trait à l'éditeur (`parseTraitInstance`, `parseStatEntry`), migrations de la donnée (`scripts/migrations/`)",
+    "verrou": "src/engine/classementDeTrait.test.ts"
   },
   {
     "id": "memeSpecialisation",

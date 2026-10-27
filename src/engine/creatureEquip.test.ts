@@ -4,9 +4,10 @@ import { emptyArmour, hydratePoste, itemFromTrappingById, mannedPosteWeapon, rec
 import type { Combatant, Weapon } from './types';
 import { effectiveWeaponRange } from './weaponDamage';
 import { rangeBandModifier } from './combat';
-import type { TraitInstance } from './statEntry';
+import { traitsDuPorteur, type TraitInstance } from './statEntry';
+import { findCreatureById } from '../data';
 
-const t = (o: { id: string; arg?: string; value?: number; range?: number; natural?: boolean }): TraitInstance => o as TraitInstance;
+const t = (o: TraitInstance): TraitInstance => o;
 
 describe('creatureEquip — dérivation traits → armes (source unique de l’armement ennemi/PNJ)', () => {
   it('trait « Arme (Épée) +7 » → arme de mêlée nommée', () => {
@@ -122,6 +123,20 @@ describe('creatureEquip — armourFromTraits (lookup par id stable)', () => {
   it('trait « armure » (id stable) value 2 → PA 2 sur toutes les localisations', () => {
     const ap = armourFromTraits([t({ id: 'armure', value: 2 })]);
     expect(ap).toEqual({ tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 });
+  });
+
+  it('Moritz (MCLB 02 l.698) : le Heaume à la Tête, le groupe PLATE ailleurs (LDB 63 l.53-58)', () => {
+    const moritz = findCreatureById('moritz-valgeir')!;
+    expect(armourFromTraits(traitsDuPorteur(moritz.traits, moritz.id))).toEqual({ tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 });
+  });
+
+  it('Indice par Localisation → chaque Localisation porte le sien', () => {
+    const parLocalisation = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 };
+    expect(armourFromTraits([t({ id: 'armure', parLocalisation })])).toEqual(parLocalisation);
+  });
+
+  it('un Aspect n’est pas un Indice : « Armure (Peau) » sans Indice → PA 0', () => {
+    expect(armourFromTraits([t({ id: 'armure', arg: 'Peau' })])).toEqual({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
   });
 
   it('aucun trait armure → PA 0 partout', () => {

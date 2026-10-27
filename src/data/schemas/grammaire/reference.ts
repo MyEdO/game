@@ -6,8 +6,8 @@ import { nommerChamps, metaDesChamps } from './meta';
  * la migration de la donnée se font aux lots L2/L3 (#1463).
  */
 import { z } from 'zod';
-import { countSpecSchema, maisonSchema, secondarySourceRefSchema, sourceRefSchema } from './valeurs';
-import { idDe, marqueurDeLaForme, refusDeSpec } from './ref';
+import { countSpecSchema, maisonSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sourceRefSchema } from './valeurs';
+import { idDe, marqueurDeLaForme, porteLeMarqueur, refusDeSpec } from './ref';
 
 /**
  * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
@@ -23,6 +23,26 @@ import { idDe, marqueurDeLaForme, refusDeSpec } from './ref';
 export function refusDArgDeTrait(id: string, arg: string): string | null {
   const forme = marqueurDeLaForme('trait', id, arg);
   return forme ? `Trait « ${id} » : « ${arg} » est ${forme.nature} — il s'écrit en « ${forme.champ} » (nombre), jamais en « arg ».` : null;
+}
+
+/** Capacité que la def d'un Trait DÉCLARE pour admettre un champ d'instance : une fourchette fixe un
+ *  Indice (`indice`), l'Indice par Localisation a la sienne (`parLocalisation`). */
+const CAPACITES_DE_TRAIT = { plage: 'indice', parLocalisation: 'parLocalisation' } as const;
+const declareLaCapacite = {
+  plage: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.plage),
+  parLocalisation: porteLeMarqueur('trait', CAPACITES_DE_TRAIT.parLocalisation),
+};
+
+/** La def du Trait `id` admet-elle le champ d'instance `champ` ? Lu par le schéma d'instance ci-dessous,
+ *  par la saisie (`parseTraitInstance`) et par l'éditeur. */
+export function traitAdmet(id: string, champ: keyof typeof CAPACITES_DE_TRAIT): boolean {
+  return declareLaCapacite[champ](id);
+}
+
+/** Refus du champ `champ` sur le Trait `id` quand sa def ne déclare pas la capacité qui l'admet — message
+ *  nommé, sinon `null`. Appelé par le schéma d'instance ci-dessous. */
+export function refusDeCapaciteDeTrait(id: string, champ: keyof typeof CAPACITES_DE_TRAIT): string | null {
+  return traitAdmet(id, champ) ? null : `Trait « ${id} » : sa def ne déclare pas « ${CAPACITES_DE_TRAIT[champ]} » — « ${champ} » ne s'y pose pas.`;
 }
 
 /** Joker d'un `arg` de Trait d'un statbloc RAW (« Animosité (un au choix) », « Peur (Au choix) ») : il
@@ -54,6 +74,11 @@ export const traitInstanceSchema = nommerChamps(z.strictObject({
   arg: z.string().optional(),
   count: z.number().optional(),
   range: z.number().optional(),
+  /** Fourchette imprimée à la place de l'Indice (« Peur 1-2 », ZI 13 l.31), tirée pour son porteur
+   *  (`traitsDuPorteur`) ; admise si la def déclare un Indice. */
+  plage: plageSchema.optional(),
+  /** Indice par Localisation (AA 09 l.184), à la place de l'Indice unique ; admis si la def le déclare. */
+  parLocalisation: parLocalisationSchema.optional(),
   natural: z.boolean().optional(),
   hidden: z.boolean().optional(),
   /** PROVENANCE de la valeur posée, quand elle ne vient pas du passage de l'entrée qui la porte : la
@@ -63,11 +88,19 @@ export const traitInstanceSchema = nommerChamps(z.strictObject({
   alsoIn: z.array(secondarySourceRefSchema).optional(),
   maison: maisonSchema.optional(),
 }).superRefine((t, ctx) => {
+  const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
+  if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });
+  if (t.parLocalisation && t.arg !== undefined) ctx.addIssue({ code: 'custom', path: ['arg'], message: `Trait « ${t.id} » : un Indice par Localisation nomme ses zones, sans Aspect.` });
+  if (t.plage && !(Number.isInteger(t.plage.min) && Number.isInteger(t.plage.max) && t.plage.min >= 0 && t.plage.min < t.plage.max)) ctx.addIssue({ code: 'custom', path: ['plage'], message: `Trait « ${t.id} » : une fourchette d'Indice va d'un entier positif ou nul à un entier plus grand.` });
+  for (const champ of ['plage', 'parLocalisation'] as const) {
+    const refus = t[champ] === undefined ? null : refusDeCapaciteDeTrait(t.id, champ);
+    if (refus) ctx.addIssue({ code: 'custom', path: [champ], message: refus });
+  }
   if (t.arg === undefined) return;
   for (const refus of [refusDArgDeTrait(t.id, t.arg), refusDArgHorsRegistre(t.id, t.arg)]) {
     if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
   }
-}), { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } });
+}), { id: { label: "identifiant" }, value: { label: "valeur" }, arg: { label: "argument" }, count: { label: "nombre" }, range: { label: "portée" }, plage: { label: "fourchette" }, parLocalisation: { label: "par Localisation" }, natural: { label: "naturel" }, hidden: { label: "caché" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, maison: { label: "arbitrage maison" } });
 
 /** La forme AUTHORÉE d'un Trait posé, inférée de son schéma. */
 export type TraitPose = z.infer<typeof traitInstanceSchema>;

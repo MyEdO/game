@@ -134,6 +134,8 @@ const doc = document(
   famille,
   {
     indice: nommerChamps(z.strictObject({ label: z.string() }), { label: { label: 'Libellé' } }).optional(),
+    /** LDB 85 l.37-39 */
+    parLocalisation: z.boolean().optional(),
     range: z.boolean().optional(),
     specsSource: specsSourceSchema.optional(),
     specsOpen: z.boolean().optional(),
@@ -163,6 +165,10 @@ const doc = document(
     indice: {
       label: 'Trait indicé',
       hint: 'Descripteur : le Trait est noté (valeur sur l’instance), avec le libellé affiché (Indice/Degré…)',
+    },
+    parLocalisation: {
+      label: 'Indice par Localisation',
+      hint: 'L’Indice du Trait est un nombre de PA par Localisation : une instance peut le poser Localisation par Localisation (`parLocalisation`)',
     },
     range: {
       label: 'Porte une portée',
@@ -194,7 +200,7 @@ const doc = document(
     edit: { dataset: 'traits' },
   },
   /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'range', 'specsOpen'] } },
+  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen'] } },
 );
 
 export const schema = doc.schema;

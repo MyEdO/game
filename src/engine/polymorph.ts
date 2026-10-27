@@ -14,7 +14,7 @@ import type { Combatant } from './types';
 import type { GameOp } from './ops';
 import { findCreatureById, findTraitById } from '../data';
 import { baseWithTraits } from './characteristics';
-import { poseDeTrait, resoudreTrait } from './statEntry';
+import { traitsDuPorteur } from './statEntry';
 
 /** id de créature dont l'apparence rig doit être rendue actuellement (op `polymorph` en cours), sinon
  *  `undefined` (forme de base). Le DERNIER effet `morphRef` actif l'emporte. Lu par la couche rig
@@ -38,10 +38,9 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
     }
   }
   // `TraitData.nonTransferable` (LDB 48 l.23) ; `grantTrait` porte `arg`, `value` → `indice` et `range` (LDB 85 l.209).
-  // Chaque Trait se résout sur la créature, et sa forme posée (`poseDeTrait`) est ce que l'op accorde.
-  for (const t of cr.traits ?? []) {
-    if (findTraitById(t.id)?.nonTransferable) continue;
-    const p = poseDeTrait(resoudreTrait(t));
+  // Chaque Trait se résout pour la cible (`traitsDuPorteur`), et l'op accorde l'instance résolue.
+  for (const p of traitsDuPorteur(cr.traits ?? [], target.id)) {
+    if (findTraitById(p.id)?.nonTransferable) continue;
     ops.push({ op: 'grantTrait', traitId: p.id, ...(p.arg ? { arg: p.arg } : {}), ...(p.value != null ? { indice: p.value } : {}), ...(p.range != null ? { range: p.range } : {}) });
   }
   ops.push({

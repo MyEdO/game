@@ -86,6 +86,41 @@ describe('format livre — Trait', () => {
     expect(parseTraitInstance('Venin (TRÈS DIFFICILE)'), 'casse de saisie ignorée').toEqual({ id: 'venin', arg: 'tresDifficile' });
   });
 
+  it('fourchette, Indice par Localisation, Aspect et Indice : la saisie se classe par la table partagée et revient à l’identique', () => {
+    expect(parseTraitInstance('Armure 1-3')).toEqual({ id: 'armure', plage: { min: 1, max: 3 } });
+    expect(parseTraitInstance('Protection (7-9)')).toEqual({ id: 'protection', plage: { min: 7, max: 9 } });
+    expect(parseTraitInstance('Armure (Peau 1)')).toEqual({ id: 'armure', arg: 'Peau', value: 1 });
+    expect(parseTraitInstance('Armure (Pattes arrières 1, Tête, Corps et Pattes avant 3)'))
+      .toEqual({ id: 'armure', parLocalisation: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 1, jambeD: 1 } });
+    const restreinte = (locs: Partial<Record<'tete' | 'brasG' | 'brasD' | 'corps' | 'jambeG' | 'jambeD', number>>) =>
+      ({ id: 'armure', parLocalisation: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0, ...locs } });
+    expect(parseTraitInstance('Armure (Plastron et heaume) 2'), 'type 7, MCLB 02 l.101').toEqual(restreinte({ tete: 2, corps: 2 }));
+    expect(parseTraitInstance('Armure (Veste et jambières de cuir) 1'), 'type 7, ADE II 06 l.108').toEqual(restreinte({ brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 }));
+    expect(parseTraitInstance('Armure (Casque, Chemise de mailles, Chausses de mailles) 2'), 'type 7, MSR 09 l.1504').toEqual(restreinte({ tete: 2, corps: 2, jambeG: 2, jambeD: 2 }));
+    expect(parseTraitInstance('Armure (Poitrine) 3'), 'type 2, ACE 05 l.2043').toEqual(restreinte({ corps: 3 }));
+    expect(parseTraitInstance('Armure (Corps 2, Bras 4, Tête 2)'), 'type 3, PDT 09 l.52').toEqual(restreinte({ tete: 2, brasG: 4, brasD: 4, corps: 2 }));
+    for (const [texte, aspect, indice] of [['Armure (Cuir) 1', 'Cuir', 1], ['Armure (Légère) 1', 'Légère', 1], ['Armure (Fourrure) 2', 'Fourrure', 2]] as const)
+      expect(parseTraitInstance(texte), `types 4, 6, 8 : ${texte}`).toEqual({ id: 'armure', arg: aspect, value: indice });
+    expect(parseTraitInstance('Immunité (Poison 2)'), 'un Trait sans Indice garde sa parenthèse').toEqual({ id: 'immunite', arg: 'Poison 2' });
+    for (const t of [
+      { id: 'peur', plage: { min: 1, max: 2 } },
+      { id: 'protection', plage: { min: 7, max: 9 } },
+      { id: 'armure', arg: 'Peau', value: 1 },
+      { id: 'armure', parLocalisation: { tete: 2, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } },
+      { id: 'armure', parLocalisation: { tete: 2, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } },
+      { id: 'armure', parLocalisation: { tete: 0, brasG: 1, brasD: 2, corps: 0, jambeG: 0, jambeD: 0 } },
+    ] as TraitPose[]) {
+      expect(parseTraitInstance(formatTrait(t)), JSON.stringify(t)).toEqual(t);
+      expect(traitInstanceSchema.safeParse(t).success, JSON.stringify(t)).toBe(true);
+    }
+  });
+
+  it('le schéma refuse deux clés de valeur, une fourchette décroissante, un Aspect avec l’Indice par Localisation', () => {
+    expect(traitInstanceSchema.safeParse({ id: 'peur', value: 2, plage: { min: 1, max: 2 } }).success).toBe(false);
+    expect(traitInstanceSchema.safeParse({ id: 'peur', plage: { min: 2, max: 1 } }).success).toBe(false);
+    expect(traitInstanceSchema.safeParse({ id: 'armure', arg: 'Peau', parLocalisation: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 } }).success).toBe(false);
+  });
+
   it('une saisie qui joint plusieurs specs n’est pas découpée : une instance, refusée au parse sur un registre fermé', () => {
     const saisie = parseTraitInstance('Haine (Noble, Homme-bête)');
     expect(saisie).toEqual({ id: 'haine', arg: 'Noble, Homme-bête' });

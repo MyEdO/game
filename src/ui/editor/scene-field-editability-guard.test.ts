@@ -163,6 +163,7 @@ export const tracerCalque = () => {
     for (const id of [
       'Scene.dimensions.w', // littéral anonyme d'une propriété
       'Scene.entryPoints.x', // valeur d'un Record<K,V>
+      'Scene.reliefDefaults.ramp', // clé LITTÉRALE d'un type mappé, sans déclaration de propriété
       'Dialogue.nodes',
       'DialogueNode.choices',
       // Feuille PARTAGÉE d'un AUTRE module (`grammaire/valeurs.ts`, `moneyPartialSchema`) que le document
@@ -246,11 +247,13 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
   });
 
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
-    // Rabattre `declaredInScene` sur les deux FICHIERS du document fait 277 → 260 (mutation mesurée).
+    // Rabattre `declaredInScene` sur les deux FICHIERS du document fait 292 → 265 (mutation mesurée).
     // Les champs perdus sont nommés ici : ce sont les seuls du périmètre déclarés hors du document.
     // #1463 (2026-10-26) : le Trait POSÉ du document est la forme INFÉRÉE de son schéma
     // (`traitInstanceSchema`, `TraitPose`) et non plus l'instance RÉSOLUE du moteur — la rangée de Trait
     // et sa provenance (`SourceRef`, composée par `source`/`alsoIn`) entrent donc au périmètre.
+    // #1463 PR-3b : la fourchette (`Plage`) de la pose, et les clés de l'Indice par Localisation — shape
+    // DÉRIVÉ (`tableTotale`), propriétés synthétiques rattachées à la déclaration de `parLocalisation`.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -263,6 +266,14 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
+      'ParLocalisation.brasD @ src/data/schemas/grammaire/reference.ts',
+      'ParLocalisation.brasG @ src/data/schemas/grammaire/reference.ts',
+      'ParLocalisation.corps @ src/data/schemas/grammaire/reference.ts',
+      'ParLocalisation.jambeD @ src/data/schemas/grammaire/reference.ts',
+      'ParLocalisation.jambeG @ src/data/schemas/grammaire/reference.ts',
+      'ParLocalisation.tete @ src/data/schemas/grammaire/reference.ts',
+      'Plage.max @ src/data/schemas/grammaire/valeurs.ts',
+      'Plage.min @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
@@ -274,6 +285,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'TraitInstance.id @ src/data/schemas/grammaire/reference.ts',
       'TraitInstance.maison @ src/data/schemas/grammaire/reference.ts',
       'TraitInstance.natural @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.parLocalisation @ src/data/schemas/grammaire/reference.ts',
+      'TraitInstance.plage @ src/data/schemas/grammaire/reference.ts',
       'TraitInstance.range @ src/data/schemas/grammaire/reference.ts',
       'TraitInstance.source @ src/data/schemas/grammaire/reference.ts',
       'TraitInstance.value @ src/data/schemas/grammaire/reference.ts',
@@ -422,6 +435,26 @@ export const visible = (flags: Record<string, boolean>, gameTime: number) =>
       // …et le témoin positif du même fichier : `id` est bien crédité, la garde n'est pas aveugle.
       expect(rows.find((r) => r.id === 'Scene.id')?.authors).toEqual(['src/ui/Editeur.ts']);
 
+    } finally { program.dispose(); }
+  });
+
+  it('les clés LITTÉRALES d’un type mappé (`Record<\'a\' | \'b\', V>`) sont au périmètre, rattachées au champ porteur, et créditées une à une', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export type Cote = 'gauche' | 'droite';
+export interface Scene { id: string; armure: Record<Cote, number> }\n`,
+      // Clé CALCULÉE pilotée par un littéral (l'idiome des rangées de l'inspecteur) : seul `gauche` s'écrit.
+      'src/ui/Armure.ts': `import type { Scene } from '../noyau/monde/scene';
+const COTE = 'gauche' as const;
+export const poser = (s: Scene, n: number): Scene => ({ ...s, id: s.id, armure: { ...s.armure, [COTE]: n } });\n`,
+    });
+    try {
+      const scope = sceneScope(program, VIRTUAL_ROOT);
+      expect(ids(scope).sort()).toEqual(['Scene.armure', 'Scene.armure.droite', 'Scene.armure.gauche', 'Scene.id']);
+      const porteur = scope.find((e) => e.id === 'Scene.armure')!.decl;
+      expect(scope.find((e) => e.id === 'Scene.armure.gauche')!.decl, 'rattachée à la déclaration du champ porteur').toBe(porteur);
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program);
+      expect(rows.find((r) => r.id === 'Scene.armure.gauche')?.authors).toEqual(['src/ui/Armure.ts']);
+      expect(ids(orphanFields(rows)), 'la clé jamais écrite reste orpheline').toEqual(['Scene.armure.droite']);
     } finally { program.dispose(); }
   });
 

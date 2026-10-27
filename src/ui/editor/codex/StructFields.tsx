@@ -10,7 +10,7 @@
 import { RefField, useSuggestionsPartagees, useValeursDistinctes, type RefFieldCfg, type SuggestionsPartagees } from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
 import { datasetArray } from '../../../data/overrides';
-import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, type Difficulty, type CharKey } from '../../../engine/types';
+import { DIFFICULTY_LABELS, CHAR_KEYS, CHAR_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, type Difficulty, type CharKey } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../engine/disease';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
@@ -707,7 +707,8 @@ export function DomainEffectsField(
  *    PARTAGÉ : StatblockEditor (traits fixes) + Codex `creatures.traits`/`.optionals`.
  *    L'auteur complète l'Indice/la Cible dans la chaîne (« Arme (Épée) +7 », « Peur 3 »),
  *    et sous le repli de la rangée ce que la chaîne ne dit pas : les drapeaux de la pose
- *    et sa provenance (`source`/`alsoIn`/`maison`).
+ *    et sa provenance (`source`/`alsoIn`/`maison`), et borne à borne, Localisation par
+ *    Localisation, la fourchette et l'Indice par Localisation que la chaîne pose.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 /** Une rangée de Trait POSÉ : la chaîne, son retrait, et sous un repli les clés que `formatTrait` ne
@@ -722,6 +723,7 @@ function RangeeDeTraitPose(
   },
 ) {
   const t = value;
+  const { plage, parLocalisation } = t;
   return (
     <div className="ed-subfield">
       <div className="trait-row">
@@ -731,6 +733,21 @@ function RangeeDeTraitPose(
       <details className="fold">
         <summary><span className="fold-title">{`Pose de « ${formatTrait(t) || 'ce trait'} » : drapeaux et provenance`}</span></summary>
         <div className="fold-body">
+          {plage && (
+            <div className="dr">
+              fourchette, tirée au spawn
+              <label className="dr">de<NumberField variant="nu" label="Fourchette — borne basse" commit="geste" min={0} max={plage.max - 1} value={plage.min} onChange={(min) => onChange({ ...t, plage: { min, max: plage.max } })} /></label>
+              <label className="dr">à<NumberField variant="nu" label="Fourchette — borne haute" commit="geste" min={plage.min + 1} value={plage.max} onChange={(max) => onChange({ ...t, plage: { min: plage.min, max } })} /></label>
+            </div>
+          )}
+          {parLocalisation && (
+            <div className="dr">
+              Indice par Localisation
+              {LOCALISATIONS_DE_COUP.map((loc) => (
+                <label key={loc} className="dr">{HIT_LOCATION_LABELS[loc]}<NumberField variant="nu" label={`Indice — ${HIT_LOCATION_LABELS[loc]}`} commit="geste" min={0} value={parLocalisation[loc]} onChange={(n) => onChange({ ...t, parLocalisation: { ...parLocalisation, [loc]: n } })} /></label>
+              ))}
+            </div>
+          )}
           <label className="dr">
             <input type="checkbox" checked={!!t.natural} onChange={(e) => onChange({ ...t, natural: e.target.checked || undefined })} />
             {' '}arme NATURELLE (griffes, morsure : l’Arme vient du Trait, pas de l’inventaire)

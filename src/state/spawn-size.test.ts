@@ -5,9 +5,9 @@ import { sizeFromTraits } from '../engine/size';
 describe('sizeFromTraits + dérivation de Taille au spawn (LDB 85)', () => {
   it('parse le trait Taille (insensible accents/casse)', () => {
     expect(sizeFromTraits([{ id: 'taille', arg: 'Énorme' }])).toBe('enorme');
-    expect(sizeFromTraits([{ id: 'arme', value: 7, arg: 'Épée' }, { id: 'taille', arg: 'Grande' }])).toBe('grande');
+    expect(sizeFromTraits([{ id: 'arme', arg: 'Épée' }, { id: 'taille', arg: 'Grande' }])).toBe('grande');
     expect(sizeFromTraits([{ id: 'taille', arg: 'de Petite à Énorme' }])).toBe('enorme'); // plage → borne haute
-    expect(sizeFromTraits([{ id: 'arme', value: 5 }])).toBeNull();
+    expect(sizeFromTraits([{ id: 'arme' }])).toBeNull();
   });
 
   // #146 : `arene-projet.json` portait `arg:'Petite'`/`arg:'Monstrueuse'` (LIBELLÉ du livre, capitalisé)

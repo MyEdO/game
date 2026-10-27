@@ -68,6 +68,7 @@ import type { SaturationLevel, WindSaturationEffects, ArcanePhenomenon, ArcaneTa
 import type { CastingNumberMod, CastingNumberScope } from '../../engine/castingNumber';
 import { effectiveEntry } from '../../engine/variants';
 import { isOptionalNote, type TraitList } from '../../engine/statEntry';
+import type { TraitPose } from '../../data/schemas/grammaire/reference';
 import { damageString } from '../../engine/items';
 import { rangeSpecLabel, ammoRangeModLabel, conditionalDamageNote } from '../weaponStats';
 import { formatSpellRange, formatSpellTarget, formatSpellDuration } from '../../engine/spellRangeFormat';
@@ -355,7 +356,7 @@ const foyerRow = (foyer: FoyerDeRegle): CodexRow => {
 /** Section « Règle » d'un porteur de foyer (`rule`). */
 const regleChips = (foyer: FoyerDeRegle | undefined) => chips('Règle', foyer ? [foyerRow(foyer)] : []);
 /** Rangées d'une `TraitList` par id, libellé formaté (`formatTrait`) en affichage. */
-const traitRefRows = (traits?: TraitList | null): CodexRow[] =>
+const traitRefRows = (traits?: readonly TraitPose[] | null): CodexRow[] =>
   (traits ?? []).map((t) => idRefRow('traits', t.id, undefined, formatTrait(t)));
 /** Rangée d'un `AdvancementRef` : `{pick}` → rangée de choix, référence → par id, `{random}` → pastille. */
 const advancementRow = (category: 'skills' | 'talents', a: AdvancementRef): CodexRow => {

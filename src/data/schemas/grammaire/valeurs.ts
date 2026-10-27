@@ -9,7 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import { z } from 'zod';
 
-import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import { GAMMES_PORTEUR, SLOTS } from '../../palette.types';
 import { refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
@@ -858,6 +858,12 @@ export const entityAppearanceSchema = nommerChamps(z.strictObject({
  *  `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) sur l'enum SOURCE : aucune des 9 JSON
  *  ne porte de valeur hors de ces 6 (vérifié au parse). */
 export const hitLocationSchema = z.enum(LOCALISATIONS_DE_COUP);
+
+/** Indice par Localisation : les six Localisations, chacune son Indice. AA 09 l.184 ; MCLB 02 l.101. */
+export const parLocalisationSchema = nommerChamps(
+  z.strictObject(tableTotale(LOCALISATIONS_DE_COUP, () => z.number().int().nonnegative())),
+  tableTotale(LOCALISATIONS_DE_COUP, (loc) => ({ label: HIT_LOCATION_LABELS[loc] })),
+);
 
 /** Feuille de référence du terme `{rule}`, instanciée UNE fois : `formulaSchema` est un `z.lazy` que
  *  chaque composition ré-évalue — une fabrique appelée DANS le `lazy` poserait une marque par instance

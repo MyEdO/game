@@ -19,6 +19,7 @@ import { t } from '../i18n';
  *  #767) SANS que le moteur importe le store : il reçoit la fonction, reste PUR (règle stricte 3). */
 export type TrappingResolver = (id: string) => TrappingData | undefined;
 import { slugId } from '../data/slug';
+import { localisationsDeZone } from './classementDeTrait';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../data/schemas/grammaire/sousListes';
 import { craftEncDelta } from './qualities/craftEconomy';
@@ -249,17 +250,6 @@ export function weaponItem(spec: WeaponSpec & { conjured?: boolean }): ItemInsta
   };
 }
 
-/** Zones d'armure d'une Possession → localisations d'impact, keyées par ID de zone (slug) : le champ
- *  d'authoring `TrappingData.loc` porte du TEXTE (« Tête, Bras »), converti en id par `slugId` à la
- *  lecture — même couture texte→id que `reachIdOf`, aucune clé de table en libellé. */
-const ARMOUR_LOC_BY_ID: Record<string, HitLocation[]> = {
-  tete: ['tete'],
-  bras: ['brasG', 'brasD'],
-  mains: ['brasG', 'brasD'],
-  corps: ['corps'],
-  jambes: ['jambeG', 'jambeD'],
-};
-
 /** PONT catalogue → runtime : la CATÉGORIE de catalogue (`TrappingData.categorie`) se TRADUIT en
  *  `ItemKind` (`ItemInstance.kind`). Deux vocabulaires distincts, jamais une recopie. */
 function kindOf(categorie: string): ItemKind {
@@ -284,7 +274,7 @@ export function itemFromTrappingById(id: string, resolveTrapping: TrappingResolv
     t.loc != null
       ? t.loc
           .split(',')
-          .flatMap((p) => ARMOUR_LOC_BY_ID[slugId(p)] ?? [])
+          .flatMap((p) => localisationsDeZone(p) ?? [])
       : undefined;
   // Un champ « rendu pur » du catalogue (`MetaChamp.renduPur`) n'est JAMAIS recopié : le rig le résout par
   // `trappingId` (#2113). `label`, `kind`, `subType`, `locs` servent la règle ET le dessin : l'instance les

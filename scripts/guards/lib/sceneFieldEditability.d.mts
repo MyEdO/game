@@ -10,7 +10,10 @@ export interface SceneField {
   /** Nom du type porteur, ou le chemin depuis `Scene` pour un type littéral anonyme. */
   owner: string;
   field: string;
+  /** La déclaration du champ ; pour une propriété synthétique, celle du champ qui porte le type mappé. */
   decl: Declaration;
+  /** Clé LITTÉRALE d'un type mappé, sans déclaration : l'id de ce type. */
+  synthetique?: { porteur: number };
 }
 
 export interface FieldEditability {
@@ -33,12 +36,14 @@ export function documentDeclarations(program: SessionProgramme, root: string): S
 /** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
 export function programmeDuPerimetre(root: string): SessionProgramme;
 export function sceneScope(program: SessionProgramme, root: string): SceneField[];
+/** Clé d'identité d'un champ : sa déclaration, ou `id du type mappé#nom` pour une propriété synthétique. */
+export function cleDuChamp(champ: SceneField): Declaration | string;
 /** Portées d'exécution atteintes depuis `src/ui/**` par fermeture transitive des appels. */
 export function uiReachableScopes(checker: Checker, program: SessionProgramme, root: string): Set<Node>;
 export function fieldsWrittenIn(
   checker: Checker,
   sourceFile: SourceFile,
-  declToId: Map<Declaration, string>,
+  cles: Map<Declaration | string, string>,
   fieldNames: Set<string>,
   creditable?: (node: Node) => boolean
 ): Set<string>;
