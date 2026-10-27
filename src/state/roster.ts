@@ -3,8 +3,8 @@ import type { Money } from '../engine/money';
 import type { CreatorDraft } from '../noyau/creation/brouillon';
 import { t } from '../i18n';
 import { stockageWeb } from '../web/stockageWeb';
-import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
-import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
+import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from '../noyau/persistance/formats.generated';
+import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from '../noyau/persistance/elagage';
 
 /** Roster persistant (localStorage) des personnages créés via le créateur.
  *  Snapshot À LA CRÉATION : le héros tel que sorti de `buildHero`, plus sa

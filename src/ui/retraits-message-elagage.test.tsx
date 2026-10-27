@@ -6,7 +6,7 @@ import { HouseRulesPanel } from './HouseRulesModal';
 import { RetraitsDeChargement } from './RetraitsDeChargement';
 import { loadHouseRules } from '../state/houseRules';
 import { useGame } from '../state/store';
-import { FORMAT_SAVE } from '../state/formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { OPTIONAL_RULES, rule } from '../engine/policy';
 import { conditionIds } from '../data';
 import { t } from '../i18n';

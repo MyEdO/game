@@ -573,7 +573,7 @@ export const fr = {
   'saveload.error.load': 'Emplacement vide ou incompatible.',
   'saveload.error.import': 'Fichier de sauvegarde illisible.',
   'saveload.error.import.autreFormat': 'Sauvegarde d’un autre format : elle ne peut pas être importée.',
-  // Sauvegarde chargée ÉLAGUÉE (`state/elagage.ts`) : ce qu'elle nommait hors du registre courant.
+  // Sauvegarde chargée ÉLAGUÉE (`noyau/persistance/elagage.ts`) : ce qu'elle nommait hors du registre courant.
   'saveload.elague.titre': 'Sauvegarde chargée',
   'saveload.elague': 'Cette version du jeu ne connaît plus ce que la sauvegarde nommait : {liste}. La partie est chargée sans eux.',
   'elagage.regles': 'règles optionnelles {ids}',

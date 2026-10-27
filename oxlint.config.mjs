@@ -86,7 +86,7 @@ const VERROU_LISTAGE = [
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
-const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` ou `lireDictionnaire` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
 
 const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
 const VERROU_CONSOLE = [{

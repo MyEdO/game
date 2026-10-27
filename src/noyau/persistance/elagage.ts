@@ -2,15 +2,15 @@
  * ÉLAGAGE d'un document PERSISTÉ (#1463 LD.1, #2995) — sauvegarde, roster, export de héros, règles maison du
  * stockage : ce qui nomme une règle optionnelle ou un État hors du registre COURANT est retiré, le reste se
  * charge, et les ids retirés sont rendus pour être NOMMÉS au joueur. Le document n'est jamais jeté pour une
- * dérive du registre ; seul un changement de FORMAT le jette (`saves.ts`, `roster.ts`).
+ * dérive du registre ; seul un changement de FORMAT le jette (`state/saves.ts`, `state/roster.ts`).
  *
  * SEUL juge de ce qui se refuse : `refusDesSurcharges` (`engine/policy`) pour les surcharges, `etatsPortesInconnus`
  * (`engine/conditions`) pour les États portés. Aucun chargeur n'en garde de copie.
  */
-import { refusDesSurcharges, type RuleValue } from '../engine/policy';
-import { etatsPortesInconnus } from '../engine/conditions';
-import type { ConditionInstance } from '../engine/types';
-import { t } from '../i18n';
+import { refusDesSurcharges, type RuleValue } from '../../engine/policy';
+import { etatsPortesInconnus } from '../../engine/conditions';
+import type { ConditionInstance } from '../../engine/types';
+import { t } from '../../i18n';
 
 /** Les ids retirés d'un document : surcharges de règles refusées, États portés inconnus (sans doublon). */
 export interface RetraitsDElagage {

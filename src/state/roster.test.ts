@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { rosterLoad, rosterAdd, rosterRemove, rosterUpdate, rosterExport, rosterImport, takeRosterNotice, takeRosterElagage, RosterEntry } from './roster';
-import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from './formats.generated';
+import { FORMAT_EXPORT_HEROS, FORMAT_ROSTER } from '../noyau/persistance/formats.generated';
 import type { Combatant } from '../engine/types';
 import { conditionIds } from '../data';
 

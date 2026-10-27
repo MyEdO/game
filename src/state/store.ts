@@ -11,7 +11,7 @@ import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
 import { snapshotSave, saveToSlot, readSlot, importSave, elaguerSave, AUTO_SLOT, type SaveSlot, type AnySlot, type SaveGame } from './saves';
-import { rienDElague, type RetraitsDElagage } from './elagage';
+import { rienDElague, type RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import { pruneSeatAssignments } from '../noyau/monde/seating';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';

@@ -285,6 +285,8 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             son chemin relatif, extension comprise.
                             `garanti.ts` : une valeur que son producteur garantit, absente, lève un
                             défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
+                            `stockage.ts` : le port `Stockage` (sous-ensemble synchrone de `Storage`) et
+                            `lireDictionnaire`, la lecture d'un dictionnaire JSON qui lui est appliquée (#2404).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.
@@ -300,7 +302,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
                             `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
-                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire`,
+                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire` (`lib/stockage.ts`),
                             chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
                             de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
                             `wfrp4.prefs.v1`).
@@ -522,6 +524,8 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   monde/spawn.ts            apparition des entités de scène et de rencontre (`spawnEnemy`)
   creation/                 BROUILLON DE CRÉATION de personnage (LDB 04/05), sans écran : `brouillon.ts` (état pur :
                             tirages figés, bonus PX, validation, `buildHero`), `defauts.ts` (`fillDraftDefaults`)
+  persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
+                            des ids hors registre, #1463 LD.1) et `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -580,7 +584,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
                               le message au joueur par `ui/SaveLoadModal`. Une save au format courant
                               qui nomme une règle optionnelle ou un État hors du registre courant SE
-                              CHARGE, élaguée de ces seuls ids par `elaguerSave` (`state/elagage.ts`,
+                              CHARGE, élaguée de ces seuls ids par `elaguerSave` (`noyau/persistance/elagage.ts`,
                               #1463 LD.1), nommés au joueur par `ui/RetraitsDeChargement`.
                               Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
                               (`noyau/etat.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
@@ -596,7 +600,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               roster d'un autre format est retiré (témoin `takeRosterNotice`, rendu
                               par `ui/PartyScreen`) ; un export d'un autre format est refusé. Un héros
                               qui porte un État hors du registre courant est GARDÉ sans cet État
-                              (`state/elagage.ts`, #1463 LD.1) — roster réécrit, témoin
+                              (`noyau/persistance/elagage.ts`, #1463 LD.1) — roster réécrit, témoin
                               `takeRosterElagage` ; import, retrait rendu — nommé par `ui/PartyScreen`. Le
                               roster ne voyage PAS dans la save de partie
   projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
@@ -626,7 +630,7 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               schéma porte le FORMAT de son type sérialisé : `scripts/gen-formats.mjs`
                               (cible de code de `build-all --code`) DÉCLARE ses racines (`RACINES` : la
                               save `SaveGame`, le roster `RosterStocke`, l'export `ExportDeHeros`, le
-                              calque `CalqueStocke`) et écrit `src/state/formats.generated.ts`
+                              calque `CalqueStocke`) et écrit `src/noyau/persistance/formats.generated.ts`
                               (gitignoré) : une forme canonique du graphe des types (propriétés triées,
                               `?` porté, unions triées, fonctions nues sautées ; `any`/`unknown` ou un
                               drapeau de type non traité ÉCHOUE), indépendante des ids internes

@@ -1,5 +1,5 @@
 import { useGame } from '../state/store';
-import { nommerLesRetraits } from '../state/elagage';
+import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { Modal } from './Modal';
 import { ChipDeRefus } from './ChipDeRefus';
 import { t } from '../i18n';

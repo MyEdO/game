@@ -11,7 +11,7 @@ import {
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, type BasesSimulees } from '../web/indexedDb.testkit';
 import { identityTransform } from '../ui/editor/traceCalibration';
-import { FORMAT_CALQUE } from './formats.generated';
+import { FORMAT_CALQUE } from '../noyau/persistance/formats.generated';
 
 const NOM = 'wfrp4-trace-layers';
 let bases: BasesSimulees;

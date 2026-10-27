@@ -168,7 +168,7 @@ export function refusDesSurcharges(o: Readonly<Record<string, unknown>>): RefusD
 }
 
 /** Remplace les surcharges (depuis la persistance). Un jeu que `refusDesSurcharges` refuse LÈVE, sans rien
- *  remplacer : l'appelant élague d'abord (`state/elagage`) (#1463 LD.1). */
+ *  remplacer : l'appelant élague d'abord (`noyau/persistance/elagage`) (#1463 LD.1). */
 export function loadRuleOverrides(o: Readonly<Record<string, unknown>>): void {
   const refus = refusDesSurcharges(o);
   if (refus.length) throw new Error(refus.map((r) => r.raison).join(' ; '));

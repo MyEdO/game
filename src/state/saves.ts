@@ -22,11 +22,11 @@
  * (`elaguerSave`), nommés au joueur (#1463 LD.1).
  */
 import type { RuleValue } from '../engine/policy';
-import { elaguerLePersiste, type RetraitsDElagage } from './elagage';
+import { elaguerLePersiste, type RetraitsDElagage } from '../noyau/persistance/elagage';
 import type { Scene } from '../noyau/monde/scene';
 import type { GameState } from './store';
 import { stockageWeb } from '../web/stockageWeb';
-import { FORMAT_SAVE } from './formats.generated';
+import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 
 export interface SaveMeta {
   version: string;

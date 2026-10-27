@@ -1,6 +1,6 @@
 // scripts/gen-formats.mjs — le FORMAT de chaque donnée persistée sans schéma, dérivé de son TYPE
 // sérialisé (#2404, option C du design jugé) : une cible de CODE de `GENERATORS`
-// (scripts/docs/build-all.mjs), `src/state/formats.generated.ts`, jamais commitée.
+// (scripts/docs/build-all.mjs), `src/noyau/persistance/formats.generated.ts`, jamais commitée.
 //
 //   node scripts/gen-formats.mjs            écrit la cible
 //   node scripts/gen-formats.mjs --check    compare sans écrire
