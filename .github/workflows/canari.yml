@@ -21,6 +21,11 @@ permissions:
 # rendait 1 sur un stock connu et figé (4 des 5 derniers rouges), et un rouge permanent ne mesure
 # plus rien. C'est `scripts/ops/audit-stock.mjs` qui juge, sur l'ÉCART au stock daté.
 
+# Un step sans `shell` tourne sous `bash -e`, SANS pipefail : `mesure | tee` y prend le code du `tee`.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,7 +37,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
       - id: install
         run: npm ci
@@ -136,7 +141,7 @@ jobs:
 
       # Les deux mesures d'ÉTAT (le dépôt npm, les fermetures GitHub)
       # écrivent leur rapport dans `$RUNNER_TEMP/canari` : le résumé les recolle dans le commentaire.
-      # `set -o pipefail` est le défaut du shell bash des runners — le `tee` ne masque aucun exit.
+      # `defaults.run.shell: bash` lance chaque step sous `bash -eo pipefail` : le `tee` ne masque aucun exit.
       - name: Stock d'audit (racine + server)
         id: audit-stock
         continue-on-error: true

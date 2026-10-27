@@ -117,6 +117,21 @@ test('SENS 2 — un fichier suivi cite un chemin `docs/plans/…` qui n’existe
   }
 })
 
+test('SENS 2 — un solde DATÉ nomme le chemin d’un plan supprimé depuis sa date', () => {
+  const base = depot({
+    'docs/plans/2026-01-01-vivant.md': PLAN_SAIN,
+    'docs/plans/2026-01-01-execute.md': PLAN_SAIN,
+    '.claude/soldes/1.md': 'VERIFIE: plan `docs/plans/2026-01-01-execute.md` tenu.\n',
+  })
+  try {
+    tuerLePlan(base, 'docs/plans/2026-01-01-execute.md')
+    const { code, sortie } = lancer(base)
+    assert.equal(code, 0, `corps historique pris pour une citation vivante : ${sortie}`)
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+})
+
 test('SENS 1 en ligne (`--online`) — ancre Ticket dont TOUTES les issues sont fermées', () => {
   const base = depot({ 'docs/plans/2026-01-01-vivant.md': PLAN_SAIN })
   try {

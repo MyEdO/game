@@ -1,6 +1,6 @@
 ⚠️ INSTRUMENT de l'épique gelée #834 — compteur de reprise (460 entités)
 
-Ticket: #834
+Ticket: #3001
 
 # Inventaire de complétude — Les Vents de Magie (VDM)
 

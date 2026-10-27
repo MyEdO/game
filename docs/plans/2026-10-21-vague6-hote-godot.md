@@ -1,8 +1,8 @@
 # Vague 6 de l'épique #2882 : l'hôte Godot dans le dépôt (plan v2)
 
-Ticket: #2928
+Ticket: #2794
 
-Date : 2026-10-21. Carte : `docs/plans/2026-10-21-vague6-carte-poc-godot.md`, lecture de `origin/poc/godot` (3baf8483b). La v1 a été refusée par un juge neuf (huit bloquants, huit majeurs) ; la v2 les intègre, chaque correction citée par son repère (B1… M8).
+Date : 2026-10-21, sur `origin/poc/godot` (3baf8483b). La v1 a été refusée par un juge neuf (huit bloquants, huit majeurs) ; la v2 les intègre, chaque correction citée par son repère (B1… M8).
 
 ## Qualification
 

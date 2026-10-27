@@ -22,8 +22,8 @@
 //
 // PÉRIMÈTRE MESURÉ — l'énumération passe EXCLUSIVEMENT par `git ls-files` (fichiers SUIVIS) :
 //   SENS 1 : `docs/plans/**` en `.md`, `.html` (`.dc.html` compris).
-//   SENS 2 : tout fichier suivi d'extension `.md .mjs .mts .ts .tsx .js .json .yml .yaml .css .html`.
-//   SENS 3 : les mêmes fichiers que le SENS 2, moins les CORPUS HISTORIQUES (`CORPUS_HISTORIQUES`).
+//   SENS 2 et 3 : tout fichier suivi d'extension `.md .mjs .mts .ts .tsx .js .json .yml .yaml .css .html`,
+//   moins les CORPUS HISTORIQUES (`CORPUS_HISTORIQUES`).
 // La citation se cherche dans le texte JOINT (lignes recollées, préfixes de commentaire retirés) :
 // une réf coupée en fin de ligne (l'en-tête de src/engine/testOutcome.ts) est un chemin comme un autre. Le
 // jeton tolère les ESPACES (`docs/plans/Spec HUD Combat.dc.html`) et se valide par PRÉFIXES coupés
@@ -40,7 +40,7 @@
 //   - Le back-lien d'un `Instrument:` est mesuré par SIMPLE PRÉSENCE du chemin du plan dans le
 //     fichier instrument ; il ne juge pas que l'outil le LIT vraiment.
 //   - Les fichiers binaires et les extensions hors liste (`.txt`, `.svg`, `.sh`…) ne sont pas scannés.
-//   - Le SENS 3 porte la doctrine du corps historique dans `CORPUS_HISTORIQUES` : un rapport DATÉ
+//   - Les SENS 2 et 3 portent la doctrine du corps historique dans `CORPUS_HISTORIQUES` : un rapport DATÉ
 //     ADRESSE ses constats par le document audité (`### <doc>:<ligne>`) — requalifier ces adresses
 //     falsifierait le rapport, qui décrit l'arbre à SA date, pas l'arbre d'aujourd'hui.
 //   - Le SENS 3 ne juge que des noms de FICHIERS de `docs/plans/` : un basename trop commun
@@ -223,6 +223,7 @@ const FICHIERS_DE_LA_GARDE = new Set([
 
 for (const file of tracked) {
   if (!SCAN_EXTS.some((x) => file.endsWith(x))) continue
+  if (CORPUS_HISTORIQUES.some((p) => file.startsWith(p))) continue
   if (FICHIERS_DE_LA_GARDE.has(file)) continue
   const text = read(file)
   if (text === null) continue

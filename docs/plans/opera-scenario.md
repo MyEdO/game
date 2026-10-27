@@ -1,6 +1,6 @@
 # « Une nuit à l'Opéra » (NADJ) — état d'implémentation
 
-Ticket: #1314
+Ticket: #3006
 
 _Mis à jour 2026-07-05 — plan encore ouvert (autonomie PNJ / foule / mise en scène restants)._
 

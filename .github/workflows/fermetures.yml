@@ -37,7 +37,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
       - name: Checks requis du sha poussé
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

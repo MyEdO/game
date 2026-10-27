@@ -15,7 +15,7 @@ runs:
   steps:
     - uses: actions/setup-node@v4
       with:
-        node-version: '22'
+        node-version-file: .nvmrc
         cache: npm
     # AVANT `npm ci` : la fermeture des imports du classement n'atteint aucun paquet (garde
     # scripts/gates/classerPush.test.mjs).

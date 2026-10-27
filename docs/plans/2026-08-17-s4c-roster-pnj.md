@@ -1,6 +1,6 @@
 # S4-c — Persistance des PNJ hors combat + roster d'habitués à fiche (design)
 
-Ticket: #1318
+Ticket: #2999
 
 
 > **Plan DATÉ du 2026-08-17** (politique `docs/`) — à SUPPRIMER une fois exécuté ; git porte l'historique.

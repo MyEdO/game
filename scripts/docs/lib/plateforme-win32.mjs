@@ -64,9 +64,9 @@ import { cwdDonne, estAbsoluWindows, estModuleDuDepot, hooksSdkSousWin32, urlDuD
 /** Nom → nombre d'arguments-CHEMINS en tête, pour la forme synchrone, à rappel et `fs.promises`. */
 const ENTREES_FS = {
   access: 1, appendFile: 1, chmod: 1, chown: 1, copyFile: 2, cp: 2, exists: 1, glob: 1, lchmod: 1,
-  lchown: 1, link: 2, lstat: 1, lutimes: 1, mkdir: 1, mkdtemp: 1, open: 1, opendir: 1, readdir: 1,
-  readFile: 1, readlink: 1, realpath: 1, rename: 2, rm: 1, rmdir: 1, stat: 1, statfs: 1, symlink: 2,
-  truncate: 1, unlink: 1, utimes: 1, watch: 1, writeFile: 1,
+  lchown: 1, link: 2, lstat: 1, lutimes: 1, mkdir: 1, mkdtemp: 1, mkdtempDisposable: 1, open: 1,
+  opendir: 1, readdir: 1, readFile: 1, readlink: 1, realpath: 1, rename: 2, rm: 1, rmdir: 1, stat: 1,
+  statfs: 1, symlink: 2, truncate: 1, unlink: 1, utimes: 1, watch: 1, writeFile: 1,
 }
 /** Sans variante `Sync` ni `fs.promises`. */
 const SEULES_FS = { createReadStream: 1, createWriteStream: 1, openAsBlob: 1, watchFile: 1, unwatchFile: 1 }
@@ -74,7 +74,7 @@ const SEULES_FS = { createReadStream: 1, createWriteStream: 1, openAsBlob: 1, wa
 export const SANS_CHEMIN_FS = new Set([
   'close', 'fchmod', 'fchown', 'fdatasync', 'fstat', 'fsync', 'ftruncate', 'futimes', 'read', 'readv',
   'write', 'writev', 'Dir', 'Dirent', 'FileReadStream', 'FileWriteStream', 'ReadStream', 'Stats',
-  'WriteStream', '_toUnixTimestamp',
+  'Utf8Stream', 'WriteStream', '_toUnixTimestamp',
 ])
 /** Nom → position de l'argument d'options qui porte un `cwd`. */
 const OPTIONS_FS = { glob: 1 }
