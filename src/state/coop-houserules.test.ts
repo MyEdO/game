@@ -5,19 +5,19 @@
  * surcharges localStorage et divergerait de l'hôte.
  */
 import { describe, it, expect } from 'vitest';
-import { packHouseRules, unpackHouseRules, HOUSE_RULES_KEY } from '../noyau/persistance/save';
+import { packHouseRules, unpackHouseRules } from '../noyau/persistance/save';
 
 describe('coop — règles maison dans le snapshot (pack/unpack purs)', () => {
-  it('pack joint les règles sous la clé réservée, sans toucher au reste', () => {
-    const packed = packHouseRules({ gameTime: 7, flags: { a: true } }, { 'test-x': true, 'p': 2 });
-    expect(packed.gameTime).toBe(7);
-    expect(packed[HOUSE_RULES_KEY]).toEqual({ 'test-x': true, 'p': 2 });
+  it('pack joint les règles sous UNE clé réservée, sans toucher au reste', () => {
+    const data = { gameTime: 7, flags: { a: true } };
+    const packed = packHouseRules(data, { 'test-x': true, 'p': 2 });
+    expect(packed).toMatchObject(data);
+    expect(Object.keys(packed)).toHaveLength(Object.keys(data).length + 1);
   });
 
   it('unpack sépare l’état des règles ET retire la clé réservée de `game`', () => {
-    const { game, rules } = unpackHouseRules({ gameTime: 7, [HOUSE_RULES_KEY]: { 'test-x': true } });
-    expect(game).toEqual({ gameTime: 7 });
-    expect(HOUSE_RULES_KEY in game).toBe(false); // pas de pollution de GameState
+    const { game, rules } = unpackHouseRules(packHouseRules({ gameTime: 7 }, { 'test-x': true }));
+    expect(game).toEqual({ gameTime: 7 }); // pas de pollution de GameState
     expect(rules).toEqual({ 'test-x': true });
   });
 

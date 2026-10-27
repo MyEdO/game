@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { appliquerLInstantane, buildDeLaCoop, instantaneDeLaCoop } from './coop';
 import { etatInitialDuJeu, snapshotSave, type EtatDeJeu } from './index';
 import { OPTIONAL_RULES, loadRuleOverrides, ruleOverrides } from '../engine/policy';
-import { HOUSE_RULES_KEY } from './persistance/save';
+import { unpackHouseRules } from './persistance/save';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { emptyScene } from './monde/scene';
@@ -54,7 +54,9 @@ describe('instantané coop de l’hôte', () => {
   it('porte EXACTEMENT les clés de jeu de la sauvegarde hors celles locales au client, plus les règles maison', () => {
     const etat = hoteEnPartie();
     const cles = Object.keys(snapshotSave(etat, 'x').data).filter((k) => !(LOCALES as readonly string[]).includes(k));
-    expect(Object.keys(instantaneDeLaCoop(etat)).sort()).toEqual([...cles, HOUSE_RULES_KEY].sort());
+    const { game, rules } = unpackHouseRules(instantaneDeLaCoop(etat));
+    expect(Object.keys(game).sort()).toEqual([...cles].sort());
+    expect(rules).toEqual(ruleOverrides());
   });
 
   it('réduit le paquet de campagne à son stub : ses scènes voyagent au join', () => {

@@ -82,7 +82,7 @@ function purgeFoldMemo(v: unknown): void {
 }
 
 /** Clé réservée du snapshot COOP qui transporte les règles maison (hors état). */
-export const HOUSE_RULES_KEY = '__houseRules';
+const HOUSE_RULES_KEY = '__houseRules';
 
 /** Joint les règles maison au snapshot coop (sous la clé réservée). */
 export function packHouseRules(data: Record<string, unknown>, rules: Record<string, RuleValue>): Record<string, unknown> {

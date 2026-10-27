@@ -22,7 +22,7 @@ const apercuDeProjetSchema = nommerChamps(z.looseObject({
 
 /** Une entrée de la bibliothèque de projets. `published` = jouable depuis le menu ; `startSceneId` = scène de
  *  départ quand on JOUE la campagne. */
-export const savedProjectSchema = nommerChamps(z.strictObject({
+const savedProjectSchema = nommerChamps(z.strictObject({
   id: z.string().min(1),
   label: z.string(),
   startSceneId: z.string(),
