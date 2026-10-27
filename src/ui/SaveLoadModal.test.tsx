@@ -5,22 +5,11 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { SaveLoadModal } from './SaveLoadModal';
-
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 describe("SaveLoadModal -- libelles i18n Phase D", () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;

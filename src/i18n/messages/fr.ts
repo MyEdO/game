@@ -581,7 +581,7 @@ export const fr = {
   'elagage.regles': 'règles optionnelles {ids}',
   'elagage.etats': 'États {ids}',
   'etats.inconnu': 'État inconnu : « {id} »',
-  // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `state/saves.ts`), sous le nom de son emplacement.
+  // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `noyau/persistance/save.ts`), sous le nom de son emplacement.
   'saveload.error.autreFormat': '{emplacement} : sauvegarde d’un autre format, retirée.',
   'saveload.error.unreadable': '{emplacement} : sauvegarde illisible, retirée.',
   // Lobby coop (CoopLobby) — Phase D.

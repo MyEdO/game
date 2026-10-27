@@ -11,7 +11,8 @@ import { creatureLabel } from '../../data';
 import { useGame } from '../../state/store';
 import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
-import { deleteSlot, readSlot, saveToSlot } from '../../state/saves';
+import { stockageDesSauvegardes } from '../../state/saves';
+import { retirerLaSauvegarde, lireLaSauvegarde, ecrireLaSauvegarde } from '../../hote/sauvegardes';
 
 const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 
@@ -170,7 +171,7 @@ describe('save/load — dialogueHistory round-trip', () => {
         get length() { return m.size; },
       } as Storage;
     })();
-    deleteSlot(1);
+    retirerLaSauvegarde(stockageDesSauvegardes(), 1);
     useGame.setState({ battle: null });
     useGame.getState().startScene(testScene());
     useGame.setState({ party: [hero()] });
@@ -189,10 +190,10 @@ describe('save/load — dialogueHistory round-trip', () => {
   it('un save ANTÉRIEUR à #718 (data sans dialogueHistory) se charge sans crash → historique vide', () => {
     useGame.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
     expect(useGame.getState().saveGame(1)).toBe(true);
-    const saved = readSlot(1)!;
+    const saved = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
     const data = { ...(saved.data as Record<string, unknown>) };
     delete data.dialogueHistory; // une save dont le `data` ne porte PAS la clé : elle est optionnelle au chargement
-    expect(saveToSlot(1, { ...saved, data } as typeof saved)).toBe(true);
+    expect(ecrireLaSauvegarde(stockageDesSauvegardes(), 1, { ...saved, data } as typeof saved)).toBe(true);
     useGame.getState().startScene(testScene());
     expect(useGame.getState().loadGame(1)).toBe(true);
     expect(useGame.getState().dialogueHistory).toEqual([]);

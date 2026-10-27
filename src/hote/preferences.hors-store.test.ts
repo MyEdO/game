@@ -7,29 +7,13 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { chargerLesPreferences, reglerUnePreference } from './preferences';
 import { cadence, setCadence, CADENCE_DEFAULT } from '../engine/cadence';
 import { desFixes, setDesFixes, DES_FIXES_DEFAULT } from '../engine/fixedDie';
-import type { Stockage } from '../lib/stockage';
+import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 
 const CLE = 'wfrp4.prefs';
 const CADENCE_HORS_DEFAUT = 'auto';
 
-function enMemoire(): Stockage & { contenu: Map<string, string> } {
-  const contenu = new Map<string, string>();
-  return {
-    contenu,
-    getItem: (k) => contenu.get(k) ?? null,
-    setItem: (k, v) => void contenu.set(k, v),
-    removeItem: (k) => void contenu.delete(k),
-  };
-}
-
-const quiLeve: Stockage = {
-  getItem: () => { throw new Error('refusé'); },
-  setItem: () => { throw new Error('refusé'); },
-  removeItem: () => { throw new Error('refusé'); },
-};
-
 const avec = (valeur: unknown) => {
-  const s = enMemoire();
+  const s = stockageEnMemoire();
   s.setItem(CLE, JSON.stringify(valeur));
   return s;
 };
@@ -51,7 +35,7 @@ describe('le chargement des préférences d’un stockage', () => {
   });
 
   it('un magasin qui n’est pas un dictionnaire, ou un stockage absent ou qui lève, est ignoré', () => {
-    for (const s of [avec([CADENCE_HORS_DEFAUT]), null, quiLeve]) {
+    for (const s of [avec([CADENCE_HORS_DEFAUT]), null, stockageQuiLeve]) {
       chargerLesPreferences(s);
       expect(cadence()).toBe(CADENCE_DEFAULT);
     }
@@ -60,7 +44,7 @@ describe('le chargement des préférences d’un stockage', () => {
 
 describe('le réglage d’une préférence', () => {
   it('écrit la valeur et ne persiste que l’écart au défaut ; revenue au défaut, la clé sort du stockage', () => {
-    const s = enMemoire();
+    const s = stockageEnMemoire();
     expect(reglerUnePreference(s, 'combat-cadence', CADENCE_HORS_DEFAUT)?.id).toBe('combat-cadence');
     expect(cadence()).toBe(CADENCE_HORS_DEFAUT);
     expect(JSON.parse(s.contenu.get(CLE)!)).toEqual({ 'combat-cadence': CADENCE_HORS_DEFAUT });
@@ -69,13 +53,13 @@ describe('le réglage d’une préférence', () => {
   });
 
   it('un id inconnu : rien n’est écrit, aucune entrée rendue', () => {
-    const s = enMemoire();
+    const s = stockageEnMemoire();
     expect(reglerUnePreference(s, 'preference-hors-table', true)).toBeUndefined();
     expect(s.contenu.size).toBe(0);
   });
 
   it('un stockage qui lève : la valeur reste effective pour la session', () => {
-    reglerUnePreference(quiLeve, 'des-fixes', true);
+    reglerUnePreference(stockageQuiLeve, 'des-fixes', true);
     expect(desFixes()).toBe(true);
   });
 });
