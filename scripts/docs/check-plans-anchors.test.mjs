@@ -132,13 +132,65 @@ test('SENS 2 — un solde DATÉ nomme le chemin d’un plan supprimé depuis sa 
   }
 })
 
-test('SENS 1 en ligne (`--online`) — ancre Ticket dont TOUTES les issues sont fermées', () => {
-  const base = depot({ 'docs/plans/2026-01-01-vivant.md': PLAN_SAIN })
+const PLAN_VIVANT = 'docs/plans/2026-01-01-vivant.md'
+const PLAN_A_ESPACES = 'docs/plans/Spec Vivante.dc.html'
+
+/** Joue la garde EN LIGNE sur `issues` (`[{ number, texte }]`, les issues ancrées encore ouvertes),
+ *  dans un dépôt jetable portant `plans`. */
+function enLigne(plans, issues) {
+  const base = depot(plans)
   try {
-    ecrire(base, 'ouvertes.json', JSON.stringify([{ number: 42 }]))
-    const { code, sortie } = lancer(base, '--online', join(base, 'ouvertes.json'))
-    assert.equal(code, 1, `plan exécuté conservé : ${sortie}`)
-    assert.match(sortie, /\[plan exécuté, à supprimer\]\s+#1 fermée/)
+    ecrire(base, 'ancrees.json', JSON.stringify(issues))
+    return lancer(base, '--online', join(base, 'ancrees.json'))
+  } finally {
+    rmSync(base, { recursive: true, force: true })
+  }
+}
+
+test('SENS 1 en ligne (`--online`) — ancre OUVERTE dont le ticket cite le chemin du plan : vert', () => {
+  const { code, sortie } = enLigne(
+    { [PLAN_VIVANT]: PLAN_SAIN, [PLAN_A_ESPACES]: '<!-- Ticket: #1 -->\n<p>Spec</p>\n' },
+    [{ number: 1, texte: `Corps.\n\nPlans ancrés : \`${PLAN_VIVANT}\`, \`${PLAN_A_ESPACES}\`\n` }],
+  )
+  assert.equal(code, 0, `ancre revendiquée refusée : ${sortie}`)
+})
+
+test('SENS 1 en ligne (`--online`) — ancre OUVERTE dont le ticket ne cite PAS le plan : rouge, remède nommé', () => {
+  const { code, sortie } = enLigne(
+    { [PLAN_VIVANT]: PLAN_SAIN },
+    [{ number: 1, texte: 'Sujet global ouvert, qui ne nomme aucun plan (docs/plans/2026-01-01-autre.md).' }],
+  )
+  assert.equal(code, 1, `ancre non revendiquée acceptée : ${sortie}`)
+  assert.match(sortie, /2026-01-01-vivant\.md:3\s+\[ancre non revendiquée\]\s+#1 ouverte/)
+  assert.match(sortie, /citer ce chemin sur le ticket.*ré-ancrer le plan sur le ticket qui le revendique/)
+})
+
+test('SENS 1 en ligne (`--online`) — ancre Ticket dont TOUTES les issues sont fermées', () => {
+  const { code, sortie } = enLigne({ [PLAN_VIVANT]: PLAN_SAIN }, [{ number: 42, texte: PLAN_VIVANT }])
+  assert.equal(code, 1, `plan exécuté conservé : ${sortie}`)
+  assert.match(sortie, /\[plan exécuté, à supprimer\]\s+#1 fermée/)
+})
+
+test('SENS 1 en ligne (`--online`) — ancre sur PLUSIEURS issues : une ouverte qui cite suffit', () => {
+  const plan = '# Plan\n\nTicket: #1, #2, #3\n'
+  // #1 fermé (absent), #2 ouvert muet, #3 ouvert qui revendique : vert.
+  const vert = enLigne({ [PLAN_VIVANT]: plan }, [{ number: 2, texte: '' }, { number: 3, texte: `voir ${PLAN_VIVANT}` }])
+  assert.equal(vert.code, 0, `ancre multiple revendiquée refusée : ${vert.sortie}`)
+  // #1 fermé, #2 et #3 ouverts muets : rouge, les seules OUVERTES nommées.
+  const rouge = enLigne({ [PLAN_VIVANT]: plan }, [{ number: 2, texte: '' }, { number: 3, texte: 'rien' }])
+  assert.equal(rouge.code, 1, `ancre multiple non revendiquée acceptée : ${rouge.sortie}`)
+  assert.match(rouge.sortie, /\[ancre non revendiquée\]\s+#2, #3 ouverte/)
+})
+
+test('`--ancres` liste les issues ancrées, une par ligne, sans doublon', () => {
+  const base = depot({
+    [PLAN_VIVANT]: '# Plan\n\nTicket: #12, #3\n',
+    [PLAN_A_ESPACES]: '<!-- Ticket: #12 -->\n',
+  })
+  try {
+    const { code, sortie } = lancer(base, '--ancres')
+    assert.equal(code, 0, sortie)
+    assert.equal(sortie, '3\n12\n')
   } finally {
     rmSync(base, { recursive: true, force: true })
   }
