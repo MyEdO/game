@@ -88,7 +88,7 @@ describe('révélation → étape d’affichage de cascade', () => {
     pushReveal(useGame.setState, { kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1', severity: 'grave' }, { autoClose: 'grave' });
     expect(useGame.getState().saveGame(1)).toBe(true);
     useGame.setState({ pendingCascade: null }); // « nouvelle partie » : l'état est écrasé avant le chargement
-    expect(useGame.getState().loadGame(1)).toBe(true); // chemin RÉEL : lireLaSauvegarde → parseSave → applyLoadedSave
+    expect(useGame.getState().loadGame(1)).toBe(true); // chemin RÉEL : lireLaSauvegarde → lireSave → applyLoadedSave
     const step = useGame.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('mutation');
     expect(step.reveal).toEqual({ kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1', severity: 'grave' });

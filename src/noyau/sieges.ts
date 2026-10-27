@@ -20,6 +20,29 @@ export function fermerLeSiege(net: NetState, seat: number): NetState {
   return { ...net, seatNames, presence, ownership, slots: net.slots.map((s) => (s === seat ? 0 : s)), gmSeat: net.gmSeat === seat ? undefined : net.gmSeat };
 }
 
+/** Le réseau après l'attribution du héros `heroId` au siège `seat` (lobby) : décidée par l'hôte seul, sinon
+ *  `net` inchangé. */
+export function attribuerLeHeros(net: NetState, heroId: string, seat: number): NetState {
+  if (net.mode !== 'host') return net;
+  return { ...net, ownership: { ...net.ownership, [heroId]: seat } };
+}
+
+/** Le réseau après la pose du RÔLE MJ au siège `seat` (`null` : IA) — UNIQUE, le désigner le retire à tout
+ *  autre siège. Décidé par l'hôte, ou en solo pour le siège unique ; chez un invité, `net` inchangé. */
+export function poserLeSiegeMJ(net: NetState, seat: number | null): NetState {
+  if (net.mode === 'guest') return net;
+  return { ...net, gmSeat: seat ?? undefined };
+}
+
+/** Le réseau après l'attribution de l'EMPLACEMENT `slot` de l'écran d'équipe au siège `seat`, que son
+ *  joueur remplira : décidée par l'hôte seul, sur un emplacement existant, sinon `net` inchangé. */
+export function attribuerLEmplacement(net: NetState, slot: number, seat: number): NetState {
+  if (net.mode !== 'host' || slot < 0 || slot >= net.slots.length) return net;
+  const slots = [...net.slots];
+  slots[slot] = seat;
+  return { ...net, slots };
+}
+
 /**
  * LE SIÈGE DU MONDE — celui qui tient l'environnement (météo, périls, marché, désertion) : le siège
  * MJ quand il existe (bac-à-sable), l'hôte (siège 0) sinon. Il existe TOUJOURS, et il est humain :

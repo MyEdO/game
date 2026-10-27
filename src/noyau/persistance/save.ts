@@ -8,7 +8,7 @@
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : `version` vaut
  * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). Toute autre forme est refusée
- * (`parseSave`), sans migration. Une save au format courant qui nomme une règle ou un État hors du registre courant
+ * (`lireSave`), sans migration. Une save au format courant qui nomme une règle ou un État hors du registre courant
  * se CHARGE, élaguée de ces seuls ids (`elaguerSave`, #1463 LD.1).
  */
 import type { RuleValue } from '../../engine/policy';
@@ -103,11 +103,6 @@ function isValidSave(s: unknown): s is SaveGame {
     && !!(s as SaveGame).data && typeof (s as SaveGame).data === 'object';
 }
 
-/** Lit un document de save parsé : la version DOIT être `FORMAT_SAVE`. Toute autre forme rend `null`. */
-export function parseSave(parsed: unknown): SaveGame | null {
-  return isValidSave(parsed) ? parsed : null;
-}
-
 /** Les métadonnées d'affichage de `save`. */
 export function metaDeSave(save: SaveGame): SaveMeta {
   return { version: save.version, savedAt: save.savedAt, sceneLabel: save.sceneLabel, gameTime: save.gameTime };
@@ -126,7 +121,7 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   } catch {
     return 'illisible';
   }
-  return parseSave(parsed) ?? 'autreFormat';
+  return isValidSave(parsed) ? parsed : 'autreFormat';
 }
 
 /** L'export d'une save : JSON lisible (téléchargement, presse-papier). */
@@ -134,14 +129,9 @@ export function exporterLaSauvegarde(save: SaveGame): string {
   return JSON.stringify(save, null, 2);
 }
 
-/** L'import d'un texte : la save au `FORMAT_SAVE`, ou la cause de son refus. */
-export function importerLaSauvegarde(json: string): SaveGame | ObsoleteCause {
-  return lireSave(json);
-}
-
 /** La save prête à charger : ses surcharges de règles et les États portés par son groupe, élagués de ce que le
  *  registre courant ne connaît plus (`elaguerLePersiste`), et les ids retirés, à nommer au joueur. */
-export function elaguerSave(save: SaveGame): { save: SaveGame; retraits: RetraitsDElagage } {
+function elaguerSave(save: SaveGame): { save: SaveGame; retraits: RetraitsDElagage } {
   const party = Array.isArray(save.data.party) ? save.data.party : undefined;
   const { regles, porteurs, retraits } = elaguerLePersiste({ regles: save.rules ?? {}, porteurs: party ?? [] });
   return { save: { ...save, rules: regles, data: party ? { ...save.data, party: porteurs } : save.data }, retraits };
@@ -156,7 +146,7 @@ export interface SaveChargee {
 }
 
 /**
- * Charge `lue` (au `FORMAT_SAVE`, `parseSave`) : élaguée (#1463 LD.1), posée sur l'état initial du jeu, écran
+ * Charge `lue` (au `FORMAT_SAVE`, `lireSave`) : élaguée (#1463 LD.1), posée sur l'état initial du jeu, écran
  * campagne. La session réseau est celle de l'hôte qui charge, jamais celle figée dans la save : `initialNet()`.
  * L'assise de la scène est élaguée de ce que CE groupe ne porte plus (`pruneSeatAssignments`) ; une scène sans assise
  * n'en gagne pas le champ. Le paquet de campagne ré-enregistre ses scènes et re-dérive `HORS_SAVE`

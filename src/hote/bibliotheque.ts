@@ -20,9 +20,9 @@ import {
 import { lesChaines, lireTableau, retirerLaCle, type Base, type Stockage } from '../lib/stockage';
 
 /** La clé du miroir dans le `Stockage`. */
-export const CLE_DU_MIROIR = 'wfrp4.editor-projects';
+const CLE_DU_MIROIR = 'wfrp4.editor-projects';
 /** La clé des tombes de suppression dans le `Stockage`. */
-export const CLE_DES_TOMBES = 'wfrp4.editor-projects.tombstones';
+const CLE_DES_TOMBES = 'wfrp4.editor-projects.tombstones';
 
 /** Ce que l'hôte qui ouvre la poignée fixe de ses ports. */
 export interface ReglagesDeLaBibliotheque {

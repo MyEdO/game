@@ -19,7 +19,7 @@ export const AUTO_SLOT = 'auto' as const;
 export type AnySlot = SaveSlot | typeof AUTO_SLOT;
 
 /** La clé de stockage de l'emplacement `slot` (#898). */
-export const cleDEmplacement = (slot: AnySlot): string => `wfrp4.save.${slot}`;
+const cleDEmplacement = (slot: AnySlot): string => `wfrp4.save.${slot}`;
 const CLE_DU_TEMOIN = 'wfrp4.save.temoins';
 
 /** Une sauvegarde retirée du stockage : son emplacement et la cause du retrait. */

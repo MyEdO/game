@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RELAY_URL_PROD, relayHttpUrl, roomWsUrl, RelayClient, RoomGuest, RoomHost, type SocketLike } from './relay';
 import { inflateB64 } from './compress';
 import { GuestSession, HostSession } from '../hote/coop/session';
-import type { NetMessage } from '../hote/coop/protocol';
+import type { EtatDeJeu } from '../noyau/etat';
+import type { Scene } from '../noyau/monde/scene';
+import { resetSceneRegistry, sceneDuRegistre } from '../noyau/monde/registreDesScenes';
 
 class FakeSocket implements SocketLike {
   static last: FakeSocket | null = null;
@@ -59,18 +61,19 @@ function resumedHostSession() {
     }
   };
   const snapshot = { gameTime: 7 };
-  const campaign: Extract<NetMessage, { kind: 'paquetDeCampagne' }> = {
-    kind: 'paquetDeCampagne', label: 'Campagne', scenes: [], startSceneId: 'depart', worldMap: null,
+  const campaign: NonNullable<EtatDeJeu['pendingCampaign']> = {
+    id: 'campagne', label: 'Campagne', scenes: [{ id: 'relay-depart' } as Scene], startSceneId: 'relay-depart', worldMap: null,
+    projet: { id: 'campagne' },
   };
+  /** Chaque état reçu, et si le paquet de campagne l'a précédé (sa scène est au registre). */
   const received: string[] = [];
-  const applySnapshot = vi.fn(() => { received.push('snapshot'); });
-  const onPaquetDeCampagne = vi.fn(() => { received.push('paquetDeCampagne'); });
+  const applySnapshot = vi.fn(() => { received.push(sceneDuRegistre('relay-depart') ? 'snapshot après paquet' : 'snapshot sans paquet'); });
   const applyIntent = vi.fn();
   const host = new HostSession({
     build: 'test', applyIntent,
-    getSnapshot: () => ({ ...snapshot }), extraJoinMessages: () => [campaign],
+    getSnapshot: () => ({ ...snapshot }), campagne: () => campaign,
   });
-  const guest = new GuestSession({ build: 'test', label: 'Anna', applySnapshot, onPaquetDeCampagne });
+  const guest = new GuestSession({ build: 'test', label: 'Anna', applySnapshot });
   roomHost.onJoin = (seat) => host.addGuest(roomHost.seatTransport(seat), seat);
   roomHost.onResume = (seat) => {
     if (!host.seats[seat]) host.addGuest(roomHost.seatTransport(seat), seat);
@@ -90,7 +93,7 @@ function resumedHostSession() {
   }
 
   return {
-    guest, host, snapshot, campaign, received, applySnapshot, onPaquetDeCampagne, applyIntent, onHostAway,
+    guest, host, snapshot, received, applySnapshot, applyIntent, onHostAway,
     idle,
     seatGuest() {
       guestSocket.receive(JSON.stringify({ evt: 'seated', seat: 1, token: 'TOK1' }));
@@ -122,6 +125,7 @@ beforeEach(() => vi.useFakeTimers());
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
+  resetSceneRegistry();
 });
 
 describe('URL du relais selon le mode Vite', () => {
@@ -245,9 +249,7 @@ describe('RoomGuest (Transport + reprise)', () => {
       expect(session.applySnapshot).toHaveBeenCalledTimes(1);
       expect(session.applySnapshot).toHaveBeenCalledWith({ gameTime: 7 });
       expect(session.guest.joined).toBe(true);
-      expect(session.onPaquetDeCampagne).toHaveBeenCalledTimes(1);
-      expect(session.onPaquetDeCampagne).toHaveBeenCalledWith(session.campaign);
-      expect(session.received).toEqual(['paquetDeCampagne', 'snapshot']);
+      expect(session.received).toEqual(['snapshot après paquet']);
       expect(session.onHostAway).toHaveBeenLastCalledWith(false);
       session.guest.sendIntent('battleEndTurn', []);
       await session.idle();
@@ -268,12 +270,12 @@ describe('RoomGuest (Transport + reprise)', () => {
 
       session.disconnectHost();
       session.snapshot.gameTime = 9;
+      resetSceneRegistry();
       session.resumeHost();
       await session.idle();
       expect(session.applySnapshot).toHaveBeenCalledTimes(2);
       expect(session.applySnapshot).toHaveBeenLastCalledWith({ gameTime: 9 });
-      expect(session.onPaquetDeCampagne).toHaveBeenCalledTimes(2);
-      expect(session.received).toEqual(['paquetDeCampagne', 'snapshot', 'paquetDeCampagne', 'snapshot']);
+      expect(session.received).toEqual(['snapshot après paquet', 'snapshot après paquet']);
       expect(session.applyIntent).not.toHaveBeenCalled();
     } finally {
       await session.close();

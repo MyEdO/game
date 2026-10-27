@@ -8,7 +8,10 @@ import { ProjetRefuse, playerEntryError } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { poserLeLocalStorage } from '../lib/stockage.testkit';
-import { CLE_DES_TOMBES, CLE_DU_MIROIR } from '../hote/bibliotheque';
+
+/** Les clés persistées du miroir et des tombes : le format du stockage d'un joueur. */
+const CLE_DU_MIROIR = 'wfrp4.editor-projects';
+const CLE_DES_TOMBES = 'wfrp4.editor-projects.tombstones';
 
 
 const NOM = 'wfrp4-library';
