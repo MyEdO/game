@@ -412,6 +412,9 @@ export const fr = {
   'menu.online': 'Jouer en ligne',
   'menu.options': 'Options',
   'menu.options.title': 'Clavier, audio, confort de jeu et règles optionnelles (Livre de base et suppléments)',
+  'houseRules.refus.inconnue': 'règle optionnelle inconnue : « {id} »',
+  'houseRules.refus.valeur': 'valeur {valeur} non conforme à la règle « {id} »',
+  'houseRules.retirees': 'Règles maison enregistrées que cette version du jeu refuse, retirées : {liste}. Les autres restent appliquées.',
   'houseRules.lockedInBattle': 'Règles verrouillées : un combat est en cours. Le moteur les lit en direct — les changer maintenant réécrirait un combat déjà commencé (réserves d’Avantage, Initiative, Blessures). Terminez le combat pour les modifier.',
   'menu.compendium': 'Compendium',
   'menu.compendium.title': 'Consulter les règles, sorts, talents, bestiaire et lore (sourcés du Livre de base)',
@@ -548,6 +551,8 @@ export const fr = {
   'picker.import.btn.title': 'Importer un personnage depuis un fichier JSON exporté',
   'picker.import.error': 'Fichier de personnage invalide.',
   'picker.import.error.autreFormat': 'Personnage d’un autre format : il ne peut pas être importé.',
+  'picker.roster.elague': 'Personnages enregistrés : cette version du jeu ne connaît plus {liste} ; ils ont été retirés de leurs fiches.',
+  'picker.import.elague': 'Personnage importé sans ce que cette version du jeu ne connaît plus : {liste}.',
   'picker.roster.retire': 'Personnages enregistrés d’un autre format : ils ont été retirés.',
   // Sauvegarde / chargement (SaveLoadModal) — Phase D.
   'saveload.title.save': 'Sauvegarder',
@@ -568,6 +573,12 @@ export const fr = {
   'saveload.error.load': 'Emplacement vide ou incompatible.',
   'saveload.error.import': 'Fichier de sauvegarde illisible.',
   'saveload.error.import.autreFormat': 'Sauvegarde d’un autre format : elle ne peut pas être importée.',
+  // Sauvegarde chargée ÉLAGUÉE (`state/elagage.ts`) : ce qu'elle nommait hors du registre courant.
+  'saveload.elague.titre': 'Sauvegarde chargée',
+  'saveload.elague': 'Cette version du jeu ne connaît plus ce que la sauvegarde nommait : {liste}. La partie est chargée sans eux.',
+  'elagage.regles': 'règles optionnelles {ids}',
+  'elagage.etats': 'États {ids}',
+  'etats.inconnu': 'État inconnu : « {id} »',
   // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `state/saves.ts`), sous le nom de son emplacement.
   'saveload.error.autreFormat': '{emplacement} : sauvegarde d’un autre format, retirée.',
   'saveload.error.unreadable': '{emplacement} : sauvegarde illisible, retirée.',

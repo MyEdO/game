@@ -124,7 +124,7 @@ describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
     const st = useGame.getState();
     expect(st.battle!.acted).toBe(true); // Regard = Action (l.238)
     const e2 = st.battle!.combatants.find((c) => c.id === E.id)!;
-    expect(e2.conditions.some((c) => c.id === 'Pétrifié') || e2.wounds.current === 0).toBe(true);
+    expect(e2.conditions.some((c) => c.id === 'petrifie') || e2.wounds.current === 0).toBe(true);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0); // 6 dépensés
   });
 

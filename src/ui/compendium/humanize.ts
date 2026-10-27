@@ -123,11 +123,12 @@ function formuleEnMots(f: Formula, regles: string[] | null): string {
   if ('engagedAdvantageGap' in f) return "l'écart d'Avantage avec les ennemis engagés";
   if ('woundsDealt' in f) return 'les Blessures infligées';
   if ('sl' in f) return 'les DR du Test';
-  // Les formes NON numériques (`flag`/`mode`, ou une règle inconnue) n'ont pas de nombre à montrer :
-  // elles se nomment, quel que soit le rendu demandé.
+  // Les formes NON numériques (`flag`/`mode`) n'ont pas de nombre à montrer : elles se nomment, quel que
+  // soit le rendu demandé. Un id hors du registre (brouillon d'éditeur) se nomme par son id : `ruleDef` le
+  // lit avant `rule()`, qui lève (#1463 LD.1).
   if ('rule' in f) {
     const def = ruleDef(f.rule);
-    const valeur = rule(f.rule);
+    const valeur = def?.kind === 'param' ? rule(f.rule) : undefined;
     if (def?.kind !== 'param' || typeof valeur !== 'number') return `la règle « ${def?.label ?? f.rule} »`;
     if (regles) {
       if (!regles.includes(def.label)) regles.push(def.label);

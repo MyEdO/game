@@ -8,7 +8,6 @@ import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
 import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
 import { indexParId } from '../data/versionDataset';
-import { slugId } from '../data/slug';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -45,7 +44,7 @@ export const COND = {
 } as const;
 
 /** Nombre de pions (cumul) d'un État donné. */
-export const stacks = (c: Combatant, name: string) => c.conditions.find((x) => x.id === name)?.value ?? 0;
+export const stacks = (c: Combatant, name: string) => { etatExige(name); return c.conditions.find((x) => x.id === name)?.value ?? 0; };
 
 /** Cet État ne porte-t-il JAMAIS plus d'un pion ? Drapeau de DONNÉE (`etats.json`, `nonCumulable`),
  *  porté par les trois États que le RAW dit non cumulables — LDB 16 l.115 (Inconscient : « L'État
@@ -53,6 +52,7 @@ export const stacks = (c: Combatant, name: string) => c.conditions.find((x) => x
  *  (À Terre), l.137 (Surpris). SOURCE UNIQUE du plafond, lue par la pose NATIVE (`addCondition`) comme
  *  par la réconciliation des États DÉRIVÉS : deux causes, un seul pion. */
 export function etatNonCumulable(id: string): boolean {
+  etatExige(id);
   return findConditionById(id)?.nonCumulable === true;
 }
 
@@ -75,6 +75,20 @@ export function etatConnu(id: string): { label: string; severity?: number; icon?
   return findConditionById(id) ?? marqueurParId(id);
 }
 
+/** L'État `id` que `etatConnu` résout ; un id hors des deux LÈVE (#1463 LD.1, #2995). */
+export function etatExige(id: string): { label: string; severity?: number; icon?: string } {
+  const etat = etatConnu(id);
+  if (!etat) throw new Error(t('etats.inconnu', { id }));
+  return etat;
+}
+
+/** Les ids d'État hors de `etatConnu` que portent des combattants PERSISTÉS (sauvegarde, roster, export de
+ *  héros), lus tels qu'ils arrivent du stockage : `[]` = le document se charge (#1463 LD.1). */
+export function etatsPortesInconnus(porteurs: unknown): string[] {
+  if (!Array.isArray(porteurs)) return [];
+  return porteurs.flatMap((c: Partial<Pick<Combatant, 'conditions'>> | null) => (Array.isArray(c?.conditions) ? c.conditions : []).map((x) => x.id).filter((id) => !etatConnu(id)));
+}
+
 /** Ids que `etatConnu` résout, catalogue vivant puis marqueurs — la liste rendue par un refus. */
 export const etatIdsConnus = (): string[] => [...conditionIds(), ...NARRATIVE_MARKERS.map((m) => m.id)];
 
@@ -88,12 +102,12 @@ export function conditionIdInText(text: string): string | undefined {
   return undefined;
 }
 
-/** Sévérité d'un État (`etats.json` : `severity`, sinon marqueur narratif, sinon défaut 10) — PUR, clé
- *  slugifiée (tolère un libellé : 'Pétrifié' → 'petrifie'). SOURCE UNIQUE partagée par l'icône
+/** Sévérité d'un État par son id (`etats.json` : `severity`, sinon marqueur narratif) ; défaut 10 pour un État
+ *  CONNU qui n'en déclare pas, un id hors registre LÈVE (`etatExige`). SOURCE UNIQUE partagée par l'icône
  *  (`gameIso/effectIcons.conditionMeta`, `important` = sévérité ≥ 50) ET l'importance d'un évènement de
  *  combat pour le bandeau/la cadence (`noyau/combatLog.isImportantEvent`). */
-export function conditionSeverity(name: string): number {
-  return etatConnu(slugId(name))?.severity ?? 10;
+export function conditionSeverity(id: string): number {
+  return etatExige(id).severity ?? 10;
 }
 
 /**
@@ -138,6 +152,7 @@ export function appliquerMortSubite(target: Combatant, log: string[]): void {
 }
 
 export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks): void {
+  etatExige(name);
   const { lockedUntil, unlockBy } = locks ?? {};
   if (!groupAdvantage()) c.advantage = 0; // « Si vous subissez un État quel qu'il soit, vous perdez immédiatement tout Avantage » (LDB 16 l.7) — pas de perte per-combattant en mode « Avantage de groupe » (la réserve du camp ne change pas)
   const existing = c.conditions.find((x) => x.id === name);
@@ -166,6 +181,7 @@ export function addCondition(c: Combatant, name: string, value = 1, escapeStreng
  *  Sur un État déjà porté : temporisé → durée max conservée ; NON temporisé → inchangé
  *  (la durée du sort ne raccourcit pas un État permanent). */
 export function addTimedCondition(c: Combatant, name: string, value: number, rounds: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number): void {
+  etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
     if (!groupAdvantage()) c.advantage = 0;
@@ -189,6 +205,7 @@ export function addTimedCondition(c: Combatant, name: string, value: number, rou
  *  temporisé-horloge → échéance MAX conservée ; NON temporisé → inchangé (on n'écourte jamais un État
  *  permanent au prétexte qu'une drogue expirait). */
 export function addClockCondition(c: Combatant, name: string, value: number, until: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number): void {
+  etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
   if (existing) {
     if (!groupAdvantage()) c.advantage = 0; // Perte d'Avantage sur État (LDB 16 l.7) — inerte en mode « Avantage de groupe »
@@ -243,6 +260,7 @@ export function raisonVerrouEtat(inst: ConditionInstance, c: Combatant): string 
 /** Blessures que la dépense d'un point de Détermination REND en retirant cet État (`EtatData.resolveHeals`,
  *  LDB 17 l.61) — EFFECTIVES : même plafond que le soin lui-même (`cappedHealAmount`, LDB 62 l.250). */
 export function soinDeDetermination(c: Combatant, conditionId: string): number {
+  etatExige(conditionId);
   return cappedHealAmount(c, findConditionById(conditionId)?.resolveHeals ?? 0);
 }
 
@@ -283,6 +301,7 @@ export function hasSurgeryLockedCondition(c: Combatant): boolean {
  * non (#1695) — sinon il survivrait au fait qui le porte.
  */
 function retireEtat(c: Combatant, name: string, value: number, parSaSource: boolean): void {
+  etatExige(name);
   const existing = c.conditions.find((x) => x.id === name);
   if (!existing) return;
   if (!parSaSource && isConditionLocked(existing, c)) return; // verrou de Critique (LDB 18) : ne part pas tant que sa Condition n'est pas remplie
@@ -305,6 +324,7 @@ export function removeCondition(c: Combatant, name: string, value = 1): void {
 }
 
 export function hasCondition(c: Combatant, name: string): boolean {
+  etatExige(name);
   return c.conditions.some((x) => x.id === name);
 }
 
@@ -312,6 +332,7 @@ export function hasCondition(c: Combatant, name: string): boolean {
  *  Lu par les sites qui doivent laisser ces pions-là en place (le sommeil ne dissipe pas un Exténué que
  *  le Malaise porte, LDB 20 l.188 : « dont vous ne pourrez vous défaire qu'une fois votre maladie guérie »). */
 export function derivedStacks(c: Combatant, name: string): number {
+  etatExige(name);
   return c.conditions.find((x) => x.id === name)?.derivedFrom?.stacks ?? 0;
 }
 

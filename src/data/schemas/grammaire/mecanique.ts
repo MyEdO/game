@@ -13,6 +13,8 @@ import { isMenaceId, menaceIds } from '../../../engine/menace';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type GameOp } from '../../../engine/ops';
+import { etatConnu } from '../../../engine/conditions';
+import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
@@ -461,14 +463,25 @@ export const CHAMPS_EXCLUS_DE_CARRIED = [
   'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'grapple',
 ] as const;
 
+/** Champs d'une op `condition`/`removeCondition` qui nomment un État. */
+const CHAMPS_ID_D_ETAT = ['id', 'onlyIfCondition', 'unlessCondition'] as const;
+
 /**
  * Refus qui portent sur une op encore LOOSE (`OPS_NON_TYPEES`) : ce que le payload strict dirait s'il
  * existait, dit AU PARSE plutôt qu'à l'application. Une entrée meurt avec le typage de son op.
  * — `condition` : `perRound` + durée d'HORLOGE, refusé mot pour mot comme `applyOps` le lève
  *   (`messageRecurrenceHorloge`, `engine/ops.ts`).
  * — `condition` : `carried` + tout `CHAMPS_EXCLUS_DE_CARRIED`, refusé NOMINATIVEMENT (#1695).
+ * — `condition`, `removeCondition` : un id d'État hors de `etatConnu` (#1463 LD.1, #2995).
  */
 function refusLoose(v: Record<string, unknown>, ctx: z.RefinementCtx): void {
+  if (v.op !== 'condition' && v.op !== 'removeCondition') return;
+  for (const champ of CHAMPS_ID_D_ETAT) {
+    const id = v[champ];
+    if (typeof id === 'string' && !etatConnu(id)) {
+      ctx.addIssue({ code: 'custom', path: [champ], message: t('etats.inconnu', { id }) });
+    }
+  }
   if (v.op !== 'condition') return;
   if (v.perRound === true && (v.durationMinutes != null || v.durationHours != null)) {
     ctx.addIssue({ code: 'custom', path: ['perRound'], message: messageRecurrenceHorloge(String(v.id ?? '')) });

@@ -12,7 +12,7 @@ export const CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR = {
   // ═══ local : état d'écran du client ═══
   // ── Rendu / caméra / navigation d'écran ───────────────────────────────────────────────────────
   setHovered: 'local', setHoverCombatant: 'local', setInspectId: 'local', clearCursor: 'local',
-  setCamPan: 'local', resetCamPan: 'local', setZoom: 'local', setScreen: 'local', setGameMenu: 'local',
+  setCamPan: 'local', resetCamPan: 'local', setZoom: 'local', setScreen: 'local', setGameMenu: 'local', fermerRetraitsDeChargement: 'local',
   openCodex: 'local', closeCodexOverlay: 'local', setKeyBinding: 'local', resetKeyBindings: 'local',
   setSheetTab: 'local', setSheetScroll: 'local', setSheetId: 'local', setSheetAlarmsSeen: 'local',
   setEditingHero: 'local', openPossessionsScreen: 'local', closePossessionsScreen: 'local',

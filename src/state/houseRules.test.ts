@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { rule, resetRule, OPTIONAL_RULES } from '../engine/policy';
-import { loadHouseRules, setHouseRule } from './houseRules';
+import { loadHouseRules, setHouseRule, takeHouseRulesNotice } from './houseRules';
 import { useGame } from './store';
 import { buildApi } from './devtools';
 
@@ -38,23 +38,37 @@ describe('houseRules — persistance des règles optionnelles (localStorage)', (
     expect(rule('test-auto-bands')).toBe('inverted');
   });
 
-  it('robustesse : un id inconnu persisté est ignoré (retour au défaut)', () => {
-    localStorage.setItem(KEY, JSON.stringify({ 'regle-fantome': true }));
+  it('un id hors du registre persisté : SEUL lui est retiré, le reste s’applique, le stockage est réécrit, témoin qui le nomme (#1463 LD.1)', () => {
+    const r = OPTIONAL_RULES.find((x) => x.kind === 'flag')!;
+    localStorage.setItem(KEY, JSON.stringify({ [r.id]: !r.default, 'regle-hors-registre': true }));
     loadHouseRules();
-    expect(rule('regle-fantome')).toBe(false);
+    expect(rule(r.id), 'la surcharge connue s’applique').toBe(!r.default);
+    expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual({ [r.id]: !r.default });
+    expect(takeHouseRulesNotice()).toEqual({ regles: ['regle-hors-registre'], etats: [] });
+    expect(takeHouseRulesNotice(), 'le témoin se consomme une fois').toBeNull();
   });
 
-  it('une valeur non conforme à la forme de sa règle est ignorée : le défaut s’applique, les valeurs conformes passent (#2404)', () => {
+  it('une valeur non conforme à la forme de sa règle : SEULE elle est retirée, ses voisines conformes s’appliquent (#2404)', () => {
     const flag = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
     const mode = OPTIONAL_RULES.find((r) => r.kind === 'mode' && r.options?.length)!;
     const param = OPTIONAL_RULES.find((r) => r.kind === 'param' && r.max !== undefined)!;
     const autreMode = mode.options!.find((o) => o !== mode.default)!;
-    localStorage.setItem(KEY, JSON.stringify({ [flag.id]: 'oui', [mode.id]: 'inconnu', [param.id]: param.max! + 1 }));
-    loadHouseRules();
-    expect([rule(flag.id), rule(mode.id), rule(param.id)]).toEqual([flag.default, mode.default, param.default]);
+    const cas = [
+      { magasin: { [flag.id]: 'oui', [mode.id]: autreMode }, retiree: flag.id, attendu: [flag.default, autreMode, param.default] },
+      { magasin: { [mode.id]: 'inconnu', [flag.id]: !flag.default }, retiree: mode.id, attendu: [!flag.default, mode.default, param.default] },
+      { magasin: { [param.id]: param.max! + 1, [flag.id]: !flag.default }, retiree: param.id, attendu: [!flag.default, mode.default, param.default] },
+    ];
+    for (const { magasin, retiree, attendu } of cas) {
+      localStorage.setItem(KEY, JSON.stringify(magasin));
+      loadHouseRules();
+      expect([rule(flag.id), rule(mode.id), rule(param.id)], JSON.stringify(magasin)).toEqual(attendu);
+      expect(Object.keys(JSON.parse(localStorage.getItem(KEY)!)), JSON.stringify(magasin)).not.toContain(retiree);
+      expect(takeHouseRulesNotice()).toEqual({ regles: [retiree], etats: [] });
+    }
     localStorage.setItem(KEY, JSON.stringify({ [flag.id]: !flag.default, [mode.id]: autreMode, [param.id]: param.max }));
     loadHouseRules();
     expect([rule(flag.id), rule(mode.id), rule(param.id)]).toEqual([!flag.default, autreMode, param.max]);
+    expect(takeHouseRulesNotice()).toBeNull();
   });
 
   it('un magasin qui n’est pas un dictionnaire est ignoré', () => {

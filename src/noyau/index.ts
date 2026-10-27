@@ -13,6 +13,7 @@ export { previewAttack, activeCombatant } from './combatFlow';
 export { LOCALISATIONS_DE_COUP } from '../engine/types';
 export { conditionLabel } from '../data';
 export { CADENCE_MODES, type Cadence } from '../engine/cadence';
+export { refusDesSurcharges } from '../engine/policy';
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
 export { mouvementDuTour } from './mount';
