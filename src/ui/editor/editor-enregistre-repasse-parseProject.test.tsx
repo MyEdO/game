@@ -9,7 +9,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../../monterRacine.testkit';
-import { __resetLibraryForTest, initLibrary, type SavedProject } from '../../state/projectLibrary';
+import { __resetLibraryForTest, initLibrary } from '../../state/projectLibrary';
+import { type SavedProject } from '../../noyau/persistance/bibliotheque';
 import { __setFabriqueIdbForTest } from '../../web/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee } from '../../web/indexedDb.testkit';
 import { parseProject } from '../../noyau/worldMap';

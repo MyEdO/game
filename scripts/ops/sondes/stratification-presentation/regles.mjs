@@ -45,7 +45,7 @@ export const REGLES = Object.freeze([
     motif: new RegExp(String.raw`^src/state/(documentDeProjet|parseProject-porte)\.test\.`),
     categorie: 'outillage',
     raison: 'Tests de la porte de projet de l\'éditeur.',
-    preuve: 'noms ; src/state/projectLibrary.ts (parseProject)',
+    preuve: 'noms ; src/noyau/persistance/bibliotheque.ts (parseProject)',
   },
   {
     motif: new RegExp(String.raw`^src/gameIso/rig/qc-contrat(\.test)?\.ts$`),

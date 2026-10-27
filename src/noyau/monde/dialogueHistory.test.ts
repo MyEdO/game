@@ -13,6 +13,7 @@ import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
 import { stockageDesSauvegardes } from '../../state/saves';
 import { retirerLaSauvegarde, lireLaSauvegarde, ecrireLaSauvegarde } from '../../hote/sauvegardes';
+import { poserLeLocalStorage } from '../../lib/stockage.testkit';
 
 const hero = () => createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
 
@@ -160,17 +161,7 @@ describe('startScene (nouvelle partie) — reset', () => {
 
 describe('save/load — dialogueHistory round-trip', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = (() => {
-      const m = new Map<string, string>();
-      return {
-        getItem: (k: string) => m.get(k) ?? null,
-        setItem: (k: string, v: string) => void m.set(k, String(v)),
-        removeItem: (k: string) => void m.delete(k),
-        clear: () => m.clear(),
-        key: (i: number) => [...m.keys()][i] ?? null,
-        get length() { return m.size; },
-      } as Storage;
-    })();
+    poserLeLocalStorage();
     retirerLaSauvegarde(stockageDesSauvegardes(), 1);
     useGame.setState({ battle: null });
     useGame.getState().startScene(testScene());

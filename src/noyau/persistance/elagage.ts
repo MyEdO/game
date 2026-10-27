@@ -11,6 +11,7 @@ import { refusDesSurcharges, type RuleValue } from '../../engine/policy';
 import { etatsPortesInconnus } from '../../engine/conditions';
 import type { ConditionInstance } from '../../engine/types';
 import { t } from '../../i18n';
+import { lesChaines } from '../../lib/stockage';
 
 /** Les ids retirés d'un document : surcharges de règles refusées, États portés inconnus (sans doublon). */
 export interface RetraitsDElagage {
@@ -42,8 +43,7 @@ export function elaguerLePersiste<P extends Porteur>(entree: { regles?: Readonly
 export function lireLesRetraits(v: unknown): RetraitsDElagage | null {
   if (v === null || typeof v !== 'object') return null;
   const r = v as Partial<Record<keyof RetraitsDElagage, unknown>>;
-  const ids = (l: unknown): string[] => (Array.isArray(l) ? l.filter((x): x is string => typeof x === 'string') : []);
-  return { regles: ids(r.regles), etats: ids(r.etats) };
+  return { regles: lesChaines(r.regles), etats: lesChaines(r.etats) };
 }
 
 /** L'union de `a` et `b`, sans doublon ; `null` si les deux le sont. */

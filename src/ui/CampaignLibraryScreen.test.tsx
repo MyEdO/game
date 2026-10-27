@@ -10,14 +10,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { CampaignLibraryScreen, buildImportedProject, importDecision, playerImportError, PlayerFacingImportError } from './CampaignLibraryScreen';
 import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
 import { ProjetRefuse, messageDeRefusJoueur } from '../noyau/worldMap';
-import {
-  projectSave,
-  projectsLoad,
-  publishedProjects,
-  IMPORT_FORME_DEPOT,
-  MARQUE_AUTRE_FORMAT,
-  type SavedProject,
-} from '../state/projectLibrary';
+import { projectSave, projectsLoad, publishedProjects } from '../state/projectLibrary';
+import { IMPORT_FORME_DEPOT, MARQUE_AUTRE_FORMAT, type SavedProject } from '../noyau/persistance/bibliotheque';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, type PanneSimulee } from '../web/indexedDb.testkit';
 import { useGame } from '../state/store';
