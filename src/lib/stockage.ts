@@ -13,3 +13,14 @@ export function lireDictionnaire(stockage: Stockage | null, cle: string): Readon
     return null;
   }
 }
+
+/** Une base asynchrone de documents : valeurs `V`, clés `K` (#3041). `accesBase` (`web/indexedDb.ts`) en rend
+ *  l'implémentation web, un magasin par base. */
+export interface Base<V, K> {
+  /** La valeur de `cle` ; `null` si absente. */
+  lire(cle: K): Promise<V | null>;
+  lireTout(): Promise<V[]>;
+  /** Pose `valeur`, sous `cle` pour une base à clés externes. */
+  ecrire(valeur: V, cle?: K): Promise<void>;
+  supprimer(cle: K): Promise<void>;
+}

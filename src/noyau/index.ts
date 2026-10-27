@@ -44,3 +44,5 @@ export { texteDuMod } from './difficultyText';
 export { avecSigne } from '../engine/types';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
 export type { RetraitsDElagage } from './persistance/elagage';
+export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
+export { ProjetRefuse, type ProjectDoc } from './worldMap';

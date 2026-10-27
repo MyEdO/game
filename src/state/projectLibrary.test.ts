@@ -1,18 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  projectsLoad,
-  projectSave,
-  projectRemove,
-  publishedProjects,
-  initLibrary,
-  __resetLibraryForTest,
-  SavedProject,
-  campagneDeLEntree,
-  estRefusee,
-  projetDeLEntree,
-  savedProjectSchema,
-} from './projectLibrary';
-import { mesurerCheminsNommes } from '../../scripts/guards/lib/cheminsNommes.mts';
+import { projectsLoad, projectSave, projectRemove, publishedProjects, initLibrary, __resetLibraryForTest, campagneDeLEntree, estRefusee, projetDeLEntree } from './projectLibrary';
+import { type SavedProject } from '../noyau/persistance/bibliotheque';
 import { __setFabriqueIdbForTest } from '../web/indexedDb';
 import { brancherBasesSimulees, brancherOuvertures } from '../web/indexedDb.testkit';
 import { Scene, emptyScene } from '../noyau/monde/scene';
@@ -75,12 +63,6 @@ const bigProj = (id: string, label = 'Grosse campagne'): SavedProject => ({
 });
 
 describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', () => {
-  it('nomme tous les champs des objets propriétaires de la bibliothèque', () => {
-    const mesure = mesurerCheminsNommes([savedProjectSchema]);
-    expect(mesure.objets).toBeGreaterThanOrEqual(2);
-    expect(mesure.champs).toBeGreaterThanOrEqual(10);
-    expect(mesure.fautes).toEqual([]);
-  });
   beforeEach(() => {
     (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
   });

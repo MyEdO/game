@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { __resetAutosaveForTest, autosaveSave } from '../../state/editorAutosave';
-import { initLibrary, type SavedProject } from '../../state/projectLibrary';
+import { initLibrary } from '../../state/projectLibrary';
+import { type SavedProject } from '../../noyau/persistance/bibliotheque';
 import { __setFabriqueIdbForTest } from '../../web/indexedDb';
 import { brancherBasesSimulees, type BaseSimulee, type BasesSimulees } from '../../web/indexedDb.testkit';
 import { act } from 'react';

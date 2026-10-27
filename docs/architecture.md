@@ -286,8 +286,9 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             son chemin relatif, extension comprise.
                             `garanti.ts` : une valeur que son producteur garantit, absente, lève un
                             défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
-                            `stockage.ts` : le port `Stockage` (sous-ensemble synchrone de `Storage`) et
-                            `lireDictionnaire`, la lecture d'un dictionnaire JSON qui lui est appliquée (#2404).
+                            `stockage.ts` : les ports `Stockage` (sous-ensemble synchrone de `Storage`) et
+                            `Base` (base asynchrone de documents : `lire`, `lireTout`, `ecrire`, `supprimer`),
+                            et `lireDictionnaire`, la lecture d'un dictionnaire JSON appliquée à un `Stockage` (#2404).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.
@@ -296,7 +297,8 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             magasins de la déclaration, une base existante qui s'en écarte (magasin
                             manquant ou en trop, `keyPath` différente) est supprimée puis recréée, ses
                             données perdues ; ouverture bornée #776, une connexion par opération ; leur
-                            poignée `accesBase` (magasins typés, `vider`) ; doublure
+                            poignée `accesBase` (magasins typés, chacun une `Base` de `lib/stockage.ts`,
+                            `vider`) ; doublure
                             `indexedDb.testkit.ts` (`brancherBasesSimulees`).
                             `minuteries.ts` : registre des timers réels (`scheduleCombatTimer`,
                             `scheduleFlowTimer`, `clearTrackedTimer`, état d'un timer `timerEnVol`), vidé au teardown de test
@@ -528,7 +530,10 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
   persistance/              documents PERSISTÉS, sans stockage : `elagage.ts` (`elaguerLePersiste`, seul élagage
                             des ids hors registre, #1463 LD.1), `roster.ts` (le roster `RosterStocke` et l'export
                             `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
-                            export/import d'un héros) et `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
+                            export/import d'un héros), `bibliotheque.ts` (l'entrée de la bibliothèque de campagnes
+                            `savedProjectSchema` : relecture prouvée, refusée ou indésignable, ce qu'une écriture en
+                            garde, nom d'affichage, campagne lancée d'une entrée) et `formats.generated.ts`
+                            (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -543,7 +548,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
+                            retrait et d'élagage), `bibliotheque.ts` (`ouvrirLaBibliotheque` : la procédure de la
+                            bibliothèque de campagnes sur les ports `Base` et `Stockage` de l'hôte, relus à chaque
+                            appel ; la poignée porte le cache, les tombes en attente et les refus au geste).
+                            `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -612,18 +620,18 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               `elagage`) sous sa propre clé du même stockage ; `prendreLesTemoinsDuRoster`
                               le lit puis le supprime, au montage du vivier de `ui/PartyScreen`, qui le
                               nomme. Le roster ne voyage PAS dans la save de partie
-  projectLibrary.ts           Bibliothèque des projets de campagne de l'éditeur (`SavedProject`).
-                              Base IndexedDB `wfrp4-library` par `accesBase` (magasin `projects`, source de
-                              vérité — supporte les grandes campagnes qui dépassent le quota
-                              localStorage, #766). `projectsLoad`/`publishedProjects` SYNC
-                              (cache mémoire) ; `projectSave`/`projectRemove` ASYNC (persistance
-                              IndexedDB awaitée, ne rejette jamais — `LibraryWriteOutcome`). `cache`
-                              chargé une fois par `initLibrary()` (awaité dans `main.tsx` avant le
-                              premier rendu). Réconciliation localStorage⇄IndexedDB PAR ID à CHAQUE
-                              `initLibrary` (jamais un flag one-shot, #776) ; `indexedDB` absent
-                              (test/SSR) → repli localStorage. L'enveloppe d'une entrée est prouvée
-                              par `savedProjectSchema` ; son projet passe `parseProject` au GESTE
-                              (`projetDeLEntree` : ouvrir, jouer, exporter) : une entrée d'un autre
+  projectLibrary.ts           Câblage web de la bibliothèque des projets de campagne de l'éditeur : la poignée
+                              `ouvrirLaBibliotheque` (`hote/bibliotheque.ts`) sur la base IndexedDB
+                              `wfrp4-library` (`accesBase`, magasin `projects`, source de vérité — supporte les
+                              grandes campagnes qui dépassent le quota localStorage, #766 ; `indexedDB` absent
+                              → aucune base) et sur `localStorage` (miroir borné par entrée, tombes). Forme :
+                              `noyau/persistance/bibliotheque.ts`. `projectsLoad`/`publishedProjects` SYNC
+                              (cache de la poignée) ; `projectSave`/`projectRemove` ASYNC (écriture en base
+                              awaitée, ne rejette jamais — `LibraryWriteOutcome`). Cache chargé par
+                              `initLibrary()` (awaité dans `main.tsx` avant le premier rendu). Réconciliation
+                              miroir⇄base PAR ID à CHAQUE `initLibrary` (jamais un flag one-shot, #776). L'enveloppe
+                              d'une entrée est prouvée par `savedProjectSchema` ; son projet passe `parseProject`
+                              au GESTE (`projetDeLEntree` : ouvrir, jouer, exporter) : une entrée d'un autre
                               format, enveloppe comprise, reste LISTÉE dès qu'un `id` la désigne, son
                               refus affiché au geste, et sa suppression reste un geste de l'auteur ;
                               une entrée sans `id` est journalisée et CONSERVÉE telle quelle au miroir
