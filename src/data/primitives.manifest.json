@@ -1734,7 +1734,7 @@
     "type": "primitives.manifest",
     "label": "INVENTAIRE/inventaireDe/inventaireDeLaRacine/totauxDeLInventaire/rendreInventaire/clesDeclareesJamaisPortees/CLES_POSEES_INCONDITIONNELLEMENT/ANGLES_MORTS_DE_L_INVENTAIRE/SANS_LOT",
     "fichier": "scripts/guards/lib/inventaireDeDette.mts",
-    "concept": "inventaire de la dette que la donnée révèle, HORS de la porte (ni stock, ni règle de plage, ni refus) : formes historiques ou divergentes, orphelines, homonymes, divergences d’enveloppe hors `source` absente (STRUCTURES_ENVELOPPE), couples de référence sans slot et clés déclarées jamais portées, une ligne par site avec sa cible, son lot déduit et ses occurrences indicatives ; totaux par collection et rendu Markdown avec ses angles morts déclarés",
+    "concept": "inventaire de la dette que la donnée révèle, HORS de la porte (ni stock, ni règle de plage, ni refus) : cases de référence en forme non cible ou sans slot (CASES_DE_REFERENCE, une ligne par case), formes de valeur historiques ou divergentes, orphelines, homonymes, divergences d’enveloppe hors `source` absente (STRUCTURES_ENVELOPPE) et clés déclarées jamais portées, une ligne par site avec sa cible, son lot déduit et ses occurrences indicatives ; totaux par collection et rendu Markdown avec ses angles morts déclarés",
     "perimetre": "toute mesure de dette dont la donnée fait varier le compte : le résumé du job `comptes:plage`, `docs/structures-donnees.md` §7 et le rapport daté d’un audit de dette",
     "verrou": "src/data/structures-contrat.test.ts"
   },

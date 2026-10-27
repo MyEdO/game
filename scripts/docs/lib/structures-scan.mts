@@ -335,10 +335,10 @@ export type FormeObservee = {
 };
 /**
  * UNE occurrence de référence comptée par le scan, avec le COUPLE `(dataset, champ)` qu'il lui
- * attribue — une instance par occurrence, l'unité du champ `occurrences` des formes de la strate
- * `Référence` (#1473).
+ * attribue et le `statut` de sa forme — une instance par occurrence, l'unité du champ `occurrences`
+ * des formes de la strate `Référence` (#1473, #3021).
  */
-export type OccurrenceDeReference = { readonly dataset: string; readonly champ: string };
+export type OccurrenceDeReference = { readonly dataset: string; readonly champ: string; readonly statut: FormeObservee['statut'] };
 /**
  * Occurrences de référence keyées par leur PORTEUR (l'objet ou la liste PARSÉS du document, par
  * identité) puis par la CLÉ ou l'INDICE qui y pose la valeur : c'est la case où une valeur lue à un
@@ -935,7 +935,7 @@ export function scannerDonnees(
   ) => {
     const ligne = ligneForme(concept, p, champ, cl);
     ligne.occurrences += 1;
-    const occurrence: OccurrenceDeReference = { dataset: ligne.dataset, champ: ligne.champ };
+    const occurrence: OccurrenceDeReference = { dataset: ligne.dataset, champ: ligne.champ, statut: ligne.statut };
     occurrencesDeReference.push(occurrence);
     if (!referencesParPorteur.has(porteur)) referencesParPorteur.set(porteur, new Map());
     for (const k of cles)

@@ -31,7 +31,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "special-de-jeu", signature: "difficulty,effet,hasTalent,source", date: "2026-10-17" },
   // RECLASSEMENT AU SITE (L2 #1548, commit 4bis) — trois graphies passent CIBLE au SEUL site du
   // STATBLOC (`SITE_STATBLOC` du lexique : bestiaire + statblocs embarqués des projets de scène,
-  // champ `skills`). Elles restent HISTORIQUES partout ailleurs (inventaire `STRUCTURES_FORMES`,
+  // champ `skills`). Elles restent HISTORIQUES partout ailleurs (inventaire `CASES_DE_REFERENCE`,
   // `inventaireDeDette.mts`, lot L3). Ce que le site tranche, c'est que la valeur IMPRIMÉE est un champ de la
   // référence de Compétence (#1463, « Faits tranchés au Source »). AUCUNE donnée n'est réécrite par ce reclassement.
   { concept: "reference", signature: "id,value", date: "2026-08-31" },
