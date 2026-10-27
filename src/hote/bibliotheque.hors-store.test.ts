@@ -4,10 +4,14 @@
  * réécrit telle quelle (#2404) ; l'état vit dans la poignée.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { CLE_DES_TOMBES, CLE_DU_MIROIR, ouvrirLaBibliotheque, type BaseDeLaBibliotheque } from './bibliotheque';
+import { ouvrirLaBibliotheque, type BaseDeLaBibliotheque } from './bibliotheque';
 import { ProjetRefuse, type SavedProject } from '../noyau/index';
 import type { Stockage } from '../lib/stockage';
 import { stockageEnMemoire } from '../lib/stockage.testkit';
+
+/** Les clés persistées du miroir et des tombes : le format du stockage d'un joueur. */
+const CLE_DU_MIROIR = 'wfrp4.editor-projects';
+const CLE_DES_TOMBES = 'wfrp4.editor-projects.tombstones';
 
 /** Une `Base` en mémoire keyée par `id` ; `panne` : les ids dont l'écriture et la suppression rejettent. */
 function baseEnMemoire(panne: Set<string> = new Set()): BaseDeLaBibliotheque & { contenu: Map<string, unknown> } {

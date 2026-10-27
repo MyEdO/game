@@ -1,6 +1,6 @@
 /**
  * Session coop — modèle HÔTE-AUTORITAIRE sur Transport injecté (transports du relay en prod,
- * FakeTransport en test). L'hôte est le SEUL à exécuter le store : les invités envoient des
+ * `transport.testkit.ts` en test). L'hôte est le SEUL à exécuter le store : les invités envoient des
  * intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
  * (mêmes données JSON-sûres que la sauvegarde — cf. spec coop §3). Les sièges sont attribués
  * par la room (Durable Object) et injectés via `addGuest`.
@@ -10,6 +10,14 @@
  */
 import type { Transport } from './transport';
 import { PROTOCOL_VERSION, parseMessage, serializeMessage, type NetMessage } from './protocol';
+import { registerScene, type EtatDeJeu, type Scene } from '../../noyau/index';
+
+type PaquetDeCampagne = NonNullable<EtatDeJeu['pendingCampaign']>;
+
+/** Le message `paquetDeCampagne` (spec v2 §5) du paquet `pc`. */
+function messageDuPaquet(pc: PaquetDeCampagne): NetMessage {
+  return { kind: 'paquetDeCampagne', label: pc.label, scenes: pc.scenes, startSceneId: pc.startSceneId, worldMap: pc.worldMap ?? null };
+}
 
 export interface Seat {
   label: string;
@@ -19,14 +27,16 @@ export interface Seat {
 export class HostSession {
   /** Sièges CONNECTÉS (handshake accompli), indexés par numéro (1..3 — 0 = l'hôte). */
   readonly seats: Record<number, Seat> = {};
+  /** Le dernier paquet de campagne envoyé : un paquet chargé APRÈS le join part à la diffusion suivante. */
+  private paquetEnvoye: PaquetDeCampagne | null = null;
 
   constructor(
     private readonly opts: {
       build: string;
       applyIntent: (action: string, args: unknown[], seat: number) => void;
       getSnapshot: () => Record<string, unknown>;
-      /** Envoyés au handshake ENTRE hello et snapshot (ex. la campagne custom — spec v2 §5). */
-      extraJoinMessages?: () => NetMessage[];
+      /** Le paquet de campagne de l'hôte : envoyé au handshake ENTRE hello et snapshot (spec v2 §5). */
+      campagne?: () => EtatDeJeu['pendingCampaign'];
       onSeatClosed?: (seat: number) => void;
     },
   ) {}
@@ -53,7 +63,11 @@ export class HostSession {
         this.seats[seat] = { label: m.label, transport };
         joined = true;
         transport.send(serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: this.opts.build, label: 'hôte' }));
-        for (const extra of this.opts.extraJoinMessages?.() ?? []) transport.send(serializeMessage(extra));
+        const pc = this.opts.campagne?.();
+        if (pc) {
+          this.paquetEnvoye = pc;
+          transport.send(serializeMessage(messageDuPaquet(pc)));
+        }
         transport.send(serializeMessage({ kind: 'snapshot', data: this.opts.getSnapshot() }));
         return;
       }
@@ -73,18 +87,20 @@ export class HostSession {
   }
 
   /** Diffuse un message à tous les sièges connectés. */
-  broadcast(m: NetMessage): void {
+  private broadcast(m: NetMessage): void {
     const msg = serializeMessage(m);
     for (const s of Object.values(this.seats)) s.transport.send(msg);
   }
 
-  /** Diffuse l'état autoritaire à tous les sièges connectés. */
-  broadcastSnapshot(data: Record<string, unknown>): void {
-    this.broadcast({ kind: 'snapshot', data });
-  }
-
-  send(seat: number, m: NetMessage): void {
-    this.seats[seat]?.transport.send(serializeMessage(m));
+  /** Diffuse l'état autoritaire à tous les sièges connectés, précédé du paquet de campagne s'il a changé
+   *  depuis le dernier envoyé. */
+  broadcastSnapshot(): void {
+    const pc = this.opts.campagne?.();
+    if (pc && pc !== this.paquetEnvoye) {
+      this.paquetEnvoye = pc;
+      this.broadcast(messageDuPaquet(pc));
+    }
+    this.broadcast({ kind: 'snapshot', data: this.opts.getSnapshot() });
   }
 
   close(): void {
@@ -101,9 +117,6 @@ export class GuestSession {
       build: string;
       label: string;
       applySnapshot: (data: Record<string, unknown>) => void;
-      /** Projet de campagne custom reçu au join (enregistré localement pour le rendu). */
-      onPaquetDeCampagne?: (m: Extract<NetMessage, { kind: 'paquetDeCampagne' }>) => void;
-      onAssign?: (heroId: string, seat: number) => void;
       /** Fermeture VOLONTAIRE de l'hôte pour incompatibilité de protocole (message `error` reçu
        *  AVANT le `onClose` du transport) — distinct d'une coupure réseau banale. */
       onProtocolMismatch?: (expected: number, got: number) => void;
@@ -127,10 +140,9 @@ export class GuestSession {
         return;
       }
       if (m.kind === 'paquetDeCampagne') {
-        this.opts.onPaquetDeCampagne?.(m);
+        for (const s of m.scenes) registerScene(s as Scene);
         return;
       }
-      if (m.kind === 'assign') this.opts.onAssign?.(m.heroId, m.seat);
       if (m.kind === 'error' && m.reason === 'protocol-mismatch') this.opts.onProtocolMismatch?.(m.expected, m.got);
       if (m.kind === 'error' && m.reason === 'format-mismatch') this.opts.onFormatMismatch?.();
     });
@@ -145,7 +157,7 @@ export class GuestSession {
     this.transport?.send(serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: this.opts.build, label: this.opts.label }));
   }
 
-  /** Reprise après reconnexion : re-handshake — l'hôte répond hello + extras + snapshot. */
+  /** Reprise après reconnexion : re-handshake — l'hôte répond hello + paquet de campagne + snapshot. */
   rejoin(): void {
     this.sayHello();
   }

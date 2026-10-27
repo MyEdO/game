@@ -14,7 +14,7 @@ import { testDeRegle } from '../engine/reglesChiffrees';
 import { lancerCampagne } from '../scenes/campaign';
 import { stockageDesSauvegardes } from './saves';
 import { lireLaSauvegarde, retirerLaSauvegarde, listerLesSauvegardes, ecrireLaSauvegarde, prendreLesRetraitsDeSauvegardes } from '../hote/sauvegardes';
-import { parseSave, snapshotSave, elaguerSave, exporterLaSauvegarde, importerLaSauvegarde, type SaveGame } from '../noyau/persistance/save';
+import { chargerLaSave, lireSave, snapshotSave, exporterLaSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { rule, setRule, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
 import { talents, careerLevels, specResolves, combatStakeRef, conditionIds } from '../data/index';
@@ -153,11 +153,11 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   it('export / import : round-trip JSON validé ; autre format rejeté', () => {
     expect(useGame.getState().saveGame(3)).toBe(true);
     const json = exporterLaSauvegarde(lireLaSauvegarde(stockageDesSauvegardes(), 3)!);
-    const re = importerLaSauvegarde(json);
+    const re = lireSave(json);
     expect(typeof re === 'object' && re.sceneLabel).toBe(lireLaSauvegarde(stockageDesSauvegardes(), 3)!.sceneLabel);
-    expect(importerLaSauvegarde('{pas du json')).toBe('illisible');
-    expect(importerLaSauvegarde(JSON.stringify({ ...JSON.parse(json), version: 'autre-format' }))).toBe('autreFormat');
-    expect(importerLaSauvegarde(JSON.stringify({ ...JSON.parse(json), version: 66 }))).toBe('autreFormat');
+    expect(lireSave('{pas du json')).toBe('illisible');
+    expect(lireSave(JSON.stringify({ ...JSON.parse(json), version: 'autre-format' }))).toBe('autreFormat');
+    expect(lireSave(JSON.stringify({ ...JSON.parse(json), version: 66 }))).toBe('autreFormat');
     // importGame applique la save importée à l'état.
     useGame.setState({ flags: {}, scene: null, screen: 'menu' });
     expect(useGame.getState().importGame(json)).toBeNull();
@@ -300,10 +300,10 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(save.data.scene?.label).toBe('La Salle du Trône');
     expect(snapshotSave({ ...etatInitialDuJeu(), scene: null }, '2026').sceneLabel).toBe('Sans scène');
   });
-  it('objet malformé / version absente → null', () => {
-    expect(parseSave(null)).toBeNull();
-    expect(parseSave('pas un objet')).toBeNull();
-    expect(parseSave({ savedAt: 'x', data: {} })).toBeNull(); // version absente
+  it('objet malformé / version absente → autre format', () => {
+    expect(lireSave('null')).toBe('autreFormat');
+    expect(lireSave('"pas un objet"')).toBe('autreFormat');
+    expect(lireSave(JSON.stringify({ savedAt: 'x', data: {} }))).toBe('autreFormat'); // version absente
   });
 });
 
@@ -370,10 +370,13 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     expect(ls().getItem(stableKey(1)), 'l’emplacement n’est pas vidé').not.toBeNull();
   });
 
-  it('elaguerSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
+  it('chargerLaSave : une save que le registre reconnaît entière ne perd rien, et ne dit rien', () => {
     const r = OPTIONAL_RULES[0];
     const entiere = { ...save(FORMAT_SAVE), rules: { [r.id]: r.default }, data: { party: [{ id: 'h', conditions: [{ id: conditionIds()[0], value: 1 }] }] } } as unknown as SaveGame;
-    expect(elaguerSave(entiere)).toEqual({ save: entiere, retraits: { regles: [], etats: [] } });
+    const chargee = chargerLaSave(entiere);
+    expect(chargee.retraits).toBeNull();
+    expect(chargee.regles).toEqual(entiere.rules);
+    expect(chargee.etat.party).toEqual(entiere.data.party);
   });
 
   it('contenu illisible : jeté, témoin « illisible » — jamais un crash', () => {
