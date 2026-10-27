@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { creatureToCombatant, statblockToCombatant } from '../noyau/monde/spawn';
 import { createHero } from '../engine/character';
 import { findCreatureById } from '../data';
+import { groupesDe } from '../engine/groups';
 
 // Dérivation des propriétés psychologiques au spawn (parse des traits, LDB 21+85).
 describe('spawn — propriétés psychologiques', () => {
@@ -37,15 +38,15 @@ describe('spawn — Groupes & traits psy ciblés (P3)', () => {
     const c = statblockToCombatant({ type: 'statblock', label: 'Nain', char: { B: 10 }, traits: [{ id: 'animosite', arg: 'elfe' }] }, 'e3', { x: 0, y: 0 });
     expect(c.psychTraits).toEqual([{ type: 'animosite', cible: 'elfe' }]);
   });
-  it('createHero : groups = racial(espèce) + carrière (ids)', () => {
+  it('createHero : Groupes effectifs = racial(espèce) + carrière (ids)', () => {
     const h = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    expect(h.groups).toEqual(expect.arrayContaining(['humain', 'soldat']));
+    expect(groupesDe(h)).toEqual(expect.arrayContaining(['humain', 'soldat']));
   });
   it('creatureToCombatant : Talent Béni(Sigmar/Ulric) de la donnée → Groupe religieux (fixe le trou Phase 2)', () => {
     const pretreUlric = findCreatureById('frere-bengt')!;
-    expect(creatureToCombatant(pretreUlric, 'e5', { x: 0, y: 0 }).groups).toContain('ulricain');
+    expect(groupesDe(creatureToCombatant(pretreUlric, 'e5', { x: 0, y: 0 }))).toContain('ulricain');
     const pretreSigmar = { ...pretreUlric, id: 'pretre-sigmar', talents: pretreUlric.talents.map((t) => (t.id === 'beni' ? { ...t, spec: 'sigmar' } : t)) };
-    expect(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }).groups).toContain('sigmarite');
+    expect(groupesDe(creatureToCombatant(pretreSigmar, 'e4', { x: 0, y: 0 }))).toContain('sigmarite');
   });
 });
 

@@ -10,7 +10,7 @@ import { comparerAudit, paquetsJuges, ghsaDe, CHEMIN_STOCK } from './audit-stock
  *  court pour « solder » une vulnérabilité neuve resterait d'ajouter une entrée, canari vert. L'égalité
  *  (et non `<=`) fait descendre ce nombre DANS LE GESTE qui éteint une entrée : un plafond resté au-dessus
  *  du compte rouvre en silence la place d'une entrée neuve. */
-const PLAFOND = 5
+const PLAFOND = 0
 
 const STOCK = JSON.parse(readFileSync(CHEMIN_STOCK, 'utf8'))
 

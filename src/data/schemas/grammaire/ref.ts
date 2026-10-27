@@ -81,6 +81,8 @@ export const TYPES = {
   quality: { espace: 'qualities.json', catalogue: 'qualités' },
   characteristic: { espace: 'characteristics.json', catalogue: 'caractéristiques' },
   steamBreakdown: { espace: 'steam-breakdown.json', catalogue: 'pannes de navire à vapeur' },
+  // EDOC 12 l.217, l.241 ; LDB 85 l.120, l.164
+  groupe: { espace: 'groups.json', catalogue: 'groupes' },
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
@@ -235,7 +237,7 @@ export function porteLeMarqueur(type: TypeEntite, marqueur: string): (id: string
 
 /** Catalogue de spécialisations d'UNE entrée (vide = l'entrée n'en déclare aucune) : l'espace de ses
  *  `specs` (`<espace>#[<id>].specs`), l'univers de sa `specsSource` compris (`lectureDeLEspace`). */
-function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
+export function catalogueSpecs(type: TypeEntite, id: string): readonly string[] {
   return [...(lireLEspace(cleDesSpecs(espaceDe(type), id)) ?? [])];
 }
 
@@ -532,8 +534,8 @@ function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType> = Record<string, never>>(
   type: T,
   extra?: E,
-): z.ZodType<unknown> {
-  const extraDuPorteur = (extra ?? {}) as Record<string, z.ZodType>;
+) {
+  const extraDuPorteur = (extra ?? {}) as E;
   return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur);
 }
 
@@ -785,12 +787,23 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
  * accepte, la fabrique ne connaît aucun cas particulier (cf. `avancement.ts`, `{random}`).
  */
 export function pick<T extends TypeEntite>(type: T, optionsDuPorteur: readonly z.ZodType<unknown>[] = []): z.ZodType<unknown> {
-  const n = z.number().int().positive();
   const option: z.ZodType<unknown> = z.lazy(() => z.union([ref(type), specRef(type), noeud, ...optionsDuPorteur]));
   const noeud: z.ZodType<unknown> = z.union([
-    marquerProduit(nommerChamps(z.strictObject({ pick: n, of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of'),
-    marquerProduit(nommerChamps(z.strictObject({ pick: n, table: ref('table') }), { pick: { label: "sélection" }, table: { label: "table" } }), 'pick', 'table'),
+    marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), of: z.array(option).min(1) }), { pick: { label: "sélection" }, of: { label: "contenu" } }), 'pick', 'of'),
+    tirageSurTable(ref('table')),
   ]);
   return noeud;
+}
+
+/** Le nombre `n` d'un « n parmi » ou d'un tirage. */
+const nombreDeTirages = (): z.ZodNumber => z.number().int().positive();
+
+/**
+ * Tirage sur table : `{ pick, table }` — `pick` tirages sur la table que désigne `table`, le nœud de
+ * référence que le PORTEUR déclare (`ref('table')` pour `pick`, un registre de tirage ailleurs). La branche
+ * de `pick`, et la SEULE graphie d'un tirage sur table de la grammaire.
+ */
+export function tirageSurTable<T>(table: z.ZodType<T>): z.ZodType<{ pick: number; table: T }> {
+  return marquerProduit(nommerChamps(z.strictObject({ pick: nombreDeTirages(), table }), { pick: { label: "sélection" }, table: { label: "table" } }), 'pick', 'table', { table });
 }
 

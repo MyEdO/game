@@ -2475,8 +2475,10 @@
             "ops": [
               {
                 "op": "domeWard",
-                "traitId": "protection",
-                "indice": 6
+                "trait": {
+                  "id": "protection",
+                  "value": 6
+                }
               }
             ]
           }
@@ -2520,8 +2522,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1,
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                },
                 "indicePerSL": {
                   "every": 3,
                   "amount": 1
@@ -2624,9 +2628,11 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "vol",
-                "indice": {
-                  "charOf": "agilite"
+                "trait": {
+                  "id": "vol",
+                  "value": {
+                    "charOf": "agilite"
+                  }
                 }
               }
             ]
@@ -2707,7 +2713,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "perturbant"
+                "trait": {
+                  "id": "perturbant"
+                }
               }
             ]
           }
@@ -2864,8 +2872,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 9
+                "trait": {
+                  "id": "protection",
+                  "value": 9
+                }
               }
             ]
           }
@@ -2909,7 +2919,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "sang-corrosif"
+                "trait": {
+                  "id": "sang-corrosif"
+                }
               }
             ]
           }
@@ -3034,8 +3046,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "terreur",
-                "indice": 1
+                "trait": {
+                  "id": "terreur",
+                  "value": 1
+                }
               }
             ]
           }
@@ -3079,7 +3093,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "infravision"
+                "trait": {
+                  "id": "infravision"
+                }
               }
             ]
           }
@@ -3201,20 +3217,28 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "rage"
+                "trait": {
+                  "id": "rage"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "magique"
+                "trait": {
+                  "id": "magique"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "belliqueux"
+                "trait": {
+                  "id": "belliqueux"
+                }
               },
               {
                 "op": "ap",
@@ -3522,12 +3546,16 @@
               },
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "infravision"
+                "trait": {
+                  "id": "infravision"
+                }
               },
               {
                 "op": "grantTalent",
@@ -4498,8 +4526,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "castPenalty",
@@ -4985,8 +5015,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 2
+                "trait": {
+                  "id": "peur",
+                  "value": 2
+                }
               },
               {
                 "op": "narrative",
@@ -5089,7 +5121,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "vampirique"
+                "trait": {
+                  "id": "vampirique"
+                }
               },
               {
                 "op": "narrative",
@@ -5293,7 +5327,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "regeneration"
+                "trait": {
+                  "id": "regeneration"
+                }
               },
               {
                 "op": "narrative",
@@ -5342,7 +5378,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "instable",
+                "trait": {
+                  "id": "instable"
+                },
                 "onlyGroups": [
                   "mort-vivant",
                   "demon"
@@ -6066,8 +6104,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 9
+                "trait": {
+                  "id": "protection",
+                  "value": 9
+                }
               },
               {
                 "op": "narrative",
@@ -6634,8 +6674,10 @@
               },
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1,
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                },
                 "indicePerSL": {
                   "every": 2,
                   "amount": 1
@@ -7884,7 +7926,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "regeneration"
+                "trait": {
+                  "id": "regeneration"
+                }
               }
             ]
           }
@@ -9832,8 +9876,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 9
+                "trait": {
+                  "id": "protection",
+                  "value": 9
+                }
               }
             ]
           }
@@ -11041,8 +11087,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               }
             ]
           }
@@ -11178,7 +11226,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "haine"
+                "trait": {
+                  "id": "haine"
+                }
               },
               {
                 "op": "narrative",
@@ -11522,8 +11572,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "terreur",
-                "indice": 1
+                "trait": {
+                  "id": "terreur",
+                  "value": 1
+                }
               }
             ]
           }
@@ -13112,18 +13164,24 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "arg": "peau-verte"
+                "trait": {
+                  "id": "haine",
+                  "arg": "peau-verte"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "arg": "mort-vivant"
+                "trait": {
+                  "id": "haine",
+                  "arg": "mort-vivant"
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "haine",
-                "arg": "demon"
+                "trait": {
+                  "id": "haine",
+                  "arg": "demon"
+                }
               }
             ]
           }
@@ -13493,8 +13551,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 1
+                "trait": {
+                  "id": "peur",
+                  "value": 1
+                }
               },
               {
                 "op": "narrative",
@@ -13547,7 +13607,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "frenesie"
+                "trait": {
+                  "id": "frenesie"
+                }
               }
             ]
           }
@@ -14380,7 +14442,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "infecte"
+                "trait": {
+                  "id": "infecte"
+                }
               }
             ]
           }
@@ -17173,8 +17237,10 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "protection",
-                "indice": 7
+                "trait": {
+                  "id": "protection",
+                  "value": 7
+                }
               },
               {
                 "op": "narrative",
@@ -20285,7 +20351,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "ethere"
+                "trait": {
+                  "id": "ethere"
+                }
               }
             ]
           }
@@ -20607,7 +20675,9 @@
                         "ops": [
                           {
                             "op": "grantTrait",
-                            "traitId": "desespoir",
+                            "trait": {
+                              "id": "desespoir"
+                            },
                             "durationHours": 168
                           }
                         ]
@@ -23016,8 +23086,10 @@
                         "ops": [
                           {
                             "op": "grantTrait",
-                            "traitId": "peur",
-                            "indice": 1
+                            "trait": {
+                              "id": "peur",
+                              "value": 1
+                            }
                           },
                           {
                             "op": "narrative",
@@ -23937,7 +24009,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "frenesie"
+                "trait": {
+                  "id": "frenesie"
+                }
               }
             ]
           }
@@ -24357,7 +24431,9 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "perturbant"
+                "trait": {
+                  "id": "perturbant"
+                }
               }
             ]
           }

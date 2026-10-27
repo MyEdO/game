@@ -352,6 +352,10 @@ Pour créer une maladie, définir :
 
 La créature est porteuse de la maladie *Type*. Les héros blessés doivent tester leur Contraction selon la difficulté propre à cette maladie.
 
+**Sources RAW** : `LDB 85 l.223-225`
+
+**Implémente :** [État calculé](../implemente.generated.md#4emaladiesmaladie-type)
+
 ---
 
 ## Suppléments — EDO : Fièvre Cérébrale Pourpre + 2 symptômes + Contagieux

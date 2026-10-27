@@ -1,5 +1,5 @@
 /**
- * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md` B1, B-b), commun à
+ * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928), commun à
  * l'hôte texte (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : l'erreur structurée d'un geste et sa catégorie,
  * l'en-tête d'une partie (son scénario de test et ses entrées), son ouverture (la partie du noyau, le scénario lancé, la
  * tenue des jetons programmés), et l'horloge virtuelle d'un hôte sans minuteur, qui les rejoue. Un hôte qui a ses

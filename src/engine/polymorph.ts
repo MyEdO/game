@@ -14,7 +14,6 @@ import type { Combatant } from './types';
 import type { GameOp } from './ops';
 import { findCreatureById, findTraitById } from '../data';
 import { baseWithTraits } from './characteristics';
-import { traitsDuPorteur } from './statEntry';
 
 /** id de créature dont l'apparence rig doit être rendue actuellement (op `polymorph` en cours), sinon
  *  `undefined` (forme de base). Le DERNIER effet `morphRef` actif l'emporte. Lu par la couche rig
@@ -37,11 +36,10 @@ export function polymorphOps(target: Combatant, ref: string): GameOp[] {
       if (diff !== 0) ops.push({ op: 'charMod', char: k, mod: diff });
     }
   }
-  // `TraitData.nonTransferable` (LDB 48 l.23) ; `grantTrait` porte `arg`, `value` → `indice` et `range` (LDB 85 l.209).
-  // Chaque Trait se résout pour la cible (`traitsDuPorteur`), et l'op accorde l'instance résolue.
-  for (const p of traitsDuPorteur(cr.traits ?? [], target.id)) {
-    if (findTraitById(p.id)?.nonTransferable) continue;
-    ops.push({ op: 'grantTrait', traitId: p.id, ...(p.arg ? { arg: p.arg } : {}), ...(p.value != null ? { indice: p.value } : {}), ...(p.range != null ? { range: p.range } : {}) });
+  // `TraitData.nonTransferable` (LDB 48 l.23). L'op accorde le Trait posé de la créature, résolu pour la cible.
+  for (const trait of cr.traits ?? []) {
+    if (findTraitById(trait.id)?.nonTransferable) continue;
+    ops.push({ op: 'grantTrait', trait });
   }
   ops.push({
     op: 'narrative',

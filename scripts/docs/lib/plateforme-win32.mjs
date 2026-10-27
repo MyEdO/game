@@ -64,29 +64,30 @@ import { cwdDonne, estAbsoluWindows, estModuleDuDepot, hooksSdkSousWin32, urlDuD
 /** Nom → nombre d'arguments-CHEMINS en tête, pour la forme synchrone, à rappel et `fs.promises`. */
 const ENTREES_FS = {
   access: 1, appendFile: 1, chmod: 1, chown: 1, copyFile: 2, cp: 2, exists: 1, glob: 1, lchmod: 1,
-  lchown: 1, link: 2, lstat: 1, lutimes: 1, mkdir: 1, mkdtemp: 1, open: 1, opendir: 1, readdir: 1,
-  readFile: 1, readlink: 1, realpath: 1, rename: 2, rm: 1, rmdir: 1, stat: 1, statfs: 1, symlink: 2,
-  truncate: 1, unlink: 1, utimes: 1, watch: 1, writeFile: 1,
+  lchown: 1, link: 2, lstat: 1, lutimes: 1, mkdir: 1, mkdtemp: 1, mkdtempDisposable: 1, open: 1,
+  openAsBlob: 1, opendir: 1, readdir: 1, readFile: 1, readlink: 1, realpath: 1, rename: 2, rm: 1, rmdir: 1,
+  stat: 1, statfs: 1, symlink: 2, truncate: 1, unlink: 1, utimes: 1, watch: 1, writeFile: 1,
 }
-/** Sans variante `Sync` ni `fs.promises`. */
-const SEULES_FS = { createReadStream: 1, createWriteStream: 1, openAsBlob: 1, watchFile: 1, unwatchFile: 1 }
-/** Fonctions de `fs` (nom sans `Sync`) qui ne prennent aucun chemin : descripteurs, classes, interne. */
+/** Sans variante `Sync` ni `fs.promises` ; `Utf8Stream`, constructeur, porte son chemin en option (`OPTIONS_FS`). */
+const SEULES_FS = { createReadStream: 1, createWriteStream: 1, watchFile: 1, unwatchFile: 1, Utf8Stream: 0 }
+/** Fonctions de `fs` (nom sans `Sync`) sans chemin à ramener : descripteurs, interne, et classes qui
+ *  n'en prennent pas ou ouvrent le leur par `fs.open`, enveloppé (`ReadStream`, `WriteStream`). */
 export const SANS_CHEMIN_FS = new Set([
   'close', 'fchmod', 'fchown', 'fdatasync', 'fstat', 'fsync', 'ftruncate', 'futimes', 'read', 'readv',
   'write', 'writev', 'Dir', 'Dirent', 'FileReadStream', 'FileWriteStream', 'ReadStream', 'Stats',
   'WriteStream', '_toUnixTimestamp',
 ])
-/** Nom → position de l'argument d'options qui porte un `cwd`. */
-const OPTIONS_FS = { glob: 1 }
+/** Nom → [position de l'argument d'options, clé de l'option qui porte un chemin]. */
+const OPTIONS_FS = { glob: [1, 'cwd'], Utf8Stream: [0, 'dest'] }
 
 /** Entrée de PATH : chaque segment `;` ramené en POSIX, recollé par `:`. Un PATH POSIX passe tel quel. */
 const pathPosix = (valeur) => (typeof valeur === 'string' ? valeur.split(';').map(versPosix).join(':') : valeur)
 
-/** Options d'un appel : `cwd` et PATH de `env` (clé en toute casse) ramenés en POSIX. */
-function optionsPosix(options) {
+/** Options d'un appel : l'option chemin `cle` et PATH de `env` (clé en toute casse) ramenés en POSIX. */
+function optionsPosix(options, cle = 'cwd') {
   if (!options || typeof options !== 'object') return options
   const posix = { ...options }
-  if (typeof options.cwd === 'string') posix.cwd = versPosix(options.cwd)
+  if (typeof options[cle] === 'string') posix[cle] = versPosix(options[cle])
   if (options.env && typeof options.env === 'object') {
     posix.env = { ...options.env }
     for (const cle of Object.keys(posix.env)) if (cle.toUpperCase() === 'PATH') posix.env[cle] = pathPosix(posix.env[cle])
@@ -97,22 +98,28 @@ function optionsPosix(options) {
 /** Propriétés d'une fonction de `fs` à porter sur son enveloppe (`realpathSync.native`, symboles). */
 const PROPRES_NON_PORTEES = new Set(['length', 'name', 'prototype', 'arguments', 'caller'])
 
-function envelopper(originale, nombre, positionOptions) {
+/** Appelée par `new`, l'enveloppe construit l'originale (classe comprise) et partage son `prototype`. */
+function envelopper(originale, nombre, options) {
+  const [positionOptions, cleOptions] = options ?? []
   const enveloppe = function (...args) {
     for (let i = 0; i < nombre && i < args.length; i++) args[i] = versPosix(args[i])
-    if (positionOptions !== undefined && positionOptions < args.length) args[positionOptions] = optionsPosix(args[positionOptions])
-    return originale.apply(this, args)
+    if (positionOptions !== undefined && positionOptions < args.length) args[positionOptions] = optionsPosix(args[positionOptions], cleOptions)
+    return new.target ? Reflect.construct(originale, args, new.target) : originale.apply(this, args)
   }
+  enveloppe.prototype = originale.prototype
   for (const cle of Reflect.ownKeys(originale)) {
     if (PROPRES_NON_PORTEES.has(cle)) continue
     const valeur = originale[cle]
-    enveloppe[cle] = cle === 'native' && typeof valeur === 'function' ? envelopper(valeur, nombre, positionOptions) : valeur
+    enveloppe[cle] = cle === 'native' && typeof valeur === 'function' ? envelopper(valeur, nombre, options) : valeur
   }
   return enveloppe
 }
 
-const envelopperSurPlace = (hote, nom, nombre, positionOptions) => {
-  if (typeof hote[nom] === 'function') hote[nom] = envelopper(hote[nom], nombre, positionOptions)
+/** Posée par `defineProperty` : `fs.Utf8Stream` est un accesseur sans setter. */
+const envelopperSurPlace = (hote, nom, nombre, options) => {
+  if (typeof hote[nom] !== 'function') return
+  const { enumerable } = Object.getOwnPropertyDescriptor(hote, nom)
+  Object.defineProperty(hote, nom, { value: envelopper(hote[nom], nombre, options), writable: true, enumerable, configurable: true })
 }
 
 for (const [nom, nombre] of Object.entries(ENTREES_FS)) {
@@ -120,7 +127,8 @@ for (const [nom, nombre] of Object.entries(ENTREES_FS)) {
   envelopperSurPlace(fs, `${nom}Sync`, nombre, OPTIONS_FS[nom])
   envelopperSurPlace(fs.promises, nom, nombre, OPTIONS_FS[nom])
 }
-for (const [nom, nombre] of Object.entries(SEULES_FS)) envelopperSurPlace(fs, nom, nombre)
+for (const [nom, nombre] of Object.entries(SEULES_FS)) envelopperSurPlace(fs, nom, nombre, OPTIONS_FS[nom])
+if (fs.Utf8Stream) envelopperSurPlace(fs.Utf8Stream.prototype, 'reopen', 1)
 
 const argvPosix = (args) => args.map((a) => (estAbsoluWindows(a) ? versPosix(a) : a))
 

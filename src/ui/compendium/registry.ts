@@ -19,7 +19,7 @@ import {
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel, windsOfMagicTable,
   isNamed, specCatalogOf, specLabel, seasonLabel,
   SYMPTOM_SEVERITIES,
-  vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
+  vehicles, celestialHouses, groups, groupLabel, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS, findVehicleById, structures, regles, cibleCodex,
   charAbr, rigSpeciesId, navalPorts, shipConstruction, effectTables, disponibilite,
   conditionLabel, traitProjectingManeuver, materials, terrains, props, buildings, libelleOuAbsence, tailleDuProfil, testSkillLabel,
 } from '../../data';
@@ -2480,7 +2480,7 @@ const CODEX_SPECS: CodexCategorySpec[] = [
   },
   {
     key: 'obsessions', label: 'Obsessions (table)', group: 'Tables',
-    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: o.label, sub: `2d10 ${fourchette(o.min, o.max)}` })),
+    build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: `2d10 ${fourchette(o.min, o.max)}` })),
   },
   {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

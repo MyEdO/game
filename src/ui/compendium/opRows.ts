@@ -7,11 +7,12 @@
  * kind SANS id stable (invocation d'arme nommée, marqueur d'atelier…) ou pointant une catégorie hors
  * Codex tombe en `{t:'text'}`. JAMAIS `opSummary` (résumeur d'ATELIER, `editor/interne/resumeDOp.ts`).
  */
-import { slBonus, estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
+import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
+import { slBonus } from '../../engine/formule';
 import type { CodexRow } from './registry';
-import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes, plural, dureePropre, plancher } from './humanize';
+import { humanizeOp, humanizeFormula, humanizePerSL, CAUSE_PERSISTANTE, replieCausesPersistantes, plural, dureePropre, plancher, traitOctroyeLisible } from './humanize';
 import { CHAR_LABELS, HIT_LOCATION_LABELS } from '../../engine/types';
-import { formatTrait, traitLabelById } from '../../engine/traits/dispatch';
+import { traitLabelById } from '../../engine/traits/dispatch';
 import { giveTrappingLabel } from '../../engine/items';
 import { facesDuDe, fourchette } from '../../engine/tables';
 import type { DeDeTable } from '../../data/schemas/grammaire/valeurs';
@@ -85,8 +86,9 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'skills', id: o.skill.id, label: statName(l), show: l, badge: `+${humanizeFormula(o.bonus)} DR` };
     }
     case 'grantTrait': {
-      const label = traitLabelById(o.traitId);
-      return { t: 'ref', category: 'traits', id: o.traitId, label, show: formatTrait({ id: o.traitId, arg: o.arg, ...(typeof o.indice === 'number' ? { value: o.indice } : {}), range: o.range }), badge: o.indice != null && typeof o.indice !== 'number' ? humanizeFormula(o.indice) : undefined };
+      const label = traitLabelById(o.trait.id);
+      const indice = o.trait.value;
+      return { t: 'ref', category: 'traits', id: o.trait.id, label, show: traitOctroyeLisible(o), badge: indice != null && typeof indice !== 'number' ? humanizeFormula(indice) : undefined };
     }
     case 'grantPsychTrait': {
       const label = psychologyLabel(o.psychType);

@@ -1,15 +1,15 @@
 /**
  * #1957 — l'Indice et la Portée d'un Trait (`LDB 85` l.94, l.209) vivent en `value` / `range`, jamais en
  * `arg`, dès que la def du Trait les DÉCLARE (marqueurs `indice` / `range`, `defs/traits.ts`).
- * Garde : `refusDArgDeTrait` (`schemas/grammaire/reference.ts`), portée par `traitInstanceSchema`.
+ * Garde : `refusDArgDeTrait` (`schemas/grammaire/reference.ts`), portée par `traitInstanceSchema` et
+ * `traitOctroyeSchema` (`grantTrait.trait`).
  */
 import { describe, it, expect } from 'vitest';
 import { creatures } from './index';
 import { wardSaves } from '../engine/traits/dispatch';
 import { traitsDuPorteur } from '../engine/statEntry';
 import { traitInstanceSchema, refusDArgDeTrait } from './schemas/grammaire/reference';
-
-const datasets = import.meta.glob<unknown>('./*.json', { eager: true, import: 'default' });
+import { gameOpSchema } from './schemas/grammaire/mecanique';
 
 describe('Démoniaque (Indice) — la sauvegarde de chaque démon de la donnée', () => {
   it('wardSaves rend l’Indice de chaque démon de creatures.json', () => {
@@ -50,19 +50,11 @@ describe('instance de Trait — un Indice ou une Portée déclarés ne vivent pa
     expect(refusDArgDeTrait('perturbant', '8+')).toBeNull();
   });
 
-  it('aucun `grantTrait` de la donnée ne porte en `arg` un Indice ou une Portée déclarés', () => {
-    const refus: string[] = [];
-    const walk = (n: unknown, where: string): void => {
-      if (Array.isArray(n)) { for (const x of n) walk(x, where); return; }
-      if (!n || typeof n !== 'object') return;
-      const o = n as Record<string, unknown>;
-      if (o.op === 'grantTrait' && typeof o.traitId === 'string' && typeof o.arg === 'string') {
-        const r = refusDArgDeTrait(o.traitId, o.arg);
-        if (r) refus.push(`${where} — ${r}`);
-      }
-      for (const v of Object.values(o)) walk(v, where);
-    };
-    for (const [fichier, doc] of Object.entries(datasets)) walk(doc, fichier);
-    expect(refus).toEqual([]);
+  it('le Trait octroyé par `grantTrait` passe par les mêmes refus', () => {
+    const r = gameOpSchema.safeParse({ op: 'grantTrait', trait: { id: 'demoniaque', arg: '8+' } });
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => [i.path.join('.'), i.message])).toEqual([
+      ['trait.arg', 'GameOp « grantTrait » : Trait « demoniaque » : « 8+ » est un Indice — il s\'écrit en « value » (nombre), jamais en « arg ».'],
+    ]);
   });
 });

@@ -176,7 +176,7 @@ const graph = versionCached<ReverseGraph>(() => {
   // 10) Mutations → traits conférés.
   for (const m of mutations) {
     const by: Referrer = { category: 'mutations', id: m.id, label: m.label };
-    for (const op of m.passive ?? []) if (op.op === 'grantTrait') addReverse('traits', op.traitId, by, 'Mutations conférant ce trait');
+    for (const op of m.passive ?? []) if (op.op === 'grantTrait') addReverse('traits', op.trait.id, by, 'Mutations conférant ce trait');
   }
 
   // 11) Sorts → domaine.

@@ -1506,7 +1506,8 @@ export interface Combatant {
   /** (Détermination : l'immunité psy temporaire + l'ignorance des modifs de Critique sont
    *  portées par des `ActiveEffect` à `duration` Rounds — `psychImmune`/`ignoreCritMods` — expirées par
    *  le système de Durée unifié, plus de compteur/flag round-scopé ad hoc.) */
-  /** Groupes d'appartenance + traits psy possédés (matching des Cibles). */
+  /** Groupes DÉCLARÉS (espèce, entrée du bestiaire, statbloc, saisie d'éditeur, `groupsFor`) ; les Groupes
+   *  effectifs se lisent par `groupesDe` (`engine/groups.ts`), jamais ici. LDB 21. */
   groups?: string[];
   /** DOCTRINE TACTIQUE forcée en DONNÉE (id de `DOCTRINES` dans `noyau/monde/ai.ts` : `meute`/`soldats`/
    *  `tirailleurs`/`artillerie`/`horde`/`racaille`/`embuscade`/`standard`). Si présent et valide, l'IA

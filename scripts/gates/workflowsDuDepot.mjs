@@ -80,18 +80,28 @@ export const WORKFLOWS = Object.freeze({
 /** Dossier des workflows, relatif à la racine du dépôt. */
 export const DOSSIER = '.github/workflows'
 
+/** Dossier des actions composites, relatif à la racine du dépôt (`<action>/action.yml`). */
+export const DOSSIER_ACTIONS = '.github/actions'
+
+/** Valeur d'un scalaire YAML d'une ligne, guillemets retirés. */
+const scalaire = (v) => v.trim().replace(/^(['"])(.*)\1$/, '$2')
+
 /**
- * Steps d'un workflow, un bloc par tiret de 6 espaces (la forme de CE dépôt : `jobs:` → job → `steps:`).
+ * Steps d'un workflow, un bloc par tiret de `indent` espaces : 6 pour un workflow (la forme de CE
+ * dépôt : `jobs:` → job → `steps:`), 4 pour une action composite (`runs:` → `steps:`).
  * PUR. Source unique : `scripts/ops/canari.test.mjs` l'importe d'ici.
- * @param {string} texte @returns {Array<{ bloc: string, nom: string|null, id: string|null,
- *   tolerant: boolean, commande: boolean, run: boolean, si: string|null }>}
+ * @param {string} texte @param {{ indent?: number }} [p]
+ * @returns {Array<{ bloc: string, nom: string|null, id: string|null, tolerant: boolean,
+ *   commande: boolean, run: boolean, si: string|null, shell: string|null }>}
  */
-export function stepsDu(texte) {
+export function stepsDu(texte, { indent = 6 } = {}) {
   const lignes = texte.split(/\r?\n/)
+  const tiret = new RegExp(`^ {${indent}}- `)
+  const cleShell = new RegExp(`^ {${indent}}(?:- | {2})shell:\\s*([^#\\s][^#]*?)\\s*(?:#.*)?$`, 'm')
   const steps = []
   let courant = null
   for (const ligne of lignes) {
-    if (/^ {6}- /.test(ligne)) {
+    if (tiret.test(ligne)) {
       if (courant) steps.push(courant)
       courant = { lignes: [] }
     }
@@ -108,8 +118,85 @@ export function stepsDu(texte) {
       commande: /^\s*-?\s*(run|uses):/m.test(bloc),
       run: /^\s*-?\s*run:/m.test(bloc),
       si: /^\s*-?\s*if:\s*(.+)$/m.exec(bloc)?.[1]?.trim() ?? null,
+      shell: ((v) => (v === undefined ? null : scalaire(v)))(cleShell.exec(bloc)?.[1]),
     }
   })
+}
+
+/**
+ * `defaults.run.shell` posé à l'indentation `base` : 0 pour le workflow, 4 pour un job (texte d'un
+ * bloc de job, indentation d'origine conservée). `null` sans cette clé. PUR.
+ * @param {string} texte @param {number} [base] @returns {string|null}
+ */
+export function shellParDefaut(texte, base = 0) {
+  const lignes = texte.split(/\r?\n/)
+  const a = (n, cle) => new RegExp(`^ {${n}}${cle}:\\s*(.*?)\\s*(?:#.*)?$`)
+  const i = lignes.findIndex((l) => a(base, 'defaults').test(l))
+  if (i === -1) return null
+  let dansRun = false
+  for (const l of lignes.slice(i + 1)) {
+    if (l.trim() === '' || /^\s*#/.test(l)) continue
+    if (l.length - l.trimStart().length <= base) break
+    if (a(base + 2, '[A-Za-z_-]+').test(l)) dansRun = a(base + 2, 'run').test(l)
+    const shell = dansRun ? a(base + 4, 'shell').exec(l) : null
+    if (shell) return scalaire(shell[1])
+  }
+  return null
+}
+
+/** `true` si le shell lancé arrête un pipeline sur l'échec de N'IMPORTE QUEL maillon : `bash` (que
+ *  GitHub lance en `bash --noprofile --norc -eo pipefail {0}`) ou un gabarit qui pose `pipefail`. PUR.
+ *  @param {string|null} shell @returns {boolean} */
+export const shellAPipefail = (shell) => shell === 'bash' || /\bpipefail\b/.test(shell ?? '')
+
+/**
+ * `true` si un corps shell (`corpsRun`) porte un PIPE : `|` ou `|&`, jamais `||`. Hors du shell :
+ * les expressions `${{ … }}`, les chaînes entre apostrophes et les commentaires. Une chaîne entre
+ * guillemets n'est lue que dans ses substitutions (`$( … )`, accents graves), qui sont du shell. PUR.
+ * @param {string[]} corps @returns {boolean}
+ */
+export function portePipe(corps) {
+  const s = corps.join('\n').replace(/\$\{\{[\s\S]*?\}\}/g, '')
+  const pile = [{ mode: 'code', fin: null, parens: 0 }]
+  for (let i = 0; i < s.length; i += 1) {
+    const c = s[i]
+    const cadre = pile.at(-1)
+    if (cadre.mode === 'apostrophe') {
+      if (c === "'") pile.pop()
+      continue
+    }
+    if (c === '\\') {
+      i += 1
+      continue
+    }
+    const substitution = c === '$' && s[i + 1] === '('
+    if (cadre.mode === 'guillemets') {
+      if (c === '"') pile.pop()
+      else if (substitution) {
+        pile.push({ mode: 'code', fin: ')', parens: 0 })
+        i += 1
+      } else if (c === '`') pile.push({ mode: 'code', fin: '`', parens: 0 })
+      continue
+    }
+    if (c === "'") pile.push({ mode: 'apostrophe' })
+    else if (c === '"') pile.push({ mode: 'guillemets' })
+    else if (c === '#' && (i === 0 || /[\s;&|(]/.test(s[i - 1]))) i = s.indexOf('\n', i) === -1 ? s.length : s.indexOf('\n', i)
+    else if (substitution) {
+      pile.push({ mode: 'code', fin: ')', parens: 0 })
+      i += 1
+    } else if (c === '`') {
+      if (cadre.fin === '`') pile.pop()
+      else pile.push({ mode: 'code', fin: '`', parens: 0 })
+    } else if (c === '(') cadre.parens += 1
+    else if (c === ')') {
+      if (cadre.parens > 0) cadre.parens -= 1
+      else if (cadre.fin === ')') pile.pop()
+    } else if (c === '|') {
+      if (s[i + 1] !== '|') return true
+      i += 1
+    }
+  }
+  return false
 }
 
 /**
@@ -259,6 +346,19 @@ export function lireWorkflows({ cwd = process.cwd() } = {}) {
   return listerDossier(dossier)
     .filter((f) => f.endsWith('.yml'))
     .map((fichier) => ({ fichier, texte: readFileSync(join(dossier, fichier), 'utf8') }))
+}
+
+/**
+ * Les actions composites PRÉSENTES sur disque (`<action>/action.yml` ou `.yaml`), triées par chemin.
+ * @param {{ cwd?: string }} [p] @returns {Array<{ fichier: string, texte: string }>}
+ */
+export function lireActions({ cwd = process.cwd() } = {}) {
+  const dossier = join(cwd, DOSSIER_ACTIONS)
+  return listerDossier(dossier, { absent: 'vide' }).flatMap((action) =>
+    listerDossier(join(dossier, action), { absent: 'vide' })
+      .filter((f) => f === 'action.yml' || f === 'action.yaml')
+      .map((f) => ({ fichier: `${action}/${f}`, texte: readFileSync(join(dossier, action, f), 'utf8') })),
+  )
 }
 
 /**

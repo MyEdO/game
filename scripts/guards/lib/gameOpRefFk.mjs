@@ -73,7 +73,6 @@ export const GAMEOP_FIELD_TARGETS = {
   // ── Groupes (groups.json) — `groupMatch` (src/engine/groups.ts) compare par id ──
   'wounds.onlyGroups': { registry: 'groups' },
   'condition.onlyGroups': { registry: 'groups' },
-  'grantTrait.onlyGroups': { registry: 'groups' },
   'banish.onlyGroups': { registry: 'groups' },
   // ── Psychologie (psychology.json) ──
   'endPsych.type': { registry: 'psychology' },
@@ -86,7 +85,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'beginPsych.cible': { registry: 'groups' },
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Traits / Talents / Compétences ──
-  'grantTrait.traitId': { registry: 'traits' },
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
 
   // ── Séquelles (traumas.json) — `permanentAmputations` (src/engine/trauma.ts) instancie CHAQUE id ──
@@ -115,7 +113,6 @@ export const GAMEOP_FIELD_TARGETS = {
   'endTransform.tag': { nonRef: 'étiquette de groupement posée par `transform`' },
   'scheduleRespawn.cancelFlag': { nonRef: 'nom de drapeau de SCÈNE posé par un Effet, espace de noms de l\'auteur de scène' },
   'teamCommander.commanderId': { nonRef: 'id de combattant RUNTIME (posé par le flux de combat), jamais authoré en donnée' },
-  'grantTrait.arg': { nonRef: 'argument d\'INSTANCE du trait, polymorphe selon le trait porteur (id de Groupe, niveau de Difficulté, portée, prose) — aucun registre unique' },
   'augmentWeapon.requiresWeapon': { nonRef: 'mot-clé de FAMILLE d\'arme, matché par normalisation de `label`+`subType` (src/engine/weaponDamage.ts › weaponMatchesFamily)' },
 };
 
