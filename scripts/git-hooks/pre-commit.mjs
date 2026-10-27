@@ -191,7 +191,7 @@ if (staged.length) {
 }
 
 // LINT des fichiers stagés, lus dans l'index (scripts/guards/lib/lintStage.mjs).
-const lint = lintDeLIndex(ROOT, depot, staged);
+const lint = await lintDeLIndex(ROOT, depot, staged);
 for (const d of lint.defauts) avertir('lint', `${d.site} [${d.gravite}] ${d.regle} — ${d.message}`);
 if (lint.saut) process.stderr.write(`pre-commit — lint SAUTÉ : ${lint.saut} ; la gate ${FORMES.lint} le rejuge.\n`);
 

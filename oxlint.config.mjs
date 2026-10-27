@@ -210,7 +210,9 @@ const ECHAP_ALIAS = [
 ].map((selector) => ({ selector, message: MSG_ECHAP_ALIAS }));
 const DEFINITION_ECHAP = 'Program > ExportNamedDeclaration > VariableDeclaration[kind="const"] > VariableDeclarator[id.name="CODE_ECHAP"]';
 const ECHAP_GABARIT = { selector: 'TemplateElement[value.cooked="Escape"]', message: MSG_ECHAP };
-const RESOLVEURS_PAR_LIBELLE = [...collectLabelEntityResolvers(readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), 'src/data/index.ts'), 'utf8'))];
+/** Les fichiers que cette config LIT au chargement, hors imports : ils entrent dans sa fermeture (`fermetureDeConfig`). */
+export const LECTURES_DE_CONFIG = Object.freeze(['src/data/index.ts']);
+const RESOLVEURS_PAR_LIBELLE = [...collectLabelEntityResolvers(readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), LECTURES_DE_CONFIG[0]), 'utf8'))];
 const MSG_RESOLVEUR_PAR_LIBELLE = `Libellé en logique (#1463, #2995) : ${RESOLVEURS_PAR_LIBELLE.map((n) => `\`${n}\``).join(', ')} résolvent une entrée par son LIBELLÉ, couture de SAISIE de \`src/data/index.ts\`. Un test ou un script nomme l’entrée par son id (\`findSpellById\`, \`findTalentById\`, \`find((x) => x.id === …)\`) ; une saisie « format livre » s’éprouve par son parseur (\`refFormatLivre\`, \`parseQualityInstance\`).`;
 const NOMS_RESOLVEURS_PAR_LIBELLE = `/^(${RESOLVEURS_PAR_LIBELLE.join('|')})$/`;
 const VERROU_RESOLVEUR_PAR_LIBELLE = [
@@ -701,7 +703,7 @@ export const BLOCS_LINT = [
   },
   {
     // #1463, #2995
-    files: ['**/*.test.*', '**/*.bench.*', '**/*.testkit.*', 'scripts/**'],
+    files: [...[...RACINES_DES_ZONES, 'server'].flatMap((r) => ['test', 'bench', 'testkit'].map((genre) => `${r}/**/*.${genre}.*`)), 'scripts/**'],
     rules: {
       'murs/resolveur-par-libelle': ['error', ...VERROU_RESOLVEUR_PAR_LIBELLE],
     },
