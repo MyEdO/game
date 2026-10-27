@@ -4,6 +4,9 @@ import { skillAdvantageCap, combatAdvantageSkills, combatSubstitute, fearsBy } f
 import { defenseValue, defenseModifiers, rollMeleeDefender, finishMelee } from './combat';
 import { skillBaseValue } from './skills';
 import { makeRNG } from './dice';
+import { ligneDe } from './modLine.testkit';
+import { ligneDeRegle, refDeRegle } from './reglesChiffrees';
+import { RULE_REF } from './ruleRefs';
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return {
@@ -79,10 +82,11 @@ describe('Mode de défense « social » branché dans le moteur (LDB 09 l.287)',
     expect(defenseValue(defender(), 'social', undefined, undefined)).toBe(0);
   });
   it('defenseModifiers(social) : ni « Main secondaire », ni « Neige », ni « Maniement deux armes »', () => {
-    const mods = defenseModifiers(defender(), 'social', [{ label: 'Neige épaisse', value: -30, famille: 'circonstance' }] /*neige ignorée*/, defender().weapons[0]);
-    expect(mods.some((m) => m.label === 'Maniement deux armes')).toBe(false);
-    expect(mods.some((m) => m.label === 'Main secondaire')).toBe(false);
-    expect(mods.some((m) => m.label === 'Neige épaisse')).toBe(false);
+    const neige = ligneDeRegle('neige-eau-terrain-difficile', 'neige-eau-terrain-difficile');
+    const mods = defenseModifiers(defender(), 'social', [neige], defender().weapons[0]);
+    expect(ligneDe(mods, RULE_REF['combat-deux-armes'])).toBeUndefined();
+    expect(ligneDe(mods, refDeRegle('main-secondaire'))).toBeUndefined();
+    expect(ligneDe(mods, neige.ref!)).toBeUndefined();
   });
   it('finishMelee(social) : le breakdown défenseur porte le libellé + la base de la Compétence', () => {
     const def = defender(); const atk = attacker();

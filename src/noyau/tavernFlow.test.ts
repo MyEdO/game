@@ -24,6 +24,8 @@ import { bonus } from '../engine/characteristics';
 import { skillBaseValue } from '../engine/skills';
 import { tavernGameValue } from './tavernFlow';
 import type { Combatant } from '../engine/types';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
 
 const get = useGame.getState.bind(useGame);
 
@@ -398,7 +400,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     gagne(a, b);
     gagne(a, b);
     expect(rangee(a.id).target, 'deux pions : +20').toBe(cibleA + 20);
-    expect(rangee(a.id).mods?.some((m) => m.label === 'Avantage' && m.value === 20)).toBe(true);
+    expect(ligneDe(rangee(a.id).mods, refDeRegle('avantage'))?.value).toBe(20);
     expect(rangee(b.id).target, 'le perdant n’a aucun pion').toBe(cibleB);
   });
 

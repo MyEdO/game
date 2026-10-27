@@ -1183,27 +1183,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/ui/compendium/registry-enveloppe.test.ts",
-    motif: "désormais",
-    ancre: "#1690 (correctifs du lot 3) : `depuisEnveloppe` projette désormais `maison` — l'arbitrage d'une",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/compendium/registry-enveloppe.test.ts",
-    motif: "désormais",
-    ancre: "désormais les ops de chaque bande (primitive `opRows` — chips codex-liées + `rollTable` expansé)",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/ui/compendium/registry-enveloppe.test.ts",
-    motif: "désormais",
-    ancre: "`taille` 0 → 24). La clé projetée qui bouge est `maison`, désormais portée par TOUS les items —",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/ui/compendium/registry.ts",
     motif: "désormais",
     ancre: "// PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /",

@@ -16,6 +16,15 @@ import { seedBattleRng } from '../noyau/battleRng';
 import type { Combatant } from '../engine/types';
 import type { GameState } from './store';
 import type { Scene } from '../noyau/monde/scene';
+import { isDeepStrictEqual } from 'node:util';
+import { ligneDe, renvoieA } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
+import { RULE_REF } from '../engine/ruleRefs';
+
+const MAIN_SECONDAIRE = refDeRegle('main-secondaire');
+const PLAFOND = RULE_REF['combiner-les-difficultes'];
+const BENEDICTION = { label: 'Bénédiction de Bataille', source: { kind: 'spell' as const, id: 'benediction-de-bataille' } };
+const BENEDICTION_REF = { category: 'spells', id: BENEDICTION.source.id };
 
 /**
  * LOT 3 (R4) — `previewAttack` rejoue le MÊME env + modificateurs que la résolution, sans tirer le dé :
@@ -85,15 +94,15 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
     const get = mkGet([a, b]);
     const main = previewAttack(get, a, b); // auto → Épée (main), aucune pénalité
     expect(main.weapon.label).toBe('Épée');
-    expect(main.mods.some((m) => m.label === 'Main secondaire')).toBe(false);
+    expect(ligneDe(main.mods, MAIN_SECONDAIRE)).toBeUndefined();
     expect(main.difficulty, 'sans circonstance, la Difficulté de combat déclarée').toBe('intermediaire');
     const off = previewAttack(get, a, b, undefined, { weaponUid: 'o' }); // Dague (main secondaire) → -20
     expect(off.weapon.label).toBe('Dague');
     // « Attaquer avec votre main secondaire » est une entrée −20 du Tableau des Difficultés de Combat
     // (LDB 14) : elle COMPOSE le palier de la ligne au lieu d'y flotter en chip (#1153 L3b).
     expect(off.difficulty).toBe('difficile');
-    expect(off.difficultyParts?.find((m) => m.label === 'Main secondaire')?.value).toBe(-20);
-    expect(off.mods.some((m) => m.label === 'Main secondaire')).toBe(false);
+    expect(ligneDe(off.difficultyParts, MAIN_SECONDAIRE)?.value).toBe(-20);
+    expect(ligneDe(off.mods, MAIN_SECONDAIRE)).toBeUndefined();
     expect(off.target, 'le −20 reste porté par la cible, palier ou chip').toBe(main.target - 20);
     seedBattleRng(2);
     const r = resolveAttack(get, a, b, undefined, undefined, undefined, undefined, off.weapon);
@@ -151,15 +160,14 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   });
 
   it('issue #202 — buff de Caractéristique (Bénédiction de Bataille +10 CC) : target INCHANGÉ, base amputé, ligne étiquetée `famille: \'jet\'`', () => {
-    const a = combatant({ id: 'A', activeEffects: [{ label: 'Bénédiction de Bataille', char: 'capacite-de-combat', bonus: 10 }] as never });
+    const a = combatant({ id: 'A', activeEffects: [{ ...BENEDICTION, char: 'capacite-de-combat', bonus: 10 }] as never });
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
     const withoutBuff = previewAttack(mkGet([combatant({ id: 'A' }), b]), combatant({ id: 'A' }), b);
     const withBuff = previewAttack(mkGet([a, b]), a, b);
     expect(withBuff.target).toBe(withoutBuff.target + 10); // le buff reste bien PORTÉ au jet (byte-identique à l'avant-split)
     expect(withBuff.base).toBe(withoutBuff.base); // le +10 est sorti de `base` vers une ModLine
     expect(inexplique({ base: withBuff.base, mods: withBuff.mods, target: withBuff.target, difficulty: withBuff.difficulty })).toBe(0);
-    const line = withBuff.mods.find((m) => m.label === 'Bénédiction de Bataille');
-    expect(line).toEqual({ label: 'Bénédiction de Bataille', value: 10, famille: 'jet' });
+    expect(ligneDe(withBuff.mods, BENEDICTION_REF)).toEqual({ label: BENEDICTION.label, value: 10, famille: 'jet', ref: BENEDICTION_REF });
   });
 });
 
@@ -174,14 +182,14 @@ const cibleNonEcretee = (a: Combatant, kind: 'melee' | 'ranged', w: Combatant['w
 
 describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée (#1153 L3a)', () => {
   const foe = () => combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
-  const hors = (p: { mods: ModLine[] }) => p.mods.filter((m) => m.label !== 'plafond Difficultés');
+  const hors = (p: { mods: ModLine[] }) => p.mods.filter((m) => !renvoieA(PLAFOND)(m));
 
   it('NOMINAL (aucun plafond, aucune borne) : la cible rendue EST la cible non écrêtée', () => {
     const a = combatant({ id: 'A', advantage: 1 });
     const b = foe();
     const p = previewAttack(mkGet([a, b]), a, b);
     expect(p.target).toBe(cibleNonEcretee(a, 'melee', p.weapon, hors(p)));
-    expect(p.mods.some((m) => m.label === 'plafond Difficultés')).toBe(false);
+    expect(ligneDe(p.mods, PLAFOND)).toBeUndefined();
     expect(p.clamped).toBeUndefined();
   });
 
@@ -203,7 +211,7 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
     // L'amputation reste imputable : elle est une COMPOSANTE du palier dérivé (`LDB 14 l.95` : « le
     // Test devient simplement Très Difficile (-30) »), jamais un résidu muet en chip « autres ».
     expect(p.difficulty).toBe('tresDifficile');
-    expect(p.difficultyParts?.find((m) => m.label === 'plafond Difficultés')?.value).toBe(combine - somme);
+    expect(ligneDe(p.difficultyParts, PLAFOND)?.value).toBe(combine - somme);
     expect(p.mods.some((m) => m.famille === 'circonstance'), 'le palier porte les circonstances').toBe(false);
     expect(inexplique({ base: p.base, mods: p.mods, target: p.target, difficulty: p.difficulty })).toBe(0);
   });
@@ -219,7 +227,7 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
     const p4 = previewAttack(mkGet([quatre, b]), quatre, b);
     expect(p3.target).toBe(sain.target - 30);
     expect(p4.target).toBe(sain.target - 40);
-    expect(p4.mods.find((m) => m.label.includes('Exténué'))).toMatchObject({ value: -40, famille: 'jet' });
+    expect(ligneDe(p4.mods, { category: 'etats', id: 'extenue' })).toMatchObject({ value: -40, famille: 'jet' });
     expect(inexplique({ base: p4.base, mods: p4.mods, target: p4.target, difficulty: p4.difficulty })).toBe(0);
   });
 
@@ -265,11 +273,11 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
     const belier = { label: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], resolveChar: 'force' } as never;
     const a = combatant({
       id: 'A', weapons: [belier], traumas: [trauma] as never,
-      activeEffects: [{ label: 'Bénédiction de Bataille', char: 'force', bonus: 10 }] as never,
+      activeEffects: [{ ...BENEDICTION, char: 'force', bonus: 10 }] as never,
     } as never);
     const b = foe();
     const lignes = volatileCharLines(a, 'force');
-    expect(lignes.map((l) => l.value), 'la fixture doit produire LES DEUX lignes du pool').toEqual([10, -30]);
+    expect(lignes.map((l) => l.value).sort((x, y) => x - y), 'la fixture doit produire LES DEUX lignes du pool').toEqual([-30, 10]);
 
     const p = previewAttack(mkGet([a, b]), a, b);
     expect(p.weapon.label, 'l’aperçu doit bien tirer l’arme à Résolution alternative').toBe('Bélier');
@@ -277,13 +285,12 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
     // La ligne REBASÉE se recolle à la grandeur du moteur : valeur de combat FONDUE (les volatiles
     // dedans) + les seuls modificateurs SITUATIONNELS combinés. Les lignes du pool ne sont donc
     // comptées qu'une fois — les verser dans `combineMods` les compterait deux.
-    const noms = new Set(lignes.map((l) => l.label));
-    const situationnels = p.mods.filter((m) => !noms.has(m.label) && m.label !== 'plafond Difficultés');
+    const situationnels = p.mods.filter((m) => !lignes.some((l) => isDeepStrictEqual(l, m)) && !renvoieA(PLAFOND)(m));
     expect(p.base + p.mods.reduce((s, m) => s + m.value, 0))
       .toBe(combatValue(a, 'melee', belier) + combineMods(situationnels));
     const labels = p.mods.map((m) => m.label);
     expect(new Set(labels).size, 'aucun libellé dupliqué : chaque composante nomme SON octroyeur').toBe(labels.length);
-    expect(labels).toContain('Bénédiction de Bataille');
+    expect(ligneDe(p.mods, BENEDICTION_REF)?.value).toBe(10);
     expect(labels).toContain(trauma.label);
     expect(inexplique({ base: p.base, mods: p.mods, target: p.target, difficulty: p.difficulty })).toBe(0);
   });
@@ -381,8 +388,8 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const d = r!.res.attackerDetail!;
     expect(d.difficulty).toBe(p.difficulty);
     expect(d.difficultyCombined).toBe(p.difficultyCombined);
-    expect(d.difficultyParts?.map((m) => `${m.label} ${m.value}`)).toEqual(p.difficultyParts?.map((m) => `${m.label} ${m.value}`));
-    expect(d.mods?.map((m) => `${m.label} ${m.value}`)).toEqual(p.mods.filter((m) => m.famille === 'jet').map((m) => `${m.label} ${m.value}`));
+    expect(d.difficultyParts).toEqual(p.difficultyParts);
+    expect(d.mods).toEqual(p.mods.filter((m) => m.famille === 'jet'));
     expect(d.target, 'la cible du jet est celle que l’aperçu promettait').toBe(p.target);
     expect(inexplique({ base: d.base, mods: d.mods, target: d.target, difficulty: d.difficulty, difficultyCombined: d.difficultyCombined, clamped: d.clamped })).toBe(0);
   });
@@ -398,7 +405,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const d = r!.res.attackerDetail!;
     expect(d.difficulty).toBe('difficile');
     expect(d.difficultyCombined).toBeUndefined();
-    expect(d.difficultyParts?.map((m) => m.label)).toEqual(p.difficultyParts?.map((m) => m.label));
+    expect(d.difficultyParts?.map((m) => m.ref)).toEqual(p.difficultyParts?.map((m) => m.ref));
     expect(d.target).toBe(p.target);
     expect(inexplique({ base: d.base, mods: d.mods, target: d.target, difficulty: d.difficulty, clamped: d.clamped })).toBe(0);
   });
@@ -430,7 +437,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const r = resolveAttack(neige, a, b);
     const dd = r!.res.defenderDetail!;
     expect(dd.difficulty, 'le résultat dit la MÊME Difficulté que la rangée pré-jet').toBe(pending.difficulty);
-    expect(dd.difficultyParts?.map((m) => `${m.label} ${m.value}`)).toEqual(pending.difficultyParts?.map((m) => `${m.label} ${m.value}`));
+    expect(dd.difficultyParts).toEqual(pending.difficultyParts);
     expect(inexplique({ base: dd.base, mods: dd.mods, target: dd.target, difficulty: dd.difficulty, difficultyCombined: dd.difficultyCombined, clamped: dd.clamped })).toBe(0);
   });
 
@@ -462,7 +469,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     seedBattleRng(8);
     const dd = resolveAttack(neige, archer, b)!.res.defenderDetail!;
     expect(dd.difficulty, 'le tir défendu applique la MÊME pénalité d’esquive que l’aperçu').toBe(pending.difficulty);
-    expect(dd.difficultyParts?.map((m) => `${m.label} ${m.value}`)).toEqual(pending.difficultyParts?.map((m) => `${m.label} ${m.value}`));
+    expect(dd.difficultyParts).toEqual(pending.difficultyParts);
     expect(inexplique({ base: dd.base, mods: dd.mods, target: dd.target, difficulty: dd.difficulty, difficultyCombined: dd.difficultyCombined, clamped: dd.clamped })).toBe(0);
   });
 
@@ -492,8 +499,8 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     const apres = useGame.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl, 'la Chance donne bien +1 DR').toBe(avant.sl + 1);
     expect(apres.difficulty, 'la Difficulté ne bouge pas d’un cran').toBe(avant.difficulty);
-    expect(apres.difficultyParts?.map((m) => `${m.label} ${m.value}`)).toEqual(avant.difficultyParts?.map((m) => `${m.label} ${m.value}`));
-    expect(apres.mods?.map((m) => `${m.label} ${m.value}`)).toEqual(avant.mods?.map((m) => `${m.label} ${m.value}`));
+    expect(apres.difficultyParts).toEqual(avant.difficultyParts);
+    expect(apres.mods).toEqual(avant.mods);
     expect(inexplique({ base: apres.base, mods: apres.mods, target: apres.target, difficulty: apres.difficulty, difficultyCombined: apres.difficultyCombined, clamped: apres.clamped })).toBe(0);
   });
 
@@ -528,7 +535,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     expect(apres.base, 'la base reste celle de l’arme tirée').toBe(avant.base);
     expect(apres.target).toBe(avant.target);
     expect(apres.difficulty).toBe(avant.difficulty);
-    expect(apres.difficultyParts?.map((m) => `${m.label} ${m.value}`)).toEqual(avant.difficultyParts?.map((m) => `${m.label} ${m.value}`));
+    expect(apres.difficultyParts).toEqual(avant.difficultyParts);
     expect(inexplique({ base: apres.base, mods: apres.mods, target: apres.target, difficulty: apres.difficulty, difficultyCombined: apres.difficultyCombined, clamped: apres.clamped }), 'aucune chip « autres » à l’écran').toBe(0);
   });
 });
@@ -677,7 +684,7 @@ describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1
     expect(apres.label, `${quoi} : le tir ne devient pas une frappe`).toBe(avant.label);
     expect(apres.base, `${quoi} : la base reste celle du tir`).toBe(avant.base);
     expect(apres.difficulty, `${quoi} : la Difficulté ne bouge pas`).toBe(avant.difficulty);
-    expect(apres.difficultyParts?.map((m) => `${m.label} ${m.value}`)).toEqual(avant.difficultyParts?.map((m) => `${m.label} ${m.value}`));
+    expect(apres.difficultyParts).toEqual(avant.difficultyParts);
     expect(inexplique({ base: apres.base, mods: apres.mods, target: apres.target, difficulty: apres.difficulty, difficultyCombined: apres.difficultyCombined, clamped: apres.clamped }), `${quoi} : aucune chip « autres »`).toBe(0);
   };
 

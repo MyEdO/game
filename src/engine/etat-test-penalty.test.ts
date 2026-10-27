@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { combatTestPenalty, combatTestPenaltyParts, testStatePenalty, meleeAttackerBonus, addCondition, COND } from './conditions';
 import { conditionModLines, baseTestModLines, baseTestMods, defenseModifiers, GRAPPLE_TEST_CTX } from './combat';
 import type { Combatant } from './types';
-import { etats, findConditionById } from '../data';
+import { etats, findConditionById, refLabel } from '../data';
 import { setDataset } from '../data/overrides';
+import { t } from '../i18n';
 
 const mk = (): Combatant => ({
   id: 'x', name: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
@@ -142,51 +143,50 @@ describe('pénalités de Test d’État lues en DONNÉES (etats.json passive tes
  * de `ModChip` naît de `ModLine.ref`). Le pool non-cumul (LDB 16 l.13) rend UNE ligne : celle du gagnant.
  */
 describe('composantes NOMMÉES de la pénalité de Test (combatTestPenaltyParts)', () => {
+  const nommee = (category: string, id: string, value: number) => ({ label: refLabel(category, { id }), value, famille: 'jet', ref: { category, id } });
   it('Brisé ×3 seul → une ligne « Brisé » −30, liée à sa fiche d’État', () => {
     const c = mk(); addCondition(c, COND.brise); addCondition(c, COND.brise); addCondition(c, COND.brise);
-    expect(combatTestPenaltyParts(c)).toEqual([{ label: 'Brisé', value: -30, famille: 'jet', ref: { category: 'etats', id: 'brise' } }]);
+    expect(combatTestPenaltyParts(c)).toEqual([nommee('etats', 'brise', -30)]);
   });
 
   it('mixte Brisé ×3 + Sonné : le PIRE seul, et c’est LUI qui est nommé (−30 Brisé, pas « État »)', () => {
     const c = mk(); addCondition(c, COND.sonne);
     addCondition(c, COND.brise); addCondition(c, COND.brise); addCondition(c, COND.brise);
-    expect(combatTestPenaltyParts(c)).toEqual([{ label: 'Brisé', value: -30, famille: 'jet', ref: { category: 'etats', id: 'brise' } }]);
+    expect(combatTestPenaltyParts(c)).toEqual([nommee('etats', 'brise', -30)]);
   });
 
   it('Sonné seul → « Sonné » −10', () => {
     const c = mk(); addCondition(c, COND.sonne);
-    expect(combatTestPenaltyParts(c)).toEqual([{ label: 'Sonné', value: -10, famille: 'jet', ref: { category: 'etats', id: 'sonne' } }]);
+    expect(combatTestPenaltyParts(c)).toEqual([nommee('etats', 'sonne', -10)]);
   });
 
   it('ex æquo (Sonné −10 puis Empoisonné −10) : départage DÉTERMINISTE — le premier collecté', () => {
     const c = mk(); addCondition(c, COND.sonne); addCondition(c, COND.empoisonne);
-    expect(combatTestPenaltyParts(c).map((p) => p.label)).toEqual(['Sonné']);
+    expect(combatTestPenaltyParts(c).map((p) => p.ref)).toEqual([{ category: 'etats', id: 'sonne' }]);
     const c2 = mk(); addCondition(c2, COND.empoisonne); addCondition(c2, COND.sonne);
-    expect(combatTestPenaltyParts(c2).map((p) => p.label)).toEqual(['Empoisonné']);
+    expect(combatTestPenaltyParts(c2).map((p) => p.ref)).toEqual([{ category: 'etats', id: 'empoisonne' }]);
   });
 
   it('AURA de trait (Perturbant −20 projeté dans auraMods) : nommée par SON trait, à côté de l’État (pools distincts, LDB 85 l.262)', () => {
     const c = mk(); addCondition(c, COND.sonne);
     c.auraMods = [{ op: { op: 'testMod', amount: -20 }, src: { category: 'traits', id: 'perturbant' } }];
-    expect(combatTestPenaltyParts(c)).toEqual([
-      { label: 'Sonné', value: -10, famille: 'jet', ref: { category: 'etats', id: 'sonne' } },
-      { label: 'Perturbant', value: -20, famille: 'jet', ref: { category: 'traits', id: 'perturbant' } },
-    ]);
+    expect(combatTestPenaltyParts(c)).toEqual([nommee('etats', 'sonne', -10), nommee('traits', 'perturbant', -20)]);
   });
 
   it('ce qui STACKE garde SA ligne : l’effet actif n’est pas fondu dans celle de l’État', () => {
     const c = mk(); addCondition(c, COND.sonne);
-    c.activeEffects = [{ label: 'Malédiction de malchance', bonus: 0, duration: { scale: 'rounds', left: 3 }, testMod: -10, source: { kind: 'spell', id: 'malediction-de-malchance' } }];
+    const malediction = { label: 'Malédiction de malchance', bonus: 0, duration: { scale: 'rounds' as const, left: 3 }, testMod: -10, source: { kind: 'spell' as const, id: 'malediction-de-malchance' } };
+    c.activeEffects = [malediction];
     expect(combatTestPenaltyParts(c)).toEqual([
-      { label: 'Sonné', value: -10, famille: 'jet', ref: { category: 'etats', id: 'sonne' } },
-      { label: 'Malédiction de malchance', value: -10, famille: 'jet', ref: { category: 'spells', id: 'malediction-de-malchance' } },
+      nommee('etats', 'sonne', -10),
+      { label: malediction.label, value: -10, famille: 'jet', ref: { category: 'spells', id: 'malediction-de-malchance' } },
     ]);
     expect(combatTestPenalty(c)).toBe(-20); // la Σ des composantes = la valeur roulée
   });
 
   it('les trois producteurs servent ces MÊMES lignes (source unique conditionModLines)', () => {
     const c = mk(); addCondition(c, COND.brise);
-    const expected = { label: 'Brisé', value: -10, famille: 'jet', ref: { category: 'etats', id: 'brise' } };
+    const expected = nommee('etats', 'brise', -10);
     expect(conditionModLines(c)).toContainEqual(expected);
     expect(baseTestModLines(c)).toContainEqual(expected);
     expect(defenseModifiers(c, 'esquive')).toContainEqual(expected);
@@ -197,11 +197,11 @@ describe('composantes NOMMÉES de la pénalité de Test (combatTestPenaltyParts)
     aura.auraMods = [{ op: { op: 'testMod', amount: -20 } }]; // op projetée sans son trait émetteur
     // Une aura est un TRAIT : dégradée, elle ne s'annonce pas « État » (le gate `ignoreStatePenalties`
     // ne l'annule d'ailleurs pas, LDB 42) — le joueur lirait une règle qui ne la gouverne pas.
-    expect(combatTestPenaltyParts(aura)).toEqual([{ label: 'Aura', value: -20, famille: 'jet', ref: undefined }]);
+    expect(combatTestPenaltyParts(aura)).toEqual([{ label: t('cond.natureAura'), value: -20, famille: 'jet', ref: undefined }]);
     // Et une aura IDENTIFIÉE à côté d'un État : chacun garde son nom.
     const mixte = mk(); addCondition(mixte, COND.sonne);
     mixte.auraMods = [{ op: { op: 'testMod', amount: -20 }, src: { category: 'traits', id: 'perturbant' } }];
-    expect(combatTestPenaltyParts(mixte).map((p) => p.label)).toEqual(['Sonné', 'Perturbant']);
+    expect(combatTestPenaltyParts(mixte).map((p) => p.ref)).toEqual([{ category: 'etats', id: 'sonne' }, { category: 'traits', id: 'perturbant' }]);
   });
 });
 

@@ -27,6 +27,9 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engi
 import { applierDe, rollTableStep } from '../noyau/cascade';
 import { inexplique, soutienDe, draineCascade, avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
+import { lignesDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
+import { ligneAllureForcee } from '../engine/vehicle';
 
 const get = () => useGame.getState();
 const set = useGame.setState;
@@ -447,7 +450,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
     const cartoPart = batch.participants!.find((p) => p.id === 'hCarto')!;
     expect(cartoPart.label).toBe(refLabel('skills', { id: 'metier', spec: 'cartographe' }));
     expect(outPart.mods?.filter((m) => m.ref?.category === 'weatherConditions').map((m) => m.value)).toEqual([-20]); // Plein air -20 (l.106)
-    expect(cartoPart.mods?.filter((m) => m.ref?.category === 'weatherConditions' && m.ref.id === 'pluie-diluvienne').map((m) => m.value)).toEqual([-10]); // EDOC 8 l.82, carac Dex
+    expect(lignesDe(cartoPart.mods, { category: 'weatherConditions', id: 'pluie-diluvienne' }).map((m) => m.value)).toEqual([-10]); // EDOC 8 l.82, carac Dex
     resetRule('travel-etapes');
   });
 
@@ -567,10 +570,9 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     const km2 = (out?.insert ?? []).find((s) => s.kind === 'landForcedPace')!;
     expect(km2, 'le kilomètre suivant s’insère').toBeTruthy();
     expect(km2.base, 'base NUE : ni le Soutien ni la pénalité ne s’y cachent').toBe(skillBaseValue(picked.actor, 'conduite-d-attelage'));
-    const chips = km2.mods!.map((m) => m.label);
-    expect(chips.filter((l) => l.startsWith('Km déjà au pas de course'))).toHaveLength(1);
+    expect(lignesDe(km2.mods, refDeRegle('allure-forcee-attelage'))).toEqual([ligneAllureForcee(1)]);
     expect(soutienDe(km2)).toBe(picked.support.bonus);
-    expect(km2.target).toBe(picked.value - 10 + DIFFICULTY_MODIFIERS.intermediaire);
+    expect(km2.target).toBe(picked.value + ligneAllureForcee(1)!.value + DIFFICULTY_MODIFIERS.intermediaire);
     expect(inexplique(km2), 'aucune chip « autres » : le −10 compte UNE fois').toBe(0);
   });
 

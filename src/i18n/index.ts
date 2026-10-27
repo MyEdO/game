@@ -28,9 +28,7 @@ export const getLocale = (): Locale => locale;
  *
  * GEL AU CHARGEMENT (dette nommée, #1318 V8a₁) : plusieurs cartes de libellés appellent `t()` à
  * l'ÉVALUATION DU MODULE et gardent la chaîne obtenue — `CHAR_LABELS`/`DIFFICULTY_LABELS`/
- * `HIT_LOCATION_LABELS`/`BODY_SHAPE_LOC_LABELS` (`engine/types.ts`) et
- * `CHAR_PENALTY_KIND_LABEL` (`engine/trauma.ts`, familles Faim/Soif et Ivresse — V8c₃ l'a fait passer
- * de littéraux au catalogue, MÊME motif : la carte est figée à l'évaluation du module).
+ * `HIT_LOCATION_LABELS`/`BODY_SHAPE_LOC_LABELS` (`engine/types.ts`).
  * V8c₄ ajoute UN site à cette liste, et un seul : `label: t('cor.natureTable')` de la famille
  * `tablesDeNature` (`noyau/corruptionFlow.ts`, table « Corps ou esprit ») — le libellé y est résolu à
  * la construction de la famille, puis gardé jusqu'à la prochaine édition de `species`. Les autres

@@ -37,6 +37,8 @@ import { talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
 import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow } from '../noyau/combatEffects';
 import { t } from '../i18n';
+import { ligneDe } from '../engine/modLine.testkit';
+import { refDeRegle } from '../engine/reglesChiffrees';
 import { makeRNG } from '../engine/dice';
 import { objetDuNarratif } from '../noyau/monde/resolveursDuNarratif';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
@@ -2990,7 +2992,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const pa = useGame.getState().pendingAttack!;
     const d = pa.result!.attackerDetail!;
     const nomme = [...(d.mods ?? []), ...(d.difficultyParts ?? [])];
-    expect(nomme.some((m) => m.label === 'Viser' && m.value === 20)).toBe(true);
+    expect(ligneDe(nomme, refDeRegle('viser'))?.value).toBe(20);
     // …et il PÈSE sur la cible : tout l'écart base→cible est nommé (un +20 annoncé mais non appliqué
     // — ou l'inverse — casse cette égalité).
     const dv = d.difficultyCombined ?? (d.difficulty ? DIFFICULTY_MODIFIERS[d.difficulty] : 0);

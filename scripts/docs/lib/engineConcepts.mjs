@@ -91,6 +91,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/massBattle.ts', 'Bataille de masse'],
   ['src/engine/menace.ts', 'Menace (psychologie)'],
   ['src/engine/miscast.ts', 'Incantation ratée (Fiasco)'],
+  ['src/engine/modLine.testkit.ts', 'ModLine : harnais de test (identification d’une ligne par son renvoi `ref`)'],
   ['src/engine/money.ts', 'Argent, monnaie'],
   ['src/engine/bourse.ts', 'Argent, monnaie'],
   ['src/engine/mountTravel.ts', 'Voyage monté'],

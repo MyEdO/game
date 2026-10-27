@@ -63,6 +63,10 @@ export type RuleId =
   | 'cible-en-contrebas'
   | 'tir-dans-un-combat-au-corps-a-corps'
   | 'cible-dissimulee'
+  | 'cible-sous-couverture'
+  | 'climat-extreme'
+  | 'neige-eau-terrain-difficile'
+  | 'allure-forcee-attelage'
   | 'combat-monte'
   | 'equipe-incomplete-machine-de-guerre'
   | 'possession-pas-a-sa-taille'
@@ -105,6 +109,8 @@ export const RANGEES_DE_REGLE = {
   'cible-en-contrebas': ['en-contrebas'],
   'combat-monte': ['cible-plus-petite', 'cibler-le-cavalier', 'esquive-a-cheval'],
   'possession-pas-a-sa-taille': ['possession-pas-a-sa-taille'],
+  'climat-extreme': ['climat-extreme'],
+  'neige-eau-terrain-difficile': ['neige-eau-terrain-difficile'],
   empoignade: ['avantage-le-plus-faible', 'avantage-le-plus-fort'],
   'portee-d-une-arme': ['bout-portant', 'courte', 'moyenne', 'longue', 'extreme'],
   'main-secondaire': ['main-secondaire'],
@@ -112,6 +118,7 @@ export const RANGEES_DE_REGLE = {
   'allonge-longueur-d-arme': ['arme-plus-longue'],
   'equipe-incomplete-machine-de-guerre': ['equipe-incomplete'],
   avantage: ['par-point'],
+  'allure-forcee-attelage': ['par-km'],
 } as const satisfies Partial<Record<RuleId, readonly string[]>>;
 
 export type RegleChiffree = keyof typeof RANGEES_DE_REGLE;
@@ -153,6 +160,7 @@ export const RULE_REF: Record<Exclude<RuleId, RegleChiffree>, CodexTarget> = gel
   'maladresse-tableau-des-oups': { category: 'regles', id: 'maladresse-tableau-des-oups' },
   'taille-cible-au-tir': { category: 'regles', id: 'taille-cible-au-tir' },
   'cible-dissimulee': { category: 'regles', id: 'cible-dissimulee' },
+  'cible-sous-couverture': { category: 'regles', id: 'cible-sous-couverture' },
   'tests-opposes': { category: 'regles', id: 'tests-opposes' },
   rapide: { category: 'qualities', id: 'rapide' },
   'commandant-d-equipe': { category: 'talents', id: 'commandant-d-equipe' },

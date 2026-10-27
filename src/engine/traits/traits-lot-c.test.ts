@@ -10,6 +10,7 @@ import { contreSurDefenseGagnee } from '../combatFeatures/dispatch';
 import { traitSpellDRMod } from '../magic';
 import { coldBloodedAdjust, isPsychImmune } from '../psychology';
 import { attackModifiers } from '../combat';
+import { ligneDe } from '../modLine.testkit';
 import { traumaCharPenalties } from '../trauma';
 import { effectiveChar } from '../characteristics';
 import { effectiveMovement } from '../encumbrance';
@@ -125,7 +126,7 @@ describe('câblages moteur', () => {
     const atk = mk({ id: 'a' });
     const tgt = mk({ id: 't', traits: [{ id: 'parasite' }] });
     const mods = attackModifiers(atk, tgt, { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }, { kind: 'melee' });
-    expect(mods.find((m) => m.label === 'Parasité')?.value).toBe(-10);
+    expect(ligneDe(mods, { category: 'traits', id: 'parasite' })?.value).toBe(-10);
   });
   it('À sang-froid : un Test de FM raté est inversé s’il devient réussi', () => {
     expect(coldBloodedAdjust({ roll: 91, target: 40, success: false, sl: -5 }, true).success).toBe(true); // 91 → 19

@@ -1010,6 +1010,126 @@
     }
   },
   {
+    "id": "cible-sous-couverture",
+    "type": "regles",
+    "label": "Cible sous couverture (imparfaite, moyenne, totale)",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 161,
+      "note": "LDB 14, Tableau des Difficultés de Combat — Complexe (-10), Difficile (-20), Très Difficile (-30)"
+    }
+  },
+  {
+    "id": "climat-extreme",
+    "type": "regles",
+    "label": "Attaquer par climat extrême (mousson, ouragan, blizzard)",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 161,
+      "note": "LDB 14, Tableau des Difficultés de Combat — Difficile (-20)"
+    },
+    "rangees": [
+      {
+        "id": "climat-extreme",
+        "label": "Tempête",
+        "palier": "difficile",
+        "famille": "circonstance"
+      }
+    ]
+  },
+  {
+    "id": "neige-eau-terrain-difficile",
+    "type": "regles",
+    "label": "Attaquer ou esquiver dans la neige profonde, l’eau ou un terrain difficile",
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "14",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "difficultes-de-combat",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "bd733519b57bbaea"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 161,
+      "note": "LDB 14, Tableau des Difficultés de Combat — Très Difficile (-30)"
+    },
+    "rangees": [
+      {
+        "id": "neige-eau-terrain-difficile",
+        "label": "Neige épaisse",
+        "palier": "tresDifficile",
+        "famille": "circonstance"
+      }
+    ]
+  },
+  {
+    "id": "allure-forcee-attelage",
+    "type": "regles",
+    "label": "Attelage forcé au pas de course",
+    "descRef": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "ch": "07",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "vitesse-des-vehicules",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 1,
+          "sum": "79b62c1d774ab182"
+        }
+      ]
+    },
+    "source": {
+      "book": "ennemi-dans-l-ombre-compagnon",
+      "page": 27,
+      "note": "EDOC 07 l.229"
+    },
+    "rangees": [
+      {
+        "id": "par-km",
+        "label": "Km déjà au pas de course",
+        "valeur": -10,
+        "famille": "jet"
+      }
+    ]
+  },
+  {
     "id": "combat-monte",
     "type": "regles",
     "label": "Combat monté",

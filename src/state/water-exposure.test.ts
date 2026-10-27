@@ -10,6 +10,7 @@ import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
 import { applierDe } from '../noyau/cascade';
 import { WATER_EXPOSURE } from '../data';
+import { RULE_REF } from '../engine/ruleRefs';
 import { autoExposureMods, sourceExposureMod, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { createHero } from '../engine/character';
 import { type RNG } from '../engine/dice';
@@ -102,14 +103,13 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
     expect([s1.base, s2.base]).toEqual([42, 42]);
     // La source d'eau (−30) touche les DEUX ; h1 cumule EN PLUS ses mods dérivés : 1 PB restant (−30)
     // + 11 PB perdus ≥ 5 (−20) — chaque tableau rend SA ligne, liée à la fiche qui l'octroie (MSRC 16).
-    expect(s2.mods).toEqual([
-      { label: 'Grande ville ; marais', value: -30, famille: 'jet', ref: { category: 'regles', id: 'exposition-hydrique' } },
-    ]);
-    expect(s1.mods?.map((m) => [m.label, m.value])).toEqual([
-      ['Grande ville ; marais', -30],
-      ['1 Blessure ou moins restante', -30],
-      ['5 Blessures ou plus perdues', -20],
-    ]);
+    const ligne = (id: string) => {
+      const m = WATER_EXPOSURE.modifiers.find((x) => x.id === id)!;
+      return { label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'] };
+    };
+    expect(s2.mods).toEqual([ligne('grande-ville-marais')]);
+    expect(s1.mods).toEqual([ligne('grande-ville-marais'), ligne('1-blessure-ou-moins-restante'), ligne('5-blessures-ou-plus-perdues')]);
+    expect(s1.mods?.map((m) => m.value)).toEqual([-30, -30, -20]);
     // Ce qui SÉPARE les deux héros (50) se lit dans la somme de leurs lignes.
     const somme = (s: typeof s1): number => (s.mods ?? []).reduce((t, m) => t + m.value, 0);
     expect(somme(s2) - somme(s1)).toBe(50);

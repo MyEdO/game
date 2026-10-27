@@ -4,20 +4,24 @@ import { Scene, SceneEntity, isWalkable } from './scene';
 import { attackModifiers, defenseModifiers, combineMods } from '../../engine/combat';
 import { defenseDodgeMods } from '../combatFlow';
 import type { Combatant, Weapon } from '../../engine/types';
+import { refDeRegle } from '../../engine/reglesChiffrees';
+import { ligneDe } from '../../engine/modLine.testkit';
 
 const sc = (over: Partial<Scene>): Scene => ({ ambiance: 'exterieur', ...over } as Scene);
 const DAY = 12 * 60;   // midi (clair)
 const NIGHT = 23 * 60; // nuit (obscurité)
+const CLIMAT = refDeRegle('climat-extreme');
+const NEIGE = refDeRegle('neige-eau-terrain-difficile');
 
 describe('sceneCombatModifiers — obscurité (horloge) / météo (LDB 14 l.75/76/82, #T1c)', () => {
   it('clair de jour → aucun mod', () => {
-    expect(sceneCombatModifiers(sc({ weather: 'clair' }), DAY)).toMatchObject({ concealed: false, attackMod: 0, dodgeMod: 0 });
+    expect(sceneCombatModifiers(sc({ weather: 'clair' }), DAY)).toMatchObject({ concealed: false, attaque: null, esquive: null });
   });
   it('pluie → aucun mod (le modèle ne connaît pas de palier de pluie battante)', () => {
-    expect(sceneCombatModifiers(sc({ weather: 'pluie' }), DAY)).toMatchObject({ concealed: false, attackMod: 0, dodgeMod: 0 });
+    expect(sceneCombatModifiers(sc({ weather: 'pluie' }), DAY)).toMatchObject({ concealed: false, attaque: null, esquive: null });
   });
   it('brouillard → cible dissimulée (concealed), -20 au tir (Difficile, LDB 14 l.75)', () => {
-    expect(sceneCombatModifiers(sc({ weather: 'brouillard' }), DAY)).toMatchObject({ concealed: true, attackMod: 0, dodgeMod: 0 });
+    expect(sceneCombatModifiers(sc({ weather: 'brouillard' }), DAY)).toMatchObject({ concealed: true, attaque: null, esquive: null });
   });
   it('extérieur de nuit (horloge) → concealed (obscurité, l.75)', () => {
     expect(sceneCombatModifiers(sc({ ambiance: 'exterieur' }), NIGHT).concealed).toBe(true);
@@ -29,10 +33,10 @@ describe('sceneCombatModifiers — obscurité (horloge) / météo (LDB 14 l.75/7
     expect(sceneCombatModifiers(sc({ ambiance: 'interieur' }), NIGHT).concealed).toBe(false);
   });
   it('tempête → -20 attaque, esquive 0 (mousson / ouragan / blizzard, LDB 14 l.76)', () => {
-    expect(sceneCombatModifiers(sc({ weather: 'tempete' }), DAY)).toMatchObject({ attackMod: -20, dodgeMod: 0 });
+    expect(sceneCombatModifiers(sc({ weather: 'tempete' }), DAY)).toMatchObject({ attaque: { value: -20, famille: 'circonstance', ref: CLIMAT }, esquive: null });
   });
   it('neige → -30 attaque ET -30 esquive (« Attaquer ou esquiver dans une haute épaisseur de neige », LDB 14 l.82)', () => {
-    expect(sceneCombatModifiers(sc({ weather: 'neige' }), DAY)).toMatchObject({ attackMod: -30, dodgeMod: -30 });
+    expect(sceneCombatModifiers(sc({ weather: 'neige' }), DAY)).toMatchObject({ attaque: { value: -30, famille: 'circonstance', ref: NEIGE }, esquive: { value: -30, famille: 'circonstance', ref: NEIGE } });
   });
 });
 
@@ -49,10 +53,10 @@ describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réel
 
   it('attaquer une cible À Terre depuis une haute épaisseur de neige → -10 net', () => {
     const sc = sceneCombatModifiers({ ambiance: 'exterieur', weather: 'neige' } as Scene, DAY);
-    const env = [{ label: sc.label, value: sc.attackMod, famille: 'circonstance' as const }];
+    const env = [sc.attaque!];
     const mods = attackModifiers(mkc(), mkc({ id: 'b', conditions: [{ id: 'a-terre', value: 1 }] as never }), sword, { kind: 'melee', env });
-    expect(mods).toContainEqual(expect.objectContaining({ label: 'Neige épaisse', value: -30 }));
-    expect(mods).toContainEqual(expect.objectContaining({ label: 'À Terre', value: 20 }));
+    expect(ligneDe(mods, NEIGE)?.value).toBe(-30);
+    expect(ligneDe(mods, { category: 'etats', id: 'a-terre' })?.value).toBe(20);
     expect(combineMods(mods)).toBe(-10);
   });
   it('l’esquive de la cible prise dans la même neige subit le -30 (« Attaquer ou esquiver »)', () => {
@@ -63,9 +67,9 @@ describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réel
   it('Esquive MONTÉE : la neige et la monte portent chacune SA ligne sourcée (LDB 14 l.82, l.184)', () => {
     const rider = mkc({ mountId: 'h' });
     const lignes = (weather: Scene['weather']) => defenseModifiers(rider, 'esquive', defenseDodgeMods({ scene: { ambiance: 'exterieur', weather } as Scene, gameTime: DAY }, rider))
-      .filter((m) => m.value < 0).map((m) => [m.label, m.value, m.ref?.id]);
-    expect(lignes('clair')).toEqual([['Esquive à cheval', -20, 'combat-monte']]);
-    expect(lignes('neige')).toEqual([['Neige épaisse', -30, undefined], ['Esquive à cheval', -20, 'combat-monte']]);
+      .filter((m) => m.value < 0).map((m) => [m.ref, m.value]);
+    expect(lignes('clair')).toEqual([[refDeRegle('combat-monte'), -20]]);
+    expect(lignes('neige')).toEqual([[NEIGE, -30], [refDeRegle('combat-monte'), -20]]);
   });
 });
 

@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RollLine, PendingRollLine, ANONYMES } from './RollLine';
 import { rollLine } from '../noyau/rollSeam';
-import type { RollBreakdown } from '../engine/combat';
+import type { ModLine, RollBreakdown } from '../engine/combat';
 
 beforeEach(() => { ANONYMES.count = 0; });
 
@@ -52,14 +52,12 @@ describe('RollLine — le compteur de chips « autres » est CÂBLÉ et lu (#115
     // du jeteur (`LDB 16 l.11` : « si vous avez 3 États *Exténué*, vous subissez une pénalité de -30 à
     // tous vos Tests »). Sans circonstance, il n'y a AUCUN palier à composer non plus — le nommer
     // « Accessible (+20) » ferait dire à la ligne l'exact contraire de la situation.
-    const monte = rollLine({
-      difficulty: 'intermediaire', valeur: 60, plafond: 'difficultes',
-      surLaCible: [{ label: 'Sonné', value: -10, famille: 'jet' }, { label: 'Aveuglé', value: -20, famille: 'jet' }, { label: 'Empêtré', value: -20, famille: 'jet' }],
-    });
+    const etats: ModLine[] = [{ label: 'Sonné', value: -10, famille: 'jet' }, { label: 'Aveuglé', value: -20, famille: 'jet' }, { label: 'Empêtré', value: -20, famille: 'jet' }];
+    const monte = rollLine({ difficulty: 'intermediaire', valeur: 60, plafond: 'difficultes', surLaCible: etats });
     expect(monte.target, 'les trois États pèsent, aucun n’est absorbé').toBe(10);
     expect(monte.difficulty, 'aucune circonstance ⇒ la Difficulté déclarée tient').toBe('intermediaire');
     expect(monte.difficultyParts).toBeUndefined();
-    expect(monte.mods.map((m) => m.label)).toEqual(['Sonné', 'Aveuglé', 'Empêtré']);
+    expect(monte.mods).toEqual(etats);
     const html = renderToStaticMarkup(
       <PendingRollLine p={{ label: 'Corps à corps', base: monte.base, target: monte.target, mods: monte.mods, difficulty: monte.difficulty, difficultyParts: monte.difficultyParts }} />,
     );

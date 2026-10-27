@@ -377,7 +377,7 @@ export interface SupportDetail {
 export function soutienMod(support?: SupportDetail): ModLine | undefined {
   if (!support || support.count <= 0) return undefined;
   return {
-    label: 'Soutien',
+    label: refLabel('regles', RULE_REF.soutien),
     value: support.bonus,
     famille: 'jet',
     ref: RULE_REF.soutien,

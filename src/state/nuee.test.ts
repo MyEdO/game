@@ -9,6 +9,9 @@ import { testScene } from '../scenes/test-fixture';
 import type { Scene } from '../noyau/monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
 import type { Weapon } from '../engine/types';
+import { ligneDe } from '../engine/modLine.testkit';
+import { RULE_REF } from '../engine/ruleRefs';
+import { refLabel } from '../data';
 
 // Nuée — Trait Nuée (LDB 85 l.251-253).
 const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
@@ -33,8 +36,8 @@ describe('Nuée — Trait Nuée (LDB 85 l.251-253)', () => {
     const swarm = statblockToCombatant({ type: 'statblock', label: 'Nuée', char: { B: 5 }, traits: [{ id: 'nuee' }, { id: 'taille', arg: 'Petite' }] }, 's', { x: 0, y: 0 });
     const shooter = statblockToCombatant({ type: 'statblock', label: 'Tireur', char: {} }, 't', { x: 5, y: 0 });
     const mods = attackModifiers(shooter, swarm, bow, { kind: 'ranged' });
-    expect(mods).toContainEqual({ label: 'Nuée', value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }); // LDB 85 l.253
-    expect(mods.some((m) => m.label.startsWith('Taille (cible)'))).toBe(false); // Taille ignorée (l.253)
+    expect(mods).toContainEqual({ label: refLabel('traits', { id: 'nuee' }), value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }); // LDB 85 l.253
+    expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined(); // Taille ignorée (l.253)
   });
 });
 

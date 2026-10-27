@@ -620,6 +620,8 @@ export const fr = {
   // ── Phase C : narration moteur (États/upkeep). Patrons byte-identiques aux littéraux d'origine. ──
   // (Les Résistances Empoisonné/Sonné sont désormais data-driven — leur journal vient des ops
   //  `removeCondition`/`condition`, sans clé `cond.poison*`/`cond.stun*` dédiée.)
+  'cond.natureEtat': 'État',
+  'cond.natureAura': 'Aura',
   'cond.dissipate': '{name} : un État {cond} se dissipe.',
   'cond.effectExpire': '{name} : {label} se dissipe.',
   'cond.effectExtended': '{name} : {label} est prolongé (Test de Force Mentale réussi, +1 Round).',
@@ -2041,8 +2043,6 @@ export const fr = {
   'tf.survieOk': '{who} — Survie en extérieur (+20) : un itinéraire de substitution est trouvé.',
   'tf.perceptionOk': '{who} — Perception (+20) : le groupe les voit venir !',
   'tf.perceptionAmbush': '{who} — Perception (+20) : embuscade !',
-  'tf.modGallop': 'pas de course',
-  'tf.modGalloped': 'Km déjà au pas de course ({n})',
   'tf.forcedStupefiant': 'Échec Stupéfiant — Problème de véhicule !',
   'tf.forcedBackToWalk': 'les bêtes repassent au pas',
   'tf.forcedFail': "{name} — Conduite d'attelage (allure forcée) : ÉCHEC{stupefiant}, l'attelage repasse au pas.",
@@ -2219,8 +2219,7 @@ export const fr = {
   'tra.fractureSet': '{name} : la fracture ({loc}) est réduite et bandée — elle ressoudera proprement.',
   'tra.tornDiagnosed': '{name} : la Guérison diagnostique la déchirure ({loc}) — {days} jour(s) avant de pouvoir réutiliser ce membre.',
   'tra.recoveryShortened': '{name} : la Guérison raccourcit la convalescence de {label} de {cut} jour(s) (reste {left}).',
-  // Familles de pénalité SANS entité émettrice (`CHAR_PENALTY_KIND_LABEL`) — nommées dans le détail de jet.
-  'tra.kindFaim': 'Faim/Soif',
+  // Pénalité d'Ivresse dans le détail de jet (`engine/trauma.ts`, `passiveMods`).
   'tra.kindIvresse': 'Ivresse',
 
   // ── #1318 V8c₃ — ÉQUIPAGE DE NAVIRE (`noyau/shipCrew.ts`, `crew.*`, MDG 09/13/14/15) : chansons de
