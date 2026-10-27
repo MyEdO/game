@@ -5,7 +5,7 @@ import { persistCarriersCargo } from '../noyau/carriers';
 import { seedBattleRng } from '../noyau/battleRng';
 import { createHero, skillCharacteristicById } from '../engine/character';
 import { buildScene } from '../noyau/mapSpec';
-import { snapshotSave } from './saves';
+import { snapshotSave } from '../noyau/persistance/save';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import type { Combatant, SkillInstance } from '../engine/types';
@@ -157,7 +157,7 @@ describe('#99 — persistance : le board survit à un round-trip de sauvegarde',
   it('snapshotSave embarque tradeRumours (champ de l\'état initial)', () => {
     launchAtA();
     set({ tradeRumours: [rumourB] });
-    const save = snapshotSave(get() as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, '2512-01-01');
+    const save = snapshotSave(get(), '2512-01-01');
     expect(save.data.tradeRumours).toEqual([rumourB]);
   });
 });

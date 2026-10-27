@@ -14,7 +14,7 @@ import { createHero } from '../../engine/character';
 import { pickActiveModalKey } from '../../noyau/modalArbiter';
 import { evalCondition } from '../../engine/flowCore';
 import { condCtx } from '../../noyau/bourseFlow';
-import { snapshotSave } from '../../state/saves';
+import { snapshotSave } from '../../noyau/persistance/save';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../campaign';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
@@ -67,7 +67,7 @@ describe('EDO 02 l.91 — la fouille du cadavre ouvre la désignation du sosie',
 
   it('sauvegarde puis reprise : l’état désigné est conservé', () => {
     get().designerHerosChoisir('h-3');
-    const save = snapshotSave(get() as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, '2512-01-01T00:00:00Z');
+    const save = snapshotSave(get(), '2512-01-01T00:00:00Z');
     useGame.setState({ etats: {} });
     expect(get().importGame(JSON.stringify(save))).toBeNull();
     expect(get().etats[SOSIE]).toBe('h-3');

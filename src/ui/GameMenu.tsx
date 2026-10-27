@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { useGame } from '../state/store';
+import { MESSAGE_DU_REFUS, useGame } from '../state/store';
+import type { RefusDeSauvegarde } from '../noyau/persistance/save';
 import { useModalA11y } from './Modal';
 import { ScreenMeta } from './ScreenMeta';
 import { MenuCard, MenuCardHead, MenuSection, MenuButton, MenuSubScreen } from './MenuCard';
@@ -18,15 +19,19 @@ import { t } from '../i18n';
  */
 type MenuView = 'root' | 'coop' | 'options';
 
-export function GameMenu({ sceneName, time, onQuit, onSaveLoad, onEndSession, initialView = 'root', initialOpen = false }: {
+export function GameMenu({ sceneName, time, onQuit, onSaveLoad, refusDeSauvegarde = null, onEndSession, refusDeFinDeSeance = null, initialView = 'root', initialOpen = false }: {
   sceneName?: string;
   /** Horloge de campagne (minutes depuis l'époque) — méta d'en-tête discrète (lieu + date, jamais la bourse). */
   time: number;
   onQuit: () => void;
-  /** Ouvre la modale Sauvegarder/Charger (Jalon 5) — absent en combat (sauvegarde refusée) ou chez l'invité. */
+  /** Ouvre la modale Sauvegarder/Charger (Jalon 5). */
   onSaveLoad?: () => void;
+  /** La raison de refuser la sauvegarde (`refusDeSauvegarde`), `null` si elle s'écrit : l'entrée se ferme et la dit. */
+  refusDeSauvegarde?: RefusDeSauvegarde | null;
   /** Ouvre l'écran de fin de séance (Ambitions + Détermination + Chance restaurée) — exploration seule. */
   onEndSession?: () => void;
+  /** La raison qui ferme « Fin de séance », traduite ; `null` : ouverte. */
+  refusDeFinDeSeance?: string | null;
   /** Sous-écran affiché à l'ouverture — aide de test (défaut `root`). */
   initialView?: MenuView;
   /** Force l'ouverture — aide de test (le rendu SSR de zustand v5 lit l'état INITIAL, pas `gameMenuOpen`). */
@@ -73,10 +78,10 @@ export function GameMenu({ sceneName, time, onQuit, onSaveLoad, onEndSession, in
             >
               <MenuSection rule={false}>
                 <MenuButton icon="ui/round-start" onClick={close}>{t('gameMenu.resume')}</MenuButton>
-                <MenuButton icon="file/save" onClick={act(onSaveLoad)} refus={onSaveLoad ? undefined : 'Indisponible en combat'}>{t('gameMenu.saveLoad')}</MenuButton>
+                <MenuButton icon="file/save" onClick={act(onSaveLoad)} refus={refusDeSauvegarde ? t(MESSAGE_DU_REFUS[refusDeSauvegarde]) : undefined}>{t('gameMenu.saveLoad')}</MenuButton>
                 <MenuButton icon="nav/online" onClick={() => setView('coop')}>{t('gameMenu.section.coop')}</MenuButton>
                 <MenuButton icon="ui/settings" onClick={() => setView('options')}>{t('gameMenu.options')}</MenuButton>
-                <MenuButton icon="resource/xp" onClick={act(onEndSession)} refus={onEndSession ? undefined : 'Indisponible en combat'}>{t('gameMenu.endSession')}</MenuButton>
+                <MenuButton icon="resource/xp" onClick={act(onEndSession)} refus={refusDeFinDeSeance ?? undefined}>{t('gameMenu.endSession')}</MenuButton>
                 <MenuButton icon="map-tool/door" onClick={onQuit}>{t('gameMenu.quit')}</MenuButton>
               </MenuSection>
             </MenuCard>

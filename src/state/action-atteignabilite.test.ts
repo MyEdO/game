@@ -317,12 +317,12 @@ describe('(c) disposition data-driven — le validateur d’écriture tient la f
   });
 
   /**
-   * LE CHEMIN RÉEL DE LA SAVE : `saves.ts` sérialise l'état par `JSON.parse(JSON.stringify(data))`, et
+   * LE CHEMIN RÉEL DE LA SAVE : `noyau/persistance/save.ts` sérialise l'état par `JSON.parse(JSON.stringify(data))`, et
    * le snapshot réseau passe par le même goulot. Un tableau à trous en serait ressorti `[null, null, …]`
    * — soit « rangs 0-1 VIDÉS » alors que le joueur n'avait touché QUE le rang 3. La zone est donc un
    * objet creux, et cet aller-retour est la mesure qui le tient.
    */
-  it('ALLER-RETOUR JSON (chemin de `saves.ts`) : poser au rang 3 ne vide pas les rangs 0-2', () => {
+  it('ALLER-RETOUR JSON (chemin de `noyau/persistance/save.ts`) : poser au rang 3 ne vide pas les rangs 0-2', () => {
     const deduite = dispositionDeduite('capacites', [e('course'), e('mouvement'), e('defend')]);
     const pose = poserDansBarre(porteur(), { zone: 'capacites', index: 3 }, e('aim'));
     const avant = resoudreDisposition(pose.barre, 'capacites', deduite);
