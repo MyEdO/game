@@ -10,7 +10,7 @@
 //   `Instrument: <chemin>` — le plan est l'ENTRÉE d'un outil rejouable, donc il ne se supprime pas ;
 //     validé STRUCTURELLEMENT : le chemin cité existe ET ce fichier cite le plan en retour
 //     (back-référence bidirectionnelle) — un `Instrument:` déclaratif ne prouverait rien.
-// SENS 2 : tout chemin `docs/plans/…` cité par un fichier SUIVI doit exister — un plan supprimé
+// SENS 2 : tout chemin `docs/plans/…` cité par un fichier SUIVI hors corpus historique doit exister — un plan supprimé
 // laisse derrière lui des commentaires et des docs qui pointent dans le vide.
 // SENS 3 : personne ne cite un plan supprimé par son NOM NU (le basename seul, sans son dossier).
 //   Le SENS 2 ne le voit pas, et le lecteur, lui, croit à un artefact consultable : c'est le mode de
@@ -54,8 +54,8 @@
 //     de RÉCUPÉRATION d'historique (`git log --diff-filter=D -- <plan supprimé>`), qui vise
 //     précisément un fichier absent. Les fixtures de test sont exemptées AU SITE (`SITES_EXEMPTS`).
 //
-// INVARIANT — 100 % des plans SUIVIS portent leur ancre, et AUCUN fichier suivi ne cite un plan
-// supprimé (par son chemin comme par son nom nu). Toute violation est une régression. Le compte du
+// INVARIANT — 100 % des plans SUIVIS portent leur ancre, et AUCUN fichier suivi hors corpus historique
+// ne cite un plan supprimé (par son chemin comme par son nom nu). Toute violation est une régression. Le compte du
 // jour ne se fige PAS ici (une baseline chiffrée périme au commit suivant : celle du 2026-08-30
 // disait « 8 plans » là où l'arbre en portait 11) — `node scripts/docs/check-plans-anchors.mjs
 // --stats` l'imprime, mesuré à l'instant du run.

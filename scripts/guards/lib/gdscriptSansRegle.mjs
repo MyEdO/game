@@ -1,4 +1,4 @@
-// LE GDSCRIPT SANS RÈGLE (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md`, B3 et M-e) — un script de
+// LE GDSCRIPT SANS RÈGLE (#2928) — un script de
 // l'hôte Godot lit la vue du noyau et ne calcule aucune règle. Module ESM pur, sans état ni lecture disque ; la lecture
 // lexicale est celle de `gdscript.mjs`.
 //

@@ -1,4 +1,4 @@
-⚠️ INSTRUMENT de l'épique gelée #834 — compteur de reprise (460 entités)
+⚠️ INSTRUMENT du sujet global #3001 — compteur de reprise (460 entités)
 
 Ticket: #3001
 

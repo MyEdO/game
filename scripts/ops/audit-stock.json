@@ -10,9 +10,7 @@
     "ne portent aucun chemin de fichier du dépôt, et cette porte ne compte que des croissances de stock",
     "en portée de module d'un fichier source. Le cliquet de ce stock-ci vit dans `audit-stock.test.mjs`.",
     "VOIE DE SORTIE quand un correctif transitif est ÉPINGLÉ À L'EXACT par l'amont : un `overrides` dans le",
-    "`package.json` de la cible le surclasse sans toucher l'amont — mesuré le 2026-09-12, `server/package.json`",
-    "`overrides: { sharp: 0.35.4 }` résout sharp 0.35.4 sous miniflare 4.x, qui l'épinglait à 0.34.5, et fait",
-    "sortir sharp ET wrangler des >= high sans la montée majeure @cloudflare/workers-types 4 -> 5 (#1726).",
+    "`package.json` de la cible le surclasse sans toucher l'amont.",
     "`via` = les advisories GHSA rattachées DIRECTEMENT au paquet par `npm audit --json` ; `viaPaquets`",
     "= les paquets par lesquels la vulnérabilité lui arrive (un paquet purement transitif a `via` vide",
     "et c'est sa seule signature : `miniflare` et `wrangler` n'ont aucune advisory propre)."
