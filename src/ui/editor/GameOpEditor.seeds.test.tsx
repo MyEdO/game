@@ -61,9 +61,9 @@ describe('GameOpEditor — création au CLIC : aucune valeur pré-semée, raison
     await h.click(OP_LABEL.domeWard);
 
     const op = h.opsOf()[0] as Extract<GameOp, { op: 'domeWard' }>;
-    expect(Object.keys(op).sort(), 'la graine porte exactement ce que l’op déclare').toEqual(['indice', 'op', 'traitId']);
+    expect(Object.keys(op).sort(), 'la graine porte exactement ce que l’op déclare').toEqual(['op', 'trait']);
     expect(h.container.textContent ?? '', 'l’Indice de la sauvegarde s’édite').toContain('Indice');
-    expect(h.container.innerHTML, 'le Trait s’élit dans le registre').toContain('(choisir dans Traits)');
+    expect(h.container.querySelector('[aria-label="Trait octroyé"]'), 'le Trait octroyé se saisit').not.toBeNull();
     expect(h.container.querySelectorAll('textarea').length, 'plus de trappe JSON quand le formulaire est complet').toBe(0);
   });
 

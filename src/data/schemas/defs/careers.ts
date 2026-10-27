@@ -22,7 +22,7 @@ const doc = document(
   {
     /** `id` de la Classe (`ClassData.id`). */
     class: z.string(),
-    /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupsFor`), en plus de ceux de
+    /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
      *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
     grantGroups: z.array(z.string()).optional(),
     /** id d'une tenue spécifique (`TENUE_BY_ID`) réutilisée par cette carrière quand son rendu

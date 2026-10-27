@@ -38,7 +38,7 @@ import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
 import { TAVERN_GAMES } from '../engine/tavernGame';
-import { OBSESSIONS } from './obsessions';
+import { OBSESSIONS, type ObsessionEntry } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { LAND_CARGO_ENTRIES, type LandCargoEntry } from '../engine/landCargo';
 import { CARGO_ENTRIES, type CargoEntry, MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
@@ -176,7 +176,7 @@ const ARRAYS = {
   // #157 : catalogues de CONTENU app-owned (façade `index.ts` ou module dédié), exposés au Codex.
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, navalTraits: NAVAL_TRAITS,
   montures: MOUNT_PROFILES, incidentsMonture: MOUNT_INCIDENTS, problemesVehicule: VEHICLE_PROBLEMS,
-  tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS as unknown as { min: number; max: number; label: string }[],
+  tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS as ObsessionEntry[],
   structureCriticals: STRUCTURE_CRITICALS, traumas,
   // Catalogues de cargaison : le dataset éditable est le tableau BRUT du JSON (marchandises ET
   // marqueurs de l'Index), pas la vue filtrée `cargoes`/`landCargoes` — sinon une réécriture du

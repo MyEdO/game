@@ -37,17 +37,17 @@ describe('reperesDuParse — le path de DONNÉE de chaque référence validée p
   });
 
   it('PAYLOAD D’OP : le repère traverse le re-parse de `gameOpSchema`, à son path dans l’op', () => {
-    expect(reperesDuParse(z.array(gameOpSchema), [{ op: 'domeWard', traitId: TRAIT, indice: 1 }])).toEqual([
-      { path: [0, 'traitId'], type: 'trait', parCle: false },
+    expect(reperesDuParse(z.array(gameOpSchema), [{ op: 'domeWard', trait: { id: TRAIT, value: 1 } }])).toEqual([
+      { path: [0, 'trait', 'id'], type: 'trait', parCle: false },
     ]);
   });
 
   it('REPORT D’UNE ISSUE DE PAYLOAD : `gameOpSchema` garde son `code`, son `path` et ses `params`', () => {
-    const r = gameOpSchema.safeParse({ op: 'domeWard', traitId: 3, indice: 1 });
+    const r = gameOpSchema.safeParse({ op: 'domeWard', trait: { id: 3, value: 1 } });
     expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => ({ code: i.code, path: i.path }))).toEqual([{ code: 'invalid_type', path: ['traitId'] }]);
+    expect(r.error?.issues.map((i) => ({ code: i.code, path: i.path }))).toEqual([{ code: 'invalid_type', path: ['trait', 'id'] }]);
     // Les `params` sont ceux du repère : sans eux, le type du slot se perdrait au report.
-    expect(reperesDuParse(gameOpSchema, { op: 'domeWard', traitId: TRAIT, indice: 1 }).map((r) => r.type)).toEqual(['trait']);
+    expect(reperesDuParse(gameOpSchema, { op: 'domeWard', trait: { id: TRAIT, value: 1 } }).map((r) => r.type)).toEqual(['trait']);
   });
 
   it('UNION : seule la PREMIÈRE branche propre compte — celle que le parse normal choisit', () => {
@@ -91,7 +91,7 @@ describe('le mode de mesure est BORNÉ à l’appel de `reperesDuParse`', () => 
     expect(feuille.safeParse(COMPETENCE).success).toBe(true);
     expect(() => reperesDuParse(feuille, 'zzz-inconnue')).toThrow();
     expect(feuille.safeParse(COMPETENCE).success).toBe(true);
-    expect(gameOpSchema.safeParse({ op: 'domeWard', traitId: TRAIT, indice: 1 }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'domeWard', trait: { id: TRAIT, value: 1 } }).success).toBe(true);
   });
 });
 

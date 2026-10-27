@@ -1,5 +1,5 @@
 /**
- * LE GESTE D'UN HÔTE DU NOYAU (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md` B1), commun à l'hôte texte
+ * LE GESTE D'UN HÔTE DU NOYAU (#2928), commun à l'hôte texte
  * (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : un geste écrit en JSON (une offre du registre, ou un verbe de la
  * partie), sa lecture, le contrôle de son verbe et de ses arguments contre ses paramètres (`formes.ts`,
  * `verbes.generated.ts`), son intention contrôlée, et l'issue de son envoi traduite en catégorie d'erreur. Chaque

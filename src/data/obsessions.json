@@ -11,116 +11,97 @@
     {
       "id": "objets-inanimes",
       "min": 2,
-      "max": 2,
-      "label": "Objets inanimés"
+      "max": 2
     },
     {
       "id": "pauvrete",
       "min": 3,
-      "max": 3,
-      "label": "Pauvreté"
+      "max": 3
     },
     {
       "id": "feu",
       "min": 4,
-      "max": 4,
-      "label": "Feu"
+      "max": 4
     },
     {
       "id": "figures-symboles-de-guerre",
       "min": 5,
-      "max": 5,
-      "label": "Figures/Symboles de guerre"
+      "max": 5
     },
     {
       "id": "figures-symboles-d-autorite",
       "min": 6,
-      "max": 6,
-      "label": "Figures/Symboles d'autorité"
+      "max": 6
     },
     {
       "id": "figures-symboles-religieux",
       "min": 7,
-      "max": 7,
-      "label": "Figures/Symboles religieux"
+      "max": 7
     },
     {
       "id": "monstres",
       "min": 8,
-      "max": 8,
-      "label": "Monstres"
+      "max": 8
     },
     {
       "id": "mutants",
       "min": 9,
-      "max": 9,
-      "label": "Mutants"
+      "max": 9
     },
     {
-      "id": "halflings",
+      "id": "halfling",
       "min": 10,
-      "max": 10,
-      "label": "Halflings"
+      "max": 10
     },
     {
-      "id": "humains",
+      "id": "humain",
       "min": 11,
-      "max": 11,
-      "label": "Humains"
+      "max": 11
     },
     {
-      "id": "nains",
+      "id": "nain",
       "min": 12,
-      "max": 12,
-      "label": "Nains"
+      "max": 12
     },
     {
-      "id": "elfes",
+      "id": "elfe",
       "min": 13,
-      "max": 13,
-      "label": "Elfes"
+      "max": 13
     },
     {
       "id": "animaux-sauvages",
       "min": 14,
-      "max": 14,
-      "label": "Animaux sauvages"
+      "max": 14
     },
     {
       "id": "animaux-domestiques",
       "min": 15,
-      "max": 15,
-      "label": "Animaux domestiques"
+      "max": 15
     },
     {
       "id": "magie",
       "min": 16,
-      "max": 16,
-      "label": "Magie"
+      "max": 16
     },
     {
       "id": "maladie",
       "min": 17,
-      "max": 17,
-      "label": "Maladie"
+      "max": 17
     },
     {
       "id": "eau",
       "min": 18,
-      "max": 18,
-      "label": "Eau"
+      "max": 18
     },
     {
       "id": "richesse",
       "min": 19,
-      "max": 19,
-      "label": "Richesse"
+      "max": 19
     },
     {
       "id": "bonheur",
       "min": 20,
-      "max": 20,
-      "label": "Bonheur"
+      "max": 20
     }
   ]
 }

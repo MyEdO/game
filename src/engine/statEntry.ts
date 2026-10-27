@@ -135,15 +135,16 @@ function tirerLaFourchette(plage: Plage, graine: string): number {
 /**
  * La SEULE entrée d'un Trait posé (`TraitPose`) vers l'instance de jeu : chaque fourchette est tirée pour
  * le porteur `porteur`, puis la pose est résolue. `dejaPortes` = les Traits que le porteur a déjà : le rang
- * d'un homonyme part d'eux, et un Trait accordé ne retire pas la fourchette de celui qu'il a déjà.
+ * d'un homonyme part d'eux, et un Trait accordé ne retire pas la fourchette de celui qu'il a déjà. `src` =
+ * la provenance d'un Trait ACCORDÉ (`resoudreTrait`).
  */
-export function traitsDuPorteur(poses: readonly TraitPose[], porteur: string, dejaPortes: TraitsDesignes = []): TraitInstance[] {
+export function traitsDuPorteur(poses: readonly TraitPose[], porteur: string, dejaPortes: TraitsDesignes = [], { src }: { src?: EffectSource } = {}): TraitInstance[] {
   const rangs = new Map<string, number>();
   for (const t of dejaPortes) rangs.set(t.id, (rangs.get(t.id) ?? 0) + 1);
   return poses.map(({ plage, ...pose }) => {
     const rang = rangs.get(pose.id) ?? 0;
     rangs.set(pose.id, rang + 1);
-    return resoudreTrait(plage ? { ...pose, value: tirerLaFourchette(plage, `${porteur}:${pose.id}#${rang}`) } : pose);
+    return resoudreTrait(plage ? { ...pose, value: tirerLaFourchette(plage, `${porteur}:${pose.id}#${rang}`) } : pose, { src });
   });
 }
 

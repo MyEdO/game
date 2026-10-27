@@ -1,6 +1,6 @@
 # Modèle de combat naval tactique (MDG ch.12-14)
 
-Ticket: #386
+Ticket: #3002
 
 > **Plan encore OUVERT** — les jalons ⏳ restent à faire ; suivre le découpage §7 pour l'état courant.
 

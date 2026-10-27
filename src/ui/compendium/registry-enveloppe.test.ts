@@ -115,7 +115,7 @@ const CLES: Record<string, string> = {
   "buildings": '7b343ef76a1171dd',
   "vehicles": 'bdfb8a6b68d945e1',
   "celestialHouses": 'd8970b82531d0dd6',
-  "groups": '3e8c3d609eda8649',
+  "groups": '95aff48bfd7137c0',
   "psychologies": '379df048977ddf91',
   "seaShanties": '787b0cd98af7f936',
   "crewRoles": 'b5e5a374b03e8f25',

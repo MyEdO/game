@@ -735,13 +735,17 @@
             "ops": [
               {
                 "op": "grantTrait",
-                "traitId": "peur",
-                "indice": 2
+                "trait": {
+                  "id": "peur",
+                  "value": 2
+                }
               },
               {
                 "op": "grantTrait",
-                "traitId": "armure",
-                "indice": 2
+                "trait": {
+                  "id": "armure",
+                  "value": 2
+                }
               }
             ]
           }

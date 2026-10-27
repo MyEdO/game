@@ -324,7 +324,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos: { x
     // Combatant.spells = IDS de sort, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à
     // `validateScene` pour une scène vivante de l'éditeur.
     ...(extras?.spells?.length ? { spells: extras.spells } : creature.spells.length ? { spells: creature.spells } : {}),
-    groups: groupsFor({ extras: creature.grantGroups, traits, talents }), // Groupes DÉCLARÉS par l'entrée (`grantGroups` : catégorie + dieu du Chaos) + Traits (`capabilities.grantGroups`) + culte (Talent de Prière, P3)
+    groups: groupsFor({ creature }), // Groupes déclarés par l'entrée et son genre ; Traits et culte lus en direct (`groupesDe`). LDB 21
     traits, // conservés (facultatifs inclus) → attaques gratuites de créature en combat
     skills,
     talents,
@@ -377,7 +377,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
     ...parsePsychTraits(traits), // Peur/Terreur/Immunité (Nuée, Fabriqué compris) + traits ciblés depuis les traits (LDB 21+85)
     ...(swarm ? { swarm: true } : {}), // LDB 85 l.253
     ...(sb.spells?.length ? { spells: sb.spells } : {}), // ids d'auteur, prouvés par le schéma de scène (`refs('spell')`) : au parse, et à `validateScene` pour une scène vivante
-    groups: groupsFor({ extras: sb.groups, traits, talents }), // extras manuels (déjà des ids) + traits (Mort-vivant…) + religieux (Talent Béni) — espèce/carrière non portées par le statbloc (P3)
+    groups: groupsFor({ extras: sb.groups }), // Groupes déclarés du statbloc ; Traits et culte lus en direct (`groupesDe`). LDB 21
     traits, // structurés → attaques gratuites + lecture sans re-parsing
     skills,
     talents,

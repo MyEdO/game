@@ -7,6 +7,7 @@ import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
+import type { FormuleSansTirage } from '../../../engine/ops';
 import { z } from 'zod';
 
 import { AVAILABILITIES, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
@@ -871,7 +872,7 @@ export const parLocalisationSchema = nommerChamps(
 const refRegleOptionnelle = idDe('regleOptionnelle');
 
 /** Termes de jet de la grammaire (`TermeDeJet`, `src/engine/ops.ts`) : leur valeur ne se connaît qu'AU jet. */
-const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
+export const TERMES_DE_JET = ['dice', 'rolled', 'sl'] as const;
 
 /** Premier terme de jet rencontré dans une formule (imbrications `sum[]`, `times.of`, `times.factor`,
  *  `minimum.of`), ou `null`. PURE. */
@@ -929,10 +930,10 @@ export const formulaSchema: z.ZodType<unknown> = z.lazy(() => z.union(optionsDeF
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses
  *  termes de jet, refusés nominativement. */
-export const formuleSansTirageSchema: z.ZodType<unknown> = z.lazy(() => z.union(
+export const formuleSansTirageSchema: z.ZodType<FormuleSansTirage> = z.lazy(() => z.union(
   optionsDeFormule(formuleSansTirageSchema, false) as [z.ZodType<unknown>, ...z.ZodType<unknown>[]],
   { error: (iss) => messageDeTermeDeJet(iss.input) },
-));
+)) as z.ZodType<FormuleSansTirage>;
 
 /** Terme « (Points de Péché) » du porteur du jet — `LDB 40 l.58/62/65/68/73/75`. Substitué à
  *  l'EXPANSION d'une rangée de Colère des dieux (`engine/miscast.ts::resolveJsonFormula`), jamais à
@@ -946,6 +947,21 @@ export const formulaSinSchema: z.ZodType<unknown> = z.union([
   sinPointsSchema,
   nommerChamps(z.strictObject({ sum: z.array(z.union([formulaSchema, sinPointsSchema])) }), { sum: { label: "somme" } }),
 ]);
+
+/** Le nœud est-il, sous ses seules enveloppes (`optional`, `lazy`…), la grammaire SANS TIRAGE
+ *  (`formuleSansTirageSchema`) ? C'est le DIALECTE d'un champ de `Formula` lu sur son schéma, comme
+ *  `admetLePeche`. Descente unique `descendre` (`grammaire/descente.ts`). */
+export function estSansTirage(noeud: unknown): boolean {
+  if (!noeud || typeof noeud !== 'object') return false;
+  let sansTirage = false;
+  descendre([noeud], ({ noeud: n, path }) => {
+    if (path !== '') return 'elaguer';
+    if (n !== formuleSansTirageSchema) return;
+    sansTirage = true;
+    return 'arreter';
+  });
+  return sansTirage;
+}
 
 const PORTE_LE_PECHE = new WeakMap<object, boolean>();
 

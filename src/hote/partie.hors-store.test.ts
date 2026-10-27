@@ -1,5 +1,5 @@
 /**
- * CE QU'UN HÔTE FAIT D'UNE PARTIE (#2928, plan `docs/plans/2026-10-21-vague6-hote-godot.md` B-b) : un jeton programmé
+ * CE QU'UN HÔTE FAIT D'UNE PARTIE (#2928) : un jeton programmé
  * se numérote dans l'ordre d'arrivée et se reprend une fois par son numéro ; un scénario se nomme par son id du catalogue.
  */
 import { describe, it, expect } from 'vitest';

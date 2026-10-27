@@ -17,9 +17,10 @@ import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
 import { chaosAlignSchema, charKeySchema, deDeTableSchema, diceSpecSchema, difficultySchema, enumNomme, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, messageDeTermeDeJet, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, surchargePaletteSchema, symptomSeveritySchema } from './valeurs';
-import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, type RegimeDePorteur, type TypeEntite } from './ref';
+import { traitInstanceSchema, traitOctroyeSchema } from './reference';
+import { catalogueSpecs, idDe, marquerOpAtteinte, ref, refs, refOuSpec, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
+import { GROUPES_TIRABLES } from '../../obsessions';
 
 /** Catégorie d'armure ignorée d'un `ArmourBypass` (`engine/armourBypass.bypassedAP`) ; `nonMetal` : LDB 62 l.270. */
 export const armourBypassCategorieSchema = enumNomme({
@@ -52,6 +53,15 @@ export type PorteeDAssaut = z.infer<typeof porteeDAssautSchema>;
 /** SENS engagé par un Test (`FlowTest.sense` — Perception : vue ou ouïe) ; le libellé est celui de la
  *  phrase qui le montre au joueur (op `senseLoss` : « perd la vue »). */
 export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
+
+/** Les tables de CIBLES : chaque rangée désigne un Groupe (`groups.json`), la Cible tirée d'un Trait ciblé.
+ *  EDOC 12 l.170. */
+export const tablesDeCiblesSchema = enumNomme({ obsessions: 'le Tableau des Obsessions' });
+export type TableDeCibles = z.infer<typeof tablesDeCiblesSchema>;
+const tableDeCiblesSchema = nommerChamps(z.strictObject({ id: tablesDeCiblesSchema }), { id: { label: 'table' } });
+/** Tirage d'une Cible (`grantTrait.cible`) : `pick` tirages sur une table de Cibles. */
+const tirageDeCibleSchema = tirageSurTable(tableDeCiblesSchema);
+export type TirageDeCible = z.infer<typeof tirageDeCibleSchema>;
 
 /**
  * CHAMP À CHOIX d'un payload d'op : une référence à spécialisation dont le RÉGIME est un paramètre de la
@@ -183,11 +193,37 @@ const DECLARATIONS_D_OPS = {
   loseTurn: nommerChamps(z.strictObject({ op: z.literal('loseTurn'), what: loseTurnWhatSchema.optional() }), { op: { label: "opération"  }, what: { label: "objet"  } }),
   noBreath: nommerChamps(z.strictObject({ op: z.literal('noBreath') }), { op: { label: "opération"  } }),
   noHunger: nommerChamps(z.strictObject({ op: z.literal('noHunger') }), { op: { label: "opération"  } }),
-  removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), traitId: idDe('trait') }), { op: { label: "opération"  }, traitId: { label: "Trait" , texte: { regime: "technique"} } }),
-  /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait se nomme
-   *  par la MÊME graphie que partout ailleurs (`traitId`), son Indice est une `Formula`. AUCUNE zone :
-   *  elle est déjà écrite par la ligne « Cible » du sort (ZdE, `LDB 47 l.28`) — l'op la LIT. */
-  domeWard: nommerChamps(z.strictObject({ op: z.literal('domeWard'), traitId: idDe('trait'), indice: formulaSchema }), { op: { label: "opération"  }, traitId: { label: "Trait" , texte: { regime: "technique"} }, indice: { label: "indice" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  /** `grantTrait` — le Trait OCTROYÉ est le Trait posé au régime `octroi` (`traitOctroyeSchema`). Sa Cible est
+   *  posée (`trait.arg`) ou TIRÉE (`cible`, `pick` tirages sur une table de Cibles) : EDOC 12 l.217, l.241.
+   *  `indicePerSL` s'ajoute à l'Indice au DR du jet : LDB 47 l.420. */
+  grantTrait: nommerChamps(z.strictObject({
+    op: z.literal('grantTrait'),
+    trait: traitOctroyeSchema,
+    cible: tirageDeCibleSchema.optional(),
+    indicePerSL: perSLSchema.optional(),
+    onlyGroups: refs('groupe').optional(),
+    durationRounds: formulaSchema.optional(),
+    durationMinutes: formulaSchema.optional(),
+    durationHours: formulaSchema.optional(),
+  }).superRefine((o, ctx) => {
+    if (!o.cible) return;
+    const { id, arg } = o.trait;
+    if (arg !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
+    }
+    const catalogue = new Set(catalogueSpecs('trait', id));
+    const absents = GROUPES_TIRABLES[o.cible.table.id]().filter((g) => !catalogue.has(g));
+    if (absents.length) {
+      ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${o.cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
+    }
+  }), { op: { label: "opération" }, trait: { label: "Trait" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  removeTrait: nommerChamps(z.strictObject({ op: z.literal('removeTrait'), trait: ref('trait') }), { op: { label: "opération"  }, trait: { label: "Trait" , texte: { regime: "technique",usage: "référence mécanique résolue au catalogue"} } }),
+  /** `domeWard` — le dôme OCTROIE un Trait à ceux qu'il couvre (`LDB 47 l.410`) : le Trait octroyé
+   *  (`traitOctroyeSchema`). AUCUNE zone : elle est déjà écrite par la ligne « Cible » du sort (ZdE,
+   *  `LDB 47 l.28`) — l'op la LIT. */
+  domeWard: nommerChamps(z.strictObject({ op: z.literal('domeWard'), trait: traitOctroyeSchema }).superRefine((o, ctx) => {
+    if (o.trait.value === undefined) ctx.addIssue({ code: 'custom', path: ['trait', 'value'], message: `Dôme : le Trait octroyé « ${o.trait.id} » porte son Indice (LDB 47 l.410).` });
+  }), { op: { label: "opération"  }, trait: { label: "Trait" } }),
   suffocate: nommerChamps(z.strictObject({ op: z.literal('suffocate') }), { op: { label: "opération"  } }),
   /** `offTerrainMod` — passif POSITIONNEL : hors de son terrain d'ÉLECTION, le porteur subit un M
    *  IMPOSÉ (`mSet`, Créature marine MDG 16 l.17 « son M tombe à 1 » ; Aquatique MSRC 15 l.139 → 0),
@@ -446,7 +482,7 @@ export const OPS_NON_TYPEES: readonly string[] = [
   'beginPsych', 'breakBlade', 'chain', 'charDamage', 'condition',
   'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
   'endPsych', 'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
-  'grantNaturalWeapon', 'grantPsychTrait', 'grantTrait', 'handGate', 'ignoreAnimosity',
+  'grantNaturalWeapon', 'grantPsychTrait', 'handGate', 'ignoreAnimosity',
   'ignoreStatePenalties', 'interruptFocus',
   'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
   'preventInfection', 'push', 'reduceToZero', 'removeCondition', 'removePsychTrait', 'removeShipPoste',

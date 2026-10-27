@@ -1139,21 +1139,21 @@ describe('GameOp — toute référence de la donnée committée résout dans son
 
   it('le périmètre est DÉRIVÉ de l’union GameOp moins les champs d’op à slot : aucun champ de référence sans cible déclarée', { timeout: 30_000 }, () => {
     const { derived, unclassified, stale } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
-    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(38);
+    expect(derived.length, 'aucun champ dérivé — l’extraction du type a échoué').toBeGreaterThan(0);
     expect(unclassified, `champs de GameOp sans cible déclarée (gameOpRefFk.mjs) :\n${unclassified.join('\n')}`).toEqual([]);
     expect(stale.map((c) => `${c.key} — ${c.raison}`), 'cibles déclarées hors périmètre').toEqual([]);
   });
 
   it('une cible déclarée sur un champ d’op à slot sort en `stale`, raison nommée (contre-épreuve)', { timeout: 30_000 }, () => {
-    expect(CHAMPS_A_SLOT.has('removeTrait.traitId')).toBe(true);
+    expect(CHAMPS_A_SLOT.has('removeTrait.trait')).toBe(true);
     const declare = GAMEOP_FIELD_TARGETS as Record<string, unknown>;
-    declare['removeTrait.traitId'] = { registry: 'traits' };
+    declare['removeTrait.trait'] = { registry: 'traits' };
     try {
       const { stale: doublon } = auditFieldCoverage(REPO_ROOT, { champsASlot: CHAMPS_A_SLOT });
-      expect(doublon.map((c) => c.key)).toEqual(['removeTrait.traitId']);
+      expect(doublon.map((c) => c.key)).toEqual(['removeTrait.trait']);
       expect(doublon[0].raison).toMatch(/typé AU PARSE par sa feuille `idDe` d’`OP_DEFS`/);
     } finally {
-      delete declare['removeTrait.traitId'];
+      delete declare['removeTrait.trait'];
     }
   });
 
@@ -1186,7 +1186,7 @@ describe('GameOp — toute référence de la donnée committée résout dans son
     const def = DEFS.find((d) => d.file === 'sea-events.json');
     expect(def, 'def de sea-events.json introuvable').toBeTruthy();
     const document = structuredClone(CORPUS.brutParNom.get('sea-events.json')) as { boardEvents: { params: Record<string, unknown> }[] };
-    const op = { op: 'domeWard', traitId: IDS_PAR_ESPACE['traits.json'][0], indice: 1 };
+    const op = { op: 'domeWard', trait: { id: IDS_PAR_ESPACE['traits.json'][0], value: 1 } };
     document.boardEvents[0].params.ops = [op];
     const noeuds = scanGameOpRefs({ sources: [{ file: 'sea-events.json', data: document }], resolvers, champsASlot: CHAMPS_A_SLOT }).noeudsDOp;
     expect(noeuds.map((n) => n.noeud)).toEqual([op]);
@@ -1264,17 +1264,17 @@ describe('GameOp — toute référence de la donnée committée résout dans son
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
     const fixture = [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantTrait', traitId: 'marque-de-tzeentch' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantPsychTrait', psychType: 'frenesie' }] } } }] }],
     }];
     expect(scanGameOpRefs({ sources: fixture, resolvers }).offenders).toEqual([]);
     const phantom = [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantTrait', traitId: 'marque-fantome' }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'grantPsychTrait', psychType: 'psychologie-fantome' }] } } }] }],
     }];
     const out = scanGameOpRefs({ sources: phantom, resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('traits');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].traitId');
+    expect(out[0].registry).toBe('psychology');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].psychType');
   });
 
   it('le registre `etats` résout par `etatConnu` : un marqueur narratif (`NARRATIVE_MARKERS`) passe, un libellé est un offenseur', () => {

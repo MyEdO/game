@@ -242,15 +242,20 @@ describe('terme `{rule}` d’une Formula — la VALEUR au joueur, la règle nomm
 
 describe('humanizeOp — grantTrait à Portée (LDB 85 l.209 ; LDB 79 l.142)', () => {
   it('la phrase dit la Portée de l’op', () => {
-    expect(humanizeOp({ op: 'grantTrait', traitId: 'langue-prehensile', indice: 5, range: 12 })).toBe('gagne le Trait Langue préhensile +5 (12)');
+    expect(humanizeOp({ op: 'grantTrait', trait: { id: 'langue-prehensile', value: 5, range: 12 } })).toBe('gagne le Trait Langue préhensile +5 (12)');
   });
 
   it('une attaque dit son Indice littéral en « +Dégâts »', () => {
-    expect(humanizeOp({ op: 'grantTrait', traitId: 'morsure', indice: 4 })).toBe('gagne le Trait Morsure +4');
+    expect(humanizeOp({ op: 'grantTrait', trait: { id: 'morsure', value: 4 } })).toBe('gagne le Trait Morsure +4');
   });
 
   it('un Indice Formula suit le nom du Trait', () => {
-    expect(humanizeOp({ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } })).toBe(`gagne le Trait Vol ${humanizeFormula({ charOf: 'agilite' })}`);
+    expect(humanizeOp({ op: 'grantTrait', trait: { id: 'vol', value: { charOf: 'agilite' } } })).toBe(`gagne le Trait Vol ${humanizeFormula({ charOf: 'agilite' })}`);
+  });
+
+  it('une Cible tirée dit sa table (EDOC 12 l.217)', () => {
+    expect(humanizeOp({ op: 'grantTrait', trait: { id: 'haine' }, cible: { pick: 1, table: { id: 'obsessions' } } }))
+      .toBe('gagne le Trait Haine (Cible tirée sur le Tableau des Obsessions)');
   });
 });
 

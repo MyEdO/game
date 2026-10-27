@@ -219,7 +219,7 @@ import { maneuverShip } from './shipManeuver';
 import { crewedFireWeapon } from '../engine/crewedWeapon';
 import { warMachineFireWeapon, warMachineCrewRequired, warMachineCrewPenalty } from '../engine/warMachineCrew';
 import { fearSourceFor, refreshAllDefendedPsych, sansPeurVs, failConditionAmount, isPsychImmune, isFrenzied, clearPsychOf, targetedTrigger, supersededLines, psychResolution, psychBranchOps, psychBranchFlow, gainPhobieIfThreshold, estCibleType, cibleLabel, PsychType, psychTest } from '../engine/psychology';
-import { groupMatch } from '../engine/groups';
+import { groupMatch, groupesDe } from '../engine/groups';
 import { sceneCombatModifiers } from './monde/sceneRules';
 import {
   weatherCondition, weatherRangedMod, weatherRangedUseless, weatherPowderUseless,
@@ -1665,7 +1665,7 @@ export function finalizeHeroDeath(_get: Get, set: SetFn, hero: Combatant, source
   // Le vrai gate est la RESSOURCE (`fate > 0`, présente sur tout kind), pas le `kind` : un combattant à
   // Destin (héros, ou ennemi conduit doté de Destin) est sauvé ; sinon la mort est finalisée.
   if ((hero.fate ?? 0) > 0) {
-    const foeCible = foe ? (foe.groups?.[0] ?? foe.label) : undefined;
+    const foeCible = foe ? (groupesDe(foe)[0] ?? foe.label) : undefined;
     set({ pendingFateSave: { heroId: hero.id, source, restoreWounds, ...(foeCible ? { foeCible } : {}) } });
   } else {
     hero.dead = true;
@@ -7541,7 +7541,7 @@ export function collectHeroRoundStartPsych(get: Get, c: Combatant): HeroPsychDue
   // Traits psy CIBLÉS (Animosité/Haine/… — LDB 21) : re-test des actifs, puis nouveaux déclenchements.
   const visible = visibleFoesAndAllies(battle, scene, c);
   for (const p of state) {
-    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => groupMatch(p.cible!, v.groups ?? [])))
+    if (p.active && estCibleType(p.type) && p.cible && p.lastTestRound !== battle.round && visible.some((v) => groupMatch(p.cible!, groupesDe(v))))
       return { kind: p.type, sourceId: p.sourceId ?? '', sourceName: '', indice: 0, prevDR: 0, cible: p.cible }; // affliction active à re-tester
   }
   const tt = targetedTrigger(c, visible);
@@ -7798,7 +7798,7 @@ function resolveCombatPsychRow(get: Get, hero: Combatant, cp: CombatPsychDecl, r
     if (brise > 0 && res.failCondition === COND.brise) {
       hero.briseFromTerreur = (hero.briseFromTerreur ?? 0) + brise;
       const foe = inBattleId(battle, cp.sourceId);
-      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, foe?.groups?.[0] ?? cp.sourceName ?? '');
+      const gained = gainPhobieIfThreshold(hero, hero.briseFromTerreur, (foe ? groupesDe(foe)[0] : undefined) ?? cp.sourceName ?? '');
       if (gained) {
         hero.psychTraits = [...(hero.psychTraits ?? []), gained.phobie];
         hero.briseFromTerreur = 0;

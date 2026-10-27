@@ -5,7 +5,7 @@
  * `scripts/guards/lib/couches.mjs`, TypeScript et GDScript, hors tests et cibles générées) ne nomme un verbe de la partie
  * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau. Seule exception :
  * le verbe que le geste `offre` porte, son entrée dans le noyau. Et aucun script GDScript ne calcule une règle
- * (`calculsDeRegle`, plan `docs/plans/2026-10-21-vague6-hote-godot.md` M-e) : il lit la vue ; l'arithmétique de la mise
+ * (`calculsDeRegle`, #2928) : il lit la vue ; l'arithmétique de la mise
  * en page vit dans un seul module, que sa structure désigne (`estMiseEnPage`).
  */
 import { describe, it, expect } from 'vitest';

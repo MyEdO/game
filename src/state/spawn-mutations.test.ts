@@ -124,8 +124,9 @@ function fautesDuPorteur(p: Porteur): string[] {
     const estDeM = deLaMutation(id);
     for (const op of m.passive ?? []) {
       if (op.op === 'grantTrait') {
-        const n = (c.traits ?? []).filter((t) => t.id === op.traitId && estDeM(t.src)).length;
-        if (n !== k) fautes.push(`${p.ou} : (c) trait « ${op.traitId} » de « ${id} » posé ${n} fois, attendu ${k}`);
+        const attendu = k * (op.cible?.pick ?? 1);
+        const n = (c.traits ?? []).filter((t) => t.id === op.trait.id && estDeM(t.src)).length;
+        if (n !== attendu) fautes.push(`${p.ou} : (c) trait « ${op.trait.id} » de « ${id} » posé ${n} fois, attendu ${attendu}`);
       } else if (op.op === 'grantPsychTrait') {
         const n = (c.psychTraits ?? []).filter((t) => t.type === op.psychType && estDeM(t.src)).length;
         if (n !== k) fautes.push(`${p.ou} : (c) trait psy « ${op.psychType} » de « ${id} » posé ${n} fois, attendu ${k}`);

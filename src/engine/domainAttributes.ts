@@ -34,7 +34,7 @@
 import type { Combatant, HitLocation } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { RNG } from './dice';
-import { groupMatch } from './groups';
+import { groupMatch, groupesDe } from './groups';
 import { bypassedAP } from './armourBypass';
 import { findDomainById } from '../data';
 import { arcaneDomainOf } from './combatFeatures/dispatch';
@@ -70,10 +70,10 @@ export function domainMissileMods(
 }
 
 /** Appartenance au Groupe « mort-vivant » (LDB 85 : catégorie déclarée par l'entrée du bestiaire OU
- *  par le Trait — `groupsFor`) — GROUPE, pas le trait lui-même (une créature du Groupe sans porter le
+ *  par le Trait porté — `groupesDe`) — GROUPE, pas le trait lui-même (une créature du Groupe sans porter le
  *  Trait n'est pas ciblable par un effet qui exige LE TRAIT, cf. `capabilities.undead` pour ce cas). */
-const isUndead = (c: Combatant): boolean => groupMatch('mort-vivant', c.groups ?? []);
-const isDaemon = (c: Combatant): boolean => groupMatch('demon', c.groups ?? []);
+const isUndead = (c: Combatant): boolean => groupMatch('mort-vivant', groupesDe(c));
+const isDaemon = (c: Combatant): boolean => groupMatch('demon', groupesDe(c));
 /** « cible vivante » (Mort/Vie) : ni Mort-vivant ni Démon. */
 export const isLiving = (c: Combatant): boolean => !isUndead(c) && !isDaemon(c);
 

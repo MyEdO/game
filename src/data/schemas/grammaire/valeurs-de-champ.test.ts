@@ -88,6 +88,8 @@ const NOMMES = [
   // les 7 libellés de la table LDB 85 l.346-354.
   'minuscule|tresPetite|petite|moyenne|grande|enorme|monstrueuse',
   'nord|sud|est|ouest',
+  // `tablesDeCiblesSchema` : les tables de Cibles d'un Trait octroyé (EDOC 12 l.170).
+  'obsessions',
   // `windAspectSchema` (MDG 13 l.267-270).
   'arriere|lateral|face',
   // `buildingAnchorSchema` (#1715) : où un ornement d'identité s'accroche sur un bâtiment.

@@ -1,7 +1,7 @@
 /**
  * Schéma de `groups.json` — registre des Groupes d'APPARTENANCE (LDB 21, Traits psy ciblés), miroir de
- * `GroupData` (`src/data/index.ts`). Inventaire réel (38 entrées) : `id`+`label`, et le couple
- * JOKER `matchesAll`/`exceptGroups` sur 2 entrées (`tout`, `vivant`).
+ * `GroupData` (`src/data/index.ts`). Une entrée porte `id`+`label` ; un Groupe JOKER (`tout`, `vivant`)
+ * porte le couple `matchesAll`/`exceptGroups`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
