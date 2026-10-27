@@ -17,16 +17,22 @@ import {
   type ProjectDoc,
   type SavedProject,
 } from '../noyau/index';
-import type { Base, Stockage } from '../lib/stockage';
+import { lesChaines, lireTableau, retirerLaCle, type Base, type Stockage } from '../lib/stockage';
 
-const KEY = 'wfrp4.editor-projects';
-const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones';
+/** La clé du miroir dans le `Stockage`. */
+export const CLE_DU_MIROIR = 'wfrp4.editor-projects';
+/** La clé des tombes de suppression dans le `Stockage`. */
+export const CLE_DES_TOMBES = 'wfrp4.editor-projects.tombstones';
 
-/** Taille sérialisée max (en caractères) d'UNE entrée au-delà de laquelle elle est écartée du miroir — la borne
- *  porte sur le PROJET, jamais sur la liste entière sérialisée (une seule grosse campagne ne doit pas priver tous
- *  les petits projets de leur filet). Calibrée nettement sous le quota localStorage usuel (~5 Mio ≈ 2 500 000
- *  caractères UTF-16) pour laisser de la place à plusieurs projets dans le même magasin. */
-const LOCAL_MIRROR_ENTRY_LIMIT = 500_000;
+/** Ce que l'hôte qui ouvre la poignée fixe de ses ports. */
+export interface ReglagesDeLaBibliotheque {
+  /** Taille sérialisée max (en caractères) d'UNE entrée au-delà de laquelle elle est écartée du miroir : la borne
+   *  porte sur l'ENTRÉE, jamais sur la liste entière sérialisée (une grosse campagne ne prive pas les petites de
+   *  leur filet). */
+  borneDuMiroirParEntree: number;
+  /** Les causes d'un `Stockage` indisponible, nommées au joueur dans le message d'une sauvegarde sans filet. */
+  causesDIndisponibilite: string;
+}
 
 /** La base des entrées de la bibliothèque, keyée par `id`. */
 export type BaseDeLaBibliotheque = Base<unknown, string>;
@@ -68,7 +74,11 @@ export interface Bibliotheque {
  * un drapeau one-shot) : c'est CE mécanisme, rejoué à chaque démarrage, qui absorbe la recréation de la base comme
  * la reprise d'une écriture précédemment en échec (#776).
  */
-export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, stockage: () => Stockage | null): Bibliotheque {
+export function ouvrirLaBibliotheque(
+  base: () => BaseDeLaBibliotheque | null,
+  stockage: () => Stockage | null,
+  reglages: ReglagesDeLaBibliotheque,
+): Bibliotheque {
   /** Cache mémoire = source SYNC servie au picker/éditeur/tests. `null` tant qu'`initLibrary` n'a rien chargé. */
   let cache: EntreeListee[] | null = null;
   /** Tombes dont l'écriture a échoué (quota/accès refusé) : fusionnées à toute lecture des tombes de la poignée
@@ -80,31 +90,23 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
 
   /** Lecture SYNC de secours (miroir) : sert tant que `cache` vaut `null`, et reste le MIROIR réconcilié avec la
    *  base à chaque `initLibrary`. Filtre aussi les tombes (`readTombstones`) — ce filtrage est la SEULE garantie
-   *  contre la résurrection d'un projet supprimé, pour TOUTE lecture qui emprunte ce repli : ne JAMAIS lire `KEY`
+   *  contre la résurrection d'un projet supprimé, pour TOUTE lecture qui emprunte ce repli : ne JAMAIS lire `CLE_DU_MIROIR`
    *  sans repasser par cette fonction (#776 pt.2). */
-  function readLocalStorage(): EntreeListee[] {
-    const s = stockage();
-    if (!s) return [];
-    try {
-      const raw = s.getItem(KEY);
-      if (!raw) return [];
-      const arr: unknown = JSON.parse(raw);
-      if (!Array.isArray(arr)) return [];
-      const tombstones = readTombstones();
-      return entreesRelues(arr).filter((e) => !tombstones.has(e.id));
-    } catch {
-      return [];
-    }
+  function lireLeMiroir(): EntreeListee[] {
+    const arr = lireTableau(stockage(), CLE_DU_MIROIR);
+    if (!arr) return [];
+    const tombstones = readTombstones();
+    return entreesRelues(arr).filter((e) => !tombstones.has(e.id));
   }
 
-  /** Écrit le miroir (best-effort, borné PAR ENTRÉE par `LOCAL_MIRROR_ENTRY_LIMIT`) : une écriture en base qui
+  /** Écrit le miroir (best-effort, borné PAR ENTRÉE par `borneDuMiroirParEntree`) : une écriture en base qui
    *  échouerait en silence laisse quand même le projet retrouvable au rechargement (#776 pt.1) — sauf le projet
    *  dont l'id est retourné dans `skipped` (jamais laissé en version PÉRIMÉE : une entrée trop grosse est retirée de
    *  la liste écrite). Si la liste filtrée dépasse quand même le quota réel, les entrées les plus volumineuses sont
    *  écartées une à une jusqu'à ce que l'écriture passe. Les entrées qu'aucun `id` ne désigne sont réécrites telles
    *  quelles (#2404). `storageUnavailable` distingue « ce projet est trop gros pour le miroir » de « le stockage
    *  lui-même est hors service » (#776 pt.3). */
-  function writeLocalMirror(list: EntreeListee[]): { skipped: Set<string>; storageUnavailable: boolean } {
+  function ecrireLeMiroir(list: EntreeListee[]): { skipped: Set<string>; storageUnavailable: boolean } {
     const s = stockage();
     if (!s) return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
     const indesignables = entreesIndesignables(s);
@@ -119,51 +121,32 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
     });
     const skipped = new Set<string>();
     let fits = sized.filter(({ e, json }) => {
-      const ok = json.length > 0 && json.length <= LOCAL_MIRROR_ENTRY_LIMIT;
+      const ok = json.length > 0 && json.length <= reglages.borneDuMiroirParEntree;
       if (!ok) skipped.add(e.id);
       return ok;
     });
     while (true) {
       try {
-        s.setItem(KEY, JSON.stringify([...indesignables, ...fits.map(({ e }) => aEcrire(e))]));
+        s.setItem(CLE_DU_MIROIR, JSON.stringify([...indesignables, ...fits.map(({ e }) => aEcrire(e))]));
         return { skipped, storageUnavailable: false };
       } catch {
         if (fits.length === 0) {
-          if (indesignables.length === 0) {
-            try {
-              s.removeItem(KEY);
-            } catch {
-              // accès refusé : aucune version périmée n'est laissée volontairement
-            }
-          }
+          if (indesignables.length === 0) retirerLaCle(s, CLE_DU_MIROIR);
           return { skipped: new Set(list.map((e) => e.id)), storageUnavailable: true };
         }
         fits = [...fits].sort((a, b) => b.json.length - a.json.length);
         const dropped = fits.shift()!;
         skipped.add(dropped.e.id);
         console.error(
-          `[projectLibrary] projet « ${dropped.e.label} » (id ${dropped.e.id}) écarté du miroir `
-          + 'localStorage : quota dépassé, pas de place pour l’ensemble des projets enregistrés.',
+          `[bibliotheque] projet « ${dropped.e.label} » (id ${dropped.e.id}) écarté du miroir : quota dépassé, `
+          + 'pas de place pour l’ensemble des projets enregistrés.',
         );
       }
     }
   }
 
   function readTombstones(): Set<string> {
-    const s = stockage();
-    let persisted = new Set<string>();
-    if (s) {
-      try {
-        const raw = s.getItem(TOMBSTONE_KEY);
-        if (raw) {
-          const arr: unknown = JSON.parse(raw);
-          if (Array.isArray(arr)) persisted = new Set(arr.filter((x): x is string => typeof x === 'string'));
-        }
-      } catch {
-        persisted = new Set();
-      }
-    }
-    return new Set([...persisted, ...pendingTombstones]);
+    return new Set([...lesChaines(lireTableau(stockage(), CLE_DES_TOMBES)), ...pendingTombstones]);
   }
 
   function writeTombstones(ids: Set<string>): boolean {
@@ -173,13 +156,13 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
       return false;
     }
     try {
-      s.setItem(TOMBSTONE_KEY, JSON.stringify([...ids]));
+      s.setItem(CLE_DES_TOMBES, JSON.stringify([...ids]));
       pendingTombstones = new Set();
       return true;
     } catch (err) {
       pendingTombstones = new Set(ids);
       console.error(
-        '[projectLibrary] écriture des tombes de suppression en échec (quota/accès refusé) — '
+        '[bibliotheque] écriture des tombes de suppression en échec (quota/accès refusé) — '
         + 'conservée en mémoire pour cette session (protège contre la résurrection tant que la poignée '
         + 'reste ouverte) ; retentée seulement au prochain appel à `writeTombstones` (nouvelle '
         + 'suppression, ou levée de cette même tombe via `projectSave`) — pas à toute autre écriture.',
@@ -200,7 +183,7 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
   }
 
   function projectsLoad(): EntreeListee[] {
-    return cache ?? readLocalStorage();
+    return cache ?? lireLeMiroir();
   }
 
   return {
@@ -210,12 +193,12 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
       try {
         const b = base();
         if (!b) {
-          cache = readLocalStorage();
+          cache = lireLeMiroir();
           return;
         }
         const tombstones = readTombstones();
         const stored = entreesRelues(await b.lireTout());
-        const miroir = readLocalStorage();
+        const miroir = lireLeMiroir();
         const storedIds = new Set(stored.map((e) => e.id));
         const aReprendre = miroir.filter((e) => !storedIds.has(e.id) && !tombstones.has(e.id));
         const toPurge = stored.filter((e) => tombstones.has(e.id));
@@ -233,9 +216,9 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
         }
         const merged = [...stored.filter((e) => !tombstones.has(e.id)), ...aReprendre];
         cache = merged;
-        writeLocalMirror(merged);
+        ecrireLeMiroir(merged);
       } catch {
-        cache = readLocalStorage();
+        cache = lireLeMiroir();
       }
     },
 
@@ -249,7 +232,7 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
       const list = [...projectsLoad().filter((e) => e.id !== entry.id), entry];
       cache = list;
       refuseesAuGeste.delete(entry.id);
-      const { skipped, storageUnavailable } = writeLocalMirror(list);
+      const { skipped, storageUnavailable } = ecrireLeMiroir(list);
       const mirrored = !skipped.has(entry.id);
       const tombstones = readTombstones();
       if (tombstones.delete(entry.id)) writeTombstones(tombstones);
@@ -259,9 +242,9 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
         return { ok: true };
       } catch (err) {
         console.error(
-          `[projectLibrary] persistance IndexedDB du projet « ${entry.label} » en échec — `
+          `[bibliotheque] écriture en base du projet « ${entry.label} » en échec — `
           + (mirrored
-            ? 'miroir localStorage actif, reprise au prochain démarrage.'
+            ? 'miroir actif, reprise au prochain démarrage.'
             : storageUnavailable
               ? 'stockage local indisponible : aucun filet, risque de perte réel.'
               : 'AUCUN filet local (projet trop volumineux pour le miroir) : risque de perte réel.'),
@@ -273,7 +256,7 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
               ok: false,
               message:
                 `La sauvegarde de « ${entry.label} » a échoué : le stockage local n’est pas disponible `
-                + '(navigation privée, accès refusé…), sans filet de secours. Elle pourrait disparaître au '
+                + `(${reglages.causesDIndisponibilite}), sans filet de secours. Elle pourrait disparaître au `
                 + 'prochain démarrage. Réessayez avec un stockage local actif.',
             };
           }
@@ -296,7 +279,7 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
       const list = projectsLoad().filter((e) => e.id !== id);
       cache = list;
       refuseesAuGeste.delete(id);
-      writeLocalMirror(list);
+      ecrireLeMiroir(list);
       const tombstones = readTombstones();
       tombstones.add(id);
       const tombstoned = writeTombstones(tombstones);
@@ -306,7 +289,7 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
         return { ok: true };
       } catch (err) {
         console.error(
-          `[projectLibrary] suppression IndexedDB du projet « ${id} » en échec — retentée au prochain démarrage.`,
+          `[bibliotheque] suppression en base du projet « ${id} » en échec — retentée au prochain démarrage.`,
           err,
         );
         if (!tombstoned) {
@@ -331,13 +314,9 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
       cache = null;
       pendingTombstones = new Set();
       refuseesAuGeste = new Set();
-      try {
-        const s = stockage();
-        s?.removeItem(KEY);
-        s?.removeItem(TOMBSTONE_KEY);
-      } catch {
-        // accès refusé : rien à nettoyer
-      }
+      const s = stockage();
+      retirerLaCle(s, CLE_DU_MIROIR);
+      retirerLaCle(s, CLE_DES_TOMBES);
     },
   };
 }
@@ -345,11 +324,5 @@ export function ouvrirLaBibliotheque(base: () => BaseDeLaBibliotheque | null, st
 /** Les entrées du miroir qu'aucun `id` ne désigne : relues telles quelles pour être RÉÉCRITES, jamais retirées par
  *  une écriture (#2404). */
 function entreesIndesignables(s: Stockage): unknown[] {
-  try {
-    const raw = s.getItem(KEY);
-    const arr: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr.filter((brut) => idDesignable(brut) === null) : [];
-  } catch {
-    return [];
-  }
+  return (lireTableau(s, CLE_DU_MIROIR) ?? []).filter((brut) => idDesignable(brut) === null);
 }

@@ -2031,9 +2031,9 @@
     "type": "primitives.manifest",
     "label": "stockageWeb",
     "fichier": "src/web/stockageWeb.ts",
-    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireDictionnaire` (`src/lib/stockage.ts`) relit, dans un port `Stockage` (sous-ensemble de `Storage` que `stockageWeb` satisfait), une valeur JSON qui doit être un dictionnaire, ses valeurs validées par l’appelant contre son registre (#2404)",
+    "concept": "accès protégé aux deux stockages web (`localStorage`, `sessionStorage`), paramétré par le genre : `null` s’il manque ou si son accès lève (mode privé strict, iframe sandbox, hors navigateur) ; chaque site garde ses clés et sa sérialisation ; `lireLeTexte` et `retirerLaCle` (`src/lib/stockage.ts`) en sont les accès protégés sur un port `Stockage`, `lireDictionnaire` et `lireTableau` relisent, dans un port `Stockage` (sous-ensemble de `Storage` que `stockageWeb` satisfait), une valeur JSON qui doit être un dictionnaire ou un tableau, son contenu validé par l’appelant contre son registre, et `lesChaines` en garde les éléments chaînes (#2404)",
     "perimetre": "tout site qui lit ou écrit un stockage web — localStorage : sauvegardes de partie, roster, miroir et tombes de la bibliothèque de projets, préférences, règles maison, raccourcis, audio, atomes persistés de l’UI ; sessionStorage : jeton de siège coop, dernier scénario de recette",
-    "verrou": "src/web/stockageWeb.test.ts ; src/lib/stockage.test.ts ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
+    "verrou": "src/web/stockageWeb.test.ts ; src/lib/stockage.test.ts ; src/lib/stockage.testkit.ts (stockages de test) ; murs/stockage-web et murs/stockage-web-global d'oxlint.config.mjs (aucun localStorage/sessionStorage nommé hors src/web/stockageWeb.ts, banc scripts/guards/lib/lint-parite.test.mjs) ; src/cles-de-stockage-guard.test.ts (une clé de stockage écrite une fois)"
   },
   {
     "id": "playerText",

@@ -126,9 +126,11 @@ import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
 import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
 import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
-import { houseRulesMutability, resetHouseRule } from './houseRules';
+import { remettreUneRegleMaisonWeb } from './reglesMaison';
+import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
-import { PREFERENCES, preferenceDef, setPreference, resetPreference, type PrefValue } from './preferences';
+import { setPreference, resetPreference } from './preferences';
+import { PREFERENCES, preferenceDef, type PrefValue } from '../noyau/preferences';
 import { pickActiveModalKey, autoPolicyOf } from '../noyau/modalArbiter';
 import { willAutoResolve } from '../noyau/combatAuto';
 import { combatAdvanceBlocked } from '../noyau/combatGate';
@@ -149,6 +151,7 @@ import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene
 import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
 import { stockageWeb } from '../web/stockageWeb';
+import { lireLeTexte } from '../lib/stockage';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from './devtoolsTimers';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
 import { getStagePan } from './stagePan';
@@ -525,9 +528,9 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
 }
 
 /** Réglage auto-rendu par le harnais : une RÈGLE optionnelle (`policy`) ou une PRÉFÉRENCE (`preferences`). */
-type SettingDef = { id: string; label: string; kind: string; options?: string[]; min?: number; max?: number; default: RuleValue };
+type SettingDef = { id: string; label: string; kind: string; options?: readonly string[]; min?: number; max?: number; default: RuleValue };
 
-const settingShape = (d: { kind: string; options?: string[]; min?: number; max?: number }) =>
+const settingShape = (d: { kind: string; options?: readonly string[]; min?: number; max?: number }) =>
   d.kind === 'mode' ? `{${d.options?.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
 const settingUnknown = (id: string, api: 'rules' | 'prefs') => `réglage inconnu : ${id} — voir __wfrp.${api}()`;
 const settingDetail = (d: SettingDef, val: RuleValue | undefined) =>
@@ -560,12 +563,7 @@ function rememberScenario(entry: LastScenario): void {
 }
 
 function recallScenario(): LastScenario | null {
-  let raw: string | null;
-  try {
-    raw = stockageWeb('sessionStorage')?.getItem(LAST_SCENARIO_KEY) ?? null;
-  } catch {
-    return null;
-  }
+  const raw = lireLeTexte(stockageWeb('sessionStorage'), LAST_SCENARIO_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as LastScenario;
@@ -2135,7 +2133,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE : RÈGLES OPTIONNELLES (policy.ts / « règles maison »). `rules()` liste toutes les règles
      *  (id = valeur · forme) ; `rules(id)` détaille une règle ; `rules(id, value)` la règle (surcharge
      *  RUNTIME, non persistée — elle meurt au rechargement) ; `rules(id, null)` réinitialise au défaut
-     *  ET PURGE la surcharge PERSISTÉE (couture joueur `resetHouseRule` → `localStorage`), sinon la
+     *  ET PURGE la surcharge PERSISTÉE (couture joueur `remettreUneRegleMaisonWeb`), sinon la
      *  règle ressuscitait cochee au run suivant — piège mesuré en recette (#1279). La remise à zéro est
      *  refusée en combat, comme au panneau : le helper rend alors la raison au lieu de mentir.
      *  Valide la valeur selon le `kind` (flag/param/mode). Le rythme de résolution n'est PAS une règle :
@@ -2146,9 +2144,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!def) return settingUnknown(id, 'rules');
       if (value === undefined) return `${settingDetail(def, rule(id))} — ${def.ref}`;
       if (value === null) {
-        const verrou = houseRulesMutability();
+        const verrou = reglesMaisonMutables(useGame.getState());
         if (!verrou.mutable) return verrou.reason;
-        resetHouseRule(id);
+        remettreUneRegleMaisonWeb(id);
         return settingReset(def);
       }
       const c = coerceSetting(def, value);
@@ -2157,7 +2155,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return settingDone(id, c.v);
     },
 
-    /** RECETTE : PRÉFÉRENCES de confort (state/preferences.ts) — réglages hors règles de jeu, dont la
+    /** RECETTE : PRÉFÉRENCES de confort (noyau/preferences.ts) — réglages hors règles de jeu, dont la
      *  CADENCE de combat (`prefs('combat-cadence', 'auto')` : auto = l'IA joue aussi les héros ;
      *  'rapide' = jets auto sans dépense ; 'manuel' = défaut). `prefs()` liste ; `prefs(id)` détaille ;
      *  `prefs(id, value)` écrit par la couture joueur (persistée, effet déclaré joué) ; `prefs(id, null)`

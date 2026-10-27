@@ -88,7 +88,7 @@ describe('création ↔ dotation spécialisée (LDB 08 l.1130)', () => {
     expect(itemLabel(items.find((i) => i.trappingId === 'chemise-de-mailles')!)).toBe('Chemise de mailles');
   });
 
-  it('la spéc SURVIT à la sérialisation d’une save (copie JSON profonde, `state/saves.ts`)', () => {
+  it('la spéc SURVIT à la sérialisation d’une save (copie JSON profonde, `noyau/persistance/save.ts`)', () => {
     const relu = JSON.parse(JSON.stringify(ecuyer())) as ReturnType<typeof ecuyer>;
     const outils = (relu.items ?? []).find((i) => i.trappingId === 'outils-professionnels');
     expect(outils!.spec).toBe('Maréchal-ferrant');

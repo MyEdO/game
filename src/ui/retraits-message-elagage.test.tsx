@@ -4,30 +4,19 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HouseRulesPanel } from './HouseRulesModal';
 import { RetraitsDeChargement } from './RetraitsDeChargement';
-import { loadHouseRules } from '../state/houseRules';
+import { chargerLesReglesMaisonWeb } from '../state/reglesMaison';
 import { useGame } from '../state/store';
 import { FORMAT_SAVE } from '../noyau/persistance/formats.generated';
 import { OPTIONAL_RULES, rule } from '../engine/policy';
 import { conditionIds } from '../data';
 import { t } from '../i18n';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /**
  * Un document persisté que le registre courant ne reconnaît plus en PARTIE (#1463 LD.1) se charge élagué, et
  * l'écran NOMME au joueur ce qui a été retiré, par `ChipDeRefus` (`role="alert"`), sous StrictMode.
  */
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
 
 let root: Root | null = null;
 let container: HTMLDivElement | null = null;
@@ -43,7 +32,7 @@ const refusAffiches = (): string[] =>
   [...(container?.querySelectorAll('[role="alert"] p.chip.tone-danger.chip-phrase') ?? [])].map((p) => p.textContent ?? '');
 
 beforeEach(() => {
-  vi.stubGlobal('localStorage', fakeStorage());
+  poserLeLocalStorage();
 });
 
 afterEach(() => {
@@ -57,7 +46,7 @@ const drapeau = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
 describe('règles maison persistées en partie refusées', () => {
   it('le panneau nomme les clés retirées, une fois ; les autres restent appliquées', () => {
     localStorage.setItem('wfrp4.house-rules', JSON.stringify({ [drapeau.id]: !drapeau.default, 'regle-hors-registre': true }));
-    loadHouseRules();
+    chargerLesReglesMaisonWeb();
     monter(<HouseRulesPanel />);
     expect(refusAffiches()).toEqual([t('houseRules.retirees', { liste: t('elagage.regles', { ids: 'regle-hors-registre' }) })]);
     expect(rule(drapeau.id)).toBe(!drapeau.default);

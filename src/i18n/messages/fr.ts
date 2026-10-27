@@ -436,6 +436,8 @@ export const fr = {
   'gameMenu.coop.hint': 'Sièges, code de partie et attribution des héros. Hébergez ou rejoignez une partie depuis le menu principal.',
   'gameMenu.saveLoad': 'Sauvegarder / Charger',
   'gameMenu.endSession': 'Fin de séance',
+  'gameMenu.endSession.horsExploration': 'Indisponible hors exploration',
+  'gameMenu.endSession.invite': 'Seul l’hôte clôt la séance',
   'gameMenu.options': 'Options',
   'gameMenu.options.tab.keys': 'Clavier',
   'gameMenu.options.tab.audio': 'Audio',
@@ -579,7 +581,7 @@ export const fr = {
   'elagage.regles': 'règles optionnelles {ids}',
   'elagage.etats': 'États {ids}',
   'etats.inconnu': 'État inconnu : « {id} »',
-  // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `state/saves.ts`), sous le nom de son emplacement.
+  // Sauvegarde retirée du stockage, par CAUSE (`ObsoleteCause`, `noyau/persistance/save.ts`), sous le nom de son emplacement.
   'saveload.error.autreFormat': '{emplacement} : sauvegarde d’un autre format, retirée.',
   'saveload.error.unreadable': '{emplacement} : sauvegarde illisible, retirée.',
   // Lobby coop (CoopLobby) — Phase D.
@@ -1919,6 +1921,7 @@ export const fr = {
   'store.shipTack': '{ship} vire de bord — nouveau cap : {dir}.',
   'store.shipAdvance': '{ship} avance de {n} case{s} (cap {dir}).',
   'store.saveInBattle': 'Impossible de sauvegarder en plein combat.',
+  'store.saveInvite': 'Seul l’hôte de la partie sauvegarde.',
   'store.saveOk': 'Partie sauvegardée (emplacement {slot}).',
   'store.saveKo': 'Sauvegarde impossible (stockage indisponible ou plein).',
   'store.sceneMissing': '(Scène « {scene} » introuvable — transition ignorée.)',

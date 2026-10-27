@@ -7,7 +7,7 @@
  * un champ `pending*` à la main.
  *
  * - `initialFields()` : le bloc `{ champ: init }` complet — l'état `create()` le spread (forme à plat
- *   IDENTIQUE : `snapshotSave`/coop itèrent `Object.keys(getInitialState())`, indépendant de l'ordre).
+ *   IDENTIQUE : `snapshotSave`/coop itèrent `Object.keys(etatInitialDuJeu())`, indépendant de l'ordre).
  * - `resetFields(scope)` : le sous-ensemble `{ champ: init }` des champs dont `resetOn` inclut `scope`.
  *   Les sites de reset font `set({ ...resetFields('scene'), …spécifique })` au lieu de re-lister.
  *

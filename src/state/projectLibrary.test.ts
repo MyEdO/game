@@ -7,28 +7,9 @@ import { Scene, emptyScene } from '../noyau/monde/scene';
 import { ProjetRefuse, playerEntryError } from '../noyau/worldMap';
 import { allAxes } from '../data';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
+import { CLE_DES_TOMBES, CLE_DU_MIROIR } from '../hote/bibliotheque';
 
-const KEY = 'wfrp4.editor-projects';
-const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones';
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). `failSetItem` :
- *  clés dont `setItem` doit rejeter (simulation de quota dépassé/accès refusé CIBLÉE sur une clé). */
-function fakeStorage(opts: { failSetItem?: Set<string> } = {}): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => {
-      if (opts.failSetItem?.has(k)) throw new Error(`setItem refusé (${k})`);
-      m.set(k, String(v));
-    },
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() {
-      return m.size;
-    },
-  } as Storage;
-}
 
 const NOM = 'wfrp4-library';
 
@@ -64,7 +45,7 @@ const bigProj = (id: string, label = 'Grosse campagne'): SavedProject => ({
 
 describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
@@ -111,16 +92,16 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
   });
 
   it('stockage corrompu (JSON invalide ou pas un tableau) → []', () => {
-    localStorage.setItem(KEY, '{pas du json');
+    localStorage.setItem(CLE_DU_MIROIR, '{pas du json');
     expect(projectsLoad()).toEqual([]);
-    localStorage.setItem(KEY, '{"a":1}');
+    localStorage.setItem(CLE_DU_MIROIR, '{"a":1}');
     expect(projectsLoad()).toEqual([]);
   });
 
   it('enveloppe refusée (`savedProjectSchema`) : listée REFUSÉE si un `id` la désigne, refus levé au geste ; sans `id`, journalisée (#2404)', () => {
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     localStorage.setItem(
-      KEY,
+      CLE_DU_MIROIR,
       JSON.stringify([
         null,
         42,
@@ -150,13 +131,13 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('sans IndexedDB : listée, et le miroir la réécrit TELLE QUELLE avec l’entrée sans `id`', async () => {
       vi.spyOn(console, 'error').mockImplementation(() => {});
-      localStorage.setItem(KEY, JSON.stringify([oeuvre, sansId]));
+      localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([oeuvre, sansId]));
       await initLibrary();
       expect(projectsLoad().map((e) => e.id)).toEqual(['oeuvre']);
       await projectSave(proj('voisin'));
-      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([sansId, oeuvre, proj('voisin')]);
+      expect(JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!)).toEqual([sansId, oeuvre, proj('voisin')]);
       await projectRemove('voisin');
-      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([sansId, oeuvre]);
+      expect(JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!)).toEqual([sansId, oeuvre]);
     });
 
     it('avec IndexedDB : listée depuis la base, et le miroir la porte telle quelle', async () => {
@@ -165,7 +146,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       store.set('oeuvre', oeuvre);
       await initLibrary();
       expect(projectsLoad().map((e) => e.id)).toEqual(['oeuvre']);
-      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([oeuvre]);
+      expect(JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!)).toEqual([oeuvre]);
       expect(store.get('oeuvre')).toEqual(oeuvre);
     });
 
@@ -177,13 +158,13 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       await projectRemove('oeuvre');
       expect(projectsLoad()).toEqual([]);
       expect(store.has('oeuvre')).toBe(false);
-      expect(JSON.parse(localStorage.getItem(KEY)!)).toEqual([]);
+      expect(JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!)).toEqual([]);
     });
   });
 
   it('un PROJET d’un autre format, sous une enveloppe valide : LISTÉ, refusé au geste, jamais retiré (#2404)', async () => {
     const entree = { id: 'p-ancien', label: 'Ancienne', startSceneId: 's1', savedAt: 1, published: true, project: { schema: 18, scenes: [{ id: 's1' }] } };
-    localStorage.setItem(KEY, JSON.stringify([entree]));
+    localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([entree]));
     await initLibrary();
     const [listee] = projectsLoad();
     expect(listee.id, 'l’entrée reste listée : sa suppression est un geste de l’auteur').toBe('p-ancien');
@@ -198,12 +179,12 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     expect((refus as ProjetRefuse).message).toMatch(/^Projet d’un autre format, ou mal formé — /);
     await projectSave(proj('autre'));
     expect(projectsLoad().map((e) => e.id), 'une écriture voisine ne l’efface pas').toEqual(['p-ancien', 'autre']);
-    expect(JSON.parse(localStorage.getItem(KEY)!).map((e: { id: string }) => e.id)).toEqual(['p-ancien', 'autre']);
+    expect(JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!).map((e: { id: string }) => e.id)).toEqual(['p-ancien', 'autre']);
   });
 
   it('miroir localStorage pré-peuplé + initLibrary() → cache le sert (repli sans IndexedDB en jsdom)', async () => {
     localStorage.setItem(
-      KEY,
+      CLE_DU_MIROIR,
       JSON.stringify([
         { id: 'p1', label: 'Ancienne', startSceneId: 's1', savedAt: 1, published: true, project: { scenes: [{ id: 's1' }] } },
       ]),
@@ -232,7 +213,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     // Une copie CONCURRENTE du projet survit dans le miroir localStorage (écriture concurrente,
     // reload partiel…) — aucune des trois sorties ne doit la laisser ressusciter le projet supprimé.
-    localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Revenant')]));
+    localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([proj('p1', 'Revenant')]));
 
     // Sortie 2 : `initLibrary()` SANS IndexedDB (`idbDisponible()` faux par défaut dans cet environnement
     // de test `node`) relit ce miroir directement.
@@ -245,14 +226,14 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     await initLibrary();
     expect(projectsLoad()).toEqual([]);
     // Le `catch` a joué : la branche de succès aurait purgé la tombe, absente d'IndexedDB.
-    expect(JSON.parse(localStorage.getItem(TOMBSTONE_KEY)!)).toEqual(['p1']);
+    expect(JSON.parse(localStorage.getItem(CLE_DES_TOMBES)!)).toEqual(['p1']);
   });
 
-  describe('miroir localStorage borné PAR PROJET (#776 lot correctif — LOCAL_MIRROR_ENTRY_LIMIT)', () => {
+  describe('miroir localStorage borné PAR PROJET (#776 lot correctif — `borneDuMiroirParEntree`)', () => {
     it('un projet volumineux est écarté du miroir SANS priver les petits projets de leur filet', async () => {
       await projectSave(proj('small', 'Petit'));
       await projectSave(bigProj('big'));
-      const mirrored = JSON.parse(localStorage.getItem(KEY)!) as SavedProject[];
+      const mirrored = JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!) as SavedProject[];
       expect(mirrored.map((e) => e.id)).toEqual(['small']);
       // le cache sert quand même les deux (IndexedDB/cache mémoire, pas seulement le miroir).
       expect(projectsLoad().map((e) => e.id).sort()).toEqual(['big', 'small']);
@@ -263,7 +244,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       const res = await projectSave(bigProj('big'));
       expect(res.ok).toBe(false);
       if (!res.ok) expect(res.message.length).toBeGreaterThan(0);
-      const mirrored = localStorage.getItem(KEY) ? JSON.parse(localStorage.getItem(KEY)!) as SavedProject[] : [];
+      const mirrored = localStorage.getItem(CLE_DU_MIROIR) ? JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!) as SavedProject[] : [];
       expect(mirrored.some((e) => e.id === 'big')).toBe(false); // ni IndexedDB ni miroir : perte réelle
     });
 
@@ -280,7 +261,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       await projectSave(proj('small', 'Petit'));
       const res = await projectSave(bigProj('big'));
       expect(res.ok).toBe(true);
-      const mirrored = JSON.parse(localStorage.getItem(KEY)!) as SavedProject[];
+      const mirrored = JSON.parse(localStorage.getItem(CLE_DU_MIROIR)!) as SavedProject[];
       // la borne écarte CE projet volumineux du miroir (preuve que la borne par-entrée s'applique
       // bien ici, pas seulement quand IndexedDB échoue) sans emporter le petit projet avec lui.
       expect(mirrored.map((e) => e.id)).toEqual(['small']);
@@ -290,7 +271,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
   describe('IndexedDB simulée (#776) — chemin de réconciliation réellement exercé', () => {
     it('recopie complète : localStorage peuplé + idb vide → initLibrary recopie tout dans idb', async () => {
       localStorage.setItem(
-        KEY,
+        CLE_DU_MIROIR,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
       );
       const idb = bibliothequeSimulee();
@@ -302,7 +283,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('recopie PARTIELLE (p2 rejette) puis reprise au reload suivant', async () => {
       localStorage.setItem(
-        KEY,
+        CLE_DU_MIROIR,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
       );
       const failPut = new Set(['p2']);
@@ -317,9 +298,9 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       // qui saute la reprise)
       failPut.delete('p2');
       await __resetLibraryForTest();
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+      poserLeLocalStorage();
       localStorage.setItem(
-        KEY,
+        CLE_DU_MIROIR,
         JSON.stringify([proj('p1', 'Un'), proj('p2', 'Deux')]),
       );
       await initLibrary();
@@ -329,7 +310,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('suppression respectée : un projet supprimé n’est jamais ressuscité par la réconciliation', async () => {
       const idb = bibliothequeSimulee();
-      localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
+      localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
       expect(projectsLoad()).toHaveLength(1);
 
@@ -338,9 +319,9 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       expect(idb.store.has('p1')).toBe(false);
 
       // le miroir localStorage a suivi la suppression : un reload ne le voit plus, même si une copie
-      // CONCURRENTE y traîne (écriture concurrente) — l'entrée de `TOMBSTONE_KEY` l'exclut de la migration.
+      // CONCURRENTE y traîne (écriture concurrente) — l'entrée de `CLE_DES_TOMBES` l'exclut de la migration.
       localStorage.setItem(
-        KEY,
+        CLE_DU_MIROIR,
         JSON.stringify([proj('p1', 'Un')]),
       );
       await initLibrary();
@@ -367,16 +348,16 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       const failDelete = new Set(['p1']);
       const idb = bibliothequeSimulee({ delete: failDelete });
       idb.store.set('p1', proj('p1', 'Un'));
-      localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
+      localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
 
       await projectRemove('p1'); // idb.delete échoue : la tombe reste enregistrée
-      expect(JSON.parse(localStorage.getItem(TOMBSTONE_KEY)!)).toEqual(['p1']);
+      expect(JSON.parse(localStorage.getItem(CLE_DES_TOMBES)!)).toEqual(['p1']);
 
       failDelete.delete('p1'); // la panne se résorbe
       await initLibrary(); // retente la suppression : réussit cette fois
       expect(idb.store.has('p1')).toBe(false);
-      expect(JSON.parse(localStorage.getItem(TOMBSTONE_KEY) ?? '[]')).toEqual([]); // tombe purgée
+      expect(JSON.parse(localStorage.getItem(CLE_DES_TOMBES) ?? '[]')).toEqual([]); // tombe purgée
     });
 
     it('échec d’écriture IndexedDB non silencieux : `projectSave` journalise l’échec (console.error)', async () => {
@@ -400,14 +381,14 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     });
 
     it('échec d’écriture des tombes non silencieux : journalisé (console.error), comme put/delete', async () => {
-      const idb = bibliothequeSimulee({ delete: new Set(['p1']) });
+      const idb = bibliothequeSimulee();
       idb.store.set('p1', proj('p1', 'Un'));
-      localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
+      localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage({ failSetItem: new Set([TOMBSTONE_KEY]) });
+      poserLeLocalStorage({ refuserEcriture: (cle) => cle === CLE_DES_TOMBES });
       const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       await projectRemove('p1');
-      expect(spy).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(expect.stringContaining('écriture des tombes de suppression en échec'), expect.any(Error));
       spy.mockRestore();
     });
 
@@ -415,15 +396,13 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       const failDelete = new Set(['p1']);
       const idb = bibliothequeSimulee({ delete: failDelete });
       idb.store.set('p1', proj('p1', 'Un'));
-      localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Un')]));
+      localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([proj('p1', 'Un')]));
       await initLibrary();
       expect(projectsLoad()).toHaveLength(1);
 
       // la couche localStorage entière tombe en panne au moment de retirer : ni le miroir ni la
       // tombe ne peuvent être persistés.
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage({
-        failSetItem: new Set([KEY, TOMBSTONE_KEY]),
-      });
+      poserLeLocalStorage({ refuserEcriture: (cle) => cle === CLE_DU_MIROIR || cle === CLE_DES_TOMBES });
       const res = await projectRemove('p1');
       expect(res.ok).toBe(false); // la suppression risque de ne pas survivre à un vrai reload
       expect(projectsLoad()).toEqual([]); // mais reste retirée du cache pour cette session
@@ -437,7 +416,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
 
     it('open bloqué → repli localStorage : `initLibrary` sert quand même la bibliothèque', async () => {
       localStorage.setItem(
-        KEY,
+        CLE_DU_MIROIR,
         JSON.stringify([proj('p1', 'Repli')]),
       );
       brancherOuvertures(() => {
@@ -452,7 +431,7 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
     it('open jamais résolu (délai dépassé) → `initLibrary` retombe sur le repli localStorage sans jamais rester en attente', async () => {
       vi.useFakeTimers();
       localStorage.setItem(
-        KEY,
+        CLE_DU_MIROIR,
         JSON.stringify([proj('p1', 'Repli')]),
       );
       brancherOuvertures(() => ({} as IDBOpenDBRequest)); // ne déclenche jamais aucun handler
@@ -469,12 +448,12 @@ describe('projectLibrary — bibliothèque de projets éditeur (localStorage)', 
       await projectSave(proj('p1'));
       await projectSave(proj('p2'));
       await projectRemove('p1');
-      expect(localStorage.getItem(KEY)).not.toBeNull();
-      expect(localStorage.getItem(TOMBSTONE_KEY)).not.toBeNull();
+      expect(localStorage.getItem(CLE_DU_MIROIR)).not.toBeNull();
+      expect(localStorage.getItem(CLE_DES_TOMBES)).not.toBeNull();
 
       await __resetLibraryForTest();
-      expect(localStorage.getItem(KEY)).toBeNull();
-      expect(localStorage.getItem(TOMBSTONE_KEY)).toBeNull();
+      expect(localStorage.getItem(CLE_DU_MIROIR)).toBeNull();
+      expect(localStorage.getItem(CLE_DES_TOMBES)).toBeNull();
       expect(projectsLoad()).toEqual([]);
     });
   });
@@ -571,7 +550,7 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
 
 describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#2404)', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
   });
   afterEach(() => {
     delete (globalThis as { localStorage?: Storage }).localStorage;
@@ -587,7 +566,7 @@ describe('`wfrp4-library` — déclarée, recréée si elle s’en écarte (#240
   it('base d’une autre forme recréée : le miroir localStorage repeuple la bibliothèque', async () => {
     const bases = brancherBasesSimulees();
     bases.amorcer(NOM, { projects: { keyPath: 'cle' } });
-    localStorage.setItem(KEY, JSON.stringify([proj('p1', 'Miroir')]));
+    localStorage.setItem(CLE_DU_MIROIR, JSON.stringify([proj('p1', 'Miroir')]));
     await initLibrary();
     expect(bases.suppressions).toEqual([NOM]);
     expect(projectsLoad().map((e) => e.id)).toEqual(['p1']);

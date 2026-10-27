@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGame } from './store';
-import { setHouseRule, resetHouseRule, houseRulesMutability } from './houseRules';
+import { reglerUneRegleMaisonWeb as regler, remettreUneRegleMaisonWeb as remettre } from './reglesMaison';
+import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { rule, resetRule, setRule, OPTIONAL_RULES } from '../engine/policy';
 import { setPreference, resetPreference } from './preferences';
 import { cadence } from '../engine/cadence';
@@ -8,6 +9,7 @@ import { resolveRoundBoundary } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /**
  * VERROU des règles optionnelles pendant un combat (#564, #1049) — garde d'INGÉNIERIE : elle ne dit
@@ -17,21 +19,10 @@ import { testScene } from '../scenes/test-fixture';
  * sur un état déjà construit à l'ouverture. Cas mesuré (#564) : activer « Avantage de groupe » en plein
  * combat faisait naître la réserve de camp À ZÉRO au premier `poolsOf`, et `mirrorPools` écrasait
  * l'Avantage individuel de TOUS les combattants. La porte vit au point d'ÉCRITURE joueur
- * (`state/houseRules`), pas dans l'UI, et vaut pour la CLASSE entière (aucun id nommé).
+ * (`noyau/reglesMaison`, lu par `hote/reglesMaison`), pas dans l'UI, et vaut pour la CLASSE entière (aucun id nommé).
  */
 
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
+const verrou = () => reglesMaisonMutables(useGame.getState());
 
 function startFixtureCombat() {
   const hero = createHero({ speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
@@ -46,7 +37,7 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllTimers();
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     useGame.setState({ battle: null, pendingCascade: null, pendingRoundStart: null });
     for (const r of OPTIONAL_RULES) resetRule(r.id);
   });
@@ -58,32 +49,32 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
   });
 
   it('hors combat : l’écriture passe (aucune régression du panneau)', () => {
-    expect(houseRulesMutability().mutable).toBe(true);
-    setHouseRule('combat-aa-avantage-groupe', true);
+    expect(verrou().mutable).toBe(true);
+    regler('combat-aa-avantage-groupe', true);
     expect(rule('combat-aa-avantage-groupe')).toBe(true);
-    resetHouseRule('combat-aa-avantage-groupe');
+    remettre('combat-aa-avantage-groupe');
     expect(rule('combat-aa-avantage-groupe')).toBe(false);
   });
 
-  it('en combat : `setHouseRule` REFUSE la mutation et porte sa raison en texte', () => {
+  it('en combat : `reglerUneRegleMaison` REFUSE la mutation et porte sa raison en texte', () => {
     startFixtureCombat();
-    const gate = houseRulesMutability();
+    const gate = verrou();
     expect(gate.mutable).toBe(false);
     expect(gate.reason).toMatch(/combat/i);
-    setHouseRule('combat-aa-avantage-groupe', true);
+    regler('combat-aa-avantage-groupe', true);
     expect(rule('combat-aa-avantage-groupe')).toBe(false); // la règle n’a pas bougé
   });
 
-  it('en combat : `resetHouseRule` refuse aussi (le retour au défaut RAW est une mutation)', () => {
-    setHouseRule('combat-aa-avantage-groupe', true); // choisie AVANT le combat
+  it('en combat : `remettreUneRegleMaison` refuse aussi (le retour au défaut RAW est une mutation)', () => {
+    regler('combat-aa-avantage-groupe', true); // choisie AVANT le combat
     startFixtureCombat();
-    resetHouseRule('combat-aa-avantage-groupe');
+    remettre('combat-aa-avantage-groupe');
     expect(rule('combat-aa-avantage-groupe')).toBe(true); // le combat garde le modèle sous lequel il s’est ouvert
   });
 
   it('le verrou vaut pour TOUTE la classe, SANS exception : aucune entrée du registre n’est mutable en combat', () => {
     startFixtureCombat();
-    const mutables = OPTIONAL_RULES.filter(() => houseRulesMutability().mutable).map((r) => r.id);
+    const mutables = OPTIONAL_RULES.filter(() => verrou().mutable).map((r) => r.id);
     expect(mutables).toEqual([]);
   });
 
@@ -99,7 +90,7 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
   it('combat ouvert le combat fini : la porte se rouvre', () => {
     const battle = startFixtureCombat();
     useGame.setState({ battle: { ...battle, over: 'victory' } });
-    expect(houseRulesMutability().mutable).toBe(true);
+    expect(verrou().mutable).toBe(true);
   });
 
   it('#564 — activer « Avantage de groupe » en plein combat ne détruit plus l’Avantage accumulé', () => {
@@ -109,7 +100,7 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
     const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
     hero.advantage = 4;
     foe.advantage = 2;
-    setHouseRule('combat-aa-avantage-groupe', true); // le joueur bascule au menu système, en plein combat
+    regler('combat-aa-avantage-groupe', true); // le joueur bascule au menu système, en plein combat
     resolveRoundBoundary(useGame.getState, useGame.setState);
     const after = useGame.getState().battle!;
     expect(after.advantagePools).toBeUndefined(); // aucune réserve née à zéro

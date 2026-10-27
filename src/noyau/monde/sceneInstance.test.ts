@@ -1,22 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { captureMutation, applyMutation, type SceneMutation } from './sceneInstance';
 import { emptyScene, doorIsOpen, setDoorOpen, type Scene, type WallSeg } from './scene';
 import { useGame } from '../../state/store';
 import { removeEntity } from '../combatPlacement';
-import { readSlot, saveToSlot, deleteSlot, type SaveGame } from '../../state/saves';
-
-/** Fake Storage minimal — l'environnement de test est `node` (pas de localStorage). */
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
+import { stockageDesSauvegardes } from '../../state/saves';
+import { lireLaSauvegarde, ecrireLaSauvegarde } from '../../hote/sauvegardes';
+import { type SaveGame } from '../persistance/save';
+import { poserLeLocalStorage } from '../../lib/stockage.testkit';
 
 const DOOR_OPENED: WallSeg = { x: 1, y: 1, side: 'N', door: true, closed: true };
 const DOOR_UNTOUCHED: WallSeg = { x: 3, y: 3, side: 'N', door: true, closed: true };
@@ -160,10 +150,8 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
 
   describe('save/load RÉEL (applyLoadedSave, #707)', () => {
     beforeEach(() => {
-      (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
-      deleteSlot(1);
+      poserLeLocalStorage();
     });
-    afterEach(() => { deleteSlot(1); });
 
     it('l’entité retirée et la porte ouverte survivent à un vrai saveGame → loadGame → revisit', () => {
       useGame.setState({ party: [hero()] });
@@ -196,14 +184,14 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
 
       // La save est trafiquée à la VERSION COURANTE : meuble disparu, héros hors groupe, slot inconnu
       // — exactement ce qu'un paquet de campagne réédité ou un groupe recomposé produit.
-      const brut = readSlot(1)!;
+      const brut = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
       const data = brut.data as { scene: Scene };
       data.scene.seatAssignments = {
         'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, plafond: { kind: 'entity', entityId: 'attable' } },
         'meuble-disparu': { 'place-1': { kind: 'entity', entityId: 'attable' } },
         'table-2': { 'place-1': { kind: 'party', rang: 4 } },
       };
-      saveToSlot(1, brut);
+      ecrireLaSauvegarde(stockageDesSauvegardes(), 1, brut);
 
       expect(useGame.getState().loadGame(1)).toBe(true);
       expect(useGame.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
@@ -214,12 +202,12 @@ describe('sceneInstance — câblage store, REVISIT (#707)', () => {
       const sceneA = fixtureScene('scene-i');
       useGame.getState().loadProject({ scenes: [sceneA], entryId: 'scene-i', projet: null });
       expect(useGame.getState().saveGame(1)).toBe(true);
-      const withField = readSlot(1)!;
+      const withField = lireLaSauvegarde(stockageDesSauvegardes(), 1)!;
       const dataSans = { ...withField.data } as Record<string, unknown>;
       delete dataSans.sceneInstances;
       // Save écrite à la version COURANTE, clé `sceneInstances` RETIRÉE : filet n°1 de la politique de
       // version (champ manquant → `initialFields`), pas une save d'une autre version.
-      saveToSlot(1, { ...withField, data: dataSans } as unknown as SaveGame);
+      ecrireLaSauvegarde(stockageDesSauvegardes(), 1, { ...withField, data: dataSans } as unknown as SaveGame);
       expect(useGame.getState().loadGame(1)).toBe(true);
       expect(useGame.getState().sceneInstances).toEqual({});
     });

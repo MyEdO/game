@@ -4,26 +4,10 @@
  * réécrit telle quelle (#2404) ; l'état vit dans la poignée.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { ouvrirLaBibliotheque, type BaseDeLaBibliotheque } from './bibliotheque';
+import { CLE_DES_TOMBES, CLE_DU_MIROIR, ouvrirLaBibliotheque, type BaseDeLaBibliotheque } from './bibliotheque';
 import { ProjetRefuse, type SavedProject } from '../noyau/index';
 import type { Stockage } from '../lib/stockage';
-
-const KEY = 'wfrp4.editor-projects';
-const TOMBSTONE_KEY = 'wfrp4.editor-projects.tombstones';
-
-/** Un `Stockage` en mémoire ; `refuse` : les clés dont l'écriture lève (quota, accès refusé). */
-function stockageEnMemoire(refuse: Set<string> = new Set()): Stockage & { contenu: Map<string, string> } {
-  const contenu = new Map<string, string>();
-  return {
-    contenu,
-    getItem: (k) => contenu.get(k) ?? null,
-    setItem: (k, v) => {
-      if (refuse.has(k)) throw new Error(`refusé (${k})`);
-      contenu.set(k, v);
-    },
-    removeItem: (k) => void contenu.delete(k),
-  };
-}
+import { stockageEnMemoire } from '../lib/stockage.testkit';
 
 /** Une `Base` en mémoire keyée par `id` ; `panne` : les ids dont l'écriture et la suppression rejettent. */
 function baseEnMemoire(panne: Set<string> = new Set()): BaseDeLaBibliotheque & { contenu: Map<string, unknown> } {
@@ -50,9 +34,10 @@ const entree = (id: string, desc?: string): SavedProject => ({
   project: { scenes: [], ...(desc === undefined ? {} : { desc }) },
 });
 
-const ouvrir = (base: BaseDeLaBibliotheque | null, stockage: Stockage | null) => ouvrirLaBibliotheque(() => base, () => stockage);
+const ouvrir = (base: BaseDeLaBibliotheque | null, stockage: Stockage | null) =>
+  ouvrirLaBibliotheque(() => base, () => stockage, { borneDuMiroirParEntree: 500_000, causesDIndisponibilite: 'accès refusé' });
 const ids = (l: readonly { id: string }[]) => l.map((e) => e.id);
-const miroir = (s: Stockage) => JSON.parse(s.getItem(KEY) ?? '[]') as unknown[];
+const miroir = (s: Stockage) => JSON.parse(s.getItem(CLE_DU_MIROIR) ?? '[]') as unknown[];
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -60,7 +45,7 @@ describe('ouvrirLaBibliotheque — réconciliation de la base et du miroir (#776
   it('une entrée du miroir absente de la base y est recopiée, et servie', async () => {
     const base = baseEnMemoire();
     const stockage = stockageEnMemoire();
-    stockage.setItem(KEY, JSON.stringify([entree('a'), entree('b')]));
+    stockage.setItem(CLE_DU_MIROIR, JSON.stringify([entree('a'), entree('b')]));
     base.contenu.set('a', entree('a'));
     const b = ouvrir(base, stockage);
     await b.initLibrary();
@@ -75,8 +60,8 @@ describe('ouvrirLaBibliotheque — réconciliation de la base et du miroir (#776
     await b.projectSave(entree('b'));
     base.contenu.set('a', entree('a'));
     await b.projectRemove('a');
-    expect(JSON.parse(stockage.getItem(TOMBSTONE_KEY)!)).toEqual(['a']);
-    stockage.setItem(KEY, JSON.stringify([entree('a'), entree('b')]));
+    expect(JSON.parse(stockage.getItem(CLE_DES_TOMBES)!)).toEqual(['a']);
+    stockage.setItem(CLE_DU_MIROIR, JSON.stringify([entree('a'), entree('b')]));
     const relue = ouvrir(base, stockage);
     expect(ids(relue.projectsLoad())).toEqual(['b']);
     await relue.initLibrary();
@@ -85,31 +70,31 @@ describe('ouvrirLaBibliotheque — réconciliation de la base et du miroir (#776
 
   it('sans base, la bibliothèque est le miroir, tombes filtrées', async () => {
     const stockage = stockageEnMemoire();
-    stockage.setItem(KEY, JSON.stringify([entree('a'), entree('b')]));
-    stockage.setItem(TOMBSTONE_KEY, JSON.stringify(['a']));
+    stockage.setItem(CLE_DU_MIROIR, JSON.stringify([entree('a'), entree('b')]));
+    stockage.setItem(CLE_DES_TOMBES, JSON.stringify(['a']));
     const b = ouvrir(null, stockage);
     await b.initLibrary();
     expect(ids(b.projectsLoad())).toEqual(['b']);
-    expect(JSON.parse(stockage.getItem(TOMBSTONE_KEY)!)).toEqual(['a']);
+    expect(JSON.parse(stockage.getItem(CLE_DES_TOMBES)!)).toEqual(['a']);
   });
 
   it('une tombe dont la base confirme l’absence est purgée', async () => {
     const base = baseEnMemoire();
     const stockage = stockageEnMemoire();
-    stockage.setItem(TOMBSTONE_KEY, JSON.stringify(['a']));
+    stockage.setItem(CLE_DES_TOMBES, JSON.stringify(['a']));
     await ouvrir(base, stockage).initLibrary();
-    expect(JSON.parse(stockage.getItem(TOMBSTONE_KEY)!)).toEqual([]);
+    expect(JSON.parse(stockage.getItem(CLE_DES_TOMBES)!)).toEqual([]);
   });
 
   it('une tombe que le stockage refuse reste en attente dans la poignée : l’entrée n’est pas ressuscitée', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const base = baseEnMemoire(new Set(['a']));
-    const stockage = stockageEnMemoire(new Set([TOMBSTONE_KEY]));
+    const stockage = stockageEnMemoire({ refuserEcriture: (cle) => cle === CLE_DES_TOMBES });
     const b = ouvrir(base, stockage);
     await b.projectSave(entree('b'));
-    stockage.setItem(KEY, JSON.stringify([entree('a'), entree('b')]));
+    stockage.setItem(CLE_DU_MIROIR, JSON.stringify([entree('a'), entree('b')]));
     await b.projectRemove('a');
-    stockage.contenu.set(KEY, JSON.stringify([entree('a'), entree('b')]));
+    stockage.contenu.set(CLE_DU_MIROIR, JSON.stringify([entree('a'), entree('b')]));
     base.contenu.set('a', entree('a'));
     await b.initLibrary();
     expect(ids(b.projectsLoad())).toEqual(['b']);
@@ -142,15 +127,7 @@ describe('ouvrirLaBibliotheque — miroir borné PAR ENTRÉE (#776)', () => {
 
   it('quota dépassé : les entrées les plus volumineuses sortent une à une jusqu’à ce que le miroir s’écrive', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    const contenu = new Map<string, string>();
-    const quota: Stockage = {
-      getItem: (k) => contenu.get(k) ?? null,
-      setItem: (k, v) => {
-        if (v.length > 300_000) throw new Error('quota');
-        contenu.set(k, v);
-      },
-      removeItem: (k) => void contenu.delete(k),
-    };
+    const quota = stockageEnMemoire({ refuserEcriture: (_cle, valeur) => valeur.length > 300_000 });
     const b = ouvrir(baseEnMemoire(), quota);
     await b.projectSave(entree('moyen1', 'x'.repeat(200_000)));
     await b.projectSave(entree('moyen2', 'y'.repeat(250_000)));
@@ -166,7 +143,7 @@ describe('ouvrirLaBibliotheque — entrées refusées (#2404)', () => {
   it('listée refusée, son refus levé au geste, réécrite brute avec l’entrée indésignable', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const stockage = stockageEnMemoire();
-    stockage.setItem(KEY, JSON.stringify([refusee, sansId]));
+    stockage.setItem(CLE_DU_MIROIR, JSON.stringify([refusee, sansId]));
     const b = ouvrir(null, stockage);
     const [listee] = b.projectsLoad();
     expect(listee.id).toBe('vieux');

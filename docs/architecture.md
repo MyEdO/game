@@ -286,9 +286,11 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             son chemin relatif, extension comprise.
                             `garanti.ts` : une valeur que son producteur garantit, absente, lève un
                             défaut interne qui nomme ce qu'on cherchait et sous quel id (`garanti`, #1906).
-                            `stockage.ts` : les ports `Stockage` (sous-ensemble synchrone de `Storage`) et
-                            `Base` (base asynchrone de documents : `lire`, `lireTout`, `ecrire`, `supprimer`),
-                            et `lireDictionnaire`, la lecture d'un dictionnaire JSON appliquée à un `Stockage` (#2404).
+                            `stockage.ts` : les ports `Stockage` (sous-ensemble synchrone de `Storage`) et `Base` (base
+                            asynchrone de documents : `lire`, `lireTout`, `ecrire`, `supprimer`), les accès protégés
+                            `lireLeTexte` et `retirerLaCle`, et les lecteurs JSON appliqués à un `Stockage` : `lireDictionnaire`
+                            et `lireTableau`, avec `lesChaines` (#2404) ; `stockage.testkit.ts`, ses stockages de test (en mémoire, qui lève,
+                            posé en `localStorage`).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.
@@ -398,7 +400,9 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `cascade.ts`, `rollSeam.ts`, `sieges.ts`, `slotsDeJet.ts`, `stepBrand.ts`,
                             `fixedDieMark.ts`, `recapLine.ts`, `partyWipe.ts`, `voyageCadence.ts`,
                             `battleRng.ts`, `bus.ts`, `combat/flowEval.ts`, `combat/advantagePool.ts`,
-                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte), et les flux
+                            `reglesMaison.ts` (verrou des règles maison en partie, lu par tout hôte, et leur pose : jeu
+                            persisté élagué, surcharge sous le verrou), `preferences.ts` (la table des préférences
+                            de confort : forme, défaut, lecture et écriture de leur valeur du moteur), et les flux
                             de jeu ci-dessous. Outils d'auteur purs, lus par l'éditeur et par les tests du
                             contenu : `validateScene.ts` (un projet avant le runtime ; l'hôte y passe ses
                             pistes de musique), `mapQC.ts` (harnais d'atteignabilité d'une carte),
@@ -532,8 +536,13 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             `ExportDeHeros` : lecture contrôlée et élaguée, écriture, mise à jour d'une entrée,
                             export/import d'un héros), `bibliotheque.ts` (l'entrée de la bibliothèque de campagnes
                             `savedProjectSchema` : relecture prouvée, refusée ou indésignable, ce qu'une écriture en
-                            garde, nom d'affichage, campagne lancée d'une entrée) et `formats.generated.ts`
-                            (FORMATS PERSISTÉS, gitignoré)
+                            garde, nom d'affichage, campagne lancée d'une entrée), `save.ts` (la sauvegarde : `SaveGame`, dont le `data` est
+                            `EtatDeJeu` moins `HORS_SAVE`, jamais l'état d'affichage d'un hôte ; `snapshotSave`,
+                            `parseSave`, `metaDeSave`, la forme texte `lireSave` (la save ou la cause de son refus,
+                            `ObsoleteCause`) avec `exporterLaSauvegarde` et `importerLaSauvegarde`, `elaguerSave`,
+                            `chargerLaSave` qui rend l'état de jeu à ouvrir, ses règles
+                            maison et ses retraits, `refusDeSauvegarde` ; règles maison du snapshot coop) et
+                            `formats.generated.ts` (FORMATS PERSISTÉS, gitignoré)
 src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte fait d'une partie, sans écran ni
                             horloge. `partie.ts` (l'erreur structurée d'un geste et sa catégorie, l'en-tête d'une
                             partie, son ouverture : la partie du noyau, le scénario de test lancé, la tenue des jetons
@@ -548,10 +557,17 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             partie, tirés du catalogue et des lecteurs du noyau), `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage), `bibliotheque.ts` (`ouvrirLaBibliotheque` : la procédure de la
+                            retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
+                            `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
+                            clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
+                            `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
+                            lister ; une save d'un autre format ou illisible est REJETÉE et RETIRÉE à la lecture,
+                            son retrait cumulé dans le témoin, que `prendreLesRetraitsDeSauvegardes` consomme pour
+                            le message au joueur de `ui/SaveLoadModal`), `temoin.ts` (le témoin persisté d'un chargement : cumul au témoin déjà posé, prise unique ;
+                            la relecture et l'union des retraits sont à `noyau/persistance/elagage.ts`). `bibliotheque.ts` (`ouvrirLaBibliotheque` : la procédure de la
                             bibliothèque de campagnes sur les ports `Base` et `Stockage` de l'hôte, relus à chaque
-                            appel ; la poignée porte le cache, les tombes en attente et les refus au geste).
-                            `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
+                            appel, sous les réglages de l'hôte (borne du miroir par entrée, causes d'un stockage indisponible) ; la poignée
+                            porte le cache, les tombes en attente et les refus au geste). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
@@ -592,22 +608,17 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               (`gameIso/stage/MondeDeCampagne`)
   stageYaw.ts                 LACET CONTINU de la caméra du stage (#1176) : cible + courant qui y
                               court, `viewYawDeg` (projection) et `viewRot` (cran EFFECTIF du dégagement)
-  saves.ts                    Sauvegarde/chargement de partie (localStorage 3 slots + export/import
-                              JSON). `version` vaut `FORMAT_SAVE` (FORMATS PERSISTÉS, plus bas) ;
-                              une save d'un autre format ou illisible est REJETÉE et RETIRÉE du
-                              stockage par `readSlot`, et le témoin `takeObsoleteNotice` fait afficher
-                              le message au joueur par `ui/SaveLoadModal`. Une save au format courant
-                              qui nomme une règle optionnelle ou un État hors du registre courant SE
-                              CHARGE, élaguée de ces seuls ids par `elaguerSave` (`noyau/persistance/elagage.ts`,
-                              #1463 LD.1), nommés au joueur par `ui/RetraitsDeChargement`.
-                              Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
-                              (`noyau/etat.ts`, snapshotté via `stateFields`) embarque le DOCUMENT SOURCE du
-                              paquet chargé (scènes + carte + narratif + scène d'entrée). Au chargement,
-                              `applyLoadedSave` RÉ-ENREGISTRE toutes ses scènes (`registerScene`) et
-                              RE-DÉRIVE `campaignNarratif` — sans lui, le `sceneRegistry` en mémoire
-                              module ne connaîtrait que l'Arène + la scène courante et les transitions
-                              vers les AUTRES scènes du paquet échoueraient en silence. `campaignNarratif`
-                              reste NON persisté (re-dérivé de `campaignDoc`).
+  saves.ts                    Câblage web des emplacements de sauvegarde : leur stockage
+                              (`stockageDesSauvegardes`, `localStorage`). Procédure : `hote/sauvegardes.ts`
+                              (3 slots + AUTO) ; la forme et les décisions : `noyau/persistance/save.ts`. Le
+                              store LIT le noyau :
+                              `applyLoadedSave` pose ce que rend `chargerLaSave` (élagage #1463 LD.1, nommé
+                              par `ui/RetraitsDeChargement`) sous la session coop courante et remet son
+                              interface comme pour une partie neuve ; `saveGame`/`autoSave` suivent
+                              `refusDeSauvegarde`. Save AUTO-SUFFISANTE (#766) : le slot `campaignDoc`
+                              (`noyau/etat.ts`) embarque le DOCUMENT SOURCE du paquet chargé ; au
+                              chargement, `chargerLaSave` RÉ-ENREGISTRE ses scènes et RE-DÉRIVE
+                              `campaignNarratif`, NON persisté.
   roster.ts                   Câblage web du roster des personnages créés au créateur : son stockage
                               (`stockageDuRoster`, `localStorage`) et le service `persisterLeHerosWeb`. Forme
                               et export/import : `noyau/persistance/roster.ts` (enveloppes `RosterStocke` et
@@ -620,6 +631,9 @@ src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du 
                               `elagage`) sous sa propre clé du même stockage ; `prendreLesTemoinsDuRoster`
                               le lit puis le supprime, au montage du vivier de `ui/PartyScreen`, qui le
                               nomme. Le roster ne voyage PAS dans la save de partie
+  reglesMaison.ts             Câblage web des règles maison : son stockage (`localStorage`) et l'état du
+                              store, sous la procédure `hote/reglesMaison.ts` ;
+                              seule couture du panneau, du harnais de recette et des tests du store.
   projectLibrary.ts           Câblage web de la bibliothèque des projets de campagne de l'éditeur : la poignée
                               `ouvrirLaBibliotheque` (`hote/bibliotheque.ts`) sur la base IndexedDB
                               `wfrp4-library` (`accesBase`, magasin `projects`, source de vérité — supporte les

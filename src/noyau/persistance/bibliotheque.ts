@@ -71,7 +71,7 @@ function entreeRelue(brut: unknown): EntreeListee | null {
   const fautes = validateDocument(savedProjectSchema, brut);
   if (!fautes) return brut as SavedProject;
   const rapport = rapportDeFautes(SUJET_DU_REFUS_D_ENVELOPPE, fautes);
-  console.error('[projectLibrary]', rapport);
+  console.error('[bibliotheque]', rapport);
   const id = idDesignable(brut);
   if (id === null) return null;
   const champs = brut as { label?: unknown; published?: unknown; savedAt?: unknown };

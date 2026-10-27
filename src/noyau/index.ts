@@ -12,8 +12,8 @@ export { argsAvecVerdictLocal, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { LOCALISATIONS_DE_COUP } from '../engine/types';
 export { conditionLabel } from '../data';
-export { CADENCE_MODES, type Cadence } from '../engine/cadence';
-export { refusDesSurcharges } from '../engine/policy';
+export type { Cadence } from '../engine/cadence';
+export { refusDesSurcharges, ruleOverrides, type RuleValue } from '../engine/policy';
 export { actionGate, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, runAction, type EtatDeLaBarre, type ActionCtx, type ActionRunCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
 export { mouvementDuTour } from './mount';
@@ -43,6 +43,12 @@ export { reglagesDesElements, REGLAGES_DE_L_ATTAQUE, REGLAGES_DE_LA_DEFENSE, typ
 export { texteDuMod } from './difficultyText';
 export { avecSigne } from '../engine/types';
 export { lireLeRoster, ecrireLeRoster, rosterAvecLeHeros, type RosterEntry } from './persistance/roster';
-export type { RetraitsDElagage } from './persistance/elagage';
+export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
+export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
+export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
+export {
+  snapshotSave, parseSave, metaDeSave, lireSave, exporterLaSauvegarde, importerLaSauvegarde, chargerLaSave, refusDeSauvegarde,
+  type SaveGame, type SaveMeta, type ObsoleteCause,
+} from './persistance/save';
 export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
 export { ProjetRefuse, type ProjectDoc } from './worldMap';

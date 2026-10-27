@@ -43,8 +43,7 @@
  *      worker, et la bibliothèque tient un cache de module. Un fichier qui laisse un projet, un roster ou
  *      un miroir de bibliothèque le lègue à `initLibrary`/`chargerLeRoster` du fichier suivant : un banc
  *      qui ne remet à zéro qu'en `afterEach` rougit selon l'ordre des fichiers (#2404). Vidés
- *      AVANT chaque test, avec les témoins de retrait des saves
- *      (`takeObsoleteNotice`), des règles maison (`takeHouseRulesNotice`) et des calques
+ *      AVANT chaque test (les témoins de retrait des saves y vivent), avec le témoin des calques
  *      (`__resetTraceLayerForTest`).
  *    - les REGISTRES D'ART du rig (cf. `rigArtRegistrySignatures` plus bas) : objets de module, donc
  *      partagés par tous les fichiers du worker. Un test qui en pose un le remet lui-même : on DÉTECTE
@@ -101,9 +100,7 @@ import { reinitWebglRefusé } from './gameIso/stage/webglSupport';
 import { resetDismissLayers } from './ui/useDismissLayer';
 import { stockageWeb } from './web/stockageWeb';
 import { __resetLibraryForTest } from './state/projectLibrary';
-import { takeObsoleteNotice } from './state/saves';
 import { __resetTraceLayerForTest } from './state/traceLayer';
-import { takeHouseRulesNotice } from './state/houseRules';
 
 // État initial figé UNE fois (le `stringify` est la moitié coûteuse, et le geler à l'init le rend
 // immunisé à toute mutation du gabarit) ; chaque test n'en `parse` qu'une copie fraîche.
@@ -414,8 +411,6 @@ beforeEach(async () => {
 beforeEach(async () => {
   stockageWeb('localStorage')?.clear();
   stockageWeb('sessionStorage')?.clear();
-  takeObsoleteNotice();
-  takeHouseRulesNotice();
   await __resetLibraryForTest();
   await __resetTraceLayerForTest();
 });

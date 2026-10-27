@@ -2,7 +2,7 @@
  * `CodexFocus` — cible d'une ouverture de Codex, FOYER UNIQUE du type partagé.
  *
  * Vit dans `src/state` (et non dans `src/ui/compendium/registry`) car le store (`compendiumFocus`/
- * `codexOverlay`, `store.ts`) ET la persistance (`saves.ts`) le manipulent : la couche `state` ne
+ * `codexOverlay`, `store.ts`) le manipule : la couche `state` ne
  * peut pas importer `src/ui` (règle 3, table `COUCHES`, `scripts/guards/lib/couches.mjs`). L'UI (`CompendiumScreen`) le consomme
  * en aval (ui → state, autorisé).
  *

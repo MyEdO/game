@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
 import { applyEffects } from '../noyau/combatEffects';
 import { deriveChapterRecap, snapshotChapitre } from '../noyau/chapitreRecap';
-import { snapshotSave } from './saves';
+import { snapshotSave } from '../noyau/persistance/save';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -138,7 +138,7 @@ describe('cycle de vie de la borne (#717)', () => {
       objectifsSoldes: [{ id: 'o', text: 'Atteindre Altdorf' }],
       chapitreDepuis: snapshotChapitre([hero('h1', 10)], 0),
     });
-    const save = snapshotSave(get() as unknown as Record<string, unknown>, useGame.getInitialState() as unknown as Record<string, unknown>, '2026-08-31T00:00:00.000Z');
+    const save = snapshotSave(get(), '2026-08-31T00:00:00.000Z');
     expect(save.data.objectifsSoldes).toEqual([{ id: 'o', text: 'Atteindre Altdorf' }]);
     expect(save.data.chapitreDepuis).toEqual({ xpParHeros: { h1: 10 }, vivants: ['h1'], gameTime: 0 });
     expect(save.data.clotureConsommee).toBe(false);

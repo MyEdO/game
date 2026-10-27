@@ -21,18 +21,7 @@ import { makePregens } from '../data/pregens';
 import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
 import { applyEffects } from '../noyau/combatEffects';
 import { netSnapshot, applyNetSnapshot } from './netFlow';
-
-function fakeStorage(): Storage {
-  const m = new Map<string, string>();
-  return {
-    getItem: (k: string) => m.get(k) ?? null,
-    setItem: (k: string, v: string) => void m.set(k, String(v)),
-    removeItem: (k: string) => void m.delete(k),
-    clear: () => m.clear(),
-    key: (i: number) => [...m.keys()][i] ?? null,
-    get length() { return m.size; },
-  } as Storage;
-}
+import { poserLeLocalStorage } from '../lib/stockage.testkit';
 
 /** Scène minimale (heroStart) chargeable par le chemin RÉEL (`loadProject`/`transitionTo`). */
 function scene(id: string): Scene {
@@ -78,7 +67,7 @@ describe('loadProject — la scène d’entrée est une scène du paquet, ou le 
 
 describe('#766 — save de campagne auto-suffisante et rejouable', () => {
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     resetSceneRegistry();
     useGame.setState(useGame.getInitialState());
   });
@@ -137,7 +126,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
   }
 
   beforeEach(() => {
-    (globalThis as { localStorage?: Storage }).localStorage = fakeStorage();
+    poserLeLocalStorage();
     resetSceneRegistry();
     useGame.setState(useGame.getInitialState());
   });
