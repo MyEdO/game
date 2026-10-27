@@ -65,11 +65,11 @@ import { cwdDonne, estAbsoluWindows, estModuleDuDepot, hooksSdkSousWin32, urlDuD
 const ENTREES_FS = {
   access: 1, appendFile: 1, chmod: 1, chown: 1, copyFile: 2, cp: 2, exists: 1, glob: 1, lchmod: 1,
   lchown: 1, link: 2, lstat: 1, lutimes: 1, mkdir: 1, mkdtemp: 1, mkdtempDisposable: 1, open: 1,
-  opendir: 1, readdir: 1, readFile: 1, readlink: 1, realpath: 1, rename: 2, rm: 1, rmdir: 1, stat: 1,
-  statfs: 1, symlink: 2, truncate: 1, unlink: 1, utimes: 1, watch: 1, writeFile: 1,
+  openAsBlob: 1, opendir: 1, readdir: 1, readFile: 1, readlink: 1, realpath: 1, rename: 2, rm: 1, rmdir: 1,
+  stat: 1, statfs: 1, symlink: 2, truncate: 1, unlink: 1, utimes: 1, watch: 1, writeFile: 1,
 }
 /** Sans variante `Sync` ni `fs.promises` ; `Utf8Stream`, constructeur, porte son chemin en option (`OPTIONS_FS`). */
-const SEULES_FS = { createReadStream: 1, createWriteStream: 1, openAsBlob: 1, watchFile: 1, unwatchFile: 1, Utf8Stream: 0 }
+const SEULES_FS = { createReadStream: 1, createWriteStream: 1, watchFile: 1, unwatchFile: 1, Utf8Stream: 0 }
 /** Fonctions de `fs` (nom sans `Sync`) sans chemin à ramener : descripteurs, interne, et classes qui
  *  n'en prennent pas ou ouvrent le leur par `fs.open`, enveloppé (`ReadStream`, `WriteStream`). */
 export const SANS_CHEMIN_FS = new Set([
