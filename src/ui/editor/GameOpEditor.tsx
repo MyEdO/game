@@ -21,7 +21,7 @@ import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { valeursDe } from '../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, deDeTableSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
-import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema } from '../../data/schemas/grammaire/mecanique';
+import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, armourBypassCategorieSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
 import { OP_LABEL, opsMissingRefs } from './refsDOp';
 import { opSummary } from './interne/resumeDOp';
@@ -34,7 +34,7 @@ import { RefField } from '../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from './refFormatLivre';
-import type { TraitPose } from '../../data/schemas/grammaire/reference';
+import type { TraitOctroye, TraitPose } from '../../data/schemas/grammaire/reference';
 import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
@@ -42,7 +42,7 @@ import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
 import type { IconIdInput } from '../icons';
-import { NATURES_D_INFLUENCE, admetLePeche, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
+import { NATURES_D_INFLUENCE, TERMES_DE_JET, admetLePeche, estSansTirage, formuleSansTirageSchema, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { OPTIONAL_RULES } from '../../engine/policy';
 
@@ -172,13 +172,41 @@ const TERME_CONSTANT: Partial<Record<FormulaShape, JsonFormula>> = {
 };
 
 /** DIALECTE d'une position de `Formula` : `general` = `formulaSchema` ; `peche` = `formulaSinSchema` ;
- *  `termeDePeche` = terme de la somme de `formulaSinSchema` (formule générale ou Péché). */
-export type DialecteDeFormule = 'general' | 'peche' | 'termeDePeche';
+ *  `termeDePeche` = terme de la somme de `formulaSinSchema` (formule générale ou Péché) ;
+ *  `sansTirage` = `formuleSansTirageSchema`, sans terme de jet. */
+export type DialecteDeFormule = 'general' | 'peche' | 'termeDePeche' | 'sansTirage';
+/** Dialectes fermés au Péché : leur `FormulaField` n'émet qu'une `Formula` du moteur. */
+type DialecteSansPeche = Exclude<DialecteDeFormule, 'peche' | 'termeDePeche'>;
 
-const admetLeTermeDePeche = (d: DialecteDeFormule): boolean => d !== 'general';
+const admetLeTermeDePeche = (d: DialecteDeFormule): boolean => d === 'peche' || d === 'termeDePeche';
 
-/** Dialecte que porte le schéma d'un champ (`admetLePeche`). */
-const dialecteDuNoeud = (noeud: unknown): DialecteDeFormule => (admetLePeche(noeud) ? 'peche' : 'general');
+/** Formes des termes de jet (`TERMES_DE_JET`), absentes du dialecte `sansTirage`. */
+const FORMES_DE_JET: ReadonlySet<FormulaShape> = new Set(TERMES_DE_JET.map((cle) => FORME_DE_CLE[cle]));
+
+/** Dialecte que porte le schéma d'un champ (`estSansTirage`, `admetLePeche`). */
+const dialecteDuNoeud = (noeud: unknown): DialecteDeFormule => (estSansTirage(noeud) ? 'sansTirage' : admetLePeche(noeud) ? 'peche' : 'general');
+
+/** Dialecte d'un terme de `sum` : la somme de tête de `formulaSinSchema` admet le Péché. */
+const dialecteDesTermes = (d: DialecteDeFormule): DialecteDeFormule => (d === 'sansTirage' ? 'sansTirage' : d === 'peche' ? 'termeDePeche' : 'general');
+
+/** Dialecte d'une sous-formule de `times` ou `minimum`, qu'aucun dialecte n'ouvre au Péché. */
+const dialecteDesFacteurs = (d: DialecteDeFormule): DialecteSansPeche => (d === 'sansTirage' ? 'sansTirage' : 'general');
+
+/** Nœud du champ `chemin` (`trait.value`) sous le nœud d'op, à travers ses enveloppes. */
+function noeudDuChamp(noeud: unknown, chemin: string): unknown {
+  return chemin.split('.').reduce<unknown>((n, cle) => enfantDeCle(n, cle), noeud);
+}
+function enfantDeCle(noeud: unknown, cle: string): unknown {
+  const enfants = enfantsDe(noeud);
+  const direct = enfants.find((e) => e.cle === cle);
+  if (direct) return direct.noeud;
+  for (const e of enfants) {
+    if (e.segment !== '') continue;
+    const trouve = enfantDeCle(e.noeud, cle);
+    if (trouve !== undefined) return trouve;
+  }
+  return undefined;
+}
 
 /** NŒUD de l'op éditée : la VARIANTE de la liste d'ops (`GameOpEditor.noeud`) dont le champ `op`
  *  accepte cette op. Chaque `FormulaField` d'op y lit le nœud de SON champ (`champ`). */
@@ -191,7 +219,7 @@ const accepteLOp = (noeud: unknown, op: string): boolean => {
 };
 
 const varianteDOp = (noeudListe: unknown, op: string): unknown =>
-  noeudListe === undefined ? undefined : payloadDeFamille(noeudListe, op) ?? noeudObjet(noeudListe, (n) => accepteLOp(enfantsDe(n).find((e) => e.cle === 'op')?.noeud, op));
+  payloadDeFamille(noeudListe, op) ?? noeudObjet(noeudListe, (n) => accepteLOp(enfantsDe(n).find((e) => e.cle === 'op')?.noeud, op));
 
 /** Une `Formula` sans terme de Péché est une `Formula` du moteur. */
 const estFormuleGenerale = (f: JsonFormula): f is Formula => !contientLePeche(f);
@@ -247,6 +275,7 @@ const charOfFormula = (f: JsonFormula | undefined): CharKey =>
 type FormulaFieldProps = { label: string; value: JsonFormula | undefined; min?: number } & (
   | { champ?: undefined; dialecte?: undefined; onChange: (f: Formula) => void }
   | { champ: string; dialecte?: undefined; onChange: (f: JsonFormula) => void }
+  | { champ?: undefined; dialecte: DialecteSansPeche; onChange: (f: Formula) => void }
   | { champ?: undefined; dialecte: DialecteDeFormule; onChange: (f: JsonFormula) => void }
 );
 
@@ -254,17 +283,18 @@ export function FormulaField(props: FormulaFieldProps) {
   const { label, value, min } = props;
   const noeudDOp = useContext(NoeudDOpContext);
   const dialecte: DialecteDeFormule = props.dialecte
-    ?? (props.champ !== undefined ? dialecteDuNoeud(enfantsDe(noeudDOp).find((e) => e.cle === props.champ)?.noeud) : 'general');
+    ?? (props.champ !== undefined ? dialecteDuNoeud(noeudDuChamp(noeudDOp, props.champ)) : 'general');
   const onChange = (f: Formula) => props.onChange(f);
   const emet = (f: JsonFormula): void => {
     if (estFormuleGenerale(f)) props.onChange(f);
     else if (props.champ !== undefined) props.onChange(f);
-    else if (props.dialecte !== undefined) props.onChange(f);
+    else if (props.dialecte === 'peche' || props.dialecte === 'termeDePeche') props.onChange(f);
     else throw new Error(`FormulaField : terme de Péché émis hors de son dialecte (${JSON.stringify(f)})`);
   };
   const shape = shapeOf(value);
   const setShape = (s: FormulaShape) => { if (s !== shape) emet(formulaForShape(s, value)); };
-  const formes = (Object.keys(LIBELLE_DE_FORME) as FormulaShape[]).filter((s) => s !== 'peche' || admetLeTermeDePeche(dialecte));
+  const formes = (Object.keys(LIBELLE_DE_FORME) as FormulaShape[])
+    .filter((s) => (s !== 'peche' || admetLeTermeDePeche(dialecte)) && !(dialecte === 'sansTirage' && FORMES_DE_JET.has(s)));
   return (
     <label className="dr fml-field">
       {label}
@@ -304,9 +334,9 @@ export function FormulaField(props: FormulaFieldProps) {
             facteurs sont édités par le MÊME `FormulaField` (récursif) — aucun des deux n'est un littéral forcé. */}
         {shape === 'times' && typeof value === 'object' && value != null && 'times' in value && (
           <span className="fml-dice">
-            <FormulaField label="" value={value.times.of} onChange={(of) => emet({ times: { of, factor: value.times.factor } })} />
+            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.times.of} onChange={(of: JsonFormula) => emet({ times: { of, factor: value.times.factor } })} />
             ×
-            <FormulaField label="" value={value.times.factor} onChange={(factor) => emet({ times: { of: value.times.of, factor } })} />
+            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.times.factor} onChange={(factor: JsonFormula) => emet({ times: { of: value.times.of, factor } })} />
           </span>
         )}
         {/* `minimum` = BORNE BASSE de la formule enveloppée (AA 07 l.113) : `of` s'édite par le MÊME
@@ -316,7 +346,8 @@ export function FormulaField(props: FormulaFieldProps) {
             <NumberField variant="nu" label="minimum" title="minimum" min={0} value={value.minimum}
               onChange={(minimum) => onChange({ minimum, of: value.of })} />
             ≤
-            <FormulaField label="" value={value.of} min={min} onChange={(of) => onChange({ minimum: value.minimum, of })} />
+            <FormulaField label="" dialecte={dialecteDesFacteurs(dialecte)} value={value.of} min={min}
+              onChange={(of: Formula) => onChange({ minimum: value.minimum, of })} />
           </span>
         )}
         {/* `sum` = COMPOSITION de termes (« 1d10 + (pions − 1) », LDB 16 l.84) : chaque terme est un
@@ -328,7 +359,7 @@ export function FormulaField(props: FormulaFieldProps) {
             {value.sum.map((terme, i) => (
               <span key={i} className="fml-dice">
                 {i > 0 && '+'}
-                <FormulaField label="" dialecte={dialecte === 'peche' ? 'termeDePeche' : 'general'} value={terme}
+                <FormulaField label="" dialecte={dialecteDesTermes(dialecte)} value={terme}
                   onChange={(t: JsonFormula) => emet({ sum: value.sum.map((x, j) => (j === i ? t : x)) })} />
                 <button type="button" className="btn small danger" title="retirer ce terme" aria-label="retirer ce terme"
                   onClick={() => emet({ sum: value.sum.filter((_, j) => j !== i) })}>−</button>
@@ -426,13 +457,13 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     // L'Indice naît à 1 : le 6 du Dôme est la valeur RAW de CE sort (`LDB 47 l.410`), pas un défaut de
     // l'op — et le Trait `protection` déclare son Indice sans valeur (`traits.json`, `indice.label`).
     // Aucune zone : elle vient de la ligne « Cible » du sort (ZdE), pas de l'op.
-    case 'domeWard': return { op: 'domeWard', traitId: '', indice: 1 };
+    case 'domeWard': return { op: 'domeWard', trait: { id: '', value: 1 } };
     case 'attackWardFM': return { op: 'attackWardFM' };
     case 'grantWeapon': return { op: 'grantWeapon', label: '', damage: { bonusOf: 'force-mentale' } };
     case 'grantNaturalWeapon': return { op: 'grantNaturalWeapon', label: '', damage: 3 };
     case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
-    case 'grantTrait': return { op: 'grantTrait', traitId: '' };
-    case 'removeTrait': return { op: 'removeTrait', traitId: '' };
+    case 'grantTrait': return { op: 'grantTrait', trait: { id: '' } };
+    case 'removeTrait': return { op: 'removeTrait', trait: { id: '' } };
     case 'grantPsychTrait': return { op: 'grantPsychTrait', psychType: '' };
     case 'removePsychTrait': return { op: 'removePsychTrait' };
     case 'grantTalent': return { op: 'grantTalent', talent: { id: '' } };
@@ -593,6 +624,39 @@ const relireTraitsAjoutes = (texte: string, avant: TraitPose[] | undefined): Tra
   const a = relireTraits(texte.split(',').map((t) => t.trim()).filter(Boolean), avant ?? []);
   return a.length ? a : undefined;
 };
+
+/** Le Trait octroyé d'un `grantTrait` en chaîne de livre (« Haine (Humains) »), relu par `relireTraits`
+ *  contre la pose courante ; un Indice formulé (non numérique) se saisit à part (`FormulaField`) et
+ *  survit à la relecture d'une chaîne qui n'en porte pas. */
+const traitOctroyeEnChaine = (t: TraitOctroye | undefined): string =>
+  t?.id ? formatTrait({ ...t, value: typeof t.value === 'number' ? t.value : undefined }) : '';
+const relireTraitOctroye = (texte: string, avant: TraitOctroye | undefined): TraitOctroye => {
+  const { value, ...pose } = avant ?? { id: '' };
+  const indice = typeof value === 'number' ? { value } : {};
+  const [relu] = relireTraits(texte.trim() ? [texte.trim()] : [], pose.id ? [{ ...pose, ...indice }] : []);
+  if (!relu) return { id: '' } as TraitOctroye;
+  return sansClesVides({ ...relu, value: relu.value ?? (typeof value === 'number' ? undefined : value) });
+};
+
+/** Le Trait octroyé d'une op (`grantTrait`, `domeWard`) : sa saisie de livre et son Indice formulé, au
+ *  dialecte du nœud `trait.value` (`formuleSansTirageSchema`). `indiceRequis` : l'Indice ne se décoche pas. */
+function TraitOctroyeFields({ trait, indiceRequis, indiceMin, onChange }: { trait: TraitOctroye; indiceRequis: boolean; indiceMin: number; onChange: (t: TraitOctroye) => void }) {
+  const majIndice = (value: TraitOctroye['value']) => onChange(sansClesVides({ ...trait, value }));
+  return (
+    <>
+      <SaisieEnBrouillon
+        ariaLabel="Trait octroyé" placeholder="Trait octroyé (ex. Haine (Humains))" value={trait}
+        afficher={traitOctroyeEnChaine} relire={relireTraitOctroye} onChange={onChange} />
+      {!indiceRequis && (
+        <label className="dr"><input type="checkbox" checked={trait.value != null} onChange={(e) => majIndice(e.target.checked ? 1 : undefined)} /> Indice</label>
+      )}
+      {trait.value != null && (
+        <FormulaField label="Indice" champ="trait.value" value={trait.value} min={indiceMin}
+          onChange={(value) => majIndice(formuleSansTirageSchema.parse(value))} />
+      )}
+    </>
+  );
+}
 
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
   const identite = useId();
@@ -835,19 +899,27 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {op.op === 'grantTrait' && (
           <>
-            <RefField cfg={{ ds: 'traits', single: true }} fieldKey="Trait" value={o.traitId ?? ''} onChange={(v) => upd({ traitId: (v as string) ?? '' })} />
-            {/* `arg` = l'argument IMPRIMÉ du Trait (Haine (Skavens)) — prose d'authoring, hors registre. */}
-            <input placeholder="argument (ex. Skavens)" value={o.arg ?? ''} onChange={(e) => upd({ arg: e.target.value || undefined })} />
-            <label className="dr"><input type="checkbox" checked={o.indice != null} onChange={(e) => upd({ indice: e.target.checked ? 1 : undefined })} /> Indice</label>
-            {o.indice != null && <FormulaField label="Valeur" champ="indice" value={o.indice} min={0} onChange={(indice) => upd({ indice })} />}
+            <TraitOctroyeFields trait={op.trait} indiceRequis={false} indiceMin={0} onChange={(trait) => upd({ trait })} />
+            <label className="dr">Cible
+              <select aria-label="Cible" value={op.cible?.table.id ?? ''}
+                onChange={(e) => upd(e.target.value
+                  ? { cible: { pick: op.cible?.pick ?? 1, table: { id: e.target.value } }, trait: sansClesVides({ ...op.trait, arg: undefined }) }
+                  : { cible: undefined })}>
+                <option value="">posée par le Trait</option>
+                {Object.entries(valeursDe(tablesDeCiblesSchema) ?? {}).map(([k, l]) => <option key={k} value={k}>tirée sur {l}</option>)}
+              </select>
+            </label>
+            {op.cible != null && (
+              <label className="dr">Tirages
+                <NumberField variant="nu" label="Nombre de Cibles tirées" min={1} value={op.cible.pick}
+                  onChange={(n) => upd({ cible: { ...op.cible, pick: Math.max(1, n ?? 1) } })} />
+              </label>
+            )}
           </>
         )}
         {op.op === 'domeWard' && (
-          <>
-            {/* AUCUN champ de zone : la ZdE du Dôme se règle dans la CIBLE du sort (un seul endroit). */}
-            <RefField cfg={{ ds: 'traits', single: true }} fieldKey="Trait" value={o.traitId ?? ''} onChange={(v) => upd({ traitId: (v as string) ?? '' })} />
-            <FormulaField label="Indice" champ="indice" value={o.indice ?? 1} min={1} onChange={(indice) => upd({ indice })} />
-          </>
+          // AUCUN champ de zone : la ZdE du Dôme se règle dans la CIBLE du sort (un seul endroit).
+          <TraitOctroyeFields trait={op.trait} indiceRequis indiceMin={1} onChange={(trait) => upd({ trait })} />
         )}
         {op.op === 'grantTalent' && (
           <RefField cfg={{ ds: 'talents', single: true, spec: true }} fieldKey="Talent"
@@ -1018,8 +1090,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
 }
 
 /** `noeud` : schéma zod de la liste d'ops éditée ; chaque `Formula` d'op y lit le dialecte du nœud de
- *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `formulaSchema` partout. */
-export function GameOpEditor({ ops, onChange, noeud }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
+ *  SON champ, dans la variante de son op (`varianteDOp`). Absent = `gameOpSchema`, le vocabulaire du moteur. */
+export function GameOpEditor({ ops, onChange, noeud = gameOpSchema }: { ops: GameOp[]; onChange: (ops: GameOp[]) => void; noeud?: unknown }) {
   const swap = (i: number, j: number) => {
     if (j < 0 || j >= ops.length) return;
     const next = [...ops];

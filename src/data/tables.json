@@ -74,7 +74,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "grand"
+            "trait": {
+              "id": "grand"
+            }
           }
         ]
       },
@@ -85,9 +87,11 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "souffle",
-            "indice": 7,
-            "arg": "Corrosion et Poison"
+            "trait": {
+              "id": "souffle",
+              "arg": "Corrosion et Poison",
+              "value": 7
+            }
           }
         ]
       },
@@ -98,8 +102,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "demoniaque",
-            "indice": 7
+            "trait": {
+              "id": "demoniaque",
+              "value": 7
+            }
           }
         ]
       },
@@ -110,8 +116,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "maladie",
-            "arg": "Pourriture de Nurgle"
+            "trait": {
+              "id": "maladie"
+            }
           }
         ]
       },
@@ -122,8 +129,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "perturbant",
-            "arg": "Puanteur"
+            "trait": {
+              "id": "perturbant",
+              "arg": "Puanteur"
+            }
           }
         ]
       },
@@ -134,8 +143,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "peur",
-            "indice": 3
+            "trait": {
+              "id": "peur",
+              "value": 3
+            }
           }
         ]
       },
@@ -146,7 +157,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "parasite"
+            "trait": {
+              "id": "parasite"
+            }
           }
         ]
       },
@@ -168,7 +181,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "regeneration"
+            "trait": {
+              "id": "regeneration"
+            }
           }
         ]
       },
@@ -179,7 +194,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "vomissement"
+            "trait": {
+              "id": "vomissement"
+            }
           }
         ]
       }
@@ -202,8 +219,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "demoniaque",
-            "indice": 6
+            "trait": {
+              "id": "demoniaque",
+              "value": 6
+            }
           }
         ]
       },
@@ -214,8 +233,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "perturbant",
-            "arg": "Allure étrange"
+            "trait": {
+              "id": "perturbant",
+              "arg": "Allure étrange"
+            }
           }
         ]
       },
@@ -226,8 +247,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "peur",
-            "indice": 3
+            "trait": {
+              "id": "peur",
+              "value": 3
+            }
           }
         ]
       },
@@ -238,7 +261,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "frenesie"
+            "trait": {
+              "id": "frenesie"
+            }
           }
         ]
       },
@@ -249,7 +274,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "immunite-psychologique"
+            "trait": {
+              "id": "immunite-psychologique"
+            }
           }
         ]
       },
@@ -271,7 +298,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "insensible-a-la-douleur"
+            "trait": {
+              "id": "insensible-a-la-douleur"
+            }
           }
         ]
       },
@@ -282,7 +311,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "regard-petrifiant"
+            "trait": {
+              "id": "regard-petrifiant"
+            }
           }
         ]
       },
@@ -293,9 +324,11 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "langue-prehensile",
-            "indice": 6,
-            "range": 6
+            "trait": {
+              "id": "langue-prehensile",
+              "value": 6,
+              "range": 6
+            }
           }
         ]
       },
@@ -306,7 +339,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "venin"
+            "trait": {
+              "id": "venin"
+            }
           }
         ]
       }
@@ -329,9 +364,11 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "souffle",
-            "indice": 9,
-            "arg": "Feu"
+            "trait": {
+              "id": "souffle",
+              "value": 9,
+              "arg": "feu"
+            }
           }
         ]
       },
@@ -342,8 +379,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "demoniaque",
-            "indice": 9
+            "trait": {
+              "id": "demoniaque",
+              "value": 9
+            }
           }
         ]
       },
@@ -354,7 +393,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "ethere"
+            "trait": {
+              "id": "ethere"
+            }
           }
         ]
       },
@@ -365,8 +406,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "peur",
-            "indice": 3
+            "trait": {
+              "id": "peur",
+              "value": 3
+            }
           }
         ]
       },
@@ -377,8 +420,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "vol",
-            "indice": 9
+            "trait": {
+              "id": "vol",
+              "value": 9
+            }
           }
         ]
       },
@@ -389,7 +434,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "magique"
+            "trait": {
+              "id": "magique"
+            }
           }
         ]
       },
@@ -400,8 +447,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "resistance-a-la-magie",
-            "indice": 2
+            "trait": {
+              "id": "resistance-a-la-magie",
+              "value": 2
+            }
           }
         ]
       },
@@ -434,8 +483,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "lanceur-de-sorts",
-            "arg": "au choix"
+            "trait": {
+              "id": "lanceur-de-sorts",
+              "arg": "au choix"
+            }
           }
         ]
       }
@@ -458,8 +509,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "demoniaque",
-            "indice": 8
+            "trait": {
+              "id": "demoniaque",
+              "value": 8
+            }
           }
         ]
       },
@@ -470,8 +523,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "demoniaque",
-            "indice": 8
+            "trait": {
+              "id": "demoniaque",
+              "value": 8
+            }
           }
         ]
       },
@@ -482,7 +537,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "elite"
+            "trait": {
+              "id": "elite"
+            }
           }
         ]
       },
@@ -493,7 +550,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "rapide"
+            "trait": {
+              "id": "rapide"
+            }
           }
         ]
       },
@@ -504,8 +563,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "peur",
-            "indice": 3
+            "trait": {
+              "id": "peur",
+              "value": 3
+            }
           }
         ]
       },
@@ -516,8 +577,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "vol",
-            "indice": 8
+            "trait": {
+              "id": "vol",
+              "value": 8
+            }
           }
         ]
       },
@@ -528,7 +591,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "rage"
+            "trait": {
+              "id": "rage"
+            }
           }
         ]
       },
@@ -539,8 +604,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "cornes",
-            "indice": 10
+            "trait": {
+              "id": "cornes",
+              "value": 10
+            }
           }
         ]
       },
@@ -551,7 +618,9 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "magique"
+            "trait": {
+              "id": "magique"
+            }
           }
         ]
       },
@@ -562,8 +631,10 @@
         "ops": [
           {
             "op": "grantTrait",
-            "traitId": "attaque-caudale",
-            "indice": 10
+            "trait": {
+              "id": "attaque-caudale",
+              "value": 10
+            }
           }
         ]
       }
@@ -1692,7 +1763,9 @@
           },
           {
             "op": "grantTrait",
-            "traitId": "arboricole"
+            "trait": {
+              "id": "arboricole"
+            }
           }
         ]
       },

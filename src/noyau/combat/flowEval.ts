@@ -11,7 +11,7 @@
 import { type Combatant } from '../../engine/types';
 import { buildActorView } from '../../engine/actorView';
 import { immunityTypes } from '../../engine/traits/dispatch';
-import { groupMatch } from '../../engine/groups';
+import { groupMatch, groupesDe } from '../../engine/groups';
 import { applyOps, type GameOp, type OpsCtx } from '../../engine/ops';
 import { certainFlowOps, evalCondition, flowHasOpADe, leafOpsCtx, type Condition, type ConditionCtx, type FlowTest, flowTestGateOpen, flowHasTest } from '../../engine/flowCore';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
@@ -175,7 +175,7 @@ export function branchBlockingEntity(
  *  inline (resolveInlineFlowTest) la partagent → décision de gate identique. */
 export function flowTestGated(ft: FlowTest, c: Combatant, cc: ConditionCtx): boolean {
   return (ft.unlessImmune != null && immunityTypes(c.traits ?? []).some((ty) => ty.includes(ft.unlessImmune!.toLowerCase())))
-    || (ft.onlyGroups != null && !ft.onlyGroups.some((g) => groupMatch(g, c.groups ?? [])))
-    || (ft.exceptGroups != null && ft.exceptGroups.some((g) => groupMatch(g, c.groups ?? [])))
+    || (ft.onlyGroups != null && !ft.onlyGroups.some((g) => groupMatch(g, groupesDe(c))))
+    || (ft.exceptGroups != null && ft.exceptGroups.some((g) => groupMatch(g, groupesDe(c))))
     || !flowTestGateOpen(ft, cc);
 }

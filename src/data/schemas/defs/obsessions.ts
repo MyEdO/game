@@ -1,18 +1,20 @@
-import { nommerChamps, metaDesChamps } from '../grammaire/meta';
+import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /** EDOC 12 l.170 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { plageSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
 
 export const file = 'obsessions.json';
 export const famille = 'config';
 
-/** Une rangée du 2d10. */
-const obsessionEntrySchema = nommerChamps(z.strictObject({
-  ...plageSchema.shape,
-  id: z.string(),
-  label: z.string(),
-}), { ...metaDesChamps(plageSchema, { exigees: true }), id: { label: 'Identifiant' }, label: { label: 'Libellé' } });
+const plage = metaDesChamps(plageSchema, { exigees: true });
+
+/** Une rangée du 2d10 : la référence du Groupe qu'elle désigne, à sa fourchette. EDOC 12 l.217, l.241. */
+export const obsessionEntrySchema = ref('groupe', {
+  min: nommerNoeud(z.number(), { nom: plage.min.label }),
+  max: nommerNoeud(z.number(), { nom: plage.max.label }),
+});
 
 const doc = document(
   'obsessions',

@@ -1,13 +1,16 @@
 /**
- * Tableau des OBSESSIONS (EDOC 12, folio 69) — déterminant de Cible des mutations mentales qui
- * l'exigent (« Haine sporadique » → Haine (Cible) ; « Terribles phobies » → Effrayé (Cible)).
+ * Tableau des OBSESSIONS (EDOC 12 l.170) — table de Cibles des mutations mentales « Haine sporadique »
+ * (EDOC 12 l.217) et « Terribles phobies » (EDOC 12 l.241) : chaque rangée désigne un Groupe.
  */
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import { OBSESSIONS, OBSESSIONS_SOURCE, rollObsession } from './obsessions';
+import { OBSESSIONS, OBSESSIONS_SOURCE, TIRAGE_DE_CIBLE } from './obsessions';
 import { attachMutation } from '../engine/corruption';
+import { gameOpSchema } from './schemas/grammaire/mecanique';
+import { parsePsychTraits } from '../engine/psych/registry';
 import { mutationById } from './mutations';
+import { findGroupById } from './index';
 import type { Combatant } from '../engine/types';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
@@ -21,11 +24,11 @@ function hero(p: Partial<Combatant> = {}): Combatant {
   } as Combatant;
 }
 
-describe('Tableau des Obsessions (EDOC 12 folio 69)', () => {
-  it('couvre exactement 2d10 = 2..20 (19 entrées), source EDOC folio 69', () => {
-    expect(OBSESSIONS.length).toBe(19);
-    expect(OBSESSIONS[0]).toMatchObject({ min: 2, max: 2 });
-    expect(OBSESSIONS[OBSESSIONS.length - 1]).toMatchObject({ min: 20, max: 20 });
+const groupeDuJet = (jet: number): string => findTableEntry([...OBSESSIONS], jet).id;
+
+describe('Tableau des Obsessions (EDOC 12 l.170)', () => {
+  it('couvre 2d10 sans trou ni chevauchement, source EDOC folio 69', () => {
+    for (let jet = 2; jet <= 20; jet++) expect(OBSESSIONS.filter((e) => e.min <= jet && jet <= e.max)).toHaveLength(1);
     expect(OBSESSIONS_SOURCE).toEqual({
       book: 'ennemi-dans-l-ombre-compagnon',
       page: 69,
@@ -33,38 +36,56 @@ describe('Tableau des Obsessions (EDOC 12 folio 69)', () => {
     });
   });
 
-  it('findTableEntry mappe les bornes (verbatim)', () => {
-    expect(findTableEntry([...OBSESSIONS], 2).label).toBe('Objets inanimés');
-    expect(findTableEntry([...OBSESSIONS], 8).label).toBe('Monstres');
-    expect(findTableEntry([...OBSESSIONS], 11).label).toBe('Humains');
-    expect(findTableEntry([...OBSESSIONS], 20).label).toBe('Bonheur');
+  it('chaque rangée désigne un Groupe de `groups.json`', () => {
+    expect(OBSESSIONS.filter((e) => !findGroupById(e.id)).map((e) => e.id)).toEqual([]);
   });
 
-  it('rollObsession (2d10) renvoie un libellé du Tableau', () => {
-    const labels = new Set(OBSESSIONS.map((e) => e.label));
-    for (let s = 0; s < 30; s++) expect(labels.has(rollObsession(makeRNG(s)))).toBe(true);
+  it('les bornes désignent le Groupe imprimé', () => {
+    expect(groupeDuJet(2)).toBe('objets-inanimes');
+    expect(groupeDuJet(8)).toBe('monstres');
+    expect(groupeDuJet(20)).toBe('bonheur');
+  });
+
+  it('le tirage (2d10) rend l’id d’une rangée du Tableau', () => {
+    const ids = new Set(OBSESSIONS.map((e) => e.id));
+    for (let s = 0; s < 30; s++) expect(ids.has(TIRAGE_DE_CIBLE.obsessions(makeRNG(s)))).toBe(true);
   });
 });
 
-describe('Cible d’une mutation déterminée par les Obsessions', () => {
-  it('« Haine sporadique » → Trait de créature Haine avec une Cible tirée sur les Obsessions', () => {
-    const m = mutationById('haine-sporadique');
-    expect(m).toBeTruthy();
+describe('Cible d’une mutation tirée sur les Obsessions', () => {
+  it('« Haine sporadique » → Haine (Cible) dont la Cible tirée est un Groupe effectif (EDOC 12 l.217)', () => {
     const c = hero();
-    attachMutation(c, m!, makeRNG(7));
+    attachMutation(c, mutationById('haine-sporadique')!, makeRNG(7));
     const haine = (c.traits ?? []).find((t) => t.id === 'haine');
-    expect(haine).toBeTruthy();
-    expect(typeof haine!.arg).toBe('string');
-    expect(new Set(OBSESSIONS.map((e) => e.label)).has(haine!.arg as string)).toBe(true);
+    expect(OBSESSIONS.some((e) => e.id === haine?.arg)).toBe(true);
+    expect(parsePsychTraits(c.traits ?? []).psychTraits).toContainEqual({ type: 'haine', cible: haine!.arg });
   });
 
-  it('« Terribles phobies » → Trait de créature Effrayé avec une Cible tirée sur les Obsessions', () => {
-    const m = mutationById('terribles-phobies');
-    expect(m).toBeTruthy();
+  it('« Terribles phobies » → Effrayé (Cible) dont la Cible tirée est un Groupe effectif (EDOC 12 l.241)', () => {
     const c = hero();
-    attachMutation(c, m!, makeRNG(3));
+    attachMutation(c, mutationById('terribles-phobies')!, makeRNG(3));
     const effraye = (c.traits ?? []).find((t) => t.id === 'effraye');
-    expect(effraye).toBeTruthy();
-    expect(new Set(OBSESSIONS.map((e) => e.label)).has(effraye!.arg as string)).toBe(true);
+    expect(OBSESSIONS.some((e) => e.id === effraye?.arg)).toBe(true);
+    expect(parsePsychTraits(c.traits ?? []).psychTraits).toContainEqual({ type: 'phobie', cible: effraye!.arg, indice: 0 });
+  });
+});
+
+describe('Cible tirée d’un `grantTrait` — contre-épreuves (EDOC 12 l.217, l.241)', () => {
+  const tirage = { pick: 1, table: { id: 'obsessions' } };
+  const chemins = (o: unknown) => {
+    const r = gameOpSchema.safeParse(o);
+    return r.success ? [] : r.error.issues.map((i) => i.path.join('.'));
+  };
+
+  it('une Cible posée ET tirée est refusée', () => {
+    expect(chemins({ op: 'grantTrait', trait: { id: 'haine', arg: 'humain' }, cible: tirage })).toEqual(['cible']);
+  });
+
+  it('un Trait dont le catalogue de spécialisations n’est pas les Groupes refuse la Cible tirée', () => {
+    expect(chemins({ op: 'grantTrait', trait: { id: 'morsure' }, cible: tirage })).toEqual(['cible']);
+  });
+
+  it('un Trait dont le catalogue de spécialisations est les Groupes l’admet', () => {
+    expect(chemins({ op: 'grantTrait', trait: { id: 'haine' }, cible: tirage })).toEqual([]);
   });
 });

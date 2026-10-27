@@ -377,6 +377,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     'src/data/advancementCosts.json': /ne couvrent pas/,
     'src/data/ambiance.json': /doivent croître STRICTEMENT/,
     'src/data/naval-progression.json': /ne couvrent pas/,
+    'src/data/obsessions.json': /est absent du catalogue des groupes/,
     'src/data/structure-criticals.json': /ne couvrent pas/,
     'src/data/teintesJeu.json': /Clé non reconnue/,
     'src/data/defauts-de-compilation.json': null,

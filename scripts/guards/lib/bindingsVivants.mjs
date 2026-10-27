@@ -64,7 +64,7 @@ function entrees(corps) {
 
 /**
  * Le NOM SURVEILLÉ d'une entrée `clé: valeur` du littéral `ARRAYS`, selon la FORME de sa valeur :
- *  - IDENTIFIANT NU (`axes: allAxes`, `obsessions: OBSESSIONS as unknown as …`) → cet identifiant,
+ *  - IDENTIFIANT NU (`axes: allAxes`, `obsessions: OBSESSIONS as ObsessionEntry[]`) → cet identifiant,
  *    c'est lui que les modules importent ;
  *  - MEMBRE (`shipHullSizes: shipConstruction.standard`) → l'objet PORTEUR, vivant et importable ;
  *  - APPEL (`miscastMinor: miscastEntries('miscast-mineure')`) → la CLÉ. Aucun binding n'existe sous

@@ -828,8 +828,10 @@
     "casterOps": [
       {
         "op": "grantTrait",
-        "traitId": "peur",
-        "indice": 1,
+        "trait": {
+          "id": "peur",
+          "value": 1
+        },
         "durationRounds": {
           "dice": {
             "n": 1,

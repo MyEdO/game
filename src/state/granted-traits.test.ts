@@ -79,7 +79,7 @@ describe('contribution psy d’un Trait accordé : retrait PAR PROVENANCE (#1853
 describe('op grantTrait (ops) + expiration de fin de Round', () => {
   it('Effrayant : Peur 1 (+1 par +3 DR) — Indice échelonné au DR du jet', () => {
     const c = dummy({});
-    applyOps(c, [{ op: 'grantTrait', traitId: 'peur', indice: 1, indicePerSL: { every: 3, amount: 1 } }], { rng: desDuTest,
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'peur', value: 1 }, indicePerSL: { every: 3, amount: 1 } }], { rng: desDuTest,
       label: 'Effrayant', defaultDurationRounds: 4, sl: 6,
     });
     expect(c.traits).toContainEqual({ id: 'peur', value: 3 }); // 1 + ⌊6/3⌋
@@ -89,7 +89,7 @@ describe('op grantTrait (ops) + expiration de fin de Round', () => {
 
   it('Envol : Vol (Agilité) — l’Indice est l’Agilité du lanceur ; expire en fin de Round', () => {
     const c = dummy({}); // Ag 35
-    applyOps(c, [{ op: 'grantTrait', traitId: 'vol', indice: { charOf: 'agilite' } }], { rng: desDuTest,
+    applyOps(c, [{ op: 'grantTrait', trait: { id: 'vol', value: { charOf: 'agilite' } } }], { rng: desDuTest,
       label: 'Envol', defaultDurationRounds: 1,
     });
     expect(hasTrait(c.traits, 'vol')).toBe(true);

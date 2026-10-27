@@ -5,6 +5,7 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { isFrenzied } from '../../engine/psychology';
 import { psychDRAdjust } from '../../engine/combat';
+import { groupesDe } from '../../engine/groups';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
 
@@ -59,7 +60,7 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
     const haine = (E.psychState ?? []).find((p) => p.type === 'haine');
     expect(haine).toBeTruthy();
     expect(haine!.active).toBe(true);
-    expect(haine!.cible).toBe(H.groups?.[0]); // « envers ses adversaires en combat rapproché »
+    expect(haine!.cible).toBe(groupesDe(H)[0]); // « envers ses adversaires en combat rapproché »
     // La Haine FAIT quelque chose : +1 DR aux Tests de Combat contre le groupe haï (LDB 21, psychDRAdjust).
     expect(psychDRAdjust(E, H)).toBe(1);
     expect(useGame.getState().battle!.log.some((l) => l.text.includes('Haine'))).toBe(true);
@@ -102,6 +103,7 @@ describe('Rage → Haine (LDB 85 l.281-283, branche « minimum 1 »)', () => {
   it('adversaire engagé SANS Groupe modélisable → pas de dépense (garde groupMatch)', () => {
     const { H, E } = setup();
     (H as Combatant).groups = [];
+    H.career = undefined;
     E.advantage = 2;
     auTourDe(E.id);
     runEnemyAI(useGame.getState, useGame.setState, E.id);

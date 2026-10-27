@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { creatures, findCareerById, findClassById, findGodById, findTalentById, findTraitById } from '../data';
-import { groupsFor } from './groups';
+import { groupesDe } from './groups';
 import { norm } from '../lib/normalize';
 
 /**
@@ -80,7 +80,7 @@ describe('#1357 — portage des Groupes vers la donnée : parité avec les table
       const categorie = groupeDuDossier(c.folder);
       const extrasAvant = (c.grantGroups ?? []).filter((g) => g !== categorie);
       const avant = groupsForAvant({ folder: c.folder, extras: extrasAvant, traits: c.traits, talents });
-      const apres = groupsFor({ extras: c.grantGroups, traits: c.traits, talents });
+      const apres = groupesDe({ groups: c.grantGroups, traits: c.traits, talents });
       if (avant.join(',') !== apres.join(',')) {
         ecarts.push(`${c.id} [${c.folder}] : tables [${avant}] ≠ donnée [${apres}]`);
       }

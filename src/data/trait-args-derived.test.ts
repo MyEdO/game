@@ -25,14 +25,12 @@
  * des Traits par un bonus », Grand Loup/Griffon ZI). Ces notes n'ont ni `id` ni `value` de premier niveau
  * (le bonus vit sous `grant`) → naturellement hors des invariants #1/#2, sans exclusion ad hoc.
  *
- * Les instances CONSTRUITES par op (`grantTrait { traitId, arg? }`, dans mutations/sorts/traits/États/
- * maladies) sont balayées par l'invariant #3 (même résolution, fermée ET ouverte, que #2). Toute dérive
- * FUTURE (un `value` sans `indice`, un `arg` pris pour un libellé, un `grantTrait` à arg libellé) fait
- * échouer la garde en LISTANT les fautifs.
- *   3. `grantTrait { traitId, arg }` (ops) : l'arg RÉSOUT dans le registre du trait ciblé.  → « op label-as-id »
+ * Le Trait OCTROYÉ par op (`grantTrait.trait`) est un `traitOctroyeSchema` : le parse lui oppose les
+ * refus de `traitInstanceSchema`. Toute dérive FUTURE (un `value` sans `indice`, un `arg` pris pour un
+ * libellé) fait échouer la garde en LISTANT les fautifs.
  */
 import { describe, it, expect } from 'vitest';
-import { traits, creatures, mutations, spells, etats, maladies, type TraitData } from './index';
+import { traits, creatures, type TraitData } from './index';
 import { testScenarios } from '../scenes/test-scenarios';
 import { parseProject } from '../noyau/worldMap';
 import areneProjetJson from '../scenes/arene/arene-projet.json';
@@ -135,25 +133,5 @@ describe('schéma d\'argument des traits — chaque instance est COUVERTE par la
       for (const faute of fautesDArg(def, inst.arg)) offenders.push(`${where} → ${faute}`);
     }
     expect(offenders, `arg non résolu (libellé pris pour un id ?) :\n${offenders.join('\n')}`).toEqual([]);
-  });
-
-  it('grantTrait { traitId, arg } (mutations/sorts/traits/États/maladies) : l\'arg RÉSOUT dans le registre du trait (fermé ou ouvert)', () => {
-    const offenders: string[] = [];
-    const walk = (node: unknown, where: string): void => {
-      if (Array.isArray(node)) { for (const n of node) walk(n, where); return; }
-      if (!node || typeof node !== 'object') return;
-      const o = node as Record<string, unknown>;
-      if (o.op === 'grantTrait' && typeof o.traitId === 'string' && typeof o.arg === 'string') {
-        const def = byId.get(o.traitId);
-        if (def) for (const faute of fautesDArg(def, o.arg)) offenders.push(`${where} grantTrait ${o.traitId} → ${faute}`);
-      }
-      for (const v of Object.values(o)) walk(v, where);
-    };
-    for (const m of mutations) walk(m, `mutation:${m.id}`);
-    for (const t of traits) walk(t, `trait:${t.id}`);
-    for (const s of spells) walk(s, `spell:${s.id}`);
-    for (const e of etats) walk(e, `etat:${e.id}`);
-    for (const md of maladies) walk(md, `maladie:${md.id}`);
-    expect(offenders, `grantTrait à arg non résolu (libellé pris pour un id ?) :\n${offenders.join('\n')}`).toEqual([]);
   });
 });
