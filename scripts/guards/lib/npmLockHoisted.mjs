@@ -1,7 +1,8 @@
 // Mécanique de scan du garde-fou « lock npm amputé » (#528) : une régénération avec npm 11 ne
 // matérialise pas les entrées HOISTÉES `node_modules/@emnapi/core`/`node_modules/@emnapi/runtime`
-// (peerDependencies de `@napi-rs/wasm-runtime`) que npm 10 (CI, node 22) exige — `npm ci` casse en
-// CI sans que rien ne le révèle en local. Module ESM pur, exécutable par `node` nu — consommé par
+// (peerDependencies de `@napi-rs/wasm-runtime`) que npm 10 (Node 22, admis par `engines`) exige —
+// `npm ci` casse sous npm 10 sans que rien ne le révèle sous npm 11. Module ESM pur, exécutable par
+// `node` nu — consommé par
 // src/npm-lock-hoisted-guard.test.ts ET par scripts/git-hooks/pre-commit.mjs. Garde MUETTE si le
 // lock ne référence plus `@napi-rs/wasm-runtime` du tout (dépendance disparue = non-sujet, jamais
 // figée sur un nom de paquet précis à l'infini).
