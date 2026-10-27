@@ -21,7 +21,9 @@ import type { GameState, RemplacerLEtat } from './store';
 import { useGame } from './store';
 import { registerScene, reposerPaquetDeCampagne } from '../noyau/monde/registreDesScenes';
 import { snapshotSave, packHouseRules, unpackHouseRules } from './saves';
-import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
+import { ruleOverrides, loadRuleOverrides, OPTIONAL_RULES } from '../engine/policy';
+import { etatIdsConnus } from '../engine/conditions';
+import { hash32 } from '../data/hash';
 import { HostSession, GuestSession } from '../net/session';
 import { sanitizeIntentArgs } from './intents';
 import { GUEST_INTENTS, appliquerLIntentionDUnSiege } from '../noyau/intentionsDeSiege';
@@ -64,13 +66,22 @@ const BUFFER_MAX = 256 * 1024;
 /** Token de reprise persisté par room — un reload de l'onglet reprend le même siège. */
 const tokenKey = (code: string) => `wfrp4.coop.token.${code}`;
 
+/** Le `build` comparé au `hello` (#1463 LD.1) : le FORMAT de l'état (`FORMAT_SAVE`) et l'empreinte des registres
+ *  dont un snapshot nomme les ids (règles optionnelles et leur forme, États connus). Deux clients qui divergent
+ *  sur l'un ou l'autre sont refusés par le seul `format-mismatch` du handshake (`net/session.ts`). Lu à
+ *  l'ouverture de la session. */
+export function buildDeLaCoop(): string {
+  const regles = OPTIONAL_RULES.flatMap((r) => [r.id, r.kind, (r.options ?? []).join('|'), r.min ?? '', r.max ?? '']);
+  return `${FORMAT_SAVE}.${hash32(...regles, '§', ...etatIdsConnus()).toString(36)}`;
+}
+
 /** Snapshot d'état pour le réseau — mêmes clés que la sauvegarde, SANS les scènes du projet de
  *  campagne (313 Ko pour l'Arène : elles voyagent UNE fois au join via le message `campaign`,
  *  spec v2 §5). Un stub nom-seul reste : les invités affichent la campagne choisie (cartouche
  *  de l'écran d'équipe) sans jamais la charger eux-mêmes (« Commencer » est hôte-seul).
  *  La FORME de ce `data` est celle de la sauvegarde : `PROTOCOL_VERSION` (`net/protocol.ts`) versionne
  *  les messages, pas leur charge — c'est `FORMAT_SAVE` qui date cette forme, et le `hello` refuse
- *  deux clients de formats différents. */
+ *  deux clients de formats ou de registres différents (`buildDeLaCoop`). */
 export function netSnapshot(get: Get): Record<string, unknown> {
   const { data } = snapshotSave(
     get() as unknown as Record<string, unknown>,
@@ -231,7 +242,7 @@ export async function netHostStart(get: Get, set: Set, name: string): Promise<bo
   const rh = new RoomHost(room.code, room.hostToken);
   roomHost = rh;
   host = new HostSession({
-    build: FORMAT_SAVE,
+    build: buildDeLaCoop(),
     applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
     getSnapshot: () => netSnapshot(get),
     extraJoinMessages: () => campaignMessages(get),
@@ -306,7 +317,7 @@ export function netJoin(get: Get, set: Set, appliquerSnapshot: (data: Record<str
       settled = true;
       clearTrackedTimer(timeout);
       guest = new GuestSession({
-        build: FORMAT_SAVE,
+        build: buildDeLaCoop(),
         label: name,
         applySnapshot: appliquerSnapshot,
         onCampaign: (m) => {

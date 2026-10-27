@@ -938,7 +938,7 @@
     "label": "ChipDeRefus",
     "fichier": "src/ui/ChipDeRefus.tsx",
     "concept": "message d'un REFUS ou d'un état perdu (donnée d'un autre format retirée, geste refusé) en `role=\"alert\"`, en `role=\"status\"` pour l'état permanent d'un champ (`fixe`) : la phrase en `.chip.tone-danger.chip-phrase`, pastille ajustée à son texte, le rapport technique replié en `.fold` ; `id` nomme le message que désigne l'`aria-describedby` d'un champ ; ramenée EN VUE par la primitive (`useRamenerEnVue`) au montage et à chaque changement de `message` / `detail`, jamais à un simple rendu de l'hôte ; `cle` remplace ce déclencheur (refus neuf au texte identique, modales Ouvrir / Enregistrer le projet) ; `fixe` le coupe et pose `role=\"status\"` pour l'état permanent d'un champ en saisie (inspecteur : porte secrète, allège, décor ; narratif : motif d'écart ; carte du monde : raison du refus ; spécimens de galerie)",
-    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
+    "perimetre": "témoins de format (save, roster, import de héros, calque, bibliothèque de campagnes, « Ouvrir » de l'éditeur), retraits d'élagage (save chargée, roster, import de héros, règles maison), refus des gestes de projet, refus de saisie de l'éditeur (inspecteur, narratif, carte du monde, places assises), erreur de connexion du lobby coop",
     "verrou": "src/ui/ChipDeRefus.test.tsx, src/ui/editor/ProjectModals.test.tsx, src/ui/saveload-message-obsolete.test.tsx ; src/ui/ui-ratchets.test.ts (xxiv) — aucun `chip` + `tone-danger` hors de la primitive, exclusions au site"
   },
   {
@@ -1734,7 +1734,7 @@
     "type": "primitives.manifest",
     "label": "INVENTAIRE/inventaireDe/inventaireDeLaRacine/totauxDeLInventaire/rendreInventaire/clesDeclareesJamaisPortees/CLES_POSEES_INCONDITIONNELLEMENT/ANGLES_MORTS_DE_L_INVENTAIRE/SANS_LOT",
     "fichier": "scripts/guards/lib/inventaireDeDette.mts",
-    "concept": "inventaire de la dette que la donnée révèle, HORS de la porte (ni stock, ni règle de plage, ni refus) : formes historiques ou divergentes, orphelines, homonymes, divergences d’enveloppe hors `source` absente (STRUCTURES_ENVELOPPE), couples de référence sans slot et clés déclarées jamais portées, une ligne par site avec sa cible, son lot déduit et ses occurrences indicatives ; totaux par collection et rendu Markdown avec ses angles morts déclarés",
+    "concept": "inventaire de la dette que la donnée révèle, HORS de la porte (ni stock, ni règle de plage, ni refus) : cases de référence en forme non cible ou sans slot (CASES_DE_REFERENCE, une ligne par case), formes de valeur historiques ou divergentes, orphelines, homonymes, divergences d’enveloppe hors `source` absente (STRUCTURES_ENVELOPPE) et clés déclarées jamais portées, une ligne par site avec sa cible, son lot déduit et ses occurrences indicatives ; totaux par collection et rendu Markdown avec ses angles morts déclarés",
     "perimetre": "toute mesure de dette dont la donnée fait varier le compte : le résumé du job `comptes:plage`, `docs/structures-donnees.md` §7 et le rapport daté d’un audit de dette",
     "verrou": "src/data/structures-contrat.test.ts"
   },

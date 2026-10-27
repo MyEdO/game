@@ -7,9 +7,10 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveFormula, formulaExpectation, type Formula } from './ops';
-import { rule, setRule, resetRule } from './policy';
+import { OPTIONAL_RULES, rule, setRule, resetRule } from './policy';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
+import { t } from '../i18n';
 
 /** Référent MINIMAL : aucune branche de `{rule}` ne lit le porteur (ni carac, ni dé). */
 const ref = {} as unknown as Combatant;
@@ -40,8 +41,14 @@ describe('Formula `{rule}` — le SCORING lit la même valeur que la RÉSOLUTION
     expect(formulaExpectation(f, ref)).toBe(10);
   });
 
-  it('une règle INCONNUE (ou non numérique) vaut 0 des deux côtés — jamais NaN', () => {
-    expect(resolveFormula({ rule: 'regle-qui-nexiste-pas' }, ref, desDuTest)).toBe(0);
-    expect(formulaExpectation({ rule: 'regle-qui-nexiste-pas' }, ref)).toBe(0);
+  it('une règle NON NUMÉRIQUE vaut 0 des deux côtés — jamais NaN', () => {
+    const drapeau = OPTIONAL_RULES.find((r) => r.kind === 'flag')!;
+    expect(resolveFormula({ rule: drapeau.id }, ref, desDuTest)).toBe(0);
+    expect(formulaExpectation({ rule: drapeau.id }, ref)).toBe(0);
+  });
+
+  it('une règle hors du registre LÈVE des deux côtés (#1463 LD.1)', () => {
+    expect(() => resolveFormula({ rule: 'regle-hors-registre' }, ref, desDuTest)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
+    expect(() => formulaExpectation({ rule: 'regle-hors-registre' }, ref)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
   });
 });

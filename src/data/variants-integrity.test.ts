@@ -83,8 +83,8 @@ describe('garde-fou « when.rule ∈ OPTIONAL_RULES » (#564 Lot 3 item 1)', () 
  * à une règle optionnelle sa DISPONIBILITÉ (`SpeciesData.gatedByRule`, lu par `speciesAllowed`) ou son
  * COMPORTEMENT (`SkillData.altChar.gatedByRule`, lu par `altCharKey`) — le walk est GÉNÉRIQUE, à toute
  * profondeur et quel que soit le porteur.
- * `rule(id)` d'un id INCONNU rend `false` (`engine/policy.ts`) — une coquille rendrait l'entrée
- * définitivement invisible, sans la moindre erreur. La FK se valide donc ici, sur la donnée réelle.
+ * `rule(id)` d'un id INCONNU lève (`engine/policy.ts`, #1463 LD.1) — une coquille ne romprait qu'au premier
+ * accès joueur à l'entrée. La FK se valide donc ici, sur la donnée réelle.
  */
 const GATE_FIELD = 'gatedByRule';
 

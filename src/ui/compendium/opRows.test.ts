@@ -310,7 +310,7 @@ describe('pastille `charMod` — plancher et durée propre dits au producteur (E
   });
 
   it('`condition` lit la même durée propre', () => {
-    const r = opRow({ op: 'condition', id: 'etourdi', durationHours: 2 });
+    const r = opRow({ op: 'condition', id: etats[0].id, durationHours: 2 });
     expect(r.t === 'ref' ? r.badge : undefined).toBe('2 heures');
   });
 });

@@ -11,6 +11,7 @@
  * partie ; tout chemin joueur (panneau du menu principal, onglet Options en jeu) passe ici.
  */
 import { ruleOverrides, loadRuleOverrides, setRule, resetRule, type RuleValue } from '../engine/policy';
+import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { useGame } from './store';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
@@ -18,10 +19,28 @@ import { lireDictionnaire, stockageWeb } from '../web/stockageWeb';
 /** Clé du magasin des règles maison dans le `localStorage`. */
 export const HOUSE_RULES_STORAGE_KEY = 'wfrp4.house-rules';
 
-/** Charge les règles maison persistées vers le registre du moteur (démarrage de l'app). */
+/** Témoin des règles maison persistées que le registre courant refuse, retirées du stockage — posé par
+ *  `loadHouseRules`, consommé par le panneau des règles (`ui/HouseRulesModal`). */
+let reglesRetirees: RetraitsDElagage | null = null;
+
+/** Consomme le témoin de retrait des règles maison persistées (et le remet à zéro). */
+export function takeHouseRulesNotice(): RetraitsDElagage | null {
+  const r = reglesRetirees;
+  reglesRetirees = null;
+  return r;
+}
+
+/** Charge les règles maison persistées vers le registre du moteur (démarrage de l'app). Les SEULES surcharges que
+ *  le registre courant refuse sont retirées (`elaguerLePersiste`) ; les autres restent appliquées, le stockage est
+ *  réécrit élagué, témoin posé (#1463 LD.1). */
 export function loadHouseRules(): void {
   const o = lireDictionnaire('localStorage', HOUSE_RULES_STORAGE_KEY);
-  if (o) loadRuleOverrides(o);
+  if (!o) return;
+  const { regles, retraits } = elaguerLePersiste({ regles: o });
+  loadRuleOverrides(regles);
+  if (rienDElague(retraits)) return;
+  reglesRetirees = retraits;
+  saveHouseRules();
 }
 
 /** Persiste l'état courant des surcharges. */

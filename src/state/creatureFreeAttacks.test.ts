@@ -193,7 +193,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     const acted = applyGaze(useGame.getState, useGame.setState, E);
     expect(acted).toBe(true);
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    expect(h.conditions.some((c) => c.id === 'Pétrifié') || h.wounds.current === 0).toBe(true);
+    expect(h.conditions.some((c) => c.id === 'petrifie') || h.wounds.current === 0).toBe(true);
     expect(useGame.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // tout dépensé
   });
 

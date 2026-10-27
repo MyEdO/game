@@ -1,8 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyNetSnapshot, netHostStart, netJoin, netLeave } from './netFlow';
+import { applyNetSnapshot, buildDeLaCoop, netHostStart, netJoin, netLeave } from './netFlow';
 import { initialNet } from '../noyau/etat';
 import { useGame } from './store';
 import type { SocketLike } from '../net/relay';
+import { FORMAT_SAVE } from './formats.generated';
+import { setDataset } from '../data/overrides';
+import { etats } from '../data';
+import { OPTIONAL_RULES } from '../engine/policy';
+
+const ETATS_LIVRES = structuredClone(etats);
+const REGLES_LIVREES = structuredClone(OPTIONAL_RULES);
 
 class FakeSocket implements SocketLike {
   static instances: FakeSocket[] = [];
@@ -66,5 +73,25 @@ describe('relais local injoignable', () => {
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(120_000);
     expect(FakeSocket.instances).toHaveLength(2);
+  });
+});
+
+describe('build du handshake coop : format ET registres (#1463 LD.1)', () => {
+  afterEach(() => {
+    setDataset('etats', structuredClone(ETATS_LIVRES));
+    setDataset('reglesOptionnelles', structuredClone(REGLES_LIVREES));
+  });
+
+  it('porte le format de l’état, et change quand un registre que nomme un snapshot change', () => {
+    const base = buildDeLaCoop();
+    expect(base.startsWith(`${FORMAT_SAVE}.`)).toBe(true);
+    expect(buildDeLaCoop(), 'déterministe').toBe(base);
+    setDataset('etats', [...structuredClone(ETATS_LIVRES), { ...structuredClone(ETATS_LIVRES[0]), id: 'etat-de-fixture' }]);
+    expect(buildDeLaCoop()).not.toBe(base);
+    setDataset('etats', structuredClone(ETATS_LIVRES));
+    expect(buildDeLaCoop()).toBe(base);
+    const mode = REGLES_LIVREES.findIndex((r) => r.kind === 'mode');
+    setDataset('reglesOptionnelles', REGLES_LIVREES.map((r, i) => (i === mode ? { ...structuredClone(r), options: [...(r.options ?? []), 'option-de-fixture'] } : structuredClone(r))));
+    expect(buildDeLaCoop()).not.toBe(base);
   });
 });

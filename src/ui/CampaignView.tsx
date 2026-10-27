@@ -67,6 +67,7 @@ import { useGamepad } from './useGamepad';
 import { lancerCampagne } from '../scenes/campaign';
 import { estNouveauPour } from '../noyau/monde/clues';
 import { presetPnjById } from '../state/campaignData';
+import { RetraitsDeChargement } from './RetraitsDeChargement';
 
 /** Défaite : dans une bataille de masse ou une scène, `dismissDefeat` ; sans scène, l'Arène se
  *  lance par le geste de « Lancer » (`lancerCampagne`, sans choix). Le refus de la porte vit le temps
@@ -322,6 +323,7 @@ export function CampaignView() {
             — `DialogueBox` ne porte pas de `.modal-overlay` (pas de voile plein écran), donc une
             modale système au-dessus resterait invisible/inatteignable sous elle sans cette garde. */}
         {saveOpen && !dialogue && <SaveLoadModal mode="save" onClose={() => setSaveOpen(false)} />}
+        {!dialogue && <RetraitsDeChargement />}
         {(sessionOpen || sessionEndOpen) && !dialogue && <SessionEndModal onClose={() => { setSessionOpen(false); closeSessionEnd(); }} />}
         <PartyDock heroes={dockHeroes} targeting={isTargeting} onOpen={onDockPortrait} onInspect={setInspectId} />
         {/* LA RANGÉE DU MONDE (#1848, `.stage-flot` — hud.css) : tout ce qui s'ancre AU BAS DU CHAMP
